@@ -111,11 +111,11 @@
 
 /* Border radius adjustments for asymmetric elements */
 [dir="rtl"] .rounded-l-full {
-  border-radius: 0 9999px 9999px 0;
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
 }
 
 [dir="rtl"] .rounded-r-full {
-  border-radius: 9999px 0 0 9999px;
+  border-radius: var(--radius-full) 0 0 var(--radius-full);
 }
 
 /* Margin/Padding logical properties fallback */

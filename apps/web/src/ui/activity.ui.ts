@@ -363,7 +363,7 @@ const ACTIVITY_STYLES = `
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
     background: var(--color-semantic-warning-subtle, rgba(255, 193, 7, 0.15));
-    border-bottom: 1px solid var(--color-semantic-warning, #ffc107);
+    border-bottom: 1px solid var(--color-semantic-warning);
     color: var(--color-text-primary);
     font-size: 0.875rem;
   }

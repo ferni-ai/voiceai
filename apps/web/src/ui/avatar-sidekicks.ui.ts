@@ -548,7 +548,7 @@ export function showTimeOfDaySidekick(): void {
       icon: 'sunrise', 
       position: 'right',
       duration: 3000,
-      color: 'var(--color-semantic-warning, #c4856a)',
+      color: 'var(--color-semantic-warning)',
       animation: 'float'
     });
   } else if (hour >= 8 && hour < 11) {
@@ -557,7 +557,7 @@ export function showTimeOfDaySidekick(): void {
       icon: 'coffee', 
       position: 'right',
       duration: 3000,
-      color: 'var(--color-text-secondary, #9a7b5a)',
+      color: 'var(--color-text-secondary)',
       animation: 'float'
     });
   } else if (hour >= 11 && hour < 17) {
@@ -566,7 +566,7 @@ export function showTimeOfDaySidekick(): void {
       icon: 'sun', 
       position: 'right',
       duration: 2500,
-      color: 'var(--color-semantic-warning, #c4856a)',
+      color: 'var(--color-semantic-warning)',
       animation: 'pulse'
     });
   } else if (hour >= 17 && hour < 19) {
@@ -575,7 +575,7 @@ export function showTimeOfDaySidekick(): void {
       icon: 'sunset', 
       position: 'right',
       duration: 3000,
-      color: 'var(--color-semantic-warning, #c4856a)',
+      color: 'var(--color-semantic-warning)',
       animation: 'float'
     });
   } else if (hour >= 19 && hour < 21) {
@@ -584,7 +584,7 @@ export function showTimeOfDaySidekick(): void {
       icon: 'flame', 
       position: 'right',
       duration: 3000,
-      color: 'var(--color-semantic-warning, #c4856a)',
+      color: 'var(--color-semantic-warning)',
       animation: 'float'
     });
   } else {
@@ -593,7 +593,7 @@ export function showTimeOfDaySidekick(): void {
       icon: 'moon', 
       position: 'right',
       duration: 3000,
-      color: 'var(--color-text-muted, #5a6b8a)',
+      color: 'var(--color-text-muted)',
       animation: 'float'
     });
   }
@@ -611,7 +611,7 @@ export function showIdea(): void {
     icon: 'lightbulb',
     position: 'left',
     duration: 2000,
-    color: 'var(--color-semantic-warning, #b8956a)',
+    color: 'var(--color-semantic-warning)',
     animation: 'bounce',
   });
 }
@@ -624,7 +624,7 @@ export function showLove(): void {
     icon: 'heart',
     position: 'right',
     duration: 2500,
-    color: 'var(--color-semantic-error, #a67a6a)',
+    color: 'var(--color-semantic-error)',
     animation: 'float',
   });
 }
@@ -727,7 +727,7 @@ export function showCreative(): void {
     icon: 'palette',
     position: 'left',
     duration: 2500,
-    color: 'var(--color-semantic-warning, #b8956a)',
+    color: 'var(--color-semantic-warning)',
     animation: 'float',
   });
 }
@@ -764,7 +764,7 @@ export function showCalm(): void {
     icon: 'waves',
     position: 'right',
     duration: 3500,
-    color: 'var(--color-text-muted, #5a6b8a)',
+    color: 'var(--color-text-muted)',
     animation: 'float',
   });
 }
@@ -781,7 +781,7 @@ export function showEnergy(): void {
     icon: 'zap',
     position: 'left',
     duration: 2000,
-    color: 'var(--color-semantic-warning, #b8956a)',
+    color: 'var(--color-semantic-warning)',
     animation: 'bounce',
   });
 }
@@ -794,7 +794,7 @@ export function showProgress(): void {
     icon: 'trendingUp',
     position: 'right',
     duration: 2500,
-    color: 'var(--color-semantic-success, #4a6741)',
+    color: 'var(--color-semantic-success)',
     animation: 'bounce',
   });
 }
@@ -837,7 +837,7 @@ export function showAchievement(): void {
     icon: 'trophy',
     position: 'left',
     duration: 3000,
-    color: 'var(--color-semantic-warning, #b8956a)',
+    color: 'var(--color-semantic-warning)',
     animation: 'bounce',
   });
 }
@@ -850,7 +850,7 @@ export function showGift(): void {
     icon: 'gift',
     position: 'right',
     duration: 3000,
-    color: 'var(--color-semantic-error, #a67a6a)',
+    color: 'var(--color-semantic-error)',
     animation: 'bounce',
   });
 }
@@ -870,7 +870,7 @@ export function showRecognition(): void {
     icon: 'crown',
     position: 'left',
     duration: 2500,
-    color: 'var(--color-semantic-warning, #b8956a)',
+    color: 'var(--color-semantic-warning)',
     animation: 'pulse',
   });
 }
@@ -900,7 +900,7 @@ export function showReminder(): void {
     icon: 'bell',
     position: 'right',
     duration: 2000,
-    color: 'var(--color-semantic-warning, #b8956a)',
+    color: 'var(--color-semantic-warning)',
     animation: 'bounce',
   });
 }
@@ -917,7 +917,7 @@ export function showBedtime(): void {
     icon: 'moon',
     position: 'right',
     duration: 3000,
-    color: 'var(--color-text-muted, #5a6b8a)',
+    color: 'var(--color-text-muted)',
     animation: 'float',
   });
 }
@@ -973,7 +973,7 @@ export function showComplete(): void {
     icon: 'checkCircle',
     position: 'right',
     duration: 2000,
-    color: 'var(--color-semantic-success, #4a6741)',
+    color: 'var(--color-semantic-success)',
     animation: 'bounce',
   });
 }
@@ -1070,7 +1070,7 @@ function injectStyles(): void {
     
     /* Dark theme adjustments */
     [data-theme='dark'] .sidekick-icon {
-      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+      filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--color-black) 40%, transparent));
     }
     
     /* Responsive - hide on very small screens */

@@ -674,10 +674,10 @@ export class PredictionsUI {
         width: 100%;
         max-width: clamp(294px, 90vw, 420px);
         max-height: 80vh;
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -904,7 +904,7 @@ export class PredictionsUI {
 
       .prediction-resolve-btn:hover {
         background: var(--persona-primary, var(--color-accent-primary));
-        color: white;
+        color: var(--color-white);
         transform: translateY(-1px);
       }
 
@@ -942,10 +942,10 @@ export class PredictionsUI {
         position: relative;
         width: 100%;
         max-width: min(360px, 100%);
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         overflow: hidden;
         transform: scale(0.95);
         opacity: 0;
@@ -1060,7 +1060,7 @@ export class PredictionsUI {
         padding: var(--space-2, 8px) var(--space-4, 16px);
         font-size: var(--text-sm);
         font-weight: var(--font-weight-medium, 500);
-        color: white;
+        color: var(--color-white);
         background: var(--persona-primary, var(--color-accent-primary));
         border: none;
         border-radius: var(--radius-md, 0.5rem);
@@ -1145,7 +1145,7 @@ export class PredictionsUI {
         justify-content: center;
         gap: var(--space-1, 4px);
         padding: var(--space-1, 4px) var(--space-3, 12px);
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         border-radius: var(--radius-full);
         margin: 0 auto;
         color: var(--persona-ink);
@@ -1164,7 +1164,7 @@ export class PredictionsUI {
 
       .predictions-empty__sample {
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, rgba(0, 0, 0, 0.02));
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 12px);
         text-align: left;
         opacity: 0;
@@ -1184,11 +1184,11 @@ export class PredictionsUI {
       }
 
       .predictions-empty__sample--accurate {
-        border-left: 3px solid var(--persona-primary, #4a6741);
+        border-left: 3px solid var(--persona-primary, var(--color-ferni));
       }
 
       .predictions-empty__sample--watching {
-        border-left: 3px solid var(--color-text-muted, #9a8a7a);
+        border-left: 3px solid var(--color-text-muted);
         opacity: 0.85;
       }
 
@@ -1205,7 +1205,7 @@ export class PredictionsUI {
       }
 
       .predictions-empty__sample--watching .predictions-empty__sample-status {
-        color: var(--color-text-muted, #9a8a7a);
+        color: var(--color-text-muted);
       }
 
       .predictions-empty__sample-text {
@@ -1262,7 +1262,7 @@ export class PredictionsUI {
       .predictions-empty__cta {
         text-align: center;
         padding-top: var(--space-3, 12px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06));
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       .predictions-empty__cta-text {
@@ -1277,7 +1277,7 @@ export class PredictionsUI {
         align-items: center;
         gap: var(--space-1, 4px);
         padding: var(--space-2, 8px) var(--space-3, 12px);
-        background: var(--color-background-tertiary, rgba(0, 0, 0, 0.03));
+        background: var(--color-background-tertiary);
         border-radius: var(--radius-lg, 12px);
         color: var(--color-text-muted);
         font-size: var(--text-xs, 0.75rem);
@@ -1343,7 +1343,7 @@ export class PredictionsUI {
       }
 
       [data-theme="midnight"] .predictions-empty__sample {
-        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.03));
+        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .predictions-empty__accuracy {
@@ -1358,12 +1358,12 @@ export class PredictionsUI {
         background: linear-gradient(
           to bottom,
           transparent,
-          var(--color-background-elevated, #1a1a2e)
+          var(--color-background-elevated)
         );
       }
 
       [data-theme="midnight"] .predictions-empty__unlock-hint {
-        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.05));
+        background: var(--color-background-tertiary);
       }
 
       /* Responsive */

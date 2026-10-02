@@ -160,7 +160,7 @@ function injectStyles(): void {
     .contact-settings-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--color-utility-backdrop, rgba(44, 37, 32, 0.75));
+      background: var(--color-utility-backdrop);
       backdrop-filter: blur(var(--glass-blur-subtle, 8px));
     }
 
@@ -170,8 +170,8 @@ function injectStyles(): void {
       max-width: clamp(308px, 90vw, 440px);
       max-height: 90vh;
       overflow-y: auto;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: 16px;
       box-shadow: var(--shadow-xl, 0 16px 48px rgba(44, 37, 32, 0.2));
       transform: scale(0.95) translateY(10px);
@@ -193,9 +193,9 @@ function injectStyles(): void {
       height: 48px;
       margin: 0 auto 0.75rem;
       padding: 12px;
-      background: linear-gradient(135deg, var(--color-ferni, #4a6741), var(--color-ferni-dark, #3d5a35));
+      background: linear-gradient(135deg, var(--color-ferni), var(--color-ferni-dark, var(--color-ferni-secondary)));
       border-radius: 50%;
-      color: white;
+      color: var(--color-white);
     }
 
     .contact-settings-icon svg {
@@ -215,7 +215,7 @@ function injectStyles(): void {
     .contact-settings-title {
       font-size: 1.25rem;
       font-weight: 600;
-      color: var(--color-natural-ink, #2C2520);
+      color: var(--color-natural-ink);
       margin: 0 0 0.5rem;
     }
 
@@ -236,7 +236,7 @@ function injectStyles(): void {
       background: transparent;
       border: none;
       border-radius: 8px;
-      color: var(--color-text-muted, #9B8B7F);
+      color: var(--color-text-muted);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -297,15 +297,15 @@ function injectStyles(): void {
       font-family: inherit;
       border: 2px solid rgba(44, 37, 32, 0.2);
       border-radius: 8px;
-      background: var(--color-bg-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-bg-elevated, var(--color-white));
+      color: var(--color-text-primary);
       transition: all ${DURATION.FAST}ms;
     }
 
     .contact-settings-input:focus {
       outline: none;
-      border-color: var(--color-ferni, #4a6741);
-      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
+      border-color: var(--color-ferni);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ferni) 20%, transparent);
     }
 
     .contact-settings-input::placeholder {
@@ -319,7 +319,7 @@ function injectStyles(): void {
       align-items: center;
       gap: 0.25rem;
       padding: 0.25rem 0.5rem;
-      background: rgba(74, 103, 65, 0.1);
+      background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
       border-radius: 999px;
       font-size: 0.75rem;
       font-weight: 500;
@@ -338,7 +338,7 @@ function injectStyles(): void {
       font-size: 0.875rem;
       font-weight: 500;
       background: transparent;
-      border: 2px solid var(--color-ferni, #4a6741);
+      border: 2px solid var(--color-ferni);
       border-radius: 8px;
       color: var(--color-ferni-ink);
       cursor: pointer;
@@ -346,11 +346,11 @@ function injectStyles(): void {
     }
 
     .contact-settings-verify-btn:hover {
-      background: rgba(74, 103, 65, 0.1);
+      background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
     }
 
     .contact-settings-verify-btn:focus {
-      outline: 3px solid rgba(74, 103, 65, 0.5);
+      outline: 3px solid color-mix(in srgb, var(--color-ferni) 50%, transparent);
       outline-offset: 2px;
     }
 
@@ -362,9 +362,9 @@ function injectStyles(): void {
     .contact-settings-verification {
       margin-top: 0.75rem;
       padding: 1rem;
-      background: rgba(74, 103, 65, 0.05);
+      background: color-mix(in srgb, var(--color-ferni) 5%, transparent);
       border-radius: 8px;
-      border: 1px solid rgba(74, 103, 65, 0.15);
+      border: 1px solid color-mix(in srgb, var(--color-ferni) 15%, transparent);
     }
 
     .contact-settings-verification-text {
@@ -383,13 +383,13 @@ function injectStyles(): void {
       text-align: center;
       border: 2px solid rgba(44, 37, 32, 0.2);
       border-radius: 8px;
-      background: var(--color-bg-elevated, #FFFDFB);
+      background: var(--color-bg-elevated, var(--color-white));
     }
 
     .contact-settings-code-input:focus {
       outline: none;
-      border-color: var(--color-ferni, #4a6741);
-      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
+      border-color: var(--color-ferni);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ferni) 20%, transparent);
     }
 
     .contact-settings-privacy {
@@ -421,7 +421,7 @@ function injectStyles(): void {
       display: flex;
       gap: 0.75rem;
       padding: 1rem 1.5rem;
-      background: var(--color-warm-white, #FAF8F5);
+      background: var(--color-warm-white, var(--color-white));
       border-radius: 0 0 16px 16px;
     }
 
@@ -440,7 +440,7 @@ function injectStyles(): void {
     }
 
     .contact-settings-btn:focus {
-      outline: 3px solid rgba(74, 103, 65, 0.5);
+      outline: 3px solid color-mix(in srgb, var(--color-ferni) 50%, transparent);
       outline-offset: 2px;
     }
 
@@ -450,22 +450,22 @@ function injectStyles(): void {
 
     .contact-settings-btn--secondary {
       background: transparent;
-      border: 2px solid var(--color-ferni, #4a6741);
+      border: 2px solid var(--color-ferni);
       color: var(--color-ferni-ink);
     }
 
     .contact-settings-btn--secondary:hover {
-      background: rgba(74, 103, 65, 0.1);
+      background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
     }
 
     .contact-settings-btn--primary {
-      background: var(--color-ferni, #4a6741);
+      background: var(--color-ferni);
       border: none;
-      color: white;
+      color: var(--color-white);
     }
 
     .contact-settings-btn--primary:hover {
-      background: var(--color-ferni-dark, #3d5a35);
+      background: var(--color-ferni-dark, var(--color-ferni-secondary));
       transform: translateY(-1px);
     }
 
@@ -487,8 +487,8 @@ function injectStyles(): void {
 
     .contact-settings-success {
       padding: 0.75rem 1rem;
-      background: rgba(74, 103, 65, 0.1);
-      border-left: 4px solid var(--color-ferni, #4a6741);
+      background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
+      border-left: 4px solid var(--color-ferni);
       border-radius: 8px;
       color: var(--color-ferni-ink);
       font-size: 0.875rem;
@@ -524,7 +524,7 @@ function injectStyles(): void {
       gap: 0.5rem;
       font-size: 1rem;
       font-weight: 600;
-      color: var(--color-natural-ink, #2C2520);
+      color: var(--color-natural-ink);
     }
 
     .contact-settings-section-title svg {
@@ -545,7 +545,7 @@ function injectStyles(): void {
     }
 
     .contact-settings-toggle.active {
-      background: var(--color-ferni, #4a6741);
+      background: var(--color-ferni);
     }
 
     .contact-settings-toggle-knob {
@@ -554,9 +554,9 @@ function injectStyles(): void {
       left: 3px;
       width: 22px;
       height: 22px;
-      background: var(--color-bg-elevated, #FFFDFB);
+      background: var(--color-bg-elevated, var(--color-white));
       border-radius: 50%;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 4px color-mix(in srgb, var(--color-black) 10%, transparent);
       transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
@@ -592,8 +592,8 @@ function injectStyles(): void {
       font-size: 1rem;
       border: 2px solid rgba(44, 37, 32, 0.2);
       border-radius: 8px;
-      background: var(--color-bg-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-bg-elevated, var(--color-white));
+      color: var(--color-text-primary);
       cursor: pointer;
       appearance: none;
       transition: all 0.2s;
@@ -604,8 +604,8 @@ function injectStyles(): void {
 
     .contact-settings-time-select:focus {
       outline: none;
-      border-color: var(--color-ferni, #4a6741);
-      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
+      border-color: var(--color-ferni);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ferni) 20%, transparent);
     }
 
     .contact-settings-quiet-note {

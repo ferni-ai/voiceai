@@ -32,11 +32,11 @@ import { t } from '../../../i18n/index.js';
 
 // CSS variable names for consistent theming
 const CATEGORY_CSS_VARS: Record<Relationship['category'], string> = {
-  family: 'var(--color-semantic-error, #e74c3c)',
+  family: 'var(--color-semantic-error)',
   friend: 'var(--color-accent, #3D5A45)',
   colleague: 'var(--persona-peter-primary, #3a6b73)',
   mentor: 'var(--persona-eli-primary, #8a7a9a)',
-  other: 'var(--color-text-muted, #9a8f85)',
+  other: 'var(--color-text-muted)',
 };
 
 // Computed colors for SVG attributes that need hex values
@@ -397,7 +397,7 @@ function buildTablet(
     padding: '0.875rem 1.125rem',
     borderRadius: 'var(--radius-lg, 1rem)',
     boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
-    border: '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+    border: '1px solid var(--color-border-subtle)',
   });
 
   const title = createElement('h3');
@@ -407,7 +407,7 @@ function buildTablet(
     fontWeight: '600',
     lineHeight: '1.2',
     letterSpacing: '-0.01em',
-    color: 'var(--color-text-primary, #2C2520)',
+    color: 'var(--color-text-primary)',
     margin: '0 0 0.125rem',
   });
   title.textContent = 'Your World';
@@ -417,7 +417,7 @@ function buildTablet(
     fontFamily: 'var(--font-body, Inter, sans-serif)',
     fontSize: '0.6875rem',
     fontWeight: '500',
-    color: 'var(--color-text-muted, #8a8279)',
+    color: 'var(--color-text-muted)',
     margin: '0',
     letterSpacing: '0.01em',
   });
@@ -439,7 +439,7 @@ function buildTablet(
     padding: '0.75rem 1rem',
     borderRadius: 'var(--radius-lg, 1rem)',
     boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
-    border: '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+    border: '1px solid var(--color-border-subtle)',
     display: 'flex',
     gap: '1.25rem',
   });
@@ -452,7 +452,7 @@ function buildTablet(
     fontFamily: 'var(--font-display, "Plus Jakarta Sans", sans-serif)',
     fontSize: '1.5rem',
     fontWeight: '700',
-    color: 'var(--color-semantic-success, #3d7a52)',
+    color: 'var(--color-semantic-success)',
     lineHeight: '1',
   });
   activeValue.textContent = String(data.activeConnections);
@@ -461,7 +461,7 @@ function buildTablet(
     fontFamily: 'var(--font-body, Inter, sans-serif)',
     fontSize: '0.625rem',
     fontWeight: '600',
-    color: 'var(--color-text-muted, #8a8279)',
+    color: 'var(--color-text-muted)',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
     marginTop: '0.125rem',
@@ -475,7 +475,7 @@ function buildTablet(
   const divider = createElement('div');
   setStyles(divider, {
     width: '1px',
-    background: 'var(--color-border-subtle, rgba(44, 37, 32, 0.1))',
+    background: 'var(--color-border-subtle)',
     alignSelf: 'stretch',
   });
   statsPanel.appendChild(divider);
@@ -489,8 +489,8 @@ function buildTablet(
     fontSize: '1.5rem',
     fontWeight: '700',
     color: data.needsAttention.length > 0 
-      ? 'var(--color-semantic-warning, #a67c35)' 
-      : 'var(--color-text-muted, #8a8279)',
+      ? 'var(--color-semantic-warning)' 
+      : 'var(--color-text-muted)',
     lineHeight: '1',
   });
   attentionValue.textContent = String(data.needsAttention.length);
@@ -499,7 +499,7 @@ function buildTablet(
     fontFamily: 'var(--font-body, Inter, sans-serif)',
     fontSize: '0.625rem',
     fontWeight: '600',
-    color: 'var(--color-text-muted, #8a8279)',
+    color: 'var(--color-text-muted)',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
     marginTop: '0.125rem',
@@ -537,7 +537,7 @@ function buildTablet(
       backdropFilter: 'blur(8px)',
       borderRadius: 'var(--radius-full, 9999px)',
       boxShadow: '0 1px 4px rgba(0, 0, 0, 0.06)',
-      border: '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+      border: '1px solid var(--color-border-subtle)',
     });
 
     const dot = createElement('div');
@@ -555,7 +555,7 @@ function buildTablet(
       fontFamily: 'var(--font-body, Inter, sans-serif)',
       fontSize: '0.6875rem',
       fontWeight: '600',
-      color: 'var(--color-text-secondary, #5c544a)',
+      color: 'var(--color-text-secondary)',
       textTransform: 'capitalize',
     });
     chipLabel.textContent = `${category} (${count})`;
@@ -574,12 +574,12 @@ function buildTablet(
       bottom: '1.25rem',
       right: '1.25rem',
       zIndex: '10',
-      background: 'var(--color-semantic-warning-tint, rgba(166, 124, 53, 0.08))',
+      background: 'var(--color-semantic-warning-tint)',
       backdropFilter: 'blur(12px)',
       padding: '0.75rem 1rem',
       borderRadius: 'var(--radius-lg, 1rem)',
       boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)',
-      borderLeft: '3px solid var(--color-semantic-warning, #a67c35)',
+      borderLeft: '3px solid var(--color-semantic-warning)',
       maxWidth: '180px',
     });
 
@@ -601,7 +601,7 @@ function buildTablet(
       fontFamily: 'var(--font-body, Inter, sans-serif)',
       fontSize: '0.8125rem',
       fontWeight: '600',
-      color: 'var(--color-text-primary, #2C2520)',
+      color: 'var(--color-text-primary)',
       lineHeight: '1.3',
     });
     reconnectName.textContent = data.needsAttention[0] ?? '';
@@ -742,7 +742,7 @@ function buildTablet(
       pulseGlow.setAttribute('cy', String(y));
       pulseGlow.setAttribute('r', String(nodeSize + 8));
       pulseGlow.setAttribute('fill', 'none');
-      pulseGlow.setAttribute('stroke', 'var(--color-semantic-warning, #a67c35)');
+      pulseGlow.setAttribute('stroke', 'var(--color-semantic-warning)');
       pulseGlow.setAttribute('stroke-width', '3');
       pulseGlow.setAttribute('opacity', '0.5');
       svg.appendChild(pulseGlow);
@@ -788,7 +788,7 @@ function buildTablet(
       label.setAttribute('text-anchor', 'middle');
       label.setAttribute('font-size', '12');
       label.setAttribute('font-weight', '500');
-      label.setAttribute('fill', 'var(--color-text-secondary, #5c544a)');
+      label.setAttribute('fill', 'var(--color-text-secondary)');
       label.setAttribute('font-family', 'var(--font-body, Inter, sans-serif)');
       label.textContent = displayName;
       svg.appendChild(label);

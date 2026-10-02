@@ -14,7 +14,7 @@
   z-index: 9999;
   padding: var(--space-3) var(--space-5);
   background: var(--accent-primary);
-  color: white;
+  color: var(--text-inverse);
   font-weight: 600;
   text-decoration: none;
   border-radius: var(--radius-lg);
@@ -48,18 +48,12 @@
   }
 }
 
-/* High contrast mode support */
+/* High contrast mode support (the portal is always Cedar Night, so light borders) */
 @media (prefers-contrast: high) {
   :root {
-    --border-subtle: rgba(0, 0, 0, 0.3);
-    --border-medium: rgba(0, 0, 0, 0.5);
-    --border-strong: rgba(0, 0, 0, 0.8);
-  }
-
-  [data-theme='dark'] {
-    --border-subtle: rgba(255, 255, 255, 0.3);
-    --border-medium: rgba(255, 255, 255, 0.5);
-    --border-strong: rgba(255, 255, 255, 0.8);
+    --border-subtle: color-mix(in srgb, var(--color-white) 30%, transparent);
+    --border-medium: color-mix(in srgb, var(--color-white) 50%, transparent);
+    --border-strong: color-mix(in srgb, var(--color-white) 80%, transparent);
   }
 }
 
@@ -347,7 +341,7 @@ pre code {
   color: var(--text-dimmed);
   background: var(--bg-secondary);
   padding: 2px 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 /* Theme Toggle - Subtle */
@@ -500,7 +494,7 @@ pre code {
 .search-modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: color-mix(in srgb, var(--color-black) 50%, transparent);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
@@ -616,7 +610,7 @@ pre code {
 
 .btn-primary {
   background: var(--accent-primary);
-  color: white;
+  color: var(--text-inverse);
 }
 
 .btn-primary:hover {
@@ -681,7 +675,7 @@ pre code {
 /* Outline variant */
 .btn-outline {
   background: transparent;
-  color: var(--accent-primary);
+  color: var(--accent-text);
   border: 1px solid var(--accent-primary);
 }
 
@@ -692,11 +686,11 @@ pre code {
 /* Danger variant */
 .btn-danger {
   background: var(--error);
-  color: white;
+  color: var(--color-white);
 }
 
 .btn-danger:hover {
-  background: #dc2626;
+  background: color-mix(in srgb, var(--error) 85%, var(--color-black));
 }
 
 /* Button group */
@@ -817,7 +811,7 @@ pre code {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--color-white) 3%, transparent);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -833,13 +827,13 @@ pre code {
 }
 
 .code-dot-red {
-  background: #e07575;
+  background: var(--error);
 }
 .code-dot-yellow {
-  background: #e0b860;
+  background: var(--warning);
 }
 .code-dot-green {
-  background: #6bc48f;
+  background: var(--success);
 }
 
 .code-lang {
@@ -914,7 +908,7 @@ pre code {
   color: var(--syntax-operator);
 }
 .token.class-name {
-  color: var(--syntax-class);
+  color: var(--syntax-function);
 }
 
 /* ========================================
@@ -932,7 +926,7 @@ pre code {
   display: flex;
   align-items: center;
   padding: var(--space-3) var(--space-4);
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--color-white) 3%, transparent);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -957,7 +951,7 @@ pre code {
 }
 
 .terminal-prompt {
-  color: var(--success);
+  color: var(--success-text);
   margin-right: var(--space-2);
   user-select: none;
 }
@@ -976,7 +970,7 @@ pre code {
   width: 8px;
   height: 18px;
   background: var(--accent-primary);
-  animation: blink 1s step-end infinite;
+  animation: blink var(--duration-dramatic) step-end infinite;
 }
 
 @keyframes blink {
@@ -1016,7 +1010,7 @@ pre code {
   align-items: center;
   justify-content: center;
   margin-bottom: var(--space-4);
-  color: var(--accent-primary);
+  color: var(--accent-text);
   transition: all var(--duration-normal) var(--ease-gentle);
 }
 
@@ -1075,11 +1069,11 @@ pre code {
   padding: 1px;
   background: linear-gradient(135deg, var(--accent-primary), transparent 60%);
   -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
+    linear-gradient(var(--color-white) 0 0) content-box,
+    linear-gradient(var(--color-white) 0 0);
   mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
+    linear-gradient(var(--color-white) 0 0) content-box,
+    linear-gradient(var(--color-white) 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
@@ -1108,7 +1102,7 @@ pre code {
   margin-top: var(--space-4);
   font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--accent-primary);
+  color: var(--accent-text);
   transition: all var(--duration-fast);
 }
 
@@ -1155,7 +1149,7 @@ pre code {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--color-white) 3%, transparent);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -1171,13 +1165,13 @@ pre code {
 }
 
 .card-code-dot--red {
-  background: #ff5f57;
+  background: var(--error);
 }
 .card-code-dot--yellow {
-  background: #febc2e;
+  background: var(--warning);
 }
 .card-code-dot--green {
-  background: #28c840;
+  background: var(--success);
 }
 
 .card-code-lang {
@@ -1213,7 +1207,7 @@ pre code {
 .card-testimonial-quote::before {
   content: '"';
   font-size: var(--text-4xl);
-  color: var(--accent-primary);
+  color: var(--accent-text);
   line-height: 0;
   vertical-align: -0.4em;
   margin-right: var(--space-1);
@@ -1234,7 +1228,7 @@ pre code {
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: var(--accent-primary);
+  color: var(--accent-text);
 }
 
 .card-testimonial-info {
@@ -1286,23 +1280,23 @@ pre code {
 }
 
 .method-get {
-  background: var(--method-get);
+  background: var(--success);
   color: var(--bg-code);
 }
 .method-post {
-  background: var(--method-post);
+  background: var(--info);
   color: var(--bg-code);
 }
 .method-put {
-  background: var(--method-put);
+  background: var(--warning);
   color: var(--bg-code);
 }
 .method-delete {
-  background: var(--method-delete);
+  background: var(--error);
   color: var(--bg-code);
 }
 .method-patch {
-  background: var(--method-patch);
+  background: var(--accent-primary);
   color: var(--bg-code);
 }
 
@@ -1916,7 +1910,7 @@ pre code {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--accent-text);
+  color: var(--text-primary);
   background: var(--accent-subtle);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
@@ -1943,7 +1937,7 @@ pre code {
   justify-content: center;
   font-size: var(--text-xs);
   font-weight: 600;
-  color: white;
+  color: var(--color-white);
 }
 
 .blog-card-author-name {
@@ -2209,7 +2203,7 @@ pre code {
   justify-content: center;
   font-size: var(--text-base);
   font-weight: 600;
-  color: white;
+  color: var(--color-white);
 }
 
 .blog-post-author-info {

@@ -21,6 +21,12 @@ import { openImportContacts } from './import-contacts.ui.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getAllMockContacts, MOCK_NUDGES } from '../data/mock-contacts.ts';
 import { t } from '../i18n/index.js';
+import {
+  getInitials,
+  getStrengthColor,
+  escapeHtml,
+  capitalizeFirst,
+} from './your-people-format.js';
 
 const log = createLogger('YourPeopleUI');
 
@@ -157,10 +163,10 @@ function injectStyles(): void {
       width: 94%;
       max-width: clamp(392px, 90vw, 560px);
       max-height: 85vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -205,7 +211,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-2xl, 1.5rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
       line-height: 1.2;
     }
@@ -226,7 +232,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
 
@@ -236,7 +242,7 @@ function injectStyles(): void {
     }
 
     .yp-action-btn:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
 
@@ -250,17 +256,17 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
 
     .yp-close:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .yp-close:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
 
@@ -274,7 +280,7 @@ function injectStyles(): void {
       left: var(--space-3, 0.75rem);
       top: 50%;
       transform: translateY(-50%);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       pointer-events: none;
     }
 
@@ -289,19 +295,19 @@ function injectStyles(): void {
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
-      background: var(--color-background-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
       outline: none;
       transition: border-color ${DURATION.FAST}ms, box-shadow ${DURATION.FAST}ms;
     }
 
     .yp-search-input:focus {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
     .yp-search-input::placeholder {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     /* Filters */
@@ -318,24 +324,24 @@ function injectStyles(): void {
       background: transparent;
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .yp-filter:hover {
-      border-color: var(--color-text-muted, #70605a);
-      color: var(--color-text-secondary, #5a4a42);
+      border-color: var(--color-text-muted);
+      color: var(--color-text-secondary);
     }
 
     .yp-filter.active {
-      background: var(--persona-primary, #4a6741);
-      border-color: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      border-color: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .yp-filter:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
 
@@ -345,7 +351,7 @@ function injectStyles(): void {
     
     .yp-nudges {
       padding: var(--space-4, 1rem) var(--space-6, 1.5rem);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.04));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 4%, transparent));
       border-bottom: 1px solid var(--color-border, rgba(44, 37, 32, 0.06));
     }
 
@@ -371,7 +377,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-3, 0.75rem);
       padding: var(--space-3, 0.75rem);
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-lg, 1rem);
       margin-bottom: var(--space-2, 0.5rem);
       cursor: pointer;
@@ -381,12 +387,12 @@ function injectStyles(): void {
 
     .yp-nudge:hover,
     .yp-nudge:focus {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       outline: none;
     }
 
     .yp-nudge:focus-visible {
-      box-shadow: 0 0 0 2px var(--persona-primary, #4a6741);
+      box-shadow: 0 0 0 2px var(--persona-primary, var(--color-ferni));
     }
 
     .yp-nudge:last-child {
@@ -402,7 +408,7 @@ function injectStyles(): void {
         var(--persona-primary, #4a6741),
         var(--persona-secondary, #3d5a35)
       );
-      color: white;
+      color: var(--color-white);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -419,12 +425,12 @@ function injectStyles(): void {
     .yp-nudge-name {
       font-weight: 600;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .yp-nudge-reason {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       margin-top: var(--space-0-5, 0.125rem);
     }
 
@@ -450,7 +456,7 @@ function injectStyles(): void {
     }
 
     .yp-nudge-arrow {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     /* =========================================================================
@@ -475,7 +481,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -497,12 +503,12 @@ function injectStyles(): void {
     }
 
     .yp-person:focus-visible {
-      box-shadow: 0 0 0 2px var(--persona-primary, #4a6741);
+      box-shadow: 0 0 0 2px var(--persona-primary, var(--color-ferni));
       border-radius: var(--radius-lg, 0.75rem);
     }
 
     .yp-person:active {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
     }
 
     .yp-person-avatar {
@@ -514,7 +520,7 @@ function injectStyles(): void {
         var(--persona-primary, #4a6741),
         var(--persona-secondary, #3d5a35)
       );
-      color: white;
+      color: var(--color-white);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -531,7 +537,7 @@ function injectStyles(): void {
     .yp-person-name {
       font-weight: 600;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       display: flex;
       align-items: center;
       gap: var(--space-2, 0.5rem);
@@ -547,7 +553,7 @@ function injectStyles(): void {
 
     .yp-person-meta {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-0-5, 0.125rem);
       display: flex;
       align-items: center;
@@ -559,7 +565,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-1, 0.25rem);
       padding: var(--space-0-5, 0.125rem) var(--space-2, 0.5rem);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
       border-radius: var(--radius-full, 50%);
       font-size: var(--text-xxs, 0.625rem);
       font-weight: 600;
@@ -579,7 +585,7 @@ function injectStyles(): void {
     }
 
     .yp-person-arrow {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       flex-shrink: 0;
     }
 
@@ -596,20 +602,20 @@ function injectStyles(): void {
       width: 56px;
       height: 56px;
       margin: 0 auto var(--space-4, 1rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       opacity: 0.4;
     }
 
     .yp-empty-title {
       font-size: var(--text-lg, 1.125rem);
       font-weight: 600;
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       margin-bottom: var(--space-2, 0.5rem);
     }
 
     .yp-empty-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       line-height: 1.5;
       max-width: min(280px, 100%);
       margin: 0 auto;
@@ -626,7 +632,7 @@ function injectStyles(): void {
       border: 2px dashed var(--color-border, rgba(44, 37, 32, 0.15));
       border-radius: var(--radius-lg, 1rem);
       background: transparent;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
       cursor: pointer;
@@ -634,13 +640,13 @@ function injectStyles(): void {
     }
 
     .yp-add-btn:hover {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       color: var(--persona-ink);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.03));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 3%, transparent));
     }
 
     .yp-add-btn:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
 
@@ -650,14 +656,14 @@ function injectStyles(): void {
     }
 
     .yp-secondary-btn {
-      background: var(--color-background-elevated, #f8f5f2);
-      color: var(--color-text-secondary, #5a524a);
-      border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.1));
+      background: var(--color-background-elevated);
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-border-subtle);
     }
 
     .yp-secondary-btn:hover {
-      background: var(--color-background-tertiary, #f0ebe4);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
     }
 
     .yp-action-buttons {
@@ -673,7 +679,7 @@ function injectStyles(): void {
     .yp-loading {
       text-align: center;
       padding: var(--space-10, 2.5rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       font-size: var(--text-sm, 0.875rem);
     }
 
@@ -693,7 +699,7 @@ function injectStyles(): void {
     }
 
     .yp-error-message {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       font-size: var(--text-sm, 0.875rem);
     }
 
@@ -709,7 +715,7 @@ function injectStyles(): void {
     }
 
     .yp-error-retry:hover {
-      background: var(--color-accent-hover, #4a6741);
+      background: var(--color-accent-hover);
     }
 
     /* =========================================================================
@@ -1142,27 +1148,6 @@ function openPersonCard(contactId: string): void {
 // HELPERS
 // ============================================================================
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-function getStrengthColor(score: number): string {
-  if (score >= 70) return 'var(--persona-primary, var(--color-ferni))';
-  if (score >= 40) return 'var(--nayan-primary, var(--color-nayan))';
-  return 'var(--color-semantic-error, var(--color-error))';
-}
-
-function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 function groupByRelationship(people: Person[]): Record<string, Person[]> {
   const groups: Record<string, Person[]> = {};
   
@@ -1183,10 +1168,6 @@ function groupByRelationship(people: Person[]): Record<string, Person[]> {
   }
 
   return orderedGroups;
-}
-
-function capitalizeFirst(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 // ============================================================================
@@ -1359,4 +1340,3 @@ export const yourPeople = {
 };
 
 export default yourPeople;
-

@@ -9,7 +9,7 @@ permalink: /use-cases/habits/
   <div class="container container-narrow">
     <a href="/use-cases/" class="use-case-hero__back">← All Use Cases</a>
     <span class="eyebrow">Use Case</span>
-    <h1 class="headline-xl">Building Better<br><span class="text-gradient" style="--gradient-start: var(--color-maya); --gradient-end: var(--color-maya-dark, #8a635a)">Habits</span></h1>
+    <h1 class="headline-xl">Building Better<br><span class="text-gradient" style="--gradient-start: var(--color-maya); --gradient-end: var(--color-maya-dark, var(--color-maya-dark))">Habits</span></h1>
     <p class="body-lg">Forget willpower. Maya helps you start embarrassingly small and build consistency that actually lasts.</p>
   </div>
 </section>
@@ -164,7 +164,7 @@ permalink: /use-cases/habits/
   /* Use Case Capabilities - Design Token Compliant (Maya/Habits) */
   .use-case-capabilities {
     padding: 60px 24px;
-    background: linear-gradient(135deg, rgba(166, 122, 106, 0.06), rgba(138, 99, 90, 0.04));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-maya) 6%, transparent), color-mix(in srgb, var(--color-maya-dark) 4%, transparent));
   }
   
   .use-case-capabilities h2 {
@@ -181,7 +181,7 @@ permalink: /use-cases/habits/
   }
   
   .use-case-capabilities a {
-    color: var(--color-maya);
+    color: var(--color-maya-text);
     font-weight: 600;
   }
   
@@ -192,7 +192,7 @@ permalink: /use-cases/habits/
   
   .capability-item {
     background: var(--color-elevated);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     padding: 20px 24px;
     border: 1px solid var(--color-border-subtle);
   }
@@ -201,7 +201,7 @@ permalink: /use-cases/habits/
     display: block;
     font-size: 16px;
     font-weight: 600;
-    color: var(--color-maya);
+    color: var(--color-maya-text);
     margin-bottom: 4px;
   }
   
@@ -213,7 +213,7 @@ permalink: /use-cases/habits/
   
   /* Persona Icon (Maya) */
   .use-case-feature__icon--maya {
-    background: linear-gradient(135deg, var(--color-maya) 0%, var(--color-maya-dark, #8a635a) 100%);
+    background: linear-gradient(135deg, var(--color-maya) 0%, var(--color-maya-dark) 100%);
   }
 </style>
 

@@ -709,7 +709,7 @@ export const SHARED_STYLES = `
     font-family: var(--font-display);
     font-size: var(--text-sm);
     font-weight: var(--font-weight-medium, 500);
-    color: white;
+    color: var(--color-white);
     background: var(--persona-primary, var(--color-accent-primary));
     border: none;
     border-radius: var(--radius-lg);

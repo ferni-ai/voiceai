@@ -39,10 +39,10 @@ export const giftSuggestionsStyles = `
       width: 94%;
       max-width: clamp(364px, 90vw, 520px);
       max-height: 90vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -92,7 +92,7 @@ export const giftSuggestionsStyles = `
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
       line-height: 1.2;
     }
@@ -107,14 +107,14 @@ export const giftSuggestionsStyles = `
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
 
     .gs-close:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     /* =========================================================================
@@ -137,7 +137,7 @@ export const giftSuggestionsStyles = `
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-1, 0.25rem);
       display: block;
     }
@@ -148,8 +148,8 @@ export const giftSuggestionsStyles = `
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
       border-radius: var(--radius-md, 0.5rem);
       font-size: var(--text-sm, 0.875rem);
-      background: var(--color-background-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
       outline: none;
       cursor: pointer;
       appearance: none;
@@ -160,7 +160,7 @@ export const giftSuggestionsStyles = `
     }
 
     .gs-select:focus {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
     }
 
     /* =========================================================================
@@ -202,7 +202,7 @@ export const giftSuggestionsStyles = `
 
     .gs-loading-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     /* =========================================================================
@@ -219,7 +219,7 @@ export const giftSuggestionsStyles = `
       height: 56px;
       margin: 0 auto var(--space-4, 1rem);
       border-radius: var(--radius-full, 50%);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       color: var(--persona-ink);
       display: flex;
       align-items: center;
@@ -234,13 +234,13 @@ export const giftSuggestionsStyles = `
     .gs-initial-title {
       font-size: var(--text-base, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-2, 0.5rem);
     }
 
     .gs-initial-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       line-height: 1.5;
       margin-bottom: var(--space-4, 1rem);
     }
@@ -253,16 +253,16 @@ export const giftSuggestionsStyles = `
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      background: var(--persona-primary, #4a6741);
-      border: 1px solid var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      border: 1px solid var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .gs-generate-btn:hover {
-      background: var(--persona-secondary, #3d5a35);
-      border-color: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
+      border-color: var(--persona-secondary, var(--color-ferni-secondary));
     }
 
     /* =========================================================================
@@ -276,7 +276,7 @@ export const giftSuggestionsStyles = `
     }
 
     .gs-suggestion {
-      background: var(--color-bg-secondary, rgba(250, 248, 245, 0.5));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 50%, transparent));
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-lg, 1rem);
       padding: var(--space-4, 1rem);
@@ -285,8 +285,8 @@ export const giftSuggestionsStyles = `
     }
 
     .gs-suggestion:hover {
-      border-color: var(--persona-primary, #4a6741);
-      background: var(--color-background-elevated, #FFFDFB);
+      border-color: var(--persona-primary, var(--color-ferni));
+      background: var(--color-background-elevated);
     }
 
     .gs-suggestion-header {
@@ -299,7 +299,7 @@ export const giftSuggestionsStyles = `
     .gs-suggestion-name {
       font-weight: 600;
       font-size: var(--text-base, 1rem);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .gs-suggestion-price {
@@ -307,13 +307,13 @@ export const giftSuggestionsStyles = `
       font-weight: 500;
       color: var(--persona-ink);
       padding: var(--space-0-5, 0.125rem) var(--space-2, 0.5rem);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-full, 9999px);
     }
 
     .gs-suggestion-desc {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       line-height: 1.5;
       margin-bottom: var(--space-3, 0.75rem);
     }
@@ -329,7 +329,7 @@ export const giftSuggestionsStyles = `
       align-items: center;
       gap: var(--space-1, 0.25rem);
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       padding: var(--space-0-5, 0.125rem) var(--space-2, 0.5rem);
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.04));
       border-radius: var(--radius-sm, 0.25rem);
@@ -343,9 +343,9 @@ export const giftSuggestionsStyles = `
     .gs-personal-touch {
       margin-top: var(--space-3, 0.75rem);
       padding: var(--space-2-5, 0.625rem) var(--space-3, 0.75rem);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.06));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 6%, transparent));
       border-radius: var(--radius-md, 0.5rem);
-      border-left: 3px solid var(--persona-primary, #4a6741);
+      border-left: 3px solid var(--persona-primary, var(--color-ferni));
     }
 
     .gs-personal-touch-label {
@@ -360,7 +360,7 @@ export const giftSuggestionsStyles = `
     .gs-personal-touch-text {
       font-size: var(--text-sm, 0.875rem);
       font-style: italic;
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     /* =========================================================================
@@ -388,13 +388,13 @@ export const giftSuggestionsStyles = `
       font-weight: 500;
       background: transparent;
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.15));
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .gs-retry-btn:hover {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted);
     }
 
     /* =========================================================================
@@ -411,7 +411,7 @@ export const giftSuggestionsStyles = `
 
     .gs-footer-hint {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .gs-regenerate-btn {
@@ -424,13 +424,13 @@ export const giftSuggestionsStyles = `
       font-weight: 500;
       background: transparent;
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.15));
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .gs-regenerate-btn:hover {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       color: var(--persona-ink);
     }
 

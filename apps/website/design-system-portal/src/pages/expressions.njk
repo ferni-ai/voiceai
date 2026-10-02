@@ -752,24 +752,21 @@ permalink: /expressions/
    ============================================ */
 :root {
   /* Emotional Glow Colors */
-  --glow-sage: rgba(74, 103, 65, 0.4);
-  --glow-golden: rgba(196, 162, 101, 0.5);
-  --glow-teal: rgba(58, 107, 115, 0.45);
-  --glow-coral: rgba(196, 133, 106, 0.5);
-  --glow-protective: rgba(154, 123, 90, 0.5);
-  --glow-warm: rgba(255, 180, 120, 0.45);
-  --glow-cool: rgba(100, 140, 200, 0.4);
-  --glow-alert: rgba(200, 100, 100, 0.45);
-  --glow-calm: rgba(140, 180, 160, 0.4);
+  --glow-sage: color-mix(in srgb, var(--persona-ferni) 40%, transparent);
+  --glow-golden: color-mix(in srgb, var(--persona-carmen) 50%, transparent);
+  --glow-teal: color-mix(in srgb, var(--persona-peter) 45%, transparent);
+  --glow-coral: color-mix(in srgb, var(--persona-jordan) 50%, transparent);
+  --glow-protective: color-mix(in srgb, var(--persona-jack) 50%, transparent);
+  --glow-warm: color-mix(in srgb, var(--persona-carmen) 45%, transparent);
+  --glow-cool: color-mix(in srgb, var(--syntax-keyword) 40%, transparent);
+  --glow-alert: color-mix(in srgb, var(--error) 45%, transparent);
+  --glow-calm: color-mix(in srgb, var(--success) 40%, transparent);
 
   /* Gradient endpoints */
-  --grad-ferni-start: #5a7a51;
-  --grad-ferni-end: #3d5a35;
+  --grad-ferni-start: var(--persona-ferni);
+  --grad-ferni-end: var(--persona-ferni);
 
   /* Spring easing */
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-spring-heavy: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  --ease-organic: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
@@ -809,7 +806,7 @@ permalink: /expressions/
   color: var(--text-secondary);
   text-decoration: none;
   white-space: nowrap;
-  transition: all 0.2s var(--ease-spring);
+  transition: all var(--duration-normal) var(--ease-spring);
   border: 1px solid transparent;
 }
 
@@ -820,7 +817,7 @@ permalink: /expressions/
 
 .persona-chip.active {
   background: var(--persona-ferni);
-  color: white;
+  color: var(--color-white);
 }
 
 .persona-dot {
@@ -847,7 +844,7 @@ permalink: /expressions/
   font-family: var(--font-display);
   font-size: var(--text-4xl);
   font-weight: var(--font-weight-bold);
-  color: var(--persona-ferni);
+  color: var(--persona-ferni-text);
   margin-bottom: var(--space-3);
   letter-spacing: -0.02em;
 }
@@ -864,7 +861,7 @@ permalink: /expressions/
   align-items: center;
   gap: var(--space-2);
   background: var(--persona-ferni);
-  color: white;
+  color: var(--color-white);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
@@ -872,8 +869,8 @@ permalink: /expressions/
 }
 
 .timing-chip {
-  background: rgba(74, 103, 65, 0.1);
-  color: var(--persona-ferni);
+  background: color-mix(in srgb, var(--persona-ferni) 10%, transparent);
+  color: var(--persona-ferni-text);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
@@ -903,7 +900,7 @@ permalink: /expressions/
 .ferni-avatar {
   width: 100%;
   height: 100%;
-  transition: transform 0.4s var(--ease-spring);
+  transition: transform var(--duration-slower) var(--ease-spring);
 }
 
 .avatar-svg {
@@ -918,7 +915,7 @@ permalink: /expressions/
   stroke: var(--persona-ferni);
   stroke-width: 1.5;
   opacity: 0.3;
-  transition: all 0.4s ease;
+  transition: all var(--duration-slower) ease;
   transform-origin: center center;
 }
 
@@ -949,11 +946,11 @@ permalink: /expressions/
    ============================================ */
 .eye-white {
   transform-origin: center center;
-  transition: transform 0.35s var(--ease-spring);
+  transition: transform var(--duration-slower) var(--ease-spring);
 }
 
 .ferni-avatar.blinking .eye-white {
-  animation: blink 0.15s ease-in-out;
+  animation: blink var(--duration-fast) ease-in-out;
 }
 
 @keyframes blink {
@@ -965,23 +962,23 @@ permalink: /expressions/
    LID TRANSITIONS
    ============================================ */
 .lid-top, .lid-bottom {
-  transition: d 0.35s var(--ease-spring);
+  transition: d var(--duration-slower) var(--ease-spring);
 }
 
 .ferni-avatar.anticipation .lid-top,
 .ferni-avatar.anticipation .lid-bottom {
-  transition: d 0.4s var(--ease-spring-heavy);
+  transition: d var(--duration-slower) var(--ease-spring-heavy);
 }
 
 /* ============================================
    GAZE DRIFT
    ============================================ */
 .eyes-group {
-  transition: transform 0.8s var(--ease-organic);
+  transition: transform var(--duration-cinematic) var(--ease-organic);
 }
 
 .ferni-avatar.gazing .eyes-group {
-  animation: gazeDrift 8s ease-in-out infinite;
+  animation: gazeDrift var(--duration-ambient) ease-in-out infinite;
 }
 
 @keyframes gazeDrift {
@@ -996,12 +993,12 @@ permalink: /expressions/
    ============================================ */
 .smile-crease {
   opacity: 0;
-  transition: opacity 0.3s ease, stroke-width 0.2s var(--ease-spring);
+  transition: opacity var(--duration-slow) ease, stroke-width var(--duration-normal) var(--ease-spring);
 }
 
 .sparkle-group {
   opacity: 0;
-  transition: all 0.2s var(--ease-spring);
+  transition: all var(--duration-normal) var(--ease-spring);
 }
 
 @keyframes sparkleRotate {
@@ -1040,8 +1037,8 @@ permalink: /expressions/
 /* SPEAKING */
 .ferni-avatar[data-mood="speaking"] .eye-white { transform: scaleY(0.88) scaleX(1.02); }
 .ferni-avatar[data-mood="speaking"] .lid-top { d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z"); }
-.ferni-avatar[data-mood="speaking"] .avatar-body { animation: speakPulse 0.45s ease-in-out infinite; }
-.ferni-avatar[data-mood="speaking"] .presence-ring { animation: ringPulse 0.45s ease-in-out infinite; }
+.ferni-avatar[data-mood="speaking"] .avatar-body { animation: speakPulse var(--duration-moderate) ease-in-out infinite; }
+.ferni-avatar[data-mood="speaking"] .presence-ring { animation: ringPulse var(--duration-moderate) ease-in-out infinite; }
 
 @keyframes speakPulse {
   0%, 100% { transform: scale(1); }
@@ -1080,7 +1077,7 @@ permalink: /expressions/
 .ferni-avatar[data-mood="joyful"] .presence-ring { opacity: 0.5; stroke-width: 2; transform: scale(1.02); }
 
 /* DELIGHTED */
-.ferni-avatar[data-mood="delighted"] { transform: translateY(-6px) scale(1.05) rotate(-2deg); animation: delightedBounce 0.5s var(--ease-spring); }
+.ferni-avatar[data-mood="delighted"] { transform: translateY(-6px) scale(1.05) rotate(-2deg); animation: delightedBounce var(--duration-slowest) var(--ease-spring); }
 .ferni-avatar[data-mood="delighted"] .eye-white { transform: scaleY(0.6) scaleX(1.15); }
 .ferni-avatar[data-mood="delighted"] .lid-top { d: path("M 0,0 Q 50,42 100,0 L 100,0 L 0,0 Z"); }
 .ferni-avatar[data-mood="delighted"] .lid-bottom { d: path("M 0,100 Q 50,72 100,100 L 100,100 L 0,100 Z"); }
@@ -1152,7 +1149,7 @@ permalink: /expressions/
 .ferni-avatar[data-mood="focused"] .lid-top { d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z"); }
 
 /* PROCESSING */
-.ferni-avatar[data-mood="processing"] { animation: processingPulse 1.5s ease-in-out infinite; }
+.ferni-avatar[data-mood="processing"] { animation: processingPulse var(--duration-glacial) ease-in-out infinite; }
 .ferni-avatar[data-mood="processing"] .eye-white { transform: scaleY(0.9); }
 
 @keyframes processingPulse {
@@ -1177,7 +1174,7 @@ permalink: /expressions/
 .ferni-avatar[data-mood="surprised"] .lid-bottom { d: path("M 0,100 Q 50,115 100,100 L 100,100 L 0,100 Z"); }
 
 /* SHOCKED */
-.ferni-avatar[data-mood="shocked"] { transform: scaleY(1.08) scaleX(0.94) translateY(-8px); animation: shockPop 0.3s var(--ease-spring); }
+.ferni-avatar[data-mood="shocked"] { transform: scaleY(1.08) scaleX(0.94) translateY(-8px); animation: shockPop var(--duration-slow) var(--ease-spring); }
 .ferni-avatar[data-mood="shocked"] .eye-white { transform: scaleY(1.35) scaleX(1.15); }
 .ferni-avatar[data-mood="shocked"] .lid-top { d: path("M 0,0 Q 50,-35 100,0 L 100,0 L 0,0 Z"); }
 
@@ -1241,7 +1238,7 @@ permalink: /expressions/
 .ferni-avatar[data-mood="nurturing"] .smile-crease { opacity: 0.4; }
 
 /* PLAYFUL */
-.ferni-avatar[data-mood="playful"] { transform: rotate(2deg) translateY(-2px); animation: playfulSway 1.5s ease-in-out infinite; }
+.ferni-avatar[data-mood="playful"] { transform: rotate(2deg) translateY(-2px); animation: playfulSway var(--duration-glacial) ease-in-out infinite; }
 .ferni-avatar[data-mood="playful"] .eye-white { transform: scaleY(0.92) scaleX(1.06); }
 .ferni-avatar[data-mood="playful"] .eye-left { transform: scaleY(0.88) scaleX(1.06); }
 .ferni-avatar[data-mood="playful"] .lid-top { d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z"); }
@@ -1262,7 +1259,7 @@ permalink: /expressions/
 .ferni-avatar[data-mood="cheeky"] .smile-crease { opacity: 0.6; }
 
 /* SILLY */
-.ferni-avatar[data-mood="silly"] { transform: rotate(-3deg); animation: sillyWobble 0.8s ease-in-out infinite; }
+.ferni-avatar[data-mood="silly"] { transform: rotate(-3deg); animation: sillyWobble var(--duration-cinematic) ease-in-out infinite; }
 .ferni-avatar[data-mood="silly"] .eye-white { transform: scaleY(0.85) scaleX(1.1); }
 
 @keyframes sillyWobble {
@@ -1333,7 +1330,7 @@ permalink: /expressions/
 .ferni-avatar[data-mood="dejected"] .eye-white { transform: scaleY(0.75); }
 
 /* CONFUSED */
-.ferni-avatar[data-mood="confused"] { transform: rotate(3deg); animation: confusedTilt 3s ease-in-out infinite; }
+.ferni-avatar[data-mood="confused"] { transform: rotate(3deg); animation: confusedTilt var(--duration-meditative) ease-in-out infinite; }
 .ferni-avatar[data-mood="confused"] .eye-white { transform: scaleY(1.02); }
 .ferni-avatar[data-mood="confused"] .eye-left { transform: scaleY(0.95); }
 .ferni-avatar[data-mood="confused"] .lid-top { d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z"); }
@@ -1373,7 +1370,7 @@ permalink: /expressions/
 }
 
 /* NERVOUS */
-.ferni-avatar[data-mood="nervous"] { animation: nervousShake 0.3s ease-in-out infinite; }
+.ferni-avatar[data-mood="nervous"] { animation: nervousShake var(--duration-slow) ease-in-out infinite; }
 .ferni-avatar[data-mood="nervous"] .eye-white { transform: scaleY(1.08); }
 .ferni-avatar[data-mood="nervous"] .lid-top { d: path("M 0,0 Q 50,2 100,0 L 100,0 L 0,0 Z"); }
 
@@ -1383,7 +1380,7 @@ permalink: /expressions/
 }
 
 /* ANXIOUS */
-.ferni-avatar[data-mood="anxious"] { animation: anxiousTremble 0.2s ease-in-out infinite; }
+.ferni-avatar[data-mood="anxious"] { animation: anxiousTremble var(--duration-normal) ease-in-out infinite; }
 .ferni-avatar[data-mood="anxious"] .eye-white { transform: scaleY(1.1); }
 
 @keyframes anxiousTremble {
@@ -1451,7 +1448,7 @@ permalink: /expressions/
   inset: -30px;
   border-radius: 50%;
   opacity: 0;
-  transition: all 0.5s ease;
+  transition: all var(--duration-slowest) ease;
   pointer-events: none;
 }
 
@@ -1540,7 +1537,7 @@ permalink: /expressions/
   font-family: var(--font-display);
   font-size: var(--text-3xl);
   font-weight: var(--font-weight-bold);
-  color: var(--persona-ferni);
+  color: var(--persona-ferni-text);
   margin-bottom: var(--space-2);
 }
 
@@ -1572,7 +1569,7 @@ permalink: /expressions/
 .meta-value {
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--persona-ferni);
+  color: var(--persona-ferni-text);
   font-family: var(--font-mono);
 }
 
@@ -1618,24 +1615,24 @@ permalink: /expressions/
 }
 
 .micro-card {
-  background: rgba(74, 103, 65, 0.04);
+  background: color-mix(in srgb, var(--persona-ferni) 4%, transparent);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s var(--ease-spring);
+  transition: all var(--duration-normal) var(--ease-spring);
   border: 2px solid transparent;
 }
 
 .micro-card:hover {
-  background: rgba(74, 103, 65, 0.08);
+  background: color-mix(in srgb, var(--persona-ferni) 8%, transparent);
   transform: translateY(-2px);
   border-color: var(--persona-ferni);
 }
 
 .micro-card.playing {
   background: var(--persona-ferni);
-  color: white;
+  color: var(--color-white);
 }
 
 .micro-name {
@@ -1646,13 +1643,13 @@ permalink: /expressions/
 
 .micro-timing {
   font-size: var(--text-sm);
-  color: var(--persona-ferni);
+  color: var(--persona-ferni-text);
   font-weight: var(--font-weight-medium);
   margin-bottom: var(--space-2);
 }
 
 .micro-card.playing .micro-timing {
-  color: rgba(255, 255, 255, 0.9);
+  color: color-mix(in srgb, var(--color-white) 90%, transparent);
 }
 
 .micro-desc {
@@ -1661,7 +1658,7 @@ permalink: /expressions/
 }
 
 .micro-card.playing .micro-desc {
-  color: rgba(255, 255, 255, 0.8);
+  color: color-mix(in srgb, var(--color-white) 80%, transparent);
 }
 
 /* ============================================
@@ -1681,22 +1678,22 @@ permalink: /expressions/
 }
 
 .layer-card {
-  background: rgba(74, 103, 65, 0.04);
+  background: color-mix(in srgb, var(--persona-ferni) 4%, transparent);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s var(--ease-spring);
+  transition: all var(--duration-normal) var(--ease-spring);
   border: 2px solid transparent;
 }
 
 .layer-card:hover {
-  background: rgba(74, 103, 65, 0.08);
+  background: color-mix(in srgb, var(--persona-ferni) 8%, transparent);
 }
 
 .layer-card.active {
   background: var(--persona-ferni);
-  color: white;
+  color: var(--color-white);
   border-color: var(--persona-ferni);
 }
 
@@ -1715,7 +1712,7 @@ permalink: /expressions/
 }
 
 .layer-card.active .layer-icon svg {
-  color: white;
+  color: var(--color-white);
 }
 
 .layer-name {
@@ -1752,7 +1749,7 @@ permalink: /expressions/
 }
 
 .waveform-card {
-  background: rgba(74, 103, 65, 0.04);
+  background: color-mix(in srgb, var(--persona-ferni) 4%, transparent);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
   text-align: center;
@@ -1770,7 +1767,7 @@ permalink: /expressions/
 .waveform-bar {
   width: 4px;
   background: var(--persona-ferni);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   animation: waveformPulse 1.2s ease-in-out infinite;
 }
 
@@ -1790,7 +1787,7 @@ permalink: /expressions/
 
 /* Happy waveform */
 .waveform-happy .waveform-bar {
-  animation: waveformHappy 0.8s ease-in-out infinite;
+  animation: waveformHappy var(--duration-cinematic) ease-in-out infinite;
 }
 
 @keyframes waveformHappy {
@@ -1810,7 +1807,7 @@ permalink: /expressions/
 
 /* Worried waveform */
 .waveform-worried .waveform-bar {
-  animation: waveformWorried 0.4s ease-in-out infinite;
+  animation: waveformWorried var(--duration-slower) ease-in-out infinite;
 }
 
 @keyframes waveformWorried {
@@ -1822,7 +1819,7 @@ permalink: /expressions/
 
 /* Thinking waveform */
 .waveform-thinking .waveform-bar {
-  animation: waveformThinking 1.5s ease-in-out infinite;
+  animation: waveformThinking var(--duration-glacial) ease-in-out infinite;
 }
 
 @keyframes waveformThinking {
@@ -1866,8 +1863,8 @@ permalink: /expressions/
 }
 
 .category-count {
-  background: rgba(74, 103, 65, 0.1);
-  color: var(--persona-ferni);
+  background: color-mix(in srgb, var(--persona-ferni) 10%, transparent);
+  color: var(--persona-ferni-text);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
@@ -1883,20 +1880,20 @@ permalink: /expressions/
 .expression-btn {
   padding: var(--space-4);
   background: var(--bg-elevated);
-  border: 2px solid rgba(44, 37, 32, 0.08);
+  border: 2px solid color-mix(in srgb, var(--text-inverse) 8%, transparent);
   border-radius: var(--radius-lg);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s var(--ease-spring);
+  transition: all var(--duration-normal) var(--ease-spring);
   text-align: center;
 }
 
 .expression-btn:hover {
   border-color: var(--persona-ferni);
-  color: var(--persona-ferni);
+  color: var(--persona-ferni-text);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
@@ -1904,13 +1901,13 @@ permalink: /expressions/
 .expression-btn.active {
   background: var(--persona-ferni);
   border-color: var(--persona-ferni);
-  color: white;
+  color: var(--color-white);
 }
 
 .expression-btn .trigger {
   display: block;
   font-size: var(--text-xs);
-  font-weight: var(--font-weight-normal);
+  font-weight: var(--font-weight-regular);
   margin-top: var(--space-1);
   opacity: 0.7;
 }
@@ -1948,7 +1945,7 @@ permalink: /expressions/
   font-family: var(--font-display);
   font-size: var(--text-base);
   font-weight: var(--font-weight-semibold);
-  color: var(--persona-ferni);
+  color: var(--persona-ferni-text);
 }
 
 /* ============================================
@@ -1974,7 +1971,7 @@ permalink: /expressions/
 
 .rule-card.critical {
   border-color: var(--error);
-  background: rgba(224, 117, 117, 0.05);
+  background: color-mix(in srgb, var(--error) 5%, transparent);
 }
 
 .rule-card h4 {
@@ -1984,7 +1981,7 @@ permalink: /expressions/
 }
 
 .rule-card.critical h4 {
-  color: var(--error);
+  color: var(--error-text);
 }
 
 .rule-card p {
@@ -2008,7 +2005,7 @@ permalink: /expressions/
 }
 
 .code-block code.wrong {
-  color: var(--error);
+  color: var(--error-text);
   text-decoration: line-through;
   opacity: 0.7;
 }

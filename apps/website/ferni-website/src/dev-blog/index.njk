@@ -8,19 +8,19 @@ permalink: /developers/blog/
 <style>
   :root {
     /* Design System Aligned Colors - Cedar Night Theme */
-    --dev-bg: #584840;
-    --dev-surface: #60504a;
-    --dev-surface-elevated: #70605a;
-    --dev-border: rgba(215, 185, 145, 0.12);
-    --dev-border-strong: rgba(215, 185, 145, 0.20);
-    --dev-accent: #d4a84a;
-    --dev-accent-hover: #e0bc6a;
-    --dev-accent-light: rgba(212, 168, 74, 0.15);
-    --dev-ferni: #4a6741;
-    --dev-text: #faf6f0;
-    --dev-text-secondary: #f0ebe4;
-    --dev-text-muted: #e8e2da;
-    --dev-code-bg: #4a3c36;
+    --dev-bg: var(--color-cedar-dark);
+    --dev-surface: var(--color-bg-dark-surface);
+    --dev-surface-elevated: var(--color-cedar);
+    --dev-border: color-mix(in srgb, var(--color-tea-light) 12%, transparent);
+    --dev-border-strong: color-mix(in srgb, var(--color-tea-light) 20%, transparent);
+    --dev-accent: var(--color-accent-gold);
+    --dev-accent-hover: var(--color-accent-gold-hover);
+    --dev-accent-light: color-mix(in srgb, var(--color-accent-gold) 15%, transparent);
+    --dev-ferni: var(--color-ferni);
+    --dev-text: var(--color-dark-text);
+    --dev-text-secondary: var(--color-dark-text-secondary);
+    --dev-text-muted: var(--color-dark-text-muted);
+    --dev-code-bg: var(--color-dark-gradient-mid);
     
     /* Design System Spacing (MA - Japanese intentional space) */
     --space-breath: 8px;
@@ -34,7 +34,7 @@ permalink: /developers/blog/
   body {
     background: var(--dev-bg);
     color: var(--dev-text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-body);
     margin: 0;
   }
 
@@ -70,7 +70,7 @@ permalink: /developers/blog/
     color: var(--dev-text);
     font-weight: 700;
     font-size: 1.25rem;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
 
@@ -98,7 +98,7 @@ permalink: /developers/blog/
     text-decoration: none;
     font-size: 0.9375rem;
     font-weight: 500;
-    transition: color 0.2s ease;
+    transition: color var(--duration-normal) ease;
     padding: var(--space-breath) 0;
     display: inline-block;
   }
@@ -121,7 +121,7 @@ permalink: /developers/blog/
     right: 0;
     height: 2px;
     background: var(--dev-accent);
-    border-radius: 1px;
+    border-radius: var(--radius-xs);
   }
 
   /* Header Section - Generous Spacing */
@@ -136,7 +136,7 @@ permalink: /developers/blog/
     font-size: 3.5rem;
     font-weight: 700;
     margin: 0 0 var(--space-rest);
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     color: var(--dev-text);
     letter-spacing: -0.03em;
   }
@@ -164,17 +164,17 @@ permalink: /developers/blog/
   .post-card {
     background: var(--dev-surface);
     border: 1px solid var(--dev-border);
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                border-color 0.2s ease,
-                box-shadow 0.3s ease;
+    transition: transform var(--duration-slow) var(--ease-ease-out-back), 
+                border-color var(--duration-normal) ease,
+                box-shadow var(--duration-slow) ease;
   }
 
   .post-card:hover {
     transform: translateY(-4px);
     border-color: var(--dev-border-strong);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-xl);
   }
 
   .post-card a {
@@ -195,9 +195,9 @@ permalink: /developers/blog/
 
   .post-card-category {
     background: var(--dev-accent);
-    color: #fff;
+    color: var(--color-white);
     padding: 6px 14px;
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     font-size: 0.6875rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -210,7 +210,7 @@ permalink: /developers/blog/
     margin: 0 0 var(--space-pause);
     color: var(--dev-text);
     line-height: 1.35;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
 
@@ -246,7 +246,7 @@ permalink: /developers/blog/
     justify-content: center;
     font-size: 0.8125rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--color-white);
   }
 
   .post-card-author-name {
@@ -270,7 +270,7 @@ permalink: /developers/blog/
   .empty-state h2 {
     color: var(--dev-text);
     margin-bottom: var(--space-pause);
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
   }
 
   /* Footer - Design System Aligned */
@@ -314,7 +314,7 @@ permalink: /developers/blog/
   }
 
   .dev-footer-logo span {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
     font-size: 1.125rem;
     letter-spacing: -0.02em;
@@ -335,7 +335,7 @@ permalink: /developers/blog/
   }
 
   .dev-footer-column h4 {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-weight: 600;
     font-size: 0.8125rem;
     text-transform: uppercase;
@@ -348,7 +348,7 @@ permalink: /developers/blog/
     color: var(--dev-text-secondary);
     text-decoration: none;
     font-size: 0.9375rem;
-    transition: color 0.2s ease;
+    transition: color var(--duration-normal) ease;
     padding: 4px 0;
   }
 
@@ -379,7 +379,7 @@ permalink: /developers/blog/
     color: var(--dev-text-muted);
     text-decoration: none;
     font-size: 0.875rem;
-    transition: color 0.2s ease;
+    transition: color var(--duration-normal) ease;
   }
 
   .dev-footer-legal a:hover {
@@ -539,7 +539,7 @@ permalink: /developers/blog/
             {% endif %}
             <div class="post-card-footer">
               <div class="post-card-author">
-                <span class="post-card-author-avatar" style="background: {{ post.data.authorColor or '#4a6741' }}">
+                <span class="post-card-author-avatar" style="background: {{ post.data.authorColor or 'var(--color-ferni)' }}">
                   {{ post.data.authorInitials or 'FD' }}
                 </span>
                 <span class="post-card-author-name">{{ post.data.author or 'Ferni Dev Team' }}</span>

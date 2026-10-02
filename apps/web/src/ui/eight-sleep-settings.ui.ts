@@ -16,58 +16,9 @@ import { apiGet, apiDelete, apiPut } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import type { EightSleepStatus, EightSleepSettingsCallbacks } from './eight-sleep-settings.types.js';
 
 const log = createLogger('EightSleep');
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface SleepSummary {
-  date: string;
-  score: number;
-  sleepDuration: number;
-  sleepEfficiency: number;
-  timeToSleep: number;
-  timesAwake: number;
-  stages: {
-    awake: number;
-    light: number;
-    deep: number;
-    rem: number;
-  };
-  averageHrv: number;
-  averageHeartRate: number;
-  lowestHeartRate: number;
-}
-
-interface TemperatureState {
-  currentLevel: number;
-  targetLevel: number;
-  active: boolean;
-  scheduleEnabled: boolean;
-}
-
-interface Biometrics {
-  averageHrv: number;
-  averageRestingHeartRate: number;
-  averageRespiratoryRate: number;
-  hrvTrend: 'improving' | 'declining' | 'stable';
-}
-
-interface EightSleepStatus {
-  connected: boolean;
-  lastNightSleep?: SleepSummary | null;
-  temperature?: TemperatureState | null;
-  biometrics?: Biometrics | null;
-  error?: string;
-}
-
-interface EightSleepSettingsCallbacks {
-  onClose?: () => void;
-  onConnected?: () => void;
-  onDisconnected?: () => void;
-}
 
 // ============================================================================
 // SAFE DOM HELPERS
@@ -146,7 +97,7 @@ function getStyles(): string {
     .eightsleep-overlay {
       position: fixed;
       inset: 0;
-      background: var(--backdrop-heavy, rgba(0, 0, 0, 0.6));
+      background: var(--backdrop-heavy, color-mix(in srgb, var(--color-black) 60%, transparent));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -166,7 +117,7 @@ function getStyles(): string {
       width: calc(100% - 32px);
       max-height: calc(100vh - 64px);
       overflow-y: auto;
-      box-shadow: var(--shadow-lg, 0 10px 40px rgba(0, 0, 0, 0.4));
+      box-shadow: var(--shadow-lg, 0 10px 40px color-mix(in srgb, var(--color-black) 40%, transparent));
       transform: scale(0.95) translateY(10px);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
     }
@@ -180,7 +131,7 @@ function getStyles(): string {
       align-items: center;
       justify-content: space-between;
       padding: var(--space-lg, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .eightsleep-title {
@@ -189,7 +140,7 @@ function getStyles(): string {
       gap: var(--space-sm, 8px);
       font-size: 1.25rem;
       font-weight: 600;
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
     }
 
     .eightsleep-title svg {
@@ -203,15 +154,15 @@ function getStyles(): string {
       border: none;
       padding: var(--space-xs, 4px);
       cursor: pointer;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
       border-radius: var(--radius-md, 8px);
       transition: all ${DURATION.FAST}ms ease;
     }
 
     .eightsleep-close:hover,
     .eightsleep-close:focus-visible {
-      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.1));
-      color: var(--color-text-primary, #fff);
+      background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 10%, transparent));
+      color: var(--color-text-primary);
     }
 
     .eightsleep-close svg {
@@ -224,7 +175,7 @@ function getStyles(): string {
     }
 
     .eightsleep-score-card {
-      background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 5%, transparent));
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-lg, 24px);
       margin-bottom: var(--space-md, 16px);
@@ -250,11 +201,11 @@ function getStyles(): string {
     }
 
     .eightsleep-score-ring .bg {
-      stroke: var(--color-bg-tertiary, rgba(255, 255, 255, 0.1));
+      stroke: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 10%, transparent));
     }
 
     .eightsleep-score-ring .progress {
-      stroke: var(--color-accent-primary, #4a9eff);
+      stroke: var(--color-accent-primary);
       stroke-linecap: round;
       transition: stroke-dasharray ${DURATION.SLOW}ms ${EASING.OUT_EXPO};
     }
@@ -266,12 +217,12 @@ function getStyles(): string {
       transform: translate(-50%, -50%);
       font-size: 1.75rem;
       font-weight: 600;
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
     }
 
     .eightsleep-score-label {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      color: var(--color-text-secondary);
     }
 
     .eightsleep-stages {
@@ -288,17 +239,17 @@ function getStyles(): string {
     .eightsleep-stage-value {
       font-size: 1rem;
       font-weight: 500;
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
     }
 
     .eightsleep-stage-label {
       font-size: 0.75rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
       text-transform: uppercase;
     }
 
     .eightsleep-temp-card {
-      background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 5%, transparent));
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-lg, 24px);
       margin-bottom: var(--space-md, 16px);
@@ -316,7 +267,7 @@ function getStyles(): string {
       align-items: center;
       gap: var(--space-sm, 8px);
       font-weight: 500;
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
     }
 
     .eightsleep-temp-title svg {
@@ -327,14 +278,14 @@ function getStyles(): string {
 
     .eightsleep-temp-status {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      color: var(--color-text-secondary);
     }
 
     .eightsleep-temp-slider {
       width: 100%;
       height: 8px;
       border-radius: var(--radius-full, 9999px);
-      background: linear-gradient(to right, #3a6b73, #4a6741, #c4856a);
+      background: linear-gradient(to right, var(--color-peter), var(--color-ferni), var(--color-jordan));
       -webkit-appearance: none;
       appearance: none;
     }
@@ -344,9 +295,9 @@ function getStyles(): string {
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: white;
+      background: var(--color-white);
       cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 6px color-mix(in srgb, var(--color-black) 30%, transparent);
     }
 
     .eightsleep-temp-labels {
@@ -354,7 +305,7 @@ function getStyles(): string {
       justify-content: space-between;
       margin-top: var(--space-xs, 4px);
       font-size: 0.75rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
     }
 
     .eightsleep-biometrics {
@@ -365,7 +316,7 @@ function getStyles(): string {
     }
 
     .eightsleep-biometric {
-      background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 5%, transparent));
       border-radius: var(--radius-md, 8px);
       padding: var(--space-md, 16px);
       text-align: center;
@@ -381,12 +332,12 @@ function getStyles(): string {
     .eightsleep-biometric-value {
       font-size: 1.25rem;
       font-weight: 500;
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
     }
 
     .eightsleep-biometric-label {
       font-size: 0.75rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
     }
 
     .eightsleep-connect-section {
@@ -398,18 +349,18 @@ function getStyles(): string {
       width: 64px;
       height: 64px;
       margin: 0 auto var(--space-md, 16px);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
     }
 
     .eightsleep-connect-title {
       font-size: 1.125rem;
       font-weight: 600;
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-sm, 8px);
     }
 
     .eightsleep-connect-desc {
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      color: var(--color-text-secondary);
       font-size: 0.875rem;
       margin-bottom: var(--space-lg, 24px);
     }
@@ -428,14 +379,14 @@ function getStyles(): string {
     }
 
     .eightsleep-btn-primary {
-      background: var(--color-accent-primary, #4a9eff);
+      background: var(--color-accent-primary);
       color: var(--color-text-on-accent);
       border: none;
     }
 
     .eightsleep-btn-primary:hover,
     .eightsleep-btn-primary:focus-visible {
-      background: var(--color-accent-hover, #3a8eef);
+      background: var(--color-accent-hover);
       transform: translateY(-1px);
     }
 
@@ -447,13 +398,13 @@ function getStyles(): string {
 
     .eightsleep-btn-danger:hover,
     .eightsleep-btn-danger:focus-visible {
-      background: var(--color-semantic-error, #ef4444);
-      color: white;
+      background: var(--color-semantic-error);
+      color: var(--color-white);
     }
 
     .eightsleep-footer {
       padding: var(--space-md, 16px) var(--space-lg, 24px);
-      border-top: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      border-top: 1px solid var(--color-border-subtle);
       display: flex;
       justify-content: flex-end;
       gap: var(--space-sm, 8px);

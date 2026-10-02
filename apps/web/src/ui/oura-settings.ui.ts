@@ -15,59 +15,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiDelete } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface OuraSleepSummary {
-  date: string;
-  score: number;
-  totalSleep: number;
-  efficiency: number;
-  remSleep: number;
-  deepSleep: number;
-  lightSleep: number;
-  averageHrv: number;
-  averageHeartRate: number;
-}
-
-interface OuraReadinessSummary {
-  date: string;
-  score: number;
-  temperatureDeviation: number;
-  contributors: {
-    activityBalance: number;
-    bodyTemperature: number;
-    hrvBalance: number;
-    previousNight: number;
-    restingHeartRate: number;
-    sleepBalance: number;
-  };
-}
-
-interface OuraActivitySummary {
-  date: string;
-  score: number;
-  steps: number;
-  activeCalories: number;
-  highActivityTime: number;
-  mediumActivityTime: number;
-}
-
-interface OuraStatus {
-  connected: boolean;
-  sleep?: OuraSleepSummary;
-  readiness?: OuraReadinessSummary;
-  activity?: OuraActivitySummary;
-  error?: string;
-}
-
-interface OuraSettingsCallbacks {
-  onConnected?: () => void;
-  onDisconnected?: () => void;
-  onClose?: () => void;
-}
+import type { OuraStatus, OuraSettingsCallbacks } from './oura-settings.types.js';
 
 // ============================================================================
 // STATE
@@ -142,10 +90,10 @@ function formatMinutes(minutes: number): string {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 85) return 'var(--color-semantic-success, #228b22)';
-  if (score >= 70) return 'var(--color-accent-primary, #2d5a3d)';
-  if (score >= 50) return 'var(--color-semantic-warning, #b8860b)';
-  return 'var(--color-semantic-error, #dc3545)';
+  if (score >= 85) return 'var(--color-semantic-success)';
+  if (score >= 70) return 'var(--color-accent-primary)';
+  if (score >= 50) return 'var(--color-semantic-warning)';
+  return 'var(--color-semantic-error)';
 }
 
 // ============================================================================
@@ -185,10 +133,10 @@ function injectStyles(): void {
       width: 90%;
       max-width: 420px;
       max-height: 85vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       transform: scale(0.95);
@@ -205,7 +153,7 @@ function injectStyles(): void {
       align-items: center;
       justify-content: space-between;
       padding: var(--space-5, 20px) var(--space-6, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .oura-settings__title {
@@ -220,9 +168,9 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #3a6b73, #4a6741);
+      background: linear-gradient(135deg, var(--color-peter), var(--color-ferni));
       border-radius: var(--radius-lg, 0.75rem);
-      color: white;
+      color: var(--color-white);
     }
 
     .oura-settings__title-icon svg {
@@ -234,7 +182,7 @@ function injectStyles(): void {
       font-family: var(--font-display);
       font-size: var(--text-lg, 1.125rem);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
@@ -244,7 +192,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-background-tertiary, #ebe6df);
+      background: var(--color-background-tertiary);
       border: none;
       border-radius: var(--radius-full);
       color: var(--color-text-secondary);
@@ -286,9 +234,9 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #3a6b7320, #4a674120);
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-peter) 12.5%, transparent), color-mix(in srgb, var(--color-ferni) 12.5%, transparent));
       border-radius: var(--radius-full);
-      color: #3a6b73;
+      color: var(--color-peter);
     }
 
     .oura-settings__connect-icon svg {
@@ -315,13 +263,13 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-3, 12px) var(--space-6, 24px);
-      background: linear-gradient(135deg, #3a6b73, #4a6741);
+      background: linear-gradient(135deg, var(--color-peter), var(--color-ferni));
       border: none;
       border-radius: var(--radius-lg);
       font-family: var(--font-body);
       font-size: var(--text-base);
       font-weight: var(--font-weight-medium, 500);
-      color: white;
+      color: var(--color-white);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
@@ -351,7 +299,7 @@ function injectStyles(): void {
     }
 
     .oura-settings__score-card {
-      background: var(--color-background-secondary, #f5f2ed);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg);
       padding: var(--space-4, 16px);
       text-align: center;
@@ -408,7 +356,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #3a6b73;
+      color: var(--color-peter);
     }
 
     .oura-settings__section-icon svg {
@@ -431,7 +379,7 @@ function injectStyles(): void {
     }
 
     .oura-settings__metric {
-      background: var(--color-background-secondary, #f5f2ed);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-md);
       padding: var(--space-3, 12px);
     }
@@ -496,7 +444,7 @@ function injectStyles(): void {
       width: 40px;
       height: 40px;
       border: 3px solid var(--color-border-subtle);
-      border-top-color: #3a6b73;
+      border-top-color: var(--color-peter);
       border-radius: var(--radius-full);
       animation: oura-spin 1s linear infinite;
       margin-bottom: var(--space-4, 16px);
@@ -508,16 +456,16 @@ function injectStyles(): void {
 
     /* Dark theme */
     [data-theme="midnight"] .oura-settings__panel {
-      background: var(--color-background-elevated, #504540);
+      background: var(--color-background-elevated);
     }
 
     [data-theme="midnight"] .oura-settings__title h2 {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .oura-settings__score-card,
     [data-theme="midnight"] .oura-settings__metric {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
 
     /* Reduced motion */

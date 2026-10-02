@@ -40,10 +40,10 @@ const relationshipInsightsStylesPart = `
       width: 94%;
       max-width: clamp(392px, 90vw, 560px);
       max-height: 90vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -93,7 +93,7 @@ const relationshipInsightsStylesPart = `
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
       line-height: 1.2;
     }
@@ -108,14 +108,14 @@ const relationshipInsightsStylesPart = `
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
 
     .ri-close:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     /* =========================================================================
@@ -141,19 +141,19 @@ const relationshipInsightsStylesPart = `
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .ri-tab:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.04));
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .ri-tab.active {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .ri-tab svg {
@@ -196,7 +196,7 @@ const relationshipInsightsStylesPart = `
 
     .ri-loading-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     /* =========================================================================
@@ -211,7 +211,7 @@ const relationshipInsightsStylesPart = `
     }
 
     .ri-stat {
-      background: var(--color-bg-secondary, rgba(250, 248, 245, 0.5));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 50%, transparent));
       border-radius: var(--radius-lg, 1rem);
       padding: var(--space-3, 0.75rem);
       text-align: center;
@@ -220,18 +220,18 @@ const relationshipInsightsStylesPart = `
     .ri-stat-value {
       font-size: var(--text-2xl, 1.5rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       line-height: 1;
     }
 
     .ri-stat-label {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-1, 0.25rem);
     }
 
     .ri-stat.highlight {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
     }
 
     .ri-stat.highlight .ri-stat-value {
@@ -251,7 +251,7 @@ const relationshipInsightsStylesPart = `
        ========================================================================= */
     
     .ri-breakdown {
-      background: var(--color-bg-secondary, rgba(250, 248, 245, 0.5));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 50%, transparent));
       border-radius: var(--radius-lg, 1rem);
       padding: var(--space-4, 1rem);
       margin-bottom: var(--space-5, 1.25rem);
@@ -262,7 +262,7 @@ const relationshipInsightsStylesPart = `
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -284,7 +284,7 @@ const relationshipInsightsStylesPart = `
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .ri-breakdown-icon svg {
@@ -295,13 +295,13 @@ const relationshipInsightsStylesPart = `
     .ri-breakdown-label {
       flex: 1;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .ri-breakdown-value {
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
 `;

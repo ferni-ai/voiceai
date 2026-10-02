@@ -6,6 +6,7 @@
  */
 
 import { createLogger } from './logger.js';
+import type { CapacitorGlobal, ElectronAPI } from './platform.types.js';
 
 const log = createLogger('Platform');
 
@@ -18,55 +19,6 @@ export type Platform = 'web' | 'electron' | 'ios' | 'android';
 
 /** Native haptic feedback intensities */
 export type HapticStyle = 'light' | 'medium' | 'heavy' | 'selection' | 'success' | 'warning' | 'error';
-
-/** Capacitor global interface (injected by Capacitor runtime) */
-interface CapacitorGlobal {
-  isNativePlatform: () => boolean;
-  getPlatform: () => string;
-  Plugins: {
-    Haptics?: {
-      impact: (options: { style: string }) => Promise<void>;
-      notification: (options: { type: string }) => Promise<void>;
-      selectionStart: () => Promise<void>;
-      selectionChanged: () => Promise<void>;
-      selectionEnd: () => Promise<void>;
-    };
-    StatusBar?: {
-      setStyle: (options: { style: string }) => Promise<void>;
-      setBackgroundColor: (options: { color: string }) => Promise<void>;
-      hide: () => Promise<void>;
-      show: () => Promise<void>;
-    };
-    SplashScreen?: {
-      hide: (options?: { fadeOutDuration?: number }) => Promise<void>;
-      show: (options?: { fadeInDuration?: number; autoHide?: boolean }) => Promise<void>;
-    };
-    App?: {
-      addListener: (event: string, callback: (data: unknown) => void) => { remove: () => void };
-      getState: () => Promise<{ isActive: boolean }>;
-    };
-    Keyboard?: {
-      hide: () => Promise<void>;
-      show: () => Promise<void>;
-      setAccessoryBarVisible: (options: { isVisible: boolean }) => Promise<void>;
-    };
-  };
-}
-
-/** Electron API interface (exposed via preload script) */
-interface ElectronAPI {
-  isElectron: boolean;
-  platform: string;
-  getSystemTheme: () => Promise<'light' | 'dark'>;
-  /** Returns an unsubscribe function (older desktop builds return nothing) */
-  onSystemThemeChange: (callback: (theme: 'light' | 'dark') => void) => (() => void) | void;
-  store: {
-    get: (key: string) => Promise<unknown>;
-    set: (key: string, value: unknown) => Promise<void>;
-  };
-  getVersion: () => string;
-  reportError: (error: Error, context?: Record<string, unknown>) => void;
-}
 
 // Extend Window interface
 declare global {
@@ -587,4 +539,3 @@ export async function initPlatform(): Promise<void> {
     log.info(`🖥️ Electron system theme: ${theme}`);
   }
 }
-

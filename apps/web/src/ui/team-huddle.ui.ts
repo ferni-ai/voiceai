@@ -54,32 +54,32 @@ export interface TeamHuddleUICallbacks {
 const PERSONA_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   ferni: {
     bg: 'var(--persona-ferni-secondary, #3d5a35)',
-    text: 'var(--color-text-inverse, #faf8f5)',
+    text: 'var(--color-text-inverse)',
     border: 'var(--persona-ferni-primary, #4a6741)',
   },
   'alex-chen': {
     bg: 'var(--persona-alex-secondary, #4a5a73)',
-    text: 'var(--color-text-inverse, #faf8f5)',
+    text: 'var(--color-text-inverse)',
     border: 'var(--persona-alex-primary, #5a6b8a)',
   },
   'maya-santos': {
     bg: 'var(--persona-maya-secondary, #8a635a)',
-    text: 'var(--color-text-inverse, #faf8f5)',
+    text: 'var(--color-text-inverse)',
     border: 'var(--persona-maya-primary, #a67a6a)',
   },
   'jordan-taylor': {
     bg: 'var(--persona-jordan-secondary, #a86d55)',
-    text: 'var(--color-text-inverse, #faf8f5)',
+    text: 'var(--color-text-inverse)',
     border: 'var(--persona-jordan-primary, #c4856a)',
   },
   'nayan-patel': {
     bg: 'var(--persona-nayan-secondary, #9a7a52)',
-    text: 'var(--color-text-inverse, #faf8f5)',
+    text: 'var(--color-text-inverse)',
     border: 'var(--persona-nayan-primary, #b8956a)',
   },
   'peter-john': {
     bg: 'var(--persona-peter-secondary, #2d5359)',
-    text: 'var(--color-text-inverse, #faf8f5)',
+    text: 'var(--color-text-inverse)',
     border: 'var(--persona-peter-primary, #3a6b73)',
   },
 };
@@ -399,10 +399,10 @@ class TeamHuddleUI {
         max-width: clamp(364px, 90vw, 520px);
         max-height: 80vh;
         overflow-y: auto;
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         transform: scale(0.95) translateY(20px);
         transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING};
       }
@@ -419,7 +419,7 @@ class TeamHuddleUI {
         align-items: center;
         justify-content: space-between;
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .team-huddle__type {
@@ -446,17 +446,17 @@ class TeamHuddleUI {
         width: 34px;
         height: 34px;
         padding: 0;
-        background: var(--color-background-tertiary, #ebe6df);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        background: var(--color-background-tertiary);
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .team-huddle__close:hover {
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
         transform: scale(1.05);
       }
 
@@ -483,8 +483,8 @@ class TeamHuddleUI {
       }
 
       .team-huddle__outro {
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        background: var(--color-background-secondary, #f5f2ed);
+        border-top: 1px solid var(--color-border-subtle);
+        background: var(--color-background-secondary);
         border-radius: 0 0 var(--radius-xl, 1.5rem) var(--radius-xl, 1.5rem);
       }
 
@@ -502,7 +502,7 @@ class TeamHuddleUI {
         display: flex;
         gap: var(--ma-breath, 13px);
         padding: var(--ma-breath, 13px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 0.75rem);
         border-left: 3px solid var(--participant-color, var(--color-accent-primary));
         cursor: pointer;
@@ -510,7 +510,7 @@ class TeamHuddleUI {
       }
 
       .team-huddle__participant:hover {
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         transform: translateX(4px);
       }
 
@@ -526,11 +526,11 @@ class TeamHuddleUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-inverse, #faf8f5);
+        color: var(--color-text-inverse);
         box-shadow: 
           0 2px 8px rgba(44, 37, 32, 0.15),
           inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        border: 2px solid var(--participant-border, rgba(255, 255, 255, 0.2));
+        border: 2px solid var(--participant-border, color-mix(in srgb, var(--color-white) 20%, transparent));
       }
 
       .team-huddle__participant-initials {
@@ -544,7 +544,7 @@ class TeamHuddleUI {
         width: 20px;
         height: 20px;
         padding: 3px;
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-full, 9999px);
         box-shadow: 0 1px 3px rgba(44, 37, 32, 0.15);
         display: flex;
@@ -567,7 +567,7 @@ class TeamHuddleUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin-bottom: var(--space-1, 4px);
       }
 
@@ -575,7 +575,7 @@ class TeamHuddleUI {
         font-family: var(--font-primary, 'Inter', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-style: italic;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         line-height: 1.5;
       }
 
@@ -600,8 +600,8 @@ class TeamHuddleUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 11px;
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-inverse, #faf8f5);
-        border: 3px solid var(--color-background-elevated, #fffdfb);
+        color: var(--color-text-inverse);
+        border: 3px solid var(--color-background-elevated);
         margin-left: -10px;
         box-shadow: 0 2px 6px rgba(44, 37, 32, 0.12);
         transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
@@ -624,57 +624,57 @@ class TeamHuddleUI {
       }
 
       [data-theme="midnight"] .team-huddle__wrapper {
-        background: var(--color-background-elevated, #70605a);
-        box-shadow: var(--shadow-2xl, 0 24px 48px rgba(0, 0, 0, 0.3));
+        background: var(--color-background-elevated);
+        box-shadow: var(--shadow-2xl, 0 24px 48px color-mix(in srgb, var(--color-black) 30%, transparent));
       }
 
       [data-theme="midnight"] .team-huddle__intro p,
       [data-theme="midnight"] .team-huddle__outro p {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .team-huddle__participant {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .team-huddle__participant:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .team-huddle__participant-name {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .team-huddle__participant-comment {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .team-huddle__outro {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .team-huddle__close {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-secondary, #f0ebe4);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .team-huddle__close:hover {
-        background: var(--color-background-secondary, #60504a);
-        color: var(--color-text-primary, #faf6f0);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .team-huddle__participant-icon {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .team-huddle__mini-avatar {
-        border-color: var(--color-background-elevated, #70605a);
+        border-color: var(--color-background-elevated);
       }
 
       /* WCAG AA Compliant Text */
       [data-theme="midnight"] .team-huddle__participant-role,
       [data-theme="midnight"] .team-huddle__hint {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       /* ========================================================================

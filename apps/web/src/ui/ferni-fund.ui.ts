@@ -173,9 +173,9 @@ function renderContributionForm(gardenStatus: GardenStatus | null): string {
   const health = gardenStatus?.health ?? 'needs-water';
 
   const healthColors: Record<string, string> = {
-    thriving: 'var(--color-semantic-success, #22c55e)',
+    thriving: 'var(--color-semantic-success)',
     growing: 'var(--color-accent-warm, #f59e0b)',
-    'needs-water': 'var(--color-semantic-warning, #eab308)',
+    'needs-water': 'var(--color-semantic-warning)',
   };
 
   const healthMessage = health === 'thriving'

@@ -51,7 +51,7 @@
     box-shadow: 0 0 0 0 var(--color-ferni-glow);
   }
   50% {
-    box-shadow: 0 0 20px 2px rgba(166, 122, 106, 0.4);
+    box-shadow: 0 0 20px 2px color-mix(in srgb, var(--color-maya) 40%, transparent);
   }
   100% {
     box-shadow: 0 0 0 0 var(--color-ferni-glow);
@@ -82,7 +82,7 @@
   50% {
     box-shadow:
       0 0 50px var(--color-ferni-glow),
-      0 0 80px rgba(74, 103, 65, 0.15);
+      0 0 80px color-mix(in srgb, var(--color-ferni) 15%, transparent);
   }
   100% {
     box-shadow: 0 0 30px var(--color-ferni-glow);
@@ -104,7 +104,7 @@
 
 /* Micro-expression utility classes */
 .eq-micro-recognition {
-  animation: microRecognition var(--eq-micro-recognition, 80ms) var(--ease-micro-flash);
+  animation: microRecognition var(--eq-micro-recognition, var(--duration-micro)) var(--ease-micro-flash);
 }
 
 .eq-micro-concern {
@@ -112,7 +112,7 @@
 }
 
 .eq-micro-delight {
-  animation: microDelight var(--eq-micro-delight, 100ms) var(--ease-playful);
+  animation: microDelight var(--eq-micro-delight, var(--duration-faster)) var(--ease-playful);
 }
 
 .eq-micro-warmth {
@@ -195,19 +195,19 @@
 }
 
 .eq-listening {
-  animation: nodMicro var(--eq-nod-micro, 180ms) var(--ease-nod);
+  animation: nodMicro var(--eq-nod-micro, var(--duration-normal)) var(--ease-nod);
 }
 
 .eq-listening-engaged {
-  animation: nodSubtle var(--eq-nod-subtle, 220ms) var(--ease-nod);
+  animation: nodSubtle var(--eq-nod-subtle, var(--duration-normal)) var(--ease-nod);
 }
 
 .eq-listening-deep {
-  animation: nodVisible var(--eq-nod-visible, 280ms) var(--ease-nod);
+  animation: nodVisible var(--eq-nod-visible, var(--duration-slow)) var(--ease-nod);
 }
 
 .eq-lean-in {
-  animation: leanIn var(--eq-lean-in, 400ms) var(--ease-lean);
+  animation: leanIn var(--eq-lean-in, var(--duration-slower)) var(--ease-lean);
 }
 
 .eq-contemplating {
@@ -230,7 +230,7 @@
     transform: scale(1.03);
     box-shadow:
       0 0 50px var(--color-ferni-glow),
-      0 0 80px rgba(74, 103, 65, 0.1);
+      0 0 80px color-mix(in srgb, var(--color-ferni) 10%, transparent);
   }
 }
 
@@ -258,7 +258,7 @@
     transform: scale(1.04);
     box-shadow:
       0 0 60px var(--color-ferni-glow),
-      0 0 100px rgba(74, 103, 65, 0.12);
+      0 0 100px color-mix(in srgb, var(--color-ferni) 12%, transparent);
   }
 }
 
@@ -312,8 +312,8 @@
   50% {
     box-shadow:
       0 0 40px var(--color-ferni-glow),
-      0 0 60px rgba(166, 122, 106, 0.2),
-      inset 0 0 20px rgba(166, 122, 106, 0.05);
+      0 0 60px color-mix(in srgb, var(--color-maya) 20%, transparent),
+      inset 0 0 20px color-mix(in srgb, var(--color-maya) 5%, transparent);
   }
 }
 
@@ -331,18 +331,18 @@
 
 @keyframes protectiveWarmth {
   0% {
-    box-shadow: 0 0 0 0 rgba(166, 122, 106, 0);
+    box-shadow: 0 0 0 0 transparent;
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(166, 122, 106, 0.1);
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-maya) 10%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(166, 122, 106, 0);
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
 .eq-concern-mild {
-  animation: gentleCare 3s var(--ease-concern) infinite;
+  animation: gentleCare var(--duration-meditative) var(--ease-concern) infinite;
 }
 
 .eq-concern-moderate {
@@ -405,16 +405,16 @@
 }
 
 .eq-anticipate-joy {
-  animation: anticipateJoy var(--eq-anticipate-quick, 200ms) var(--ease-anticipate-emotion) forwards;
+  animation: anticipateJoy var(--eq-anticipate-quick, var(--duration-normal)) var(--ease-anticipate-emotion) forwards;
 }
 
 .eq-anticipate-sadness {
-  animation: anticipateSadness var(--eq-anticipate-thoughtful, 400ms) var(--ease-anticipate-emotion)
+  animation: anticipateSadness var(--eq-anticipate-thoughtful, var(--duration-slower)) var(--ease-anticipate-emotion)
     forwards;
 }
 
 .eq-anticipate-excitement {
-  animation: anticipateExcitement var(--eq-anticipate-quick, 200ms) var(--ease-spring) forwards;
+  animation: anticipateExcitement var(--eq-anticipate-quick, var(--duration-normal)) var(--ease-spring) forwards;
 }
 
 .eq-anticipate-thought {
@@ -506,7 +506,7 @@
 }
 
 .waveform-speaking .wave-bar {
-  animation: waveSpeaking 0.5s var(--ease-organic) infinite;
+  animation: waveSpeaking var(--duration-slowest) var(--ease-organic) infinite;
 }
 
 .waveform-thinking .wave-bar {
@@ -543,7 +543,7 @@
 .orb {
   transition:
     transform var(--duration-slow) var(--ease-spring),
-    box-shadow var(--duration-normal) var(--ease-expo-out),
+    box-shadow var(--duration-normal) var(--ease-ease-out-expo),
     filter var(--duration-normal) var(--ease-smooth);
 }
 
@@ -604,7 +604,7 @@
 }
 
 .orb-pulse-ring {
-  animation: orbRingExpand 2.5s var(--ease-expo-out) infinite;
+  animation: orbRingExpand 2.5s var(--ease-ease-out-expo) infinite;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -652,14 +652,14 @@
 }
 
 .persona-float {
-  animation: personaFloat 3s var(--ease-breathe) infinite;
+  animation: personaFloat var(--duration-meditative) var(--ease-breathe) infinite;
 }
 
 /* Persona hover states with EQ response */
 .persona-orb {
   transition:
     transform var(--duration-normal) var(--ease-spring),
-    box-shadow var(--duration-normal) var(--ease-expo-out);
+    box-shadow var(--duration-normal) var(--ease-ease-out-expo);
 }
 
 .persona-orb:hover {
@@ -667,7 +667,7 @@
   box-shadow:
     0 8px 24px var(--persona-glow, var(--color-ferni-glow)),
     0 0 40px var(--persona-glow, var(--color-ferni-glow));
-  animation: microRecognition 80ms var(--ease-micro-flash);
+  animation: microRecognition var(--duration-micro) var(--ease-micro-flash);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -690,23 +690,23 @@
 /* Orb reacts to scroll with subtle awareness */
 [data-scroll-aware] {
   transition:
-    transform var(--duration-slow) var(--ease-expo-out),
+    transform var(--duration-slow) var(--ease-ease-out-expo),
     opacity var(--duration-normal) var(--ease-smooth);
 }
 
 [data-scroll-aware].scroll-fast {
   /* User scrolling quickly - show anticipation */
-  animation: anticipateExcitement 300ms var(--ease-spring);
+  animation: anticipateExcitement var(--duration-slow) var(--ease-spring);
 }
 
 [data-scroll-aware].scroll-pause {
   /* User paused - show attention */
-  animation: leanIn 400ms var(--ease-lean) forwards;
+  animation: leanIn var(--duration-slower) var(--ease-lean) forwards;
 }
 
 [data-scroll-aware].scroll-return {
   /* User came back - show recognition */
-  animation: microRecognition 80ms var(--ease-recognition);
+  animation: microRecognition var(--duration-micro) var(--ease-recognition);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

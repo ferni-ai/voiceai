@@ -196,7 +196,7 @@ export function render(): string {
         width: 96px;
         height: 96px;
         border-radius: 50%;
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary, var(--color-ferni));
         display: flex;
         align-items: center;
         justify-content: center;
@@ -207,7 +207,7 @@ export function render(): string {
 
       .demo-avatar-icon {
         display: flex;
-        color: white;
+        color: var(--color-white);
       }
 
       .demo-avatar-icon svg {
@@ -225,7 +225,7 @@ export function render(): string {
       .demo-avatar-ring {
         position: absolute;
         inset: -8px;
-        border: 3px solid var(--persona-primary, #4a6741);
+        border: 3px solid var(--persona-primary, var(--color-ferni));
         border-radius: 50%;
         opacity: 0.5;
         animation: ringPulse 5s infinite;
@@ -235,7 +235,7 @@ export function render(): string {
         position: absolute;
         inset: -20px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(74, 103, 65, 0.3) 0%, transparent 70%);
+        background: radial-gradient(circle, color-mix(in srgb, var(--color-ferni) 30%, transparent) 0%, transparent 70%);
         animation: glowPulse 5s infinite;
       }
 
@@ -299,7 +299,7 @@ export function render(): string {
 
       .avatar-state {
         font-size: 0.875rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .avatar-controls,
@@ -312,10 +312,10 @@ export function render(): string {
 
       .demo-btn {
         padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.05));
-        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 5%, transparent));
+        border: 1px solid var(--admin-border-default, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
         font-family: inherit;
         font-size: 0.875rem;
         cursor: pointer;
@@ -323,11 +323,11 @@ export function render(): string {
       }
 
       .demo-btn:hover {
-        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
+        background: var(--admin-surface-active, color-mix(in srgb, var(--color-white) 10%, transparent));
       }
 
       .demo-btn:focus-visible {
-        outline: 2px solid var(--persona-primary, #4a6741);
+        outline: 2px solid var(--persona-primary, var(--color-ferni));
         outline-offset: 2px;
       }
 
@@ -366,14 +366,14 @@ export function render(): string {
       .timing-bar {
         flex: 1;
         height: 8px;
-        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
+        background: var(--admin-surface-active, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: 4px;
         overflow: hidden;
       }
 
       .timing-fill {
         height: 100%;
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary, var(--color-ferni));
         border-radius: 4px;
         transition: width var(--duration-slow, ${DURATION.SLOW}ms) var(--ease-standard, ${EASING.STANDARD});
       }
@@ -389,21 +389,21 @@ export function render(): string {
         min-width: 60px;
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.75rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
         text-align: right;
       }
 
       .timing-desc,
       .easing-desc {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         min-width: min(150px, 100%);
       }
 
       .easing-preview {
         flex: 1;
         height: 20px;
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
         border-radius: 10px;
         position: relative;
         cursor: pointer;
@@ -418,7 +418,7 @@ export function render(): string {
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary, var(--color-ferni));
       }
 
       .easing-item:hover .easing-ball {
@@ -472,7 +472,7 @@ export function render(): string {
         flex-direction: column;
         gap: var(--space-2, 0.5rem);
         padding: var(--space-3, 0.75rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
         border-radius: var(--radius-md, 8px);
         text-align: center;
       }
@@ -504,7 +504,7 @@ export function render(): string {
       .swatch-values {
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.6875rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
       }
 
       .presets-grid {
@@ -518,10 +518,10 @@ export function render(): string {
         flex-direction: column;
         gap: var(--space-1, 0.25rem);
         padding: var(--space-4, 1rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
-        border: 1px solid var(--admin-border-subtle, rgba(255, 255, 255, 0.05));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
+        border: 1px solid var(--admin-border-subtle, color-mix(in srgb, var(--color-white) 5%, transparent));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
         font-family: inherit;
         cursor: pointer;
         transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
@@ -529,12 +529,12 @@ export function render(): string {
       }
 
       .preset-demo:hover {
-        background: var(--admin-surface-active, rgba(255, 255, 255, 0.08));
+        background: var(--admin-surface-active, color-mix(in srgb, var(--color-white) 8%, transparent));
         transform: translateY(-2px);
       }
 
       .preset-demo:focus-visible {
-        outline: 2px solid var(--persona-primary, #4a6741);
+        outline: 2px solid var(--persona-primary, var(--color-ferni));
         outline-offset: 2px;
       }
 
@@ -555,14 +555,14 @@ export function render(): string {
       .preset-timing {
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.75rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       /* Avatar Soul Section */
       .design-soul {
         grid-column: span 2;
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(196, 162, 101, 0.08));
-        border: 1px solid rgba(74, 103, 65, 0.3);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 15%, transparent), rgba(196, 162, 101, 0.08));
+        border: 1px solid color-mix(in srgb, var(--color-ferni) 30%, transparent);
       }
 
       @media (max-width: min(1024px, 100%)) {
@@ -578,8 +578,8 @@ export function render(): string {
       }
 
       .badge--new {
-        background: var(--persona-primary, #4a6741);
-        color: white;
+        background: var(--persona-primary, var(--color-ferni));
+        color: var(--color-white);
         padding: 0.125rem 0.5rem;
         border-radius: var(--radius-full, 9999px);
         font-size: 0.625rem;
@@ -590,7 +590,7 @@ export function render(): string {
       }
 
       .soul-desc {
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         font-size: 0.875rem;
         margin-bottom: var(--space-4, 1rem);
       }
@@ -610,9 +610,9 @@ export function render(): string {
 
       .soul-feature {
         padding: var(--space-3, 0.75rem);
-        background: rgba(0, 0, 0, 0.2);
+        background: color-mix(in srgb, var(--color-black) 20%, transparent);
         border-radius: var(--radius-md, 8px);
-        border-left: 3px solid var(--persona-primary, #4a6741);
+        border-left: 3px solid var(--persona-primary, var(--color-ferni));
       }
 
       .soul-feature-header {
@@ -635,7 +635,7 @@ export function render(): string {
 
       .soul-feature-desc {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         line-height: 1.3;
       }
 
@@ -644,15 +644,15 @@ export function render(): string {
         gap: var(--space-4, 1rem);
         align-items: center;
         padding-top: var(--space-3, 0.75rem);
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
       }
 
       .soul-action-btn {
         padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary, var(--color-ferni));
         border: none;
         border-radius: var(--radius-md, 8px);
-        color: white;
+        color: var(--color-white);
         font-size: 0.875rem;
         font-weight: 500;
         text-decoration: none;

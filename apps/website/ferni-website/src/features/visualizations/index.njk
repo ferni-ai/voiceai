@@ -24,7 +24,7 @@ permalink: /features/visualizations/
     padding: 8px 20px;
     background: var(--color-accent-subtle);
     color: var(--color-accent);
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.05em;
@@ -114,19 +114,19 @@ permalink: /features/visualizations/
   .viz-card {
     background: var(--color-elevated);
     border: 1px solid var(--color-border-subtle);
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all var(--duration-slow) var(--ease-cinematic);
   }
   
   .viz-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(44, 37, 32, 0.12);
+    box-shadow: var(--shadow-2xl);
   }
   
   .viz-card-preview {
     aspect-ratio: 16/10;
-    background: linear-gradient(135deg, var(--color-accent-subtle), rgba(58, 107, 115, 0.08));
+    background: linear-gradient(135deg, var(--color-accent-subtle), color-mix(in srgb, var(--color-peter) 8%, transparent));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -170,13 +170,13 @@ permalink: /features/visualizations/
     color: var(--color-accent);
     font-size: 12px;
     font-weight: 500;
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
   }
   
   .viz-cta {
     padding: 100px 24px;
     text-align: center;
-    background: linear-gradient(135deg, var(--color-accent-subtle), rgba(58, 107, 115, 0.06));
+    background: linear-gradient(135deg, var(--color-accent-subtle), color-mix(in srgb, var(--color-peter) 6%, transparent));
   }
   
   .viz-cta h2 {
@@ -200,7 +200,7 @@ permalink: /features/visualizations/
   .reveal {
     opacity: 0;
     transform: translateY(20px);
-    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity var(--duration-deliberate) var(--ease-cinematic), transform var(--duration-deliberate) var(--ease-cinematic);
   }
   
   .reveal.visible {

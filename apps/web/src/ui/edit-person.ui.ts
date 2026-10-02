@@ -166,10 +166,10 @@ function injectStyles(): void {
       width: 94%;
       max-width: clamp(350px, 90vw, 500px);
       max-height: 90vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -209,7 +209,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
       line-height: 1.2;
     }
@@ -224,14 +224,14 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
 
     .ep-close:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     /* =========================================================================
@@ -257,19 +257,19 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .ep-tab:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.04));
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .ep-tab.active {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .ep-tab svg {
@@ -299,14 +299,14 @@ function injectStyles(): void {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
       letter-spacing: 0.03em;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-2, 0.5rem);
       display: block;
     }
 
     .ep-hint {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-1, 0.25rem);
     }
 
@@ -320,19 +320,19 @@ function injectStyles(): void {
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
-      background: var(--color-background-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
       outline: none;
       transition: border-color ${DURATION.FAST}ms, box-shadow ${DURATION.FAST}ms;
     }
 
     .ep-input:focus {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
     .ep-input::placeholder {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .ep-textarea {
@@ -343,15 +343,15 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
       font-family: inherit;
-      background: var(--color-background-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
       outline: none;
       resize: vertical;
       transition: border-color ${DURATION.FAST}ms, box-shadow ${DURATION.FAST}ms;
     }
 
     .ep-textarea:focus {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
@@ -370,8 +370,8 @@ function injectStyles(): void {
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
-      background: var(--color-background-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
       outline: none;
       cursor: pointer;
       appearance: none;
@@ -405,16 +405,16 @@ function injectStyles(): void {
     }
 
     .ep-relationship:hover {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted);
     }
 
     .ep-relationship.selected {
-      border-color: var(--persona-primary, #4a6741);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      border-color: var(--persona-primary, var(--color-ferni));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
     }
 
     .ep-relationship-icon {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .ep-relationship.selected .ep-relationship-icon {
@@ -429,7 +429,7 @@ function injectStyles(): void {
     .ep-relationship-label {
       font-size: var(--text-xxs, 0.625rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .ep-relationship.selected .ep-relationship-label {
@@ -466,7 +466,7 @@ function injectStyles(): void {
 
     .ep-danger-btn:hover {
       background: var(--color-semantic-error-tint);
-      border-color: var(--color-semantic-error, #c44);
+      border-color: var(--color-semantic-error);
     }
 
     .ep-danger-btn svg {
@@ -495,7 +495,7 @@ function injectStyles(): void {
 
     .ep-delete-confirm-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       margin-bottom: var(--space-3, 0.75rem);
       line-height: 1.5;
     }
@@ -518,13 +518,13 @@ function injectStyles(): void {
     .ep-delete-confirm-cancel {
       background: transparent;
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.15));
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .ep-delete-confirm-delete {
-      background: var(--color-semantic-error, #c44);
-      border: 1px solid var(--color-semantic-error, #c44);
-      color: white;
+      background: var(--color-semantic-error);
+      border: 1px solid var(--color-semantic-error);
+      color: var(--color-white);
     }
 
     .ep-delete-confirm-delete:hover {
@@ -555,7 +555,7 @@ function injectStyles(): void {
     .ep-btn-secondary {
       background: var(--tonal-surface-2);
       border: none;
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .ep-btn-secondary:hover {
@@ -567,14 +567,14 @@ function injectStyles(): void {
     }
 
     .ep-btn-primary {
-      background: var(--persona-primary, #4a6741);
-      border: 1px solid var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      border: 1px solid var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .ep-btn-primary:hover {
-      background: var(--persona-secondary, #3d5a35);
-      border-color: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
+      border-color: var(--persona-secondary, var(--color-ferni-secondary));
     }
 
     .ep-btn-primary:disabled {

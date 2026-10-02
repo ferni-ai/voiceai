@@ -44,10 +44,10 @@ export function getFoundersJourneyStyles(): string {
     /* Card Container */
     .founders-journey-card {
       position: relative;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       max-width: 600px;
       width: 100%;
       max-height: 90vh;
@@ -62,13 +62,13 @@ export function getFoundersJourneyStyles(): string {
       width: 44px;
       height: 44px;
       border: none;
-      background: var(--color-background-secondary, #f5f3f0);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-full, 9999px);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       z-index: var(--z-content, 10);
     }
@@ -100,9 +100,9 @@ export function getFoundersJourneyStyles(): string {
       height: 72px;
       margin: 0 auto var(--space-4, 16px);
       padding: var(--space-4, 16px);
-      background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+      background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
       border-radius: var(--radius-full);
-      color: white;
+      color: var(--color-white);
     }
 
     .founders-journey-hero-icon svg {
@@ -371,7 +371,7 @@ export function getFoundersJourneyStyles(): string {
     }
 
     .founders-timeline-item--present .founders-timeline-icon {
-      color: white;
+      color: var(--color-white);
     }
 
     .founders-timeline-icon svg {
@@ -625,7 +625,7 @@ export function getImpactStyles(): string {
     }
 
     .founders-impact-stats--empty .founders-impact-stat-value {
-      color: var(--color-text-muted, #8a7f78);
+      color: var(--color-text-muted);
     }
 
     .founders-impact-stat-live {
@@ -948,14 +948,14 @@ export function getStoriesStyles(): string {
     .founders-stories-empty {
       padding: var(--space-8, 32px) var(--space-4, 16px);
       text-align: center;
-      background: var(--color-background-secondary, #f9f7f5);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg, 12px);
       margin: var(--space-6, 24px) 0;
     }
 
     .founders-stories-empty-text {
       font-size: 0.9375rem;
-      color: var(--color-text-muted, #8a7f78);
+      color: var(--color-text-muted);
       font-style: italic;
       margin: 0;
     }
@@ -1097,7 +1097,7 @@ export function getFoundersWallStyles(): string {
     .founders-tile-initials {
       font-size: 1rem;
       font-weight: 600;
-      color: white;
+      color: var(--color-white);
     }
 
     .founders-tile-early {
@@ -1133,16 +1133,16 @@ export function getFoundersWallStyles(): string {
     .founders-wall-empty {
       padding: var(--space-12, 48px) var(--space-6, 24px);
       text-align: center;
-      background: var(--color-background-secondary, #f9f7f5);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-xl, 16px);
-      border: 2px dashed var(--color-border-subtle, #e8e4df);
+      border: 2px dashed var(--color-border-subtle);
     }
 
     .founders-wall-empty-icon {
       width: 48px;
       height: 48px;
       margin: 0 auto var(--space-4, 16px);
-      color: var(--color-text-muted, #8a7f78);
+      color: var(--color-text-muted);
       opacity: 0.5;
     }
 
@@ -1154,7 +1154,7 @@ export function getFoundersWallStyles(): string {
     .founders-wall-empty-text {
       font-size: 1.125rem;
       font-weight: 500;
-      color: var(--color-text-muted, #8a7f78);
+      color: var(--color-text-muted);
       margin: 0;
     }
 
@@ -1212,8 +1212,8 @@ export function getFooterAndResponsiveStyles(): string {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-4, 16px) var(--space-8, 32px);
-      background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
-      color: white;
+      background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
+      color: var(--color-white);
       border: none;
       border-radius: var(--radius-full, 9999px);
       font-family: var(--font-body);

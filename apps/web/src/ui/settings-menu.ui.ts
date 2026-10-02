@@ -1502,25 +1502,25 @@ class SettingsMenuUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+        background: var(--color-background-elevated);
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         box-shadow: var(--shadow-md, 0 4px 12px rgba(44, 37, 32, 0.1));
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .settings-trigger:hover {
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
         transform: scale(1.05);
       }
 
       .settings-trigger--active {
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
-        border-color: var(--color-accent-primary, #2d5a3d);
+        border-color: var(--color-accent-primary);
       }
 
       .settings-trigger svg {
@@ -1568,7 +1568,7 @@ class SettingsMenuUI {
         bottom: 0;
         width: var(--panel-width, 360px);
         max-width: var(--panel-max-width, 85vw);
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         box-shadow: var(--shadow-2xl, -8px 0 32px rgba(44, 37, 32, 0.15));
         /* No border - cleaner look */
         display: flex;
@@ -1593,10 +1593,10 @@ class SettingsMenuUI {
         justify-content: space-between;
         padding: var(--space-5, 20px) var(--space-6, 24px);
         background: linear-gradient(180deg, 
-          var(--color-background-elevated, #fffdfb) 0%,
-          var(--color-background-primary, #f5f1e8) 100%
+          var(--color-background-elevated) 0%,
+          var(--color-background-primary) 100%
         );
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
         flex-shrink: 0;
         position: relative;
         overflow: hidden;
@@ -1638,7 +1638,7 @@ class SettingsMenuUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-lg, 1.125rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
         letter-spacing: -0.01em;
       }
@@ -1650,10 +1650,10 @@ class SettingsMenuUI {
         width: 38px;
         height: 38px;
         padding: 0;
-        background: var(--color-background-secondary, #f5f2ed);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06));
+        background: var(--color-background-secondary);
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         cursor: pointer;
         transition: 
           background ${DURATION.FAST}ms ${EASING.STANDARD},
@@ -1664,8 +1664,8 @@ class SettingsMenuUI {
       }
 
       .settings-menu__close:hover {
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-primary);
         transform: scale(1.08);
         box-shadow: 0 2px 8px rgba(44, 37, 32, 0.08);
       }
@@ -1676,7 +1676,7 @@ class SettingsMenuUI {
       }
 
       .settings-menu__close:focus-visible {
-        outline: 2px solid var(--persona-primary, #4a6741);
+        outline: 2px solid var(--persona-primary, var(--color-ferni));
         outline-offset: 2px;
       }
 
@@ -1726,7 +1726,7 @@ class SettingsMenuUI {
         left: var(--space-3, 12px);
         right: var(--space-3, 12px);
         height: 1px;
-        background: var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        background: var(--color-border-subtle);
         opacity: 0;
         transition: opacity ${DURATION.FAST}ms ${EASING.STANDARD};
       }
@@ -1736,7 +1736,7 @@ class SettingsMenuUI {
       }
 
       .settings-menu__section-header:hover {
-        background: var(--color-background-secondary, rgba(0, 0, 0, 0.02));
+        background: var(--color-background-secondary);
       }
 
       .settings-menu__section-header:active {
@@ -1745,7 +1745,7 @@ class SettingsMenuUI {
 
       .settings-menu__section-header:focus-visible {
         outline: none;
-        box-shadow: inset 0 0 0 2px var(--persona-primary, #4a6741);
+        box-shadow: inset 0 0 0 2px var(--persona-primary, var(--color-ferni));
       }
 
       .settings-menu__section-header h3 {
@@ -1767,7 +1767,7 @@ class SettingsMenuUI {
         width: 18px;
         height: 18px;
         color: var(--color-text-muted);
-        background: var(--color-background-tertiary, rgba(0, 0, 0, 0.03));
+        background: var(--color-background-tertiary);
         border-radius: var(--radius-full, 9999px);
         padding: 3px;
         transition: 
@@ -1783,12 +1783,12 @@ class SettingsMenuUI {
 
       .settings-menu__section--expanded .settings-menu__section-chevron {
         transform: rotate(90deg);
-        background: var(--persona-tint, rgba(74, 103, 65, 0.12));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 12%, transparent));
         color: var(--persona-ink);
       }
 
       .settings-menu__section-header:hover .settings-menu__section-chevron {
-        background: var(--color-background-tertiary, rgba(0, 0, 0, 0.05));
+        background: var(--color-background-tertiary);
       }
 
       /* Section Content - collapsible with stagger */
@@ -1869,7 +1869,7 @@ class SettingsMenuUI {
         justify-content: center;
         width: 20px;
         height: 20px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         opacity: 0.5;
       }
 
@@ -1884,7 +1884,7 @@ class SettingsMenuUI {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         opacity: 0.7;
       }
 
@@ -1906,7 +1906,7 @@ class SettingsMenuUI {
 
       /* Divider between subgroups */
       .settings-menu__subgroup + .settings-menu__subgroup {
-        border-top: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
+        border-top: 1px solid var(--color-border-subtle);
         padding-top: var(--space-3, 12px);
         margin-top: var(--space-2, 8px);
       }
@@ -1919,9 +1919,9 @@ class SettingsMenuUI {
         margin-top: var(--space-3, 12px);
         background: linear-gradient(180deg, 
           transparent 0%,
-          var(--color-background-secondary, rgba(0, 0, 0, 0.015)) 100%
+          var(--color-background-secondary) 100%
         );
-        border-top: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
+        border-top: 1px solid var(--color-border-subtle);
         display: flex;
         flex-direction: column;
         gap: 2px;
@@ -1945,7 +1945,7 @@ class SettingsMenuUI {
       }
 
       .settings-menu__quick-actions .settings-menu__item:hover .settings-menu__icon {
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         color: var(--persona-ink);
       }
 
@@ -1965,7 +1965,7 @@ class SettingsMenuUI {
           var(--persona-primary, #4a6741) 0%,
           var(--persona-secondary, #3d5a35) 100%
         );
-        color: white;
+        color: var(--color-white);
         font-family: var(--font-body, Inter, sans-serif);
         font-size: 9px;
         font-weight: 700;
@@ -1973,7 +1973,7 @@ class SettingsMenuUI {
         letter-spacing: 0.08em;
         border-radius: var(--radius-full, 9999px);
         margin-left: auto;
-        box-shadow: 0 2px 4px rgba(74, 103, 65, 0.25);
+        box-shadow: 0 2px 4px color-mix(in srgb, var(--color-ferni) 25%, transparent);
         animation: badgePulse 2s ease-in-out infinite;
       }
 
@@ -2013,14 +2013,14 @@ class SettingsMenuUI {
         position: absolute;
         inset: 0;
         border-radius: inherit;
-        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.06)), transparent);
+        background: linear-gradient(135deg, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 6%, transparent)), transparent);
         opacity: 0;
         transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD};
         pointer-events: none;
       }
 
       .settings-menu__item:hover {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         transform: translateX(2px);
       }
 
@@ -2029,13 +2029,13 @@ class SettingsMenuUI {
       }
 
       .settings-menu__item:active {
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         transform: scale(0.98) translateX(0);
       }
 
       .settings-menu__item:focus-visible {
         outline: none;
-        box-shadow: inset 0 0 0 2px var(--persona-primary, #4a6741);
+        box-shadow: inset 0 0 0 2px var(--persona-primary, var(--color-ferni));
       }
 
       /* ========================================================================
@@ -2108,7 +2108,7 @@ class SettingsMenuUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
         border-radius: var(--radius-md, 8px);
         color: var(--persona-ink);
         transition: 
@@ -2123,8 +2123,8 @@ class SettingsMenuUI {
       }
 
       .settings-menu__item:hover .settings-menu__icon {
-        background: var(--persona-primary, #4a6741);
-        color: white;
+        background: var(--persona-primary, var(--color-ferni));
+        color: var(--color-white);
         transform: scale(1.05);
       }
 
@@ -2136,19 +2136,19 @@ class SettingsMenuUI {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: 14px;
         font-weight: 500;
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         flex: 1;
         letter-spacing: -0.005em;
         transition: color ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .settings-menu__item:hover .settings-menu__label {
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       /* Active/Connected state for items like Spotify */
       .settings-menu__item--active {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
       }
 
       .settings-menu__item--active .settings-menu__icon {
@@ -2177,7 +2177,7 @@ class SettingsMenuUI {
         display: block;
         width: 40px;
         height: 24px;
-        background: var(--color-border-subtle, rgba(44, 37, 32, 0.2));
+        background: var(--color-border-subtle);
         border-radius: 12px;
         position: relative;
         transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -2189,14 +2189,14 @@ class SettingsMenuUI {
         left: 2px;
         width: 20px;
         height: 20px;
-        background: white;
+        background: var(--color-white);
         border-radius: 50%;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 1px 3px color-mix(in srgb, var(--color-black) 20%, transparent);
         transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
       }
 
       .settings-menu__item--toggle-on .settings-menu__toggle-track {
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
       }
 
       .settings-menu__item--toggle-on .settings-menu__toggle-thumb {
@@ -2295,11 +2295,11 @@ class SettingsMenuUI {
       }
 
       .settings-menu__language-option:hover {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
       }
 
       .settings-menu__language-option--active {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
       }
 
       .settings-menu__language-option--active .settings-menu__language-name {
@@ -2345,7 +2345,7 @@ class SettingsMenuUI {
       }
 
       .settings-menu__item--locked .settings-menu__icon {
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .settings-menu__label-wrap {
@@ -2365,7 +2365,7 @@ class SettingsMenuUI {
       .settings-menu__lock-icon {
         width: 16px;
         height: 16px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         flex-shrink: 0;
       }
 
@@ -2378,8 +2378,8 @@ class SettingsMenuUI {
          ROADMAP FEATURE STATE (Coming Soon / What's Growing)
          ======================================================================== */
       .settings-menu__item--roadmap {
-        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.06)), transparent);
-        border: 1px dashed var(--persona-primary, #4a6741);
+        background: linear-gradient(135deg, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 6%, transparent)), transparent);
+        border: 1px dashed var(--persona-primary, var(--color-ferni));
         border-radius: var(--radius-md, 8px);
         cursor: pointer;
         position: relative;
@@ -2390,13 +2390,13 @@ class SettingsMenuUI {
         content: '';
         position: absolute;
         inset: 0;
-        background: linear-gradient(135deg, transparent, var(--persona-tint, rgba(74, 103, 65, 0.03)));
+        background: linear-gradient(135deg, transparent, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 3%, transparent)));
         opacity: 0;
         transition: opacity ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .settings-menu__item--roadmap:hover {
-        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.1)), transparent);
+        background: linear-gradient(135deg, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent)), transparent);
         border-style: solid;
       }
 
@@ -2417,8 +2417,8 @@ class SettingsMenuUI {
 
       .settings-menu__roadmap-badge {
         padding: 2px 8px;
-        background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
-        color: white;
+        background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
+        color: var(--color-white);
         font-size: 0.6rem;
         font-weight: 600;
         text-transform: uppercase;
@@ -2446,7 +2446,7 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__roadmap-badge {
-        background: linear-gradient(135deg, var(--persona-primary, #5a7a51), var(--persona-secondary, #4a6a41));
+        background: linear-gradient(135deg, var(--persona-primary, #5a7a51), var(--persona-secondary, var(--color-ferni)));
       }
 
       /* Shake animation for locked items */
@@ -2475,7 +2475,7 @@ class SettingsMenuUI {
           var(--persona-tint, rgba(74, 103, 65, 0.1)) 0%,
           transparent 60%
         );
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
         position: relative;
         overflow: hidden;
       }
@@ -2488,7 +2488,7 @@ class SettingsMenuUI {
         right: -20%;
         width: 180px;
         height: 180px;
-        background: radial-gradient(circle, var(--persona-tint, rgba(74, 103, 65, 0.06)) 0%, transparent 70%);
+        background: radial-gradient(circle, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 6%, transparent)) 0%, transparent 70%);
         pointer-events: none;
       }
 
@@ -2528,10 +2528,10 @@ class SettingsMenuUI {
       .settings-menu__stage-bar {
         width: 100%;
         height: 8px;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border-radius: var(--radius-full, 9999px);
         overflow: hidden;
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+        box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-black) 6%, transparent);
       }
 
       .settings-menu__stage-fill {
@@ -2595,16 +2595,16 @@ class SettingsMenuUI {
       
       /* Trigger button */
       [data-theme="midnight"] .settings-trigger {
-        background: var(--color-background-elevated, #70605a);
-        border-color: var(--color-border-subtle, rgba(250, 246, 240, 0.1));
-        color: var(--color-text-secondary, #f0ebe4);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        background: var(--color-background-elevated);
+        border-color: var(--color-border-subtle);
+        color: var(--color-text-secondary);
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--color-black) 20%, transparent);
       }
 
       [data-theme="midnight"] .settings-trigger:hover {
-        background: var(--color-background-secondary, #60504a);
-        color: var(--color-text-primary, #faf6f0);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
+        box-shadow: 0 4px 16px color-mix(in srgb, var(--color-black) 25%, transparent);
       }
 
       /* Menu panel */
@@ -2613,17 +2613,17 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__card {
-        background: var(--color-background-elevated, #70605a);
-        box-shadow: -8px 0 40px rgba(0, 0, 0, 0.4);
+        background: var(--color-background-elevated);
+        box-shadow: -8px 0 40px color-mix(in srgb, var(--color-black) 40%, transparent);
       }
 
       /* Header */
       [data-theme="midnight"] .settings-menu__header {
         background: linear-gradient(180deg, 
-          var(--color-background-elevated, #70605a) 0%,
-          var(--color-background-primary, #60504a) 100%
+          var(--color-background-elevated) 0%,
+          var(--color-background-primary) 100%
         );
-        border-bottom-color: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+        border-bottom-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .settings-menu__header::before {
@@ -2639,23 +2639,23 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__header h2 {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .settings-menu__close {
-        background: var(--color-background-tertiary, #685852);
-        border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.08));
-        color: var(--color-text-secondary, #f0ebe4);
+        background: var(--color-background-tertiary);
+        border-color: var(--color-border-subtle);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .settings-menu__close:hover {
-        background: var(--color-background-secondary, #60504a);
-        color: var(--color-text-primary, #faf6f0);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
       }
 
       /* Menu items */
       [data-theme="midnight"] .settings-menu__item:hover {
-        background: var(--color-background-secondary, rgba(255, 255, 255, 0.05));
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .settings-menu__item::before {
@@ -2669,24 +2669,24 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__item:hover .settings-menu__icon {
         background: var(--color-accent-secondary, #7cb36b);
-        color: var(--color-background-primary, #50403a);
+        color: var(--color-background-primary);
       }
 
       [data-theme="midnight"] .settings-menu__label {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       /* Section headers */
       [data-theme="midnight"] .settings-menu__section-header:hover {
-        background: var(--color-background-secondary, rgba(255, 255, 255, 0.03));
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .settings-menu__section-header::after {
-        background: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+        background: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .settings-menu__section-header h3 {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .settings-menu__section--expanded .settings-menu__section-header h3 {
@@ -2694,8 +2694,8 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__section-chevron {
-        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.05));
-        color: var(--color-text-muted, #e8e2da);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .settings-menu__section--expanded .settings-menu__section-chevron {
@@ -2705,15 +2705,15 @@ class SettingsMenuUI {
 
       /* Subgroups */
       [data-theme="midnight"] .settings-menu__subgroup-icon {
-        color: var(--color-text-muted, #ddd6cc);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .settings-menu__subgroup-label {
-        color: var(--color-text-muted, #ddd6cc);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .settings-menu__subgroup + .settings-menu__subgroup {
-        border-top-color: rgba(255, 255, 255, 0.06);
+        border-top-color: color-mix(in srgb, var(--color-white) 6%, transparent);
       }
 
       /* Stage Banner */
@@ -2722,7 +2722,7 @@ class SettingsMenuUI {
           var(--persona-tint, rgba(124, 179, 107, 0.12)) 0%,
           transparent 60%
         );
-        border-bottom-color: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+        border-bottom-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .settings-menu__stage-banner::before {
@@ -2730,7 +2730,7 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__stage-label {
-        color: var(--color-text-muted, #ddd6cc);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .settings-menu__stage-name {
@@ -2738,7 +2738,7 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__stage-bar {
-        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.08));
+        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .settings-menu__stage-fill {
@@ -2749,7 +2749,7 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__stage-next {
-        color: var(--color-text-muted, #ddd6cc);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .settings-menu__stage-max {
@@ -2762,16 +2762,16 @@ class SettingsMenuUI {
           var(--persona-primary, #5a8a4a) 0%,
           var(--color-accent-secondary, #7cb36b) 100%
         );
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 2px 4px color-mix(in srgb, var(--color-black) 30%, transparent);
       }
 
       /* Quick Actions */
       [data-theme="midnight"] .settings-menu__quick-actions {
         background: linear-gradient(180deg, 
           transparent 0%,
-          var(--color-background-secondary, rgba(255, 255, 255, 0.02)) 100%
+          var(--color-background-secondary) 100%
         );
-        border-top-color: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+        border-top-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .settings-menu__quick-actions .settings-menu__icon {
@@ -2784,11 +2784,11 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__quick-actions .settings-menu__label {
-        color: var(--color-text-secondary, #e8e2da);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .settings-menu__quick-actions .settings-menu__item:hover .settings-menu__label {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       /* Pinned items */
@@ -2797,8 +2797,8 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__item--pinned {
-        background: var(--color-background-secondary, rgba(255, 255, 255, 0.03));
-        border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+        background: var(--color-background-secondary);
+        border-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .settings-menu__item--pinned:hover {
@@ -2806,7 +2806,7 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__unpin-btn {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       /* Locked items */
@@ -2816,12 +2816,12 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__unlock-hint,
       [data-theme="midnight"] .settings-menu__lock-icon {
-        color: var(--color-text-muted, #ddd6cc);
+        color: var(--color-text-muted);
       }
 
       /* Active items */
       [data-theme="midnight"] .settings-menu__item--active {
-        background: var(--color-background-secondary, rgba(255, 255, 255, 0.05));
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .settings-menu__item--active .settings-menu__label::after {
@@ -2830,7 +2830,7 @@ class SettingsMenuUI {
 
       /* Toggle items in dark theme */
       [data-theme="midnight"] .settings-menu__toggle-track {
-        background: rgba(255, 255, 255, 0.15);
+        background: color-mix(in srgb, var(--color-white) 15%, transparent);
       }
 
       [data-theme="midnight"] .settings-menu__item--toggle-on .settings-menu__toggle-track {
@@ -2839,19 +2839,19 @@ class SettingsMenuUI {
 
       /* Language Selector */
       [data-theme="midnight"] .settings-menu__language-current {
-        color: var(--color-text-secondary, #e8e2da);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .settings-menu__language-option {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .settings-menu__language-option:hover {
-        background: var(--color-background-secondary, rgba(255, 255, 255, 0.05));
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .settings-menu__language-option--active {
-        background: var(--color-background-secondary, rgba(255, 255, 255, 0.05));
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .settings-menu__language-check {

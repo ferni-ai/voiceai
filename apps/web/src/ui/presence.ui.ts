@@ -34,8 +34,6 @@ const log = createLogger('PresenceUI');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 import {
-  AVATAR_BREATH_TIMING,
-  REACTION_PHASES,
   getAvatarParams,
   type AvatarSquashStretchParams,
   // Voice emotion glow
@@ -46,20 +44,7 @@ import {
 } from '@design-system/tokens';
 
 import { DURATION, EASING, ANIMATION_PRESET } from '../config/animation-constants.js';
-
-// ============================================================================
-// TIMING CONSTANTS (derived from design system)
-// ============================================================================
-
-const TIMING = {
-  breath: parseInt(AVATAR_BREATH_TIMING.idle),
-  breathConnected: parseInt(AVATAR_BREATH_TIMING.connected),
-  breathSpeaking: parseInt(AVATAR_BREATH_TIMING.speaking),
-  breathListening: parseInt(AVATAR_BREATH_TIMING.listening),
-  glowPhaseOffset: 0.23,  // Secondary action offset (slightly out of sync)
-  reactionAnticipation: parseInt(REACTION_PHASES.anticipation),
-  reactionFollow: parseInt(REACTION_PHASES.followThrough),
-};
+import { TIMING, VOICE_PULSE_CONFIG } from './presence-timing.js';
 
 // ============================================================================
 // STATE
@@ -113,23 +98,6 @@ let voicePulseFrame: number | null = null;
 let currentVoiceVolume = 0;
 let smoothedVoiceVolume = 0;
 let voicePulseEnabled = true;
-
-// Voice pulse configuration
-const VOICE_PULSE_CONFIG = {
-  // Scale range: avatar pulses between 1.0 and 1.0 + MAX_SCALE
-  maxScale: 0.12,        // 12% max scale increase (bass speaker effect)
-  minScale: 0.02,        // 2% minimum pulse when speaking (always some movement)
-  
-  // Smoothing: lower = more responsive, higher = smoother
-  smoothingUp: 0.25,     // Fast attack - respond quickly to volume increases
-  smoothingDown: 0.08,   // Slow release - smooth decay feels more organic
-  
-  // Squash/stretch for Pixar-quality deformation
-  squashRatio: 0.4,      // When scaling up, squash horizontally by this ratio
-  
-  // Update rate
-  targetFps: 60,
-};
 
 // ============================================================================
 // INITIALIZATION
@@ -1606,4 +1574,3 @@ export const presenceUI = {
   // Cleanup
   dispose,
 };
-

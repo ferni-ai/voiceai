@@ -16,31 +16,31 @@
 .demo-widget__voice.is-listening {
   background: linear-gradient(
     135deg,
-    var(--color-ferni, var(--color-ferni)) 0%,
+    var(--color-ferni) 0%,
     var(--color-ferni-secondary) 100%
   );
-  color: white;
-  animation: voice-pulse 1.5s ease-in-out infinite;
+  color: var(--color-white);
+  animation: voice-pulse var(--duration-glacial) ease-in-out infinite;
 }
 
 .demo-widget__voice.is-listening::before {
   content: '';
   position: absolute;
   inset: -4px;
-  border: 2px solid var(--color-ferni, var(--color-ferni));
+  border: 2px solid var(--color-ferni);
   border-radius: 50%;
   opacity: 0;
-  animation: voice-ring 1.5s ease-out infinite;
+  animation: voice-ring var(--duration-glacial) ease-out infinite;
 }
 
 .demo-widget__voice.is-listening::after {
   content: '';
   position: absolute;
   inset: -8px;
-  border: 1px solid var(--color-ferni, var(--color-ferni));
+  border: 1px solid var(--color-ferni);
   border-radius: 50%;
   opacity: 0;
-  animation: voice-ring 1.5s ease-out 0.3s infinite;
+  animation: voice-ring var(--duration-glacial) ease-out var(--duration-slow) infinite;
 }
 
 @keyframes voice-pulse {
@@ -70,7 +70,7 @@
 }
 
 .demo-widget__voice.is-processing svg {
-  animation: voice-processing 1s linear infinite;
+  animation: voice-processing var(--duration-dramatic) linear infinite;
 }
 
 @keyframes voice-processing {
@@ -84,8 +84,8 @@
 
 /* Error state */
 .demo-widget__voice.is-error {
-  background: rgba(200, 100, 100, 0.1);
-  animation: voice-error 0.3s ease;
+  background: color-mix(in srgb, var(--color-error-warm) 10%, transparent);
+  animation: voice-error var(--duration-slow) ease;
 }
 
 @keyframes voice-error {
@@ -111,14 +111,14 @@
 .demo-widget.is-voice-active .demo-widget__input-area {
   background: linear-gradient(
     180deg,
-    rgba(74, 103, 65, 0.05) 0%,
+    color-mix(in srgb, var(--color-ferni) 5%, transparent) 0%,
     transparent 100%
   );
 }
 
 .demo-widget.is-voice-active .demo-widget__input {
-  border-color: var(--color-ferni, var(--color-ferni));
-  background: rgba(74, 103, 65, 0.02);
+  border-color: var(--color-ferni);
+  background: color-mix(in srgb, var(--color-ferni) 2%, transparent);
 }
 
 /* ============================================================================
@@ -127,10 +127,10 @@
 
 .demo-widget__mic-error {
   padding: 12px 16px;
-  background: rgba(200, 100, 100, 0.08);
-  border-bottom: 1px solid rgba(200, 100, 100, 0.1);
+  background: color-mix(in srgb, var(--color-error-warm) 8%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-error-warm) 10%, transparent);
   text-align: center;
-  animation: mic-error-appear 0.3s ease-out;
+  animation: mic-error-appear var(--duration-slow) ease-out;
 }
 
 .demo-widget__mic-error p {
@@ -142,7 +142,7 @@
 
 .demo-widget__mic-error small {
   font-size: var(--text-2xs);
-  color: var(--color-text-secondary, var(--color-text-secondary));
+  color: var(--color-text-secondary);
   opacity: 0.8;
 }
 
@@ -168,7 +168,7 @@
   gap: 3px;
   height: 24px;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--duration-slow) ease;
 }
 
 .demo-widget.is-voice-active .demo-widget__waveform {
@@ -178,9 +178,9 @@
 .demo-widget__waveform-bar {
   width: 3px;
   height: 8px;
-  background: var(--color-ferni, var(--color-ferni));
+  background: var(--color-ferni);
   border-radius: var(--radius-xs);
-  animation: waveform-bar 0.8s ease-in-out infinite;
+  animation: waveform-bar var(--duration-cinematic) ease-in-out infinite;
 }
 
 .demo-widget__waveform-bar:nth-child(1) { animation-delay: 0ms; }
@@ -206,7 +206,7 @@
 
 /* Animate text appearing as user speaks */
 .demo-widget__input.is-transcribing {
-  animation: transcript-appear 0.1s ease-out;
+  animation: transcript-appear var(--duration-faster) ease-out;
 }
 
 @keyframes transcript-appear {
@@ -228,16 +228,16 @@
   left: 50%;
   transform: translateX(-50%) translateY(4px);
   padding: 6px 12px;
-  background: var(--color-text-primary, var(--color-text-primary));
-  color: white;
+  background: var(--color-text-primary);
+  color: var(--color-white);
   font-size: var(--text-2xs);
   font-weight: 500;
   border-radius: var(--radius-sm);
   white-space: nowrap;
   opacity: 0;
   transition: 
-    opacity 0.2s ease,
-    transform 0.2s ease;
+    opacity var(--duration-normal) ease,
+    transform var(--duration-normal) ease;
   pointer-events: none;
 }
 
@@ -248,7 +248,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: var(--color-text-primary, var(--color-text-primary));
+  border-top-color: var(--color-text-primary);
 }
 
 .demo-widget__voice:hover .demo-widget__voice-tooltip,

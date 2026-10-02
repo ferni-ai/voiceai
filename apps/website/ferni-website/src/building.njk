@@ -4,10 +4,11 @@ description: The story of how a human and an AI built something beautiful togeth
 permalink: /building/
 ---
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/_tokens.css">
   <title>{{ title }} | Ferni</title>
   <meta name="description" content="{{ description }}">
   
@@ -34,21 +35,11 @@ permalink: /building/
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
     :root {
-      --color-ferni: #4a6741;
-      --color-peter: #3a6b73;
-      --color-alex: #5a6b8a;
-      --color-maya: #a67a6a;
-      --color-jordan: #c4856a;
-      --color-nayan: #9a7b5a;
-      --color-bg: #faf8f5;
-      --color-bg-alt: #f5f2ed;
-      --color-text: #2c2520;
-      --color-text-secondary: #5c544a;
-      --color-text-muted: #756a5e;
+      --color-bg-alt: var(--color-bg-secondary);
     }
     
     body { 
-      font-family: 'Inter', system-ui, sans-serif;
+      font-family: var(--font-body);
       background: var(--color-bg);
       color: var(--color-text);
       line-height: 1.6;
@@ -66,10 +57,10 @@ permalink: /building/
       right: 0;
       z-index: 100;
       padding: 16px 24px;
-      background: rgba(250, 248, 245, 0.9);
+      background: color-mix(in srgb, var(--color-paper) 90%, transparent);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(44, 37, 32, 0.05);
+      border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent);
     }
     
     .nav-inner {
@@ -81,7 +72,7 @@ permalink: /building/
     }
     
     .nav-logo {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: 20px;
       font-weight: 700;
       color: var(--color-text);
@@ -98,12 +89,12 @@ permalink: /building/
       font-weight: 500;
       color: var(--color-text-secondary);
       text-decoration: none;
-      transition: color 0.2s;
+      transition: color var(--duration-normal);
     }
     
     .nav-links a:hover,
     .nav-links a.active {
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
     }
     
     @media (max-width: 768px) {
@@ -149,24 +140,24 @@ permalink: /building/
       align-items: center;
       gap: 8px;
       padding: 10px 20px;
-      background: rgba(74, 103, 65, 0.1);
-      border-radius: 50px;
-      color: var(--color-ferni);
+      background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
+      border-radius: var(--radius-full);
+      color: var(--color-ferni-text);
       font-size: 12px;
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
       margin-bottom: 32px;
-      animation: fadeInUp 0.8s ease-out;
+      animation: fadeInUp var(--duration-cinematic) ease-out;
     }
     
     h1 {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: clamp(2.5rem, 8vw, 5rem);
       font-weight: 800;
       line-height: 1.05;
       margin: 0 0 28px;
-      animation: fadeInUp 0.8s ease-out 0.1s both;
+      animation: fadeInUp var(--duration-cinematic) ease-out var(--duration-faster) both;
     }
     
     .gradient-text {
@@ -182,13 +173,13 @@ permalink: /building/
       max-width: 550px;
       margin: 0 auto 48px;
       line-height: 1.7;
-      animation: fadeInUp 0.8s ease-out 0.2s both;
+      animation: fadeInUp var(--duration-cinematic) ease-out var(--duration-normal) both;
     }
     
     .scroll-hint {
       color: var(--color-text-muted);
       font-size: 13px;
-      animation: fadeInUp 0.8s ease-out 0.3s both;
+      animation: fadeInUp var(--duration-cinematic) ease-out var(--duration-slow) both;
     }
     
     .scroll-hint svg {
@@ -220,14 +211,14 @@ permalink: /building/
     .origin-card {
       max-width: 700px;
       margin: 0 auto;
-      background: white;
-      border-radius: 24px;
+      background: var(--color-white);
+      border-radius: var(--radius-2xl);
       padding: 48px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.06);
+      box-shadow: var(--shadow-2xl);
     }
     
     .quote {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: clamp(1.125rem, 2.5vw, 1.5rem);
       font-weight: 500;
       line-height: 1.5;
@@ -242,19 +233,19 @@ permalink: /building/
       display: flex;
       gap: 16px;
       padding-top: 28px;
-      border-top: 1px solid rgba(44, 37, 32, 0.08);
+      border-top: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
     }
     
     .avatar {
       width: 52px;
       height: 52px;
       background: linear-gradient(135deg, var(--color-peter), var(--color-alex));
-      border-radius: 14px;
+      border-radius: var(--radius-lg);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: var(--color-white);
+      font-family: var(--font-display);
       font-weight: 700;
       font-size: 15px;
       flex-shrink: 0;
@@ -272,7 +263,7 @@ permalink: /building/
     }
     
     .author-name {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-weight: 600;
       font-size: 15px;
       color: var(--color-text);
@@ -299,7 +290,7 @@ permalink: /building/
     }
     
     .eyebrow {
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
       font-size: 12px;
       font-weight: 600;
       letter-spacing: 0.15em;
@@ -308,7 +299,7 @@ permalink: /building/
     }
     
     .section-title {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: clamp(1.75rem, 4vw, 2.5rem);
       font-weight: 700;
       color: var(--color-text);
@@ -329,7 +320,7 @@ permalink: /building/
       bottom: 0;
       width: 2px;
       background: linear-gradient(to bottom, var(--color-ferni), var(--color-peter), var(--color-maya));
-      border-radius: 1px;
+      border-radius: var(--radius-xs);
     }
     
     .milestone {
@@ -368,7 +359,7 @@ permalink: /building/
     }
     
     .milestone-title {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: 1.125rem;
       font-weight: 600;
       color: var(--color-text);
@@ -385,18 +376,18 @@ permalink: /building/
       display: inline-block;
       margin-top: 12px;
       padding: 5px 12px;
-      background: rgba(74, 103, 65, 0.1);
-      color: var(--color-ferni);
+      background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
+      color: var(--color-ferni-text);
       font-size: 11px;
       font-weight: 600;
-      border-radius: 20px;
+      border-radius: var(--radius-xl);
       text-transform: uppercase;
       letter-spacing: 0.03em;
     }
     
     .milestone-tag.highlight {
       background: linear-gradient(135deg, var(--color-ferni), var(--color-peter));
-      color: white;
+      color: var(--color-white);
     }
     
     /* ═══════════════════════════════════════════════════════════════════════
@@ -433,16 +424,16 @@ permalink: /building/
       display: flex;
       flex-direction: column;
       text-decoration: none;
-      background: white;
-      border-radius: 20px;
+      background: var(--color-white);
+      border-radius: var(--radius-xl);
       padding: 28px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+      transition: transform var(--duration-slow) ease, box-shadow var(--duration-slow) ease;
+      box-shadow: var(--shadow-lg);
     }
     
     .story-card:hover {
       transform: translateY(-8px);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--shadow-2xl);
     }
     
     .story-meta {
@@ -454,19 +445,19 @@ permalink: /building/
     
     .category {
       padding: 5px 12px;
-      background: rgba(74, 103, 65, 0.1);
-      color: var(--color-ferni);
+      background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
+      color: var(--color-ferni-text);
       font-size: 11px;
       font-weight: 600;
-      border-radius: 20px;
+      border-radius: var(--radius-xl);
       text-transform: uppercase;
       letter-spacing: 0.03em;
     }
     
-    .category.behind-the-scenes { background: rgba(74, 103, 65, 0.1); color: var(--color-ferni); }
-    .category.failures { background: rgba(166, 122, 106, 0.1); color: var(--color-maya); }
-    .category.lessons { background: rgba(154, 123, 90, 0.1); color: var(--color-nayan); }
-    .category.design-philosophy { background: rgba(196, 133, 106, 0.1); color: var(--color-jordan); }
+    .category.behind-the-scenes { background: color-mix(in srgb, var(--color-ferni) 10%, transparent); color: var(--color-ferni-text); }
+    .category.failures { background: color-mix(in srgb, var(--color-maya) 10%, transparent); color: var(--color-maya-text); }
+    .category.lessons { background: color-mix(in srgb, var(--color-jack) 10%, transparent); color: var(--color-nayan-text); }
+    .category.design-philosophy { background: color-mix(in srgb, var(--color-jordan) 10%, transparent); color: var(--color-jordan-text); }
     
     .date {
       font-size: 13px;
@@ -474,7 +465,7 @@ permalink: /building/
     }
     
     .story-card h3 {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: 1.25rem;
       font-weight: 700;
       margin-bottom: 12px;
@@ -500,17 +491,17 @@ permalink: /building/
       gap: 12px;
       margin-top: auto;
       padding-top: 16px;
-      border-top: 1px solid rgba(44, 37, 32, 0.06);
+      border-top: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
     }
     
     .story-avatar {
       width: 32px;
       height: 32px;
-      border-radius: 10px;
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-white);
       font-size: 11px;
       font-weight: 700;
     }
@@ -527,12 +518,12 @@ permalink: /building/
       align-items: center;
       gap: 4px;
       font-size: 13px;
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
       font-weight: 600;
     }
     
     .read-more svg {
-      transition: transform 0.2s;
+      transition: transform var(--duration-normal);
     }
     
     .story-card:hover .read-more svg {
@@ -568,16 +559,16 @@ permalink: /building/
     }
     
     .cta h2 {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: clamp(1.75rem, 4vw, 2.75rem);
       font-weight: 700;
-      color: white;
+      color: var(--color-white);
       margin-bottom: 16px;
     }
     
     .cta p {
       font-size: 1.125rem;
-      color: rgba(255, 255, 255, 0.9);
+      color: color-mix(in srgb, var(--color-white) 90%, transparent);
       margin-bottom: 40px;
       line-height: 1.65;
     }
@@ -594,11 +585,11 @@ permalink: /building/
       align-items: center;
       gap: 10px;
       padding: 16px 32px;
-      border-radius: 14px;
+      border-radius: var(--radius-lg);
       font-size: 15px;
       font-weight: 600;
       text-decoration: none;
-      transition: all 0.2s ease;
+      transition: all var(--duration-normal) ease;
     }
     
     .btn:hover {
@@ -606,24 +597,24 @@ permalink: /building/
     }
     
     .btn-primary {
-      background: white;
-      color: var(--color-ferni);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      background: var(--color-white);
+      color: var(--color-ferni-text);
+      box-shadow: var(--shadow-xl);
     }
     
     .btn-primary:hover {
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+      box-shadow: var(--shadow-2xl);
     }
     
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.12);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: color-mix(in srgb, var(--color-white) 12%, transparent);
+      color: var(--color-white);
+      border: 1px solid color-mix(in srgb, var(--color-white) 25%, transparent);
     }
     
     .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: rgba(255, 255, 255, 0.4);
+      background: color-mix(in srgb, var(--color-white) 20%, transparent);
+      border-color: color-mix(in srgb, var(--color-white) 40%, transparent);
     }
     
     /* ═══════════════════════════════════════════════════════════════════════
@@ -633,7 +624,7 @@ permalink: /building/
     .footer {
       padding: 60px 24px 40px;
       background: var(--color-bg);
-      border-top: 1px solid rgba(44, 37, 32, 0.06);
+      border-top: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
     }
     
     .footer-inner {
@@ -647,7 +638,7 @@ permalink: /building/
     }
     
     .footer-logo {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: 18px;
       font-weight: 700;
       color: var(--color-text);
@@ -663,11 +654,11 @@ permalink: /building/
       font-size: 14px;
       color: var(--color-text-secondary);
       text-decoration: none;
-      transition: color 0.2s;
+      transition: color var(--duration-normal);
     }
     
     .footer-links a:hover {
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
     }
     
     .footer-copy {
@@ -677,7 +668,7 @@ permalink: /building/
       color: var(--color-text-muted);
       margin-top: 24px;
       padding-top: 24px;
-      border-top: 1px solid rgba(44, 37, 32, 0.06);
+      border-top: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
     }
   </style>
 </head>
@@ -850,7 +841,7 @@ permalink: /building/
         <h3>{{ story.data.title }}</h3>
         <p>{{ story.data.excerpt }}</p>
         <div class="story-footer">
-          <div class="story-avatar" style="background: {{ story.data.authorColor or '#4a6741' }}">{% if not story.data.authorInitials or story.data.authorInitials == 'FE' %}<svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg>{% else %}{{ story.data.authorInitials }}{% endif %}</div>
+          <div class="story-avatar" style="background: {{ story.data.authorColor or 'var(--color-ferni)' }}">{% if not story.data.authorInitials or story.data.authorInitials == 'FE' %}<svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg>{% else %}{{ story.data.authorInitials }}{% endif %}</div>
           <span class="story-author">{{ story.data.author or 'Ferni' }}</span>
           <span class="read-more">
             Read

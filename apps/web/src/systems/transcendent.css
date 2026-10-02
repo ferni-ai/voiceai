@@ -119,56 +119,56 @@
   --physics-mass: 0.1;
   --physics-stiffness: 400;
   --physics-damping: 25;
-  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+  transition: transform var(--duration-fast) cubic-bezier(0.5, 1.5, 0.5, 1);
 }
 
 .physics-card {
   --physics-mass: 0.3;
   --physics-stiffness: 300;
   --physics-damping: 20;
-  transition: transform var(--duration-normal, 200ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform var(--duration-normal) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .physics-modal {
   --physics-mass: 0.5;
   --physics-stiffness: 250;
   --physics-damping: 18;
-  transition: transform var(--duration-slow, 300ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform var(--duration-slow) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .physics-tooltip {
   --physics-mass: 0.05;
   --physics-stiffness: 500;
   --physics-damping: 30;
-  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transition: transform var(--duration-fast) cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 .physics-dropdown {
   --physics-mass: 0.2;
   --physics-stiffness: 350;
   --physics-damping: 22;
-  transition: transform var(--duration-normal, 200ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform var(--duration-normal) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .physics-toggle {
   --physics-mass: 0.1;
   --physics-stiffness: 450;
   --physics-damping: 28;
-  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+  transition: transform var(--duration-fast) cubic-bezier(0.5, 1.5, 0.5, 1);
 }
 
 .physics-notification {
   --physics-mass: 0.15;
   --physics-stiffness: 380;
   --physics-damping: 24;
-  transition: transform var(--duration-normal, 200ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform var(--duration-normal) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .physics-avatar {
   --physics-mass: 0.4;
   --physics-stiffness: 200;
   --physics-damping: 15;
-  transition: transform var(--duration-slow, 300ms) cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--duration-slow) cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Spring bounce animations */
@@ -180,7 +180,7 @@
 }
 
 .spring-bounce {
-  animation: spring-bounce var(--duration-normal, 200ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+  animation: spring-bounce var(--duration-normal) cubic-bezier(0.5, 1.5, 0.5, 1);
 }
 
 @keyframes spring-pop {
@@ -190,7 +190,7 @@
 }
 
 .spring-pop {
-  animation: spring-pop var(--duration-normal, 200ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+  animation: spring-pop var(--duration-normal) cubic-bezier(0.5, 1.5, 0.5, 1);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -198,45 +198,45 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Relationship-based spacing */
-.space-none { margin-bottom: var(--space-0, 0); }
-.space-none-top { margin-top: var(--space-0, 0); }
-.gap-none { gap: var(--space-0, 0); }
-.p-none { padding: var(--space-0, 0); }
+.space-none { margin-bottom: var(--space-0); }
+.space-none-top { margin-top: var(--space-0); }
+.gap-none { gap: var(--space-0); }
+.p-none { padding: var(--space-0); }
 
-.space-tight { margin-bottom: var(--space-2, 8px); }
-.space-tight-top { margin-top: var(--space-2, 8px); }
-.gap-tight { gap: var(--space-2, 8px); }
-.p-tight { padding: var(--space-2, 8px); }
+.space-tight { margin-bottom: var(--space-2); }
+.space-tight-top { margin-top: var(--space-2); }
+.gap-tight { gap: var(--space-2); }
+.p-tight { padding: var(--space-2); }
 
-.space-related { margin-bottom: var(--space-4, 16px); }
-.space-related-top { margin-top: var(--space-4, 16px); }
-.gap-related { gap: var(--space-4, 16px); }
-.p-related { padding: var(--space-4, 16px); }
+.space-related { margin-bottom: var(--space-4); }
+.space-related-top { margin-top: var(--space-4); }
+.gap-related { gap: var(--space-4); }
+.p-related { padding: var(--space-4); }
 
-.space-section { margin-bottom: var(--space-6, 32px); }
-.space-section-top { margin-top: var(--space-6, 32px); }
-.gap-section { gap: var(--space-6, 32px); }
-.p-section { padding: var(--space-6, 32px); }
+.space-section { margin-bottom: var(--space-6); }
+.space-section-top { margin-top: var(--space-6); }
+.gap-section { gap: var(--space-6); }
+.p-section { padding: var(--space-6); }
 
-.space-group { margin-bottom: var(--space-7, 48px); }
-.space-group-top { margin-top: var(--space-7, 48px); }
-.gap-group { gap: var(--space-7, 48px); }
-.p-group { padding: var(--space-7, 48px); }
+.space-group { margin-bottom: var(--space-7); }
+.space-group-top { margin-top: var(--space-7); }
+.gap-group { gap: var(--space-7); }
+.p-group { padding: var(--space-7); }
 
-.space-dramatic { margin-bottom: var(--space-9, 96px); }
-.space-dramatic-top { margin-top: var(--space-9, 96px); }
-.gap-dramatic { gap: var(--space-9, 96px); }
-.p-dramatic { padding: var(--space-9, 96px); }
+.space-dramatic { margin-bottom: var(--space-9); }
+.space-dramatic-top { margin-top: var(--space-9); }
+.gap-dramatic { gap: var(--space-9); }
+.p-dramatic { padding: var(--space-9); }
 
 /* Content type spacing (auto sibling spacing) */
-.content-heading + * { margin-top: var(--space-from-heading, var(--space-4, 16px)); }
-.content-subheading + * { margin-top: var(--space-from-subheading, var(--space-2, 8px)); }
-.content-body + * { margin-top: var(--space-from-body, var(--space-4, 16px)); }
-.content-button + * { margin-top: var(--space-from-button, var(--space-4, 16px)); }
-.content-input + * { margin-top: var(--space-from-input, var(--space-4, 16px)); }
-.content-list-item + * { margin-top: var(--space-from-list-item, var(--space-2, 8px)); }
-.content-card + * { margin-top: var(--space-from-card, var(--space-4, 16px)); }
-.content-label + * { margin-top: var(--space-from-label, var(--space-2, 8px)); }
+.content-heading + * { margin-top: var(--space-from-heading, var(--space-4)); }
+.content-subheading + * { margin-top: var(--space-from-subheading, var(--space-2)); }
+.content-body + * { margin-top: var(--space-from-body, var(--space-4)); }
+.content-button + * { margin-top: var(--space-from-button, var(--space-4)); }
+.content-input + * { margin-top: var(--space-from-input, var(--space-4)); }
+.content-list-item + * { margin-top: var(--space-from-list-item, var(--space-2)); }
+.content-card + * { margin-top: var(--space-from-card, var(--space-4)); }
+.content-label + * { margin-top: var(--space-from-label, var(--space-2)); }
 
 /* Emotional modifiers */
 .emotion-neutral { --spacing-scale: 1.0; }
@@ -258,7 +258,7 @@
   letter-spacing: var(--type-transcript-spacing, 0);
   line-height: var(--type-transcript-height, 1.6);
   opacity: var(--type-transcript-opacity, 1);
-  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+  transition: all var(--duration-normal) var(--ease-decelerate);
 }
 
 .type-message {
@@ -267,7 +267,7 @@
   letter-spacing: var(--type-message-spacing, 0);
   line-height: var(--type-message-height, 1.5);
   opacity: var(--type-message-opacity, 1);
-  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+  transition: all var(--duration-normal) var(--ease-decelerate);
 }
 
 .type-insight {
@@ -276,7 +276,7 @@
   letter-spacing: var(--type-insight-spacing, -0.01em);
   line-height: var(--type-insight-height, 1.4);
   opacity: var(--type-insight-opacity, 1);
-  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+  transition: all var(--duration-normal) var(--ease-decelerate);
 }
 
 .type-label {
@@ -286,7 +286,7 @@
   line-height: var(--type-label-height, 1.2);
   opacity: var(--type-label-opacity, 1);
   text-transform: uppercase;
-  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+  transition: all var(--duration-normal) var(--ease-decelerate);
 }
 
 .type-heading {
@@ -295,7 +295,7 @@
   letter-spacing: var(--type-heading-spacing, -0.02em);
   line-height: var(--type-heading-height, 1.2);
   opacity: var(--type-heading-opacity, 1);
-  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+  transition: all var(--duration-normal) var(--ease-decelerate);
 }
 
 .type-caption {
@@ -304,7 +304,7 @@
   letter-spacing: var(--type-caption-spacing, 0.01em);
   line-height: var(--type-caption-height, 1.4);
   opacity: var(--type-caption-opacity, 1);
-  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+  transition: all var(--duration-normal) var(--ease-decelerate);
 }
 
 .type-quote {
@@ -314,7 +314,7 @@
   line-height: var(--type-quote-height, 1.6);
   opacity: var(--type-quote-opacity, 1);
   font-style: italic;
-  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+  transition: all var(--duration-normal) var(--ease-decelerate);
 }
 
 /* Intensity modifiers */
@@ -459,7 +459,7 @@
 
 /* Button micro-interactions */
 .micro-button {
-  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+  transition: transform var(--duration-fast) cubic-bezier(0.5, 1.5, 0.5, 1);
 }
 
 .micro-button:hover {
@@ -472,13 +472,13 @@
 
 /* Card micro-interactions */
 .micro-card {
-  transition: transform var(--duration-fast, 150ms) ease-out,
-              box-shadow var(--duration-fast, 150ms) ease-out;
+  transition: transform var(--duration-fast) ease-out,
+              box-shadow var(--duration-fast) ease-out;
 }
 
 .micro-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-black) 10%, transparent);
 }
 
 .micro-card:active {
@@ -487,8 +487,8 @@
 
 /* Input micro-interactions */
 .micro-input {
-  transition: transform var(--duration-fast, 150ms) ease-out,
-              box-shadow var(--duration-fast, 150ms) ease-out;
+  transition: transform var(--duration-fast) ease-out,
+              box-shadow var(--duration-fast) ease-out;
 }
 
 .micro-input:focus {
@@ -497,7 +497,7 @@
 
 /* Toggle micro-interactions */
 .micro-toggle {
-  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+  transition: transform var(--duration-fast) cubic-bezier(0.5, 1.5, 0.5, 1);
 }
 
 /* Notification entrance */
@@ -513,7 +513,7 @@
 }
 
 .micro-notification-enter {
-  animation: notification-enter var(--duration-normal, 200ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: notification-enter var(--duration-normal) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

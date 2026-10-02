@@ -184,14 +184,14 @@ function injectStyles(): void {
 
     .celebration-card {
       position: relative;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
       padding: var(--space-10, 40px) var(--space-12, 48px);
       text-align: center;
       max-width: clamp(294px, 90vw, 420px);
       width: calc(100% - var(--space-8, 32px));
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       transform: scale(0.9) translateY(20px);
       opacity: 0;
       transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING},
@@ -212,7 +212,7 @@ function injectStyles(): void {
       margin: 0 auto var(--space-5, 20px);
       background: linear-gradient(135deg, var(--persona-primary) 0%, var(--persona-secondary) 100%);
       border-radius: var(--radius-full, 9999px);
-      color: white;
+      color: var(--color-white);
       box-shadow: 0 8px 30px var(--persona-glow);
     }
     
@@ -236,7 +236,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-2xl, 28px);
       font-weight: var(--font-weight-bold, 700);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-3, 12px);
       line-height: var(--leading-tight, 1.2);
     }
@@ -244,7 +244,7 @@ function injectStyles(): void {
     .celebration-message {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-base, 16px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       margin: 0 0 var(--space-6, 24px);
       line-height: var(--leading-relaxed, 1.6);
     }
@@ -254,7 +254,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-3, 12px);
       padding: var(--space-3, 12px) var(--space-5, 20px);
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-full, 9999px);
       margin-bottom: var(--space-6, 24px);
     }
@@ -262,7 +262,7 @@ function injectStyles(): void {
     .stage-from {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       text-decoration: line-through;
     }
     
@@ -287,8 +287,8 @@ function injectStyles(): void {
       display: inline-flex;
       align-items: center;
       gap: var(--space-2, 8px);
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       border: none;
       padding: var(--space-4, 16px) var(--space-8, 32px);
       border-radius: var(--radius-full, 9999px);
@@ -341,22 +341,22 @@ function injectStyles(): void {
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: var(--color-border-subtle, rgba(0, 0, 0, 0.1));
-      border: 2px solid var(--color-border, rgba(0, 0, 0, 0.2));
+      background: var(--color-border-subtle);
+      border: 2px solid var(--color-border, color-mix(in srgb, var(--color-black) 20%, transparent));
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
     .celebration-journey-node--past .celebration-journey-dot {
-      background: var(--persona-primary, #4a6741);
-      border-color: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
+      border-color: var(--persona-primary, var(--color-ferni));
     }
     
     .celebration-journey-node--current .celebration-journey-dot {
       width: 16px;
       height: 16px;
-      background: var(--persona-primary, #4a6741);
-      border-color: var(--persona-primary, #4a6741);
-      box-shadow: 0 0 0 4px var(--persona-tint, rgba(74, 103, 65, 0.2));
+      background: var(--persona-primary, var(--color-ferni));
+      border-color: var(--persona-primary, var(--color-ferni));
+      box-shadow: 0 0 0 4px var(--persona-tint, color-mix(in srgb, var(--color-ferni) 20%, transparent));
       animation: celebrationPulse 1.5s ease-in-out infinite;
     }
     
@@ -372,16 +372,16 @@ function injectStyles(): void {
     .celebration-journey-connector {
       width: 24px;
       height: 2px;
-      background: var(--color-border-subtle, rgba(0, 0, 0, 0.1));
+      background: var(--color-border-subtle);
     }
     
     .celebration-journey-connector--filled {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
     }
     
     /* Unlocks Section */
     .celebration-unlocks {
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-3, 12px) var(--space-4, 16px);
       margin-bottom: var(--space-5, 20px);
@@ -392,7 +392,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xs, 12px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
       margin: 0 0 var(--space-2, 8px);
@@ -412,8 +412,8 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-1, 4px);
       font-size: var(--text-sm, 14px);
-      color: var(--color-text-primary, #2C2520);
-      background: var(--color-background-elevated, #FFFDFB);
+      color: var(--color-text-primary);
+      background: var(--color-background-elevated);
       padding: var(--space-1, 4px) var(--space-2, 8px);
       border-radius: var(--radius-full, 9999px);
       animation: unlockFadeIn ${DURATION.NORMAL}ms ${EASING.SPRING} backwards;
@@ -442,8 +442,8 @@ function injectStyles(): void {
     
     /* Dark theme - Celebration Enhancements */
     [data-theme="midnight"] .celebration-journey-dot {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
+      border-color: color-mix(in srgb, var(--color-white) 20%, transparent);
     }
     
     [data-theme="midnight"] .celebration-journey-node--past .celebration-journey-dot,
@@ -453,7 +453,7 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .celebration-journey-connector {
-      background: rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
     }
     
     [data-theme="midnight"] .celebration-journey-connector--filled {
@@ -461,12 +461,12 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .celebration-unlocks {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
     
     [data-theme="midnight"] .celebration-unlock-item {
-      background: var(--color-background-elevated, #70605a);
-      color: var(--color-text-primary, #faf6f0);
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
     }
     
     /* ========================================================================
@@ -499,8 +499,8 @@ function injectStyles(): void {
 
     .journey-card {
       position: relative;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
       max-width: clamp(336px, 90vw, 480px);
       width: calc(100% - var(--space-8, 32px));
@@ -508,7 +508,7 @@ function injectStyles(): void {
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       transform: scale(0.9) translateY(20px);
       opacity: 0;
       transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING},
@@ -525,7 +525,7 @@ function injectStyles(): void {
       align-items: center;
       justify-content: space-between;
       padding: var(--space-5, 20px) var(--space-6, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
     
     .journey-header-text {
@@ -548,7 +548,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-lg, 18px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
     
@@ -559,17 +559,17 @@ function injectStyles(): void {
       width: 36px;
       height: 36px;
       padding: 0;
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border: none;
       border-radius: var(--radius-full, 9999px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: transform 200ms ease-out, opacity 200ms ease-out;
     }
     
     .journey-close:hover {
-      background: var(--color-background-tertiary, #E8E0D5);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
     }
     
     .journey-close svg {
@@ -599,7 +599,7 @@ function injectStyles(): void {
       height: 56px;
       background: linear-gradient(135deg, var(--persona-primary) 0%, var(--persona-secondary) 100%);
       border-radius: var(--radius-lg, 12px);
-      color: white;
+      color: var(--color-white);
       flex-shrink: 0;
       box-shadow: 0 4px 16px var(--persona-glow);
     }
@@ -619,7 +619,7 @@ function injectStyles(): void {
       font-weight: var(--font-weight-bold, 700);
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-1, 4px);
     }
     
@@ -634,19 +634,19 @@ function injectStyles(): void {
     .stage-tagline {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
     }
     
     .stage-description {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-base, 16px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       line-height: var(--leading-relaxed, 1.6);
       margin-bottom: var(--space-6, 24px);
       padding: var(--space-4, 16px);
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg, 12px);
-      border-left: 3px solid var(--persona-primary, #4a6741);
+      border-left: 3px solid var(--persona-primary, var(--color-ferni));
     }
     
     /* Progress Section */
@@ -665,18 +665,18 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-sm, 14px);
       font-weight: var(--font-weight-medium, 500);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .progress-next {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
     }
     
     .progress-bar {
       height: 8px;
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-full, 9999px);
       overflow: hidden;
       margin-bottom: var(--space-2, 8px);
@@ -684,7 +684,7 @@ function injectStyles(): void {
     
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, var(--persona-secondary, #3d5a35) 0%, var(--persona-primary, #4a6741) 100%);
+      background: linear-gradient(90deg, var(--persona-secondary, var(--color-ferni-secondary)) 0%, var(--persona-primary, var(--color-ferni)) 100%);
       border-radius: var(--radius-full, 9999px);
       transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
     }
@@ -692,7 +692,7 @@ function injectStyles(): void {
     .progress-requirement {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
     }
     
     /* Stats Grid */
@@ -706,13 +706,13 @@ function injectStyles(): void {
     .stat-card {
       text-align: center;
       padding: var(--space-4, 16px) var(--space-3, 12px);
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg, 12px);
       transition: transform 200ms ease-out, opacity 200ms ease-out;
     }
     
     .stat-card:hover {
-      background: var(--color-background-tertiary, #E8E0D5);
+      background: var(--color-background-tertiary);
     }
     
     .stat-icon {
@@ -734,19 +734,19 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 20px);
       font-weight: var(--font-weight-bold, 700);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-1, 4px);
     }
     
     .stat-label {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
     }
     
     /* Memories Section */
     .memories-section {
-      border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      border-top: 1px solid var(--color-border-subtle);
       padding-top: var(--space-5, 20px);
     }
     
@@ -770,7 +770,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-sm, 14px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
     
@@ -785,13 +785,13 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-3, 12px);
       padding: var(--space-3, 12px);
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-md, 8px);
       transition: transform 200ms ease-out, opacity 200ms ease-out;
     }
     
     .memory-item:hover {
-      background: var(--color-background-tertiary, #E8E0D5);
+      background: var(--color-background-tertiary);
     }
     
     .memory-icon-wrapper {
@@ -800,7 +800,7 @@ function injectStyles(): void {
       justify-content: center;
       width: 32px;
       height: 32px;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-full, 9999px);
       color: var(--color-accent-text);
       flex-shrink: 0;
@@ -819,20 +819,20 @@ function injectStyles(): void {
     .memory-title {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: 2px;
     }
     
     .memory-date {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
     }
     
     .no-memories {
       text-align: center;
       padding: var(--space-6, 24px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       font-style: italic;
     }
     
@@ -843,9 +843,9 @@ function injectStyles(): void {
       width: 48px;
       height: 48px;
       margin: 0 auto var(--space-3, 12px);
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-full, 9999px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
     }
     
     .no-memories-icon svg {
@@ -871,8 +871,8 @@ function injectStyles(): void {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
       font-weight: var(--font-weight-medium, 500);
-      color: var(--color-text-secondary, #5C544A);
-      background: var(--color-background-secondary, #F5F1E8);
+      color: var(--color-text-secondary);
+      background: var(--color-background-secondary);
       border: 1px solid transparent;
       border-radius: var(--radius-full, 9999px);
       cursor: pointer;
@@ -880,19 +880,19 @@ function injectStyles(): void {
     }
     
     .memory-filter:hover {
-      background: var(--color-background-tertiary, #E8E0D5);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
     }
     
     .memory-filter--active {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       border-color: var(--color-accent-text);
     }
     
     .memory-filter--active:hover {
-      background: var(--persona-secondary, #3d5a35);
-      color: white;
+      background: var(--persona-secondary, var(--color-ferni-secondary));
+      color: var(--color-white);
     }
     
     /* Enhanced Memory Items */
@@ -901,7 +901,7 @@ function injectStyles(): void {
       align-items: flex-start;
       gap: var(--space-3, 12px);
       padding: var(--space-3, 12px);
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-md, 8px);
       margin-bottom: var(--space-2, 8px);
       animation: memoryFadeIn 300ms ease-out forwards;
@@ -922,25 +922,25 @@ function injectStyles(): void {
     }
     
     .memory-item--streak-milestone {
-      border-left: 3px solid var(--color-semantic-warning, #c49a6c);
+      border-left: 3px solid var(--color-semantic-warning);
     }
     
     .memory-item--insight {
-      border-left: 3px solid var(--color-semantic-info, #3a6b9c);
+      border-left: 3px solid var(--color-semantic-info);
     }
     
     .memory-item--comeback {
-      border-left: 3px solid var(--color-semantic-success, #3d7a52);
+      border-left: 3px solid var(--color-semantic-success);
     }
     
     .memory-item--first-conversation {
-      border-left: 3px solid var(--persona-primary, #4a6741);
+      border-left: 3px solid var(--persona-primary, var(--color-ferni));
     }
     
     .memory-description {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       margin: var(--space-1, 4px) 0;
       line-height: var(--leading-relaxed, 1.6);
     }
@@ -955,7 +955,7 @@ function injectStyles(): void {
     
     [data-theme="midnight"] .celebration-card,
     [data-theme="midnight"] .journey-card {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated);
     }
     
     [data-theme="midnight"] .celebration-title,
@@ -965,11 +965,11 @@ function injectStyles(): void {
     [data-theme="midnight"] .stat-value,
     [data-theme="midnight"] .memories-title,
     [data-theme="midnight"] .memory-title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
     
     [data-theme="midnight"] .celebration-message {
-      color: var(--color-text-secondary, #f0ebe4);  /* WCAG AA: 5.05:1 */
+      color: var(--color-text-secondary);  /* WCAG AA: 5.05:1 */
     }
     
     [data-theme="midnight"] .celebration-stage-badge,
@@ -977,26 +977,26 @@ function injectStyles(): void {
     [data-theme="midnight"] .memory-item,
     [data-theme="midnight"] .stage-description,
     [data-theme="midnight"] .progress-bar {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
     
     [data-theme="midnight"] .stat-card:hover,
     [data-theme="midnight"] .memory-item:hover {
-      background: var(--color-background-tertiary, #504540);
+      background: var(--color-background-tertiary);
     }
     
     [data-theme="midnight"] .memory-icon-wrapper {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated);
     }
     
     [data-theme="midnight"] .journey-close {
-      background: var(--color-background-secondary, #60504a);
-      color: var(--color-text-secondary, #f0ebe4);  /* WCAG AA: 5.05:1 */
+      background: var(--color-background-secondary);
+      color: var(--color-text-secondary);  /* WCAG AA: 5.05:1 */
     }
     
     [data-theme="midnight"] .journey-close:hover {
-      background: var(--color-background-tertiary, #685852);
-      color: var(--color-text-primary, #faf6f0);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
     }
     
     /* Eyebrows and labels - WCAG AA compliant in dark mode (4.5:1+ contrast) */
@@ -1009,38 +1009,38 @@ function injectStyles(): void {
     [data-theme="midnight"] .stat-label,
     [data-theme="midnight"] .memories-empty,
     [data-theme="midnight"] .memory-date {
-      color: var(--color-text-muted, #e8e2da);  /* WCAG AA: 4.65:1 */
+      color: var(--color-text-muted);  /* WCAG AA: 4.65:1 */
     }
     
     [data-theme="midnight"] .stage-description {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
       border-left-color: var(--color-accent-primary);
-      color: var(--color-text-secondary, #f0ebe4);  /* WCAG AA: 5.05:1 */
+      color: var(--color-text-secondary);  /* WCAG AA: 5.05:1 */
     }
     
     [data-theme="midnight"] .stage-tagline {
-      color: var(--color-text-secondary, #f0ebe4);  /* WCAG AA: 5.05:1 */
+      color: var(--color-text-secondary);  /* WCAG AA: 5.05:1 */
     }
     
     /* Dark Theme - Memory Filters */
     [data-theme="midnight"] .memory-filter {
-      background: var(--color-background-tertiary, #504540);
-      color: var(--color-text-secondary, #f0ebe4);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-secondary);
     }
     
     [data-theme="midnight"] .memory-filter:hover {
-      background: var(--color-background-secondary, #60504a);
-      color: var(--color-text-primary, #faf6f0);
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
     }
     
     [data-theme="midnight"] .memory-filter--active {
       background: var(--persona-primary, #6b8f5a);
-      color: white;
+      color: var(--color-white);
     }
     
     /* Dark Theme - Memory Items */
     [data-theme="midnight"] .memory-item {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
     
     [data-theme="midnight"] .memory-item--stage-up {
@@ -1048,7 +1048,7 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .memory-description {
-      color: var(--color-text-muted, #e8e2da);
+      color: var(--color-text-muted);
     }
     
     /* ========================================================================

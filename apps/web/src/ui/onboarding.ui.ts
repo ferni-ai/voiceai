@@ -285,10 +285,10 @@ class OnboardingUI {
         width: 100%;
         max-width: clamp(294px, 90vw, 420px);
         padding: var(--ma-vastness, 55px) var(--ma-silence, 34px);
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         text-align: center;
       }
 
@@ -304,7 +304,7 @@ class OnboardingUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-xl, 1.25rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--ma-breath, 13px) 0;
       }
 
@@ -312,7 +312,7 @@ class OnboardingUI {
         font-family: var(--font-body);
         font-size: var(--text-base, 1rem);
         line-height: 1.6;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0 0 var(--ma-rest, 21px) 0;
       }
 
@@ -327,10 +327,10 @@ class OnboardingUI {
         width: 8px;
         height: 8px;
         border-radius: var(--radius-full, 9999px);
-        background: var(--color-border-medium, rgba(44, 37, 32, 0.15));
+        background: var(--color-border-medium);
         transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
       }
-      .onboarding__dot--active { width: 24px; background: var(--color-accent-primary, #2d5a3d); }
+      .onboarding__dot--active { width: 24px; background: var(--color-accent-primary); }
 
       .onboarding__actions {
         display: flex;
@@ -348,29 +348,29 @@ class OnboardingUI {
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
-      .onboarding__btn--primary { background: var(--color-accent-primary, #2d5a3d); color: var(--color-text-on-accent); }
-      .onboarding__btn--primary:hover { background: var(--color-accent-hover, #3a7050); transform: translateY(-1px); }
-      .onboarding__btn--secondary { background: transparent; color: var(--color-text-muted, #756a5e); }
-      .onboarding__btn--secondary:hover { color: var(--color-text-primary, #2c2520); background: var(--color-background-secondary, #f5f2ed); }
+      .onboarding__btn--primary { background: var(--color-accent-primary); color: var(--color-text-on-accent); }
+      .onboarding__btn--primary:hover { background: var(--color-accent-hover); transform: translateY(-1px); }
+      .onboarding__btn--secondary { background: transparent; color: var(--color-text-muted); }
+      .onboarding__btn--secondary:hover { color: var(--color-text-primary); background: var(--color-background-secondary); }
 
       .onboarding-highlight {
         position: relative;
         z-index: var(--z-dropdown);
-        box-shadow: 0 0 0 4px var(--color-accent-primary, #2d5a3d), 0 0 0 8px rgba(45, 90, 61, 0.2), 0 0 20px rgba(45, 90, 61, 0.3);
+        box-shadow: 0 0 0 4px var(--color-accent-primary), 0 0 0 8px rgba(45, 90, 61, 0.2), 0 0 20px rgba(45, 90, 61, 0.3);
         border-radius: var(--radius-lg, 0.75rem);
         animation: onboarding-pulse 2s infinite;
       }
 
       @keyframes onboarding-pulse {
-        0%, 100% { box-shadow: 0 0 0 4px var(--color-accent-primary, #2d5a3d), 0 0 0 8px rgba(45, 90, 61, 0.2), 0 0 20px rgba(45, 90, 61, 0.3); }
-        50% { box-shadow: 0 0 0 4px var(--color-accent-primary, #2d5a3d), 0 0 0 12px rgba(45, 90, 61, 0.1), 0 0 30px rgba(45, 90, 61, 0.2); }
+        0%, 100% { box-shadow: 0 0 0 4px var(--color-accent-primary), 0 0 0 8px rgba(45, 90, 61, 0.2), 0 0 20px rgba(45, 90, 61, 0.3); }
+        50% { box-shadow: 0 0 0 4px var(--color-accent-primary), 0 0 0 12px rgba(45, 90, 61, 0.1), 0 0 30px rgba(45, 90, 61, 0.2); }
       }
 
       [data-theme="midnight"] .onboarding { background: var(--backdrop-page); }
-      [data-theme="midnight"] .onboarding__card { background: var(--color-background-elevated, #70605a); }
-      [data-theme="midnight"] .onboarding__title { color: var(--color-text-primary, #faf6f0); }
-      [data-theme="midnight"] .onboarding__description { color: var(--color-text-secondary, #f0ebe4); }
-      [data-theme="midnight"] .onboarding__btn--secondary:hover { background: var(--color-background-secondary, #60504a); color: var(--color-text-primary, #faf6f0); }
+      [data-theme="midnight"] .onboarding__card { background: var(--color-background-elevated); }
+      [data-theme="midnight"] .onboarding__title { color: var(--color-text-primary); }
+      [data-theme="midnight"] .onboarding__description { color: var(--color-text-secondary); }
+      [data-theme="midnight"] .onboarding__btn--secondary:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
 
       @media (prefers-reduced-motion: reduce) {
         .onboarding { transition: opacity ${DURATION.FAST}ms linear; }

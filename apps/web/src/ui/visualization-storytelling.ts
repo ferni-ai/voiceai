@@ -502,18 +502,18 @@ export function injectStorytellingStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-2xl, 1.5rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .narrative-stat__narrative {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       font-weight: 500;
     }
 
     .narrative-stat__deeper {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       font-style: italic;
       max-width: 200px;
       opacity: 0;
@@ -526,10 +526,10 @@ export function injectStorytellingStyles(): void {
 
     /* Tone variations */
     .narrative-stat--warm .narrative-stat__value { color: var(--persona-ink); }
-    .narrative-stat--celebratory .narrative-stat__value { color: var(--color-maya, #a67a6a); }
-    .narrative-stat--gentle .narrative-stat__value { color: var(--color-nayan, #b8956a); }
-    .narrative-stat--curious .narrative-stat__value { color: var(--color-alex, #5a6b8a); }
-    .narrative-stat--supportive .narrative-stat__value { color: var(--color-peter, #3a6b73); }
+    .narrative-stat--celebratory .narrative-stat__value { color: var(--color-maya); }
+    .narrative-stat--gentle .narrative-stat__value { color: var(--color-nayan); }
+    .narrative-stat--curious .narrative-stat__value { color: var(--color-alex); }
+    .narrative-stat--supportive .narrative-stat__value { color: var(--color-peter); }
 
     /* =========================================================================
        TEMPORAL STORY
@@ -559,19 +559,19 @@ export function injectStorytellingStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .temporal-story__narrative {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       font-weight: 500;
     }
 
     .temporal-story__connector {
       width: 24px;
       flex-shrink: 0;
-      color: var(--color-border-medium, rgba(44, 37, 32, 0.15));
+      color: var(--color-border-medium);
     }
 
     .temporal-story__connector svg {
@@ -580,7 +580,7 @@ export function injectStorytellingStyles(): void {
     }
 
     .temporal-story__frame--past .temporal-story__narrative {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .temporal-story__frame--present .temporal-story__narrative {
@@ -589,7 +589,7 @@ export function injectStorytellingStyles(): void {
     }
 
     .temporal-story__frame--future .temporal-story__narrative {
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       font-style: italic;
     }
 
@@ -601,9 +601,9 @@ export function injectStorytellingStyles(): void {
       display: flex;
       gap: var(--space-4, 1rem);
       padding: var(--space-4, 1rem);
-      background: var(--glass-thin-bg, rgba(255, 255, 255, 0.08));
+      background: var(--glass-thin-bg, color-mix(in srgb, var(--color-white) 8%, transparent));
       border-radius: var(--radius-lg, 1rem);
-      border: 1px solid var(--glass-thin-border, rgba(255, 255, 255, 0.1));
+      border: 1px solid var(--glass-thin-border, color-mix(in srgb, var(--color-white) 10%, transparent));
     }
 
     .mirror-insight__surface,
@@ -617,7 +617,7 @@ export function injectStorytellingStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-2, 0.5rem);
     }
 
@@ -625,11 +625,11 @@ export function injectStorytellingStyles(): void {
       margin: 0;
       font-size: var(--text-sm, 0.875rem);
       line-height: 1.5;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .mirror-insight__surface .mirror-insight__text {
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .mirror-insight__deeper .mirror-insight__text {
@@ -641,13 +641,13 @@ export function injectStorytellingStyles(): void {
       margin: var(--space-2, 0.5rem) 0 0;
       font-size: var(--text-xs, 0.75rem);
       font-style: italic;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .mirror-insight__divider {
       width: 2px;
       flex-shrink: 0;
-      color: var(--color-border-medium, rgba(44, 37, 32, 0.15));
+      color: var(--color-border-medium);
     }
 
     .mirror-insight__divider svg {

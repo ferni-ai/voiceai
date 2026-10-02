@@ -416,8 +416,8 @@ class ManageSubscriptionUI {
         position: relative;
         width: 100%;
         max-width: clamp(320px, 90vw, 400px);
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-2xl, 24px);
         box-shadow: 
           0 24px 48px rgba(44, 37, 32, 0.15),
@@ -449,23 +449,23 @@ class ManageSubscriptionUI {
         width: 40px;
         height: 40px;
         padding: 0;
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border: none;
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
         z-index: 1;
       }
 
       .manage-sub__close:hover {
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-primary);
       }
 
       .manage-sub__close:focus {
         outline: none;
-        box-shadow: 0 0 0 3px var(--persona-tint, rgba(74, 103, 65, 0.2));
+        box-shadow: 0 0 0 3px var(--persona-tint, color-mix(in srgb, var(--color-ferni) 20%, transparent));
       }
 
       .manage-sub__close svg {
@@ -489,14 +489,14 @@ class ManageSubscriptionUI {
         height: 64px;
         margin: 0 auto var(--space-4, 16px);
         padding: var(--space-4, 16px);
-        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.12)), transparent);
+        background: linear-gradient(135deg, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 12%, transparent)), transparent);
         border-radius: var(--radius-full, 9999px);
         color: var(--persona-ink);
       }
 
       .manage-sub__icon--premium {
-        background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
-        color: white;
+        background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
+        color: var(--color-white);
       }
 
       .manage-sub__icon svg {
@@ -519,7 +519,7 @@ class ManageSubscriptionUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 1.5rem;
         font-weight: 700;
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
         letter-spacing: -0.01em;
       }
@@ -533,24 +533,24 @@ class ManageSubscriptionUI {
       .manage-sub__plan-badge {
         display: inline-block;
         padding: var(--space-2, 8px) var(--space-5, 20px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-full, 9999px);
         font-family: var(--font-display);
         font-size: 1rem;
         font-weight: 600;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin-bottom: var(--space-3, 12px);
       }
 
       .manage-sub__plan-badge--premium {
-        background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
-        color: white;
+        background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
+        color: var(--color-white);
       }
 
       .manage-sub__gratitude {
         font-family: var(--font-body);
         font-size: 0.9375rem;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0;
         line-height: 1.6;
         max-width: 280px;
@@ -594,14 +594,14 @@ class ManageSubscriptionUI {
 
       /* Primary button - for upgrade CTA */
       .manage-sub__btn--primary {
-        background: var(--persona-primary, #4a6741);
-        color: white;
+        background: var(--persona-primary, var(--color-ferni));
+        color: var(--color-white);
       }
 
       .manage-sub__btn--primary:hover {
-        background: var(--persona-secondary, #3d5a35);
+        background: var(--persona-secondary, var(--color-ferni-secondary));
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(74, 103, 65, 0.25);
+        box-shadow: 0 6px 20px color-mix(in srgb, var(--color-ferni) 25%, transparent);
       }
 
       .manage-sub__btn--primary:active {
@@ -610,26 +610,26 @@ class ManageSubscriptionUI {
 
       /* Subtle button - for management actions (not prominent) */
       .manage-sub__btn--subtle {
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-text-secondary, #5c544a);
+        background: var(--color-background-secondary);
+        color: var(--color-text-secondary);
         border-radius: var(--radius-lg, 12px);
         padding: var(--space-3, 12px) var(--space-4, 16px);
       }
 
       .manage-sub__btn--subtle:hover {
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-primary);
       }
 
       /* Ghost button - minimal, text-like */
       .manage-sub__btn--ghost {
         background: transparent;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         padding: var(--space-2, 8px);
       }
 
       .manage-sub__btn--ghost:hover {
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .manage-sub__btn:disabled {
@@ -640,12 +640,12 @@ class ManageSubscriptionUI {
 
       .manage-sub__btn:focus {
         outline: none;
-        box-shadow: 0 0 0 3px var(--persona-tint, rgba(74, 103, 65, 0.2));
+        box-shadow: 0 0 0 3px var(--persona-tint, color-mix(in srgb, var(--color-ferni) 20%, transparent));
       }
 
       /* Instructions (Apple) - warm guidance */
       .manage-sub__instructions {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 12px);
         padding: var(--space-4, 16px);
         margin-bottom: var(--space-4, 16px);
@@ -655,7 +655,7 @@ class ManageSubscriptionUI {
         font-family: var(--font-body);
         font-size: 0.875rem;
         font-weight: 500;
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-3, 12px);
       }
 
@@ -664,7 +664,7 @@ class ManageSubscriptionUI {
         padding-left: var(--space-5, 20px);
         font-family: var(--font-body);
         font-size: 0.8125rem;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         line-height: 1.9;
       }
 
@@ -672,7 +672,7 @@ class ManageSubscriptionUI {
       .manage-sub__footer-note {
         font-family: var(--font-body);
         font-size: 0.8125rem;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         text-align: center;
         margin: 0;
         line-height: 1.5;
@@ -684,17 +684,17 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__card {
-        background: var(--color-background-elevated, #70605a);
-        border-color: rgba(255, 255, 255, 0.06);
+        background: var(--color-background-elevated);
+        border-color: color-mix(in srgb, var(--color-white) 6%, transparent);
       }
 
       [data-theme="midnight"] .manage-sub__title {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .manage-sub__close {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-secondary, #f0ebe4);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .manage-sub__icon {
@@ -704,34 +704,34 @@ class ManageSubscriptionUI {
 
       [data-theme="midnight"] .manage-sub__icon--premium {
         background: linear-gradient(135deg, var(--persona-primary, #6a8a61), var(--persona-secondary, #5a7a51));
-        color: white;
+        color: var(--color-white);
       }
 
       [data-theme="midnight"] .manage-sub__plan-badge {
-        background: var(--color-background-secondary, #60504a);
-        color: var(--color-text-secondary, #f0ebe4);
+        background: var(--color-background-secondary);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .manage-sub__gratitude {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .manage-sub__instructions {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .manage-sub__instructions-title {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .manage-sub__btn--subtle {
-        background: var(--color-background-secondary, #60504a);
-        color: var(--color-text-secondary, #f0ebe4);
+        background: var(--color-background-secondary);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .manage-sub__btn--subtle:hover {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-primary, #faf6f0);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-primary);
       }
 
       /* Reduced motion */

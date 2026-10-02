@@ -166,22 +166,22 @@ const CATEGORY_META: Record<string, { icon: string; title: string; color: string
   team: {
     icon: ICONS.team,
     title: 'Team Connection',
-    color: 'var(--color-peter, #3a6b73)',
+    color: 'var(--color-peter)',
   },
   conversation: {
     icon: ICONS.conversation,
     title: 'Our Conversations',
-    color: 'var(--color-alex, #5a6b8a)',
+    color: 'var(--color-alex)',
   },
   discovery: {
     icon: ICONS.discovery,
     title: 'Hidden Discoveries',
-    color: 'var(--color-maya, #a67a6a)',
+    color: 'var(--color-maya)',
   },
   sweet: {
     icon: ICONS.sweet,
     title: 'Sweet Moments',
-    color: 'var(--color-nayan, #b8956a)',
+    color: 'var(--color-nayan)',
   },
 };
 

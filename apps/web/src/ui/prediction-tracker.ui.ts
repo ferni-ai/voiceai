@@ -253,10 +253,10 @@ class PredictionTrackerUI {
         max-width: clamp(294px, 90vw, 420px);
         max-height: 85vh;
         overflow-y: auto;
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       }
 
       .pred-tracker__header {
@@ -264,14 +264,14 @@ class PredictionTrackerUI {
         align-items: center;
         justify-content: space-between;
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .pred-tracker__header h2 {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-lg, 1.0625rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
@@ -282,15 +282,15 @@ class PredictionTrackerUI {
         width: 34px;
         height: 34px;
         padding: 0;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border: none;
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
-      .pred-tracker__close:hover { background: var(--color-background-secondary, #f5f2ed); color: var(--color-text-primary, #2c2520); }
+      .pred-tracker__close:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
       .pred-tracker__close svg { width: 16px; height: 16px; }
 
       .pred-tracker__score {
@@ -304,8 +304,8 @@ class PredictionTrackerUI {
         margin: 0 auto var(--ma-breath, 13px);
         border-radius: 50%;
         background: conic-gradient(
-          var(--color-accent-primary, #2d5a3d) 0%,
-          var(--color-border-subtle, rgba(44, 37, 32, 0.1)) 0%
+          var(--color-accent-primary) 0%,
+          var(--color-border-subtle) 0%
         );
         display: flex;
         flex-direction: column;
@@ -316,8 +316,8 @@ class PredictionTrackerUI {
 
       .pred-tracker__ring--animated {
         background: conic-gradient(
-          var(--color-accent-primary, #2d5a3d) calc(var(--progress, 0) * 1%),
-          var(--color-border-subtle, rgba(44, 37, 32, 0.1)) calc(var(--progress, 0) * 1%)
+          var(--color-accent-primary) calc(var(--progress, 0) * 1%),
+          var(--color-border-subtle) calc(var(--progress, 0) * 1%)
         );
         transition: background ${DURATION.CELEBRATION}ms ${EASING.SPRING};
       }
@@ -326,7 +326,7 @@ class PredictionTrackerUI {
         content: '';
         position: absolute;
         inset: 8px;
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         border-radius: 50%;
       }
 
@@ -335,20 +335,20 @@ class PredictionTrackerUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-2xl, 1.5rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .pred-tracker__ring-label {
         position: relative;
         font-family: var(--font-primary, 'Inter', sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .pred-tracker__message {
         font-family: var(--font-primary, 'Inter', sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0;
       }
 
@@ -366,25 +366,25 @@ class PredictionTrackerUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-lg, 1.0625rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .pred-tracker__stat-label {
         font-family: var(--font-primary, 'Inter', sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .pred-tracker__categories {
         padding: var(--ma-breath, 13px) var(--ma-silence, 34px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       .pred-tracker__categories h3 {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--ma-breath, 13px) 0;
       }
 
@@ -407,14 +407,14 @@ class PredictionTrackerUI {
         width: 60px;
         font-family: var(--font-primary, 'Inter', sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         text-transform: capitalize;
       }
 
       .pred-tracker__category-bar {
         flex: 1;
         height: 8px;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border-radius: var(--radius-full, 9999px);
         overflow: hidden;
       }
@@ -422,7 +422,7 @@ class PredictionTrackerUI {
       .pred-tracker__category-fill {
         height: 100%;
         width: 0;
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         border-radius: var(--radius-full, 9999px);
         transition: width ${DURATION.CELEBRATION}ms ${EASING.SPRING};
       }
@@ -432,19 +432,19 @@ class PredictionTrackerUI {
         text-align: right;
         font-family: var(--font-primary, 'Inter', sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .pred-tracker__trend {
         padding: var(--ma-breath, 13px) var(--ma-silence, 34px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       .pred-tracker__trend h3 {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--ma-breath, 13px) 0;
       }
 
@@ -458,7 +458,7 @@ class PredictionTrackerUI {
       .pred-tracker__trend-bar {
         flex: 1;
         height: 0;
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         border-radius: var(--radius-sm, 0.25rem) var(--radius-sm, 0.25rem) 0 0;
         transition: height ${DURATION.CELEBRATION}ms ${EASING.SPRING};
         transition-delay: var(--delay, 0ms);
@@ -466,7 +466,7 @@ class PredictionTrackerUI {
 
       .pred-tracker__actions {
         padding: var(--ma-breath, 13px) var(--ma-silence, 34px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       .pred-tracker__btn {
@@ -482,28 +482,28 @@ class PredictionTrackerUI {
       }
 
       .pred-tracker__btn--primary {
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
       }
 
-      .pred-tracker__btn--primary:hover { background: var(--color-accent-hover, #3a7050); }
+      .pred-tracker__btn--primary:hover { background: var(--color-accent-hover); }
 
       /* Dark Theme - WCAG AA Compliant */
       [data-theme="midnight"] .pred-tracker { background: var(--backdrop-page); }
-      [data-theme="midnight"] .pred-tracker__wrapper { background: var(--color-background-elevated, #70605a); }
+      [data-theme="midnight"] .pred-tracker__wrapper { background: var(--color-background-elevated); }
       [data-theme="midnight"] .pred-tracker__header h2,
       [data-theme="midnight"] .pred-tracker__stat-value,
       [data-theme="midnight"] .pred-tracker__ring-value,
       [data-theme="midnight"] .pred-tracker__categories h3,
-      [data-theme="midnight"] .pred-tracker__trend h3 { color: var(--color-text-primary, #faf6f0); }
-      [data-theme="midnight"] .pred-tracker__ring::before { background: var(--color-background-elevated, #70605a); }
-      [data-theme="midnight"] .pred-tracker__close { background: var(--color-background-tertiary, #685852); color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .pred-tracker__trend h3 { color: var(--color-text-primary); }
+      [data-theme="midnight"] .pred-tracker__ring::before { background: var(--color-background-elevated); }
+      [data-theme="midnight"] .pred-tracker__close { background: var(--color-background-tertiary); color: var(--color-text-secondary); }
       [data-theme="midnight"] .pred-tracker__stat-label,
       [data-theme="midnight"] .pred-tracker__ring-label,
-      [data-theme="midnight"] .pred-tracker__trend-day { color: var(--color-text-muted, #e8e2da); }
+      [data-theme="midnight"] .pred-tracker__trend-day { color: var(--color-text-muted); }
       [data-theme="midnight"] .pred-tracker__category-name,
-      [data-theme="midnight"] .pred-tracker__category-pct { color: var(--color-text-primary, #faf6f0); }
-      [data-theme="midnight"] .pred-tracker__insight { color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .pred-tracker__category-pct { color: var(--color-text-primary); }
+      [data-theme="midnight"] .pred-tracker__insight { color: var(--color-text-secondary); }
 
       @media (prefers-reduced-motion: reduce) {
         .pred-tracker { transition: opacity ${DURATION.FAST}ms linear; }

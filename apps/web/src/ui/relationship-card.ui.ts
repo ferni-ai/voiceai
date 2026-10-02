@@ -26,6 +26,15 @@ import { openConversationStarters } from './conversation-starters.ui.js';
 // NOTE: Mock data imports removed - UI now shows proper empty/error states
 // To enable demo mode, use localStorage.setItem('ferni:use-demo-data', 'true')
 import { t } from '../i18n/index.js';
+import {
+  getInitials,
+  getStrengthColor,
+  escapeHtml,
+  formatDate,
+  formatDateStr,
+  getMonthAbbrev,
+  getDayNumber,
+} from './relationship-card-format.js';
 
 const log = createLogger('RelationshipCard');
 
@@ -238,10 +247,10 @@ function injectStyles(): void {
       width: 94%;
       max-width: clamp(476px, 90vw, 680px);
       max-height: 90vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -281,17 +290,17 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
 
     .rc-close:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .rc-close:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
 
@@ -311,7 +320,7 @@ function injectStyles(): void {
         var(--persona-primary, #4a6741),
         var(--persona-secondary, #3d5a35)
       );
-      color: white;
+      color: var(--color-white);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -332,13 +341,13 @@ function injectStyles(): void {
     .rc-avatar-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: color-mix(in srgb, var(--color-black) 50%, transparent);
       display: flex;
       align-items: center;
       justify-content: center;
       opacity: 0;
       transition: opacity ${DURATION.FAST}ms ${EASING.STANDARD};
-      color: white;
+      color: var(--color-white);
     }
     
     .rc-avatar:hover .rc-avatar-overlay {
@@ -358,14 +367,14 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-2xl, 1.5rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 0.25rem);
       line-height: 1.2;
     }
 
     .rc-relationship-type {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       text-transform: capitalize;
       margin-bottom: var(--space-3, 0.75rem);
     }
@@ -394,7 +403,7 @@ function injectStyles(): void {
 
     .rc-strength-label {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       display: flex;
       align-items: center;
       gap: var(--space-1, 0.25rem);
@@ -407,11 +416,11 @@ function injectStyles(): void {
 
     .rc-strength-trend.growing { color: var(--persona-ink); }
     .rc-strength-trend.fading { color: var(--color-semantic-error-text); }
-    .rc-strength-trend.stable { color: var(--color-text-muted, #70605a); }
+    .rc-strength-trend.stable { color: var(--color-text-muted); }
 
     .rc-last-contact {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-2, 0.5rem);
     }
 
@@ -430,8 +439,8 @@ function injectStyles(): void {
       padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.15));
       border-radius: var(--radius-lg, 1rem);
-      background: var(--color-background-elevated, #FFFDFB);
-      color: var(--color-text-secondary, #5a4a42);
+      background: var(--color-background-elevated);
+      color: var(--color-text-secondary);
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
       cursor: pointer;
@@ -439,13 +448,13 @@ function injectStyles(): void {
     }
 
     .rc-quick-action:hover {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       color: var(--persona-ink);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.05));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent));
     }
 
     .rc-quick-action:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
 
@@ -460,7 +469,7 @@ function injectStyles(): void {
     
     .rc-notices {
       padding: var(--space-4, 1rem) var(--space-6, 1.5rem);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.04));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 4%, transparent));
       border-bottom: 1px solid var(--color-border, rgba(44, 37, 32, 0.06));
     }
 
@@ -503,7 +512,7 @@ function injectStyles(): void {
     .rc-notice-content {
       flex: 1;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       line-height: 1.5;
     }
 
@@ -532,7 +541,7 @@ function injectStyles(): void {
       gap: var(--space-1, 0.25rem);
       padding: var(--space-3, 0.75rem) var(--space-6, 1.5rem);
       border-bottom: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
     }
 
     .rc-tab {
@@ -542,7 +551,7 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
       display: flex;
@@ -557,16 +566,16 @@ function injectStyles(): void {
 
     .rc-tab:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.04));
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .rc-tab.active {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .rc-tab:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
 
@@ -593,7 +602,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-3, 0.75rem);
       display: flex;
       align-items: center;
@@ -631,18 +640,18 @@ function injectStyles(): void {
     }
 
     .rc-timeline-icon.outbound {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       color: var(--persona-ink);
     }
 
     .rc-timeline-icon.inbound {
-      background: rgba(184, 149, 106, 0.12);
-      color: var(--nayan-primary, #b8956a);
+      background: color-mix(in srgb, var(--color-nayan) 12%, transparent);
+      color: var(--nayan-primary, var(--color-nayan));
     }
 
     .rc-timeline-icon.mutual {
-      background: rgba(90, 107, 138, 0.1);
-      color: var(--alex-primary, #5a6b8a);
+      background: color-mix(in srgb, var(--color-alex) 10%, transparent);
+      color: var(--alex-primary, var(--color-alex));
     }
 
     .rc-timeline-icon svg {
@@ -658,13 +667,13 @@ function injectStyles(): void {
     .rc-timeline-title {
       font-weight: 500;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       line-height: 1.4;
     }
 
     .rc-timeline-meta {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-0-5, 0.125rem);
       display: flex;
       align-items: center;
@@ -673,7 +682,7 @@ function injectStyles(): void {
 
     .rc-timeline-summary {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       margin-top: var(--space-2, 0.5rem);
       line-height: 1.5;
     }
@@ -687,7 +696,7 @@ function injectStyles(): void {
 
     .rc-topic-tag {
       padding: var(--space-0-5, 0.125rem) var(--space-2, 0.5rem);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
       border-radius: var(--radius-full, 50%);
       font-size: var(--text-xs, 0.75rem);
       color: var(--persona-ink);
@@ -701,8 +710,8 @@ function injectStyles(): void {
     }
 
     .rc-sentiment-dot.positive { background: var(--persona-primary, #4a6741); }
-    .rc-sentiment-dot.neutral { background: var(--color-text-muted, #70605a); }
-    .rc-sentiment-dot.negative { background: var(--color-semantic-error, #c44); }
+    .rc-sentiment-dot.neutral { background: var(--color-text-muted); }
+    .rc-sentiment-dot.negative { background: var(--color-semantic-error); }
 
     /* =========================================================================
        GIFT ITEMS
@@ -713,7 +722,7 @@ function injectStyles(): void {
       align-items: flex-start;
       gap: var(--space-3, 0.75rem);
       padding: var(--space-3, 0.75rem);
-      background: var(--color-bg-secondary, rgba(250, 248, 245, 0.5));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 50%, transparent));
       border-radius: var(--radius-lg, 1rem);
       margin-bottom: var(--space-2, 0.5rem);
     }
@@ -729,13 +738,13 @@ function injectStyles(): void {
     }
 
     .rc-gift-direction.given {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       color: var(--persona-ink);
     }
 
     .rc-gift-direction.received {
-      background: rgba(184, 149, 106, 0.12);
-      color: var(--nayan-primary, #b8956a);
+      background: color-mix(in srgb, var(--color-nayan) 12%, transparent);
+      color: var(--nayan-primary, var(--color-nayan));
     }
 
     .rc-gift-direction svg {
@@ -751,12 +760,12 @@ function injectStyles(): void {
     .rc-gift-name {
       font-weight: 600;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .rc-gift-meta {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-0-5, 0.125rem);
     }
 
@@ -765,7 +774,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-1, 0.25rem);
       padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
       border-radius: var(--radius-full, 50%);
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
@@ -774,7 +783,7 @@ function injectStyles(): void {
 
     .rc-gift-reaction.loved { color: var(--persona-ink); }
     .rc-gift-reaction.liked { color: var(--alex-primary, #5a6b8a); }
-    .rc-gift-reaction.neutral { color: var(--color-text-muted, #70605a); }
+    .rc-gift-reaction.neutral { color: var(--color-text-muted); }
     .rc-gift-reaction.disliked { color: var(--color-semantic-error-text); }
 
     /* =========================================================================
@@ -804,35 +813,35 @@ function injectStyles(): void {
     .rc-date-label {
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       min-width: 90px;
     }
 
     .rc-date-value {
       flex: 1;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .rc-date-badge {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
       color: var(--persona-ink);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       padding: var(--space-0-5, 0.125rem) var(--space-2, 0.5rem);
       border-radius: var(--radius-full, 9999px);
     }
 
     .rc-empty-inline {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       padding: var(--space-2, 0.5rem) 0;
     }
 
     .rc-event-date {
       width: 48px;
       height: 48px;
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
       border-radius: var(--radius-md, 0.5rem);
       display: flex;
       flex-direction: column;
@@ -851,7 +860,7 @@ function injectStyles(): void {
     .rc-event-date-day {
       font-size: var(--text-lg, 1.125rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       line-height: 1;
     }
 
@@ -863,12 +872,12 @@ function injectStyles(): void {
     .rc-event-title {
       font-weight: 500;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .rc-event-meta {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-0-5, 0.125rem);
     }
 
@@ -883,7 +892,7 @@ function injectStyles(): void {
     .rc-notes-label {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-2, 0.5rem);
       display: flex;
       align-items: center;
@@ -892,7 +901,7 @@ function injectStyles(): void {
 
     .rc-notes-content {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       line-height: 1.6;
     }
 
@@ -904,7 +913,7 @@ function injectStyles(): void {
 
     .rc-interest-tag {
       padding: var(--space-1-5, 0.375rem) var(--space-3, 0.75rem);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
       border-radius: var(--radius-full, 50%);
       font-size: var(--text-sm, 0.875rem);
       color: var(--persona-ink);
@@ -927,7 +936,7 @@ function injectStyles(): void {
     .rc-empty {
       text-align: center;
       padding: var(--space-10, 2.5rem) var(--space-6, 1.5rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .rc-empty-icon {
@@ -940,7 +949,7 @@ function injectStyles(): void {
     .rc-empty-title {
       font-size: var(--text-base, 1rem);
       font-weight: 500;
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       margin-bottom: var(--space-2, 0.5rem);
     }
 
@@ -966,7 +975,7 @@ function injectStyles(): void {
       border: 2px dashed var(--color-border, rgba(44, 37, 32, 0.15));
       border-radius: var(--radius-lg, 1rem);
       background: transparent;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
       cursor: pointer;
@@ -974,13 +983,13 @@ function injectStyles(): void {
     }
 
     .rc-add-btn:hover {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       color: var(--persona-ink);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.03));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 3%, transparent));
     }
 
     .rc-add-btn:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
 
@@ -996,7 +1005,7 @@ function injectStyles(): void {
     .rc-loading {
       text-align: center;
       padding: var(--space-10, 2.5rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       font-size: var(--text-sm, 0.875rem);
     }
 
@@ -1824,62 +1833,6 @@ async function handlePhotoUpload(file: File): Promise<void> {
 // HELPERS
 // ============================================================================
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-function getStrengthColor(score: number): string {
-  if (score >= 70) return 'var(--persona-primary, var(--color-ferni))';
-  if (score >= 40) return 'var(--nayan-primary, var(--color-nayan))';
-  return 'var(--color-semantic-error, var(--color-error))';
-}
-
-function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function formatDateStr(dateStr: string): string {
-  // Handle MM-DD or YYYY-MM-DD format
-  const parts = dateStr.split('-');
-  let month: number, day: number;
-  
-  if (parts.length === 3) {
-    month = parseInt(parts[1] ?? '1', 10) - 1;
-    day = parseInt(parts[2] ?? '1', 10);
-  } else {
-    month = parseInt(parts[0] ?? '1', 10) - 1;
-    day = parseInt(parts[1] ?? '1', 10);
-  }
-
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
-                      'July', 'August', 'September', 'October', 'November', 'December'];
-  return `${monthNames[month] ?? 'January'} ${day}`;
-}
-
-function getMonthAbbrev(dateStr: string): string {
-  // Handle MM-DD or YYYY-MM-DD format
-  const parts = dateStr.split('-');
-  const monthNum = parts.length === 3 ? parseInt(parts[1] ?? '1') : parseInt(parts[0] ?? '1');
-  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-  return months[monthNum - 1] ?? 'JAN';
-}
-
-function getDayNumber(dateStr: string): string {
-  const parts = dateStr.split('-');
-  return parts.length === 3 ? (parts[2] ?? '1') : (parts[1] ?? '1');
-}
-
 function groupTimelineByMonth(items: TimelineItem[]): Record<string, TimelineItem[]> {
   return items.reduce((acc, item) => {
     const date = new Date(item.date);
@@ -2189,4 +2142,3 @@ export const relationshipCard = {
 };
 
 export default relationshipCard;
-

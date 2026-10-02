@@ -407,17 +407,17 @@ permalink: /predictive-ui/
 
 .skeleton-card {
   padding: var(--space-5);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
 }
 
 .skeleton-line {
   height: 16px;
-  background: linear-gradient(90deg, var(--color-border-subtle) 0%, var(--color-bg-elevated) 50%, var(--color-border-subtle) 100%);
+  background: linear-gradient(90deg, var(--border-subtle) 0%, var(--bg-elevated) 50%, var(--border-subtle) 100%);
   background-size: 200% 100%;
   border-radius: var(--radius-sm);
   margin-bottom: var(--space-3);
-  animation: shimmer 1.5s infinite;
+  animation: shimmer var(--duration-glacial) infinite;
 }
 
 @keyframes shimmer {
@@ -448,7 +448,7 @@ permalink: /predictive-ui/
 
 .ghost-shape {
   margin: 0 auto var(--space-3);
-  background: var(--color-border-subtle);
+  background: var(--border-subtle);
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -484,7 +484,7 @@ permalink: /predictive-ui/
 
 .ghost-item code {
   font-size: 0.75rem;
-  color: var(--color-text-tertiary);
+  color: var(--text-dimmed);
 }
 
 .reveal-demo {
@@ -496,10 +496,10 @@ permalink: /predictive-ui/
 .reveal-item {
   flex: 1;
   padding: var(--space-3);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-md);
   text-align: center;
-  animation: revealItem 3s ease-out infinite;
+  animation: revealItem var(--duration-meditative) ease-out infinite;
   animation-delay: calc(var(--delay) * 0.15s);
 }
 
@@ -512,17 +512,17 @@ permalink: /predictive-ui/
   display: block;
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--color-accent);
+  color: var(--accent-text);
 }
 
 .reveal-item .element {
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .spec-note {
   font-size: 0.85rem;
-  color: var(--color-text-tertiary);
+  color: var(--text-dimmed);
   text-align: center;
 }
 
@@ -535,18 +535,18 @@ permalink: /predictive-ui/
 
 .anticipation-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
 }
 
 .anticipation-card h4 {
   margin: 0 0 var(--space-2);
-  color: var(--color-accent);
+  color: var(--accent-text);
 }
 
 .anticipation-card > p {
   margin: 0 0 var(--space-3);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .anticipation-card ul {
@@ -568,7 +568,7 @@ permalink: /predictive-ui/
   display: flex;
   justify-content: space-between;
   padding: var(--space-2);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
   font-size: 0.85rem;
 }
 
@@ -577,7 +577,7 @@ permalink: /predictive-ui/
 }
 
 .time-slot .content, .context-row .loads {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .suggestion-types {
@@ -589,7 +589,7 @@ permalink: /predictive-ui/
 
 .suggestion-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
 }
 
@@ -598,16 +598,16 @@ permalink: /predictive-ui/
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-primary);
+  background: var(--bg-primary);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-4);
 }
 
 .suggestion-bubble {
   padding: var(--space-3) var(--space-4);
-  background: var(--glass-regular-background);
+  background: var(--bg-glass);
   backdrop-filter: blur(8px);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   font-size: 0.9rem;
   max-width: 200px;
   animation: bubbleIn 2s ease-out infinite;
@@ -621,7 +621,7 @@ permalink: /predictive-ui/
 .nudge-target {
   width: 60px;
   height: 60px;
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: var(--radius-md);
   position: relative;
 }
@@ -635,7 +635,7 @@ permalink: /predictive-ui/
   height: 0;
   border-top: 8px solid transparent;
   border-bottom: 8px solid transparent;
-  border-left: 12px solid var(--color-accent);
+  border-left: 12px solid var(--accent-primary);
   animation: nudgePulse 2s ease-in-out infinite;
 }
 
@@ -648,15 +648,15 @@ permalink: /predictive-ui/
 .spotlight-target {
   width: 60px;
   height: 60px;
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: var(--radius-md);
-  box-shadow: 0 0 20px var(--color-accent);
-  animation: spotlightPulse 3s ease-in-out infinite;
+  box-shadow: 0 0 20px var(--accent-primary);
+  animation: spotlightPulse var(--duration-meditative) ease-in-out infinite;
 }
 
 @keyframes spotlightPulse {
-  0%, 100% { box-shadow: 0 0 20px var(--color-accent); }
-  50% { box-shadow: 0 0 40px var(--color-accent); }
+  0%, 100% { box-shadow: 0 0 20px var(--accent-primary); }
+  50% { box-shadow: 0 0 40px var(--accent-primary); }
 }
 
 .suggestion-card h4 {
@@ -679,18 +679,18 @@ permalink: /predictive-ui/
 
 .adaptation-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
 }
 
 .adaptation-card h4 {
   margin: 0 0 var(--space-2);
-  color: var(--color-accent);
+  color: var(--accent-text);
 }
 
 .adaptation-card > p {
   margin: 0 0 var(--space-3);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .adaptation-card ul {
@@ -709,7 +709,7 @@ permalink: /predictive-ui/
 
 .stage-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
   text-align: center;
 }
@@ -726,13 +726,13 @@ permalink: /predictive-ui/
 
 .stage-time {
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
-  font-family: monospace;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
 }
 
 .stage-show {
   padding: var(--space-3);
-  background: var(--color-bg-primary);
+  background: var(--bg-primary);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-2);
   min-height: 50px;
@@ -741,30 +741,30 @@ permalink: /predictive-ui/
   justify-content: center;
   gap: var(--space-2);
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .subtle-pulse {
   width: 20px;
   height: 20px;
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: 50%;
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: pulse var(--duration-glacial) ease-in-out infinite;
 }
 
 .skeleton-mini {
   width: 100%;
   height: 12px;
-  background: linear-gradient(90deg, var(--color-border-subtle) 0%, var(--color-bg-elevated) 50%, var(--color-border-subtle) 100%);
+  background: linear-gradient(90deg, var(--border-subtle) 0%, var(--bg-elevated) 50%, var(--border-subtle) 100%);
   background-size: 200% 100%;
   border-radius: var(--radius-sm);
-  animation: shimmer 1.5s infinite;
+  animation: shimmer var(--duration-glacial) infinite;
 }
 
 .progress-mini {
   width: 100%;
   height: 4px;
-  background: var(--color-border-subtle);
+  background: var(--border-subtle);
   border-radius: var(--radius-full);
   overflow: hidden;
   position: relative;
@@ -777,7 +777,7 @@ permalink: /predictive-ui/
   top: 0;
   height: 100%;
   width: 30%;
-  background: var(--color-accent);
+  background: var(--accent-primary);
   animation: progress 2s ease-in-out infinite;
 }
 
@@ -789,7 +789,7 @@ permalink: /predictive-ui/
 .stage-card > p {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--color-text-tertiary);
+  color: var(--text-dimmed);
 }
 
 .messages {
@@ -805,13 +805,13 @@ permalink: /predictive-ui/
 
 .personalization-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
 }
 
 .personalization-card h4 {
   margin: 0 0 var(--space-4);
-  color: var(--color-accent);
+  color: var(--accent-text);
 }
 
 .density-options, .speed-options, .complexity-options {
@@ -822,7 +822,7 @@ permalink: /predictive-ui/
 
 .density, .speed, .complexity {
   padding: var(--space-3);
-  background: var(--color-bg-primary);
+  background: var(--bg-primary);
   border-radius: var(--radius-md);
   text-align: center;
 }
@@ -839,6 +839,6 @@ permalink: /predictive-ui/
   padding: 0;
   margin: 0;
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 </style>

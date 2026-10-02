@@ -397,11 +397,11 @@ permalink: /components/modal/
 .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
 .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-medium); }
 .btn-secondary:hover { background: var(--bg-secondary); border-color: var(--border-strong); }
-.btn-error { background: var(--error); color: white; }
+.btn-error { background: var(--error); color: var(--color-white); }
 .btn-error:hover { opacity: 0.9; }
 
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: var(--space-4); z-index: 1000; }
-.modal { background: var(--bg-elevated); border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); width: 100%; max-height: calc(100vh - var(--space-8)); overflow: hidden; display: flex; flex-direction: column; animation: modal-slide-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.modal-backdrop { position: fixed; inset: 0; background: color-mix(in srgb, var(--color-black) 40%, transparent); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: var(--space-4); z-index: 1000; }
+.modal { background: var(--bg-elevated); border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); width: 100%; max-height: calc(100vh - var(--space-8)); overflow: hidden; display: flex; flex-direction: column; animation: modal-slide-in var(--duration-slow) var(--ease-ease-out-back); }
 .modal-sm { max-width: 320px; }
 .modal-md { max-width: 480px; }
 .modal-lg { max-width: 640px; }

@@ -140,7 +140,7 @@ const BREATHING_STYLES = `
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid color-mix(in srgb, var(--color-white) 20%, transparent);
   }
 
   .ferni-breathing-orb__progress {
@@ -163,7 +163,7 @@ const BREATHING_STYLES = `
     margin-top: 24px;
     font-size: 18px;
     font-weight: 500;
-    color: var(--color-text-primary, #ffffff);
+    color: var(--color-text-primary);
     text-align: center;
     opacity: 0;
     transform: translateY(10px);
@@ -180,7 +180,7 @@ const BREATHING_STYLES = `
     font-size: 32px;
     font-weight: 300;
     font-variant-numeric: tabular-nums;
-    color: var(--color-text-secondary, #a0a0a0);
+    color: var(--color-text-secondary);
     opacity: 0.8;
   }
 
@@ -189,7 +189,7 @@ const BREATHING_STYLES = `
     display: flex;
     gap: 16px;
     font-size: 12px;
-    color: var(--color-text-muted, #888);
+    color: var(--color-text-muted);
     opacity: 0.7;
   }
 
@@ -220,7 +220,7 @@ const BREATHING_STYLES = `
   }
 
   .ferni-breathing-controls__button:focus-visible {
-    outline: 2px solid var(--color-accent-primary, #4A7C59);
+    outline: 2px solid var(--color-accent-primary);
     outline-offset: 2px;
   }
 
@@ -230,8 +230,8 @@ const BREATHING_STYLES = `
   }
 
   .ferni-breathing-controls__button--secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--color-text-primary, #ffffff);
+    background: color-mix(in srgb, var(--color-white) 10%, transparent);
+    color: var(--color-text-primary);
   }
 
   @media (prefers-reduced-motion: reduce) {

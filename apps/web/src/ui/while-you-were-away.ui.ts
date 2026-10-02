@@ -303,9 +303,9 @@ function addStyles(): void {
       opacity: 0;
       z-index: var(--z-modal, 1000);
       
-      background: var(--color-background-elevated, #fffdfb);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-xl, 16px);
-      box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1));
+      box-shadow: var(--shadow-xl, 0 20px 25px -5px color-mix(in srgb, var(--color-black) 10%, transparent));
       
       min-width: 320px;
       max-width: 400px;
@@ -325,7 +325,7 @@ function addStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-4, 16px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
     
     .wywa-icon {
@@ -346,21 +346,21 @@ function addStyles(): void {
       flex: 1;
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
     }
     
     .wywa-close {
       background: none;
       border: none;
       font-size: 1.5rem;
-      color: var(--color-text-muted, #999);
+      color: var(--color-text-muted);
       cursor: pointer;
       line-height: 1;
       padding: var(--space-1, 4px);
     }
     
     .wywa-close:hover {
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
     }
     
     .wywa-content {
@@ -382,7 +382,7 @@ function addStyles(): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--color-text-muted, #999);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-2, 8px);
       display: flex;
       align-items: center;
@@ -403,7 +403,7 @@ function addStyles(): void {
     }
     
     .wywa-item {
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 3%, transparent));
       border-radius: var(--radius-md, 8px);
       padding: var(--space-3, 12px);
       margin-bottom: var(--space-2, 8px);
@@ -420,13 +420,13 @@ function addStyles(): void {
     
     .wywa-item-title {
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-1, 4px);
     }
     
     .wywa-item-summary {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #666);
+      color: var(--color-text-secondary);
       line-height: 1.4;
     }
     
@@ -443,7 +443,7 @@ function addStyles(): void {
     
     .wywa-footer {
       padding: var(--space-3, 12px) var(--space-4, 16px);
-      border-top: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.1));
+      border-top: 1px solid var(--color-border-subtle);
       display: flex;
       justify-content: center;
     }
@@ -460,7 +460,7 @@ function addStyles(): void {
     }
     
     .wywa-dismiss:hover {
-      background: var(--color-accent-hover, #4a6741);
+      background: var(--color-accent-hover);
     }
     
     /* Respect reduced motion */
@@ -478,7 +478,7 @@ function addStyles(): void {
       }
       
       .wywa-item {
-        background: var(--color-background-subtle-dark, rgba(255, 255, 255, 0.05));
+        background: var(--color-background-subtle-dark, color-mix(in srgb, var(--color-white) 5%, transparent));
       }
     }
   `;

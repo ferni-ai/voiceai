@@ -478,7 +478,7 @@ export function getGardenWidgetStyles(): string {
 
     .garden-widget__action-btn--primary {
       background: var(--color-ferni);
-      color: white;
+      color: var(--color-white);
       border: none;
     }
 

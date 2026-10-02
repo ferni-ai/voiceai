@@ -116,7 +116,7 @@ backdrop-filter: var(--glass-blur-subtle, blur(12px));
   align-items: center;
   justify-content: space-between;
   padding: var(--space-5, 20px) var(--space-6, 24px);
-  border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .health-dashboard-header-content {
@@ -138,7 +138,7 @@ backdrop-filter: var(--glass-blur-subtle, blur(12px));
 .health-dashboard-icon svg {
   width: 24px;
   height: 24px;
-  color: white;
+  color: var(--color-white);
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -147,13 +147,13 @@ backdrop-filter: var(--glass-blur-subtle, blur(12px));
 .health-dashboard-title {
   font-size: 20px;
   font-weight: 600;
-  color: var(--color-text-primary, #f4f1ed);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .health-dashboard-subtitle {
   font-size: 13px;
-  color: var(--color-text-secondary, rgba(244, 241, 237, 0.7));
+  color: var(--color-text-secondary);
   margin: 2px 0 0;
 }
 
@@ -168,7 +168,7 @@ backdrop-filter: var(--glass-blur-subtle, blur(12px));
 }
 
 .health-dashboard-close:hover {
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.1));
+  background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 10%, transparent));
 }
 
 .health-dashboard-close svg {
@@ -192,7 +192,7 @@ backdrop-filter: var(--glass-blur-subtle, blur(12px));
   align-items: center;
   gap: var(--space-3, 12px);
   padding: var(--space-4, 16px);
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
+  background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 5%, transparent));
   border-radius: var(--radius-lg, 16px);
   margin-bottom: var(--space-5, 20px);
 }
@@ -228,7 +228,7 @@ backdrop-filter: var(--glass-blur-subtle, blur(12px));
 
 .health-connection-detail {
   font-size: 12px;
-  color: var(--color-text-muted, rgba(244, 241, 237, 0.5));
+  color: var(--color-text-muted);
   margin-top: 2px;
 }
 
@@ -378,7 +378,7 @@ backdrop-filter: var(--glass-blur-subtle, blur(12px));
 .health-sleep-bar {
   flex: 1;
   height: 6px;
-  background: var(--color-bg-glass, rgba(255, 255, 255, 0.1));
+  background: var(--color-bg-glass, color-mix(in srgb, var(--color-white) 10%, transparent));
   border-radius: 3px;
   overflow: hidden;
 }
@@ -451,7 +451,7 @@ backdrop-filter: var(--glass-blur-subtle, blur(12px));
 }
 
 .health-chart-bar.today {
-  background: linear-gradient(to top, var(--color-ferni, #4a6741), rgba(74, 103, 65, 0.6));
+  background: linear-gradient(to top, var(--color-ferni), color-mix(in srgb, var(--color-ferni) 60%, transparent));
 }
 
 .health-chart-day {
@@ -479,7 +479,7 @@ backdrop-filter: var(--glass-blur-subtle, blur(12px));
   width: 32px;
   height: 32px;
   border: 3px solid var(--color-bg-tertiary);
-  border-top-color: var(--color-ferni, #4a6741);
+  border-top-color: var(--color-ferni);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

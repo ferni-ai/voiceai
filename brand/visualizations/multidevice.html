@@ -12,11 +12,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Design System -->
-  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../ferni-design-tokens.css">
+  <link rel="stylesheet" href="../brand-base.css">
   <link rel="stylesheet" href="../brand-components.css">
   <style>
     /*
-     * TOKENS: All base tokens inherited from master-tokens.css
+     * TOKENS: All base tokens inherited from ferni-design-tokens.css
      * Only define page-specific semantic aliases here
      */
     :root {
@@ -91,7 +92,7 @@
 
     body {
       font-family: var(--font-body);
-      background: var(--color-showcase-bg);
+      background: var(--color-cinematic-black);
       color: var(--color-text-inverse);
       min-height: 100vh;
       padding: var(--space-6);
@@ -156,7 +157,7 @@
       padding: var(--space-4) var(--space-5);
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-md);
       color: rgba(255, 255, 255, 0.7);
       cursor: pointer;
       transition: all 0.2s ease;
@@ -183,7 +184,7 @@
     .device-btn.active {
       background: var(--color-accent);
       border-color: var(--color-accent);
-      color: white;
+      color: var(--color-text-inverse);
       transform: translateY(-1px);
     }
 
@@ -208,7 +209,7 @@
 
     .device-frame {
       position: relative;
-      background: var(--color-showcase-surface);
+      background: var(--color-cinematic-surface);
       border-radius: 24px;
       padding: 12px;
       box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1), 0 25px 50px rgba(0, 0, 0, 0.5);
@@ -240,7 +241,7 @@
       transform: translateY(-50%);
       width: 8px;
       height: 40px;
-      background: var(--color-showcase-elevated);
+      background: var(--color-bg-darker);
       border-radius: 4px;
     }
 
@@ -258,7 +259,7 @@
       transform: translateX(-50%);
       width: 80px;
       height: 24px;
-      background: var(--color-showcase-surface);
+      background: var(--color-cinematic-surface);
       border-radius: 12px;
       z-index: 10;
     }
@@ -277,7 +278,7 @@
       transform: translateX(-50%);
       width: 12px;
       height: 12px;
-      background: var(--color-showcase-bg);
+      background: var(--color-cinematic-black);
       border-radius: 50%;
       z-index: 10;
     }
@@ -296,7 +297,7 @@
       left: 0;
       right: 0;
       height: 32px;
-      background: var(--color-showcase-elevated);
+      background: var(--color-bg-darker);
       border-radius: 12px 12px 0 0;
     }
     .device-frame.web::after {
@@ -329,7 +330,7 @@
       transform: translateY(-50%);
       width: 8px;
       height: 8px;
-      background: var(--color-showcase-bg);
+      background: var(--color-cinematic-black);
       border-radius: 50%;
       z-index: 10;
     }
@@ -351,18 +352,18 @@
       transform: translateX(-50%);
       width: 120px;
       height: 8px;
-      background: var(--color-showcase-elevated);
+      background: var(--color-bg-darker);
       border-radius: 4px;
     }
 
     /* CarPlay - Driver-safe dashboard */
-    .device-frame.carplay { border-radius: 16px; padding: 8px; background: var(--color-showcase-bg); }
+    .device-frame.carplay { border-radius: 16px; padding: 8px; background: var(--color-cinematic-black); }
     .device-frame.carplay .device-screen {
       width: 480px;
       height: 200px;
       border-radius: 12px;
       padding: var(--space-4);
-      background: linear-gradient(180deg, var(--color-showcase-surface) 0%, var(--color-showcase-bg) 100%);
+      background: linear-gradient(180deg, var(--color-cinematic-surface) 0%, var(--color-cinematic-black) 100%);
     }
     .device-frame.carplay::after {
       content: '';
@@ -372,7 +373,7 @@
       transform: translateY(-50%);
       width: 20px;
       height: 60px;
-      background: linear-gradient(90deg, var(--color-showcase-elevated) 0%, var(--color-showcase-surface) 100%);
+      background: linear-gradient(90deg, var(--color-bg-darker) 0%, var(--color-cinematic-surface) 100%);
       border-radius: 0 8px 8px 0;
     }
 
@@ -387,7 +388,7 @@
     }
     .widget-item {
       background: var(--color-background);
-      border-radius: var(--radius-xl);
+      border-radius: var(--radius-lg);
       padding: var(--space-4);
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
     }
@@ -446,7 +447,7 @@
       transform: translate(-50%, -50%);
       font-size: 1.5rem;
       font-weight: 700;
-      color: var(--color-accent);
+      color: var(--color-accent-text);
     }
     .watch-metric {
       font-size: 0.7rem;
@@ -456,7 +457,7 @@
 
     .mobile-card {
       background: var(--color-background-secondary);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-sm);
       padding: var(--space-3);
       margin-bottom: var(--space-2);
     }
@@ -475,7 +476,7 @@
       font-size: 0.6rem;
       font-weight: 600;
       background: var(--color-accent);
-      color: white;
+      color: var(--color-text-inverse);
       padding: 2px 6px;
       border-radius: var(--radius-full);
     }
@@ -506,7 +507,7 @@
     }
     .desktop-panel {
       background: var(--color-background-secondary);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-md);
       padding: var(--space-4);
     }
     .desktop-panel-header {
@@ -531,7 +532,7 @@
     }
     .ipad-card {
       background: var(--color-background-secondary);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-md);
       padding: var(--space-4);
     }
     .ipad-card-title {
@@ -564,11 +565,11 @@
     .tv-metric {
       font-size: 4rem;
       font-weight: 700;
-      color: var(--color-accent);
+      color: var(--color-accent-text);
     }
     .tv-focus-ring {
       border: 3px solid transparent;
-      border-radius: var(--radius-xl);
+      border-radius: var(--radius-lg);
       transition: border-color 0.2s ease;
     }
     .tv-focus-ring:hover { border-color: var(--color-accent); }
@@ -590,7 +591,7 @@
     .carplay-metric {
       font-size: 3rem;
       font-weight: 700;
-      color: var(--color-accent);
+      color: var(--color-accent-text);
     }
     .carplay-label {
       font-size: 1.2rem;
@@ -600,7 +601,7 @@
       width: 60px;
       height: 60px;
       background: var(--color-accent);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -629,7 +630,7 @@
       width: 24px;
       height: 24px;
       background: var(--color-accent);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-sm);
     }
     .widget-title {
       font-size: 0.75rem;
@@ -681,7 +682,7 @@
       position: relative;
       width: 100%;
       height: 24px;
-      background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-warning-bright) 50%, var(--color-error-bright) 100%);
+      background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-gold) 50%, var(--color-error-warm) 100%);
       border-radius: var(--radius-full);
       overflow: hidden;
     }
@@ -732,7 +733,7 @@
       border-radius: 50%;
       border: 3px solid var(--color-background);
       z-index: 1;
-      transition: transform var(--duration-fast) var(--ease-spring);
+      transition: transform var(--duration-fast) var(--ease-ease-out-back);
     }
     .timeline-dot:hover { transform: scale(1.3); }
     .timeline-label {
@@ -776,20 +777,20 @@
       font-size: 0.65rem;
       font-weight: 500;
     }
-    .arc-phase.initiation { background: rgba(61, 90, 69, 0.2); color: var(--color-accent); }
-    .arc-phase.escalation { background: rgba(245, 166, 35, 0.2); color: var(--color-warning-bright); }
-    .arc-phase.peak { background: rgba(231, 76, 60, 0.2); color: var(--color-error-bright); }
-    .arc-phase.resolution { background: rgba(61, 90, 69, 0.2); color: var(--color-accent); }
+    .arc-phase.initiation { background: rgba(61, 90, 69, 0.2); color: var(--color-accent-text); }
+    .arc-phase.escalation { background: rgba(245, 166, 35, 0.2); color: var(--color-accent-gold); }
+    .arc-phase.peak { background: rgba(231, 76, 60, 0.2); color: var(--color-error-warm); }
+    .arc-phase.resolution { background: rgba(61, 90, 69, 0.2); color: var(--color-accent-text); }
 
     /* Prediction Confidence */
     .prediction-card {
       background: var(--color-background-secondary);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-sm);
       padding: var(--space-3);
       border-left: 3px solid transparent;
     }
     .prediction-card.high { border-left-color: var(--color-accent); }
-    .prediction-card.medium { border-left-color: var(--color-warning-bright); }
+    .prediction-card.medium { border-left-color: var(--color-accent-gold); }
     .prediction-card.low { border-left-color: var(--color-text-muted); }
     .confidence-badge {
       font-size: 0.6rem;
@@ -798,8 +799,8 @@
       border-radius: var(--radius-full);
       text-transform: uppercase;
     }
-    .confidence-badge.high { background: var(--color-accent); color: white; }
-    .confidence-badge.medium { background: var(--color-warning-bright); color: white; }
+    .confidence-badge.high { background: var(--color-accent); color: var(--color-text-inverse); }
+    .confidence-badge.medium { background: var(--color-accent-gold); color: white; }
     .confidence-badge.low { background: var(--color-text-muted); color: white; }
 
     /* Relationship Network */
@@ -811,17 +812,17 @@
       font-size: 0.7rem;
       font-weight: 600;
       color: white;
-      transition: transform var(--duration-fast) var(--ease-spring);
+      transition: transform var(--duration-fast) var(--ease-ease-out-back);
     }
     .network-node:hover { transform: scale(1.15); }
     .network-node.positive { background: var(--color-accent); }
     .network-node.neutral { background: var(--color-text-muted); }
-    .network-node.tense { background: var(--color-warning-bright); }
+    .network-node.tense { background: var(--color-accent-gold); }
 
     /* Open Loops Kanban */
     .loops-column {
       background: var(--color-background-secondary);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-sm);
       padding: var(--space-2);
     }
     .loops-header {
@@ -834,7 +835,7 @@
     }
     .loop-card {
       background: var(--color-background);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-sm);
       padding: var(--space-2);
       margin-bottom: var(--space-1);
       font-size: 0.75rem;
@@ -881,8 +882,8 @@
     .viz-chip.active {
       background: var(--color-accent);
       border-color: var(--color-accent);
-      color: white;
-      animation: scaleIn var(--duration-fast) var(--ease-spring);
+      color: var(--color-text-inverse);
+      animation: scaleIn var(--duration-fast) var(--ease-ease-out-back);
     }
 
     /* Menu page chips - distinct visual treatment */
@@ -909,7 +910,7 @@
       padding: var(--space-6);
       background: rgba(255, 255, 255, 0.02);
       border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: var(--radius-xl);
+      border-radius: var(--radius-lg);
     }
     .responsive-notes h2 {
       font-family: var(--font-display);
@@ -926,12 +927,12 @@
     .note-item {
       padding: var(--space-4);
       background: rgba(255, 255, 255, 0.02);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-sm);
     }
     .note-item h4 {
       font-size: 0.85rem;
       font-weight: 600;
-      color: var(--color-accent);
+      color: var(--color-accent-text);
       margin-bottom: var(--space-2);
       display: flex;
       align-items: center;
@@ -950,11 +951,11 @@
     }
     .device-wrapper.visible {
       display: block;
-      animation: fadeInUp var(--duration-slow) var(--ease-out-expo) forwards;
+      animation: fadeInUp var(--duration-slower) var(--ease-out-expo) forwards;
     }
     .all-devices .device-wrapper {
       display: block;
-      animation: fadeInUp var(--duration-slow) var(--ease-out-expo) forwards;
+      animation: fadeInUp var(--duration-slower) var(--ease-out-expo) forwards;
     }
     .all-devices .device-wrapper:nth-child(1) { animation-delay: 0ms; }
     .all-devices .device-wrapper:nth-child(2) { animation-delay: 50ms; }
@@ -990,7 +991,7 @@
 
     /* Widget hover animations */
     .widget-item {
-      transition: transform var(--duration-normal) var(--ease-spring),
+      transition: transform var(--duration-normal) var(--ease-ease-out-back),
                   box-shadow var(--duration-normal) var(--ease-out-expo);
       cursor: pointer;
     }
@@ -1016,13 +1017,13 @@
 
     /* Viz content fade in */
     .viz-content {
-      animation: fadeInUp var(--duration-slow) var(--ease-out-expo);
+      animation: fadeInUp var(--duration-slower) var(--ease-out-expo);
     }
 
     .full-span { grid-column: span 2; }
     .border-left-accent { border-left: 3px solid var(--color-accent); }
     .border-left-warning { border-left: 3px solid var(--color-warning); }
-    .text-accent { color: var(--color-accent); }
+    .text-accent { color: var(--color-accent-text); }
     .text-warning { color: var(--color-warning); }
     .text-center { text-align: center; }
     .font-semibold { font-weight: 600; }
@@ -1501,7 +1502,7 @@
       const ringOuter = createElement('div');
       ringOuter.style.cssText = 'width: 80px; height: 80px; border-radius: 50%; background: conic-gradient(var(--color-accent) 75%, rgba(44, 37, 32, 0.1) 0); display: flex; align-items: center; justify-content: center;';
       const ringInner = createElement('div');
-      ringInner.style.cssText = 'width: 60px; height: 60px; border-radius: 50%; background: var(--color-background); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-accent);';
+      ringInner.style.cssText = 'width: 60px; height: 60px; border-radius: 50%; background: var(--color-background); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-accent-text);';
       ringInner.textContent = '75%';
       ringOuter.appendChild(ringInner);
       flexContainer.appendChild(ringOuter);
@@ -1644,7 +1645,7 @@
       container.appendChild(content);
 
       const aligned = createElement('div');
-      aligned.style.cssText = 'font-size: 0.7rem; color: var(--color-accent); text-align: center;';
+      aligned.style.cssText = 'font-size: 0.7rem; color: var(--color-accent-text); text-align: center;';
       aligned.textContent = 'Growth: 95% aligned';
       container.appendChild(aligned);
     }
@@ -1667,7 +1668,7 @@
       container.appendChild(insight);
 
       const tap = createElement('div');
-      tap.style.cssText = 'text-align: center; font-size: 0.7rem; color: var(--color-accent);';
+      tap.style.cssText = 'text-align: center; font-size: 0.7rem; color: var(--color-accent-text);';
       tap.textContent = 'Tap to see deeper';
       container.appendChild(tap);
     }
@@ -1697,7 +1698,7 @@
       container.appendChild(heatmap);
 
       const metric = createElement('div');
-      metric.style.cssText = 'text-align: center; font-size: 1.1rem; color: var(--color-accent); font-weight: 600;';
+      metric.style.cssText = 'text-align: center; font-size: 1.1rem; color: var(--color-accent-text); font-weight: 600;';
       metric.textContent = 'Calm';
       container.appendChild(metric);
 
@@ -1760,7 +1761,7 @@
       container.appendChild(dots);
 
       const theme = createElement('div');
-      theme.style.cssText = 'text-align: center; font-size: 0.9rem; color: var(--color-accent); font-weight: 600;';
+      theme.style.cssText = 'text-align: center; font-size: 0.9rem; color: var(--color-accent-text); font-weight: 600;';
       theme.textContent = 'Now';
       container.appendChild(theme);
 
@@ -1831,7 +1832,7 @@
       container.appendChild(arc);
 
       const status = createElement('div');
-      status.style.cssText = 'text-align: center; font-size: 0.8rem; color: var(--color-accent); font-weight: 500;';
+      status.style.cssText = 'text-align: center; font-size: 0.8rem; color: var(--color-accent-text); font-weight: 500;';
       status.textContent = 'Resolution';
       container.appendChild(status);
 
@@ -1908,7 +1909,7 @@
 
       // Loop count
       const count = createElement('div');
-      count.style.cssText = 'text-align: center; font-size: 1.8rem; color: var(--color-accent); font-weight: 700; margin: 8px 0;';
+      count.style.cssText = 'text-align: center; font-size: 1.8rem; color: var(--color-accent-text); font-weight: 700; margin: 8px 0;';
       count.textContent = '5';
       container.appendChild(count);
 
@@ -1996,7 +1997,7 @@
 
       // Story count
       const count = createElement('div');
-      count.style.cssText = 'text-align: center; font-size: 1.6rem; color: var(--color-accent); font-weight: 700; margin: 6px 0;';
+      count.style.cssText = 'text-align: center; font-size: 1.6rem; color: var(--color-accent-text); font-weight: 700; margin: 6px 0;';
       count.textContent = '3';
       container.appendChild(count);
 
@@ -2800,7 +2801,7 @@
       card1.appendChild(ch1);
 
       const theme = createElement('div');
-      theme.style.cssText = 'font-size: 1.2rem; color: var(--color-accent); font-weight: 600; margin: 8px 0;';
+      theme.style.cssText = 'font-size: 1.2rem; color: var(--color-accent-text); font-weight: 600; margin: 8px 0;';
       theme.textContent = '"Intentional Growth"';
       card1.appendChild(theme);
       card1.appendChild(createElement('p', 'mobile-insight', "You're in a season of deliberate choices."));
@@ -3319,7 +3320,7 @@
       const ringOuter = createElement('div');
       ringOuter.style.cssText = 'width: 80px; height: 80px; border-radius: 50%; background: conic-gradient(var(--color-accent) 75%, rgba(44, 37, 32, 0.1) 0); display: flex; align-items: center; justify-content: center; margin: 12px auto;';
       const ringInner = createElement('div');
-      ringInner.style.cssText = 'width: 60px; height: 60px; border-radius: 50%; background: var(--color-background); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-accent);';
+      ringInner.style.cssText = 'width: 60px; height: 60px; border-radius: 50%; background: var(--color-background); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-accent-text);';
       ringInner.textContent = '75%';
       ringOuter.appendChild(ringInner);
       panel1.appendChild(ringOuter);
@@ -3378,7 +3379,7 @@
       const givers = ['Creative work', 'Deep conversations', 'Morning exercise'];
       givers.forEach(g => {
         const item = createElement('div');
-        item.style.cssText = 'padding: 6px 0; font-size: 0.85rem; color: var(--color-accent);';
+        item.style.cssText = 'padding: 6px 0; font-size: 0.85rem; color: var(--color-accent-text);';
         item.textContent = '+ ' + g;
         panel1.appendChild(item);
       });
@@ -3406,7 +3407,7 @@
       const flow = createElement('div');
       flow.style.cssText = 'display: flex; align-items: center; gap: 16px;';
       const badge = createElement('span');
-      badge.style.cssText = 'font-size: 1.5rem; font-weight: 700; color: var(--color-accent);';
+      badge.style.cssText = 'font-size: 1.5rem; font-weight: 700; color: var(--color-accent-text);';
       badge.textContent = '+15%';
       flow.appendChild(badge);
       const desc = createElement('span');
@@ -3919,7 +3920,7 @@
       const panel2 = createElement('div', 'desktop-panel');
       panel2.appendChild(createElement('div', 'desktop-panel-header')).appendChild(createElement('span', 'desktop-panel-title', 'Current Theme'));
       const theme = createElement('p');
-      theme.style.cssText = 'font-size: 1.2rem; color: var(--color-accent); font-weight: 600; margin: 8px 0;';
+      theme.style.cssText = 'font-size: 1.2rem; color: var(--color-accent-text); font-weight: 600; margin: 8px 0;';
       theme.textContent = '"Intentional Growth"';
       panel2.appendChild(theme);
       const narrative = createElement('p', 'mobile-insight');
@@ -4116,7 +4117,7 @@
 
       predictions.forEach(p => {
         const card = createElement('div', `prediction-card ${p.confidence}`);
-        card.style.cssText = 'padding: 12px; margin-top: 8px; background: var(--color-background-secondary); border-radius: var(--radius-md); border-left: 3px solid ' +
+        card.style.cssText = 'padding: 12px; margin-top: 8px; background: var(--color-background-secondary); border-radius: var(--radius-sm); border-left: 3px solid ' +
           (p.confidence === 'high' ? 'var(--color-accent)' : p.confidence === 'medium' ? TOKENS.warningBright() : 'var(--color-text-muted)');
 
         const top = createElement('div');
@@ -4280,7 +4281,7 @@
 
       columns.forEach(col => {
         const column = createElement('div', 'loops-column');
-        column.style.cssText = 'background: var(--color-background-secondary); padding: 12px; border-radius: var(--radius-md);';
+        column.style.cssText = 'background: var(--color-background-secondary); padding: 12px; border-radius: var(--radius-sm);';
 
         const colTitle = createElement('div');
         colTitle.style.cssText = 'font-size: 0.75rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase;';
@@ -4289,7 +4290,7 @@
 
         col.loops.forEach(loop => {
           const card = createElement('div', 'loop-card');
-          card.style.cssText = 'background: var(--color-background-elevated); padding: 10px; border-radius: var(--radius-md); margin-bottom: 8px; transition: transform var(--duration-fast) var(--ease-out-expo);';
+          card.style.cssText = 'background: var(--color-background-elevated); padding: 10px; border-radius: var(--radius-sm); margin-bottom: 8px; transition: transform var(--duration-fast) var(--ease-out-expo);';
           card.appendChild(createElement('div', '', loop.text)).style.cssText = 'font-size: 0.85rem; color: var(--color-text-primary);';
           const days = createElement('div');
           days.style.cssText = 'font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px;';
@@ -4327,7 +4328,7 @@
       const header1 = createElement('div', 'desktop-panel-header');
       header1.appendChild(createElement('span', 'desktop-panel-title', 'Emotional Trajectory'));
       const badge = createElement('span');
-      badge.style.cssText = 'font-size: 0.75rem; color: var(--color-accent); font-weight: 600;';
+      badge.style.cssText = 'font-size: 0.75rem; color: var(--color-accent-text); font-weight: 600;';
       badge.textContent = '↗ Rising';
       header1.appendChild(badge);
       panel1.appendChild(header1);
@@ -4510,7 +4511,7 @@
       corrs.forEach(c => {
         const row = createElement('div');
         row.style.cssText = 'padding: 10px 0; border-bottom: 1px solid var(--color-border-subtle);';
-        row.innerHTML = `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="font-weight: 600;">${c.pair}</span><span style="color: var(--color-accent);">${c.strength}%</span></div><div style="font-size: 0.75rem; color: var(--color-text-muted);">${c.insight}</div>`;
+        row.innerHTML = `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="font-weight: 600;">${c.pair}</span><span style="color: var(--color-accent-text);">${c.strength}%</span></div><div style="font-size: 0.75rem; color: var(--color-text-muted);">${c.insight}</div>`;
         panel2.appendChild(row);
       });
       grid.appendChild(panel2);
@@ -4597,7 +4598,7 @@
       outcomes.forEach(o => {
         const row = createElement('div');
         row.style.cssText = 'padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle);';
-        row.innerHTML = `<div style="font-weight: 600; color: var(--color-accent);">${o.choice}</div><div style="font-size: 0.8rem; color: var(--color-text-muted);">${o.outcome}</div>`;
+        row.innerHTML = `<div style="font-weight: 600; color: var(--color-accent-text);">${o.choice}</div><div style="font-size: 0.8rem; color: var(--color-text-muted);">${o.outcome}</div>`;
         panel2.appendChild(row);
       });
       grid.appendChild(panel2);
@@ -4667,7 +4668,7 @@
       // Legend
       const legend = createElement('div');
       legend.style.cssText = 'display: flex; justify-content: center; gap: 20px; margin-top: 12px;';
-      legend.innerHTML = '<span style="font-size: 0.75rem; color: ${TOKENS.accentRgba(0.6)};">● January</span><span style="font-size: 0.75rem; color: var(--color-accent);">● December</span>';
+      legend.innerHTML = '<span style="font-size: 0.75rem; color: ${TOKENS.accentRgba(0.6)};">● January</span><span style="font-size: 0.75rem; color: var(--color-accent-text);">● December</span>';
       panel1.appendChild(legend);
       grid.appendChild(panel1);
 
@@ -4678,7 +4679,7 @@
         const change = after[i] - before[i];
         const row = createElement('div');
         row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle);';
-        row.innerHTML = `<span>${dim}</span><span style="color: var(--color-accent); font-weight: 600;">+${change}%</span>`;
+        row.innerHTML = `<span>${dim}</span><span style="color: var(--color-accent-text); font-weight: 600;">+${change}%</span>`;
         panel2.appendChild(row);
       });
       grid.appendChild(panel2);
@@ -4977,7 +4978,7 @@
           row.style.cssText = 'display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--color-border-subtle);';
           row.appendChild(createElement('span', '', dim));
           const score = createElement('span');
-          score.style.cssText = 'font-weight: 600; color: var(--color-accent);';
+          score.style.cssText = 'font-weight: 600; color: var(--color-accent-text);';
           score.textContent = Math.round(values[i] * 100) + '%';
           row.appendChild(score);
           card2.appendChild(row);
@@ -5224,7 +5225,7 @@
           row.style.cssText = 'display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle);';
           row.appendChild(createElement('span', '', m.label));
           const val = createElement('span');
-          val.style.cssText = 'font-weight: 500; color: var(--color-accent);';
+          val.style.cssText = 'font-weight: 500; color: var(--color-accent-text);';
           val.textContent = m.value;
           row.appendChild(val);
           card2.appendChild(row);
@@ -5465,7 +5466,7 @@
           row.style.cssText = 'display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle);';
           row.appendChild(createElement('span', '', r.year));
           const growth = createElement('span');
-          growth.style.cssText = `color: var(--color-accent); opacity: ${r.opacity};`;
+          growth.style.cssText = `color: var(--color-accent-text); opacity: ${r.opacity};`;
           growth.textContent = r.growth;
           row.appendChild(growth);
           card2.appendChild(row);
@@ -5538,7 +5539,7 @@
           row.style.cssText = 'display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--color-border-subtle);';
           row.appendChild(createElement('span', '', val));
           const score = createElement('span');
-          score.style.cssText = 'font-weight: 600; color: var(--color-accent);';
+          score.style.cssText = 'font-weight: 600; color: var(--color-accent-text);';
           score.textContent = Math.round(scores[i] * 100) + '%';
           row.appendChild(score);
           card2.appendChild(row);
@@ -5686,7 +5687,7 @@
         corrs.forEach(c => {
           const row = createElement('div');
           row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--color-border-subtle);';
-          row.innerHTML = `<span style="font-weight: 600;">${c.from} → ${c.to}</span><span style="color: var(--color-accent); font-weight: 600;">${c.strength}%</span>`;
+          row.innerHTML = `<span style="font-weight: 600;">${c.from} → ${c.to}</span><span style="color: var(--color-accent-text); font-weight: 600;">${c.strength}%</span>`;
           card1.appendChild(row);
         });
         grid.appendChild(card1);
@@ -5707,7 +5708,7 @@
           const card = createElement('div', 'ipad-card');
           card.appendChild(createElement('div', 'ipad-card-title', b.choice));
           const picked = createElement('div');
-          picked.style.cssText = 'font-size: 1.5rem; font-weight: 600; color: var(--color-accent); margin: 10px 0;';
+          picked.style.cssText = 'font-size: 1.5rem; font-weight: 600; color: var(--color-accent-text); margin: 10px 0;';
           picked.textContent = b.picked;
           card.appendChild(picked);
           card.appendChild(createElement('p', 'mobile-insight', 'Chose in ' + b.year));
@@ -5729,7 +5730,7 @@
         dims.forEach(d => {
           const row = createElement('div');
           row.style.cssText = 'display: flex; align-items: center; gap: 12px; padding: 8px 0;';
-          row.innerHTML = `<span style="width: 100px; font-size: 0.85rem;">${d.name}</span><div style="flex: 1; display: flex; gap: 8px;"><div style="height: 8px; width: ${d.before}%; background: ${TOKENS.accentRgba(0.3)}; border-radius: 4px;"></div><div style="height: 8px; width: ${d.after}%; background: var(--color-accent); border-radius: 4px;"></div></div><span style="color: var(--color-accent); font-weight: 600;">+${d.after - d.before}%</span>`;
+          row.innerHTML = `<span style="width: 100px; font-size: 0.85rem;">${d.name}</span><div style="flex: 1; display: flex; gap: 8px;"><div style="height: 8px; width: ${d.before}%; background: ${TOKENS.accentRgba(0.3)}; border-radius: 4px;"></div><div style="height: 8px; width: ${d.after}%; background: var(--color-accent); border-radius: 4px;"></div></div><span style="color: var(--color-accent-text); font-weight: 600;">+${d.after - d.before}%</span>`;
           card1.appendChild(row);
         });
         grid.appendChild(card1);
@@ -5845,7 +5846,7 @@
         const center = createElement('div');
         center.style.cssText = 'position: absolute; inset: 20px; border-radius: 50%; background: var(--showcase-bg); display: flex; align-items: center; justify-content: center;';
         const metric = createElement('span');
-        metric.style.cssText = 'font-size: 2rem; font-weight: 700; color: var(--color-accent);';
+        metric.style.cssText = 'font-size: 2rem; font-weight: 700; color: var(--color-accent-text);';
         metric.textContent = '68%';
         center.appendChild(metric);
         gauge.appendChild(center);
@@ -5859,7 +5860,7 @@
         layout.appendChild(createElement('div', 'tv-subtitle', '2023 - Present'));
 
         const theme = createElement('p');
-        theme.style.cssText = 'font-size: 1.2rem; font-style: italic; color: var(--color-accent); margin-top: 16px;';
+        theme.style.cssText = 'font-size: 1.2rem; font-style: italic; color: var(--color-accent-text); margin-top: 16px;';
         theme.textContent = 'Synthesizing';
         layout.appendChild(theme);
 
@@ -5886,7 +5887,7 @@
           item.style.cssText = 'text-align: center;';
 
           const val = createElement('div');
-          val.style.cssText = 'font-size: 2rem; font-weight: 700; color: var(--color-accent);';
+          val.style.cssText = 'font-size: 2rem; font-weight: 700; color: var(--color-accent-text);';
           val.textContent = m.value;
           item.appendChild(val);
 
@@ -6697,7 +6698,7 @@
         smallContent.appendChild(createElement('div', 'widget-footer', 'Rising'));
       } else if (viz === 'silence') {
         const val = createElement('div', 'widget-value');
-        val.style.cssText = 'color: var(--color-accent); font-size: 1.8rem;';
+        val.style.cssText = 'color: var(--color-accent-text); font-size: 1.8rem;';
         val.textContent = '◐';
         smallContent.appendChild(val);
         smallContent.appendChild(createElement('div', 'widget-footer', 'Processing'));
@@ -6782,7 +6783,7 @@
         const row = createElement('div');
         row.style.cssText = 'display: flex; align-items: center; gap: 12px;';
         const val = createElement('div', 'widget-value');
-        val.style.cssText = 'font-size: 2rem; color: var(--color-accent);';
+        val.style.cssText = 'font-size: 2rem; color: var(--color-accent-text);';
         val.textContent = '68%';
         row.appendChild(val);
         const bar = createElement('div');
@@ -6799,7 +6800,7 @@
         medVal.textContent = 'Integration';
         medContent.appendChild(medVal);
         const sub = createElement('div');
-        sub.style.cssText = 'font-size: 0.8rem; color: var(--color-accent); font-style: italic; margin-top: 4px;';
+        sub.style.cssText = 'font-size: 0.8rem; color: var(--color-accent-text); font-style: italic; margin-top: 4px;';
         sub.textContent = 'Synthesizing';
         medContent.appendChild(sub);
         medContent.appendChild(createElement('div', 'widget-footer', 'Chapter 4 of 5'));
@@ -6810,7 +6811,7 @@
           const item = createElement('div');
           item.style.cssText = 'text-align: center;';
           const val = createElement('div');
-          val.style.cssText = 'font-size: 1.2rem; font-weight: 600; color: var(--color-accent);';
+          val.style.cssText = 'font-size: 1.2rem; font-weight: 600; color: var(--color-accent-text);';
           val.textContent = m.value;
           item.appendChild(val);
           const label = createElement('div');
@@ -6863,7 +6864,7 @@
         const row = createElement('div');
         row.style.cssText = 'display: flex; align-items: center; gap: 12px;';
         const count = createElement('div');
-        count.style.cssText = 'font-size: 2rem; font-weight: 600; color: var(--color-accent);';
+        count.style.cssText = 'font-size: 2rem; font-weight: 600; color: var(--color-accent-text);';
         count.textContent = '4';
         row.appendChild(count);
         const text = createElement('div');
@@ -6893,7 +6894,7 @@
         const row = createElement('div');
         row.style.cssText = 'display: flex; align-items: center; gap: 12px;';
         const count = createElement('div');
-        count.style.cssText = 'font-size: 2rem; font-weight: 600; color: var(--color-accent);';
+        count.style.cssText = 'font-size: 2rem; font-weight: 600; color: var(--color-accent-text);';
         count.textContent = '4';
         row.appendChild(count);
         const text = createElement('div');
@@ -6908,7 +6909,7 @@
         medVal.textContent = 'Career Pivot';
         medContent.appendChild(medVal);
         const sub = createElement('div');
-        sub.style.cssText = 'font-size: 0.8rem; color: var(--color-accent); margin-top: 4px;';
+        sub.style.cssText = 'font-size: 0.8rem; color: var(--color-accent-text); margin-top: 4px;';
         sub.textContent = 'Rising Action • 65%';
         medContent.appendChild(sub);
         medContent.appendChild(createElement('div', 'widget-footer', '+2 more stories active'));
@@ -6943,7 +6944,7 @@
           const item = createElement('div');
           item.style.cssText = 'text-align: center;';
           const val = createElement('div');
-          val.style.cssText = 'font-size: 1.2rem; font-weight: 600; color: var(--color-accent);';
+          val.style.cssText = 'font-size: 1.2rem; font-weight: 600; color: var(--color-accent-text);';
           val.textContent = m.value;
           item.appendChild(val);
           const label = createElement('div');
@@ -6969,7 +6970,7 @@
         const row = createElement('div');
         row.style.cssText = 'display: flex; align-items: center; gap: 12px;';
         const icon = createElement('div');
-        icon.style.cssText = `width: 40px; height: 40px; background: ${TOKENS.accentRgba(0.2)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--color-accent);`;
+        icon.style.cssText = `width: 40px; height: 40px; background: ${TOKENS.accentRgba(0.2)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--color-accent-text);`;
         icon.textContent = '◐';
         row.appendChild(icon);
         const text = createElement('div');
@@ -6982,7 +6983,7 @@
         const row = createElement('div');
         row.style.cssText = 'display: flex; align-items: center; gap: 12px;';
         const strength = createElement('div');
-        strength.style.cssText = 'font-size: 1.8rem; font-weight: 600; color: var(--color-accent);';
+        strength.style.cssText = 'font-size: 1.8rem; font-weight: 600; color: var(--color-accent-text);';
         strength.textContent = '0.87';
         row.appendChild(strength);
         const text = createElement('div');
@@ -7003,7 +7004,7 @@
         medVal.textContent = 'Career Pivot (2021)';
         medContent.appendChild(medVal);
         const sub = createElement('div');
-        sub.style.cssText = 'font-size: 0.8rem; color: var(--color-accent); margin-top: 4px;';
+        sub.style.cssText = 'font-size: 0.8rem; color: var(--color-accent-text); margin-top: 4px;';
         sub.textContent = 'You chose growth over comfort';
         medContent.appendChild(sub);
         medContent.appendChild(createElement('div', 'widget-footer', '3 branch points analyzed'));
@@ -7011,7 +7012,7 @@
         const row = createElement('div');
         row.style.cssText = 'display: flex; align-items: center; gap: 12px;';
         const percent = createElement('div');
-        percent.style.cssText = 'font-size: 1.8rem; font-weight: 600; color: var(--color-accent);';
+        percent.style.cssText = 'font-size: 1.8rem; font-weight: 600; color: var(--color-accent-text);';
         percent.textContent = '+156%';
         row.appendChild(percent);
         const text = createElement('div');
@@ -7103,7 +7104,7 @@
         trajCard.appendChild(trajArc);
         const trajLabel = createElement('div');
         trajLabel.style.cssText = 'display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--color-text-muted);';
-        trajLabel.innerHTML = '<span>Jan</span><span style="color: var(--color-accent); font-weight: 600;">+47% growth</span><span>Dec</span>';
+        trajLabel.innerHTML = '<span>Jan</span><span style="color: var(--color-accent-text); font-weight: 600;">+47% growth</span><span>Dec</span>';
         trajCard.appendChild(trajLabel);
         page.appendChild(trajCard);
 
@@ -7119,7 +7120,7 @@
           row.style.cssText = 'margin-bottom: 12px;';
           const label = createElement('div');
           label.style.cssText = 'display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;';
-          label.innerHTML = `<span>${t.trait}</span><span style="color: var(--color-accent);">+${Math.round((t.after - t.before) / t.before * 100)}%</span>`;
+          label.innerHTML = `<span>${t.trait}</span><span style="color: var(--color-accent-text);">+${Math.round((t.after - t.before) / t.before * 100)}%</span>`;
           row.appendChild(label);
           const bars = createElement('div');
           bars.style.cssText = 'position: relative; height: 8px; background: ${TOKENS.accentRgba(0.2)}; border-radius: 4px;';
@@ -7149,7 +7150,7 @@
           item.appendChild(dot);
           const content = createElement('div');
           const monthLabel = createElement('div');
-          monthLabel.style.cssText = 'font-size: 0.7rem; color: var(--color-accent); font-weight: 500;';
+          monthLabel.style.cssText = 'font-size: 0.7rem; color: var(--color-accent-text); font-weight: 500;';
           monthLabel.textContent = p.month;
           content.appendChild(monthLabel);
           const choiceLabel = createElement('div');
@@ -7180,7 +7181,7 @@
           label.textContent = c.link;
           row.appendChild(label);
           const strength = createElement('span');
-          strength.style.cssText = 'font-size: 0.85rem; color: var(--color-accent); font-weight: 600;';
+          strength.style.cssText = 'font-size: 0.85rem; color: var(--color-accent-text); font-weight: 600;';
           strength.textContent = c.strength.toFixed(2);
           row.appendChild(strength);
           patternsCard.appendChild(row);
@@ -7269,7 +7270,7 @@
       trajCard.appendChild(trajSvg);
       const trajLabel = createElement('div');
       trajLabel.style.cssText = 'display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--color-text-muted); margin-top: 8px;';
-      trajLabel.innerHTML = '<span>January (Valley)</span><span style="color: var(--color-accent); font-weight: 600;">+47%</span><span>December (Peak)</span>';
+      trajLabel.innerHTML = '<span>January (Valley)</span><span style="color: var(--color-accent-text); font-weight: 600;">+47%</span><span>December (Peak)</span>';
       trajCard.appendChild(trajLabel);
       leftCol.appendChild(trajCard);
 
@@ -7283,7 +7284,7 @@
       [{ link: 'Sleep → Mood', strength: 0.87 }, { link: 'Exercise → Creativity', strength: 0.72 }, { link: 'Nature → Peace', strength: 0.65 }].forEach(c => {
         const row = createElement('div');
         row.style.cssText = 'display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--color-border-subtle);';
-        row.innerHTML = `<span>${c.link}</span><span style="color: var(--color-accent); font-weight: 600;">${c.strength}</span>`;
+        row.innerHTML = `<span>${c.link}</span><span style="color: var(--color-accent-text); font-weight: 600;">${c.strength}</span>`;
         patternsCard.appendChild(row);
       });
       leftCol.appendChild(patternsCard);
@@ -7300,7 +7301,7 @@
       [{ trait: 'Confidence', change: '+156%' }, { trait: 'Boundaries', change: '+88%' }, { trait: 'Self-Compassion', change: '+70%' }].forEach(t => {
         const row = createElement('div');
         row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px 0;';
-        row.innerHTML = `<span style="font-size: 0.95rem;">${t.trait}</span><span style="color: var(--color-accent); font-weight: 700; font-size: 1.1rem;">${t.change}</span>`;
+        row.innerHTML = `<span style="font-size: 0.95rem;">${t.trait}</span><span style="color: var(--color-accent-text); font-weight: 700; font-size: 1.1rem;">${t.change}</span>`;
         growthCard.appendChild(row);
       });
       rightCol.appendChild(growthCard);
@@ -7352,7 +7353,7 @@
         trajBars.appendChild(bar);
       });
       trajCard.appendChild(trajBars);
-      trajCard.innerHTML += '<div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 8px;"><span>Jan</span><span style="color: var(--color-accent); font-weight: 600;">+47%</span><span>Dec</span></div>';
+      trajCard.innerHTML += '<div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 8px;"><span>Jan</span><span style="color: var(--color-accent-text); font-weight: 600;">+47%</span><span>Dec</span></div>';
       grid.appendChild(trajCard);
 
       // Paradoxes
@@ -7374,7 +7375,7 @@
       [{ trait: 'Confidence', change: '+156%' }, { trait: 'Boundaries', change: '+88%' }].forEach(t => {
         const row = createElement('div');
         row.style.cssText = 'display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.85rem;';
-        row.innerHTML = `<span>${t.trait}</span><span style="color: var(--color-accent); font-weight: 600;">${t.change}</span>`;
+        row.innerHTML = `<span>${t.trait}</span><span style="color: var(--color-accent-text); font-weight: 600;">${t.change}</span>`;
         growthCard.appendChild(row);
       });
       grid.appendChild(growthCard);
@@ -7386,7 +7387,7 @@
       [{ link: 'Sleep → Mood', strength: '0.87' }, { link: 'Exercise → Energy', strength: '0.72' }].forEach(c => {
         const row = createElement('div');
         row.style.cssText = 'display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.85rem;';
-        row.innerHTML = `<span>${c.link}</span><span style="color: var(--color-accent);">${c.strength}</span>`;
+        row.innerHTML = `<span>${c.link}</span><span style="color: var(--color-accent-text);">${c.strength}</span>`;
         patternsCard.appendChild(row);
       });
       grid.appendChild(patternsCard);
@@ -7398,7 +7399,7 @@
       [{ month: 'March', choice: 'Said no to promotion' }, { month: 'July', choice: 'Started therapy' }].forEach(p => {
         const item = createElement('div');
         item.style.cssText = 'padding: 6px 0; font-size: 0.85rem;';
-        item.innerHTML = `<span style="color: var(--color-accent); font-size: 0.7rem;">${p.month}</span><div>${p.choice}</div>`;
+        item.innerHTML = `<span style="color: var(--color-accent-text); font-size: 0.7rem;">${p.month}</span><div>${p.choice}</div>`;
         decisionsCard.appendChild(item);
       });
       grid.appendChild(decisionsCard);
@@ -7442,9 +7443,9 @@
           <span style="font-size: 1.2rem;">${l.icon}</span>
           <div style="flex: 1;">
             <div style="font-size: 0.9rem; margin-bottom: 2px;">${l.pattern}</div>
-            <div style="font-size: 0.75rem; color: var(--color-accent);">${l.confidence}% confident</div>
+            <div style="font-size: 0.75rem; color: var(--color-accent-text);">${l.confidence}% confident</div>
           </div>
-          <div style="width: 40px; height: 40px; border: 3px solid var(--color-accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; color: var(--color-accent);">${l.confidence}%</div>
+          <div style="width: 40px; height: 40px; border: 3px solid var(--color-accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; color: var(--color-accent-text);">${l.confidence}%</div>
         `;
         activeCard.appendChild(item);
       });
@@ -7520,7 +7521,7 @@
         row.innerHTML = `
           <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
             <span>${t.trait}</span>
-            <span style="color: var(--color-accent); font-weight: 600;">+${Math.round((t.after - t.before) / t.before * 100)}%</span>
+            <span style="color: var(--color-accent-text); font-weight: 600;">+${Math.round((t.after - t.before) / t.before * 100)}%</span>
           </div>
           <div style="position: relative; height: 12px; background: ${TOKENS.accentRgba(0.15)}; border-radius: 6px;">
             <div style="position: absolute; height: 100%; width: ${t.before}%; background: ${TOKENS.accentRgba(0.3)}; border-radius: 6px;"></div>
@@ -7546,7 +7547,7 @@
         item.innerHTML = `
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
             <span style="font-weight: 500;">${c.link}</span>
-            <span style="color: var(--color-accent); font-weight: 600;">${c.strength}</span>
+            <span style="color: var(--color-accent-text); font-weight: 600;">${c.strength}</span>
           </div>
           <div style="font-size: 0.8rem; color: var(--color-text-muted); font-style: italic;">Leverage: ${c.leverage}</div>
         `;
@@ -7654,7 +7655,7 @@
           <div style="display: flex; gap: 12px;">
             <div style="width: 8px; height: 8px; background: var(--color-accent); border-radius: 50%; margin-top: 6px; flex-shrink: 0;"></div>
             <div>
-              <div style="font-size: 0.7rem; color: var(--color-accent); margin-bottom: 2px;">${d.date}</div>
+              <div style="font-size: 0.7rem; color: var(--color-accent-text); margin-bottom: 2px;">${d.date}</div>
               <div style="font-weight: 500; margin-bottom: 4px;">${d.choice}</div>
               <div style="font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 4px;">${d.path}</div>
               <div style="font-size: 0.8rem; font-style: italic; color: var(--color-text-secondary);">${d.outcome}</div>
@@ -7676,7 +7677,7 @@
       ].forEach(m => {
         const item = createElement('div');
         item.style.cssText = 'padding: 10px 0; border-bottom: 1px solid var(--color-border-subtle); font-size: 0.9rem;';
-        item.innerHTML = `<span style="color: var(--color-accent);">"</span> ${m}`;
+        item.innerHTML = `<span style="color: var(--color-accent-text);">"</span> ${m}`;
         rememberCard.appendChild(item);
       });
       page.appendChild(rememberCard);
@@ -7706,9 +7707,9 @@
       networkViz.innerHTML = `
         <div style="position: absolute; width: 50px; height: 50px; background: var(--color-accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.8rem;">YOU</div>
         <div style="position: absolute; left: 15%; top: 20%; width: 35px; height: 35px; background: var(--color-purple); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem;">Sleep</div>
-        <div style="position: absolute; right: 15%; top: 20%; width: 35px; height: 35px; background: var(--color-warning-bright); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem;">Mood</div>
-        <div style="position: absolute; left: 20%; bottom: 10%; width: 35px; height: 35px; background: var(--color-success-bright); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem;">Work</div>
-        <div style="position: absolute; right: 20%; bottom: 10%; width: 35px; height: 35px; background: var(--color-pink); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.65rem;">Energy</div>
+        <div style="position: absolute; right: 15%; top: 20%; width: 35px; height: 35px; background: var(--color-accent-gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem;">Mood</div>
+        <div style="position: absolute; left: 20%; bottom: 10%; width: 35px; height: 35px; background: var(--color-success); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem;">Work</div>
+        <div style="position: absolute; right: 20%; bottom: 10%; width: 35px; height: 35px; background: var(--color-sasha); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.65rem;">Energy</div>
       `;
       networkCard.appendChild(networkViz);
       page.appendChild(networkCard);
@@ -7732,7 +7733,7 @@
               <div style="width: 10px; height: 10px; background: ${c.color}; border-radius: 50%;"></div>
               <span>${c.from} → ${c.to}</span>
             </div>
-            <span style="color: var(--color-accent); font-weight: 600;">${c.strength}</span>
+            <span style="color: var(--color-accent-text); font-weight: 600;">${c.strength}</span>
           </div>
           <div style="height: 6px; background: ${TOKENS.accentRgba(0.1)}; border-radius: 3px;">
             <div style="height: 100%; width: ${c.strength * 100}%; background: ${c.color}; border-radius: 3px; opacity: 0.7;"></div>
@@ -7749,7 +7750,7 @@
       ['Get to bed by 10:30pm → Better mood, energy, focus', 'Morning journaling → Clarity all day', '20 min walk → Creativity boost'].forEach(l => {
         const item = createElement('div');
         item.style.cssText = 'display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; font-size: 0.9rem;';
-        item.innerHTML = `<span style="color: var(--color-accent);">•</span>${l}`;
+        item.innerHTML = `<span style="color: var(--color-accent-text);">•</span>${l}`;
         leverageCard.appendChild(item);
       });
       page.appendChild(leverageCard);
@@ -7821,7 +7822,7 @@
         const chosenPath = createElement('div');
         chosenPath.style.cssText = 'flex: 1; background: ${TOKENS.accentRgba(0.1)}; border: 2px solid var(--color-accent); border-radius: 12px; padding: 12px;';
         const chosenLabel = createElement('div');
-        chosenLabel.style.cssText = 'font-size: 0.7rem; color: var(--color-accent); font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;';
+        chosenLabel.style.cssText = 'font-size: 0.7rem; color: var(--color-accent-text); font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;';
         chosenLabel.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><polyline points="20 6 9 17 4 12"/></svg> CHOSE';
         chosenPath.appendChild(chosenLabel);
         const chosenText = createElement('div');
@@ -7844,7 +7845,7 @@
 
         // Quote
         const quote = createElement('div');
-        quote.style.cssText = 'font-size: 0.9rem; font-style: italic; color: var(--color-accent);';
+        quote.style.cssText = 'font-size: 0.9rem; font-style: italic; color: var(--color-accent-text);';
         quote.textContent = d.quote;
         card.appendChild(quote);
 
@@ -7875,13 +7876,13 @@
             <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 4px;">2020</div>
             <div style="width: 60px; height: 60px; background: ${TOKENS.accentRgba(0.2)}; border-radius: 50%; margin: 0 auto;"></div>
           </div>
-          <div style="display: flex; align-items: center; color: var(--color-accent);">→</div>
+          <div style="display: flex; align-items: center; color: var(--color-accent-text);">→</div>
           <div>
-            <div style="font-size: 0.75rem; color: var(--color-accent); font-weight: 500; margin-bottom: 4px;">2024</div>
+            <div style="font-size: 0.75rem; color: var(--color-accent-text); font-weight: 500; margin-bottom: 4px;">2024</div>
             <div style="width: 80px; height: 80px; background: var(--color-accent); border-radius: 50%; margin: 0 auto;"></div>
           </div>
         </div>
-        <div style="font-size: 1.2rem; font-weight: 600; color: var(--color-accent);">156% overall growth</div>
+        <div style="font-size: 1.2rem; font-weight: 600; color: var(--color-accent-text);">156% overall growth</div>
       `;
       page.appendChild(heroCard);
 
@@ -7901,7 +7902,7 @@
         row.innerHTML = `
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
             <span style="font-weight: 500;">${t.trait}</span>
-            <span style="color: var(--color-accent); font-weight: 600;">+${Math.round((t.after - t.before) / t.before * 100)}%</span>
+            <span style="color: var(--color-accent-text); font-weight: 600;">+${Math.round((t.after - t.before) / t.before * 100)}%</span>
           </div>
           <div style="position: relative; height: 20px; margin-bottom: 4px;">
             <div style="position: absolute; top: 0; left: 0; right: 0; height: 8px; background: ${TOKENS.accentRgba(0.1)}; border-radius: 4px;"></div>
@@ -8061,7 +8062,7 @@
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
               <span style="font-size: 0.8rem; color: var(--color-text-muted);">Your prediction: </span>
-              <span style="font-weight: 600; color: var(--color-accent);">${pred.prediction}%</span>
+              <span style="font-weight: 600; color: var(--color-accent-text);">${pred.prediction}%</span>
             </div>
             <button style="background: var(--color-accent); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">Record Actual</button>
           </div>
@@ -8120,7 +8121,7 @@
       const watchingCard = createElement('div');
       watchingCard.style.cssText = 'background: linear-gradient(135deg, rgba(61, 90, 69, 0.15) 0%, rgba(74, 103, 65, 0.1) 100%); border-radius: 16px; padding: 20px; margin-bottom: 24px; border: 1px solid rgba(61, 90, 69, 0.2);';
       watchingCard.innerHTML = `
-        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 8px; color: var(--color-accent);">Your team is always watching</div>
+        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 8px; color: var(--color-accent-text);">Your team is always watching</div>
         <p style="color: var(--color-text-secondary); font-size: 0.9rem; line-height: 1.5; margin: 0;">Six brilliant minds working together behind the scenes. When they notice something—a pattern, an opportunity, a moment that matters—they'll surface it here.</p>
       `;
       page.appendChild(watchingCard);
@@ -8351,7 +8352,7 @@
         { label: 'Physical', color: TOKENS.energy.physical.color(), value: '92%', desc: 'Rest & movement' }
       ].forEach(item => {
         const card = createElement('div');
-        card.style.cssText = 'background: var(--color-bg-secondary); border-radius: var(--radius-lg); padding: var(--space-3); text-align: center;';
+        card.style.cssText = 'background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: var(--space-3); text-align: center;';
         card.innerHTML = `
           <div style="width: 12px; height: 12px; background: ${item.color}; border-radius: var(--radius-full); margin: 0 auto var(--space-2); box-shadow: 0 0 8px ${item.color};"></div>
           <div style="font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; color: ${item.color};">${item.value}</div>
@@ -8363,8 +8364,8 @@
 
       // Insight card
       const insight = createElement('div');
-      insight.style.cssText = 'background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 15%, transparent) 0%, color-mix(in srgb, var(--color-accent-secondary) 10%, transparent) 100%); border-radius: var(--radius-xl); padding: var(--space-4); border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);';
-      insight.innerHTML = '<div style="font-family: var(--font-display); font-weight: 600; color: var(--color-accent); margin-bottom: var(--space-1);">I notice...</div><p style="font-size: 0.9rem; color: var(--color-text-secondary); margin: 0;">Your physical energy is carrying you today. Consider channeling that into a focused work session.</p>';
+      insight.style.cssText = 'background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 15%, transparent) 0%, color-mix(in srgb, var(--color-accent-secondary) 10%, transparent) 100%); border-radius: var(--radius-lg); padding: var(--space-4); border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);';
+      insight.innerHTML = '<div style="font-family: var(--font-display); font-weight: 600; color: var(--color-accent-text); margin-bottom: var(--space-1);">I notice...</div><p style="font-size: 0.9rem; color: var(--color-text-secondary); margin: 0;">Your physical energy is carrying you today. Consider channeling that into a focused work session.</p>';
       page.appendChild(insight);
 
       container.appendChild(page);
@@ -8439,7 +8440,7 @@
 
       // Chart container
       const chartContainer = createElement('div');
-      chartContainer.style.cssText = 'background: var(--color-bg-secondary); border-radius: var(--radius-xl); padding: var(--space-4); margin-bottom: var(--space-4);';
+      chartContainer.style.cssText = 'background: var(--color-bg-secondary); border-radius: var(--radius-lg); padding: var(--space-4); margin-bottom: var(--space-4);';
 
       const svg = createSvgElement('svg');
       svg.setAttribute('viewBox', '0 0 300 180');
@@ -8526,7 +8527,7 @@
         { label: 'Optimistic', value: '+24%', color: TOKENS.scenario.optimistic() }
       ].forEach(scenario => {
         const card = createElement('div');
-        card.style.cssText = `background: var(--color-bg-secondary); border-radius: var(--radius-lg); padding: var(--space-3); text-align: center; border-top: 3px solid ${scenario.color};`;
+        card.style.cssText = `background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: var(--space-3); text-align: center; border-top: 3px solid ${scenario.color};`;
         card.innerHTML = `
           <div style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: var(--space-1);">${scenario.label}</div>
           <div style="font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; color: ${scenario.color};">${scenario.value}</div>
@@ -8539,8 +8540,8 @@
       const legend = createElement('div');
       legend.style.cssText = 'display: flex; justify-content: center; gap: var(--space-4); font-size: 0.8rem; color: var(--color-text-muted);';
       legend.innerHTML = `
-        <span><span style="display: inline-block; width: 20px; height: 3px; background: linear-gradient(90deg, ${TOKENS.projection.primary()}, ${TOKENS.projection.secondary()}); border-radius: var(--radius-md); vertical-align: middle; margin-right: var(--space-1);"></span>Projection</span>
-        <span><span style="display: inline-block; width: 20px; height: 10px; background: ${TOKENS.projection.band()}; border-radius: var(--radius-md); vertical-align: middle; margin-right: var(--space-1);"></span>Confidence</span>
+        <span><span style="display: inline-block; width: 20px; height: 3px; background: linear-gradient(90deg, ${TOKENS.projection.primary()}, ${TOKENS.projection.secondary()}); border-radius: var(--radius-sm); vertical-align: middle; margin-right: var(--space-1);"></span>Projection</span>
+        <span><span style="display: inline-block; width: 20px; height: 10px; background: ${TOKENS.projection.band()}; border-radius: var(--radius-sm); vertical-align: middle; margin-right: var(--space-1);"></span>Confidence</span>
       `;
       page.appendChild(legend);
 
@@ -8636,7 +8637,7 @@
         { label: 'Physical', color: TOKENS.energy.physical.color(), value: '92%', current: '11', goal: '12', desc: 'Rest, movement, nourishment' }
       ].forEach(item => {
         const card = createElement('div');
-        card.style.cssText = 'background: var(--color-bg-secondary); border-radius: var(--radius-xl); padding: var(--space-4);';
+        card.style.cssText = 'background: var(--color-bg-secondary); border-radius: var(--radius-lg); padding: var(--space-4);';
         card.innerHTML = `
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2);">
             <div style="width: 16px; height: 16px; background: ${item.color}; border-radius: var(--radius-full); box-shadow: 0 0 12px ${item.color};"></div>
@@ -8734,7 +8735,7 @@
 
       // Main projection chart
       const chartCard = createElement('div');
-      chartCard.style.cssText = 'background: var(--color-bg-secondary); border-radius: var(--radius-xl); padding: var(--space-5); margin-bottom: var(--space-5); position: relative; overflow: hidden;';
+      chartCard.style.cssText = 'background: var(--color-bg-secondary); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-5); position: relative; overflow: hidden;';
 
       // Subtle gradient overlay using design tokens
       const overlay = createElement('div');
@@ -8841,7 +8842,7 @@
         { label: 'Optimistic', value: '+32%', prob: '30%', color: TOKENS.scenario.optimistic(), desc: 'If momentum continues' }
       ].forEach(scenario => {
         const card = createElement('div');
-        card.style.cssText = `background: var(--color-bg-secondary); border-radius: var(--radius-xl); padding: ${platform === 'mobile' ? 'var(--space-3)' : 'var(--space-4)'}; text-align: center; border-top: 3px solid ${scenario.color}; position: relative;`;
+        card.style.cssText = `background: var(--color-bg-secondary); border-radius: var(--radius-lg); padding: ${platform === 'mobile' ? 'var(--space-3)' : 'var(--space-4)'}; text-align: center; border-top: 3px solid ${scenario.color}; position: relative;`;
         card.innerHTML = `
           <div style="font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-2);">${scenario.label}</div>
           <div style="font-family: var(--font-display); font-size: ${platform === 'mobile' ? '1.5rem' : '1.8rem'}; font-weight: 700; color: ${scenario.color}; margin-bottom: var(--space-1);">${scenario.value}</div>
@@ -8854,7 +8855,7 @@
 
       // What could change this
       const driversCard = createElement('div');
-      driversCard.style.cssText = 'background: var(--color-bg-secondary); border-radius: var(--radius-xl); padding: var(--space-4);';
+      driversCard.style.cssText = 'background: var(--color-bg-secondary); border-radius: var(--radius-lg); padding: var(--space-4);';
       driversCard.innerHTML = '<div style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: var(--space-3); font-weight: 600;">What Could Change This</div>';
 
       const drivers = [

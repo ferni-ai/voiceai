@@ -10,7 +10,7 @@
  * - Micro-interactions provide feedback and delight
  * - Performance optimized (transform/opacity only where possible)
  *
- * Usage: Import alongside master-tokens.css in visualization pages
+ * Usage: Import alongside ferni-design-tokens.css in visualization pages
  */
 
 /* ============================================
@@ -414,7 +414,7 @@
 /* Focus ring for accessibility */
 .viz-interactive:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-accent-muted, rgba(61, 90, 69, 0.3));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
 }
 
 /* Clickable card */
@@ -427,7 +427,7 @@
 .viz-card-interactive:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
-  border-color: var(--kintsugi-gold, #C9A227);
+  border-color: var(--kintsugi-primary, #C9A227);
 }
 
 /* ============================================

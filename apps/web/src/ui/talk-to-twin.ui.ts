@@ -689,7 +689,7 @@ function getTwinStyles(): string {
     /* Header */
     .twin-header {
       padding: var(--space-md, 16px) var(--space-lg, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -705,11 +705,11 @@ function getTwinStyles(): string {
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--color-accent, #4a6741), rgba(74, 103, 65, 0.7));
+      background: linear-gradient(135deg, var(--color-accent, var(--color-ferni)), color-mix(in srgb, var(--color-ferni) 70%, transparent));
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-white);
     }
     
     .twin-title {
@@ -777,11 +777,11 @@ function getTwinStyles(): string {
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--color-accent, #4a6741), rgba(74, 103, 65, 0.7));
+      background: linear-gradient(135deg, var(--color-accent, var(--color-ferni)), color-mix(in srgb, var(--color-ferni) 70%, transparent));
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-white);
       flex-shrink: 0;
     }
     
@@ -794,7 +794,7 @@ function getTwinStyles(): string {
     }
     
     .twin-message--user .message-content {
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       color: var(--color-text-on-accent);
       border-bottom-right-radius: 4px;
     }
@@ -818,7 +818,7 @@ function getTwinStyles(): string {
     }
     
     .twin-message--user .message-time {
-      color: rgba(255, 255, 255, 0.7);
+      color: color-mix(in srgb, var(--color-white) 70%, transparent);
     }
     
     /* Thinking indicator */
@@ -877,7 +877,7 @@ function getTwinStyles(): string {
     
     .twin-input:focus {
       outline: none;
-      border-color: var(--color-accent, #4a6741);
+      border-color: var(--color-accent, var(--color-ferni));
     }
     
     .twin-input::placeholder {
@@ -888,7 +888,7 @@ function getTwinStyles(): string {
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       border: none;
       color: var(--color-text-on-accent);
       cursor: pointer;

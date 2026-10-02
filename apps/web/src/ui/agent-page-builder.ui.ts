@@ -82,7 +82,7 @@ const STYLES = `
     position: fixed;
     inset: 0;
     z-index: var(--z-modal-backdrop);
-    background: rgba(0, 0, 0, 0.6);
+    background: color-mix(in srgb, var(--color-black) 60%, transparent);
     backdrop-filter: blur(var(--glass-blur-subtle, 8px));
     display: flex;
     align-items: center;
@@ -411,7 +411,7 @@ const STYLES = `
     justify-content: center;
     font-size: var(--text-2xl);
     font-weight: 700;
-    color: white;
+    color: var(--color-white);
     margin: 0 auto var(--space-md);
     box-shadow: var(--shadow-lg);
   }

@@ -297,7 +297,7 @@ export function getCreativeYouStyles(): string {
       color: var(--persona-text);
       margin: 0 0 var(--space-2) 0;
       padding: var(--space-1-5) var(--space-2);
-      background: var(--persona-primary-subtle, rgba(74, 103, 65, 0.08));
+      background: var(--persona-primary-subtle, color-mix(in srgb, var(--color-ferni) 8%, transparent));
       border-radius: var(--radius-sm);
       font-weight: var(--font-weight-medium);
     }

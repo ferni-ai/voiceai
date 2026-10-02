@@ -400,10 +400,10 @@ function injectStyles(): void {
 
     .referral-content {
       position: relative;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       max-width: clamp(294px, 90vw, 420px);
       width: 100%;
       padding: var(--space-8, 32px);
@@ -418,14 +418,14 @@ function injectStyles(): void {
       border: none;
       padding: var(--space-2, 8px);
       cursor: pointer;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       border-radius: var(--radius-full, 9999px);
       transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .referral-close:hover {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
-      color: var(--color-text-primary, #2c2520);
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 5%, transparent));
+      color: var(--color-text-primary);
     }
 
     .referral-header {
@@ -438,9 +438,9 @@ function injectStyles(): void {
       justify-content: center;
       width: 56px;
       height: 56px;
-      background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+      background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
       border-radius: 50%;
-      color: white;
+      color: var(--color-white);
       margin-bottom: var(--space-4, 16px);
     }
 
@@ -448,18 +448,18 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-2, 8px);
     }
 
     .referral-subtitle {
       font-size: var(--text-base, 1rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin: 0;
     }
 
     .referral-message {
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 3%, transparent));
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-4, 16px);
       margin-bottom: var(--space-6, 24px);
@@ -467,7 +467,7 @@ function injectStyles(): void {
 
     .referral-message p {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4d47);
+      color: var(--color-text-secondary);
       line-height: 1.6;
       margin: 0;
       font-style: italic;
@@ -486,18 +486,18 @@ function injectStyles(): void {
       justify-content: center;
       gap: var(--space-2, 8px);
       padding: var(--space-3, 12px) var(--space-4, 16px);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.05));
-      border: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 5%, transparent));
+      border: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       border-radius: var(--radius-lg, 12px);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       cursor: pointer;
       transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .referral-btn:hover {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.08));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 8%, transparent));
       transform: translateY(-1px);
     }
 
@@ -507,13 +507,13 @@ function injectStyles(): void {
 
     .referral-btn--primary {
       grid-column: span 2;
-      background: var(--persona-primary, #4a6741);
-      border-color: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      border-color: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .referral-btn--primary:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
     }
 
     .referral-btn svg {
@@ -523,7 +523,7 @@ function injectStyles(): void {
 
     .referral-note {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin: 0;
     }
 
@@ -533,8 +533,8 @@ function injectStyles(): void {
       align-items: center;
       justify-content: center;
       gap: var(--space-3, 12px);
-      background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.1)), var(--persona-glow, rgba(74, 103, 65, 0.05)));
-      border: 1px solid var(--persona-primary, #4a6741);
+      background: linear-gradient(135deg, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent)), var(--persona-glow, color-mix(in srgb, var(--color-ferni) 5%, transparent)));
+      border: 1px solid var(--persona-primary, var(--color-ferni));
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-3, 12px) var(--space-4, 16px);
       margin-bottom: var(--space-4, 16px);
@@ -564,7 +564,7 @@ function injectStyles(): void {
     }
 
     .referral-bonus-text span {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       font-size: var(--text-xs, 0.75rem);
     }
 
@@ -574,7 +574,7 @@ function injectStyles(): void {
       align-items: center;
       justify-content: center;
       gap: var(--space-2, 8px);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 3%, transparent));
       border-radius: var(--radius-md, 8px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
       margin-bottom: var(--space-4, 16px);
@@ -582,7 +582,7 @@ function injectStyles(): void {
     }
 
     .referral-link-label {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .referral-link-url {
@@ -598,16 +598,16 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-1, 4px);
       padding-top: var(--space-3, 12px);
-      border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+      border-top: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 8%, transparent));
       font-size: var(--text-xs, 0.75rem);
     }
 
     .referral-garden-title {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .referral-garden-stats {
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       font-weight: 500;
     }
 
@@ -621,8 +621,8 @@ function injectStyles(): void {
       bottom: 100px;
       left: 50%;
       transform: translateX(-50%) translateY(20px);
-      background: var(--color-text-primary, #2c2520);
-      color: white;
+      background: var(--color-text-primary);
+      color: var(--color-white);
       padding: var(--space-3, 12px) var(--space-5, 20px);
       border-radius: var(--radius-full, 9999px);
       font-size: var(--text-sm, 0.875rem);
@@ -639,15 +639,15 @@ function injectStyles(): void {
 
     /* Dark theme */
     [data-theme="midnight"] .referral-backdrop {
-      background: rgba(8, 8, 12, 0.8);
+      background: color-mix(in srgb, var(--color-black) 80%, transparent);
     }
 
     [data-theme="midnight"] .referral-content {
-      background: var(--color-background-elevated, #1a1a1f);
+      background: var(--color-background-elevated);
     }
 
     [data-theme="midnight"] .referral-title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     /* Mobile */

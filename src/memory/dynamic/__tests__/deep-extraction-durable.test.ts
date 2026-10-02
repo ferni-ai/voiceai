@@ -3,7 +3,7 @@
  * in-memory Firestore double and a scripted text generator.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { beforeAll, afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 vi.mock('../../../utils/safe-logger.js', () => {
   const l = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
@@ -71,6 +71,12 @@ const flush = () =>
 let db: FakeFirestore;
 let handler: (job: unknown) => void;
 let worker: DeepExtractionWorker | undefined;
+
+// The consent gate imports the consent service lazily on first use; load it
+// once up front so that first import doesn't outlast the short flush() waits.
+beforeAll(async () => {
+  await import('../../../services/memory-consent/index.js');
+});
 
 beforeEach(() => {
   db = new FakeFirestore();

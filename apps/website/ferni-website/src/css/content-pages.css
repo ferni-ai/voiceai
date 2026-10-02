@@ -52,7 +52,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: shimmer 8s linear infinite;
+  animation: shimmer var(--duration-ambient) linear infinite;
 }
 @keyframes shimmer {
   0% {
@@ -73,25 +73,25 @@
   background-position: 50% 50%;
   color: var(--color-text-inverse);
   box-shadow:
-    0 2px 8px rgba(45, 90, 61, 0.25),
+    0 2px 8px color-mix(in srgb, var(--color-forest-green) 25%, transparent),
     0 4px 20px var(--color-accent-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    inset 0 1px 0 color-mix(in srgb, var(--color-white) 10%, transparent);
   transition:
-    transform 0.4s var(--ease-out-expo),
-    box-shadow 0.4s var(--ease-apple),
-    background-position 0.6s var(--ease-apple);
+    transform var(--duration-slower) var(--ease-ease-out-expo),
+    box-shadow var(--duration-slower) var(--ease-in-out),
+    background-position var(--duration-deliberate) var(--ease-in-out);
 }
 .btn-primary:hover {
   background-position: 0 0;
   transform: translateY(-3px) scale(1.02);
   box-shadow:
-    0 6px 20px rgba(45, 90, 61, 0.35),
+    0 6px 20px color-mix(in srgb, var(--color-forest-green) 35%, transparent),
     0 12px 40px var(--color-accent-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    inset 0 1px 0 color-mix(in srgb, var(--color-white) 15%, transparent);
 }
 .btn-primary:active {
   transform: translateY(-1px) scale(0.98);
-  transition-duration: 0.1s;
+  transition-duration: var(--duration-faster);
 }
 .btn-ghost {
   background: 0 0;
@@ -114,8 +114,8 @@
 }
 .hero-content-wrapper .eyebrow {
   text-shadow:
-    0 2px 20px rgba(250, 248, 245, 0.9),
-    0 4px 40px rgba(250, 248, 245, 0.6);
+    0 2px 20px color-mix(in srgb, var(--color-paper) 90%, transparent),
+    0 4px 40px color-mix(in srgb, var(--color-paper) 60%, transparent);
 }
 .hero-content-wrapper .btn {
   pointer-events: auto;

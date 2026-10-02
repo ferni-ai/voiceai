@@ -24,7 +24,6 @@ export const NATIVE_FILES = {
 
 /** Light-theme CSS (zen :root + midnight dark overrides) */
 export const PROMO_LIGHT_FILES = [
-  'apps/website/ferni-website/css/design-tokens.css',
   'apps/website/ferni-website/src/css/_tokens.css',
   'brand/ferni-design-tokens.css',
 ];

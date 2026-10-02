@@ -22,6 +22,7 @@ import { moments } from './moments/index.js';
 import { openGardenDashboard } from './garden-dashboard.ui.js';
 import { openGiftSeeds } from './gift-seeds.ui.js';
 import { openReferral } from './referral.ui.js';
+import { ICONS } from './seeds-display-icons.js';
 
 const log = createLogger('SeedsDisplay');
 
@@ -33,38 +34,6 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // ============================================================================
 
 let isInitialized = false;
-
-// ============================================================================
-// ICONS
-// ============================================================================
-
-const ICONS = {
-  seed: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 22c4-4 8-7.582 8-12a8 8 0 1 0-16 0c0 4.418 4 8 8 12z"/>
-    <path d="M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
-  </svg>`,
-  flame: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
-  </svg>`,
-  gift: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="3" y="8" width="18" height="4" rx="1"/>
-    <path d="M12 8v13"/>
-    <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/>
-    <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 4.8 0 0 1 12 8a4.8 4.8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/>
-  </svg>`,
-  seedling: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 22V12"/>
-    <path d="M12 12c0-3-2.5-5-6-5 0 3 2 6 6 6Z"/>
-    <path d="M12 8c0-3 2.5-5 6-5 0 3-2 6-6 6"/>
-  </svg>`,
-  share: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="18" cy="5" r="3"/>
-    <circle cx="6" cy="12" r="3"/>
-    <circle cx="18" cy="19" r="3"/>
-    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-  </svg>`,
-};
 
 // ============================================================================
 // STYLES
@@ -81,9 +50,9 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-3, 12px);
       padding: var(--space-3, 12px) var(--space-4, 16px);
-      background: var(--color-background-elevated, rgba(255, 253, 251, 0.95));
+      background: var(--color-background-elevated);
       border-radius: var(--radius-xl, 16px);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border: 1px solid var(--color-border-subtle);
     }
 
     .seeds-balance {
@@ -101,13 +70,13 @@ function injectStyles(): void {
     .seeds-balance-amount {
       font-size: 1.25rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       font-variant-numeric: tabular-nums;
     }
 
     .seeds-balance-label {
       font-size: 0.75rem;
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.6));
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -117,7 +86,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding-left: var(--space-3, 12px);
-      border-left: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-left: 1px solid var(--color-border-subtle);
     }
 
     .seeds-streak-icon {
@@ -129,12 +98,12 @@ function injectStyles(): void {
     .seeds-streak-count {
       font-size: 1rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .seeds-streak-label {
       font-size: 0.75rem;
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.6));
+      color: var(--color-text-muted);
     }
 
     .seeds-daily-bonus {
@@ -142,14 +111,14 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
       border-radius: var(--radius-lg, 12px);
       cursor: pointer;
       transition: background ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
 
     .seeds-daily-bonus:hover {
-      background: var(--persona-glow, rgba(74, 103, 65, 0.15));
+      background: var(--persona-glow, color-mix(in srgb, var(--color-ferni) 15%, transparent));
     }
 
     .seeds-daily-bonus-icon {
@@ -195,7 +164,7 @@ function injectStyles(): void {
       flex-direction: column;
       gap: var(--space-3, 12px);
       padding: var(--space-4, 16px);
-      background: var(--color-background-secondary, #f8f6f3);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-xl, 16px);
       margin: var(--space-4, 16px);
     }
@@ -209,7 +178,7 @@ function injectStyles(): void {
     .seeds-settings-title {
       font-size: 0.75rem;
       font-weight: 600;
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.6));
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -234,12 +203,12 @@ function injectStyles(): void {
     .seeds-settings-value-text {
       font-size: 1.125rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .seeds-settings-info {
       font-size: 0.8125rem;
-      color: var(--color-text-secondary, rgba(44, 37, 32, 0.7));
+      color: var(--color-text-secondary);
     }
 
     .seeds-progress {
@@ -250,21 +219,21 @@ function injectStyles(): void {
 
     .seeds-progress-bar {
       height: 6px;
-      background: var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-border-subtle);
       border-radius: 3px;
       overflow: hidden;
     }
 
     .seeds-progress-fill {
       height: 100%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: 3px;
       transition: width ${DURATION.SLOW}ms ${EASING.GENTLE};
     }
 
     .seeds-progress-text {
       font-size: 0.75rem;
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.6));
+      color: var(--color-text-muted);
     }
 
     /* Action buttons */
@@ -273,7 +242,7 @@ function injectStyles(): void {
       gap: var(--space-2, 8px);
       margin-top: var(--space-2, 8px);
       padding-top: var(--space-3, 12px);
-      border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-top: 1px solid var(--color-border-subtle);
     }
 
     .seeds-action-btn {
@@ -283,19 +252,19 @@ function injectStyles(): void {
       justify-content: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 3%, transparent));
       border: none;
       border-radius: var(--radius-lg, 12px);
       font-size: 0.8125rem;
       font-weight: 500;
-      color: var(--color-text-secondary, rgba(44, 37, 32, 0.7));
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
 
     .seeds-action-btn:hover {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 6%, transparent));
+      color: var(--color-text-primary);
     }
 
     .seeds-action-btn svg {
@@ -304,12 +273,12 @@ function injectStyles(): void {
     }
 
     .seeds-action-btn--primary {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
       color: var(--persona-ink);
     }
 
     .seeds-action-btn--primary:hover {
-      background: var(--persona-glow, rgba(74, 103, 65, 0.15));
+      background: var(--persona-glow, color-mix(in srgb, var(--color-ferni) 15%, transparent));
     }
 
     /* Persona primary is too dark to read on the midnight theme; use the

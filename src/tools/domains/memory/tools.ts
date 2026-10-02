@@ -18,52 +18,7 @@ import {
   searchUserConversations,
   searchUserFacts,
 } from '../../../memory/recall/user-memory-search.js';
-// ============================================================================
-// SERVICE TYPES
-// ============================================================================
-
-interface UserProfile {
-  name?: string;
-  totalConversations: number;
-  relationshipStage: string;
-  preferredTopics: string[];
-  goals: Array<{ name: string; status: string }>;
-  lastConversationSummary?: string;
-}
-
-interface LearningEngine {
-  captureExternalKeyMoment: (moment: {
-    id: string;
-    timestamp: Date;
-    type:
-      | 'breakthrough'
-      | 'milestone'
-      | 'concern'
-      | 'celebration'
-      | 'decision'
-      | 'shared_vulnerability';
-    summary: string;
-    emotionalWeight: 'light' | 'medium' | 'heavy';
-    topics: string[];
-  }) => void;
-}
-
-interface SessionServices {
-  userProfile?: UserProfile;
-  learningEngine?: LearningEngine;
-  captureInsight?: (type: string, source: string, content: string, confidence: number) => void;
-  searchKnowledge?: (query: string) => Promise<string | null>;
-}
-
-interface UserData {
-  name?: string;
-  userId?: string;
-  /** Firestore conversation ID of the live call, when known. */
-  conversationId?: string;
-  services?: SessionServices;
-  keyMoments?: string[];
-  topics?: string[];
-}
+import type { UserData } from './tools.types.js';
 
 // ============================================================================
 // REMEMBER ABOUT USER

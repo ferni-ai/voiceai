@@ -22,7 +22,7 @@ const STATIC_ASSETS = [
   '/',
   '/story-brand/',
   '/css/styles.css',
-  '/css/design-tokens.css',
+  '/css/_tokens.css',
   '/css/story-brand.css',
   '/css/ai-storytelling.css',
   '/css/ai-copy-magic.css',

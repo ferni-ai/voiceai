@@ -218,7 +218,7 @@ export function render(): string {
 
       .dashboard-category {
         background: var(--admin-bg-card, #4a4039);
-        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
+        border: 1px solid var(--admin-border-default, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: var(--radius-lg, 12px);
         padding: var(--space-4, 1rem);
       }
@@ -229,7 +229,7 @@ export function render(): string {
         gap: var(--space-2, 0.5rem);
         margin-bottom: var(--space-4, 1rem);
         padding-bottom: var(--space-3, 0.75rem);
-        border-bottom: 1px solid var(--admin-border-subtle, rgba(255, 255, 255, 0.05));
+        border-bottom: 1px solid var(--admin-border-subtle, color-mix(in srgb, var(--color-white) 5%, transparent));
       }
 
       .category-header h3 {
@@ -257,7 +257,7 @@ export function render(): string {
         gap: var(--space-3, 0.75rem);
         padding: var(--space-3, 0.75rem);
         background: var(--admin-bg-secondary, #3d352e);
-        border: 1px solid var(--admin-border-subtle, rgba(255, 255, 255, 0.05));
+        border: 1px solid var(--admin-border-subtle, color-mix(in srgb, var(--color-white) 5%, transparent));
         border-radius: var(--radius-md, 8px);
         text-decoration: none;
         color: inherit;
@@ -265,13 +265,13 @@ export function render(): string {
       }
 
       .dashboard-link:hover {
-        background: var(--admin-surface-active, rgba(255, 255, 255, 0.08));
-        border-color: var(--persona-primary, #4a6741);
+        background: var(--admin-surface-active, color-mix(in srgb, var(--color-white) 8%, transparent));
+        border-color: var(--persona-primary, var(--color-ferni));
         transform: translateY(-2px);
       }
 
       .dashboard-link:focus-visible {
-        outline: 2px solid var(--persona-primary, #4a6741);
+        outline: 2px solid var(--persona-primary, var(--color-ferni));
         outline-offset: 2px;
       }
 
@@ -291,7 +291,7 @@ export function render(): string {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
         border-radius: var(--radius-sm, 6px);
         color: var(--persona-ink);
       }

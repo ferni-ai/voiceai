@@ -7,28 +7,28 @@ description: "Preview all new landing page enhancements independently"
 <style>
   /* Preview Page Specific Styles */
   .preview-page {
-    font-family: var(--font-body, 'Inter', sans-serif);
-    background: var(--color-paper-cream, #F5F1E8);
+    font-family: var(--font-body);
+    background: var(--color-paper-cream);
     min-height: 100vh;
   }
   
   .preview-header {
-    background: linear-gradient(180deg, white 0%, var(--color-paper-cream, #F5F1E8) 100%);
+    background: linear-gradient(180deg, var(--color-white) 0%, var(--color-paper-cream) 100%);
     padding: 40px 24px;
     text-align: center;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-black) 6%, transparent);
   }
   
   .preview-header h1 {
-    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-family: var(--font-display);
     font-size: 48px;
     font-weight: 800;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     margin: 0 0 12px;
   }
   
   .preview-header p {
-    color: var(--color-text-secondary, #5C544A);
+    color: var(--color-text-secondary);
     font-size: 18px;
     max-width: 600px;
     margin: 0 auto;
@@ -44,21 +44,21 @@ description: "Preview all new landing page enhancements independently"
   
   .preview-nav a {
     padding: 10px 20px;
-    background: white;
-    border-radius: 24px;
-    color: var(--color-ferni, #4a6741);
+    background: var(--color-white);
+    border-radius: var(--radius-2xl);
+    color: var(--color-ferni-text);
     text-decoration: none;
     font-weight: 500;
     font-size: 14px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    transition: all 0.2s ease;
+    box-shadow: var(--shadow-md);
+    transition: all var(--duration-normal) ease;
   }
   
   .preview-nav a:hover {
-    background: var(--color-ferni, #4a6741);
-    color: white;
+    background: var(--color-ferni);
+    color: var(--color-white);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(74, 103, 65, 0.2);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 20%, transparent);
   }
   
   .preview-section {
@@ -68,24 +68,24 @@ description: "Preview all new landing page enhancements independently"
   }
   
   .preview-section h2 {
-    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-family: var(--font-display);
     font-size: 32px;
     font-weight: 700;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     margin: 0 0 12px;
   }
   
   .preview-section > p {
-    color: var(--color-text-secondary, #5C544A);
+    color: var(--color-text-secondary);
     margin-bottom: 32px;
     font-size: 16px;
   }
   
   .preview-card {
-    background: white;
-    border-radius: 20px;
+    background: var(--color-white);
+    border-radius: var(--radius-xl);
     padding: 32px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    box-shadow: var(--shadow-lg);
     margin-bottom: 24px;
   }
   
@@ -93,11 +93,11 @@ description: "Preview all new landing page enhancements independently"
     font-size: 20px;
     font-weight: 600;
     margin: 0 0 8px;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
   }
   
   .preview-card > p {
-    color: var(--color-text-secondary, #5C544A);
+    color: var(--color-text-secondary);
     margin-bottom: 20px;
   }
   
@@ -109,8 +109,8 @@ description: "Preview all new landing page enhancements independently"
   
   .feature-item {
     padding: 20px;
-    background: rgba(74, 103, 65, 0.05);
-    border-radius: 12px;
+    background: color-mix(in srgb, var(--color-ferni) 5%, transparent);
+    border-radius: var(--radius-md);
   }
   
   .feature-item h4 {
@@ -124,13 +124,13 @@ description: "Preview all new landing page enhancements independently"
   
   .feature-item p {
     font-size: 14px;
-    color: var(--color-text-secondary, #5C544A);
+    color: var(--color-text-secondary);
     margin: 0;
   }
   
   .demo-area {
-    background: var(--color-paper-cream, #F5F1E8);
-    border-radius: 16px;
+    background: var(--color-paper-cream);
+    border-radius: var(--radius-lg);
     padding: 40px;
     min-height: 300px;
     display: flex;
@@ -149,33 +149,33 @@ description: "Preview all new landing page enhancements independently"
   
   .controls button {
     padding: 10px 20px;
-    border: 1px solid rgba(74, 103, 65, 0.2);
-    background: white;
-    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--color-ferni) 20%, transparent);
+    background: var(--color-white);
+    border-radius: var(--radius-sm);
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) ease;
     font-family: inherit;
   }
   
   .controls button:hover {
-    background: var(--color-ferni, #4a6741);
-    color: white;
-    border-color: var(--color-ferni, #4a6741);
+    background: var(--color-ferni);
+    color: var(--color-white);
+    border-color: var(--color-ferni);
   }
   
   .controls button.active {
-    background: var(--color-ferni, #4a6741);
-    color: white;
-    border-color: var(--color-ferni, #4a6741);
+    background: var(--color-ferni);
+    color: var(--color-white);
+    border-color: var(--color-ferni);
   }
   
   .code-preview {
-    background: #2C2520;
-    color: #F5F1E8;
+    background: var(--color-ink);
+    color: var(--color-sand-light);
     padding: 20px;
-    border-radius: 12px;
-    font-family: 'Monaco', 'Consolas', monospace;
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
     font-size: 13px;
     overflow-x: auto;
     margin-top: 20px;
@@ -200,7 +200,7 @@ description: "Preview all new landing page enhancements independently"
   /* Dividers */
   .preview-divider {
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(74, 103, 65, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-ferni) 20%, transparent), transparent);
     margin: 60px 0;
   }
 </style>
@@ -337,9 +337,9 @@ description: "Preview all new landing page enhancements independently"
       </div>
       
       <div class="demo-area" style="flex-direction: column; text-align: center; padding: 60px; position: relative;">
-        <p class="hero__tagline ai-magic-tagline" style="font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #5C544A; margin-bottom: 16px;">BETTER THAN HUMAN.</p>
-        <h1 class="hero__headline ai-magic-headline" style="font-size: 42px; font-weight: 800; margin-bottom: 16px;">Finally, someone who <span class="hero__headline-accent" style="color: #4a6741;">gets it.</span></h1>
-        <p class="hero__subhead ai-magic-subhead" style="font-size: 16px; color: #5C544A; max-width: 500px; margin: 0 auto 24px;">Someone who remembers your whole story, hears what you're not saying, and shows up at 2am with the same presence as noon.</p>
+        <p class="hero__tagline ai-magic-tagline" style="font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: var(--color-ink-light); margin-bottom: 16px;">BETTER THAN HUMAN.</p>
+        <h1 class="hero__headline ai-magic-headline" style="font-size: 42px; font-weight: 800; margin-bottom: 16px;">Finally, someone who <span class="hero__headline-accent" style="color: var(--color-ferni-text);">gets it.</span></h1>
+        <p class="hero__subhead ai-magic-subhead" style="font-size: 16px; color: var(--color-ink-light); max-width: 500px; margin: 0 auto 24px;">Someone who remembers your whole story, hears what you're not saying, and shows up at 2am with the same presence as noon.</p>
         <button class="btn btn--primary" style="padding: 14px 28px; font-size: 16px;">Meet Ferni</button>
       </div>
     </div>
@@ -348,21 +348,21 @@ description: "Preview all new landing page enhancements independently"
       <h3>Smart Social Proof (Live)</h3>
       <p>Watch the rotating "Better Than Human" proof points:</p>
       
-      <div class="ai-social-proof" style="margin: 24px 0; border-radius: 12px;">
+      <div class="ai-social-proof" style="margin: 24px 0; border-radius: var(--radius-md);">
         <div class="social-proof-dynamic__inner">
           <div class="social-proof-dynamic__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <p class="social-proof-dynamic__text" style="margin: 0; font-style: italic;">That thing you mentioned six months ago? We remember.</p>
         </div>
       </div>
       
-      <p style="color: #70605a; font-size: 13px; text-align: center;">Messages rotate every 8 seconds showcasing memory, presence, and team superpowers.</p>
+      <p style="color: var(--color-cedar); font-size: 13px; text-align: center;">Messages rotate every 8 seconds showcasing memory, presence, and team superpowers.</p>
     </div>
     
     <div class="preview-card">
       <h3>API Endpoints (Backend)</h3>
       <p>These Gemini-powered endpoints are ready for deeper integration:</p>
       
-      <div style="background: #2c2520; color: #faf8f5; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 13px; overflow-x: auto;">
+      <div style="background: var(--color-ink); color: var(--color-paper); padding: 16px; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 13px; overflow-x: auto;">
         <code>POST /api/landing/ai/chat</code> - Live AI conversation<br>
         <code>POST /api/landing/ai/personalized-hero</code> - Dynamic headlines<br>
         <code>POST /api/landing/ai/persona-preview</code> - Team member responses<br>
@@ -376,7 +376,7 @@ description: "Preview all new landing page enhancements independently"
     <div class="preview-card">
       <h3>State Inspector</h3>
       <p>Current AI Copy Magic state:</p>
-      <pre id="ai-copy-state" style="background: #f5f1e8; padding: 16px; border-radius: 8px; font-size: 12px; overflow-x: auto;">{}</pre>
+      <pre id="ai-copy-state" style="background: var(--color-sand-light); padding: 16px; border-radius: var(--radius-sm); font-size: 12px; overflow-x: auto;">{}</pre>
       <button onclick="document.getElementById('ai-copy-state').textContent = JSON.stringify(FerniAICopyMagic.getState(), null, 2)" class="btn btn--ghost" style="margin-top: 12px;">Refresh State</button>
     </div>
   </section>
@@ -403,9 +403,9 @@ description: "Preview all new landing page enhancements independently"
       </div>
       
       <div class="demo-area" style="flex-direction: column; text-align: center; padding: 60px;">
-        <p id="demo-tagline" class="hero__tagline" style="font-size: 18px; color: #5C544A; margin-bottom: 16px;">Better than human.</p>
-        <h1 id="demo-headline" style="font-size: 36px; font-weight: 800; margin-bottom: 16px;">Finally, someone who <span class="hero__headline-accent" style="color: #4a6741;">gets it.</span></h1>
-        <p id="demo-subhead" style="font-size: 16px; color: #5C544A; max-width: 500px; margin: 0 auto;">Someone who remembers your whole story, hears what you're not saying, and shows up at 2am with the same presence as noon.</p>
+        <p id="demo-tagline" class="hero__tagline" style="font-size: 18px; color: var(--color-ink-light); margin-bottom: 16px;">Better than human.</p>
+        <h1 id="demo-headline" style="font-size: 36px; font-weight: 800; margin-bottom: 16px;">Finally, someone who <span class="hero__headline-accent" style="color: var(--color-ferni-text);">gets it.</span></h1>
+        <p id="demo-subhead" style="font-size: 16px; color: var(--color-ink-light); max-width: 500px; margin: 0 auto;">Someone who remembers your whole story, hears what you're not saying, and shows up at 2am with the same presence as noon.</p>
       </div>
     </div>
     
@@ -595,7 +595,7 @@ EASING.cinematic // Slow-fast-slow</code>
         </div>
       </div>
       
-      <p style="margin-top: 16px; font-size: 14px; color: #8a7a6a;">Note: Requires microphone permission. WebSpeech API support varies by browser.</p>
+      <p style="margin-top: 16px; font-size: 14px; color: var(--color-stone);">Note: Requires microphone permission. WebSpeech API support varies by browser.</p>
     </div>
   </section>
   
@@ -637,7 +637,7 @@ EASING.cinematic // Slow-fast-slow</code>
       </div>
       
       <div class="controls" style="margin-top: 20px;">
-        <a href="/story-brand/" style="display: inline-block; padding: 12px 24px; background: var(--color-ferni); color: white; text-decoration: none; border-radius: 8px; font-weight: 500;">See It On Live Page</a>
+        <a href="/story-brand/" style="display: inline-block; padding: 12px 24px; background: var(--color-ferni); color: var(--color-white); text-decoration: none; border-radius: var(--radius-sm); font-weight: 500;">See It On Live Page</a>
       </div>
     </div>
   </section>
@@ -653,8 +653,8 @@ EASING.cinematic // Slow-fast-slow</code>
       <h3>Live Demo</h3>
       <p>Move your mouse around. The shimmer follows your cursor with organic lag.</p>
       
-      <div class="demo-area" style="background: #2C2520; padding: 80px;">
-        <h1 class="holographic-text" style="font-size: 64px; font-weight: 800; color: #4a6741; margin: 0;">
+      <div class="demo-area" style="background: var(--color-ink); padding: 80px;">
+        <h1 class="holographic-text" style="font-size: 64px; font-weight: 800; color: var(--color-ferni-text); margin: 0;">
           Better than human.
         </h1>
       </div>
@@ -711,7 +711,7 @@ EASING.cinematic // Slow-fast-slow</code>
       <p>Click anywhere on this page. Soft green ripples spread from your click point.</p>
       
       <div class="demo-area" style="cursor: pointer;">
-        <p style="color: #5C544A;">Click anywhere in this area</p>
+        <p style="color: var(--color-ink-light);">Click anywhere in this area</p>
       </div>
       
       <div class="feature-grid" style="margin-top: 24px;">
@@ -884,7 +884,7 @@ EASING.cinematic // Slow-fast-slow</code>
         </div>
       </div>
       
-      <p style="margin-top: 16px; font-size: 14px; color: #8a7a6a;">Sound is disabled by default. Preference is saved to localStorage.</p>
+      <p style="margin-top: 16px; font-size: 14px; color: var(--color-stone);">Sound is disabled by default. Preference is saved to localStorage.</p>
     </div>
   </section>
   
@@ -929,7 +929,7 @@ EASING.cinematic // Slow-fast-slow</code>
     </div>
     
     <div style="margin-top: 40px; text-align: center;">
-      <a href="/story-brand/" style="display: inline-flex; align-items: center; gap: 8px; padding: 16px 32px; background: var(--color-ferni, #4a6741); color: white; text-decoration: none; border-radius: 32px; font-weight: 600; font-size: 16px;">
+      <a href="/story-brand/" style="display: inline-flex; align-items: center; gap: 8px; padding: 16px 32px; background: var(--color-ferni, var(--color-ferni)); color: var(--color-white); text-decoration: none; border-radius: var(--radius-3xl); font-weight: 600; font-size: 16px;">
         See All Features Live
       </a>
     </div>

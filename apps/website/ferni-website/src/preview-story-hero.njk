@@ -3,10 +3,11 @@ title: Ferni - Story Hero Preview
 description: Preview of the cinematic story hero experience
 ---
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en" class="scroll-smooth" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link rel="stylesheet" href="/css/_tokens.css">
   <title>{{ title }}</title>
   <meta name="description" content="{{ description }}">
   <meta name="robots" content="noindex">
@@ -136,19 +137,7 @@ description: Preview of the cinematic story hero experience
   <script src="/js/hero-story.js"></script>
   
   {# Preview badge #}
-  <div style="
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 8px 16px;
-    background: #4a6741;
-    color: white;
-    font-size: 12px;
-    font-weight: 600;
-    border-radius: 100px;
-    z-index: 9999;
-    box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
-  ">
+  <div style="position: fixed; top: 20px; right: 20px; padding: 8px 16px; background: var(--color-ferni); color: var(--color-white); font-size: 12px; font-weight: 600; border-radius: var(--radius-full); z-index: 9999; box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 30%, transparent);">
     🎬 Story Hero Preview
   </div>
   

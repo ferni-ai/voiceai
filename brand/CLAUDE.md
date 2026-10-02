@@ -55,10 +55,17 @@ dark pupil or colored iris.
 All colors, spacing, and typography come from `design-system/tokens/*.json`
 (edit there, then `pnpm tokens:sync`). Never hardcode values.
 
-The HTML galleries in this folder still load `master-tokens.css`, a legacy
-hand-maintained layer that is being replaced by the generated
-`ferni-design-tokens.css`. **Don't add or change values in
-`master-tokens.css`** — change the JSON tokens instead.
+The HTML galleries in this folder load two stylesheets:
+
+- `ferni-design-tokens.css` — **generated** by `pnpm tokens:sync`
+  (`design-system/sync-promo-tokens.js`). Never edit it; change the JSON.
+  It carries the light theme, plus the dark overrides for
+  `data-theme="dark"`/`"cedar"`/`"midnight"` and `prefers-color-scheme: dark`.
+- `brand-base.css` — reset, type classes, nav and footer shared by the
+  galleries. It uses token names only, no color values.
+
+(`master-tokens.css`, the old hand-maintained token layer, was retired in
+October 2026.)
 
 ```html
 <!-- CORRECT -->

@@ -91,8 +91,8 @@ const styles = `
     width: 95%;
     max-width: 800px;
     max-height: 85vh;
-    background: var(--color-bg-elevated, #FFFDFB);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    background: var(--color-bg-elevated, var(--color-white));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-xl, 20px);
     box-shadow: var(--shadow-xl);
     overflow: hidden;
@@ -108,7 +108,7 @@ const styles = `
   
   .ideas-gallery__header {
     padding: var(--space-6, 24px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    border-bottom: 1px solid var(--color-border-subtle);
     flex-shrink: 0;
   }
   
@@ -124,7 +124,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--color-ferni-text, #4a6741);
+    color: var(--color-ferni-text, var(--color-ferni));
     margin-bottom: var(--space-1, 4px);
   }
   
@@ -169,9 +169,9 @@ const styles = `
     width: 100%;
     padding: var(--space-3, 12px) var(--space-4, 16px);
     padding-left: 44px;
-    border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.15));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg, 12px);
-    background: var(--color-bg-elevated, white);
+    background: var(--color-bg-elevated, var(--color-white));
     font-size: 14px;
     color: var(--color-text-primary);
     transition: all var(--duration-fast, 100ms) ease;
@@ -183,7 +183,7 @@ const styles = `
   
   .ideas-gallery__search input:focus {
     outline: none;
-    border-color: var(--color-ferni, #4a6741);
+    border-color: var(--color-ferni);
     box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
   }
   
@@ -211,7 +211,7 @@ const styles = `
   
   .ideas-category {
     padding: var(--space-2, 8px) var(--space-3, 12px);
-    border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.15));
+    border: 1px solid var(--color-border-subtle);
     background: transparent;
     border-radius: var(--radius-full, 9999px);
     font-size: 13px;
@@ -222,14 +222,14 @@ const styles = `
   }
   
   .ideas-category:hover {
-    border-color: var(--color-ferni, #4a6741);
+    border-color: var(--color-ferni);
     color: var(--color-ferni-ink);
   }
   
   .ideas-category.active {
-    background: var(--color-ferni, #4a6741);
-    border-color: var(--color-ferni, #4a6741);
-    color: white;
+    background: var(--color-ferni);
+    border-color: var(--color-ferni);
+    color: var(--color-white);
   }
   
   /* Section Headers */
@@ -254,7 +254,7 @@ const styles = `
   .idea-card {
     padding: var(--space-5, 20px);
     background: var(--color-background-subtle, rgba(112, 96, 90, 0.03));
-    border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.08));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg, 12px);
     cursor: pointer;
     transition: all var(--duration-fast, 100ms) ease;
@@ -263,7 +263,7 @@ const styles = `
   
   .idea-card:hover {
     background: var(--color-background-hover, rgba(112, 96, 90, 0.06));
-    border-color: var(--color-ferni, #4a6741);
+    border-color: var(--color-ferni);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
   }
@@ -279,7 +279,7 @@ const styles = `
     width: 44px;
     height: 44px;
     border-radius: var(--radius-md, 8px);
-    background: linear-gradient(135deg, var(--color-ferni, #4a6741) 0%, var(--color-ferni-dark, #3d5a35) 100%);
+    background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-dark, var(--color-ferni-secondary)) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -323,7 +323,7 @@ const styles = `
   
   .idea-card__tag {
     padding: 2px 8px;
-    background: var(--color-bg-elevated, white);
+    background: var(--color-bg-elevated, var(--color-white));
     border-radius: var(--radius-full, 9999px);
     font-size: 11px;
     color: var(--color-text-muted);
@@ -334,7 +334,7 @@ const styles = `
     align-items: center;
     gap: 4px;
     padding: 2px 8px;
-    background: rgba(74, 103, 65, 0.1);
+    background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
     border-radius: var(--radius-full, 9999px);
     font-size: 11px;
     font-weight: 600;
@@ -355,7 +355,7 @@ const styles = `
     width: 24px;
     height: 24px;
     border: 2px solid var(--color-border-subtle);
-    border-top-color: var(--color-ferni, #4a6741);
+    border-top-color: var(--color-ferni);
     border-radius: 50%;
     animation: ideas-spin 0.8s linear infinite;
   }

@@ -1024,7 +1024,7 @@ class SanctuaryUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-utility-backdrop, rgba(20, 16, 14, 0.85));
+        background: var(--color-utility-backdrop);
         backdrop-filter: blur(var(--glass-blur-strong, 20px));
         -webkit-backdrop-filter: blur(var(--glass-blur-strong, 20px));
         overflow: hidden;
@@ -1036,11 +1036,11 @@ class SanctuaryUI {
         max-width: 1000px;
         max-height: 90vh;
         margin: var(--space-lg, 24px);
-        background: var(--color-bg-elevated, #fffdfb);
+        background: var(--color-bg-elevated, var(--color-white));
         border-radius: var(--radius-2xl, 20px);
         box-shadow:
           var(--shadow-2xl),
-          0 0 0 1px var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+          0 0 0 1px var(--color-border-subtle);
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -1058,7 +1058,7 @@ class SanctuaryUI {
           var(--color-bg-elevated, #fffdfb),
           transparent
         );
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .sanctuary-close {
@@ -1070,7 +1070,7 @@ class SanctuaryUI {
         border: none;
         background: var(--color-tonal-surface2, rgba(44, 37, 32, 0.04));
         border-radius: var(--radius-full, 50%);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -1080,11 +1080,11 @@ class SanctuaryUI {
 
       .sanctuary-close:hover {
         background: var(--color-tonal-surface3, rgba(44, 37, 32, 0.08));
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .sanctuary-close:focus-visible {
-        outline: 2px solid var(--color-accent-primary, #3D5A45);
+        outline: 2px solid var(--color-accent-primary);
         outline-offset: 2px;
       }
 
@@ -1099,7 +1099,7 @@ class SanctuaryUI {
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin-bottom: var(--space-xs, 4px);
       }
 
@@ -1108,7 +1108,7 @@ class SanctuaryUI {
         font-size: clamp(1.75rem, 4vw, 2.5rem);
         font-weight: 400;
         font-style: italic;
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         line-height: 1.2;
         margin: 0;
       }
@@ -1146,7 +1146,7 @@ class SanctuaryUI {
         padding: var(--space-md, 16px);
         background: var(--color-tonal-surface1, rgba(44, 37, 32, 0.02));
         border-radius: var(--radius-lg, 12px);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border: 1px solid var(--color-border-subtle);
       }
 
       .sanctuary-section-header {
@@ -1167,7 +1167,7 @@ class SanctuaryUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 14px;
         font-weight: 500;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0;
       }
 
@@ -1185,9 +1185,9 @@ class SanctuaryUI {
         display: flex;
         gap: var(--space-sm, 12px);
         padding: var(--space-sm, 12px);
-        background: var(--color-bg-elevated, #fffdfb);
+        background: var(--color-bg-elevated, var(--color-white));
         border-radius: var(--radius-md, 8px);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border: 1px solid var(--color-border-subtle);
         animation: sanctuaryFadeIn 0.5s ease-out forwards;
         opacity: 0;
       }
@@ -1210,7 +1210,7 @@ class SanctuaryUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+        background: var(--color-accent-subtle);
         border-radius: var(--radius-md, 8px);
         color: var(--color-accent-text);
       }
@@ -1223,13 +1223,13 @@ class SanctuaryUI {
       .sanctuary-insight-title {
         font-size: 13px;
         font-weight: 600;
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-2xs, 4px) 0;
       }
 
       .sanctuary-insight-desc {
         font-size: 12px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         line-height: 1.5;
         margin: 0;
       }
@@ -1240,22 +1240,22 @@ class SanctuaryUI {
 
       .sanctuary-quote {
         padding: var(--space-md, 16px);
-        background: var(--color-bg-elevated, #fffdfb);
+        background: var(--color-bg-elevated, var(--color-white));
         border-radius: var(--radius-md, 8px);
-        border-left: 3px solid var(--color-accent-primary, #3D5A45);
+        border-left: 3px solid var(--color-accent-primary);
         margin: var(--space-sm, 8px) 0;
       }
 
       .sanctuary-quote.nudge {
-        border-left-color: var(--color-ferni, #4a6741);
-        background: rgba(74, 103, 65, 0.04);
+        border-left-color: var(--color-ferni);
+        background: color-mix(in srgb, var(--color-ferni) 4%, transparent);
       }
 
       .sanctuary-quote-text {
         font-family: var(--font-narrative, 'EB Garamond', Georgia, serif);
         font-size: 14px;
         font-style: italic;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         line-height: 1.6;
         margin: 0;
       }
@@ -1265,7 +1265,7 @@ class SanctuaryUI {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 11px;
         font-style: normal;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin-top: var(--space-sm, 8px);
       }
 
@@ -1292,7 +1292,7 @@ class SanctuaryUI {
         align-items: center;
         gap: var(--space-xs, 6px);
         padding: var(--space-xs, 6px) var(--space-sm, 10px);
-        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+        background: var(--color-accent-subtle);
         /* Sits on the highlighted card, lighter than the theme surfaces:
            primary text stays readable, the accent carries on the outline */
         border: 1px solid var(--color-accent-text);
@@ -1311,9 +1311,9 @@ class SanctuaryUI {
         background: linear-gradient(
           135deg,
           var(--color-bg-elevated, #fffdfb),
-          var(--color-accent-subtle, rgba(61, 90, 69, 0.04))
+          var(--color-accent-subtle)
         );
-        border: 1px solid var(--color-accent-glow, rgba(61, 90, 69, 0.15));
+        border: 1px solid var(--color-accent-glow);
         border-radius: var(--radius-lg, 12px);
         cursor: pointer;
         transition: all 0.3s ease;
@@ -1323,12 +1323,12 @@ class SanctuaryUI {
 
       .sanctuary-practice-card--recommended:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 24px var(--color-accent-glow, rgba(61, 90, 69, 0.15));
-        border-color: var(--color-accent-primary, #3D5A45);
+        box-shadow: 0 8px 24px var(--color-accent-glow);
+        border-color: var(--color-accent-primary);
       }
 
       .sanctuary-practice-card--recommended:focus-visible {
-        outline: 2px solid var(--color-accent-primary, #3D5A45);
+        outline: 2px solid var(--color-accent-primary);
         outline-offset: 2px;
       }
 
@@ -1340,7 +1340,7 @@ class SanctuaryUI {
         align-items: center;
         justify-content: center;
         border-radius: var(--radius-lg, 12px);
-        color: white;
+        color: var(--color-white);
       }
 
       .sanctuary-practice-content {
@@ -1352,13 +1352,13 @@ class SanctuaryUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 16px;
         font-weight: 600;
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-2xs, 4px) 0;
       }
 
       .sanctuary-practice-desc {
         font-size: 13px;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         line-height: 1.4;
         margin: 0;
       }
@@ -1379,12 +1379,12 @@ class SanctuaryUI {
 
       .sanctuary-practice-duration {
         font-size: 11px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .sanctuary-practice-start {
         padding: var(--space-xs, 6px) var(--space-md, 12px);
-        background: var(--color-accent-primary, #3D5A45);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
         font-size: 12px;
         font-weight: 600;
@@ -1393,7 +1393,7 @@ class SanctuaryUI {
       }
 
       .sanctuary-practice-card--recommended:hover .sanctuary-practice-start {
-        background: var(--color-accent-hover, #4a6b52);
+        background: var(--color-accent-hover);
       }
 
       /* ============================================
@@ -1410,7 +1410,7 @@ class SanctuaryUI {
         padding: var(--space-md, 16px);
         background: var(--color-tonal-surface1, rgba(44, 37, 32, 0.02));
         border-radius: var(--radius-lg, 12px);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border: 1px solid var(--color-border-subtle);
       }
 
       .sanctuary-category-header {
@@ -1419,7 +1419,7 @@ class SanctuaryUI {
         gap: var(--space-sm, 12px);
         margin-bottom: var(--space-md, 16px);
         padding-bottom: var(--space-sm, 12px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .sanctuary-category-icon {
@@ -1438,13 +1438,13 @@ class SanctuaryUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 14px;
         font-weight: 600;
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
       .sanctuary-category-desc {
         font-size: 12px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0;
       }
 
@@ -1460,8 +1460,8 @@ class SanctuaryUI {
         justify-content: space-between;
         gap: var(--space-md, 16px);
         padding: var(--space-sm, 12px) var(--space-md, 16px);
-        background: var(--color-bg-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-md, 8px);
         cursor: pointer;
         text-align: left;
@@ -1471,11 +1471,11 @@ class SanctuaryUI {
 
       .sanctuary-practice-item:hover {
         background: var(--color-tonal-surfaceHover, rgba(44, 37, 32, 0.04));
-        border-color: var(--color-border-medium, rgba(44, 37, 32, 0.1));
+        border-color: var(--color-border-medium);
       }
 
       .sanctuary-practice-item:focus-visible {
-        outline: 2px solid var(--color-accent-primary, #3D5A45);
+        outline: 2px solid var(--color-accent-primary);
         outline-offset: 2px;
       }
 
@@ -1488,19 +1488,19 @@ class SanctuaryUI {
         display: block;
         font-size: 14px;
         font-weight: 500;
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .sanctuary-practice-item-desc {
         display: block;
         font-size: 12px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin-top: var(--space-2xs, 2px);
       }
 
       .sanctuary-practice-item-duration {
         font-size: 11px;
-        color: var(--color-text-dimmed, #857a6e);
+        color: var(--color-text-dimmed);
         white-space: nowrap;
       }
 
@@ -1521,7 +1521,7 @@ class SanctuaryUI {
         inset: 0;
         background: radial-gradient(
           ellipse at 30% 20%,
-          var(--color-accent-subtle, rgba(61, 90, 69, 0.04)) 0%,
+          var(--color-accent-subtle) 0%,
           transparent 50%
         );
       }

@@ -126,7 +126,7 @@ function createHaloWaves(): void {
       position: absolute;
       inset: -${10 + (i * 6)}px;
       border-radius: 50%;
-      border: 1.5px solid var(--persona-primary, #4a6741);
+      border: 1.5px solid var(--persona-primary, var(--color-ferni));
       opacity: 0;
       pointer-events: none;
       transition: transform ${CONFIG.timing.transitionMs}ms ease-out,

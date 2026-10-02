@@ -213,10 +213,10 @@ function injectStyles(): void {
       width: 90%;
       max-width: 480px;
       max-height: 85vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: var(--shadow-xl, 0 8px 32px rgba(0, 0, 0, 0.12));
+      box-shadow: var(--shadow-xl, 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent));
       display: flex;
       flex-direction: column;
       transform: scale(0.95);
@@ -233,7 +233,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .smart-home-settings__title {
@@ -248,7 +248,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-lg, 12px);
       color: var(--color-ferni-ink);
     }
@@ -262,7 +262,7 @@ function injectStyles(): void {
       margin: 0;
       font-size: 1.25rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .smart-home-settings__close {
@@ -275,13 +275,13 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #8A8178);
+      color: var(--color-text-muted);
       transition: background ${DURATION.FAST}ms ${EASING.STANDARD}, color ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
     .smart-home-settings__close:hover {
       background: var(--color-bg-hover, rgba(44, 37, 32, 0.05));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .smart-home-settings__close svg {
@@ -302,7 +302,7 @@ function injectStyles(): void {
     }
 
     .smart-home-settings__welcome-text {
-      color: var(--color-text-secondary, #5C5650);
+      color: var(--color-text-secondary);
       font-size: 0.95rem;
       line-height: 1.5;
       margin: 0;
@@ -316,8 +316,8 @@ function injectStyles(): void {
     }
 
     .smart-home-settings__card {
-      background: var(--color-bg-card, #FFFFFF);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-card, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-lg, 12px);
       padding: 16px;
       cursor: pointer;
@@ -326,12 +326,12 @@ function injectStyles(): void {
 
     .smart-home-settings__card:hover {
       transform: translateY(-2px);
-      box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.08));
+      box-shadow: var(--shadow-md, 0 4px 12px color-mix(in srgb, var(--color-black) 8%, transparent));
     }
 
     .smart-home-settings__card--connected {
-      border-color: var(--color-ferni, #4a6741);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.05));
+      border-color: var(--color-ferni);
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent));
     }
 
     .smart-home-settings__card-header {
@@ -354,12 +354,12 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--color-bg-hover, rgba(44, 37, 32, 0.05));
       border-radius: var(--radius-md, 8px);
-      color: var(--color-text-secondary, #5C5650);
+      color: var(--color-text-secondary);
     }
 
     .smart-home-settings__card--connected .smart-home-settings__card-icon {
-      background: var(--color-ferni, #4a6741);
-      color: white;
+      background: var(--color-ferni);
+      color: var(--color-white);
     }
 
     .smart-home-settings__card-icon svg {
@@ -371,13 +371,13 @@ function injectStyles(): void {
       margin: 0 0 4px;
       font-size: 1rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .smart-home-settings__card-text p {
       margin: 0;
       font-size: 0.85rem;
-      color: var(--color-text-muted, #8A8178);
+      color: var(--color-text-muted);
     }
 
     .smart-home-settings__card-status {
@@ -393,7 +393,7 @@ function injectStyles(): void {
     }
 
     .smart-home-settings__card-status--disconnected {
-      color: var(--color-text-muted, #8A8178);
+      color: var(--color-text-muted);
     }
 
     .smart-home-settings__card-status svg {
@@ -404,7 +404,7 @@ function injectStyles(): void {
     .smart-home-settings__card-details {
       margin-top: 12px;
       padding-top: 12px;
-      border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-top: 1px solid var(--color-border-subtle);
       display: flex;
       flex-wrap: wrap;
       gap: 16px;
@@ -415,11 +415,11 @@ function injectStyles(): void {
     }
 
     .smart-home-settings__detail-label {
-      color: var(--color-text-muted, #8A8178);
+      color: var(--color-text-muted);
     }
 
     .smart-home-settings__detail-value {
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       font-weight: 500;
     }
 
@@ -445,7 +445,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-secondary, #5C5650);
+      color: var(--color-text-secondary);
       transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
@@ -461,7 +461,7 @@ function injectStyles(): void {
     .smart-home-settings__setup-title {
       font-size: 1.1rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
@@ -475,16 +475,16 @@ function injectStyles(): void {
       width: 8px;
       height: 8px;
       border-radius: var(--radius-full, 50%);
-      background: var(--color-border-subtle, rgba(44, 37, 32, 0.2));
+      background: var(--color-border-subtle);
       transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
     .smart-home-settings__step-dot--active {
-      background: var(--color-ferni, #4a6741);
+      background: var(--color-ferni);
     }
 
     .smart-home-settings__step-dot--complete {
-      background: var(--color-ferni, #4a6741);
+      background: var(--color-ferni);
     }
 
     .smart-home-settings__step-content {
@@ -498,7 +498,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-xl, 20px);
       color: var(--color-ferni-ink);
     }
@@ -511,13 +511,13 @@ function injectStyles(): void {
     .smart-home-settings__step-title {
       font-size: 1.1rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 8px;
     }
 
     .smart-home-settings__step-description {
       font-size: 0.95rem;
-      color: var(--color-text-secondary, #5C5650);
+      color: var(--color-text-secondary);
       line-height: 1.5;
       margin: 0 0 20px;
     }
@@ -531,34 +531,34 @@ function injectStyles(): void {
       display: block;
       font-size: 0.85rem;
       font-weight: 500;
-      color: var(--color-text-secondary, #5C5650);
+      color: var(--color-text-secondary);
       margin-bottom: 6px;
     }
 
     .smart-home-settings__input {
       width: 100%;
       padding: 12px 16px;
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.15));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-md, 8px);
       font-size: 1rem;
-      background: var(--color-bg-card, #FFFFFF);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-bg-card, var(--color-white));
+      color: var(--color-text-primary);
       transition: border-color ${DURATION.FAST}ms ${EASING.STANDARD};
       box-sizing: border-box;
     }
 
     .smart-home-settings__input:focus {
       outline: none;
-      border-color: var(--color-ferni, #4a6741);
+      border-color: var(--color-ferni);
     }
 
     .smart-home-settings__input::placeholder {
-      color: var(--color-text-muted, #8A8178);
+      color: var(--color-text-muted);
     }
 
     .smart-home-settings__hint {
       font-size: 0.8rem;
-      color: var(--color-text-muted, #8A8178);
+      color: var(--color-text-muted);
       margin-top: 8px;
       line-height: 1.4;
     }
@@ -587,13 +587,13 @@ function injectStyles(): void {
     }
 
     .smart-home-settings__btn--primary {
-      background: var(--color-ferni, #4a6741);
-      color: white;
+      background: var(--color-ferni);
+      color: var(--color-white);
     }
 
     .smart-home-settings__btn--secondary {
       background: var(--color-bg-hover, rgba(44, 37, 32, 0.08));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .smart-home-settings__btn--danger {
@@ -624,8 +624,8 @@ function injectStyles(): void {
     .smart-home-settings__spinner {
       width: 32px;
       height: 32px;
-      border: 3px solid var(--color-border-subtle, rgba(44, 37, 32, 0.15));
-      border-top-color: var(--color-ferni, #4a6741);
+      border: 3px solid var(--color-border-subtle);
+      border-top-color: var(--color-ferni);
       border-radius: 50%;
       animation: smart-home-spin 0.8s linear infinite;
     }
@@ -636,7 +636,7 @@ function injectStyles(): void {
 
     .smart-home-settings__loading p {
       margin-top: 16px;
-      color: var(--color-text-muted, #8A8178);
+      color: var(--color-text-muted);
       font-size: 0.95rem;
     }
 
@@ -653,9 +653,9 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-ferni, #4a6741);
+      background: var(--color-ferni);
       border-radius: var(--radius-full, 50%);
-      color: white;
+      color: var(--color-white);
       animation: smart-home-pop 0.4s ${EASING.SPRING};
     }
 
@@ -673,13 +673,13 @@ function injectStyles(): void {
     .smart-home-settings__success-title {
       font-size: 1.25rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 8px;
     }
 
     .smart-home-settings__success-message {
       font-size: 0.95rem;
-      color: var(--color-text-secondary, #5C5650);
+      color: var(--color-text-secondary);
       line-height: 1.5;
       margin: 0 0 24px;
     }

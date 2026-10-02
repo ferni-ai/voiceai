@@ -156,10 +156,10 @@ function injectStyles(): void {
 
     .voice-enrollment-card {
       position: relative;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       max-width: clamp(336px, 90vw, 480px);
       width: calc(100% - 48px);
       max-height: calc(100vh - 48px);
@@ -174,7 +174,7 @@ function injectStyles(): void {
     
     .voice-enrollment-header {
       padding: 24px 24px 16px;
-      border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.08));
+      border-bottom: 1px solid var(--color-border-subtle);
       position: relative;
     }
     
@@ -191,7 +191,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: 22px;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
     
@@ -202,20 +202,20 @@ function injectStyles(): void {
       width: 32px;
       height: 32px;
       border: none;
-      background: var(--color-background-subtle, rgba(0,0,0,0.05));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 5%, transparent));
       border-radius: 50%;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-secondary, #5a5a5a);
+      color: var(--color-text-secondary);
       transition: background ${DURATION.FAST}ms ${EASING.STANDARD},
                   color ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
     .voice-enrollment-close:hover {
-      background: var(--color-background-hover, rgba(0,0,0,0.1));
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 10%, transparent));
+      color: var(--color-text-primary);
     }
     
     .voice-enrollment-close svg {
@@ -230,7 +230,7 @@ function injectStyles(): void {
     .voice-enrollment-description {
       font-size: 15px;
       line-height: 1.6;
-      color: var(--color-text-secondary, #5a5a5a);
+      color: var(--color-text-secondary);
       margin: 0 0 24px;
     }
     
@@ -253,7 +253,7 @@ function injectStyles(): void {
       position: absolute;
       inset: -20px;
       border-radius: 50%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       opacity: 0;
       transform: scale(0.8);
       transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
@@ -273,11 +273,11 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       border-radius: 50%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-white);
       transition: transform ${DURATION.FAST}ms ${EASING.SPRING},
                   box-shadow ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
@@ -296,7 +296,7 @@ function injectStyles(): void {
       position: absolute;
       inset: -4px;
       border-radius: 50%;
-      border: 3px solid var(--persona-primary, #4a6741);
+      border: 3px solid var(--persona-primary, var(--color-ferni));
       opacity: 0;
       transition: opacity ${DURATION.FAST}ms ${EASING.STANDARD};
     }
@@ -317,18 +317,18 @@ function injectStyles(): void {
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background: var(--color-background-subtle, rgba(0,0,0,0.1));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 10%, transparent));
       transition: background ${DURATION.NORMAL}ms ${EASING.STANDARD},
                   transform ${DURATION.NORMAL}ms ${EASING.SPRING};
     }
     
     .voice-enrollment-progress-dot--complete {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       transform: scale(1.1);
     }
     
     .voice-enrollment-progress-dot--current {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       animation: dot-pulse 1s infinite;
     }
     
@@ -341,14 +341,14 @@ function injectStyles(): void {
     .voice-enrollment-prompt {
       text-align: center;
       font-size: 14px;
-      color: var(--color-text-secondary, #5a5a5a);
+      color: var(--color-text-secondary);
       min-height: 40px;
       margin-bottom: 16px;
     }
     
     .voice-enrollment-prompt em {
       font-style: italic;
-      color: var(--color-text-muted, #8a8a8a);
+      color: var(--color-text-muted);
     }
     
     /* Timer */
@@ -374,21 +374,21 @@ function injectStyles(): void {
       gap: 8px;
       justify-content: center;
       font-size: 13px;
-      color: var(--color-text-muted, #8a8a8a);
+      color: var(--color-text-muted);
       margin-bottom: 16px;
     }
     
     .voice-enrollment-quality-bar {
       width: min(100px, 100%);
       height: 4px;
-      background: var(--color-background-subtle, rgba(0,0,0,0.1));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 10%, transparent));
       border-radius: 2px;
       overflow: hidden;
     }
     
     .voice-enrollment-quality-fill {
       height: 100%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
     }
     
@@ -410,12 +410,12 @@ function injectStyles(): void {
     }
     
     .voice-enrollment-btn--primary {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
     
     .voice-enrollment-btn--primary:hover:not(:disabled) {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
       transform: translateY(-1px);
     }
     
@@ -425,12 +425,12 @@ function injectStyles(): void {
     }
     
     .voice-enrollment-btn--secondary {
-      background: var(--color-background-subtle, rgba(0,0,0,0.05));
-      color: var(--color-text-secondary, #5a5a5a);
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 5%, transparent));
+      color: var(--color-text-secondary);
     }
     
     .voice-enrollment-btn--secondary:hover {
-      background: var(--color-background-hover, rgba(0,0,0,0.1));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 10%, transparent));
     }
     
     .voice-enrollment-btn--danger {
@@ -459,18 +459,18 @@ function injectStyles(): void {
     }
     
     .voice-enrollment-status-icon--success {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
     
     .voice-enrollment-status-icon--error {
       background: var(--color-destructive, #a65a52);
-      color: white;
+      color: var(--color-white);
     }
     
     .voice-enrollment-status-icon--info {
-      background: var(--color-warning, #b8956a);
-      color: white;
+      background: var(--color-warning, var(--color-nayan));
+      color: var(--color-white);
     }
     
     .voice-enrollment-status-icon svg {
@@ -481,13 +481,13 @@ function injectStyles(): void {
     .voice-enrollment-status-title {
       font-size: 20px;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 8px;
     }
     
     .voice-enrollment-status-message {
       font-size: 14px;
-      color: var(--color-text-secondary, #5a5a5a);
+      color: var(--color-text-secondary);
       margin: 0 0 24px;
     }
     
@@ -517,7 +517,7 @@ function injectStyles(): void {
     
     .voice-enrollment-stat-label {
       font-size: 12px;
-      color: var(--color-text-muted, #8a8a8a);
+      color: var(--color-text-muted);
     }
   `;
   document.head.appendChild(styleElement);

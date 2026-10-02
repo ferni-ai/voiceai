@@ -68,12 +68,12 @@ interface DirectorEvent {
 // =============================================================================
 
 const PERSONA_META: Record<string, { name: string; color: string; emoji: string }> = {
-  ferni: { name: 'Ferni', color: 'var(--color-ferni, #4a6741)', emoji: '🌿' },
-  'peter-john': { name: 'Peter', color: 'var(--color-peter, #3a6b73)', emoji: '📈' },
-  'alex-chen': { name: 'Alex', color: 'var(--color-alex, #5a6b8a)', emoji: '📧' },
-  'maya-santos': { name: 'Maya', color: 'var(--color-maya, #a67a6a)', emoji: '💪' },
-  'jordan-taylor': { name: 'Jordan', color: 'var(--color-jordan, #c4856a)', emoji: '🎉' },
-  'nayan-patel': { name: 'Nayan', color: 'var(--color-nayan, #b8956a)', emoji: '🧘' },
+  ferni: { name: 'Ferni', color: 'var(--color-ferni)', emoji: '🌿' },
+  'peter-john': { name: 'Peter', color: 'var(--color-peter)', emoji: '📈' },
+  'alex-chen': { name: 'Alex', color: 'var(--color-alex)', emoji: '📧' },
+  'maya-santos': { name: 'Maya', color: 'var(--color-maya)', emoji: '💪' },
+  'jordan-taylor': { name: 'Jordan', color: 'var(--color-jordan)', emoji: '🎉' },
+  'nayan-patel': { name: 'Nayan', color: 'var(--color-nayan)', emoji: '🧘' },
 };
 
 const MOODS = [
@@ -637,9 +637,9 @@ export class DirectorConsole {
         right: var(--space-4, 16px);
         width: 360px;
         max-height: 90vh;
-        background: var(--color-background-elevated, #FFFDFB);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-2xl, 16px);
-        box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25));
+        box-shadow: var(--shadow-2xl, 0 25px 50px -12px color-mix(in srgb, var(--color-black) 25%, transparent));
         z-index: var(--z-tooltip);
         overflow: hidden;
         display: flex;
@@ -668,7 +668,7 @@ export class DirectorConsole {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 16px;
         font-weight: 600;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         margin: 0;
         flex: 1;
       }
@@ -677,11 +677,11 @@ export class DirectorConsole {
         background: none;
         border: none;
         cursor: pointer;
-        color: var(--color-text-muted, #999999);
+        color: var(--color-text-muted);
         padding: var(--space-1, 4px);
         border-radius: var(--radius-sm, 4px);
       }
-      .dc-close:hover { color: var(--color-text-primary, #2C2520); }
+      .dc-close:hover { color: var(--color-text-primary); }
 
       .dc-body {
         overflow-y: auto;
@@ -701,7 +701,7 @@ export class DirectorConsole {
         font-size: 10px;
         font-weight: 600;
         letter-spacing: 0.08em;
-        color: var(--color-text-muted, #999999);
+        color: var(--color-text-muted);
       }
 
       .dc-cast-grid {
@@ -724,7 +724,7 @@ export class DirectorConsole {
 
       .dc-persona-chip.dc-lead {
         background: var(--persona-color);
-        color: white;
+        color: var(--color-white);
         font-weight: 600;
       }
 
@@ -736,7 +736,7 @@ export class DirectorConsole {
 
       .dc-persona-chip.dc-inactive {
         background: var(--color-background-subtle, #f5f0eb);
-        color: var(--color-text-muted, #999999);
+        color: var(--color-text-muted);
       }
 
       .dc-persona-chip:hover {
@@ -756,7 +756,7 @@ export class DirectorConsole {
 
       .dc-control-row label {
         font-size: 12px;
-        color: var(--color-text-secondary, #666666);
+        color: var(--color-text-secondary);
         min-width: 60px;
       }
 
@@ -770,7 +770,7 @@ export class DirectorConsole {
         padding: var(--space-1, 4px) var(--space-3, 12px);
         border: 1px solid var(--color-border, rgba(44,37,32,0.2));
         border-radius: var(--radius-md, 8px);
-        background: var(--color-background-elevated, white);
+        background: var(--color-background-elevated);
         font-size: 12px;
         cursor: pointer;
         transition: all 0.1s;
@@ -817,7 +817,7 @@ export class DirectorConsole {
 
       .dc-transcript-entry { margin-bottom: 2px; }
       .dc-transcript-name { font-weight: 600; font-size: 11px; }
-      .dc-transcript-text { color: var(--color-text-secondary, #666666); }
+      .dc-transcript-text { color: var(--color-text-secondary); }
 
       .dc-empty { font-size: 12px; color: var(--color-text-muted); font-style: italic; }
 
@@ -825,7 +825,7 @@ export class DirectorConsole {
 
       @media (prefers-color-scheme: dark) {
         .director-console-container {
-          background: var(--color-background-elevated, #3d352f);
+          background: var(--color-background-elevated);
         }
       }
     `;

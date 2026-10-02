@@ -37,7 +37,7 @@ permalink: /personality/
   <p>The 5 core personality traits that define Ferni across all touchpoints.</p>
 
   <div class="traits-grid">
-    <div class="trait-card" style="--trait-color: #C4A265">
+    <div class="trait-card" style="--trait-color: var(--persona-carmen)">
       <div class="trait-header">
         <h3>Warm</h3>
         <span class="color-bias">Amber</span>
@@ -75,7 +75,7 @@ permalink: /personality/
       </div>
     </div>
 
-    <div class="trait-card" style="--trait-color: #4a6741">
+    <div class="trait-card" style="--trait-color: var(--persona-ferni)">
       <div class="trait-header">
         <h3>Grounded</h3>
         <span class="color-bias">Earth</span>
@@ -113,7 +113,7 @@ permalink: /personality/
       </div>
     </div>
 
-    <div class="trait-card" style="--trait-color: #3a6b73">
+    <div class="trait-card" style="--trait-color: var(--persona-peter)">
       <div class="trait-header">
         <h3>Wise</h3>
         <span class="color-bias">Teal</span>
@@ -151,7 +151,7 @@ permalink: /personality/
       </div>
     </div>
 
-    <div class="trait-card" style="--trait-color: #5a7a51">
+    <div class="trait-card" style="--trait-color: var(--persona-ferni)">
       <div class="trait-header">
         <h3>Present</h3>
         <span class="color-bias">Sage</span>
@@ -189,7 +189,7 @@ permalink: /personality/
       </div>
     </div>
 
-    <div class="trait-card" style="--trait-color: #756A5E">
+    <div class="trait-card" style="--trait-color: var(--bg-elevated)">
       <div class="trait-header">
         <h3>Human</h3>
         <span class="color-bias">Natural</span>
@@ -293,7 +293,7 @@ permalink: /personality/
 
   <div class="persona-weights-grid">
     <div class="persona-weight-card">
-      <h4 style="color: var(--color-ferni)">Ferni</h4>
+      <h4 style="color: var(--persona-ferni-text)">Ferni</h4>
       <p>The balanced center</p>
       <div class="weight-bars">
         <div class="weight-bar"><span class="label">Warm</span><div class="bar" style="--weight: 100%"></div><span class="value">1.0</span></div>
@@ -305,7 +305,7 @@ permalink: /personality/
     </div>
 
     <div class="persona-weight-card">
-      <h4 style="color: var(--color-peter)">Peter</h4>
+      <h4 style="color: var(--persona-peter-text)">Peter</h4>
       <p>Curious researcher</p>
       <div class="weight-bars">
         <div class="weight-bar"><span class="label">Warm</span><div class="bar" style="--weight: 80%"></div><span class="value">0.8</span></div>
@@ -317,7 +317,7 @@ permalink: /personality/
     </div>
 
     <div class="persona-weight-card">
-      <h4 style="color: var(--color-maya)">Maya</h4>
+      <h4 style="color: var(--persona-maya-text)">Maya</h4>
       <p>Habit architect</p>
       <div class="weight-bars">
         <div class="weight-bar"><span class="label">Warm</span><div class="bar" style="--weight: 90%"></div><span class="value">0.9</span></div>
@@ -329,7 +329,7 @@ permalink: /personality/
     </div>
 
     <div class="persona-weight-card">
-      <h4 style="color: var(--color-jordan)">Jordan</h4>
+      <h4 style="color: var(--persona-jordan-text)">Jordan</h4>
       <p>Celebration catalyst</p>
       <div class="weight-bars">
         <div class="weight-bar"><span class="label">Warm</span><div class="bar featured" style="--weight: 100%"></div><span class="value">1.3</span></div>
@@ -341,7 +341,7 @@ permalink: /personality/
     </div>
 
     <div class="persona-weight-card">
-      <h4 style="color: var(--color-nayan)">Nayan</h4>
+      <h4 style="color: var(--persona-nayan-text)">Nayan</h4>
       <p>Deep philosopher</p>
       <div class="weight-bars">
         <div class="weight-bar"><span class="label">Warm</span><div class="bar" style="--weight: 90%"></div><span class="value">0.9</span></div>
@@ -488,20 +488,20 @@ permalink: /personality/
 
 .essence-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
 }
 
 .essence-card.featured {
   grid-column: 1 / -1;
   text-align: center;
-  background: linear-gradient(135deg, var(--glass-subtle-background), rgba(61, 90, 69, 0.1));
-  border: 1px solid var(--color-accent);
+  background: linear-gradient(135deg, var(--bg-glass), color-mix(in srgb, var(--persona-marcus) 10%, transparent));
+  border: 1px solid var(--accent-primary);
 }
 
 .essence-card .label {
   font-size: 0.8rem;
-  color: var(--color-text-tertiary);
+  color: var(--text-dimmed);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -509,7 +509,7 @@ permalink: /personality/
 .essence-card h3 {
   margin: var(--space-2) 0;
   font-size: 2rem;
-  color: var(--color-accent);
+  color: var(--accent-text);
 }
 
 .essence-card p {
@@ -525,7 +525,7 @@ permalink: /personality/
 
 .trait-card {
   padding: var(--space-5);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
   border-top: 4px solid var(--trait-color);
 }
@@ -544,12 +544,12 @@ permalink: /personality/
 .color-bias {
   font-size: 0.85rem;
   padding: var(--space-1) var(--space-2);
-  background: var(--color-bg-elevated);
+  background: var(--bg-elevated);
   border-radius: var(--radius-sm);
 }
 
 .trait-description {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   margin-bottom: var(--space-4);
 }
 
@@ -562,11 +562,11 @@ permalink: /personality/
   justify-content: space-between;
   padding: var(--space-1) 0;
   font-size: 0.9rem;
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .spec-row .label {
-  color: var(--color-text-tertiary);
+  color: var(--text-dimmed);
 }
 
 .trait-patterns, .trait-avoids {
@@ -577,16 +577,16 @@ permalink: /personality/
 }
 
 .pattern.good {
-  background: rgba(74, 103, 65, 0.2);
-  color: var(--color-semantic-success);
+  background: color-mix(in srgb, var(--persona-ferni) 20%, transparent);
+  color: var(--success-text);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
 }
 
 .avoid {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--color-destructive);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+  color: var(--error-text);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
@@ -601,19 +601,19 @@ permalink: /personality/
 
 .anti-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
-  border-left: 3px solid var(--color-destructive);
+  border-left: 3px solid var(--error);
 }
 
 .anti-card h4 {
   margin: 0 0 var(--space-2);
-  color: var(--color-destructive);
+  color: var(--error-text);
 }
 
 .anti-card > p {
   margin: 0 0 var(--space-3);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .violations {
@@ -624,7 +624,7 @@ permalink: /personality/
 
 .violations span {
   font-size: 0.8rem;
-  background: rgba(239, 68, 68, 0.1);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
 }
@@ -638,7 +638,7 @@ permalink: /personality/
 
 .persona-weight-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
 }
 
@@ -648,7 +648,7 @@ permalink: /personality/
 
 .persona-weight-card > p {
   margin: 0 0 var(--space-4);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
@@ -667,12 +667,12 @@ permalink: /personality/
 
 .weight-bar .label {
   font-size: 0.8rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .weight-bar .bar {
   height: 8px;
-  background: var(--color-border-subtle);
+  background: var(--border-subtle);
   border-radius: var(--radius-full);
   position: relative;
   overflow: hidden;
@@ -685,17 +685,17 @@ permalink: /personality/
   top: 0;
   height: 100%;
   width: var(--weight);
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: var(--radius-full);
 }
 
 .weight-bar .bar.featured::after {
-  background: var(--color-semantic-success);
+  background: var(--success);
 }
 
 .weight-bar .value {
   font-size: 0.85rem;
-  font-family: monospace;
+  font-family: var(--font-mono);
   text-align: right;
 }
 
@@ -708,7 +708,7 @@ permalink: /personality/
 
 .context-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
 }
 
@@ -718,7 +718,7 @@ permalink: /personality/
 
 .context-card > p {
   margin: 0 0 var(--space-3);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
@@ -730,16 +730,16 @@ permalink: /personality/
 }
 
 .modifier-tags .up {
-  background: rgba(74, 103, 65, 0.2);
-  color: var(--color-semantic-success);
+  background: color-mix(in srgb, var(--persona-ferni) 20%, transparent);
+  color: var(--success-text);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   font-size: 0.8rem;
 }
 
 .modifier-tags .down {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--color-destructive);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+  color: var(--error-text);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   font-size: 0.8rem;
@@ -747,7 +747,7 @@ permalink: /personality/
 
 .note {
   font-size: 0.85rem;
-  color: var(--color-text-tertiary);
+  color: var(--text-dimmed);
   font-style: italic;
   margin: 0;
 }
@@ -761,20 +761,20 @@ permalink: /personality/
 
 .tone-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
   text-align: center;
 }
 
 .tone-card h4 {
   margin: 0 0 var(--space-2);
-  color: var(--color-accent);
+  color: var(--accent-text);
 }
 
 .tone-card p {
   margin: 0;
   font-size: 0.9rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .patterns-grid {
@@ -786,13 +786,13 @@ permalink: /personality/
 
 .pattern-group {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
 }
 
 .pattern-group h4 {
   margin: 0 0 var(--space-3);
-  color: var(--color-accent);
+  color: var(--accent-text);
 }
 
 .pattern-group ul {
@@ -804,7 +804,7 @@ permalink: /personality/
 .pattern-group li {
   padding: var(--space-2);
   font-style: italic;
-  border-left: 2px solid var(--color-border-subtle);
+  border-left: 2px solid var(--border-subtle);
   margin-bottom: var(--space-2);
 }
 
@@ -817,8 +817,8 @@ permalink: /personality/
 
 .avoidance {
   padding: var(--space-3);
-  background: rgba(239, 68, 68, 0.05);
-  border-left: 3px solid var(--color-destructive);
+  background: color-mix(in srgb, var(--error) 5%, transparent);
+  border-left: 3px solid var(--error);
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
 </style>

@@ -390,7 +390,7 @@ const styles = `
     max-width: 600px;
     max-height: 90vh;
     margin: var(--space-4);
-    background: var(--color-background-elevated, #fffdfb);
+    background: var(--color-background-elevated);
     border-radius: var(--radius-2xl, 24px);
     box-shadow: var(--shadow-2xl);
     overflow: hidden;
@@ -410,14 +410,14 @@ const styles = `
     align-items: center;
     justify-content: space-between;
     padding: var(--space-4) var(--space-6);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.06));
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
   .practice-experience-header h2 {
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 1.25rem;
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0;
   }
 
@@ -431,19 +431,19 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text-muted, #9a8c7f);
+    color: var(--color-text-muted);
     transition: all 0.2s ease;
   }
 
   .practice-close-btn:hover {
-    background: var(--color-background-subtle, rgba(0,0,0,0.04));
-    color: var(--color-text-primary, #2c2520);
+    background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 4%, transparent));
+    color: var(--color-text-primary);
   }
 
   /* Progress bar */
   .practice-progress {
     height: 4px;
-    background: var(--color-background-subtle, rgba(0,0,0,0.04));
+    background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 4%, transparent));
   }
 
   .practice-progress-bar {
@@ -486,7 +486,7 @@ const styles = `
     font-family: var(--font-narrative, 'EB Garamond', Georgia, serif);
     font-size: 1.75rem;
     font-weight: 500;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-3) 0;
     text-align: center;
   }
@@ -496,7 +496,7 @@ const styles = `
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 1.1rem;
     line-height: 1.6;
-    color: var(--color-text-secondary, #5a4a42);
+    color: var(--color-text-secondary);
     text-align: center;
     margin-bottom: var(--space-6);
   }
@@ -507,7 +507,7 @@ const styles = `
       var(--color-accent, #3d5a45) 0%, 
       var(--persona-ferni, #4a6741) 100%
     );
-    color: white;
+    color: var(--color-white);
     padding: var(--space-4) var(--space-5);
     border-radius: var(--radius-xl, 16px);
     border-bottom-left-radius: var(--radius-sm, 4px);
@@ -526,13 +526,13 @@ const styles = `
     width: 100%;
     min-height: 120px;
     padding: var(--space-4);
-    border: 2px solid var(--color-border-subtle, rgba(0,0,0,0.08));
+    border: 2px solid var(--color-border-subtle);
     border-radius: var(--radius-lg, 12px);
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 1rem;
     line-height: 1.6;
-    color: var(--color-text-primary, #2c2520);
-    background: var(--color-background-elevated, #fffdfb);
+    color: var(--color-text-primary);
+    background: var(--color-background-elevated);
     resize: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
@@ -544,7 +544,7 @@ const styles = `
   }
 
   .practice-textarea::placeholder {
-    color: var(--color-text-muted, #9a8c7f);
+    color: var(--color-text-muted);
   }
 
   /* Chat container */
@@ -586,20 +586,20 @@ const styles = `
       var(--color-accent, #3d5a45) 0%, 
       var(--persona-ferni, #4a6741) 100%
     );
-    color: white;
+    color: var(--color-white);
     border-bottom-left-radius: var(--radius-sm, 4px);
   }
 
   .practice-chat-message.user {
     align-self: flex-end;
-    background: var(--color-background-subtle, rgba(0,0,0,0.04));
-    color: var(--color-text-primary, #2c2520);
+    background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 4%, transparent));
+    color: var(--color-text-primary);
     border-bottom-right-radius: var(--radius-sm, 4px);
   }
 
   .practice-chat-message.thinking {
-    background: var(--color-background-subtle, rgba(0,0,0,0.04));
-    color: var(--color-text-muted, #9a8c7f);
+    background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 4%, transparent));
+    color: var(--color-text-muted);
   }
 
   .thinking-dots {
@@ -635,12 +635,12 @@ const styles = `
   .practice-chat-input {
     flex: 1;
     padding: var(--space-3) var(--space-4);
-    border: 2px solid var(--color-border-subtle, rgba(0,0,0,0.08));
+    border: 2px solid var(--color-border-subtle);
     border-radius: var(--radius-xl, 16px);
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 1rem;
-    color: var(--color-text-primary, #2c2520);
-    background: var(--color-background-elevated, #fffdfb);
+    color: var(--color-text-primary);
+    background: var(--color-background-elevated);
     resize: none;
     min-height: 48px;
     max-height: 120px;
@@ -668,7 +668,7 @@ const styles = `
   }
 
   .practice-chat-send:hover {
-    background: var(--persona-ferni, #4a6741);
+    background: var(--persona-ferni, var(--color-ferni));
     transform: scale(1.05);
   }
 
@@ -700,7 +700,7 @@ const styles = `
     align-items: center;
     justify-content: center;
     transition: transform 4s ease-in-out;
-    box-shadow: 0 0 60px var(--persona-aura-glow, var(--color-accent-glow));
+    box-shadow: 0 0 60px var(--persona-aura-glow);
   }
 
   .breathing-circle.inhale {
@@ -719,7 +719,7 @@ const styles = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 1.25rem;
     font-weight: 500;
-    color: white;
+    color: var(--color-white);
     text-transform: capitalize;
   }
 
@@ -727,7 +727,7 @@ const styles = `
     margin-top: var(--space-6);
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.9rem;
-    color: var(--color-text-muted, #9a8c7f);
+    color: var(--color-text-muted);
   }
 
   /* Completion */
@@ -752,7 +752,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-white);
     margin-bottom: var(--space-6);
     animation: completionPulse 2s ease infinite;
   }
@@ -768,8 +768,8 @@ const styles = `
     justify-content: space-between;
     align-items: center;
     padding: var(--space-4) var(--space-6);
-    border-top: 1px solid var(--color-border-subtle, rgba(0,0,0,0.06));
-    background: var(--color-background-elevated, #fffdfb);
+    border-top: 1px solid var(--color-border-subtle);
+    background: var(--color-background-elevated);
   }
 
   .practice-nav-btn {
@@ -788,12 +788,12 @@ const styles = `
 
   .practice-nav-btn.secondary {
     background: transparent;
-    color: var(--color-text-muted, #9a8c7f);
+    color: var(--color-text-muted);
   }
 
   .practice-nav-btn.secondary:hover {
-    background: var(--color-background-subtle, rgba(0,0,0,0.04));
-    color: var(--color-text-primary, #2c2520);
+    background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 4%, transparent));
+    color: var(--color-text-primary);
   }
 
   .practice-nav-btn.primary {
@@ -802,7 +802,7 @@ const styles = `
   }
 
   .practice-nav-btn.primary:hover {
-    background: var(--persona-ferni, #4a6741);
+    background: var(--persona-ferni, var(--color-ferni));
     transform: translateX(4px);
   }
 
@@ -823,17 +823,17 @@ const styles = `
       var(--color-accent, #3d5a45) 0%, 
       var(--persona-ferni, #4a6741) 100%
     );
-    color: white;
+    color: var(--color-white);
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.9rem;
   }
 
   .voice-mode-banner button {
-    background: rgba(255,255,255,0.2);
+    background: color-mix(in srgb, var(--color-white) 20%, transparent);
     border: none;
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-full, 9999px);
-    color: white;
+    color: var(--color-white);
     font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;
@@ -842,7 +842,7 @@ const styles = `
   }
 
   .voice-mode-banner button:hover {
-    background: rgba(255,255,255,0.3);
+    background: color-mix(in srgb, var(--color-white) 30%, transparent);
   }
 
   /* Skip to voice button */
@@ -852,9 +852,9 @@ const styles = `
     gap: var(--space-2);
     padding: var(--space-2) var(--space-4);
     background: transparent;
-    border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.1));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-full, 9999px);
-    color: var(--color-text-muted, #9a8c7f);
+    color: var(--color-text-muted);
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.85rem;
     cursor: pointer;

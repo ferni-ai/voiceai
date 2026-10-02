@@ -44,7 +44,7 @@ const BANNER_STYLES = `
     padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
     
     background: var(--color-semantic-warning-bg, #fef3cd);
-    color: var(--color-semantic-warning-text, #856404);
+    color: var(--color-semantic-warning-text);
     
     font-family: var(--font-body, 'Inter', sans-serif);
     font-size: 0.875rem;

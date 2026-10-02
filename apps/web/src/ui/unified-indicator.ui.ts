@@ -686,8 +686,8 @@ function injectStyles(): void {
       height: 36px;
       padding: 0;
       
-      background: var(--color-background-elevated, #faf8f5);
-      border: 2px solid var(--color-text-muted, #9a8a82);
+      background: var(--color-background-elevated);
+      border: 2px solid var(--color-text-muted);
       border-radius: 50%;
       
       cursor: pointer;
@@ -706,7 +706,7 @@ function injectStyles(): void {
     }
     
     .unified-indicator:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
     
@@ -740,16 +740,16 @@ function injectStyles(): void {
     /* ===== CHECK-IN STATE ===== */
     /* Green speech bubble - Ferni wants to talk */
     .unified-indicator--checkin {
-      border-color: var(--persona-primary, #4a6741);
-      background: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
+      background: var(--persona-primary, var(--color-ferni));
     }
     
     .unified-indicator--checkin .unified-indicator__icon {
-      color: white;
+      color: var(--color-white);
     }
     
     .unified-indicator--checkin .unified-indicator__icon svg {
-      stroke: white;
+      stroke: var(--color-white);
       fill: none;
     }
     
@@ -761,35 +761,35 @@ function injectStyles(): void {
     }
     
     .unified-indicator--milestone .unified-indicator__icon {
-      color: white;
+      color: var(--color-white);
     }
     
     .unified-indicator--milestone .unified-indicator__icon svg {
-      stroke: white;
+      stroke: var(--color-white);
       fill: none;
     }
     
     /* ===== VOICE VERIFY STATE ===== */
     /* Amber shield - security check */
     .unified-indicator--voice_verify {
-      border-color: var(--color-warning, #d4a574);
-      background: var(--color-warning, #d4a574);
+      border-color: var(--color-warning, var(--color-carmen));
+      background: var(--color-warning, var(--color-carmen));
     }
     
     .unified-indicator--voice_verify .unified-indicator__icon {
-      color: white;
+      color: var(--color-white);
     }
     
     .unified-indicator--voice_verify .unified-indicator__icon svg {
-      stroke: white;
+      stroke: var(--color-white);
       fill: none;
     }
     
     /* ===== CONNECTED STATE ===== */
     /* Green filled heart - relationship alive */
     .unified-indicator--connected {
-      border-color: var(--persona-primary, #4a6741);
-      background: var(--color-background-elevated, #faf8f5);
+      border-color: var(--persona-primary, var(--color-ferni));
+      background: var(--color-background-elevated);
     }
     
     .unified-indicator--connected .unified-indicator__icon {
@@ -797,37 +797,37 @@ function injectStyles(): void {
     }
     
     .unified-indicator--connected .unified-indicator__icon svg {
-      fill: var(--persona-primary, #4a6741);
-      stroke: var(--persona-primary, #4a6741);
+      fill: var(--persona-primary, var(--color-ferni));
+      stroke: var(--persona-primary, var(--color-ferni));
     }
     
     /* ===== CONNECTING STATE ===== */
     /* Amber outline heart - transitional */
     .unified-indicator--connecting {
-      border-color: var(--color-warning, #d4a574);
+      border-color: var(--color-warning, var(--color-carmen));
     }
     
     .unified-indicator--connecting .unified-indicator__icon {
-      color: var(--color-warning, #d4a574);
+      color: var(--color-warning, var(--color-carmen));
     }
     
     .unified-indicator--connecting .unified-indicator__icon svg {
-      stroke: var(--color-warning, #d4a574);
+      stroke: var(--color-warning, var(--color-carmen));
       fill: none;
     }
     
     /* ===== DISCONNECTED STATE ===== */
     /* Gray broken heart - waiting */
     .unified-indicator--disconnected {
-      border-color: var(--color-text-muted, #9a8a82);
+      border-color: var(--color-text-muted);
     }
     
     .unified-indicator--disconnected .unified-indicator__icon {
-      color: var(--color-text-muted, #9a8a82);
+      color: var(--color-text-muted);
     }
     
     .unified-indicator--disconnected .unified-indicator__icon svg {
-      stroke: var(--color-text-muted, #9a8a82);
+      stroke: var(--color-text-muted);
       fill: none;
     }
     
@@ -848,7 +848,7 @@ function injectStyles(): void {
     
     /* ===== DARK THEME ===== */
     [data-theme="midnight"] .unified-indicator {
-      background: var(--color-background-elevated, #1a1a1f);
+      background: var(--color-background-elevated);
     }
     
     [data-theme="midnight"] .unified-indicator--checkin {
@@ -895,13 +895,13 @@ function injectStyles(): void {
     /* ===== CIRCADIAN AWARENESS ===== */
     [data-circadian="lateNight"] .unified-indicator--connected,
     [data-circadian="deepNight"] .unified-indicator--connected {
-      box-shadow: 0 2px 12px var(--persona-glow, rgba(74, 103, 65, 0.25));
+      box-shadow: 0 2px 12px var(--persona-glow, color-mix(in srgb, var(--color-ferni) 25%, transparent));
     }
     
     /* ===== RELATIONSHIP WARMTH ===== */
     [data-relationship-stage="established"] .unified-indicator--connected,
     [data-relationship-stage="deep-partnership"] .unified-indicator--connected {
-      box-shadow: 0 3px 14px var(--persona-glow, rgba(74, 103, 65, 0.3));
+      box-shadow: 0 3px 14px var(--persona-glow, color-mix(in srgb, var(--color-ferni) 30%, transparent));
     }
   `;
 

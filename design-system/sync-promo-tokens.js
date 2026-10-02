@@ -35,7 +35,6 @@ const CONFIG = {
   // Output files (multiple destinations for consistency)
   // Light theme (Zen Garden) - for consumer-facing sites
   lightThemeOutputs: [
-    path.join(PROJECT_ROOT, 'apps/website/ferni-website/css/design-tokens.css'),
     path.join(PROJECT_ROOT, 'apps/website/ferni-website/src/css/_tokens.css'),
     path.join(PROJECT_ROOT, 'brand/ferni-design-tokens.css'),
   ],
@@ -54,14 +53,31 @@ const CONFIG = {
 // GENERATORS
 // ============================================================================
 
+const kebab = (k) => k.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+
 function loadJson(filepath) {
   return JSON.parse(fs.readFileSync(filepath, 'utf-8'));
+}
+
+/** Pure white/black (colors.json "base"), for overlays, scrims and shadows. */
+function baseColorLines(colors, indent = '  ') {
+  const base = colors.base || {};
+  return Object.entries(base)
+    .filter(([key]) => !key.startsWith('_'))
+    .map(([key, value]) => `${indent}--color-${key}: ${value};`);
 }
 
 function generateColorVars(colors) {
   const lines = [];
   const zen = colors.themes.zen;
   const midnight = colors.themes.midnight;
+
+  // Base colors
+  lines.push('  /* ============================================');
+  lines.push('     COLORS - Base (mix with color-mix() for translucency)');
+  lines.push('     ============================================ */');
+  lines.push(...baseColorLines(colors));
+  lines.push('');
 
   // Background colors
   lines.push('  /* ============================================');
@@ -106,6 +122,7 @@ function generateColorVars(colors) {
   lines.push('  --color-text-secondary-light: var(--color-text-secondary);');
   // Generated error ink (utils/theme-inks.js), WCAG AA on zen surfaces
   lines.push(`  --color-text-error: ${themeTextInks(zen).semanticText.errorText};`);
+  lines.push(`  --color-accent-text: ${themeTextInks(zen).accentText};`);
   lines.push(`  --color-natural-ink: ${zen.natural.ink};`);
   lines.push('');
 
@@ -205,6 +222,7 @@ function generateColorVars(colors) {
   lines.push('     ============================================ */');
   lines.push(`  --color-accent-gold: ${midnight.accent.primary};`);
   lines.push(`  --color-accent-gold-hover: ${midnight.accent.hover};`);
+  lines.push(`  --color-accent-gold-text: ${themeTextInks(midnight).accentText};`);
   lines.push(`  --color-cedar: ${midnight.background.elevated};`);
   lines.push(`  --color-cedar-dark: ${midnight.background.primary};`);
   lines.push(`  --color-cedar-deep: #1f1a16;`);
@@ -223,6 +241,35 @@ function generateColorVars(colors) {
   lines.push(`  --color-bg-dark-surface: ${midnight.background.secondary};`);
   lines.push(`  --color-bg-darker: #2a2420;`);
   lines.push('');
+
+  // Visualization palettes (kintsugi gold, river, seasons…) from colors.json
+  if (colors.visualization) {
+    lines.push('  /* ============================================');
+    lines.push('     COLORS - Visualization');
+    lines.push('     ============================================ */');
+    for (const [group, values] of Object.entries(colors.visualization)) {
+      if (group.startsWith('_') || typeof values !== 'object') continue;
+      const prefix = group === 'kintsugi' ? '--kintsugi' : `--viz-${kebab(group)}`;
+      for (const [key, value] of Object.entries(values)) {
+        if (key.startsWith('_') || typeof value !== 'string') continue;
+        lines.push(`  ${prefix}-${kebab(key)}: ${value};`);
+      }
+    }
+    lines.push('');
+  }
+
+  // Glass surfaces (zen)
+  if (zen.glass) {
+    lines.push('  /* ============================================');
+    lines.push('     GLASS - Zen surfaces (pair with --blur-*)');
+    lines.push('     ============================================ */');
+    for (const [key, value] of Object.entries(zen.glass)) {
+      if (key.startsWith('_') || typeof value !== 'object') continue;
+      lines.push(`  --glass-${kebab(key)}-bg: ${value.background};`);
+      lines.push(`  --glass-${kebab(key)}-border: ${value.border};`);
+    }
+    lines.push('');
+  }
 
   // Persona colors (with theme-aware text variants)
   lines.push('  /* ============================================');
@@ -422,6 +469,7 @@ function generateDarkThemeVars(colors) {
   lines.push(`    --color-text-dimmed: ${midnight.text.dimmed};`);
   lines.push(`    --color-text-inverse: ${midnight.text.inverse};`);
   lines.push(`    --color-text-error: ${themeTextInks(midnight).semanticText.errorText};`);
+  lines.push(`    --color-accent-text: ${themeTextInks(midnight).accentText};`);
   lines.push('');
 
   // Accent colors
@@ -457,13 +505,21 @@ function generateDarkThemeVars(colors) {
     const shortId = personaId.split('-')[0];
     lines.push(`    --color-${shortId}-text: ${personaInks[personaId].midnight};`);
   }
+  // Glass surfaces (midnight)
+  for (const [key, value] of Object.entries(midnight.glass || {})) {
+    if (key.startsWith('_') || typeof value !== 'object') continue;
+    lines.push(`    --glass-${kebab(key)}-bg: ${value.background};`);
+    lines.push(`    --glass-${kebab(key)}-border: ${value.border};`);
+  }
 
   lines.push('  }');
   lines.push('}');
   lines.push('');
 
-  // Also add [data-theme="dark"] selector for manual toggle
-  lines.push('[data-theme="dark"] {');
+  // Same overrides for manual toggles (brand library uses dark/cedar/midnight)
+  lines.push('[data-theme="dark"],');
+  lines.push('[data-theme="cedar"],');
+  lines.push('[data-theme="midnight"] {');
 
   // Background colors
   lines.push('  /* Background */');
@@ -482,6 +538,7 @@ function generateDarkThemeVars(colors) {
   lines.push(`  --color-text-dimmed: ${midnight.text.dimmed};`);
   lines.push(`  --color-text-inverse: ${midnight.text.inverse};`);
   lines.push(`  --color-text-error: ${themeTextInks(midnight).semanticText.errorText};`);
+  lines.push(`  --color-accent-text: ${themeTextInks(midnight).accentText};`);
   lines.push('');
 
   // Accent colors
@@ -516,6 +573,12 @@ function generateDarkThemeVars(colors) {
     if (personaId.startsWith('_')) continue;
     const shortId = personaId.split('-')[0];
     lines.push(`  --color-${shortId}-text: ${personaInks[personaId].midnight};`);
+  }
+  // Glass surfaces (midnight)
+  for (const [key, value] of Object.entries(midnight.glass || {})) {
+    if (key.startsWith('_') || typeof value !== 'object') continue;
+    lines.push(`  --glass-${kebab(key)}-bg: ${value.background};`);
+    lines.push(`  --glass-${kebab(key)}-border: ${value.border};`);
   }
 
   lines.push('}');
@@ -566,6 +629,11 @@ function generateSpacingVars(spacing) {
   return lines;
 }
 
+/** Spacing/shadow vars for the portal files, whose accent is --accent-* (not --color-accent-*). */
+function portalSpacingVars(spacing) {
+  return generateSpacingVars(spacing).map((line) => line.replace(/var\(--color-accent-/g, 'var(--accent-'));
+}
+
 function generateTypographyVars(typography) {
   const lines = [];
 
@@ -595,6 +663,16 @@ function generateTypographyVars(typography) {
   lines.push('     ============================================ */');
   for (const [key, value] of Object.entries(typography.fontWeights)) {
     lines.push(`  --font-weight-${key}: ${value};`);
+  }
+  lines.push('');
+
+  // Letter spacing
+  lines.push('  /* ============================================');
+  lines.push('     TYPOGRAPHY - Letter Spacing');
+  lines.push('     ============================================ */');
+  for (const [key, value] of Object.entries(typography.letterSpacing || {})) {
+    if (key.startsWith('_')) continue;
+    lines.push(`  --tracking-${key}: ${value};`);
   }
   lines.push('');
 
@@ -720,6 +798,9 @@ function generateDarkThemeFile(colors, spacing, typography, animation, effects) 
     `  --text-dimmed: ${midnight.text.dimmed};`,
     `  --text-inverse: ${midnight.text.inverse};`,
     '',
+    '  /* Base (mix with color-mix() for translucency) */',
+    ...baseColorLines(colors),
+    '',
     '  /* Accent - Gold */',
     `  --accent-primary: ${midnight.accent.primary};`,
     `  --accent-hover: ${midnight.accent.hover};`,
@@ -743,20 +824,34 @@ function generateDarkThemeFile(colors, spacing, typography, animation, effects) 
     '  --info: #7da6cf;',
     '  --info-glow: rgba(125, 166, 207, 0.22);',
     '',
+    '  /* Semantic text inks (WCAG AA on the Cedar Night surfaces) */',
+    `  --success-text: ${themeTextInks(midnight).semanticText.successText};`,
+    `  --error-text: ${themeTextInks(midnight).semanticText.errorText};`,
+    `  --warning-text: ${themeTextInks(midnight).semanticText.warningText};`,
+    `  --info-text: ${themeTextInks(midnight).semanticText.infoText};`,
+    `  --on-accent: ${themeTextInks(midnight).onAccent};`,
+    '',
+    '  /* Code syntax (on --bg-code) */',
+    ...Object.entries(midnight.syntax || {})
+      .filter(([key]) => !key.startsWith('_'))
+      .map(([key, value]) => (key === 'text' ? `  --code-text: ${value};` : `  --syntax-${key}: ${value};`)),
+    '',
     '  /* Personas */',
   ];
 
-  // Add persona colors
+  // Add persona colors (fills) and their text inks (WCAG AA on Cedar Night)
+  const personaInks = computePersonaInks(colors.personas, colors.themes);
   for (const [personaId, persona] of Object.entries(colors.personas)) {
     if (personaId.startsWith('_')) continue;
     const shortId = personaId.split('-')[0];
     lines.push(`  --persona-${shortId}: ${persona.primary};`);
     lines.push(`  --persona-${shortId}-glow: ${persona.glow};`);
+    lines.push(`  --persona-${shortId}-text: ${personaInks[personaId].midnight};`);
   }
 
   // Add spacing, typography, animation, effects
   lines.push('');
-  lines.push(...generateSpacingVars(spacing));
+  lines.push(...portalSpacingVars(spacing));
   lines.push(...generateTypographyVars(typography));
   lines.push(...generateAnimationVars(animation));
   lines.push(...generateEffectsVars(effects));
@@ -771,6 +866,102 @@ function generateDarkThemeFile(colors, spacing, typography, animation, effects) 
   lines.push('  --header-height: 64px;');
 
   lines.push('}');
+  return lines.join('\n');
+}
+
+/**
+ * Generate light theme (Zen Garden) tokens for the marketplace portal.
+ * Same short names as the developer portals (--bg-*, --text-*, --accent-*),
+ * plus persona fills (--persona-{id}-primary/-secondary/-glow) for the
+ * specialist cards.
+ */
+function generateMarketplaceFile(colors, spacing, typography, animation, effects) {
+  const zen = colors.themes.zen;
+  const natural = zen.natural || {};
+
+  const lines = [
+    '/**',
+    ' * Ferni Design Tokens - Zen Garden (Light Theme)',
+    ' * For the marketplace portal',
+    ' *',
+    ' * 🎨 AUTO-GENERATED FROM design-system/tokens/',
+    ' * Do not edit directly - run: pnpm tokens:sync',
+    ` * Generated: ${buildStamp()}`,
+    ' */',
+    '',
+    ':root {',
+    '  /* ========================================',
+    '     COLORS - Zen Garden Theme',
+    '     ======================================== */',
+    '',
+    '  /* Backgrounds */',
+    `  --bg-primary: ${zen.background.primary};`,
+    `  --bg-secondary: ${zen.background.secondary};`,
+    `  --bg-tertiary: ${zen.background.tertiary};`,
+    `  --bg-elevated: ${zen.background.elevated};`,
+    `  --bg-glass: ${zen.background.glass};`,
+    `  --bg-overlay: ${zen.background.overlay};`,
+    '',
+    '  /* Text */',
+    `  --text-primary: ${zen.text.primary};`,
+    `  --text-secondary: ${zen.text.secondary};`,
+    `  --text-muted: ${zen.text.muted};`,
+    `  --text-dimmed: ${zen.text.dimmed};`,
+    `  --text-inverse: ${zen.text.inverse};`,
+    '',
+    '  /* Base (mix with color-mix() for translucency) */',
+    ...baseColorLines(colors),
+    '',
+    '  /* Accent - Ferni Sage */',
+    `  --accent-primary: ${zen.accent.primary};`,
+    `  --accent-hover: ${zen.accent.hover};`,
+    `  --accent-pressed: ${zen.accent.pressed};`,
+    `  --accent-glow: ${zen.accent.glow};`,
+    `  --accent-subtle: ${zen.accent.subtle};`,
+    `  --accent-text: ${themeTextInks(zen).accentText};`,
+    '',
+    '  /* Borders */',
+    `  --border-subtle: ${zen.border.subtle};`,
+    `  --border-medium: ${zen.border.medium};`,
+    `  --border-strong: ${zen.border.strong};`,
+    '',
+    '  /* Semantic */',
+    `  --success: ${zen.semantic.success};`,
+    `  --success-glow: ${zen.semantic.successGlow};`,
+    `  --error: ${zen.semantic.error};`,
+    `  --error-glow: ${zen.semantic.errorGlow};`,
+    `  --warning: ${zen.semantic.warning};`,
+    `  --warning-glow: ${zen.semantic.warningGlow};`,
+    '',
+    '  /* Natural */',
+  ];
+  for (const [key, value] of Object.entries(natural)) {
+    if (key.startsWith('_') || typeof value !== 'string') continue;
+    lines.push(`  --${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value};`);
+  }
+  lines.push('');
+  lines.push('  /* Personas */');
+  for (const [personaId, persona] of Object.entries(colors.personas)) {
+    if (personaId.startsWith('_')) continue;
+    const shortId = personaId.split('-')[0];
+    lines.push(`  --persona-${shortId}-primary: ${persona.primary};`);
+    if (persona.secondary) lines.push(`  --persona-${shortId}-secondary: ${persona.secondary};`);
+    lines.push(`  --persona-${shortId}-glow: ${persona.glow};`);
+  }
+  lines.push('');
+  lines.push(...portalSpacingVars(spacing));
+  lines.push(...generateTypographyVars(typography));
+  lines.push(...generateAnimationVars(animation));
+  lines.push(...generateEffectsVars(effects));
+  lines.push('  /* ========================================');
+  lines.push('     LAYOUT');
+  lines.push('     ======================================== */');
+  lines.push('  --container-max: 1280px;');
+  lines.push('  --container-narrow: 768px;');
+  lines.push('  --header-height: 72px;');
+  lines.push('  --card-gap: var(--space-6);');
+  lines.push('}');
+  lines.push('');
   return lines.join('\n');
 }
 
@@ -829,10 +1020,11 @@ function build() {
     writeOutput(outputFile, darkThemeContent);
   }
 
-  // Marketplace keeps its own tokens for now (has extra persona colors)
-  console.log('\n📝 Marketplace (custom - not auto-generated):');
-  console.log('  ℹ️  Marketplace tokens have custom persona colors');
-  console.log('     Edit manually: apps/website/marketplace-portal/src/css/tokens.css');
+  console.log('\n📝 Marketplace (Zen Garden):');
+  const marketplaceContent = generateMarketplaceFile(colors, spacing, typography, animation, effects);
+  for (const outputFile of CONFIG.marketplaceOutputs) {
+    writeOutput(outputFile, marketplaceContent);
+  }
 
   console.log('\n✅ All token files synced!\n');
 }

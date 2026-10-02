@@ -15,13 +15,14 @@
     />
 
     <!-- Design Tokens (source of truth for colors) -->
-    <link rel="stylesheet" href="../master-tokens.css" />
+    <link rel="stylesheet" href="../ferni-design-tokens.css" />
+    <link rel="stylesheet" href="../brand-base.css" />
 
     <style>
       /* ============================================
        ZEN KINTSUGI - POTTERY AESTHETIC
        Warm earth tones, wabi-sabi philosophy
-       Uses visualization tokens from master-tokens.css
+       Uses visualization tokens from ferni-design-tokens.css
        ============================================ */
 
       :root {
@@ -39,11 +40,11 @@
         --pottery-fired: #a89888;
         --pottery-shadow: #8a7e70;
 
-        /* Kintsugi gold - now using tokens from master-tokens.css:
+        /* Kintsugi gold - now using tokens from ferni-design-tokens.css:
            --kintsugi-primary, --kintsugi-bright, --kintsugi-deep,
            --kintsugi-glow, --kintsugi-tint, --kintsugi-gold */
 
-        /* Ferni sage - using tokens from master-tokens.css:
+        /* Ferni sage - using tokens from ferni-design-tokens.css:
            --color-ferni, --color-ferni-light */
         --ferni-sage: var(--color-ferni, #4a6741);
         --ferni-sage-light: var(--color-ferni-light, #5A7751);
@@ -185,7 +186,7 @@
 
       .hero-kanji {
         font-size: 3rem;
-        color: var(--kintsugi-gold);
+        color: var(--kintsugi-primary);
         margin-bottom: 1rem;
         letter-spacing: 0.5em;
         opacity: 0.6;
@@ -214,7 +215,7 @@
       .hero-divider {
         width: 60px;
         height: 2px;
-        background: linear-gradient(90deg, transparent, var(--kintsugi-gold), transparent);
+        background: linear-gradient(90deg, transparent, var(--kintsugi-primary), transparent);
         margin: 0 auto 2rem;
       }
 
@@ -301,7 +302,7 @@
 
       /* Gold fill in cracks */
       .gold-fill {
-        fill: var(--kintsugi-gold);
+        fill: var(--kintsugi-primary);
         opacity: 0.8;
       }
 
@@ -343,8 +344,8 @@
         background: linear-gradient(
           90deg,
           var(--zen-sand) 0%,
-          var(--kintsugi-gold) 20%,
-          var(--kintsugi-gold) 80%,
+          var(--kintsugi-primary) 20%,
+          var(--kintsugi-primary) 80%,
           var(--zen-sand) 100%
         );
       }
@@ -352,7 +353,7 @@
       .wisdom-card:hover {
         transform: translateY(-4px);
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
-        border-color: var(--kintsugi-gold);
+        border-color: var(--kintsugi-primary);
       }
 
       .card-date {
@@ -413,7 +414,7 @@
       .card-gold {
         padding: 1rem;
         background: var(--kintsugi-tint);
-        border-left: 2px solid var(--kintsugi-gold);
+        border-left: 2px solid var(--kintsugi-primary);
         border-radius: 0 4px 4px 0;
         position: relative;
       }
@@ -433,7 +434,7 @@
       .gold-label::before {
         content: '◆';
         font-size: 0.5rem;
-        color: var(--kintsugi-gold);
+        color: var(--kintsugi-primary);
       }
 
       .gold-text {
@@ -469,7 +470,7 @@
       .insight-icon svg {
         width: 100%;
         height: 100%;
-        stroke: var(--kintsugi-gold);
+        stroke: var(--kintsugi-primary);
         stroke-width: 1;
         fill: none;
       }
@@ -506,7 +507,7 @@
         font-family: 'Cormorant Garamond', serif;
         font-size: 2rem;
         font-weight: 500;
-        color: var(--kintsugi-gold);
+        color: var(--kintsugi-primary);
       }
 
       .insight-stat-label {
@@ -539,7 +540,7 @@
       }
 
       .philosophy-text em {
-        color: var(--kintsugi-gold);
+        color: var(--kintsugi-primary);
         font-style: normal;
       }
 
@@ -863,13 +864,13 @@
           </g>
 
           <!-- Small gold accents at intersections -->
-          <circle cx="145" cy="55" r="4" fill="var(--kintsugi-gold)" filter="url(#softShadow)" />
-          <circle cx="255" cy="55" r="4" fill="var(--kintsugi-gold)" filter="url(#softShadow)" />
-          <circle cx="130" cy="200" r="4" fill="var(--kintsugi-gold)" filter="url(#softShadow)" />
-          <circle cx="270" cy="200" r="4" fill="var(--kintsugi-gold)" filter="url(#softShadow)" />
-          <circle cx="200" cy="248" r="5" fill="var(--kintsugi-gold)" filter="url(#softShadow)" />
-          <circle cx="160" cy="235" r="3" fill="var(--kintsugi-gold)" />
-          <circle cx="240" cy="235" r="3" fill="var(--kintsugi-gold)" />
+          <circle cx="145" cy="55" r="4" fill="var(--kintsugi-primary)" filter="url(#softShadow)" />
+          <circle cx="255" cy="55" r="4" fill="var(--kintsugi-primary)" filter="url(#softShadow)" />
+          <circle cx="130" cy="200" r="4" fill="var(--kintsugi-primary)" filter="url(#softShadow)" />
+          <circle cx="270" cy="200" r="4" fill="var(--kintsugi-primary)" filter="url(#softShadow)" />
+          <circle cx="200" cy="248" r="5" fill="var(--kintsugi-primary)" filter="url(#softShadow)" />
+          <circle cx="160" cy="235" r="3" fill="var(--kintsugi-primary)" />
+          <circle cx="240" cy="235" r="3" fill="var(--kintsugi-primary)" />
         </svg>
       </div>
     </section>
@@ -961,9 +962,9 @@
         <svg viewBox="0 0 48 48">
           <path d="M 8 32 Q 6 24 8 16 Q 12 8 24 6 Q 36 8 40 16 Q 42 24 40 32" />
           <ellipse cx="24" cy="32" rx="16" ry="6" fill="none" />
-          <path d="M 16 20 L 24 32" stroke="var(--kintsugi-gold)" stroke-width="2" />
-          <path d="M 32 20 L 24 32" stroke="var(--kintsugi-gold)" stroke-width="2" />
-          <circle cx="24" cy="32" r="3" fill="var(--kintsugi-gold)" />
+          <path d="M 16 20 L 24 32" stroke="var(--kintsugi-primary)" stroke-width="2" />
+          <path d="M 32 20 L 24 32" stroke="var(--kintsugi-primary)" stroke-width="2" />
+          <circle cx="24" cy="32" r="3" fill="var(--kintsugi-primary)" />
         </svg>
       </div>
       <h2 class="insight-title">What Ferni Holds</h2>

@@ -496,7 +496,7 @@ class PredictiveInsightsUI {
         padding: var(--space-2) var(--space-4);
         font-size: 12px;
         font-weight: 500;
-        color: white;
+        color: var(--color-white);
         border: none;
         border-radius: var(--radius-md);
         cursor: pointer;

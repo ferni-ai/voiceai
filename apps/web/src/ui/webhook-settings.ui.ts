@@ -963,7 +963,7 @@ class WebhookSettingsUI {
         left: 2px;
         width: 20px;
         height: 20px;
-        background: white;
+        background: var(--color-white);
         border-radius: var(--radius-full);
         transition: transform ${DURATION.FAST}ms;
       }

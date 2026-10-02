@@ -46,18 +46,18 @@ permalink: /preview/personalization/
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) ease;
   }
 
   .control-btn:hover {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     border-color: var(--color-accent);
   }
 
   .control-btn.active {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     border-color: var(--color-accent);
   }
 
@@ -74,12 +74,12 @@ permalink: /preview/personalization/
     box-shadow: var(--shadow-lg);
     z-index: 100;
     max-width: 300px;
-    transition: all 0.3s ease;
+    transition: all var(--duration-slow) ease;
   }
 
   .adaptation-indicator__label {
     font-weight: 600;
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
     margin-bottom: var(--space-1);
     display: flex;
     align-items: center;
@@ -109,19 +109,19 @@ permalink: /preview/personalization/
     padding: 120px var(--space-6) var(--space-20);
     text-align: center;
     background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
-    transition: all 0.5s ease;
+    transition: all var(--duration-slowest) ease;
   }
 
   .adaptive-hero[data-mode="professional"] {
-    background: linear-gradient(135deg, var(--color-bg-secondary) 0%, rgba(58, 107, 115, 0.08) 100%);
+    background: linear-gradient(135deg, var(--color-bg-secondary) 0%, color-mix(in srgb, var(--color-peter) 8%, transparent) 100%);
   }
 
   .adaptive-hero[data-mode="calm"] {
-    background: linear-gradient(135deg, var(--color-bg-secondary) 0%, rgba(74, 103, 65, 0.12) 100%);
+    background: linear-gradient(135deg, var(--color-bg-secondary) 0%, color-mix(in srgb, var(--color-ferni) 12%, transparent) 100%);
   }
 
   .adaptive-hero[data-mode="energy"] {
-    background: linear-gradient(135deg, var(--color-bg-secondary) 0%, rgba(196, 133, 106, 0.12) 100%);
+    background: linear-gradient(135deg, var(--color-bg-secondary) 0%, color-mix(in srgb, var(--color-jordan) 12%, transparent) 100%);
   }
 
   .adaptive-hero__eyebrow {
@@ -130,7 +130,7 @@ permalink: /preview/personalization/
     text-transform: uppercase;
     letter-spacing: 0.1em;
     margin-bottom: var(--space-4);
-    transition: all 0.4s ease;
+    transition: all var(--duration-slower) ease;
   }
 
   .adaptive-hero__title {
@@ -141,7 +141,7 @@ permalink: /preview/personalization/
     max-width: 800px;
     margin: 0 auto var(--space-6);
     line-height: 1.15;
-    transition: all 0.4s ease;
+    transition: all var(--duration-slower) ease;
   }
 
   .adaptive-hero__subtitle {
@@ -150,7 +150,7 @@ permalink: /preview/personalization/
     max-width: 600px;
     margin: 0 auto var(--space-8);
     line-height: 1.5;
-    transition: all 0.4s ease;
+    transition: all var(--duration-slower) ease;
   }
 
   .adaptive-hero__cta {
@@ -159,12 +159,12 @@ permalink: /preview/personalization/
     gap: var(--space-3);
     padding: var(--space-4) var(--space-8);
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     font-weight: 500;
     font-size: var(--text-lg);
     border-radius: var(--radius-full);
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: all var(--duration-slow) ease;
     box-shadow: 0 4px 20px var(--color-accent-glow);
   }
 
@@ -206,7 +206,7 @@ permalink: /preview/personalization/
     padding: var(--space-8);
     box-shadow: var(--shadow-xl);
     border: 2px solid var(--persona-color, var(--color-ferni));
-    transition: all 0.5s ease;
+    transition: all var(--duration-slowest) ease;
   }
 
   .featured-persona__header {
@@ -224,7 +224,7 @@ permalink: /preview/personalization/
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-white);
     font-size: var(--text-4xl);
     font-weight: 700;
     box-shadow: var(--shadow-xl);
@@ -274,16 +274,16 @@ permalink: /preview/personalization/
     gap: var(--space-2);
     padding: var(--space-3) var(--space-6);
     background: var(--persona-color, var(--color-ferni));
-    color: white;
+    color: var(--color-white);
     font-weight: 500;
     border-radius: var(--radius-lg);
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: all var(--duration-slow) ease;
   }
 
   .featured-persona__cta:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-lg);
   }
 
   /* Social Proof - Adaptive */
@@ -296,7 +296,7 @@ permalink: /preview/personalization/
     font-family: var(--font-display);
     font-size: var(--text-4xl);
     font-weight: 700;
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
     margin-bottom: var(--space-2);
   }
 
@@ -310,8 +310,8 @@ permalink: /preview/personalization/
     position: fixed;
     top: var(--space-4);
     left: var(--space-4);
-    background: rgba(255, 193, 7, 0.9);
-    color: #333;
+    background: color-mix(in srgb, var(--color-google-yellow) 90%, transparent);
+    color: var(--color-gray-700);
     padding: var(--space-2) var(--space-4);
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
@@ -339,7 +339,7 @@ permalink: /preview/personalization/
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) ease;
   }
 
   .preview-nav a:hover {
@@ -349,7 +349,7 @@ permalink: /preview/personalization/
 
   .preview-nav a.active {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     border-color: var(--color-accent);
   }
 
@@ -409,7 +409,7 @@ permalink: /preview/personalization/
       <p class="persona-spotlight__subtitle" id="spotlightSubtitle">Based on your browsing pattern</p>
     </div>
 
-    <div class="featured-persona" id="featuredPersona" style="--persona-color: #4a6741">
+    <div class="featured-persona" id="featuredPersona" style="--persona-color: var(--color-ferni)">
       <div class="featured-persona__header">
         <div class="featured-persona__avatar" id="personaAvatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
         <div class="featured-persona__info">

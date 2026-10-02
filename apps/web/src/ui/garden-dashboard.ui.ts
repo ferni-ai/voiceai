@@ -388,10 +388,10 @@ function injectStyles(): void {
 
     .garden-content {
       position: relative;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       max-width: clamp(294px, 90vw, 420px);
       width: 100%;
       padding: var(--space-8, 32px);
@@ -413,7 +413,7 @@ function injectStyles(): void {
     }
 
     .garden-close:hover {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 5%, transparent));
       color: var(--color-text-primary);
     }
 
@@ -430,7 +430,7 @@ function injectStyles(): void {
       height: 64px;
       background: linear-gradient(135deg, var(--persona-primary), var(--persona-secondary));
       border-radius: 50%;
-      color: white;
+      color: var(--color-white);
       margin-bottom: var(--space-4, 16px);
     }
 
@@ -464,12 +464,12 @@ function injectStyles(): void {
     .garden-stat {
       text-align: center;
       padding: var(--space-3, 12px);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 3%, transparent));
       border-radius: var(--radius-lg, 12px);
     }
 
     .garden-stat--highlight {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
     }
 
     .garden-stat-value {
@@ -494,7 +494,7 @@ function injectStyles(): void {
       justify-content: center;
       gap: var(--space-3, 12px);
       padding: var(--space-4, 16px);
-      background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.08)), transparent);
+      background: linear-gradient(135deg, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent)), transparent);
       border: 1px solid var(--persona-primary);
       border-radius: var(--radius-lg, 12px);
       margin-bottom: var(--space-5, 20px);
@@ -531,14 +531,14 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-3, 12px);
       padding: var(--space-3, 12px);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 3%, transparent));
       border-radius: var(--radius-md, 8px);
       opacity: 0.5;
     }
 
     .garden-tier--active {
       opacity: 1;
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border: 1px solid var(--persona-primary);
     }
 
@@ -571,7 +571,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-3, 12px);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 3%, transparent));
       border-radius: var(--radius-lg, 12px);
       margin-bottom: var(--space-5, 20px);
     }
@@ -602,7 +602,7 @@ function injectStyles(): void {
     }
 
     .garden-link-copy:hover {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 5%, transparent));
       color: var(--persona-text);
     }
 
@@ -628,7 +628,7 @@ function injectStyles(): void {
 
     .garden-action--primary {
       background: var(--persona-primary);
-      color: white;
+      color: var(--color-white);
     }
 
     .garden-action--primary:hover {
@@ -640,7 +640,7 @@ function injectStyles(): void {
       text-align: center;
       padding: var(--space-6, 24px) var(--space-4, 16px);
       margin-top: var(--space-4, 16px);
-      border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+      border-top: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 8%, transparent));
     }
 
     .garden-empty p {
@@ -656,7 +656,7 @@ function injectStyles(): void {
 
     /* Dark theme */
     [data-theme="midnight"] .garden-backdrop {
-      background: rgba(8, 8, 12, 0.8);
+      background: color-mix(in srgb, var(--color-black) 80%, transparent);
     }
 
     [data-theme="midnight"] .garden-content {

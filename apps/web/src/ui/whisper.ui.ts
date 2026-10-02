@@ -69,15 +69,15 @@ const TYPE_ACCENTS: Record<WhisperType, { accent: string; glow: string }> = {
     glow: 'rgba(74, 103, 65, 0.15)',
   },
   success: {
-    accent: 'var(--color-semantic-success, #4a6741)',
+    accent: 'var(--color-semantic-success)',
     glow: 'rgba(74, 103, 65, 0.2)',
   },
   warning: {
-    accent: 'var(--color-semantic-warning, #b8956a)',
+    accent: 'var(--color-semantic-warning)',
     glow: 'rgba(184, 149, 106, 0.15)',
   },
   error: {
-    accent: 'var(--color-semantic-error, #a86d55)',
+    accent: 'var(--color-semantic-error)',
     glow: 'rgba(168, 109, 85, 0.2)',
   },
   celebration: {
@@ -130,8 +130,8 @@ function injectStyles(): void {
       background: rgba(30, 30, 35, 0.75);
       backdrop-filter: blur(var(--glass-blur-medium, 16px));
       -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: var(--color-text-primary, #faf6f0);
+      border: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent);
+      color: var(--color-text-primary);
       padding: 6px 14px;
       border-radius: 20px;
       font-family: var(--font-body, 'Inter', system-ui, sans-serif);
@@ -142,7 +142,7 @@ function injectStyles(): void {
       max-width: calc(100vw - 48px);
       overflow: hidden;
       text-overflow: ellipsis;
-      box-shadow: 0 4px 20px var(--whisper-glow, rgba(0, 0, 0, 0.15)), 0 2px 8px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 20px var(--whisper-glow, color-mix(in srgb, var(--color-black) 15%, transparent)), 0 2px 8px color-mix(in srgb, var(--color-black) 20%, transparent);
       pointer-events: auto;
       
       /* Entry animation - slides down from avatar */
@@ -160,7 +160,7 @@ function injectStyles(): void {
       bottom: 0;
       width: 3px;
       border-radius: 20px 0 0 20px;
-      background: var(--whisper-accent, var(--persona-primary, #4a6741));
+      background: var(--whisper-accent, var(--persona-primary, var(--color-ferni)));
       opacity: 0.8;
     }
 
@@ -235,7 +235,7 @@ function injectStyles(): void {
       position: absolute;
       width: 3px;
       height: 3px;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: 50%;
       opacity: 0;
       animation: sparkle-burst 0.6s ${EASING.EXPO_OUT} forwards;

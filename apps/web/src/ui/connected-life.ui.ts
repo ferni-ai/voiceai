@@ -11,75 +11,19 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 import { apiGet } from '../utils/api.js';
+import {
+  type IntegrationCategory,
+  type Integration,
+  type ConnectedLifeCallbacks,
+  ICONS,
+  type IntegrationStatuses,
+} from './connected-life-config.js';
 
 const log = createLogger('ConnectedLife');
 
 // ============================================================================
 // TYPES
 // ============================================================================
-
-type IntegrationCategory = 'health' | 'calendar' | 'vibe';
-type ConnectionStatus = 'connected' | 'disconnected' | 'pending';
-
-interface Integration {
-  id: string;
-  name: string;
-  icon: string;
-  status: ConnectionStatus;
-  description: string;
-  onConnect?: () => void;
-  onDisconnect?: () => void;
-}
-
-interface ConnectedLifeCallbacks {
-  onClose?: () => void;
-  onConnectAppleHealth?: () => void;
-  onConnectOura?: () => void;
-  onConnectEightSleep?: () => void;
-  onConnectWearables?: () => void;
-  onConnectCalendar?: () => void;
-  onConnectLinkedIn?: () => void;
-  onConnectSpotify?: () => void;
-  onConnectEcobee?: () => void;
-  onOpenVibeController?: () => void;
-}
-
-// ============================================================================
-// ICONS
-// ============================================================================
-
-const ICONS = {
-  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>',
-  health: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
-  calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
-  vibe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>',
-  // Individual integration icons
-  appleHealth: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
-  oura: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg>',
-  eightSleep: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4v16"/><path d="M22 4v16"/><path d="M2 8h20"/><path d="M2 16h20"/><path d="M6 8v8"/><path d="M18 8v8"/></svg>',
-  watch: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
-  google: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
-  linkedin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>',
-  spotify: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 15s1.5-.5 4-.5 4 .5 4 .5"/><path d="M7 12s2-1 5-1 5 1 5 1"/><path d="M6 9s2.5-1.5 6-1.5 6 1.5 6 1.5"/></svg>',
-  ecobee: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 4V10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z"/><line x1="12" y1="14" x2="12" y2="10"/></svg>',
-  controller: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>',
-};
-
-// ============================================================================
-// CONNECTED LIFE UI CLASS
-// ============================================================================
-
-interface IntegrationStatuses {
-  appleHealth: ConnectionStatus;
-  oura: ConnectionStatus;
-  eightSleep: ConnectionStatus;
-  wearables: ConnectionStatus;
-  googleCalendar: ConnectionStatus;
-  linkedin: ConnectionStatus;
-  spotify: ConnectionStatus;
-  ecobee: ConnectionStatus;
-}
 
 class ConnectedLifeUI {
   private container: HTMLElement | null = null;
@@ -507,10 +451,10 @@ const styles = `
 
 .connected-life-modal {
   position: relative;
-  background: var(--color-bg-elevated, #FFFDFB);
-  border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  background: var(--color-bg-elevated, var(--color-white));
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xl, 20px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
   width: calc(100% - var(--space-8, 32px));
   max-width: 560px;
   max-height: calc(100vh - var(--space-16, 64px));
@@ -531,7 +475,7 @@ const styles = `
   align-items: flex-start;
   justify-content: space-between;
   padding: var(--space-6, 24px);
-  border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .connected-life-eyebrow {
@@ -548,13 +492,13 @@ const styles = `
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .connected-life-subtitle {
   font-size: 0.9rem;
-  color: var(--color-text-muted, #9a8f85);
+  color: var(--color-text-muted);
   margin: var(--space-1, 4px) 0 0;
 }
 
@@ -567,14 +511,14 @@ const styles = `
   background: transparent;
   border: none;
   border-radius: var(--radius-full, 9999px);
-  color: var(--color-text-muted, #9a8f85);
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
 }
 
 .connected-life-close:hover {
   background: var(--color-background-subtle, rgba(44, 37, 32, 0.04));
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
 }
 
 .connected-life-close svg {
@@ -587,7 +531,7 @@ const styles = `
   display: flex;
   gap: var(--space-2, 8px);
   padding: var(--space-4, 16px) var(--space-6, 24px);
-  border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .connected-life-tab {
@@ -600,7 +544,7 @@ const styles = `
   background: var(--color-background-subtle, rgba(44, 37, 32, 0.02));
   border: 1px solid transparent;
   border-radius: var(--radius-lg, 12px);
-  color: var(--color-text-muted, #9a8f85);
+  color: var(--color-text-muted);
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
@@ -609,7 +553,7 @@ const styles = `
 
 .connected-life-tab:hover {
   background: var(--color-background-subtle, rgba(44, 37, 32, 0.04));
-  color: var(--color-text-secondary, #5c544a);
+  color: var(--color-text-secondary);
 }
 
 .connected-life-tab.active {
@@ -661,9 +605,9 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-background-elevated, #fffdfb);
+  background: var(--color-background-elevated);
   border-radius: var(--radius-lg, 12px);
-  color: var(--color-text-secondary, #5c544a);
+  color: var(--color-text-secondary);
 }
 
 .connected-life-integration-icon svg {
@@ -679,13 +623,13 @@ const styles = `
 .connected-life-integration-info h4 {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   margin: 0 0 var(--space-1, 4px);
 }
 
 .connected-life-integration-info p {
   font-size: 0.8rem;
-  color: var(--color-text-muted, #9a8f85);
+  color: var(--color-text-muted);
   margin: 0;
   line-height: 1.4;
 }
@@ -707,7 +651,7 @@ const styles = `
 }
 
 .connected-life-connect-btn:hover {
-  background: var(--color-accent-hover, #2d4835);
+  background: var(--color-accent-hover);
   transform: translateY(-1px);
 }
 
@@ -734,20 +678,20 @@ const styles = `
 
 /* Dark theme */
 [data-theme="midnight"] .connected-life-backdrop {
-  background: rgba(10, 10, 12, 0.7);
+  background: color-mix(in srgb, var(--color-black) 70%, transparent);
 }
 
 [data-theme="midnight"] .connected-life-modal {
-  background: var(--color-background-elevated, #1a1a1e);
+  background: var(--color-background-elevated);
 }
 
 [data-theme="midnight"] .connected-life-header,
 [data-theme="midnight"] .connected-life-tabs {
-  border-bottom-color: rgba(255, 255, 255, 0.06);
+  border-bottom-color: color-mix(in srgb, var(--color-white) 6%, transparent);
 }
 
 [data-theme="midnight"] .connected-life-integration-icon {
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--color-white) 5%, transparent);
 }
 `;
 
@@ -773,4 +717,3 @@ export function hideConnectedLife(): void {
 }
 
 export { connectedLifeUI };
-

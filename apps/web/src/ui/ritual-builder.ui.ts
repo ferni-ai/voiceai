@@ -1181,9 +1181,9 @@ class RitualBuilderUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, var(--persona-maya, #a67a6a), #8a635a);
+        background: linear-gradient(135deg, var(--persona-maya, var(--color-maya)), var(--color-maya-secondary));
         border-radius: var(--radius-full);
-        color: white;
+        color: var(--color-white);
       }
 
       .ritual-builder__maya-message {
@@ -1233,7 +1233,7 @@ class RitualBuilderUI {
 
       .ritual-builder__template-card:hover {
         background: var(--color-background-tertiary);
-        border-color: var(--persona-maya, #a67a6a);
+        border-color: var(--persona-maya, var(--color-maya));
         transform: translateY(-2px);
         box-shadow: var(--shadow-md);
       }
@@ -1254,7 +1254,7 @@ class RitualBuilderUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--persona-tint, rgba(166, 122, 106, 0.1));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-maya) 10%, transparent));
         border-radius: var(--radius-md);
         color: var(--persona-maya-ink);
         flex-shrink: 0;
@@ -1285,7 +1285,7 @@ class RitualBuilderUI {
         align-items: center;
         gap: 3px;
         padding: 2px 8px;
-        background: linear-gradient(135deg, rgba(166, 122, 106, 0.15), rgba(166, 122, 106, 0.08));
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-maya) 15%, transparent), color-mix(in srgb, var(--color-maya) 8%, transparent));
         border-radius: var(--radius-full);
         font-size: var(--text-2xs, 0.625rem);
         font-weight: var(--font-weight-semibold, 600);
@@ -1443,7 +1443,7 @@ class RitualBuilderUI {
 
       .ritual-builder__time-btn--active {
         background: var(--persona-primary, var(--color-accent-primary));
-        color: white;
+        color: var(--color-white);
         border-color: var(--color-accent-text);
       }
 
@@ -1498,7 +1498,7 @@ class RitualBuilderUI {
         left: 3px;
         width: 20px;
         height: 20px;
-        background: white;
+        background: var(--color-white);
         border-radius: 50%;
         box-shadow: var(--shadow-sm);
         transition: transform var(--duration-fast) var(--ease-spring);
@@ -1689,11 +1689,11 @@ class RitualBuilderUI {
         padding: var(--ma-rest);
         background: var(--color-background-secondary);
         border-radius: var(--radius-lg);
-        border-left: 4px solid var(--persona-maya, #a67a6a);
+        border-left: 4px solid var(--persona-maya, var(--color-maya));
       }
 
       .ritual-builder__preview-card--calendar {
-        border-color: var(--color-semantic-success, #4caf50);
+        border-color: var(--color-semantic-success);
       }
 
       .ritual-builder__preview-header {
@@ -1717,7 +1717,7 @@ class RitualBuilderUI {
         align-items: center;
         gap: 3px;
         padding: 2px 8px;
-        background: linear-gradient(135deg, rgba(166, 122, 106, 0.15), rgba(166, 122, 106, 0.08));
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-maya) 15%, transparent), color-mix(in srgb, var(--color-maya) 8%, transparent));
         border-radius: var(--radius-full);
         font-size: var(--text-2xs, 0.625rem);
         font-weight: var(--font-weight-semibold, 600);
@@ -1835,17 +1835,17 @@ class RitualBuilderUI {
       }
 
       .ritual-builder__loop-badge--cue {
-        background: rgba(58, 107, 115, 0.12);
+        background: color-mix(in srgb, var(--color-peter) 12%, transparent);
         color: var(--persona-peter-ink);
       }
 
       .ritual-builder__loop-badge--routine {
-        background: rgba(166, 122, 106, 0.12);
+        background: color-mix(in srgb, var(--color-maya) 12%, transparent);
         color: var(--persona-maya-ink);
       }
 
       .ritual-builder__loop-badge--reward {
-        background: rgba(196, 133, 106, 0.12);
+        background: color-mix(in srgb, var(--color-jordan) 12%, transparent);
         color: var(--persona-jordan-ink);
       }
 
@@ -1872,7 +1872,7 @@ class RitualBuilderUI {
           var(--color-background-secondary)
         );
         border-radius: var(--radius-lg);
-        border: 1px solid rgba(196, 133, 106, 0.15);
+        border: 1px solid color-mix(in srgb, var(--color-jordan) 15%, transparent);
       }
 
       .ritual-builder__outcome-icon {
@@ -1882,9 +1882,9 @@ class RitualBuilderUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, var(--persona-jordan, #c4856a), #a86d55);
+        background: linear-gradient(135deg, var(--persona-jordan, var(--color-jordan)), var(--color-jordan-secondary));
         border-radius: var(--radius-md);
-        color: white;
+        color: var(--color-white);
       }
 
       .ritual-builder__outcome-content {
@@ -1916,7 +1916,7 @@ class RitualBuilderUI {
         padding: var(--ma-pause);
         background: var(--color-background-secondary);
         border-radius: var(--radius-lg);
-        border-left: 3px solid var(--persona-maya, #a67a6a);
+        border-left: 3px solid var(--persona-maya, var(--color-maya));
       }
 
       .ritual-builder__maya-mini {
@@ -1926,9 +1926,9 @@ class RitualBuilderUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--persona-maya, #a67a6a);
+        background: var(--persona-maya, var(--color-maya));
         border-radius: var(--radius-full);
-        color: white;
+        color: var(--color-white);
       }
 
       .ritual-builder__maya-note {
@@ -1993,15 +1993,15 @@ class RitualBuilderUI {
       }
 
       [data-theme="midnight"] .ritual-builder__loop-badge--cue {
-        background: rgba(58, 107, 115, 0.2);
+        background: color-mix(in srgb, var(--color-peter) 20%, transparent);
       }
 
       [data-theme="midnight"] .ritual-builder__loop-badge--routine {
-        background: rgba(166, 122, 106, 0.2);
+        background: color-mix(in srgb, var(--color-maya) 20%, transparent);
       }
 
       [data-theme="midnight"] .ritual-builder__loop-badge--reward {
-        background: rgba(196, 133, 106, 0.2);
+        background: color-mix(in srgb, var(--color-jordan) 20%, transparent);
       }
 
       [data-theme="midnight"] .ritual-builder__maya-intro {
@@ -2017,7 +2017,7 @@ class RitualBuilderUI {
       }
 
       [data-theme="midnight"] .ritual-builder__keystone-badge {
-        background: linear-gradient(135deg, rgba(166, 122, 106, 0.2), rgba(166, 122, 106, 0.1));
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-maya) 20%, transparent), color-mix(in srgb, var(--color-maya) 10%, transparent));
       }
 
       [data-theme="midnight"] .ritual-builder__bth-footer {

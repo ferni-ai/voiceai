@@ -692,10 +692,10 @@ function addStyles(): void {
       width: 90%;
       max-width: clamp(420px, 90vw, 600px);
       max-height: 85vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: var(--shadow-xl, 0 8px 32px rgba(0, 0, 0, 0.12));
+      box-shadow: var(--shadow-xl, 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent));
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -784,7 +784,7 @@ function addStyles(): void {
     
     .tab-btn.active {
       background: var(--persona-primary);
-      color: white;
+      color: var(--color-white);
     }
     
     .trust-dashboard-content {
@@ -1095,7 +1095,7 @@ function addStyles(): void {
       width: 100%;
       padding: var(--space-3);
       background: var(--persona-primary);
-      color: white;
+      color: var(--color-white);
       border: none;
       border-radius: var(--radius-md);
       font-weight: 600;

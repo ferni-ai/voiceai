@@ -21,7 +21,7 @@
 
 .cursor-ripple {
   --ripple-size: 200px;
-  --ripple-color: rgba(74, 103, 65, 0.15);
+  --ripple-color: color-mix(in srgb, var(--color-ferni) 15%, transparent);
   
   position: absolute;
   width: var(--ripple-size);
@@ -40,7 +40,7 @@
 }
 
 .cursor-ripple.is-animating {
-  animation: ripple-expand 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: ripple-expand var(--duration-cinematic) var(--ease-cinematic) forwards;
 }
 
 @keyframes ripple-expand {
@@ -61,14 +61,14 @@
 .button-ripple {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--color-white) 30%, transparent);
   transform: scale(0);
   opacity: 1;
   pointer-events: none;
 }
 
 .button-ripple.is-animating {
-  animation: button-ripple-expand 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: button-ripple-expand 600ms var(--ease-cinematic) forwards;
 }
 
 @keyframes button-ripple-expand {
@@ -85,13 +85,13 @@
 /* Dark button variant */
 .btn--primary .button-ripple,
 .btn--dark .button-ripple {
-  background: rgba(255, 255, 255, 0.25);
+  background: color-mix(in srgb, var(--color-white) 25%, transparent);
 }
 
 /* Light button variant */
 .btn--secondary .button-ripple,
 .btn--light .button-ripple {
-  background: rgba(74, 103, 65, 0.15);
+  background: color-mix(in srgb, var(--color-ferni) 15%, transparent);
 }
 
 /* ============================================================================
@@ -100,7 +100,7 @@
 
 /* Soft ripple - more gentle */
 .cursor-ripple--soft {
-  --ripple-color: rgba(74, 103, 65, 0.08);
+  --ripple-color: color-mix(in srgb, var(--color-ferni) 8%, transparent);
   --ripple-size: 300px;
 }
 
@@ -110,12 +110,12 @@
 
 /* Intense ripple - for emphasis */
 .cursor-ripple--intense {
-  --ripple-color: rgba(74, 103, 65, 0.25);
+  --ripple-color: color-mix(in srgb, var(--color-ferni) 25%, transparent);
   --ripple-size: 150px;
 }
 
 .cursor-ripple--intense.is-animating {
-  animation-duration: 500ms;
+  animation-duration: var(--duration-slowest);
 }
 
 /* ============================================================================
@@ -132,12 +132,12 @@
   height: 8px;
   margin: -4px;
   border-radius: 50%;
-  background: var(--color-ferni, var(--color-ferni));
+  background: var(--color-ferni);
   opacity: 0;
 }
 
 .cursor-ripple.is-animating::before {
-  animation: dot-flash 300ms ease-out;
+  animation: dot-flash var(--duration-slow) ease-out;
 }
 
 @keyframes dot-flash {

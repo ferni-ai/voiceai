@@ -481,7 +481,7 @@ permalink: /components/progress/
 
 .step.active .step-indicator {
   border-color: var(--accent-primary);
-  color: var(--accent-primary);
+  color: var(--accent-text);
 }
 
 .step.completed .step-indicator {
@@ -640,7 +640,7 @@ permalink: /components/progress/
 /* Indeterminate */
 .progress-indeterminate {
   width: 30% !important;
-  animation: indeterminate 1.5s ease-in-out infinite;
+  animation: indeterminate var(--duration-glacial) ease-in-out infinite;
 }
 
 @keyframes indeterminate {
@@ -673,15 +673,15 @@ permalink: /components/progress/
   border: 3px solid var(--border-subtle);
   border-top-color: var(--accent-primary);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin var(--duration-cinematic) linear infinite;
 }
 
 .spinner-sm { width: 16px; height: 16px; border-width: 2px; }
 .spinner-lg { width: 40px; height: 40px; border-width: 4px; }
 
 .spinner-white {
-  border-color: rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  border-color: color-mix(in srgb, var(--color-white) 30%, transparent);
+  border-top-color: var(--color-white);
 }
 
 .spinner-ferni { border-top-color: var(--persona-ferni); }
@@ -706,7 +706,7 @@ permalink: /components/progress/
   height: 10px;
   background: var(--accent-primary);
   border-radius: 50%;
-  animation: pulse 1.4s ease-in-out infinite;
+  animation: pulse var(--duration-glacial) ease-in-out infinite;
 }
 
 .pulse-dot:nth-child(2) { animation-delay: 0.2s; }
@@ -784,7 +784,7 @@ permalink: /components/progress/
     var(--bg-tertiary) 75%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer var(--duration-glacial) infinite;
   flex-shrink: 0;
 }
 
@@ -804,7 +804,7 @@ permalink: /components/progress/
     var(--bg-tertiary) 75%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer var(--duration-glacial) infinite;
   border-radius: var(--radius-sm);
 }
 
@@ -858,13 +858,13 @@ permalink: /components/progress/
 
 .step.active .step-indicator {
   border-color: var(--accent-primary);
-  color: var(--accent-primary);
+  color: var(--accent-text);
 }
 
 .step.completed .step-indicator {
   background: var(--accent-primary);
   border-color: var(--accent-primary);
-  color: white;
+  color: var(--text-inverse);
 }
 
 .step-label {
@@ -874,7 +874,7 @@ permalink: /components/progress/
 }
 
 .step.active .step-label {
-  color: var(--accent-primary);
+  color: var(--accent-text);
   font-weight: var(--font-weight-medium);
 }
 
@@ -933,8 +933,8 @@ permalink: /components/progress/
   margin-bottom: var(--space-4);
 }
 
-.guideline.do h4 { color: var(--success); }
-.guideline.dont h4 { color: var(--error); }
+.guideline.do h4 { color: var(--success-text); }
+.guideline.dont h4 { color: var(--error-text); }
 
 .guideline ul {
   list-style: none;

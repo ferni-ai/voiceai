@@ -737,9 +737,9 @@ function injectStyles(): void {
 
     .memory-lane-modal__card {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+      box-shadow: var(--shadow-2xl, 0 25px 50px -12px color-mix(in srgb, var(--color-black) 25%, transparent));
       width: 90%;
       max-width: 520px;
       max-height: 80vh;
@@ -776,7 +776,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-xl, 1.5rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
@@ -789,14 +789,14 @@ function injectStyles(): void {
       background: transparent;
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
 
     .memory-lane-modal__close:hover {
-      background: var(--color-bg-subtle, rgba(0, 0, 0, 0.05));
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-bg-subtle, color-mix(in srgb, var(--color-black) 5%, transparent));
+      color: var(--color-text-primary);
     }
 
     .memory-lane-modal__close svg {
@@ -809,7 +809,7 @@ function injectStyles(): void {
       display: flex;
       gap: var(--space-xs, 4px);
       padding: 0 var(--space-lg, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.08));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .memory-lane-modal__tab {
@@ -820,13 +820,13 @@ function injectStyles(): void {
       font-family: var(--font-body, 'Inter', system-ui);
       font-size: var(--font-size-sm, 0.875rem);
       font-weight: 500;
-      color: var(--color-text-muted, #9a8a82);
+      color: var(--color-text-muted);
       cursor: pointer;
       transition: color ${DURATION.FAST}ms, border-color ${DURATION.FAST}ms;
     }
 
     .memory-lane-modal__tab:hover {
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
     }
 
     .memory-lane-modal__tab--active {
@@ -845,7 +845,7 @@ function injectStyles(): void {
     .memory-lane-loading {
       padding: var(--space-xl, 48px);
       text-align: center;
-      color: var(--color-text-muted, #9a8a82);
+      color: var(--color-text-muted);
       font-style: italic;
     }
 
@@ -857,13 +857,13 @@ function injectStyles(): void {
 
     .memory-lane-empty__text {
       font-size: var(--font-size-md, 1rem);
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
       margin: 0 0 var(--space-xs, 8px);
     }
 
     .memory-lane-empty__subtext {
       font-size: var(--font-size-sm, 0.875rem);
-      color: var(--color-text-muted, #9a8a82);
+      color: var(--color-text-muted);
       margin: 0;
     }
 
@@ -872,7 +872,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-lg, 1.125rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       text-align: center;
       padding: var(--space-sm, 12px) 0 var(--space-md, 16px);
     }
@@ -895,7 +895,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-sm, 0.875rem);
       font-weight: 600;
-      color: var(--color-text-muted, #9a8a82);
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
       margin-bottom: var(--space-sm, 12px);
@@ -909,7 +909,7 @@ function injectStyles(): void {
 
     /* Memory Cards */
     .memory-lane-card {
-      background: var(--color-bg-subtle, rgba(0, 0, 0, 0.02));
+      background: var(--color-bg-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
       border-radius: var(--radius-lg, 16px);
       padding: var(--space-md, 16px);
       position: relative;
@@ -923,7 +923,7 @@ function injectStyles(): void {
 
     .memory-lane-card__date {
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, #9a8a82);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-xs, 4px);
     }
 
@@ -944,7 +944,7 @@ function injectStyles(): void {
 
     .memory-lane-card__content {
       font-size: var(--font-size-sm, 0.875rem);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       line-height: 1.5;
       margin: 0;
       padding-right: var(--space-xl, 48px);
@@ -953,7 +953,7 @@ function injectStyles(): void {
     .memory-lane-card__persona {
       display: block;
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, #9a8a82);
+      color: var(--color-text-muted);
       margin-top: var(--space-xs, 4px);
     }
 
@@ -970,26 +970,26 @@ function injectStyles(): void {
       align-items: center;
       justify-content: center;
       background: transparent;
-      border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.1));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-full, 999px);
-      color: var(--color-text-muted, #9a8a82);
+      color: var(--color-text-muted);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .memory-lane-card__reaction:hover {
-      background: var(--color-bg-hover, rgba(0, 0, 0, 0.05));
-      color: var(--color-text-secondary, #70605a);
+      background: var(--color-bg-hover, color-mix(in srgb, var(--color-black) 5%, transparent));
+      color: var(--color-text-secondary);
     }
 
     .memory-lane-card__reaction--active {
-      background: var(--color-accent-subtle, rgba(61, 90, 69, 0.1));
+      background: var(--color-accent-subtle);
       border-color: var(--color-accent, #3D5A45);
       color: var(--color-accent-text);
     }
 
     .memory-lane-card__reaction--dismiss:hover {
-      border-color: var(--color-semantic-error, #dc2626);
+      border-color: var(--color-semantic-error);
       color: var(--color-semantic-error-text);
     }
 
@@ -1012,19 +1012,19 @@ function injectStyles(): void {
     }
 
     .memory-lane-card--tender {
-      background: var(--color-memory-tender, rgba(196, 133, 106, 0.08));
+      background: var(--color-memory-tender, color-mix(in srgb, var(--color-jordan) 8%, transparent));
     }
 
     .memory-lane-card--funny {
-      background: var(--color-memory-funny, rgba(184, 149, 106, 0.08));
+      background: var(--color-memory-funny, color-mix(in srgb, var(--color-nayan) 8%, transparent));
     }
 
     .memory-lane-card--hopeful {
-      background: var(--color-memory-hopeful, rgba(74, 103, 65, 0.08));
+      background: var(--color-memory-hopeful, color-mix(in srgb, var(--color-ferni) 8%, transparent));
     }
 
     .memory-lane-card--growth {
-      background: var(--color-memory-growth, rgba(74, 103, 65, 0.1));
+      background: var(--color-memory-growth, color-mix(in srgb, var(--color-ferni) 10%, transparent));
     }
 
     .memory-lane-card--grateful {
@@ -1049,9 +1049,9 @@ function injectStyles(): void {
       bottom: calc(var(--safe-area-bottom, 0px) + 100px);
       left: 50%;
       transform: translateX(-50%) translateY(20px);
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: var(--shadow-xl, 0 20px 40px -12px rgba(0, 0, 0, 0.2));
+      box-shadow: var(--shadow-xl, 0 20px 40px -12px color-mix(in srgb, var(--color-black) 20%, transparent));
       display: flex;
       align-items: center;
       gap: var(--space-md, 16px);
@@ -1103,14 +1103,14 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-sm, 0.875rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: 2px;
     }
 
     .anniversary-notification-preview {
       font-family: var(--font-body, 'Inter', system-ui);
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, #9a8a82);
+      color: var(--color-text-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;

@@ -34,12 +34,10 @@ apps/website/
 │   ├── _site/
 │   └── README.md
 │
-├── marketplace-portal/     # Persona marketplace
-│   ├── src/
-│   ├── _site/
-│   └── README.md
-│
-└── ferni-landing-page.html # Standalone landing page
+└── marketplace-portal/     # Persona marketplace
+    ├── src/
+    ├── _site/              # build output (gitignored)
+    └── README.md
 ```
 
 ## Development
@@ -89,11 +87,23 @@ All portals share design tokens from `design-system/tokens/`. Sync with:
 pnpm tokens:sync
 ```
 
-This updates:
-- `apps/website/design-system-portal/src/css/tokens.css`
-- `apps/website/developers-portal/src/css/tokens.css`
-- `apps/website/marketplace-portal/src/css/tokens.css`
-- `apps/website/ferni-website/css/design-tokens.css`
+This regenerates (never edit these by hand):
+- `apps/website/ferni-website/src/css/_tokens.css` (Zen Garden + dark overrides)
+- `apps/website/developers-portal/src/css/tokens.css` (Cedar Night)
+- `apps/website/design-system-portal/src/css/tokens.css` (Cedar Night)
+- `apps/website/marketplace-portal/src/css/tokens.css` (Zen Garden)
+
+### Token rules (enforced by `pnpm brand:check`, Check 8)
+- No hex/rgb/hsl literals in `src/css/**`: use `var(--token)`, and
+  `color-mix(in srgb, var(--token) N%, transparent)` for translucency
+  (`--color-white` / `--color-black` exist for overlays and shadows).
+- Never redefine a generated token in a `:root` block. (ferni-website pins the
+  `--space-*` scale to px because its root font-size is 15px — the one exception.)
+- Text in a persona/accent color uses the ink, not the fill:
+  `--color-{persona}-text` (ferni-website), `--persona-{id}-text`,
+  `--accent-text`, `--success-text`… (dark portals).
+- Standalone pages that load `_tokens.css` but have no dark design pin
+  `<html data-theme="light">`.
 
 ## Firebase Hosting
 
@@ -107,12 +117,12 @@ This updates:
 ## Theme Reference
 
 ### Zen Garden (Light)
-- Primary: #faf8f5 (Warm Paper)
-- Accent: #3D5A45 (Ferni Sage)
+- Primary: `--color-bg-primary` (Warm Paper)
+- Accent: `--color-accent` (Ferni Sage)
 
 ### Cedar Night (Dark)
-- Primary: #584840 (Cedar)
-- Accent: #d4a84a (Gold)
+- Primary: `--bg-primary` (Cedar)
+- Accent: `--accent-primary` (Gold); text on it uses `--text-inverse`
 
 ## Related Docs
 

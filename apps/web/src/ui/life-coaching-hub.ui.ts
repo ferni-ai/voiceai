@@ -71,10 +71,10 @@ const styles = `
     width: 95%;
     max-width: 800px;
     max-height: 90vh;
-    background: var(--color-bg-elevated, #FFFDFB);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    background: var(--color-bg-elevated, var(--color-white));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-xl, 20px);
-    box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+    box-shadow: var(--shadow-2xl, 0 25px 50px -12px color-mix(in srgb, var(--color-black) 25%, transparent));
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -88,7 +88,7 @@ const styles = `
   
   .life-coaching-hub__header {
     padding: var(--space-6, 24px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    border-bottom: 1px solid var(--color-border-subtle);
     flex-shrink: 0;
   }
   
@@ -127,20 +127,20 @@ const styles = `
   .life-coaching-hub__close svg {
     width: 20px;
     height: 20px;
-    color: var(--color-text-muted, #a09080);
+    color: var(--color-text-muted);
   }
   
   .life-coaching-hub__title {
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 24px;
     font-weight: 700;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-2, 8px) 0;
   }
   
   .life-coaching-hub__subtitle {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
     margin: 0;
   }
   
@@ -153,22 +153,22 @@ const styles = `
     width: 100%;
     padding: var(--space-3, 12px) var(--space-4, 16px);
     padding-left: 40px;
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.15));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg, 16px);
     font-size: 14px;
     background: var(--color-bg-subtle, #f8f6f4);
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     transition: all var(--duration-fast, 100ms);
   }
   
   .life-coaching-hub__search-input:focus {
     outline: none;
-    border-color: var(--color-ferni, #4a6741);
-    box-shadow: 0 0 0 3px var(--color-ferni-tint, rgba(74, 103, 65, 0.1));
+    border-color: var(--color-ferni);
+    box-shadow: 0 0 0 3px var(--color-ferni-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
   }
   
   .life-coaching-hub__search-input::placeholder {
-    color: var(--color-text-muted, #a09080);
+    color: var(--color-text-muted);
   }
   
   .life-coaching-hub__search-icon {
@@ -178,14 +178,14 @@ const styles = `
     transform: translateY(-50%);
     width: 18px;
     height: 18px;
-    color: var(--color-text-muted, #a09080);
+    color: var(--color-text-muted);
   }
   
   .life-coaching-hub__tabs {
     display: flex;
     gap: var(--space-1, 4px);
     padding: var(--space-3, 12px) var(--space-6, 24px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    border-bottom: 1px solid var(--color-border-subtle);
     overflow-x: auto;
     flex-shrink: 0;
   }
@@ -201,7 +201,7 @@ const styles = `
     border-radius: var(--radius-lg, 16px);
     font-size: 13px;
     font-weight: 500;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
     white-space: nowrap;
     transition: all var(--duration-fast, 100ms);
   }
@@ -211,7 +211,7 @@ const styles = `
   }
   
   .life-coaching-hub__tab.active {
-    background: var(--color-ferni-tint, rgba(74, 103, 65, 0.1));
+    background: var(--color-ferni-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
     color: var(--color-ferni-ink);
   }
   
@@ -238,7 +238,7 @@ const styles = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 16px;
     font-weight: 600;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-3, 12px) 0;
     display: flex;
     align-items: center;
@@ -266,14 +266,14 @@ const styles = `
   .life-coaching-hub__cta {
     margin-top: var(--space-6, 24px);
     padding: var(--space-4, 16px);
-    background: var(--color-ferni-tint, rgba(74, 103, 65, 0.1));
+    background: var(--color-ferni-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
     border-radius: var(--radius-lg, 16px);
     text-align: center;
   }
   
   .life-coaching-hub__cta-text {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
     margin: 0 0 var(--space-3, 12px) 0;
   }
   
@@ -294,7 +294,7 @@ const styles = `
   .life-coaching-hub__empty {
     text-align: center;
     padding: var(--space-8, 32px);
-    color: var(--color-text-muted, #a09080);
+    color: var(--color-text-muted);
   }
   
   .life-coaching-hub__empty-icon {
@@ -305,16 +305,16 @@ const styles = `
   }
   
   .life-coaching-hub__intro {
-    background: linear-gradient(135deg, var(--color-ferni-tint, rgba(74, 103, 65, 0.08)), transparent);
+    background: linear-gradient(135deg, var(--color-ferni-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent)), transparent);
     border-radius: var(--radius-lg, 16px);
     padding: var(--space-4, 16px) var(--space-5, 20px);
     margin-bottom: var(--space-5, 20px);
-    border: 1px solid var(--color-border-subtle, rgba(74, 103, 65, 0.1));
+    border: 1px solid var(--color-border-subtle);
   }
   
   .life-coaching-hub__intro-text {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
     margin: 0 0 var(--space-3, 12px) 0;
     line-height: 1.5;
   }
@@ -331,7 +331,7 @@ const styles = `
   
   .life-coaching-hub__stat {
     font-size: 13px;
-    color: var(--color-text-muted, #a09080);
+    color: var(--color-text-muted);
   }
   
   .life-coaching-hub__stat strong {
@@ -356,7 +356,7 @@ const styles = `
     
     .life-coaching-hub__search-input {
       background: var(--color-bg-subtle-dark, #3a3430);
-      border-color: var(--color-border-subtle-dark, rgba(255, 255, 255, 0.1));
+      border-color: var(--color-border-subtle-dark, color-mix(in srgb, var(--color-white) 10%, transparent));
       color: var(--color-text-primary-dark, #faf6f0);
     }
   }

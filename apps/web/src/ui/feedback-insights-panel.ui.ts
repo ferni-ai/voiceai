@@ -135,9 +135,9 @@ function injectStyles(): void {
       transform: translate(-50%, -50%) scale(0.95);
       width: min(90vw, 480px);
       max-height: 85vh;
-      background: var(--color-background-elevated, #fffdfb);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px rgba(0, 0, 0, 0.15));
+      box-shadow: var(--shadow-2xl, 0 25px 50px color-mix(in srgb, var(--color-black) 15%, transparent));
       z-index: var(--z-modal, 100);
       opacity: 0;
       overflow: hidden;
@@ -156,7 +156,7 @@ function injectStyles(): void {
       align-items: center;
       justify-content: space-between;
       padding: var(--space-4, 16px) var(--space-5, 20px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .feedback-insights-panel__title {
@@ -170,14 +170,14 @@ function injectStyles(): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.5));
+      color: var(--color-text-muted);
     }
 
     .feedback-insights-panel__heading {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--font-size-xl, 1.25rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
@@ -190,7 +190,7 @@ function injectStyles(): void {
       border: none;
       border-radius: var(--radius-full, 9999px);
       background: transparent;
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.5));
+      color: var(--color-text-muted);
       cursor: pointer;
       transition: background var(--duration-fast, 150ms);
     }
@@ -216,7 +216,7 @@ function injectStyles(): void {
     .feedback-insights-panel__section-title {
       font-size: var(--font-size-sm, 0.875rem);
       font-weight: 600;
-      color: var(--color-text-secondary, rgba(44, 37, 32, 0.7));
+      color: var(--color-text-secondary);
       margin: 0 0 var(--space-3, 12px) 0;
     }
 
@@ -245,7 +245,7 @@ function injectStyles(): void {
       flex: 1;
       font-size: var(--font-size-base, 1rem);
       line-height: 1.5;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
     }
 
     .feedback-insights-panel__insight-text strong {
@@ -256,7 +256,7 @@ function injectStyles(): void {
     .feedback-insights-panel__empty {
       text-align: center;
       padding: var(--space-8, 32px) var(--space-5, 20px);
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.5));
+      color: var(--color-text-muted);
     }
 
     .feedback-insights-panel__empty-icon {
@@ -276,7 +276,7 @@ function injectStyles(): void {
       align-items: center;
       justify-content: center;
       padding: var(--space-8, 32px);
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.5));
+      color: var(--color-text-muted);
     }
 
     /* Reduced motion */
@@ -342,7 +342,7 @@ function renderContent(): void {
 
   if (loadError) {
     content.innerHTML = `
-      <div class="feedback-insights-panel__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, rgba(44, 37, 32, 0.5));">
+      <div class="feedback-insights-panel__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted);">
         Couldn't load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
       </div>
     `;

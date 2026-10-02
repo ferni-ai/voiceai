@@ -143,7 +143,7 @@ const styles = `
   .chronicle-backdrop {
     position: absolute;
     inset: 0;
-    background: var(--color-utility-backdrop, rgba(20, 16, 14, 0.85));
+    background: var(--color-utility-backdrop);
     backdrop-filter: blur(var(--glass-blur-strong, 20px));
     -webkit-backdrop-filter: blur(var(--glass-blur-strong, 20px));
   }
@@ -153,7 +153,7 @@ const styles = `
     width: 95vw;
     max-width: 720px;
     max-height: 90vh;
-    background: var(--color-background-elevated, #fffdfb);
+    background: var(--color-background-elevated);
     border-radius: var(--radius-2xl, 24px);
     box-shadow: var(--shadow-2xl);
     overflow: hidden;
@@ -173,7 +173,7 @@ const styles = `
   
   .chronicle-header {
     padding: var(--space-5, 20px) var(--space-6, 24px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.06));
+    border-bottom: 1px solid var(--color-border-subtle);
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -197,14 +197,14 @@ const styles = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 1.5rem;
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-1, 4px);
   }
   
   .chronicle-subtitle {
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.9rem;
-    color: var(--color-text-secondary, #5a4a42);
+    color: var(--color-text-secondary);
   }
   
   .chronicle-close {
@@ -217,14 +217,14 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text-muted, #9a8c7f);
+    color: var(--color-text-muted);
     transition: all 0.2s ease;
   }
   
   .chronicle-close:hover,
   .chronicle-close:focus-visible {
-    background: var(--color-background-subtle, rgba(0,0,0,0.04));
-    color: var(--color-text-primary, #2c2520);
+    background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 4%, transparent));
+    color: var(--color-text-primary);
   }
   
   /* ========================================================================
@@ -253,16 +253,16 @@ const styles = `
     align-items: center;
     gap: var(--space-3, 12px);
     padding: var(--space-4, 16px);
-    background: var(--color-background-subtle, rgba(0,0,0,0.02));
+    background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
     border-radius: var(--radius-lg, 12px);
-    border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.04));
+    border: 1px solid var(--color-border-subtle);
   }
   
   .chronicle-stat-icon {
     width: 40px;
     height: 40px;
     border-radius: var(--radius-md, 8px);
-    background: var(--color-accent-subtle, rgba(61, 90, 69, 0.1));
+    background: var(--color-accent-subtle);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -273,13 +273,13 @@ const styles = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
   }
   
   .chronicle-stat-label {
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.75rem;
-    color: var(--color-text-muted, #9a8c7f);
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -298,8 +298,8 @@ const styles = `
   .chronicle-action-card {
     position: relative;
     padding: var(--space-5, 20px);
-    background: var(--color-background-elevated, #fffdfb);
-    border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.08));
+    background: var(--color-background-elevated);
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-xl, 16px);
     cursor: pointer;
     transition: all 0.3s ease;
@@ -311,7 +311,7 @@ const styles = `
     position: absolute;
     inset: 0;
     background: linear-gradient(135deg, 
-      var(--color-accent-subtle, rgba(61, 90, 69, 0.05)), 
+      var(--color-accent-subtle), 
       transparent
     );
     opacity: 0;
@@ -343,14 +343,14 @@ const styles = `
       var(--color-accent, #3d5a45), 
       var(--persona-ferni, #4a6741)
     );
-    color: white;
+    color: var(--color-white);
   }
   
   .chronicle-action-title {
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 1.1rem;
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-1, 4px);
     position: relative;
   }
@@ -358,7 +358,7 @@ const styles = `
   .chronicle-action-description {
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.85rem;
-    color: var(--color-text-secondary, #5a4a42);
+    color: var(--color-text-secondary);
     line-height: 1.5;
     margin: 0;
     position: relative;
@@ -387,7 +387,7 @@ const styles = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 0.9rem;
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin: 0;
@@ -401,9 +401,9 @@ const styles = `
   
   .chronicle-insight-card {
     padding: var(--space-4, 16px);
-    background: var(--color-background-subtle, rgba(0,0,0,0.02));
+    background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
     border-radius: var(--radius-lg, 12px);
-    border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.04));
+    border: 1px solid var(--color-border-subtle);
   }
   
   .chronicle-insight-card.full-width {
@@ -418,7 +418,7 @@ const styles = `
     align-items: center;
     justify-content: center;
     margin-bottom: var(--space-2, 8px);
-    background: var(--color-accent-subtle, rgba(61, 90, 69, 0.1));
+    background: var(--color-accent-subtle);
     color: var(--color-accent-text);
   }
   
@@ -426,14 +426,14 @@ const styles = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 0.95rem;
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-1, 4px);
   }
   
   .chronicle-insight-description {
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.8rem;
-    color: var(--color-text-secondary, #5a4a42);
+    color: var(--color-text-secondary);
     line-height: 1.5;
     margin: 0;
   }
@@ -445,7 +445,7 @@ const styles = `
   .chronicle-memory-card {
     padding: var(--space-5, 20px);
     background: linear-gradient(135deg, 
-      var(--color-accent-subtle, rgba(61, 90, 69, 0.08)),
+      var(--color-accent-subtle),
       var(--color-background-subtle, rgba(0,0,0,0.02))
     );
     border-radius: var(--radius-xl, 16px);
@@ -465,7 +465,7 @@ const styles = `
     font-family: var(--font-narrative, 'EB Garamond', Georgia, serif);
     font-size: 1.1rem;
     font-style: italic;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     line-height: 1.6;
     margin: 0 0 var(--space-3, 12px);
   }
@@ -473,7 +473,7 @@ const styles = `
   .chronicle-memory-date {
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.75rem;
-    color: var(--color-text-muted, #9a8c7f);
+    color: var(--color-text-muted);
   }
   
   /* ========================================================================
@@ -483,7 +483,7 @@ const styles = `
   .chronicle-capture-panel {
     position: absolute;
     inset: 0;
-    background: var(--color-background-elevated, #fffdfb);
+    background: var(--color-background-elevated);
     display: flex;
     flex-direction: column;
     transform: translateX(100%);
@@ -497,7 +497,7 @@ const styles = `
   
   .chronicle-capture-header {
     padding: var(--space-4, 16px) var(--space-6, 24px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.06));
+    border-bottom: 1px solid var(--color-border-subtle);
     display: flex;
     align-items: center;
     gap: var(--space-3, 12px);
@@ -513,21 +513,21 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text-muted, #9a8c7f);
+    color: var(--color-text-muted);
     transition: all 0.2s ease;
   }
   
   .chronicle-back-btn:hover,
   .chronicle-back-btn:focus-visible {
-    background: var(--color-background-subtle, rgba(0,0,0,0.04));
-    color: var(--color-text-primary, #2c2520);
+    background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 4%, transparent));
+    color: var(--color-text-primary);
   }
   
   .chronicle-capture-title {
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 1.1rem;
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0;
   }
   
@@ -542,11 +542,11 @@ const styles = `
     font-family: var(--font-narrative, 'EB Garamond', Georgia, serif);
     font-size: 1.25rem;
     font-style: italic;
-    color: var(--color-text-secondary, #5a4a42);
+    color: var(--color-text-secondary);
     text-align: center;
     margin-bottom: var(--space-5, 20px);
     padding: var(--space-4, 16px);
-    background: var(--color-accent-subtle, rgba(61, 90, 69, 0.05));
+    background: var(--color-accent-subtle);
     border-radius: var(--radius-lg, 12px);
   }
   
@@ -555,13 +555,13 @@ const styles = `
     width: 100%;
     min-height: 200px;
     padding: var(--space-4, 16px);
-    border: 2px solid var(--color-border-subtle, rgba(0,0,0,0.08));
+    border: 2px solid var(--color-border-subtle);
     border-radius: var(--radius-lg, 12px);
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 1rem;
     line-height: 1.7;
-    color: var(--color-text-primary, #2c2520);
-    background: var(--color-background-elevated, #fffdfb);
+    color: var(--color-text-primary);
+    background: var(--color-background-elevated);
     resize: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
@@ -573,7 +573,7 @@ const styles = `
   }
   
   .chronicle-capture-textarea::placeholder {
-    color: var(--color-text-muted, #9a8c7f);
+    color: var(--color-text-muted);
   }
   
   .chronicle-capture-footer {
@@ -581,7 +581,7 @@ const styles = `
     justify-content: space-between;
     align-items: center;
     padding: var(--space-4, 16px) var(--space-6, 24px);
-    border-top: 1px solid var(--color-border-subtle, rgba(0,0,0,0.06));
+    border-top: 1px solid var(--color-border-subtle);
   }
   
   .chronicle-capture-options {
@@ -595,9 +595,9 @@ const styles = `
     gap: var(--space-2, 8px);
     padding: var(--space-2, 8px) var(--space-4, 16px);
     background: transparent;
-    border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.1));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-full, 9999px);
-    color: var(--color-text-muted, #9a8c7f);
+    color: var(--color-text-muted);
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.85rem;
     cursor: pointer;
@@ -621,7 +621,7 @@ const styles = `
     );
     border: none;
     border-radius: var(--radius-full, 9999px);
-    color: white;
+    color: var(--color-white);
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.95rem;
     font-weight: 500;
@@ -648,7 +648,7 @@ const styles = `
   .chronicle-converse-panel {
     position: absolute;
     inset: 0;
-    background: var(--color-background-elevated, #fffdfb);
+    background: var(--color-background-elevated);
     display: flex;
     flex-direction: column;
     transform: translateX(100%);
@@ -662,7 +662,7 @@ const styles = `
   
   .chronicle-converse-header {
     padding: var(--space-4, 16px) var(--space-6, 24px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.06));
+    border-bottom: 1px solid var(--color-border-subtle);
     display: flex;
     align-items: center;
     gap: var(--space-3, 12px);
@@ -686,21 +686,21 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-white);
   }
   
   .chronicle-converse-info h3 {
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 1rem;
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0;
   }
   
   .chronicle-converse-info p {
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.75rem;
-    color: var(--color-text-muted, #9a8c7f);
+    color: var(--color-text-muted);
     margin: 2px 0 0;
   }
   
@@ -734,20 +734,20 @@ const styles = `
       var(--color-accent, #3d5a45) 0%,
       var(--persona-ferni, #4a6741) 100%
     );
-    color: white;
+    color: var(--color-white);
     border-bottom-left-radius: var(--radius-sm, 4px);
   }
   
   .chronicle-chat-message.user {
     align-self: flex-end;
-    background: var(--color-background-subtle, rgba(0,0,0,0.04));
-    color: var(--color-text-primary, #2c2520);
+    background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 4%, transparent));
+    color: var(--color-text-primary);
     border-bottom-right-radius: var(--radius-sm, 4px);
   }
   
   .chronicle-chat-message.thinking {
-    background: var(--color-background-subtle, rgba(0,0,0,0.04));
-    color: var(--color-text-muted, #9a8c7f);
+    background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 4%, transparent));
+    color: var(--color-text-muted);
   }
   
   .thinking-dots {
@@ -775,7 +775,7 @@ const styles = `
   
   .chronicle-converse-footer {
     padding: var(--space-4, 16px);
-    border-top: 1px solid var(--color-border-subtle, rgba(0,0,0,0.06));
+    border-top: 1px solid var(--color-border-subtle);
   }
   
   .chronicle-chat-input-row {
@@ -787,12 +787,12 @@ const styles = `
   .chronicle-chat-input {
     flex: 1;
     padding: var(--space-3, 12px) var(--space-4, 16px);
-    border: 2px solid var(--color-border-subtle, rgba(0,0,0,0.08));
+    border: 2px solid var(--color-border-subtle);
     border-radius: var(--radius-xl, 16px);
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.95rem;
-    color: var(--color-text-primary, #2c2520);
-    background: var(--color-background-elevated, #fffdfb);
+    color: var(--color-text-primary);
+    background: var(--color-background-elevated);
     resize: none;
     min-height: 48px;
     max-height: 120px;
@@ -821,7 +821,7 @@ const styles = `
   
   .chronicle-chat-send:hover,
   .chronicle-chat-send:focus-visible {
-    background: var(--persona-ferni, #4a6741);
+    background: var(--persona-ferni, var(--color-ferni));
     transform: scale(1.05);
   }
   
@@ -834,7 +834,7 @@ const styles = `
   .chronicle-chat-hint {
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.7rem;
-    color: var(--color-text-muted, #9a8c7f);
+    color: var(--color-text-muted);
     text-align: center;
     margin-top: var(--space-2, 8px);
   }
@@ -853,7 +853,7 @@ const styles = `
     height: 64px;
     margin: 0 auto var(--space-4, 16px);
     border-radius: var(--radius-xl, 16px);
-    background: var(--color-accent-subtle, rgba(61, 90, 69, 0.1));
+    background: var(--color-accent-subtle);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -864,14 +864,14 @@ const styles = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 1.25rem;
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-2, 8px);
   }
   
   .chronicle-empty-description {
     font-family: var(--font-body, Inter, sans-serif);
     font-size: 0.95rem;
-    color: var(--color-text-secondary, #5a4a42);
+    color: var(--color-text-secondary);
     line-height: 1.6;
     max-width: 320px;
     margin: 0 auto;
@@ -893,7 +893,7 @@ const styles = `
   .chronicle-loading-spinner {
     width: 32px;
     height: 32px;
-    border: 2px solid var(--color-border-subtle, rgba(0,0,0,0.1));
+    border: 2px solid var(--color-border-subtle);
     border-top-color: var(--color-accent, #3d5a45);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;

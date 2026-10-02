@@ -1513,7 +1513,7 @@ function getWizardStyles(): string {
     /* Header */
     .wizard-header {
       padding: var(--space-lg, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -1539,27 +1539,27 @@ function getWizardStyles(): string {
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: var(--color-border-subtle, rgba(255, 255, 255, 0.2));
+      background: var(--color-border-subtle);
       transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
     
     .wizard-progress-step.active .progress-dot {
-      background: var(--color-accent, #4a6741);
-      box-shadow: 0 0 12px var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
+      box-shadow: 0 0 12px var(--color-accent, var(--color-ferni));
     }
     
     .wizard-progress-step.completed .progress-dot {
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
     }
     
     .progress-label {
       font-size: 0.7rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
       white-space: nowrap;
     }
     
     .wizard-progress-step.active .progress-label {
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
     }
     
     .wizard-progress-bar {
@@ -1568,13 +1568,13 @@ function getWizardStyles(): string {
       left: 6px;
       right: 6px;
       height: 2px;
-      background: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      background: var(--color-border-subtle);
       z-index: var(--z-base);
     }
     
     .progress-bar-fill {
       height: 100%;
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
     }
     
@@ -1635,7 +1635,7 @@ function getWizardStyles(): string {
     }
     
     .type-card {
-      background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 5%, transparent));
       border: 2px solid transparent;
       border-radius: var(--radius-lg, 16px);
       padding: var(--space-lg, 24px);
@@ -1651,8 +1651,8 @@ function getWizardStyles(): string {
     }
     
     .type-card--selected {
-      border-color: var(--color-accent, #4a6741);
-      background: rgba(74, 103, 65, 0.1);
+      border-color: var(--color-accent, var(--color-ferni));
+      background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
     }
     
     .type-icon {
@@ -1705,7 +1705,7 @@ function getWizardStyles(): string {
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1789,7 +1789,7 @@ function getWizardStyles(): string {
     
     .icon-option--selected {
       border-color: var(--color-accent);
-      background: rgba(74, 103, 65, 0.2);
+      background: color-mix(in srgb, var(--color-ferni) 20%, transparent);
       color: var(--color-accent-text);
     }
     
@@ -1818,7 +1818,7 @@ function getWizardStyles(): string {
     
     .voice-option--selected {
       border-color: var(--color-accent);
-      background: rgba(74, 103, 65, 0.1);
+      background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
     }
     
     .voice-option-icon {
@@ -2084,7 +2084,7 @@ function getWizardStyles(): string {
       border: none;
       appearance: none;
       cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 6px color-mix(in srgb, var(--color-black) 30%, transparent);
     }
     
     .slider-labels {
@@ -2334,7 +2334,7 @@ function getWizardStyles(): string {
     }
     
     .wizard-btn--primary {
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       border: none;
       color: var(--color-text-on-accent);
     }
@@ -2346,8 +2346,8 @@ function getWizardStyles(): string {
     .spinner {
       width: 16px;
       height: 16px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-top-color: white;
+      border: 2px solid color-mix(in srgb, var(--color-white) 30%, transparent);
+      border-top-color: var(--color-white);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }

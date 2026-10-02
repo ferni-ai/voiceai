@@ -1,0 +1,278 @@
+/**
+ * Domain Tool Surface Tests
+ *
+ * Guards the auto-discovered tool surface of domains whose modules were split
+ * into smaller files: each domain's index.ts must keep exporting exactly the
+ * same tools (ids and names, in order) via both `getToolDefinitions()` and
+ * `definitions`.
+ *
+ * Run with: npx vitest run src/tools/domains/__tests__/domain-tool-surface.test.ts
+ */
+
+import { describe, expect, it } from 'vitest';
+
+interface DomainModule {
+  getToolDefinitions: () => Promise<Array<{ id: string; name: string }>>;
+  definitions: Array<{ id: string; name: string }>;
+}
+
+const loaders: Record<string, () => Promise<DomainModule>> = {
+  career: () => import('../career/index.js'),
+  communication: () => import('../communication/index.js'),
+  dreams: () => import('../dreams/index.js'),
+  entertainment: () => import('../entertainment/index.js'),
+  family: () => import('../family/index.js'),
+  habits: () => import('../habits/index.js'),
+  health: () => import('../health/index.js'),
+  'life-planning': () => import('../life-planning/index.js'),
+  'local-search': () => import('../local-search/index.js'),
+  memory: () => import('../memory/index.js'),
+  travel: () => import('../travel/index.js'),
+};
+
+/** Expected tools per domain, as `id|name` in export order. */
+const EXPECTED_TOOLS: Record<string, readonly string[]> = {
+  career: [
+    'assessCareerSatisfaction|Assess Career Satisfaction',
+    'clarifyCareerGoals|Clarify Career Goals',
+    'exploreGrowthAreas|Explore Growth Areas',
+    'trackJobApplication|Track Job Application',
+    'suggestJobSearchStrategy|Suggest Job Search Strategy',
+    'practiceInterview|Practice Interview',
+    'prepareSTARStories|Prepare STAR Stories',
+    'researchSalary|Research Salary',
+    'rolePlayNegotiation|Role Play Negotiation',
+    'createLearningPath|Create Learning Path',
+    'expandNetwork|Expand Network',
+    'assessWorkBurnout|Assess Work Burnout',
+    'setWorkBoundary|Set Work Boundary',
+    'planCareerTransition|Plan Career Transition',
+  ],
+  communication: [
+    'reachOut|Reach Out',
+    'multiOutreach|Multi-Person Outreach',
+    'previewBatchMessages|Preview Batch Messages',
+    'sendBatchMessages|Send Batch Messages',
+    'getOutreachSuggestions|Get Outreach Suggestions',
+    'scheduleReminder|Schedule Reminder',
+    'draftMessage|Draft Message',
+    'rolePlayConversation|Role-Play Conversation',
+    'analyzeMessage|Analyze Message',
+    'communicationStrategy|Communication Strategy',
+    'buildAssertiveness|Build Assertive Response',
+    'planFollowUp|Plan Follow-Up',
+    'getInboxSummary|Get Inbox Summary',
+    'getUnreadEmails|Get Unread Emails',
+    'searchInbox|Search Inbox',
+    'triageInbox|Triage Inbox',
+    'getEmailThread|Get Email Thread',
+    'checkEmailFrom|Check Email From',
+    'getContactInsights|Get Contact Insights',
+    'getContactsNeedingAttention|Get Contacts Needing Attention',
+    'getContactInfo|Get Contact Info',
+    'saveContact|Save Contact',
+    'recordContactInteraction|Record Contact Interaction',
+    'setContactFollowUp|Set Contact Follow-up',
+    'completeContactFollowUp|Complete Contact Follow-up',
+    'getContactInteractionHistory|Get Contact Interaction History',
+    'getContactStats|Get Contact Statistics',
+    'analyzeMessageTone|Analyze Message Tone',
+    'saveMessageForReview|Save Message for Review',
+    'getPendingMessages|Get Pending Messages',
+    'getMessagesReadyForReview|Get Messages Ready for Review',
+    'reviewMessage|Review Message',
+    'approveMessage|Approve Message',
+    'discardMessage|Discard Message',
+    'backgroundFollowUp|Background Follow-Up',
+  ],
+  dreams: [
+    'captureDream|Capture Dream',
+    'exploreDream|Explore Dream',
+    'honorUnfulfilled|Honor Unfulfilled Dream',
+    'playWithPossibility|Play With Possibility',
+    'alternativeLife|Alternative Life',
+    'futureSelf|Future Self',
+    'bucketList|Bucket List',
+    'reconnectWithDreams|Reconnect With Dreams',
+  ],
+  entertainment: [
+    'playMusic|Play Music',
+    'musicControl|Music Control',
+    'musicInfo|Music Info',
+    'musicProvider|Music Provider',
+    'spotifyAdvanced|Spotify Advanced',
+    'callMusic|Call Music',
+    'spotifyStatus|Spotify Status',
+    'playMusicInRoom|Play Music in Room',
+    'transferToRoom|Transfer to Room',
+    'setRoomVolume|Set Room Volume',
+    'listMusicRooms|List Music Rooms',
+    'syncMusicRooms|Sync Music Rooms',
+    'discoverSpotifyDevices|Discover Spotify Devices',
+    'searchAppleMusic|Search Apple Music',
+    'playAppleMusicPreview|Play Apple Music Preview',
+    'playSonosMusic|Play Music on Sonos',
+    'playSonosFavorite|Play Sonos Favorite',
+    'pauseSonos|Pause Sonos',
+    'resumeSonos|Resume Sonos',
+    'setSonosVolume|Set Sonos Volume',
+    "whatsSonosPlaying|What's Playing on Sonos",
+    'setSonosRoom|Set Default Sonos Room',
+    'listSonosRooms|List Sonos Rooms',
+    'searchSonosFavorites|Search Sonos Favorites',
+    'getMovieInfo|Get Movie Info',
+    'getMoviesNowPlaying|Movies Now Playing',
+    'getUpcomingMovies|Upcoming Movies',
+    'getMovieShowtimes|Movie Showtimes',
+  ],
+  family: [
+    'coachParentingChallenge|Coach Parenting Challenge',
+    'navigateDiscipline|Navigate Discipline',
+    'suggestAgeAppropriateActivity|Suggest Age-Appropriate Activity',
+    'trackChildMilestone|Track Child Milestone',
+    'celebrateFamilyMoment|Celebrate Family Moment',
+    'supportFamilyTransition|Support Family Transition',
+    'navigateFamilyConflict|Navigate Family Conflict',
+    'planFamilyMeeting|Plan Family Meeting',
+    'coordinateElderCare|Coordinate Elder Care',
+    'createFamilyTradition|Create Family Tradition',
+    'discussValues|Discuss Values',
+    'leaveMessageForSponsor|Leave Message for Sponsor',
+    'checkFamilyMessages|Check Family Messages',
+    'createCoordinatedReminder|Create Coordinated Reminder',
+    'shareWithFamily|Share with Family',
+    'requestFamilyCheckIn|Request Family Check-In',
+    'scheduleFamilyCheckin|Schedule Family Check-in',
+    'listFamilyCheckins|List Family Check-ins',
+    'getFamilyCheckinStatus|Get Family Check-in Status',
+    'toggleFamilyCheckin|Pause/Resume Family Check-in',
+    'rememberSpecialDate|Remember Important Date',
+    'listSpecialDates|Upcoming Important Dates',
+    'stopDateReminders|Stop Date Reminders',
+  ],
+  habits: [
+    'createHabit|Create Habit',
+    'logHabitCompletion|Log Habit Completion',
+    'getHabits|Get Habits',
+    'habitCheckIn|Habit Check-In',
+    'habitCoach|Habit Coach',
+    'habitSetback|Habit Setback',
+    'habitStrategy|Habit Strategy',
+    'gamificationProfile|Gamification Profile',
+    'leaderboard|Leaderboard',
+    'quickHabitCheck|Quick Habit Check',
+    'microCommitNow|Micro Commit Now',
+    'implementationIntention|Implementation Intention',
+    'weeklyHabitReview|Weekly Habit Review',
+    'trackHabitDNA|Track Habit DNA',
+    'mapFriction|Map Friction',
+    'assessTendency|Assess Tendency',
+    'detectKeystone|Detect Keystone',
+    'trackIdentityShift|Track Identity Shift',
+    'analyzeSetbackPattern|Analyze Setback Pattern',
+    'conductHabitAutopsy|Conduct Habit Autopsy',
+    'backgroundHabitReminder|Background Habit Reminder',
+    'gentleAccountability|Gentle Accountability',
+    'compassionateReset|Compassionate Reset',
+    'celebrateTinyWin|Celebrate Tiny Win',
+    'identifyResistance|Identify Resistance',
+    'findSustainablePace|Find Sustainable Pace',
+    'behaviorArchitecture|Behavior Architecture',
+    'surfacePatternInsight|Surface Pattern Insight',
+    'getTeamInsights|Get Team Insights for Maya',
+    'flagMilestoneForJordan|Flag Milestone for Jordan',
+    'requestPeterAnalysis|Request Peter Analysis',
+  ],
+  health: [
+    'logExercise|Log Exercise',
+    'suggestWorkout|Suggest Workout',
+    'trackFitnessGoal|Track Fitness Goal',
+    'coachOnNutrition|Coach On Nutrition',
+    'trackHydration|Track Hydration',
+    'analyzeSleepPattern|Analyze Sleep Pattern',
+    'suggestSleepHygiene|Suggest Sleep Hygiene',
+    'logSymptom|Log Symptom',
+    'prepareForDoctorVisit|Prepare For Doctor Visit',
+    'remindPreventiveCare|Remind Preventive Care',
+    'assessEnergyLevel|Assess Energy Level',
+    'suggestEnergyBoost|Suggest Energy Boost',
+  ],
+  'life-planning': [
+    'manageEvent|Manage Event',
+    'eventGuests|Event Guests',
+    'eventBudget|Event Budget',
+    'planPurchase|Plan Major Purchase',
+    'planVacation|Plan Vacation',
+    'annualPlan|Annual Plan',
+    'manageGoal|Manage Goal',
+    'goalsSummary|Goals Summary',
+    'lifePortfolio|Life Portfolio',
+    'manageMilestone|Manage Life Milestone',
+    'milestoneSupport|Milestone Support',
+  ],
+  'local-search': [
+    'searchLocalBusinesses|Search Local Businesses',
+    'findRestaurants|Find Restaurants',
+    'getBusinessInfo|Get Business Details',
+    'getBusinessReviews|Get Business Reviews',
+    'lookupBusinessByPhone|Lookup Business by Phone',
+    'checkLocalSearchStatus|Check Local Search Status',
+  ],
+  memory: [
+    'rememberAboutUser|Remember About User',
+    'recallFromMemory|Recall From Memory',
+    'recallPreviousConversation|Recall Previous Conversation',
+    'rememberImportantFact|Remember Important Fact',
+    'getRelationshipSummary|Get Relationship Summary',
+    'updateMemory|Update Memory',
+    'forgetMemory|Forget Memory',
+    'setMemoryConsent|Set Memory Consent',
+    'surfaceRelevantMemory|Surface Relevant Memory',
+    'predictUserNeed|Predict User Need',
+  ],
+  travel: [
+    'searchFlights|Search Flights',
+    'searchHotels|Search Hotels',
+    'planTrip|Plan Trip',
+    'getSavedTrips|Get Saved Trips',
+    'getTripSuggestions|Get Trip Suggestions',
+    'getFlightPrice|Get Flight Price',
+  ],
+};
+
+describe('domain tool surface', () => {
+  for (const [domainName, expected] of Object.entries(EXPECTED_TOOLS)) {
+    it(`${domainName} exports the same tools`, async () => {
+      const mod = await loaders[domainName]!();
+      const fromGetter = (await mod.getToolDefinitions()).map((t) => `${t.id}|${t.name}`);
+      const fromDefinitions = mod.definitions.map((t) => `${t.id}|${t.name}`);
+      expect(fromGetter).toEqual(expected);
+      expect(fromDefinitions).toEqual(expected);
+    }, 60_000);
+  }
+
+  it('createSuperhumanPlanningTools keeps the same tools in order', async () => {
+    const { createSuperhumanPlanningTools } =
+      await import('../life-planning/superhuman-planning-tools.js');
+    expect(Object.keys(createSuperhumanPlanningTools())).toEqual([
+      'getEventPatternInsights',
+      'recordGuestConflict',
+      'updateGuestProfile',
+      'getGuestListDietary',
+      'predictAttendance',
+      'trackImportantDate',
+      'trackQuietWin',
+      'getUpcomingMilestones',
+      'recordCelebration',
+      'checkCelebrationBalance',
+      'checkPlanningReadiness',
+      'suggestOptimalTiming',
+      'checkDateConflicts',
+      'getEventWisdom',
+      'checkEventFollowUps',
+      'startEventStory',
+      'recallEventMeaning',
+      'getAnticipatedTransitions',
+    ]);
+  }, 60_000);
+});

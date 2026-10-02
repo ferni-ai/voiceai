@@ -17,89 +17,9 @@ import {
 } from '../../services/life-automation.service.js';
 import { getUserId } from '../../utils/api.js';
 import { showFerniCareDashboard } from './dashboard.ui.js';
-import {
-  ANALYTICS_ICONS,
-  GROWTH_ICONS,
-  QUIZ_ICONS,
-} from '../icons/shared-icons.js';
+import { COPY, ICONS } from './routine-builder-copy.js';
 
 const log = createLogger('RoutineBuilder');
-
-// ============================================================================
-// HUMANIZED COPY
-// ============================================================================
-
-const COPY = {
-  titles: {
-    new: 'Tell me what you\'d like',
-    edit: 'Make some changes',
-    fromTemplate: (name: string) => `Setting up "${name}"`,
-  },
-
-  sections: {
-    name: 'What should I call this?',
-    namePlaceholder: 'e.g., "Morning check-in" or "Wind down"',
-    trigger: 'When should I do this?',
-    actions: 'What should I do?',
-    customize: 'Make it yours',
-  },
-
-  triggers: [
-    { type: 'time', label: 'At a certain time', icon: ANALYTICS_ICONS.sunrise, hint: 'Every day at 7am, weekdays at 9am...' },
-    { type: 'phrase', label: 'When you say something', icon: ANALYTICS_ICONS.microphone, hint: '"Good morning Ferni" or "Start my day"' },
-    { type: 'location', label: 'When you arrive or leave', icon: ANALYTICS_ICONS.mapPin, hint: 'Coming home, leaving work...' },
-    { type: 'calendar', label: 'Around calendar events', icon: ANALYTICS_ICONS.calendar, hint: 'Before meetings, after workouts...' },
-  ],
-
-  triggerConfig: {
-    time: {
-      schedule: 'What time?',
-      schedulePlaceholder: 'e.g., 7:00 AM',
-      timezone: 'Your timezone',
-    },
-    phrase: {
-      phrase: 'What phrase triggers this?',
-      phrasePlaceholder: 'e.g., Good morning Ferni',
-    },
-    location: {
-      name: 'What place?',
-      namePlaceholder: 'e.g., Home, Office, Gym',
-      when: 'Trigger when I...',
-      options: { enter: 'Arrive', exit: 'Leave', both: 'Either' },
-    },
-  },
-
-  actions: [
-    { type: 'speak_message', label: 'Say something', icon: ANALYTICS_ICONS.messageCircle, hint: 'I\'ll speak this to you' },
-    { type: 'send_notification', label: 'Send a notification', icon: ANALYTICS_ICONS.bell, hint: 'A gentle nudge' },
-    { type: 'add_reminder', label: 'Set a reminder', icon: ANALYTICS_ICONS.alarm, hint: 'I\'ll remind you later' },
-    { type: 'log_habit', label: 'Log a habit', icon: QUIZ_ICONS.correct, hint: 'Track your progress' },
-    { type: 'control_lights', label: 'Adjust lights', icon: GROWTH_ICONS.insight, hint: 'Set the mood' },
-    { type: 'set_thermostat', label: 'Set temperature', icon: ANALYTICS_ICONS.thermometer, hint: 'Get comfortable' },
-    { type: 'play_music', label: 'Play music', icon: ANALYTICS_ICONS.music, hint: 'Set the vibe' },
-  ],
-
-  buttons: {
-    cancel: 'Never mind',
-    save: 'Start doing this for me',
-    saveEdit: 'Save changes',
-    addAction: 'Add something else',
-  },
-
-  validation: {
-    needsName: 'Give it a name first',
-  },
-};
-
-// ============================================================================
-// ICONS
-// ============================================================================
-
-const ICONS = {
-  close: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
-  plus: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
-  remove: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
-};
 
 // ============================================================================
 // STYLES
@@ -135,8 +55,8 @@ const styles = `
     width: 95%;
     max-width: 580px;
     max-height: 85vh;
-    background: var(--color-bg-elevated, #FFFDFB);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    background: var(--color-bg-elevated, var(--color-white));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-xl, 20px);
     box-shadow: var(--shadow-xl);
     overflow: hidden;
@@ -152,7 +72,7 @@ const styles = `
   
   .routine-builder__header {
     padding: var(--space-5, 20px) var(--space-6, 24px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    border-bottom: 1px solid var(--color-border-subtle);
     flex-shrink: 0;
     display: flex;
     justify-content: space-between;
@@ -207,9 +127,9 @@ const styles = `
   .rb-input {
     width: 100%;
     padding: var(--space-3, 12px);
-    border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.15));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-md, 8px);
-    background: var(--color-bg-elevated, white);
+    background: var(--color-bg-elevated, var(--color-white));
     font-size: 15px;
     color: var(--color-text-primary);
     transition: all var(--duration-fast, 100ms) ease;
@@ -221,7 +141,7 @@ const styles = `
   
   .rb-input:focus {
     outline: none;
-    border-color: var(--color-ferni, #4a6741);
+    border-color: var(--color-ferni);
     box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
   }
   
@@ -240,7 +160,7 @@ const styles = `
   
   .rb-trigger {
     padding: var(--space-3, 12px);
-    border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.15));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-md, 8px);
     background: transparent;
     cursor: pointer;
@@ -249,13 +169,13 @@ const styles = `
   }
   
   .rb-trigger:hover {
-    border-color: var(--color-ferni, #4a6741);
-    background: rgba(74, 103, 65, 0.02);
+    border-color: var(--color-ferni);
+    background: color-mix(in srgb, var(--color-ferni) 2%, transparent);
   }
   
   .rb-trigger.selected {
-    border-color: var(--color-ferni, #4a6741);
-    background: rgba(74, 103, 65, 0.05);
+    border-color: var(--color-ferni);
+    background: color-mix(in srgb, var(--color-ferni) 5%, transparent);
   }
   
   .rb-trigger__icon {
@@ -296,7 +216,7 @@ const styles = `
     padding: var(--space-4, 16px);
     background: var(--color-background-subtle, rgba(112, 96, 90, 0.03));
     border-radius: var(--radius-md, 8px);
-    border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.08));
+    border: 1px solid var(--color-border-subtle);
   }
   
   .rb-field {
@@ -327,7 +247,7 @@ const styles = `
     gap: var(--space-3, 12px);
     padding: var(--space-3, 12px);
     background: var(--color-background-subtle, rgba(112, 96, 90, 0.03));
-    border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.08));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-md, 8px);
   }
   
@@ -384,7 +304,7 @@ const styles = `
   .rb-add-action {
     width: 100%;
     padding: var(--space-3, 12px);
-    border: 2px dashed var(--color-border-medium, rgba(112, 96, 90, 0.2));
+    border: 2px dashed var(--color-border-medium);
     background: transparent;
     border-radius: var(--radius-md, 8px);
     font-size: 13px;
@@ -399,16 +319,16 @@ const styles = `
   }
   
   .rb-add-action:hover {
-    border-color: var(--color-ferni, #4a6741);
+    border-color: var(--color-ferni);
     color: var(--color-ferni-ink);
-    background: rgba(74, 103, 65, 0.02);
+    background: color-mix(in srgb, var(--color-ferni) 2%, transparent);
   }
   
   /* Action Picker Overlay */
   .rb-action-picker {
     position: absolute;
     inset: 0;
-    background: var(--color-bg-elevated, #FFFDFB);
+    background: var(--color-bg-elevated, var(--color-white));
     z-index: 10;
     display: none;
     flex-direction: column;
@@ -452,8 +372,8 @@ const styles = `
   }
   
   .rb-action-picker__item:hover {
-    border-color: var(--color-ferni, #4a6741);
-    background: rgba(74, 103, 65, 0.05);
+    border-color: var(--color-ferni);
+    background: color-mix(in srgb, var(--color-ferni) 5%, transparent);
   }
   
   .rb-action-picker__item-icon {
@@ -490,7 +410,7 @@ const styles = `
   /* Footer */
   .routine-builder__footer {
     padding: var(--space-4, 16px) var(--space-6, 24px);
-    border-top: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    border-top: 1px solid var(--color-border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -517,8 +437,8 @@ const styles = `
   }
   
   .rb-btn--primary {
-    background: var(--color-ferni, #4a6741);
-    color: white;
+    background: var(--color-ferni);
+    color: var(--color-white);
   }
   
   .rb-btn--primary:hover {

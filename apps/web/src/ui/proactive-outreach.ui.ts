@@ -253,14 +253,14 @@ function injectStyles(): void {
       background: var(--color-bg-elevated, #2a2520);
       border-radius: var(--radius-xl, 16px);
       padding: var(--space-md, 16px);
-      box-shadow: var(--shadow-xl, 0 20px 40px rgba(0,0,0,0.3));
+      box-shadow: var(--shadow-xl, 0 20px 40px color-mix(in srgb, var(--color-black) 30%, transparent));
       opacity: 0;
       transform: translateX(100%);
       transition: 
         opacity ${DURATION.SLOW}ms ${EASING.STANDARD},
         transform ${DURATION.SLOW}ms ${EASING.SPRING};
       pointer-events: auto;
-      border: 1px solid var(--color-border-subtle, rgba(255,255,255,0.1));
+      border: 1px solid var(--color-border-subtle);
     }
 
     .proactive-outreach--visible {
@@ -307,11 +307,11 @@ function injectStyles(): void {
 
     .proactive-outreach__title {
       font-size: 13px;
-      color: var(--color-text-muted, #a09080);
+      color: var(--color-text-muted);
     }
 
     .proactive-outreach__message {
-      color: var(--color-text-primary, #f5f1e8);
+      color: var(--color-text-primary);
       font-size: 15px;
       line-height: 1.5;
       margin: 0 0 var(--space-xs, 4px);
@@ -319,7 +319,7 @@ function injectStyles(): void {
 
     .proactive-outreach__context {
       font-size: 12px;
-      color: var(--color-text-dimmed, #807060);
+      color: var(--color-text-dimmed);
       margin: 0;
       font-style: italic;
     }
@@ -330,7 +330,7 @@ function injectStyles(): void {
       right: var(--space-sm, 8px);
       background: none;
       border: none;
-      color: var(--color-text-muted, #a09080);
+      color: var(--color-text-muted);
       cursor: pointer;
       padding: 4px;
       border-radius: var(--radius-sm, 4px);
@@ -339,8 +339,8 @@ function injectStyles(): void {
 
     .proactive-outreach__dismiss:hover,
     .proactive-outreach__dismiss:focus-visible {
-      color: var(--color-text-primary, #f5f1e8);
-      background: rgba(255,255,255,0.1);
+      color: var(--color-text-primary);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
     }
 
     .proactive-outreach__actions {
@@ -360,27 +360,27 @@ function injectStyles(): void {
     }
 
     .proactive-outreach__action--respond {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       border: none;
     }
 
     .proactive-outreach__action--respond:hover,
     .proactive-outreach__action--respond:focus-visible {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
       transform: translateY(-1px);
     }
 
     .proactive-outreach__action--later {
       background: transparent;
-      color: var(--color-text-secondary, #d0c8c0);
-      border: 1px solid var(--color-border-subtle, rgba(255,255,255,0.1));
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-border-subtle);
     }
 
     .proactive-outreach__action--later:hover,
     .proactive-outreach__action--later:focus-visible {
-      background: rgba(255,255,255,0.05);
-      border-color: rgba(255,255,255,0.2);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
+      border-color: color-mix(in srgb, var(--color-white) 20%, transparent);
     }
 
     /* Reduced motion */

@@ -216,7 +216,7 @@ export function render(): string {
       }
 
       .soul-subtitle {
-        color: var(--color-text-muted, rgba(255,255,255,0.6));
+        color: var(--color-text-muted);
         margin: 0;
       }
 
@@ -225,9 +225,9 @@ export function render(): string {
         display: flex;
         gap: var(--space-xl, 2rem);
         padding: var(--space-xl, 2rem);
-        background: linear-gradient(135deg, var(--color-ferni-glass, rgba(74, 103, 65, 0.15)), var(--color-warmth-glass, rgba(154, 123, 90, 0.1)));
+        background: linear-gradient(135deg, var(--color-ferni-glass, color-mix(in srgb, var(--color-ferni) 15%, transparent)), var(--color-warmth-glass, color-mix(in srgb, var(--color-jack) 10%, transparent)));
         border-radius: var(--radius-xl, 16px);
-        border: 1px solid var(--color-ferni-border, rgba(74, 103, 65, 0.3));
+        border: 1px solid var(--color-ferni-border, color-mix(in srgb, var(--color-ferni) 30%, transparent));
         margin-bottom: var(--space-xl, 2rem);
       }
 
@@ -272,7 +272,7 @@ export function render(): string {
         position: absolute;
         inset: 0;
         border-radius: 50%;
-        background: radial-gradient(circle, transparent 30%, rgba(154, 123, 90, 0.2) 50%, transparent 70%);
+        background: radial-gradient(circle, transparent 30%, color-mix(in srgb, var(--color-jack) 20%, transparent) 50%, transparent 70%);
         animation: adminComfortPulse 2.5s ease-out infinite;
       }
 
@@ -291,20 +291,20 @@ export function render(): string {
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 0 40px var(--color-ferni-glow, rgba(74, 103, 65, 0.5));
+        box-shadow: 0 0 40px var(--color-ferni-glow, color-mix(in srgb, var(--color-ferni) 50%, transparent));
         transition: transform var(--duration-slow, 0.6s) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)), box-shadow var(--duration-slow, 0.5s) ease;
         z-index: var(--z-raised, 2);
       }
 
       .soul-preview-avatar.protective {
         transform: scale(1.1);
-        box-shadow: 0 0 50px var(--color-warmth-glow, rgba(154, 123, 90, 0.7));
+        box-shadow: 0 0 50px var(--color-warmth-glow, color-mix(in srgb, var(--color-jack) 70%, transparent));
       }
 
       .soul-preview-initial {
         font-size: 2.5rem;
         font-weight: bold;
-        color: white;
+        color: var(--color-white);
         z-index: var(--z-docked);
       }
 
@@ -316,7 +316,7 @@ export function render(): string {
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        background: radial-gradient(circle at 30% 30%, var(--color-white-30, rgba(255,255,255,0.3)), transparent);
+        background: radial-gradient(circle at 30% 30%, var(--color-white-30, color-mix(in srgb, var(--color-white) 30%, transparent)), transparent);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -341,7 +341,7 @@ export function render(): string {
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(255,255,255,0.8), transparent);
+        background: radial-gradient(circle, color-mix(in srgb, var(--color-white) 80%, transparent), transparent);
         top: 20%;
         left: 20%;
         animation: adminShimmer 3s linear infinite;
@@ -397,7 +397,7 @@ export function render(): string {
         flex-direction: column;
         gap: var(--space-xs, 0.25rem);
         padding: var(--space-sm, 0.75rem);
-        background: var(--color-bg-secondary, rgba(0,0,0,0.2));
+        background: var(--color-bg-secondary, color-mix(in srgb, var(--color-black) 20%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -421,8 +421,8 @@ export function render(): string {
       }
 
       .soul-control-card {
-        background: var(--color-bg-glass, rgba(255,255,255,0.05));
-        border: 1px solid var(--color-border-subtle, rgba(255,255,255,0.1));
+        background: var(--color-bg-glass, color-mix(in srgb, var(--color-white) 5%, transparent));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-lg, 12px);
         padding: var(--space-md, 1.25rem);
       }
@@ -479,8 +479,8 @@ export function render(): string {
 
       .soul-btn {
         padding: var(--space-sm, 0.5rem) var(--space-sm, 0.75rem);
-        background: var(--color-bg-glass, rgba(255,255,255,0.1));
-        border: 1px solid var(--color-border-subtle, rgba(255,255,255,0.15));
+        background: var(--color-bg-glass, color-mix(in srgb, var(--color-white) 10%, transparent));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-md, 6px);
         color: var(--color-text-primary);
         font-size: 0.8rem;
@@ -490,12 +490,12 @@ export function render(): string {
 
       .soul-btn:hover,
       .soul-btn:focus-visible {
-        background: var(--color-bg-elevated, rgba(255,255,255,0.2));
+        background: var(--color-bg-elevated, color-mix(in srgb, var(--color-white) 20%, transparent));
         border-color: var(--persona-primary, var(--color-ferni));
       }
 
       .soul-btn:focus-visible {
-        outline: 2px solid var(--color-accent-primary, var(--color-ferni));
+        outline: 2px solid var(--color-accent-primary);
         outline-offset: 2px;
       }
 
@@ -524,13 +524,13 @@ export function render(): string {
         width: 100%;
         height: 8px;
         border-radius: var(--radius-sm, 4px);
-        background: var(--color-bg-glass, rgba(255,255,255,0.1));
+        background: var(--color-bg-glass, color-mix(in srgb, var(--color-white) 10%, transparent));
         appearance: none;
         cursor: pointer;
       }
 
       .soul-slider input[type="range"]:focus-visible {
-        outline: 2px solid var(--color-accent-primary, var(--color-ferni));
+        outline: 2px solid var(--color-accent-primary);
         outline-offset: 2px;
       }
 
@@ -553,7 +553,7 @@ export function render(): string {
         display: flex;
         gap: var(--space-md, 1rem);
         padding-top: var(--space-md, 1rem);
-        border-top: 1px solid var(--color-border-subtle, rgba(255,255,255,0.1));
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       .soul-link {
@@ -568,7 +568,7 @@ export function render(): string {
       }
 
       .soul-link:focus-visible {
-        outline: 2px solid var(--color-accent-primary, var(--color-ferni));
+        outline: 2px solid var(--color-accent-primary);
         outline-offset: 2px;
       }
 

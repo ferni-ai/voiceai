@@ -34,6 +34,8 @@ import { autoBindSecondaryActions, clearCustomReactions } from './secondary-acti
 import { initContextualSpacing, destroyContextualSpacing } from './contextual-spacing.js';
 import { initVoiceTypography, destroyVoiceTypography } from './voice-typography.js';
 import { initImperfectionObserver } from './imperfection.js';
+import type { TranscendentSystemsConfig, TranscendentSystems } from './types.js';
+export type { TranscendentSystemsConfig, TranscendentSystems } from './types.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Re-exports - Core Systems
@@ -252,60 +254,6 @@ export {
   type ImperfectionConfig,
   type ImperfectionValues,
 } from './imperfection.js';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface TranscendentSystemsConfig {
-  /** Enable breath synchronization */
-  breathSync?: boolean;
-
-  /** Enable micro-expressions */
-  expressions?: boolean;
-
-  /** Enable signature moments */
-  moments?: boolean;
-
-  /** Enable emotional color system */
-  emotionalColor?: boolean;
-
-  /** Enable physics-based animations (weight, mass, springs) */
-  physics?: boolean;
-
-  /** Enable overlapping action (staggered animations) */
-  overlappingAction?: boolean;
-
-  /** Enable secondary actions (reactions to primary actions) */
-  secondaryAction?: boolean;
-
-  /** Enable micro-interactions (0.1-0.3s magic moments) */
-  microInteractions?: boolean;
-
-  /** Enable contextual spacing (semantic relationship-based spacing) */
-  contextualSpacing?: boolean;
-
-  /** Enable voice typography (type that responds to speaking state) */
-  voiceTypography?: boolean;
-
-  /** Enable imperfection engine (organic variation for handcrafted feel) */
-  imperfection?: boolean;
-
-  /** Container element for avatar (for expression player binding) */
-  avatarContainer?: HTMLElement | null;
-
-  /** Container element for auto-binding secondary actions */
-  interactiveContainer?: HTMLElement | null;
-
-  /** Log initialization */
-  debug?: boolean;
-}
-
-export interface TranscendentSystems {
-  isInitialized: boolean;
-  config: TranscendentSystemsConfig;
-  destroy: () => void;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Initialization State
@@ -617,7 +565,6 @@ export function handleEmotionEvent(event: {
  */
 export function handleMomentTrigger(moment: 'recognition' | 'breakthrough' | 'holding_space' | 'handoff'): void {
   if (!initialized) return;
-
 
   switch (moment) {
     case 'recognition':

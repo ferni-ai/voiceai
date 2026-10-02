@@ -1340,9 +1340,9 @@ export function setupDesignSystemHandlers(): void {
         
         // Update avatar color based on emotion
         const colors: Record<string, string> = {
-          happy: 'var(--color-semantic-success, #4a6741)',
+          happy: 'var(--color-semantic-success)',
           thinking: 'var(--persona-peter, #3a6b73)',
-          excited: 'var(--color-semantic-warning, #d4a84b)',
+          excited: 'var(--color-semantic-warning)',
           calm: 'var(--persona-maya, #a67a6a)',
         };
         avatar.style.background = colors[emotion] ?? 'var(--persona-primary, #4a6741)';

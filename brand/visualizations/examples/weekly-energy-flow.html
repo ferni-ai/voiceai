@@ -11,7 +11,8 @@
   <meta property="og:type" content="website">
 
   <!-- Design System Tokens (REQUIRED) -->
-  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../../ferni-design-tokens.css">
+  <link rel="stylesheet" href="../../brand-base.css">
 
   <!-- Visualization System Styles -->
   <link rel="stylesheet" href="../components.css">
@@ -46,21 +47,21 @@
 
     .viz-title {
       font-family: var(--font-display, 'Fraunces', serif);
-      font-size: var(--text-4xl, 2.5rem);
+      font-size: var(--text-5xl, 2.5rem);
       font-weight: 600;
       color: var(--color-text, #2c2520);
       margin-bottom: var(--space-xs, 0.25rem);
     }
 
     .viz-subtitle {
-      font-size: var(--text-lg, 1.125rem);
+      font-size: var(--text-xl, 1.125rem);
       color: var(--color-text-muted, #6b6560);
     }
 
     /* Energy Flow Chart */
     .energy-chart {
       background: var(--color-surface-elevated, #ffffff);
-      border-radius: var(--radius-lg, 1rem);
+      border-radius: var(--radius-md, 1rem);
       padding: var(--space-xl, 3rem);
       box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.08));
       margin-bottom: var(--space-lg, 2rem);
@@ -105,7 +106,7 @@
     .energy-cell[data-level="2"] { background: var(--color-ferni-light, rgba(74, 103, 65, 0.4)); }
     .energy-cell[data-level="3"] { background: var(--color-ferni, #4a6741); opacity: 0.7; }
     .energy-cell[data-level="4"] { background: var(--color-ferni, #4a6741); }
-    .energy-cell[data-level="5"] { background: var(--kintsugi-gold, #c9a227); } /* Peak energy! */
+    .energy-cell[data-level="5"] { background: var(--kintsugi-primary, #c9a227); } /* Peak energy! */
 
     /* Hour labels */
     .hour-labels {
@@ -160,7 +161,7 @@
       right: -4px;
       width: 8px;
       height: 8px;
-      background: var(--kintsugi-gold, #c9a227);
+      background: var(--kintsugi-primary, #c9a227);
       border-radius: 50%;
       animation: pulse-glow 2s infinite;
     }
@@ -178,14 +179,14 @@
         var(--color-surface-elevated, #ffffff) 100%
       );
       border-left: 4px solid var(--color-ferni, #4a6741);
-      border-radius: var(--radius-md, 0.5rem);
+      border-radius: var(--radius-sm, 0.5rem);
       padding: var(--space-lg, 2rem);
       margin-bottom: var(--space-lg, 2rem);
     }
 
     .viz-insight-card h3 {
       font-family: var(--font-display, 'Fraunces', serif);
-      font-size: var(--text-xl, 1.25rem);
+      font-size: var(--text-2xl, 1.25rem);
       color: var(--color-ferni, #4a6741);
       margin-bottom: var(--space-sm, 0.5rem);
       display: flex;
@@ -205,12 +206,12 @@
       gap: 4px;
       background: var(--color-surface, #faf8f5);
       padding: 2px 8px;
-      border-radius: var(--radius-sm, 0.25rem);
+      border-radius: var(--radius-xs, 0.25rem);
       margin: 0 2px;
     }
 
     .insight-stat strong {
-      font-size: var(--text-lg, 1.125rem);
+      font-size: var(--text-xl, 1.125rem);
       color: var(--color-ferni, #4a6741);
     }
 
@@ -218,7 +219,7 @@
     .viz-prompt-card {
       background: var(--color-surface-elevated, #ffffff);
       border: 1px solid var(--color-border, #e0dcd8);
-      border-radius: var(--radius-md, 0.5rem);
+      border-radius: var(--radius-sm, 0.5rem);
       padding: var(--space-xl, 3rem) var(--space-lg, 2rem);
       text-align: center;
       margin-bottom: var(--space-lg, 2rem);
@@ -226,7 +227,7 @@
 
     .viz-prompt-card p {
       font-family: var(--font-display, 'Fraunces', serif);
-      font-size: var(--text-xl, 1.25rem);
+      font-size: var(--text-2xl, 1.25rem);
       font-style: italic;
       color: var(--color-text, #2c2520);
       max-width: 500px;
@@ -280,13 +281,13 @@
     .discovery-callout {
       background: linear-gradient(
         135deg,
-        var(--kintsugi-gold, #c9a227) 0%,
+        var(--kintsugi-primary, #c9a227) 0%,
         var(--color-surface-elevated, #ffffff) 100%
       );
       background-size: 100% 4px;
       background-repeat: no-repeat;
       background-position: top;
-      border-radius: var(--radius-md, 0.5rem);
+      border-radius: var(--radius-sm, 0.5rem);
       padding: var(--space-lg, 2rem);
       margin-top: var(--space-xl, 3rem);
       text-align: center;
@@ -294,7 +295,7 @@
 
     .discovery-callout h4 {
       font-family: var(--font-display, 'Fraunces', serif);
-      font-size: var(--text-lg, 1.125rem);
+      font-size: var(--text-xl, 1.125rem);
       color: var(--color-text, #2c2520);
       margin-bottom: var(--space-sm, 0.5rem);
     }
@@ -311,7 +312,7 @@
       }
 
       .viz-title {
-        font-size: var(--text-2xl, 1.75rem);
+        font-size: var(--text-3xl, 1.75rem);
       }
 
       .energy-chart {
@@ -413,7 +414,7 @@
             <div class="legend-cell" style="background: var(--color-ferni-light, rgba(74, 103, 65, 0.4));"></div>
             <div class="legend-cell" style="background: var(--color-ferni, #4a6741); opacity: 0.7;"></div>
             <div class="legend-cell" style="background: var(--color-ferni, #4a6741);"></div>
-            <div class="legend-cell" style="background: var(--kintsugi-gold, #c9a227);"></div>
+            <div class="legend-cell" style="background: var(--kintsugi-primary, #c9a227);"></div>
           </div>
           <span>Peak</span>
         </div>

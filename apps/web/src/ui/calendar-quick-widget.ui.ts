@@ -114,7 +114,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 0.5rem);
       padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
       border-radius: var(--radius-full, 9999px);
       box-shadow: var(--shadow-lg);
@@ -123,7 +123,7 @@ function injectStyles(): void {
     }
 
     .cqw-pill:hover {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       box-shadow: var(--shadow-xl);
     }
 
@@ -139,14 +139,14 @@ function injectStyles(): void {
     .cqw-pill-text {
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .cqw-pill-countdown {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
       color: var(--persona-ink);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       padding: var(--space-0-5, 0.125rem) var(--space-2, 0.5rem);
       border-radius: var(--radius-full, 50%);
     }
@@ -157,7 +157,7 @@ function injectStyles(): void {
     }
 
     .cqw-pill-expand {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       display: flex;
       align-items: center;
     }
@@ -166,7 +166,7 @@ function injectStyles(): void {
     .cqw-card {
       display: none;
       width: min(280px, 100%);
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
       border-radius: var(--radius-xl, 1.25rem);
       box-shadow: var(--shadow-xl);
@@ -187,7 +187,7 @@ function injectStyles(): void {
       justify-content: space-between;
       padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
       border-bottom: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
-      background: var(--persona-tint, rgba(74, 103, 65, 0.04));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 4%, transparent));
     }
 
     .cqw-header-title {
@@ -196,7 +196,7 @@ function injectStyles(): void {
       gap: var(--space-2, 0.5rem);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .cqw-header-title svg {
@@ -213,13 +213,13 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
 
     .cqw-collapse-btn:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     /* Next Meeting Section */
@@ -233,14 +233,14 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-2, 0.5rem);
     }
 
     .cqw-meeting-title {
       font-weight: 600;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-1, 0.25rem);
       white-space: nowrap;
       overflow: hidden;
@@ -252,7 +252,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 0.5rem);
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .cqw-countdown-large {
@@ -278,7 +278,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-1, 0.25rem);
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .cqw-meta-item svg {
@@ -287,12 +287,12 @@ function injectStyles(): void {
 
     .cqw-no-meeting {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .cqw-no-meeting-sub {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-1, 0.25rem);
     }
 
@@ -312,7 +312,7 @@ function injectStyles(): void {
     .cqw-stat-value {
       font-size: var(--text-lg, 1.125rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .cqw-stat-label {
@@ -320,7 +320,7 @@ function injectStyles(): void {
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-0-5, 0.125rem);
     }
 
@@ -339,7 +339,7 @@ function injectStyles(): void {
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.15));
       border-radius: var(--radius-lg, 1rem);
       background: transparent;
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
       cursor: pointer;
@@ -347,13 +347,13 @@ function injectStyles(): void {
     }
 
     .cqw-action-btn:hover {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       color: var(--persona-ink);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.05));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent));
     }
 
     .cqw-action-btn:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
 
@@ -366,7 +366,7 @@ function injectStyles(): void {
     .cqw-loading {
       padding: var(--space-6, 1.5rem);
       text-align: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       font-size: var(--text-sm, 0.875rem);
     }
 

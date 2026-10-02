@@ -26,6 +26,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { checkNormativeDocHexes, checkPersonaColorsInDocs, checkNoPupils } from './checks/brand-docs.js';
 import { checkGeneratedTextInks } from './checks/text-ink-contrast.js';
+import { checkWebsiteCssTokens } from './checks/website-css-tokens.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -337,12 +338,13 @@ function main() {
     }
   }
 
-  // Checks 4-7: brand docs, logo assets, generated text contrast
+  // Checks 4-8: brand docs, logo assets, generated text contrast, website CSS
   const docChecks = [
     ['Check 4: Normative Docs Use Token Colors', checkNormativeDocHexes(PROJECT_ROOT, colorsJson)],
     ['Check 5: Persona Colors in Brand Docs', checkPersonaColorsInDocs(PROJECT_ROOT, colorsJson)],
     ['Check 6: Logo Eyes Have No Pupils', checkNoPupils(PROJECT_ROOT)],
     ['Check 7: Native/Promo Text Inks Reach WCAG AA', checkGeneratedTextInks(PROJECT_ROOT, colorsJson)],
+    ['Check 8: Website Stylesheets Use Generated Tokens', checkWebsiteCssTokens(PROJECT_ROOT)],
   ];
   for (const [title, issues] of docChecks) {
     console.log(`📋 ${title}`);

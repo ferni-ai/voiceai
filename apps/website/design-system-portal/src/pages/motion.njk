@@ -294,7 +294,7 @@ permalink: /motion/
   <p>Each persona has unique timing characteristics.</p>
 
   <div class="persona-motion-grid">
-    <div class="persona-motion-card" style="--persona-color: var(--color-ferni)">
+    <div class="persona-motion-card" style="--persona-color: var(--persona-ferni)">
       <span class="persona-avatar">F</span>
       <div class="motion-details">
         <h4>Ferni</h4>
@@ -303,7 +303,7 @@ permalink: /motion/
         <p>Balanced, warm pacing</p>
       </div>
     </div>
-    <div class="persona-motion-card" style="--persona-color: var(--color-peter)">
+    <div class="persona-motion-card" style="--persona-color: var(--persona-peter)">
       <span class="persona-avatar">P</span>
       <div class="motion-details">
         <h4>Peter</h4>
@@ -312,7 +312,7 @@ permalink: /motion/
         <p>Quick, energetic</p>
       </div>
     </div>
-    <div class="persona-motion-card" style="--persona-color: var(--color-alex)">
+    <div class="persona-motion-card" style="--persona-color: var(--persona-alex)">
       <span class="persona-avatar">A</span>
       <div class="motion-details">
         <h4>Alex</h4>
@@ -321,7 +321,7 @@ permalink: /motion/
         <p>Balanced, professional</p>
       </div>
     </div>
-    <div class="persona-motion-card" style="--persona-color: var(--color-maya)">
+    <div class="persona-motion-card" style="--persona-color: var(--persona-maya)">
       <span class="persona-avatar">M</span>
       <div class="motion-details">
         <h4>Maya</h4>
@@ -330,7 +330,7 @@ permalink: /motion/
         <p>Efficient, organized</p>
       </div>
     </div>
-    <div class="persona-motion-card" style="--persona-color: var(--color-jordan)">
+    <div class="persona-motion-card" style="--persona-color: var(--persona-jordan)">
       <span class="persona-avatar">J</span>
       <div class="motion-details">
         <h4>Jordan</h4>
@@ -339,7 +339,7 @@ permalink: /motion/
         <p>Fast, celebratory</p>
       </div>
     </div>
-    <div class="persona-motion-card" style="--persona-color: var(--color-nayan)">
+    <div class="persona-motion-card" style="--persona-color: var(--persona-nayan)">
       <span class="persona-avatar">N</span>
       <div class="motion-details">
         <h4>Nayan</h4>
@@ -582,14 +582,14 @@ permalink: /motion/
 }
 
 .pixar-principle {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
   padding: 1rem;
 }
 
 .pixar-principle h4 {
-  color: var(--color-ferni);
+  color: var(--persona-ferni-text);
   margin: 0 0 0.5rem;
   font-size: 0.9rem;
 }
@@ -597,7 +597,7 @@ permalink: /motion/
 .pixar-principle p {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .duration-scale {
@@ -610,7 +610,7 @@ permalink: /motion/
   gap: 1rem;
   align-items: center;
   padding: 0.75rem 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border-medium);
   position: relative;
 }
 
@@ -621,7 +621,7 @@ permalink: /motion/
   bottom: 0;
   height: 3px;
   width: var(--duration-width, 50%);
-  background: var(--color-ferni);
+  background: var(--persona-ferni);
   opacity: 0.3;
 }
 
@@ -636,11 +636,11 @@ permalink: /motion/
 
 .duration-value {
   font-family: var(--font-mono);
-  color: var(--color-ferni);
+  color: var(--persona-ferni-text);
 }
 
 .duration-desc {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: 0.875rem;
 }
 
@@ -652,20 +652,20 @@ permalink: /motion/
 }
 
 .easing-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
   padding: 1rem;
 }
 
 .easing-card.featured {
-  border-color: var(--color-ferni);
+  border-color: var(--persona-ferni);
 }
 
 .easing-preview {
   height: 40px;
-  background: linear-gradient(90deg, var(--color-ferni) 0%, transparent 100%);
-  border-radius: 4px;
+  background: linear-gradient(90deg, var(--persona-ferni) 0%, transparent 100%);
+  border-radius: var(--radius-xs);
   margin-bottom: 0.75rem;
   opacity: 0.3;
 }
@@ -679,13 +679,13 @@ permalink: /motion/
   display: block;
   font-size: 0.7rem;
   margin-bottom: 0.5rem;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .easing-card p {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .presets-grid {
@@ -696,9 +696,9 @@ permalink: /motion/
 }
 
 .preset-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
   padding: 1rem;
 }
 
@@ -713,7 +713,7 @@ permalink: /motion/
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.8rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .persona-motion-grid {
@@ -727,9 +727,9 @@ permalink: /motion/
   display: flex;
   align-items: center;
   gap: 1rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
   padding: 1rem;
   border-left: 4px solid var(--persona-color);
 }
@@ -739,7 +739,7 @@ permalink: /motion/
   height: 40px;
   border-radius: 50%;
   background: var(--persona-color);
-  color: white;
+  color: var(--color-white);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -754,25 +754,25 @@ permalink: /motion/
 .motion-details .multiplier {
   font-family: var(--font-mono);
   font-weight: 600;
-  color: var(--color-ferni);
+  color: var(--persona-ferni-text);
   margin-right: 0.5rem;
 }
 
 .motion-details .easing-pref {
   font-family: var(--font-mono);
   font-size: 0.8rem;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .motion-details p {
   margin: 0.25rem 0 0;
   font-size: 0.8rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .ferniEQ-section h3 {
   margin-top: 2rem;
-  color: var(--color-ferni);
+  color: var(--persona-ferni-text);
 }
 
 .micro-expression-grid {
@@ -783,9 +783,9 @@ permalink: /motion/
 }
 
 .micro-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
   padding: 1rem;
   text-align: center;
 }
@@ -794,10 +794,10 @@ permalink: /motion/
   display: inline-block;
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  background: var(--color-ferni);
-  color: white;
+  background: var(--persona-ferni);
+  color: var(--color-white);
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   margin-bottom: 0.5rem;
 }
 
@@ -809,7 +809,7 @@ permalink: /motion/
 .micro-card p {
   margin: 0;
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .breath-rates {
@@ -826,25 +826,25 @@ permalink: /motion/
   display: block;
   font-size: 2rem;
   font-weight: 600;
-  color: var(--color-ferni);
+  color: var(--persona-ferni-text);
 }
 
 .rate-unit {
   display: block;
   font-size: 0.75rem;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .rate-desc {
   display: block;
   font-size: 0.8rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   margin-top: 0.25rem;
 }
 
 .breath-note {
-  background: var(--color-surface);
-  border-left: 3px solid var(--color-ferni);
+  background: var(--bg-secondary);
+  border-left: 3px solid var(--persona-ferni);
   padding: 0.75rem 1rem;
   margin-top: 1rem;
   font-size: 0.9rem;
@@ -858,17 +858,17 @@ permalink: /motion/
   display: flex;
   gap: 1rem;
   padding: 1rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
   margin-bottom: 0.5rem;
 }
 
 .layer-priority {
   width: 32px;
   height: 32px;
-  background: var(--color-ferni);
-  color: white;
+  background: var(--persona-ferni);
+  color: var(--color-white);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -884,7 +884,7 @@ permalink: /motion/
 .layer-content p {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .glow-states-grid {
@@ -895,9 +895,9 @@ permalink: /motion/
 }
 
 .glow-state {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
   padding: 1rem;
   text-align: center;
 }
@@ -911,44 +911,44 @@ permalink: /motion/
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: var(--color-ferni);
+  background: var(--persona-ferni);
   margin: 0 auto 0.75rem;
-  box-shadow: 0 0 20px rgba(74, 103, 65, 0.4);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--persona-ferni) 40%, transparent);
 }
 
 .glow-state.active .glow-preview {
-  box-shadow: 0 0 30px rgba(74, 103, 65, 0.6);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--persona-ferni) 60%, transparent);
 }
 
 .glow-state.excited .glow-preview {
-  box-shadow: 0 0 40px rgba(74, 103, 65, 0.8);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--persona-ferni) 80%, transparent);
 }
 
 .glow-state.calm .glow-preview {
-  box-shadow: 0 0 25px rgba(74, 103, 65, 0.35);
+  box-shadow: 0 0 25px color-mix(in srgb, var(--persona-ferni) 35%, transparent);
 }
 
 .glow-state.concern .glow-preview {
-  box-shadow: 0 0 22px rgba(74, 103, 65, 0.5);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--persona-ferni) 50%, transparent);
 }
 
 .glow-state p {
   margin: 0;
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .reduced-motion-callout {
-  background: var(--color-background);
-  border: 1px solid var(--color-ferni);
-  border-radius: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--persona-ferni);
+  border-radius: var(--radius-sm);
   padding: 1.25rem;
   margin-bottom: 1.5rem;
 }
 
 .reduced-motion-callout h4 {
   margin: 0 0 0.5rem;
-  color: var(--color-ferni);
+  color: var(--persona-ferni-text);
 }
 
 .reduced-motion-callout p {

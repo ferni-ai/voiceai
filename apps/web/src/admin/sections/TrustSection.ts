@@ -215,7 +215,7 @@ export async function render(): Promise<string> {
 
       .trust-stat-label {
         font-size: 0.75rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         margin-top: var(--space-1, 0.25rem);
@@ -232,14 +232,14 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-4, 1rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
         border-radius: var(--radius-md, 8px);
         border-left: 3px solid var(--system-color, var(--color-text-muted, #756A5E));
         transition: background var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .system-item:hover {
-        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.05));
+        background: var(--admin-surface-hover, color-mix(in srgb, var(--color-white) 5%, transparent));
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -249,7 +249,7 @@ export async function render(): Promise<string> {
       }
 
       .system-item--active {
-        --system-color: var(--persona-primary, #4a6741);
+        --system-color: var(--persona-primary, var(--color-ferni));
       }
 
       .system-info {
@@ -263,7 +263,7 @@ export async function render(): Promise<string> {
 
       .system-desc {
         font-size: 0.75rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .system-status {
@@ -274,13 +274,13 @@ export async function render(): Promise<string> {
       }
 
       .system-status--active {
-        background: var(--persona-primary, #4a6741);
-        color: white;
+        background: var(--persona-primary, var(--color-ferni));
+        color: var(--color-white);
       }
 
       .system-status--inactive {
-        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
-        color: var(--color-text-secondary, #a89a8c);
+        background: var(--admin-surface-active, color-mix(in srgb, var(--color-white) 10%, transparent));
+        color: var(--color-text-secondary);
       }
 
       .stages-chart {
@@ -304,7 +304,7 @@ export async function render(): Promise<string> {
       .stage-bar-bg {
         flex: 1;
         height: 24px;
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.05));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 5%, transparent));
         border-radius: var(--radius-md, 8px);
         overflow: hidden;
       }
@@ -328,7 +328,7 @@ export async function render(): Promise<string> {
       .stage-percent {
         font-size: 0.75rem;
         font-weight: 600;
-        color: white;
+        color: var(--color-white);
       }
 
       .events-list {
@@ -342,7 +342,7 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-3, 0.75rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.02));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 2%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -364,15 +364,15 @@ export async function render(): Promise<string> {
 
       .event-time {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
       }
 
       .events-count {
         font-size: 0.75rem;
         font-weight: 600;
         padding: 0.125rem 0.5rem;
-        background: var(--persona-primary, #4a6741);
-        color: white;
+        background: var(--persona-primary, var(--color-ferni));
+        color: var(--color-white);
         border-radius: var(--radius-full, 9999px);
         margin-left: auto;
       }
@@ -380,19 +380,19 @@ export async function render(): Promise<string> {
       .no-events {
         text-align: center;
         padding: var(--space-6, 1.5rem);
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .no-events-hint {
         font-size: 0.75rem;
         margin-top: var(--space-2, 0.5rem);
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
       }
 
       /* Relationship Warmth Section */
       .trust-warmth {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(196, 162, 101, 0.05));
-        border: 1px solid rgba(74, 103, 65, 0.2);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 10%, transparent), rgba(196, 162, 101, 0.05));
+        border: 1px solid color-mix(in srgb, var(--color-ferni) 20%, transparent);
       }
 
       .trust-warmth .admin-section-title {
@@ -402,8 +402,8 @@ export async function render(): Promise<string> {
       }
 
       .badge--new {
-        background: var(--persona-primary, #4a6741);
-        color: white;
+        background: var(--persona-primary, var(--color-ferni));
+        color: var(--color-white);
         padding: 0.125rem 0.5rem;
         border-radius: var(--radius-full, 9999px);
         font-size: 0.625rem;
@@ -414,7 +414,7 @@ export async function render(): Promise<string> {
       }
 
       .warmth-desc {
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         font-size: 0.875rem;
         margin-bottom: var(--space-4, 1rem);
       }
@@ -440,7 +440,7 @@ export async function render(): Promise<string> {
 
       .warmth-stage {
         padding: var(--space-3, 0.75rem);
-        background: rgba(0, 0, 0, 0.2);
+        background: color-mix(in srgb, var(--color-black) 20%, transparent);
         border-radius: var(--radius-md, 8px);
         text-align: center;
       }
@@ -453,7 +453,7 @@ export async function render(): Promise<string> {
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        color: white;
+        color: var(--color-white);
         margin: 0 auto var(--space-2, 0.5rem);
         transition: transform 0.3s ease, opacity 0.3s ease;
       }
@@ -479,7 +479,7 @@ export async function render(): Promise<string> {
 
       .warmth-stage-desc {
         font-size: 0.7rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         line-height: 1.3;
       }
 
@@ -489,7 +489,7 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-4, 1rem);
         padding: var(--space-4, 1rem);
-        background: rgba(0, 0, 0, 0.2);
+        background: color-mix(in srgb, var(--color-black) 20%, transparent);
         border-radius: var(--radius-lg, 12px);
         min-width: min(200px, 100%);
       }
@@ -507,7 +507,7 @@ export async function render(): Promise<string> {
         position: absolute;
         inset: -20px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(74, 103, 65, 0.3) 0%, transparent 70%);
+        background: radial-gradient(circle, color-mix(in srgb, var(--color-ferni) 30%, transparent) 0%, transparent 70%);
         transition: transform 0.5s ease, opacity 0.5s ease;
         pointer-events: none;
       }
@@ -522,7 +522,7 @@ export async function render(): Promise<string> {
         justify-content: center;
         font-size: 1.5rem;
         font-weight: bold;
-        color: white;
+        color: var(--color-white);
         box-shadow: 0 0 15px hsla(120, 20%, 33%, 0.3);
         transition: transform 0.5s ease, opacity 0.5s ease;
         z-index: var(--z-docked);
@@ -536,7 +536,7 @@ export async function render(): Promise<string> {
       .warmth-slider-container label {
         display: block;
         font-size: 0.75rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         margin-bottom: var(--space-2, 0.5rem);
       }
 
@@ -544,7 +544,7 @@ export async function render(): Promise<string> {
         width: 100%;
         height: 8px;
         border-radius: 4px;
-        background: rgba(255, 255, 255, 0.1);
+        background: color-mix(in srgb, var(--color-white) 10%, transparent);
         appearance: none;
         cursor: pointer;
       }
@@ -554,7 +554,7 @@ export async function render(): Promise<string> {
         width: 18px;
         height: 18px;
         border-radius: 50%;
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary, var(--color-ferni));
         cursor: pointer;
         transition: transform 0.2s;
       }
@@ -567,7 +567,7 @@ export async function render(): Promise<string> {
         display: flex;
         gap: var(--space-4, 1rem);
         padding: var(--space-3, 0.75rem);
-        background: rgba(0, 0, 0, 0.15);
+        background: color-mix(in srgb, var(--color-black) 15%, transparent);
         border-radius: var(--radius-md, 8px);
       }
 
@@ -578,7 +578,7 @@ export async function render(): Promise<string> {
 
       .warmth-stat-label {
         font-size: 0.7rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         display: block;
         margin-bottom: var(--space-1, 0.25rem);
       }
@@ -740,13 +740,13 @@ async function fetchTrustSystems(): Promise<TrustSystem[]> {
 
 function getStageColor(stage: string): string {
   const colors: Record<string, string> = {
-    new: 'var(--color-text-secondary, #a89a8c)',
+    new: 'var(--color-text-secondary)',
     building: 'var(--persona-jack, #9a7b5a)',
     established: 'var(--persona-primary, #4a6741)',
     deep: 'var(--persona-peter, #3a6b73)',
     flourishing: 'var(--color-accent, #C4A265)',
   };
-  return colors[stage] ?? 'var(--color-text-secondary, #a89a8c)';
+  return colors[stage] ?? 'var(--color-text-secondary)';
 }
 
 async function fetchWarmthStats(): Promise<WarmthStats> {

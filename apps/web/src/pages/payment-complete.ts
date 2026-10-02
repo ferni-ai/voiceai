@@ -24,19 +24,19 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #FFFDFB 0%, #f5f2ed 100%);
+  background: linear-gradient(135deg, var(--color-white) 0%, #f5f2ed 100%);
   padding: 20px;
   font-family: var(--font-body, 'Inter', system-ui, sans-serif);
 }
 
 .payment-complete-card {
-  background: white;
+  background: var(--color-white);
   border-radius: 24px;
   padding: 48px;
   max-width: 480px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--color-black) 10%, transparent);
   animation: payment-card-in 0.6s ease-out;
 }
 
@@ -55,7 +55,7 @@ const styles = `
   width: 80px;
   height: 80px;
   margin: 0 auto 24px;
-  background: linear-gradient(135deg, #4a6741, #3d5a35);
+  background: linear-gradient(135deg, var(--color-ferni), var(--color-ferni-secondary));
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -80,7 +80,7 @@ const styles = `
 .payment-complete-icon svg {
   width: 40px;
   height: 40px;
-  color: white;
+  color: var(--color-white);
 }
 
 .payment-complete-title {
@@ -112,7 +112,7 @@ const styles = `
 }
 
 .payment-complete-impact {
-  background: rgba(74, 103, 65, 0.08);
+  background: color-mix(in srgb, var(--color-ferni) 8%, transparent);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
@@ -130,7 +130,7 @@ const styles = `
 .payment-complete-impact-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #4a6741;
+  color: var(--color-ferni);
 }
 
 .payment-complete-redirect {
@@ -145,8 +145,8 @@ const styles = `
   align-items: center;
   gap: 8px;
   padding: 12px 32px;
-  background: #4a6741;
-  color: white;
+  background: var(--color-ferni);
+  color: var(--color-white);
   border: none;
   border-radius: 999px;
   font-size: 1rem;
@@ -158,7 +158,7 @@ const styles = `
 }
 
 .payment-complete-btn:hover {
-  background: #3d5a35;
+  background: var(--color-ferni-secondary);
   transform: translateY(-2px);
 }
 
@@ -174,7 +174,7 @@ const styles = `
   position: absolute;
   width: 10px;
   height: 10px;
-  background: #4a6741;
+  background: var(--color-ferni);
   animation: confetti-fall 3s ease-out forwards;
 }
 
@@ -201,7 +201,7 @@ const styles = `
   width: 48px;
   height: 48px;
   border: 3px solid #e8e2da;
-  border-top-color: #4a6741;
+  border-top-color: var(--color-ferni);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

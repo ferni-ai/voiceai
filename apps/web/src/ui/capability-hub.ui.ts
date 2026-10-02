@@ -748,7 +748,7 @@ function addStyles(): void {
     }
 
     .capability-modal__status--active {
-      background: rgba(74, 103, 65, 0.1);
+      background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
       color: var(--color-ferni-ink);
     }
 

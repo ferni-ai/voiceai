@@ -252,7 +252,7 @@ function injectStyles(): void {
     .semantic-panel {
       position: fixed;
       inset: 0;
-      background: var(--color-utility-backdrop, rgba(44, 37, 32, 0.75));
+      background: var(--color-utility-backdrop);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -268,7 +268,7 @@ function injectStyles(): void {
     }
 
     .semantic-panel-card {
-      background: var(--color-bg-elevated, #FFFDFB);
+      background: var(--color-bg-elevated, var(--color-white));
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl);
       width: min(92vw, 680px);
@@ -291,7 +291,7 @@ function injectStyles(): void {
       justify-content: space-between;
       padding: var(--space-5, 20px) var(--space-6, 24px);
       border-bottom: 1px solid var(--color-border-subtle);
-      background: var(--color-bg-elevated, #FFFDFB);
+      background: var(--color-bg-elevated, var(--color-white));
       position: sticky;
       top: 0;
       z-index: 10;
@@ -395,7 +395,7 @@ function injectStyles(): void {
       left: var(--space-2, 8px);
       right: var(--space-2, 8px);
       height: 2px;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: 1px 1px 0 0;
     }
 
@@ -446,7 +446,7 @@ function injectStyles(): void {
     [class*="-hero__icon"] {
       width: 48px;
       height: 48px;
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-lg, 12px);
       display: flex;
       align-items: center;
@@ -493,7 +493,7 @@ function injectStyles(): void {
       background: var(--color-bg-secondary);
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-4, 16px);
-      border-left: 3px solid var(--persona-primary, #4a6741);
+      border-left: 3px solid var(--persona-primary, var(--color-ferni));
       opacity: 0;
       animation: semanticCardIn var(--duration-slow, 300ms) var(--ease-spring) forwards;
     }
@@ -600,7 +600,7 @@ function injectStyles(): void {
     .semantic-loop-card__icon {
       width: 28px;
       height: 28px;
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-md, 8px);
       display: flex;
       align-items: center;
@@ -768,7 +768,7 @@ function injectStyles(): void {
     }
 
     .semantic-relationship-card--mentioned {
-      border-top: 3px solid var(--persona-primary, #4a6741);
+      border-top: 3px solid var(--persona-primary, var(--color-ferni));
     }
 
     .semantic-relationship-card--drainer {
@@ -816,7 +816,7 @@ function injectStyles(): void {
       align-items: flex-start;
       gap: var(--space-3, 12px);
       padding: var(--space-4, 16px);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.05));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent));
       border-radius: var(--radius-lg, 12px);
     }
 
@@ -882,7 +882,7 @@ function injectStyles(): void {
       width: 40px;
       height: 40px;
       margin: 0 auto var(--space-3, 12px);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-full, 9999px);
       display: flex;
       align-items: center;
@@ -953,7 +953,7 @@ function injectStyles(): void {
 
     .semantic-emotional-baseline__fill {
       height: 100%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: var(--radius-full, 9999px);
       transition: width var(--duration-slow, 300ms) var(--ease-spring);
     }
@@ -1032,7 +1032,7 @@ function injectStyles(): void {
     .semantic-coaching-card__icon {
       width: 36px;
       height: 36px;
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-md, 8px);
       display: flex;
       align-items: center;
@@ -1063,7 +1063,7 @@ function injectStyles(): void {
     }
 
     .semantic-coaching-boundaries {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.05));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent));
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-4, 16px);
     }
@@ -1092,7 +1092,7 @@ function injectStyles(): void {
     }
 
     .semantic-coaching-boundary {
-      background: var(--color-bg-elevated, #FFFDFB);
+      background: var(--color-bg-elevated, var(--color-white));
       padding: var(--space-2, 8px) var(--space-3, 12px);
       border-radius: var(--radius-full, 9999px);
       font-size: 0.8125rem;
@@ -1272,7 +1272,7 @@ function injectStyles(): void {
     .semantic-deep-insight__confidence-bar {
       flex: 1;
       height: 4px;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: var(--radius-full, 9999px);
       max-width: 100px;
     }
@@ -1335,7 +1335,7 @@ function injectStyles(): void {
       font-size: 0.75rem;
       font-weight: 600;
       color: var(--persona-ink);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       padding: var(--space-1, 4px) var(--space-2, 8px);
       border-radius: var(--radius-sm, 4px);
     }
@@ -1389,7 +1389,7 @@ function injectStyles(): void {
       background: var(--color-bg-secondary);
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-4, 16px);
-      border-left: 3px solid var(--persona-primary, #4a6741);
+      border-left: 3px solid var(--persona-primary, var(--color-ferni));
       opacity: 0;
       animation: semanticCardIn var(--duration-slow, 300ms) var(--ease-spring) forwards;
     }
@@ -1460,7 +1460,7 @@ function injectStyles(): void {
       display: inline-flex;
       align-items: center;
       gap: var(--space-1, 4px);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       color: var(--persona-ink);
       font-size: 0.6875rem;
       font-weight: 600;
@@ -1485,7 +1485,7 @@ function injectStyles(): void {
       width: 56px;
       height: 56px;
       margin: 0 auto var(--space-4, 16px);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-xl, 16px);
       display: flex;
       align-items: center;
@@ -1554,7 +1554,7 @@ function injectStyles(): void {
       left: 0;
       right: 0;
       height: 60px;
-      background: linear-gradient(to top, var(--color-bg-elevated, #FFFDFB), transparent);
+      background: linear-gradient(to top, var(--color-bg-elevated, var(--color-white)), transparent);
       pointer-events: none;
     }
 
@@ -1567,8 +1567,8 @@ function injectStyles(): void {
     }
 
     .semantic-teaser__unlock--soon {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-      border: 1px solid var(--persona-primary, #4a6741);
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
+      border: 1px solid var(--persona-primary, var(--color-ferni));
     }
 
     .semantic-teaser__unlock-text {

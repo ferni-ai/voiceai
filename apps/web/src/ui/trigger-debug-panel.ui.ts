@@ -36,11 +36,11 @@ const PANEL_STYLES = `
     max-height: 80vh;
     background: var(--color-bg-elevated, #1a1a2e);
     border-radius: var(--radius-lg, 12px);
-    box-shadow: var(--shadow-xl, 0 20px 40px rgba(0,0,0,0.3));
+    box-shadow: var(--shadow-xl, 0 20px 40px color-mix(in srgb, var(--color-black) 30%, transparent));
     z-index: var(--z-modal, 2100);
     overflow: hidden;
     font-family: var(--font-body, 'Inter', sans-serif);
-    color: var(--color-text-primary, #faf6f0);
+    color: var(--color-text-primary);
     font-size: 13px;
   }
 
@@ -50,7 +50,7 @@ const PANEL_STYLES = `
     align-items: center;
     padding: 12px 16px;
     background: var(--color-bg-secondary, #2d2d44);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(255,255,255,0.1));
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
   .trigger-debug-panel__title {
@@ -64,14 +64,14 @@ const PANEL_STYLES = `
   .trigger-debug-panel__close {
     background: none;
     border: none;
-    color: var(--color-text-secondary, #e8e2da);
+    color: var(--color-text-secondary);
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
   }
 
   .trigger-debug-panel__close:hover {
-    background: var(--color-bg-tertiary, rgba(255,255,255,0.1));
+    background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 10%, transparent));
   }
 
   .trigger-debug-panel__content {
@@ -88,7 +88,7 @@ const PANEL_STYLES = `
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--color-text-muted, #c0b8ae);
+    color: var(--color-text-muted);
     margin-bottom: 8px;
     display: flex;
     align-items: center;
@@ -102,14 +102,14 @@ const PANEL_STYLES = `
   }
 
   .trigger-debug-panel__stat {
-    background: var(--color-bg-tertiary, rgba(255,255,255,0.05));
+    background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 5%, transparent));
     padding: 8px 12px;
     border-radius: 8px;
   }
 
   .trigger-debug-panel__stat-label {
     font-size: 10px;
-    color: var(--color-text-muted, #c0b8ae);
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }
@@ -129,7 +129,7 @@ const PANEL_STYLES = `
   }
 
   .trigger-debug-panel__stat-value--muted {
-    color: var(--color-text-muted, #c0b8ae);
+    color: var(--color-text-muted);
   }
 
   .trigger-debug-panel__trigger-list {
@@ -139,18 +139,18 @@ const PANEL_STYLES = `
   }
 
   .trigger-debug-panel__trigger {
-    background: var(--color-bg-tertiary, rgba(255,255,255,0.05));
+    background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 5%, transparent));
     padding: 10px 12px;
     border-radius: 8px;
-    border-left: 3px solid var(--color-text-muted, #c0b8ae);
+    border-left: 3px solid var(--color-text-muted);
   }
 
   .trigger-debug-panel__trigger--fired {
-    border-left-color: var(--color-semantic-success, #4ade80);
+    border-left-color: var(--color-semantic-success);
   }
 
   .trigger-debug-panel__trigger--matched {
-    border-left-color: var(--color-semantic-warning, #fbbf24);
+    border-left-color: var(--color-semantic-warning);
   }
 
   .trigger-debug-panel__trigger-header {
@@ -174,18 +174,18 @@ const PANEL_STYLES = `
   }
 
   .trigger-debug-panel__trigger-badge--fired {
-    background: var(--color-semantic-success, #4ade80);
-    color: #000;
+    background: var(--color-semantic-success);
+    color: var(--color-black);
   }
 
   .trigger-debug-panel__trigger-badge--matched {
-    background: var(--color-semantic-warning, #fbbf24);
-    color: #000;
+    background: var(--color-semantic-warning);
+    color: var(--color-black);
   }
 
   .trigger-debug-panel__trigger-meta {
     font-size: 10px;
-    color: var(--color-text-muted, #c0b8ae);
+    color: var(--color-text-muted);
     display: flex;
     gap: 12px;
   }
@@ -200,7 +200,7 @@ const PANEL_STYLES = `
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--color-bg-tertiary, rgba(255,255,255,0.05));
+    background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 5%, transparent));
     padding: 8px 12px;
     border-radius: 6px;
   }
@@ -213,11 +213,11 @@ const PANEL_STYLES = `
     display: flex;
     gap: 12px;
     font-size: 11px;
-    color: var(--color-text-muted, #c0b8ae);
+    color: var(--color-text-muted);
   }
 
   .trigger-debug-panel__empty {
-    color: var(--color-text-muted, #c0b8ae);
+    color: var(--color-text-muted);
     font-style: italic;
     font-size: 12px;
     text-align: center;
@@ -225,9 +225,9 @@ const PANEL_STYLES = `
   }
 
   .trigger-debug-panel__refresh-btn {
-    background: var(--color-bg-tertiary, rgba(255,255,255,0.1));
+    background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 10%, transparent));
     border: none;
-    color: var(--color-text-secondary, #e8e2da);
+    color: var(--color-text-secondary);
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 4px;
@@ -236,7 +236,7 @@ const PANEL_STYLES = `
   }
 
   .trigger-debug-panel__refresh-btn:hover {
-    background: var(--color-bg-elevated, rgba(255,255,255,0.15));
+    background: var(--color-bg-elevated, color-mix(in srgb, var(--color-white) 15%, transparent));
   }
 `;
 

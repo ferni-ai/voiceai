@@ -14,46 +14,26 @@ import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getMockConversationStarters } from '../data/mock-contacts.js';
 import { t } from '../i18n/index.js';
+import {
+  type ConversationStarter,
+  type ConversationStartersOptions,
+  type ConversationStartersState,
+  ICONS,
+  TONE_ICONS,
+  TONE_LABELS,
+  escapeHtml,
+  formatLastContact,
+} from './conversation-starters-config.js';
+export type {
+  ConversationStarter,
+  ConversationStartersOptions,
+} from './conversation-starters-config.js';
 
 const log = createLogger('ConversationStartersUI');
 
 // ============================================================================
-// TYPES
-// ============================================================================
-
-export interface ConversationStarter {
-  id: string;
-  topic: string;
-  opener: string;
-  context: string;
-  tone: 'casual' | 'supportive' | 'celebratory' | 'curious';
-}
-
-export interface ConversationStartersOptions {
-  contactId: string;
-  contactName: string;
-  lastContact?: string; // ISO date
-  sharedInterests?: string[];
-  recentEvents?: string[];
-  onSelect?: (starter: ConversationStarter) => void;
-  onClose?: () => void;
-}
-
-// ============================================================================
 // STATE
 // ============================================================================
-
-interface ConversationStartersState {
-  isOpen: boolean;
-  contactId: string;
-  contactName: string;
-  lastContact: string;
-  starters: ConversationStarter[];
-  isLoading: boolean;
-  hasGenerated: boolean;
-  error: string | null;
-  selectedStarter: ConversationStarter | null;
-}
 
 let state: ConversationStartersState = {
   isOpen: false,
@@ -69,39 +49,6 @@ let state: ConversationStartersState = {
 
 let modalContainer: HTMLElement | null = null;
 let callbacks: { onSelect?: (starter: ConversationStarter) => void; onClose?: () => void } = {};
-
-// ============================================================================
-// ICONS
-// ============================================================================
-
-const ICONS = {
-  close: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>`,
-  messageCircle: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>`,
-  sparkles: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>`,
-  coffee: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>`,
-  heart: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
-  party: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11v0c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98v0C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></svg>`,
-  lightbulb: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>`,
-  loader: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cs-spinner"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`,
-  refresh: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>`,
-  copy: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`,
-  check: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
-};
-
-// Tone icons
-const TONE_ICONS: Record<ConversationStarter['tone'], string> = {
-  casual: ICONS.coffee,
-  supportive: ICONS.heart,
-  celebratory: ICONS.party,
-  curious: ICONS.lightbulb,
-};
-
-const TONE_LABELS: Record<ConversationStarter['tone'], string> = {
-  casual: 'Casual',
-  supportive: 'Supportive',
-  celebratory: 'Celebratory',
-  curious: 'Curious',
-};
 
 // ============================================================================
 // STYLES
@@ -145,10 +92,10 @@ function injectStyles(): void {
       width: 94%;
       max-width: clamp(336px, 90vw, 480px);
       max-height: 85vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -198,14 +145,14 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
       line-height: 1.2;
     }
 
     .cs-subtitle {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-1, 0.25rem);
     }
 
@@ -219,14 +166,14 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
 
     .cs-close:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     /* =========================================================================
@@ -268,7 +215,7 @@ function injectStyles(): void {
 
     .cs-loading-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     /* =========================================================================
@@ -285,7 +232,7 @@ function injectStyles(): void {
       height: 56px;
       margin: 0 auto var(--space-4, 1rem);
       border-radius: var(--radius-full, 50%);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       color: var(--persona-ink);
       display: flex;
       align-items: center;
@@ -300,13 +247,13 @@ function injectStyles(): void {
     .cs-initial-title {
       font-size: var(--text-base, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-2, 0.5rem);
     }
 
     .cs-initial-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       line-height: 1.5;
       margin-bottom: var(--space-4, 1rem);
     }
@@ -319,16 +266,16 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      background: var(--persona-primary, #4a6741);
-      border: 1px solid var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      border: 1px solid var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .cs-generate-btn:hover {
-      background: var(--persona-secondary, #3d5a35);
-      border-color: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
+      border-color: var(--persona-secondary, var(--color-ferni-secondary));
     }
 
     /* =========================================================================
@@ -342,7 +289,7 @@ function injectStyles(): void {
     }
 
     .cs-starter {
-      background: var(--color-bg-secondary, rgba(250, 248, 245, 0.5));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 50%, transparent));
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-lg, 1rem);
       padding: var(--space-4, 1rem);
@@ -351,14 +298,14 @@ function injectStyles(): void {
     }
 
     .cs-starter:hover {
-      border-color: var(--persona-primary, #4a6741);
-      background: var(--color-background-elevated, #FFFDFB);
+      border-color: var(--persona-primary, var(--color-ferni));
+      background: var(--color-background-elevated);
     }
 
     .cs-starter.selected {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       border-width: 2px;
-      background: var(--persona-tint, rgba(74, 103, 65, 0.05));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent));
     }
 
     .cs-starter-header {
@@ -374,7 +321,7 @@ function injectStyles(): void {
       gap: var(--space-2, 0.5rem);
       font-weight: 600;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .cs-tone-badge {
@@ -385,7 +332,7 @@ function injectStyles(): void {
       font-weight: 500;
       color: var(--persona-ink);
       padding: var(--space-0-5, 0.125rem) var(--space-2, 0.5rem);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-full, 9999px);
     }
 
@@ -396,7 +343,7 @@ function injectStyles(): void {
 
     .cs-starter-opener {
       font-size: var(--text-base, 1rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       font-style: italic;
       line-height: 1.5;
       margin-bottom: var(--space-2, 0.5rem);
@@ -406,7 +353,7 @@ function injectStyles(): void {
 
     .cs-starter-context {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     /* =========================================================================
@@ -434,13 +381,13 @@ function injectStyles(): void {
       font-weight: 500;
       background: transparent;
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.15));
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .cs-retry-btn:hover {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted);
     }
 
     /* =========================================================================
@@ -471,7 +418,7 @@ function injectStyles(): void {
     .cs-footer-btn-secondary {
       background: var(--tonal-surface-2);
       border: none;
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .cs-footer-btn-secondary:hover {
@@ -483,13 +430,13 @@ function injectStyles(): void {
     }
 
     .cs-footer-btn-primary {
-      background: var(--persona-primary, #4a6741);
-      border: 1px solid var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      border: 1px solid var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .cs-footer-btn-primary:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
     }
 
     .cs-footer-btn-primary:disabled {
@@ -789,30 +736,6 @@ function copySelectedStarter(): void {
 }
 
 // ============================================================================
-// HELPERS
-// ============================================================================
-
-function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function formatLastContact(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return 'today';
-  if (diffDays === 1) return 'yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-  return 'over a year ago';
-}
-
-// ============================================================================
 // PUBLIC API
 // ============================================================================
 
@@ -889,4 +812,3 @@ export const conversationStarters = {
 };
 
 export default conversationStarters;
-

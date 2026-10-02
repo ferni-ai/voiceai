@@ -180,7 +180,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // BRAND: Grounded excitement - present and warm, NOT over-the-top
     id: 'excited',
     color: {
-      primary: 'var(--color-jordan, #c4856a)',
+      primary: 'var(--color-jordan)',
       glow: 'rgba(196, 133, 106, 0.45)',
       intensity: 0.55, // Reduced from 0.7 - grounded, not flashy
     },
@@ -198,7 +198,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
   curious: {
     id: 'curious',
     color: {
-      primary: 'var(--color-peter, #3a6b73)',
+      primary: 'var(--color-peter)',
       glow: 'rgba(58, 107, 115, 0.4)',
       intensity: 0.4,
     },
@@ -216,7 +216,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
   thinking: {
     id: 'thinking',
     color: {
-      primary: 'var(--color-alex, #5a6b8a)',
+      primary: 'var(--color-alex)',
       glow: 'rgba(90, 107, 138, 0.35)',
       intensity: 0.35,
     },
@@ -234,7 +234,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
   calm: {
     id: 'calm',
     color: {
-      primary: 'var(--color-ferni, #4a6741)',
+      primary: 'var(--color-ferni)',
       glow: 'rgba(74, 103, 65, 0.3)',
       intensity: 0.25,
     },
@@ -252,7 +252,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
   sad: {
     id: 'sad',
     color: {
-      primary: 'var(--color-peter, #3a6b73)',
+      primary: 'var(--color-peter)',
       glow: 'rgba(58, 107, 115, 0.25)',
       intensity: 0.2,
     },
@@ -329,7 +329,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // BRAND: Deep thought - wise, measured energy (like Jack Bogle)
     id: 'contemplative',
     color: {
-      primary: 'var(--color-jack, #9a7b5a)',
+      primary: 'var(--color-jack)',
       glow: 'rgba(154, 123, 90, 0.3)',
       intensity: 0.3,
     },
@@ -349,7 +349,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Used when Ferni detects what's NOT being said
     id: 'noticing',
     color: {
-      primary: 'var(--color-ferni, #4a6741)',
+      primary: 'var(--color-ferni)',
       glow: 'rgba(74, 103, 65, 0.35)',
       intensity: 0.35,
     },
@@ -369,7 +369,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Used during difficult moments - "I'm here with you"
     id: 'holdingSpace',
     color: {
-      primary: 'var(--color-maya, #a67a6a)',
+      primary: 'var(--color-maya)',
       glow: 'rgba(166, 122, 106, 0.3)',
       intensity: 0.3,
     },
@@ -392,7 +392,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Active, engaged listening - user is speaking normally
     id: 'attentive',
     color: {
-      primary: 'var(--color-ferni, #4a6741)',
+      primary: 'var(--color-ferni)',
       glow: 'rgba(74, 103, 65, 0.35)',
       intensity: 0.35,
     },
@@ -410,7 +410,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Taking in heavy content - user shares something big
     id: 'absorbing',
     color: {
-      primary: 'var(--color-jack, #9a7b5a)',
+      primary: 'var(--color-jack)',
       glow: 'rgba(154, 123, 90, 0.3)',
       intensity: 0.3,
     },
@@ -428,7 +428,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Open, accepting - user shares vulnerability
     id: 'receiving',
     color: {
-      primary: 'var(--color-maya, #a67a6a)',
+      primary: 'var(--color-maya)',
       glow: 'rgba(166, 122, 106, 0.35)',
       intensity: 0.35,
     },
@@ -446,7 +446,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Leaning in with interest - something intriguing
     id: 'curiousLean',
     color: {
-      primary: 'var(--color-peter, #3a6b73)',
+      primary: 'var(--color-peter)',
       glow: 'rgba(58, 107, 115, 0.4)',
       intensity: 0.4,
     },
@@ -522,7 +522,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Pride in user - user accomplishment
     id: 'proud',
     color: {
-      primary: 'var(--color-ferni, #4a6741)',
+      primary: 'var(--color-ferni)',
       glow: 'rgba(74, 103, 65, 0.45)',
       intensity: 0.5,
     },
@@ -540,7 +540,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Full celebration - major milestone
     id: 'celebrating',
     color: {
-      primary: 'var(--color-jordan, #c4856a)',
+      primary: 'var(--color-jordan)',
       glow: 'rgba(196, 133, 106, 0.5)',
       intensity: 0.6,
     },
@@ -562,7 +562,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Fully here, grounded - default connected state
     id: 'present',
     color: {
-      primary: 'var(--color-ferni, #4a6741)',
+      primary: 'var(--color-ferni)',
       glow: 'rgba(74, 103, 65, 0.3)',
       intensity: 0.3,
     },
@@ -580,7 +580,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Containing emotion - user processing hard things
     id: 'holding',
     color: {
-      primary: 'var(--color-maya, #a67a6a)',
+      primary: 'var(--color-maya)',
       glow: 'rgba(166, 122, 106, 0.28)',
       intensity: 0.28,
     },
@@ -598,7 +598,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Walking alongside - user in difficult moment
     id: 'accompanying',
     color: {
-      primary: 'var(--color-maya, #a67a6a)',
+      primary: 'var(--color-maya)',
       glow: 'rgba(166, 122, 106, 0.32)',
       intensity: 0.32,
     },
@@ -616,7 +616,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Patient anticipation - giving space to think
     id: 'waiting',
     color: {
-      primary: 'var(--color-ferni, #4a6741)',
+      primary: 'var(--color-ferni)',
       glow: 'rgba(74, 103, 65, 0.25)',
       intensity: 0.25,
     },
@@ -638,7 +638,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Gentle support - user needs boost
     id: 'encouraging',
     color: {
-      primary: 'var(--color-ferni, #4a6741)',
+      primary: 'var(--color-ferni)',
       glow: 'rgba(74, 103, 65, 0.4)',
       intensity: 0.4,
     },
@@ -656,7 +656,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Loving push - user needs to grow
     id: 'challenging',
     color: {
-      primary: 'var(--color-peter, #3a6b73)',
+      primary: 'var(--color-peter)',
       glow: 'rgba(58, 107, 115, 0.38)',
       intensity: 0.38,
     },
@@ -674,7 +674,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Mirroring back - showing user their pattern
     id: 'reflecting',
     color: {
-      primary: 'var(--color-alex, #5a6b8a)',
+      primary: 'var(--color-alex)',
       glow: 'rgba(90, 107, 138, 0.35)',
       intensity: 0.35,
     },
@@ -714,7 +714,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Callback moment - referencing past conversation
     id: 'remembering',
     color: {
-      primary: 'var(--color-jack, #9a7b5a)',
+      primary: 'var(--color-jack)',
       glow: 'rgba(154, 123, 90, 0.38)',
       intensity: 0.38,
     },
@@ -732,7 +732,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // "Welcome back" energy - user returns after absence
     id: 'reconnecting',
     color: {
-      primary: 'var(--color-ferni, #4a6741)',
+      primary: 'var(--color-ferni)',
       glow: 'rgba(74, 103, 65, 0.42)',
       intensity: 0.42,
     },
@@ -768,7 +768,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Noticing evolution - user has grown since before
     id: 'growing',
     color: {
-      primary: 'var(--color-ferni, #4a6741)',
+      primary: 'var(--color-ferni)',
       glow: 'rgba(74, 103, 65, 0.45)',
       intensity: 0.45,
     },
@@ -790,7 +790,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Taking it in - after user says something big
     id: 'processing',
     color: {
-      primary: 'var(--color-alex, #5a6b8a)',
+      primary: 'var(--color-alex)',
       glow: 'rgba(90, 107, 138, 0.32)',
       intensity: 0.32,
     },
@@ -808,7 +808,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Connecting dots - Ferni makes a connection
     id: 'realizing',
     color: {
-      primary: 'var(--color-peter, #3a6b73)',
+      primary: 'var(--color-peter)',
       glow: 'rgba(58, 107, 115, 0.4)',
       intensity: 0.4,
     },
@@ -844,7 +844,7 @@ export const EMOTIONS: Record<EmotionId, EmotionState> = {
     // Coming to rest - after emotional peak
     id: 'settling',
     color: {
-      primary: 'var(--color-ferni, #4a6741)',
+      primary: 'var(--color-ferni)',
       glow: 'rgba(74, 103, 65, 0.28)',
       intensity: 0.28,
     },

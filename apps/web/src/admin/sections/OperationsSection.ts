@@ -218,18 +218,18 @@ export async function render(): Promise<string> {
       }
 
       .ops-banner--healthy .ops-banner-indicator {
-        background: var(--color-semantic-success, #4a6741);
-        box-shadow: 0 0 8px var(--color-semantic-success, #4a6741);
+        background: var(--color-semantic-success);
+        box-shadow: 0 0 8px var(--color-semantic-success);
       }
 
       .ops-banner--degraded .ops-banner-indicator {
-        background: var(--color-semantic-warning, #d4a84b);
-        box-shadow: 0 0 8px var(--color-semantic-warning, #d4a84b);
+        background: var(--color-semantic-warning);
+        box-shadow: 0 0 8px var(--color-semantic-warning);
       }
 
       .ops-banner--down .ops-banner-indicator {
-        background: var(--color-semantic-error, #c44536);
-        box-shadow: 0 0 8px var(--color-semantic-error, #c44536);
+        background: var(--color-semantic-error);
+        box-shadow: 0 0 8px var(--color-semantic-error);
       }
 
       @keyframes ops-pulse {
@@ -271,9 +271,9 @@ export async function render(): Promise<string> {
         border-left: 3px solid transparent;
       }
 
-      .ops-service-card--healthy { border-left-color: var(--color-semantic-success, #4a6741); }
-      .ops-service-card--degraded { border-left-color: var(--color-semantic-warning, #d4a84b); }
-      .ops-service-card--down { border-left-color: var(--color-semantic-error, #c44536); }
+      .ops-service-card--healthy { border-left-color: var(--color-semantic-success); }
+      .ops-service-card--degraded { border-left-color: var(--color-semantic-warning); }
+      .ops-service-card--down { border-left-color: var(--color-semantic-error); }
 
       .ops-service-header {
         display: flex;
@@ -296,8 +296,8 @@ export async function render(): Promise<string> {
       }
 
       .ops-service-badge--critical {
-        background: var(--color-semantic-error, #c44536);
-        color: white;
+        background: var(--color-semantic-error);
+        color: var(--color-white);
       }
 
       .ops-service-status {
@@ -312,9 +312,9 @@ export async function render(): Promise<string> {
         border-radius: 50%;
       }
 
-      .ops-service-dot--healthy { background: var(--color-semantic-success, #4a6741); }
-      .ops-service-dot--degraded { background: var(--color-semantic-warning, #d4a84b); }
-      .ops-service-dot--down { background: var(--color-semantic-error, #c44536); }
+      .ops-service-dot--healthy { background: var(--color-semantic-success); }
+      .ops-service-dot--degraded { background: var(--color-semantic-warning); }
+      .ops-service-dot--down { background: var(--color-semantic-error); }
 
       .ops-service-status-text {
         font-size: 0.8125rem;
@@ -466,9 +466,9 @@ export async function render(): Promise<string> {
         transition: width var(--duration-slow, ${DURATION.SLOW}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
-      .ops-budget-fill--good { background: var(--color-semantic-success, #4a6741); }
-      .ops-budget-fill--warning { background: var(--color-semantic-warning, #d4a84b); }
-      .ops-budget-fill--danger { background: var(--color-semantic-error, #c44536); }
+      .ops-budget-fill--good { background: var(--color-semantic-success); }
+      .ops-budget-fill--warning { background: var(--color-semantic-warning); }
+      .ops-budget-fill--danger { background: var(--color-semantic-error); }
 
       .ops-budget-meta {
         display: flex;
@@ -505,7 +505,7 @@ export async function render(): Promise<string> {
       }
 
       .ops-link:focus-visible {
-        outline: 2px solid var(--admin-accent, #4a6741);
+        outline: 2px solid var(--admin-accent, var(--color-ferni));
         outline-offset: 2px;
       }
 
@@ -517,7 +517,7 @@ export async function render(): Promise<string> {
       }
 
       .ops-link-icon {
-        color: var(--admin-accent, #4a6741);
+        color: var(--admin-accent, var(--color-ferni));
       }
 
       .ops-link-icon svg {

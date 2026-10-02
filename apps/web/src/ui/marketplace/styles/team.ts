@@ -138,7 +138,7 @@ export function getTeamStyles(): string {
       font-family: var(--font-display);
       font-size: 1.25rem;
       font-weight: 700;
-      color: white;
+      color: var(--color-white);
       flex-shrink: 0;
       box-shadow: var(--shadow-md),
                   0 0 20px var(--avatar-glow, var(--persona-glow));
@@ -258,7 +258,7 @@ export function getTeamStyles(): string {
       font-family: var(--font-display);
       font-size: 0.9rem;
       font-weight: 700;
-      color: white;
+      color: var(--color-white);
       box-shadow: var(--shadow-sm),
                   0 0 15px var(--avatar-glow, var(--persona-glow));
       animation: avatar-breathe 5s var(--ease-smooth) infinite;
@@ -344,7 +344,7 @@ export function getTeamStyles(): string {
     .employee-roster-action--remove {
       background: var(--persona-primary);
       border: none;
-      color: white;
+      color: var(--color-white);
     }
 
     .employee-roster-action--remove:hover {
@@ -383,7 +383,7 @@ export function getTeamStyles(): string {
 
     .employee-roster-action--add:hover {
       background: var(--persona-primary);
-      color: white;
+      color: var(--color-white);
       border-style: solid;
       border-color: var(--persona-text);
       transform: scale(1.05);
@@ -527,7 +527,7 @@ export function getTeamStyles(): string {
       font-family: var(--font-display);
       font-size: 0.55rem;
       font-weight: 700;
-      color: white;
+      color: var(--color-white);
     }
 
     .team-progress-name {

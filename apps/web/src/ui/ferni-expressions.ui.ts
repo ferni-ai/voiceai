@@ -196,9 +196,9 @@ function createLidOverlay(): void {
   lidOverlay.innerHTML = `
     <svg viewBox="0 0 100 100" class="lid-svg" preserveAspectRatio="none">
       <!-- Top lid -->
-      <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z" fill="var(--color-background-primary, #1a1612)"/>
+      <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z" fill="var(--color-background-primary)"/>
       <!-- Bottom lid (for squinting) -->
-      <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z" fill="var(--color-background-primary, #1a1612)"/>
+      <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z" fill="var(--color-background-primary)"/>
       <!-- Dimples - subtle shadows that appear during warm expressions -->
       <!-- Positioned below eyes (cy=47) in cheek area, styled as soft shadows -->
       <ellipse class="dimple dimple-left" cx="28" cy="68" rx="4" ry="3" opacity="0"/>
@@ -870,7 +870,7 @@ export function triggerWarmthSparkle(): void {
       top: 50%;
       width: ${size}px;
       height: ${size}px;
-      background: var(--color-semantic-warning, #b8956a);
+      background: var(--color-semantic-warning);
       border-radius: 50%;
       transform: translate(-50%, -50%);
       opacity: 0;
@@ -1281,7 +1281,7 @@ function injectStyles(): void {
     .dimple {
       /* Semi-transparent dark creates shadow/indent effect */
       /* Works across all themes since it darkens the avatar color */
-      fill: rgba(0, 0, 0, 0.12);
+      fill: color-mix(in srgb, var(--color-black) 12%, transparent);
       transition: opacity 0.3s ease;
       filter: blur(0.5px);
     }
@@ -1289,7 +1289,7 @@ function injectStyles(): void {
     /* Slightly softer dimples in light themes */
     [data-theme="light"] .dimple,
     [data-theme="zen"] .dimple {
-      fill: rgba(0, 0, 0, 0.08);
+      fill: color-mix(in srgb, var(--color-black) 8%, transparent);
     }
     
     /* Warmth sparkles */
@@ -1309,8 +1309,8 @@ function injectStyles(): void {
     
     .emotion-sparkle {
       box-shadow: 
-        0 0 4px var(--color-semantic-warning, #b8956a),
-        0 0 8px var(--color-semantic-warning, #b8956a);
+        0 0 4px var(--color-semantic-warning),
+        0 0 8px var(--color-semantic-warning);
     }
     
     /* Morph icon container */
@@ -1319,7 +1319,7 @@ function injectStyles(): void {
     }
     
     .morph-icon-container svg {
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+      filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--color-black) 15%, transparent));
     }
     
     /* Reduced motion */

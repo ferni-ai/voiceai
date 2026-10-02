@@ -138,10 +138,10 @@ function injectStyles(): void {
       max-width: clamp(350px, 90vw, 500px);
       max-height: 80vh;
       overflow-y: auto;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-2xl);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       transform: scale(0.95) translateY(10px);
       transition: transform var(--duration-slow) var(--ease-spring);
     }
@@ -364,7 +364,7 @@ function injectStyles(): void {
     .calendar-item .primary-badge {
       font-size: var(--text-xs);
       color: var(--color-accent-text);
-      background: var(--color-accent-primary-light, rgba(74, 103, 65, 0.1));
+      background: var(--color-accent-primary-light, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       padding: var(--space-2xs) var(--space-xs);
       border-radius: var(--radius-sm);
     }

@@ -686,10 +686,10 @@ function injectStyles(): void {
 
     .persona-intro-card {
       position: relative;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       max-width: clamp(322px, 90vw, 460px);
       width: 100%;
       max-height: calc(100vh - var(--space-8, 32px));
@@ -706,20 +706,20 @@ function injectStyles(): void {
       width: 40px;
       height: 40px;
       border: none;
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-full, 9999px);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       z-index: var(--z-docked);
     }
     
     .persona-intro-close:hover {
-      background: var(--color-background-tertiary, #E8E0D5);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
     }
     
     .persona-intro-close svg {
@@ -744,7 +744,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 2.5rem;
       font-weight: 700;
-      color: white;
+      color: var(--color-white);
       letter-spacing: -0.02em;
       position: relative;
       z-index: var(--z-docked);
@@ -776,17 +776,17 @@ function injectStyles(): void {
       width: 8px;
       height: 8px;
       border-radius: var(--radius-full, 9999px);
-      background: var(--color-border-medium, rgba(44, 37, 32, 0.15));
+      background: var(--color-border-medium);
       transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
     
     .step-dot--active {
       width: 24px;
-      background: var(--active-color, var(--persona-primary, #4a6741));
+      background: var(--active-color, var(--persona-primary, var(--color-ferni)));
     }
     
     .step-dot--complete {
-      background: var(--active-color, var(--persona-primary, #4a6741));
+      background: var(--active-color, var(--persona-primary, var(--color-ferni)));
       opacity: 0.5;
     }
     
@@ -806,7 +806,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-2xl, 28px);
       font-weight: var(--font-weight-bold, 700);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-3, 12px);
       line-height: var(--leading-tight, 1.2);
       opacity: 0;
@@ -815,7 +815,7 @@ function injectStyles(): void {
     .persona-intro-body {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-base, 16px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       margin: 0 0 var(--space-5, 20px);
       line-height: var(--leading-relaxed, 1.6);
       opacity: 0;
@@ -848,7 +848,7 @@ function injectStyles(): void {
     .persona-intro-funfact p {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       margin: 0;
       line-height: var(--leading-relaxed, 1.5);
       font-style: italic;
@@ -882,25 +882,25 @@ function injectStyles(): void {
     }
     
     .persona-intro-btn--primary {
-      color: white;
+      color: var(--color-white);
       border: none;
-      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 30%, transparent);
     }
     
     .persona-intro-btn--primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(74, 103, 65, 0.4);
+      box-shadow: 0 6px 16px color-mix(in srgb, var(--color-ferni) 40%, transparent);
     }
     
     .persona-intro-btn--secondary {
       background: transparent;
-      color: var(--color-text-secondary, #5C544A);
-      border: 2px solid var(--color-border-medium, #d4d0c8);
+      color: var(--color-text-secondary);
+      border: 2px solid var(--color-border-medium);
     }
     
     .persona-intro-btn--secondary:hover {
-      background: var(--color-background-secondary, #F5F1E8);
-      border-color: var(--color-text-muted, #756A5E);
+      background: var(--color-background-secondary);
+      border-color: var(--color-text-muted);
     }
     
     /* ========================================================================
@@ -911,29 +911,29 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .persona-intro-card {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated);
     }
     
     [data-theme="midnight"] .persona-intro-title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
     
     [data-theme="midnight"] .persona-intro-body,
     [data-theme="midnight"] .persona-intro-funfact p {
-      color: var(--color-text-secondary, #f0ebe4);
+      color: var(--color-text-secondary);
     }
     
     [data-theme="midnight"] .persona-intro-close {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
     
     [data-theme="midnight"] .persona-intro-btn--secondary {
-      color: var(--color-text-secondary, #f0ebe4);
-      border-color: var(--color-border-medium, #80706a);
+      color: var(--color-text-secondary);
+      border-color: var(--color-border-medium);
     }
     
     [data-theme="midnight"] .persona-intro-btn--secondary:hover {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
     
     /* ========================================================================

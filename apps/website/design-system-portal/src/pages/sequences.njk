@@ -349,13 +349,13 @@ permalink: /sequences/
 
 .rule-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
 }
 
 .rule-card h4 {
   margin: 0 0 var(--space-3);
-  color: var(--color-accent);
+  color: var(--accent-text);
 }
 
 .rule-card ul {
@@ -370,7 +370,7 @@ permalink: /sequences/
 }
 
 .sequence-meta {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin-bottom: var(--space-4);
 }
@@ -388,7 +388,7 @@ permalink: /sequences/
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--color-border-subtle);
+  background: var(--border-subtle);
 }
 
 .timeline-step {
@@ -406,15 +406,15 @@ permalink: /sequences/
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--color-accent);
-  border: 2px solid var(--color-bg-primary);
+  background: var(--accent-primary);
+  border: 2px solid var(--bg-primary);
 }
 
 .timeline-step.featured::before {
   width: 16px;
   height: 16px;
   left: -28px;
-  box-shadow: 0 0 0 4px rgba(61, 90, 69, 0.2);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--persona-marcus) 20%, transparent);
 }
 
 .step-marker {
@@ -423,8 +423,8 @@ permalink: /sequences/
   top: 50%;
   transform: translateY(-50%);
   font-size: 0.75rem;
-  color: var(--color-text-tertiary);
-  font-family: monospace;
+  color: var(--text-dimmed);
+  font-family: var(--font-mono);
 }
 
 .step-content h4 {
@@ -435,13 +435,13 @@ permalink: /sequences/
 .step-content p {
   margin: var(--space-1) 0;
   font-size: 0.85rem;
-  color: var(--color-accent);
-  font-family: monospace;
+  color: var(--accent-text);
+  font-family: var(--font-mono);
 }
 
 .step-content .description {
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-style: italic;
   font-family: var(--font-body);
 }
@@ -450,7 +450,7 @@ permalink: /sequences/
   display: flex;
   gap: var(--space-4);
   padding: var(--space-3);
-  background: var(--color-bg-elevated);
+  background: var(--bg-elevated);
   border-radius: var(--radius-md);
   font-size: 0.85rem;
 }
@@ -464,20 +464,20 @@ permalink: /sequences/
 
 .reduced-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
-  border-left: 3px solid var(--color-warning);
+  border-left: 3px solid var(--warning);
 }
 
 .reduced-card h4 {
   margin: 0 0 var(--space-2);
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 
 .reduced-card p {
   margin: 0;
   font-size: 0.9rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .animation-lib-grid {
@@ -489,27 +489,27 @@ permalink: /sequences/
 
 .anim-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
   text-align: center;
 }
 
 .anim-card h4 {
   margin: 0 0 var(--space-3);
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 
 .anim-demo {
   width: 40px;
   height: 40px;
   margin: 0 auto var(--space-3);
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: var(--radius-md);
 }
 
 .anim-card code {
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .fade-in { animation: fadeIn 2s ease-in-out infinite; }

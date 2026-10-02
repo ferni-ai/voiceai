@@ -163,27 +163,27 @@ const NARRATIVE_STYLES = `
   .ferni-timeline__content {
     width: calc(50% - 40px);
     padding: 16px;
-    background: var(--glass-regular-background, rgba(255, 255, 255, 0.05));
+    background: var(--glass-regular-background, color-mix(in srgb, var(--color-white) 5%, transparent));
     border-radius: 12px;
-    border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    border: 1px solid var(--color-border-subtle);
   }
 
   .ferni-timeline__title {
     font-size: 16px;
     font-weight: 600;
-    color: var(--color-text-primary, #ffffff);
+    color: var(--color-text-primary);
     margin-bottom: 4px;
   }
 
   .ferni-timeline__date {
     font-size: 12px;
-    color: var(--color-text-muted, #888);
+    color: var(--color-text-muted);
     margin-bottom: 8px;
   }
 
   .ferni-timeline__description {
     font-size: 14px;
-    color: var(--color-text-secondary, #a0a0a0);
+    color: var(--color-text-secondary);
     line-height: 1.5;
   }
 
@@ -223,8 +223,8 @@ const NARRATIVE_STYLES = `
   }
 
   .ferni-constellation__node--close {
-    background: var(--color-ferni, #4a6741);
-    box-shadow: 0 0 15px rgba(74, 103, 65, 0.3);
+    background: var(--color-ferni);
+    box-shadow: 0 0 15px color-mix(in srgb, var(--color-ferni) 30%, transparent);
   }
 
   .ferni-constellation__node--regular {
@@ -242,7 +242,7 @@ const NARRATIVE_STYLES = `
     transform: translateX(-50%);
     margin-top: 8px;
     font-size: 11px;
-    color: var(--color-text-muted, #888);
+    color: var(--color-text-muted);
     white-space: nowrap;
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -256,7 +256,7 @@ const NARRATIVE_STYLES = `
   .ferni-constellation__connection {
     position: absolute;
     pointer-events: none;
-    stroke: rgba(255, 255, 255, 0.2);
+    stroke: color-mix(in srgb, var(--color-white) 20%, transparent);
     stroke-width: 1;
     fill: none;
   }
@@ -350,7 +350,7 @@ const NARRATIVE_STYLES = `
   .ferni-garden__name {
     margin-top: 12px;
     font-size: 12px;
-    color: var(--color-text-secondary, #a0a0a0);
+    color: var(--color-text-secondary);
     text-align: center;
     max-width: 80px;
   }
@@ -359,7 +359,7 @@ const NARRATIVE_STYLES = `
     margin-top: 4px;
     width: 40px;
     height: 3px;
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--color-white) 10%, transparent);
     border-radius: 2px;
     overflow: hidden;
   }

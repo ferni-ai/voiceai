@@ -79,10 +79,10 @@ function injectStyles(): void {
       max-width: 480px;
       max-height: 85vh;
       overflow-y: auto;
-      background: var(--color-bg-elevated, #fffdfb);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       transform: scale(0.95) translateY(10px);
       transition: transform var(--duration-normal, 200ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
     }
@@ -96,7 +96,7 @@ function injectStyles(): void {
       align-items: flex-start;
       justify-content: space-between;
       padding: var(--space-6, 1.5rem) var(--space-6, 1.5rem) var(--space-4, 1rem);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .theme-language-settings__title-group {
@@ -118,7 +118,7 @@ function injectStyles(): void {
       font-size: 1.5rem;
       font-weight: 600;
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .theme-language-settings__close {
@@ -129,15 +129,15 @@ function injectStyles(): void {
       height: 40px;
       border: none;
       border-radius: var(--radius-full, 50%);
-      background: var(--color-background-tertiary, rgba(44, 37, 32, 0.04));
-      color: var(--color-text-secondary, #5a524c);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: background var(--duration-fast, 150ms), color var(--duration-fast, 150ms);
     }
 
     .theme-language-settings__close:hover {
-      background: var(--color-background-secondary, rgba(44, 37, 32, 0.08));
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
     }
 
     .theme-language-settings__close:focus-visible {
@@ -162,7 +162,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       gap: var(--space-2, 0.5rem);
-      color: var(--color-text-secondary, #5a524c);
+      color: var(--color-text-secondary);
     }
 
     .theme-language-settings__section-header svg {
@@ -193,9 +193,9 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 0.5rem);
       padding: var(--space-4, 1rem);
-      border: 2px solid var(--color-border-subtle, rgba(44, 37, 32, 0.12));
+      border: 2px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 16px);
-      background: var(--color-background-primary, #fff);
+      background: var(--color-background-primary);
       cursor: pointer;
       transition: border-color var(--duration-fast, 150ms), 
                   box-shadow var(--duration-fast, 150ms),
@@ -203,7 +203,7 @@ function injectStyles(): void {
     }
 
     .theme-language-settings__theme-option:hover {
-      border-color: var(--color-border-medium, rgba(44, 37, 32, 0.2));
+      border-color: var(--color-border-medium);
       transform: translateY(-2px);
     }
 
@@ -229,14 +229,14 @@ function injectStyles(): void {
     }
 
     .theme-language-settings__theme-preview--zen {
-      background: linear-gradient(145deg, #fafaf9 0%, #f5f4f2 100%);
+      background: linear-gradient(145deg, var(--color-white) 0%, #f5f4f2 100%);
       border: 1px solid rgba(44, 37, 32, 0.1);
       color: #8B7355;
     }
 
     .theme-language-settings__theme-preview--midnight {
       background: linear-gradient(145deg, #1a1a2e 0%, #16162a 100%);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent);
       color: #D4AF37;
     }
 
@@ -247,13 +247,13 @@ function injectStyles(): void {
     .theme-language-settings__theme-name {
       display: block;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
     .theme-language-settings__theme-desc {
       font-size: 0.75rem;
-      color: var(--color-text-muted, #8a827a);
+      color: var(--color-text-muted);
     }
 
     .theme-language-settings__theme-check {
@@ -300,12 +300,12 @@ function injectStyles(): void {
     }
 
     .theme-language-settings__language-option:hover {
-      background: var(--color-background-secondary, rgba(44, 37, 32, 0.04));
+      background: var(--color-background-secondary);
     }
 
     .theme-language-settings__language-option:focus-visible {
       outline: none;
-      background: var(--color-background-secondary, rgba(44, 37, 32, 0.04));
+      background: var(--color-background-secondary);
       box-shadow: inset 0 0 0 2px var(--color-accent, #3D5A45);
     }
 
@@ -327,12 +327,12 @@ function injectStyles(): void {
 
     .theme-language-settings__language-native {
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .theme-language-settings__language-english {
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #8a827a);
+      color: var(--color-text-muted);
     }
 
     .theme-language-settings__language-check {
@@ -361,12 +361,12 @@ function injectStyles(): void {
     }
 
     .theme-language-settings__languages::-webkit-scrollbar-thumb {
-      background: var(--color-border-subtle, rgba(44, 37, 32, 0.15));
+      background: var(--color-border-subtle);
       border-radius: 3px;
     }
 
     .theme-language-settings__languages::-webkit-scrollbar-thumb:hover {
-      background: var(--color-border-medium, rgba(44, 37, 32, 0.25));
+      background: var(--color-border-medium);
     }
 
     /* Reduced motion */

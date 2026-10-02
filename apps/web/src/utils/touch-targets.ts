@@ -319,7 +319,7 @@ li[role="menuitem"] {
   top: -24px;
   left: 0;
   background: var(--color-semantic-error);
-  color: white;
+  color: var(--color-white);
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 3px;

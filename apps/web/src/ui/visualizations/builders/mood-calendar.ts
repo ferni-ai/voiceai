@@ -15,15 +15,10 @@ import {
   setStyles,
   createScreenReaderLabel,
 } from '../utils/dom.js';
-import type {
-  MoodCalendarData,
-  MoodEntry,
-  MoodType,
-  DeviceContext,
-  VisualizationResult,
-} from '../types.js';
+import type { MoodCalendarData, MoodType, DeviceContext, VisualizationResult } from '../types.js';
 import { CSS_COLOR_VARS } from '../types.js';
 import { t } from '../../../i18n/index.js';
+import { getLastNEntries, detectPattern, capitalize } from './mood-calendar-helpers.js';
 
 // ============================================================================
 // CONSTANTS
@@ -640,72 +635,6 @@ export function buildMoodCalendar(
     default:
       return buildMobile(container, data, context);
   }
-}
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-/**
- * Get the last N entries, padding with null if needed.
- */
-function getLastNEntries(entries: MoodEntry[], n: number): (MoodEntry | null)[] {
-  const result: (MoodEntry | null)[] = [];
-  const startIdx = Math.max(0, entries.length - n);
-
-  // Pad with nulls if not enough entries
-  for (let i = 0; i < n - entries.length; i++) {
-    result.push(null);
-  }
-
-  // Add actual entries
-  for (let i = startIdx; i < entries.length; i++) {
-    const entry = entries[i];
-    result.push(entry ?? null);
-  }
-
-  return result;
-}
-
-/**
- * Detect mood patterns for insights.
- */
-function detectPattern(entries: MoodEntry[]): string | null {
-  if (entries.length < 7) return null;
-
-  // Group by day of week
-  const dayMoods: Record<number, MoodType[]> = {};
-  entries.forEach((entry) => {
-    const day = new Date(entry.date).getDay();
-    if (!dayMoods[day]) dayMoods[day] = [];
-    dayMoods[day].push(entry.mood);
-  });
-
-  // Find day with most anxiety
-  let maxAnxietyDay = -1;
-  let maxAnxietyCount = 0;
-
-  for (const [day, moods] of Object.entries(dayMoods)) {
-    const anxietyCount = moods.filter((m) => m === 'anxious' || m === 'stressed').length;
-    if (anxietyCount > maxAnxietyCount) {
-      maxAnxietyCount = anxietyCount;
-      maxAnxietyDay = parseInt(day);
-    }
-  }
-
-  if (maxAnxietyCount >= 2) {
-    const dayNames = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
-    return `${dayNames[maxAnxietyDay]} show highest anxiety. Your mood tends to dip mid-week.`;
-  }
-
-  return null;
-}
-
-/**
- * Capitalize first letter.
- */
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 // ============================================================================
