@@ -140,6 +140,23 @@ const CONSOLE_CALL =
 const EMOJI =
   /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu;
 
+const BUTTON_ELEMENT = /<button\b([^>]*)>([\s\S]*?)<\/button>/gi;
+
+/**
+ * Whether a <button> has an accessible name. Template expressions (${...}, {{ }}, {% %})
+ * can't be judged statically, so they count as text rather than producing a guess.
+ */
+export function buttonHasName(attrs: string, inner: string): boolean {
+  if (/\baria-label(?:ledby)?\s*=|\btitle\s*=/i.test(attrs)) return true;
+  if (/\$\{|\{\{|\{%/.test(inner)) return true;
+  if (/<img\b[^>]*\balt\s*=\s*["'][^"']+["']/i.test(inner)) return true;
+  const text = inner
+    .replace(/<svg[\s\S]*?<\/svg>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;|&#\d+;|&\w+;/g, ' ');
+  return text.trim().length > 0;
+}
+
 // ============================================================================
 // LINT RULES
 // ============================================================================
@@ -382,30 +399,23 @@ export const LINT_RULES: LintRule[] = [
   {
     id: 'button-needs-aria-label',
     name: 'Button Needs Aria Label',
-    description: 'Buttons require aria-label for accessibility',
+    description: 'Buttons need an accessible name (visible text, aria-label, aria-labelledby or title)',
     severity: 'warning',
     check: (content, file) => {
       const errors: LintError[] = [];
-      const lines = content.split('\n');
-      
-      // Pattern for button without aria-label
-      const buttonPattern = /<button(?![^>]*aria-label)/gi;
-      
-      lines.forEach((line, index) => {
-        let match;
-        while ((match = buttonPattern.exec(line)) !== null) {
-          errors.push({
-            file,
-            line: index + 1,
-            column: match.index,
-            rule: 'button-needs-aria-label',
-            message: 'Button element missing aria-label',
-            severity: 'warning',
-            suggestion: 'Add aria-label="descriptive text"',
-          });
-        }
-      });
-      
+      // Whole elements, so a button whose text sits on the next line counts as named.
+      for (const match of content.matchAll(BUTTON_ELEMENT)) {
+        if (buttonHasName(match[1], match[2])) continue;
+        errors.push({
+          file,
+          line: content.slice(0, match.index).split('\n').length,
+          column: 0,
+          rule: 'button-needs-aria-label',
+          message: 'Button has no accessible name (icon-only, no aria-label)',
+          severity: 'warning',
+          suggestion: 'Add aria-label="what the button does"',
+        });
+      }
       return errors;
     },
     fileTypes: ['.ts', '.js', '.html', '.njk'],

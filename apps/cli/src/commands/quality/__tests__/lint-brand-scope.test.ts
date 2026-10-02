@@ -174,6 +174,30 @@ describe('no-emoji-in-ui and logging calls', () => {
   });
 });
 
+describe('button-needs-aria-label', () => {
+  const FILE = '/repo/apps/website/ferni-website/src/index.njk';
+  const hits = (content: string): number => ruleHits(FILE, content, 'button-needs-aria-label');
+
+  it.each([
+    '<button class="cta">Join the waitlist</button>',
+    '<button class="cta">\n  <svg viewBox="0 0 24 24"><path d="M0 0"/></svg>\n  Retake Quiz\n</button>',
+    '<button aria-label="Close"><svg><path d="M0 0"/></svg></button>',
+    '<button aria-labelledby="t1"><svg></svg></button>',
+    '<button><span class="sr-only">Play sample</span><svg></svg></button>',
+    '<button>{{ cta.label }}</button>',
+    'html += `<button class="opt">${option.text}</button>`;',
+  ])('treats a named button as fine: %s', (content) => {
+    expect(hits(content)).toBe(0);
+  });
+
+  it('flags an icon-only button with no name, at the line it starts', () => {
+    const content = '<div>\n<button class="close">\n  <svg viewBox="0 0 24 24"><path d="M0 0"/></svg>\n</button>\n</div>';
+    const errors = lintFile(FILE, content).filter((e) => e.rule === 'button-needs-aria-label');
+    expect(errors).toHaveLength(1);
+    expect(errors[0].line).toBe(2);
+  });
+});
+
 describe('file globs', () => {
   it('lints the public website', () => {
     expect(INCLUDE_PATTERNS.some((p) => p.startsWith('apps/website/ferni-website/src/'))).toBe(true);
