@@ -28,6 +28,9 @@ Fact types:
 - relationship: How entities relate
 - state: Current situation
 - preference: Likes, dislikes, preferences
+- health: Conditions, medications, injuries, symptoms, appointments, sleep, exercise, energy
+- finance: Income, debts, savings, money worries
+- belief: Religion, faith, spiritual practice
 
 Only extract facts explicitly stated or strongly implied by the USER. Be conservative.
 Never record something only the assistant said as a fact about the user.

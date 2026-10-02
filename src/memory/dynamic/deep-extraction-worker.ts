@@ -37,6 +37,7 @@ import {
   type GenerateText,
 } from './extraction-llm.js';
 import { persistExtraction } from './extraction-persistence.js';
+import { filterSensitive } from './sensitive-fact-gate.js';
 import {
   FirestoreExtractionQueue,
   InMemoryExtractionQueue,
@@ -377,8 +378,15 @@ export class DeepExtractionWorker {
 
     const generate =
       this.options.generate !== undefined ? this.options.generate : await this.getGenerator();
-    const refined = await runExtraction(generate, transcriptBlock, hints);
-    const facts = refined.facts.filter((f) => f && f.entityName && f.key && f.value !== undefined);
+    const extracted = await runExtraction(generate, transcriptBlock, hints);
+    // Health, money and beliefs only with the user's consent (services/memory-consent).
+    const gated = await filterSensitive(
+      job.userId,
+      extracted.facts.filter((f) => f && f.entityName && f.key && f.value !== undefined),
+      extracted.entities
+    );
+    const refined = { ...extracted, entities: gated.entities };
+    const facts = gated.facts;
     const importanceScore = this.calculateImportance({ ...refined, facts }, hints);
     const shouldPersist = importanceScore > 0.3 || refined.entities.length > 0 || facts.length > 0;
 

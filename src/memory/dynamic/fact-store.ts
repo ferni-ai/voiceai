@@ -83,6 +83,15 @@ export function categoryForFactType(factType: string): string {
       return 'relationship';
     case 'state':
       return 'state';
+    // Sensitive categories (stored only with consent; see sensitive-fact-gate.ts)
+    case 'health':
+      return 'health';
+    case 'finance':
+    case 'finances':
+      return 'finances';
+    case 'belief':
+    case 'beliefs':
+      return 'beliefs';
     default:
       return 'personal';
   }

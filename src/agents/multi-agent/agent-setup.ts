@@ -17,7 +17,7 @@
  */
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
-import { voice, type JobContext, llm } from '@livekit/agents';
+import { voice, type JobContext, type llm } from '@livekit/agents';
 import { routeSayThroughModel } from '../shared/native-speech.js';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig } from '../../personas/types.js';
@@ -133,6 +133,7 @@ import {
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
 import { loadPreferenceBlock } from '../../services/user-preferences/context-block.js';
+import { loadHealthMoodBlock } from '../../services/health-memory/context-block.js';
 
 const log = getLogger();
 
@@ -303,6 +304,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   let modelBaseInstructions: string;
   // User preference profile: fetched alongside the prompts (bounded, never throws)
   const preferenceBlockPromise = userId ? loadPreferenceBlock(userId) : Promise.resolve('');
+  // Health & mood (only with Health consent; otherwise at most a one-line consent hint)
+  const healthBlockPromise = userId ? loadHealthMoodBlock(userId) : Promise.resolve('');
   try {
     mark('load_prompts_start');
     // Personal insights (people, likely topics, openers): read in parallel, never blocks
@@ -345,6 +348,14 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       log.info(
         { personaId: persona.id, chars: preferenceBlock.length },
         '🎛️ User preference profile injected'
+      );
+    }
+    const healthBlock = await healthBlockPromise;
+    if (healthBlock) {
+      modelBaseInstructions += healthBlock;
+      log.info(
+        { personaId: persona.id, chars: healthBlock.length },
+        'Health & mood memory injected'
       );
     }
 
@@ -767,7 +778,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         { personaId: persona.id, error: String(err) },
         '❌ Fast path failed - trying essential fallback'
       );
-      return await loadEssentialToolsFallback();
+      return loadEssentialToolsFallback();
     }
   };
 
@@ -956,7 +967,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
             { personaId: persona.id },
             '🔄 Fast path incomplete - loading essential tools fallback'
           );
-          return await loadEssentialToolsFallback();
+          return loadEssentialToolsFallback();
         }
 
         return fastResult;
@@ -1019,7 +1030,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           },
           '🔄 Full tool loading timed out or incomplete - loading essential tools fallback'
         );
-        return await loadEssentialToolsFallback();
+        return loadEssentialToolsFallback();
       }
 
       // ✅ SUCCESS: Full tools loaded. SYNCHRONOUSLY warmup session cache!
@@ -1053,7 +1064,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         '⚠️ Failed to load tools - falling back to essential tools'
       );
       // Even on error, try to load essential tools
-      return await loadEssentialToolsFallback();
+      return loadEssentialToolsFallback();
     }
   })();
 
@@ -1795,14 +1806,18 @@ Reference past context when relevant, but don't force it. Let the conversation f
     const onTranscript = (event: unknown) => {
       const evt = event as { transcript?: string; isFinal?: boolean };
       if (!evt.isFinal || !evt.transcript) return;
-      pusher.onFinalTranscript(evt.transcript).catch((error: unknown) =>
-        log.warn({ error: String(error) }, 'Realtime turn context failed')
-      );
+      pusher
+        .onFinalTranscript(evt.transcript)
+        .catch((error: unknown) =>
+          log.warn({ error: String(error) }, 'Realtime turn context failed')
+        );
     };
     const onAgentState = (event: unknown) => {
       pusher
         .onAgentState((event as { newState?: string }).newState)
-        .catch((error: unknown) => log.warn({ error: String(error) }, 'Realtime turn context push failed'));
+        .catch((error: unknown) =>
+          log.warn({ error: String(error) }, 'Realtime turn context push failed')
+        );
     };
     sessionWithEvents.on('user_input_transcribed', onTranscript);
     sessionWithEvents.on('agent_state_changed', onAgentState);
@@ -2551,7 +2566,7 @@ async function createPersonaTTS(personaId: string) {
 
             const startTime = Date.now();
             try {
-              const result = await (value as Function).apply(target, args);
+              const result = await (value as (...a: unknown[]) => unknown).apply(target, args);
               process.stderr.write(`  ✅ TTS synthesize completed: ${Date.now() - startTime}ms\n`);
               return result;
             } catch (err) {
@@ -2569,7 +2584,7 @@ async function createPersonaTTS(personaId: string) {
             process.stderr.write(`  🎙️ Voice: ${voiceId}\n`);
 
             try {
-              const result = (value as Function).apply(target, args);
+              const result = (value as (...a: unknown[]) => unknown).apply(target, args);
               process.stderr.write(`  ✅ TTS stream created\n`);
               return result;
             } catch (err) {

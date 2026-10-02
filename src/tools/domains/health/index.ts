@@ -23,6 +23,7 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { isLifeCoachAnalyticsEnabled, trackToolUsage } from '../shared/index.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { recordHealthFromTool } from '../../../services/health-memory/capture.js';
 import {
   persistKeyMoment,
   persistTrackedItem,
@@ -251,6 +252,15 @@ const logExerciseDef: ToolDefinition = {
               notes,
             },
             importance: durationMinutes && durationMinutes > 30 ? 'medium' : 'low',
+          });
+
+          // Health memory (stored only with the user's Health consent)
+          const what = activityName || activityType;
+          void recordHealthFromTool(ctx.userId, {
+            kind: 'exercise',
+            subject: what,
+            text: `${what}${durationMinutes ? `, ${durationMinutes} min` : ''}`,
+            ...(ctx.sessionId ? { conversationId: ctx.sessionId } : {}),
           });
 
           const encouragement =
@@ -854,8 +864,18 @@ const logSymptomDef: ToolDefinition = {
       }),
       execute: async ({ symptom, severity, location, duration, possibleTriggers, notes }) => {
         getLogger().info({ agentId: ctx.agentId, symptom, severity }, 'Logging symptom');
+        // Health memory (stored only with the user's Health consent)
+        const outcome = await recordHealthFromTool(ctx.userId, {
+          kind: 'symptom',
+          subject: symptom,
+          text: [symptom, severity, location].filter(Boolean).join(', '),
+          ...(ctx.sessionId ? { conversationId: ctx.sessionId } : {}),
+        });
 
-        let response = `**Symptom Logged**\n\n`;
+        let response =
+          outcome === 'not_consented'
+            ? `**Symptom Noted** (not saved: health memory is off)\n\n`
+            : `**Symptom Logged**\n\n`;
         response += `**Symptom:** ${symptom}\n`;
         if (severity) response += `**Severity:** ${severity}\n`;
         if (location) response += `**Location:** ${location}\n`;
