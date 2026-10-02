@@ -57,8 +57,14 @@ const clone = (d: Data): Data => JSON.parse(JSON.stringify(d)) as Data;
 const cmp = (a: unknown, b: unknown): number =>
   a === b ? 0 : (a as string | number) < (b as string | number) ? -1 : 1;
 
+/** Field value, following dotted paths into maps ('habit.nextNudgeAt'). */
+const fieldOf = (data: Data, field: string): unknown =>
+  field
+    .split('.')
+    .reduce<unknown>((v, k) => (v && typeof v === 'object' ? (v as Data)[k] : undefined), data);
+
 function matches(data: Data, [field, op, value]: Filter): boolean {
-  const v = data[field];
+  const v = fieldOf(data, field);
   if (op === '==') return v === value;
   if (op === '<=') return typeof v === typeof value && v !== null && cmp(v, value) <= 0;
   if (op === 'array-contains') return Array.isArray(v) && v.includes(value);
@@ -112,7 +118,7 @@ export function createFakeDb(): FakeDb {
     get: async () => {
       const found = [...docs.entries()]
         .filter(([p, d]) => select(p) && filters.every((f) => matches(d, f)))
-        .sort(([, a], [, b]) => (order ? cmp(a[order], b[order]) : 0))
+        .sort(([, a], [, b]) => (order ? cmp(fieldOf(a, order), fieldOf(b, order)) : 0))
         .slice(0, n)
         .map(([p]) => snap(p));
       return { docs: found, size: found.length, empty: found.length === 0 };
