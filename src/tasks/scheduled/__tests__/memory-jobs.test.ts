@@ -119,11 +119,6 @@ vi.mock('firebase-admin/firestore', () => ({
 
 // Import after mocks are set up
 import { TranscriptCleanupJob } from '../memory-jobs.js';
-import {
-  TRANSCRIPT_RETENTION_DAYS,
-  SUMMARY_RETENTION_DAYS,
-  GROUP_TRANSCRIPT_RETENTION_DAYS,
-} from '../../../services/session-manager/constants.js';
 
 // ============================================================================
 // TESTS
@@ -150,18 +145,18 @@ describe('TranscriptCleanupJob', () => {
     it('should have correct default config', () => {
       expect(job.name).toBe('TranscriptCleanupJob');
       expect(job.defaultConfig.dryRun).toBe(false);
-      expect(job.defaultConfig.transcriptRetentionDays).toBe(TRANSCRIPT_RETENTION_DAYS);
-      expect(job.defaultConfig.summaryRetentionDays).toBe(SUMMARY_RETENTION_DAYS);
-      expect(job.defaultConfig.groupTranscriptRetentionDays).toBe(GROUP_TRANSCRIPT_RETENTION_DAYS);
+      // Retention is off unless the env vars are set: memories are kept until the user deletes them
+      expect(job.defaultConfig.transcriptRetentionDays).toBeNull();
+      expect(job.defaultConfig.summaryRetentionDays).toBeNull();
+      expect(job.defaultConfig.groupTranscriptRetentionDays).toBeNull();
       expect(job.defaultConfig.maxDeletesPerRun).toBe(500);
       expect(job.defaultConfig.maxUsersPerRun).toBe(100);
     });
 
-    it('should use environment variable defaults', () => {
-      // These should be the defaults since env vars aren't set in tests
-      expect(TRANSCRIPT_RETENTION_DAYS).toBe(90);
-      expect(SUMMARY_RETENTION_DAYS).toBe(365);
-      expect(GROUP_TRANSCRIPT_RETENTION_DAYS).toBe(180);
+    it('deletes nothing by default', async () => {
+      const result = await job.run({ dryRun: false });
+      expect(result.retentionDisabled).toBe(true);
+      expect(mockBatchCommit).not.toHaveBeenCalled();
     });
   });
 

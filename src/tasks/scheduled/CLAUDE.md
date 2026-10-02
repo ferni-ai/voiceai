@@ -119,13 +119,15 @@ Compresses related memories for long-term users.
 
 ### MemoryDecayJob
 
-Applies graceful forgetting with configurable decay curves.
+Lets less important memories fade **in recall ranking only**. It never deletes
+or archives: it writes `recallWeight` (0.05-1) and `recallWeightUpdatedAt` on
+`dynamic_facts`, `dynamic_entities` and `promoted_entities`. Product decision:
+memories are kept until the user deletes them (`docs/architecture/USER-MEMORY-CONTROL.md`).
 
 | Config | Default | Description |
 |--------|---------|-------------|
-| `decayCurve` | 'exponential' | Decay algorithm |
-| `halfLife` | 30 | Days to half importance |
-| `minScore` | 0.1 | Minimum score before removal |
+| `archiveThreshold` | 0.1 | Below this a memory counts as "faded" (reported, never pruned) |
+| `protectEmotional` | true | Emotional memories decay slower |
 
 **Schedule:** Daily (4am PT)
 
@@ -140,17 +142,17 @@ Removes redundant memories using LSH (Locality Sensitive Hashing).
 
 **Schedule:** Weekly (Saturday 2am PT)
 
-### TranscriptCleanupJob
+### TranscriptCleanupJob (`transcript-cleanup-job.ts`) — OFF by default
 
-Removes old transcripts and summaries per retention policy.
+Deletes nothing unless an operator sets a retention period (positive days):
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `TRANSCRIPT_RETENTION_DAYS` | 30 | Keep transcripts 30 days |
-| `SUMMARY_RETENTION_DAYS` | 90 | Keep summaries 90 days |
-| `GROUP_TRANSCRIPT_RETENTION_DAYS` | 7 | Keep group transcripts 7 days |
+| Env var | Deletes |
+|---------|---------|
+| `TRANSCRIPT_RETENTION_DAYS` | `bogle_users/*/conversations` + `turns` older than N days |
+| `SUMMARY_RETENTION_DAYS` | `bogle_users/*/summaries` (+ their embeddings) |
+| `GROUP_TRANSCRIPT_RETENTION_DAYS` | `group_sessions` + transcript/action items |
 
-**Schedule:** Daily (5am PT)
+Cutoffs are queried as both Timestamp and ISO string. The Cloud Scheduler entry is paused.
 
 ---
 

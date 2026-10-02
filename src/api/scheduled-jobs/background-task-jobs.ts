@@ -280,6 +280,7 @@ export async function handleCleanupTranscripts(res: ServerResponse): Promise<voi
         summariesDeleted: result.summariesDeleted,
         groupTranscriptsDeleted: result.groupTranscriptsDeleted,
         usersProcessed: result.usersProcessed,
+        retentionDisabled: result.retentionDisabled,
         durationMs: result.durationMs,
       },
       timestamp: new Date().toISOString(),

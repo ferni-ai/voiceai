@@ -86,6 +86,7 @@ export async function handleMemoryDecay(res: ServerResponse): Promise<void> {
       stats: {
         memoriesDecayed: result.memoriesDecayed,
         memoriesPruned: result.memoriesPruned,
+        weightsWritten: result.weightsWritten,
         averageStrengthBefore: result.averageStrengthBefore,
         averageStrengthAfter: result.averageStrengthAfter,
         usersProcessed: result.usersProcessed,

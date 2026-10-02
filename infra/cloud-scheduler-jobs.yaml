@@ -110,11 +110,16 @@ data:
       uri: "https://ui-server-xxxxx.run.app/api/jobs/cleanup-old-tasks"
       httpMethod: POST
 
+    # DISABLED by product decision: memories are kept until the user deletes them
+    # (docs/architecture/USER-MEMORY-CONTROL.md). The handler is a no-op unless
+    # TRANSCRIPT_RETENTION_DAYS / SUMMARY_RETENTION_DAYS / GROUP_TRANSCRIPT_RETENTION_DAYS
+    # are set on the UI server. Create this job paused; resume only with those set.
     - name: transcript-cleanup
-      description: "Clean up old transcripts, summaries, and group sessions based on TTL"
+      description: "Retention cleanup (off unless retention env vars are set)"
+      state: PAUSED
       schedule: "0 2 * * *"  # 2 AM daily
       timezone: "America/Los_Angeles"
-      uri: "https://ui-server-xxxxx.run.app/api/jobs/cleanup-transcripts"
+      uri: "https://app.ferni.ai/api/jobs/cleanup-transcripts"
       httpMethod: POST
       retryConfig:
         retryCount: 2

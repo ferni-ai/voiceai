@@ -290,19 +290,28 @@ async function getFactsForEntities(userId: string, entityNames: string[]): Promi
         .limit(config.maxFactsPerEntity)
         .get();
 
-      const facts = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          entityName: data.entityName,
-          factType: data.factType,
-          key: data.key,
-          value: data.value,
-          confidence: data.confidence || 0.5,
-          temporalContext: data.temporalContext,
-          extractedAt: toSafeDate(data.extractedAt),
-        };
-      });
+      const facts = snapshot.docs
+        .map((doc) => {
+          const data = doc.data();
+          return {
+            fact: {
+              id: doc.id,
+              entityName: data.entityName,
+              factType: data.factType,
+              key: data.key,
+              value: data.value,
+              confidence: data.confidence || 0.5,
+              temporalContext: data.temporalContext,
+              extractedAt: toSafeDate(data.extractedAt),
+            },
+            // Decay (MemoryDecayJob) lowers ranking only; it never removes a fact.
+            rank:
+              (data.confidence || 0.5) *
+              (0.5 + 0.5 * (typeof data.recallWeight === 'number' ? data.recallWeight : 1)),
+          };
+        })
+        .sort((a, b) => b.rank - a.rank)
+        .map((entry) => entry.fact);
 
       allFacts.push(...facts);
     }
