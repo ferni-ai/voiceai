@@ -15,6 +15,19 @@ export interface Fact {
   updatedAt: string;
 }
 
+export interface LifeItem {
+  id: string;
+  area: 'work' | 'places';
+  kind: string;
+  title: string;
+  status: string;
+  source: string;
+  userEdited: boolean;
+  sourceConversationIds: string[];
+  updatedAt: string;
+  [field: string]: unknown;
+}
+
 export interface MockState {
   facts: Fact[];
   people: Array<{
@@ -31,6 +44,9 @@ export interface MockState {
     summary?: string;
     turnCount: number;
   }>;
+  work: LifeItem[];
+  places: LifeItem[];
+  colleagues: Array<{ id: string; name: string; relationship?: string }>;
   failMemories?: boolean;
   requests: Array<{ method: string; path: string; body: unknown }>;
 }
@@ -81,8 +97,108 @@ export function freshState(): MockState {
         turnCount: 6,
       },
     ],
+    work: [
+      {
+        id: 'work_now',
+        area: 'work',
+        kind: 'job',
+        title: 'Nurse at Mercy Hospital',
+        employer: 'Mercy Hospital',
+        role: 'nurse',
+        team: 'night shift',
+        status: 'current',
+        source: 'stated',
+        userEdited: false,
+        sourceConversationIds: ['c-1'],
+        updatedAt: '2026-09-20T10:00:00.000Z',
+      },
+      {
+        id: 'work_old',
+        area: 'work',
+        kind: 'job',
+        title: 'St. Luke',
+        employer: 'St. Luke',
+        status: 'past',
+        endDate: '2025-06',
+        source: 'inferred',
+        userEdited: false,
+        sourceConversationIds: ['c-2'],
+        updatedAt: '2026-09-12T10:00:00.000Z',
+      },
+    ],
+    places: [
+      {
+        id: 'place_trip',
+        area: 'places',
+        kind: 'trip',
+        title: 'Trip to Lisbon',
+        place: 'Lisbon',
+        status: 'planned',
+        startDate: '2026-11-04',
+        withPeople: [{ name: 'Sarah', personId: 'p-sarah' }],
+        source: 'stated',
+        userEdited: false,
+        sourceConversationIds: ['c-1'],
+        updatedAt: '2026-09-20T10:00:00.000Z',
+      },
+    ],
+    colleagues: [{ id: 'p-dana', name: 'Dana', relationship: 'charge nurse' }],
     requests: [],
   };
+}
+
+function lifeRoute(
+  state: MockState,
+  area: 'work' | 'places',
+  method: string,
+  id: string | undefined,
+  body: unknown
+): { status: number; body: unknown } {
+  const list = state[area];
+  const now = new Date().toISOString();
+  if (!id && method === 'GET') {
+    return {
+      status: 200,
+      body: { items: list, colleagues: area === 'work' ? state.colleagues : [], updatedAt: now },
+    };
+  }
+  if (!id && method === 'POST') {
+    const input = body as { kind: string; title: string; startDate?: string };
+    const item: LifeItem = {
+      id: `${area === 'work' ? 'work' : 'place'}_${list.length + 1}`,
+      area,
+      kind: input.kind,
+      title: input.title,
+      status: input.kind === 'trip' || input.kind === 'bucket_list' ? 'planned' : 'current',
+      ...(input.startDate ? { startDate: input.startDate } : {}),
+      source: 'user',
+      userEdited: true,
+      sourceConversationIds: [],
+      updatedAt: now,
+    };
+    state[area] = [item, ...list];
+    return { status: 201, body: { item } };
+  }
+  const existing = list.find((i) => i.id === id);
+  if (!existing) return { status: 404, body: { error: 'Not found' } };
+  if (method === 'PATCH') {
+    const edit = body as Record<string, unknown>;
+    const next: LifeItem = {
+      ...existing,
+      ...edit,
+      source: 'user',
+      userEdited: true,
+      updatedAt: now,
+    };
+    if (edit.notes === null) delete next.notes;
+    state[area] = list.map((i) => (i.id === id ? next : i));
+    return { status: 200, body: { item: next } };
+  }
+  if (method === 'DELETE') {
+    state[area] = list.filter((i) => i.id !== id);
+    return { status: 200, body: { deleted: true } };
+  }
+  return { status: 405, body: { error: 'Method not allowed' } };
 }
 
 function json(route: Route, body: unknown, status = 200): Promise<void> {
@@ -111,7 +227,20 @@ export async function mockMemoryApi(page: Page, state: MockState): Promise<void>
         updatedAt: new Date().toISOString(),
       });
     }
+    const life = path.match(/^\/(work|places)(?:\/([^/]+))?$/);
+    if (life) {
+      const out = lifeRoute(
+        state,
+        life[1] as 'work' | 'places',
+        method,
+        life[2] ? decodeURIComponent(life[2]) : undefined,
+        body
+      );
+      return json(route, out.body, out.status);
+    }
     if (path === '/' && method === 'DELETE') {
+      state.work = [];
+      state.places = [];
       state.facts = [];
       state.people = [];
       state.conversations = [];

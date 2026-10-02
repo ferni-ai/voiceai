@@ -134,6 +134,14 @@ const CSS = `
 
 /* Groups and items */
 .memory-group { margin-bottom: var(--space-5); }
+
+/* Work & places tab */
+.memory-area { margin-bottom: var(--space-6); }
+.memory-area__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
+.memory-area__title { margin: 0; font-size: var(--text-base); font-weight: 600; color: var(--color-text-primary); }
+.memory-add { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-4); }
+.memory-field { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); color: var(--color-text-secondary); }
+.memory-field .memory-select { flex: none; }
 .memory-group__title {
   margin: 0 0 var(--space-2);
   font-size: var(--text-xs);

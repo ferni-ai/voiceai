@@ -111,6 +111,51 @@ test.describe('What I remember', () => {
       .toBe(true);
   });
 
+  test('work & places: history, trips, add, correct and forget', async ({ page }) => {
+    await gotoApp(page);
+    await openPanel(page);
+    const dialog = panel(page);
+    await dialog.getByRole('tab', { name: 'Work & places' }).click();
+
+    await expect(dialog.getByRole('heading', { name: 'Your work now' })).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: 'Past jobs' })).toBeVisible();
+    await expect(dialog.locator('[data-item-id="work_now"]')).toContainText('night shift');
+    await expect(dialog.locator('[data-item-id="work_old"]')).toContainText('St. Luke');
+    await expect(dialog.getByText('Dana (charge nurse)')).toBeVisible();
+    await expect(dialog.locator('[data-item-id="place_trip"]')).toContainText('with Sarah');
+
+    // Add a place
+    await dialog.locator('[data-action="start-add"][data-area="places"]').click();
+    await dialog.locator('[data-role="add-kind"]').selectOption('bucket_list');
+    await dialog.locator('[data-role="add-title"]').fill('Japan');
+    await dialog.locator('[data-action="save-add"]').click();
+    await expect(dialog.getByRole('heading', { name: 'Someday' })).toBeVisible();
+    await expect
+      .poll(() => state.requests.find((r) => r.method === 'POST' && r.path === '/places')?.body)
+      .toMatchObject({ kind: 'bucket_list', title: 'Japan', place: 'Japan' });
+
+    // Correct the job: it's in the past now
+    await dialog.getByRole('button', { name: 'Correct: Nurse at Mercy Hospital' }).click();
+    await dialog.locator('[data-role="edit-status"]').selectOption('past');
+    await dialog.locator('[data-action="save-edit"]').click();
+    await expect(dialog.locator('[data-item-id="work_now"]')).toContainText('You corrected this');
+    await expect
+      .poll(
+        () => state.requests.find((r) => r.method === 'PATCH' && r.path === '/work/work_now')?.body
+      )
+      .toMatchObject({ status: 'past' });
+
+    // Forget the trip
+    await dialog.getByRole('button', { name: 'Forget: Trip to Lisbon' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Forget' }).click();
+    await expect(dialog.locator('[data-item-id="place_trip"]')).toHaveCount(0);
+    await expect
+      .poll(() =>
+        state.requests.some((r) => r.method === 'DELETE' && r.path === '/places/place_trip')
+      )
+      .toBe(true);
+  });
+
   test('reads a conversation transcript and deletes it', async ({ page }) => {
     await gotoApp(page);
     await openPanel(page);
