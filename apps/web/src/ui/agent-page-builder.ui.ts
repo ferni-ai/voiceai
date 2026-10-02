@@ -1024,7 +1024,7 @@ export class AgentPageBuilder {
     previewHeader.appendChild(avatar);
 
     previewHeader.appendChild(createElement('h3', { className: 'preview-name' }, [agent.name || 'Your Agent']));
-    previewHeader.appendChild(createElement('p', { className: 'preview-tagline' }, [agent.tagline || 'AI Assistant']));
+    previewHeader.appendChild(createElement('p', { className: 'preview-tagline' }, [agent.tagline || 'Here to help']));
     card.appendChild(previewHeader);
 
     const details = createElement('div', { className: 'preview-details' });
