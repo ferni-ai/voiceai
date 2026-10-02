@@ -3,6 +3,7 @@ name: Brand Compliance
 on:
   pull_request:
     paths:
+      - 'apps/cli/src/commands/quality/**'
       - 'apps/web/src/**'
       - 'src/**'
       - 'design-system/**'
@@ -11,6 +12,7 @@ on:
     branches:
       - main
     paths:
+      - 'apps/cli/src/commands/quality/**'
       - 'apps/web/src/**'
       - 'src/**'
       - 'design-system/**'
@@ -30,56 +32,14 @@ jobs:
         with:
           frozen-lockfile: 'false'
         
-      - name: Run brand compliance linter
-        id: brand-lint
-        run: pnpm tsx apps/cli/src/commands/quality/lint-brand.ts
-        continue-on-error: true
-        
-      - name: Comment on PR
-        if: github.event_name == 'pull_request' && steps.brand-lint.outcome == 'failure'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { execSync } = require('child_process');
-            
-            // Run linter and capture output
-            let output;
-            try {
-              output = execSync('pnpm tsx apps/cli/src/commands/quality/lint-brand.ts 2>&1', { encoding: 'utf-8' });
-            } catch (e) {
-              output = e.stdout || e.message;
-            }
-            
-            const comment = `## 🎨 Brand Compliance Check Failed
-            
-            The following brand guideline violations were found:
-            
-            \`\`\`
-            ${output}
-            \`\`\`
-            
-            Please fix these issues before merging. See \`brand/FERNI-BRAND-GUIDELINES.md\` for details.
-            
-            ### Quick Reference
-            - Use \`createLogger()\` instead of \`console.log\`
-            - Use CSS variables instead of hardcoded colors
-            - Use \`DURATION\` and \`EASING\` constants for animations
-            - Use Lucide icons instead of emoji
-            - Add HMR cleanup to UI components
-            `;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
-            
-      - name: Warn if brand lint failed
-        if: steps.brand-lint.outcome == 'failure'
-        run: |
-          echo "::warning::Brand compliance violations found. See PR comment for details."
-          echo "These are pre-existing issues tracked for cleanup."
+      # The ratchet (docs/DEFINITION-OF-CLEAN.md): fails only when this change
+      # makes things worse than the committed baseline: a file over 500 lines
+      # grows or a new one starts over it, any critical brand copy, or more
+      # brand-copy warnings / brand-lint errors. The old step ran the full
+      # linter (thousands of pre-existing errors) and tried to post it all as a
+      # PR comment, which the workflow token can't do: red on every PR.
+      - name: Quality ratchet
+        run: pnpm tsx apps/cli/src/commands/quality/ratchet.ts
 
   lint-tokens:
     name: Token Validation
