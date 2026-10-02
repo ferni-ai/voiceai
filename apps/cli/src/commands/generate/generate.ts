@@ -17,6 +17,7 @@
  *   npm run generate design-system
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { spawn } from 'child_process';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
@@ -27,7 +28,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Project root: navigate up from apps/cli/src/commands/generate/ to repo root
-const PROJECT_ROOT = resolve(__dirname, '..', '..', '..', '..', '..');
+const PROJECT_ROOT = findProjectRoot();
 
 // ============================================================================
 // COLORS & LOGGING

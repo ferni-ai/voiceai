@@ -7,6 +7,7 @@
  * @module @ferni/cli/api-contracts
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync } from 'child_process';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname, join, basename } from 'path';
@@ -14,7 +15,7 @@ import { fileURLToPath } from 'url';
 import * as readline from 'readline';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = dirname(dirname(__dirname));
+const PROJECT_ROOT = findProjectRoot();
 
 // Colors
 const colors = {

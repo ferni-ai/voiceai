@@ -19,6 +19,7 @@
  * duplicate hardcoded persona definitions.
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { readdir, readFile, writeFile, stat } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -26,7 +27,7 @@ import { fileURLToPath } from 'url';
 // Get script directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const projectRoot = join(__dirname, '..');
+const projectRoot = findProjectRoot();
 
 // Types matching the persona manifest schema
 interface PersonaManifest {
@@ -335,21 +336,24 @@ async function manifestToFrontendPersona(
   // Derive transition config
   const transitionStyle = deriveTransitionStyle(manifest);
   
+  // Some bundles (john-bogle, peter-lynch) have a tagline but no description.
+  const description = manifest.identity.description ?? manifest.identity.tagline ?? '';
+
   return {
     id: manifest.identity.id,
     name: manifest.identity.display_name || manifest.identity.name,
     initials: manifest.identity.initials || generateInitials(manifest.identity.name),
     subtitle: manifest.team?.role_description?.split(' - ')[0] || roleSubtitles[roleId] || 'Team Member',
     role: isCoordinator ? 'coach' : 'team',
-    description: manifest.identity.description,
-    helperText: manifest.team?.role_description?.split(' - ')[0] || manifest.identity.description.split('.')[0],
+    description,
+    helperText: manifest.team?.role_description?.split(' - ')[0] || description.split('.')[0],
     skills: roleSkills[roleId] || [{ icon: '', name: 'Support' }],
     entrancePhrase: entrancePhrase || 
       (manifest.team?.handoff_phrases?.receive?.[0]) ||
       (manifest.handoff?.entrance_phrases?.[0]) ||
       `${manifest.identity.name} here. How can I help?`,
     quotes: bundleQuotes.length > 0 ? bundleQuotes : [
-      `"${manifest.identity.description.split('.')[0]}."`,
+      `"${description.split('.')[0]}."`,
     ],
     traits: manifest.personality?.traits || [],
     domains: manifest.role?.domains || [],

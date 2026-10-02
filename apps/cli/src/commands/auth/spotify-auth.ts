@@ -13,6 +13,7 @@
  *    or:  ferni auth spotify
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import * as readline from 'readline';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -20,7 +21,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = join(__dirname, '..', '..', '..', '..', '..');
+const ROOT_DIR = findProjectRoot();
 
 // Use example.com - Spotify will redirect there and show an error page,
 // but the authorization code will be in the URL!
