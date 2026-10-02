@@ -22,6 +22,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  clearAdvancedHumanization,
   getAdvancedHumanization,
   resetAdvancedHumanization,
 } from '../conversation/advanced-humanization.js';
@@ -57,6 +58,20 @@ describe('Advanced Humanization Integration Module', () => {
   });
 
   describe('Session Lifecycle', () => {
+    it('should drop the orchestrator when the session is cleaned up', () => {
+      initAdvancedHumanization({ sessionId, userId });
+      const during = getAdvancedHumanization(sessionId, userId);
+      expect(getAdvancedHumanization(sessionId, userId)).toBe(during);
+
+      cleanupAdvancedHumanization(sessionId);
+
+      // A lookup after cleanup builds a new orchestrator instead of returning the
+      // ended session's, so the map does not keep one entry per finished call.
+      const after = getAdvancedHumanization(sessionId, userId);
+      expect(after).not.toBe(during);
+      clearAdvancedHumanization(sessionId, userId);
+    });
+
     it('should initialize a session successfully', () => {
       const result = initAdvancedHumanization({
         sessionId,
