@@ -335,9 +335,6 @@ export function validateTranscript(
   if (context.lastAgentUtterance && inEchoWindow) {
     const similarity = calculateSimilarity(trimmed, context.lastAgentUtterance);
     if (similarity > 0.6) {
-      // Info, not debug: this compares against every committed agent reply,
-      // so hits are worth watching for real user speech being dropped.
-      // Lengths only at info: the text is user speech.
       log.info('Transcript rejected: echo detected', {
         transcriptChars: trimmed.length,
         agentChars: context.lastAgentUtterance.length,

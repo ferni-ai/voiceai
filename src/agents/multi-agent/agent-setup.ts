@@ -111,7 +111,6 @@ const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 import { dynamicToolLoader } from '../../tools/dynamic-loader.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { initializeFrontendPublisher } from '../realtime/index.js';
-import { registerAgentReplyRecorder } from '../voice-agent/agent-reply-recorder.js';
 import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
@@ -2100,7 +2099,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
           conversationManager,
           userData,
           sessionId,
-          services,
           // FIX (Jan 2026): Pass room to check for participants before silence responses
           // This prevents speaking to empty rooms when participant hasn't joined yet
           room,
@@ -2177,12 +2175,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
       '⚡ Handler wiring complete'
     );
   };
-
-  // Record committed replies from the start. With deferred wiring the greeting
-  // is spoken before wireHandlers() runs, and would otherwise go unrecorded.
-  if (enableFullHandlers) {
-    registerAgentReplyRecorder(session, { sessionId, services, userData });
-  }
 
   // ⚡ FAST-AGENT-JOIN: Wire handlers now or defer for later
   if (!deferHandlers) {

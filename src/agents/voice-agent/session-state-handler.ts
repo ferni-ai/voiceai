@@ -40,16 +40,12 @@ import {
   recordBargeInDetected,
 } from '../../services/analytics/call-quality-monitor.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
-import type { SessionServices } from '../../services/index.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { isRealSilence, type SessionStates } from './dead-air.js';
-import { registerAgentReplyRecorder } from './agent-reply-recorder.js';
+import { registerAgentReplyRecorder, type AgentReplyContext } from './agent-reply-recorder.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
-import {
-  getLiveBackchannelingService,
-  MICRO_REACTION_COOLDOWN_MS,
-} from '../../speech/live-backchanneling/index.js';
+import { getLiveBackchannelingService } from '../../speech/live-backchanneling/index.js';
 import { generateBackchannelInstructions } from '../../speech/llm-backchannel.js';
 import {
   trackBackchannelEvent,
@@ -70,7 +66,6 @@ import {
   SILENCE_FOR_BACKCHANNEL_MS,
   SILENCE_HANDLER_MIN_MS,
   DEFAULT_UTTERANCE_DURATION_MS,
-  SILENCE_CHECK_INTERVAL_MS,
   FEEDBACK_PROMPT_DELAY_MS,
   EARLY_ACK_CLEANUP_MS,
 } from '../../config/timeouts.js';
@@ -137,7 +132,7 @@ export interface SessionStateContext {
    */
   room?: { remoteParticipants?: Map<string, unknown> };
   /** Session services, for recording committed agent replies as turns */
-  services?: SessionServices | null;
+  services?: AgentReplyContext['services'];
 }
 
 export interface SessionStateResult {
@@ -164,16 +159,8 @@ const getLogger = () => log();
  * Returns the silenceContext which is shared with the transcript handler.
  */
 export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStateResult {
-  const {
-    session,
-    sessionPersona,
-    conversationManager,
-    userData,
-    sessionId,
-    onIdleTimeout,
-    room,
-    services,
-  } = ctx;
+  const { session, sessionPersona, conversationManager, userData, sessionId, onIdleTimeout, room } =
+    ctx;
 
   // ============================================================
   // INTERRUPT-AWARE SPEECH HELPER
@@ -247,7 +234,6 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // Idle timeout tracking - auto-disconnect after extended silence
   let idleTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
   let idleWarningTimer: ReturnType<typeof setTimeout> | null = null;
-  let hasWarnedAboutIdle = false;
   let isDisconnectingDueToIdle = false;
 
   // Backchannel timing - see config/timeouts.ts
@@ -275,13 +261,11 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       clearTimeout(idleTimeoutTimer);
       idleTimeoutTimer = null;
     }
-    hasWarnedAboutIdle = false;
 
     // Warning timer: gentle check-in at 90 seconds
     idleWarningTimer = setTimeout(() => {
       if (isDisconnectingDueToIdle) return;
 
-      hasWarnedAboutIdle = true;
       diag.state('⏰ Idle warning triggered', {
         threshold: IDLE_TIMEOUT.WARNING_THRESHOLD_SECONDS,
       });
@@ -355,7 +339,6 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       clearTimeout(idleTimeoutTimer);
       idleTimeoutTimer = null;
     }
-    hasWarnedAboutIdle = false;
     isDisconnectingDueToIdle = false;
   };
 
@@ -387,7 +370,6 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     ? getLiveBackchannelingService(sessionId)
     : null;
   let lastLiveBackchannelAt = 0;
-  let lastMicroReactionAt = 0;
   // Live backchannel timing - see config/timeouts.ts
 
   // NOISE FILTER (Jan 2026): Filter out very short "speech" events (clicks, pops, noise)
@@ -654,12 +636,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     }
   });
 
-  // ============================================================
-  // CONVERSATION ITEM ADDED - Record what the agent actually said
-  // Fires once per committed reply (LLM, cached, greeting), with the text
-  // truncated to what was spoken if the user interrupted.
-  // ============================================================
-  registerAgentReplyRecorder(session, { sessionId, services, userData });
+  // Record each reply the session commits (LLM, cached, greeting) as what was actually said.
+  registerAgentReplyRecorder(session, { sessionId, services: ctx.services, userData });
 
   // ============================================================
   // AGENT STATE CHANGED HANDLER

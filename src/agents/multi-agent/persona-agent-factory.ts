@@ -29,6 +29,7 @@ import {
 } from '../shared/generate-reply-gateway.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
+import { registerAgentReplyRecorder } from '../voice-agent/agent-reply-recorder.js';
 import { getPrewarmGreetingPolicy, planFactoryPrewarm } from './prewarm-greeting-overlap.js';
 
 const log = getLogger();
@@ -152,6 +153,12 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       deferHandlers, // Wire handlers in background after greeting
     });
     mark('setup_persona_agent_done');
+
+    // Record committed replies from the start: with deferred wiring the greeting
+    // is spoken before wireHandlers() runs, and would otherwise go unrecorded.
+    if (enableFullHandlers) {
+      registerAgentReplyRecorder(agentSetup.session, { sessionId, services, userData });
+    }
 
     // State for muting
     let isMuted = false;

@@ -112,15 +112,11 @@ const QUESTION_PATTERN = /\?$/;
 // ENGAGEMENT SCORER
 // ============================================================================
 
-/** Mean latency over observations whose latency is known */
-function averageLatency(observations: EngagementObservation[]): number | undefined {
-  const known = observations.flatMap((o) =>
-    o.responseLatencyMs === undefined ? [] : [o.responseLatencyMs]
-  );
-  if (known.length === 0) return undefined;
+/** Mean of the known latencies; NaN when none are known, so every threshold check is false */
+function averageLatency(observations: EngagementObservation[]): number {
+  const known = observations.flatMap((o) => o.responseLatencyMs ?? []);
   return known.reduce((sum, ms) => sum + ms, 0) / known.length;
 }
-
 export class EngagementScorer {
   private observations: EngagementObservation[] = [];
   private readonly maxObservations = 15;
@@ -142,8 +138,6 @@ export class EngagementScorer {
     }
   ): EngagementScoringResult {
     const now = Date.now();
-    // Unknown timing stays unknown: measuring from 0 would read as a
-    // decades-long pause and score every user as distracted.
     const agentTime = options?.lastAgentMessageTime ?? this.lastAgentMessageTime;
     const latency = agentTime > 0 ? now - agentTime : undefined;
 
@@ -237,11 +231,9 @@ export class EngagementScorer {
     // Typical engaged response: 1-3 seconds
     // Distracted: 5+ seconds
     const avgLatency = averageLatency(this.observations);
-    if (avgLatency !== undefined) {
-      if (avgLatency < 2000) score += 0.15;
-      else if (avgLatency < 4000) score += 0.05;
-      else if (avgLatency > 6000) score -= 0.15;
-    }
+    if (avgLatency < 2000) score += 0.15;
+    else if (avgLatency < 4000) score += 0.05;
+    else if (avgLatency > 6000) score -= 0.15;
 
     // Length factor
     const avgLength =
@@ -331,10 +323,8 @@ export class EngagementScorer {
     const secondAvgLatency = averageLatency(secondHalfLatency);
 
     let latencyTrend: 'faster' | 'slower' | 'stable' = 'stable';
-    if (firstAvgLatency !== undefined && secondAvgLatency !== undefined) {
-      if (secondAvgLatency < firstAvgLatency * 0.7) latencyTrend = 'faster';
-      else if (secondAvgLatency > firstAvgLatency * 1.5) latencyTrend = 'slower';
-    }
+    if (secondAvgLatency < firstAvgLatency * 0.7) latencyTrend = 'faster';
+    else if (secondAvgLatency > firstAvgLatency * 1.5) latencyTrend = 'slower';
 
     // Length trend
     const firstAvgLength =
@@ -394,8 +384,8 @@ export class EngagementScorer {
 
     if (avgLength > 15) score += 0.1;
     if (avgLength < 5) score -= 0.1;
-    if (avgLatency !== undefined && avgLatency < 3000) score += 0.1;
-    if (avgLatency !== undefined && avgLatency > 5000) score -= 0.1;
+    if (avgLatency < 3000) score += 0.1;
+    if (avgLatency > 5000) score -= 0.1;
     if (questionCount > 0) score += 0.1;
     if (engagementCount > disengagementCount) score += 0.1;
     if (disengagementCount > engagementCount) score -= 0.1;

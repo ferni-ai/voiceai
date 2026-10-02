@@ -562,26 +562,6 @@ export function addSignificantDate(sessionId: string, date: Date, description: s
 // CLOSING
 // ============================================================================
 
-/**
- * Get closing guidance for end of conversation
- */
-export function getClosingGuidance(sessionId: string): {
-  phrase: string;
-  aftercareNeeded: boolean;
-  checkIn: string | null;
-} | null {
-  const state = sessions.get(sessionId);
-  if (!state) return null;
-
-  const humanizer = getAdvancedHumanization(sessionId, state.config.userId);
-  const closing = humanizer.getClosing();
-  return {
-    phrase: closing.phrase,
-    aftercareNeeded: closing.aftercareNeeded,
-    checkIn: closing.checkInQuestion,
-  };
-}
-
 // ============================================================================
 // STATE ACCESS
 // ============================================================================
