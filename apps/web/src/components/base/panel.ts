@@ -66,7 +66,7 @@ export interface PanelOptions extends ComponentOptions {
  * const panel = new Panel({
  *   title: 'Settings',
  *   content: '<p>Panel content here...</p>',
- *   onClose: () => log.info('Panel closed'),
+ *   onClose: () => console.log('Panel closed'),
  * });
  *
  * panel.mount(document.body);

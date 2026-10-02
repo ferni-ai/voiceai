@@ -23,8 +23,6 @@
  * ```
  */
 
-
-
 export {
   // State manager
   emotionState,

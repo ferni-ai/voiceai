@@ -21,8 +21,6 @@ import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('Guards');
 
-
-
 // ============================================================================
 // EXHAUSTIVE CHECKS
 // ============================================================================
@@ -63,7 +61,7 @@ export function assertNever(value: never, message?: string): never {
  *     case 'active': return '▶️';
  *     case 'completed': return '✅';
  *     default:
- *       log.warn(`Unknown status: ${status}`);
+ *       console.warn(`Unknown status: ${status}`);
  *       return exhaustiveFallback(status, '❓');
  *   }
  * }

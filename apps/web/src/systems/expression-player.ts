@@ -17,8 +17,6 @@ import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('ExpressionPlayer');
 
-
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -121,7 +119,7 @@ class ExpressionPlayer {
   play(name: string, callback?: () => void): void {
     const expression = MICRO_EXPRESSIONS[name];
     if (!expression) {
-      log.warn(`[ExpressionPlayer] Unknown expression: ${name}`);
+      log.warn(`Unknown expression: ${name}`);
       return;
     }
     this.queueExpression(expression, callback);
@@ -388,7 +386,7 @@ class ExpressionPlayer {
       try {
         listener(event, expression);
       } catch (e) {
-        log.error('[ExpressionPlayer] Listener error:', e);
+        log.error('Listener error:', e);
       }
     });
   }
