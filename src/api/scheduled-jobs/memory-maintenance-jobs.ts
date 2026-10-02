@@ -241,3 +241,28 @@ export async function handleConversationCatchUp(res: ServerResponse): Promise<vo
     });
   }
 }
+
+export async function handlePersonalInsightsRefresh(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+  try {
+    log.info('Running personal insights refresh job (Cloud Scheduler)');
+    const { PersonalInsightsRefreshJob } = await import('../../tasks/scheduled/personal-insights-job.js');
+    const result = await new PersonalInsightsRefreshJob().run();
+    sendJson(res, 200, {
+      success: true,
+      job: 'personal-insights-refresh',
+      usersRefreshed: result.usersRefreshed,
+      errors: result.errorCount,
+      durationMs: Date.now() - startTime,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    log.error({ error: String(error) }, 'Personal insights refresh job failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'personal-insights-refresh',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}

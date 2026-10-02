@@ -85,6 +85,11 @@ import {
   memoryRecallMode,
   type RecallAgent,
 } from './memory-recall-hook.js';
+import {
+  installPersonRecall,
+  sessionInsightsSection,
+  startSessionInsightsLoad,
+} from './personal-insights-context.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
@@ -297,6 +302,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   let modelBaseInstructions: string;
   try {
     mark('load_prompts_start');
+    // Personal insights (people, likely topics, openers): read in parallel, never blocks
+    const pendingInsights = startSessionInsightsLoad(userId);
     // Load both levels of instructions in parallel (imports now hoisted to module level)
     const [baseInstructions, loadedSystemPrompt] = await Promise.all([
       loadModelBaseInstructions(),
@@ -589,6 +596,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
         })();
       }
     }
+
+    // What's on their mind: people with open threads, likely topics, openers
+    modelBaseInstructions += await sessionInsightsSection(
+      pendingInsights,
+      getPersonaDisplayName(persona.id)
+    );
 
     log.info(
       {
@@ -1746,6 +1759,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
       sessionWithEvents.off?.('user_input_transcribed', onRecallTranscript);
       sessionWithEvents.off?.('agent_state_changed', onRecallAgentState);
     });
+  }
+
+  // Person recall: when the user mentions someone, add that person's profile
+  // (same timing as memory recall above; see personal-insights-context.ts).
+  if (sessionWithEvents.on) {
+    const stopPersonRecall = installPersonRecall(userId, sessionWithEvents, (note) =>
+      addRecallNote(agent as unknown as RecallAgent, note)
+    );
+    if (stopPersonRecall) cleanupFunctions.push(stopPersonRecall);
   }
 
   // Realtime models that detect turns server-side never call

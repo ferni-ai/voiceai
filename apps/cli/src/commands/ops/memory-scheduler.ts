@@ -145,6 +145,18 @@ function getMemoryJobs(): SchedulerJob[] {
       timeout: '600s',
     },
     {
+      name: 'personal-insights-refresh',
+      description: 'Daily people/threads/predictions refresh for active users',
+      schedule: '20 5 * * *', // Daily 5:20am PT
+      timezone: 'America/Los_Angeles',
+      uri: `${CONFIG.uiServerUrl}/api/jobs/personal-insights-refresh`,
+      httpMethod: 'POST',
+      retryCount: 1,
+      minBackoff: '60s',
+      maxBackoff: '300s',
+      timeout: '600s',
+    },
+    {
       name: 'deliver-date-reminders',
       description: 'Important-date reminders (birthdays, anniversaries, deadlines)',
       schedule: '*/15 * * * *', // Every 15 minutes
