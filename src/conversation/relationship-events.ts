@@ -547,7 +547,8 @@ import { createUserKeyedRegistry } from '../utils/session-registry.js';
 
 const relationshipEventsRegistry = createUserKeyedRegistry(
   'RelationshipEvents',
-  () => new RelationshipEventsEngine()
+  () => new RelationshipEventsEngine(),
+  (engine) => engine.reset()
 );
 
 export function getRelationshipEventsEngine(userId: string): RelationshipEventsEngine {

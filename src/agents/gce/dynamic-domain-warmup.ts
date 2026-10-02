@@ -1,12 +1,8 @@
 /**
- * GCE Post-Warmup Tasks
+ * Background warmup of the dynamic domain executor, started by warmupResources.
  *
- * Work that runs once the blocking warmup tasks have finished.
- * Extracted from warmup.ts for maintainability.
- *
- * @module agents/gce/post-warmup
+ * @module agents/gce/dynamic-domain-warmup
  */
-
 import type { LogFn } from './warmup.js';
 
 /**
@@ -34,22 +30,4 @@ export async function startDynamicDomainWarmup(log: LogFn): Promise<void> {
       error: String(e),
     });
   }
-}
-
-/**
- * Run the steps that follow the blocking warmup tasks: install the TTS cache
- * (awaited), then start the dynamic domain warmup (not awaited).
- */
-export async function runPostWarmupTasks(log: LogFn): Promise<void> {
-  // Wire prewarmed greeting/conversational audio into gateway hot path
-  try {
-    const { installProductionTTSCache } = await import('./tts-cache-install.js');
-    await installProductionTTSCache();
-  } catch (e) {
-    log('⚠️ TTS cache install failed (non-fatal)', { error: String(e) });
-  }
-
-  // Not awaited: readiness must not wait on ~47 domain imports. Started after
-  // the blocking tasks so it doesn't compete with them for the event loop.
-  void startDynamicDomainWarmup(log);
 }

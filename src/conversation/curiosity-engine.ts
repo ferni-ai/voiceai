@@ -623,7 +623,8 @@ import { createUserKeyedRegistry } from '../utils/session-registry.js';
 
 const curiosityEngineRegistry = createUserKeyedRegistry(
   'CuriosityEngine',
-  () => new CuriosityEngine()
+  () => new CuriosityEngine(),
+  (engine) => engine.reset()
 );
 
 export function getCuriosityEngine(userId: string): CuriosityEngine {

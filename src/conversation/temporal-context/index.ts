@@ -37,7 +37,8 @@ import { TemporalContextEngine } from './engine.js';
 
 const temporalContextRegistry = createUserKeyedRegistry(
   'TemporalContext',
-  () => new TemporalContextEngine()
+  () => new TemporalContextEngine(),
+  (engine) => engine.reset()
 );
 
 export function getTemporalContextEngine(userId: string): TemporalContextEngine {
