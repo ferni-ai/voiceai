@@ -18,6 +18,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { UndoJournal } from './db.js';
 import { restoreVectors } from './derived-stores.js';
 import { deleteConversation, findLatestConversation } from './conversations.js';
+import { forgetInDomain } from './domains.js';
 import { deleteFact, deletePerson } from './facts.js';
 import { findMemories } from './find.js';
 import type { MemoryMatch } from './types.js';
@@ -64,6 +65,7 @@ export const VOICE_COPY = {
   undoExpired: "That's past the undo window, so it's gone for good.",
   nothingToUndo: "There's nothing for me to undo.",
   done: "Done, it's forgotten. Changed your mind? Say undo in the next 30 seconds.",
+  doneFinal: "Done, it's forgotten.",
 } as const;
 
 /** Clears in-memory state (tests). */
@@ -105,11 +107,19 @@ async function forgetMatches(
 ): Promise<UndoJournal> {
   const journal = new UndoJournal();
   // People first: forgetting a person also removes facts about them.
-  const order: Record<MemoryMatch['kind'], number> = { person: 0, conversation: 1, fact: 2 };
+  const order: Record<MemoryMatch['kind'], number> = {
+    person: 0,
+    conversation: 1,
+    fact: 2,
+    domain: 3,
+  };
   for (const match of [...matches].sort((a, b) => order[a.kind] - order[b.kind])) {
     if (match.kind === 'person') await deletePerson(userId, match.id, 'voice_forget', journal);
     else if (match.kind === 'conversation') {
       await deleteConversation(userId, match.id, { reason: 'voice_forget', journal });
+    } else if (match.kind === 'domain' && match.domain) {
+      // Registered domains own their own deletion (and tombstones); undo doesn't cover them.
+      await forgetInDomain(userId, match.domain, match.id);
     } else await deleteFact(userId, match.id, 'voice_forget', journal);
     // not_found here means an earlier deletion in this batch already removed it.
   }
@@ -167,7 +177,8 @@ export async function handleVoiceForget(
     }, UNDO_WINDOW_MS);
     timer.unref?.();
     log.info({ matches: resolved.length, kinds: resolved.map((m) => m.kind) }, 'Voice forget done');
-    return VOICE_COPY.done;
+    // Only domain items (e.g. a date) were deleted: nothing for undo to restore.
+    return resolved.every((m) => m.kind === 'domain') ? VOICE_COPY.doneFinal : VOICE_COPY.done;
   } catch (error) {
     log.error({ error: String(error) }, 'Voice forget failed');
     return VOICE_COPY.failed;

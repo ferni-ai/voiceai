@@ -14,6 +14,7 @@ import type { DocumentReference, Firestore } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getDb, USERS } from './db.js';
 import { removeAllVectors, removeGraphRecords } from './derived-stores.js';
+import { deleteAllDomains, type DomainOutcome } from './domains.js';
 import { assertSafeUserId } from './erase.js';
 
 const log = createLogger({ module: 'AccountDeletion' });
@@ -35,6 +36,8 @@ export interface AccountDeletionReport {
   embeddings: number;
   graphRecords: number;
   storage: Record<string, number | 'failed'>;
+  /** Registered memory domains (important dates, ...): items removed or 'failed'. */
+  domains: Record<string, DomainOutcome>;
   errors: string[];
 }
 
@@ -119,6 +122,7 @@ export async function deleteUserAccountData(userId: string): Promise<AccountDele
     embeddings: 0,
     graphRecords: 0,
     storage: {},
+    domains: {},
     errors: [],
   };
 
@@ -127,6 +131,9 @@ export async function deleteUserAccountData(userId: string): Promise<AccountDele
     report.errors.push('Firestore unavailable');
     return report;
   }
+
+  // Domains first: some keep data outside bogle_users/{uid} or need their own cleanup.
+  report.domains = await deleteAllDomains(userId, report.errors);
 
   let remaining = false;
   for (const root of USER_ROOTS) {

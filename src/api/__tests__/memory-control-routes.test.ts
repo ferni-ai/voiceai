@@ -80,6 +80,11 @@ describe('routing', () => {
     expect(isMemoryControlPath('/api/memory/me/facts/x')).toBe(true);
     expect(isMemoryControlPath('/api/memory/metrics')).toBe(false);
     expect(isMemoryControlPath('/api/memory/meta')).toBe(false);
+    // important dates have their own handler
+    expect(isMemoryControlPath('/api/memory/me/dates')).toBe(false);
+    expect(isMemoryControlPath('/api/memory/me/dates/d1')).toBe(false);
+    expect(isMemoryControlPath('/api/memory/me/reminder-settings')).toBe(false);
+    expect((await call('GET', '/api/memory/me/dates')).handled).toBe(false);
     expect((await call('GET', '/api/memory/metrics')).handled).toBe(false);
   });
 
@@ -164,14 +169,17 @@ describe('facts', () => {
     expect(svc.editFact).toHaveBeenCalledWith('user-a', 'f1', { text: 'New', category: 'work' });
   });
 
+  it('PATCH ignores unknown fields such as the userId the web client adds', async () => {
+    svc.editFact.mockResolvedValue(ok({ id: 'f1', text: 'New' }));
+    const res = await call('PATCH', '/api/memory/me/facts/f1', {
+      body: { text: 'New', userId: 'user-b', extra: 1 },
+    });
+    expect(res.status).toBe(200);
+    expect(svc.editFact).toHaveBeenCalledWith('user-a', 'f1', { text: 'New' });
+  });
+
   it('PATCH rejects bad bodies', async () => {
-    for (const body of [
-      {},
-      { text: '' },
-      { text: 'x'.repeat(501) },
-      { text: 'ok', extra: 1 },
-      'nope',
-    ]) {
+    for (const body of [{}, { text: '' }, { text: 'x'.repeat(501) }, 'nope']) {
       expect((await call('PATCH', '/api/memory/me/facts/f1', { body })).status).toBe(400);
     }
     expect(svc.editFact).not.toHaveBeenCalled();

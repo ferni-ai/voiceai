@@ -47,6 +47,7 @@ function report(overrides: Partial<AccountDeletionReport> = {}): AccountDeletion
     embeddings: 3,
     graphRecords: 0,
     storage: {},
+    domains: {},
     errors: [],
     ...overrides,
   };

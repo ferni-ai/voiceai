@@ -59,6 +59,8 @@ export interface ConversationDeletion {
   turns: number;
   facts: number;
   embeddings: number;
+  /** Items changed per registered memory domain (e.g. importantDates); 'failed' if its hook failed. */
+  domains?: Record<string, number | 'failed'>;
 }
 
 export interface MemoryDeletionReport {
@@ -66,6 +68,8 @@ export interface MemoryDeletionReport {
   collections: Record<string, number>;
   embeddings: number;
   graphRecords: number;
+  /** Items removed per registered memory domain; 'failed' if its hook failed. */
+  domains: Record<string, number | 'failed'>;
 }
 
 export type ExportFormat = 'json' | 'csv';
@@ -77,6 +81,8 @@ export interface MemoryExport {
   people: Person[];
   conversations: Array<ConversationDetail & { summaries: Record<string, unknown>[] }>;
   summaries: Record<string, unknown>[];
+  /** Data from registered memory domains, keyed by domain name (e.g. importantDates). */
+  domains: Record<string, unknown>;
 }
 
 export interface MemoryExportFile {
@@ -85,7 +91,7 @@ export interface MemoryExportFile {
   body: string;
 }
 
-export type MemoryMatchKind = 'fact' | 'person' | 'conversation';
+export type MemoryMatchKind = 'fact' | 'person' | 'conversation' | 'domain';
 
 export interface MemoryMatch {
   kind: MemoryMatchKind;
@@ -93,6 +99,8 @@ export interface MemoryMatch {
   /** Short human-readable label used in voice confirmations. */
   label: string;
   score: number;
+  /** For kind 'domain': the registered memory domain that owns this item. */
+  domain?: string;
 }
 
 export type TombstoneReason = 'user_deleted' | 'voice_forget';

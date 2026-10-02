@@ -15,12 +15,14 @@ vi.mock('../../../memory/firestore-vector-store.js', () => ({
 }));
 
 import { handleVoiceForget, resetVoiceForgetState, UNDO_WINDOW_MS } from '../index.js';
+import { resetMemoryDomains } from '../domains.js';
 import { VOICE_COPY } from '../voice-forget.js';
 
 let db: FakeFirestore;
 let vectors: FakeVectorStore;
 
 beforeEach(() => {
+  resetMemoryDomains({ loadBuiltIns: false });
   db = new FakeFirestore();
   vectors = new FakeVectorStore();
   h.db = db;

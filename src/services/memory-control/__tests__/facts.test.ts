@@ -24,11 +24,13 @@ import {
   findMemories,
   listMemories,
 } from '../index.js';
+import { resetMemoryDomains } from '../domains.js';
 
 let db: FakeFirestore;
 let vectors: FakeVectorStore;
 
 beforeEach(() => {
+  resetMemoryDomains({ loadBuiltIns: false });
   db = new FakeFirestore();
   vectors = new FakeVectorStore();
   h.db = db;

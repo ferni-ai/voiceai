@@ -10,6 +10,7 @@ import type { DocumentData } from '@google-cloud/firestore';
 import { err, ok } from '../../memory/result.js';
 import { getDb, toIso, userCollection } from './db.js';
 import { getConversation, toConversationSummary } from './conversations.js';
+import { exportDomains } from './domains.js';
 import { listMemories, unavailable } from './facts.js';
 import type { ExportFormat, MemoryControlResult, MemoryExport, MemoryExportFile } from './types.js';
 
@@ -82,6 +83,7 @@ export async function collectMemoryExport(
     people: overview.value.people,
     conversations,
     summaries,
+    domains: await exportDomains(userId),
   });
 }
 
@@ -143,6 +145,13 @@ export function toCsv(data: MemoryExport): string {
       'summaries',
       ['id', 'sessionId', 'timestamp', 'content'],
       data.summaries.map((s) => [s.docId, s.sessionId, s.timestamp, s])
+    ),
+    ...Object.entries(data.domains).flatMap(([name, value]) =>
+      section(
+        name,
+        ['item'],
+        (Array.isArray(value) ? value : [value]).map((v) => [v])
+      )
     )
   );
   return lines.join('\n');

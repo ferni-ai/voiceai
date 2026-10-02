@@ -25,6 +25,7 @@ import {
   type UndoJournal,
 } from './db.js';
 import { removeVectors, summaryVectorId } from './derived-stores.js';
+import { deleteDomainsForConversation } from './domains.js';
 import { factSources, notFound, removeFacts, unavailable } from './facts.js';
 import type {
   ConversationDeletion,
@@ -327,8 +328,10 @@ export async function deleteConversation(
   embeddings += provenance.embeddings;
 
   await scrubProfile(db, userId, ids, journal);
+  // Registered domains (important dates, ...) cascade too. Not covered by voice undo.
+  const domains = await deleteDomainsForConversation(userId, ids);
 
   await removeDoc(ref, journal, data);
   log.info({ conversationId, turns, facts: provenance.facts, embeddings }, 'Conversation deleted');
-  return ok({ deleted: { turns, facts: provenance.facts, embeddings } });
+  return ok({ deleted: { turns, facts: provenance.facts, embeddings, domains } });
 }

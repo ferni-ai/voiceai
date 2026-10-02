@@ -328,8 +328,8 @@ class DataExportService {
     const { collectMemoryExport } = await import('../memory-control/index.js');
     const result = await collectMemoryExport(userId);
     if (!result.ok) throw new Error(result.error.message);
-    const { facts, people, conversations, summaries } = result.value;
-    return { facts, people, conversations, summaries };
+    const { facts, people, conversations, summaries, domains } = result.value;
+    return { facts, people, conversations, summaries, ...domains };
   }
 
   private async exportConversations(userId: string) {

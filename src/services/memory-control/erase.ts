@@ -10,6 +10,7 @@ import { err, ok } from '../../memory/result.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { deleteQuery, getDb, MEMORY_COLLECTIONS, userCollection, userRef } from './db.js';
 import { removeAllVectors, removeGraphRecords } from './derived-stores.js';
+import { deleteAllDomains } from './domains.js';
 import { unavailable } from './facts.js';
 import type { MemoryControlResult, MemoryDeletionReport } from './types.js';
 
@@ -86,6 +87,7 @@ export async function deleteAllMemories(
 
   const embeddings = await removeAllVectors(userId);
   const graphRecords = await removeGraphRecords(userId, { all: true });
-  log.info({ collections, embeddings, graphRecords }, 'All memories deleted by user');
-  return ok({ collections, embeddings, graphRecords });
+  const domains = await deleteAllDomains(userId);
+  log.info({ collections, embeddings, graphRecords, domains }, 'All memories deleted by user');
+  return ok({ collections, embeddings, graphRecords, domains });
 }

@@ -51,6 +51,9 @@ Person = { id, name, relationship?, notes?, updatedAt }
 ConversationSummary = { id, startedAt, endedAt?, personaId?, summary?, turnCount }
 ```
 
+`PATCH` ignores unknown fields, including the `userId` the web client adds.
+The user is always the verified caller.
+
 Errors: `400` validation (bad body, malformed ID or cursor, unknown cursor),
 `401`, `404`, `405`, `429`, `503` (storage unavailable), `500`. Body: `{ error }`.
 
@@ -155,6 +158,39 @@ IDs that are empty or contain `/` are refused. `FirestoreStore.deleteProfile`
 stays top-level only, because profile merging relies on that, so never use it
 for erasure.
 
+## Memory domains (registry)
+
+Other memory areas plug into every memory-control operation by registering a
+domain (`services/memory-control/domains.ts`):
+
+```ts
+registerMemoryDomain({
+  name: 'goals',                                   // key in exports and reports
+  exportFn: (uid) => ...,                          // JSON-safe data for the export
+  deleteForConversation: (uid, convId) => count,   // conversation-delete cascade
+  deleteAll: (uid) => count,                       // delete-all and account erasure
+  find: (uid, query) => [{ id, label, score }],    // optional: voice forget search
+  forget: (uid, id) => true,                       // optional: delete one found item
+});
+```
+
+| Operation                                 | What domains get                                                                                                                                                                     |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DELETE /api/memory/me/conversations/:id` | `deleteForConversation` once per conversation ID (doc ID and session ID). The response gains `deleted.domains: { [name]: count \| 'failed' }`.                                       |
+| `DELETE /api/memory/me`                   | `deleteAll`. The response gains `domains`.                                                                                                                                           |
+| Account erasure                           | `deleteAll` runs first. A failing domain makes the report `complete: false`.                                                                                                         |
+| Export                                    | `exportFn` output goes under `domains.<name>` in JSON, and into one CSV section per domain (one JSON item per row). The `/api/export` "Memories" category spreads it in.             |
+| Voice forget                              | `find` matches are offered with the others; a confirmed match calls `forget`. Undo does not restore domain items. When only domain items were deleted, the reply doesn't offer undo. |
+
+Hooks are isolated. A domain that throws (or returns a failed Result) is
+reported as `'failed'`, and the other domains still run.
+
+Built in: **importantDates** (`services/important-dates`):
+`exportImportantDates`, `deleteImportantDatesFor`, `deleteAllImportantDates`,
+`findImportantDates` + `deleteImportantDate(…, 'voice_forget')`. The dates
+routes (`/api/memory/me/dates…`, `/api/memory/me/reminder-settings`) are served
+by their own handler. The memory-control router never claims them.
+
 ## Voice forget
 
 `forgetMemory({ query?, scope?, confirm?, undo? })`. The legacy names
@@ -179,6 +215,9 @@ writes those documents back and deletes the new tombstones. Nothing about the
 deletion is pending in storage. If the process dies inside the window, the
 deletion stands, which is the privacy-safe way to fail. Graph rows are not
 restored by undo. The L2→L3 sync can push them again.
+
+"Show me what you remember" opens the page through the `openPanel` voice tool
+(`ui-navigation`, view `memories`).
 
 Replies are short and warm (see `VOICE_COPY`), for example "Done, it's
 forgotten. Changed your mind? Say undo in the next 30 seconds."

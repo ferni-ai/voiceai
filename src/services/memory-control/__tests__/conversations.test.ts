@@ -21,11 +21,13 @@ import {
   getConversation,
   listConversations,
 } from '../index.js';
+import { resetMemoryDomains } from '../domains.js';
 
 let db: FakeFirestore;
 let vectors: FakeVectorStore;
 
 beforeEach(() => {
+  resetMemoryDomains({ loadBuiltIns: false });
   db = new FakeFirestore();
   vectors = new FakeVectorStore();
   h.db = db;
@@ -100,7 +102,7 @@ describe('deleteConversation cascade', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     // f-only-c1 and f-legacy (sessionId sess-1) lose their only source → deleted
-    expect(result.value.deleted).toEqual({ turns: 3, facts: 2, embeddings: 2 });
+    expect(result.value.deleted).toEqual({ turns: 3, facts: 2, embeddings: 2, domains: {} });
 
     const u = base();
     expect(db.get(`${u}/conversations/c1`)).toBeUndefined();

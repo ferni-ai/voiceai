@@ -59,7 +59,8 @@ const EditFactSchema = z
     text: z.string().trim().min(1).max(MAX_FACT_TEXT),
     category: z.string().trim().min(1).max(60).optional(),
   })
-  .strict();
+  // Unknown fields (the web client also sends userId) are ignored, never trusted.
+  .strip();
 
 const DeleteAllSchema = z.object({ confirm: z.literal('DELETE') });
 

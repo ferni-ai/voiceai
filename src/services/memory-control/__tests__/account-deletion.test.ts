@@ -38,12 +38,14 @@ vi.mock('@google-cloud/storage', () => ({
 }));
 
 import { deleteUserAccountData } from '../index.js';
+import { resetMemoryDomains } from '../domains.js';
 import { storageTargets } from '../account-deletion.js';
 
 let db: FakeFirestore;
 let vectors: FakeVectorStore;
 
 beforeEach(() => {
+  resetMemoryDomains({ loadBuiltIns: false });
   db = new FakeFirestore();
   vectors = new FakeVectorStore();
   h.db = db;

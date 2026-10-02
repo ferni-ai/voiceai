@@ -20,6 +20,14 @@ export {
 export { exportMemories, collectMemoryExport } from './export.js';
 export { deleteAllMemories } from './erase.js';
 export { findMemories } from './find.js';
+export {
+  registerMemoryDomain,
+  unregisterMemoryDomain,
+  resetMemoryDomains,
+  getMemoryDomains,
+  type MemoryDomain,
+  type MemoryDomainMatch,
+} from './domains.js';
 export { deleteUserAccountData, type AccountDeletionReport } from './account-deletion.js';
 export {
   handleVoiceForget,

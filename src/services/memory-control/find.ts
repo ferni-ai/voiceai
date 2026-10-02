@@ -10,6 +10,7 @@
 
 import { err, ok } from '../../memory/result.js';
 import { asString, getDb, userCollection } from './db.js';
+import { findInDomains } from './domains.js';
 import { listMemories, unavailable } from './facts.js';
 import { toConversationSummary } from './conversations.js';
 import type { MemoryControlResult, MemoryMatch } from './types.js';
@@ -129,6 +130,11 @@ export async function findMemories(
         score: score - 0.01,
       });
     }
+  }
+
+  // Registered memory domains (important dates, ...) that support forgetting
+  for (const m of await findInDomains(userId, query)) {
+    matches.push({ kind: 'domain', id: m.id, label: m.label, score: m.score, domain: m.domain });
   }
 
   return ok(matches.sort((a, b) => b.score - a.score).slice(0, MAX_MATCHES));
