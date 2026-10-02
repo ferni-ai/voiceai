@@ -240,6 +240,8 @@ jobs:
           # Previews talk to the DEV LiveKit project, never production. Without
           # LiveKit settings the server exits at startup ("Missing required
           # environment variables"), so every preview deploy failed.
+          # AGENT_NAME matches the dev worker; the token server otherwise dispatches
+          # calls to 'voice-agent', which nothing serves on the dev project.
           
           URL=$(gcloud run services describe $SERVICE_NAME \
             --region=${{ env.GCP_REGION }} \
@@ -247,9 +249,13 @@ jobs:
           
           echo "url=$URL" >> $GITHUB_OUTPUT
           echo "Staging deployed to: $URL"
+          echo "🚀 Staging deployed to: $URL" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment on PR
         if: needs.context.outputs.is_pr == 'true'
+        # The URL is in the job summary; a token without write access
+        # must not fail the deploy
+        continue-on-error: true
         uses: actions/github-script@v7
         env:
           BRANCH: ${{ needs.context.outputs.branch }}

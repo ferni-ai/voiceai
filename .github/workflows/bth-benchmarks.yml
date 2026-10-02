@@ -37,10 +37,6 @@ jobs:
   benchmark:
     name: BTH Capability Benchmark
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
-    # The repo's default token is read-only; this job's PR comment step needs write.
-    permissions:
-      contents: read
-      pull-requests: write
     timeout-minutes: 30
     # Job-level permissions replace the workflow default, so list what's used
     permissions:
