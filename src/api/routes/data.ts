@@ -102,7 +102,24 @@ export async function handleDeleteAllData(
 
     const { getDataExportService } = await import('../../services/data-export.js');
     const exportService = getDataExportService();
-    await exportService.deleteAllData(userId);
+    const outcome = await exportService.deleteAllData(userId);
+
+    if (outcome && !outcome.complete) {
+      const incomplete = Object.entries(outcome.results)
+        .filter(([, done]) => !done)
+        .map(([store]) => store);
+      log.error({ userId, incomplete }, 'User data deletion incomplete (GDPR request)');
+      sendJSON(
+        res,
+        {
+          success: false,
+          message: "We couldn't delete everything. Please try again or contact support.",
+          incomplete,
+        },
+        500
+      );
+      return;
+    }
 
     log.info({ userId }, 'All user data deleted (GDPR request)');
     sendJSON(res, { success: true, message: 'All data deleted' });
