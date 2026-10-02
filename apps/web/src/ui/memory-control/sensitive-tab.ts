@@ -1,7 +1,8 @@
 /**
  * "Sensitive" tab: the consent switches for health, money and beliefs (one
  * upfront yes/no plus a switch each), the allergy safety exception, health
- * notes (correct / forget) and the mood timeline (forget per conversation).
+ * notes (correct / forget), the mood timeline (forget per conversation) and
+ * money notes (money-section.ts).
  *
  * Switching a category off stops Ferni remembering it at once; if anything is
  * stored, the user is offered (never forced) deleting it.
@@ -34,6 +35,7 @@ import {
   renderMood,
 } from './sensitive-render.js';
 import { injectSensitiveStyles } from './sensitive.styles.js';
+import { MoneySection } from './money-section.js';
 import { renderError, renderLoading } from './states.js';
 
 export class SensitiveTab {
@@ -44,9 +46,11 @@ export class SensitiveTab {
   private saving = false;
   private busy = false;
   private loadFailed = false;
+  private readonly money: MoneySection;
 
   constructor(private readonly host: HTMLElement) {
     injectSensitiveStyles();
+    this.money = new MoneySection(host, () => this.render());
     host.addEventListener('click', (e) => void this.onClick(e));
     host.addEventListener('keydown', (e) => this.onKeydown(e));
   }
@@ -54,7 +58,12 @@ export class SensitiveTab {
   async load(): Promise<void> {
     this.loadFailed = false;
     this.host.innerHTML = renderLoading(t('memoryControl.sensitive.loading', 'One moment...'));
-    const [consent, health, mood] = await Promise.all([getConsent(), getHealth(), getMood()]);
+    const [consent, health, mood] = await Promise.all([
+      getConsent(),
+      getHealth(),
+      getMood(),
+      this.money.load(),
+    ]);
     if (!consent.ok) {
       this.loadFailed = true;
       this.host.innerHTML = renderError(
@@ -74,6 +83,7 @@ export class SensitiveTab {
       renderConsentCard(this.consent, this.health),
       this.health ? renderHealth(this.health, this.editingId, this.saving) : '',
       this.mood ? renderMood(this.mood) : '',
+      this.money.html(this.consent.consent.categories.finances.enabled),
     ].join('');
   }
 
@@ -214,7 +224,7 @@ export class SensitiveTab {
   }
 
   private async refreshLists(): Promise<void> {
-    const [health, mood] = await Promise.all([getHealth(), getMood()]);
+    const [health, mood] = await Promise.all([getHealth(), getMood(), this.money.load()]);
     if (health.ok) this.health = health.value;
     if (mood.ok) this.mood = mood.value;
     this.render();

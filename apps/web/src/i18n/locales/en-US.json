@@ -3197,7 +3197,33 @@
       "deleteBody": "I still have {count} things about {label}. Delete them too?",
       "deleteKeepsAllergies": "Your allergies stay, so I never suggest something unsafe.",
       "deleteConfirm": "Delete",
-      "forgetMoodBody": "I'll forget how you seemed in that conversation."
+      "forgetMoodBody": "I'll forget how you seemed in that conversation.",
+      "money": {
+        "title": "Money",
+        "off": "Money is off, so I'm not keeping money notes.",
+        "empty": "Nothing yet. When you talk about money, it'll show up here.",
+        "privacy": "I never keep card or account numbers, passwords or PINs.",
+        "kind": {
+          "debt": "Debts",
+          "savings": "Saving for",
+          "bill": "Bills",
+          "purchase": "Big purchases",
+          "decision": "Decisions",
+          "income": "Income",
+          "budget": "Budget",
+          "worry": "Worries",
+          "win": "Wins",
+          "feeling": "How money feels"
+        },
+        "perWeek": "a week",
+        "perTwoWeeks": "every two weeks",
+        "perMonth": "a month",
+        "perYear": "a year",
+        "dueDay": "Due on day {day}",
+        "done": "Done",
+        "linkedGoal": "In your goals",
+        "forgetAmount": "Forget the amount"
+      }
     },
     "sensitiveTab": "Sensitive",
     "lifeTab": "Work & places"
