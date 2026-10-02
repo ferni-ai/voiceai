@@ -33,8 +33,16 @@ export interface LintRule {
  * receiver such as `this.` or `ctx.`), getLogger().x(...), and process stdout/stderr
  * writes. Anchored to an identifier start, so `dialog.show(` and `blog.post(` don't match.
  */
-const LOG_CALL_START =
-  /(?<![\w$])(?:[\w$]+\.)*(?:log|logger|console)\.\w+\s*\(|(?<![\w$])getLogger\(\)\.\w+\s*\(|(?<![\w$])process\.(?:stderr|stdout)\.write\s*\(/g;
+const LOG_METHODS = '(?:debug|info|warn|error|trace|fatal|log|table|dir|group|groupCollapsed|groupEnd|time|timeEnd|child)';
+const LOG_CALL_START = new RegExp(
+  `(?<![\\w$])(?:[\\w$]+\\.)*(?:log|logger|console)\\.${LOG_METHODS}\\s*\\(` +
+    `|(?<![\\w$])getLogger\\(\\)\\.${LOG_METHODS}\\s*\\(` +
+    '|(?<![\\w$])process\\.(?:stderr|stdout)\\.write\\s*\\(',
+  'g'
+);
+
+/** A log call longer than this, or one never closed, is treated as a parse miss, not a log range. */
+const MAX_LOG_CALL_LINES = 40;
 
 function skipString(text: string, pos: number): number {
   const quote = text[pos];
@@ -67,7 +75,11 @@ export function logCallRanges(text: string): Array<[number, number]> {
       else if (ch === ')') depth--;
       pos++;
     }
-    ranges.push([start, pos]);
+    // An unclosed call usually means a quote inside a regex literal or comment threw
+    // off string skipping; trusting it would hide every finding after it.
+    const closed = depth === 0;
+    const lineCount = text.slice(start, pos).split('\n').length;
+    if (closed && lineCount <= MAX_LOG_CALL_LINES) ranges.push([start, pos]);
   }
   return ranges;
 }
@@ -86,14 +98,44 @@ function isCommentLine(line: string): boolean {
   return t.startsWith('//') || t.startsWith('*') || t.startsWith('/*');
 }
 
-/** The same opt-outs ESLint's no-console honors, so dev tools need one marker, not two. */
-function consoleAllowed(lines: string[], index: number): boolean {
-  if (/eslint-disable-line\b.*\bno-console\b/.test(lines[index])) return true;
-  return index > 0 && /eslint-disable-next-line\b.*\bno-console\b/.test(lines[index - 1]);
+/**
+ * Rules an eslint directive in `comment` names: [] means "all rules". Mirrors ESLint:
+ * the list ends at `--` (the reason), entries are comma-separated, names match exactly.
+ */
+function directiveRules(rest: string): string[] {
+  const list = rest.split('--')[0].replace(/\*\/\s*$/, '').trim();
+  return list ? list.split(',').map((r) => r.trim()).filter(Boolean) : [];
 }
 
-const CONSOLE_CALL = /(?<![\w$.])console\.(log|warn|error|debug|info)\s*\(/g;
-const FILE_DISABLES_CONSOLE = /\/\*\s*eslint-disable\s+[^*]*\bno-console\b/;
+function coversConsole(rest: string): boolean {
+  const rules = directiveRules(rest);
+  return rules.length === 0 || rules.includes('no-console');
+}
+
+const NEXT_LINE_DIRECTIVE = /^\s*(?:\/\/|\/\*)\s*eslint-disable-next-line\b(.*)$/;
+const SAME_LINE_DIRECTIVE = /\/[/*]\s*eslint-disable-line\b(.*)$/;
+const BLOCK_DIRECTIVE = /^\s*\/\*\s*eslint-(disable|enable)(?![-\w])(.*)$/;
+
+/**
+ * Lines where ESLint's no-console is switched off: eslint-disable-next-line on the line
+ * above, eslint-disable-line on the line itself, or inside a block disable/enable pair.
+ * Dev tools that print on purpose then need one marker, not two.
+ */
+function consoleAllowedLines(lines: string[]): boolean[] {
+  let blockDisabled = false;
+  return lines.map((line, index) => {
+    const block = BLOCK_DIRECTIVE.exec(line);
+    if (block && coversConsole(block[2])) blockDisabled = block[1] === 'disable';
+    if (blockDisabled) return true;
+    const sameLine = SAME_LINE_DIRECTIVE.exec(line);
+    if (sameLine && coversConsole(sameLine[1])) return true;
+    const above = index > 0 ? NEXT_LINE_DIRECTIVE.exec(lines[index - 1]) : null;
+    return above !== null && coversConsole(above[1]);
+  });
+}
+
+const CONSOLE_CALL =
+  /(?<![\w$.])(?:(?:window|globalThis|self)\.)?console\.(log|warn|error|debug|info)\s*\(/g;
 
 const EMOJI =
   /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu;
@@ -111,10 +153,10 @@ export const LINT_RULES: LintRule[] = [
     severity: 'error',
     check: (content, file) => {
       const errors: LintError[] = [];
-      if (FILE_DISABLES_CONSOLE.test(content)) return errors;
       const lines = content.split('\n');
+      const allowed = consoleAllowedLines(lines);
       lines.forEach((line, index) => {
-        if (isCommentLine(line) || consoleAllowed(lines, index)) return;
+        if (isCommentLine(line) || allowed[index]) return;
         for (const match of line.matchAll(CONSOLE_CALL)) {
           errors.push({
             file,
@@ -298,7 +340,7 @@ export const LINT_RULES: LintRule[] = [
       });
       return errors;
     },
-    fileTypes: ['.ts', '.js'],
+    fileTypes: ['.ts', '.js', '.njk'],
     exclude: ['**/*.md', '**/*.txt', '**/test/**'],
   },
 
@@ -366,6 +408,6 @@ export const LINT_RULES: LintRule[] = [
       
       return errors;
     },
-    fileTypes: ['.ts', '.js', '.html'],
+    fileTypes: ['.ts', '.js', '.html', '.njk'],
   },
 ];

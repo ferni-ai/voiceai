@@ -60,6 +60,29 @@ describe('no-console-log scope', () => {
     const content = '// eslint-disable-next-line no-unused-vars\nconsole.log("x");';
     expect(ruleHits('/repo/apps/web/src/a.ts', content, 'no-console-log')).toBe(1);
   });
+
+  it('reads the rule list like ESLint: exact names, reason after -- ignored', () => {
+    const file = '/repo/apps/web/src/a.ts';
+    const reasonMentions = '// eslint-disable-next-line some-rule -- avoids no-console noise\nconsole.log("x");';
+    const listed = '// eslint-disable-next-line no-alert, no-console -- dev tool\nconsole.log("x");';
+    const allRules = '// eslint-disable-next-line\nconsole.log("x");';
+    expect(ruleHits(file, reasonMentions, 'no-console-log')).toBe(1);
+    expect(ruleHits(file, listed, 'no-console-log')).toBe(0);
+    expect(ruleHits(file, allRules, 'no-console-log')).toBe(0);
+  });
+
+  it('ends a block disable at eslint-enable, and ignores directives inside strings', () => {
+    const file = '/repo/apps/web/src/a.ts';
+    const block = '/* eslint-disable no-console */\nconsole.log("a");\n/* eslint-enable no-console */\nconsole.log("b");';
+    const inString = 'const s = "/* eslint-disable no-console */";\nconsole.log("x");';
+    expect(ruleHits(file, block, 'no-console-log')).toBe(1);
+    expect(ruleHits(file, inString, 'no-console-log')).toBe(1);
+  });
+
+  it('flags console reached through window, globalThis or self', () => {
+    const content = 'window.console.log("a");\nglobalThis.console.error("b");\nself.console.warn("c");';
+    expect(ruleHits('/repo/apps/web/src/a.ts', content, 'no-console-log')).toBe(3);
+  });
 });
 
 describe('no-hardcoded-hex-colors scope', () => {
@@ -121,6 +144,22 @@ describe('no-emoji-in-ui and logging calls', () => {
     "log.info('a'); el.title = '🎉';",
   ])('flags emoji outside a log call: %s', (line) => {
     expect(emoji(line)).toBe(1);
+  });
+
+  it.each(["ui.log.show('🎉 Done');", 'renderer.log.append(`<span>🎉</span>`);'])(
+    'flags emoji passed to a non-logging method on a log-named receiver: %s',
+    (line) => {
+      expect(emoji(line)).toBe(1);
+    }
+  );
+
+  it('does not let an unclosed log call hide the rest of the file', () => {
+    const content = "console.log(x.replace(/'/g, ''));\nel.title = '🎉';\nbtn.textContent = '✨ New';";
+    expect(emoji(content)).toBe(2);
+  });
+
+  it('checks Nunjucks templates for emoji', () => {
+    expect(ruleHits('/repo/apps/website/ferni-website/src/index.njk', '<h2>🎉 Hello</h2>', 'no-emoji-in-ui')).toBe(1);
   });
 
   it('flags emoji after a multi-line log call has closed', () => {
