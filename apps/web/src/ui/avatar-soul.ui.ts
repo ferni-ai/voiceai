@@ -38,77 +38,12 @@ import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { ferniExpressions } from './ferni-expressions.ui.js';
+import type { SoulState } from './avatar-soul.types.js';
 
 const log = createLogger('AvatarSoul');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
-
-// ============================================================================
-// TYPES & INTERFACES
-// ============================================================================
-
-interface PupilState {
-  size: number; // 0.6-1.4 relative to base
-  targetSize: number;
-  dilationSpeed: number;
-  lastUpdate: number;
-}
-
-interface GazeState {
-  x: number; // -1 to 1 offset
-  y: number;
-  targetX: number;
-  targetY: number;
-  isThinking: boolean;
-  saccadeTimer: ReturnType<typeof setTimeout> | null;
-  lastSaccade: number;
-}
-
-interface ShimmerState {
-  isActive: boolean;
-  angle: number;
-  intensity: number;
-  highlightX: number;
-  highlightY: number;
-}
-
-interface GlowState {
-  baseRadius: number;
-  currentRadius: number;
-  bleedAmount: number; // 0-1 how much it bleeds beyond avatar
-  color: string;
-  pulsePhase: number;
-}
-
-interface EnergyState {
-  level: number; // 0-1 current energy
-  targetLevel: number;
-  userEnergy: number; // Detected from voice
-  matchStrength: number; // How closely to match
-}
-
-interface RelationshipState {
-  warmth: number; // 0-1 baseline warmth
-  depth: number; // Conversation depth
-  totalInteractions: number;
-  lastInteraction: number;
-}
-
-interface SoulState {
-  isInitialized: boolean;
-  reducedMotion: boolean;
-  pupil: PupilState;
-  gaze: GazeState;
-  shimmer: ShimmerState;
-  glow: GlowState;
-  energy: EnergyState;
-  relationship: RelationshipState;
-  grainPhase: number;
-  anticipationActive: boolean;
-  comfortPulseActive: boolean;
-  protectiveMode: boolean;
-}
 
 // ============================================================================
 // CONSTANTS - Golden Ratio & Fibonacci Timing

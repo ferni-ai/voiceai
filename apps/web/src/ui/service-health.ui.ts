@@ -15,43 +15,20 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet } from '../utils/api.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import {
+  type ServiceHealthData,
+  type ServiceHealthState,
+  POLL_INTERVAL_MS,
+  CACHE_TTL_MS,
+  INDICATOR_SIZE,
+  getDisplayName,
+  getStatusClass,
+} from './service-health-config.js';
 
 const log = createLogger('ServiceHealth');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface CircuitStatus {
-  name: string;
-  state: 'closed' | 'open' | 'half_open';
-  successRate: string;
-  totalRequests: number;
-}
-
-interface ServiceHealthData {
-  status: 'healthy' | 'degraded' | 'unavailable';
-  timestamp: string;
-  summary: {
-    totalClients: number;
-    healthyClients: number;
-    openCircuits: number;
-    halfOpenCircuits: number;
-  };
-  unhealthyServices: string[];
-  httpClients: CircuitStatus[];
-}
-
-interface ServiceHealthState {
-  visible: boolean;
-  expanded: boolean;
-  data: ServiceHealthData | null;
-  lastFetch: number;
-  error: string | null;
-}
 
 // ============================================================================
 // STATE
@@ -67,28 +44,6 @@ const state: ServiceHealthState = {
 
 let container: HTMLElement | null = null;
 let pollInterval: ReturnType<typeof setInterval> | null = null;
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-const POLL_INTERVAL_MS = 30000; // 30 seconds
-const CACHE_TTL_MS = 10000; // 10 seconds
-const INDICATOR_SIZE = '12px';
-
-// Service name to user-friendly name mapping
-const SERVICE_DISPLAY_NAMES: Record<string, string> = {
-  'yahoo-finance': 'Stock Data',
-  'alpha-vantage': 'Market Data',
-  'google-apis': 'Weather & Maps',
-  'wikipedia': 'Historical Facts',
-  'home-assistant': 'Smart Home',
-  'philips-hue': 'Lighting',
-  'lifx': 'Lighting',
-  'smartthings': 'Smart Home',
-  'context-service': 'AI Context',
-  'spotify': 'Music',
-};
 
 // ============================================================================
 // STYLES
@@ -311,23 +266,6 @@ const STYLES = `
 // ============================================================================
 // RENDERING
 // ============================================================================
-
-function getDisplayName(serviceName: string): string {
-  return SERVICE_DISPLAY_NAMES[serviceName] || serviceName.replace(/-/g, ' ');
-}
-
-function getStatusClass(state: string): string {
-  switch (state) {
-    case 'closed':
-      return 'healthy';
-    case 'half_open':
-      return 'degraded';
-    case 'open':
-      return 'unavailable';
-    default:
-      return 'healthy';
-  }
-}
 
 function renderIndicator(): string {
   if (!state.data) {
@@ -591,4 +529,3 @@ if (typeof document !== 'undefined') {
     trackedTimeout(initServiceHealthUI, 2000);
   }
 }
-

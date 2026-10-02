@@ -22,79 +22,13 @@ import { soundUI } from './sound.ui.js';
 import { updateCustomAgent, getCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { saveTwinProfile, getTwinProfile } from '../services/twin-profile.service.js';
 import { t } from '../i18n/index.js';
+import {
+  type ProfileSection,
+  type TwinProfile,
+  createEmptyProfile,
+} from './digital-twin-profile-model.js';
 
 const log = createLogger('DigitalTwinProfileUI');
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-type ProfileSection =
-  | 'intro'
-  | 'background'
-  | 'mannerisms'
-  | 'communication'
-  | 'values'
-  | 'interests'
-  | 'review';
-
-interface LifeChapter {
-  id: string;
-  title: string;
-  years: string;
-  description: string;
-  keyMoments: string[];
-}
-
-interface Mannerism {
-  id: string;
-  phrase: string;
-  context: string; // When do you say this?
-  emotion?: string; // What emotion does it express?
-}
-
-interface TwinProfile {
-  // Background
-  lifeChapters: LifeChapter[];
-  keyRelationships: Array<{
-    name: string;
-    relationship: string;
-    importance: string;
-  }>;
-  formativeExperiences: string[];
-
-  // Mannerisms
-  signaturePhrases: Mannerism[];
-  greetingStyle: string;
-  farewellStyle: string;
-  expressionsWhenHappy: string[];
-  expressionsWhenSad: string[];
-  expressionsWhenExcited: string[];
-  expressionsWhenFrustrated: string[];
-
-  // Communication Style
-  communicationStyle: {
-    formality: 'very_casual' | 'casual' | 'balanced' | 'formal' | 'very_formal';
-    pace: 'very_fast' | 'fast' | 'moderate' | 'slow' | 'very_slow';
-    verbosity: 'concise' | 'moderate' | 'detailed' | 'verbose';
-    storytelling: boolean;
-    usesMetaphors: boolean;
-    askingQuestions: boolean;
-    givingAdvice: boolean;
-  };
-
-  // Values & Beliefs
-  coreValues: string[];
-  lifePhilosophy: string;
-  whatMatters: string[];
-  beliefs: string[];
-
-  // Interests
-  passions: string[];
-  hobbies: string[];
-  favoriteTopics: string[];
-  thingsToAvoid: string[];
-}
 
 // ============================================================================
 // STATE
@@ -104,38 +38,6 @@ let profileModal: HTMLElement | null = null;
 let currentAgent: CustomAgent | null = null;
 let currentSection: ProfileSection = 'intro';
 let profile: TwinProfile = createEmptyProfile();
-
-function createEmptyProfile(): TwinProfile {
-  return {
-    lifeChapters: [],
-    keyRelationships: [],
-    formativeExperiences: [],
-    signaturePhrases: [],
-    greetingStyle: '',
-    farewellStyle: '',
-    expressionsWhenHappy: [],
-    expressionsWhenSad: [],
-    expressionsWhenExcited: [],
-    expressionsWhenFrustrated: [],
-    communicationStyle: {
-      formality: 'balanced',
-      pace: 'moderate',
-      verbosity: 'moderate',
-      storytelling: false,
-      usesMetaphors: false,
-      askingQuestions: false,
-      givingAdvice: false,
-    },
-    coreValues: [],
-    lifePhilosophy: '',
-    whatMatters: [],
-    beliefs: [],
-    passions: [],
-    hobbies: [],
-    favoriteTopics: [],
-    thingsToAvoid: [],
-  };
-}
 
 // ============================================================================
 // INITIALIZATION
@@ -2134,4 +2036,3 @@ function getProfileStyles(): string {
 }
 
 // Functions are already exported with 'export function' declarations above
-
