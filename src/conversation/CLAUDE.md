@@ -41,8 +41,6 @@ conversation/
 │   ├── comfort-progression.ts        # Trust building over time
 │   └── voice-pattern-learning.ts     # Learn user preferences
 │
-├── deep-humanization/                # Types only (SessionMemory, used by humanizer/)
-│
 ├── superhuman/                       # ⭐ "Better than Human" features (40 files)
 │   ├── orchestrator/                 # Refactored orchestrator (5 files)
 │   ├── quote-memory.ts               # Remember user quotes
@@ -94,7 +92,7 @@ The module also has many standalone root-level `.ts` files for specific conversa
 | **Emotional** | `emotional-aftercare.ts`, `emotional-journey-orchestrator.ts`, `hope-injection.ts` |
 | **Speech Flow** | `turn-taking.ts`, `turn-prediction.ts`, `interruption-handler.ts`, `silence-presence.ts` |
 | **Content** | `narrative-arc.ts`, `story-timing.ts`, `mid-response-tangents.ts` |
-| **Humanization** | `advanced-humanization.ts`, `humanization-tuning.ts`, `micro-affirmations.ts` |
+| **Humanization** | `advanced-humanization.ts`, `micro-affirmations.ts` |
 | **Engagement** | `engagement-scoring.ts`, `curiosity-engine.ts`, `momentum-tracker.ts`, `proactive-starters.ts` |
 | **Analysis** | `subtext-detection.ts`, `response-dynamics.ts`, `energy-regulation.ts`, `awareness-metrics.ts` |
 | **Repair** | `conversational-repair.ts`, `paradoxical-intervention.ts`, `thinking-phrase-coordinator.ts` |

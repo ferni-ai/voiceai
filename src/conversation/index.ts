@@ -225,22 +225,8 @@ export {
   type HumanizingConfig,
 } from './humanizing-config.js';
 
-// ============================================================================
-// NEW: CENTRALIZED HUMANIZATION TUNING
-// ============================================================================
-
-// Single source of truth for all humanization probabilities and cooldowns
-export {
-  DEFAULT_TUNING,
-  getTuningValue,
-  TUNING_PRESETS,
-  type HumanizationTuning,
-} from './humanization-tuning.js';
-
 // Detection utilities
-export { classifyTopicWeight, detectAdviceGiving, detectBreakthrough } from './utils/detection.js';
-
-// Note: Humanization tuning already exported above
+export { classifyTopicWeight, detectAdviceGiving } from './utils/detection.js';
 
 // Silence as Presence - Intentional meaningful silences
 export {
@@ -354,7 +340,6 @@ export {
   // Engagement detection (new)
   detectDisengagement,
   detectEngagementLevel,
-  detectHesitation,
   detectHighEngagement,
   // Detailed energy detection (new)
   detectUserEnergyDetailed,

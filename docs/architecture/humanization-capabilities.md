@@ -2,6 +2,14 @@
 
 > **We believe in making AI human, and the decisions we make will reflect that.**
 
+> **Status (October 2026):** the post-LLM layer this page describes no longer
+> exists. The effects that rewrote a finished reply (`effects/`, the
+> post-LLM conversation orchestrator, the `deep-humanization/` generators and mood tracker) never ran
+> on live calls and were removed, along with `humanization-tuning.ts` and its
+> `HUMANIZATION_CONFIG`. Humanization on calls today is pre-LLM guidance from
+> `src/conversation/humanizer/` plus context builders. Read the capability map
+> below as design intent, not as a description of running code.
+
 This document maps our 50+ humanization features into **10 core capabilities**. Each capability serves a specific purpose in making AI feel genuinely human.
 
 ---
