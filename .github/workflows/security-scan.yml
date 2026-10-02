@@ -26,7 +26,7 @@ jobs:
   # Dependency vulnerability scan
   dependency-audit:
     name: Dependency Audit
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
 
     steps:
       - name: Checkout
@@ -112,7 +112,7 @@ jobs:
   # CodeQL static analysis
   codeql:
     name: CodeQL Analysis
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
 
     steps:
       - name: Checkout
@@ -135,7 +135,7 @@ jobs:
   # Secret scanning (check for accidentally committed secrets)
   secret-scan:
     name: Secret Scan
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
 
     steps:
       - name: Checkout

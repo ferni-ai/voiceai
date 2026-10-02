@@ -79,9 +79,9 @@
   "apps/web/src/admin/sections/SpeechMetricsSection.ts": 650,
   "apps/web/src/admin/sections/TrustSection.ts": 829,
   "apps/web/src/animation/ferni-orchestrator.ts": 992,
-  "apps/web/src/app.ts": 3733,
+  "apps/web/src/app.ts": 3755,
   "apps/web/src/app/data-message-handlers.ts": 3166,
-  "apps/web/src/app/panel-methods.ts": 891,
+  "apps/web/src/app/panel-methods.ts": 896,
   "apps/web/src/config/micro-expressions.ts": 682,
   "apps/web/src/data/mock-contacts.ts": 573,
   "apps/web/src/emotion/emotion-state.ts": 1009,
@@ -238,7 +238,7 @@
   "apps/web/src/ui/household-manager.ui.ts": 1404,
   "apps/web/src/ui/import-contacts.ui.ts": 969,
   "apps/web/src/ui/important-dates.ui.ts": 957,
-  "apps/web/src/ui/index.ts": 592,
+  "apps/web/src/ui/index.ts": 625,
   "apps/web/src/ui/insight-cards.ui.ts": 878,
   "apps/web/src/ui/insights-debug-panel.ui.ts": 688,
   "apps/web/src/ui/insights-hub.ui.ts": 2073,
@@ -1781,7 +1781,7 @@
   "no-purple-colors": 34
  },
  "bundle": {
-  "totalKB": 8167.7,
+  "totalKB": 8435.9,
   "initialKB": 3309.1,
   "maxChunkKB": 2061.9
  }

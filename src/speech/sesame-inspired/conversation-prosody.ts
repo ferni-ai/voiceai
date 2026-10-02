@@ -363,49 +363,6 @@ export function getConversationState(sessionId: string): ConversationEmotionalSt
 }
 
 /**
- * Update emotional state with new detected emotion
- */
-export function updateConversationState(
-  sessionId: string,
-  newEmotion: CartesiaEmotion
-): ConversationEmotionalState {
-  const state = getConversationState(sessionId);
-
-  // Check if we're in a new emotional arc
-  const wasHeavy = state.isHeavyTopic;
-  const isNowHeavy = isHeavyTopic(newEmotion, state.emotionHistory);
-
-  // Track turns in current arc
-  if (newEmotion === state.currentEmotion) {
-    state.turnsInCurrentArc++;
-  } else {
-    state.turnsInCurrentArc = 1;
-  }
-
-  // Update history
-  state.emotionHistory.push(newEmotion);
-  if (state.emotionHistory.length > 10) {
-    state.emotionHistory.shift();
-  }
-
-  // Update current state
-  state.currentEmotion = newEmotion;
-  state.trajectory = calculateTrajectory(state.emotionHistory);
-  state.intensity = EMOTION_INTENSITY[newEmotion] || 0.5;
-  state.isHeavyTopic = isNowHeavy;
-
-  // Log significant changes
-  if (wasHeavy !== isNowHeavy) {
-    log.info(
-      { sessionId, wasHeavy, isNowHeavy, emotion: newEmotion },
-      'Conversation weight changed'
-    );
-  }
-
-  return state;
-}
-
-/**
  * Get prosody recommendation for current session state
  */
 export function getSessionProsodyRecommendation(
@@ -427,51 +384,4 @@ export function resetConversationState(sessionId: string): void {
  */
 export function getActiveConversationStateCount(): number {
   return sessions.size;
-}
-
-// =============================================================================
-// SSML GENERATION HELPERS
-// =============================================================================
-
-/**
- * Apply prosody recommendation to text
- */
-export function applyProsodyRecommendation(
-  text: string,
-  recommendation: ConversationProsodyRecommendation
-): string {
-  let ssml = '';
-
-  // Apply speed if not default
-  if (recommendation.baseSpeed !== 1.0) {
-    ssml += `<speed ratio="${recommendation.baseSpeed.toFixed(2)}"/>`;
-  }
-
-  // Apply volume if not default
-  if (recommendation.baseVolume !== 1.0) {
-    ssml += `<volume ratio="${recommendation.baseVolume.toFixed(2)}"/>`;
-  }
-
-  // Apply emotion
-  ssml += `<emotion value="${recommendation.emotion}"/>`;
-
-  return ssml + text;
-}
-
-/**
- * Add context-appropriate pause at beginning
- */
-export function addContextualPause(
-  text: string,
-  recommendation: ConversationProsodyRecommendation
-): string {
-  // Calculate pause duration based on multiplier
-  const basePauseMs = 100;
-  const pauseMs = Math.round(basePauseMs * recommendation.pauseMultiplier);
-
-  if (pauseMs > 120) {
-    return `<break time="${pauseMs}ms"/>${text}`;
-  }
-
-  return text;
 }

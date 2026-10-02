@@ -26,7 +26,6 @@ import {
 import { getSessionAudioProsodyAnalyzer } from '../audio-prosody.js';
 import { getSessionBackchannelingSystem } from '../backchanneling.js';
 import { getBreathDetector } from '../breath-detection.js';
-import { getEmotionalContagionService } from '../emotional-contagion.js';
 import { getEnergyDynamicsTracker } from '../energy-dynamics.js';
 import { getEnhancedTurnPredictor } from '../enhanced-turn-prediction.js';
 import { getFFTAnalyzer } from '../fft-analyzer.js';
@@ -59,7 +58,6 @@ function createServicesForSession(sessionId: string): void {
   getFillerAnalyzer(sessionId);
   getFFTAnalyzer(sessionId);
   getEnhancedTurnPredictor(sessionId);
-  getEmotionalContagionService(sessionId);
   getSessionVoiceManager(sessionId);
 }
 

@@ -16,15 +16,6 @@
  *   relationshipStage: services.userProfile?.relationshipStage,
  * });
  *
- * // In transcriptionNode (POST-LLM HUMANIZATION)
- * const humanized = await humanizeAgentResponse(sessionId, rawResponse, {
- *   userMessage: lastUserMessage,
- *   userEmotion: emotionAnalysis?.primary,
- *   topic: currentTopic,
- *   wasPersonalSharing: emotionIntensity > 0.7,
- *   isSeriousContext: distressLevel > 0.3,
- * });
- *
  * // At session end
  * cleanupConversationSession(sessionId);
  * ```
@@ -39,9 +30,6 @@ import {
   endConversationSession,
   getConversationSession,
   type ConversationSession,
-  type ConversationSessionConfig,
-  type TurnInput,
-  type TurnResult,
 } from '../../conversation/unified-integration.js';
 // NOTE: The old intelligence hooks have been deprecated and always return null.
 // The new intelligence system in src/intelligence/ should be used directly.
@@ -49,7 +37,7 @@ import {
 // See: src/services/superhuman/ for "Better Than Human" features
 
 // Also export types for voice agent use
-export type { ConversationSession, TurnResult };
+export type { ConversationSession };
 
 const log = createLogger({ module: 'ConversationSessionIntegration' });
 
@@ -66,39 +54,6 @@ export interface VoiceAgentSessionConfig {
   /** User profile for superhuman memory callbacks */
   userProfile?: {
     humanMemory?: unknown; // Partial<HumanMemory> but keeping loose for flexibility
-  };
-}
-
-export interface HumanizeContext {
-  userMessage: string;
-  userEmotion?: string;
-  topic?: string;
-  wasPersonalSharing?: boolean;
-  isSeriousContext?: boolean;
-  sessionData?: Record<string, unknown>;
-}
-
-export interface HumanizedResponse {
-  /** Humanized plain text */
-  text: string;
-  /** SSML with prosody markers */
-  ssml: string;
-  /** Features that were applied */
-  appliedFeatures: string[];
-  /** Pacing recommendation for TTS */
-  pacing: 'faster' | 'normal' | 'slower';
-  /** Optional memory callback to prepend */
-  memoryCallback?: { text: string; ssml: string };
-  /** Optional follow-up question to append */
-  followUpQuestion?: { text: string; ssml: string };
-  /** Confidence score */
-  confidence: number;
-  /** Timing breakdown */
-  timing: {
-    total: number;
-    analysis: number;
-    intelligence: number;
-    humanization: number;
   };
 }
 
@@ -241,62 +196,6 @@ export function getIntelligence(_sessionId: string): null {
 }
 
 // ============================================================================
-// HUMANIZATION API
-// ============================================================================
-
-/**
- * Humanize an agent response using the unified conversation system
- *
- * This replaces the direct call to getConversationHumanizer().humanizeResponseAsync()
- * in the voice agent's transcriptionNode.
- *
- * @param sessionId - The session ID
- * @param rawResponse - The raw LLM response to humanize
- * @param context - Context for humanization
- * @returns Humanized response or null if session not found
- */
-export async function humanizeAgentResponse(
-  sessionId: string,
-  rawResponse: string,
-  context: HumanizeContext
-): Promise<HumanizedResponse | null> {
-  const session = getConversationSession(sessionId);
-
-  if (!session) {
-    log.warn({ sessionId }, 'No conversation session found for humanization');
-    return null;
-  }
-
-  try {
-    const turnInput: TurnInput = {
-      userMessage: context.userMessage,
-      rawResponse,
-      userEmotion: context.userEmotion,
-      topic: context.topic,
-      wasPersonalSharing: context.wasPersonalSharing,
-      isSeriousContext: context.isSeriousContext,
-      sessionData: context.sessionData,
-    };
-
-    const result = await session.processTurn(turnInput);
-
-    return {
-      text: result.text,
-      ssml: result.ssml,
-      appliedFeatures: result.appliedFeatures,
-      pacing: result.pacing,
-      memoryCallback: result.memoryCallback,
-      followUpQuestion: result.followUpQuestion,
-      confidence: result.confidence,
-      timing: result.timing,
-    };
-  } catch (error) {
-    log.warn({ error: String(error), sessionId }, 'Humanization failed');
-    return null;
-  }
-}
-
-// ============================================================================
 // EVENT RECORDING
 // ============================================================================
 
@@ -358,55 +257,4 @@ export function getSessionState(
 ): ReturnType<ConversationSession['getState']> | null {
   const session = getConversationSession(sessionId);
   return session?.getState() ?? null;
-}
-
-// ============================================================================
-// BACKWARD COMPATIBILITY SHIM
-// ============================================================================
-
-/**
- * Backward-compatible humanization function
- *
- * Use this as a drop-in replacement during migration.
- * It falls back to the legacy humanizer if the unified session isn't available.
- */
-export async function humanizeWithFallback(
-  sessionId: string,
-  rawResponse: string,
-  context: HumanizeContext & { personaId: string }
-): Promise<HumanizedResponse> {
-  // Try unified session first
-  const result = await humanizeAgentResponse(sessionId, rawResponse, context);
-
-  if (result) {
-    return result;
-  }
-
-  // Fallback to legacy humanizer
-  log.debug({ sessionId }, 'Falling back to legacy humanizer');
-
-  const { getConversationHumanizer } = await import('../../conversation/index.js');
-  const humanizer = getConversationHumanizer(context.personaId);
-
-  const legacyResult = await humanizer.humanizeResponseAsync(rawResponse, {
-    personaId: context.personaId,
-    turnNumber: 1,
-    userMessage: context.userMessage,
-    userEmotion: context.userEmotion,
-    topic: context.topic,
-    isSeriousContext: context.isSeriousContext,
-    wasPersonalSharing: context.wasPersonalSharing,
-    sessionData: context.sessionData,
-  });
-
-  return {
-    text: legacyResult.text,
-    ssml: legacyResult.ssml,
-    appliedFeatures: legacyResult.appliedFeatures,
-    pacing: legacyResult.pacing,
-    memoryCallback: legacyResult.memoryCallback,
-    followUpQuestion: legacyResult.followUpQuestion,
-    confidence: 0.5,
-    timing: { total: 0, analysis: 0, intelligence: 0, humanization: 0 },
-  };
 }

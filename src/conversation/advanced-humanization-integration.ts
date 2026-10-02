@@ -16,6 +16,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import {
+  clearAdvancedHumanization,
   getAdvancedHumanization,
   resetAdvancedHumanization,
   type AdvancedHumanizationContext,
@@ -183,6 +184,9 @@ export function cleanupAdvancedHumanization(sessionId: string): void {
   if (!state) return;
 
   resetAdvancedHumanization(sessionId, state.config.userId);
+  // Reset only clears the orchestrator's engines; without this the
+  // orchestrator stays in its map after every call on the long-lived worker.
+  clearAdvancedHumanization(sessionId, state.config.userId);
   sessions.delete(sessionId);
 
   logger.info({ sessionId }, '🧹 Advanced humanization cleaned up');

@@ -25,6 +25,9 @@ const domainCache = new Map<string, unknown>();
 // Map of tool IDs to their domain for routing
 const toolToDomainMap = new Map<string, string>();
 
+// Domains whose module import or definition load failed, with the error
+const failedDomains = new Map<string, string>();
+
 // Flag to track initialization
 let initialized = false;
 
@@ -45,53 +48,53 @@ let initialized = false;
  */
 const DOMAIN_MODULES: Record<string, string> = {
   // Life Coaching Domains
-  career: '../../tools/domains/career/index.js',
-  grief: '../../tools/domains/grief/index.js',
-  'pattern-mastery': '../../tools/domains/pattern-mastery/index.js',
-  'workflow-mastery': '../../tools/domains/workflow-mastery/index.js',
-  health: '../../tools/domains/health/index.js', // Fallback for tools not in health-executor
-  wellness: '../../tools/domains/wellness/index.js',
-  wisdom: '../../tools/domains/wisdom/index.js',
-  communication: '../../tools/domains/communication/index.js',
-  crisis: '../../tools/domains/crisis/index.js',
-  relationships: '../../tools/domains/relationships/index.js',
-  boundaries: '../../tools/domains/boundaries/index.js',
-  dating: '../../tools/domains/dating/index.js',
-  anger: '../../tools/domains/anger/index.js',
-  procrastination: '../../tools/domains/procrastination/index.js',
-  'burnout-recovery': '../../tools/domains/burnout-recovery/index.js',
-  'trauma-support': '../../tools/domains/trauma-support/index.js',
-  'chronic-conditions': '../../tools/domains/chronic-conditions/index.js',
-  'digital-wellness': '../../tools/domains/digital-wellness/index.js',
-  'body-relationship': '../../tools/domains/body-relationship/index.js',
-  neurodiversity: '../../tools/domains/neurodiversity/index.js',
-  'self-compassion': '../../tools/domains/self-compassion/index.js',
-  intimacy: '../../tools/domains/intimacy/index.js',
-  'breakup-recovery': '../../tools/domains/breakup-recovery/index.js',
-  midlife: '../../tools/domains/midlife/index.js',
-  'life-transitions': '../../tools/domains/life-transitions/index.js',
-  'life-planning': '../../tools/domains/life-planning/index.js',
-  decisions: '../../tools/domains/decisions/index.js',
-  family: '../../tools/domains/family/index.js',
-  creativity: '../../tools/domains/creativity/index.js',
-  learning: '../../tools/domains/learning/index.js',
-  meaning: '../../tools/domains/meaning/index.js',
-  dreams: '../../tools/domains/dreams/index.js',
-  vulnerability: '../../tools/domains/vulnerability/index.js',
-  presence: '../../tools/domains/presence/index.js',
-  play: '../../tools/domains/play/index.js',
-  stories: '../../tools/domains/stories/index.js',
-  connection: '../../tools/domains/connection/index.js',
-  curiosity: '../../tools/domains/curiosity/index.js',
-  community: '../../tools/domains/community/index.js',
-  sobriety: '../../tools/domains/sobriety/index.js',
-  finance: '../../tools/domains/finance/index.js', // Fallback for tools not in finance-executor
-  travel: '../../tools/domains/travel/index.js', // Fallback for tools not in travel-executor
-  engagement: '../../tools/domains/engagement/index.js',
-  games: '../../tools/domains/games/index.js', // Fallback for tools not in entertainment-executor
-  'ceo-coaching': '../../tools/domains/ceo-coaching/index.js', // Fallback for tools not in ceo-executor
-  transportation: '../../tools/domains/transportation/index.js', // Part of travel-executor
-  'simple-utilities': '../../tools/domains/simple-utilities/index.js', // Humor tools in entertainment-executor
+  career: '../../../tools/domains/career/index.js',
+  grief: '../../../tools/domains/grief/index.js',
+  'pattern-mastery': '../../../tools/domains/pattern-mastery/index.js',
+  'workflow-mastery': '../../../tools/domains/workflow-mastery/index.js',
+  health: '../../../tools/domains/health/index.js', // Fallback for tools not in health-executor
+  wellness: '../../../tools/domains/wellness/index.js',
+  wisdom: '../../../tools/domains/wisdom/index.js',
+  communication: '../../../tools/domains/communication/index.js',
+  crisis: '../../../tools/domains/crisis/index.js',
+  relationships: '../../../tools/domains/relationships/index.js',
+  boundaries: '../../../tools/domains/boundaries/index.js',
+  dating: '../../../tools/domains/dating/index.js',
+  anger: '../../../tools/domains/anger/index.js',
+  procrastination: '../../../tools/domains/procrastination/index.js',
+  'burnout-recovery': '../../../tools/domains/burnout-recovery/index.js',
+  'trauma-support': '../../../tools/domains/trauma-support/index.js',
+  'chronic-conditions': '../../../tools/domains/chronic-conditions/index.js',
+  'digital-wellness': '../../../tools/domains/digital-wellness/index.js',
+  'body-relationship': '../../../tools/domains/body-relationship/index.js',
+  neurodiversity: '../../../tools/domains/neurodiversity/index.js',
+  'self-compassion': '../../../tools/domains/self-compassion/index.js',
+  intimacy: '../../../tools/domains/intimacy/index.js',
+  'breakup-recovery': '../../../tools/domains/breakup-recovery/index.js',
+  midlife: '../../../tools/domains/midlife/index.js',
+  'life-transitions': '../../../tools/domains/life-transitions/index.js',
+  'life-planning': '../../../tools/domains/life-planning/index.js',
+  decisions: '../../../tools/domains/decisions/index.js',
+  family: '../../../tools/domains/family/index.js',
+  creativity: '../../../tools/domains/creativity/index.js',
+  learning: '../../../tools/domains/learning/index.js',
+  meaning: '../../../tools/domains/meaning/index.js',
+  dreams: '../../../tools/domains/dreams/index.js',
+  vulnerability: '../../../tools/domains/vulnerability/index.js',
+  presence: '../../../tools/domains/presence/index.js',
+  play: '../../../tools/domains/play/index.js',
+  stories: '../../../tools/domains/stories/index.js',
+  connection: '../../../tools/domains/connection/index.js',
+  curiosity: '../../../tools/domains/curiosity/index.js',
+  community: '../../../tools/domains/community/index.js',
+  sobriety: '../../../tools/domains/sobriety/index.js',
+  finance: '../../../tools/domains/finance/index.js', // Fallback for tools not in finance-executor
+  travel: '../../../tools/domains/travel/index.js', // Fallback for tools not in travel-executor
+  engagement: '../../../tools/domains/engagement/index.js',
+  games: '../../../tools/domains/games/index.js', // Fallback for tools not in entertainment-executor
+  'ceo-coaching': '../../../tools/domains/ceo-coaching/index.js', // Fallback for tools not in ceo-executor
+  transportation: '../../../tools/domains/transportation/index.js', // Part of travel-executor
+  'simple-utilities': '../../../tools/domains/simple-utilities/index.js', // Humor tools in entertainment-executor
 };
 
 /**
@@ -128,9 +131,6 @@ async function initializeDomainMap(): Promise<void> {
         definitions?: ToolDefinition[];
       };
 
-      // Cache the module
-      domainCache.set(domainName, domainModule);
-
       // Get tool definitions
       let definitions: ToolDefinition[] = [];
       if (typeof domainModule.getToolDefinitions === 'function') {
@@ -146,11 +146,15 @@ async function initializeDomainMap(): Promise<void> {
         totalTools++;
       }
 
+      // Cache only after definitions load, so a failed domain is never routable
+      domainCache.set(domainName, domainModule);
       loadedDomains++;
       log.debug({ domain: domainName, toolCount: definitions.length }, 'Domain loaded');
     } catch (err) {
-      // Domain might not exist or have issues - that's OK, skip it
-      log.debug({ domain: domainName, error: String(err) }, 'Domain not available');
+      // Skip the domain but surface it: a silent failure here once hid a wrong
+      // relative path that left every domain unloaded.
+      failedDomains.set(domainName, String(err));
+      log.warn({ domain: domainName, modulePath, error: String(err) }, 'Domain failed to load');
     }
   }
 
@@ -281,10 +285,27 @@ export const dynamicDomainExecutor: DomainExecutor = {
 };
 
 /**
+ * Report which configured domains loaded and which failed.
+ */
+export async function getDynamicDomainLoadReport(): Promise<{
+  configured: string[];
+  loaded: string[];
+  failed: Record<string, string>;
+}> {
+  await initializeDomainMap();
+  return {
+    configured: Object.keys(DOMAIN_MODULES),
+    loaded: Array.from(domainCache.keys()),
+    failed: Object.fromEntries(failedDomains),
+  };
+}
+
+/**
  * Force re-initialization (useful for testing or hot reload).
  */
 export function resetDynamicExecutor(): void {
   initialized = false;
   domainCache.clear();
   toolToDomainMap.clear();
+  failedDomains.clear();
 }

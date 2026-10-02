@@ -543,11 +543,20 @@ export class RelationshipEventsEngine {
 // SINGLETON
 // ============================================================================
 
-import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+  USER_KEYED_REGISTRY_MAX_INSTANCES,
+} from '../utils/session-registry.js';
 
 const relationshipEventsRegistry = createSessionRegistry(
   (userId: string) => new RelationshipEventsEngine(),
-  { name: 'RelationshipEvents', cleanup: (engine) => engine.reset(), verbose: false }
+  {
+    name: 'RelationshipEvents',
+    cleanup: (engine) => engine.reset(),
+    verbose: false,
+    maxInstances: USER_KEYED_REGISTRY_MAX_INSTANCES,
+  }
 );
 
 registerGlobalRegistry(relationshipEventsRegistry);
