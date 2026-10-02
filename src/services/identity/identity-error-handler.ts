@@ -243,7 +243,7 @@ export function validateUserIdFormat(userId: string | undefined | null): string 
   }
 
   // Check for invalid characters
-  if (!/^[a-zA-Z0-9:_-]+$/.test(trimmed)) {
+  if (!/^[a-zA-Z0-9:_+-]+$/.test(trimmed)) {
     log.warn({ userId: trimmed }, 'User ID contains invalid characters');
     return null;
   }
