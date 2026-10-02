@@ -1611,7 +1611,7 @@
       "file": "src/tools/domains/calendar/index.ts"
     },
     "forgetMemory": {
-      "description": "To delete memories. Execute. Use when user says.",
+      "description": "Really forget something when the user asks (\"forget that\", \"forget about Sarah\", \"forget our last conversation\"). First call with query only: it finds matches and returns a question to read back. After the user says yes, call again with confirm: true. If they say undo within 30 seconds, call with undo: true. For the last conversation use scope: \"last_conversation\". Read the returned text as is.",
       "file": "src/tools/domains/memory/tools.ts",
       "_original": "CALL immediately to delete memories. Execute without announcing. Use when user says"
     },

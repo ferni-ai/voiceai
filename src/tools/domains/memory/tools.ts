@@ -11,6 +11,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { handleVoiceForget } from '../../../services/memory-control/voice-forget.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -51,6 +52,8 @@ interface SessionServices {
 interface UserData {
   name?: string;
   userId?: string;
+  /** Firestore conversation ID of the live call, when known. */
+  conversationId?: string;
   services?: SessionServices;
   keyMoments?: string[];
   topics?: string[];
@@ -477,43 +480,54 @@ export const forgetMemoryDef: ToolDefinition = {
     return llm.tool({
       description: getToolDescription('forgetMemory'),
       parameters: z.object({
-        whatToForget: z.string().describe('What the user wants you to forget'),
-        confirmDeletion: z
+        query: z
+          .string()
+          .optional()
+          .describe(
+            'What to forget, in the user\'s words (e.g. "my sister\'s surgery", "Sarah", "my old job")'
+          ),
+        scope: z
+          .enum(['match', 'last_conversation'])
+          .optional()
+          .describe('Use "last_conversation" for "forget our last conversation"'),
+        confirm: z
           .boolean()
-          .describe('Whether the user has confirmed they want this forgotten'),
+          .optional()
+          .describe(
+            'true only after the user said yes to "want me to forget it?" (or clearly insisted)'
+          ),
+        undo: z
+          .boolean()
+          .optional()
+          .describe('true when the user says "undo" or "bring it back" right after forgetting'),
+        // Legacy argument names, still accepted
+        whatToForget: z.string().optional().describe('Same as query (legacy)'),
+        confirmDeletion: z.boolean().optional().describe('Same as confirm (legacy)'),
       }),
-      execute: async ({ whatToForget, confirmDeletion }, { ctx: toolCtx }) => {
+      execute: async (args, { ctx: toolCtx }) => {
+        const userData = toolCtx.userData as UserData;
+        const query = args.query ?? args.whatToForget;
+        const confirm = args.confirm ?? args.confirmDeletion ?? false;
         getLogger().info(
-          { agentId: ctx.agentId, whatToForget, confirmDeletion },
-          'Forgetting memory'
+          { agentId: ctx.agentId, scope: args.scope, confirm, undo: args.undo === true },
+          'Forget memory requested'
         );
 
-        if (!confirmDeletion) {
-          return `Just to confirm - you'd like me to forget about "${whatToForget}"? Let me know and I'll remove it.`;
-        }
-
-        const userData = toolCtx.userData as UserData;
-        const { services } = userData;
-
-        // Remove from session memory
-        if (userData.keyMoments) {
+        // Also drop it from this session's in-memory key moments
+        if (confirm && query && userData.keyMoments) {
+          const needle = query.toLowerCase();
           userData.keyMoments = userData.keyMoments.filter(
-            (m) => !m.toLowerCase().includes(whatToForget.toLowerCase())
+            (m) => !m.toLowerCase().includes(needle)
           );
         }
 
-        // Log the deletion for audit purposes (but don't persist the deleted content)
-        if (services?.captureInsight) {
-          services.captureInsight(
-            'user_action',
-            'memory_deletion',
-            `User requested deletion of memory related to: [redacted]`,
-            1.0
-          );
-        }
-
-        // Return empty string - agent should continue naturally without reading any acknowledgment
-        return '';
+        return handleVoiceForget(userData.userId, {
+          query,
+          scope: args.scope,
+          confirm,
+          undo: args.undo === true,
+          currentConversationId: userData.conversationId,
+        });
       },
     });
   },

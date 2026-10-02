@@ -513,53 +513,17 @@ export async function executeLegacyFallback(
   }
 
   if (fnLower === 'forgetmemory') {
-    const topic = args.topic as string;
-    const whatToForget = args.whatToForget as string;
-    const target = topic || whatToForget;
-
-    if (!target) {
-      return 'What would you like me to forget?';
-    }
-
-    log.info({ target, userId: ctx.userId }, '🗑️ Forgetting memory');
-
-    // If we have userId, try to remove from Firestore
-    if (ctx.userId) {
-      try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
-
-        const snapshot = await db
-          .collection('bogle_users')
-          .doc(ctx.userId)
-          .collection('extracted_facts')
-          .get();
-
-        const targetLower = target.toLowerCase();
-        const docsToDelete = snapshot.docs.filter((doc) => {
-          const data = doc.data();
-          return (data.fact || data.content || '').toLowerCase().includes(targetLower);
-        });
-
-        if (docsToDelete.length > 0) {
-          const batch = db.batch();
-          docsToDelete.forEach((doc) => batch.delete(doc.ref));
-          await batch.commit();
-
-          log.info(
-            { userId: ctx.userId, deleted: docsToDelete.length },
-            '✅ Memories deleted from Firestore'
-          );
-          return `I've forgotten about that. Your privacy matters.`;
-        }
-
-        return `I didn't find specific memories about "${target}" to remove.`;
-      } catch (err) {
-        log.warn({ error: String(err) }, 'Memory deletion from Firestore failed');
-      }
-    }
-
-    return { forgotten: true, topic: target, message: `I'll forget about that.` };
+    // Real forget: find → confirm → delete (tombstones + cascade) → 30s undo.
+    const { handleVoiceForget } = await import('../../../services/memory-control/voice-forget.js');
+    const query = (args.query ?? args.topic ?? args.whatToForget) as string | undefined;
+    const scope = args.scope === 'last_conversation' ? 'last_conversation' : undefined;
+    log.info({ userId: ctx.userId, scope, confirm: args.confirm }, '🗑️ Forget memory requested');
+    return handleVoiceForget(ctx.userId, {
+      query,
+      scope,
+      confirm: args.confirm === true || args.confirmDeletion === true,
+      undo: args.undo === true,
+    });
   }
 
   if (fnLower === 'getrelationshipsummary') {
