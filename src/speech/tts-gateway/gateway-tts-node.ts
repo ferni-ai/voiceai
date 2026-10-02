@@ -42,51 +42,8 @@ import { findChunkEnd } from './chunk-boundary.js';
 import { createContinuationTTS } from './continuation-tts.js';
 import { prosodyTags } from './providers/cartesia.js';
 import type { SSMLProsodyConfig } from './types.js';
-import { fitToVoice } from '../expression/voice-fit.js';
-import type { VocalDirection, VoiceCapabilities } from '../expression/types.js';
-
-// ============================================================================
-// JSON FUNCTION CALL FILTERING
-// ============================================================================
-
-/**
- * Regex to detect the `{"fn":` function call prefix (optionally backtick-wrapped).
- * Prevents tool call leakage to TTS when LLM outputs a function call
- * instead of speaking naturally. Requires `{"fn":` specifically to avoid
- * false positives on legitimate text like "{That's interesting}".
- */
-const JSON_FN_PREFIX = /^\s*`?\s*\{\s*"fn"\s*:/;
-
-/**
- * Check if text is a JSON function call that should not be spoken.
- *
- * Requires the text to match the `{"fn": ...}` pattern specifically.
- * Partial JSON streaming fragments starting with `{"fn":` are also filtered.
- * Legitimate text like "{That's interesting}" will NOT be filtered.
- */
-function isJsonFunctionCall(text: string): boolean {
-  const trimmed = text.trim();
-
-  if (trimmed.length < 5) {
-    return false;
-  }
-
-  // Must start with {"fn": (optionally wrapped in backticks)
-  if (!JSON_FN_PREFIX.test(trimmed)) {
-    return false;
-  }
-
-  // Strip surrounding backticks for JSON parsing
-  const jsonCandidate = trimmed.replace(/^`\s*/, '').replace(/\s*`$/, '');
-
-  try {
-    const parsed = JSON.parse(jsonCandidate) as Record<string, unknown>;
-    return typeof parsed === 'object' && parsed !== null && typeof parsed.fn === 'string';
-  } catch {
-    // Partial JSON starting with {"fn": (streaming) — still filter
-    return true;
-  }
-}
+import type { VocalDirection } from '../expression/types.js';
+import { isJsonFunctionCall, sanitizeChunkForTTS } from './chunk-sanitizer.js';
 
 /**
  * Check if the TTS Gateway is enabled.
@@ -326,22 +283,6 @@ function createAudioFrameStream(
 // Negative lookbehind avoids splitting on abbreviations (Dr. Mr. Ms. U.S. etc.) and decimals (3.5).
 const MIN_FIRST_CHUNK = 20;
 const MIN_CHUNK = 15;
-
-function sanitizeChunkForTTS(
-  chunk: string,
-  ssmlProcessor: ReturnType<typeof getSSMLProcessor>,
-  voice: VoiceCapabilities
-): { text: string; prosody: SSMLProsodyConfig } {
-  if (isJsonFunctionCall(chunk)) return { text: '', prosody: {} };
-  let text = chunk;
-  if (containsInstructionBlocks(text)) text = stripInstructionBlocks(text);
-  if (containsGuidanceBlocks(text)) text = stripGuidanceBlocks(text);
-  const ssmlResult = ssmlProcessor.parse(text);
-  return fitToVoice(
-    { text: ssmlResult.cleanText.trim(), prosody: { ...ssmlResult.prosody } },
-    voice
-  );
-}
 
 interface StreamingOverlapOptions {
   textStream: NodeReadableStream<string>;

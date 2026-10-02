@@ -28,10 +28,10 @@ import { finops } from '../../services/observability/finops.js';
 import { markTurnCheckpoint } from '../../services/performance/turn-profiler.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import { sessionVocalDirection, type VocalDirection } from '../../speech/expression/index.js';
-import { localClock } from '../../utils/local-clock.js';
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
+import { computeTimeContext, getPersonaDisplayName } from './tts-context-helpers.js';
 import {
   applyPostTTSEnhancement,
   PostTTSPresets,
@@ -1226,60 +1226,6 @@ export async function wrappedTtsNode(
 // =============================================================================
 // HELPER FOR EXTRACTING SESSION CONTEXT FROM AGENT
 // =============================================================================
-
-// ============================================================================
-// BETTER THAN HUMAN: Context Helpers
-// ============================================================================
-
-/**
- * Persona display names for personalized voice guidance
- */
-const PERSONA_DISPLAY_NAMES: Record<string, string> = {
-  ferni: 'Ferni',
-  'maya-santos': 'Maya',
-  'peter-john': 'Peter',
-  'alex-chen': 'Alex',
-  'jordan-taylor': 'Jordan',
-  'nayan-patel': 'Nayan',
-  'joel-dickson': 'Joel',
-};
-
-/**
- * Get persona display name from persona ID
- */
-function getPersonaDisplayName(personaId?: string): string | undefined {
-  if (!personaId) return undefined;
-  return PERSONA_DISPLAY_NAMES[personaId];
-}
-
-/**
- * Compute time context for time-aware responses, on the caller's clock
- */
-function computeTimeContext(timezone?: string): TtsSessionContext['timeContext'] {
-  const { hour, dayOfWeek: day } = localClock(timezone);
-
-  // Determine time of day
-  let timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' | 'late-night';
-  if (hour < 6) {
-    timeOfDay = 'late-night';
-  } else if (hour < 12) {
-    timeOfDay = 'morning';
-  } else if (hour < 17) {
-    timeOfDay = 'afternoon';
-  } else if (hour < 21) {
-    timeOfDay = 'evening';
-  } else {
-    timeOfDay = 'night';
-  }
-
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-  return {
-    timeOfDay,
-    dayOfWeek: dayNames[day],
-    isWeekend: day === 0 || day === 6,
-  };
-}
 
 /**
  * Extract TTS session context from agent's session userData.
