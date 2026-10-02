@@ -3155,6 +3155,8 @@
         "weekly": "Weekly",
         "custom": "Some days"
       }
-    }
+    },
+    "pet": "반려동물",
+    "inMemory": "추모"
   }
 }

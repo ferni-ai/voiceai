@@ -3155,6 +3155,8 @@
         "weekly": "Weekly",
         "custom": "Some days"
       }
-    }
+    },
+    "pet": "宠物",
+    "inMemory": "纪念"
   }
 }
