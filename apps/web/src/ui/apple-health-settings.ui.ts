@@ -20,56 +20,11 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiDelete } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface SleepSummary {
-  inBed: number;
-  asleep: number;
-  awake: number;
-  rem: number;
-  deep: number;
-  core: number;
-  quality?: number;
-}
-
-interface ActivitySummary {
-  steps: number;
-  distance: number;
-  activeEnergy: number;
-  exerciseMinutes: number;
-  standHours: number;
-}
-
-interface HeartSummary {
-  resting?: number;
-  average?: number;
-  min?: number;
-  max?: number;
-  hrv?: number;
-}
-
-interface AppleHealthStatus {
-  connected: boolean;
-  deviceName?: string;
-  lastSync?: string;
-}
-
-interface AppleHealthSummary {
-  date: string;
-  sleep?: SleepSummary;
-  activity?: ActivitySummary;
-  heart?: HeartSummary;
-  steps?: number;
-  mindfulMinutes?: number;
-}
-
-interface AppleHealthSettingsCallbacks {
-  onDisconnected?: () => void;
-  onClose?: () => void;
-}
+import type {
+  AppleHealthStatus,
+  AppleHealthSummary,
+  AppleHealthSettingsCallbacks,
+} from './apple-health-settings.types.js';
 
 // ============================================================================
 // STATE
