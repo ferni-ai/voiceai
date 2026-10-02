@@ -23,73 +23,27 @@ import { getLogger, generateId } from '../../utils/tool-helpers.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { syncTravelToCalendar } from '../../../services/calendar/calendar-bridge.js';
 import { listLifeItems, recordLifeItem } from '../../../services/work-and-places/index.js';
+import type {
+  CabinClass,
+  FlightResult,
+  FlightSearch,
+  HotelResult,
+  HotelSearch,
+  SavedTrip,
+} from './travel.types.js';
 // ============================================================================
 // TYPES
 // ============================================================================
 
-export type TripType = 'roundtrip' | 'oneway' | 'multicity';
-export type CabinClass = 'economy' | 'premium_economy' | 'business' | 'first';
-
-export interface FlightSearch {
-  id: string;
-  userId: string;
-  origin: string;
-  destination: string;
-  departureDate: Date;
-  returnDate?: Date;
-  tripType: TripType;
-  passengers: number;
-  cabinClass: CabinClass;
-  results?: FlightResult[];
-  createdAt: Date;
-}
-
-export interface FlightResult {
-  id: string;
-  airline: string;
-  price: number;
-  departureTime: string;
-  arrivalTime: string;
-  duration: string;
-  stops: number;
-  bookingUrl?: string;
-}
-
-export interface HotelSearch {
-  id: string;
-  userId: string;
-  destination: string;
-  checkIn: Date;
-  checkOut: Date;
-  guests: number;
-  rooms: number;
-  results?: HotelResult[];
-  createdAt: Date;
-}
-
-export interface HotelResult {
-  id: string;
-  name: string;
-  rating: number;
-  pricePerNight: number;
-  totalPrice: number;
-  amenities: string[];
-  bookingUrl?: string;
-}
-
-export interface SavedTrip {
-  id: string;
-  userId: string;
-  name: string;
-  destination: string;
-  startDate: Date;
-  endDate: Date;
-  flight?: FlightResult;
-  hotel?: HotelResult;
-  notes?: string;
-  totalBudget?: number;
-  createdAt: Date;
-}
+export type {
+  CabinClass,
+  FlightResult,
+  FlightSearch,
+  HotelResult,
+  HotelSearch,
+  SavedTrip,
+  TripType,
+} from './travel.types.js';
 
 // ============================================================================
 // STORAGE
