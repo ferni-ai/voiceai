@@ -193,28 +193,14 @@ export class DynamicToolLoader {
       return false;
     }
 
-    // Get all tools for this domain from the registry
-    const domainTools = toolRegistry.getByDomain(domain);
-    let unloadedCount = 0;
-
-    // Unregister each tool from the registry
-    for (const tool of domainTools) {
-      // Only unregister if this is the tool's primary domain
-      // (to avoid breaking tools that have multiple domains)
-      if (tool.domain === domain) {
-        const success = toolRegistry.unregister(tool.id);
-        if (success) {
-          unloadedCount++;
-        }
-      }
-    }
-
-    // Update local tracking
+    // Drop the domain from THIS session's set only. The registry is shared by
+    // every session in the process: unregistering here stripped the domain's
+    // tools from the other callers' next tool builds as well.
     this.loadedDomains.delete(domain);
 
     getLogger().info(
-      { domain, unloadedCount, totalInDomain: domainTools.length },
-      '🔄 Domain unloaded from registry'
+      { domain, toolCount: state.toolCount },
+      '🔄 Domain unloaded from session'
     );
     return true;
   }
@@ -356,7 +342,19 @@ export class DynamicToolLoader {
 // SINGLETON
 // ============================================================================
 
+/**
+ * A process-wide loader. Do not use it for a voice session: several calls run
+ * in one worker process, and a loader builds tools with the user and session
+ * it was last initialized for, so a shared one handed one caller tools bound
+ * to another caller (tools such as listRoutines read ctx.userId at build
+ * time). Sessions create their own with createSessionToolLoader().
+ */
 export const dynamicToolLoader = new DynamicToolLoader();
+
+/** A loader for one voice session; call shutdown() when the session ends. */
+export function createSessionToolLoader(config: Partial<DynamicLoaderConfig> = {}): DynamicToolLoader {
+  return new DynamicToolLoader(config);
+}
 
 export default dynamicToolLoader;
 
