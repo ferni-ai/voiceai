@@ -13,10 +13,8 @@
  * @module memory/spanner-graph/client
  */
 
-import { Spanner, Database } from '@google-cloud/spanner';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
-  SPANNER_CONFIG,
   type GraphEntity,
   type GraphFact,
   type GraphRelationship,
@@ -25,89 +23,18 @@ import {
   type MemoryAnchorType,
 } from './schema.js';
 import { classifyFactDomain } from './queries.js';
+import { getDatabase, isSpannerReady } from './connection.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 
 const log = createLogger({ module: 'SpannerGraphClient' });
 
-// ============================================================================
-// SINGLETON CLIENT
-// ============================================================================
-
-let spannerInstance: Spanner | null = null;
-let databaseInstance: Database | null = null;
-let initialized = false;
-
-/**
- * Get or create the Spanner client instance
- */
-function getSpannerClient(): Spanner {
-  if (!spannerInstance) {
-    spannerInstance = new Spanner({
-      projectId: SPANNER_CONFIG.projectId,
-    });
-    log.debug('Spanner client created');
-  }
-  return spannerInstance;
-}
-
-/**
- * Get or create the Database instance
- */
-function getDatabase(): Database {
-  if (!databaseInstance) {
-    const spanner = getSpannerClient();
-    const instance = spanner.instance(SPANNER_CONFIG.instanceId);
-    databaseInstance = instance.database(SPANNER_CONFIG.databaseId);
-    log.debug('Spanner database connection established');
-  }
-  return databaseInstance;
-}
-
-/**
- * Check if Spanner is ready
- */
-export function isSpannerReady(): boolean {
-  return initialized;
-}
-
-/**
- * Initialize Spanner connection
- * Call this at startup to verify connectivity
- */
-/**
- * Spanner Graph (L3) is opt-in: SPANNER_ENABLED=true once a ferni-memory
- * instance is provisioned (or SPANNER_EMULATOR_HOST for local work).
- */
-export function isSpannerConfigured(): boolean {
-  return process.env.SPANNER_ENABLED === 'true' || !!process.env.SPANNER_EMULATOR_HOST;
-}
-
-export async function initializeSpanner(): Promise<boolean> {
-  if (initialized) return true;
-
-  // Without an instance, don't create a client at all: opening a database
-  // starts a background session pool whose failed gRPC calls reject where no
-  // caller can catch them (unhandled rejections, and credential lookups).
-  if (!isSpannerConfigured()) {
-    log.debug('Spanner not enabled (SPANNER_ENABLED!=true) - using Firestore fallback');
-    return false;
-  }
-
-  try {
-    const db = getDatabase();
-    // Simple query to verify connectivity
-    const [rows] = await db.run({ sql: 'SELECT 1' });
-    if (rows.length > 0) {
-      initialized = true;
-      log.info('Spanner connection verified');
-      return true;
-    }
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Spanner not available (will use Firestore fallback)');
-  }
-
-  return false;
-}
+// SINGLETON CLIENT (see connection.ts)
+export {
+  closeSpanner,
+  initializeSpanner,
+  isSpannerConfigured,
+  isSpannerReady,
+} from './connection.js';
 
 // ============================================================================
 // WRITE OPERATIONS
@@ -674,98 +601,5 @@ export async function markAnchorRecalled(userId: string, anchorId: string): Prom
   }
 }
 
-// ============================================================================
-// CLEANUP
-// ============================================================================
-
-/**
- * Close Spanner connections
- */
-export async function closeSpanner(): Promise<void> {
-  if (databaseInstance) {
-    await databaseInstance.close();
-    databaseInstance = null;
-  }
-  if (spannerInstance) {
-    spannerInstance.close();
-    spannerInstance = null;
-  }
-  initialized = false;
-  log.debug('Spanner connections closed');
-}
-
-// ============================================================================
-// PRIVACY DELETION
-// ============================================================================
-
-/** What to remove from the graph for one user. Omit both lists to remove everything. */
-export interface GraphDeletionScope {
-  factIds?: readonly string[];
-  entityIds?: readonly string[];
-}
-
-/**
- * Remove a user's graph records (user deletion / forget). No-op returning 0
- * when Spanner isn't configured or reachable. IDs are Spanner IDs
- * (`fact_{uid}_{docId}`, `entity_{uid}_{docId}`).
- */
-export async function deleteUserGraphRecords(
-  userId: string,
-  scope: GraphDeletionScope = {}
-): Promise<number> {
-  if (!isSpannerConfigured()) return 0;
-  if (!isSpannerReady() && !(await initializeSpanner())) return 0;
-
-  const wipeAll = !scope.factIds && !scope.entityIds;
-  const statements: Array<{ sql: string; params: Record<string, unknown> }> = [];
-
-  if (wipeAll) {
-    for (const table of [
-      'entity_facts',
-      'relationships',
-      'facts',
-      'entities',
-      'memory_threads',
-      'memory_anchors',
-    ]) {
-      statements.push({ sql: `DELETE FROM ${table} WHERE user_id = @userId`, params: { userId } });
-    }
-  }
-  if (scope.factIds && scope.factIds.length > 0) {
-    const params = { userId, ids: [...scope.factIds] };
-    statements.push(
-      {
-        sql: 'DELETE FROM entity_facts WHERE user_id = @userId AND fact_id IN UNNEST(@ids)',
-        params,
-      },
-      { sql: 'DELETE FROM facts WHERE user_id = @userId AND fact_id IN UNNEST(@ids)', params }
-    );
-  }
-  if (scope.entityIds && scope.entityIds.length > 0) {
-    const params = { userId, ids: [...scope.entityIds] };
-    statements.push(
-      {
-        sql: 'DELETE FROM entity_facts WHERE user_id = @userId AND entity_id IN UNNEST(@ids)',
-        params,
-      },
-      {
-        sql: `DELETE FROM relationships WHERE user_id = @userId
-              AND (source_entity_id IN UNNEST(@ids) OR target_entity_id IN UNNEST(@ids))`,
-        params,
-      },
-      { sql: 'DELETE FROM entities WHERE user_id = @userId AND entity_id IN UNNEST(@ids)', params }
-    );
-  }
-  if (statements.length === 0) return 0;
-
-  let removed = 0;
-  await getDatabase().runTransactionAsync(async (transaction) => {
-    for (const statement of statements) {
-      const [count] = await transaction.runUpdate(statement);
-      removed += Number(count) || 0;
-    }
-    await transaction.commit();
-  });
-  log.info({ removed, wipeAll }, 'Removed graph records for user');
-  return removed;
-}
+// PRIVACY DELETION (see graph-deletion.ts)
+export { deleteUserGraphRecords, type GraphDeletionScope } from './graph-deletion.js';
