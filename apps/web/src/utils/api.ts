@@ -52,7 +52,7 @@ const log = createLogger('API');
  * // T = { users: User[] } means response.data is { users: User[] }
  * const response: ApiResponse<{ users: User[] }> = await apiGet('/api/users');
  * if (response.ok && response.data) {
- *   log.info(response.data.users); // ← Access .data for the typed payload
+ *   console.log(response.data.users); // ← Access .data for the typed payload
  * }
  */
 export interface ApiResponse<T> {

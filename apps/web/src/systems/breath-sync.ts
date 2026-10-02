@@ -250,7 +250,7 @@ class BreathSyncManager {
       try {
         listener(stateCopy);
       } catch (e) {
-        log.error('[BreathSync] Listener error:', e);
+        log.error('Listener error:', e);
       }
     });
   }
@@ -366,13 +366,6 @@ Usage in CSS:
 }
 
 For more complex animations, subscribe to updates:
-
-import { getBreathSync } from './breath-sync.js';
-import { createLogger } from '../utils/logger.js';
-const log = createLogger('BreathSync');
-
-
-
 
 getBreathSync().subscribe((state) => {
   // Custom animation logic based on state.phase

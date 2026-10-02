@@ -30,8 +30,6 @@
  * }
  */
 
-
-
 // ============================================================================
 // CORE RESULT TYPE
 // ============================================================================
@@ -110,7 +108,7 @@ export function err<E>(error: E): Err<E> {
  * const result = await fetchUser(id);
  * if (isOk(result)) {
  *   // TypeScript knows result.value exists here
- *   log.info(result.value.name);
+ *   console.log(result.value.name);
  * }
  */
 export function isOk<T, E>(result: Result<T, E>): result is Ok<T> {
