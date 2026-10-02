@@ -8,6 +8,7 @@
 import { getMusicPlayer, type MusicTrack } from '../../audio/music-player.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { findTrack, searchItunes, type iTunesTrack } from '../itunes.js';
+import type { GameTrack, SearchResult } from './game-music.types.js';
 
 const log = getLogger();
 
@@ -149,24 +150,8 @@ function getFallbackSong(hint?: { decade?: string; genre?: string }): GameTrack 
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface GameTrack {
-  name: string;
-  artist: string;
-  previewUrl: string;
-  duration?: number;
-  decade?: string;
-  genre?: string;
-}
-
-export interface SearchResult {
-  found: boolean;
-  track?: GameTrack;
-  error?: string;
-}
+// Types live in game-music.types.ts; re-exported for existing importers.
+export type { GameTrack, SearchResult };
 
 // ============================================================================
 // SEARCH FUNCTIONS

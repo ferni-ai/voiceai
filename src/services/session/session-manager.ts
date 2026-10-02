@@ -41,6 +41,7 @@ import {
 import { MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS } from './constants.js';
 import { withTimeout } from './utils.js';
 import { validateUserId } from './validation.js';
+import { estimateVoicePaceEnergy } from './voice-pace.js';
 
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from '../memory/realtime-memory.js';
@@ -932,24 +933,13 @@ export async function createSessionServices(
             const contentWordCount = RUST_COUNTING_AVAILABLE
               ? countWordsRust(content)
               : content.split(/\s+/).length;
-            const currentWPM = contentWordCount / (durationMs / 60000) || avgWPM;
-
-            // Determine pace relative to user's baseline
-            const paceRatio = avgWPM > 0 ? currentWPM / avgWPM : 1;
-            const pace =
-              paceRatio < 0.85
-                ? 'slower_than_usual'
-                : paceRatio > 1.15
-                  ? 'faster_than_usual'
-                  : 'normal';
-
-            // Simple energy heuristic based on pace and message length
-            const energy =
-              pace === 'slower_than_usual' && content.length < 50
-                ? 'lower_than_usual'
-                : pace === 'faster_than_usual' && content.length > 100
-                  ? 'higher_than_usual'
-                  : 'normal';
+            // Pace relative to user's baseline + simple energy heuristic (voice-pace.ts)
+            const { pace, energy } = estimateVoicePaceEnergy(
+              content,
+              contentWordCount,
+              durationMs,
+              avgWPM
+            );
 
             recordVoicePattern(validatedUserId, sessionId, {
               patterns: {

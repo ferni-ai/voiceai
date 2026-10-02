@@ -22,6 +22,16 @@ import type {
   OurSongsPlaylist,
   OurSong,
 } from './types.js';
+import {
+  SPOTIFY_API_BASE,
+  convertSpotifyTrack,
+  spotifyRequest,
+  type FollowedArtistsResponse,
+  type PlaylistsResponse,
+  type SavedTracksResponse,
+  type SpotifyTrackObject,
+  type UserProfileResponse,
+} from './spotify-api.js';
 
 const log = createLogger({ module: 'SpotifyLibrary' });
 
@@ -29,7 +39,6 @@ const log = createLogger({ module: 'SpotifyLibrary' });
 // CONSTANTS
 // ============================================================================
 
-const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
 const MAX_LIBRARY_TRACKS = 500; // Limit for performance
 const PREVIEW_REQUIRED_PERCENTAGE = 0.3; // At least 30% of tracks need previews
 
@@ -41,112 +50,8 @@ const libraryCache = new Map<string, SpotifyLibraryData>();
 const ourSongsCache = new Map<string, OurSongsPlaylist>();
 
 // ============================================================================
-// SPOTIFY API HELPERS
-// ============================================================================
-
-interface SpotifyRequestOptions {
-  method?: string;
-  body?: unknown;
-}
-
-async function spotifyRequest<T>(
-  endpoint: string,
-  accessToken: string,
-  options: SpotifyRequestOptions = {}
-): Promise<T | null> {
-  try {
-    const response = await fetch(`${SPOTIFY_API_BASE}${endpoint}`, {
-      method: options.method || 'GET',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: options.body ? JSON.stringify(options.body) : undefined,
-    });
-
-    if (!response.ok) {
-      log.warn({ status: response.status, endpoint }, '⚠️ Spotify API request failed');
-      return null;
-    }
-
-    return (await response.json()) as T;
-  } catch (error) {
-    log.error({ error, endpoint }, '❌ Spotify API request error');
-    return null;
-  }
-}
-
-// ============================================================================
-// TRACK CONVERSION
-// ============================================================================
-
-interface SpotifyTrackObject {
-  id: string;
-  name: string;
-  artists: Array<{ id: string; name: string }>;
-  album: {
-    name: string;
-    images: Array<{ url: string }>;
-    release_date: string;
-  };
-  preview_url: string | null;
-  uri: string;
-  duration_ms: number;
-  popularity: number;
-}
-
-function convertSpotifyTrack(track: SpotifyTrackObject): SpotifyTrack {
-  const releaseYear = track.album.release_date
-    ? parseInt(track.album.release_date.slice(0, 4), 10)
-    : new Date().getFullYear();
-
-  return {
-    id: track.id,
-    name: track.name,
-    artistName: track.artists.map((a) => a.name).join(', '),
-    artistId: track.artists[0]?.id || '',
-    albumName: track.album.name,
-    albumArt: track.album.images[0]?.url || '',
-    previewUrl: track.preview_url,
-    uri: track.uri,
-    durationMs: track.duration_ms,
-    popularity: track.popularity,
-    releaseYear,
-    genres: [], // Genres require additional API calls
-  };
-}
-
-// ============================================================================
 // LIBRARY SYNC
 // ============================================================================
-
-interface SavedTracksResponse {
-  items: Array<{ track: SpotifyTrackObject }>;
-  total: number;
-  next: string | null;
-}
-
-interface UserProfileResponse {
-  id: string;
-  display_name: string;
-}
-
-interface PlaylistsResponse {
-  total: number;
-}
-
-interface FollowedArtistsResponse {
-  artists: {
-    total: number;
-    items: Array<{
-      id: string;
-      name: string;
-      genres: string[];
-      images: Array<{ url: string }>;
-      popularity: number;
-    }>;
-  };
-}
 
 /**
  * Sync user's Spotify library
