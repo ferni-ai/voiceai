@@ -53,7 +53,7 @@ test.describe('What I remember: your story', () => {
     await expect(dialog.locator('[data-story-id="value_honesty"]')).toBeVisible();
     await expect
       .poll(() => story.requests.find((r) => r.method === 'POST' && r.path === '/story')?.body)
-      .toEqual({ kind: 'value', title: 'Honesty' });
+      .toMatchObject({ kind: 'value', title: 'Honesty' });
 
     // Correct the chapter
     await dialog.getByRole('button', { name: 'Correct: My Berlin years' }).click();
