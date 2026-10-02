@@ -63,7 +63,10 @@ function scriptedGenerator() {
   return { generate, prompts };
 }
 
-const flush = () => new Promise((r) => setTimeout(r, 30));
+const flush = () =>
+  new Promise((r) => {
+    setTimeout(r, 30);
+  });
 
 let db: FakeFirestore;
 let handler: (job: unknown) => void;

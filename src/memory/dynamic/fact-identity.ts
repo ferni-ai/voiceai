@@ -29,7 +29,7 @@ export function normalizeFactPart(part: string): string {
   return part
     .normalize('NFKC')
     .toLowerCase()
-    .replace(/[_\-]+/g, ' ')
+    .replace(/[_-]+/g, ' ')
     .replace(/['’]s\b/g, '')
     .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
     .replace(/\s+/g, ' ')
@@ -49,9 +49,10 @@ export function normalizeFactKey(key: FactKey | string): string {
   return `${s}|${p}`;
 }
 
-/** Deterministic fact id: `f_` + 32 hex chars of SHA-256 over the normalised key. */
-export function factIdFor(key: FactKey): string;
-export function factIdFor(key: FactKey | string): string;
+/**
+ * Deterministic fact id: `f_` + 32 hex chars of SHA-256 over the normalised key.
+ * Accepts the contract's `{ subject, predicate }` key, or free text.
+ */
 export function factIdFor(key: FactKey | string): string {
   const digest = createHash('sha256').update(normalizeFactKey(key)).digest('hex');
   return `f_${digest.slice(0, 32)}`;

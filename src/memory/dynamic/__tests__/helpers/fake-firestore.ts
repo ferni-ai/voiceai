@@ -4,18 +4,18 @@
  * Documents are keyed by full path.
  */
 
-import type {
-  CollectionRefLike,
-  DocData,
-  DocRefLike,
-  DocSnapLike,
-  FirestoreLike,
-  QueryLike,
-  QuerySnapLike,
-  TransactionLike,
-  WhereOp,
+import {
+  toMillis,
+  type CollectionRefLike,
+  type DocData,
+  type DocRefLike,
+  type DocSnapLike,
+  type FirestoreLike,
+  type QueryLike,
+  type QuerySnapLike,
+  type TransactionLike,
+  type WhereOp,
 } from '../../firestore-shapes.js';
-import { toMillis } from '../../firestore-shapes.js';
 
 type Filter = { field: string; op: WhereOp; value: unknown };
 type Order = { field: string; dir: 'asc' | 'desc' };

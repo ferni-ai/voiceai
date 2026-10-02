@@ -21,6 +21,7 @@
  */
 
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { registerInterval } from '../../utils/interval-manager.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { safeOnEvent } from './async-events-config.js';
 import {
@@ -133,7 +134,8 @@ export class DeepExtractionWorker {
   private running = false;
   private isProcessing = false;
   private pumpRequested = false;
-  private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private stopPolling: (() => void) | null = null;
+  private readonly pollName = `deep-extraction-poll-${Math.random().toString(36).slice(2, 8)}`;
   private listenerRegistered = false;
   private queue: ExtractionQueue<DeepExtractionJob> | null;
   /** Takes jobs the durable queue could not accept, so a Firestore blip loses nothing in-process. */
@@ -189,8 +191,7 @@ export class DeepExtractionWorker {
     this.requestPump();
     const interval = this.options.pollIntervalMs ?? DEFAULT_POLL_MS;
     if (interval > 0) {
-      this.pollTimer = setInterval(() => this.requestPump(), interval);
-      this.pollTimer.unref?.();
+      this.stopPolling = registerInterval(this.pollName, () => this.requestPump(), interval);
     }
     this.log.info(
       '🧠 [MEMORY-AUDIT] Deep extraction worker started - ready to process memory jobs'
@@ -202,9 +203,9 @@ export class DeepExtractionWorker {
    */
   stop(): void {
     this.running = false;
-    if (this.pollTimer) {
-      clearInterval(this.pollTimer);
-      this.pollTimer = null;
+    if (this.stopPolling) {
+      this.stopPolling();
+      this.stopPolling = null;
     }
     this.log.info('🧠 [MEMORY-AUDIT] Deep extraction worker stopped');
   }

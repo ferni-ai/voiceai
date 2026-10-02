@@ -113,9 +113,13 @@ describe('createMemoryRecall', () => {
       texts.map((t) => (/dog|pup|species/i.test(t) ? [1, 0] : [0, 1]));
     const recall = createMemoryRecall({ userId: 'u1', store: semanticStore, embed });
     await recall.ready;
-    await new Promise((r) => setTimeout(r, 0)); // fact vectors
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    }); // fact vectors
     expect(recall.noteFor('my little pup chewed everything')).toBeNull(); // query vector in flight
-    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
     const note = recall.noteFor('my little pup chewed everything up');
     expect(note).toContain('Biscuit: species = dog');
     expect(note).not.toContain('accountant');
