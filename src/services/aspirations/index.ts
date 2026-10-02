@@ -49,6 +49,7 @@ export {
   exportAspirations,
   deleteAspirationsFor,
   deleteAllAspirations,
+  findAspirations,
   toExport,
   type ExportedAspiration,
 } from './lifecycle.js';

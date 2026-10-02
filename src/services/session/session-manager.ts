@@ -44,6 +44,9 @@ import { validateUserId } from './validation.js';
 
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from '../memory/realtime-memory.js';
+import { persistTurnWithRetry } from '../memory/turn-persistence.js';
+import { nextTurnNumber, resetTurnSequence } from '../memory/turn-sequencer.js';
+import { clearSessionTurns } from '../../memory/capture/session-turn-ring.js';
 
 // Voice authentication - household identification
 import { getActiveSession, startHouseholdSession } from '../voice/voice-household.js';
@@ -902,7 +905,12 @@ export async function createSessionServices(
       return analysis;
     },
 
-    addTurn: (role: 'user' | 'assistant', content: string, durationMs?: number) => {
+    addTurn: (
+      role: 'user' | 'assistant',
+      content: string,
+      durationMs?: number,
+      meta?: import('../types.js').TurnMeta
+    ) => {
       const turn: ConversationTurn = {
         role,
         content,
@@ -968,26 +976,20 @@ export async function createSessionServices(
       }
 
       // 🔴 REALTIME PERSISTENCE - persist turn immediately to Firestore
-      // This happens in the background (fire-and-forget) to avoid blocking
+      // Background with bounded retry (turn-persistence.ts); never blocks the voice path.
       if (validatedUserId && realtimeConversationId) {
         const now = turn.timestamp || new Date();
         // 🧹 ISSUE-005 FIX: Strip SSML from assistant turns before persisting
         // Raw SSML tags like <break time="200ms"/> should not appear in memory
         const cleanContent = role === 'assistant' ? stripSSML(content) : content;
-        realtimeMemory
-          .persistTurn(validatedUserId, realtimeConversationId, {
-            role,
-            content: cleanContent,
-            timestamp: now,
-            metadata: durationMs ? { durationMs } : undefined,
-          })
-          .catch((err) => {
-            // Non-blocking - log but don't throw
-            getLogger().warn(
-              { error: String(err), sessionId },
-              'Failed to persist turn in realtime (data in RAM, will save at session end)'
-            );
-          });
+        void persistTurnWithRetry(validatedUserId, realtimeConversationId, {
+          role,
+          content: cleanContent,
+          timestamp: now,
+          turnNumber: meta?.turnNumber ?? nextTurnNumber(sessionId),
+          personaId: meta?.personaId ?? personaId,
+          metadata: durationMs ? { durationMs } : undefined,
+        });
       }
 
       // Memory pipeline diagnostics
@@ -2244,6 +2246,8 @@ export async function createSessionServices(
       }
 
       activeSessions.delete(sessionId);
+      resetTurnSequence(sessionId);
+      clearSessionTurns(sessionId);
 
       // Clear life data cache
       if (userId) {

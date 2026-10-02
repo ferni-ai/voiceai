@@ -14,6 +14,7 @@ The Cross-Persona Intelligence System enables Ferni's team to collaborate like a
 | [SUPERHUMAN-INTELLIGENCE.md](./SUPERHUMAN-INTELLIGENCE.md) | 12 "better than human" capabilities |
 | [COGNITIVE-INTELLIGENCE-ARCHITECTURE.md](./COGNITIVE-INTELLIGENCE-ARCHITECTURE.md) | Individual persona thinking styles |
 | [src/services/superhuman/README.md](../../src/services/superhuman/README.md) | 10 superhuman services implementation |
+| [PERSONAL-INSIGHTS.md](./PERSONAL-INSIGHTS.md) | People, pets & relationships, life threads, topic prediction, grounded openers (what actually runs in the live multi-agent path, for every persona) |
 
 ---
 

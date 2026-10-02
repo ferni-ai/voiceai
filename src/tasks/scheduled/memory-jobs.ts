@@ -23,7 +23,6 @@ import {
   type MemoryItem,
   type MemoryMetrics,
   type MetricAlert,
-  type PruneResult,
 } from '../../memory/index.js';
 import { findDuplicatesLSH } from '../../memory/lsh-deduplication.js';
 import {
@@ -31,14 +30,9 @@ import {
   getRustInfo,
   isRustAvailable,
 } from '../../memory/rust-accelerator.js';
-import {
-  GROUP_TRANSCRIPT_RETENTION_DAYS,
-  SUMMARY_RETENTION_DAYS,
-  TRANSCRIPT_RETENTION_DAYS,
-} from '../../services/session-manager/constants.js';
-import { runFirestoreQuery } from '../../utils/firestore-query.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
+import { TranscriptCleanupJob } from './transcript-cleanup-job.js';
 
 const log = getLogger();
 
@@ -335,7 +329,7 @@ export class MemoryConsolidationJob extends ScheduledJob<
 // ============================================================================
 
 export interface DecayJobConfig extends BaseJobConfig {
-  /** Strength threshold below which to prune (default: 0.1) */
+  /** Strength below which a memory counts as "faded" (reported only; never pruned) */
   archiveThreshold: number;
   /** Whether to protect emotional memories (default: true) */
   protectEmotional: boolean;
@@ -347,20 +341,69 @@ export interface DecayJobConfig extends BaseJobConfig {
 
 export interface DecayJobResult extends Record<string, unknown> {
   memoriesDecayed: number;
+  /** Always 0: decay re-weights recall ranking and never deletes. */
   memoriesPruned: number;
+  /** Memories whose recall weight fell below archiveThreshold (still kept). */
+  memoriesFaded: number;
+  /** Source documents updated with a new recallWeight. */
+  weightsWritten: number;
   averageStrengthBefore: number;
   averageStrengthAfter: number;
   usersProcessed: number;
 }
 
+/** Collections whose documents carry a `recallWeight` written by the decay job. */
+export const RECALL_WEIGHTED_COLLECTIONS = [
+  'dynamic_entities',
+  'dynamic_facts',
+  'promoted_entities',
+] as const;
+
+/** Lowest weight decay assigns: faded memories rank lower but stay recallable. */
+export const MIN_RECALL_WEIGHT = 0.05;
+
+/**
+ * Persist decay as `recallWeight` (0.05-1) on each memory's source document.
+ * Recall ranking multiplies by it; nothing is deleted. Returns docs updated.
+ */
+export async function writeRecallWeights(
+  userId: string,
+  memories: ReadonlyArray<Pick<DecayingMemory, 'strength' | 'source'>>
+): Promise<number> {
+  const { getFirestore } = await import('firebase-admin/firestore');
+  const db = getFirestore();
+  const userRef = db.collection('bogle_users').doc(userId);
+  const now = new Date().toISOString();
+  const writable = memories.flatMap((m) =>
+    m.source && (RECALL_WEIGHTED_COLLECTIONS as readonly string[]).includes(m.source.collection)
+      ? [{ ...m.source, strength: m.strength }]
+      : []
+  );
+
+  let written = 0;
+  for (let i = 0; i < writable.length; i += 400) {
+    const batch = db.batch();
+    for (const m of writable.slice(i, i + 400)) {
+      const weight = Math.max(MIN_RECALL_WEIGHT, Math.min(1, m.strength));
+      const ref = userRef.collection(m.collection).doc(m.documentId);
+      batch.update(ref, {
+        recallWeight: Math.round(weight * 1000) / 1000,
+        recallWeightUpdatedAt: now,
+      });
+    }
+    await batch.commit();
+    written += Math.min(400, writable.length - i);
+  }
+  return written;
+}
+
 /**
  * Memory Decay Job
  *
- * Applies natural forgetting to memories, allowing less important
- * memories to fade while preserving emotionally significant ones.
- *
- * This is key to the "better than human" promise - humans naturally
- * forget unimportant details while remembering what matters.
+ * Lets less important memories fade in RECALL RANKING while emotionally
+ * significant ones stay strong. Product decision: memories are kept until
+ * the user deletes them, so decay only writes `recallWeight` — it never
+ * deletes or archives anything.
  */
 export class MemoryDecayJob extends ScheduledJob<DecayJobConfig, DecayJobResult> {
   readonly name = 'MemoryDecayJob';
@@ -385,7 +428,8 @@ export class MemoryDecayJob extends ScheduledJob<DecayJobConfig, DecayJobResult>
     ctx.log.info({ userCount: userIds.length }, 'Found users for decay processing');
 
     let totalMemoriesDecayed = 0;
-    let totalMemoriesPruned = 0;
+    let totalMemoriesFaded = 0;
+    let totalWeightsWritten = 0;
     let totalStrengthBefore = 0;
     let totalStrengthAfter = 0;
     let totalMemoriesCount = 0;
@@ -419,42 +463,24 @@ export class MemoryDecayJob extends ScheduledJob<DecayJobConfig, DecayJobResult>
         }
         totalMemoriesCount += decayingMemories.length;
 
+        // Decay only re-weights recall. Memories are kept until the user deletes them.
+        const decayedMemories = decayManager.updateDecay(decayingMemories);
+        totalMemoriesDecayed += decayedMemories.length;
+        for (const memory of decayedMemories) {
+          totalStrengthAfter += memory.strength;
+          if (memory.strength < config.archiveThreshold) totalMemoriesFaded++;
+        }
+
         if (config.dryRun) {
           ctx.log.info(
-            { userId, memoryCount: decayingMemories.length },
-            'DRY RUN: Would apply decay'
+            { userId, memoryCount: decayedMemories.length },
+            'DRY RUN: Would write recall weights'
           );
           ctx.counters.skipped++;
-
-          // Still calculate what would happen
-          const simulated = decayManager.updateDecay(decayingMemories);
-          for (const memory of simulated) {
-            totalStrengthAfter += memory.strength;
-          }
-          const simulatedPrune = decayManager.pruneWeakMemories(simulated);
-          totalMemoriesPruned += simulatedPrune.archived.length;
           continue;
         }
 
-        // Apply decay
-        const decayedMemories = decayManager.updateDecay(decayingMemories);
-        totalMemoriesDecayed += decayedMemories.length;
-
-        for (const memory of decayedMemories) {
-          totalStrengthAfter += memory.strength;
-        }
-
-        // Prune weak memories
-        const pruneResult: PruneResult = decayManager.pruneWeakMemories(decayedMemories);
-        totalMemoriesPruned += pruneResult.archived.length;
-
-        if (pruneResult.archived.length > 0) {
-          ctx.log.info(
-            { userId, pruned: pruneResult.archived.length },
-            'Pruned weak memories for user'
-          );
-        }
-
+        totalWeightsWritten += await writeRecallWeights(userId, decayedMemories);
         ctx.counters.success++;
       } catch (error) {
         ctx.counters.errors++;
@@ -464,7 +490,9 @@ export class MemoryDecayJob extends ScheduledJob<DecayJobConfig, DecayJobResult>
 
     return {
       memoriesDecayed: totalMemoriesDecayed,
-      memoriesPruned: totalMemoriesPruned,
+      memoriesPruned: 0, // never deletes or archives
+      memoriesFaded: totalMemoriesFaded,
+      weightsWritten: totalWeightsWritten,
       averageStrengthBefore: totalMemoriesCount > 0 ? totalStrengthBefore / totalMemoriesCount : 0,
       averageStrengthAfter: totalMemoriesCount > 0 ? totalStrengthAfter / totalMemoriesCount : 0,
       usersProcessed,
@@ -769,236 +797,15 @@ export class MemoryHealthCheckJob extends ScheduledJob<HealthCheckJobConfig, Hea
 }
 
 // ============================================================================
-// TRANSCRIPT CLEANUP JOB
+// TRANSCRIPT CLEANUP JOB (retention, off by default) — see transcript-cleanup-job.ts
 // ============================================================================
 
-export interface TranscriptCleanupJobConfig extends BaseJobConfig {
-  /** Retention period for transcripts in days (default: from env or 90) */
-  transcriptRetentionDays: number;
-  /** Retention period for summaries in days (default: from env or 365) */
-  summaryRetentionDays: number;
-  /** Retention period for group transcripts in days (default: from env or 180) */
-  groupTranscriptRetentionDays: number;
-  /** Maximum documents to delete per run (default: 500) */
-  maxDeletesPerRun: number;
-  /** Maximum users to process per run (default: 100) */
-  maxUsersPerRun: number;
-}
-
-export interface TranscriptCleanupJobResult extends Record<string, unknown> {
-  transcriptsDeleted: number;
-  summariesDeleted: number;
-  groupTranscriptsDeleted: number;
-  usersProcessed: number;
-  bytesRecovered: number;
-}
-
-/**
- * Transcript Cleanup Job
- *
- * Removes old transcripts, summaries, and group conversation data
- * based on configurable retention periods.
- *
- * Environment Variables:
- * - TRANSCRIPT_RETENTION_DAYS: Raw transcript retention (default: 90)
- * - SUMMARY_RETENTION_DAYS: Conversation summary retention (default: 365)
- * - GROUP_TRANSCRIPT_RETENTION_DAYS: Group conversation retention (default: 180)
- *
- * Best run nightly to keep storage costs manageable.
- */
-export class TranscriptCleanupJob extends ScheduledJob<
-  TranscriptCleanupJobConfig,
-  TranscriptCleanupJobResult
-> {
-  readonly name = 'TranscriptCleanupJob';
-  readonly defaultConfig: TranscriptCleanupJobConfig = {
-    dryRun: false,
-    transcriptRetentionDays: TRANSCRIPT_RETENTION_DAYS,
-    summaryRetentionDays: SUMMARY_RETENTION_DAYS,
-    groupTranscriptRetentionDays: GROUP_TRANSCRIPT_RETENTION_DAYS,
-    maxDeletesPerRun: 500,
-    maxUsersPerRun: 100,
-  };
-
-  protected async execute(
-    config: TranscriptCleanupJobConfig,
-    ctx: JobContext
-  ): Promise<TranscriptCleanupJobResult> {
-    ctx.log.info(
-      {
-        transcriptRetentionDays: config.transcriptRetentionDays,
-        summaryRetentionDays: config.summaryRetentionDays,
-        groupTranscriptRetentionDays: config.groupTranscriptRetentionDays,
-      },
-      'Starting transcript cleanup with TTL configuration'
-    );
-
-    let transcriptsDeleted = 0;
-    let summariesDeleted = 0;
-    let groupTranscriptsDeleted = 0;
-    let usersProcessed = 0;
-
-    try {
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
-
-      // Calculate cutoff dates
-      const now = new Date();
-      const transcriptCutoff = new Date(now);
-      transcriptCutoff.setDate(transcriptCutoff.getDate() - config.transcriptRetentionDays);
-
-      const summaryCutoff = new Date(now);
-      summaryCutoff.setDate(summaryCutoff.getDate() - config.summaryRetentionDays);
-
-      const groupCutoff = new Date(now);
-      groupCutoff.setDate(groupCutoff.getDate() - config.groupTranscriptRetentionDays);
-
-      ctx.log.info(
-        {
-          transcriptCutoff: transcriptCutoff.toISOString(),
-          summaryCutoff: summaryCutoff.toISOString(),
-          groupCutoff: groupCutoff.toISOString(),
-        },
-        'Cleanup cutoff dates'
-      );
-
-      // 1. Clean up old conversations from bogle_users/{userId}/conversations
-      const conversationsSnapshot = await runFirestoreQuery(
-        db
-          .collectionGroup('conversations')
-          .where('startedAt', '<', transcriptCutoff.toISOString())
-          .limit(config.maxDeletesPerRun),
-        { context: 'TranscriptCleanupJob conversations' }
-      );
-
-      for (const doc of conversationsSnapshot.docs) {
-        ctx.counters.processed++;
-        if (config.dryRun) {
-          ctx.log.debug({ docId: doc.id }, 'DRY RUN: Would delete conversation');
-          ctx.counters.skipped++;
-          continue;
-        }
-
-        try {
-          // Delete the conversation and its subcollection of turns
-          const turnsSnapshot = await doc.ref.collection('turns').get();
-          const batch = db.batch();
-
-          for (const turn of turnsSnapshot.docs) {
-            batch.delete(turn.ref);
-          }
-          batch.delete(doc.ref);
-
-          await batch.commit();
-          transcriptsDeleted++;
-          ctx.counters.success++;
-        } catch (error) {
-          ctx.counters.errors++;
-          ctx.log.warn({ error: String(error), docId: doc.id }, 'Failed to delete conversation');
-        }
-      }
-
-      // 2. Clean up old group sessions
-      const groupSessionsSnapshot = await runFirestoreQuery(
-        db
-          .collectionGroup('group_sessions')
-          .where('startedAt', '<', groupCutoff.toISOString())
-          .limit(config.maxDeletesPerRun),
-        { context: 'TranscriptCleanupJob group_sessions' }
-      );
-
-      for (const doc of groupSessionsSnapshot.docs) {
-        ctx.counters.processed++;
-        if (config.dryRun) {
-          ctx.log.debug({ docId: doc.id }, 'DRY RUN: Would delete group session');
-          ctx.counters.skipped++;
-          continue;
-        }
-
-        try {
-          // Delete transcript subcollection
-          const transcriptSnapshot = await doc.ref.collection('transcript').get();
-          const actionItemsSnapshot = await doc.ref.collection('action_items').get();
-          const batch = db.batch();
-
-          for (const sub of transcriptSnapshot.docs) {
-            batch.delete(sub.ref);
-          }
-          for (const sub of actionItemsSnapshot.docs) {
-            batch.delete(sub.ref);
-          }
-          batch.delete(doc.ref);
-
-          await batch.commit();
-          groupTranscriptsDeleted++;
-          ctx.counters.success++;
-        } catch (error) {
-          ctx.counters.errors++;
-          ctx.log.warn({ error: String(error), docId: doc.id }, 'Failed to delete group session');
-        }
-      }
-
-      // 3. Clean up old conversation summaries from bogle_users/{userId}/conversation_summaries
-      const summariesSnapshot = await runFirestoreQuery(
-        db
-          .collectionGroup('conversation_summaries')
-          .where('createdAt', '<', summaryCutoff.toISOString())
-          .limit(config.maxDeletesPerRun),
-        { context: 'TranscriptCleanupJob conversation_summaries' }
-      );
-
-      for (const doc of summariesSnapshot.docs) {
-        ctx.counters.processed++;
-        if (config.dryRun) {
-          ctx.log.debug({ docId: doc.id }, 'DRY RUN: Would delete old summary');
-          ctx.counters.skipped++;
-          continue;
-        }
-
-        try {
-          await doc.ref.delete();
-          summariesDeleted++;
-          ctx.counters.success++;
-        } catch (error) {
-          ctx.counters.errors++;
-          ctx.log.warn({ error: String(error), docId: doc.id }, 'Failed to delete summary');
-        }
-      }
-
-      // Count unique users processed (approximate from docs)
-      const userIdsProcessed = new Set<string>();
-      for (const doc of [...conversationsSnapshot.docs, ...groupSessionsSnapshot.docs]) {
-        const parentPath = doc.ref.parent.parent?.id;
-        if (parentPath) {
-          userIdsProcessed.add(parentPath);
-        }
-      }
-      usersProcessed = userIdsProcessed.size;
-    } catch (error) {
-      ctx.log.error({ error: String(error) }, 'Transcript cleanup failed');
-      ctx.counters.errors++;
-    }
-
-    ctx.log.info(
-      {
-        transcriptsDeleted,
-        summariesDeleted,
-        groupTranscriptsDeleted,
-        usersProcessed,
-        dryRun: config.dryRun,
-      },
-      'Transcript cleanup complete'
-    );
-
-    return {
-      transcriptsDeleted,
-      summariesDeleted,
-      groupTranscriptsDeleted,
-      usersProcessed,
-      bytesRecovered: 0, // Would need document size tracking to calculate
-    };
-  }
-}
+export {
+  TranscriptCleanupJob,
+  readRetentionDays,
+  type TranscriptCleanupJobConfig,
+  type TranscriptCleanupJobResult,
+} from './transcript-cleanup-job.js';
 
 // ============================================================================
 // EXPORTS

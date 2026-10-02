@@ -85,6 +85,11 @@ import {
   memoryRecallMode,
   type RecallAgent,
 } from './memory-recall-hook.js';
+import {
+  installPersonRecall,
+  sessionInsightsSection,
+  startSessionInsightsLoad,
+} from './personal-insights-context.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
@@ -115,6 +120,7 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
+import { wireAssistantTurnCapture } from '../voice-agent/assistant-turn-capture.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
 // WAVE 2: Voice humanization (micro-interrupt/barge-in recovery) + live backchanneling
@@ -126,6 +132,7 @@ import {
   type VoiceHumanizationIntegration,
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
+import { loadPreferenceBlock } from '../../services/user-preferences/context-block.js';
 
 const log = getLogger();
 
@@ -294,8 +301,12 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
   let systemPrompt: string;
   let modelBaseInstructions: string;
+  // User preference profile: fetched alongside the prompts (bounded, never throws)
+  const preferenceBlockPromise = userId ? loadPreferenceBlock(userId) : Promise.resolve('');
   try {
     mark('load_prompts_start');
+    // Personal insights (people, likely topics, openers): read in parallel, never blocks
+    const pendingInsights = startSessionInsightsLoad(userId);
     // Load both levels of instructions in parallel (imports now hoisted to module level)
     const [baseInstructions, loadedSystemPrompt] = await Promise.all([
       loadModelBaseInstructions(),
@@ -325,6 +336,17 @@ If someone asks what day it is, what time it is, or what the date is, you know t
 
     // Append date/time to model base instructions (session-specific, not cached)
     modelBaseInstructions = baseInstructions + dateTimeContext;
+
+    // HOW THEY LIKE TO BE TALKED TO - name, style, boundaries (persona-agnostic,
+    // char-budgeted; see services/user-preferences/context-block.ts)
+    const preferenceBlock = await preferenceBlockPromise;
+    if (preferenceBlock) {
+      modelBaseInstructions += preferenceBlock;
+      log.info(
+        { personaId: persona.id, chars: preferenceBlock.length },
+        '🎛️ User preference profile injected'
+      );
+    }
 
     // =========================================================================
     // USER AWARENESS - Enhance model instructions with user context
@@ -590,6 +612,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
         })();
       }
     }
+
+    // What's on their mind: people with open threads, likely topics, openers
+    modelBaseInstructions += await sessionInsightsSection(
+      pendingInsights,
+      getPersonaDisplayName(persona.id)
+    );
 
     log.info(
       {
@@ -1749,6 +1777,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
     });
   }
 
+  // Person recall: when the user mentions someone, add that person's profile
+  // (same timing as memory recall above; see personal-insights-context.ts).
+  if (sessionWithEvents.on) {
+    const stopPersonRecall = installPersonRecall(userId, sessionWithEvents, (note) =>
+      addRecallNote(agent as unknown as RecallAgent, note)
+    );
+    if (stopPersonRecall) cleanupFunctions.push(stopPersonRecall);
+  }
+
   // Realtime models that detect turns server-side never call
   // onUserTurnCompleted, so the same per-turn context is pushed into the
   // session between turns instead (informs the next reply).
@@ -1776,6 +1813,19 @@ Reference past context when relevant, but don't force it. Let the conversation f
       sessionWithEvents.off?.('agent_state_changed', onAgentState);
     });
   }
+
+  // Assistant turns: record what this persona actually said (turns + thread).
+  // Wired before the greeting so it is captured too.
+  cleanupFunctions.push(
+    wireAssistantTurnCapture({
+      session: sessionWithEvents,
+      sessionId,
+      userId,
+      services,
+      getPersonaId: () => persona.id,
+      getThreadId: () => userData.threadId,
+    })
+  );
 
   // Track handler status
   const handlersStatus = {

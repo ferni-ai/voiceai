@@ -492,6 +492,18 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     });
   }
 
+  // Assistant turns: record what the agent actually said (both memory paths)
+  const { wireAssistantTurnCapture } = await import('../voice-agent/assistant-turn-capture.js');
+  const stopAssistantCapture = wireAssistantTurnCapture({
+    session: session as unknown as import('../voice-agent/assistant-turn-capture.js').CapturableSession,
+    sessionId,
+    userId,
+    services,
+    getPersonaId: () => (userData.personaId as string | undefined) || sessionPersona.id,
+    getThreadId: () => userData.threadId as string | undefined,
+  });
+  cleanupHandlers.push(stopAssistantCapture);
+
   // Handoff handler
   const eventHandlerResult = createEventHandler({
     ctx, session,

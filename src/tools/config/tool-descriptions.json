@@ -1611,7 +1611,7 @@
       "file": "src/tools/domains/calendar/index.ts"
     },
     "forgetMemory": {
-      "description": "To delete memories. Execute. Use when user says.",
+      "description": "Really forget something when the user asks (\"forget that\", \"forget about Sarah\", \"forget our last conversation\"). First call with query only: it finds matches and returns a question to read back. After the user says yes, call again with confirm: true. If they say undo within 30 seconds, call with undo: true. For the last conversation use scope: \"last_conversation\". Read the returned text as is.",
       "file": "src/tools/domains/memory/tools.ts",
       "_original": "CALL immediately to delete memories. Execute without announcing. Use when user says"
     },
@@ -3170,7 +3170,7 @@
       "file": "src/tasks/finance-tasks.ts"
     },
     "recallFromMemory": {
-      "description": "CALL THIS FUNCTION to retrieve what you remember about the user. Execute silently when you need context. Use the result naturally in conversation.",
+      "description": "CALL THIS FUNCTION to retrieve what you remember about the user: facts they shared and people in their life. Execute silently when you need context. Use the result naturally in conversation.",
       "file": "src/tools/memory-tools.ts"
     },
     "recallNote": {
@@ -3178,7 +3178,7 @@
       "file": "src/tools/domains/simple-utilities/notes-tools.ts"
     },
     "recallPreviousConversation": {
-      "description": "Search your memory for relevant past conversations with this user based on a topic or theme.",
+      "description": "Search this user's past conversations with you (summaries and what was said) for a topic. Returns dated snippets with conversation ids.",
       "file": "src/tools/memory-tools.ts"
     },
     "reclaimLostHobby": {
@@ -3845,12 +3845,12 @@
       "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
     },
     "setPreference": {
-      "description": "Remember user preferences (units, nickname, etc). Use when user says: \"Call me [name]\", \"I prefer Celsius\", \"Use 24-hour time\", \"Remember that I like\".",
-      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+      "description": "Remember or forget how the user likes things: name/pronouns, answer length, tone, directness, humor, follow-up questions, topics not to bring up, quiet hours, coaching style, interests & hobbies, music & shows, food needs (allergies!), tastes and cooking, likes/dislikes, units. Use when user says: \"Call me [name]\", \"I prefer shorter answers\", \"Be more direct\", \"Don't bring up my dad\", \"Don't text me after 9pm\", \"I've gotten into pottery\", \"I listen to jazz when I work\", \"I'm on season 2 of Severance\", \"I'm allergic to peanuts\", \"I'm vegetarian\", \"The lasagna came out too salty\", \"Use Celsius\". Use action \"forget\" for \"forget that I like jazz\".",
+      "file": "src/tools/domains/simple-utilities/preference-tools.ts"
     },
     "getPreferences": {
-      "description": "Show saved user preferences. Use when user asks: \"What are my preferences?\", \"What do you know about me?\", \"What have I set?\".",
-      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+      "description": "Say what Ferni goes by for this user (name, style, boundaries, likes). Use when user asks: \"What do you know about my preferences?\", \"How do I like to be talked to?\", \"What have I set?\".",
+      "file": "src/tools/domains/simple-utilities/preference-tools.ts"
     },
     "tellJoke": {
       "description": "Tell a joke. Use when user says: \"Tell me a joke\", \"Make me laugh\", \"Say something funny\", \"I need a laugh\".",

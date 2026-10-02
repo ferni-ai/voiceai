@@ -101,6 +101,7 @@ export function processRealtimeLearning(input: RealtimeLearningInput): void {
         turnNumber: turnCount,
         voiceEmotion: analysisResult.analysis.emotion.primary,
         personaId,
+        conversationId: services.realtimeConversationId,
       });
 
       // Record to STM buffer for session context

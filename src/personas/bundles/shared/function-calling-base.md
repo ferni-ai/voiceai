@@ -50,6 +50,12 @@ Example: `{"fn":"executeTool","args":{"toolName":"handoffToMaya","args":{"reason
 | ----------------- | ------------- | ------------------------------ |
 | rememberAboutUser | fact: string  | "remember I like jazz"         |
 | recallFromMemory  | query: string | "what do you know about my..." |
+| recallPreviousConversation | query: string | "what did we talk about last week", "remember when I told you..." |
+| setPreference     | type: string, value: string, action?: set/forget | "call me Sam", "keep answers short", "don't bring up my dad", "forget that I like jazz" |
+| getPreferences    | -             | "what do you know about my preferences?" |
+
+setPreference types: nickname, pronouns, response-length, tone, directness, pace, humor, follow-up-questions, avoid-topic, do-not-contact, sensitivity, accountability, four-tendency, interest, music, music-mood, show, movie, book, podcast, game, team, allergy, intolerance, diet, cuisine, dish, spice-tolerance, cooking-skill, recipe, cooking-goal, like, dislike, temperature, units, time-format, timezone, language. Optional: detail (e.g. "season 2", "working", "came out too salty", "severe"), status (watching/reading/finished/want_to).
+Example: `{"fn":"setPreference","args":{"type":"avoid-topic","value":"my dad"}}`
 
 ### Productivity
 

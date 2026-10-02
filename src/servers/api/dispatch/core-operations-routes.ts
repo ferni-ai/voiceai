@@ -30,6 +30,8 @@ import { handlePracticeViewRoutes } from '../../../api/routes/practice-view.js';
 import { handleFinOpsRoutes } from '../../../api/finops-routes.js';
 import { handleConversationCostRoutes } from '../../../api/conversation-cost-routes.js';
 import { handleMemoryRoutes } from '../../../api/memory-routes.js';
+import { handleUserPreferenceRoutes } from '../../../api/user-preferences-routes.js';
+import { handleMemoryControlRoutes } from '../../../api/memory-control-routes.js';
 import {
   handleImportantDatesRoutes,
   isImportantDatesRoute,
@@ -159,15 +161,27 @@ export async function dispatchOperationsRoutes(ctx: RouteContext): Promise<boole
     if (handled) return true;
   }
 
+  // User preference profile (memory control: /api/memory/me/preferences)
+  if (pathname.startsWith('/api/memory/me/preferences')) {
+    const handled = await handleUserPreferenceRoutes(req, res, pathname);
+    if (handled) return true;
+  }
+
   // Important dates & reminder settings (user memory page)
   if (isImportantDatesRoute(pathname)) {
     const handled = await handleImportantDatesRoutes(req, res, pathname);
     if (handled) return true;
   }
 
-  // Goals, habits & dreams (user memory page)
+  // Goals, habits & dreams (user memory page) — before the generic /api/memory/me handler
   if (isAspirationsRoute(pathname)) {
     const handled = await handleAspirationsRoutes(req, res, pathname);
+    if (handled) return true;
+  }
+
+  // User memory control (view / edit / delete / export your own memories)
+  if (pathname === '/api/memory/me' || pathname.startsWith('/api/memory/me/')) {
+    const handled = await handleMemoryControlRoutes(req, res, pathname, parsedUrl);
     if (handled) return true;
   }
 

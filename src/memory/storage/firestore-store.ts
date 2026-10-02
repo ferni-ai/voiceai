@@ -252,6 +252,12 @@ export class FirestoreStore extends MemoryStore {
     }
   }
 
+  /**
+   * Delete ONLY the top-level profile document. Firestore does not cascade,
+   * so subcollections (conversations, turns, facts, ...) remain. Profile
+   * merging relies on that. For erasure (GDPR / account deletion) use
+   * `deleteUserAccountData` from services/memory-control, which is recursive.
+   */
   async deleteProfile(userId: string): Promise<boolean> {
     const db = await this.ensureInitialized();
 

@@ -599,6 +599,9 @@ vi.mock('../../../api/v2/index.js', () => ({
 vi.mock('../../../api/migration-routes.js', () => ({
   default: h.auto('api/migration-routes#default'),
 }));
+vi.mock('../../../api/identity-link-routes.js', () => ({
+  default: h.auto('api/identity-link-routes#default'),
+}));
 vi.mock('../../../api/account-routes.js', () => ({
   default: h.auto('api/account-routes#default'),
 }));
@@ -709,8 +712,14 @@ vi.mock('../../../api/aspirations-routes.js', () => ({
   isAspirationsRoute: h.auto('api/aspirations-routes#isAspirationsRoute'),
   handleAspirationsRoutes: h.auto('api/aspirations-routes#handleAspirationsRoutes'),
 }));
+vi.mock('../../../api/memory-control-routes.js', () => ({
+  handleMemoryControlRoutes: h.auto('api/memory-control-routes#handleMemoryControlRoutes'),
+}));
 vi.mock('../../../api/memory-routes.js', () => ({
   handleMemoryRoutes: h.auto('api/memory-routes#handleMemoryRoutes'),
+}));
+vi.mock('../../../api/user-preferences-routes.js', () => ({
+  handleUserPreferenceRoutes: h.auto('api/user-preferences-routes#handleUserPreferenceRoutes'),
 }));
 vi.mock('../../../api/action-routes.js', () => ({
   handleActionRoutes: h.auto('api/action-routes#handleActionRoutes'),
@@ -853,6 +862,7 @@ const ROUTE_PREFIXES = [
   '/api/v1/',
   '/api/v2/',
   '/api/auth/migrat',
+  '/api/identity/',
   '/api/account',
   '/api/session/accent',
   '/api/auth/',
@@ -877,11 +887,14 @@ const ROUTE_PREFIXES = [
   '/api/practice-view',
   '/api/trust/',
   '/api/semantic-intelligence',
+  '/api/memory/me/preferences',
   '/api/memory/me/dates',
   '/api/memory/me/dates/',
   '/api/memory/me/reminder-settings',
   '/api/memory/me/aspirations',
   '/api/memory/me/aspirations/',
+  '/api/memory/me',
+  '/api/memory/me/',
   '/api/memory',
   '/api/actions',
   '/api/relationship/progress',

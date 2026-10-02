@@ -130,10 +130,9 @@ import {
 // PersonaIdString is just a string alias, defined locally to avoid import issues
 
 // Phase 17: Active Listening Memory Capture - "Better Than Human" real-time entity extraction
-import {
-  processActiveListeningFinal,
-  processActiveListeningPartial,
-} from './active-listening-handler.js';
+import { processActiveListeningPartial } from './active-listening-handler.js';
+import { captureUserTurn } from './user-turn-capture.js';
+import { markSessionActivity } from '../../services/memory/turn-sequencer.js';
 
 // ============================================================================
 // TYPES
@@ -284,6 +283,11 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
   } = ctx;
 
   const handler = (event: TranscriptEvent): void => {
+    // Any transcript (interim or final) means the call is alive.
+    if (event.transcript) {
+      markSessionActivity(sessionId);
+    }
+
     // ===============================================
     // INTERRUPT DETECTION (Micro-interrupts + Graceful trailing)
     // Handles "wait", "hold on", etc. and pre-emptive SSML injection
@@ -1100,15 +1104,8 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         try {
           coordinatedSay(sessionId, cached.ssml || cached.response, { allowInterruptions: true });
 
-          // Track that we used a cached response (+ on-behalf call capture)
-          import('./agent-turn-recorder.js')
-            .then(({ recordAgentTurn }) => recordAgentTurn(sessionId, services, cached.response))
-            .catch(() => {
-              // Fallback
-              if (services && typeof services.addTurn === 'function') {
-                services.addTurn('assistant', cached.response);
-              }
-            });
+          // The spoken reply is recorded as an assistant turn when it plays out
+          // (assistant-turn-capture.ts, conversation_item_added).
           if (userData) {
             userData.lastAgentResponse = cached.response;
             userData.lastAgentResponseTime = Date.now();
@@ -1324,6 +1321,22 @@ async function processFinalTranscript(
   }
 
   // ===============================================
+  // 🧠 MEMORY CAPTURE — first, for every final transcript
+  // Turn record, thread message, dynamic memory, active listening. Runs before
+  // tool routing so an FTIS direct execution (which returns early) can never
+  // skip it. See user-turn-capture.ts.
+  // ===============================================
+  captureUserTurn({
+    transcript: event.transcript,
+    sessionId,
+    userId,
+    services,
+    personaId: sessionPersona?.id || userData.personaId || 'ferni',
+    userData,
+    conversationManager,
+  });
+
+  // ===============================================
   // 🧠 FTIS ROUTING: Run BEFORE SDK auto-response takes over (Jan 2026 FIX)
   //
   // CRITICAL ARCHITECTURE FIX:
@@ -1421,8 +1434,8 @@ async function processFinalTranscript(
               timeoutMs: TOOL_RESPONSE_TIMEOUT_MS,
             });
 
-            // Skip the rest of processFinalTranscript since we handled the response
-            // Memory capture will happen on the next turn
+            // Skip the rest of processFinalTranscript since we handled the response.
+            // Memory capture already ran above (captureUserTurn).
             return;
           }
         }
@@ -1432,109 +1445,6 @@ async function processFinalTranscript(
       diag.warn('FTIS routing error (falling back to SDK)', { error: String(ftisError) });
     }
   } // End of if (!alreadyHandled)
-
-  // ===============================================
-  // 🧠 DYNAMIC MEMORY CAPTURE: LLM-powered extraction
-  // Uses temporal decoupling: fast capture (< 50ms) + async deep extraction
-  // Extracts entities, relationships, emotions, dates, topics
-  // Deep LLM extraction runs in background worker
-  // ===============================================
-  try {
-    if (!userId) {
-      diag.debug('Skipping memory capture - no userId');
-    } else {
-      const { fastCapture, recordTurn } = await import('../../memory/dynamic/index.js');
-      const captureResult = await fastCapture({
-        userId,
-        sessionId,
-        turnNumber: 0, // Transcript handler doesn't track turn numbers
-        transcript: event.transcript,
-        personaId: userData.personaId,
-      });
-
-      // 🧠 CRITICAL: Record to STM buffer for session context
-      recordTurn(sessionId, userId, captureResult, event.transcript, 0);
-
-      // Log capture results for debugging
-      if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
-        diag.state('🧠 Dynamic memory: Fast capture complete', {
-          entityCount: captureResult.mentionedEntities.length,
-          topicHints: captureResult.topicHints,
-          asyncJobId: captureResult.asyncJobId,
-          captureTimeMs: captureResult.captureTimeMs,
-        });
-      }
-    }
-  } catch (captureError) {
-    // Non-fatal - memory capture is enhancement, not critical
-    diag.warn('Memory capture error', { error: String(captureError) });
-  }
-
-  // ===============================================
-  // 👂 PHASE 17: ACTIVE LISTENING - FINAL CAPTURE
-  // Process final transcript to capture any remaining items
-  // Entities, dates, commitments extracted in real-time
-  // ===============================================
-  if (userId && event.transcript) {
-    processActiveListeningFinal({
-      userId,
-      sessionId,
-      transcript: event.transcript,
-      isFinal: true,
-      userData,
-      conversationManager,
-    });
-  }
-
-  // ===============================================
-  // 🧵 THREAD RECORDING: Record user message for cross-channel continuity
-  // This enables seamless conversation flow: SMS → Voice → Push
-  // ===============================================
-  if (userId && event.transcript) {
-    try {
-      const { recordUserMessage } =
-        await import('../../services/conversation-thread/thread-recorder.js');
-      void recordUserMessage({
-        userId,
-        sessionId,
-        personaId: sessionPersona.id as import('../../personas/types.js').PersonaId,
-        threadId: userData.threadId,
-        content: event.transcript,
-        sentiment:
-          userData.lastEmotionAnalysis?.primary === 'happy'
-            ? 'positive'
-            : userData.lastEmotionAnalysis?.primary === 'sad'
-              ? 'negative'
-              : 'neutral',
-        topics: userData.recentTopics,
-      });
-    } catch (threadErr) {
-      // Non-fatal - thread recording is enhancement
-      diag.debug('Thread recording error', { error: String(threadErr) });
-    }
-  }
-
-  // ===============================================
-  // 🔴 CRITICAL FIX: Record user turn for memory persistence
-  // This was MISSING - causing all user speech to be lost!
-  // Without this, learning engine gets no data, summaries are empty,
-  // and Ferni never remembers what users say.
-  // ===============================================
-  // For on-behalf calls, also captures for superhuman analysis
-  if (event.transcript) {
-    import('./agent-turn-recorder.js')
-      .then(({ recordUserTurn }) => recordUserTurn(sessionId, services, event.transcript))
-      .catch(() => {
-        // Fallback
-        if (services && typeof services.addTurn === 'function') {
-          services.addTurn('user', event.transcript);
-        }
-      });
-    diag.debug('📝 User turn recorded for memory', {
-      preview: event.transcript.slice(0, 50),
-      sessionId,
-    });
-  }
 
   // ===============================================
   // SESAME-INSPIRED: START NEW TURN
@@ -1603,6 +1513,15 @@ async function processFinalTranscript(
         preferences: extractedPrefs.map((p) => `${p.category}: ${p.value}`),
       });
     }
+  }
+
+  // 🎛️ User preference profile: explicit statements ("call me Sam", "keep it short",
+  // "don't bring up my dad") + music/lifestyle likes, one store (services/user-preferences)
+  if (userId) {
+    fireAndForget(async () => {
+      const { recordUserTurnPreferences } = await import('../../services/user-preferences/inference.js');
+      await recordUserTurnPreferences(userId, event.transcript, sessionId);
+    }, 'user-preference-profile');
   }
 
   // Extract memorable moments

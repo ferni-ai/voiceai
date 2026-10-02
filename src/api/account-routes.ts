@@ -12,10 +12,16 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getDefaultStore } from '../memory/index.js';
 import { deleteFirebaseUser, getFirebaseUser } from '../services/identity/firebase-auth.js';
+import { deleteUserAccountData } from '../services/memory-control/index.js';
 import { recordSecurityEvent } from '../services/security-events.js';
 import { createUserProfile } from '../types/user-profile.js';
+import {
+  applyPreferencesToAccountView,
+  syncAccountPreferences,
+} from '../services/user-preferences/index.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
+import { sendAccountDeletionResult } from './account-deletion-response.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
 
 // Alias for compatibility
@@ -191,11 +197,8 @@ async function handleDeleteAccount(
   });
 
   try {
-    const store = getDefaultStore();
-    await store.initialize();
-
-    // Delete profile and all associated data
-    const profileDeleted = await store.deleteProfile(userId);
+    // Recursive: the profile doc AND every subcollection, vectors, graph, storage.
+    const report = await deleteUserAccountData(userId);
 
     // Delete Firebase user if this looks like a Firebase UID
     let firebaseDeleted = false;
@@ -213,23 +216,7 @@ async function handleDeleteAccount(
       }
     }
 
-    if (profileDeleted || firebaseDeleted) {
-      sendJson(res, {
-        success: true,
-        message: 'Your account and all associated data have been deleted.',
-        deletedAt: new Date().toISOString(),
-        details: {
-          profileDeleted,
-          firebaseDeleted,
-        },
-      });
-    } else {
-      sendJson(res, {
-        success: false,
-        message: 'No account found to delete.',
-      });
-    }
-
+    sendAccountDeletionResult(res, report, { firebaseDeleted });
     return true;
   } catch (error) {
     log.error({ error, userId }, 'Account deletion failed');
@@ -292,12 +279,19 @@ async function handleUpdateProfile(
 
     await store.saveProfile(profile);
 
+    // The preference profile is the single store for conversation preferences:
+    // write these settings into it, then report back what it holds.
+    if (preferences) {
+      await syncAccountPreferences(userId, preferences);
+    }
+    const effectivePreferences = await applyPreferencesToAccountView(userId, profile.preferences);
+
     sendJson(res, {
       success: true,
       profile: {
         name: profile.name,
         email: profile.contactInfo?.email,
-        preferences: profile.preferences,
+        preferences: effectivePreferences,
         updatedAt: profile.lastContact,
       },
     });

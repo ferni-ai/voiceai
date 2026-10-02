@@ -212,10 +212,25 @@ export interface SessionThreadMethods {
 }
 
 /**
+ * Optional per-turn metadata for `addTurn`.
+ */
+export interface TurnMeta {
+  /** Monotonic per conversation (services/memory/turn-sequencer.ts); allocated if omitted */
+  turnNumber?: number;
+  /** Persona speaking (assistant) or being spoken to (user) */
+  personaId?: string;
+}
+
+/**
  * Session lifecycle methods
  */
 export interface SessionLifecycleMethods {
-  addTurn: (role: 'user' | 'assistant', content: string, durationMs?: number) => void;
+  addTurn: (
+    role: 'user' | 'assistant',
+    content: string,
+    durationMs?: number,
+    meta?: TurnMeta
+  ) => void;
   saveProfile: () => Promise<void>;
   updateHumanizingState: (update: HumanizingStateUpdate) => void;
   endSession: () => Promise<void>;

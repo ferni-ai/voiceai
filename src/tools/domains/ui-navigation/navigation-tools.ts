@@ -30,6 +30,19 @@ const log = getLogger();
  * Maps to frontend event names and human-readable labels.
  */
 const PANELS = {
+  memories: {
+    label: 'What I Remember',
+    aliases: [
+      'what you remember',
+      'what do you remember',
+      'what you know about me',
+      'what do you know about me',
+      'my memories',
+      'memory settings',
+      'manage memories',
+      'what i remember',
+    ],
+  },
   'your-story': {
     label: 'Your Story',
     aliases: ['my story', 'your story', 'story', 'about me'],
@@ -139,6 +152,7 @@ const openPanelDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Opens a UI panel or dashboard. Call this when the user says things like:
+- "Show me what you remember" / "What do you know about me?" (opens the memory page where they can edit or delete memories)
 - "Show me my story" / "Open your story"
 - "Take me to memory lane" / "Show our memories"
 - "Open conversation history" / "Show past conversations"
@@ -187,6 +201,7 @@ The panel parameter should be what the user said (e.g., "my story", "memory lane
 
           // Human-friendly confirmations
           const confirmations: Record<PanelId, string> = {
+            memories: "Here's what I remember. Change or delete anything you like.",
             'your-story': "Here's your story - everything I know about you.",
             'memory-lane': "Opening Memory Lane - let's take a walk through our shared history.",
             history: 'Here are our past conversations.',
@@ -194,11 +209,11 @@ The panel parameter should be what the user said (e.g., "my story", "memory lane
             quiz: "Let's see how well I know you! Opening the quiz.",
             music: "Here's your music dashboard - our musical journey together.",
             calendar: "Here's what's ahead on your calendar.",
-            contacts: "Opening Your People - everyone important to you.",
+            contacts: 'Opening Your People - everyone important to you.',
             journal: 'Here is your journal.',
             'year-with-ferni': "Here's your year with me - what a journey!",
             settings: 'Opening settings.',
-            'guided-practices': "Here are your guided practices and rituals.",
+            'guided-practices': 'Here are your guided practices and rituals.',
             'household-members': "Here's your household.",
             'voice-id': 'Opening Voice ID settings.',
             notifications: 'Opening notification settings.',
@@ -206,10 +221,7 @@ The panel parameter should be what the user said (e.g., "my story", "memory lane
 
           return confirmations[panelId] || `Opening ${label}...`;
         } catch (error) {
-          log.error(
-            { error: String(error), userId: ctx.userId, panel },
-            '🧭 Failed to open panel'
-          );
+          log.error({ error: String(error), userId: ctx.userId, panel }, '🧭 Failed to open panel');
           return "I had trouble opening that. You can also find it in the menu if you'd like.";
         }
       },

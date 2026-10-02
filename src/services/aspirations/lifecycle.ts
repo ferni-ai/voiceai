@@ -208,3 +208,14 @@ export async function exportAspirations(userId: string): StoreResult<ExportedAsp
   if (!listed.success) return listed;
   return success(listed.data.map(toExport));
 }
+
+/** Items matching a spoken description (voice forget search). */
+export async function findAspirations(
+  userId: string,
+  query: string
+): StoreResult<AspirationRecord[]> {
+  const listed = await listAspirations(userId);
+  if (!listed.success) return listed;
+  const { matchItems } = await import('./detection.js');
+  return success(matchItems(query, listed.data).slice(0, 5));
+}

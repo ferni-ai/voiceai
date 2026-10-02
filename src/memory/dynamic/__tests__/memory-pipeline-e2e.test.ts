@@ -43,36 +43,15 @@ vi.mock('../async-events-config.js', () => ({
   resetAsyncEventsConfig: vi.fn(),
 }));
 
-// Mock Firestore
+// Mock Firestore: an in-memory double with transactions and collection groups
+// (the worker's durable queue and fact upserts need both).
 const mockFirestoreData = new Map<string, unknown>();
-const mockBatchSet = vi.fn();
-const mockBatchCommit = vi.fn(() => Promise.resolve());
 
-vi.mock('../../../utils/firestore-utils.js', () => ({
-  getFirestoreDb: vi.fn(() => ({
-    collection: () => ({
-      doc: (id: string) => ({
-        collection: () => ({
-          doc: (subId: string) => ({
-            set: (data: unknown) => {
-              mockFirestoreData.set(`${id}/${subId}`, data);
-              return Promise.resolve();
-            },
-            get: () =>
-              Promise.resolve({
-                exists: mockFirestoreData.has(`${id}/${subId}`),
-                data: () => mockFirestoreData.get(`${id}/${subId}`),
-              }),
-          }),
-        }),
-      }),
-    }),
-    batch: () => ({
-      set: mockBatchSet,
-      commit: mockBatchCommit,
-    }),
-  })),
-}));
+vi.mock('../../../utils/firestore-utils.js', async () => {
+  const { FakeFirestore } = await import('./helpers/fake-firestore.js');
+  const db = new FakeFirestore();
+  return { getFirestoreDb: vi.fn(() => db) };
+});
 
 // Mock vector store
 const mockVectorDocuments: Array<{ id: string; content: string; embedding?: number[] }> = [];

@@ -11,6 +11,13 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { handleVoiceForget } from '../../../services/memory-control/voice-forget.js';
+import {
+  formatConversationHits,
+  formatFactHits,
+  searchUserConversations,
+  searchUserFacts,
+} from '../../../memory/recall/user-memory-search.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -51,6 +58,8 @@ interface SessionServices {
 interface UserData {
   name?: string;
   userId?: string;
+  /** Firestore conversation ID of the live call, when known. */
+  conversationId?: string;
   services?: SessionServices;
   keyMoments?: string[];
   topics?: string[];
@@ -146,25 +155,18 @@ export const recallFromMemoryDef: ToolDefinition = {
 
         const userData = toolCtx.userData as UserData;
         const { services } = userData;
+        const userId = [userData.userId, ctx.userId].find((id) => id && id !== 'default');
 
-        if (services?.userProfile) {
-          const profile = services.userProfile;
-
-          // Check various memory stores
-          if (profile.lastConversationSummary) {
-            return `From our last conversation, I remember: ${profile.lastConversationSummary}`;
+        // This user's own remembered facts and people, ranked for the topic.
+        if (userId) {
+          const hits = await searchUserFacts(userId, topic, { maxItems: 6 });
+          if (hits.length > 0) {
+            return `What you remember about the user (use naturally; never read it out as a list):\n${formatFactHits(hits)}`;
           }
+        }
 
-          // Check if they have goals stored
-          if (profile.goals && profile.goals.length > 0) {
-            const goalSummary = profile.goals.map((g) => g.name).join(', ');
-            return `I remember you mentioned these goals: ${goalSummary}`;
-          }
-
-          // Check preferred topics
-          if (profile.preferredTopics && profile.preferredTopics.length > 0) {
-            return `I recall you've been interested in: ${profile.preferredTopics.slice(0, 3).join(', ')}`;
-          }
+        if (services?.userProfile?.lastConversationSummary) {
+          return `From our last conversation, I remember: ${services.userProfile.lastConversationSummary}`;
         }
 
         // Check session memory
@@ -203,17 +205,17 @@ export const recallPreviousConversationDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId, query }, 'Semantic recall');
 
         const userData = toolCtx.userData as UserData;
-        const { services } = userData;
+        const userId = [userData.userId, ctx.userId].find((id) => id && id !== 'default');
 
-        if (services?.searchKnowledge) {
+        // Search THIS user's past conversations (not persona knowledge).
+        if (userId) {
           try {
-            // Use semantic search on conversation history
-            const result = await services.searchKnowledge(query);
-            if (result) {
-              return `I found something relevant in my memory: ${result}`;
+            const hits = await searchUserConversations(userId, query, { maxResults: 4 });
+            if (hits.length > 0) {
+              return `From your past conversations with the user (dated; refer to them naturally):\n${formatConversationHits(hits)}`;
             }
           } catch (error) {
-            getLogger().warn({ error, query }, 'Semantic recall error');
+            getLogger().warn({ error: String(error), query }, 'Conversation recall error');
           }
         }
 
@@ -477,43 +479,54 @@ export const forgetMemoryDef: ToolDefinition = {
     return llm.tool({
       description: getToolDescription('forgetMemory'),
       parameters: z.object({
-        whatToForget: z.string().describe('What the user wants you to forget'),
-        confirmDeletion: z
+        query: z
+          .string()
+          .optional()
+          .describe(
+            'What to forget, in the user\'s words (e.g. "my sister\'s surgery", "Sarah", "my old job")'
+          ),
+        scope: z
+          .enum(['match', 'last_conversation'])
+          .optional()
+          .describe('Use "last_conversation" for "forget our last conversation"'),
+        confirm: z
           .boolean()
-          .describe('Whether the user has confirmed they want this forgotten'),
+          .optional()
+          .describe(
+            'true only after the user said yes to "want me to forget it?" (or clearly insisted)'
+          ),
+        undo: z
+          .boolean()
+          .optional()
+          .describe('true when the user says "undo" or "bring it back" right after forgetting'),
+        // Legacy argument names, still accepted
+        whatToForget: z.string().optional().describe('Same as query (legacy)'),
+        confirmDeletion: z.boolean().optional().describe('Same as confirm (legacy)'),
       }),
-      execute: async ({ whatToForget, confirmDeletion }, { ctx: toolCtx }) => {
+      execute: async (args, { ctx: toolCtx }) => {
+        const userData = toolCtx.userData as UserData;
+        const query = args.query ?? args.whatToForget;
+        const confirm = args.confirm ?? args.confirmDeletion ?? false;
         getLogger().info(
-          { agentId: ctx.agentId, whatToForget, confirmDeletion },
-          'Forgetting memory'
+          { agentId: ctx.agentId, scope: args.scope, confirm, undo: args.undo === true },
+          'Forget memory requested'
         );
 
-        if (!confirmDeletion) {
-          return `Just to confirm - you'd like me to forget about "${whatToForget}"? Let me know and I'll remove it.`;
-        }
-
-        const userData = toolCtx.userData as UserData;
-        const { services } = userData;
-
-        // Remove from session memory
-        if (userData.keyMoments) {
+        // Also drop it from this session's in-memory key moments
+        if (confirm && query && userData.keyMoments) {
+          const needle = query.toLowerCase();
           userData.keyMoments = userData.keyMoments.filter(
-            (m) => !m.toLowerCase().includes(whatToForget.toLowerCase())
+            (m) => !m.toLowerCase().includes(needle)
           );
         }
 
-        // Log the deletion for audit purposes (but don't persist the deleted content)
-        if (services?.captureInsight) {
-          services.captureInsight(
-            'user_action',
-            'memory_deletion',
-            `User requested deletion of memory related to: [redacted]`,
-            1.0
-          );
-        }
-
-        // Return empty string - agent should continue naturally without reading any acknowledgment
-        return '';
+        return handleVoiceForget(userData.userId, {
+          query,
+          scope: args.scope,
+          confirm,
+          undo: args.undo === true,
+          currentConversationId: userData.conversationId,
+        });
       },
     });
   },
