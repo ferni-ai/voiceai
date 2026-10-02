@@ -34,7 +34,7 @@ import type {
 const log = createLogger({ module: 'meal-store' });
 
 // In-memory fallback when Firestore is unavailable
-const mealStorage: Map<string, MealData> = new Map();
+const mealStorage = new Map<string, MealData>();
 
 // Types live in meal-types.ts; re-exported for existing importers.
 export type {
@@ -364,7 +364,7 @@ export async function getRecipesForDiet(userId: string): Promise<Recipe[]> {
 /**
  * Get quick recipes (under specified minutes)
  */
-export async function getQuickRecipes(userId: string, maxMinutes: number = 30): Promise<Recipe[]> {
+export async function getQuickRecipes(userId: string, maxMinutes = 30): Promise<Recipe[]> {
   const data = await getMealData(userId);
   return data.recipes.filter((r) => r.totalTimeMinutes <= maxMinutes);
 }
