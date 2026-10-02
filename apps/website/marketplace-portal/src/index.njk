@@ -433,7 +433,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   align-items: center;
   justify-content: center;
   background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   color: var(--accent-primary);
   flex-shrink: 0;
   box-shadow: var(--shadow-sm);
@@ -464,7 +464,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   gap: var(--space-1);
   padding: var(--space-4) var(--space-6);
   background: var(--bg-elevated);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
 }
 
@@ -552,9 +552,9 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   gap: var(--space-4);
   padding: var(--space-5);
   background: var(--bg-elevated);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
-  transition: all var(--duration-slow) var(--ease-out);
+  transition: all var(--duration-slow) var(--ease-cinematic);
   text-decoration: none;
   color: inherit;
   cursor: pointer;
@@ -591,9 +591,9 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
 
 /* LUXO STYLE: Eyes are solid white ellipses - NO pupils! */
 .avatar-orb .eye-white {
-  fill: white;
+  fill: var(--color-white);
   transform-origin: center center;
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform var(--duration-slower) var(--ease-ease-out-back);
 }
 
 /* Presence Ring */
@@ -602,7 +602,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   stroke: var(--persona-color);
   stroke-width: 1.5;
   opacity: 0.4;
-  transition: all 0.4s ease;
+  transition: all var(--duration-slower) ease;
   transform-origin: center center;
 }
 
@@ -613,7 +613,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   border-radius: 50%;
   background: radial-gradient(circle, var(--persona-glow) 0%, transparent 70%);
   opacity: 0;
-  transition: opacity 0.5s ease;
+  transition: opacity var(--duration-slowest) ease;
   pointer-events: none;
 }
 
@@ -643,7 +643,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
 
 /* BLINKING - Natural eye blinks */
 .avatar-orb.blinking .eye-white {
-  animation: eyeBlink 0.15s ease-in-out;
+  animation: eyeBlink var(--duration-fast) ease-in-out;
 }
 
 @keyframes eyeBlink {
@@ -653,7 +653,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
 
 /* GAZE DRIFT - Subtle idle eye movement */
 .avatar-orb.gazing .eyes-group {
-  animation: gazeDrift 8s ease-in-out infinite;
+  animation: gazeDrift var(--duration-ambient) ease-in-out infinite;
 }
 
 @keyframes gazeDrift {
@@ -689,13 +689,13 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   border: none;
   border-radius: 50%;
   background: var(--persona-color);
-  color: white;
+  color: var(--color-white);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease;
+  box-shadow: var(--shadow-md);
+  transition: all var(--duration-normal) ease;
   z-index: 2;
 }
 
@@ -726,8 +726,8 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   content: '';
   width: 8px;
   height: 8px;
-  background: white;
-  border-radius: 2px;
+  background: var(--color-white);
+  border-radius: var(--radius-xs);
 }
 
 .preview-content {
@@ -816,7 +816,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   font-family: var(--font-body);
   font-size: var(--text-base);
   color: var(--text-primary);
-  transition: all var(--duration-fast) var(--ease-gentle);
+  transition: all var(--duration-faster) var(--ease-in-out);
 }
 
 .notify-input:focus {
@@ -831,14 +831,14 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   gap: var(--space-2);
   padding: var(--space-4) var(--space-6);
   background: var(--accent-primary);
-  color: white;
+  color: var(--color-white);
   border: none;
   border-radius: var(--radius-full);
   font-family: var(--font-body);
   font-size: var(--text-base);
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-gentle);
+  transition: all var(--duration-faster) var(--ease-in-out);
 }
 
 .notify-btn:hover {
@@ -863,8 +863,8 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   padding: var(--space-5);
   background: var(--bg-elevated);
   border: 1px solid var(--border-medium);
-  border-radius: var(--radius-xl);
-  transition: all var(--duration-slow) var(--ease-out);
+  border-radius: var(--radius-lg);
+  transition: all var(--duration-slow) var(--ease-cinematic);
   color: var(--text-primary);
 }
 
@@ -882,7 +882,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   align-items: center;
   justify-content: center;
   background: var(--accent-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   color: var(--accent-primary);
 }
 
@@ -905,7 +905,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
 
 .creator-cta > svg {
   color: var(--text-muted);
-  transition: transform var(--duration-fast) var(--ease-gentle);
+  transition: transform var(--duration-faster) var(--ease-in-out);
 }
 
 .creator-cta:hover > svg {

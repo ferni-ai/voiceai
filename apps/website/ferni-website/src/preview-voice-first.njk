@@ -60,7 +60,7 @@ permalink: /preview/voice-first/
   .ferni-avatar__initials {
     font-family: var(--font-accent);
     font-size: var(--text-6xl);
-    color: white;
+    color: var(--color-white);
     font-weight: 700;
     letter-spacing: 0.05em;
   }
@@ -120,8 +120,8 @@ permalink: /preview/voice-first/
     width: 4px;
     height: 20px;
     background: var(--color-ferni);
-    border-radius: 2px;
-    animation: soundBars 0.5s ease-in-out infinite alternate;
+    border-radius: var(--radius-xs);
+    animation: soundBars var(--duration-slowest) ease-in-out infinite alternate;
   }
 
   .listening-bar:nth-child(1) { animation-delay: 0s; height: 12px; }
@@ -144,7 +144,7 @@ permalink: /preview/voice-first/
     min-height: 2.4em;
     opacity: 0;
     transform: translateY(20px);
-    transition: all 0.6s ease;
+    transition: all var(--duration-deliberate) ease;
   }
 
   .voice-greeting.visible {
@@ -157,7 +157,7 @@ permalink: /preview/voice-first/
     color: var(--color-text-secondary);
     margin-bottom: var(--space-8);
     opacity: 0;
-    transition: opacity 0.6s ease 0.3s;
+    transition: opacity var(--duration-deliberate) ease var(--duration-slow);
   }
 
   .voice-subtext.visible {
@@ -171,7 +171,7 @@ permalink: /preview/voice-first/
     gap: var(--space-3);
     padding: var(--space-4) var(--space-8);
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     font-family: var(--font-body);
     font-size: var(--text-lg);
     font-weight: var(--font-weight-medium);
@@ -207,7 +207,7 @@ permalink: /preview/voice-first/
     border: 1px solid var(--color-border-subtle);
     min-height: 100px;
     opacity: 0;
-    transition: opacity 0.4s ease;
+    transition: opacity var(--duration-slower) ease;
   }
 
   .voice-transcript.visible {
@@ -220,7 +220,7 @@ permalink: /preview/voice-first/
     margin-bottom: var(--space-3);
     padding: var(--space-3);
     border-radius: var(--radius-lg);
-    animation: fadeIn 0.4s ease;
+    animation: fadeIn var(--duration-slower) ease;
   }
 
   .transcript-line.ferni {
@@ -254,8 +254,8 @@ permalink: /preview/voice-first/
     position: fixed;
     top: var(--space-4);
     left: var(--space-4);
-    background: rgba(255, 193, 7, 0.9);
-    color: #333;
+    background: color-mix(in srgb, var(--color-google-yellow) 90%, transparent);
+    color: var(--color-gray-700);
     padding: var(--space-2) var(--space-4);
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
@@ -283,7 +283,7 @@ permalink: /preview/voice-first/
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) ease;
   }
 
   .preview-nav a:hover {
@@ -294,7 +294,7 @@ permalink: /preview/voice-first/
 
   .preview-nav a.active {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     border-color: var(--color-accent);
   }
 </style>

@@ -7,45 +7,45 @@
   <style>
     :root {
       /* Cedar Night Theme - Warm, earthy, grounded */
-      --dev-bg: #584840;
-      --dev-bg-deep: #4a3a35;
-      --dev-bg-darker: #3a2e2a;
-      --dev-surface: #70605a;
-      --dev-surface-elevated: #7a6a64;
-      --dev-border: rgba(250, 246, 240, 0.12);
-      --dev-border-strong: rgba(250, 246, 240, 0.20);
+      --dev-bg: var(--color-cedar-dark);
+      --dev-bg-deep: var(--color-dark-gradient-mid);
+      --dev-bg-darker: var(--color-ink);
+      --dev-surface: var(--color-cedar);
+      --dev-surface-elevated: var(--color-cedar);
+      --dev-border: color-mix(in srgb, var(--color-dark-text) 12%, transparent);
+      --dev-border-strong: color-mix(in srgb, var(--color-dark-text) 20%, transparent);
 
       /* Gold accent - warm, not neon */
-      --dev-accent: #d4a84a;
-      --dev-accent-hover: #e0bc6a;
-      --dev-accent-subtle: rgba(212, 168, 74, 0.15);
+      --dev-accent: var(--color-accent-gold);
+      --dev-accent-hover: var(--color-accent-gold-hover);
+      --dev-accent-subtle: color-mix(in srgb, var(--color-accent-gold) 15%, transparent);
 
       /* Warm text colors */
-      --dev-text: #faf6f0;
-      --dev-text-secondary: #f0ebe4;
-      --dev-text-muted: #d8d0c8;
+      --dev-text: var(--color-dark-text);
+      --dev-text-secondary: var(--color-dark-text-secondary);
+      --dev-text-muted: var(--color-sand-dark);
 
       /* Code blocks */
-      --dev-code-bg: #2a2420;
-      --dev-code-border: rgba(250, 246, 240, 0.08);
+      --dev-code-bg: var(--color-bg-darker);
+      --dev-code-border: color-mix(in srgb, var(--color-dark-text) 8%, transparent);
 
       /* Ferni green for brand touches */
-      --dev-ferni: #4a6741;
-      --dev-ferni-light: #6b8760;
+      --dev-ferni: var(--color-ferni);
+      --dev-ferni-light: var(--color-ferni-light);
 
       /* Persona accent colors for variety */
-      --dev-peter: #3a6b73;
-      --dev-peter-light: #5a8b93;
-      --dev-alex: #5a6b8a;
-      --dev-alex-light: #7a8baa;
-      --dev-maya: #a67a6a;
-      --dev-maya-light: #c69a8a;
-      --dev-jordan: #c4856a;
-      --dev-jordan-light: #e4a58a;
-      --dev-nayan: #b8956a;
-      --dev-nayan-light: #d8b58a;
-      --dev-moss: #5a7a3d;
-      --dev-moss-light: #7a9a5d;
+      --dev-peter: var(--color-peter);
+      --dev-peter-light: var(--color-peter-light);
+      --dev-alex: var(--color-alex);
+      --dev-alex-light: var(--color-alex-light);
+      --dev-maya: var(--color-maya);
+      --dev-maya-light: var(--color-maya-light);
+      --dev-jordan: var(--color-jordan);
+      --dev-jordan-light: var(--color-jordan-light);
+      --dev-nayan: var(--color-nayan);
+      --dev-nayan-light: var(--color-tea);
+      --dev-moss: var(--color-moss);
+      --dev-moss-light: var(--color-moss-light);
     }
 
     * {
@@ -55,7 +55,7 @@
     body {
       background: var(--dev-bg);
       color: var(--dev-text);
-      font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: var(--font-display);
       margin: 0;
       padding: 0;
       min-height: 100vh;
@@ -66,7 +66,7 @@
     a {
       color: var(--dev-accent);
       text-decoration: none;
-      transition: color 0.2s ease;
+      transition: color var(--duration-normal) ease;
     }
 
     a:hover {
@@ -114,7 +114,7 @@
       text-decoration: none;
       font-size: 0.9rem;
       font-weight: 500;
-      transition: color 0.2s;
+      transition: color var(--duration-normal);
     }
 
     .dev-nav-links a:hover,
@@ -169,11 +169,11 @@
     /* Buttons */
     .btn-dev {
       padding: 0.875rem 1.75rem;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       font-weight: 600;
       font-size: 0.95rem;
       text-decoration: none;
-      transition: all 0.2s ease;
+      transition: all var(--duration-normal) ease;
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
@@ -224,7 +224,7 @@
       font-size: 2rem;
       font-weight: 700;
       color: var(--dev-accent);
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
     }
 
     .dev-stat-label {
@@ -269,9 +269,9 @@
     .dev-card {
       background: var(--dev-surface);
       border: 1px solid var(--dev-border);
-      border-radius: 12px;
+      border-radius: var(--radius-md);
       padding: 1.75rem;
-      transition: all 0.25s ease;
+      transition: all var(--duration-slow) ease;
       text-decoration: none;
       color: inherit;
     }
@@ -279,14 +279,14 @@
     .dev-card:hover {
       border-color: var(--dev-accent);
       transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--shadow-xl);
     }
 
     .dev-card-icon {
       width: 44px;
       height: 44px;
       background: var(--dev-accent-subtle);
-      border-radius: 10px;
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -331,12 +331,12 @@
     .dev-code-block {
       background: var(--dev-code-bg);
       border: 1px solid var(--dev-code-border);
-      border-radius: 12px;
+      border-radius: var(--radius-md);
       overflow: hidden;
     }
 
     .dev-code-header {
-      background: rgba(0, 0, 0, 0.2);
+      background: color-mix(in srgb, var(--color-black) 20%, transparent);
       padding: 0.75rem 1rem;
       display: flex;
       align-items: center;
@@ -350,31 +350,31 @@
       border-radius: 50%;
     }
 
-    .dev-code-dot--red { background: #ff6b6b; }
-    .dev-code-dot--yellow { background: #ffd93d; }
-    .dev-code-dot--green { background: #6bcb77; }
+    .dev-code-dot--red { background: var(--effect-chromatic-red); }
+    .dev-code-dot--yellow { background: var(--color-accent-gold); }
+    .dev-code-dot--green { background: var(--color-success); }
 
     .dev-code-title {
       margin-left: auto;
       font-size: 0.75rem;
       color: var(--dev-text-muted);
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
     }
 
     .dev-code-block pre {
       margin: 0;
       padding: 1.25rem;
       overflow-x: auto;
-      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-family: var(--font-mono);
       font-size: 0.85rem;
       line-height: 1.65;
       color: var(--dev-text-secondary);
     }
 
-    .dev-code-block .comment { color: #8b9a8b; }
-    .dev-code-block .string { color: #d4a84a; }
-    .dev-code-block .keyword { color: #c4856a; }
-    .dev-code-block .function { color: #6b8760; }
+    .dev-code-block .comment { color: var(--color-stone-light); }
+    .dev-code-block .string { color: var(--color-accent-gold); }
+    .dev-code-block .keyword { color: var(--color-jordan); }
+    .dev-code-block .function { color: var(--color-ferni-light); }
 
     /* Resources */
     .dev-resources-grid {
@@ -390,9 +390,9 @@
       padding: 1.25rem;
       background: var(--dev-surface);
       border: 1px solid var(--dev-border);
-      border-radius: 10px;
+      border-radius: var(--radius-md);
       text-decoration: none;
-      transition: all 0.2s ease;
+      transition: all var(--duration-normal) ease;
     }
 
     .dev-resource:hover {
@@ -405,7 +405,7 @@
       width: 36px;
       height: 36px;
       background: var(--dev-accent-subtle);
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -445,10 +445,10 @@
     .dev-blog-card {
       background: var(--dev-bg);
       border: 1px solid var(--dev-border);
-      border-radius: 12px;
+      border-radius: var(--radius-md);
       padding: 1.5rem;
       text-decoration: none;
-      transition: all 0.2s ease;
+      transition: all var(--duration-normal) ease;
     }
 
     .dev-blog-card:hover {

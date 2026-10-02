@@ -36,17 +36,17 @@ permalink: /api/explorer/
 
   .swagger-ui .opblock {
     background: var(--surface-secondary);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--border-primary);
     margin-bottom: 8px;
   }
 
   .swagger-ui .opblock .opblock-summary {
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
   }
 
   .swagger-ui .opblock .opblock-summary-method {
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     font-family: var(--font-mono);
     font-weight: 600;
   }
@@ -57,18 +57,18 @@ permalink: /api/explorer/
   }
 
   .swagger-ui .opblock.opblock-post .opblock-summary-method {
-    background: #3D5A45;
-    color: white;
+    background: var(--persona-marcus);
+    color: var(--color-white);
   }
 
   .swagger-ui .opblock.opblock-put .opblock-summary-method {
-    background: #B8860B;
-    color: white;
+    background: var(--accent-pressed);
+    color: var(--color-white);
   }
 
   .swagger-ui .opblock.opblock-delete .opblock-summary-method {
-    background: #8B0000;
-    color: white;
+    background: var(--persona-joel);
+    color: var(--color-white);
   }
 
   .swagger-ui .opblock-summary-path {
@@ -82,13 +82,13 @@ permalink: /api/explorer/
 
   .swagger-ui .btn {
     font-family: var(--font-body);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
   }
 
   .swagger-ui .btn.execute {
     background: var(--color-accent);
     border-color: var(--color-accent);
-    color: white;
+    color: var(--color-white);
   }
 
   .swagger-ui .btn.authorize {
@@ -103,7 +103,7 @@ permalink: /api/explorer/
 
   .swagger-ui .model-box {
     background: var(--surface-secondary);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
   }
 
   .swagger-ui .model {
@@ -146,25 +146,25 @@ permalink: /api/explorer/
   .swagger-ui pre {
     font-family: var(--font-mono);
     background: var(--surface-tertiary);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
   }
 
   .swagger-ui .highlight-code {
     background: var(--surface-tertiary);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
   }
 
   .swagger-ui .scheme-container {
     background: var(--surface-secondary);
     padding: 16px;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     margin-bottom: 24px;
   }
 
   .swagger-ui select {
     background: var(--surface-secondary);
     border: 1px solid var(--border-primary);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     color: var(--text-primary);
     padding: 8px 12px;
   }
@@ -173,20 +173,20 @@ permalink: /api/explorer/
   .swagger-ui input[type="password"] {
     background: var(--surface-secondary);
     border: 1px solid var(--border-primary);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     color: var(--text-primary);
     padding: 8px 12px;
   }
 
   .swagger-ui .auth-wrapper {
     background: var(--surface-secondary);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: 16px;
   }
 
   .swagger-ui .dialog-ux .modal-ux {
     background: var(--surface-primary);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     border: 1px solid var(--border-primary);
   }
 
@@ -233,15 +233,15 @@ permalink: /api/explorer/
     align-items: center;
     gap: 8px;
     padding: 12px 24px;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     text-decoration: none;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) ease;
   }
 
   .api-explorer-actions .btn-primary {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
   }
 
   .api-explorer-actions .btn-primary:hover {
@@ -269,7 +269,7 @@ permalink: /api/explorer/
     margin-bottom: 24px;
     padding: 16px;
     background: var(--surface-secondary);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
   }
 
   .environment-selector label {
@@ -280,7 +280,7 @@ permalink: /api/explorer/
   .environment-selector select {
     background: var(--surface-tertiary);
     border: 1px solid var(--border-primary);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     color: var(--text-primary);
     padding: 8px 16px;
     font-family: var(--font-mono);
@@ -292,31 +292,31 @@ permalink: /api/explorer/
     align-items: center;
     gap: 6px;
     padding: 4px 12px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     font-size: 0.875rem;
     font-weight: 500;
   }
 
   .environment-selector .env-indicator.production {
-    background: rgba(139, 0, 0, 0.2);
-    color: #ff6b6b;
+    background: color-mix(in srgb, var(--persona-joel) 20%, transparent);
+    color: var(--error);
   }
 
   .environment-selector .env-indicator.sandbox {
-    background: rgba(61, 90, 69, 0.2);
-    color: #6bff8b;
+    background: color-mix(in srgb, var(--persona-marcus) 20%, transparent);
+    color: var(--success);
   }
 
   .production-warning {
-    background: rgba(139, 0, 0, 0.2);
-    border: 1px solid #8B0000;
-    border-radius: 8px;
+    background: color-mix(in srgb, var(--persona-joel) 20%, transparent);
+    border: 1px solid var(--persona-joel);
+    border-radius: var(--radius-sm);
     padding: 12px 16px;
     margin: 16px 24px;
     display: flex;
     align-items: center;
     gap: 12px;
-    color: #ff6b6b;
+    color: var(--error);
   }
 
   .production-warning svg {

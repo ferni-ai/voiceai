@@ -418,7 +418,7 @@ permalink: /window-avatar/
   left: 0;
   right: 0;
   background: var(--color-bg-primary);
-  transition: all 0.3s ease;
+  transition: all var(--duration-slow) ease;
 }
 
 .lid.top {
@@ -508,7 +508,7 @@ permalink: /window-avatar/
   transform: translateX(-50%);
   width: 8px;
   height: 8px;
-  background: white;
+  background: var(--color-white);
   border-radius: 50%;
 }
 
@@ -522,7 +522,7 @@ permalink: /window-avatar/
   gap: var(--space-1);
   font-size: 0.75rem;
   color: var(--color-text-secondary);
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 
 .speaking-demo {
@@ -558,7 +558,7 @@ permalink: /window-avatar/
 .speaking-avatar .lid.bottom {
   bottom: 0;
   height: 12%;
-  animation: speak 0.3s ease-in-out infinite alternate;
+  animation: speak var(--duration-slow) ease-in-out infinite alternate;
 }
 
 @keyframes speak {
@@ -573,7 +573,7 @@ permalink: /window-avatar/
   transform: translateX(-50%);
   width: 12px;
   height: 12px;
-  background: white;
+  background: var(--color-white);
   border-radius: 50%;
 }
 
@@ -613,7 +613,7 @@ permalink: /window-avatar/
   min-height: 4px;
   margin: 0 auto var(--space-2);
   background: var(--color-accent);
-  border-radius: calc(var(--round, 0.5) * 20px);
+  border-radius: calc(var(--round, 0.5) * var(--radius-xl));
   transform: scaleX(var(--width, 1));
 }
 
@@ -676,11 +676,11 @@ permalink: /window-avatar/
 }
 
 .connecting-state {
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: pulse var(--duration-glacial) ease-in-out infinite;
 }
 
 .thinking-state {
-  animation: drift 3s ease-in-out infinite;
+  animation: drift var(--duration-meditative) ease-in-out infinite;
 }
 
 .listening-state {
@@ -688,11 +688,11 @@ permalink: /window-avatar/
 }
 
 .speaking-state {
-  animation: speak-state 0.3s ease-in-out infinite alternate;
+  animation: speak-state var(--duration-slow) ease-in-out infinite alternate;
 }
 
 .farewell-state {
-  animation: close 3s ease-in-out infinite;
+  animation: close var(--duration-meditative) ease-in-out infinite;
 }
 
 @keyframes drift {
@@ -723,7 +723,7 @@ permalink: /window-avatar/
   margin: 0;
   font-size: 0.85rem;
   color: var(--color-text-secondary);
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 
 .scale-demo {
@@ -753,7 +753,7 @@ permalink: /window-avatar/
   display: block;
   font-size: 0.85rem;
   color: var(--color-text-secondary);
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 
 .scale-variant .name {
@@ -793,7 +793,7 @@ permalink: /window-avatar/
   top: -4px;
   right: -4px;
   background: var(--color-destructive);
-  color: white;
+  color: var(--color-white);
   border-radius: 50%;
   display: flex;
   align-items: center;

@@ -416,7 +416,7 @@ permalink: /components/buttons/
 
 .btn-primary {
   background: var(--accent-primary);
-  color: white;
+  color: var(--color-white);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -475,7 +475,7 @@ permalink: /components/buttons/
   border: 2px solid transparent;
   border-top-color: currentColor;
   border-radius: 50%;
-  animation: btn-spin 0.8s linear infinite;
+  animation: btn-spin var(--duration-cinematic) linear infinite;
 }
 
 @keyframes btn-spin {
@@ -484,7 +484,7 @@ permalink: /components/buttons/
 
 /* Persona Variants */
 .btn-persona {
-  color: white;
+  color: var(--color-white);
 }
 
 .btn-persona--ferni { background: var(--persona-ferni); }
@@ -646,7 +646,7 @@ permalink: /components/buttons/
 .control-btn.active {
   background: var(--accent-primary);
   border-color: var(--accent-primary);
-  color: white;
+  color: var(--color-white);
 }
 
 .playground-code {

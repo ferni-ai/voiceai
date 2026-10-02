@@ -15,7 +15,7 @@
   flex-direction: column;
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
@@ -42,7 +42,7 @@
   gap: 0.75rem;
   text-decoration: none;
   color: var(--color-text-primary);
-  transition: opacity 0.2s ease;
+  transition: opacity var(--duration-normal) ease;
 }
 
 .invite-logo:hover {
@@ -50,7 +50,7 @@
 }
 
 .invite-logo-text {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-display);
   font-size: var(--text-xl);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -126,7 +126,7 @@
   border-radius: 50%;
   box-shadow:
     0 4px 20px var(--color-ferni-glow),
-    inset 0 2px 10px rgba(255, 255, 255, 0.15);
+    inset 0 2px 10px color-mix(in srgb, var(--color-white) 15%, transparent);
   animation: breatheOrb 4s ease-in-out infinite;
 }
 
@@ -179,7 +179,7 @@
    ============================================ */
 
 .waitlist__headline {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(2rem, 5vw, 2.75rem);
   font-weight: 700;
   line-height: 1.2;
@@ -223,7 +223,7 @@
   border: 1px solid var(--color-border-medium);
   border-radius: var(--radius-md);
   outline: none;
-  transition: all 0.2s ease;
+  transition: all var(--duration-normal) ease;
 }
 
 .waitlist__field input::placeholder {
@@ -281,7 +281,7 @@
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--duration-normal) ease;
 }
 
 .waitlist__submit:hover:not(:disabled) {
@@ -315,7 +315,7 @@
 }
 
 .waitlist__spinner {
-  animation: spin 1s linear infinite;
+  animation: spin var(--duration-dramatic) linear infinite;
 }
 
 .waitlist__spinner circle {
@@ -345,7 +345,7 @@
 
 .waitlist__success {
   text-align: center;
-  animation: successFadeIn 0.5s ease-out;
+  animation: successFadeIn var(--duration-slowest) ease-out;
 }
 
 .waitlist__success[hidden] {
@@ -365,7 +365,7 @@
 
 .waitlist__success-icon {
   margin-bottom: 1.5rem;
-  animation: iconPop 0.4s ease-out 0.2s both;
+  animation: iconPop var(--duration-slower) ease-out var(--duration-normal) both;
 }
 
 @keyframes iconPop {
@@ -383,7 +383,7 @@
 }
 
 .waitlist__success-headline {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-display);
   font-size: var(--text-3xl);
   font-weight: 700;
   color: var(--color-text-primary);
@@ -466,7 +466,7 @@
     --color-text-primary: var(--color-dark-text);
     --color-text-secondary: var(--color-dark-text-secondary);
     --color-text-muted: var(--color-dark-text-muted);
-    --color-border-medium: rgba(255, 255, 255, 0.1);
-    --color-border-strong: rgba(255, 255, 255, 0.15);
+    --color-border-medium: color-mix(in srgb, var(--color-white) 10%, transparent);
+    --color-border-strong: color-mix(in srgb, var(--color-white) 15%, transparent);
   }
 }

@@ -382,7 +382,7 @@ permalink: /components/
 
 .badge-demo-warning {
   background: color-mix(in srgb, var(--warning) 20%, transparent);
-  color: #92400e;
+  color: var(--accent-pressed);
 }
 
 .badge-demo-info {
@@ -454,7 +454,7 @@ permalink: /components/
   border: 3px solid var(--border-subtle);
   border-top-color: var(--accent-primary);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin var(--duration-cinematic) linear infinite;
 }
 
 @keyframes spin {

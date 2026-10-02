@@ -443,14 +443,14 @@ description: Build your own AI coaches, create specialized personas, and reach p
   border-radius: 50%;
 }
 
-.terminal-dot--red { background: #ff5f57; }
-.terminal-dot--yellow { background: #ffbd2e; }
-.terminal-dot--green { background: #28c840; }
+.terminal-dot--red { background: var(--error); }
+.terminal-dot--yellow { background: var(--warning); }
+.terminal-dot--green { background: var(--success); }
 
 .terminal-title {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-  color: #666;
+  color: var(--bg-elevated);
 }
 
 .terminal-body {
@@ -470,7 +470,7 @@ description: Build your own AI coaches, create specialized personas, and reach p
 }
 
 .terminal-command {
-  color: #fff;
+  color: var(--color-white);
 }
 
 .terminal-output {
@@ -479,7 +479,7 @@ description: Build your own AI coaches, create specialized personas, and reach p
 }
 
 .terminal-muted {
-  color: #666;
+  color: var(--bg-elevated);
 }
 
 .terminal-success {
@@ -504,7 +504,7 @@ description: Build your own AI coaches, create specialized personas, and reach p
   width: 8px;
   height: 18px;
   background: var(--success);
-  animation: blink 1s step-end infinite;
+  animation: blink var(--duration-dramatic) step-end infinite;
 }
 
 @keyframes blink {
@@ -650,14 +650,14 @@ description: Build your own AI coaches, create specialized personas, and reach p
   border-radius: 50%;
 }
 
-.code-dot--red { background: #ff5f57; }
-.code-dot--yellow { background: #ffbd2e; }
-.code-dot--green { background: #28c840; }
+.code-dot--red { background: var(--error); }
+.code-dot--yellow { background: var(--warning); }
+.code-dot--green { background: var(--success); }
 
 .code-lang {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-  color: #888;
+  color: var(--text-dimmed);
 }
 
 .code-content {
@@ -743,7 +743,7 @@ description: Build your own AI coaches, create specialized personas, and reach p
   gap: var(--space-2);
   padding: var(--space-4) var(--space-6);
   background: var(--accent-primary);
-  color: white;
+  color: var(--color-white);
   border: none;
   border-radius: var(--radius-full);
   font-family: var(--font-body);
@@ -804,17 +804,17 @@ description: Build your own AI coaches, create specialized personas, and reach p
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-5);
-  background: #24292e;
-  color: white;
+  background: var(--text-inverse);
+  color: var(--color-white);
   border-radius: var(--radius-full);
   font-weight: 500;
   transition: all var(--duration-fast) var(--ease-gentle);
 }
 
 .opensource-link:hover {
-  background: #1a1e22;
+  background: var(--text-inverse);
   transform: translateY(-2px);
-  color: white;
+  color: var(--color-white);
 }
 
 .opensource-coming-soon {

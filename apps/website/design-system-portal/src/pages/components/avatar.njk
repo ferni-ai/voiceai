@@ -431,7 +431,7 @@ permalink: /components/avatar/
   justify-content: center;
   font-family: var(--font-display);
   font-weight: var(--font-weight-semibold);
-  color: white;
+  color: var(--color-white);
   transition: all var(--duration-normal) var(--ease-ease-out);
 }
 
@@ -449,16 +449,16 @@ permalink: /components/avatar/
 .avatar--xl { --avatar-size: 96px; font-size: 36px; }
 
 .avatar--speaking {
-  animation: avatar-pulse 1.5s ease-in-out infinite;
+  animation: avatar-pulse var(--duration-glacial) ease-in-out infinite;
 }
 
 @keyframes avatar-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 var(--persona-glow, rgba(74, 103, 65, 0.4)); }
-  50% { box-shadow: 0 0 20px 8px var(--persona-glow, rgba(74, 103, 65, 0.4)); }
+  0%, 100% { box-shadow: 0 0 0 0 var(--persona-glow, color-mix(in srgb, var(--persona-ferni) 40%, transparent)); }
+  50% { box-shadow: 0 0 20px 8px var(--persona-glow, color-mix(in srgb, var(--persona-ferni) 40%, transparent)); }
 }
 
 .avatar--listening {
-  animation: avatar-breathe 3s ease-in-out infinite;
+  animation: avatar-breathe var(--duration-meditative) ease-in-out infinite;
 }
 
 @keyframes avatar-breathe {

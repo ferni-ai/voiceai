@@ -584,7 +584,7 @@ permalink: /motion/
 .pixar-principle {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1rem;
 }
 
@@ -654,7 +654,7 @@ permalink: /motion/
 .easing-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1rem;
 }
 
@@ -665,7 +665,7 @@ permalink: /motion/
 .easing-preview {
   height: 40px;
   background: linear-gradient(90deg, var(--color-ferni) 0%, transparent 100%);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   margin-bottom: 0.75rem;
   opacity: 0.3;
 }
@@ -698,7 +698,7 @@ permalink: /motion/
 .preset-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1rem;
 }
 
@@ -729,7 +729,7 @@ permalink: /motion/
   gap: 1rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1rem;
   border-left: 4px solid var(--persona-color);
 }
@@ -739,7 +739,7 @@ permalink: /motion/
   height: 40px;
   border-radius: 50%;
   background: var(--persona-color);
-  color: white;
+  color: var(--color-white);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -785,7 +785,7 @@ permalink: /motion/
 .micro-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1rem;
   text-align: center;
 }
@@ -795,9 +795,9 @@ permalink: /motion/
   font-family: var(--font-mono);
   font-size: 0.75rem;
   background: var(--color-ferni);
-  color: white;
+  color: var(--color-white);
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   margin-bottom: 0.5rem;
 }
 
@@ -860,7 +860,7 @@ permalink: /motion/
   padding: 1rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   margin-bottom: 0.5rem;
 }
 
@@ -868,7 +868,7 @@ permalink: /motion/
   width: 32px;
   height: 32px;
   background: var(--color-ferni);
-  color: white;
+  color: var(--color-white);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -897,7 +897,7 @@ permalink: /motion/
 .glow-state {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1rem;
   text-align: center;
 }
@@ -913,23 +913,23 @@ permalink: /motion/
   border-radius: 50%;
   background: var(--color-ferni);
   margin: 0 auto 0.75rem;
-  box-shadow: 0 0 20px rgba(74, 103, 65, 0.4);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--persona-ferni) 40%, transparent);
 }
 
 .glow-state.active .glow-preview {
-  box-shadow: 0 0 30px rgba(74, 103, 65, 0.6);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--persona-ferni) 60%, transparent);
 }
 
 .glow-state.excited .glow-preview {
-  box-shadow: 0 0 40px rgba(74, 103, 65, 0.8);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--persona-ferni) 80%, transparent);
 }
 
 .glow-state.calm .glow-preview {
-  box-shadow: 0 0 25px rgba(74, 103, 65, 0.35);
+  box-shadow: 0 0 25px color-mix(in srgb, var(--persona-ferni) 35%, transparent);
 }
 
 .glow-state.concern .glow-preview {
-  box-shadow: 0 0 22px rgba(74, 103, 65, 0.5);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--persona-ferni) 50%, transparent);
 }
 
 .glow-state p {
@@ -941,7 +941,7 @@ permalink: /motion/
 .reduced-motion-callout {
   background: var(--color-background);
   border: 1px solid var(--color-ferni);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1.25rem;
   margin-bottom: 1.5rem;
 }

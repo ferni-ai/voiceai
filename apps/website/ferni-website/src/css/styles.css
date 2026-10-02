@@ -21,67 +21,23 @@
 
 :root {
   /* Aliases that map to design tokens */
-  --color-bg: var(--color-bg-primary);
-  --color-bg-tertiary: var(--color-sand-warm);
-  --color-bg-glass: rgba(245, 241, 232, 0.85);
-  --color-bg-overlay: rgba(245, 241, 232, 0.95);
-  --color-text: var(--color-text-primary);
-  --color-text-inverse: var(--color-bg-primary);
-  --color-accent-glow: rgba(61, 90, 69, 0.15);
-  --color-accent-subtle: rgba(61, 90, 69, 0.05);
-  --color-info: var(--color-info-dark);
   /* Natural palette - references to design system tokens */
-  --color-wood: var(--color-natural-cedar);
-  --color-wood-light: var(--color-natural-cedar-light);
-  --color-bamboo: var(--color-natural-bamboo);
-  --color-stone: var(--color-natural-stone-light);
-  --color-sand: var(--color-bg-secondary);
-  --color-moss: var(--color-natural-moss);
-  --color-paper: var(--color-bg-primary);
-  --color-ink: var(--color-text-primary);
-  --color-tea: var(--color-natural-tea);
-  --color-ferni-glow: rgba(74, 103, 65, 0.28);
-  --color-border: rgba(44, 37, 32, 0.08);
-  --color-border-medium: rgba(44, 37, 32, 0.12);
-  --color-border-strong: rgba(44, 37, 32, 0.18);
   /* Dark section backgrounds - WCAG AA Compliant
      Background var(--color-text-primary) contrast ratios:
      - Primary var(--color-bg-primary): 10.1:1 ✓ (headings, important text)
-     - Secondary var(--color-sand): 6.8:1 ✓ (body text)
+     - Secondary var(--color-bg-surface): 6.8:1 ✓ (body text)
      - Muted var(--color-sand-dark): 4.7:1 ✓ (labels, captions - was var(--color-stone-light) at 3.2:1 FAILED)
      - Accent var(--color-moss-light): 4.5:1 ✓ (links, accents on dark)
   */
-  --color-dark-bg: var(--color-text-primary);
-  --color-dark-bg-elevated: var(--color-cedar-dark);
-  --color-dark-text: var(--color-bg-primary);
-  --color-dark-text-secondary: var(--color-sand);
-  --color-dark-text-muted: var(--color-sand-dark);
-  --color-dark-accent: var(--color-moss-light);
-  --font-display:
-    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-  --font-accent: 'Sora', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
-  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --ease-apple: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-smooth: cubic-bezier(0.65, 0, 0.35, 1);
   --transition-fast: 150ms var(--ease-out-quart);
   --transition-base: 250ms var(--ease-out-quart);
   --transition-slow: 500ms var(--ease-out-expo);
   --transition-cinematic: 800ms var(--ease-apple);
   --transition-hero: 1200ms var(--ease-out-expo);
-  --shadow-sm: 0 1px 3px rgba(44, 37, 32, 0.06);
-  --shadow-md: 0 4px 12px rgba(44, 37, 32, 0.08);
-  --shadow-lg: 0 12px 32px rgba(44, 37, 32, 0.12);
-  --shadow-xl: 0 24px 48px rgba(44, 37, 32, 0.15);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-full: 9999px;
 }
 .page-loader {
   position: fixed;
@@ -92,8 +48,8 @@
   align-items: center;
   justify-content: center;
   transition:
-    opacity 0.5s ease-out,
-    visibility 0.5s ease-out;
+    opacity var(--duration-slowest) ease-out,
+    visibility var(--duration-slowest) ease-out;
 }
 .page-loader.loaded {
   opacity: 0;
@@ -116,7 +72,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-lg);
-  animation: loaderPulse 1.5s ease-in-out infinite;
+  animation: loaderPulse var(--duration-glacial) ease-in-out infinite;
 }
 .loader-waveform {
   display: flex;
@@ -125,9 +81,9 @@
 }
 .loader-waveform span {
   width: 4px;
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--color-white) 90%, transparent);
   border-radius: var(--radius-xs);
-  animation: wave 1s ease-in-out infinite;
+  animation: wave var(--duration-dramatic) ease-in-out infinite;
 }
 .loader-waveform span:first-child {
   height: 12px;
@@ -262,7 +218,7 @@ button {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: shimmer 8s linear infinite;
+  animation: shimmer var(--duration-ambient) linear infinite;
 }
 @keyframes shimmer {
   0% {
@@ -277,9 +233,9 @@ button {
   transform: translateY(60px) scale(0.98);
   filter: blur(4px);
   transition:
-    opacity 1s var(--ease-apple),
-    transform 1.2s var(--ease-out-expo),
-    filter 0.8s var(--ease-apple);
+    opacity var(--duration-dramatic) var(--ease-apple),
+    transform var(--duration-dramatic) var(--ease-out-expo),
+    filter var(--duration-cinematic) var(--ease-apple);
   will-change: opacity, transform, filter;
 }
 .reveal.visible {
@@ -351,25 +307,25 @@ button {
   background-position: 50% 50%;
   color: var(--color-text-inverse);
   box-shadow:
-    0 2px 8px rgba(45, 90, 61, 0.25),
+    0 2px 8px color-mix(in srgb, var(--color-forest-green) 25%, transparent),
     0 4px 20px var(--color-accent-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    inset 0 1px 0 color-mix(in srgb, var(--color-white) 10%, transparent);
   transition:
-    transform 0.4s var(--ease-out-expo),
-    box-shadow 0.4s var(--ease-apple),
-    background-position 0.6s var(--ease-apple);
+    transform var(--duration-slower) var(--ease-out-expo),
+    box-shadow var(--duration-slower) var(--ease-apple),
+    background-position var(--duration-deliberate) var(--ease-apple);
 }
 .btn-primary:hover {
   background-position: 0 0;
   transform: translateY(-3px) scale(1.02);
   box-shadow:
-    0 6px 20px rgba(45, 90, 61, 0.35),
+    0 6px 20px color-mix(in srgb, var(--color-forest-green) 35%, transparent),
     0 12px 40px var(--color-accent-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    inset 0 1px 0 color-mix(in srgb, var(--color-white) 15%, transparent);
 }
 .btn-primary:active {
   transform: translateY(-1px) scale(0.98);
-  transition-duration: 0.1s;
+  transition-duration: var(--duration-faster);
 }
 .btn-glow {
   position: relative;
@@ -381,7 +337,7 @@ button {
   inset: 0;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.2) 0,
+    color-mix(in srgb, var(--color-white) 20%, transparent) 0,
     transparent 50%,
     transparent 100%
   );
@@ -394,9 +350,9 @@ button {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0, transparent 60%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-white) 10%, transparent) 0, transparent 60%);
   opacity: 0;
-  transition: opacity 0.4s var(--ease-apple);
+  transition: opacity var(--duration-slower) var(--ease-apple);
   pointer-events: none;
 }
 .btn-glow:hover::after {
@@ -438,19 +394,19 @@ button {
   right: 0;
   z-index: 1000;
   padding: var(--space-4) 0;
-  background: rgba(245, 241, 232, 0.85);
+  background: color-mix(in srgb, var(--color-sand-light) 85%, transparent);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid rgba(44, 37, 32, 0.05);
-  transition: all 0.4s var(--ease-apple);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent);
+  transition: all var(--duration-slower) var(--ease-apple);
 }
 .nav.scrolled {
   padding: var(--space-3) 0;
-  background: rgba(245, 241, 232, 0.95);
+  background: color-mix(in srgb, var(--color-sand-light) 95%, transparent);
   backdrop-filter: saturate(180%) blur(24px);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
-  border-bottom: 1px solid rgba(44, 37, 32, 0.08);
-  box-shadow: 0 2px 20px rgba(44, 37, 32, 0.06);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  box-shadow: var(--shadow-lg);
 }
 .nav-inner {
   display: flex;
@@ -536,7 +492,7 @@ button {
   height: 2px;
   background: var(--color-text);
   border-radius: var(--radius-xs);
-  transition: all 0.3s ease;
+  transition: all var(--duration-slow) ease;
   transform-origin: center;
 }
 .hamburger.active .hamburger-line:first-child {
@@ -560,7 +516,7 @@ button {
   z-index: 9998;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.4s var(--ease-out-expo);
+  transition: all var(--duration-slower) var(--ease-out-expo);
 }
 .mobile-menu.open {
   opacity: 1;
@@ -583,7 +539,7 @@ button {
   padding: var(--space-4);
   opacity: 0;
   transform: translateY(20px);
-  transition: all 0.3s ease;
+  transition: all var(--duration-slow) ease;
 }
 .mobile-menu.open .mobile-link {
   opacity: 1;
@@ -613,7 +569,7 @@ button {
   max-width: 280px;
   opacity: 0;
   transform: translateY(20px);
-  transition: all 0.3s ease 0.3s;
+  transition: all var(--duration-slow) ease var(--duration-slow);
 }
 .mobile-menu.open .mobile-menu-cta {
   opacity: 1;
@@ -656,17 +612,17 @@ button {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 100% 70% at 50% -10%, rgba(45, 90, 61, 0.08) 0, transparent 50%),
-    radial-gradient(ellipse 80% 50% at 80% 20%, rgba(122, 143, 90, 0.06) 0, transparent 40%),
-    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(196, 167, 125, 0.08) 0, transparent 40%);
+    radial-gradient(ellipse 100% 70% at 50% -10%, color-mix(in srgb, var(--color-forest-green) 8%, transparent) 0, transparent 50%),
+    radial-gradient(ellipse 80% 50% at 80% 20%, color-mix(in srgb, var(--color-bamboo) 6%, transparent) 0, transparent 40%),
+    radial-gradient(ellipse 60% 40% at 20% 80%, color-mix(in srgb, var(--color-tea) 8%, transparent) 0, transparent 40%);
 }
 .hero-grid {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle at 50% 50%, var(--color-sand) 1px, transparent 1px);
+  background-image: radial-gradient(circle at 50% 50%, var(--color-bg-surface) 1px, transparent 1px);
   background-size: 60px 60px;
-  mask-image: radial-gradient(ellipse 100% 60% at 50% 0%, black 0%, transparent 70%);
-  -webkit-mask-image: radial-gradient(ellipse 100% 60% at 50% 0%, black 0%, transparent 70%);
+  mask-image: radial-gradient(ellipse 100% 60% at 50% 0%, var(--color-black) 0%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 100% 60% at 50% 0%, var(--color-black) 0%, transparent 70%);
   opacity: 0.4;
 }
 .hero-orb {
@@ -686,7 +642,7 @@ button {
 .hero-orb-2 {
   width: 350px;
   height: 350px;
-  background: radial-gradient(circle, rgba(196, 167, 125, 0.25) 0, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-tea) 25%, transparent) 0, transparent 70%);
   bottom: 15%;
   left: 10%;
   animation-delay: -8s;
@@ -694,7 +650,7 @@ button {
 .hero-orb-3 {
   width: 280px;
   height: 280px;
-  background: radial-gradient(circle, rgba(122, 143, 90, 0.2) 0, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-bamboo) 20%, transparent) 0, transparent 70%);
   top: 45%;
   left: 25%;
   animation-delay: -16s;
@@ -799,7 +755,7 @@ button {
 .orb-ring {
   position: absolute;
   border-radius: 50%;
-  border: 1px solid rgba(45, 90, 61, 0.12);
+  border: 1px solid color-mix(in srgb, var(--color-forest-green) 12%, transparent);
 }
 .orb-ring-1 {
   inset: 0;
@@ -807,7 +763,7 @@ button {
 }
 .orb-ring-2 {
   inset: -30px;
-  animation: ringPulse 4s ease-in-out infinite 1s;
+  animation: ringPulse 4s ease-in-out infinite var(--duration-dramatic);
 }
 .orb-ring-3 {
   inset: -60px;
@@ -834,9 +790,9 @@ button {
   justify-content: center;
   box-shadow:
     0 0 60px var(--color-accent-glow),
-    0 0 120px rgba(45, 90, 61, 0.1),
-    inset 0 0 40px rgba(255, 255, 255, 0.1);
-  animation: orbPulse 3s ease-in-out infinite;
+    0 0 120px color-mix(in srgb, var(--color-forest-green) 10%, transparent),
+    inset 0 0 40px color-mix(in srgb, var(--color-white) 10%, transparent);
+  animation: orbPulse var(--duration-meditative) ease-in-out infinite;
   position: relative;
   z-index: 2;
 }
@@ -862,9 +818,9 @@ button {
 }
 .wave-bar {
   width: 4px;
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--color-white) 90%, transparent);
   border-radius: var(--radius-xs);
-  animation: wave 1s ease-in-out infinite;
+  animation: wave var(--duration-dramatic) ease-in-out infinite;
 }
 .wave-bar:first-child {
   height: 16px;
@@ -938,7 +894,7 @@ button {
   font-weight: 700;
   color: var(--color-text-inverse);
   box-shadow: var(--shadow-md);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid color-mix(in srgb, var(--color-white) 20%, transparent);
   animation: orbitSpin 60s linear infinite reverse;
   transition:
     transform var(--transition-base),
@@ -1046,7 +1002,7 @@ button {
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-md);
   opacity: 1;
-  transition: opacity 0.5s ease;
+  transition: opacity var(--duration-slowest) ease;
 }
 .hero-canvas-loading.hidden {
   opacity: 0;
@@ -1080,13 +1036,13 @@ button {
 .hero-content-wrapper .hero-description,
 .hero-content-wrapper .hero-headline {
   text-shadow:
-    0 2px 20px rgba(250, 248, 245, 0.9),
-    0 4px 40px rgba(250, 248, 245, 0.6);
+    0 2px 20px color-mix(in srgb, var(--color-paper) 90%, transparent),
+    0 4px 40px color-mix(in srgb, var(--color-paper) 60%, transparent);
 }
 .hero-content-wrapper .hero-description {
   text-shadow:
-    0 1px 10px rgba(250, 248, 245, 0.95),
-    0 2px 30px rgba(250, 248, 245, 0.8);
+    0 1px 10px color-mix(in srgb, var(--color-paper) 95%, transparent),
+    0 2px 30px color-mix(in srgb, var(--color-paper) 80%, transparent);
 }
 .hero-content-wrapper .btn {
   pointer-events: auto;
@@ -1284,12 +1240,12 @@ button {
 .memory-dot:nth-child(2) {
   top: 50%;
   right: 20%;
-  animation: memoryPulse 2s ease-in-out infinite 0.5s;
+  animation: memoryPulse 2s ease-in-out infinite var(--duration-slowest);
 }
 .memory-dot:nth-child(3) {
   bottom: 20%;
   left: 40%;
-  animation: memoryPulse 2s ease-in-out infinite 1s;
+  animation: memoryPulse 2s ease-in-out infinite var(--duration-dramatic);
 }
 .memory-line {
   position: absolute;
@@ -1335,7 +1291,7 @@ button {
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 60px var(--color-accent-glow);
-  animation: orbPulse 3s ease-in-out infinite;
+  animation: orbPulse var(--duration-meditative) ease-in-out infinite;
   z-index: 2;
 }
 .mini-waveform {
@@ -1345,9 +1301,9 @@ button {
 }
 .mini-waveform span {
   width: 3px;
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--color-white) 90%, transparent);
   border-radius: var(--radius-xs);
-  animation: wave 1s ease-in-out infinite;
+  animation: wave var(--duration-dramatic) ease-in-out infinite;
 }
 .mini-waveform span:first-child {
   height: 12px;
@@ -1380,7 +1336,7 @@ button {
   height: 12px;
   background: var(--color-stone);
   border-radius: 50%;
-  transition: all 0.3s ease;
+  transition: all var(--duration-slow) ease;
 }
 .team-dots span:first-child {
   top: 0;
@@ -1410,7 +1366,7 @@ button {
 }
 .team-visual:hover .team-dots span {
   background: var(--color-accent);
-  box-shadow: 0 0 20px var(--color-accent-glow);
+  box-shadow: var(--shadow-glow);
 }
 .speed-visual {
   position: relative;
@@ -1426,7 +1382,7 @@ button {
   height: 120px;
   border: 2px solid var(--color-accent);
   border-radius: 50%;
-  animation: speedPulse 1.5s ease-out infinite;
+  animation: speedPulse var(--duration-glacial) ease-out infinite;
 }
 .speed-pulse::after,
 .speed-pulse::before {
@@ -1437,7 +1393,7 @@ button {
   transform: translate(-50%, -50%);
   border: 2px solid var(--color-accent);
   border-radius: 50%;
-  animation: speedPulse 1.5s ease-out infinite;
+  animation: speedPulse var(--duration-glacial) ease-out infinite;
 }
 .speed-pulse::before {
   width: 80px;
@@ -1519,7 +1475,7 @@ button {
 .demo-window {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-medium);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   overflow: hidden;
   box-shadow: var(--shadow-lg);
 }
@@ -1650,9 +1606,9 @@ button {
 }
 .demo-waveform span {
   width: 3px;
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--color-white) 90%, transparent);
   border-radius: var(--radius-xs);
-  animation: wave 1s ease-in-out infinite;
+  animation: wave var(--duration-dramatic) ease-in-out infinite;
 }
 .demo-waveform span:first-child {
   height: 8px;
@@ -1714,7 +1670,7 @@ button {
 .team-card {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   padding: var(--space-12) var(--space-8);
   text-align: center;
   transition: all var(--transition-slow);
@@ -1810,7 +1766,7 @@ button {
 .connect-option {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   padding: var(--space-12) var(--space-10);
   text-align: center;
   transition: all var(--transition-slow);
@@ -1899,7 +1855,7 @@ button {
 .phone-action {
   font-size: var(--text-2xs);
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
+  color: color-mix(in srgb, var(--color-white) 80%, transparent);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -2029,7 +1985,7 @@ button {
 .testimonial-card {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   padding: var(--space-8);
   transition: all var(--transition-slow);
   transition-delay: var(--card-delay, 0s);
@@ -2037,13 +1993,13 @@ button {
   box-shadow: var(--shadow-sm);
 }
 .testimonial-card:first-child {
-  background: linear-gradient(135deg, var(--color-bg-elevated) 0, rgba(74, 103, 65, 0.04) 100%);
+  background: linear-gradient(135deg, var(--color-bg-elevated) 0, color-mix(in srgb, var(--color-ferni) 4%, transparent) 100%);
 }
 .testimonial-card:nth-child(2) {
-  background: linear-gradient(135deg, var(--color-bg-elevated) 0, rgba(154, 123, 90, 0.05) 100%);
+  background: linear-gradient(135deg, var(--color-bg-elevated) 0, color-mix(in srgb, var(--color-jack) 5%, transparent) 100%);
 }
 .testimonial-card:nth-child(3) {
-  background: linear-gradient(135deg, var(--color-bg-elevated) 0, rgba(58, 107, 115, 0.04) 100%);
+  background: linear-gradient(135deg, var(--color-bg-elevated) 0, color-mix(in srgb, var(--color-peter) 4%, transparent) 100%);
 }
 .testimonial-card:hover {
   border-color: var(--color-border-medium);
@@ -2052,7 +2008,7 @@ button {
 }
 .testimonial-card.featured {
   border-color: var(--color-accent);
-  background: linear-gradient(135deg, rgba(61, 90, 69, 0.08) 0, rgba(61, 90, 69, 0.03) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-forest-green) 8%, transparent) 0, color-mix(in srgb, var(--color-forest-green) 3%, transparent) 100%);
 }
 .testimonial-badge {
   position: absolute;
@@ -2160,7 +2116,7 @@ button {
 .faq-icon {
   flex-shrink: 0;
   color: var(--color-text-muted);
-  transition: transform 0.3s ease;
+  transition: transform var(--duration-slow) ease;
 }
 .faq-item.open .faq-icon {
   transform: rotate(45deg);
@@ -2169,7 +2125,7 @@ button {
 .faq-answer {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.4s var(--ease-out-expo);
+  transition: max-height var(--duration-slower) var(--ease-out-expo);
 }
 .faq-item.open .faq-answer {
   max-height: 300px;
@@ -2181,7 +2137,7 @@ button {
   line-height: 1.7;
 }
 .developers {
-  background: linear-gradient(180deg, var(--color-bg) 0, var(--color-sand) 100%);
+  background: linear-gradient(180deg, var(--color-bg) 0, var(--color-bg-surface) 100%);
   padding: var(--space-28) 0;
   position: relative;
 }
@@ -2212,7 +2168,7 @@ button {
 }
 .developer-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-2xl);
   border-color: var(--color-accent);
 }
 .developer-card--featured {
@@ -2235,7 +2191,7 @@ button {
   color: var(--color-accent);
 }
 .developer-card--featured .developer-card__icon {
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--color-white) 15%, transparent);
   color: var(--color-text-inverse);
 }
 .developer-card__title {
@@ -2255,11 +2211,11 @@ button {
   margin-bottom: var(--space-5);
 }
 .developer-card--featured .developer-card__description {
-  color: rgba(255, 255, 255, 0.85);
+  color: color-mix(in srgb, var(--color-white) 85%, transparent);
 }
 .developer-card__badge {
   display: inline-block;
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--color-white) 20%, transparent);
   color: var(--color-text-inverse);
   font-size: var(--text-xs);
   font-weight: 600;
@@ -2282,7 +2238,7 @@ button {
 }
 .developer-cta {
   background: var(--color-text);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   padding: var(--space-16);
   text-align: center;
 }
@@ -2296,7 +2252,7 @@ button {
 .developer-cta__description {
   font-size: var(--text-lg);
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.7);
+  color: color-mix(in srgb, var(--color-white) 70%, transparent);
   max-width: 600px;
   margin: 0 auto var(--space-8);
 }
@@ -2312,16 +2268,16 @@ button {
   font-size: var(--text-base);
   border: none;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--color-white) 10%, transparent);
   color: var(--color-text-inverse);
   outline: 0;
   transition: background var(--transition-base);
 }
 .developer-cta__input::placeholder {
-  color: var(--color-dark-text-muted, var(--color-text-muted));
+  color: var(--color-sand-dark);
 }
 .developer-cta__input:focus {
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--color-white) 15%, transparent);
 }
 .developer-cta__button {
   display: inline-flex;
@@ -2345,7 +2301,7 @@ button {
 }
 .developer-cta__note {
   font-size: var(--text-sm);
-  color: var(--color-dark-text-muted, var(--color-text-muted));
+  color: var(--color-sand-dark);
   margin-top: var(--space-4);
 }
 @media (max-width: 1024px) {
@@ -2379,14 +2335,14 @@ button {
    Background: var(--color-text-primary) (warm dark brown)
    Contrast Ratios:
    - Primary text (var(--color-bg-primary)): 10.1:1 ✓
-   - Secondary text (var(--color-sand)): 6.8:1 ✓ 
+   - Secondary text (var(--color-bg-surface)): 6.8:1 ✓ 
    - Muted text (var(--color-sand-dark)): 4.7:1 ✓ (was var(--color-apple-gray) at 2.9:1 - FAILED)
    - Link color (var(--color-moss-light)): 4.5:1 ✓ (was var(--color-apple-blue) - clashed with brand)
    ============================================================================= */
 .privacy-dark {
-  background: var(--color-dark-bg);
+  background: var(--color-ink);
   padding: 6rem 0;
-  color: var(--color-dark-text);
+  color: var(--color-paper);
 }
 .privacy-dark__container {
   max-width: 1200px;
@@ -2399,8 +2355,8 @@ button {
   opacity: 0;
   transform: translateY(30px);
   transition:
-    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity var(--duration-cinematic) var(--ease-cinematic),
+    transform var(--duration-cinematic) var(--ease-cinematic);
 }
 .privacy-dark__header.visible {
   opacity: 1;
@@ -2408,30 +2364,30 @@ button {
 }
 .privacy-dark__eyebrow {
   display: block;
-  font-size: var(--text-xs, 0.75rem);
-  font-weight: var(--font-weight-semibold, 600);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-dark-text-muted); /* 4.7:1 contrast */
+  color: var(--color-sand-dark); /* 4.7:1 contrast */
   margin-bottom: var(--space-4);
 }
 .privacy-dark__headline {
-  font-family: var(--font-display, 'Plus Jakarta Sans', -apple-system, sans-serif);
+  font-family: var(--font-display);
   font-size: clamp(40px, 8vw, 64px);
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.03em;
-  color: var(--color-dark-text); /* 10.1:1 contrast */
+  color: var(--color-paper); /* 10.1:1 contrast */
   margin: 0 0 var(--space-5);
   background: none;
   -webkit-background-clip: unset;
-  -webkit-text-fill-color: var(--color-dark-text);
+  -webkit-text-fill-color: var(--color-paper);
   background-clip: unset;
 }
 .privacy-dark__subhead {
   font-size: 21px;
   line-height: 1.5;
-  color: var(--color-dark-text-secondary); /* 6.8:1 contrast */
+  color: var(--color-bg-surface); /* 6.8:1 contrast */
   margin: 0;
 }
 .privacy-dark__grid {
@@ -2445,8 +2401,8 @@ button {
   opacity: 1;
   transform: translateY(0);
   transition:
-    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity var(--duration-cinematic) var(--ease-cinematic),
+    transform var(--duration-cinematic) var(--ease-cinematic);
 }
 .privacy-dark__card.animate-on-scroll {
   opacity: 0;
@@ -2475,22 +2431,22 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--color-white) 8%, transparent);
   border-radius: var(--radius-lg);
-  color: var(--color-dark-text); /* 10.1:1 contrast */
+  color: var(--color-paper); /* 10.1:1 contrast */
 }
 .privacy-dark__card-title {
-  font-family: var(--font-display, 'Plus Jakarta Sans', -apple-system, sans-serif);
+  font-family: var(--font-display);
   font-size: 19px;
   font-weight: 600;
-  color: var(--color-dark-text); /* 10.1:1 contrast */
+  color: var(--color-paper); /* 10.1:1 contrast */
   margin: 0 0 var(--space-3);
   letter-spacing: -0.01em;
 }
 .privacy-dark__card-text {
   font-size: var(--text-base); /* Slightly larger for better readability */
   line-height: 1.7;
-  color: var(--color-dark-text-muted); /* 4.7:1 contrast - was var(--color-apple-gray) at 2.9:1 FAILED */
+  color: var(--color-sand-dark); /* 4.7:1 contrast - was var(--color-apple-gray) at 2.9:1 FAILED */
   margin: 0;
 }
 .privacy-dark__footer {
@@ -2503,12 +2459,12 @@ button {
   gap: var(--space-2);
   font-size: var(--text-lg);
   font-weight: 500;
-  color: var(--color-dark-accent); /* Sage green - 4.5:1 contrast, brand-aligned */
+  color: var(--color-moss-light); /* Sage green - 4.5:1 contrast, brand-aligned */
   text-decoration: none;
-  transition: color 0.2s ease, gap 0.2s ease;
+  transition: color var(--duration-normal) ease, gap var(--duration-normal) ease;
 }
 .privacy-dark__link:hover {
-  color: var(--color-dark-text-secondary);
+  color: var(--color-bg-surface);
   gap: var(--space-3);
 }
 @media (max-width: 1024px) {
@@ -2544,10 +2500,10 @@ button {
     135deg,
     var(--color-accent-subtle) 0,
     var(--color-bg-elevated) 50%,
-    rgba(196, 167, 125, 0.05) 100%
+    color-mix(in srgb, var(--color-tea) 5%, transparent) 100%
   );
   border: 1px solid var(--color-border-medium);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   padding: var(--space-16);
   display: flex;
   flex-wrap: wrap;
@@ -2620,8 +2576,8 @@ button {
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-5) var(--space-6);
-  background: rgba(61, 122, 82, 0.1);
-  border: 1px solid rgba(61, 122, 82, 0.3);
+  background: color-mix(in srgb, var(--color-success-dark) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-success-dark) 30%, transparent);
   border-radius: var(--radius-md);
   color: var(--color-success);
   font-size: var(--text-base);
@@ -2744,8 +2700,8 @@ button {
   background: var(--color-bg-elevated);
   border-top: 1px solid var(--color-border);
   transform: translateY(100%);
-  transition: transform 0.4s var(--ease-out-expo);
-  box-shadow: 0 -4px 20px rgba(44, 37, 32, 0.1);
+  transition: transform var(--duration-slower) var(--ease-out-expo);
+  box-shadow: var(--shadow-lg);
 }
 .cookie-banner.visible {
   transform: translateY(0);
@@ -2975,7 +2931,7 @@ button {
   }
   .newsletter-card {
     padding: var(--space-8) var(--space-6);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-2xl);
   }
   .newsletter-headline {
     font-size: var(--text-2xl);
@@ -3044,7 +3000,7 @@ button {
   gap: var(--space-8);
   padding: var(--space-10);
   background: var(--color-bg-elevated);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--color-border);
 }
@@ -3060,7 +3016,7 @@ button {
   border-radius: 50%;
   border: 2px solid var(--color-ferni);
   opacity: 0.3;
-  animation: ceoPulse 3s ease-in-out infinite;
+  animation: ceoPulse var(--duration-meditative) ease-in-out infinite;
 }
 @keyframes ceoPulse {
   0%,
@@ -3087,7 +3043,7 @@ button {
   color: var(--color-text-inverse);
   box-shadow:
     0 8px 32px var(--color-ferni-glow),
-    inset 0 2px 0 rgba(255, 255, 255, 0.15);
+    inset 0 2px 0 color-mix(in srgb, var(--color-white) 15%, transparent);
 }
 .ceo-avatar-glow {
   position: absolute;
@@ -3162,8 +3118,8 @@ button {
   justify-content: center;
   color: var(--color-text-inverse);
   transition:
-    transform 0.3s var(--ease-spring),
-    box-shadow 0.3s ease;
+    transform var(--duration-slow) var(--ease-spring),
+    box-shadow var(--duration-slow) ease;
 }
 .founder-avatar svg {
   width: 32px;
@@ -3174,15 +3130,15 @@ button {
 }
 .founder-claude {
   background: linear-gradient(135deg, var(--color-purple), var(--color-purple-light));
-  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-purple) 30%, transparent);
 }
 .founder-gemini {
   background: linear-gradient(135deg, var(--color-google-blue), var(--color-google-green), var(--color-google-yellow), var(--color-google-red));
-  box-shadow: 0 8px 24px rgba(66, 133, 244, 0.3);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-google-blue) 30%, transparent);
 }
 .founder-gpt {
   background: linear-gradient(135deg, var(--color-openai), var(--color-openai));
-  box-shadow: 0 8px 24px rgba(16, 163, 127, 0.3);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-openai) 30%, transparent);
 }
 .founder-name {
   font-family: var(--font-display);
@@ -3230,7 +3186,7 @@ button {
   background: var(--color-bg-elevated);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  transition: all 0.3s var(--ease-spring);
+  transition: all var(--duration-slow) var(--ease-spring);
 }
 .employee:hover {
   transform: translateY(-4px);
@@ -3243,7 +3199,7 @@ button {
   border-radius: 50%;
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--employee-color) 80%, #000),
+    color-mix(in srgb, var(--employee-color) 80%, var(--color-black)),
     var(--employee-color)
   );
   display: flex;

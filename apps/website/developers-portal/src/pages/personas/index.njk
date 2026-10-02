@@ -139,12 +139,12 @@ permalink: /personas/
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-2xl);
     padding: var(--space-6);
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color var(--duration-normal), box-shadow var(--duration-normal);
   }
 
   .persona-card:hover {
     border-color: var(--border-medium);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-lg);
   }
 
   .persona-card-header {
@@ -179,8 +179,8 @@ permalink: /personas/
   .status-draft { background: var(--bg-tertiary); color: var(--text-secondary); }
   .status-submitted { background: var(--warning); color: var(--bg-code); }
   .status-approved { background: var(--success); color: var(--bg-code); }
-  .status-published { background: var(--accent-primary); color: white; }
-  .status-rejected { background: var(--error); color: white; }
+  .status-published { background: var(--accent-primary); color: var(--color-white); }
+  .status-rejected { background: var(--error); color: var(--color-white); }
 
   .persona-card-name {
     font-size: var(--text-lg);

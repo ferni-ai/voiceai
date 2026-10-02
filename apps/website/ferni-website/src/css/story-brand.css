@@ -25,42 +25,17 @@
 
 :root {
   /* Aliases for backwards compatibility */
-  --color-paper-cream: var(--color-bg-primary);
-  --color-sand: var(--color-bg-secondary);
-  --color-elevated: var(--color-bg-elevated);
-  --color-natural-ink: var(--color-text-primary);
-  --color-forest-green: var(--color-accent);
-  --color-ferni-green: var(--color-ferni);
-  --color-warm-amber: var(--color-nayan);
-  --color-warm-amber-light: var(--color-highlight);
 
   /* Dark gradient colors for dramatic sections */
-  --color-dark-gradient-start: var(--color-bg-dark);
-  --color-dark-gradient-mid: var(--color-bg-dark-elevated);
 
   /* Muted comparison colors (intentionally softer than error) */
-  --color-comparison-bad: var(--color-error);
-  --color-comparison-bad-hover: var(--color-error);
 
   /* === APPLE-LEVEL POLISH: Refined Shadows === */
-  --shadow-xs: 0 1px 2px rgba(44, 37, 32, 0.04);
-  --shadow-sm: 0 2px 4px rgba(44, 37, 32, 0.06);
-  --shadow-md: 0 4px 12px rgba(44, 37, 32, 0.08);
-  --shadow-lg: 0 8px 24px rgba(44, 37, 32, 0.1);
-  --shadow-xl: 0 16px 48px rgba(44, 37, 32, 0.14);
-  --shadow-glow-green: 0 8px 32px rgba(74, 103, 65, 0.15);
+  --shadow-glow-green: 0 8px 32px color-mix(in srgb, var(--color-ferni) 15%, transparent);
 
   /* === APPLE-LEVEL POLISH: Refined Transitions === */
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-
-  --duration-instant: 100ms;
-  --duration-fast: 150ms;
-  --duration-normal: 250ms;
-  --duration-slow: 400ms;
-  --duration-dramatic: 600ms;
 
   /* === APPLE-LEVEL POLISH: Line Heights === */
   --lh-tight: 1.1;
@@ -69,9 +44,6 @@
   --lh-relaxed: 1.7;
 
   /* === TYPOGRAPHY (From Brand Guidelines) === */
-
-  --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Display Scale */
   --text-display-xl: 96px;
@@ -91,19 +63,6 @@
   --text-body-sm: 15px;
 
   /* === SPACING (8px base) === */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  --space-16: 64px;
-  --space-20: 80px;
-  --space-24: 96px;
-  --space-32: 128px;
 
   /* Shadows and animations defined in APPLE-LEVEL POLISH section above */
 }
@@ -120,13 +79,13 @@
   z-index: 9999;
   padding: var(--space-3) var(--space-6);
   background: var(--color-ferni-green);
-  color: white;
+  color: var(--color-white);
   font-family: var(--font-display);
   font-size: var(--text-body-md);
   font-weight: var(--font-weight-semibold);
   border-radius: 0 0 var(--space-2) var(--space-2);
   text-decoration: none;
-  transition: top 0.2s ease;
+  transition: top var(--duration-normal) ease;
 }
 
 .skip-link:focus {
@@ -160,7 +119,7 @@ body {
   font-weight: 400;
   line-height: 1.6;
   color: var(--color-natural-ink);
-  background: var(--color-paper-cream);
+  background: var(--color-paper);
 }
 
 a {
@@ -193,7 +152,7 @@ button {
   right: 0;
   z-index: 1000;
   padding: var(--space-4) var(--space-6);
-  background: rgba(245, 241, 232, 0.85);
+  background: color-mix(in srgb, var(--color-sand-light) 85%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid transparent;
@@ -201,7 +160,7 @@ button {
 }
 
 .nav.is-scrolled {
-  background: rgba(245, 241, 232, 0.95);
+  background: color-mix(in srgb, var(--color-sand-light) 95%, transparent);
   border-bottom-color: var(--color-border-medium);
 }
 
@@ -271,7 +230,7 @@ button {
   gap: var(--space-2);
   padding: 10px var(--space-5);
   background: var(--color-forest-green);
-  color: white;
+  color: var(--color-white);
   border-radius: var(--radius-full);
   font-family: var(--font-display);
   font-size: var(--text-body-sm);
@@ -307,14 +266,14 @@ button {
   max-width: 1120px;
   margin: 0 auto;
   width: 100%;
-  padding-left: var(--space-6, 24px);
-  padding-right: var(--space-6, 24px);
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
 }
 
 @media (min-width: 768px) {
   .container {
-    padding-left: var(--space-12, 48px);
-    padding-right: var(--space-12, 48px);
+    padding-left: var(--space-12);
+    padding-right: var(--space-12);
   }
 }
 
@@ -342,7 +301,7 @@ button {
   color: var(--color-ferni-green);
   margin-bottom: var(--space-5);
   /* Subtle glow effect */
-  text-shadow: 0 0 30px rgba(74, 103, 65, 0.3);
+  text-shadow: 0 0 30px color-mix(in srgb, var(--color-ferni) 30%, transparent);
 }
 
 /* TITLE - Apple-scale massive typography */
@@ -384,7 +343,7 @@ button {
   justify-content: center;
   padding-top: 100px;
   padding-bottom: var(--space-20);
-  background: var(--color-paper-cream);
+  background: var(--color-paper);
   overflow: hidden;
 }
 
@@ -405,8 +364,8 @@ button {
   inset: 0;
   background: radial-gradient(
     ellipse 80% 60% at 50% 40%,
-    rgba(74, 103, 65, 0.06) 0%,
-    rgba(74, 103, 65, 0.02) 40%,
+    color-mix(in srgb, var(--color-ferni) 6%, transparent) 0%,
+    color-mix(in srgb, var(--color-ferni) 2%, transparent) 40%,
     transparent 70%
   );
 }
@@ -451,7 +410,7 @@ button {
   border-radius: 50%;
   filter: blur(60px);
   animation:
-    orb-breathe 8s ease-in-out infinite,
+    orb-breathe var(--duration-ambient) ease-in-out infinite,
     orb-float 25s ease-in-out infinite;
   will-change: transform, opacity;
 }
@@ -465,8 +424,8 @@ button {
   right: -10%;
   background: radial-gradient(
     circle,
-    rgba(74, 103, 65, 0.4) 0%,
-    rgba(74, 103, 65, 0.1) 50%,
+    color-mix(in srgb, var(--color-ferni) 40%, transparent) 0%,
+    color-mix(in srgb, var(--color-ferni) 10%, transparent) 50%,
     transparent 70%
   );
 }
@@ -480,8 +439,8 @@ button {
   left: -5%;
   background: radial-gradient(
     circle,
-    rgba(196, 162, 101, 0.3) 0%,
-    rgba(196, 162, 101, 0.05) 50%,
+    color-mix(in srgb, var(--color-tea-light) 30%, transparent) 0%,
+    color-mix(in srgb, var(--color-tea-light) 5%, transparent) 50%,
     transparent 70%
   );
   animation-delay: -3s;
@@ -495,7 +454,7 @@ button {
   height: 300px;
   top: 40%;
   left: 20%;
-  background: radial-gradient(circle, rgba(58, 107, 115, 0.2) 0%, transparent 60%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-peter) 20%, transparent) 0%, transparent 60%);
   animation-delay: -5s;
   animation-duration: 12s, 35s;
 }
@@ -532,7 +491,7 @@ button {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-ferni-green);
-  background: rgba(74, 103, 65, 0.08);
+  background: color-mix(in srgb, var(--color-ferni) 8%, transparent);
   padding: 10px 18px;
   border-radius: var(--radius-full);
 }
@@ -601,13 +560,13 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 32px rgba(74, 103, 65, 0.3);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--color-ferni) 30%, transparent);
   z-index: 2;
 }
 
 /* Legacy text style (kept for backwards compatibility) */
 .hero-ferni__text {
-  color: white;
+  color: var(--color-white);
   font-family: var(--font-display);
   font-weight: var(--font-weight-bold);
   font-size: var(--text-2xl);
@@ -630,7 +589,7 @@ button {
 .hero-ferni__orb:hover .ferni-eyes-svg ellipse {
   transform: scale(1.05);
   transform-origin: center;
-  transition: transform 0.2s ease-out;
+  transition: transform var(--duration-normal) ease-out;
 }
 
 /* Sparkle animation */
@@ -708,11 +667,11 @@ button {
   0%,
   100% {
     transform: scale(1);
-    box-shadow: 0 8px 32px rgba(74, 103, 65, 0.3);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--color-ferni) 30%, transparent);
   }
   50% {
     transform: scale(1.05);
-    box-shadow: 0 12px 40px rgba(74, 103, 65, 0.4);
+    box-shadow: 0 12px 40px color-mix(in srgb, var(--color-ferni) 40%, transparent);
   }
 }
 
@@ -811,15 +770,15 @@ button {
   text-decoration: none;
   /* Apple-level transitions */
   transition:
-    transform var(--duration-fast) var(--ease-spring),
-    box-shadow var(--duration-normal) var(--ease-smooth),
+    transform var(--duration-fast) var(--ease-ease-out-back),
+    box-shadow var(--duration-normal) var(--ease-gentle),
     background var(--duration-fast) ease;
 }
 
 .btn svg {
   width: 18px;
   height: 18px;
-  transition: transform var(--duration-fast) var(--ease-spring);
+  transition: transform var(--duration-fast) var(--ease-ease-out-back);
 }
 
 .btn:hover svg {
@@ -828,7 +787,7 @@ button {
 
 .btn--primary {
   background: var(--color-forest-green);
-  color: white;
+  color: var(--color-white);
   box-shadow: var(--shadow-sm);
 }
 
@@ -841,7 +800,7 @@ button {
 .btn--primary:active {
   transform: translateY(0) scale(0.98);
   box-shadow: var(--shadow-sm);
-  transition-duration: 50ms;
+  transition-duration: var(--duration-fastest);
 }
 
 .btn--secondary {
@@ -853,7 +812,7 @@ button {
 
 .btn--secondary:hover {
   border-color: var(--color-forest-green);
-  background: rgba(61, 90, 69, 0.05);
+  background: color-mix(in srgb, var(--color-forest-green) 5%, transparent);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -861,7 +820,7 @@ button {
 .btn--secondary:active {
   transform: translateY(0) scale(0.98);
   box-shadow: var(--shadow-xs);
-  transition-duration: 50ms;
+  transition-duration: var(--duration-fastest);
 }
 
 .btn--lg {
@@ -972,24 +931,23 @@ button {
    ============================================ */
 .team-card {
   padding: var(--space-8);
-  background: white;
+  background: var(--color-white);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(44, 37, 32, 0.06);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
+  transition: all var(--duration-slower) var(--ease-cinematic);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   box-shadow:
-    0 1px 2px rgba(44, 37, 32, 0.04),
-    0 4px 16px rgba(44, 37, 32, 0.04);
+    var(--shadow-2xs);
 }
 
 .team-card:hover {
   transform: translateY(-6px);
   box-shadow:
-    0 8px 30px rgba(44, 37, 32, 0.1),
-    0 0 0 1px rgba(74, 103, 65, 0.08);
+    0 8px 30px color-mix(in srgb, var(--color-ink) 10%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-ferni) 8%, transparent);
   border-color: transparent;
 }
 
@@ -1048,7 +1006,7 @@ button {
   font-size: var(--text-xs);
   font-weight: 500;
   padding: var(--space-1) var(--space-3);
-  background: var(--color-paper-cream);
+  background: var(--color-paper);
   color: var(--color-text-muted);
   border-radius: var(--radius-full);
   border: 1px solid var(--color-border-subtle);
@@ -1056,39 +1014,39 @@ button {
 
 /* Persona-specific trait colors */
 .team-card--ferni .team-card__trait {
-  background: rgba(74, 103, 65, 0.1);
+  background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
   color: var(--color-ferni);
-  border-color: rgba(74, 103, 65, 0.2);
+  border-color: color-mix(in srgb, var(--color-ferni) 20%, transparent);
 }
 
 .team-card--nayan .team-card__trait {
-  background: rgba(154, 123, 90, 0.1);
+  background: color-mix(in srgb, var(--color-jack) 10%, transparent);
   color: var(--color-jack);
-  border-color: rgba(154, 123, 90, 0.2);
+  border-color: color-mix(in srgb, var(--color-jack) 20%, transparent);
 }
 
 .team-card--peter .team-card__trait {
-  background: rgba(58, 107, 115, 0.1);
+  background: color-mix(in srgb, var(--color-peter) 10%, transparent);
   color: var(--color-peter);
-  border-color: rgba(58, 107, 115, 0.2);
+  border-color: color-mix(in srgb, var(--color-peter) 20%, transparent);
 }
 
 .team-card--alex .team-card__trait {
-  background: rgba(90, 107, 138, 0.1);
+  background: color-mix(in srgb, var(--color-alex) 10%, transparent);
   color: var(--color-alex);
-  border-color: rgba(90, 107, 138, 0.2);
+  border-color: color-mix(in srgb, var(--color-alex) 20%, transparent);
 }
 
 .team-card--maya .team-card__trait {
-  background: rgba(166, 122, 106, 0.1);
+  background: color-mix(in srgb, var(--color-maya) 10%, transparent);
   color: var(--color-maya);
-  border-color: rgba(166, 122, 106, 0.2);
+  border-color: color-mix(in srgb, var(--color-maya) 20%, transparent);
 }
 
 .team-card--jordan .team-card__trait {
-  background: rgba(196, 133, 106, 0.1);
+  background: color-mix(in srgb, var(--color-jordan) 10%, transparent);
   color: var(--color-jordan);
-  border-color: rgba(196, 133, 106, 0.2);
+  border-color: color-mix(in srgb, var(--color-jordan) 20%, transparent);
 }
 
 /* Team Card Preview Input */
@@ -1112,8 +1070,8 @@ button {
   border-radius: var(--radius-full);
   outline: none;
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    border-color var(--duration-normal) ease,
+    box-shadow var(--duration-normal) ease;
 }
 
 .team-card__preview-input input::placeholder {
@@ -1122,7 +1080,7 @@ button {
 
 .team-card__preview-input input:focus {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ferni) 10%, transparent);
 }
 
 .team-card__preview-btn {
@@ -1133,18 +1091,18 @@ button {
   align-items: center;
   justify-content: center;
   background: var(--color-accent);
-  color: white;
+  color: var(--color-white);
   border: none;
   border-radius: 50%;
   cursor: pointer;
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    transform var(--duration-normal) ease,
+    box-shadow var(--duration-normal) ease;
 }
 
 .team-card__preview-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 30%, transparent);
 }
 
 .team-card__preview-btn:active {
@@ -1207,7 +1165,7 @@ button {
   justify-content: center;
   animation: avatarIdle 4s ease-in-out infinite;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform var(--duration-normal) ease;
   /* Default Ferni green - persona-specific rules override this */
   background: linear-gradient(
     145deg,
@@ -1223,7 +1181,7 @@ button {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.2) 0%, transparent 40%);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--color-white) 20%, transparent) 0%, transparent 40%);
   pointer-events: none;
 }
 
@@ -1231,9 +1189,9 @@ button {
 .persona-avatar__text {
   font-family: var(--font-display);
   font-weight: var(--font-weight-bold);
-  color: white;
+  color: var(--color-white);
   user-select: none;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--color-black) 15%, transparent);
 }
 
 .persona-avatar--sm .persona-avatar__text {
@@ -1267,7 +1225,7 @@ button {
 .persona-avatar--ferni .persona-avatar__orb {
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--color-ferni) 80%, white) 0%,
+    color-mix(in srgb, var(--color-ferni) 80%, var(--color-white)) 0%,
     var(--color-ferni) 50%,
     var(--color-ferni-secondary) 100%
   );
@@ -1279,7 +1237,7 @@ button {
 .persona-avatar--nayan .persona-avatar__orb {
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--color-nayan) 80%, white) 0%,
+    color-mix(in srgb, var(--color-nayan) 80%, var(--color-white)) 0%,
     var(--color-nayan) 50%,
     var(--color-nayan-secondary) 100%
   );
@@ -1291,7 +1249,7 @@ button {
 .persona-avatar--peter .persona-avatar__orb {
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--color-peter) 80%, white) 0%,
+    color-mix(in srgb, var(--color-peter) 80%, var(--color-white)) 0%,
     var(--color-peter) 50%,
     var(--color-peter-secondary) 100%
   );
@@ -1303,7 +1261,7 @@ button {
 .persona-avatar--alex .persona-avatar__orb {
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--color-alex) 80%, white) 0%,
+    color-mix(in srgb, var(--color-alex) 80%, var(--color-white)) 0%,
     var(--color-alex) 50%,
     var(--color-alex-secondary) 100%
   );
@@ -1315,7 +1273,7 @@ button {
 .persona-avatar--maya .persona-avatar__orb {
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--color-maya) 80%, white) 0%,
+    color-mix(in srgb, var(--color-maya) 80%, var(--color-white)) 0%,
     var(--color-maya) 50%,
     var(--color-maya-secondary) 100%
   );
@@ -1327,7 +1285,7 @@ button {
 .persona-avatar--jordan .persona-avatar__orb {
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--color-jordan) 80%, white) 0%,
+    color-mix(in srgb, var(--color-jordan) 80%, var(--color-white)) 0%,
     var(--color-jordan) 50%,
     var(--color-jordan-secondary) 100%
   );
@@ -1361,12 +1319,12 @@ button {
 
 /* ===== HOVER INTERACTIONS ===== */
 .persona-avatar:hover .persona-avatar__orb {
-  animation: avatarHoverBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: avatarHoverBounce var(--duration-slowest) var(--ease-ease-out-back);
   transform: scale(1.08);
 }
 
 .persona-avatar:hover .persona-avatar__ring {
-  animation: avatarRingPulse 0.5s ease-out;
+  animation: avatarRingPulse var(--duration-slowest) ease-out;
   opacity: 0.5;
 }
 
@@ -1448,7 +1406,7 @@ button {
    Clean, confident, compelling
    ============================================ */
 .features {
-  background: linear-gradient(180deg, var(--color-paper-cream) 0%, var(--color-paper-cream) 100%);
+  background: linear-gradient(180deg, var(--color-paper) 0%, var(--color-paper) 100%);
   padding: clamp(80px, 12vh, 140px) var(--space-6);
 }
 
@@ -1474,20 +1432,19 @@ button {
 .feature {
   text-align: center;
   padding: var(--space-8);
-  background: white;
+  background: var(--color-white);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(44, 37, 32, 0.06);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
   box-shadow:
-    0 1px 2px rgba(44, 37, 32, 0.04),
-    0 4px 16px rgba(44, 37, 32, 0.04);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    var(--shadow-2xs);
+  transition: all var(--duration-slower) var(--ease-cinematic);
 }
 
 .feature:hover {
   transform: translateY(-6px);
   box-shadow:
-    0 8px 30px rgba(44, 37, 32, 0.08),
-    0 0 0 1px rgba(74, 103, 65, 0.1);
+    0 8px 30px color-mix(in srgb, var(--color-ink) 8%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-ferni) 10%, transparent);
 }
 
 /* Icon - Large, bold, with gradient */
@@ -1495,12 +1452,12 @@ button {
   width: 72px;
   height: 72px;
   margin: 0 auto var(--space-6);
-  background: linear-gradient(145deg, rgba(74, 103, 65, 0.12) 0%, rgba(74, 103, 65, 0.06) 100%);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-ferni) 12%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 6%, transparent) 100%);
   border-radius: var(--radius-xl);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all var(--duration-slow) ease;
 }
 
 .feature:hover .feature__icon {
@@ -1512,11 +1469,11 @@ button {
   width: 32px;
   height: 32px;
   color: var(--color-ferni-green);
-  transition: color 0.3s ease;
+  transition: color var(--duration-slow) ease;
 }
 
 .feature:hover .feature__icon svg {
-  color: white;
+  color: var(--color-white);
 }
 
 /* Title - Bold and confident */
@@ -1597,7 +1554,7 @@ button {
 
 .assistant-phone__screen {
   background: linear-gradient(180deg, var(--color-bg-dark-elevated) 0%, var(--color-text-primary) 100%);
-  border-radius: calc(var(--radius-3xl) - 4px);
+  border-radius: calc(var(--radius-3xl) - var(--radius-xs));
   overflow: hidden;
   min-height: 420px;
 }
@@ -1654,8 +1611,8 @@ button {
 }
 
 .assistant-demo__bubble--ferni {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--color-white) 10%, transparent);
+  color: color-mix(in srgb, var(--color-white) 90%, transparent);
   border-bottom-left-radius: var(--radius-xs);
   margin-right: 20px;
   animation-delay: var(--duration-deliberate);
@@ -1719,9 +1676,9 @@ button {
   border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-sm);
   transition:
-    transform var(--duration-slow) var(--ease-ease-in-out),
-    box-shadow var(--duration-slow) var(--ease-ease-in-out),
-    border-color var(--duration-slow) var(--ease-ease-in-out);
+    transform var(--duration-slower) var(--ease-ease-in-out),
+    box-shadow var(--duration-slower) var(--ease-ease-in-out),
+    border-color var(--duration-slower) var(--ease-ease-in-out);
 }
 
 .capability:hover {
@@ -1738,12 +1695,12 @@ button {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-xl);
-  background: linear-gradient(145deg, rgba(74, 103, 65, 0.1) 0%, rgba(74, 103, 65, 0.05) 100%);
-  border: 1px solid rgba(74, 103, 65, 0.1);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-ferni) 10%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 5%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--color-ferni) 10%, transparent);
   transition:
-    background var(--duration-slow) var(--ease-ease-in-out),
-    transform var(--duration-slow) var(--ease-ease-out-back),
-    border-color var(--duration-slow) var(--ease-ease-in-out);
+    background var(--duration-slower) var(--ease-ease-in-out),
+    transform var(--duration-slower) var(--ease-ease-out-back),
+    border-color var(--duration-slower) var(--ease-ease-in-out);
 }
 
 .capability:hover .capability__icon {
@@ -1756,7 +1713,7 @@ button {
   width: 28px;
   height: 28px;
   color: var(--color-ferni);
-  transition: color var(--duration-slow) var(--ease-ease-in-out);
+  transition: color var(--duration-slower) var(--ease-ease-in-out);
 }
 
 .capability:hover .capability__icon svg {
@@ -1821,8 +1778,8 @@ button {
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-medium);
   transition:
-    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform var(--duration-slow) var(--ease-in-out),
+    box-shadow var(--duration-slow) var(--ease-in-out);
 }
 
 .testimonial:hover {
@@ -1833,13 +1790,13 @@ button {
 .testimonial--featured {
   grid-column: 1 / -1;
   background: linear-gradient(135deg, var(--color-ferni-green), var(--color-ferni));
-  color: white;
+  color: var(--color-white);
   border: none;
 }
 
 .testimonial--featured:hover {
   transform: translateY(-6px);
-  box-shadow: 0 20px 40px rgba(74, 103, 65, 0.3);
+  box-shadow: 0 20px 40px color-mix(in srgb, var(--color-ferni) 30%, transparent);
 }
 
 .testimonial__stars {
@@ -1851,13 +1808,13 @@ button {
 .testimonial__stars svg {
   width: 16px;
   height: 16px;
-  color: var(--color-warm-amber);
-  fill: var(--color-warm-amber);
+  color: var(--color-nayan);
+  fill: var(--color-nayan);
 }
 
 .testimonial--featured .testimonial__stars svg {
-  color: white;
-  fill: white;
+  color: var(--color-white);
+  fill: var(--color-white);
 }
 
 .testimonial__quote {
@@ -1882,7 +1839,7 @@ button {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--color-sand);
+  background: var(--color-bg-surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1893,8 +1850,8 @@ button {
 }
 
 .testimonial--featured .testimonial__avatar {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: color-mix(in srgb, var(--color-white) 20%, transparent);
+  color: var(--color-white);
 }
 
 .testimonial__name {
@@ -1909,16 +1866,16 @@ button {
 }
 
 .testimonial--featured .testimonial__role {
-  color: rgba(255, 255, 255, 0.7);
+  color: color-mix(in srgb, var(--color-white) 70%, transparent);
 }
 
 .testimonial--featured .testimonial__name {
-  color: white;
+  color: var(--color-white);
 }
 
 /* Testimonials Section Background */
 .testimonials-section {
-  background: var(--color-sand);
+  background: var(--color-bg-surface);
 }
 
 /* ============================================
@@ -1930,7 +1887,7 @@ button {
    Clean, confident, featured card stands out
    ============================================ */
 .pricing {
-  background: linear-gradient(180deg, var(--color-paper-cream) 0%, var(--color-paper-cream) 100%);
+  background: linear-gradient(180deg, var(--color-paper) 0%, var(--color-paper) 100%);
   padding: clamp(80px, 12vh, 140px) var(--space-6);
 }
 
@@ -1952,33 +1909,32 @@ button {
 /* Base pricing card */
 .pricing-card {
   padding: var(--space-10);
-  background: white;
-  border-radius: 28px;
-  border: 1px solid rgba(44, 37, 32, 0.08);
+  background: var(--color-white);
+  border-radius: var(--radius-3xl);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
   text-align: center;
   display: flex;
   flex-direction: column;
   box-shadow:
-    0 1px 2px rgba(44, 37, 32, 0.04),
-    0 4px 16px rgba(44, 37, 32, 0.04);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    var(--shadow-2xs);
+  transition: all var(--duration-slower) var(--ease-cinematic);
 }
 
 .pricing-card:hover {
   transform: translateY(-4px);
   box-shadow:
-    0 8px 32px rgba(44, 37, 32, 0.1);
+    var(--shadow-xl);
 }
 
 /* FEATURED CARD - Dark, dramatic */
 .pricing-card--featured {
   background: linear-gradient(180deg, var(--color-bg-dark) 0%, var(--color-bg-dark) 100%);
-  color: white;
+  color: var(--color-white);
   border: none;
   position: relative;
   box-shadow:
-    0 8px 32px rgba(26, 22, 18, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    0 8px 32px color-mix(in srgb, var(--color-ink-deep) 30%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-white) 5%, transparent) inset;
 }
 
 @media (min-width: 768px) {
@@ -2000,14 +1956,14 @@ button {
   transform: translateX(-50%);
   padding: 8px 20px;
   background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni) 100%);
-  color: white;
+  color: var(--color-white);
   font-family: var(--font-display);
   font-size: var(--text-xs);
   font-weight: 700;
   border-radius: var(--radius-full);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 30%, transparent);
 }
 
 /* Plan name */
@@ -2037,7 +1993,7 @@ button {
 }
 
 .pricing-card--featured .pricing-card__price span {
-  color: rgba(255, 255, 255, 0.6);
+  color: color-mix(in srgb, var(--color-white) 60%, transparent);
 }
 
 /* Description */
@@ -2049,7 +2005,7 @@ button {
 }
 
 .pricing-card--featured .pricing-card__description {
-  color: rgba(255, 255, 255, 0.7);
+  color: color-mix(in srgb, var(--color-white) 70%, transparent);
 }
 
 /* Features list */
@@ -2067,17 +2023,17 @@ button {
   font-family: var(--font-body);
   font-size: var(--text-base);
   padding: var(--space-3) 0;
-  border-bottom: 1px solid rgba(44, 37, 32, 0.06);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
   color: var(--color-text-primary);
 }
 
 .pricing-card--featured .pricing-card__features li {
-  border-color: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.9);
+  border-color: color-mix(in srgb, var(--color-white) 8%, transparent);
+  color: color-mix(in srgb, var(--color-white) 90%, transparent);
 }
 
 .pricing-card--featured .pricing-card__features li {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
+  border-bottom-color: color-mix(in srgb, var(--color-white) 10%, transparent);
 }
 
 .pricing-card__features li:last-child {
@@ -2093,7 +2049,7 @@ button {
 }
 
 .pricing-card--featured .pricing-card__features svg {
-  color: rgba(255, 255, 255, 0.8);
+  color: color-mix(in srgb, var(--color-white) 80%, transparent);
 }
 
 .pricing-card__cta {
@@ -2101,32 +2057,31 @@ button {
 }
 
 .pricing-card--featured .btn--primary {
-  background: white;
+  background: var(--color-white);
   color: var(--color-natural-ink);
 }
 
 .pricing-card--featured .btn--primary:hover {
-  background: var(--color-paper-cream);
+  background: var(--color-paper);
 }
 
 /* ============================================
    FERNI FUND SECTION - Gift Forward Model
    ============================================ */
 .ferni-fund {
-  background: linear-gradient(180deg, var(--color-paper-sand) 0%, var(--color-paper-cream) 100%);
+  background: linear-gradient(180deg, var(--color-paper-sand) 0%, var(--color-paper) 100%);
   padding: clamp(80px, 12vh, 120px) var(--space-6);
 }
 
 /* Fund Explainer - How it Works */
 .fund-explainer {
-  background: white;
-  border-radius: 28px;
+  background: var(--color-white);
+  border-radius: var(--radius-3xl);
   padding: var(--space-10) var(--space-8);
   margin-bottom: var(--space-12);
   box-shadow:
-    0 1px 2px rgba(44, 37, 32, 0.04),
-    0 4px 16px rgba(44, 37, 32, 0.04);
-  border: 1px solid rgba(44, 37, 32, 0.06);
+    var(--shadow-2xs);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
 }
 
 .fund-explainer__grid {
@@ -2152,9 +2107,9 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, rgba(74, 103, 65, 0.12) 0%, rgba(74, 103, 65, 0.06) 100%);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-ferni) 12%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 6%, transparent) 100%);
   border-radius: var(--radius-lg);
-  transition: all 0.3s ease;
+  transition: all var(--duration-slow) ease;
 }
 
 .fund-explainer__icon svg {
@@ -2169,7 +2124,7 @@ button {
 }
 
 .fund-explainer__item:hover .fund-explainer__icon svg {
-  color: white;
+  color: var(--color-white);
 }
 
 .fund-explainer__title {
@@ -2205,32 +2160,31 @@ button {
 /* Gift Card */
 .gift-card {
   padding: var(--space-8);
-  background: white;
+  background: var(--color-white);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(44, 37, 32, 0.08);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
   text-align: center;
   display: flex;
   flex-direction: column;
   box-shadow:
-    0 1px 2px rgba(44, 37, 32, 0.04),
-    0 4px 16px rgba(44, 37, 32, 0.04);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    var(--shadow-2xs);
+  transition: all var(--duration-slower) var(--ease-cinematic);
 }
 
 .gift-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 8px 30px rgba(44, 37, 32, 0.08);
-  border-color: rgba(74, 103, 65, 0.2);
+  box-shadow: var(--shadow-xl);
+  border-color: color-mix(in srgb, var(--color-ferni) 20%, transparent);
 }
 
 /* Featured Gift Card */
 .gift-card--featured {
-  background: white;
+  background: var(--color-white);
   border: 2px solid var(--color-ferni-green);
   position: relative;
   box-shadow:
-    0 4px 20px rgba(74, 103, 65, 0.12),
-    0 0 0 4px rgba(74, 103, 65, 0.04);
+    0 4px 20px color-mix(in srgb, var(--color-ferni) 12%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--color-ferni) 4%, transparent);
 }
 
 @media (min-width: 768px) {
@@ -2251,14 +2205,14 @@ button {
   transform: translateX(-50%);
   padding: 8px 20px;
   background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-green) 100%);
-  color: white;
+  color: var(--color-white);
   font-family: var(--font-display);
   font-size: var(--text-xs);
   font-weight: 700;
   border-radius: var(--radius-full);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 30%, transparent);
   white-space: nowrap;
 }
 
@@ -2269,8 +2223,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, rgba(74, 103, 65, 0.12) 0%, rgba(74, 103, 65, 0.06) 100%);
-  border-radius: 14px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-ferni) 12%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 6%, transparent) 100%);
+  border-radius: var(--radius-lg);
 }
 
 .gift-card__icon svg {
@@ -2339,7 +2293,7 @@ button {
   color: var(--color-ferni-green);
   font-weight: 500;
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color var(--duration-normal) ease;
 }
 
 .fund-note a:hover {
@@ -2357,7 +2311,7 @@ button {
    ============================================ */
 .final-cta {
   background: linear-gradient(180deg, var(--color-bg-dark) 0%, var(--color-bg-dark) 100%);
-  color: white;
+  color: var(--color-white);
   text-align: center;
   padding: clamp(100px, 15vh, 160px) var(--space-6);
   position: relative;
@@ -2373,7 +2327,7 @@ button {
   transform: translateX(-50%);
   width: 150%;
   height: 100%;
-  background: radial-gradient(ellipse at center top, rgba(74, 103, 65, 0.12) 0%, transparent 50%);
+  background: radial-gradient(ellipse at center top, color-mix(in srgb, var(--color-ferni) 12%, transparent) 0%, transparent 50%);
   pointer-events: none;
 }
 
@@ -2389,7 +2343,7 @@ button {
 .final-cta__avatar-glow {
   position: absolute;
   inset: -60%;
-  background: radial-gradient(circle, rgba(74, 103, 65, 0.35) 0%, transparent 55%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-ferni) 35%, transparent) 0%, transparent 55%);
   border-radius: 50%;
   animation: cta-glow 4s ease-in-out infinite;
 }
@@ -2413,14 +2367,14 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-white);
   font-family: var(--font-display);
   font-weight: 800;
   font-size: var(--text-2xl);
   box-shadow:
-    0 12px 40px rgba(74, 103, 65, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
-    0 -2px 0 rgba(0, 0, 0, 0.1) inset;
+    0 12px 40px color-mix(in srgb, var(--color-ferni) 50%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-white) 10%, transparent) inset,
+    0 -2px 0 color-mix(in srgb, var(--color-black) 10%, transparent) inset;
   animation: cta-breathe 4s ease-in-out infinite;
 }
 
@@ -2449,7 +2403,7 @@ button {
 .final-cta__subhead {
   font-family: var(--font-body);
   font-size: clamp(1.125rem, 2.5vw, 1.375rem);
-  color: rgba(255, 255, 255, 0.8);
+  color: color-mix(in srgb, var(--color-white) 80%, transparent);
   margin-bottom: clamp(40px, 8vh, 64px);
   line-height: 1.6;
   position: relative;
@@ -2462,22 +2416,20 @@ button {
   flex-direction: column;
   align-items: center;
   padding: var(--space-8) clamp(32px, 8vw, 64px);
-  background: white;
+  background: var(--color-white);
   border-radius: var(--radius-xl);
   text-decoration: none;
   position: relative;
   z-index: 1;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all var(--duration-slower) var(--ease-cinematic);
   box-shadow:
-    0 4px 6px rgba(0, 0, 0, 0.1),
-    0 12px 40px rgba(0, 0, 0, 0.15);
+    var(--shadow-md);
 }
 
 .final-cta__phone:hover {
   transform: translateY(-4px) scale(1.02);
   box-shadow:
-    0 8px 16px rgba(0, 0, 0, 0.1),
-    0 24px 60px rgba(0, 0, 0, 0.2);
+    var(--shadow-lg);
 }
 
 .final-cta__phone-number {
@@ -2503,7 +2455,7 @@ button {
   gap: var(--space-4);
   margin: var(--space-8) auto;
   max-width: 300px;
-  color: var(--color-dark-text-muted, var(--color-text-muted));
+  color: var(--color-dark-text-muted);
   font-family: var(--font-body);
   font-size: var(--text-sm);
 }
@@ -2513,7 +2465,7 @@ button {
   content: '';
   flex: 1;
   height: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--color-white) 10%, transparent);
 }
 
 .final-cta__buttons {
@@ -2531,23 +2483,23 @@ button {
 }
 
 .final-cta .btn--primary {
-  background: white;
+  background: var(--color-white);
   color: var(--color-natural-ink);
 }
 
 .final-cta .btn--primary:hover {
-  background: var(--color-paper-cream);
+  background: var(--color-paper);
 }
 
 .final-cta .btn--secondary {
-  border-color: rgba(255, 255, 255, 0.2);
-  color: white;
+  border-color: color-mix(in srgb, var(--color-white) 20%, transparent);
+  color: var(--color-white);
   background: transparent;
 }
 
 .final-cta .btn--secondary:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: color-mix(in srgb, var(--color-white) 40%, transparent);
+  background: color-mix(in srgb, var(--color-white) 5%, transparent);
 }
 
 /* ============================================
@@ -2556,7 +2508,7 @@ button {
 
 .footer {
   padding: var(--space-16) var(--space-6) var(--space-8);
-  background: var(--color-paper-cream);
+  background: var(--color-paper);
   border-top: 1px solid var(--color-border-medium);
 }
 
@@ -2670,7 +2622,7 @@ button {
 
 .showcase {
   padding: var(--space-16) var(--space-6);
-  background: var(--color-sand);
+  background: var(--color-bg-surface);
   overflow: hidden;
 }
 
@@ -2757,17 +2709,17 @@ button {
   margin: 0 auto;
   padding: 10px;
   background: var(--color-natural-ink);
-  border-radius: 36px;
+  border-radius: var(--radius-3xl);
   box-shadow:
     var(--shadow-xl),
-    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    0 0 0 1px color-mix(in srgb, var(--color-white) 10%, transparent) inset;
 }
 
 @media (min-width: 768px) {
   .showcase__phone {
     width: 300px;
     padding: 12px;
-    border-radius: 42px;
+    border-radius: var(--radius-full);
   }
 }
 
@@ -2779,12 +2731,12 @@ button {
   width: 80px;
   height: 24px;
   background: var(--color-natural-ink);
-  border-radius: 0 0 14px 14px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   z-index: 10;
 }
 
 .showcase__phone-screen {
-  border-radius: 26px;
+  border-radius: var(--radius-2xl);
   overflow: hidden;
   background: var(--color-text-primary);
   aspect-ratio: 9/19.5;
@@ -2794,7 +2746,7 @@ button {
 
 @media (min-width: 768px) {
   .showcase__phone-screen {
-    border-radius: 30px;
+    border-radius: var(--radius-3xl);
   }
 }
 
@@ -2822,13 +2774,13 @@ button {
   font-family: var(--font-display);
   font-size: var(--text-lg);
   font-weight: var(--font-weight-bold);
-  color: white;
+  color: var(--color-white);
 }
 
 .showcase__app-status {
   font-size: var(--text-xs);
   /* Use lighter green for dark backgrounds - 5.68:1 contrast on var(--color-text-primary) */
-  color: var(--color-dark-accent, var(--color-moss-light));
+  color: var(--color-dark-accent);
 }
 
 .showcase__app-chat {
@@ -2840,23 +2792,23 @@ button {
 
 .showcase__app-bubble {
   padding: var(--space-3);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   font-size: var(--text-sm);
   line-height: 1.5;
 }
 
 .showcase__app-bubble--ai {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.9);
-  border-bottom-left-radius: 4px;
+  background: color-mix(in srgb, var(--color-white) 8%, transparent);
+  color: color-mix(in srgb, var(--color-white) 90%, transparent);
+  border-bottom-left-radius: var(--radius-xs);
   align-self: flex-start;
   max-width: 85%;
 }
 
 /* Insight bubble - shows emotional intelligence */
 .showcase__app-bubble--insight {
-  background: rgba(74, 103, 65, 0.15);
-  border: 1px solid rgba(74, 103, 65, 0.3);
+  background: color-mix(in srgb, var(--color-ferni) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-ferni) 30%, transparent);
 }
 
 .bubble-insight {
@@ -2864,15 +2816,15 @@ button {
   font-size: var(--text-2xs);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(74, 103, 65, 0.8);
+  color: color-mix(in srgb, var(--color-ferni) 80%, transparent);
   margin-bottom: var(--space-1);
   font-weight: var(--font-weight-semibold);
 }
 
 .showcase__app-bubble--user {
   background: var(--color-ferni-green);
-  color: white;
-  border-bottom-right-radius: 4px;
+  color: var(--color-white);
+  border-bottom-right-radius: var(--radius-xs);
   align-self: flex-end;
   max-width: 75%;
 }
@@ -2882,7 +2834,7 @@ button {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3);
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--color-white) 6%, transparent);
   border-radius: var(--radius-full);
   margin-top: auto;
 }
@@ -2890,7 +2842,7 @@ button {
 .showcase__app-input span {
   flex: 1;
   font-size: var(--text-sm);
-  color: var(--color-dark-text-muted, var(--color-text-muted));
+  color: var(--color-dark-text-muted);
 }
 
 .showcase__app-input-mic {
@@ -2906,7 +2858,7 @@ button {
 .showcase__app-input-mic svg {
   width: 14px;
   height: 14px;
-  color: white;
+  color: var(--color-white);
 }
 
 /* ============================================
@@ -2914,7 +2866,7 @@ button {
    ============================================ */
 
 .use-cases {
-  background: var(--color-paper-cream);
+  background: var(--color-paper);
 }
 
 .use-cases-grid {
@@ -2940,8 +2892,8 @@ button {
 .use-case:hover {
   transform: translateY(-6px);
   box-shadow:
-    0 8px 30px rgba(44, 37, 32, 0.1),
-    0 0 0 1px rgba(74, 103, 65, 0.1);
+    0 8px 30px color-mix(in srgb, var(--color-ink) 10%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-ferni) 10%, transparent);
   border-color: transparent;
 }
 
@@ -2950,12 +2902,12 @@ button {
   width: 56px;
   height: 56px;
   margin-bottom: var(--space-5);
-  background: linear-gradient(145deg, rgba(74, 103, 65, 0.12) 0%, rgba(74, 103, 65, 0.06) 100%);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-ferni) 12%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 6%, transparent) 100%);
   border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all var(--duration-slow) ease;
 }
 
 .use-case:hover .use-case__icon {
@@ -2967,11 +2919,11 @@ button {
   width: 26px;
   height: 26px;
   color: var(--color-ferni-green);
-  transition: color 0.3s ease;
+  transition: color var(--duration-slow) ease;
 }
 
 .use-case:hover .use-case__icon svg {
-  color: white;
+  color: var(--color-white);
 }
 
 /* Title - Bold */
@@ -3001,7 +2953,7 @@ button {
   font-style: italic;
   color: var(--color-ferni-green);
   padding: var(--space-3) var(--space-4);
-  background: rgba(74, 103, 65, 0.06);
+  background: color-mix(in srgb, var(--color-ferni) 6%, transparent);
   border-radius: var(--radius-sm);
   border-left: 3px solid var(--color-ferni-green);
 }
@@ -3012,19 +2964,19 @@ button {
 
 .comparison {
   background: var(--color-natural-ink);
-  color: white;
+  color: var(--color-white);
 }
 
 .comparison .section__eyebrow {
-  color: var(--color-dark-text-muted, var(--color-text-muted));
+  color: var(--color-dark-text-muted);
 }
 
 .comparison .section__title {
-  color: white;
+  color: var(--color-white);
 }
 
 .comparison .section__subtitle {
-  color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+  color: var(--color-dark-text-secondary);
 }
 
 .comparison-grid {
@@ -3046,8 +2998,8 @@ button {
 }
 
 .comparison-card--others {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--color-white) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
 }
 
 .comparison-card--ferni {
@@ -3080,7 +3032,7 @@ button {
   font-family: var(--font-body);
   font-size: var(--text-body-sm);
   padding: var(--space-3) 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
 }
 
 .comparison-card__list li:last-child {
@@ -3095,11 +3047,11 @@ button {
 }
 
 .comparison-card--others .comparison-card__list svg {
-  color: var(--color-dark-text-muted, var(--color-text-muted));
+  color: var(--color-dark-text-muted);
 }
 
 .comparison-card--ferni .comparison-card__list svg {
-  color: white;
+  color: var(--color-white);
 }
 
 /* ============================================
@@ -3126,7 +3078,7 @@ button {
   transform: translate(-50%, -50%);
   width: 80%;
   height: 200%;
-  background: radial-gradient(ellipse at center, rgba(74, 103, 65, 0.08) 0%, transparent 60%);
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-ferni) 8%, transparent) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -3161,7 +3113,7 @@ button {
     top: 20%;
     height: 60%;
     width: 1px;
-    background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+    background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-white) 10%, transparent) 50%, transparent 100%);
   }
 }
 
@@ -3179,7 +3131,7 @@ button {
   background-clip: text;
   margin-bottom: var(--space-2);
   /* Subtle glow */
-  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.1));
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--color-white) 10%, transparent));
 }
 
 /* Label - high contrast */
@@ -3197,7 +3149,7 @@ button {
    ============================================ */
 
 .faq {
-  background: var(--color-paper-cream);
+  background: var(--color-paper);
 }
 
 /* === Section Header Polish === */
@@ -3234,24 +3186,24 @@ button {
 
 .faq-item {
   background: var(--color-elevated);
-  border: 1px solid rgba(44, 37, 32, 0.08);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
   border-radius: var(--radius-xl);
   overflow: hidden;
   transition:
-    box-shadow var(--duration-normal) var(--ease-smooth),
-    border-color var(--duration-normal) var(--ease-smooth),
-    transform var(--duration-normal) var(--ease-smooth);
+    box-shadow var(--duration-normal) var(--ease-gentle),
+    border-color var(--duration-normal) var(--ease-gentle),
+    transform var(--duration-normal) var(--ease-gentle);
 }
 
 .faq-item:hover {
-  border-color: rgba(74, 103, 65, 0.2);
+  border-color: color-mix(in srgb, var(--color-ferni) 20%, transparent);
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 
 .faq-item[open] {
   border-color: var(--color-ferni-green);
-  box-shadow: var(--shadow-lg), 0 0 0 4px rgba(74, 103, 65, 0.08);
+  box-shadow: var(--shadow-lg), 0 0 0 4px color-mix(in srgb, var(--color-ferni) 8%, transparent);
 }
 
 .faq-item__question {
@@ -3287,7 +3239,7 @@ button {
   border-bottom: 2.5px solid var(--color-ferni-green);
   transform: rotate(45deg);
   transition:
-    transform var(--duration-slow) var(--ease-spring),
+    transform var(--duration-slower) var(--ease-ease-out-back),
     border-color var(--duration-fast) ease;
   flex-shrink: 0;
   margin-left: var(--space-4);
@@ -3309,7 +3261,7 @@ button {
   font-size: var(--text-base);
   line-height: var(--lh-relaxed);
   color: var(--color-text-secondary);
-  animation: faq-expand var(--duration-slow) var(--ease-out-expo);
+  animation: faq-expand var(--duration-slower) var(--ease-out-expo);
 }
 
 @keyframes faq-expand {
@@ -3328,7 +3280,7 @@ button {
    ============================================ */
 
 .how-it-works {
-  background: var(--color-paper-cream);
+  background: var(--color-paper);
 }
 
 /* === Section Header Polish === */
@@ -3377,18 +3329,18 @@ button {
   padding: var(--space-8) var(--space-6);
   background: var(--color-elevated);
   border-radius: var(--radius-2xl);
-  border: 1px solid rgba(44, 37, 32, 0.06);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
   transition:
-    transform var(--duration-normal) var(--ease-smooth),
-    box-shadow var(--duration-normal) var(--ease-smooth),
-    border-color var(--duration-normal) var(--ease-smooth);
+    transform var(--duration-normal) var(--ease-gentle),
+    box-shadow var(--duration-normal) var(--ease-gentle),
+    border-color var(--duration-normal) var(--ease-gentle);
   counter-increment: step-counter;
 }
 
 .step:hover {
   transform: translateY(-6px);
   box-shadow: var(--shadow-xl);
-  border-color: rgba(74, 103, 65, 0.15);
+  border-color: color-mix(in srgb, var(--color-ferni) 15%, transparent);
 }
 
 .step__number {
@@ -3399,7 +3351,7 @@ button {
   width: 36px;
   height: 36px;
   background: linear-gradient(135deg, var(--color-ferni-green) 0%, var(--color-ferni-secondary) 100%);
-  color: white;
+  color: var(--color-white);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -3407,8 +3359,8 @@ button {
   font-family: var(--font-display);
   font-size: var(--text-base);
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
-  transition: transform var(--duration-slow) var(--ease-spring);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 30%, transparent);
+  transition: transform var(--duration-slower) var(--ease-ease-out-back);
 }
 
 .step:hover .step__number {
@@ -3424,7 +3376,7 @@ button {
   width: 64px;
   height: 64px;
   margin: 0 auto var(--space-4);
-  background: rgba(74, 103, 65, 0.08);
+  background: color-mix(in srgb, var(--color-ferni) 8%, transparent);
   border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
@@ -3432,11 +3384,11 @@ button {
   flex-shrink: 0;
   transition: 
     background var(--duration-normal) ease,
-    transform var(--duration-slow) var(--ease-spring);
+    transform var(--duration-slower) var(--ease-ease-out-back);
 }
 
 .step:hover .step__icon {
-  background: rgba(74, 103, 65, 0.12);
+  background: color-mix(in srgb, var(--color-ferni) 12%, transparent);
   transform: scale(1.05);
 }
 
@@ -3445,7 +3397,7 @@ button {
   height: 32px;
   color: var(--color-ferni-green);
   flex-shrink: 0;
-  transition: transform var(--duration-slow) var(--ease-spring);
+  transition: transform var(--duration-slower) var(--ease-ease-out-back);
 }
 
 .step:hover .step__icon svg {
@@ -3511,7 +3463,7 @@ html {
 
 /* Selection color */
 ::selection {
-  background: rgba(74, 103, 65, 0.2);
+  background: color-mix(in srgb, var(--color-ferni) 20%, transparent);
   color: var(--color-natural-ink);
 }
 
@@ -3532,10 +3484,10 @@ html {
   left: 0;
   right: 0;
   padding: var(--space-4);
-  background: linear-gradient(to top, var(--color-paper-cream) 80%, transparent);
+  background: linear-gradient(to top, var(--color-paper) 80%, transparent);
   z-index: 100;
   transform: translateY(100%);
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform var(--duration-slower) var(--ease-in-out);
 }
 
 .mobile-cta.is-visible {
@@ -3574,8 +3526,8 @@ html {
   right: 0;
   height: 100%;
   background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(74, 103, 65, 0.05) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(74, 103, 65, 0.03) 0%, transparent 50%);
+    radial-gradient(ellipse 80% 50% at 50% -20%, color-mix(in srgb, var(--color-ferni) 5%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, color-mix(in srgb, var(--color-ferni) 3%, transparent) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
@@ -3601,12 +3553,12 @@ html {
   left: 50%;
   width: 0;
   height: 0;
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--color-white) 15%, transparent);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   transition:
-    width 0.5s ease,
-    height 0.5s ease;
+    width var(--duration-slowest) ease,
+    height var(--duration-slowest) ease;
 }
 
 .btn:active::after {
@@ -3616,11 +3568,11 @@ html {
 
 .btn--primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(74, 103, 65, 0.25);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-ferni) 25%, transparent);
 }
 
 .btn--secondary:hover {
-  background: rgba(74, 103, 65, 0.05);
+  background: color-mix(in srgb, var(--color-ferni) 5%, transparent);
 }
 
 /* ============================================
@@ -3631,14 +3583,14 @@ html {
 .use-case,
 .feature {
   transition:
-    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform var(--duration-slow) var(--ease-in-out),
+    box-shadow var(--duration-slow) var(--ease-in-out);
 }
 
 .pricing-card {
   transition:
-    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform var(--duration-slow) var(--ease-in-out),
+    box-shadow var(--duration-slow) var(--ease-in-out);
 }
 
 .pricing-card--featured {
@@ -3666,7 +3618,7 @@ html {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 40vw;
-  font-family: Georgia, serif;
+  font-family: var(--font-editorial);
   font-weight: 400;
   color: var(--color-ferni-green);
   opacity: 0.03;
@@ -3685,7 +3637,7 @@ html {
   left: 50%;
   width: 50%;
   height: 50%;
-  background: radial-gradient(ellipse at center, rgba(74, 103, 65, 0.12), transparent 70%);
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-ferni) 12%, transparent), transparent 70%);
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -3709,7 +3661,7 @@ html {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   animation: scrollBounce 2s infinite;
-  transition: opacity 0.4s ease;
+  transition: opacity var(--duration-slower) ease;
   z-index: 10;
 }
 
@@ -3772,10 +3724,10 @@ html {
    ============================================ */
 
 .nav.is-scrolled {
-  background: rgba(250, 250, 248, 0.95);
+  background: color-mix(in srgb, var(--color-paper) 95%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-black) 5%, transparent);
 }
 
 .nav__link {
@@ -3790,7 +3742,7 @@ html {
   width: 0;
   height: 2px;
   background: var(--color-ferni-green);
-  transition: width 0.3s ease;
+  transition: width var(--duration-slow) ease;
 }
 
 .nav__link:hover::after,
@@ -3803,7 +3755,7 @@ html {
    ============================================ */
 
 .stat__value {
-  transition: transform 0.3s ease;
+  transition: transform var(--duration-slow) ease;
 }
 
 .stat:hover .stat__value {
@@ -3830,8 +3782,8 @@ html {
   opacity: 1;
   transform: translateY(0);
   transition:
-    opacity 0.6s var(--ease-out),
-    transform 0.6s var(--ease-out);
+    opacity var(--duration-deliberate) var(--ease-out),
+    transform var(--duration-deliberate) var(--ease-out);
 }
 
 /* When JS scroll animation is enabled */
@@ -3855,8 +3807,8 @@ html {
   opacity: 1;
   transform: translateY(0);
   transition:
-    opacity 0.5s var(--ease-out),
-    transform 0.5s var(--ease-out);
+    opacity var(--duration-slowest) var(--ease-out),
+    transform var(--duration-slowest) var(--ease-out);
 }
 
 /* When JS scroll animation is enabled */
@@ -3912,9 +3864,9 @@ html {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 100% 60% at 50% -10%, rgba(74, 103, 65, 0.12) 0%, transparent 60%),
-    radial-gradient(ellipse 80% 50% at 90% 90%, rgba(74, 103, 65, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 10% 80%, rgba(154, 123, 90, 0.06) 0%, transparent 40%);
+    radial-gradient(ellipse 100% 60% at 50% -10%, color-mix(in srgb, var(--color-ferni) 12%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 50% at 90% 90%, color-mix(in srgb, var(--color-ferni) 8%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 10% 80%, color-mix(in srgb, var(--color-jack) 6%, transparent) 0%, transparent 40%);
   animation: heroGradientShift 12s ease-in-out infinite alternate;
 }
 
@@ -3946,7 +3898,7 @@ html {
   height: 400px;
   top: -100px;
   right: 10%;
-  background: rgba(74, 103, 65, 0.3);
+  background: color-mix(in srgb, var(--color-ferni) 30%, transparent);
   animation: orbFloat1 20s ease-in-out infinite;
 }
 
@@ -3955,7 +3907,7 @@ html {
   height: 300px;
   bottom: 10%;
   left: 5%;
-  background: rgba(154, 123, 90, 0.2);
+  background: color-mix(in srgb, var(--color-jack) 20%, transparent);
   animation: orbFloat2 25s ease-in-out infinite;
 }
 
@@ -3964,7 +3916,7 @@ html {
   height: 200px;
   top: 40%;
   right: 20%;
-  background: rgba(58, 107, 115, 0.15);
+  background: color-mix(in srgb, var(--color-peter) 15%, transparent);
   animation: orbFloat3 18s ease-in-out infinite;
 }
 
@@ -4018,19 +3970,19 @@ html {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
-  background: rgba(74, 103, 65, 0.08);
-  border: 1px solid rgba(74, 103, 65, 0.15);
+  background: color-mix(in srgb, var(--color-ferni) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-ferni) 15%, transparent);
   border-radius: var(--radius-full);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-ferni-green);
-  transition: all 0.3s ease;
+  transition: all var(--duration-slow) ease;
 }
 
 .hero__badge:hover {
-  background: rgba(74, 103, 65, 0.12);
-  border-color: rgba(74, 103, 65, 0.25);
+  background: color-mix(in srgb, var(--color-ferni) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-ferni) 25%, transparent);
   transform: translateY(-2px);
 }
 
@@ -4074,22 +4026,22 @@ html {
   gap: var(--space-2);
   padding: var(--space-3) var(--space-5);
   background: transparent;
-  border: 1px dashed rgba(74, 103, 65, 0.4);
+  border: 1px dashed color-mix(in srgb, var(--color-ferni) 40%, transparent);
   border-radius: var(--radius-full);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-ferni-green);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all var(--duration-slow) var(--ease-ease-out-back);
 }
 
 .hero__try-btn:hover {
-  background: rgba(74, 103, 65, 0.08);
+  background: color-mix(in srgb, var(--color-ferni) 8%, transparent);
   border-style: solid;
   border-color: var(--color-ferni-green);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(74, 103, 65, 0.15);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 15%, transparent);
 }
 
 .hero__try-btn:active {
@@ -4115,13 +4067,13 @@ html {
   display: none;
   margin-top: var(--space-6);
   padding: var(--space-8);
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--color-white) 90%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: var(--radius-2xl);
-  border: 1px solid rgba(74, 103, 65, 0.15);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-  animation: panel-expand 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid color-mix(in srgb, var(--color-ferni) 15%, transparent);
+  box-shadow: var(--shadow-2xl);
+  animation: panel-expand var(--duration-slower) var(--ease-ease-out-back);
 }
 
 .hero__demo-panel.is-open {
@@ -4148,26 +4100,26 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-white);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: var(--text-2xl);
-  box-shadow: 0 8px 32px rgba(74, 103, 65, 0.3);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--color-ferni) 30%, transparent);
 }
 
 .hero__demo-avatar.listening {
-  animation: listening-pulse 0.8s ease-in-out infinite;
+  animation: listening-pulse var(--duration-cinematic) ease-in-out infinite;
 }
 
 @keyframes listening-pulse {
   0%,
   100% {
     transform: scale(1);
-    box-shadow: 0 8px 32px rgba(74, 103, 65, 0.3);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--color-ferni) 30%, transparent);
   }
   50% {
     transform: scale(1.05);
-    box-shadow: 0 12px 40px rgba(74, 103, 65, 0.5);
+    box-shadow: 0 12px 40px color-mix(in srgb, var(--color-ferni) 50%, transparent);
   }
 }
 
@@ -4194,15 +4146,15 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.05);
+  background: color-mix(in srgb, var(--color-black) 5%, transparent);
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--duration-normal);
 }
 
 .hero__demo-close:hover {
-  background: rgba(0, 0, 0, 0.1);
+  background: color-mix(in srgb, var(--color-black) 10%, transparent);
 }
 
 @media (max-width: 640px) {
@@ -4240,7 +4192,7 @@ html {
   height: 2px;
   background: var(--color-natural-ink);
   border-radius: var(--radius-xs);
-  transition: all 0.3s ease;
+  transition: all var(--duration-slow) ease;
 }
 
 .nav__cta--desktop {
@@ -4266,12 +4218,12 @@ html {
   position: fixed;
   inset: 0;
   z-index: 2000;
-  background: var(--color-paper-cream);
+  background: var(--color-paper);
   display: flex;
   flex-direction: column;
   padding: var(--space-6);
   transform: translateX(100%);
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform var(--duration-slower) var(--ease-in-out);
 }
 
 .mobile-menu.is-open {
@@ -4297,12 +4249,12 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-sand);
+  background: var(--color-bg-surface);
   border: none;
   border-radius: 50%;
   color: var(--color-natural-ink);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background var(--duration-normal) ease;
 }
 
 .mobile-menu__close:hover {
@@ -4323,7 +4275,7 @@ html {
   color: var(--color-natural-ink);
   padding: var(--space-4) 0;
   border-bottom: 1px solid var(--color-border-subtle);
-  transition: color 0.2s ease;
+  transition: color var(--duration-normal) ease;
 }
 
 .mobile-menu__nav a:hover {
@@ -4392,43 +4344,43 @@ html {
 .security-card {
   text-align: center;
   padding: var(--space-8) var(--space-5);
-  background: var(--color-paper-cream);
+  background: var(--color-paper);
   border-radius: var(--radius-2xl);
-  border: 1px solid rgba(44, 37, 32, 0.05);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent);
   transition: 
-    all var(--duration-normal) var(--ease-smooth);
+    all var(--duration-normal) var(--ease-gentle);
 }
 
 .security-card:hover {
   transform: translateY(-6px);
   box-shadow: var(--shadow-xl);
-  border-color: rgba(74, 103, 65, 0.15);
+  border-color: color-mix(in srgb, var(--color-ferni) 15%, transparent);
 }
 
 .security-card__icon {
   width: 64px;
   height: 64px;
   margin: 0 auto var(--space-5);
-  background: linear-gradient(135deg, rgba(74, 103, 65, 0.1) 0%, rgba(74, 103, 65, 0.05) 100%);
-  border-radius: 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 10%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 5%, transparent) 100%);
+  border-radius: var(--radius-xl);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: 
-    transform var(--duration-slow) var(--ease-spring),
+    transform var(--duration-slower) var(--ease-ease-out-back),
     background var(--duration-normal) ease;
 }
 
 .security-card:hover .security-card__icon {
   transform: scale(1.08);
-  background: linear-gradient(135deg, rgba(74, 103, 65, 0.15) 0%, rgba(74, 103, 65, 0.08) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 15%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 8%, transparent) 100%);
 }
 
 .security-card__icon svg {
   width: 32px;
   height: 32px;
   color: var(--color-ferni-green);
-  transition: transform var(--duration-slow) var(--ease-spring);
+  transition: transform var(--duration-slower) var(--ease-ease-out-back);
 }
 
 .security-card:hover .security-card__icon svg {
@@ -4466,7 +4418,7 @@ html {
   padding: var(--space-4) var(--space-6);
   background: var(--color-natural-ink);
   transform: translateY(100%);
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform var(--duration-slower) var(--ease-in-out);
 }
 
 .cookie-banner.is-visible {
@@ -4496,12 +4448,12 @@ html {
 .cookie-banner p {
   font-family: var(--font-body);
   font-size: var(--text-body-sm);
-  color: rgba(255, 255, 255, 0.8);
+  color: color-mix(in srgb, var(--color-white) 80%, transparent);
   margin: 0;
 }
 
 .cookie-banner a {
-  color: white;
+  color: var(--color-white);
   text-decoration: underline;
 }
 
@@ -4512,13 +4464,13 @@ html {
 
 .btn--ghost {
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: color-mix(in srgb, var(--color-white) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-white) 20%, transparent);
 }
 
 .btn--ghost:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: color-mix(in srgb, var(--color-white) 10%, transparent);
+  color: var(--color-white);
 }
 
 .btn--sm {
@@ -4560,7 +4512,7 @@ html {
    ============================================ */
 
 .press-bar {
-  background: var(--color-sand);
+  background: var(--color-bg-surface);
   padding: var(--space-6) 0;
   border-top: 1px solid var(--color-border-subtle);
   border-bottom: 1px solid var(--color-border-subtle);
@@ -4586,7 +4538,7 @@ html {
 
 .press-bar__logo {
   opacity: 0.4;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--duration-slow) ease;
 }
 
 .press-bar__logo:hover {
@@ -4629,7 +4581,7 @@ html {
 .btn:focus-visible {
   outline: 3px solid var(--color-ferni-green);
   outline-offset: 3px;
-  box-shadow: 0 0 0 6px rgba(74, 103, 65, 0.15);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-ferni) 15%, transparent);
 }
 
 /* Link focus states */
@@ -4641,7 +4593,7 @@ a:focus-visible {
 
 /* Nav link focus */
 .nav__link:focus-visible {
-  background: rgba(74, 103, 65, 0.08);
+  background: color-mix(in srgb, var(--color-ferni) 8%, transparent);
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-3);
   margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-3));
@@ -4669,14 +4621,14 @@ a:focus-visible {
   left: 50%;
   transform: translateX(-50%);
   background: var(--color-ferni-green);
-  color: white;
+  color: var(--color-white);
   padding: var(--space-3) var(--space-6);
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   font-family: var(--font-body);
   font-weight: var(--font-weight-semibold);
   text-decoration: none;
   z-index: 9999;
-  transition: top 0.2s ease;
+  transition: top var(--duration-normal) ease;
 }
 
 .skip-link:focus {
@@ -4705,13 +4657,13 @@ a:focus-visible {
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    var(--persona-glow, rgba(74, 103, 65, 0.2)) 0%,
+    var(--persona-glow, color-mix(in srgb, var(--color-ferni) 20%, transparent)) 0%,
     transparent 70%
   );
   opacity: 0;
   transition:
-    opacity 0.4s ease,
-    transform 0.4s ease;
+    opacity var(--duration-slower) ease,
+    transform var(--duration-slower) ease;
   pointer-events: none;
   z-index: 0;
 }
@@ -4723,7 +4675,7 @@ a:focus-visible {
 
 /* Avatar bounce on card hover */
 .team-card:hover .persona-avatar {
-  animation: avatar-excited-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: avatar-excited-bounce 0.6s var(--ease-ease-out-back);
 }
 
 @keyframes avatar-excited-bounce {
@@ -4781,12 +4733,12 @@ a:focus-visible {
   left: 50%;
   width: 0;
   height: 0;
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--color-white) 30%, transparent);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   transition:
-    width 0.4s ease,
-    height 0.4s ease;
+    width var(--duration-slower) ease,
+    height var(--duration-slower) ease;
 }
 
 .btn:active::after {
@@ -4811,7 +4763,7 @@ a:focus-visible {
   width: 0;
   height: 2px;
   background: currentColor;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width var(--duration-slow) var(--ease-in-out);
 }
 
 .nav__link:hover::after,
@@ -4823,13 +4775,13 @@ a:focus-visible {
 /* Pricing card hover lift */
 .pricing-card {
   transition:
-    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.3s ease;
+    transform var(--duration-slow) var(--ease-ease-out-back),
+    box-shadow var(--duration-slow) ease;
 }
 
 .pricing-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(44, 37, 32, 0.12);
+  box-shadow: var(--shadow-2xl);
 }
 
 .pricing-card--featured:hover {
@@ -4839,18 +4791,18 @@ a:focus-visible {
 /* Feature icon hover */
 .feature__icon {
   transition:
-    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-    background 0.3s ease;
+    transform var(--duration-slow) var(--ease-ease-out-back),
+    background var(--duration-slow) ease;
 }
 
 .feature:hover .feature__icon {
   transform: scale(1.1) rotate(-5deg);
-  background: rgba(74, 103, 65, 0.15);
+  background: color-mix(in srgb, var(--color-ferni) 15%, transparent);
 }
 
 /* Security card icon pulse */
 .security-card:hover .security-card__icon {
-  animation: icon-pulse 0.5s ease;
+  animation: icon-pulse var(--duration-slowest) ease;
 }
 
 @keyframes icon-pulse {
@@ -4877,9 +4829,9 @@ a:focus-visible {
   left: 50%;
   width: 80%;
   height: 80%;
-  background: radial-gradient(circle, rgba(74, 103, 65, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-ferni) 8%, transparent) 0%, transparent 70%);
   transform: translate(-50%, -50%) scale(0);
-  transition: transform 0.4s ease;
+  transition: transform var(--duration-slower) ease;
   pointer-events: none;
   z-index: 0;
 }
@@ -4891,13 +4843,13 @@ a:focus-visible {
 /* Testimonial card hover */
 .testimonial {
   transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
+    transform var(--duration-slow) ease,
+    box-shadow var(--duration-slow) ease;
 }
 
 .testimonial:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(44, 37, 32, 0.1);
+  box-shadow: var(--shadow-xl);
 }
 
 /* FAQ chevron - styles defined in main FAQ section */
@@ -4923,7 +4875,7 @@ a:focus-visible {
 
 img[loading='lazy'] {
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity var(--duration-slower) ease;
 }
 
 img[loading='lazy'].loaded,
@@ -4935,12 +4887,12 @@ img[loading='lazy']:not([data-src]) {
 .img-placeholder {
   background: linear-gradient(
     90deg,
-    var(--color-sand) 0%,
-    var(--color-paper-cream) 50%,
-    var(--color-sand) 100%
+    var(--color-bg-surface) 0%,
+    var(--color-paper) 50%,
+    var(--color-bg-surface) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer var(--duration-glacial) infinite;
 }
 
 @keyframes shimmer {
@@ -4958,8 +4910,8 @@ img[loading='lazy']:not([data-src]) {
 
 @media (prefers-contrast: high) {
   :root {
-    --color-border-subtle: rgba(44, 37, 32, 0.2);
-    --color-border-medium: rgba(44, 37, 32, 0.4);
+    --color-border-subtle: color-mix(in srgb, var(--color-ink) 20%, transparent);
+    --color-border-medium: color-mix(in srgb, var(--color-ink) 40%, transparent);
   }
 
   .btn {
@@ -4992,7 +4944,7 @@ img[loading='lazy']:not([data-src]) {
   border: 1px solid var(--color-border-medium);
   border-radius: var(--radius-full);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all var(--duration-slow) var(--ease-ease-out-back);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--color-natural-ink);
@@ -5000,13 +4952,13 @@ img[loading='lazy']:not([data-src]) {
 
 .hero__audio-btn:hover {
   background: var(--color-ferni-green);
-  color: white;
+  color: var(--color-white);
   border-color: var(--color-ferni-green);
   transform: scale(1.02);
 }
 
 .hero__audio-btn:hover .hero__audio-icon {
-  color: white;
+  color: var(--color-white);
 }
 
 .hero__audio-icon {
@@ -5033,7 +4985,7 @@ img[loading='lazy']:not([data-src]) {
   gap: 3px;
   height: 24px;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--duration-slow) ease;
 }
 
 .hero__audio-wave.is-playing {
@@ -5045,7 +4997,7 @@ img[loading='lazy']:not([data-src]) {
   height: 100%;
   background: var(--color-ferni-green);
   border-radius: var(--radius-xs);
-  animation: audio-wave 1s ease-in-out infinite;
+  animation: audio-wave var(--duration-dramatic) ease-in-out infinite;
 }
 
 .hero__audio-wave span:nth-child(1) {
@@ -5098,7 +5050,7 @@ img[loading='lazy']:not([data-src]) {
 
 /*
 .memory-demo-DEPRECATED {
-  background: linear-gradient(180deg, var(--color-paper-cream) 0%, var(--color-sand) 100%);
+  background: linear-gradient(180deg, var(--color-paper) 0%, var(--color-bg-surface) 100%);
   padding: var(--space-24) 0;
 }
 -- END DEPRECATED MEMORY-DEMO STYLES */
@@ -5125,8 +5077,8 @@ img[loading='lazy']:not([data-src]) {
   position: absolute;
   inset: 0;
   background: 
-    radial-gradient(ellipse 100% 80% at 50% 20%, rgba(74, 103, 65, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 60% at 20% 80%, rgba(154, 123, 90, 0.04) 0%, transparent 50%);
+    radial-gradient(ellipse 100% 80% at 50% 20%, color-mix(in srgb, var(--color-ferni) 6%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 60% at 20% 80%, color-mix(in srgb, var(--color-jack) 4%, transparent) 0%, transparent 50%);
   pointer-events: none;
 }
 
@@ -5156,12 +5108,12 @@ img[loading='lazy']:not([data-src]) {
   letter-spacing: -0.02em;
   line-height: 1;
   /* Ethereal glow effect - brighter for visibility */
-  background: linear-gradient(180deg, rgba(255, 250, 245, 0.9) 0%, rgba(255, 250, 245, 0.6) 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-dark-text) 90%, transparent) 0%, color-mix(in srgb, var(--color-dark-text) 60%, transparent) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: var(--space-10);
-  filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.05));
+  filter: drop-shadow(0 0 40px color-mix(in srgb, var(--color-white) 5%, transparent));
 }
 
 .two-am__thought {
@@ -5195,17 +5147,17 @@ img[loading='lazy']:not([data-src]) {
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-5) var(--space-6);
-  background: rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--color-white) 4%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all 0.3s ease;
+  border: 1px solid color-mix(in srgb, var(--color-white) 6%, transparent);
+  transition: all var(--duration-slow) ease;
 }
 
 .two-am__limit:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--color-white) 6%, transparent);
+  border-color: color-mix(in srgb, var(--color-white) 10%, transparent);
 }
 
 /* Who - Label */
@@ -5214,7 +5166,7 @@ img[loading='lazy']:not([data-src]) {
   font-size: var(--text-sm);
   font-weight: 700;
   /* Warm accent color - explicit for always-dark section */
-  color: var(--color-nayan, var(--color-jordan-light));
+  color: var(--color-nayan);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -5224,14 +5176,14 @@ img[loading='lazy']:not([data-src]) {
   font-family: var(--font-body);
   font-size: var(--text-base);
   /* Light muted text - explicit for always-dark section */
-  color: rgba(255, 255, 255, 0.7);
+  color: color-mix(in srgb, var(--color-white) 70%, transparent);
   line-height: 1.5;
 }
 
 /* THE RESPONSE - Relief moment */
 .two-am__response {
   /* Transition from dark to cream - explicit colors */
-  background: linear-gradient(180deg, var(--color-cinematic-rich) 0%, var(--color-paper-cream, var(--color-bg-secondary)) 30%);
+  background: linear-gradient(180deg, var(--color-cinematic-rich) 0%, var(--color-paper) 30%);
   padding: clamp(80px, 12vh, 120px) var(--space-6);
   display: flex;
   justify-content: center;
@@ -5256,7 +5208,7 @@ img[loading='lazy']:not([data-src]) {
 .two-am__avatar-glow {
   position: absolute;
   inset: -50%;
-  background: radial-gradient(circle, rgba(74, 103, 65, 0.25) 0%, transparent 60%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-ferni) 25%, transparent) 0%, transparent 60%);
   border-radius: 50%;
   animation: two-am-glow 4s ease-in-out infinite;
 }
@@ -5280,23 +5232,22 @@ img[loading='lazy']:not([data-src]) {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-white);
   font-family: var(--font-display);
   font-weight: 800;
   font-size: var(--text-2xl);
   box-shadow:
-    0 8px 32px rgba(74, 103, 65, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    0 8px 32px color-mix(in srgb, var(--color-ferni) 40%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-white) 10%, transparent) inset;
 }
 
 /* Speech bubble - elevated glass */
 .two-am__bubble {
-  background: white;
+  background: var(--color-white);
   padding: var(--space-8) var(--space-10);
-  border-radius: 28px;
+  border-radius: var(--radius-3xl);
   box-shadow:
-    0 4px 6px rgba(0, 0, 0, 0.02),
-    0 12px 40px rgba(44, 37, 32, 0.1);
+    var(--shadow-md);
 }
 
 /* Ferni's words - warm and present */
@@ -5339,7 +5290,7 @@ img[loading='lazy']:not([data-src]) {
    Bold, clear hierarchy, Ferni wins
    ============================================ */
 .proof {
-  background: linear-gradient(180deg, var(--color-paper-cream) 0%, var(--color-bg-secondary) 100%);
+  background: linear-gradient(180deg, var(--color-paper) 0%, var(--color-bg-secondary) 100%);
   padding: clamp(80px, 12vh, 140px) var(--space-6);
 }
 
@@ -5348,11 +5299,10 @@ img[loading='lazy']:not([data-src]) {
   margin-top: clamp(40px, 6vh, 64px);
   -webkit-overflow-scrolling: touch;
   padding: var(--space-4);
-  background: white;
+  background: var(--color-white);
   border-radius: var(--radius-xl);
   box-shadow:
-    0 1px 2px rgba(44, 37, 32, 0.04),
-    0 8px 32px rgba(44, 37, 32, 0.06);
+    var(--shadow-2xs);
 }
 
 .proof-table__header,
@@ -5366,7 +5316,7 @@ img[loading='lazy']:not([data-src]) {
 .proof-table__header {
   margin-bottom: var(--space-4);
   padding-bottom: var(--space-4);
-  border-bottom: 2px solid rgba(44, 37, 32, 0.06);
+  border-bottom: 2px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
 }
 
 .proof-table__col {
@@ -5389,16 +5339,16 @@ img[loading='lazy']:not([data-src]) {
 /* Coach & Friend columns - Subtle muted background */
 .proof-table__col--coach,
 .proof-table__col--friend {
-  background: rgba(44, 37, 32, 0.03);
+  background: color-mix(in srgb, var(--color-ink) 3%, transparent);
 }
 
 /* FERNI COLUMN - Hero gradient */
 .proof-table__col--ferni {
   background: linear-gradient(145deg, var(--color-ferni) 0%, var(--color-ferni-secondary) 100%);
-  color: white;
+  color: var(--color-white);
   box-shadow: 
-    0 4px 12px rgba(74, 103, 65, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 4px 12px color-mix(in srgb, var(--color-ferni) 20%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--color-white) 10%, transparent);
 }
 
 /* Header styling */
@@ -5415,12 +5365,12 @@ img[loading='lazy']:not([data-src]) {
 .proof-table__icon {
   width: 48px;
   height: 48px;
-  background: white;
+  background: var(--color-white);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(44, 37, 32, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .proof-table__icon svg {
@@ -5430,7 +5380,7 @@ img[loading='lazy']:not([data-src]) {
 }
 
 .proof-table__icon--ferni {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--color-white) 20%, transparent);
   font-family: var(--font-display);
   font-size: var(--text-sm);
   font-weight: 800;
@@ -5438,13 +5388,13 @@ img[loading='lazy']:not([data-src]) {
 }
 
 .proof-table__header .proof-table__col--ferni .proof-table__icon {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: color-mix(in srgb, var(--color-white) 20%, transparent);
+  color: var(--color-white);
 }
 
 .proof-table__row {
   margin-bottom: var(--space-2);
-  transition: all 0.2s ease;
+  transition: all var(--duration-normal) ease;
 }
 
 .proof-table__row:hover {
@@ -5474,11 +5424,11 @@ img[loading='lazy']:not([data-src]) {
 /* GOOD - Bold and prominent */
 .proof-table__good {
   font-weight: 600;
-  color: white;
+  color: var(--color-white);
 }
 
 .proof-table__row .proof-table__col--ferni {
-  background: linear-gradient(145deg, rgba(74, 103, 65, 0.1) 0%, rgba(74, 103, 65, 0.05) 100%);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-ferni) 10%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 5%, transparent) 100%);
 }
 
 .proof-table__row .proof-table__col--ferni .proof-table__good {
@@ -5506,8 +5456,8 @@ img[loading='lazy']:not([data-src]) {
 /* Proof Table Animations */
 .proof-table__row {
   transition:
-    transform 0.2s ease,
-    background 0.2s ease;
+    transform var(--duration-normal) ease,
+    background var(--duration-normal) ease;
   border-radius: var(--radius-md);
 }
 
@@ -5520,20 +5470,20 @@ img[loading='lazy']:not([data-src]) {
 }
 
 .proof-table__col {
-  transition: background 0.2s ease;
+  transition: background var(--duration-normal) ease;
 }
 
 .proof-table__row:hover .proof-table__col--coach,
 .proof-table__row:hover .proof-table__col--friend {
-  background: var(--color-paper-cream);
+  background: var(--color-paper);
 }
 
 .proof-table__bad {
-  transition: color 0.2s ease;
+  transition: color var(--duration-normal) ease;
 }
 
 .proof-table__row:hover .proof-table__bad {
-  color: var(--color-comparison-bad-hover);
+  color: var(--color-error);
 }
 
 .proof-table__good {
@@ -5552,8 +5502,8 @@ img[loading='lazy']:not([data-src]) {
   opacity: 1;
   transform: translateX(0);
   transition:
-    opacity 0.5s ease,
-    transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity var(--duration-slowest) ease,
+    transform var(--duration-slowest) var(--ease-ease-out-back);
 }
 
 /* When JS scroll animation is enabled */
@@ -5624,23 +5574,23 @@ img[loading='lazy']:not([data-src]) {
 }
 
 .story {
-  background: var(--color-paper-cream);
+  background: var(--color-paper);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
   position: relative;
   transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
+    transform var(--duration-slow) ease,
+    box-shadow var(--duration-slow) ease;
 }
 
 .story:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(44, 37, 32, 0.1);
+  box-shadow: var(--shadow-2xl);
 }
 
 .story--featured {
   grid-column: span 2;
-  background: linear-gradient(135deg, var(--color-bg-primary), var(--color-paper-cream));
+  background: linear-gradient(135deg, var(--color-bg-primary), var(--color-paper));
   border: 1px solid var(--color-border-subtle);
 }
 
@@ -5658,7 +5608,7 @@ img[loading='lazy']:not([data-src]) {
   font-weight: 500;
   color: var(--color-text-muted);
   padding: var(--space-1) var(--space-3);
-  background: var(--color-sand);
+  background: var(--color-bg-surface);
   border-radius: var(--radius-full);
 }
 
@@ -5672,7 +5622,7 @@ img[loading='lazy']:not([data-src]) {
   font-weight: var(--font-weight-semibold);
   color: var(--color-ferni-green);
   padding: var(--space-1) var(--space-3);
-  background: rgba(74, 103, 65, 0.1);
+  background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
   border-radius: var(--radius-full);
 }
 
@@ -5689,7 +5639,7 @@ img[loading='lazy']:not([data-src]) {
 }
 
 .story__highlight {
-  background: linear-gradient(120deg, rgba(74, 103, 65, 0.15) 0%, rgba(74, 103, 65, 0.05) 100%);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--color-ferni) 15%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 5%, transparent) 100%);
   padding: 0 var(--space-1);
   border-radius: var(--radius-xs);
 }
@@ -5704,7 +5654,7 @@ img[loading='lazy']:not([data-src]) {
   width: 44px;
   height: 44px;
   background: linear-gradient(135deg, var(--color-ferni-green), var(--color-ferni-secondary));
-  color: white;
+  color: var(--color-white);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -5730,9 +5680,9 @@ img[loading='lazy']:not([data-src]) {
   opacity: 1;
   transform: translateY(0);
   transition:
-    opacity 0.6s ease,
-    transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.3s ease;
+    opacity var(--duration-deliberate) ease,
+    transform var(--duration-deliberate) var(--ease-ease-out-back),
+    box-shadow var(--duration-slow) ease;
 }
 
 /* When JS scroll animation is enabled */
@@ -5760,7 +5710,7 @@ img[loading='lazy']:not([data-src]) {
 }
 
 .story__journey {
-  transition: gap 0.3s ease;
+  transition: gap var(--duration-slow) ease;
 }
 
 .story:hover .story__journey {
@@ -5768,7 +5718,7 @@ img[loading='lazy']:not([data-src]) {
 }
 
 .story__journey svg {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform var(--duration-slow) var(--ease-ease-out-back);
 }
 
 .story:hover .story__journey svg {
@@ -5777,22 +5727,22 @@ img[loading='lazy']:not([data-src]) {
 
 .story__highlight {
   position: relative;
-  transition: background 0.3s ease;
+  transition: background var(--duration-slow) ease;
 }
 
 .story:hover .story__highlight {
-  background: linear-gradient(120deg, rgba(74, 103, 65, 0.25) 0%, rgba(74, 103, 65, 0.1) 100%);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--color-ferni) 25%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 10%, transparent) 100%);
 }
 
 .story__avatar {
   transition:
-    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.3s ease;
+    transform var(--duration-slow) var(--ease-ease-out-back),
+    box-shadow var(--duration-slow) ease;
 }
 
 .story:hover .story__avatar {
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 30%, transparent);
 }
 
 @media (max-width: 900px) {
@@ -5810,7 +5760,7 @@ img[loading='lazy']:not([data-src]) {
    ============================================ */
 
 .journey {
-  background: var(--color-sand);
+  background: var(--color-bg-surface);
 }
 
 /* === Section Header Polish === */
@@ -5848,8 +5798,8 @@ img[loading='lazy']:not([data-src]) {
   padding-bottom: var(--space-10);
   opacity: 0.5;
   transition: 
-    opacity var(--duration-normal) var(--ease-smooth),
-    transform var(--duration-normal) var(--ease-smooth);
+    opacity var(--duration-normal) var(--ease-gentle),
+    transform var(--duration-normal) var(--ease-gentle);
 }
 
 .journey__stage:hover,
@@ -5876,13 +5826,13 @@ img[loading='lazy']:not([data-src]) {
   border: 2px solid var(--color-border-medium);
   border-radius: 50%;
   flex-shrink: 0;
-  transition: all 0.3s ease;
+  transition: all var(--duration-slow) ease;
 }
 
 .journey__stage--active .journey__stage-dot {
   background: var(--color-ferni-green);
   border-color: var(--color-ferni-green);
-  box-shadow: 0 0 0 4px rgba(74, 103, 65, 0.2);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-ferni) 20%, transparent);
 }
 
 .journey__stage-line {
@@ -5921,8 +5871,8 @@ img[loading='lazy']:not([data-src]) {
 }
 
 .journey__stage-badge--premium {
-  background: linear-gradient(135deg, var(--color-warm-amber), var(--color-warm-amber-light));
-  color: white;
+  background: linear-gradient(135deg, var(--color-nayan), var(--color-highlight));
+  color: var(--color-white);
 }
 
 .journey__stage-description {
@@ -5952,7 +5902,7 @@ img[loading='lazy']:not([data-src]) {
   justify-content: center;
   font-size: var(--text-2xs);
   font-weight: var(--font-weight-bold);
-  color: white;
+  color: var(--color-white);
 }
 
 .journey__avatar--ferni {
@@ -5961,7 +5911,7 @@ img[loading='lazy']:not([data-src]) {
 .journey__avatar--maya {
   /* Use secondary (darker) color for better contrast - 5.23:1 with white */
   background: var(--color-maya-secondary);
-  color: white;
+  color: var(--color-white);
 }
 .journey__avatar--peter {
   background: var(--color-peter);
@@ -6011,8 +5961,8 @@ img[loading='lazy']:not([data-src]) {
   opacity: 0.6;
   transform: translateY(0);
   transition:
-    opacity 0.5s ease,
-    transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity var(--duration-slowest) ease,
+    transform var(--duration-slowest) var(--ease-ease-out-back);
 }
 
 /* Active stage is always fully visible */
@@ -6055,7 +6005,7 @@ img[loading='lazy']:not([data-src]) {
 }
 
 .journey__stage-dot {
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all var(--duration-slow) var(--ease-ease-out-back);
 }
 
 .journey__stage:hover .journey__stage-dot {
@@ -6065,7 +6015,7 @@ img[loading='lazy']:not([data-src]) {
 }
 
 .journey__stage-line {
-  transition: background 0.3s ease;
+  transition: background var(--duration-slow) ease;
 }
 
 .journey__stage:hover .journey__stage-line {
@@ -6074,28 +6024,28 @@ img[loading='lazy']:not([data-src]) {
 
 .journey__avatar {
   transition:
-    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.3s ease;
+    transform var(--duration-slow) var(--ease-ease-out-back),
+    box-shadow var(--duration-slow) ease;
 }
 
 .journey__stage:hover .journey__avatar {
   transform: scale(1.15) rotate(-5deg);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .journey__stage-badge {
   transition:
-    background 0.3s ease,
-    color 0.3s ease;
+    background var(--duration-slow) ease,
+    color var(--duration-slow) ease;
 }
 
 .journey__stage:hover .journey__stage-badge {
   background: var(--color-ferni-green);
-  color: white;
+  color: var(--color-white);
 }
 
 .journey__stage--premium:hover .journey__stage-badge--premium {
-  background: linear-gradient(135deg, var(--color-warm-amber-light), var(--color-warm-amber));
+  background: linear-gradient(135deg, var(--color-highlight), var(--color-nayan));
 }
 
 /* Journey Note - Progressive enhancement */
@@ -6103,8 +6053,8 @@ img[loading='lazy']:not([data-src]) {
   opacity: 1;
   transform: translateY(0);
   transition:
-    opacity 0.5s ease 0.5s,
-    transform 0.5s ease 0.5s;
+    opacity var(--duration-slowest) ease var(--duration-slowest),
+    transform var(--duration-slowest) ease var(--duration-slowest);
 }
 
 /* When JS scroll animation is enabled */
@@ -6164,18 +6114,17 @@ img[loading='lazy']:not([data-src]) {
 /* Card Styling */
 .story__card {
   padding: var(--space-8);
-  background: white;
+  background: var(--color-white);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(44, 37, 32, 0.06);
-  box-shadow: 0 1px 2px rgba(44, 37, 32, 0.04),
-              0 4px 16px rgba(44, 37, 32, 0.04);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
+  box-shadow: var(--shadow-2xs);
+  transition: all var(--duration-slower) var(--ease-cinematic);
 }
 
 .story__card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 8px 30px rgba(44, 37, 32, 0.08),
-              0 0 0 1px rgba(74, 103, 65, 0.1);
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--color-ink) 8%, transparent),
+              0 0 0 1px color-mix(in srgb, var(--color-ferni) 10%, transparent);
 }
 
 /* Featured card spans full width - same style as regular cards, just wider */
@@ -6208,11 +6157,11 @@ img[loading='lazy']:not([data-src]) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, rgba(74, 103, 65, 0.12) 0%,
-                              rgba(74, 103, 65, 0.06) 100%);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-ferni) 12%, transparent) 0%,
+                              color-mix(in srgb, var(--color-ferni) 6%, transparent) 100%);
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-5);
-  transition: all 0.3s ease;
+  transition: all var(--duration-slow) ease;
   flex-shrink: 0;
 }
 
@@ -6225,11 +6174,11 @@ img[loading='lazy']:not([data-src]) {
   width: 28px;
   height: 28px;
   color: var(--color-ferni-green);
-  transition: color 0.3s ease;
+  transition: color var(--duration-slow) ease;
 }
 
 .story__card:hover .story__card-icon svg {
-  color: white;
+  color: var(--color-white);
 }
 
 /* Card Typography */
@@ -6263,7 +6212,7 @@ img[loading='lazy']:not([data-src]) {
   gap: var(--space-4);
   margin-top: var(--space-12);
   padding-top: var(--space-8);
-  border-top: 1px solid rgba(44, 37, 32, 0.1);
+  border-top: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
   justify-content: center;
 }
 
@@ -6275,7 +6224,7 @@ img[loading='lazy']:not([data-src]) {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-white);
   flex-shrink: 0;
 }
 
@@ -6333,7 +6282,7 @@ img[loading='lazy']:not([data-src]) {
 
 /* Time-aware tagline styling */
 .hero__tagline.time-aware {
-  animation: tagline-fade-in 0.8s ease-out;
+  animation: tagline-fade-in var(--duration-cinematic) ease-out;
 }
 
 .tagline-soft {
@@ -6365,8 +6314,8 @@ body[data-time-of-day='early-morning'] {
 
 .two-am__quote {
   transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
+    opacity var(--duration-slow) ease,
+    transform var(--duration-slow) ease;
 }
 
 /* ===== 3. FERNI PERSONALITY QUIRKS ===== */
@@ -6385,7 +6334,7 @@ body[data-time-of-day='early-morning'] {
   font-size: var(--text-sm);
   color: var(--color-accent);
   opacity: 0;
-  animation: thinking-dots 1.5s ease-in-out infinite;
+  animation: thinking-dots var(--duration-glacial) ease-in-out infinite;
 }
 
 @keyframes thinking-dots {
@@ -6404,26 +6353,26 @@ body[data-time-of-day='early-morning'] {
 .hero-ferni__orb,
 .two-am__avatar-orb,
 .final-cta__avatar-orb {
-  transition: transform 0.15s ease-out;
+  transition: transform var(--duration-fast) ease-out;
   cursor: default;
 }
 
 /* Team card avatar hover effect */
 .team-card .persona-avatar__orb {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform var(--duration-slow) var(--ease-ease-out-back);
 }
 
 /* Subtle scale on card hover */
 .team-card:hover .persona-avatar__ring {
   transform: scale(1.05);
-  transition: transform 0.3s ease;
+  transition: transform var(--duration-slow) ease;
 }
 
 /* ===== 5. RELIEF MOMENT ===== */
 
 /* Relief effect when Ferni's response appears */
 .two-am__response.relief-moment {
-  animation: relief-exhale 0.8s ease-out;
+  animation: relief-exhale var(--duration-cinematic) ease-out;
 }
 
 @keyframes relief-exhale {
@@ -6442,7 +6391,7 @@ body[data-time-of-day='early-morning'] {
 
 /* Subtle glow increase on relief */
 .two-am__response.relief-moment .two-am__avatar-glow {
-  animation: relief-glow 1.5s ease-out;
+  animation: relief-glow var(--duration-glacial) ease-out;
 }
 
 @keyframes relief-glow {
@@ -6473,12 +6422,12 @@ body[data-time-of-day='early-morning'] {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.85);
+  background: color-mix(in srgb, var(--color-black) 85%, transparent);
   opacity: 0;
   visibility: hidden;
   transition:
-    opacity 0.5s ease,
-    visibility 0.5s ease;
+    opacity var(--duration-slowest) ease,
+    visibility var(--duration-slowest) ease;
   padding: var(--space-6);
 }
 
@@ -6494,9 +6443,9 @@ body[data-time-of-day='early-morning'] {
   max-width: 400px;
   text-align: center;
   border: 1px solid var(--color-border);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-2xl);
   transform: scale(0.9);
-  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform var(--duration-slowest) var(--ease-ease-out-back);
 }
 
 .konami-reward.visible .konami-reward__inner {
@@ -6511,7 +6460,7 @@ body[data-time-of-day='early-morning'] {
   height: 80px;
   background: linear-gradient(145deg, var(--color-ferni), var(--color-ferni-dark));
   border-radius: 50%;
-  color: white;
+  color: var(--color-white);
   font-family: var(--font-display);
   font-weight: var(--font-weight-bold);
   font-size: var(--text-2xl);
@@ -6522,10 +6471,10 @@ body[data-time-of-day='early-morning'] {
 @keyframes konami-orb-glow {
   0%,
   100% {
-    box-shadow: 0 0 30px rgba(138, 166, 120, 0.3);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--color-bamboo-light) 30%, transparent);
   }
   50% {
-    box-shadow: 0 0 50px rgba(138, 166, 120, 0.5);
+    box-shadow: 0 0 50px color-mix(in srgb, var(--color-bamboo-light) 50%, transparent);
   }
 }
 
@@ -6546,7 +6495,7 @@ body[data-time-of-day='early-morning'] {
   z-index: 9999;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all var(--duration-slower) var(--ease-ease-out-back);
   pointer-events: none;
 }
 
@@ -6560,13 +6509,13 @@ body[data-time-of-day='early-morning'] {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  background: rgba(30, 30, 28, 0.95);
+  background: color-mix(in srgb, var(--color-cedar-deep) 95%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: var(--radius-full);
   padding: var(--space-3) var(--space-5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
+  box-shadow: var(--shadow-2xl);
 }
 
 .ferni-toast__orb {
@@ -6577,7 +6526,7 @@ body[data-time-of-day='early-morning'] {
   height: 32px;
   background: linear-gradient(145deg, var(--color-ferni), var(--color-ferni-dark));
   border-radius: 50%;
-  color: white;
+  color: var(--color-white);
   font-family: var(--font-display);
   font-weight: var(--font-weight-bold);
   font-size: var(--text-xs);
@@ -6587,7 +6536,7 @@ body[data-time-of-day='early-morning'] {
 .ferni-toast__message {
   font-family: var(--font-body);
   font-size: var(--text-sm);
-  color: rgba(255, 255, 255, 0.9);
+  color: color-mix(in srgb, var(--color-white) 90%, transparent);
   white-space: nowrap;
 }
 
@@ -6614,12 +6563,12 @@ body[data-time-of-day='early-morning'] {
   .konami-reward,
   .konami-reward__inner,
   .ferni-toast {
-    transition: opacity 0.2s ease;
+    transition: opacity var(--duration-normal) ease;
   }
 
   .konami-reward__orb {
     animation: none;
-    box-shadow: 0 0 40px rgba(138, 166, 120, 0.4);
+    box-shadow: 0 0 40px color-mix(in srgb, var(--color-bamboo-light) 40%, transparent);
   }
 }
 
@@ -6667,138 +6616,138 @@ body[data-time-of-day='early-morning'] {
 @media (prefers-color-scheme: dark) {
   /* Security Cards - Privacy/Trust Section */
   :root:not([data-theme="light"]) .security-card {
-    background: var(--color-ferni-cinematic-surface, var(--color-bg-dark-surface));
-    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--color-ferni-cinematic-surface);
+    border-color: color-mix(in srgb, var(--color-white) 10%, transparent);
   }
   
   :root:not([data-theme="light"]) .security-card:hover {
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-xl);
   }
   
   :root:not([data-theme="light"]) .security-card__icon {
-    background: rgba(74, 103, 65, 0.25);
+    background: color-mix(in srgb, var(--color-ferni) 25%, transparent);
   }
   
   :root:not([data-theme="light"]) .security-card__icon svg {
-    color: var(--color-highlight, var(--color-nayan));
+    color: var(--color-highlight);
   }
   
   :root:not([data-theme="light"]) .security-card__title {
-    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
+    color: var(--color-ferni-cinematic-text);
   }
   
   :root:not([data-theme="light"]) .security-card__description {
-    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
+    color: var(--color-ferni-cinematic-text-secondary);
   }
   
   /* FAQ Section */
   :root:not([data-theme="light"]) .faq-item {
-    background: var(--color-ferni-cinematic-surface, var(--color-bg-dark-surface));
-    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--color-ferni-cinematic-surface);
+    border-color: color-mix(in srgb, var(--color-white) 10%, transparent);
   }
   
   :root:not([data-theme="light"]) .faq-item__question {
-    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
+    color: var(--color-ferni-cinematic-text);
   }
   
   :root:not([data-theme="light"]) .faq-item__answer {
-    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
+    color: var(--color-ferni-cinematic-text-secondary);
   }
   
   :root:not([data-theme="light"]) .faq-item__answer p {
-    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
+    color: var(--color-ferni-cinematic-text-secondary);
   }
   
   /* Story sections */
   :root:not([data-theme="light"]) .story-block__eyebrow {
-    color: var(--color-highlight, var(--color-nayan));
+    color: var(--color-highlight);
   }
   
   :root:not([data-theme="light"]) .story-block__title {
-    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
+    color: var(--color-ferni-cinematic-text);
   }
   
   :root:not([data-theme="light"]) .story-block__text {
-    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
+    color: var(--color-ferni-cinematic-text-secondary);
   }
   
   /* Story Brand Hero */
   :root:not([data-theme="light"]) .story-brand-hero__headline {
-    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
+    color: var(--color-ferni-cinematic-text);
   }
   
   :root:not([data-theme="light"]) .story-brand-hero__tagline {
-    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
+    color: var(--color-ferni-cinematic-text-secondary);
   }
   
   /* Contact/Connect Options */
   :root:not([data-theme="light"]) .connect-option {
-    background: var(--color-ferni-cinematic-surface, var(--color-bg-dark-surface));
-    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--color-ferni-cinematic-surface);
+    border-color: color-mix(in srgb, var(--color-white) 10%, transparent);
   }
   
   :root:not([data-theme="light"]) .connect-option__title {
-    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
+    color: var(--color-ferni-cinematic-text);
   }
   
   :root:not([data-theme="light"]) .connect-option__detail {
-    color: var(--color-highlight, var(--color-nayan));
+    color: var(--color-highlight);
   }
   
   :root:not([data-theme="light"]) .connect-option__description {
-    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
+    color: var(--color-ferni-cinematic-text-secondary);
   }
   
   /* Voice First Section */
   :root:not([data-theme="light"]) .voice-first__card {
-    background: var(--color-ferni-cinematic-surface, var(--color-bg-dark-surface));
+    background: var(--color-ferni-cinematic-surface);
   }
   
   :root:not([data-theme="light"]) .voice-first__title {
-    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
+    color: var(--color-ferni-cinematic-text);
   }
   
   :root:not([data-theme="light"]) .voice-first__description {
-    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
+    color: var(--color-ferni-cinematic-text-secondary);
   }
   
   /* Team Section */
   :root:not([data-theme="light"]) .team-member__name {
-    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
+    color: var(--color-ferni-cinematic-text);
   }
   
   :root:not([data-theme="light"]) .team-member__role {
-    color: var(--color-highlight, var(--color-nayan));
+    color: var(--color-highlight);
   }
   
   :root:not([data-theme="light"]) .team-member__bio {
-    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
+    color: var(--color-ferni-cinematic-text-secondary);
   }
   
   /* CTA Section */
   :root:not([data-theme="light"]) .cta-section {
-    background: var(--color-ferni-cinematic-dark, var(--color-text-primary));
+    background: var(--color-ferni-cinematic-dark);
   }
   
   :root:not([data-theme="light"]) .cta-section__title {
-    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
+    color: var(--color-ferni-cinematic-text);
   }
   
   :root:not([data-theme="light"]) .cta-section__subtitle {
-    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
+    color: var(--color-ferni-cinematic-text-secondary);
   }
   
   /* Konami reward */
   :root:not([data-theme="light"]) .konami-reward__inner {
-    background: var(--color-ferni-cinematic-surface, var(--color-bg-dark-surface));
+    background: var(--color-ferni-cinematic-surface);
   }
 
   :root:not([data-theme="light"]) .konami-reward__title {
-    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
+    color: var(--color-ferni-cinematic-text);
   }
 
   :root:not([data-theme="light"]) .konami-reward__message {
-    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
+    color: var(--color-ferni-cinematic-text-secondary);
   }
 
   /* ===========================================
@@ -6806,8 +6755,8 @@ body[data-time-of-day='early-morning'] {
      Cards are "islands of light" in dark mode
      =========================================== */
   :root:not([data-theme="light"]) .feature {
-    background: white !important;
-    border-color: rgba(44, 37, 32, 0.1);
+    background: var(--color-white) !important;
+    border-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
   }
 
   :root:not([data-theme="light"]) .feature__title {
@@ -6820,55 +6769,55 @@ body[data-time-of-day='early-morning'] {
   }
 
   :root:not([data-theme="light"]) .feature__icon {
-    background: rgba(74, 103, 65, 0.1);
+    background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
   }
 
   :root:not([data-theme="light"]) .feature__icon svg {
-    color: var(--color-ferni, var(--color-ferni));
+    color: var(--color-ferni);
   }
 
   /* ===========================================
      JOURNEY SECTION - Fix heading/timeline contrast
      =========================================== */
   :root:not([data-theme="light"]) .journey .section__eyebrow {
-    color: var(--color-highlight, var(--color-stone-light)) !important;
+    color: var(--color-highlight) !important;
   }
 
   :root:not([data-theme="light"]) .journey .section__title {
-    color: var(--color-ferni-cinematic-text, var(--color-bg-primary)) !important;
+    color: var(--color-ferni-cinematic-text) !important;
   }
 
   :root:not([data-theme="light"]) .journey .section__subtitle {
-    color: var(--color-ferni-cinematic-text-secondary, var(--color-tea-light)) !important;
+    color: var(--color-ferni-cinematic-text-secondary) !important;
   }
 
   :root:not([data-theme="light"]) .journey__stage-title {
-    color: var(--color-ferni-cinematic-text, var(--color-bg-primary)) !important;
+    color: var(--color-ferni-cinematic-text) !important;
   }
 
   :root:not([data-theme="light"]) .journey__stage-description {
-    color: var(--color-ferni-cinematic-text-secondary, var(--color-tea-light)) !important;
+    color: var(--color-ferni-cinematic-text-secondary) !important;
   }
 
   :root:not([data-theme="light"]) .journey__stage-badge {
-    background: var(--color-bg-dark-surface, var(--color-cedar-deep));
-    color: var(--color-ferni-cinematic-text, var(--color-bg-primary));
+    background: var(--color-bg-dark-surface);
+    color: var(--color-ferni-cinematic-text);
   }
 
   /* Generic section headers in dark sections */
   :root:not([data-theme="light"]) .section--dark .section__eyebrow,
   :root:not([data-theme="light"]) [class*="dark"] .section__eyebrow {
-    color: var(--color-highlight, var(--color-stone-light)) !important;
+    color: var(--color-highlight) !important;
   }
 
   :root:not([data-theme="light"]) .section--dark .section__title,
   :root:not([data-theme="light"]) [class*="dark"] .section__title {
-    color: var(--color-ferni-cinematic-text, var(--color-bg-primary)) !important;
+    color: var(--color-ferni-cinematic-text) !important;
   }
 
   :root:not([data-theme="light"]) .section--dark .section__subtitle,
   :root:not([data-theme="light"]) [class*="dark"] .section__subtitle {
-    color: var(--color-ferni-cinematic-text-secondary, var(--color-tea-light)) !important;
+    color: var(--color-ferni-cinematic-text-secondary) !important;
   }
 }
 
@@ -6881,8 +6830,8 @@ body[data-time-of-day='early-morning'] {
 /* Feature Cards - "Islands of light" with dark readable text */
 .theme--dark .feature,
 body.theme--dark .feature {
-  background: white !important;
-  border-color: rgba(44, 37, 32, 0.1) !important;
+  background: var(--color-white) !important;
+  border-color: color-mix(in srgb, var(--color-ink) 10%, transparent) !important;
 }
 
 .theme--dark .feature__title,
@@ -6898,7 +6847,7 @@ body.theme--dark .feature__description {
 
 .theme--dark .feature__icon,
 body.theme--dark .feature__icon {
-  background: rgba(74, 103, 65, 0.1) !important;
+  background: color-mix(in srgb, var(--color-ferni) 10%, transparent) !important;
 }
 
 .theme--dark .feature__icon svg,
@@ -6909,7 +6858,7 @@ body.theme--dark .feature__icon svg {
 /* Story Section - "I'm here when others can't be." headline */
 .theme--dark .story .section__eyebrow,
 body.theme--dark .story .section__eyebrow {
-  color: var(--color-highlight, var(--color-nayan)) !important;
+  color: var(--color-highlight) !important;
 }
 
 .theme--dark .story .section__title,
@@ -6920,7 +6869,7 @@ body.theme--dark .story .section__title {
 /* Journey Section - Timeline headings and descriptions */
 .theme--dark .journey .section__eyebrow,
 body.theme--dark .journey .section__eyebrow {
-  color: var(--color-highlight, var(--color-nayan)) !important;
+  color: var(--color-highlight) !important;
 }
 
 .theme--dark .journey .section__title,
@@ -6952,7 +6901,7 @@ body.theme--dark .journey__stage-badge {
 /* Use-Case Cards - "Islands of light" in YOUR MOMENTS section */
 .theme--dark .use-case,
 body.theme--dark .use-case {
-  background: white !important;
+  background: var(--color-white) !important;
   border-color: var(--color-border-medium) !important;
 }
 
@@ -6997,11 +6946,11 @@ body:not(.theme--dark) .stats-bar,
 
 body:not(.theme--dark) .stat__value,
 .theme--zen .stat__value {
-  background: linear-gradient(135deg, rgba(255, 250, 245, 1) 0%, rgba(245, 240, 230, 0.9) 100%) !important;
+  background: linear-gradient(135deg, var(--color-dark-text) 0%, color-mix(in srgb, var(--color-sand-light) 90%, transparent) 100%) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   background-clip: text !important;
-  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.15)) !important;
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--color-white) 15%, transparent)) !important;
 }
 
 body:not(.theme--dark) .stat__label,
@@ -7019,11 +6968,11 @@ body:not(.theme--dark) .two-am__darkness,
 
 body:not(.theme--dark) .two-am__time,
 .theme--zen .two-am__time {
-  background: linear-gradient(180deg, rgba(255, 250, 245, 1) 0%, rgba(255, 250, 245, 0.8) 100%) !important;
+  background: linear-gradient(180deg, var(--color-dark-text) 0%, color-mix(in srgb, var(--color-dark-text) 80%, transparent) 100%) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   background-clip: text !important;
-  filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.2)) !important;
+  filter: drop-shadow(0 0 40px color-mix(in srgb, var(--color-white) 20%, transparent)) !important;
 }
 
 /* Two-Am Section - FORCE dark dramatic background in zen mode */
@@ -7034,18 +6983,18 @@ body:not(.theme--dark) .two-am,
 
 body:not(.theme--dark) .two-am__thought,
 .theme--zen .two-am__thought {
-  color: var(--color-paper-cream, var(--color-bg-secondary)) !important; /* Light cream text on forced dark bg */
+  color: var(--color-paper) !important; /* Light cream text on forced dark bg */
 }
 
 body:not(.theme--dark) .two-am__quote,
 .theme--zen .two-am__quote {
-  color: var(--color-paper-cream, var(--color-bg-secondary)) !important; /* Light cream text on forced dark bg */
+  color: var(--color-paper) !important; /* Light cream text on forced dark bg */
 }
 
 body:not(.theme--dark) .two-am__limit,
 .theme--zen .two-am__limit {
-  background: rgba(255, 255, 255, 0.08) !important; /* Slightly more visible */
-  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: color-mix(in srgb, var(--color-white) 8%, transparent) !important; /* Slightly more visible */
+  border-color: color-mix(in srgb, var(--color-white) 15%, transparent) !important;
 }
 
 body:not(.theme--dark) .two-am__limit-who,
@@ -7055,12 +7004,12 @@ body:not(.theme--dark) .two-am__limit-who,
 
 body:not(.theme--dark) .two-am__limit-status,
 .theme--zen .two-am__limit-status {
-  color: rgba(255, 255, 255, 0.7) !important; /* Light muted text on dark bg */
+  color: color-mix(in srgb, var(--color-white) 70%, transparent) !important; /* Light muted text on dark bg */
 }
 
 body:not(.theme--dark) .two-am__response,
 .theme--zen .two-am__response {
-  background: linear-gradient(180deg, var(--color-cinematic-rich) 0%, var(--color-paper-cream, var(--color-bg-primary)) 30%) !important;
+  background: linear-gradient(180deg, var(--color-cinematic-rich) 0%, var(--color-paper) 30%) !important;
 }
 
 body:not(.theme--dark) .two-am__bubble,
@@ -7092,12 +7041,12 @@ body:not(.theme--dark) .memory-demo .section__eyebrow,
 
 body:not(.theme--dark) .memory-demo .section__title,
 .theme--zen .memory-demo .section__title {
-  color: var(--color-paper-cream, var(--color-bg-secondary)) !important; /* Light cream text on dark bg */
+  color: var(--color-paper) !important; /* Light cream text on dark bg */
 }
 
 body:not(.theme--dark) .memory-demo .section__subtitle,
 .theme--zen .memory-demo .section__subtitle {
-  color: rgba(255, 255, 255, 0.7) !important; /* Light muted text on dark bg */
+  color: color-mix(in srgb, var(--color-white) 70%, transparent) !important; /* Light muted text on dark bg */
 }
 
 /* ============================================
@@ -7277,7 +7226,7 @@ body:not(.theme--dark) .chat-demo__label,
 
 .story-page {
   background: var(--color-bg-primary);
-  background: var(--color-paper-cream, var(--color-bg-primary));
+  background: var(--color-paper);
   min-height: 100vh;
 }
 
@@ -7288,7 +7237,7 @@ body:not(.theme--dark) .chat-demo__label,
   flex-direction: column;
   justify-content: center;
   padding: 128px 24px;
-  padding: var(--space-32, 128px) var(--space-6, 24px);
+  padding: var(--space-32) var(--space-6);
   text-align: center;
   position: relative;
 }
@@ -7297,56 +7246,56 @@ body:not(.theme--dark) .chat-demo__label,
   .story-page__hero {
     min-height: 80vh;
     padding: 160px 48px;
-    padding: var(--space-40, 160px) var(--space-12, 48px);
+    padding: var(--space-40) var(--space-12);
   }
 }
 
 .story-page__eyebrow {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-family: var(--font-body, 'Inter', sans-serif);
+  font-family: var(--font-body);
+  font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-ferni);
-  color: var(--color-ferni-green, var(--color-ferni));
+  color: var(--color-ferni-green);
   margin-bottom: 24px;
-  margin-bottom: var(--space-6, 24px);
+  margin-bottom: var(--space-6);
   opacity: 1;
 }
 
 .story-page__headline {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-family: var(--font-display);
+  font-family: var(--font-display);
   font-size: clamp(40px, 10vw, 80px);
   font-weight: 800;
   line-height: 1.0;
   letter-spacing: -0.03em;
   color: var(--color-text-primary);
-  color: var(--color-natural-ink, var(--color-text-primary));
+  color: var(--color-natural-ink);
   margin-bottom: 32px;
-  margin-bottom: var(--space-8, 32px);
+  margin-bottom: var(--space-8);
   opacity: 1;
 }
 
 /* Section Base */
 .story-page__section {
   padding: 96px 24px;
-  padding: var(--space-24, 96px) var(--space-6, 24px);
+  padding: var(--space-24) var(--space-6);
   position: relative;
 }
 
 @media (min-width: 768px) {
   .story-page__section {
     padding: 128px 48px;
-    padding: var(--space-32, 128px) var(--space-12, 48px);
+    padding: var(--space-32) var(--space-12);
   }
 }
 
 /* Section Variations */
 .story-page__section--dark {
   background: linear-gradient(180deg, var(--color-bg-dark) 0%, var(--color-bg-dark-elevated) 100%) !important;
-  color: rgba(255, 255, 255, 0.9) !important;
+  color: color-mix(in srgb, var(--color-white) 90%, transparent) !important;
 }
 
 .story-page__section--dark .story-page__subhead {
@@ -7354,16 +7303,16 @@ body:not(.theme--dark) .chat-demo__label,
 }
 
 .story-page__section--dark .story-page__text {
-  color: rgba(255, 255, 255, 0.85) !important;
+  color: color-mix(in srgb, var(--color-white) 85%, transparent) !important;
 }
 
 .story-page__section--dark .story-page__text--muted {
-  color: rgba(255, 255, 255, 0.6) !important;
+  color: color-mix(in srgb, var(--color-white) 60%, transparent) !important;
 }
 
 .story-page__section--accent {
   background: var(--color-ferni) !important;
-  background: var(--color-ferni-green, var(--color-ferni)) !important;
+  background: var(--color-ferni-green) !important;
   color: var(--color-text-inverse) !important;
 }
 
@@ -7372,21 +7321,21 @@ body:not(.theme--dark) .chat-demo__label,
 }
 
 .story-page__section--accent .story-page__text {
-  color: rgba(255, 255, 255, 0.9) !important;
+  color: color-mix(in srgb, var(--color-white) 90%, transparent) !important;
 }
 
 .story-page__section--cta {
   background: var(--color-bg-primary);
-  background: var(--color-sand, var(--color-bg-primary));
+  background: var(--color-bg-surface);
   text-align: center;
   padding: 128px 24px;
-  padding: var(--space-32, 128px) var(--space-6, 24px);
+  padding: var(--space-32) var(--space-6);
 }
 
 @media (min-width: 768px) {
   .story-page__section--cta {
     padding: 160px 48px;
-    padding: var(--space-40, 160px) var(--space-12, 48px);
+    padding: var(--space-40) var(--space-12);
   }
 }
 
@@ -7412,7 +7361,7 @@ body:not(.theme--dark) .chat-demo__label,
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.02em;
-  color: var(--color-natural-ink, var(--color-text-primary));
+  color: var(--color-natural-ink);
   margin-bottom: var(--space-6);
 }
 
@@ -7420,12 +7369,12 @@ body:not(.theme--dark) .chat-demo__label,
   font-family: var(--font-body);
   font-size: clamp(17px, 2.5vw, 20px);
   line-height: 1.7;
-  color: var(--color-text-secondary, var(--color-cedar));
+  color: var(--color-text-secondary);
   margin-bottom: var(--space-6);
 }
 
 .story-page__text--muted {
-  color: var(--color-text-muted, var(--color-stone));
+  color: var(--color-text-muted);
 }
 
 .story-page__accent {
@@ -7434,7 +7383,7 @@ body:not(.theme--dark) .chat-demo__label,
   font-weight: 600;
   line-height: 1.5;
   letter-spacing: -0.01em;
-  color: var(--color-ferni-green, var(--color-ferni));
+  color: var(--color-ferni-green);
   margin-top: var(--space-8);
 }
 
@@ -7446,10 +7395,10 @@ body:not(.theme--dark) .chat-demo__label,
   font-family: var(--font-body);
   font-size: var(--text-lg);
   font-style: italic;
-  color: var(--color-text-muted, var(--color-stone));
+  color: var(--color-text-muted);
   margin-top: var(--space-6);
   padding-left: var(--space-5);
-  border-left: 3px solid var(--color-ferni-green, var(--color-ferni));
+  border-left: 3px solid var(--color-ferni-green);
 }
 
 /* Feature List */
@@ -7465,14 +7414,14 @@ body:not(.theme--dark) .chat-demo__label,
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-5);
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--color-white) 10%, transparent);
   border-radius: var(--radius-md);
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition: transform var(--duration-normal) ease, background var(--duration-normal) ease;
 }
 
 .story-page__list-item:hover {
   transform: translateX(4px);
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--color-white) 15%, transparent);
 }
 
 @media (min-width: 640px) {
@@ -7488,7 +7437,7 @@ body:not(.theme--dark) .chat-demo__label,
   font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.6);
+  color: color-mix(in srgb, var(--color-white) 60%, transparent);
   min-width: 120px;
 }
 
@@ -7510,17 +7459,17 @@ body:not(.theme--dark) .chat-demo__label,
 
 .story-page__cta-note {
   font-size: var(--text-base);
-  color: var(--color-text-muted, var(--color-stone));
+  color: var(--color-text-muted);
 }
 
 .story-page__cta-note a {
-  color: var(--color-ferni-green, var(--color-ferni));
+  color: var(--color-ferni-green);
   font-weight: 600;
-  transition: color 0.2s ease;
+  transition: color var(--duration-normal) ease;
 }
 
 .story-page__cta-note a:hover {
-  color: var(--color-forest-green, var(--color-ferni-secondary));
+  color: var(--color-forest-green);
   text-decoration: underline;
 }
 

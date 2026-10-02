@@ -21,7 +21,7 @@
   background: linear-gradient(90deg, var(--color-ferni), var(--color-ferni-secondary));
   transform-origin: left;
   transform: scaleX(0);
-  transition: transform 50ms linear;
+  transition: transform var(--duration-fastest) linear;
 }
 
 /* ============================================================================
@@ -264,7 +264,7 @@
   margin-bottom: var(--space-10);
   opacity: 0;
   transform: translateY(20px);
-  transition: all var(--duration-slow) var(--ease-ease-out);
+  transition: all var(--duration-slower) var(--ease-ease-out);
 }
 
 .legal-trust.revealed {
@@ -307,7 +307,7 @@
   border-bottom: 1px solid var(--color-border-subtle);
   opacity: 0;
   transform: translateY(30px);
-  transition: all var(--duration-slow) var(--ease-ease-out);
+  transition: all var(--duration-slower) var(--ease-ease-out);
 }
 
 .legal-article section.revealed {
@@ -499,7 +499,7 @@
   text-align: center;
   opacity: 0;
   transform: translateY(30px);
-  transition: all var(--duration-slow) var(--ease-ease-out);
+  transition: all var(--duration-slower) var(--ease-ease-out);
 }
 
 .legal-contact.revealed {
@@ -575,14 +575,14 @@
 
 .legal-contact__btn--primary {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-white);
   border-color: var(--color-accent);
 }
 
 .legal-contact__btn--primary:hover {
   background: var(--color-accent-hover);
   border-color: var(--color-accent-hover);
-  color: white;
+  color: var(--color-white);
 }
 
 /* ============================================================================
@@ -610,7 +610,7 @@
 .legal-top:hover {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: white;
+  color: var(--color-white);
   transform: translateY(-4px);
   box-shadow: var(--shadow-xl);
 }
@@ -929,7 +929,7 @@
 .legal-contact__btn:focus-visible,
 .legal-footer-nav__link:focus-visible,
 .legal-top:focus-visible {
-  outline: 2px solid var(--color-ferni, var(--color-ferni));
+  outline: 2px solid var(--color-ferni);
   outline-offset: 2px;
   border-radius: var(--radius-xs);
 }
@@ -983,41 +983,41 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .legal-hero__gradient {
     background: 
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(74, 103, 65, 0.15), transparent),
+      radial-gradient(ellipse 80% 50% at 50% -20%, color-mix(in srgb, var(--color-ferni) 15%, transparent), transparent),
       linear-gradient(180deg, var(--color-text-primary) 0%, var(--color-cinematic-deep) 100%);
   }
   
   :root:not([data-theme="light"]) .legal-hero__pattern {
     background-image: 
-      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+      radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--color-white) 5%, transparent) 1px, transparent 0);
   }
   
   :root:not([data-theme="light"]) .legal-back {
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+    background: color-mix(in srgb, var(--color-white) 8%, transparent);
+    color: var(--color-dark-text-secondary);
   }
   
   :root:not([data-theme="light"]) .legal-back:hover {
-    background: rgba(74, 103, 65, 0.2);
-    color: var(--color-highlight, var(--color-nayan));
+    background: color-mix(in srgb, var(--color-ferni) 20%, transparent);
+    color: var(--color-highlight);
   }
   
   :root:not([data-theme="light"]) .legal-hero__badge {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: var(--color-highlight, var(--color-nayan));
+    background: color-mix(in srgb, var(--color-white) 8%, transparent);
+    border-color: color-mix(in srgb, var(--color-white) 10%, transparent);
+    color: var(--color-highlight);
   }
   
   :root:not([data-theme="light"]) .legal-hero__title {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-bg-primary);
   }
   
   :root:not([data-theme="light"]) .legal-hero__subtitle {
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+    color: var(--color-dark-text-secondary);
   }
   
   :root:not([data-theme="light"]) .legal-hero__meta {
-    color: var(--color-dark-text-muted, var(--color-text-muted));
+    color: var(--color-dark-text-muted);
   }
   
   :root:not([data-theme="light"]) .legal-main {
@@ -1025,63 +1025,63 @@
   }
   
   :root:not([data-theme="light"]) .legal-toc__header {
-    color: var(--color-highlight, var(--color-nayan));
-    border-bottom-color: rgba(255, 255, 255, 0.1);
+    color: var(--color-highlight);
+    border-bottom-color: color-mix(in srgb, var(--color-white) 10%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-toc__link {
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+    color: var(--color-dark-text-secondary);
   }
   
   :root:not([data-theme="light"]) .legal-toc__link:hover {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
-    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-bg-primary);
+    background: color-mix(in srgb, var(--color-white) 5%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-toc__link.active {
-    color: var(--color-highlight, var(--color-nayan));
-    background: rgba(196, 162, 101, 0.1);
-    border-left-color: var(--color-highlight, var(--color-nayan));
+    color: var(--color-highlight);
+    background: color-mix(in srgb, var(--color-tea-light) 10%, transparent);
+    border-left-color: var(--color-highlight);
   }
   
   :root:not([data-theme="light"]) .legal-trust {
-    background: rgba(255, 255, 255, 0.03);
+    background: color-mix(in srgb, var(--color-white) 3%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-trust__item {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    background: color-mix(in srgb, var(--color-white) 5%, transparent);
+    color: var(--color-dark-text-secondary);
+    box-shadow: var(--shadow-2xs);
   }
   
   :root:not([data-theme="light"]) .legal-article {
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+    color: var(--color-dark-text-secondary);
   }
   
   :root:not([data-theme="light"]) .legal-article section {
-    border-bottom-color: rgba(255, 255, 255, 0.08);
+    border-bottom-color: color-mix(in srgb, var(--color-white) 8%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-article h2,
   :root:not([data-theme="light"]) .legal-article h3 {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-bg-primary);
   }
   
   :root:not([data-theme="light"]) .legal-article h2 .section-icon {
-    background: rgba(74, 103, 65, 0.2);
-    color: var(--color-highlight, var(--color-nayan));
+    background: color-mix(in srgb, var(--color-ferni) 20%, transparent);
+    color: var(--color-highlight);
   }
   
   :root:not([data-theme="light"]) .legal-article li::marker {
-    color: var(--color-highlight, var(--color-nayan));
+    color: var(--color-highlight);
   }
   
   :root:not([data-theme="light"]) .legal-article li strong {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-bg-primary);
   }
   
   :root:not([data-theme="light"]) .legal-article a {
-    color: var(--color-highlight, var(--color-nayan));
+    color: var(--color-highlight);
   }
   
   :root:not([data-theme="light"]) .legal-article a:hover {
@@ -1089,111 +1089,111 @@
   }
   
   :root:not([data-theme="light"]) .legal-article .callout {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, var(--color-white) 3%, transparent);
+    border-color: color-mix(in srgb, var(--color-white) 8%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-article .callout p {
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+    color: var(--color-dark-text-secondary);
   }
   
   :root:not([data-theme="light"]) .legal-article .callout--crisis {
-    background: rgba(220, 38, 38, 0.1);
+    background: color-mix(in srgb, var(--color-error-dark) 10%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-article .callout--success {
-    background: rgba(74, 103, 65, 0.1);
+    background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-article .callout--info {
-    background: rgba(59, 130, 246, 0.1);
+    background: color-mix(in srgb, var(--color-google-blue) 10%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-article .data-table th {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    background: color-mix(in srgb, var(--color-white) 5%, transparent);
+    color: var(--color-bg-primary);
   }
   
   :root:not([data-theme="light"]) .legal-article .data-table th,
   :root:not([data-theme="light"]) .legal-article .data-table td {
-    border-bottom-color: rgba(255, 255, 255, 0.08);
+    border-bottom-color: color-mix(in srgb, var(--color-white) 8%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-article .data-table tr:hover td {
-    background: rgba(255, 255, 255, 0.03);
+    background: color-mix(in srgb, var(--color-white) 3%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-contact {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.05));
-    border-color: rgba(255, 255, 255, 0.08);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-white) 3%, transparent), color-mix(in srgb, var(--color-white) 5%, transparent));
+    border-color: color-mix(in srgb, var(--color-white) 8%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-contact__icon {
-    background: rgba(74, 103, 65, 0.15);
-    color: var(--color-highlight, var(--color-nayan));
+    background: color-mix(in srgb, var(--color-ferni) 15%, transparent);
+    color: var(--color-highlight);
   }
   
   :root:not([data-theme="light"]) .legal-contact__content h3 {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-bg-primary);
   }
   
   :root:not([data-theme="light"]) .legal-contact__content p {
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+    color: var(--color-dark-text-secondary);
   }
   
   :root:not([data-theme="light"]) .legal-contact__btn {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+    background: color-mix(in srgb, var(--color-white) 5%, transparent);
+    border-color: color-mix(in srgb, var(--color-white) 10%, transparent);
+    color: var(--color-dark-text-secondary);
   }
   
   :root:not([data-theme="light"]) .legal-contact__btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    background: color-mix(in srgb, var(--color-white) 8%, transparent);
+    color: var(--color-bg-primary);
   }
   
   :root:not([data-theme="light"]) .legal-contact__btn--primary {
-    background: var(--color-ferni, var(--color-ferni));
-    border-color: var(--color-ferni, var(--color-ferni));
-    color: white;
+    background: var(--color-ferni);
+    border-color: var(--color-ferni);
+    color: var(--color-white);
   }
   
   :root:not([data-theme="light"]) .legal-top {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+    background: color-mix(in srgb, var(--color-white) 8%, transparent);
+    border-color: color-mix(in srgb, var(--color-white) 10%, transparent);
+    color: var(--color-dark-text-secondary);
   }
   
   :root:not([data-theme="light"]) .legal-top:hover {
-    background: var(--color-ferni, var(--color-ferni));
-    border-color: var(--color-ferni, var(--color-ferni));
+    background: var(--color-ferni);
+    border-color: var(--color-ferni);
   }
   
   :root:not([data-theme="light"]) .legal-footer-nav {
     background: var(--color-bg-dark-elevated);
-    border-top-color: rgba(255, 255, 255, 0.08);
+    border-top-color: color-mix(in srgb, var(--color-white) 8%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-footer-nav__link {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, var(--color-white) 3%, transparent);
+    border-color: color-mix(in srgb, var(--color-white) 8%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-footer-nav__link:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: color-mix(in srgb, var(--color-white) 6%, transparent);
+    border-color: color-mix(in srgb, var(--color-white) 12%, transparent);
   }
   
   :root:not([data-theme="light"]) .legal-footer-nav__label {
-    color: var(--color-dark-text-muted, var(--color-text-muted));
+    color: var(--color-dark-text-muted);
   }
   
   :root:not([data-theme="light"]) .legal-footer-nav__title {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-bg-primary);
   }
   
   :root:not([data-theme="light"]) .legal-footer-nav__link svg {
-    color: var(--color-dark-text-muted, var(--color-text-muted));
+    color: var(--color-dark-text-muted);
   }
 }
 

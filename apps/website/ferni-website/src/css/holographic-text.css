@@ -20,9 +20,9 @@
   /* Base text styling */
   background: linear-gradient(
     135deg,
-    var(--color-ferni, var(--color-ferni)) 0%,
+    var(--color-ferni) 0%,
     var(--color-ferni-secondary) 50%,
-    var(--color-ferni, var(--color-ferni)) 100%
+    var(--color-ferni) 100%
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -44,10 +44,10 @@
   /* Prismatic gradient */
   background: radial-gradient(
     ellipse at var(--shimmer-x, 50%) var(--shimmer-y, 50%),
-    rgba(255, 255, 255, 0.4) 0%,
-    rgba(200, 220, 255, 0.2) 25%,
-    rgba(255, 200, 220, 0.15) 50%,
-    rgba(220, 255, 200, 0.1) 75%,
+    color-mix(in srgb, var(--color-white) 40%, transparent) 0%,
+    color-mix(in srgb, var(--color-info-light) 20%, transparent) 25%,
+    color-mix(in srgb, var(--color-peach-light) 15%, transparent) 50%,
+    color-mix(in srgb, var(--color-success-light) 10%, transparent) 75%,
     transparent 100%
   );
   
@@ -56,7 +56,7 @@
   opacity: 0.6;
   
   /* Smooth transitions */
-  transition: opacity 0.3s ease;
+  transition: opacity var(--duration-slow) ease;
   
   /* Prevent interaction */
   z-index: 1;
@@ -89,7 +89,7 @@
   -webkit-text-fill-color: transparent;
   
   /* Animate background position */
-  animation: holo-gradient 8s ease infinite;
+  animation: holo-gradient var(--duration-ambient) ease infinite;
 }
 
 @keyframes holo-gradient {
@@ -108,7 +108,7 @@
   inset: -5px;
   background: radial-gradient(
     ellipse at var(--shimmer-x, 50%) var(--shimmer-y, 50%),
-    rgba(255, 255, 255, 0.3) 0%,
+    color-mix(in srgb, var(--color-white) 30%, transparent) 0%,
     transparent 60%
   );
   mix-blend-mode: overlay;
@@ -129,15 +129,15 @@
   background: linear-gradient(
     calc(90deg + var(--hue-shift, 0deg)),
     transparent 0%,
-    rgba(255, 100, 100, 0.1) 20%,
-    rgba(100, 255, 100, 0.1) 40%,
-    rgba(100, 100, 255, 0.1) 60%,
-    rgba(255, 255, 100, 0.1) 80%,
+    color-mix(in srgb, var(--effect-chromatic-red) 10%, transparent) 20%,
+    color-mix(in srgb, var(--color-google-green) 10%, transparent) 40%,
+    color-mix(in srgb, var(--color-apple-blue) 10%, transparent) 60%,
+    color-mix(in srgb, var(--color-ferni-cinematic-text-accent) 10%, transparent) 80%,
     transparent 100%
   );
   filter: blur(8px);
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity var(--duration-slower) ease;
   pointer-events: none;
   z-index: -1;
 }
@@ -152,8 +152,8 @@
 
 .holographic-text--shadow {
   text-shadow: 
-    calc(var(--holo-x, 0) * 2px) calc(var(--holo-y, 0) * 2px) 0 rgba(255, 100, 100, 0.3),
-    calc(var(--holo-x, 0) * -2px) calc(var(--holo-y, 0) * -2px) 0 rgba(100, 100, 255, 0.3);
+    calc(var(--holo-x, 0) * 2px) calc(var(--holo-y, 0) * 2px) 0 color-mix(in srgb, var(--effect-chromatic-red) 30%, transparent),
+    calc(var(--holo-x, 0) * -2px) calc(var(--holo-y, 0) * -2px) 0 color-mix(in srgb, var(--color-apple-blue) 30%, transparent);
 }
 
 /* ============================================================================

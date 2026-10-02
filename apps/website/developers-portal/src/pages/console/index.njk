@@ -19,7 +19,7 @@ permalink: /console/
 <section id="auth-gate" class="section" style="padding-top: var(--space-8); padding-bottom: var(--space-8);">
   <div class="container container-narrow">
     <!-- Error message container -->
-    <div id="auth-error" style="display: none; background: var(--error); color: white; padding: var(--space-4); border-radius: var(--radius-lg); margin-bottom: var(--space-6); text-align: center;"></div>
+    <div id="auth-error" style="display: none; background: var(--error); color: var(--color-white); padding: var(--space-4); border-radius: var(--radius-lg); margin-bottom: var(--space-6); text-align: center;"></div>
 
     <div style="background: var(--bg-elevated); border: 1px solid var(--border-medium); border-radius: var(--radius-2xl); padding: var(--space-12); text-align: center;">
       <div style="width: 64px; height: 64px; background: var(--accent-subtle); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-6); color: var(--accent-primary);">
@@ -389,7 +389,7 @@ permalink: /console/
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: color-mix(in srgb, var(--color-black) 60%, transparent);
     backdrop-filter: blur(4px);
     z-index: 1000;
     display: flex;
@@ -404,7 +404,7 @@ permalink: /console/
     padding: var(--space-8);
     max-width: 500px;
     width: 100%;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--shadow-2xl);
   }
   .new-key-display {
     font-family: var(--font-mono);

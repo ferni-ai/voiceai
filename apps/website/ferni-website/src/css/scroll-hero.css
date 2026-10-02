@@ -37,9 +37,9 @@
   transform-origin: center center;
   /* Add subtle shadow that grows with scale */
   box-shadow: 
-    0 10px 40px rgba(74, 103, 65, calc(0.2 + var(--scroll-hero-progress, 0) * 0.15)),
-    inset 0 -8px 20px rgba(0, 0, 0, 0.15),
-    inset 0 8px 20px rgba(255, 255, 255, 0.1);
+    0 10px 40px color-mix(in srgb, var(--color-ferni) calc((0.2 + var(--scroll-hero-progress, 0) * 0.15) * 100%), transparent),
+    inset 0 -8px 20px color-mix(in srgb, var(--color-black) 15%, transparent),
+    inset 0 8px 20px color-mix(in srgb, var(--color-white) 10%, transparent);
 }
 
 /* Rotation effect via CSS variable */
@@ -51,7 +51,7 @@
   background: linear-gradient(
     calc(135deg + var(--scroll-rotation, 0)),
     transparent 30%,
-    rgba(255, 255, 255, 0.1) 50%,
+    color-mix(in srgb, var(--color-white) 10%, transparent) 50%,
     transparent 70%
   );
   pointer-events: none;
@@ -111,7 +111,7 @@
     180deg,
     transparent 0%,
     transparent 60%,
-    rgba(245, 241, 232, calc(var(--scroll-hero-progress, 0) * 0.8)) 100%
+    color-mix(in srgb, var(--color-bg-secondary) calc(var(--scroll-hero-progress, 0) * 80%), transparent) 100%
   );
   pointer-events: none;
   z-index: 2;
@@ -145,19 +145,19 @@ body.hero-fully-scrolled .scroll-hero .hero-ferni {
    ============================================================================ */
 
 .scroll-hero.is-loaded .hero-ferni__orb {
-  animation: hero-orb-entrance 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: hero-orb-entrance 1.2s var(--ease-cinematic);
 }
 
 .scroll-hero.is-loaded .hero__headline {
-  animation: hero-text-entrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+  animation: hero-text-entrance var(--duration-cinematic) var(--ease-cinematic) var(--duration-normal) both;
 }
 
 .scroll-hero.is-loaded .hero__subhead {
-  animation: hero-text-entrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+  animation: hero-text-entrance var(--duration-cinematic) var(--ease-cinematic) var(--duration-slower) both;
 }
 
 .scroll-hero.is-loaded .hero__cta {
-  animation: hero-cta-entrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s both;
+  animation: hero-cta-entrance var(--duration-cinematic) var(--ease-ease-out-back) 0.6s both;
 }
 
 @keyframes hero-orb-entrance {

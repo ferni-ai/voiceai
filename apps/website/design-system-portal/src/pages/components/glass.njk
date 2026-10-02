@@ -531,24 +531,24 @@ permalink: /components/glass/
 }
 
 .glass-subtle {
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--color-white) 70%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid color-mix(in srgb, var(--color-white) 30%, transparent);
 }
 
 .glass-medium {
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--color-white) 70%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid color-mix(in srgb, var(--color-white) 30%, transparent);
 }
 
 .glass-heavy {
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--color-white) 70%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid color-mix(in srgb, var(--color-white) 30%, transparent);
 }
 
 /* Persona Glass Grid */
@@ -577,33 +577,33 @@ permalink: /components/glass/
 }
 
 .glass-ferni {
-  background: rgba(74, 103, 65, 0.15);
-  border: 1px solid rgba(74, 103, 65, 0.25);
+  background: color-mix(in srgb, var(--persona-ferni) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--persona-ferni) 25%, transparent);
 }
 
 .glass-maya {
-  background: rgba(180, 83, 9, 0.15);
-  border: 1px solid rgba(180, 83, 9, 0.25);
+  background: color-mix(in srgb, var(--persona-sasha) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--persona-sasha) 25%, transparent);
 }
 
 .glass-peter {
-  background: rgba(30, 58, 138, 0.15);
-  border: 1px solid rgba(30, 58, 138, 0.25);
+  background: color-mix(in srgb, var(--persona-kenji) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--persona-kenji) 25%, transparent);
 }
 
 .glass-alex {
-  background: rgba(109, 40, 217, 0.15);
-  border: 1px solid rgba(109, 40, 217, 0.25);
+  background: color-mix(in srgb, var(--persona-eli) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--persona-eli) 25%, transparent);
 }
 
 .glass-jordan {
-  background: rgba(219, 39, 119, 0.15);
-  border: 1px solid rgba(219, 39, 119, 0.25);
+  background: color-mix(in srgb, var(--persona-joel) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--persona-joel) 25%, transparent);
 }
 
 .glass-nayan {
-  background: rgba(20, 83, 45, 0.15);
-  border: 1px solid rgba(20, 83, 45, 0.25);
+  background: color-mix(in srgb, var(--persona-marcus) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--persona-marcus) 25%, transparent);
 }
 
 .persona-name {
@@ -619,14 +619,14 @@ permalink: /components/glass/
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--color-black) 30%, transparent);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  animation: modal-backdrop-in 0.2s ease-out;
+  animation: modal-backdrop-in var(--duration-normal) ease-out;
 }
 
 @keyframes modal-backdrop-in {
@@ -635,16 +635,16 @@ permalink: /components/glass/
 }
 
 .modal-surface {
-  background: rgba(255, 255, 255, 0.85);
+  background: color-mix(in srgb, var(--color-white) 85%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid color-mix(in srgb, var(--color-white) 30%, transparent);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
   max-width: 400px;
   width: calc(100% - var(--space-8));
   box-shadow: var(--shadow-xl);
-  animation: modal-surface-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: modal-surface-in var(--duration-slow) var(--ease-ease-out-back);
 }
 
 @keyframes modal-surface-in {
@@ -694,10 +694,10 @@ permalink: /components/glass/
 
 .dropdown-panel {
   position: relative;
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--color-white) 80%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid color-mix(in srgb, var(--color-white) 30%, transparent);
   border-radius: var(--radius-lg);
   padding: var(--space-2);
   min-width: 200px;
@@ -717,7 +717,7 @@ permalink: /components/glass/
 }
 
 .dropdown-item:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: color-mix(in srgb, var(--color-black) 5%, transparent);
 }
 
 .dropdown-item svg {
@@ -764,10 +764,10 @@ permalink: /components/glass/
 
 .glass-card {
   position: relative;
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--color-white) 80%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid color-mix(in srgb, var(--color-white) 30%, transparent);
   border-radius: var(--radius-xl);
   padding: var(--space-5);
   max-width: 320px;
@@ -788,7 +788,7 @@ permalink: /components/glass/
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-white);
 }
 
 .avatar-ferni {
@@ -852,15 +852,15 @@ permalink: /components/glass/
 }
 
 .btn-glass {
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--color-white) 30%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid color-mix(in srgb, var(--color-white) 30%, transparent);
   color: var(--text-primary);
 }
 
 .btn-glass:hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: color-mix(in srgb, var(--color-white) 50%, transparent);
 }
 
 /* Properties Table */
@@ -928,12 +928,12 @@ permalink: /components/glass/
 }
 
 .support-item.supported .support-badge {
-  background: rgba(34, 197, 94, 0.15);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
   color: var(--success);
 }
 
 .support-item.partial .support-badge {
-  background: rgba(234, 179, 8, 0.15);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
   color: var(--warning);
 }
 

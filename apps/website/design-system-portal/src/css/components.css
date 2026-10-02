@@ -194,18 +194,18 @@ pre code {
 }
 
 .glass--thin {
-  background: rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--color-white) 4%, transparent);
   backdrop-filter: blur(8px);
 }
 
 .glass--thick {
-  background: rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--color-white) 12%, transparent);
   backdrop-filter: blur(24px);
 }
 
 .glass--chromatic {
-  background: rgba(212, 168, 74, 0.06);
-  border-color: rgba(212, 168, 74, 0.12);
+  background: color-mix(in srgb, var(--accent-primary) 6%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent);
 }
 
 /* ========================================
@@ -220,7 +220,7 @@ pre code {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  color: white;
+  color: var(--color-white);
   font-size: var(--text-lg);
   position: relative;
   overflow: hidden;

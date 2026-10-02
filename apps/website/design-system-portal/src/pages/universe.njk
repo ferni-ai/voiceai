@@ -273,8 +273,8 @@ permalink: /universe/
                 <svg viewBox="0 0 100 100" class="avatar-svg">
                   <defs>
                     <linearGradient id="ferniGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style="stop-color:#5a7a51"/>
-                      <stop offset="100%" style="stop-color:#3d5a35"/>
+                      <stop offset="0%" style="stop-color:var(--persona-ferni)"/>
+                      <stop offset="100%" style="stop-color:var(--persona-ferni)"/>
                     </linearGradient>
                   </defs>
                   <circle class="presence-ring" cx="50" cy="50" r="48"/>
@@ -314,8 +314,8 @@ permalink: /universe/
                 <svg viewBox="0 0 100 100" class="avatar-svg">
                   <defs>
                     <linearGradient id="mayaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style="stop-color:#b88a7a"/>
-                      <stop offset="100%" style="stop-color:#96695a"/>
+                      <stop offset="0%" style="stop-color:var(--persona-maya)"/>
+                      <stop offset="100%" style="stop-color:var(--persona-maya)"/>
                     </linearGradient>
                   </defs>
                   <circle class="presence-ring" cx="50" cy="50" r="48"/>
@@ -354,8 +354,8 @@ permalink: /universe/
                 <svg viewBox="0 0 100 100" class="avatar-svg">
                   <defs>
                     <linearGradient id="peterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style="stop-color:#4a7b83"/>
-                      <stop offset="100%" style="stop-color:#2a5b63"/>
+                      <stop offset="0%" style="stop-color:var(--persona-peter)"/>
+                      <stop offset="100%" style="stop-color:var(--persona-peter)"/>
                     </linearGradient>
                   </defs>
                   <circle class="presence-ring" cx="50" cy="50" r="48"/>
@@ -394,8 +394,8 @@ permalink: /universe/
                 <svg viewBox="0 0 100 100" class="avatar-svg">
                   <defs>
                     <linearGradient id="jordanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style="stop-color:#d4957a"/>
-                      <stop offset="100%" style="stop-color:#b4755a"/>
+                      <stop offset="0%" style="stop-color:var(--syntax-string)"/>
+                      <stop offset="100%" style="stop-color:var(--persona-jordan)"/>
                     </linearGradient>
                   </defs>
                   <circle class="presence-ring" cx="50" cy="50" r="48"/>
@@ -434,8 +434,8 @@ permalink: /universe/
                 <svg viewBox="0 0 100 100" class="avatar-svg">
                   <defs>
                     <linearGradient id="alexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style="stop-color:#6a7b9a"/>
-                      <stop offset="100%" style="stop-color:#4a5b7a"/>
+                      <stop offset="0%" style="stop-color:var(--persona-alex)"/>
+                      <stop offset="100%" style="stop-color:var(--persona-alex)"/>
                     </linearGradient>
                   </defs>
                   <circle class="presence-ring" cx="50" cy="50" r="48"/>
@@ -474,8 +474,8 @@ permalink: /universe/
                 <svg viewBox="0 0 100 100" class="avatar-svg">
                   <defs>
                     <linearGradient id="nayanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style="stop-color:#c8a57a"/>
-                      <stop offset="100%" style="stop-color:#a8855a"/>
+                      <stop offset="0%" style="stop-color:var(--persona-nayan)"/>
+                      <stop offset="100%" style="stop-color:var(--persona-nayan)"/>
                     </linearGradient>
                   </defs>
                   <circle class="presence-ring" cx="50" cy="50" r="48"/>
@@ -926,20 +926,15 @@ permalink: /universe/
 
 /* Editorial Typography */
 :root {
-  --font-editorial: 'Newsreader', Georgia, 'Times New Roman', serif;
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-spring-heavy: cubic-bezier(0.34, 1.8, 0.64, 1);
-  --ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Emotional Glow Colors */
-  --glow-sage: rgba(74, 103, 65, 0.4);
-  --glow-golden: rgba(196, 162, 101, 0.5);
-  --glow-teal: rgba(58, 107, 115, 0.45);
-  --glow-coral: rgba(196, 133, 106, 0.5);
-  --glow-warm: rgba(166, 122, 106, 0.45);
-  --glow-indigo: rgba(90, 107, 138, 0.45);
-  --glow-amber: rgba(184, 149, 106, 0.45);
+  --glow-sage: color-mix(in srgb, var(--persona-ferni) 40%, transparent);
+  --glow-golden: color-mix(in srgb, var(--persona-carmen) 50%, transparent);
+  --glow-teal: color-mix(in srgb, var(--persona-peter) 45%, transparent);
+  --glow-coral: color-mix(in srgb, var(--persona-jordan) 50%, transparent);
+  --glow-warm: color-mix(in srgb, var(--persona-maya) 45%, transparent);
+  --glow-indigo: color-mix(in srgb, var(--persona-alex) 45%, transparent);
+  --glow-amber: color-mix(in srgb, var(--persona-nayan) 45%, transparent);
 }
 
 .universe-bible {
@@ -962,7 +957,7 @@ permalink: /universe/
   height: 100%;
   background: var(--persona-ferni);
   width: 0%;
-  transition: width 50ms linear;
+  transition: width var(--duration-fastest) linear;
 }
 
 /* TOC Toggle */
@@ -981,7 +976,7 @@ permalink: /universe/
   font-size: var(--text-sm);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--duration-normal) ease;
 }
 
 .toc-toggle:hover {
@@ -1013,7 +1008,7 @@ permalink: /universe/
   overflow-y: auto;
   z-index: 90;
   transform: translateX(-100%);
-  transition: transform 0.3s ease;
+  transition: transform var(--duration-slow) ease;
 }
 
 .toc-sidebar.open {
@@ -1040,7 +1035,7 @@ permalink: /universe/
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   background: var(--bg-secondary);
-  transition: all 0.2s ease;
+  transition: all var(--duration-normal) ease;
 }
 
 .back-to-home:hover {
@@ -1052,7 +1047,7 @@ permalink: /universe/
 .back-to-home svg {
   flex-shrink: 0;
   opacity: 0.7;
-  transition: transform 0.2s ease;
+  transition: transform var(--duration-normal) ease;
 }
 
 .back-to-home:hover svg {
@@ -1086,7 +1081,7 @@ permalink: /universe/
   color: var(--text-secondary);
   text-decoration: none;
   border-radius: var(--radius-md);
-  transition: all 0.2s ease;
+  transition: all var(--duration-normal) ease;
 }
 
 .toc-link:hover {
@@ -1110,7 +1105,7 @@ permalink: /universe/
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: color-mix(in srgb, var(--color-black) 50%, transparent);
   z-index: 80;
 }
 
@@ -1287,8 +1282,8 @@ permalink: /universe/
 }
 
 .key-points.negative {
-  background: rgba(224, 117, 117, 0.08);
-  border-color: rgba(224, 117, 117, 0.2);
+  background: color-mix(in srgb, var(--error) 8%, transparent);
+  border-color: color-mix(in srgb, var(--error) 20%, transparent);
 }
 
 .key-points-title {
@@ -1478,7 +1473,7 @@ permalink: /universe/
   background: var(--bg-elevated);
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-subtle);
-  transition: all 0.3s var(--ease-spring);
+  transition: all var(--duration-slow) var(--ease-spring);
 }
 
 .persona-card:hover {
@@ -1579,9 +1574,9 @@ permalink: /universe/
 
 /* LUXO STYLE: Eyes are solid white ellipses - NO pupils! */
 .avatar-orb .eye-white {
-  fill: white;
+  fill: var(--color-white);
   transform-origin: center center;
-  transition: transform 0.35s var(--ease-spring);
+  transition: transform var(--duration-slower) var(--ease-spring);
 }
 
 /* Presence Ring */
@@ -1590,7 +1585,7 @@ permalink: /universe/
   stroke: var(--persona-ferni);
   stroke-width: 1.5;
   opacity: 0.3;
-  transition: all 0.4s var(--ease-gentle);
+  transition: all var(--duration-slower) var(--ease-gentle);
   transform-origin: center center;
 }
 
@@ -1607,7 +1602,7 @@ permalink: /universe/
   inset: -15px;
   border-radius: 50%;
   opacity: 0;
-  transition: opacity 0.5s var(--ease-gentle);
+  transition: opacity var(--duration-slowest) var(--ease-gentle);
   pointer-events: none;
 }
 
@@ -1644,7 +1639,7 @@ permalink: /universe/
 
 /* BLINKING - Natural eye blinks */
 .avatar-orb.blinking .eye-white {
-  animation: eyeBlink 0.15s ease-in-out;
+  animation: eyeBlink var(--duration-fast) ease-in-out;
 }
 
 @keyframes eyeBlink {
@@ -1654,7 +1649,7 @@ permalink: /universe/
 
 /* GAZE DRIFT - Subtle idle eye movement */
 .avatar-orb.gazing .eyes-group {
-  animation: gazeDrift 8s ease-in-out infinite;
+  animation: gazeDrift var(--duration-ambient) ease-in-out infinite;
 }
 
 @keyframes gazeDrift {
@@ -1720,7 +1715,7 @@ permalink: /universe/
   border-radius: var(--radius-xl);
   min-width: 120px;
   cursor: pointer;
-  transition: all 0.3s var(--ease-spring);
+  transition: all var(--duration-slow) var(--ease-spring);
 }
 
 .demo-avatar:hover {
@@ -1952,7 +1947,7 @@ permalink: /universe/
 .reveal {
   opacity: 0;
   transform: translateY(20px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
+  transition: opacity var(--duration-deliberate) ease, transform var(--duration-deliberate) ease;
 }
 
 .reveal.visible {

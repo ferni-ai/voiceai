@@ -499,7 +499,7 @@ permalink: /haptics/
 .principle-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1rem;
 }
 
@@ -519,13 +519,13 @@ permalink: /haptics/
 .pattern-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1.25rem;
 }
 
 .pattern-card.featured {
   border-color: var(--color-ferni);
-  background: linear-gradient(to bottom right, var(--color-surface), rgba(74, 103, 65, 0.05));
+  background: linear-gradient(to bottom right, var(--color-surface), color-mix(in srgb, var(--persona-ferni) 5%, transparent));
 }
 
 .pattern-header {
@@ -546,7 +546,7 @@ permalink: /haptics/
   color: var(--color-text-muted);
   background: var(--color-background);
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 .pattern-description {
@@ -558,7 +558,7 @@ permalink: /haptics/
 .pattern-waveform {
   height: 24px;
   background: linear-gradient(90deg, var(--color-ferni) 0%, transparent 100%);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   margin: 0.75rem 0;
   opacity: 0.3;
 }
@@ -590,7 +590,7 @@ permalink: /haptics/
 .persona-haptic-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1.25rem;
   border-left: 4px solid var(--persona-color, var(--color-ferni));
 }
@@ -607,7 +607,7 @@ permalink: /haptics/
   height: 32px;
   border-radius: 50%;
   background: var(--persona-color, var(--color-ferni));
-  color: white;
+  color: var(--color-white);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -632,7 +632,7 @@ permalink: /haptics/
   gap: 0.75rem;
   background: var(--color-background);
   padding: 0.5rem 0.75rem;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   margin-bottom: 1rem;
 }
 
@@ -669,7 +669,7 @@ permalink: /haptics/
 .emotion-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1rem;
   text-align: center;
 }
@@ -691,13 +691,13 @@ permalink: /haptics/
   font-size: 0.75rem;
   background: var(--color-background);
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 .accessibility-callout {
   background: var(--color-background);
   border: 1px solid var(--color-ferni);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1.25rem;
   margin-bottom: 1.5rem;
 }
@@ -717,7 +717,7 @@ permalink: /haptics/
 .a11y-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1rem;
 }
 
@@ -742,7 +742,7 @@ permalink: /haptics/
 .platform-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 1.25rem;
 }
 
@@ -754,7 +754,7 @@ permalink: /haptics/
   display: block;
   background: var(--color-background);
   padding: 0.75rem;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   margin-bottom: 0.75rem;
   font-size: 0.8rem;
 }

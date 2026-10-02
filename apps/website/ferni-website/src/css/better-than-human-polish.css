@@ -11,7 +11,7 @@
 
 /* Prevent rubber-banding showing white */
 html {
-  background-color: var(--color-bg-primary, var(--color-bg-primary));
+  background-color: var(--color-bg-primary);
 }
 
 /* Navigation safe area */
@@ -128,8 +128,8 @@ select {
 :focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--color-bg-primary, var(--color-bg-primary)),
-    0 0 0 4px var(--color-ferni, var(--color-ferni));
+    0 0 0 2px var(--color-bg-primary),
+    0 0 0 4px var(--color-ferni);
   border-radius: inherit;
 }
 
@@ -138,16 +138,16 @@ select {
 button:focus-visible,
 [role='button']:focus-visible {
   box-shadow:
-    0 0 0 3px var(--color-bg-primary, var(--color-bg-primary)),
-    0 0 0 5px var(--color-ferni, var(--color-ferni)),
-    0 4px 20px var(--color-ferni-glow, rgba(74, 103, 65, 0.28));
+    0 0 0 3px var(--color-bg-primary),
+    0 0 0 5px var(--color-ferni),
+    0 4px 20px var(--color-ferni-glow);
 }
 
 /* Link focus */
 a:focus-visible {
   box-shadow:
-    0 0 0 2px var(--color-bg-primary, var(--color-bg-primary)),
-    0 0 0 4px var(--color-ferni, var(--color-ferni));
+    0 0 0 2px var(--color-bg-primary),
+    0 0 0 4px var(--color-ferni);
   border-radius: var(--radius-xs);
 }
 
@@ -155,10 +155,10 @@ a:focus-visible {
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  border-color: var(--color-ferni, var(--color-ferni));
+  border-color: var(--color-ferni);
   box-shadow:
-    0 0 0 3px var(--color-ferni-glow, rgba(74, 103, 65, 0.15)),
-    inset 0 0 0 1px var(--color-ferni, var(--color-ferni));
+    0 0 0 3px var(--color-ferni-glow),
+    inset 0 0 0 1px var(--color-ferni);
 }
 
 /* Card focus (when interactive) */
@@ -166,8 +166,8 @@ select:focus-visible {
 .persona-card:focus-visible,
 .team-card:focus-visible {
   box-shadow:
-    0 0 0 2px var(--color-bg-primary, var(--color-bg-primary)),
-    0 0 0 4px var(--color-ferni, var(--color-ferni)),
+    0 0 0 2px var(--color-bg-primary),
+    0 0 0 4px var(--color-ferni),
     var(--shadow-lg);
 }
 
@@ -178,12 +178,12 @@ select:focus-visible {
   left: 50%;
   transform: translateX(-50%);
   padding: 16px 32px;
-  background: var(--color-ferni, var(--color-ferni));
-  color: white;
+  background: var(--color-ferni);
+  color: var(--color-white);
   font-weight: 600;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   z-index: 10000;
-  transition: top 0.3s var(--ease-expo-out);
+  transition: top var(--duration-slow) var(--ease-expo-out);
   text-decoration: none;
 }
 
@@ -252,7 +252,7 @@ select:focus-visible {
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-ferni, var(--color-ferni));
+  color: var(--color-ferni);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -377,15 +377,15 @@ h3 + p {
   right: 0;
   padding: 12px 16px;
   padding-bottom: max(12px, env(safe-area-inset-bottom));
-  background: rgba(250, 248, 245, 0.92);
+  background: color-mix(in srgb, var(--color-paper) 92%, transparent);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-top: 0.5px solid rgba(44, 37, 32, 0.1);
+  border-top: 0.5px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
   transform: translateY(100%);
   opacity: 0;
   transition:
-    transform 0.4s var(--ease-expo-out, cubic-bezier(0.16, 1, 0.3, 1)),
-    opacity 0.3s var(--ease-smooth, ease);
+    transform var(--duration-slower) var(--ease-expo-out, var(--ease-cinematic)),
+    opacity var(--duration-slow) var(--ease-smooth);
   z-index: 50;
   pointer-events: none;
   display: flex;
@@ -462,9 +462,9 @@ h3 + p {
 .pricing-card,
 .feature-card {
   transition:
-    transform var(--duration-normal, 200ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)),
-    box-shadow var(--duration-normal, 200ms) var(--ease-expo-out, cubic-bezier(0.16, 1, 0.3, 1)),
-    border-color var(--duration-fast, 150ms) var(--ease-smooth, ease);
+    transform var(--duration-normal) var(--ease-spring),
+    box-shadow var(--duration-normal) var(--ease-expo-out, var(--ease-cinematic)),
+    border-color var(--duration-fast) var(--ease-smooth);
 }
 
 .card:hover,
@@ -480,15 +480,15 @@ h3 + p {
 .team-card:active,
 .feature-card:active {
   transform: translateY(-2px) scale(0.995);
-  transition-duration: 50ms;
+  transition-duration: var(--duration-fastest);
 }
 
 /* Button hover - haptic feedback */
 .btn {
   transition:
-    transform var(--duration-fast, 150ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)),
-    box-shadow var(--duration-normal, 200ms) var(--ease-expo-out),
-    background-color var(--duration-fast, 150ms) var(--ease-smooth);
+    transform var(--duration-fast) var(--ease-spring),
+    box-shadow var(--duration-normal) var(--ease-expo-out),
+    background-color var(--duration-fast) var(--ease-smooth);
   will-change: transform;
 }
 
@@ -498,13 +498,13 @@ h3 + p {
 
 .btn:active {
   transform: translateY(0) scale(0.98);
-  transition-duration: 50ms;
+  transition-duration: var(--duration-fastest);
 }
 
 .btn-primary:hover {
   box-shadow:
-    0 8px 24px var(--color-ferni-glow, rgba(74, 103, 65, 0.35)),
-    0 0 40px var(--color-ferni-glow, rgba(74, 103, 65, 0.15));
+    0 8px 24px var(--color-ferni-glow),
+    0 0 40px var(--color-ferni-glow);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -516,9 +516,9 @@ h3 + p {
   transform: translateY(40px) scale(0.98);
   filter: blur(4px);
   transition:
-    opacity var(--duration-deliberate, 700ms) var(--ease-expo-out),
-    transform var(--duration-deliberate, 700ms) var(--ease-expo-out),
-    filter var(--duration-slow, 300ms) var(--ease-smooth);
+    opacity var(--duration-deliberate) var(--ease-expo-out),
+    transform var(--duration-deliberate) var(--ease-expo-out),
+    filter var(--duration-slow) var(--ease-smooth);
   will-change: opacity, transform, filter;
 }
 
@@ -572,23 +572,23 @@ h3 + p {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .glass {
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--color-white) 70%, transparent);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid color-mix(in srgb, var(--color-white) 30%, transparent);
 }
 
 .glass-subtle {
-  background: rgba(250, 248, 245, 0.6);
+  background: color-mix(in srgb, var(--color-paper) 60%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
 .glass-dark {
-  background: rgba(26, 21, 18, 0.8);
+  background: color-mix(in srgb, var(--color-ink-deep) 80%, transparent);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -605,15 +605,15 @@ h3 + p {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(92, 84, 74, 0.3);
+  background: color-mix(in srgb, var(--color-ink-light) 30%, transparent);
   border-radius: var(--radius-sm);
   border: 3px solid transparent;
   background-clip: content-box;
-  transition: background 0.3s ease;
+  transition: background var(--duration-slow) ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(92, 84, 74, 0.5);
+  background: color-mix(in srgb, var(--color-ink-light) 50%, transparent);
   border: 3px solid transparent;
   background-clip: content-box;
 }
@@ -621,7 +621,7 @@ h3 + p {
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(92, 84, 74, 0.3) transparent;
+  scrollbar-color: color-mix(in srgb, var(--color-ink-light) 30%, transparent) transparent;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -629,13 +629,13 @@ h3 + p {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 ::selection {
-  background: var(--color-ferni-glow, rgba(74, 103, 65, 0.25));
-  color: var(--color-text-primary, var(--color-text-primary));
+  background: var(--color-ferni-glow);
+  color: var(--color-text-primary);
 }
 
 ::-moz-selection {
-  background: var(--color-ferni-glow, rgba(74, 103, 65, 0.25));
-  color: var(--color-text-primary, var(--color-text-primary));
+  background: var(--color-ferni-glow);
+  color: var(--color-text-primary);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -679,13 +679,13 @@ h3 + p {
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(245, 242, 237, 1) 0%,
-    rgba(235, 230, 223, 1) 20%,
-    rgba(245, 242, 237, 1) 40%,
-    rgba(245, 242, 237, 1) 100%
+    var(--color-bg-secondary) 0%,
+    var(--color-bg-tertiary) 20%,
+    var(--color-bg-secondary) 40%,
+    var(--color-bg-secondary) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  animation: shimmer var(--duration-glacial) ease-in-out infinite;
   border-radius: var(--radius-sm);
 }
 
@@ -711,7 +711,7 @@ h3 + p {
   border: 2px solid transparent;
   border-top-color: currentColor;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin var(--duration-cinematic) linear infinite;
 }
 
 @keyframes spin {
@@ -765,14 +765,14 @@ h3 + p {
 
 @media (prefers-contrast: high) {
   :root {
-    --color-text-primary: #000000;
+    --color-text-primary: var(--color-black);
     --color-bg-primary: var(--color-text-inverse);
   }
 
   .glass,
   .glass-subtle {
-    background: rgba(255, 255, 255, 0.95);
-    border: 2px solid #000000;
+    background: color-mix(in srgb, var(--color-white) 95%, transparent);
+    border: 2px solid var(--color-black);
   }
 
   a,
@@ -781,7 +781,7 @@ h3 + p {
   }
 
   :focus-visible {
-    outline: 3px solid #000000 !important;
+    outline: 3px solid var(--color-black) !important;
     outline-offset: 2px;
   }
 }
@@ -800,19 +800,19 @@ h3 + p {
   }
 
   body {
-    background: white;
-    color: black;
+    background: var(--color-white);
+    color: var(--color-black);
   }
 
   a {
     text-decoration: underline;
-    color: black;
+    color: var(--color-black);
   }
 
   .glass,
   .glass-dark,
   .glass-subtle {
-    background: white;
+    background: var(--color-white);
     backdrop-filter: none;
     border: 1px solid var(--color-border-medium);
   }
@@ -858,7 +858,7 @@ h3 + p {
 }
 
 .night-section .time-colon {
-  animation: colonBlink 1s ease-in-out infinite;
+  animation: colonBlink var(--duration-dramatic) ease-in-out infinite;
 }
 
 @keyframes colonBlink {
@@ -891,7 +891,7 @@ details summary::-webkit-details-marker {
 details .faq-content {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows var(--duration-slow, 300ms) var(--ease-expo-out);
+  transition: grid-template-rows var(--duration-slow) var(--ease-expo-out);
 }
 
 details[open] .faq-content {
@@ -903,7 +903,7 @@ details .faq-content > * {
 }
 
 .faq-icon {
-  transition: transform var(--duration-normal, 200ms) var(--ease-spring);
+  transition: transform var(--duration-normal) var(--ease-spring);
 }
 
 details[open] .faq-icon {

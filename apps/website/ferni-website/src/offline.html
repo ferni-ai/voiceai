@@ -1,15 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/_tokens.css">
   <title>Offline - Ferni</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-      background: #faf8f5;
-      color: #2c2520;
+      font-family: var(--font-display);
+      background: var(--color-paper);
+      color: var(--color-ink);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -23,7 +24,7 @@
     .icon {
       width: 80px;
       height: 80px;
-      background: #4a6741;
+      background: var(--color-ferni);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -33,30 +34,30 @@
     .icon svg {
       width: 40px;
       height: 40px;
-      stroke: white;
+      stroke: var(--color-white);
     }
     h1 {
       font-size: 1.75rem;
       margin-bottom: 1rem;
     }
     p {
-      color: #5c544a;
+      color: var(--color-ink-light);
       margin-bottom: 2rem;
       line-height: 1.6;
     }
     button {
-      background: #4a6741;
-      color: white;
+      background: var(--color-ferni);
+      color: var(--color-white);
       border: none;
       padding: 1rem 2rem;
-      border-radius: 2rem;
+      border-radius: var(--radius-3xl);
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.3s ease;
+      transition: background var(--duration-slow) ease;
     }
     button:hover {
-      background: #3d5a35;
+      background: var(--color-ferni-dark);
     }
   </style>
 </head>

@@ -510,7 +510,7 @@ useSpring({
   border-radius: var(--radius-full);
   background: var(--color-ferni);
   transform: scale(1);
-  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform var(--duration-deliberate) var(--ease-ease-out-back);
 }
 
 .spring-demo[data-animating="true"] .spring-ball {
@@ -534,12 +534,12 @@ useSpring({
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--duration-normal);
 }
 
 .replay-btn:hover {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-white);
   border-color: var(--color-accent);
 }
 
@@ -656,7 +656,7 @@ useSpring({
   border-radius: var(--radius-full);
   position: absolute;
   top: 20px;
-  transition: top 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: top var(--duration-cinematic) cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .gravity-ball[data-type="light"] {
@@ -684,7 +684,7 @@ useSpring({
 }
 
 .gravity-demo.dropped .gravity-ball[data-type="light"] {
-  animation: bounceLightGravity 0.8s ease-out;
+  animation: bounceLightGravity var(--duration-cinematic) ease-out;
 }
 
 .gravity-demo.dropped .gravity-ball[data-type="normal"] {
@@ -692,11 +692,11 @@ useSpring({
 }
 
 .gravity-demo.dropped .gravity-ball[data-type="heavy"] {
-  animation: bounceHeavyGravity 0.4s ease-out;
+  animation: bounceHeavyGravity var(--duration-slower) ease-out;
 }
 
 .gravity-demo.dropped .gravity-ball[data-type="floating"] {
-  animation: bounceFloatingGravity 1.5s ease-out;
+  animation: bounceFloatingGravity var(--duration-glacial) ease-out;
 }
 
 @keyframes bounceLightGravity {
@@ -733,17 +733,17 @@ useSpring({
 .demo-btn {
   padding: var(--space-2) var(--space-5);
   background: var(--color-accent);
-  color: white;
+  color: var(--color-white);
   border: none;
   border-radius: var(--radius-full);
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform var(--duration-normal), box-shadow var(--duration-normal);
 }
 
 .demo-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .gravity-grid {
@@ -981,7 +981,7 @@ useSpring({
 .ripple {
   position: absolute;
   border-radius: var(--radius-full);
-  background: rgba(74, 103, 65, 0.3);
+  background: color-mix(in srgb, var(--persona-ferni) 30%, transparent);
   transform: scale(0);
   animation: rippleEffect 600ms ease-out forwards;
   pointer-events: none;
@@ -1031,7 +1031,7 @@ useSpring({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: transform 0.3s ease;
+  transition: transform var(--duration-slow) ease;
 }
 
 .depth-layer span {

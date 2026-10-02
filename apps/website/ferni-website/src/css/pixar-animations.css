@@ -17,13 +17,7 @@
 
 /* ===== EASING CURVES (from animation.json) ===== */
 :root {
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-spring-bouncy: cubic-bezier(0.68, -0.55, 0.265, 1.55);
   --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-organic: cubic-bezier(0.4, 0.2, 0.2, 1.1);
-  --ease-playful: cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  --ease-gentle: cubic-bezier(0.25, 0.1, 0.25, 1);
-  --ease-anticipate: cubic-bezier(0.38, -0.4, 0.88, 0.65);
 }
 
 /* =======================================================
@@ -58,7 +52,7 @@
 .hero-ferni__orb {
   animation: 
     avatarBreathe 5000ms ease-in-out infinite,
-    avatarFloat 8000ms ease-in-out infinite;
+    avatarFloat var(--duration-ambient) ease-in-out infinite;
 }
 
 @keyframes avatarFloat {
@@ -79,7 +73,7 @@
   position: absolute;
   inset: -8px;
   border-radius: 50% !important; /* Explicit circular shape */
-  background: radial-gradient(circle, var(--color-ferni-glow, rgba(74, 103, 65, 0.3)) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--color-ferni-glow) 0%, transparent 70%);
   animation: avatarGlowRing 5000ms ease-in-out infinite;
   pointer-events: none;
   z-index: -1;
@@ -118,15 +112,15 @@
 /* All buttons get spring physics */
 .btn {
   transition: 
-    transform 150ms var(--ease-spring),
-    box-shadow 200ms var(--ease-expo-out),
-    background-color 150ms ease;
+    transform var(--duration-fast) var(--ease-ease-out-back),
+    box-shadow var(--duration-normal) var(--ease-expo-out),
+    background-color var(--duration-fast) ease;
   will-change: transform;
 }
 
 /* Anticipation on hover (wind-up before action) */
 .btn:hover {
-  animation: buttonAnticipate 150ms var(--ease-anticipate) forwards;
+  animation: buttonAnticipate var(--duration-fast) var(--ease-anticipate) forwards;
 }
 
 @keyframes buttonAnticipate {
@@ -144,19 +138,19 @@
 /* Squash on press */
 .btn:active {
   transform: scale(0.96) translateY(1px) !important;
-  transition-duration: 50ms;
+  transition-duration: var(--duration-fastest);
 }
 
 /* Primary button gets special glow */
 .btn--primary:hover {
   box-shadow: 
-    0 8px 24px var(--color-ferni-glow, rgba(74, 103, 65, 0.35)),
-    0 0 40px var(--color-ferni-glow, rgba(74, 103, 65, 0.15));
+    0 8px 24px var(--color-ferni-glow),
+    0 0 40px var(--color-ferni-glow);
 }
 
 /* CTA buttons - extra joy bounce on click */
 .btn--primary:active {
-  animation: buttonJoyBounce 400ms var(--ease-spring) forwards;
+  animation: buttonJoyBounce var(--duration-slower) var(--ease-ease-out-back) forwards;
 }
 
 @keyframes buttonJoyBounce {
@@ -179,9 +173,9 @@
 .use-case,
 .memory-demo__card {
   transition: 
-    transform 200ms var(--ease-spring),
-    box-shadow 200ms var(--ease-expo-out),
-    border-color 150ms ease;
+    transform var(--duration-normal) var(--ease-ease-out-back),
+    box-shadow var(--duration-normal) var(--ease-expo-out),
+    border-color var(--duration-fast) ease;
   will-change: transform;
 }
 
@@ -191,7 +185,7 @@
 .persona-card:hover,
 .use-case:hover {
   transform: translateY(-4px) scale(1.005);
-  box-shadow: var(--shadow-xl, 0 12px 32px rgba(0, 0, 0, 0.15));
+  box-shadow: var(--shadow-xl);
 }
 
 /* Press down - feels tactile */
@@ -199,7 +193,7 @@
 .team-card:active,
 .persona-card:active {
   transform: translateY(-2px) scale(0.995);
-  transition-duration: 50ms;
+  transition-duration: var(--duration-fastest);
 }
 
 /* =======================================================
@@ -245,9 +239,9 @@
   transform: translateY(0) scale(1);
   filter: none;
   transition:
-    opacity 700ms var(--ease-expo-out),
-    transform 700ms var(--ease-expo-out),
-    filter 300ms ease;
+    opacity var(--duration-deliberate) var(--ease-expo-out),
+    transform var(--duration-deliberate) var(--ease-expo-out),
+    filter var(--duration-slow) ease;
   will-change: opacity, transform, filter;
 }
 
@@ -300,7 +294,7 @@ html.loaded .reveal.is-visible {
 /* Icon rotates with anticipation */
 .faq-item .faq-icon,
 details .faq-icon {
-  transition: transform 200ms var(--ease-spring);
+  transition: transform var(--duration-normal) var(--ease-ease-out-back);
 }
 
 details[open] .faq-icon {
@@ -312,7 +306,7 @@ details .faq-content,
 .faq-item .faq-content {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 300ms var(--ease-expo-out);
+  transition: grid-template-rows var(--duration-slow) var(--ease-expo-out);
   overflow: hidden;
 }
 
@@ -326,11 +320,11 @@ details .faq-content > * {
 
 /* Summary has hover feedback */
 details summary {
-  transition: background-color 150ms ease;
+  transition: background-color var(--duration-fast) ease;
 }
 
 details summary:hover {
-  background-color: var(--color-bg-hover, rgba(0, 0, 0, 0.02));
+  background-color: var(--color-bg-hover);
 }
 
 /* =======================================================
@@ -339,13 +333,13 @@ details summary:hover {
 */
 
 .memory-demo__moment {
-  transition: all 400ms var(--ease-organic);
+  transition: all var(--duration-slower) var(--ease-organic);
 }
 
 .memory-demo__card {
   transition: 
-    box-shadow 400ms ease,
-    transform 300ms var(--ease-spring);
+    box-shadow var(--duration-slower) ease,
+    transform var(--duration-slow) var(--ease-ease-out-back);
 }
 
 /* Ferni card pulses subtly */
@@ -355,10 +349,10 @@ details summary:hover {
 
 @keyframes memoryPulse {
   0%, 100% {
-    box-shadow: 0 4px 12px rgba(74, 103, 65, 0.1);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 10%, transparent);
   }
   50% {
-    box-shadow: 0 4px 24px rgba(74, 103, 65, 0.2);
+    box-shadow: 0 4px 24px color-mix(in srgb, var(--color-ferni) 20%, transparent);
   }
 }
 
@@ -366,8 +360,8 @@ details summary:hover {
 .memory-demo__date,
 .memory-demo__text {
   transition: 
-    opacity 300ms ease,
-    transform 300ms var(--ease-expo-out);
+    opacity var(--duration-slow) ease,
+    transform var(--duration-slow) var(--ease-expo-out);
 }
 
 /* =======================================================
@@ -386,11 +380,11 @@ details summary:hover {
   position: absolute;
   inset: 0;
   background-image: 
-    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.15), transparent),
-    radial-gradient(1px 1px at 30% 50%, rgba(255,255,255,0.1), transparent),
-    radial-gradient(1.5px 1.5px at 50% 10%, rgba(255,255,255,0.2), transparent),
-    radial-gradient(1px 1px at 70% 60%, rgba(255,255,255,0.12), transparent),
-    radial-gradient(1px 1px at 90% 30%, rgba(255,255,255,0.08), transparent);
+    radial-gradient(1px 1px at 10% 20%, color-mix(in srgb, var(--color-white) 15%, transparent), transparent),
+    radial-gradient(1px 1px at 30% 50%, color-mix(in srgb, var(--color-white) 10%, transparent), transparent),
+    radial-gradient(1.5px 1.5px at 50% 10%, color-mix(in srgb, var(--color-white) 20%, transparent), transparent),
+    radial-gradient(1px 1px at 70% 60%, color-mix(in srgb, var(--color-white) 12%, transparent), transparent),
+    radial-gradient(1px 1px at 90% 30%, color-mix(in srgb, var(--color-white) 8%, transparent), transparent);
   background-size: 100% 100%;
   animation: dustFloat 20s linear infinite;
   pointer-events: none;
@@ -409,7 +403,7 @@ details summary:hover {
 /* Blinking clock colon */
 .time-colon,
 .section-2am .time-display span:nth-child(2) {
-  animation: colonBlink 1s ease-in-out infinite;
+  animation: colonBlink var(--duration-dramatic) ease-in-out infinite;
 }
 
 @keyframes colonBlink {
@@ -425,11 +419,11 @@ details summary:hover {
 
 @keyframes warmPresence {
   0%, 100% {
-    box-shadow: 0 0 30px rgba(74, 103, 65, 0.3);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--color-ferni) 30%, transparent);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 45px rgba(74, 103, 65, 0.4);
+    box-shadow: 0 0 45px color-mix(in srgb, var(--color-ferni) 40%, transparent);
     transform: scale(1.01);
   }
 }
@@ -474,13 +468,13 @@ details summary:hover {
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(245, 242, 237, 1) 0%,
-    rgba(235, 230, 223, 1) 20%,
-    rgba(245, 242, 237, 1) 40%,
-    rgba(245, 242, 237, 1) 100%
+    var(--color-bg-secondary) 0%,
+    var(--color-bg-tertiary) 20%,
+    var(--color-bg-secondary) 40%,
+    var(--color-bg-secondary) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  animation: shimmer var(--duration-glacial) ease-in-out infinite;
   border-radius: var(--radius-sm);
 }
 
@@ -503,7 +497,7 @@ details summary:hover {
   border: 2px solid transparent;
   border-top-color: currentColor;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin var(--duration-cinematic) linear infinite;
 }
 
 @keyframes spin {
@@ -516,7 +510,7 @@ details summary:hover {
 */
 
 .showcase__app-bubble {
-  animation: bubbleAppear 300ms var(--ease-expo-out) forwards;
+  animation: bubbleAppear var(--duration-slow) var(--ease-expo-out) forwards;
   opacity: 0;
   transform: translateY(8px);
 }
@@ -549,10 +543,10 @@ details summary:hover {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.1),
+    color-mix(in srgb, var(--color-white) 10%, transparent),
     transparent
   );
-  animation: insightShimmer 3s ease-in-out infinite;
+  animation: insightShimmer var(--duration-meditative) ease-in-out infinite;
 }
 
 @keyframes insightShimmer {
@@ -591,10 +585,10 @@ details summary:hover {
   :root:not([data-theme="light"]) .skeleton {
     background: linear-gradient(
       90deg,
-      rgba(58, 51, 46, 1) 0%,
-      rgba(68, 61, 54, 1) 20%,
-      rgba(58, 51, 46, 1) 40%,
-      rgba(58, 51, 46, 1) 100%
+      var(--color-dark-gradient-mid) 0%,
+      var(--color-dark-gradient-mid) 20%,
+      var(--color-dark-gradient-mid) 40%,
+      var(--color-dark-gradient-mid) 100%
     );
   }
 }
@@ -653,7 +647,7 @@ details summary:hover {
 
 @media (hover: hover) and (pointer: fine) {
   .btn--magnetic {
-    transition: transform 150ms var(--ease-gentle);
+    transition: transform var(--duration-fast) var(--ease-standard);
   }
 }
 
