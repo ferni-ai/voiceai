@@ -141,7 +141,7 @@ import {
 } from '../integrations/unified-intelligence-integration.js';
 
 // "Better Than Human" dynamic memory capture - LLM-powered extraction
-import { fastCapture } from '../../memory/dynamic/index.js';
+import { captureTurnMemory } from './turn-memory-capture.js';
 
 // Session Health Monitor - Function calling reliability (Jan 2026)
 import {
@@ -841,7 +841,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       : Promise.resolve(null);
 
     // Clear memory search flag when retrieval completes (for context-aware fillers)
-    memoryRetrievalPromise.finally(() => {
+    void memoryRetrievalPromise.finally(() => {
       memorySearchRef.pending = false;
     });
 
@@ -1127,7 +1127,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
         if (topics.length > 0) {
           const patternConnector = getPatternConnector();
-          patternConnector.recordObservation(services.userId || 'anonymous', {
+          void patternConnector.recordObservation(services.userId || 'anonymous', {
             topics,
             emotion: result.emotional?.primary || 'neutral',
             valence,
@@ -1440,7 +1440,7 @@ You are their lifeline right now. Be fully present.`,
         try {
           const memoryResult = await Promise.race([
             memoryRetrievalPromise,
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 100)), // 100ms timeout
+            new Promise<null>((resolve) => { setTimeout(() => resolve(null), 100); }), // 100ms timeout
           ]);
           if (memoryResult?.injections?.[0]?.content) {
             memoryContextStr = memoryResult.injections[0].content;
@@ -2679,57 +2679,16 @@ IMPORTANT:
           transcriptLen: userText.length,
         });
 
-        fireAndForget(async () => {
-          const captureResult = await fastCapture({
-            userId: captureUserId,
-            sessionId: services.sessionId,
-            turnNumber,
-            transcript: userText,
-            voiceEmotion: result.analysis.analysis.emotion?.primary ?? voiceEmotionForCapture?.primary,
-            personaId: persona.id, // For multi-persona data attribution
-            conversationId: services.realtimeConversationId, // fact provenance
-          });
-
-          // Map voice emotion to STM-compatible shape (for emotional trajectory)
-          const voiceEmotionSnapshot =
-            voiceEmotionForCapture &&
-            typeof voiceEmotionForCapture.primary === 'string'
-              ? {
-                  primary: voiceEmotionForCapture.primary,
-                  confidence: voiceEmotionForCapture.confidence ?? 0.5,
-                  stressLevel: voiceEmotionForCapture.stressLevel ?? 0.3,
-                  valence: voiceEmotionForCapture.valence ?? 0,
-                  arousal: voiceEmotionForCapture.arousal ?? 0.5,
-                }
-              : undefined;
-
-          // 🧠 CRITICAL: Record to STM buffer for session context
-          // This enables wasEntityMentioned(), buildSTMContext(), and session-end promotion
-          const { recordTurn } = await import('../../memory/dynamic/index.js');
-          recordTurn(
-            services.sessionId,
-            captureUserId,
-            captureResult,
-            userText,
-            turnNumber,
-            persona.id,
-            voiceEmotionSnapshot
-          );
-
-          // voice-session-store removed during DDD cleanup
-
-          // 🧠 MEMORY AUDIT: Log capture results (upgraded to info level)
-          diag.info('🧠 [MEMORY-AUDIT] turn-handler memory capture DONE', {
-            userId: captureUserId,
-            sessionId: services.sessionId,
-            turnNumber,
-            entityCount: captureResult.mentionedEntities.length,
-            topicCount: captureResult.topicHints.length,
-            emotionCount: captureResult.emotionSignals.length,
-            asyncJobId: captureResult.asyncJobId,
-            captureTimeMs: captureResult.captureTimeMs,
-          });
-        }, 'dynamic-memory-capture');
+        captureTurnMemory({
+          userId: captureUserId,
+          sessionId: services.sessionId,
+          turnNumber,
+          userText,
+          analysisEmotion: result.analysis.analysis.emotion?.primary,
+          voiceEmotion: voiceEmotionForCapture,
+          personaId: persona.id,
+          conversationId: services.realtimeConversationId,
+        });
       } else {
         diag.warn('🧠 [MEMORY-AUDIT] turn-handler SKIPPING memory capture - no userId');
       }
