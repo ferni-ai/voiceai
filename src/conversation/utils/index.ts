@@ -22,8 +22,6 @@ export {
   HIGH_ENGAGEMENT_PATTERNS,
   LIGHT_CONTENT_PATTERNS,
   LOW_ENERGY_PATTERNS,
-  // Composite analysis
-  analyzeMessage,
   // Topic weight
   classifyTopicWeight,
   detectAdviceGiving,
@@ -45,7 +43,6 @@ export {
   // Types
   type EnergyLevel,
   type EngagementLevel,
-  type MessageAnalysis,
   type TopicWeight,
 } from './detection.js';
 

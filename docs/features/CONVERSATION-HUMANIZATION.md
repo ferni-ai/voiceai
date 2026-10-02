@@ -4,6 +4,13 @@
 
 This document describes Ferni's conversation humanization architecture - the system that transforms LLM responses into naturally human-feeling conversations.
 
+> **Removed (2026-09):** The post-LLM `ConversationOrchestrator`
+> (`src/conversation/orchestrator/`), `ConversationSession.processTurn`, `quickHumanize`,
+> `OrchestratedHumanizer`, and the composable effects system (`src/conversation/effects/`)
+> never ran on live calls and have been deleted. `createConversationSession` now only
+> starts and ends the per-session humanization state that the pre-LLM turn reads. The
+> orchestrator phases and APIs described below are historical.
+
 ## Overview
 
 The conversation module (`src/conversation/`) provides 50+ humanization capabilities organized into a unified pipeline:

@@ -53,11 +53,7 @@ conversation/
 │   ├── emotional-forecasting.ts      # Anticipate difficult days
 │   └── (see superhuman/CLAUDE.md)    # Full documentation
 │
-├── effects/                          # ✨ Audio/visual effects (18 files)
-│
 ├── humanizer/                        # Main humanization orchestrator (6 files)
-│
-├── orchestrator/                     # Conversation orchestration (10 files)
 │
 ├── active-listening/                 # 👂 Listening behaviors (6 files)
 │
