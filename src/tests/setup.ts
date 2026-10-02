@@ -5,10 +5,12 @@ import { initializeLogger } from '@livekit/agents';
 // Load test environment variables
 dotenv.config({ path: '.env.test' });
 
-// Tests never run on GCP. Without this, google-auth probes the metadata
-// server for credentials and waits out its retries on CI runners, which
-// stretches some suites to minutes.
-process.env.METADATA_SERVER_DETECTION ??= 'none';
+// Never look for a Google metadata server. Modules that load the real
+// firebase-admin (anything not mocked below) otherwise probe for one when
+// they find no credentials. On GitHub's runners that probe stalled the
+// integration job until its 30-minute timeout (2026-10-01); locally it fails
+// fast, so the suite looked fine here.
+process.env.METADATA_SERVER_DETECTION = 'none';
 // Some clients (an unmocked Firestore looking up its project) query the
 // metadata server directly; point them at a closed port so they fail at once.
 process.env.GCE_METADATA_HOST ??= '127.0.0.1:1';
