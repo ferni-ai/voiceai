@@ -18,6 +18,13 @@ import {
 // Theme & Language Settings panel
 import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
 import { devPanelMayEnable } from './ui/dev-panel-gate.js';
+import {
+  openCalendarSettings,
+  openCalendarView,
+  openGamePicker,
+  openMusicDashboard,
+  openNotificationSettings,
+} from './ui/lazy-screens.js';
 
 // State
 import {
@@ -145,8 +152,6 @@ import {
 import { openAdminQueue as openMarketplaceAdmin } from './ui/marketplace-admin.ui.js';
 import { marketplaceUI, openMarketplace } from './ui/marketplace.ui.js';
 // 📔 Journal Capture - Auto-capture meaningful moments from conversations
-// Admin UI (legacy - kept for backward compatibility)
-import { initAdminDashboard, injectAdminStyles } from './ui/admin.ui.js';
 // CLI Authentication (for ferni auth login)
 import { initCLIAuth } from './ui/cli-auth.ui.js';
 // New Unified Admin Portal
@@ -226,7 +231,6 @@ import { initCognitiveInsightsUI } from './ui/cognitive-insights.ui.js';
 import { getCommandsPanelUI, setCommandsPersonaId } from './ui/commands.ui.js';
 import { initConversationHistoryUI } from './ui/conversation-history.ui.js';
 import { getDataExportUI, initDataExportUI } from './ui/data-export.ui.js';
-import { destroyGameBoard, initGameBoard } from './ui/game-board.ui.js';
 import { initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
 import { getRitualBuilderUI, initRitualBuilderUI } from './ui/ritual-builder.ui.js';
 import { getSanctuaryUI } from './ui/sanctuary.ui.js';
@@ -249,26 +253,15 @@ import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
 import { initCameoRoster } from './ui/cameo-roster.ui.js';
 import { initRelationshipProgressUI } from './ui/stage-celebration.ui.js';
 // Trust Journey is now integrated into journey.ui.ts - no separate init needed
-// Music Dashboard UI - "Musical You" insights
-import { showGamePicker } from './ui/game-picker.ui.js';
-import { musicDashboard } from './ui/music-dashboard.ui.js';
 import { initTeamHuddleUI } from './ui/team-huddle.ui.js';
 // Team Intro - Meet the team modal for mobile
 import { initTeamIntro, showTeamIntro } from './ui/team-intro.ui.js';
 // Push Notifications
 import { initPushNotifications } from './services/push-notifications.service.js';
-import {
-  initNotificationSettingsUI,
-  showNotificationSettings,
-} from './ui/notification-settings.ui.js';
 // Outreach Schedule UI
 import { openOutreachSchedule } from './ui/outreach-schedule.ui.js';
 // Contact Settings UI
 import { openContactSettings } from './ui/contact-settings.ui.js';
-// Calendar Settings UI
-import { openCalendarSettings } from './ui/calendar-settings.ui.js';
-// Calendar View UI - Visual schedule display
-import { setCalendarViewCallbacks, showCalendarView } from './ui/calendar-view.ui.js';
 // Calendar Analytics UI - Insights dashboard
 // Calendar analytics is now integrated into calendar-view.ui.ts
 // Wearable Settings UI - Connected device management
@@ -950,7 +943,9 @@ class VoiceAIApp {
     engagementTriggerUI.hide();
 
     // Clean up game board UI
-    destroyGameBoard();
+    void import('./ui/game-board.ui.js')
+      .then((m) => m.destroyGameBoard())
+      .catch((e) => log.debug('Game board cleanup skipped', e));
 
     // End session stats - get duration before ending
     const sessionStats = statsUI.getStats();
@@ -1053,6 +1048,7 @@ class VoiceAIApp {
           ← Back to App
         </a>
       `;
+      const { injectAdminStyles, initAdminDashboard } = await import('./ui/admin.ui.js');
       injectAdminStyles();
       await initAdminDashboard();
     } else {
@@ -1907,7 +1903,10 @@ class VoiceAIApp {
     // 🎙️ Group Conversations - Team Roundtables and Conference Calls with external people
     this.safeInit('GroupConversationUI', () => initGroupConversationUI());
     // 🎮 Game Board - Visual game state display for voice games
-    this.safeInit('GameBoardUI', () => initGameBoard());
+    this.safeInit('GameBoardUI', async () => {
+      const { initGameBoard } = await import('./ui/game-board.ui.js');
+      await initGameBoard();
+    });
     // Proactive Messages - In-app messages from intelligent outreach
     this.deferredInit('ProactiveMessagesUI', 500, async () => {
       initProactiveMessages();
@@ -2049,7 +2048,7 @@ class VoiceAIApp {
         onExportDataClick: () => void showDataExport(),
         onOnboardingClick: () => getOnboardingUI().start(),
         onThemeToggle: () => showThemeLanguageSettings(),
-        onNotificationSettingsClick: () => showNotificationSettings(),
+        onNotificationSettingsClick: () => void openNotificationSettings(),
         onSleepSettingsClick: () => void import('./ui/sleep-settings.ui.js').then((m) => m.show()),
         onSpotifyClick: () => void triggerSpotifyLinkToggle(),
         onTeamHuddleClick: () => showTeamHuddle(),
@@ -2057,21 +2056,12 @@ class VoiceAIApp {
           void import('./ui/team-observations-panel.ui.js').then((m) => m.show()),
         // Trust Journey is now integrated into the unified Journey modal
         onTrustJourneyClick: () => journeyUI.open(),
-        onMusicDashboardClick: () => void musicDashboard.show(),
-        onPlayGamesClick: () => showGamePicker(),
+        onMusicDashboardClick: () => void openMusicDashboard(),
+        onPlayGamesClick: () => void openGamePicker(),
         onOutreachScheduleClick: () => void openOutreachSchedule(),
         onContactSettingsClick: () => void openContactSettings(),
-        onCalendarSettingsClick: () => {
-          // Show calendar view (has connect button for disconnected users)
-          setCalendarViewCallbacks({
-            onConnectCalendar: () => {
-              // Redirect to Google OAuth flow
-              const userId = appState.get('deviceId') || 'anonymous';
-              window.location.href = `/auth/google/calendar?userId=${userId}`;
-            },
-          });
-          void showCalendarView();
-        },
+        // The calendar view has the connect button for disconnected users
+        onCalendarSettingsClick: () => void openCalendarView(),
         onVoiceEnrollmentClick: () => void showVoiceEnrollmentModal(),
         onSubscriptionClick: () => void supportFerniUI.open(),
         onBillingPortalClick: () => void this.openBillingPortal(),
@@ -2205,7 +2195,10 @@ class VoiceAIApp {
     });
 
     // 🔔 Push Notifications
-    this.safeInit('NotificationSettingsUI', () => initNotificationSettingsUI());
+    this.safeInit('NotificationSettingsUI', async () => {
+      const { initNotificationSettingsUI } = await import('./ui/notification-settings.ui.js');
+      await initNotificationSettingsUI();
+    });
     this.safeInit('PushNotifications', () => void initPushNotifications());
 
     // 🔗 Integrations Settings - "Better than Human" connections (LinkedIn, Calendar, Health)
@@ -2305,18 +2298,8 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-quiz', () => {
       void openKnowledgeQuiz();
     });
-    this.addTrackedListener(window, 'ferni:open-music', () => {
-      void musicDashboard.show();
-    });
-    this.addTrackedListener(window, 'ferni:open-calendar', () => {
-      setCalendarViewCallbacks({
-        onConnectCalendar: () => {
-          const userId = appState.get('deviceId') || 'anonymous';
-          window.location.href = `/auth/google/calendar?userId=${userId}`;
-        },
-      });
-      void showCalendarView();
-    });
+    this.addTrackedListener(window, 'ferni:open-music', () => void openMusicDashboard());
+    this.addTrackedListener(window, 'ferni:open-calendar', () => void openCalendarView());
     this.addTrackedListener(window, 'ferni:open-contacts', () => {
       void openYourPeople();
     });
@@ -2346,7 +2329,7 @@ class VoiceAIApp {
       void showVoiceEnrollmentModal();
     });
     this.addTrackedListener(window, 'ferni:open-notifications', () => {
-      showNotificationSettings();
+      void openNotificationSettings();
     });
     this.addTrackedListener(window, 'ferni:close-panel', () => {
       // Close any open modal by dispatching escape key event
@@ -2516,12 +2499,8 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-team', () => {
       void showTeamIntro();
     });
-    this.addTrackedListener(window, 'ferni:open-music', () => {
-      void musicDashboard.show();
-    });
-    this.addTrackedListener(window, 'ferni:open-calendar', () => {
-      void showCalendarView();
-    });
+    this.addTrackedListener(window, 'ferni:open-music', () => void openMusicDashboard());
+    this.addTrackedListener(window, 'ferni:open-calendar', () => void openCalendarView());
     this.addTrackedListener(window, 'ferni:open-people', () => {
       openYourPeople();
     });
