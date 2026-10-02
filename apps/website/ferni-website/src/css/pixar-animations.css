@@ -17,7 +17,6 @@
 
 /* ===== EASING CURVES (from animation.json) ===== */
 :root {
-  --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* =======================================================
@@ -113,7 +112,7 @@
 .btn {
   transition: 
     transform var(--duration-fast) var(--ease-ease-out-back),
-    box-shadow var(--duration-normal) var(--ease-expo-out),
+    box-shadow var(--duration-normal) var(--ease-ease-out-expo),
     background-color var(--duration-fast) ease;
   will-change: transform;
 }
@@ -174,7 +173,7 @@
 .memory-demo__card {
   transition: 
     transform var(--duration-normal) var(--ease-ease-out-back),
-    box-shadow var(--duration-normal) var(--ease-expo-out),
+    box-shadow var(--duration-normal) var(--ease-ease-out-expo),
     border-color var(--duration-fast) ease;
   will-change: transform;
 }
@@ -239,8 +238,8 @@
   transform: translateY(0) scale(1);
   filter: none;
   transition:
-    opacity var(--duration-deliberate) var(--ease-expo-out),
-    transform var(--duration-deliberate) var(--ease-expo-out),
+    opacity var(--duration-deliberate) var(--ease-ease-out-expo),
+    transform var(--duration-deliberate) var(--ease-ease-out-expo),
     filter var(--duration-slow) ease;
   will-change: opacity, transform, filter;
 }
@@ -306,7 +305,7 @@ details .faq-content,
 .faq-item .faq-content {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows var(--duration-slow) var(--ease-expo-out);
+  transition: grid-template-rows var(--duration-slow) var(--ease-ease-out-expo);
   overflow: hidden;
 }
 
@@ -361,7 +360,7 @@ details summary:hover {
 .memory-demo__text {
   transition: 
     opacity var(--duration-slow) ease,
-    transform var(--duration-slow) var(--ease-expo-out);
+    transform var(--duration-slow) var(--ease-ease-out-expo);
 }
 
 /* =======================================================
@@ -510,7 +509,7 @@ details summary:hover {
 */
 
 .showcase__app-bubble {
-  animation: bubbleAppear var(--duration-slow) var(--ease-expo-out) forwards;
+  animation: bubbleAppear var(--duration-slow) var(--ease-ease-out-expo) forwards;
   opacity: 0;
   transform: translateY(8px);
 }

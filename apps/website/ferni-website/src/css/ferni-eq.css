@@ -543,7 +543,7 @@
 .orb {
   transition:
     transform var(--duration-slow) var(--ease-spring),
-    box-shadow var(--duration-normal) var(--ease-expo-out),
+    box-shadow var(--duration-normal) var(--ease-ease-out-expo),
     filter var(--duration-normal) var(--ease-smooth);
 }
 
@@ -604,7 +604,7 @@
 }
 
 .orb-pulse-ring {
-  animation: orbRingExpand 2.5s var(--ease-expo-out) infinite;
+  animation: orbRingExpand 2.5s var(--ease-ease-out-expo) infinite;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -659,7 +659,7 @@
 .persona-orb {
   transition:
     transform var(--duration-normal) var(--ease-spring),
-    box-shadow var(--duration-normal) var(--ease-expo-out);
+    box-shadow var(--duration-normal) var(--ease-ease-out-expo);
 }
 
 .persona-orb:hover {
@@ -690,7 +690,7 @@
 /* Orb reacts to scroll with subtle awareness */
 [data-scroll-aware] {
   transition:
-    transform var(--duration-slow) var(--ease-expo-out),
+    transform var(--duration-slow) var(--ease-ease-out-expo),
     opacity var(--duration-normal) var(--ease-smooth);
 }
 

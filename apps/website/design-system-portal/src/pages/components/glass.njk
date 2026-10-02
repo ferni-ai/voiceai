@@ -115,15 +115,15 @@ permalink: /components/glass/
       </div>
       <div class="code-block">
         <pre><code>.glass-ferni {
-  background: rgba(var(--persona-ferni-rgb), 0.1);
+  background: color-mix(in srgb, var(--persona-ferni) 10%, transparent);
   backdrop-filter: blur(var(--glass-blur-medium));
-  border: 1px solid rgba(var(--persona-ferni-rgb), 0.2);
+  border: 1px solid color-mix(in srgb, var(--persona-ferni) 20%, transparent);
 }
 
 .glass-maya {
-  background: rgba(var(--persona-maya-rgb), 0.1);
+  background: color-mix(in srgb, var(--persona-maya) 10%, transparent);
   backdrop-filter: blur(var(--glass-blur-medium));
-  border: 1px solid rgba(var(--persona-maya-rgb), 0.2);
+  border: 1px solid color-mix(in srgb, var(--persona-maya) 20%, transparent);
 }</code></pre>
       </div>
     </div>

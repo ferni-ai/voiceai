@@ -407,7 +407,7 @@ permalink: /window-avatar/
 .avatar-face {
   width: 120px;
   height: 120px;
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: 50%;
   position: relative;
   overflow: hidden;
@@ -417,7 +417,7 @@ permalink: /window-avatar/
   position: absolute;
   left: 0;
   right: 0;
-  background: var(--color-bg-primary);
+  background: var(--bg-primary);
   transition: all var(--duration-slow) ease;
 }
 
@@ -462,7 +462,7 @@ permalink: /window-avatar/
 
 .expression-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
   text-align: center;
 }
@@ -478,7 +478,7 @@ permalink: /window-avatar/
 .mini-avatar {
   width: 60px;
   height: 60px;
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: 50%;
   position: relative;
   overflow: hidden;
@@ -488,7 +488,7 @@ permalink: /window-avatar/
   position: absolute;
   left: 0;
   right: 0;
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
 }
 
 .mini-avatar .lid.top {
@@ -521,7 +521,7 @@ permalink: /window-avatar/
   flex-direction: column;
   gap: var(--space-1);
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-family: var(--font-mono);
 }
 
@@ -536,7 +536,7 @@ permalink: /window-avatar/
 .speaking-avatar {
   width: 100px;
   height: 100px;
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: 50%;
   position: relative;
   overflow: hidden;
@@ -547,7 +547,7 @@ permalink: /window-avatar/
   position: absolute;
   left: 0;
   right: 0;
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
 }
 
 .speaking-avatar .lid.top {
@@ -579,7 +579,7 @@ permalink: /window-avatar/
 
 .speaking-specs h4 {
   margin: var(--space-4) 0 var(--space-2);
-  color: var(--color-accent);
+  color: var(--accent-primary);
 }
 
 .speaking-specs h4:first-child {
@@ -602,7 +602,7 @@ permalink: /window-avatar/
 
 .phoneme-card {
   padding: var(--space-3);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-md);
   text-align: center;
 }
@@ -612,7 +612,7 @@ permalink: /window-avatar/
   height: calc(20px * var(--open, 0.5));
   min-height: 4px;
   margin: 0 auto var(--space-2);
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: calc(var(--round, 0.5) * var(--radius-xl));
   transform: scaleX(var(--width, 1));
 }
@@ -625,7 +625,7 @@ permalink: /window-avatar/
 
 .phoneme-example {
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .timing-grid {
@@ -637,13 +637,13 @@ permalink: /window-avatar/
 
 .timing-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
 }
 
 .timing-card h4 {
   margin: 0 0 var(--space-3);
-  color: var(--color-accent);
+  color: var(--accent-primary);
 }
 
 .timing-card ul {
@@ -662,7 +662,7 @@ permalink: /window-avatar/
 
 .state-card {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
   text-align: center;
 }
@@ -670,7 +670,7 @@ permalink: /window-avatar/
 .state-avatar {
   width: 50px;
   height: 50px;
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: 50%;
   margin: 0 auto var(--space-3);
 }
@@ -722,7 +722,7 @@ permalink: /window-avatar/
 .state-card p {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-family: var(--font-mono);
 }
 
@@ -739,7 +739,7 @@ permalink: /window-avatar/
 }
 
 .scale-avatar {
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: 50%;
   margin: 0 auto var(--space-3);
 }
@@ -752,7 +752,7 @@ permalink: /window-avatar/
 .scale-variant .size {
   display: block;
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-family: var(--font-mono);
 }
 
@@ -765,7 +765,7 @@ permalink: /window-avatar/
 .scale-variant p {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--color-text-tertiary);
+  color: var(--text-dimmed);
 }
 
 .badge-demo {
@@ -782,7 +782,7 @@ permalink: /window-avatar/
 .badge-avatar {
   width: 60px;
   height: 60px;
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: 50%;
   position: relative;
   margin: 0 auto var(--space-3);
@@ -792,7 +792,7 @@ permalink: /window-avatar/
   position: absolute;
   top: -4px;
   right: -4px;
-  background: var(--color-destructive);
+  background: var(--error);
   color: var(--color-white);
   border-radius: 50%;
   display: flex;
@@ -828,7 +828,7 @@ permalink: /window-avatar/
 
 .badge-example code {
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .badge-variants {
@@ -840,7 +840,7 @@ permalink: /window-avatar/
 
 .badge-variant {
   padding: var(--space-4);
-  background: var(--glass-subtle-background);
+  background: var(--bg-glass);
   border-radius: var(--radius-lg);
   text-align: center;
 }
@@ -851,17 +851,17 @@ permalink: /window-avatar/
 }
 
 .badge-variant .badge.subtle {
-  background: var(--color-bg-elevated);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border-medium);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
 }
 
 .badge-variant .badge.success {
-  background: var(--color-semantic-success);
+  background: var(--success);
 }
 
 .badge-variant .badge.persona {
-  background: var(--color-accent);
+  background: var(--accent-primary);
 }
 
 .badge-variant span {
@@ -873,6 +873,6 @@ permalink: /window-avatar/
 .badge-variant p {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 </style>

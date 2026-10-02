@@ -35,7 +35,6 @@
 
   /* === APPLE-LEVEL POLISH: Refined Transitions === */
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* === APPLE-LEVEL POLISH: Line Heights === */
   --lh-tight: 1.1;
@@ -3261,7 +3260,7 @@ button {
   font-size: var(--text-base);
   line-height: var(--lh-relaxed);
   color: var(--color-text-secondary);
-  animation: faq-expand var(--duration-slower) var(--ease-out-expo);
+  animation: faq-expand var(--duration-slower) var(--ease-ease-out-expo);
 }
 
 @keyframes faq-expand {
@@ -6287,7 +6286,7 @@ img[loading='lazy']:not([data-src]) {
 
 .tagline-soft {
   opacity: 0.7;
-  font-weight: var(--font-weight-normal);
+  font-weight: var(--font-weight-regular);
 }
 
 @keyframes tagline-fade-in {

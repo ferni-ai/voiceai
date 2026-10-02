@@ -261,7 +261,7 @@ pre.line-numbers {
 
 pre .token.deleted:not(.token) {
   display: block;
-  background: var(--error-bg);
+  background: var(--error-glow);
   border-left: 3px solid var(--error);
   margin: 0 calc(-1 * var(--space-5));
   padding: 0 var(--space-5);
@@ -269,7 +269,7 @@ pre .token.deleted:not(.token) {
 
 pre .token.inserted:not(.token) {
   display: block;
-  background: var(--success-bg);
+  background: var(--success-glow);
   border-left: 3px solid var(--success);
   margin: 0 calc(-1 * var(--space-5));
   padding: 0 var(--space-5);

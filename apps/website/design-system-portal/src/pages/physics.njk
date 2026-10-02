@@ -497,7 +497,7 @@ useSpring({
 
 .spring-demo {
   height: 120px;
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   position: relative;
   display: flex;
   align-items: center;
@@ -508,7 +508,7 @@ useSpring({
   width: 40px;
   height: 40px;
   border-radius: var(--radius-full);
-  background: var(--color-ferni);
+  background: var(--persona-ferni);
   transform: scale(1);
   transition: transform var(--duration-deliberate) var(--ease-ease-out-back);
 }
@@ -517,12 +517,12 @@ useSpring({
   transform: scale(1.5);
 }
 
-.spring-card[data-spring="snappy"] .spring-ball { background: var(--color-peter); }
-.spring-card[data-spring="gentle"] .spring-ball { background: var(--color-ferni); }
-.spring-card[data-spring="bouncy"] .spring-ball { background: var(--color-maya); }
-.spring-card[data-spring="heavy"] .spring-ball { background: var(--color-alex); }
-.spring-card[data-spring="ethereal"] .spring-ball { background: var(--color-jordan); }
-.spring-card[data-spring="organic"] .spring-ball { background: var(--color-nayan); }
+.spring-card[data-spring="snappy"] .spring-ball { background: var(--persona-peter); }
+.spring-card[data-spring="gentle"] .spring-ball { background: var(--persona-ferni); }
+.spring-card[data-spring="bouncy"] .spring-ball { background: var(--persona-maya); }
+.spring-card[data-spring="heavy"] .spring-ball { background: var(--persona-alex); }
+.spring-card[data-spring="ethereal"] .spring-ball { background: var(--persona-jordan); }
+.spring-card[data-spring="organic"] .spring-ball { background: var(--persona-nayan); }
 
 .replay-btn {
   position: absolute;
@@ -530,7 +530,7 @@ useSpring({
   right: var(--space-2);
   padding: var(--space-1) var(--space-3);
   background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-medium);
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
   cursor: pointer;
@@ -538,9 +538,9 @@ useSpring({
 }
 
 .replay-btn:hover {
-  background: var(--color-accent);
+  background: var(--accent-primary);
   color: var(--color-white);
-  border-color: var(--color-accent);
+  border-color: var(--accent-primary);
 }
 
 .spring-info {
@@ -553,7 +553,7 @@ useSpring({
 
 .emotional-context {
   font-size: var(--text-sm);
-  color: var(--color-accent);
+  color: var(--accent-primary);
   font-style: italic;
   margin-bottom: var(--space-3);
 }
@@ -578,7 +578,7 @@ useSpring({
   font-size: var(--text-sm);
   color: var(--text-secondary);
   padding: var(--space-2) var(--space-3);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-md);
   margin: 0;
 }
@@ -626,7 +626,7 @@ useSpring({
 }
 
 .spec-row code {
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
@@ -640,7 +640,7 @@ useSpring({
 
 .gravity-demo {
   height: 200px;
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-lg);
   position: relative;
   overflow: hidden;
@@ -660,22 +660,22 @@ useSpring({
 }
 
 .gravity-ball[data-type="light"] {
-  background: var(--color-jordan);
+  background: var(--persona-jordan);
   left: 15%;
 }
 
 .gravity-ball[data-type="normal"] {
-  background: var(--color-ferni);
+  background: var(--persona-ferni);
   left: 38%;
 }
 
 .gravity-ball[data-type="heavy"] {
-  background: var(--color-alex);
+  background: var(--persona-alex);
   left: 55%;
 }
 
 .gravity-ball[data-type="floating"] {
-  background: var(--color-maya);
+  background: var(--persona-maya);
   left: 78%;
 }
 
@@ -732,7 +732,7 @@ useSpring({
 
 .demo-btn {
   padding: var(--space-2) var(--space-5);
-  background: var(--color-accent);
+  background: var(--accent-primary);
   color: var(--color-white);
   border: none;
   border-radius: var(--radius-full);
@@ -776,7 +776,7 @@ useSpring({
   flex-direction: column;
   gap: var(--space-1);
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
 }
 
 /* Emotional Momentum */
@@ -802,19 +802,19 @@ useSpring({
 }
 
 .celebration-icon {
-  background: linear-gradient(135deg, var(--color-maya), var(--color-jordan));
+  background: linear-gradient(135deg, var(--persona-maya), var(--persona-jordan));
 }
 
 .serious-icon {
-  background: linear-gradient(135deg, var(--color-alex), var(--color-peter));
+  background: linear-gradient(135deg, var(--persona-alex), var(--persona-peter));
 }
 
 .quiet-icon {
-  background: linear-gradient(135deg, var(--color-nayan), var(--color-ferni));
+  background: linear-gradient(135deg, var(--persona-nayan), var(--persona-ferni));
 }
 
 .energy-icon {
-  background: linear-gradient(135deg, var(--color-ferni), var(--color-peter));
+  background: linear-gradient(135deg, var(--persona-ferni), var(--persona-peter));
 }
 
 .emotional-card h4 {
@@ -850,32 +850,32 @@ useSpring({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
 }
 
 .weight-block {
   width: 60px;
   height: 40px;
   border-radius: var(--radius-md);
-  background: var(--color-ferni);
+  background: var(--persona-ferni);
 }
 
 .weight-item.critical .weight-block {
   width: 80px;
   height: 50px;
-  background: var(--color-alex);
+  background: var(--persona-alex);
 }
 
 .weight-item.important .weight-block {
   width: 70px;
   height: 45px;
-  background: var(--color-peter);
+  background: var(--persona-peter);
 }
 
 .weight-item.ambient .weight-block {
   width: 50px;
   height: 35px;
-  background: var(--color-jordan);
+  background: var(--persona-jordan);
   opacity: 0.7;
 }
 
@@ -890,7 +890,7 @@ useSpring({
 .mass-badge {
   display: inline-block;
   padding: var(--space-1) var(--space-2);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   font-weight: 600;
@@ -904,7 +904,7 @@ useSpring({
 }
 
 .weight-info .requires {
-  color: var(--color-warning);
+  color: var(--warning);
   font-style: italic;
 }
 
@@ -925,7 +925,7 @@ useSpring({
 
 .fluid-demo {
   height: 120px;
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -939,7 +939,7 @@ useSpring({
 .wave-element {
   width: 8px;
   height: 40px;
-  background: var(--color-ferni);
+  background: var(--persona-ferni);
   border-radius: var(--radius-full);
   animation: wave 1.2s ease-in-out infinite;
 }
@@ -958,7 +958,7 @@ useSpring({
   width: 60px;
   height: 60px;
   border-radius: var(--radius-full);
-  background: var(--color-ferni);
+  background: var(--persona-ferni);
   animation: breathing 4s ease-in-out infinite;
 }
 
@@ -1013,7 +1013,7 @@ useSpring({
   flex-wrap: wrap;
   gap: var(--space-2);
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
 }
 
 /* Spatial Depth */
@@ -1044,7 +1044,7 @@ useSpring({
 }
 
 .depth-layer[data-layer="background"] {
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   opacity: 0.6;
   filter: blur(2px);
 }

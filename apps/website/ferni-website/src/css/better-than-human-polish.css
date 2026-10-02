@@ -183,7 +183,7 @@ select:focus-visible {
   font-weight: 600;
   border-radius: 0 0 var(--radius-md) var(--radius-md);
   z-index: 10000;
-  transition: top var(--duration-slow) var(--ease-expo-out);
+  transition: top var(--duration-slow) var(--ease-ease-out-expo);
   text-decoration: none;
 }
 
@@ -487,7 +487,7 @@ h3 + p {
 .btn {
   transition:
     transform var(--duration-fast) var(--ease-spring),
-    box-shadow var(--duration-normal) var(--ease-expo-out),
+    box-shadow var(--duration-normal) var(--ease-ease-out-expo),
     background-color var(--duration-fast) var(--ease-smooth);
   will-change: transform;
 }
@@ -516,8 +516,8 @@ h3 + p {
   transform: translateY(40px) scale(0.98);
   filter: blur(4px);
   transition:
-    opacity var(--duration-deliberate) var(--ease-expo-out),
-    transform var(--duration-deliberate) var(--ease-expo-out),
+    opacity var(--duration-deliberate) var(--ease-ease-out-expo),
+    transform var(--duration-deliberate) var(--ease-ease-out-expo),
     filter var(--duration-slow) var(--ease-smooth);
   will-change: opacity, transform, filter;
 }
@@ -891,7 +891,7 @@ details summary::-webkit-details-marker {
 details .faq-content {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows var(--duration-slow) var(--ease-expo-out);
+  transition: grid-template-rows var(--duration-slow) var(--ease-ease-out-expo);
 }
 
 details[open] .faq-content {

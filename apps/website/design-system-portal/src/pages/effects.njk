@@ -593,15 +593,15 @@ permalink: /effects/
 }
 
 .gradient-preview.warm-glow {
-  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent-primary) 50%, transparent) 0%, transparent 70%), var(--bg-subtle);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent-primary) 50%, transparent) 0%, transparent 70%), var(--bg-secondary);
 }
 
 .gradient-preview.sunbeam {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-primary) 30%, transparent) 0%, transparent 70%), var(--bg-subtle);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-primary) 30%, transparent) 0%, transparent 70%), var(--bg-secondary);
 }
 
 .gradient-preview.persona-glow {
-  background: radial-gradient(circle at 50% 50%, var(--color-ferni) 0%, transparent 60%);
+  background: radial-gradient(circle at 50% 50%, var(--persona-ferni) 0%, transparent 60%);
   opacity: 0.5;
 }
 
@@ -610,7 +610,7 @@ permalink: /effects/
     radial-gradient(at 40% 20%, color-mix(in srgb, var(--persona-ferni) 30%, transparent) 0px, transparent 50%),
     radial-gradient(at 80% 0%, color-mix(in srgb, var(--accent-primary) 30%, transparent) 0px, transparent 50%),
     radial-gradient(at 0% 50%, color-mix(in srgb, var(--success) 20%, transparent) 0px, transparent 50%),
-    var(--bg-subtle);
+    var(--bg-secondary);
 }
 
 .gradient-info {
@@ -653,7 +653,7 @@ permalink: /effects/
 }
 
 .texture-preview.paper-grain {
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
 }
 
 .texture-preview.paper-grain::after {
@@ -668,11 +668,11 @@ permalink: /effects/
   background:
     repeating-linear-gradient(0deg, transparent, transparent 2px, color-mix(in srgb, var(--text-dimmed) 10%, transparent) 2px, color-mix(in srgb, var(--text-dimmed) 10%, transparent) 4px),
     repeating-linear-gradient(90deg, transparent, transparent 2px, color-mix(in srgb, var(--text-dimmed) 10%, transparent) 2px, color-mix(in srgb, var(--text-dimmed) 10%, transparent) 4px),
-    var(--bg-subtle);
+    var(--bg-secondary);
 }
 
 .texture-preview.noise {
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
 }
 
 .texture-preview.noise::after {
@@ -699,7 +699,7 @@ permalink: /effects/
 
 .texture-opacity {
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
   font-family: var(--font-mono);
 }
 
@@ -786,7 +786,7 @@ permalink: /effects/
 
 .preset-demo {
   height: 160px;
-  background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-peter) 100%);
+  background: linear-gradient(135deg, var(--persona-ferni) 0%, var(--persona-peter) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -949,7 +949,7 @@ permalink: /effects/
   content: '';
   display: block;
   height: 80px;
-  background: linear-gradient(135deg, var(--color-ferni), var(--color-peter));
+  background: linear-gradient(135deg, var(--persona-ferni), var(--persona-peter));
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-3);
   filter: blur(var(--blur));
@@ -982,7 +982,7 @@ permalink: /effects/
 
 .entrance-demo {
   height: 160px;
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -994,13 +994,13 @@ permalink: /effects/
 
 .click-hint {
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
 }
 
 .demo-avatar {
   width: 60px;
   height: 60px;
-  background: var(--color-ferni);
+  background: var(--persona-ferni);
   border-radius: var(--radius-full);
 }
 
@@ -1057,10 +1057,10 @@ permalink: /effects/
   border-radius: var(--radius-full);
 }
 
-.team-avatar:nth-child(1) { background: var(--color-ferni); }
-.team-avatar:nth-child(2) { background: var(--color-maya); }
-.team-avatar:nth-child(3) { background: var(--color-peter); }
-.team-avatar:nth-child(4) { background: var(--color-alex); }
+.team-avatar:nth-child(1) { background: var(--persona-ferni); }
+.team-avatar:nth-child(2) { background: var(--persona-maya); }
+.team-avatar:nth-child(3) { background: var(--persona-peter); }
+.team-avatar:nth-child(4) { background: var(--persona-alex); }
 
 .team-entrance.animate .team-avatar {
   animation: teamEntrance var(--duration-slow) var(--ease-ease-out-back) forwards;
@@ -1120,7 +1120,7 @@ permalink: /effects/
   width: 48px;
   height: 48px;
   border-radius: var(--radius-full);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   position: relative;
   overflow: hidden;
 }
@@ -1135,7 +1135,7 @@ permalink: /effects/
 
 .shimmer-line {
   height: 12px;
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-sm);
   position: relative;
   overflow: hidden;

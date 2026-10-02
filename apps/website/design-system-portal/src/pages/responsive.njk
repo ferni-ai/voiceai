@@ -688,10 +688,10 @@ permalink: /responsive/
   min-width: 80px;
 }
 
-.bp-segment.mobile { background: var(--color-maya); }
-.bp-segment.tablet { background: var(--color-alex); }
-.bp-segment.desktop { background: var(--color-peter); }
-.bp-segment.wide { background: var(--color-ferni); }
+.bp-segment.mobile { background: var(--persona-maya); }
+.bp-segment.tablet { background: var(--persona-alex); }
+.bp-segment.desktop { background: var(--persona-peter); }
+.bp-segment.wide { background: var(--persona-ferni); }
 
 .bp-label {
   font-weight: 600;
@@ -717,10 +717,10 @@ permalink: /responsive/
   border: 1px solid var(--border-subtle);
 }
 
-.breakpoint-card.mobile { border-top: 3px solid var(--color-maya); }
-.breakpoint-card.tablet { border-top: 3px solid var(--color-alex); }
-.breakpoint-card.desktop { border-top: 3px solid var(--color-peter); }
-.breakpoint-card.wide { border-top: 3px solid var(--color-ferni); }
+.breakpoint-card.mobile { border-top: 3px solid var(--persona-maya); }
+.breakpoint-card.tablet { border-top: 3px solid var(--persona-alex); }
+.breakpoint-card.desktop { border-top: 3px solid var(--persona-peter); }
+.breakpoint-card.wide { border-top: 3px solid var(--persona-ferni); }
 
 .bp-header {
   display: flex;
@@ -733,7 +733,7 @@ permalink: /responsive/
   width: 40px;
   height: 40px;
   border-radius: var(--radius-md);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -753,7 +753,7 @@ permalink: /responsive/
 
 .spec-label {
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
 }
 
 .spec-value {
@@ -823,7 +823,7 @@ permalink: /responsive/
 }
 
 .scale-header {
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   font-weight: 600;
   font-size: var(--text-sm);
 }
@@ -871,7 +871,7 @@ permalink: /responsive/
 
 .behavior-preview {
   height: 140px;
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   padding: var(--space-4);
   display: flex;
   align-items: center;
@@ -898,7 +898,7 @@ permalink: /responsive/
   width: 40px;
   height: 40px;
   border-radius: var(--radius-full);
-  background: var(--color-ferni);
+  background: var(--persona-ferni);
 }
 
 .hero-preview.desktop .hero-avatar {
@@ -923,7 +923,7 @@ permalink: /responsive/
 /* Modal preview */
 .modal-preview {
   position: relative;
-  background: var(--bg-base);
+  background: var(--bg-primary);
 }
 
 .modal-sheet {
@@ -959,7 +959,7 @@ permalink: /responsive/
 .nav-tab {
   width: 32px;
   height: 32px;
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-md);
 }
 
@@ -980,21 +980,21 @@ permalink: /responsive/
 .nav-logo {
   width: 24px;
   height: 24px;
-  background: var(--color-ferni);
+  background: var(--persona-ferni);
   border-radius: var(--radius-sm);
 }
 
 .nav-items {
   flex: 1;
   height: 8px;
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-sm);
 }
 
 .nav-avatar-btn {
   width: 24px;
   height: 24px;
-  background: var(--color-alex);
+  background: var(--persona-alex);
   border-radius: var(--radius-full);
 }
 
@@ -1011,9 +1011,9 @@ permalink: /responsive/
   margin-bottom: var(--space-3);
 }
 
-.behavior-card.mobile .behavior-bp { background: var(--color-maya); color: var(--color-white); }
-.behavior-card.tablet .behavior-bp { background: var(--color-alex); color: var(--color-white); }
-.behavior-card.desktop .behavior-bp { background: var(--color-peter); color: var(--color-white); }
+.behavior-card.mobile .behavior-bp { background: var(--persona-maya); color: var(--color-white); }
+.behavior-card.tablet .behavior-bp { background: var(--persona-alex); color: var(--color-white); }
+.behavior-card.desktop .behavior-bp { background: var(--persona-peter); color: var(--color-white); }
 
 .behavior-specs ul {
   list-style: none;
@@ -1058,7 +1058,7 @@ permalink: /responsive/
 .avatar-sample {
   width: var(--size);
   height: var(--size);
-  background: var(--color-ferni);
+  background: var(--persona-ferni);
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
@@ -1072,7 +1072,7 @@ permalink: /responsive/
   display: flex;
   gap: var(--space-4);
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
   font-family: var(--font-mono);
 }
 
@@ -1099,8 +1099,8 @@ permalink: /responsive/
 }
 
 .touch-visual.primary { background: var(--accent-primary); height: 48px; }
-.touch-visual.secondary { background: var(--color-alex); height: 44px; }
-.touch-visual.compact { background: var(--color-peter); height: 40px; }
+.touch-visual.secondary { background: var(--persona-alex); height: 44px; }
+.touch-visual.compact { background: var(--persona-peter); height: 40px; }
 
 .touch-card h4 {
   margin-bottom: var(--space-2);
@@ -1144,7 +1144,7 @@ permalink: /responsive/
   gap: var(--space-3);
   margin-bottom: var(--space-4);
   padding: var(--space-4);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-md);
 }
 
@@ -1202,11 +1202,11 @@ permalink: /responsive/
 }
 
 .pattern-demo .visible.secondary {
-  background: var(--color-peter);
+  background: var(--persona-peter);
 }
 
 .pattern-arrow {
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
   font-size: var(--text-lg);
 }
 
@@ -1236,9 +1236,9 @@ permalink: /responsive/
   border: 1px solid var(--border-subtle);
 }
 
-.animation-card.mobile { border-top: 3px solid var(--color-maya); }
-.animation-card.desktop { border-top: 3px solid var(--color-peter); }
-.animation-card.wide { border-top: 3px solid var(--color-ferni); }
+.animation-card.mobile { border-top: 3px solid var(--persona-maya); }
+.animation-card.desktop { border-top: 3px solid var(--persona-peter); }
+.animation-card.wide { border-top: 3px solid var(--persona-ferni); }
 
 .animation-card h4 {
   margin-bottom: var(--space-4);
@@ -1263,7 +1263,7 @@ permalink: /responsive/
 .animation-card .note {
   margin-top: var(--space-3);
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
   font-style: italic;
 }
 
@@ -1283,7 +1283,7 @@ permalink: /responsive/
 }
 
 .utility-row.header {
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   font-weight: 600;
 }
 

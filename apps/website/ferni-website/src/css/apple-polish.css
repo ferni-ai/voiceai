@@ -53,7 +53,6 @@
   --space-fluid-2xl: clamp(6rem, 12vw, 12rem);
   
   /* Spring easing curves */
-  --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-expo-in-out: cubic-bezier(0.87, 0, 0.13, 1);
   
   /* Apple-like durations */
@@ -139,7 +138,7 @@
 .hover-spring {
   transition: 
     transform var(--duration-slow) var(--ease-ease-out-back),
-    box-shadow var(--duration-slow) var(--ease-expo-out);
+    box-shadow var(--duration-slow) var(--ease-ease-out-expo);
 }
 
 .hover-spring:hover {
@@ -155,7 +154,7 @@
 .hover-haptic {
   transition: 
     transform var(--duration-normal) var(--ease-ease-out-back),
-    box-shadow var(--duration-normal) var(--ease-expo-out),
+    box-shadow var(--duration-normal) var(--ease-ease-out-expo),
     background-color var(--duration-normal) var(--ease-smooth);
 }
 
@@ -184,7 +183,7 @@
   background: currentColor;
   transform: scaleX(0);
   transform-origin: right;
-  transition: transform var(--duration-slow) var(--ease-expo-out);
+  transition: transform var(--duration-slow) var(--ease-ease-out-expo);
 }
 
 .hover-underline:hover::after {
@@ -223,7 +222,7 @@
 .entrance-fade-up {
   opacity: 0;
   transform: translateY(40px);
-  animation: entranceFadeUp var(--duration-dramatic) var(--ease-expo-out) forwards;
+  animation: entranceFadeUp var(--duration-dramatic) var(--ease-ease-out-expo) forwards;
 }
 
 @keyframes entranceFadeUp {
@@ -252,7 +251,7 @@
   opacity: 0;
   transform: translateY(30px);
   filter: blur(10px);
-  animation: entranceBlur var(--duration-cinematic) var(--ease-expo-out) forwards;
+  animation: entranceBlur var(--duration-cinematic) var(--ease-ease-out-expo) forwards;
 }
 
 @keyframes entranceBlur {
@@ -295,7 +294,7 @@
   position: relative;
   transition: 
     transform var(--duration-normal) var(--ease-ease-out-back),
-    box-shadow var(--duration-slow) var(--ease-expo-out);
+    box-shadow var(--duration-slow) var(--ease-ease-out-expo);
   will-change: transform;
 }
 
@@ -315,7 +314,7 @@
   );
   transform: scale(0);
   opacity: 0;
-  transition: transform var(--duration-deliberate) var(--ease-expo-out), opacity var(--duration-deliberate) ease;
+  transition: transform var(--duration-deliberate) var(--ease-ease-out-expo), opacity var(--duration-deliberate) ease;
 }
 
 .btn-ripple:active::before {
@@ -369,7 +368,7 @@
 
 /* Shadow cascade on hover */
 .shadow-cascade {
-  transition: box-shadow var(--duration-slow) var(--ease-expo-out);
+  transition: box-shadow var(--duration-slow) var(--ease-ease-out-expo);
 }
 
 .shadow-cascade:hover {
@@ -544,8 +543,8 @@
   left: 1rem;
   transform: translateY(-50%);
   transition: 
-    transform var(--duration-slow) var(--ease-expo-out),
-    font-size var(--duration-slow) var(--ease-expo-out),
+    transform var(--duration-slow) var(--ease-ease-out-expo),
+    font-size var(--duration-slow) var(--ease-ease-out-expo),
     color var(--duration-slow) var(--ease-smooth);
   pointer-events: none;
   color: color-mix(in srgb, var(--color-ink-light) 70%, transparent);
@@ -563,7 +562,7 @@
 /* Focus glow */
 .focus-glow {
   transition: 
-    box-shadow var(--duration-slow) var(--ease-expo-out),
+    box-shadow var(--duration-slow) var(--ease-ease-out-expo),
     border-color var(--duration-slow) var(--ease-smooth);
 }
 
@@ -592,7 +591,7 @@ textarea:-webkit-autofill {
 .accordion-content {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows var(--duration-slowest) var(--ease-expo-out);
+  transition: grid-template-rows var(--duration-slowest) var(--ease-ease-out-expo);
 }
 
 .accordion-content.open {

@@ -249,7 +249,7 @@ permalink: /haptics/
   <p>Each persona has a unique haptic signature reflecting their personality.</p>
 
   <div class="persona-haptics-grid">
-    <div class="persona-haptic-card" style="--persona-color: var(--color-ferni)">
+    <div class="persona-haptic-card" style="--persona-color: var(--persona-ferni)">
       <div class="persona-header">
         <span class="persona-avatar">F</span>
         <h4>Ferni</h4>
@@ -266,7 +266,7 @@ permalink: /haptics/
       </ul>
     </div>
 
-    <div class="persona-haptic-card" style="--persona-color: var(--color-peter)">
+    <div class="persona-haptic-card" style="--persona-color: var(--persona-peter)">
       <div class="persona-header">
         <span class="persona-avatar">P</span>
         <h4>Peter</h4>
@@ -283,7 +283,7 @@ permalink: /haptics/
       </ul>
     </div>
 
-    <div class="persona-haptic-card" style="--persona-color: var(--color-alex)">
+    <div class="persona-haptic-card" style="--persona-color: var(--persona-alex)">
       <div class="persona-header">
         <span class="persona-avatar">A</span>
         <h4>Alex</h4>
@@ -300,7 +300,7 @@ permalink: /haptics/
       </ul>
     </div>
 
-    <div class="persona-haptic-card" style="--persona-color: var(--color-maya)">
+    <div class="persona-haptic-card" style="--persona-color: var(--persona-maya)">
       <div class="persona-header">
         <span class="persona-avatar">M</span>
         <h4>Maya</h4>
@@ -317,7 +317,7 @@ permalink: /haptics/
       </ul>
     </div>
 
-    <div class="persona-haptic-card" style="--persona-color: var(--color-jordan)">
+    <div class="persona-haptic-card" style="--persona-color: var(--persona-jordan)">
       <div class="persona-header">
         <span class="persona-avatar">J</span>
         <h4>Jordan</h4>
@@ -334,7 +334,7 @@ permalink: /haptics/
       </ul>
     </div>
 
-    <div class="persona-haptic-card" style="--persona-color: var(--color-nayan)">
+    <div class="persona-haptic-card" style="--persona-color: var(--persona-nayan)">
       <div class="persona-header">
         <span class="persona-avatar">N</span>
         <h4>Nayan</h4>
@@ -497,14 +497,14 @@ permalink: /haptics/
 }
 
 .principle-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
   border-radius: var(--radius-sm);
   padding: 1rem;
 }
 
 .principle-card h4 {
-  color: var(--color-ferni);
+  color: var(--persona-ferni);
   margin: 0 0 0.5rem;
   font-size: 0.9rem;
 }
@@ -517,15 +517,15 @@ permalink: /haptics/
 }
 
 .pattern-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
   border-radius: var(--radius-sm);
   padding: 1.25rem;
 }
 
 .pattern-card.featured {
-  border-color: var(--color-ferni);
-  background: linear-gradient(to bottom right, var(--color-surface), color-mix(in srgb, var(--persona-ferni) 5%, transparent));
+  border-color: var(--persona-ferni);
+  background: linear-gradient(to bottom right, var(--bg-secondary), color-mix(in srgb, var(--persona-ferni) 5%, transparent));
 }
 
 .pattern-header {
@@ -538,26 +538,26 @@ permalink: /haptics/
 .pattern-header h4 {
   margin: 0;
   font-family: var(--font-mono);
-  color: var(--color-text);
+  color: var(--text-primary);
 }
 
 .pattern-duration {
   font-size: 0.75rem;
-  color: var(--color-text-muted);
-  background: var(--color-background);
+  color: var(--text-muted);
+  background: var(--bg-primary);
   padding: 0.2rem 0.5rem;
   border-radius: var(--radius-xs);
 }
 
 .pattern-description {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: 0.875rem;
   margin: 0.5rem 0;
 }
 
 .pattern-waveform {
   height: 24px;
-  background: linear-gradient(90deg, var(--color-ferni) 0%, transparent 100%);
+  background: linear-gradient(90deg, var(--persona-ferni) 0%, transparent 100%);
   border-radius: var(--radius-xs);
   margin: 0.75rem 0;
   opacity: 0.3;
@@ -566,9 +566,9 @@ permalink: /haptics/
 .pattern-waveform.organic {
   background: linear-gradient(90deg,
     transparent 0%,
-    var(--color-ferni) 20%,
-    var(--color-ferni) 50%,
-    var(--color-ferni) 80%,
+    var(--persona-ferni) 20%,
+    var(--persona-ferni) 50%,
+    var(--persona-ferni) 80%,
     transparent 100%
   );
 }
@@ -576,7 +576,7 @@ permalink: /haptics/
 .use-case {
   display: block;
   font-size: 0.75rem;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   margin-top: 0.5rem;
 }
 
@@ -588,11 +588,11 @@ permalink: /haptics/
 }
 
 .persona-haptic-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
   border-radius: var(--radius-sm);
   padding: 1.25rem;
-  border-left: 4px solid var(--persona-color, var(--color-ferni));
+  border-left: 4px solid var(--persona-color, var(--persona-ferni));
 }
 
 .persona-header {
@@ -606,7 +606,7 @@ permalink: /haptics/
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--persona-color, var(--color-ferni));
+  background: var(--persona-color, var(--persona-ferni));
   color: var(--color-white);
   display: flex;
   align-items: center;
@@ -620,7 +620,7 @@ permalink: /haptics/
 }
 
 .persona-energy {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: 0.875rem;
   font-style: italic;
   margin: 0 0 1rem;
@@ -630,7 +630,7 @@ permalink: /haptics/
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: var(--color-background);
+  background: var(--bg-primary);
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius-sm);
   margin-bottom: 1rem;
@@ -639,12 +639,12 @@ permalink: /haptics/
 .signature-name {
   font-family: var(--font-mono);
   font-weight: 500;
-  color: var(--persona-color, var(--color-ferni));
+  color: var(--persona-color, var(--persona-ferni));
 }
 
 .signature-duration {
   font-size: 0.75rem;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .haptic-behaviors {
@@ -656,7 +656,7 @@ permalink: /haptics/
 
 .haptic-behaviors li {
   padding: 0.25rem 0;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .emotional-haptics-grid {
@@ -667,8 +667,8 @@ permalink: /haptics/
 }
 
 .emotion-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
   border-radius: var(--radius-sm);
   padding: 1rem;
   text-align: center;
@@ -676,12 +676,12 @@ permalink: /haptics/
 
 .emotion-card h4 {
   margin: 0 0 0.5rem;
-  color: var(--color-ferni);
+  color: var(--persona-ferni);
 }
 
 .emotion-character {
   font-style: italic;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: 0.875rem;
   margin: 0 0 0.75rem;
 }
@@ -689,14 +689,14 @@ permalink: /haptics/
 .emotion-pattern {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  background: var(--color-background);
+  background: var(--bg-primary);
   padding: 0.25rem 0.5rem;
   border-radius: var(--radius-xs);
 }
 
 .accessibility-callout {
-  background: var(--color-background);
-  border: 1px solid var(--color-ferni);
+  background: var(--bg-primary);
+  border: 1px solid var(--persona-ferni);
   border-radius: var(--radius-sm);
   padding: 1.25rem;
   margin-bottom: 1.5rem;
@@ -704,7 +704,7 @@ permalink: /haptics/
 
 .accessibility-callout h4 {
   margin: 0 0 0.5rem;
-  color: var(--color-ferni);
+  color: var(--persona-ferni);
 }
 
 .accessibility-grid {
@@ -715,8 +715,8 @@ permalink: /haptics/
 }
 
 .a11y-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
   border-radius: var(--radius-sm);
   padding: 1rem;
 }
@@ -728,7 +728,7 @@ permalink: /haptics/
 
 .a11y-card p {
   margin: 0;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: 0.875rem;
 }
 
@@ -740,8 +740,8 @@ permalink: /haptics/
 }
 
 .platform-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
   border-radius: var(--radius-sm);
   padding: 1.25rem;
 }
@@ -752,7 +752,7 @@ permalink: /haptics/
 
 .platform-card .api {
   display: block;
-  background: var(--color-background);
+  background: var(--bg-primary);
   padding: 0.75rem;
   border-radius: var(--radius-sm);
   margin-bottom: 0.75rem;
@@ -762,6 +762,6 @@ permalink: /haptics/
 .platform-card p {
   margin: 0;
   font-size: 0.875rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 </style>

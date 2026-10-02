@@ -160,7 +160,7 @@ code, pre, kbd, samp {
 
 code {
   font-size: 0.9em;
-  background: var(--bg-code-inline);
+  background: var(--bg-tertiary);
   padding: 0.15em 0.4em;
   border-radius: var(--radius-xs);
 }

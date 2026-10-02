@@ -908,7 +908,7 @@ pre code {
   color: var(--syntax-operator);
 }
 .token.class-name {
-  color: var(--syntax-class);
+  color: var(--syntax-function);
 }
 
 /* ========================================
@@ -1280,23 +1280,23 @@ pre code {
 }
 
 .method-get {
-  background: var(--method-get);
+  background: var(--success);
   color: var(--bg-code);
 }
 .method-post {
-  background: var(--method-post);
+  background: var(--info);
   color: var(--bg-code);
 }
 .method-put {
-  background: var(--method-put);
+  background: var(--warning);
   color: var(--bg-code);
 }
 .method-delete {
-  background: var(--method-delete);
+  background: var(--error);
   color: var(--bg-code);
 }
 .method-patch {
-  background: var(--method-patch);
+  background: var(--accent-primary);
   color: var(--bg-code);
 }
 

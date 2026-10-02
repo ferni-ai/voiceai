@@ -544,7 +544,7 @@ rituals.on('ritual:complete', (ritual) => {
 
 /* Philosophy Card */
 .philosophy-card {
-  background: linear-gradient(135deg, var(--bg-elevated), var(--bg-subtle));
+  background: linear-gradient(135deg, var(--bg-elevated), var(--bg-secondary));
   border-radius: var(--radius-xl);
   padding: var(--space-8);
   border: 1px solid var(--border-subtle);
@@ -600,16 +600,16 @@ rituals.on('ritual:complete', (ritual) => {
 }
 
 .wake-icon { background: linear-gradient(135deg, var(--accent-text), var(--warning)); }
-.connection-icon { background: linear-gradient(135deg, var(--color-ferni), var(--color-peter)); }
-.listening-icon { background: linear-gradient(135deg, var(--color-peter), var(--color-alex)); }
-.persona-icon { background: linear-gradient(135deg, var(--color-maya), var(--color-jordan)); }
+.connection-icon { background: linear-gradient(135deg, var(--persona-ferni), var(--persona-peter)); }
+.listening-icon { background: linear-gradient(135deg, var(--persona-peter), var(--persona-alex)); }
+.persona-icon { background: linear-gradient(135deg, var(--persona-maya), var(--persona-jordan)); }
 .small-win-icon { background: linear-gradient(135deg, var(--success), var(--success)); }
 .big-win-icon { background: linear-gradient(135deg, var(--warning), var(--warning)); }
 .streak-icon { background: linear-gradient(135deg, var(--persona-sasha), var(--persona-sasha)); }
-.team-icon { background: linear-gradient(135deg, var(--color-nayan), var(--color-ferni)); }
+.team-icon { background: linear-gradient(135deg, var(--persona-nayan), var(--persona-ferni)); }
 .deep-icon { background: linear-gradient(135deg, var(--persona-amara), var(--persona-amara)); }
-.thinking-icon { background: linear-gradient(135deg, var(--color-maya), var(--color-alex)); }
-.goodbye-icon { background: linear-gradient(135deg, var(--color-jordan), var(--color-nayan)); }
+.thinking-icon { background: linear-gradient(135deg, var(--persona-maya), var(--persona-alex)); }
+.goodbye-icon { background: linear-gradient(135deg, var(--persona-jordan), var(--persona-nayan)); }
 
 .ritual-meta h3 {
   margin: 0 0 var(--space-1);
@@ -619,8 +619,8 @@ rituals.on('ritual:complete', (ritual) => {
 .ritual-trigger {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
-  background: var(--bg-subtle);
+  color: var(--text-dimmed);
+  background: var(--bg-secondary);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
 }
@@ -638,7 +638,7 @@ rituals.on('ritual:complete', (ritual) => {
   gap: var(--space-2);
   margin-bottom: var(--space-4);
   padding: var(--space-3);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-md);
 }
 
@@ -669,7 +669,7 @@ rituals.on('ritual:complete', (ritual) => {
 
 .step-delay {
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
 }
 
 /* Ritual Footer */
@@ -688,22 +688,22 @@ rituals.on('ritual:complete', (ritual) => {
 }
 
 .emotion-badge.welcoming { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
-.emotion-badge.reassuring { background: color-mix(in srgb, var(--persona-ferni) 15%, transparent); color: var(--color-ferni); }
-.emotion-badge.attentive { background: color-mix(in srgb, var(--persona-peter) 15%, transparent); color: var(--color-peter); }
-.emotion-badge.introducing { background: color-mix(in srgb, var(--persona-maya) 15%, transparent); color: var(--color-maya); }
+.emotion-badge.reassuring { background: color-mix(in srgb, var(--persona-ferni) 15%, transparent); color: var(--persona-ferni); }
+.emotion-badge.attentive { background: color-mix(in srgb, var(--persona-peter) 15%, transparent); color: var(--persona-peter); }
+.emotion-badge.introducing { background: color-mix(in srgb, var(--persona-maya) 15%, transparent); color: var(--persona-maya); }
 .emotion-badge.proud { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
 .emotion-badge.ecstatic { background: color-mix(in srgb, var(--warning) 15%, transparent); color: var(--warning); }
 .emotion-badge.impressed { background: color-mix(in srgb, var(--persona-sasha) 15%, transparent); color: var(--persona-sasha); }
 .emotion-badge.supportive { background: color-mix(in srgb, var(--persona-amara) 15%, transparent); color: var(--persona-amara); }
-.emotion-badge.caring { background: color-mix(in srgb, var(--persona-maya) 15%, transparent); color: var(--color-maya); }
-.emotion-badge.grateful { background: color-mix(in srgb, var(--persona-jordan) 15%, transparent); color: var(--color-jordan); }
+.emotion-badge.caring { background: color-mix(in srgb, var(--persona-maya) 15%, transparent); color: var(--persona-maya); }
+.emotion-badge.grateful { background: color-mix(in srgb, var(--persona-jordan) 15%, transparent); color: var(--persona-jordan); }
 
 .priority-badge,
 .subtle-badge,
 .cooldown-badge,
 .milestone-list {
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
 }
 
 .subtle-badge {
@@ -778,14 +778,14 @@ rituals.on('ritual:complete', (ritual) => {
 
 .option {
   padding: var(--space-2) var(--space-3);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
 .option.active {
-  background: var(--color-accent);
+  background: var(--accent-primary);
   color: var(--color-white);
 }
 
@@ -815,14 +815,14 @@ rituals.on('ritual:complete', (ritual) => {
 .slider-track {
   flex: 1;
   height: 6px;
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .slider-fill {
   height: 100%;
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: var(--radius-full);
 }
 

@@ -486,7 +486,7 @@
 }
 
 .callout-info {
-  background: var(--info-bg);
+  background: var(--info-glow);
   border: 1px solid var(--info);
 }
 
@@ -498,7 +498,7 @@
 }
 
 .callout-warning {
-  background: var(--warning-bg);
+  background: var(--warning-glow);
   border: 1px solid var(--warning);
 }
 
@@ -510,7 +510,7 @@
 }
 
 .callout-error {
-  background: var(--error-bg);
+  background: var(--error-glow);
   border: 1px solid var(--error);
 }
 
@@ -522,7 +522,7 @@
 }
 
 .callout-success {
-  background: var(--success-bg);
+  background: var(--success-glow);
   border: 1px solid var(--success);
 }
 

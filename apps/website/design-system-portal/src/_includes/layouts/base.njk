@@ -223,7 +223,7 @@
       width: 100%;
       padding: var(--space-2) var(--space-3);
       padding-left: 36px;
-      background: var(--bg-subtle);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       color: var(--text-primary);
@@ -232,18 +232,18 @@
     }
     .sidebar-search input:focus {
       outline: none;
-      border-color: var(--color-accent);
+      border-color: var(--accent-primary);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--persona-marcus) 10%, transparent);
     }
     .sidebar-search input::placeholder {
-      color: var(--text-tertiary);
+      color: var(--text-dimmed);
     }
     .search-icon {
       position: absolute;
       left: calc(var(--space-4) + 10px);
       top: 50%;
       transform: translateY(-50%);
-      color: var(--text-tertiary);
+      color: var(--text-dimmed);
       pointer-events: none;
     }
     .search-results {
@@ -253,7 +253,7 @@
       width: 400px;
       max-height: 60vh;
       background: var(--bg-elevated);
-      border: 1px solid var(--border-default);
+      border: 1px solid var(--border-medium);
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-lg);
       overflow-y: auto;
@@ -272,7 +272,7 @@
       transition: background var(--duration-fast);
     }
     .search-result-item:hover {
-      background: var(--bg-subtle);
+      background: var(--bg-secondary);
     }
     .search-result-item:last-child {
       border-bottom: none;
@@ -283,7 +283,7 @@
     }
     .search-result-section {
       font-size: var(--text-xs);
-      color: var(--text-tertiary);
+      color: var(--text-dimmed);
     }
     .search-no-results {
       padding: var(--space-4);
@@ -297,7 +297,7 @@
       align-items: center;
       gap: var(--space-2);
       padding: var(--space-2) var(--space-3);
-      background: var(--bg-subtle);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       color: var(--text-secondary);
@@ -308,7 +308,7 @@
     }
     .theme-preview-btn:hover {
       background: var(--bg-elevated);
-      border-color: var(--color-accent);
+      border-color: var(--accent-primary);
       color: var(--text-primary);
     }
 
@@ -487,7 +487,7 @@
       align-items: center;
       gap: 4px;
       padding: 6px 10px;
-      background: var(--surface-secondary);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-sm);
       color: var(--text-secondary);
@@ -501,13 +501,13 @@
       opacity: 1;
     }
     .copy-btn:hover {
-      background: var(--surface-tertiary);
+      background: var(--bg-tertiary);
       color: var(--text-primary);
     }
     .copy-btn.copied {
-      background: var(--color-success-subtle);
-      border-color: var(--color-success);
-      color: var(--color-success);
+      background: var(--success-glow);
+      border-color: var(--success);
+      color: var(--success);
     }
     .copy-btn svg {
       width: 14px;

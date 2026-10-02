@@ -77,9 +77,9 @@
     0 4px 20px var(--color-accent-glow),
     inset 0 1px 0 color-mix(in srgb, var(--color-white) 10%, transparent);
   transition:
-    transform var(--duration-slower) var(--ease-out-expo),
-    box-shadow var(--duration-slower) var(--ease-apple),
-    background-position var(--duration-deliberate) var(--ease-apple);
+    transform var(--duration-slower) var(--ease-ease-out-expo),
+    box-shadow var(--duration-slower) var(--ease-in-out),
+    background-position var(--duration-deliberate) var(--ease-in-out);
 }
 .btn-primary:hover {
   background-position: 0 0;

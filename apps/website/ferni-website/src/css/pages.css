@@ -186,7 +186,7 @@ section {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  transition: all var(--transition-slow);
+  transition: all var(--duration-slowest) var(--ease-ease-out-expo);
   text-decoration: none;
 }
 
@@ -277,7 +277,7 @@ section {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  transition: all var(--transition-slow);
+  transition: all var(--duration-slowest) var(--ease-ease-out-expo);
 }
 
 .blog-card:hover {
@@ -301,7 +301,7 @@ section {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform var(--transition-slow);
+  transition: transform var(--duration-slowest) var(--ease-ease-out-expo);
 }
 
 .blog-card:hover .blog-card__image img {
@@ -586,7 +586,7 @@ section {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: 40px 32px;
-  transition: all var(--transition-slow);
+  transition: all var(--duration-slowest) var(--ease-ease-out-expo);
 }
 
 .enterprise-card:hover {
@@ -639,7 +639,7 @@ section {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  transition: all var(--transition-slow);
+  transition: all var(--duration-slowest) var(--ease-ease-out-expo);
 }
 
 .enterprise-usecase:hover {
@@ -723,7 +723,7 @@ section {
   font-family: var(--font-body);
   font-size: var(--text-base);
   color: var(--color-text);
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--duration-fast) var(--ease-ease-out);
 }
 
 .enterprise-form__field input:focus,
@@ -762,7 +762,7 @@ section {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  transition: all var(--transition-slow);
+  transition: all var(--duration-slowest) var(--ease-ease-out-expo);
 }
 
 .persona-card:hover {
@@ -1259,7 +1259,7 @@ section {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   text-decoration: none;
-  transition: all var(--transition-slow);
+  transition: all var(--duration-slowest) var(--ease-ease-out-expo);
 }
 
 .use-case-card:hover {
@@ -1540,7 +1540,7 @@ section {
   color: var(--color-text-muted);
   text-decoration: none;
   margin-bottom: var(--space-12);
-  transition: color var(--transition-fast);
+  transition: color var(--duration-fast) var(--ease-ease-out);
 }
 
 .team-member__back:hover {
@@ -1743,7 +1743,7 @@ section {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   text-decoration: none;
-  transition: all var(--transition-slow);
+  transition: all var(--duration-slowest) var(--ease-ease-out-expo);
 }
 
 .team-member__other-card:hover {
@@ -1946,7 +1946,7 @@ section {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   text-decoration: none;
-  transition: all var(--transition-base);
+  transition: all var(--duration-normal) var(--ease-ease-out);
 }
 
 .doc-nav-btn:hover {
@@ -2046,7 +2046,7 @@ section {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
-  transition: all var(--transition-base);
+  transition: all var(--duration-normal) var(--ease-ease-out);
   text-decoration: none;
   display: block;
 }

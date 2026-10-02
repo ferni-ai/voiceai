@@ -38,8 +38,6 @@
   /* Spacing Scale */
   
   /* Animation */
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 /* ============================================
@@ -183,7 +181,7 @@ button {
   height: 2px;
   background: var(--color-ferni);
   border-radius: var(--radius-xs);
-  transition: width var(--duration-slow) var(--ease-out-expo);
+  transition: width var(--duration-slow) var(--ease-ease-out-expo);
 }
 
 .nav__link:hover {
@@ -441,7 +439,7 @@ button {
   margin-bottom: var(--space-8);
   box-shadow: var(--shadow-sm);
   opacity: 0;
-  animation: fadeUp var(--duration-cinematic) var(--ease-out-expo) var(--duration-faster) forwards;
+  animation: fadeUp var(--duration-cinematic) var(--ease-ease-out-expo) var(--duration-faster) forwards;
 }
 
 .hero__badge-icon {
@@ -468,7 +466,7 @@ button {
   letter-spacing: -0.04em;
   margin-bottom: var(--space-8);
   opacity: 0;
-  animation: fadeUp var(--duration-cinematic) var(--ease-out-expo) var(--duration-normal) forwards;
+  animation: fadeUp var(--duration-cinematic) var(--ease-ease-out-expo) var(--duration-normal) forwards;
 }
 
 .hero__headline-line {
@@ -495,7 +493,7 @@ button {
   border-radius: 0.04em;
   transform: scaleX(0);
   transform-origin: left;
-  animation: scaleIn 0.6s var(--ease-out-expo) var(--duration-dramatic) forwards;
+  animation: scaleIn 0.6s var(--ease-ease-out-expo) var(--duration-dramatic) forwards;
 }
 
 @keyframes scaleIn {
@@ -510,7 +508,7 @@ button {
   max-width: 600px;
   margin: 0 auto var(--space-10);
   opacity: 0;
-  animation: fadeUp var(--duration-cinematic) var(--ease-out-expo) var(--duration-slow) forwards;
+  animation: fadeUp var(--duration-cinematic) var(--ease-ease-out-expo) var(--duration-slow) forwards;
 }
 
 .hero__cta {
@@ -520,7 +518,7 @@ button {
   gap: var(--space-4);
   margin-bottom: var(--space-12);
   opacity: 0;
-  animation: fadeUp var(--duration-cinematic) var(--ease-out-expo) var(--duration-slower) forwards;
+  animation: fadeUp var(--duration-cinematic) var(--ease-ease-out-expo) var(--duration-slower) forwards;
 }
 
 @media (min-width: 640px) {
@@ -539,7 +537,7 @@ button {
   justify-content: center;
   gap: var(--space-6);
   opacity: 0;
-  animation: fadeUp var(--duration-cinematic) var(--ease-out-expo) var(--duration-slowest) forwards;
+  animation: fadeUp var(--duration-cinematic) var(--ease-ease-out-expo) var(--duration-slowest) forwards;
 }
 
 .hero__trust-item {
@@ -576,7 +574,7 @@ button {
   max-width: 900px;
   margin: 0 auto;
   opacity: 0;
-  animation: fadeUp var(--duration-dramatic) var(--ease-out-expo) 0.6s forwards;
+  animation: fadeUp var(--duration-dramatic) var(--ease-ease-out-expo) 0.6s forwards;
 }
 
 /* Phone mockup frame */
@@ -733,7 +731,7 @@ button {
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--color-border);
   opacity: 0;
-  animation: floatIn var(--duration-cinematic) var(--ease-out-expo) forwards;
+  animation: floatIn var(--duration-cinematic) var(--ease-ease-out-expo) forwards;
 }
 
 .showcase__float--1 {
@@ -1507,7 +1505,7 @@ button {
 .reveal {
   opacity: 0;
   transform: translateY(40px);
-  transition: opacity var(--duration-cinematic) var(--ease-out-expo), transform var(--duration-cinematic) var(--ease-out-expo);
+  transition: opacity var(--duration-cinematic) var(--ease-ease-out-expo), transform var(--duration-cinematic) var(--ease-ease-out-expo);
 }
 
 .reveal.is-visible {
@@ -1518,7 +1516,7 @@ button {
 .reveal-stagger > * {
   opacity: 0;
   transform: translateY(30px);
-  transition: opacity var(--duration-deliberate) var(--ease-out-expo), transform var(--duration-deliberate) var(--ease-out-expo);
+  transition: opacity var(--duration-deliberate) var(--ease-ease-out-expo), transform var(--duration-deliberate) var(--ease-ease-out-expo);
 }
 
 .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: 0.1s; opacity: 1; transform: translateY(0); }
