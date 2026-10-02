@@ -16,6 +16,7 @@
  *   - getRelationshipSummary: Get relationship history with user
  *   - updateMemory: Update an existing memory with new/corrected information
  *   - forgetMemory: Remove something from memory when user requests
+ *   - setMemoryConsent: Switch remembering health / money / faith on or off
  *
  * BETTER-THAN-HUMAN TOOLS:
  *   - surfaceRelevantMemory: Proactively surface relevant memories when context connects
@@ -37,6 +38,7 @@ import {
 
 // Keep legacy tools that aren't unified yet
 import { getRelationshipSummaryDef, updateMemoryDef, forgetMemoryDef } from './tools.js';
+import { setMemoryConsentDef } from './consent-tool.js';
 
 // ============================================================================
 // DOMAIN TOOLS
@@ -50,6 +52,7 @@ const memoryTools: ToolDefinition[] = [
   getRelationshipSummaryDef,
   updateMemoryDef,
   forgetMemoryDef,
+  setMemoryConsentDef,
   // Better-Than-Human proactive tools
   surfaceRelevantMemoryDef,
   predictUserNeedDef,
@@ -73,6 +76,7 @@ export {
   getRelationshipSummaryDef,
   updateMemoryDef,
   forgetMemoryDef,
+  setMemoryConsentDef,
   // Better-Than-Human proactive tools
   surfaceRelevantMemoryDef,
   predictUserNeedDef,

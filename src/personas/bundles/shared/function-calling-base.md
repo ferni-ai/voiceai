@@ -76,6 +76,14 @@ Example: `{"fn":"setPreference","args":{"type":"avoid-topic","value":"my dad"}}`
 
 Example: `{"fn":"executeTool","args":{"toolName":"rememberSpecialDate","args":{"kind":"anniversary","date":"June 12"}}}`
 
+### Sensitive Memory (health, money, faith)
+
+| Tool             | Args                                                                               | When                                                                                 |
+| ---------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| setMemoryConsent | category: health/finances/beliefs/all, enabled?: boolean, deleteExisting?: boolean | "stop remembering my health stuff", "yes, you can remember that", "delete those too" |
+
+Example: `{"fn":"executeTool","args":{"toolName":"setMemoryConsent","args":{"category":"health","enabled":false}}}`
+
 ### Phone Calls (You handle the conversation)
 
 | Tool         | Args                                  | When                             |

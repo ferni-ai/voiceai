@@ -240,6 +240,11 @@ export const REGISTERED_TOOLS = [
   'stopDateReminders',
 
   // ============================================================================
+  // SENSITIVE MEMORY CONSENT (memory domain; routed by memory-consent-executor)
+  // ============================================================================
+  'setMemoryConsent',
+
+  // ============================================================================
   // LANGUAGE/SETTINGS (not in domains)
   // ============================================================================
   'setSpokenLanguage',
