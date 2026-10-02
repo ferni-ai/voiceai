@@ -235,6 +235,37 @@ export function registerWorkAndPlacesDomains(): void {
   }
 }
 
+/** Money memory (only with Money consent) — services/finance-memory. */
+export function registerFinanceMemoryDomain(): void {
+  registerMemoryDomain({
+    name: 'finances',
+    exportFn: async (userId) => {
+      const { exportFinanceMemory } = await import('../finance-memory/index.js');
+      return exportFinanceMemory(userId);
+    },
+    deleteForConversation: async (userId, conversationId) => {
+      const { deleteFinanceFor } = await import('../finance-memory/index.js');
+      return deleteFinanceFor(userId, conversationId);
+    },
+    deleteAll: async (userId) => {
+      const { deleteAllFinance } = await import('../finance-memory/index.js');
+      return deleteAllFinance(userId);
+    },
+    deleteForFacts: async (userId, factIds) => {
+      const { deleteFinanceDerivedFromFacts } = await import('../finance-memory/index.js');
+      return deleteFinanceDerivedFromFacts(userId, factIds);
+    },
+    find: async (userId, query) => {
+      const { findFinanceMemory } = await import('../finance-memory/index.js');
+      return findFinanceMemory(userId, query);
+    },
+    forget: async (userId, id) => {
+      const { forgetFinanceItem } = await import('../finance-memory/index.js');
+      return forgetFinanceItem(userId, id, 'voice_forget');
+    },
+  });
+}
+
 export function registerBuiltInMemoryDomains(): void {
   registerImportantDatesDomain();
   registerAspirationsDomain();
@@ -242,4 +273,5 @@ export function registerBuiltInMemoryDomains(): void {
   registerUserPreferencesDomain();
   registerHealthMemoryDomain();
   registerWorkAndPlacesDomains();
+  registerFinanceMemoryDomain();
 }

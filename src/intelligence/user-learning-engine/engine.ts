@@ -6,6 +6,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserProfile, KeyMoment, EmotionalPattern } from '../../types/user-profile.js';
+import { parseConsent } from '../../services/memory-consent/store.js';
 import type { EmotionResult } from '../emotion-detector.js';
 import type { IntentResult } from '../intent-classifier.js';
 import type { ConversationState } from '../conversation-state.js';
@@ -868,8 +869,11 @@ export class UserLearningEngine {
       }
     }
 
-    // Update concerns from insights
-    for (const insight of learning.insights) {
+    // Update concerns from insights. Money worries are money memory: only with the
+    // user's Money consent (the consent record lives on the same user document).
+    const consentRecord = (profile as unknown as { memoryConsent?: unknown }).memoryConsent;
+    const moneyConsent = parseConsent(consentRecord).categories.finances.enabled;
+    for (const insight of moneyConsent ? learning.insights : []) {
       if (insight.type === 'concern' && typeof insight.value === 'string') {
         if (!updated.financialAnxietyTriggers) {
           updated.financialAnxietyTriggers = [];

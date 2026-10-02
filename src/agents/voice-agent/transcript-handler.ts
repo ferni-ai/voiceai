@@ -1528,6 +1528,11 @@ async function processFinalTranscript(
         await import('../../services/work-and-places/capture.js');
       await recordUserTurnWorkAndPlaces(userId, event.transcript, sessionId);
     }, 'work-and-places');
+    // 💰 Money (only with Money consent; secrets are redacted before anything is kept)
+    fireAndForget(async () => {
+      const { recordUserTurnFinances } = await import('../../services/finance-memory/capture.js');
+      await recordUserTurnFinances(userId, event.transcript, sessionId);
+    }, 'finance-memory');
   }
 
   // Extract memorable moments

@@ -9,11 +9,15 @@
  *   food restrictions. Allergies and intolerances are NOT deleted: they are a
  *   safety exception and stay whatever the Health switch says.
  *
- * Money and beliefs stores: register yours here.
+ * - finances: money memory (services/finance-memory), including bill
+ *   reminders and the savings goals money memory created.
+ *
+ * Beliefs stores: register yours here.
  *
  * @module services/memory-consent/builtin-category-stores
  */
 
+import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { registerCategoryStore } from './category-data.js';
 import { categoryForFactType, sensitiveCategoriesOf } from './classifier.js';
 import { SENSITIVE_CATEGORIES, type SensitiveCategory } from './types.js';
@@ -55,6 +59,16 @@ function registerFactStore(category: SensitiveCategory): void {
   });
 }
 
+/** Older profile field (user-learning-engine): words like "debt", "retire" that worried them. */
+async function legacyMoneyWorries(userId: string): Promise<string[]> {
+  const fs = getFirestoreDb();
+  if (!fs) return [];
+  const snap = await fs.collection('bogle_users').doc(userId).get();
+  const data: Record<string, unknown> = (snap.exists ? snap.data() : undefined) ?? {};
+  const raw = data.financialAnxietyTriggers;
+  return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : [];
+}
+
 async function medicalFoodPrefs(userId: string): Promise<string[]> {
   const { listPreferences } = await import('../user-preferences/index.js');
   return (await listPreferences(userId, { fresh: true }))
@@ -78,6 +92,31 @@ export function registerBuiltInCategoryStores(): void {
     count: async (userId) => (await import('../health-memory/mood-timeline.js')).countMood(userId),
     deleteAll: async (userId) =>
       (await import('../health-memory/mood-timeline.js')).deleteAllMood(userId),
+  });
+  registerCategoryStore({
+    category: 'finances',
+    name: 'financeMemory',
+    count: async (userId) => (await import('../finance-memory/store.js')).countFinanceItems(userId),
+    deleteAll: async (userId) =>
+      (await import('../finance-memory/lifecycle.js')).deleteAllFinance(userId, {
+        withGoals: true,
+      }),
+  });
+  registerCategoryStore({
+    category: 'finances',
+    name: 'legacyMoneyWorries',
+    count: async (userId) => (await legacyMoneyWorries(userId)).length,
+    deleteAll: async (userId) => {
+      const n = (await legacyMoneyWorries(userId)).length;
+      const fs = getFirestoreDb();
+      if (n > 0 && fs) {
+        await fs
+          .collection('bogle_users')
+          .doc(userId)
+          .set({ financialAnxietyTriggers: [] }, { merge: true });
+      }
+      return n;
+    },
   });
   registerCategoryStore({
     category: 'health',
