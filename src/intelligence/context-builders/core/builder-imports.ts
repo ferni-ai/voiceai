@@ -254,6 +254,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'family-messages-context': async () => import('../external/family-messages-context.js'),
   'family-awareness-context': async () => import('../external/family-awareness-context.js'),
   'special-dates-awareness': async () => import('../family/special-dates-awareness.js'),
+  'goals-habits-awareness': async () => import('../coaching/goals-habits-awareness.js'),
   // 'pending-call-results' removed - not in BUILDER_MANIFEST (orphaned)
 
   // ============================================================================

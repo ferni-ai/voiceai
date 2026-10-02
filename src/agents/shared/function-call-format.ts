@@ -240,6 +240,12 @@ export const REGISTERED_TOOLS = [
   'stopDateReminders',
 
   // ============================================================================
+  // DREAMS (dream-tracking domain; routed by aspirations-executor)
+  // ============================================================================
+  'recordDream',
+  'checkDreams',
+
+  // ============================================================================
   // LANGUAGE/SETTINGS (not in domains)
   // ============================================================================
   'setSpokenLanguage',

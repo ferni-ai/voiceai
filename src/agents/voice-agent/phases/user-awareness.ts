@@ -234,8 +234,10 @@ function addLifeEventsAwareness(facts: string[], profile: UserProfile): void {
 
 function addGoalsAndConcerns(facts: string[], profile: UserProfile): void {
   if (profile.goals && profile.goals.length > 0) {
-    const topGoal = profile.goals[0];
-    facts.push(`Current goal: ${topGoal}`);
+    // profile.goals holds financial goal objects; print the name, not "[object Object]".
+    const topGoal: unknown = profile.goals[0];
+    const goalName = typeof topGoal === 'string' ? topGoal : (topGoal as { name?: string }).name;
+    if (goalName) facts.push(`Current goal: ${goalName}`);
   }
 
   if (profile.primaryConcerns && profile.primaryConcerns.length > 0) {

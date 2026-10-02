@@ -809,16 +809,16 @@ Your superpower: You never forget what they dreamed of becoming.
         priority: 62,
       });
 
-      // Fire-and-forget: Detect and persist dream
-      void import('../../services/superhuman/dream-keeper.js')
-        .then((m) => {
-          const dream = m.detectDream(ctx.userText);
-          if (dream) {
-            void m.recordDreamMention(ctx.userId, dream);
-          }
-        })
-        .catch((e) => log.debug({ error: String(e) }, 'Dream recording skipped'));
     }
+
+    // 8c'. ASPIRATIONS: dreams, goals, habits, check-ins and let-gos are
+    // captured into the canonical aspirations store (fire-and-forget; the
+    // detector is regex-only and touches storage only when it finds something).
+    void import('../../services/aspirations/capture.js')
+      .then(async (m) =>
+        m.captureFromUtterance(ctx.userId, ctx.userText, { conversationId: ctx.sessionId })
+      )
+      .catch((e) => log.debug({ error: String(e) }, 'Aspiration capture skipped'));
 
     // 8d. LIFE NARRATIVE (Better Than Human - remember every chapter)
     const hasChapterMoment =

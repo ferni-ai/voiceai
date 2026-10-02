@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { mirrorGoalCommitment, mirrorGoalCommitmentStatus } from './commitment-goal-bridge.js';
 import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import {
   validateCommitmentFeasibility,
@@ -378,6 +379,7 @@ export async function saveCommitment(
     status: 'active',
     followUpCount: 0,
   };
+  void mirrorGoalCommitment(fullCommitment);
 
   // Better Than Human: Validate against calendar
   let feasibility: CommitmentFeasibility | undefined;
@@ -606,6 +608,7 @@ export async function updateCommitmentStatus(
       }
     }
 
+    void mirrorGoalCommitmentStatus(userId, commitmentId, status);
     log.info({ userId, commitmentId, status }, '✅ Commitment status updated');
   } catch (error) {
     log.error({ error: String(error), userId, commitmentId }, 'Failed to update commitment');

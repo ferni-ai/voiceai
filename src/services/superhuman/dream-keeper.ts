@@ -10,9 +10,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { indexDream } from '../data-layer/integrations/index.js';
 import { onDreamBecameDormant } from '../outreach/superhuman-outreach-bridge.js';
-import { cleanForFirestore, getFirestoreDb } from './firestore-utils.js';
+import { loadUserDreams, recordDreamMention, saveDream } from './dream-keeper-storage.js';
 
 const log = createLogger({ module: 'dream-keeper' });
 
@@ -185,159 +184,10 @@ export function detectDream(
 }
 
 // ============================================================================
-// STORAGE
+// STORAGE (canonical aspirations store; see dream-keeper-storage.ts)
 // ============================================================================
 
-const dreamCache = new Map<string, Dream[]>();
-
-export async function loadUserDreams(userId: string): Promise<Dream[]> {
-  if (dreamCache.has(userId)) {
-    return dreamCache.get(userId) || [];
-  }
-
-  try {
-    const db = getFirestoreDb();
-    if (!db) return [];
-
-    const snapshot = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('dreams')
-      .orderBy('lastMentioned', 'desc')
-      .limit(30)
-      .get();
-
-    const dreams = snapshot.docs.map((doc) => doc.data() as Dream);
-    dreamCache.set(userId, dreams);
-    return dreams;
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Failed to load dreams');
-    return [];
-  }
-}
-
-export async function saveDream(dream: Dream): Promise<void> {
-  const db = getFirestoreDb();
-  if (db) {
-    await db
-      .collection('bogle_users')
-      .doc(dream.userId)
-      .collection('dreams')
-      .doc(dream.id)
-      .set(cleanForFirestore(dream));
-  }
-
-  // Index to semantic memory for contextual retrieval
-  indexDream(
-    dream.userId,
-    {
-      id: dream.id,
-      dream: dream.statement,
-      category: dream.type,
-      timeframe: undefined, // Dream type doesn't have duration
-      status: dream.status === 'alive' ? 'active' : dream.status,
-      steps: dream.progressNotes,
-      obstacles: dream.obstacles,
-    },
-    'update'
-  );
-
-  // Update cache
-  const dreams = dreamCache.get(dream.userId) || [];
-  const idx = dreams.findIndex((d) => d.id === dream.id);
-  if (idx >= 0) {
-    dreams[idx] = dream;
-  } else {
-    dreams.push(dream);
-  }
-  dreamCache.set(dream.userId, dreams);
-
-  // Memory Lane: Capture dream as potential memory
-  try {
-    const { captureDream } = await import('../memory-lane/real-time-collector.js');
-    void captureDream({
-      userId: dream.userId,
-      dreamId: dream.id,
-      statement: dream.statement,
-      type: dream.type,
-      personaId: dream.personaId,
-    });
-  } catch {
-    // Memory capture is optional
-  }
-}
-
-export async function recordDreamMention(
-  userId: string,
-  detected: { type: DreamType; statement: string; confidence: number }
-): Promise<Dream> {
-  const dreams = await loadUserDreams(userId);
-
-  // Find existing dream of same type with similar content
-  const existing = dreams.find(
-    (d) =>
-      d.type === detected.type &&
-      (d.statement.toLowerCase().includes(detected.statement.slice(0, 30).toLowerCase()) ||
-        detected.statement.toLowerCase().includes(d.statement.slice(0, 30).toLowerCase()))
-  );
-
-  if (existing) {
-    existing.lastMentioned = Date.now();
-    existing.mentionCount++;
-    existing.confidence = Math.min(1, existing.confidence + 0.05);
-
-    // Reactivate if dormant
-    if (existing.status === 'dormant') {
-      existing.status = 'alive';
-      existing.dormantSince = undefined;
-    }
-
-    await saveDream(existing);
-    return existing;
-  }
-
-  // Create new dream
-  const newDream: Dream = {
-    id: `dream_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    userId,
-    statement: detected.statement,
-    type: detected.type,
-    title: generateDreamTitle(detected.type, detected.statement),
-    status: 'alive',
-    confidence: detected.confidence,
-    firstMentioned: Date.now(),
-    lastMentioned: Date.now(),
-    mentionCount: 1,
-    obstacles: [],
-    progressNotes: [],
-  };
-
-  await saveDream(newDream);
-  log.info({ userId, dreamType: newDream.type, title: newDream.title }, '✨ New dream recorded');
-  return newDream;
-}
-
-function generateDreamTitle(type: DreamType, statement: string): string {
-  const prefixes: Record<DreamType, string[]> = {
-    career: ['The career', 'The professional path', 'The work'],
-    creative: ['The creative project', 'The artistic dream', 'The creation'],
-    adventure: ['The journey', 'The adventure', 'The experience'],
-    relationship: ['The relationship', 'The connection', 'The love'],
-    impact: ['The legacy', 'The difference', 'The contribution'],
-    lifestyle: ['The life', 'The way of living', 'The freedom'],
-    growth: ['The becoming', 'The transformation', 'The growth'],
-    healing: ['The healing', 'The peace', 'The resolution'],
-  };
-
-  // Extract a key phrase from the statement
-  const keyWords = statement
-    .slice(0, 50)
-    .replace(/^i (want|dream|wish|hope) to /i, '')
-    .trim();
-  const prefix = prefixes[type][0];
-
-  return `${prefix}: ${keyWords}...`;
-}
+export { loadUserDreams, recordDreamMention, saveDream };
 
 // ============================================================================
 // DORMANCY TRACKING

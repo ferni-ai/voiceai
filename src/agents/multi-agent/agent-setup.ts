@@ -471,8 +471,10 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       // Know what matters to them right now
       // =========================================================================
       if (userProfile.goals && userProfile.goals.length > 0) {
-        const topGoal = userProfile.goals[0];
-        userAwareness.push(`Current goal: ${topGoal}`);
+        // profile.goals holds financial goal objects; print the name, not "[object Object]".
+        const topGoal: unknown = userProfile.goals[0];
+        const goalName = typeof topGoal === 'string' ? topGoal : (topGoal as { name?: string }).name;
+        if (goalName) userAwareness.push(`Current goal: ${goalName}`);
       }
       if (userProfile.primaryConcerns && userProfile.primaryConcerns.length > 0) {
         const topConcern = userProfile.primaryConcerns[0];

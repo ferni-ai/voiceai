@@ -25,6 +25,27 @@ import {
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { upsertAspiration, type AspirationStatus } from '../../../services/aspirations/index.js';
+
+/** Keep the dream in the canonical aspirations store (fire-and-forget). */
+function keepDream(
+  ctx: ToolContext,
+  title: string,
+  extra: { why?: string; note?: string; category?: string; status?: AspirationStatus } = {}
+): void {
+  if (!ctx.userId || !title.trim()) return;
+  void upsertAspiration(ctx.userId, {
+    level: 'dream',
+    title,
+    ...extra,
+    source: 'explicit',
+    confidence: 1,
+    ...(ctx.sessionId ? { sourceConversationIds: [ctx.sessionId] } : {}),
+    personaId: ctx.agentId,
+  }).then((out) => {
+    if (!out.success) getLogger().warn({ error: out.error.message }, 'Could not keep dream');
+  });
+}
 // ============================================================================
 // DREAM TOOLS
 // ============================================================================
@@ -67,6 +88,7 @@ const captureDreamDef: ToolDefinition = {
         response += `This dream tells me something about who you are and what you long for.\n\n`;
         response += `Would you like to explore this dream further, or simply hold it for now?`;
 
+        keepDream(ctx, dream, { ...(howItFeels ? { why: howItFeels } : {}), category: type });
         persistInsight(ctx as unknown as ToolCtxWithUserData, {
           domain: 'dreams',
           type: 'dream_captured',
@@ -180,6 +202,8 @@ const honorUnfulfilledDef: ToolDefinition = {
         response += `- Accept the path your life actually took\n\n`;
         response += `What did holding this dream give you, even if it won't come true?`;
 
+        // Grieving a dream lets it go; it's kept (not deleted) so it can be honoured.
+        keepDream(ctx, dream, { status: 'let-go', ...(whyUnfulfilled ? { note: whyUnfulfilled } : {}) });
         persistKeyMoment(ctx as unknown as ToolCtxWithUserData, {
           domain: 'dreams',
           type: 'shared_vulnerability',
@@ -376,6 +400,7 @@ const bucketListDef: ToolDefinition = {
           response += `- How long have you wanted this?\n`;
           response += `- What would it mean to do it?`;
 
+          if (item) keepDream(ctx, item, { category: 'bucket-list' });
           persistTrackedItem(ctx as unknown as ToolCtxWithUserData, {
             domain: 'dreams',
             itemType: 'bucket_list',
