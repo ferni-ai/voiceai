@@ -10,11 +10,7 @@
 export {
   detectCrisis,
   guardPreResponse,
-  guardPostResponse,
-  buildCrisisGuardContext,
-  applyGuardResult,
   type CrisisGuardResult,
-  type CrisisGuardContext,
   type CrisisDetectionResult,
   type VoiceEmotionContext,
 } from './crisis-guard.js';

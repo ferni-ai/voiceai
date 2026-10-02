@@ -59,7 +59,6 @@ export {
   buildAdvancedHumanizationInjections,
   initAdvancedHumanizationSession,
   cleanupAdvancedHumanizationSession,
-  recordAdviceGivenToSession,
 } from './humanization-builders.js';
 
 // ── Better Than Human (Priority 72-91) ──────────────────────────────────

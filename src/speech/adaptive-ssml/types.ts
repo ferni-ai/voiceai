@@ -37,13 +37,3 @@ export interface CognitiveSsmlOptions {
     speedVariation: number;
   };
 }
-
-/**
- * Options for personality-based SSML tagging
- */
-export interface PersonalityTagOptions {
-  speedRatio?: number;
-  pauseMultiplier?: number;
-  emotion?: string;
-  volumeRatio?: number;
-}

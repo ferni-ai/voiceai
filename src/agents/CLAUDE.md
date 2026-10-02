@@ -67,7 +67,6 @@ agents/
 ├── shared/                # Shared utilities (52+ files, 5 subdirectories)
 ├── personas/              # Persona agent wrappers
 ├── safety/                # Crisis guard, safety checks
-├── trust/                 # Trust enforcement
 ├── core/                  # Result types, pipeline base
 ├── gce/                   # GCE-specific (warmup, LiveKit connection)
 ├── handlers/              # Shared handlers (silence handler)
