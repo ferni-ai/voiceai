@@ -1,225 +1,150 @@
+/**
+ * Brand linter scope: what each rule flags and where. Every case runs the real
+ * rules through lintFile, so reverting a scope change fails a test here.
+ */
 import { describe, expect, it } from 'vitest';
 import {
-  isEmojiInLoggingCall,
-  shouldCheckFile,
-  lintFile,
+  globToRegExp,
   INCLUDE_PATTERNS,
-  EXCLUDE_PATTERNS,
+  isEmojiInLoggingCall,
+  lintFile,
 } from '../lint-brand.js';
-import path from 'path';
 
-describe('lint-brand scope changes', () => {
-  describe('no-console-log exclusions', () => {
-    const consoleLogRule = {
-      id: 'no-console-log',
-      exclude: [
-        '**/logger.ts',
-        '**/logger.js',
-        'src/cli/**',
-        'src/scripts/**',
-        'scripts/**',
-        '**/__tests__/**',
-        '**/*.test.ts',
-        '**/*.spec.ts',
-        'src/tests/**',
-      ],
-      fileTypes: ['.ts', '.js'],
-    };
+function ruleHits(file: string, content: string, rule: string): number {
+  return lintFile(file, content).filter((e) => e.rule === rule).length;
+}
 
-    it('should NOT flag console.log in src/cli/', () => {
-      expect(shouldCheckFile('/repo/src/cli/foo.ts', consoleLogRule as any)).toBe(false);
-    });
+const CONSOLE = 'console.log("hi");';
 
-    it('should NOT flag console.log in src/scripts/', () => {
-      expect(shouldCheckFile('/repo/src/scripts/deploy.ts', consoleLogRule as any)).toBe(false);
-    });
+describe('no-console-log scope', () => {
+  it.each(['/repo/src/cli/foo.ts', '/repo/src/scripts/deploy.ts', '/repo/scripts/build.ts'])(
+    'ignores console in tooling: %s',
+    (file) => {
+      expect(ruleHits(file, CONSOLE, 'no-console-log')).toBe(0);
+    }
+  );
 
-    it('should NOT flag console.log in scripts/', () => {
-      expect(shouldCheckFile('/repo/scripts/foo.ts', consoleLogRule as any)).toBe(false);
-    });
+  it.each(['/repo/src/services/foo.ts', '/repo/apps/web/src/ui/foo.ts'])(
+    'flags console in app and server code: %s',
+    (file) => {
+      expect(ruleHits(file, CONSOLE, 'no-console-log')).toBe(1);
+    }
+  );
 
-    it('should NOT flag console.log in src/services/__tests__/', () => {
-      expect(shouldCheckFile('/repo/src/services/__tests__/x.test.ts', consoleLogRule as any)).toBe(false);
-    });
-
-    it('should FLAG console.log in src/services/', () => {
-      expect(shouldCheckFile('/repo/src/services/foo.ts', consoleLogRule as any)).toBe(true);
-    });
-
-    it('should FLAG console.log in apps/web/src/ui/', () => {
-      expect(shouldCheckFile('/repo/apps/web/src/ui/foo.ts', consoleLogRule as any)).toBe(true);
-    });
+  it('anchors excludes to a path segment, so transcripts/ is not scripts/', () => {
+    expect(ruleHits('/repo/src/memory/transcripts/store.ts', CONSOLE, 'no-console-log')).toBe(1);
   });
 
-  describe('no-hardcoded-hex-colors exclusions', () => {
-    const hexRule = {
-      id: 'no-hardcoded-hex-colors',
-      exclude: [
-        '**/tokens.ts',
-        '**/tokens.css',
-        '**/design-tokens.css',
-        'design-system/tokens/**',
-        'design-system/dist/**',
-        '**/*.generated.*',
-      ],
-      fileTypes: ['.ts', '.js'],
-    };
-
-    it('should NOT flag hex in design-system/tokens/', () => {
-      expect(shouldCheckFile('/repo/design-system/tokens/colors.json', hexRule as any)).toBe(false);
-    });
-
-    it('should NOT flag hex in design-system/dist/', () => {
-      expect(shouldCheckFile('/repo/design-system/dist/tokens.css', hexRule as any)).toBe(false);
-    });
-
-    it('should NOT flag hex in *.generated.* files', () => {
-      expect(shouldCheckFile('/repo/apps/web/src/config/x.generated.ts', hexRule as any)).toBe(false);
-    });
-
-    it('should FLAG hex in apps/web/src/ui/', () => {
-      expect(shouldCheckFile('/repo/apps/web/src/ui/foo.ts', hexRule as any)).toBe(true);
-    });
+  it('skips doc-comment lines', () => {
+    const content = '/**\n * Example:\n *   console.log(result);\n */\nexport const x = 1;';
+    expect(ruleHits('/repo/src/services/foo.ts', content, 'no-console-log')).toBe(0);
   });
 
-  describe('no-emoji-in-ui with logging detection', () => {
-    it('should skip emoji in log.info()', () => {
-      const line = "log.info('🎯 done')";
-      expect(isEmojiInLoggingCall(line, line.indexOf('🎯'))).toBe(true);
-    });
-
-    it('should skip emoji in logger.warn() with template string', () => {
-      const line = 'logger.warn(`⚠️ ${x}`)';
-      expect(isEmojiInLoggingCall(line, line.indexOf('⚠️'))).toBe(true);
-    });
-
-    it('should skip emoji in console.error()', () => {
-      const line = "console.error('❌', e)";
-      expect(isEmojiInLoggingCall(line, line.indexOf('❌'))).toBe(true);
-    });
-
-    it('should skip emoji in process.stderr.write()', () => {
-      const line = "process.stderr.write('✅ ok')";
-      expect(isEmojiInLoggingCall(line, line.indexOf('✅'))).toBe(true);
-    });
-
-    it('should skip emoji on 2nd line inside multi-line call parens', () => {
-      // Simulate multi-line by checking behavior - emoji at position is still within open paren
-      const line = "log.info('start";
-      const secondLineWithEmoji = " 🚀 end')";
-      const combinedLine = line + secondLineWithEmoji;
-      expect(isEmojiInLoggingCall(combinedLine, combinedLine.indexOf('🚀'))).toBe(true);
-    });
-
-    it('should FLAG emoji in button text content', () => {
-      const line = "button.textContent = '🎯 Start'";
-      expect(isEmojiInLoggingCall(line, line.indexOf('🎯'))).toBe(false);
-    });
-
-    it('should FLAG emoji in const assignment', () => {
-      const line = "const label = '✨ New'";
-      expect(isEmojiInLoggingCall(line, line.indexOf('✨'))).toBe(false);
-    });
-
-    it('should FLAG emoji after closed log call on same line', () => {
-      const line = "log.info('a'); el.title = '🎉'";
-      expect(isEmojiInLoggingCall(line, line.indexOf('🎉'))).toBe(false);
-    });
+  it('honors eslint-disable-next-line no-console on the line above only', () => {
+    const content = [
+      '// eslint-disable-next-line no-console',
+      'console.table(rows); console.log("shown");',
+      'console.log("not covered");',
+    ].join('\n');
+    expect(ruleHits('/repo/apps/web/src/services/dev.ts', content, 'no-console-log')).toBe(1);
   });
 
-  describe('include/exclude patterns', () => {
-    it('should include apps/website/ferni-website files', () => {
-      expect(INCLUDE_PATTERNS.join('|')).toContain('apps/website/ferni-website');
-    });
-
-    it('should exclude node_modules', () => {
-      expect(EXCLUDE_PATTERNS.join('|')).toContain('node_modules');
-    });
-
-    it('should exclude dist', () => {
-      expect(EXCLUDE_PATTERNS.join('|')).toContain('dist');
-    });
-
-    it('should exclude __tests__ directories', () => {
-      expect(EXCLUDE_PATTERNS.join('|')).toContain('__tests__');
-    });
-
-    it('should not match node_modules files', () => {
-      const testPath = '/repo/node_modules/some-lib/index.ts';
-      // Check if any exclude pattern matches
-      const isExcluded = EXCLUDE_PATTERNS.some(pattern => {
-        const regex = new RegExp(pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*'));
-        return regex.test(testPath);
-      });
-      expect(isExcluded).toBe(true);
-    });
-
-    it('should not match _site files', () => {
-      const testPath = '/repo/_site/index.html';
-      // _site is not in exclude patterns (it's a different check), but dist is similar
-      expect(EXCLUDE_PATTERNS.join('|')).not.toContain('_site');
-    });
+  it('honors eslint-disable-line no-console and a file-level disable', () => {
+    const sameLine = 'console.log("x"); // eslint-disable-line no-console';
+    const fileLevel = '/* eslint-disable no-console */\nconsole.log("a");\nconsole.warn("b");';
+    expect(ruleHits('/repo/apps/web/src/a.ts', sameLine, 'no-console-log')).toBe(0);
+    expect(ruleHits('/repo/apps/web/src/b.ts', fileLevel, 'no-console-log')).toBe(0);
   });
 
-  describe('lintFile integration with scope changes', () => {
-    it('should not flag console.log in CLI code', () => {
-      const content = 'console.log("test");';
-      const errors = lintFile('/repo/src/cli/index.ts', content);
-      const consoleErrors = errors.filter(e => e.rule === 'no-console-log');
-      expect(consoleErrors.length).toBe(0);
-    });
+  it('does not treat other eslint disables as console opt-outs', () => {
+    const content = '// eslint-disable-next-line no-unused-vars\nconsole.log("x");';
+    expect(ruleHits('/repo/apps/web/src/a.ts', content, 'no-console-log')).toBe(1);
+  });
+});
 
-    it('should flag console.log in app code', () => {
-      const content = 'console.log("test");';
-      const errors = lintFile('/repo/src/services/app.ts', content);
-      const consoleErrors = errors.filter(e => e.rule === 'no-console-log');
-      expect(consoleErrors.length).toBeGreaterThan(0);
-    });
+describe('no-hardcoded-hex-colors scope', () => {
+  const HEX = 'export const accent = "#3d5a45";';
 
-    it('should not flag emoji in logging calls', () => {
-      const content = 'log.info("Ready 🚀");';
-      const errors = lintFile('/repo/src/services/app.ts', content);
-      const emojiErrors = errors.filter(e => e.rule === 'no-emoji-in-ui');
-      expect(emojiErrors.length).toBe(0);
-    });
-
-    it('should flag emoji in user-facing strings', () => {
-      const content = 'return "Click here 👆";';
-      const errors = lintFile('/repo/src/services/app.ts', content);
-      const emojiErrors = errors.filter(e => e.rule === 'no-emoji-in-ui');
-      expect(emojiErrors.length).toBeGreaterThan(0);
-    });
-
-    it('should not flag hex in design-system tokens', () => {
-      const content = 'export const colors = { primary: "#3d5a45" };';
-      const errors = lintFile('/repo/design-system/tokens/colors.json', content);
-      const hexErrors = errors.filter(e => e.rule === 'no-hardcoded-hex-colors');
-      expect(hexErrors.length).toBe(0);
-    });
-
-    it('should flag hex in UI code', () => {
-      const content = 'const color = "#ff0000";';
-      const errors = lintFile('/repo/apps/web/src/ui/Button.ts', content);
-      const hexErrors = errors.filter(e => e.rule === 'no-hardcoded-hex-colors');
-      expect(hexErrors.length).toBeGreaterThan(0);
-    });
+  it.each([
+    '/repo/design-system/tokens/colors.ts',
+    '/repo/design-system/dist/tokens.ts',
+    '/repo/apps/web/src/config/persona-colors.generated.ts',
+  ])('ignores token sources and generated files: %s', (file) => {
+    expect(ruleHits(file, HEX, 'no-hardcoded-hex-colors')).toBe(0);
   });
 
-  describe('edge cases', () => {
-    it('should handle emoji in logger.debug with multiple parens', () => {
-      const line = 'logger.debug({ data: transform("input") }, "Status: ✅")';
-      expect(isEmojiInLoggingCall(line, line.indexOf('✅'))).toBe(true);
-    });
+  it.each(['/repo/apps/web/src/ui/button.ts', '/repo/design-system/components/card.ts'])(
+    'flags hex in UI code: %s',
+    (file) => {
+      expect(ruleHits(file, HEX, 'no-hardcoded-hex-colors')).toBe(1);
+    }
+  );
+});
 
-    it('should handle emoji outside call that looks similar', () => {
-      const line = 'const emoji = "🎯"; process.log(emoji)';
-      // The emoji at index of "🎯" is NOT in a logging call
-      expect(isEmojiInLoggingCall(line, line.indexOf('🎯'))).toBe(false);
-    });
+describe('no-purple-colors scope', () => {
+  it('ignores generated files but flags UI code', () => {
+    const content = 'const c = "#8b5cf6";';
+    expect(ruleHits('/repo/apps/web/src/config/x.generated.ts', content, 'no-purple-colors')).toBe(0);
+    expect(ruleHits('/repo/apps/web/src/ui/x.ts', content, 'no-purple-colors')).toBeGreaterThan(0);
+  });
+});
 
-    it('should handle console.log with nested calls', () => {
-      const line = 'console.log(format("Value: 🔧"))';
-      expect(isEmojiInLoggingCall(line, line.indexOf('🔧'))).toBe(true);
-    });
+describe('no-emoji-in-ui and logging calls', () => {
+  const FILE = '/repo/src/services/app.ts';
+  const emoji = (content: string): number => ruleHits(FILE, content, 'no-emoji-in-ui');
+
+  it.each([
+    "log.info('🎯 done');",
+    'logger.warn(`⚠️ ${x}`);',
+    "console.error('❌', e);",
+    "process.stderr.write('✅ ok');",
+    "this.log.warn('⚠️ careful');",
+    "getLogger().info('🧠 loaded');",
+    "log.info('(🎯');",
+    'logger.debug({ data: transform("input") }, "✅ ok");',
+  ])('skips emoji inside a log call: %s', (line) => {
+    expect(emoji(line)).toBe(0);
+  });
+
+  it('skips emoji on a continuation line of a multi-line log call', () => {
+    const content = "log.info(\n  { userId },\n  '🚀 session started'\n);";
+    expect(emoji(content)).toBe(0);
+  });
+
+  it.each([
+    "button.textContent = '🎯 Start';",
+    "toast.success('🎉 Saved');",
+    "dialog.show('🎉 Hi');",
+    "blog.post('🎉 Hi');",
+    "catalog.info('🎉');",
+    "const msg = '🎉 Saved'; log.info(msg);",
+    "log.info('a'); el.title = '🎉';",
+  ])('flags emoji outside a log call: %s', (line) => {
+    expect(emoji(line)).toBe(1);
+  });
+
+  it('flags emoji after a multi-line log call has closed', () => {
+    const content = "log.info(\n  'ready'\n);\nreturn '👆 Click here';";
+    expect(emoji(content)).toBe(1);
+  });
+
+  it('keeps the single-line helper in step with the rule', () => {
+    const line = "log.info('a'); el.title = '🎉'";
+    expect(isEmojiInLoggingCall(line, line.indexOf('🎉'))).toBe(false);
+    expect(isEmojiInLoggingCall("log.info('🎯')", 10)).toBe(true);
+  });
+});
+
+describe('file globs', () => {
+  it('lints the public website', () => {
+    expect(INCLUDE_PATTERNS.some((p) => p.startsWith('apps/website/ferni-website/src/'))).toBe(true);
+  });
+
+  it('anchors exclude globs at path segments', () => {
+    expect(globToRegExp('scripts/**').test('apps/web/scripts/x.ts')).toBe(true);
+    expect(globToRegExp('scripts/**').test('src/memory/transcripts/x.ts')).toBe(false);
+    expect(globToRegExp('**/logger.ts').test('apps/web/src/utils/logger.ts')).toBe(true);
+    expect(globToRegExp('**/logger.ts').test('apps/web/src/utils/mylogger.ts')).toBe(false);
+    expect(globToRegExp('**/*.generated.*').test('a/b/colors.generated.ts')).toBe(true);
   });
 });
