@@ -24,6 +24,7 @@ import { getLogger, generateId } from '../../utils/tool-helpers.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { syncHabitToCalendar } from '../../../services/calendar/calendar-bridge.js';
 import { aspirationIdFor } from '../../../services/aspirations/identity.js';
+import type { Habit, HabitCategory, HabitFrequency, HabitLog } from './habits.types.js';
 // Bridge functions for persistence
 function habitDataToHabit(data: HabitData & { userId?: string }, userId: string): Habit {
   return {
@@ -73,41 +74,7 @@ function habitLogToData(log: HabitLog): HabitLogData {
 // TYPES
 // ============================================================================
 
-export type HabitFrequency = 'daily' | 'weekdays' | 'weekends' | 'weekly' | 'custom';
-export type HabitCategory =
-  | 'health'
-  | 'fitness'
-  | 'mindfulness'
-  | 'productivity'
-  | 'learning'
-  | 'social'
-  | 'finance'
-  | 'other';
-
-export interface Habit {
-  id: string;
-  userId: string;
-  name: string;
-  description?: string;
-  category: HabitCategory;
-  frequency: HabitFrequency;
-  customDays?: number[]; // 0-6 for custom frequency
-  targetPerDay: number; // For habits done multiple times
-  reminderTime?: string; // "08:00" format
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface HabitLog {
-  id: string;
-  habitId: string;
-  userId: string;
-  date: Date;
-  completed: boolean;
-  count: number; // How many times done
-  notes?: string;
-}
+export type { Habit, HabitCategory, HabitFrequency, HabitLog } from './habits.types.js';
 
 // ============================================================================
 // STORAGE - Uses ProductivityStore for persistence
