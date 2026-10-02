@@ -148,6 +148,7 @@ import {
 import { enrichEmotionWithVoice } from './voice-biomarker.js';
 import { recordTeamHuddleObservation } from './team-huddle-helpers.js';
 import { buildContextInjections } from './context-injections.js';
+import { captureTurnToKnowledgeGraph } from './knowledge-graph-capture.js';
 
 /**
  * Process a complete user turn
@@ -562,52 +563,13 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       { context: 'dynamic-memory-capture' }
     );
 
-    safeFireAndForget(
-      async () => {
-        try {
-          const { captureTurn, isKnowledgeCaptureReady } =
-            await import('../../../memory/knowledge-graph/index.js');
-
-          if (!isKnowledgeCaptureReady()) return;
-
-          const valenceToNumber = (v?: string): number | undefined => {
-            if (!v) return undefined;
-            if (v === 'positive') return 1;
-            if (v === 'negative') return -1;
-            return 0;
-          };
-
-          const captureResult = await captureTurn({
-            userId: services.userId!,
-            sessionId: services.sessionId,
-            turnNumber: turnCount,
-            transcript: userText,
-            personaId: ctx.persona?.id,
-            emotion: analysisResult?.analysis?.emotion
-              ? {
-                  primary: analysisResult.analysis.emotion.primary,
-                  intensity: analysisResult.analysis.emotion.intensity,
-                  valence: valenceToNumber(analysisResult.analysis.emotion.valence),
-                }
-              : undefined,
-            topic: analysisResult?.analysis?.topics?.detected?.[0],
-            recentContext: undefined,
-          });
-
-          if (captureResult.entities.created > 0 || captureResult.entities.updated > 0) {
-            diag.state('🧠 Knowledge graph updated', {
-              entitiesCreated: captureResult.entities.created,
-              entitiesUpdated: captureResult.entities.updated,
-              factsCount: captureResult.facts.count,
-              relationshipsCount: captureResult.relationships.count,
-              timeMs: captureResult.metrics.totalTimeMs,
-            });
-          }
-        } catch (error) {
-          diag.debug('Knowledge graph capture failed (non-blocking)', { error: String(error) });
-        }
-      },
-      { context: 'knowledge-graph-capture' }
+    captureTurnToKnowledgeGraph(
+      services.userId!,
+      services.sessionId,
+      turnCount,
+      userText,
+      ctx.persona?.id,
+      analysisResult
     );
 
     const extractedDetails = (userData as Record<string, unknown>).extractedDetails as
