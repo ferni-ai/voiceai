@@ -29,8 +29,8 @@ import { getFirebaseAuth, isFirebaseConfigured } from '../config/firebase.js';
 import { createLogger } from '../utils/logger.js';
 import { readDevAuthUser } from './dev-auth-user.js';
 import { capturePriorIdentity, linkPriorIdentity } from './identity-link.service.js';
-import { type AuthState, type AuthStateCallback, buildAuthState } from './firebase-auth-state.js';
-export type { AuthState, AuthStateCallback } from './firebase-auth-state.js';
+import type { AuthState, AuthStateCallback } from './firebase-auth.types.js';
+export type { AuthState, AuthStateCallback } from './firebase-auth.types.js';
 
 const log = createLogger('FirebaseAuth');
 
@@ -48,6 +48,40 @@ let initPromise: Promise<void> | null = null;
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+/**
+ * Build AuthState from Firebase User
+ */
+function buildAuthState(user: User | null): AuthState {
+  if (!user) {
+    return {
+      isConfigured: isFirebaseConfigured(),
+      isAuthenticated: false,
+      isLinked: false,
+      uid: null,
+      email: null,
+      displayName: null,
+      photoURL: null,
+      linkedProviders: [],
+    };
+  }
+
+  const linkedProviders = user.providerData.map((p) => p.providerId);
+  const isLinked = linkedProviders.some(
+    (p) => p === 'google.com' || p === 'apple.com' || p === 'password'
+  );
+
+  return {
+    isConfigured: true,
+    isAuthenticated: true,
+    isLinked,
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName,
+    photoURL: user.photoURL,
+    linkedProviders,
+  };
+}
 
 /**
  * Notify all auth state listeners
