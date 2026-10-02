@@ -76,7 +76,7 @@ export interface ModalOptions extends ComponentOptions {
  *   eyebrow: 'YOUR JOURNEY',
  *   title: 'Growing Together',
  *   content: '<p>Modal content here...</p>',
- *   onClose: () => console.log('Modal closed'),
+ *   onClose: () => log.info('Modal closed'),
  * });
  *
  * modal.mount(document.body);

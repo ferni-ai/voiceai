@@ -13,6 +13,12 @@
  */
 
 import { moments, toast, whisper } from './index.js';
+import { createLogger } from '../../utils/logger.js';
+
+const log = createLogger('Migration');
+
+
+
 
 // ============================================================================
 // MIGRATION MAPPING
@@ -102,18 +108,18 @@ export function enableMigrationWarnings(): void {
 
   // Wrap toast methods
   (toast.info as unknown) = (message: string) => {
-    console.warn('[Migration] Replace toast.info() with moments.whisper(message, { type: "info" })');
+    log.warn('[Migration] Replace toast.info() with moments.whisper(message, { type: "info" })');
     return originalToast.info(message);
   };
 
   (toast.success as unknown) = (message: string) => {
-    console.warn('[Migration] Replace toast.success() with moments.whisper(message, { type: "success" })');
+    log.warn('[Migration] Replace toast.success() with moments.whisper(message, { type: "success" })');
     return originalToast.success(message);
   };
 
   // Wrap whisper methods
   (whisper.celebration as unknown) = (amount: number, reason?: string) => {
-    console.warn('[Migration] Replace whisper.celebration() with moments.notice(reason, { type: "seeds", amount })');
+    log.warn('[Migration] Replace whisper.celebration() with moments.notice(reason, { type: "seeds", amount })');
     return originalWhisper.celebration(amount, reason);
   };
 }

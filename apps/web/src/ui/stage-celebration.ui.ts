@@ -26,10 +26,9 @@ import {
   getTranslatedStageName,
 } from '../services/relationship-stage.service.js';
 import type { StageChangeEvent, RelationshipMemory } from '../services/relationship-stage.service.js';
-import { createLogger } from '../utils/logger.js';
-import { 
-  DURATION, 
-  EASING, 
+import {
+  DURATION,
+  EASING,
 } from '../config/animation-constants.js';
 
 // ============================================================================

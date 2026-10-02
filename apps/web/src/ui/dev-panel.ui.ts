@@ -5975,8 +5975,6 @@ function viewStorage(): void {
   });
   // eslint-disable-next-line no-console
   console.groupEnd();
-
-  log.info({ count: ferniKeys.length }, 'Storage data logged to browser console');
   avatarFeedback.info(`${ferniKeys.length} items logged to console`);
 }
 

@@ -17,11 +17,13 @@
  * const unsubscribe = subscribeToEmotion((current, previous) => {
  *   console.log(`Emotion changed: ${previous.id} → ${current.id}`);
  * });
- * 
+ *
  * // Process text for emotion cues
  * emotionTriggers.processText("That's amazing! I love it!");
  * ```
  */
+
+
 
 export {
   // State manager

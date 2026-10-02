@@ -88,7 +88,7 @@ export function isTouchDevice(): boolean {
  * @example
  * ```typescript
  * const cleanup = addTapListener(button, (e) => {
- *   console.log('Tapped!');
+ *   log.info('Tapped!');
  * });
  * 
  * // Later, to remove:

@@ -14,6 +14,11 @@
  *
  * Generated: 2026-02-23T11:35:47.355Z
  */
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('AdaptiveTheming.generated');
+
+
 
 // =============================================================================
 // TYPES
@@ -590,7 +595,7 @@ class AdaptiveThemingOrchestrator {
     }
 
     if (typeof window !== 'undefined' && (window as unknown as { __DEV__?: boolean }).__DEV__) {
-      console.log('🌅 Adaptive Theming initialized:', {
+      log.info('🌅 Adaptive Theming initialized:', {
         circadian: `${this.state.circadian} (${CIRCADIAN_PERIODS[this.state.circadian].name})`,
         emotional: this.state.emotional,
         persona: this.state.persona,

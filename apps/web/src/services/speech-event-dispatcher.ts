@@ -334,20 +334,20 @@ export function enableSpeechEventLogging(): () => void {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       // eslint-disable-next-line no-console
-      console.log(`✅ ${eventName}`, detail || '');
+      log.info(`✅ ${eventName}`, detail || '');
     };
     document.addEventListener(eventName, handler);
     handlers.push(() => document.removeEventListener(eventName, handler));
   });
   
   // eslint-disable-next-line no-console
-  console.log('🎤 Speech event logging enabled. Listening for:', events);
+  log.info('🎤 Speech event logging enabled. Listening for:', events);
   
   // Return cleanup function
   return () => {
     handlers.forEach(h => h());
     // eslint-disable-next-line no-console
-    console.log('🎤 Speech event logging disabled');
+    log.info('🎤 Speech event logging disabled');
   };
 }
 
