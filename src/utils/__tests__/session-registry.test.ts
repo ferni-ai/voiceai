@@ -77,6 +77,72 @@ describe('Session Registry', () => {
     });
   });
 
+  describe('maxInstances', () => {
+    it('evicts the least recently used instance once the cap is reached', () => {
+      const registry = createSessionRegistry((id: string) => ({ id }), { maxInstances: 2 });
+
+      registry.get('a');
+      registry.get('b');
+      registry.get('c');
+
+      expect(registry.has('a')).toBe(false);
+      expect(registry.has('b')).toBe(true);
+      expect(registry.has('c')).toBe(true);
+      expect(registry.getActiveCount()).toBe(2);
+    });
+
+    it('treats a get as a use, so a recently read instance survives', () => {
+      const registry = createSessionRegistry((id: string) => ({ id }), { maxInstances: 2 });
+
+      registry.get('a');
+      registry.get('b');
+      registry.get('a');
+      registry.get('c');
+
+      expect(registry.has('a')).toBe(true);
+      expect(registry.has('b')).toBe(false);
+    });
+
+    it('cleans up an evicted instance the same way reset does', () => {
+      const cleanup = vi.fn();
+      const evicted = { reset: vi.fn() };
+      const registry = createSessionRegistry(
+        (id: string) => (id === 'a' ? evicted : { reset: vi.fn() }),
+        { maxInstances: 1, cleanup }
+      );
+
+      registry.get('a');
+      registry.get('b');
+
+      expect(evicted.reset).toHaveBeenCalledTimes(1);
+      expect(cleanup).toHaveBeenCalledWith(evicted);
+    });
+
+    it('builds a new instance for an evicted id', () => {
+      const registry = createSessionRegistry((id: string) => ({ id }), { maxInstances: 1 });
+
+      const first = registry.get('a');
+      registry.get('b');
+      const again = registry.get('a');
+
+      expect(again).not.toBe(first);
+    });
+
+    it('rejects a cap below one', () => {
+      expect(() => createSessionRegistry((id: string) => ({ id }), { maxInstances: 0 })).toThrow(
+        /maxInstances must be a positive integer/
+      );
+    });
+
+    it('keeps every instance when no cap is set', () => {
+      const registry = createSessionRegistry((id: string) => ({ id }));
+
+      for (let i = 0; i < 50; i++) registry.get(`s${i}`);
+
+      expect(registry.getActiveCount()).toBe(50);
+    });
+  });
+
   describe('reset', () => {
     it('should call cleanup function', () => {
       const cleanup = vi.fn();

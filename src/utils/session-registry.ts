@@ -31,6 +31,15 @@ import { getLogger } from './safe-logger.js';
 const log = getLogger().child({ module: 'SessionRegistry' });
 
 /**
+ * Cap for registries keyed by user id. Their instances outlive a session, so
+ * nothing clears them when a call ends; on the long-lived GCE voice worker an
+ * uncapped one keeps one instance per user until the process restarts. Each
+ * call looks its user's instance up on every turn, so users on a live call are
+ * never the least recently used.
+ */
+export const USER_KEYED_REGISTRY_MAX_INSTANCES = 1000;
+
+/**
  * Session registry interface
  */
 export interface SessionRegistry<T> {
@@ -92,6 +101,15 @@ export interface SessionRegistryOptions<T> {
    * Whether to log lifecycle events (default: false)
    */
   verbose?: boolean;
+
+  /**
+   * Maximum number of instances to keep. When creating one would exceed it,
+   * the least recently used instance is reset and removed first. A get counts
+   * as a use. Unset means unbounded, which suits session-keyed registries that
+   * are cleared when the session ends; keys that outlive a session (such as
+   * user ids) need a cap on a long-lived process.
+   */
+  maxInstances?: number;
 }
 
 /**
@@ -124,12 +142,32 @@ export function createSessionRegistry<T>(
   options: SessionRegistryOptions<T> = {}
 ): SessionRegistry<T> {
   const instances = new Map<string, T>();
-  const { name = 'SessionRegistry', cleanup, verbose = false } = options;
+  const { name = 'SessionRegistry', cleanup, verbose = false, maxInstances } = options;
+  if (maxInstances !== undefined && (!Number.isInteger(maxInstances) || maxInstances < 1)) {
+    throw new Error(`${name}: maxInstances must be a positive integer, got ${maxInstances}`);
+  }
 
   const registry: SessionRegistry<T> = {
     get(sessionId: string): T {
       let instance = instances.get(sessionId);
+      if (instance !== undefined && maxInstances !== undefined) {
+        // Map keeps insertion order; re-inserting marks this as most recently used.
+        instances.delete(sessionId);
+        instances.set(sessionId, instance);
+      }
       if (!instance) {
+        if (maxInstances !== undefined) {
+          while (instances.size >= maxInstances) {
+            const oldest = instances.keys().next().value as string;
+            registry.reset(oldest);
+            if (verbose) {
+              log.debug(
+                { sessionId: oldest, registry: name },
+                'Evicted least recently used instance'
+              );
+            }
+          }
+        }
         instance = factory(sessionId);
         instances.set(sessionId, instance);
         if (verbose) {
