@@ -21,6 +21,12 @@ import { openImportContacts } from './import-contacts.ui.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getAllMockContacts, MOCK_NUDGES } from '../data/mock-contacts.ts';
 import { t } from '../i18n/index.js';
+import {
+  getInitials,
+  getStrengthColor,
+  escapeHtml,
+  capitalizeFirst,
+} from './your-people-format.js';
 
 const log = createLogger('YourPeopleUI');
 
@@ -1142,27 +1148,6 @@ function openPersonCard(contactId: string): void {
 // HELPERS
 // ============================================================================
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-function getStrengthColor(score: number): string {
-  if (score >= 70) return 'var(--persona-primary, var(--color-ferni))';
-  if (score >= 40) return 'var(--nayan-primary, var(--color-nayan))';
-  return 'var(--color-semantic-error, var(--color-error))';
-}
-
-function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 function groupByRelationship(people: Person[]): Record<string, Person[]> {
   const groups: Record<string, Person[]> = {};
   
@@ -1183,10 +1168,6 @@ function groupByRelationship(people: Person[]): Record<string, Person[]> {
   }
 
   return orderedGroups;
-}
-
-function capitalizeFirst(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 // ============================================================================
@@ -1359,4 +1340,3 @@ export const yourPeople = {
 };
 
 export default yourPeople;
-
