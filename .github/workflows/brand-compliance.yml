@@ -37,7 +37,11 @@ jobs:
 
       - name: Run brand compliance linter
         id: brand-lint
-        run: pnpm tsx apps/cli/src/commands/quality/lint-brand.ts 2>&1 | tee brand-lint.txt
+        # Steps without an explicit shell run under bash -e, without pipefail, so
+        # the pipe through tee would otherwise hide the linter's exit code.
+        run: |
+          set -o pipefail
+          pnpm tsx apps/cli/src/commands/quality/lint-brand.ts 2>&1 | tee brand-lint.txt
         continue-on-error: true
 
       - name: Upload full report
