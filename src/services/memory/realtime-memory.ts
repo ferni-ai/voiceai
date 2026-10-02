@@ -37,6 +37,10 @@ export interface ConversationTurn {
     topics?: string[];
     durationMs?: number;
   };
+  /** Monotonic per conversation, shared by both roles (see turn-sequencer.ts) */
+  turnNumber?: number;
+  /** Persona that spoke (assistant) or was being spoken to (user) */
+  personaId?: string;
 }
 
 export interface ConversationMetadata {
@@ -101,6 +105,16 @@ async function getFirestore(): Promise<FirestoreDB | null> {
   return dbInitPromise;
 }
 
+/**
+ * The Firestore client this module writes conversations with (same project
+ * and database). For sibling modules such as conversation-catchup.ts.
+ */
+export async function getRealtimeFirestore(): Promise<FirestoreDB | null> {
+  return getFirestore();
+}
+
+export type { FirestoreDB as RealtimeFirestoreDB };
+
 async function initializeFirestore(): Promise<FirestoreDB | null> {
   try {
     const firestore = await import('@google-cloud/firestore');
@@ -158,25 +172,25 @@ export async function startConversation(userId: string, personaId: string): Prom
 }
 
 /**
+ * Firestore document id for a turn. Deterministic when the turn number is
+ * known, so a retried write overwrites instead of duplicating.
+ */
+export function turnDocId(turnNumber: number): string {
+  return `t${String(turnNumber).padStart(6, '0')}`;
+}
+
+/**
  * Add a turn to the conversation - IMMEDIATE persistence
- * This is the key function - every turn is saved as it happens
+ * This is the key function - every turn is saved as it happens.
+ *
+ * Never throws. Resolves `true` when the turn document was written, `false`
+ * otherwise (callers such as turn-persistence.ts retry on `false`).
  */
 export async function persistTurn(
   userId: string,
   conversationId: string,
   turn: ConversationTurn
-): Promise<void> {
-  // 🧠 MEMORY AUDIT: Log every persist attempt
-  log.info(
-    {
-      userId: userId?.substring(0, 8),
-      conversationId,
-      role: turn.role,
-      contentLen: turn.content?.length,
-    },
-    '🧠 [MEMORY-AUDIT] persistTurn called'
-  );
-
+): Promise<boolean> {
   const firestore = await getFirestore();
 
   if (!firestore) {
@@ -185,7 +199,7 @@ export async function persistTurn(
       '🧠 [MEMORY-AUDIT] Firestore unavailable, turn NOT persisted'
     );
     recordFallback('realtime-memory', 'Firestore unavailable for persistTurn');
-    return;
+    return false;
   }
 
   try {
@@ -195,49 +209,53 @@ export async function persistTurn(
       .collection('conversations')
       .doc(conversationId);
 
-    // Add turn document
+    const timestamp = turn.timestamp || new Date();
+    // `text` is the contract field; `content` is kept for existing readers.
     const turnData = removeUndefined({
       role: turn.role,
+      text: turn.content,
       content: turn.content,
-      timestamp: turn.timestamp || new Date(),
+      timestamp,
+      turnNumber: turn.turnNumber,
+      personaId: turn.personaId,
       ...(turn.metadata && { metadata: turn.metadata }),
     });
 
-    const turnDoc = await conversationRef.collection('turns').add(turnData);
+    const turnsRef = conversationRef.collection('turns');
+    if (typeof turn.turnNumber === 'number') {
+      await turnsRef.doc(turnDocId(turn.turnNumber)).set(turnData);
+    } else {
+      await turnsRef.add(turnData);
+    }
 
-    // 🧠 MEMORY AUDIT: Confirm write succeeded
-    log.info(
-      { userId: userId?.substring(0, 8), conversationId, turnId: turnDoc.id, role: turn.role },
-      '🧠 [MEMORY-AUDIT] Turn document WRITTEN to Firestore'
-    );
-
-    // Record successful Firestore operation
     recordSuccess('realtime-memory');
 
-    // Increment turn count (fire and forget - don't await)
+    // Turn count + last activity (lets the catch-up job tell live from dead).
+    // Non-critical: the turn itself is already stored. Not cleanForFirestore:
+    // it would flatten the increment sentinel into a plain object and turn the
+    // Date into a string.
     if (FieldValue) {
       conversationRef
-        .update(
-          cleanForFirestore({
-            turnCount: FieldValue.increment(1),
-          })
-        )
+        .update({
+          turnCount: FieldValue.increment(1),
+          lastActivityAt: timestamp,
+        })
         .catch((err) => {
-          // Non-critical - log for production monitoring
           log.warn({ error: String(err) }, 'Turn count increment failed (non-critical)');
         });
     }
 
     log.debug(
-      { userId, conversationId, role: turn.role, preview: turn.content.slice(0, 40) },
+      { userId, conversationId, role: turn.role, turnNumber: turn.turnNumber },
       '💾 Turn persisted to Firestore'
     );
+    return true;
   } catch (error) {
-    // Log but don't throw - we don't want to break the conversation
-    log.error(
-      { error: String(error), userId, conversationId },
-      '🧠 [MEMORY-AUDIT] FAILED to persist turn'
+    log.warn(
+      { error: String(error), userId, conversationId, role: turn.role },
+      '🧠 [MEMORY-AUDIT] Turn write failed'
     );
+    return false;
   }
 }
 
@@ -340,11 +358,13 @@ export async function getConversationTurns(
       const data = doc.data() || {};
       return {
         role: data.role as 'user' | 'assistant',
-        content: data.content as string,
+        content: ((data.text ?? data.content) as string) || '',
         timestamp:
           (data.timestamp as { toDate?: () => Date })?.toDate?.() ||
           new Date(data.timestamp as string),
         metadata: data.metadata as ConversationTurn['metadata'],
+        turnNumber: typeof data.turnNumber === 'number' ? data.turnNumber : undefined,
+        personaId: typeof data.personaId === 'string' ? data.personaId : undefined,
       };
     });
   } catch (error) {
@@ -431,48 +451,63 @@ export async function getUnsummarizedConversations(
 }
 
 /**
- * Mark conversation as summarized and update user profile
+ * Mark conversation as summarized and update the user's
+ * `lastConversationSummary` — but only when this conversation is at least as
+ * recent as the summary the user document already holds (a catch-up run over
+ * an old dropped call must not clobber a later conversation's summary).
+ *
+ * Resolves `true` when the conversation document was marked.
  */
 export async function markSummarized(
   userId: string,
   conversationId: string,
   summary: string
-): Promise<void> {
+): Promise<boolean> {
   const firestore = await getFirestore();
-  if (!firestore) return;
+  if (!firestore) return false;
 
   try {
-    // Update conversation document
-    await firestore
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('conversations')
-      .doc(conversationId)
-      .update(
-        cleanForFirestore({
-          summarized: true,
-          summary,
-          summarizedAt: new Date(),
-        })
-      );
+    const userRef = firestore.collection('bogle_users').doc(userId);
+    const conversationRef = userRef.collection('conversations').doc(conversationId);
 
-    // Also update the user's lastConversationSummary
-    await firestore
-      .collection('bogle_users')
-      .doc(userId)
-      .update(
+    const conversationSnap = await conversationRef.get();
+    const conversationData = conversationSnap.data() || {};
+
+    await conversationRef.update(
+      cleanForFirestore({
+        summarized: true,
+        summary,
+        summarizedAt: new Date(),
+      })
+    );
+
+    const { conversationEndTime, isSummaryNewer } =
+      await import('./conversation-summary-recency.js');
+    const endedAt = conversationEndTime(conversationData);
+    const userSnap = await userRef.get();
+    if (isSummaryNewer(endedAt, userSnap.data())) {
+      await userRef.update(
         cleanForFirestore({
           lastConversationSummary: summary,
-          lastContact: new Date(),
+          lastConversationSummaryAt: endedAt,
+          lastConversationId: conversationId,
         })
       );
+    } else {
+      log.info(
+        { userId, conversationId },
+        'Kept newer lastConversationSummary (this conversation is older)'
+      );
+    }
 
     log.info(
       { userId, conversationId, summaryPreview: summary.slice(0, 50) },
       '✅ Conversation summarized'
     );
+    return true;
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to mark conversation as summarized');
+    return false;
   }
 }
 
@@ -485,7 +520,7 @@ export async function summarizeConversationAsync(
   conversationId: string
 ): Promise<void> {
   try {
-    const turns = await getConversationTurns(userId, conversationId);
+    const turns = await getConversationTurns(userId, conversationId, 200);
 
     if (turns.length < 2) {
       // Too short to summarize meaningfully

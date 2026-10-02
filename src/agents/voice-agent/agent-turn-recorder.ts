@@ -16,6 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { SessionServices } from '../../services/index.js';
+import type { TurnMeta } from '../../services/types.js';
 import {
   getAndClearInjectedMemories,
   parseAttributions,
@@ -31,17 +32,19 @@ const log = createLogger({ module: 'agent-turn-recorder' });
  * @param sessionId - Session ID for on-behalf lookup
  * @param services - Session services for regular turn recording
  * @param text - The agent's response text
+ * @param meta - Turn number / persona for the persisted turn
  */
 export async function recordAgentTurn(
   sessionId: string,
   services: SessionServices | null | undefined,
-  text: string
+  text: string,
+  meta?: TurnMeta
 ): Promise<void> {
   if (!text) return;
 
   // Record to regular session services (memory persistence)
   if (services && typeof services.addTurn === 'function') {
-    services.addTurn('assistant', text);
+    services.addTurn('assistant', text, undefined, meta);
   }
 
   // Track memory attribution (recall quality metrics)
@@ -118,17 +121,19 @@ export async function recordAgentTurn(
  * @param sessionId - Session ID for on-behalf lookup
  * @param services - Session services for regular turn recording
  * @param text - The user/recipient's speech
+ * @param meta - Turn number / persona for the persisted turn
  */
 export async function recordUserTurn(
   sessionId: string,
   services: SessionServices | null | undefined,
-  text: string
+  text: string,
+  meta?: TurnMeta
 ): Promise<void> {
   if (!text) return;
 
   // Record to regular session services (memory persistence)
   if (services && typeof services.addTurn === 'function') {
-    services.addTurn('user', text);
+    services.addTurn('user', text, undefined, meta);
   }
 
   // Also capture for on-behalf call analysis

@@ -586,6 +586,14 @@ export async function handleObservabilityRoutes(
       return true;
     }
 
+    // GET /api/observability/memory-capture - Turn writes, session-end limits, catch-up runs
+    if (pathname === '/api/observability/memory-capture' && req.method === 'GET') {
+      const { getMemoryCaptureMetrics } =
+        await import('../services/memory/memory-capture-metrics.js');
+      sendJSON(res, getMemoryCaptureMetrics());
+      return true;
+    }
+
     // GET /api/observability/dynamic-memory - Dynamic memory system metrics
     // MEMORY FIX (Jan 2026): Enhanced with health status, knowledge graph, and human signal metrics
     if (pathname === '/api/observability/dynamic-memory' && req.method === 'GET') {

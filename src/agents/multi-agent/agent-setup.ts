@@ -115,6 +115,7 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
+import { wireAssistantTurnCapture } from '../voice-agent/assistant-turn-capture.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
 // WAVE 2: Voice humanization (micro-interrupt/barge-in recovery) + live backchanneling
@@ -1774,6 +1775,19 @@ Reference past context when relevant, but don't force it. Let the conversation f
       sessionWithEvents.off?.('agent_state_changed', onAgentState);
     });
   }
+
+  // Assistant turns: record what this persona actually said (turns + thread).
+  // Wired before the greeting so it is captured too.
+  cleanupFunctions.push(
+    wireAssistantTurnCapture({
+      session: sessionWithEvents,
+      sessionId,
+      userId,
+      services,
+      getPersonaId: () => persona.id,
+      getThreadId: () => userData.threadId,
+    })
+  );
 
   // Track handler status
   const handlersStatus = {
