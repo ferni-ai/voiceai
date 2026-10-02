@@ -3147,6 +3147,8 @@
         "weekly": "Weekly",
         "custom": "Some days"
       }
-    }
+    },
+    "pet": "Pet",
+    "inMemory": "In memory"
   }
 }

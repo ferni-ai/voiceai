@@ -158,6 +158,7 @@ export function toRecallFact(d: Record<string, unknown>): RecallFact | null {
   // An edited fact's text is what the user said; the extractor's fields are stale.
   if (text) fact.text = text;
   if (d.userEdited === true) fact.userEdited = true;
+  if (typeof d.recallWeight === 'number') fact.recallWeight = d.recallWeight;
   const updated = toMillis(d.updatedAt ?? d.extractedAt);
   if (updated) fact.updatedAtMs = updated;
   return fact;

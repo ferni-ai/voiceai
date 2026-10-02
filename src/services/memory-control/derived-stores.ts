@@ -8,6 +8,7 @@
  */
 
 import { getFirestoreVectorStore } from '../../memory/firestore-vector-store.js';
+import { factIndexId } from '../../memory/signals/user-memory-indexer.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { UndoJournal } from './db.js';
 
@@ -54,9 +55,12 @@ export async function removeAllVectors(userId: string, errors?: string[]): Promi
   }
 }
 
-/** Vector doc ID used by memory/signals/user-memory-indexer.ts for a fact. */
-export function factVectorId(factDocId: string): string {
-  return `conversation_fact_${factDocId}`;
+/**
+ * Vector doc IDs a fact may be indexed under by memory/signals/user-memory-indexer.ts:
+ * the current per-user id first, then the legacy global one.
+ */
+export function factVectorIds(userId: string, factDocId: string): string[] {
+  return [summaryVectorId(factIndexId(userId, factDocId)), `conversation_fact_${factDocId}`];
 }
 
 /** Replace the text (and so the embedding) of an indexed doc, if it is indexed. */

@@ -19,6 +19,9 @@ export interface Fact {
 export interface Person {
   id: string;
   name: string;
+  /** From personal insights, when known. */
+  kind?: 'person' | 'pet';
+  memorial?: boolean;
   relationship?: string;
   notes?: string;
   updatedAt: string | null;

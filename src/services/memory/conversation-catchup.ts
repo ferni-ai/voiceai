@@ -67,6 +67,13 @@ export interface CatchUpDeps {
   ) => Promise<void>;
   indexSummary: (userId: string, summary: CatchUpSummary, timestamp: Date) => Promise<void>;
   markSummarized: (userId: string, conversationId: string, text: string) => Promise<boolean>;
+  /** Learn from the summarized conversation (insights, preferences). Optional; must not throw. */
+  onSummarized?: (
+    userId: string,
+    conversationId: string,
+    summary: CatchUpSummary,
+    turns: ConversationTurn[]
+  ) => Promise<void>;
 }
 
 export interface CatchUpOptions {
@@ -112,6 +119,7 @@ async function summarizeOne(
   // Last, so a failure above leaves it unsummarized for the next run.
   const marked = await deps.markSummarized(userId, conversationId, summary.shortText);
   if (!marked) throw new Error('markSummarized failed');
+  await deps.onSummarized?.(userId, conversationId, summary, turns);
 }
 
 /**
@@ -161,7 +169,11 @@ export async function runConversationCatchUp(
     } catch (error) {
       result.failed += 1;
       log.warn(
-        { error: String(error), userId: candidate.userId, conversationId: candidate.conversationId },
+        {
+          error: String(error),
+          userId: candidate.userId,
+          conversationId: candidate.conversationId,
+        },
         'Catch-up summarization failed (will retry next run)'
       );
     }
@@ -221,15 +233,17 @@ export async function createDefaultCatchUpDeps(): Promise<CatchUpDeps> {
         );
         return {
           id: catchUpSummaryId(conversationId),
-          shortText:
-            result.keyPoints?.slice(0, 2).join('; ') || realtime.buildQuickSummary(turns),
+          shortText: result.keyPoints?.slice(0, 2).join('; ') || realtime.buildQuickSummary(turns),
           mainTopics: result.mainTopics ?? [],
           keyPoints: result.keyPoints ?? [],
           emotionalArc: result.emotionalArc ?? '',
           embedding: result.embedding,
         };
       } catch (error) {
-        log.warn({ error: String(error), conversationId }, 'LLM summary failed, using quick summary');
+        log.warn(
+          { error: String(error), conversationId },
+          'LLM summary failed, using quick summary'
+        );
         const quick = realtime.buildQuickSummary(turns);
         return {
           id: catchUpSummaryId(conversationId),
@@ -281,5 +295,15 @@ export async function createDefaultCatchUpDeps(): Promise<CatchUpDeps> {
 
     markSummarized: (userId, conversationId, text) =>
       realtime.markSummarized(userId, conversationId, text),
+
+    onSummarized: async (userId, conversationId, summary, turns) => {
+      const { runConversationSummarizedHooks } = await import('./conversation-summarized-hooks.js');
+      await runConversationSummarizedHooks(
+        userId,
+        conversationId,
+        [summary.shortText, ...summary.keyPoints].join('. '),
+        turns
+      );
+    },
   };
 }

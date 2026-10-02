@@ -142,3 +142,36 @@ describe('loadRecallSnapshot ordering and caps', () => {
     expect(recallForTurn(snap, 'can I eat peanuts?').map((x) => x.id)).toEqual(['f1']);
   });
 });
+
+describe('recall weight (graceful decay)', () => {
+  it('ranks a faded fact below an equally relevant fresh one, but keeps it', async () => {
+    const { rankFacts: rank } = await import('../recall-ranking.js');
+    const faded = {
+      entity: 'user',
+      key: 'likes',
+      value: 'jazz music',
+      confidence: 0.9,
+      recallWeight: 0.05,
+    };
+    const fresh = { entity: 'user', key: 'enjoys', value: 'jazz music', confidence: 0.9 };
+    const out = rank([faded, fresh], 'jazz music', { maxItems: 5, maxChars: 1000 });
+    expect(out.map((r) => r.fact)).toEqual([fresh, faded]);
+  });
+
+  it('never fades a fact the user corrected', async () => {
+    const { recallWeightFactor } = await import('../recall-ranking.js');
+    expect(
+      recallWeightFactor({
+        entity: 'u',
+        key: 'k',
+        value: 'v',
+        confidence: 1,
+        recallWeight: 0.05,
+        userEdited: true,
+      })
+    ).toBe(1);
+    expect(
+      recallWeightFactor({ entity: 'u', key: 'k', value: 'v', confidence: 1, recallWeight: 0.05 })
+    ).toBeCloseTo(0.525);
+  });
+});

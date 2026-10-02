@@ -11,6 +11,7 @@
  *     exportFn: (uid) => ...,                     // JSON-safe data for the export
  *     deleteForConversation: (uid, convId) => ..., // cascade, returns items changed
  *     deleteAll: (uid) => ...,                     // wipe, returns items removed
+ *     deleteForFacts: (uid, factIds) => ...,      // optional: facts deleted/edited, returns items changed
  *     find: (uid, query) => [{ id, label, score }],// optional: voice forget search
  *     forget: (uid, id) => true,                   // optional: delete one found item
  *   });
@@ -37,6 +38,8 @@ export interface MemoryDomain {
   exportFn?: (userId: string) => Promise<unknown>;
   deleteForConversation?: (userId: string, conversationId: string) => Promise<number>;
   deleteAll?: (userId: string) => Promise<number>;
+  /** Facts were deleted or corrected: drop or rebuild whatever was derived from them. */
+  deleteForFacts?: (userId: string, factIds: readonly string[]) => Promise<number>;
   find?: (userId: string, query: string) => Promise<MemoryDomainMatch[]>;
   forget?: (userId: string, id: string) => Promise<boolean>;
 }
@@ -125,6 +128,18 @@ export function deleteAllDomains(
     'delete-all',
     errors
   );
+}
+
+/** Cascade fact deletes/edits into every domain that derives data from facts. */
+export function deleteDomainsForFacts(
+  userId: string,
+  factIds: readonly string[]
+): Promise<Record<string, DomainOutcome>> {
+  if (factIds.length === 0) return Promise.resolve({});
+  return runEach((d) => {
+    const hook = d.deleteForFacts;
+    return hook ? () => hook(userId, factIds) : undefined;
+  }, 'fact delete');
 }
 
 /** `{ [domainName]: data }`; a domain that fails to export is left out and logged. */
