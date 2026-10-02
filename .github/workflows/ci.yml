@@ -232,10 +232,17 @@ jobs:
   # INTEGRATION TESTS (Slower - ~2-5 minutes)
   # ============================================================================
   test-integration:
-    name: Integration Tests
+    name: Integration Tests (${{ matrix.shard }}/3)
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
+    # Since the repo went private (2026-09-27) its runners are smaller: the
+    # suite ran at ~1 worker and passed 30 minutes, where it took ~11 before.
+    # Three shards in parallel cost about the same minutes and finish sooner.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -260,11 +267,37 @@ jobs:
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
+      # memory-persistence loads the native vector accelerator (loadRustPerf
+      # throws without it); see the same steps in Unit Tests for why.
+      - name: Setup Rust (for the @ferni/perf native binding)
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable @ 2026-09-25
+
+      - name: Cache cargo + native targets
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            apps/rust-perf/target/
+            apps/rust-audio/target/
+          key: ${{ runner.os }}-native-${{ hashFiles('apps/rust-perf/Cargo.lock', 'apps/rust-audio/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-native-
+
+      - name: Build @ferni/perf native binding
+        working-directory: apps/rust-perf
+        run: |
+          pnpm install
+          pnpm exec napi build --platform
+
       - name: Run integration tests
-        run: pnpm test:integration -- --reporter=verbose
+        # No `--`: pnpm would pass it through and vitest ignores every flag after it.
+        run: pnpm test:integration --shard=${{ matrix.shard }}/3 --reporter=verbose
         env:
           NODE_ENV: test
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          # No GOOGLE_API_KEY: the secret is invalid ("API key not valid"), so the
+          # LLM-backed tests failed their calls instead of taking their no-key skip.
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
@@ -290,7 +323,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
-          flags: integration
+          flags: integration-${{ matrix.shard }}
           fail_ci_if_error: false
 
   # ============================================================================
