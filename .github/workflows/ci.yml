@@ -262,9 +262,13 @@ jobs:
 
       - name: Run integration tests
         run: pnpm test:integration -- --reporter=verbose
+        # These tests don't call real services. With an API key they did: Gemini
+        # rejected the key and the suite ran past the 30-minute limit (it takes
+        # under a minute without it). Without credentials, Google clients would
+        # probe for a cloud metadata server; skip that so they fail fast instead.
         env:
           NODE_ENV: test
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          METADATA_SERVER_DETECTION: none
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
