@@ -35,6 +35,7 @@ const FINANCES: readonly RegExp[] = [
   /\b(savings|401k|ira|pension|retirement fund|investments?|portfolio|stocks?|crypto)\b/i,
   /\b(my rent|pay(?:ing)? rent|budget|i'?m broke|can'?t afford|net worth|inheritance|tax return|tax bill)\b/i,
   /[$£€]\s?\d/,
+  /\b(paying off|paid off|pay down|student loans?|car loan|car payment|payday loan|money(?:'s| is) tight|paycheck to paycheck|emergency fund|savings goal|saving (?:up )?for|refinanc\w*|down payment|bank account|checking account|routing number|card number|account number|pay cut|side hustle|unemployment benefits)\b/i,
 ];
 
 const BELIEFS: readonly RegExp[] = [

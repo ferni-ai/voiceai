@@ -41,6 +41,10 @@ For the user's work and places, use these keys so history can be kept:
 - places: "lives_in", "hometown", "lived_in", "trip_planned", "trip_taken",
   "favorite_restaurant", "favorite_cafe", "favorite_place", "bucket_list", "engaged_in", "married_in", "met_in"
   (put trip dates in temporalContext).
+For the user's money (factType "finance"), use these keys: "income", "income_change",
+  "budget_habit", "savings_goal", "debt", "debt_paid_off", "planned_purchase", "big_purchase",
+  "bill_due", "money_worry", "money_win", "money_feeling", "financial_decision".
+NEVER record card, account or routing numbers, SSNs, passwords, PINs or security answers.
 
 Return JSON array with: entityName, factType, key, value, confidence, temporalContext.`;
 
