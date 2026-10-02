@@ -1,211 +1,30 @@
 /**
  * Speech Humanizer
  *
- * Main orchestrator for "Better Than Human" speech humanization.
- * Injects persona-specific speech imperfections, thinking sounds,
- * and other human behaviors into agent responses.
+ * Injects persona-specific speech imperfections, thinking sounds, breaths
+ * and callbacks into text, synchronously from preloaded profiles.
  *
- * This is the single entry point called by response-processor.ts.
+ * Reached via applyPersonaSpeechTraitsSync (adaptive-ssml alive-voice), which
+ * the greeting tagger uses. Nothing on the live path loads the profiles yet,
+ * so today it returns the text unchanged. The async post-LLM entry points were
+ * written for the removed response processor and never ran on calls.
  *
  * @module speech/humanization/speech-humanizer
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
 import {
-  loadSpeechProfile,
-  selectImperfection,
-  selectThinkingSound,
-  selectBackchannel,
-  selectBreathSound,
   getInjectionConfig,
-  // Sync accessors
   areSpeechProfilesPreloaded,
   selectThinkingSoundSync,
   selectImperfectionSync,
   selectBreathSoundSync,
-  // New humanization features
-  selectLaughterResponse,
   selectLaughterResponseSync,
-  isLateNightHours,
-  getLateNightPacing,
 } from './behavior-loader.js';
 import { detectCallbackTriggers, selectCallback, injectCallback } from './callback-detector.js';
-import type {
-  BehaviorSelectionContext,
-  SelectedBehavior,
-  HumanizedSpeechResult,
-  ImperfectionCategory,
-  CoreImperfectionCategory,
-} from './types.js';
+import type { BehaviorSelectionContext, SelectedBehavior } from './types.js';
 
 const log = createLogger({ module: 'SpeechHumanizer' });
-
-// =============================================================================
-// MAIN HUMANIZATION FUNCTION
-// =============================================================================
-
-/**
- * Apply human speech behaviors to an agent response
- *
- * This is the main entry point for the speech humanization system.
- * It loads persona-specific behaviors from JSON files and injects
- * them probabilistically based on context.
- *
- * @param text - The agent's response text
- * @param context - Selection context (persona, emotion, content)
- * @returns Humanized text with applied behaviors
- */
-export async function humanizeSpeech(
-  text: string,
-  context: BehaviorSelectionContext
-): Promise<HumanizedSpeechResult> {
-  const { personaId } = context;
-  const config = getInjectionConfig(personaId);
-
-  const appliedBehaviors: SelectedBehavior[] = [];
-  const features: string[] = [];
-  let result = text;
-
-  // Skip humanization for very short responses
-  if (text.length < 20) {
-    return { text, wasHumanized: false, appliedBehaviors: [], features: [] };
-  }
-
-  // Skip humanization in serious/vulnerable contexts (respect the moment)
-  if (context.emotional.isVulnerable && context.emotional.userEmotion === 'distressed') {
-    log.debug({ personaId }, 'Skipping humanization - vulnerable moment');
-    return { text, wasHumanized: false, appliedBehaviors: [], features: ['skipped_vulnerable'] };
-  }
-
-  // Check for late night pacing adjustments
-  const isLateNight = isLateNightHours();
-  if (isLateNight) {
-    context.emotional.isLateNight = true;
-    const lateNightPacing = getLateNightPacing(personaId);
-    if (lateNightPacing) {
-      features.push('late_night_mode');
-      log.debug({ personaId, pacing: lateNightPacing }, 'Applied late night pacing');
-    }
-  }
-
-  // Calculate injection probability based on turn number
-  const turnModifier = Math.min(1, (context.turnNumber || 1) * config.turnMultiplier);
-  const finalProbability = Math.min(config.baseProbability + turnModifier, 0.4);
-
-  // Random check - should we humanize this response?
-  const shouldHumanize = context.randomSeed
-    ? hashCode(context.randomSeed) % 100 < finalProbability * 100
-    : Math.random() < finalProbability;
-
-  if (!shouldHumanize) {
-    return { text, wasHumanized: false, appliedBehaviors: [], features: ['probability_skip'] };
-  }
-
-  try {
-    // =======================================================================
-    // 0. CALLBACK DETECTION - Building relationship through shared references
-    // Callbacks are PRIORITIZED - they reference our shared history
-    // =======================================================================
-    if (context.userText && context.conversationCount !== undefined) {
-      const triggers = detectCallbackTriggers(context.userText, personaId);
-      if (triggers.length > 0) {
-        const callback = selectCallback(
-          triggers,
-          personaId,
-          context.conversationCount,
-          context.usedCallbacks
-        );
-        if (callback) {
-          result = injectCallback(result, callback);
-          features.push(
-            `callback:${callback.id}:${callback.useCallbackVersion ? 'repeat' : 'first'}`
-          );
-          appliedBehaviors.push({
-            phrase: callback.phrase,
-            category: `callback:${callback.trigger}`,
-            position: 'prefix',
-            confidence: callback.confidence,
-            metadata: {
-              source: 'backchannels',
-              personaId,
-              contextMatch: [callback.trigger],
-            },
-          });
-          log.debug(
-            {
-              personaId,
-              callbackId: callback.id,
-              type: callback.useCallbackVersion ? 'repeat' : 'first',
-            },
-            'Injected callback phrase'
-          );
-        }
-      }
-    }
-
-    // Try to inject behaviors in order of preference
-    const behaviorsToTry: Array<() => Promise<SelectedBehavior | null>> = [];
-
-    // 1. Thinking sounds (most natural at start)
-    if (shouldAddThinkingSound(context)) {
-      behaviorsToTry.push(() => selectThinkingSound(personaId, context));
-    }
-
-    // 2. Imperfections based on persona style
-    for (const category of config.preferredCategories) {
-      if (!config.avoidCategories.includes(category)) {
-        behaviorsToTry.push(() => selectImperfection(personaId, category, context));
-      }
-    }
-
-    // 3. Backchannels for responses that follow user input
-    if (context.turnNumber && context.turnNumber > 1) {
-      behaviorsToTry.push(() => selectBackchannel(personaId, context));
-    }
-
-    // 4. Breath sounds for heavy/vulnerable moments (lower priority, adds physical presence)
-    if (shouldAddBreathSound(context)) {
-      behaviorsToTry.push(() => selectBreathSound(personaId, context));
-    }
-
-    // 5. Laughter contagion (if user laughed or celebration context)
-    const extendedContext = context as BehaviorSelectionContext & { userLaughed?: boolean };
-    if (extendedContext.userLaughed || context.content.isCelebration) {
-      behaviorsToTry.push(() => selectLaughterResponse(personaId, extendedContext));
-    }
-
-    // Apply behaviors up to max
-    let injectedCount = 0;
-    for (const tryBehavior of behaviorsToTry) {
-      if (injectedCount >= config.maxBehaviorsPerResponse) break;
-
-      const behavior = await tryBehavior();
-      if (behavior) {
-        result = injectBehavior(result, behavior, config.minCharsBetweenInjections);
-        appliedBehaviors.push(behavior);
-        features.push(`${behavior.metadata?.source}:${behavior.category}`);
-        injectedCount++;
-      }
-    }
-
-    if (appliedBehaviors.length > 0) {
-      log.debug(
-        { personaId, count: appliedBehaviors.length, features },
-        'Applied speech humanization'
-      );
-    }
-
-    return {
-      text: result,
-      wasHumanized: appliedBehaviors.length > 0,
-      appliedBehaviors,
-      features,
-    };
-  } catch (error) {
-    log.warn({ error: String(error), personaId }, 'Speech humanization failed (non-blocking)');
-    return { text, wasHumanized: false, appliedBehaviors: [], features: ['error'] };
-  }
-}
 
 // =============================================================================
 // INJECTION LOGIC
@@ -324,28 +143,6 @@ function hashCode(str: string): number {
 // =============================================================================
 // CONVENIENCE FUNCTIONS
 // =============================================================================
-
-/**
- * Quick humanization with minimal context
- *
- * Use this when you don't have full context available.
- * Provides reasonable defaults.
- */
-export async function quickHumanize(
-  text: string,
-  personaId: string,
-  turnNumber?: number
-): Promise<string> {
-  const context: BehaviorSelectionContext = {
-    personaId,
-    emotional: {},
-    content: {},
-    turnNumber,
-  };
-
-  const result = await humanizeSpeech(text, context);
-  return result.text;
-}
 
 /**
  * Synchronous humanization for use in sync code paths.
@@ -547,60 +344,6 @@ function mapEmotionToAgentTone(
   }
 }
 
-/**
- * Get all available imperfection categories for a persona
- */
-export async function getAvailableCategories(personaId: string): Promise<ImperfectionCategory[]> {
-  const profile = await loadSpeechProfile(personaId);
-
-  if (!profile.imperfections) {
-    return [];
-  }
-
-  const categories: ImperfectionCategory[] = [];
-  const schema = profile.imperfections;
-
-  // Check which categories have content
-  const categoryKeys: CoreImperfectionCategory[] = [
-    'trailing_off',
-    'self_corrections',
-    'restarts',
-    'filler_sounds',
-    'thinking_aloud',
-  ];
-
-  for (const key of categoryKeys) {
-    const phrases = schema[key];
-    if (Array.isArray(phrases) && phrases.length > 0) {
-      categories.push(key);
-    }
-  }
-
-  // Check extended categories
-  const extendedKeys = [
-    'excitement_overflow',
-    'celebration_overflow',
-    'genuine_processing',
-    'efficient_processing',
-    'contemplative_sounds',
-    'empathy_sounds',
-    'grounding_sounds',
-    'overwhelm_support',
-    'wisdom_building',
-    'gentle_laughter',
-    'presence_sounds',
-  ] as const;
-
-  for (const key of extendedKeys) {
-    const phrases = schema[key as keyof typeof schema];
-    if (Array.isArray(phrases) && phrases.length > 0) {
-      categories.push(key as ImperfectionCategory);
-    }
-  }
-
-  return categories;
-}
-
 // =============================================================================
 // EXPORTS
 // =============================================================================
@@ -613,7 +356,6 @@ export {
 export type {
   BehaviorSelectionContext,
   SelectedBehavior,
-  HumanizedSpeechResult,
   ImperfectionCategory,
   PersonaSpeechProfile,
 } from './types.js';

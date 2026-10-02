@@ -60,7 +60,6 @@ Level 10  (Foundation)      ← Config, utils, types
 | Module | CLAUDE.md | Purpose |
 |--------|-----------|---------|
 | `services/` | ✅ | 200+ services, superhuman capabilities |
-| `session/` | ✅ | SessionCoordinator, lifecycle |
 | `marketplace/` | ✅ | Tool registry, sandboxed execution |
 
 ### Level 30: Infrastructure Layer

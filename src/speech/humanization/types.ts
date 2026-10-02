@@ -300,20 +300,6 @@ export interface SelectedBehavior {
   };
 }
 
-/**
- * Result of humanizing a full response
- */
-export interface HumanizedSpeechResult {
-  /** The humanized text with SSML */
-  text: string;
-  /** Whether any humanization was applied */
-  wasHumanized: boolean;
-  /** List of applied behaviors */
-  appliedBehaviors: SelectedBehavior[];
-  /** Features applied (for logging) */
-  features: string[];
-}
-
 // =============================================================================
 // PERSONA SPEECH PROFILE
 // =============================================================================

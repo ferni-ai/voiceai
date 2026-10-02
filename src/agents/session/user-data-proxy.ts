@@ -63,7 +63,6 @@ interface DirectFields {
     | 'unknown';
   ambientNoiseLevel?: number;
   hasOfferedToPause?: boolean;
-  pendingAmbientAcknowledgment?: string | null;
 
   // Voice state insights
   pendingVoiceInsight?: {
@@ -169,7 +168,6 @@ export interface UserData {
     | 'unknown';
   ambientNoiseLevel?: number;
   hasOfferedToPause?: boolean;
-  pendingAmbientAcknowledgment?: string | null;
 
   // Conversation context
   lastUserMessage?: string;

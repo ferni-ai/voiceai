@@ -22,6 +22,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  clearAdvancedHumanization,
   getAdvancedHumanization,
   resetAdvancedHumanization,
 } from '../conversation/advanced-humanization.js';
@@ -37,11 +38,7 @@ import {
   recordAgentResponse,
 } from '../conversation/advanced-humanization-integration.js';
 
-import {
-  buildAdvancedHumanizationInjections,
-  cleanupAdvancedHumanizationSession,
-  initAdvancedHumanizationSession,
-} from '../agents/processors/injection-builders/index.js';
+import { buildAdvancedHumanizationInjections } from '../agents/processors/injection-builders/index.js';
 
 // ============================================================================
 // INTEGRATION MODULE TESTS
@@ -61,6 +58,20 @@ describe('Advanced Humanization Integration Module', () => {
   });
 
   describe('Session Lifecycle', () => {
+    it('should drop the orchestrator when the session is cleaned up', () => {
+      initAdvancedHumanization({ sessionId, userId });
+      const during = getAdvancedHumanization(sessionId, userId);
+      expect(getAdvancedHumanization(sessionId, userId)).toBe(during);
+
+      cleanupAdvancedHumanization(sessionId);
+
+      // A lookup after cleanup builds a new orchestrator instead of returning the
+      // ended session's, so the map does not keep one entry per finished call.
+      const after = getAdvancedHumanization(sessionId, userId);
+      expect(after).not.toBe(during);
+      clearAdvancedHumanization(sessionId, userId);
+    });
+
     it('should initialize a session successfully', () => {
       const result = initAdvancedHumanization({
         sessionId,
@@ -411,14 +422,12 @@ describe('Advanced Humanization Injection Builder', () => {
   const sessionId = 'builder-test-session';
   const userId = 'builder-test-user';
 
-  beforeEach(async () => {
-    await initAdvancedHumanizationSession(sessionId, userId, {
-      relationshipDepth: 'established',
-    });
+  beforeEach(() => {
+    initAdvancedHumanization({ sessionId, userId, relationshipDepth: 'established' });
   });
 
-  afterEach(async () => {
-    await cleanupAdvancedHumanizationSession(sessionId);
+  afterEach(() => {
+    cleanupAdvancedHumanization(sessionId);
   });
 
   it('should build injections from advanced humanization', async () => {
@@ -677,14 +686,12 @@ describe('Full Pipeline Simulation', () => {
   const sessionId = 'pipeline-test';
   const userId = 'pipeline-user';
 
-  beforeEach(async () => {
-    await initAdvancedHumanizationSession(sessionId, userId, {
-      relationshipDepth: 'developing',
-    });
+  beforeEach(() => {
+    initAdvancedHumanization({ sessionId, userId, relationshipDepth: 'developing' });
   });
 
-  afterEach(async () => {
-    await cleanupAdvancedHumanizationSession(sessionId);
+  afterEach(() => {
+    cleanupAdvancedHumanization(sessionId);
   });
 
   it('should handle a complete conversation flow', async () => {
@@ -811,9 +818,7 @@ describe('Relationship Depth Behavior', () => {
       const sessionId = `depth-${depth}-session`;
       const userId = `depth-${depth}-user`;
 
-      await initAdvancedHumanizationSession(sessionId, userId, {
-        relationshipDepth: depth,
-      });
+      initAdvancedHumanization({ sessionId, userId, relationshipDepth: depth });
 
       results[depth] = await buildAdvancedHumanizationInjections({
         sessionId,
@@ -824,7 +829,7 @@ describe('Relationship Depth Behavior', () => {
         relationshipDepth: depth,
       });
 
-      await cleanupAdvancedHumanizationSession(sessionId);
+      cleanupAdvancedHumanization(sessionId);
     }
 
     // All should produce results

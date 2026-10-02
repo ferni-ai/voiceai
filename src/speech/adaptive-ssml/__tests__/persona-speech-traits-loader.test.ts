@@ -6,7 +6,6 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  applyPersonaSpeechTraits,
   applyPersonaSpeechTraitsSync,
   clearTraitRegistry,
   getPersonasWithSpeechTraits,
@@ -63,88 +62,6 @@ describe('Persona Speech Traits Loader', () => {
       // Peter John's catchphrase should get emphasis
       expect(result).toContain('stay the course');
       expect(result.length).toBeGreaterThanOrEqual('stay the course'.length);
-    });
-  });
-
-  describe('applyPersonaSpeechTraits (async)', () => {
-    it('should apply Peter John speech traits', async () => {
-      const text = 'Here is the thing about staying the course.';
-      const result = await applyPersonaSpeechTraits(text, 'peter-john', {
-        emotion: 'affectionate',
-        baseSpeed: 0.88,
-        laughterCount: 0,
-      });
-
-      // Should have processed the text
-      expect(result).toBeDefined();
-      expect(result.length).toBeGreaterThan(0);
-    });
-
-    it('should apply Maya Santos speech traits', async () => {
-      const text = 'Systems beat willpower every time.';
-      const result = await applyPersonaSpeechTraits(text, 'maya-santos', {
-        emotion: 'neutral',
-        baseSpeed: 0.92,
-        laughterCount: 0,
-      });
-
-      expect(result).toBeDefined();
-      expect(result).toContain('Systems beat');
-    });
-
-    it('should apply Alex Chen speech traits', async () => {
-      const text = 'Clear is kind. First, let me explain.';
-      const result = await applyPersonaSpeechTraits(text, 'alex-chen', {
-        emotion: 'neutral',
-        baseSpeed: 0.94,
-        laughterCount: 0,
-      });
-
-      expect(result).toBeDefined();
-      expect(result).toContain('Clear is kind');
-    });
-
-    it('should apply Jordan Taylor speech traits', async () => {
-      const text = 'Let us celebrate this milestone in your life arc!';
-      const result = await applyPersonaSpeechTraits(text, 'jordan-taylor', {
-        emotion: 'happy',
-        baseSpeed: 0.95,
-        laughterCount: 0,
-      });
-
-      expect(result).toBeDefined();
-      expect(result).toContain('celebrate');
-    });
-
-    it('should apply Nayan Patel speech traits', async () => {
-      const text = 'The seeker is the sought. Are you ready?';
-      const result = await applyPersonaSpeechTraits(text, 'nayan-patel', {
-        emotion: 'calm',
-        baseSpeed: 0.82,
-        laughterCount: 0,
-      });
-
-      expect(result).toBeDefined();
-      expect(result).toContain('seeker');
-    });
-
-    it('should return original text for unknown personas', async () => {
-      const text = 'Hello world';
-      const result = await applyPersonaSpeechTraits(text, 'unknown-persona');
-
-      expect(result).toBe(text);
-    });
-
-    it('should apply Ferni speech traits', async () => {
-      const text = 'Hello world';
-      const result = await applyPersonaSpeechTraits(text, 'ferni', {
-        emotion: 'affectionate',
-        baseSpeed: 0.92,
-        laughterCount: 0,
-      });
-
-      expect(result).toBeDefined();
-      expect(result.length).toBeGreaterThan(0);
     });
   });
 

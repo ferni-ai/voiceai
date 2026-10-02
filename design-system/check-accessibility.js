@@ -17,6 +17,7 @@
  */
 
 import fs from 'fs';
+import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
@@ -236,7 +237,7 @@ function checkAccessibility(options = {}) {
   // Save report
   const reportPath = path.join(__dirname, 'dist/a11y-check-report.json');
   fs.mkdirSync(path.dirname(reportPath), { recursive: true });
-  fs.writeFileSync(reportPath, JSON.stringify(results, null, 2));
+  writeIfChanged(reportPath, JSON.stringify(results, null, 2));
   console.log(`\n📄 Report saved to: ${reportPath}\n`);
   
   // Strict mode handling
