@@ -47,6 +47,10 @@ import {
   processBrandEvolution,
 } from '../brand-evolution-integration.js';
 
+// A fixed afternoon local time. Brand secrets fire at 02:22, 03:33, 04:44 and
+// 11:11, so tests that used new Date() failed when CI ran at one of those minutes.
+const NEUTRAL_LOCAL_TIME = new Date('2026-01-15T14:00:00');
+
 // Reflection Sunday
 import {
   getCurrentWeekNumber,
@@ -81,7 +85,7 @@ describe('Brand Evolution Features', () => {
       const context: SecretContext = {
         userId: 'test-user',
         conversationCount: 7,
-        localTime: new Date(),
+        localTime: NEUTRAL_LOCAL_TIME,
       };
 
       const result = checkBrandSecrets(context);
@@ -98,7 +102,7 @@ describe('Brand Evolution Features', () => {
         userId: 'test-user',
         conversationCount: 5,
         userMessage: 'Open the pod bay doors, HAL',
-        localTime: new Date(),
+        localTime: NEUTRAL_LOCAL_TIME,
       };
 
       const result = checkBrandSecrets(context);
@@ -126,7 +130,7 @@ describe('Brand Evolution Features', () => {
       const context: SecretContext = {
         userId: 'test-user',
         conversationCount: 7,
-        localTime: new Date(),
+        localTime: NEUTRAL_LOCAL_TIME,
       };
 
       // First check triggers it
@@ -411,7 +415,7 @@ describe('Brand Evolution Features', () => {
       processBrandEvolution({
         userId: 'test-user',
         conversationCount: 5,
-        localTime: new Date(),
+        localTime: NEUTRAL_LOCAL_TIME,
       });
 
       // Reset should not throw
