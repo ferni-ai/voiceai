@@ -58,7 +58,6 @@ import { showGroupCoaching } from '../ui/group-coaching.ui.js';
 import { showVoiceEnrollmentModal } from '../ui/voice-enrollment.ui.js';
 import { FamilyIdentities } from '../ui/family-identities.ui.js';
 import { showHouseholdManager } from '../ui/household-manager.ui.js';
-import { showConversationMemory } from '../ui/conversation-memory.ui.js';
 import { showWellbeingDashboard } from '../ui/wellbeing-dashboard.ui.js';
 import { showLifeContextDashboard } from '../ui/life-context-dashboard.ui.js';
 import { futureInsightsUI } from '../ui/future-insights.ui.js';
@@ -70,6 +69,7 @@ import {
   showAnalyticsDashboard,
   showCognitiveInsights,
   showConversationHistory,
+  openMemoryPanel,
   showDataExport,
   showPredictionTracker,
   showTeamHuddle,
@@ -125,7 +125,7 @@ export function initSettingsMenu(): void {
       onBillingPortalClick: () => void openBillingPortal(),
       onHouseholdClick: () => void showHouseholdManager(),
       onFamilyCallersClick: () => void FamilyIdentities.show(),
-      onConversationMemoryClick: () => void showConversationMemory(),
+      onConversationMemoryClick: () => void openMemoryPanel('memories'),
       onWellbeingClick: () => void showWellbeingDashboard(),
       onLifeContextClick: () => void showLifeContextDashboard(),
       onTeamInsightsClick: () => teamInsightsUI.toggle(),

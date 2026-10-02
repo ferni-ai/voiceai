@@ -14,6 +14,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
+import { freshState, mockMemoryApi } from './memory-api-mock';
 
 const SCREENS: Array<{ name: string; open?: (page: Page) => Promise<void> }> = [
   { name: 'home' },
@@ -28,6 +29,32 @@ const SCREENS: Array<{ name: string; open?: (page: Page) => Promise<void> }> = [
         page.evaluate((e) => window.dispatchEvent(new CustomEvent(e)), `ferni:open-${screen}`),
     })
   ),
+  // "What I remember": each tab, plus an open transcript, with realistic data
+  ...(
+    [
+      ['memories', 'Memories'],
+      ['memories: conversations', 'Conversations'],
+      ['memories: transcript', 'Conversations'],
+      ['memories: your data', 'Your data'],
+      ['memories: confirm', 'Your data'],
+    ] as const
+  ).map(([name, tab]) => ({
+    name,
+    open: async (page: Page) => {
+      await mockMemoryApi(page, freshState());
+      await page.evaluate(() => window.dispatchEvent(new CustomEvent('ferni:open-memories')));
+      const dialog = page.getByRole('dialog', { name: 'What I remember' });
+      await dialog.getByRole('tab', { name: tab }).click();
+      if (name === 'memories: transcript') {
+        await dialog.locator('[data-conversation-id="c-1"] button').click();
+        await dialog.locator('.memory-transcript').waitFor();
+      }
+      if (name === 'memories: confirm') {
+        await dialog.getByRole('button', { name: 'Delete everything' }).click();
+        await page.getByRole('alertdialog').waitFor();
+      }
+    },
+  })),
 ];
 
 /** An established user, so every settings section and team member shows. */
@@ -64,6 +91,8 @@ for (const theme of ['zen', 'midnight'] as const) {
 
     for (const screen of SCREENS) {
       test(screen.name, async ({ page }) => {
+        // The memory screens open the panel and click through tabs first
+        if (screen.name.startsWith('memories')) test.slow();
         await page.clock.setFixedTime(new Date(`${CLOCK[theme]}Z`));
         await seedUser(page, theme);
         await page.goto('/');
