@@ -14,6 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getFirestoreDb } from './firestore.js';
 import type {
   UserKnowledge,
   IdentityKnowledge,
@@ -58,29 +59,6 @@ const CACHE_TTL_MS = 60 * 1000; // 1 minute cache
  */
 export function clearKnowledgeCache(userId: string): void {
   knowledgeCache.delete(userId);
-}
-
-// ============================================================================
-// FIRESTORE ACCESS
-// ============================================================================
-
-// One shared import for all aggregators. getUserKnowledge runs them in
-// parallel, and Vitest hands the real module (not the vi.mock factory) to every
-// concurrent import() after the first, so tests could hit live Firestore.
-let firebaseAdminImport: Promise<typeof import('firebase-admin')> | null = null;
-
-async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
-  try {
-    firebaseAdminImport ??= import('firebase-admin').then((m) => m.default);
-    const admin = await firebaseAdminImport;
-    if (admin.apps.length === 0) {
-      admin.initializeApp();
-    }
-    return admin.firestore();
-  } catch (error) {
-    log.debug({ error: String(error) }, 'Firestore not available');
-    return null;
-  }
 }
 
 // ============================================================================
