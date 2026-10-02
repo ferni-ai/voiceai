@@ -68,7 +68,7 @@ import { generateDeepQuestions } from './deep-questions.js';
 import { detectExistentialContext } from './existential-context.js';
 import { formatNayanBriefing } from './formatting.js';
 import { analyzeHandoffForNayan } from './handoff-analysis.js';
-import { buildLifeNarrative } from './life-narrative.js';
+import { buildLifeNarrative, loadStoryHints } from './life-narrative.js';
 import { synthesizeLifeContext } from './life-synthesis.js';
 import { detectProactiveTriggers } from './proactive-triggers.js';
 import { clearAllNayanWisdomSessions, clearNayanWisdomSession, getSession } from './session.js';
@@ -112,7 +112,7 @@ async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing>
   };
 
   // Each promise has its own catch to prevent one failure from crashing all
-  const [lifeSynthesis, teamSynthesis, calendarContext] = await Promise.all([
+  const [lifeSynthesis, teamSynthesis, calendarContext, storyHints] = await Promise.all([
     synthesizeLifeContext(userId).catch((e) => {
       log.warn({ error: String(e) }, 'Failed to synthesize life context');
       return defaultLifeSynthesis;
@@ -122,12 +122,13 @@ async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing>
       return defaultTeamSynthesis;
     }),
     buildCalendarWisdomContext(userId).catch(() => null),
+    loadStoryHints(userId),
   ]);
 
   const valuesAlignment = analyzeValuesAlignment(lifeSynthesis, userId);
   const wisdomMetrics = await computeWisdomMetrics(userId, lifeSynthesis, valuesAlignment);
   const existentialContext = detectExistentialContext(lifeSynthesis, handoffBriefing);
-  const lifeNarrative = buildLifeNarrative(lifeSynthesis, valuesAlignment);
+  const lifeNarrative = buildLifeNarrative(lifeSynthesis, valuesAlignment, storyHints);
   const proactiveTriggers = detectProactiveTriggers(
     lifeSynthesis,
     wisdomMetrics,

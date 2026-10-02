@@ -12,6 +12,8 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, recordDegradation } from './firestore-utils.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { sensitiveCategoriesOf } from '../memory-consent/classifier.js';
+import { onValuesChanged, valueIdFor } from '../life-story/values-store.js';
 import { indexValuesAlignment } from '../data-layer/integrations/index.js';
 import {
   onValuesConflictDetected,
@@ -59,6 +61,13 @@ export interface UserValue {
   // Conflicts detected
   conflictCount: number;
   lastConflictDate?: number;
+
+  // Provenance (memory control: services/life-story/values-store.ts)
+  label?: string;
+  source?: 'stated' | 'inferred' | 'user';
+  userEdited?: boolean;
+  sourceConversationIds?: string[];
+  sourceFactIds?: string[];
 }
 
 export interface ValueConflict {
@@ -313,6 +322,8 @@ export function detectConflict(
 // ============================================================================
 
 const valuesCache = new Map<string, UserValue[]>();
+// The life-story values store edits the same documents (page, cascades): drop our copy.
+onValuesChanged((userId) => valuesCache.delete(userId));
 
 export async function loadUserValues(userId: string): Promise<UserValue[]> {
   if (valuesCache.has(userId)) {
@@ -380,27 +391,37 @@ export async function saveValue(value: UserValue): Promise<void> {
 
 export async function recordValueMention(
   userId: string,
-  detected: { category: ValueCategory; statement: string; weight: number }
+  detected: { category: ValueCategory; statement: string; weight: number },
+  opts: { conversationId?: string } = {}
 ): Promise<UserValue> {
   const values = await loadUserValues(userId);
   const existing = values.find((v) => v.category === detected.category);
+  const withSource = (v: UserValue): UserValue => {
+    const ids = v.sourceConversationIds ?? [];
+    return opts.conversationId && !ids.includes(opts.conversationId)
+      ? { ...v, sourceConversationIds: [...ids, opts.conversationId] }
+      : v;
+  };
 
   if (existing) {
     existing.mentions++;
     existing.lastMentioned = Date.now();
     existing.importance = Math.min(1, existing.importance + 0.05);
-    if (existing.contextExamples.length < 10) {
+    // The user's own wording (page edit) is never changed by detection.
+    if (!existing.userEdited && existing.contextExamples.length < 10) {
       existing.contextExamples.push(detected.statement);
     }
+    Object.assign(existing, withSource(existing));
     await saveValue(existing);
     return existing;
   }
 
-  // Create new value
-  const newValue: UserValue = {
-    id: `value_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  // New value: deterministic id (life-story values store), so re-learning upserts
+  const newValue: UserValue = withSource({
+    id: valueIdFor(detected.category),
     userId,
     category: detected.category,
+    label: detected.category,
     statement: detected.statement,
     importance: detected.weight,
     mentions: 1,
@@ -408,11 +429,32 @@ export async function recordValueMention(
     lastMentioned: Date.now(),
     contextExamples: [detected.statement],
     conflictCount: 0,
-  };
+    source: 'stated',
+  });
+  // Faith is a belief (consent-gated), and a forgotten value stays forgotten.
+  if (sensitiveCategoriesOf(detected.statement).includes('beliefs')) return newValue;
+  if (await isValueTombstoned(userId, newValue.id)) return newValue;
 
   await saveValue(newValue);
   log.info({ userId, category: detected.category }, '💎 New value detected');
   return newValue;
+}
+
+async function isValueTombstoned(userId: string, id: string): Promise<boolean> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return false;
+    const snap = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('memory_tombstones')
+      .doc(id)
+      .get();
+    return snap.exists === true;
+  } catch (error) {
+    log.debug({ error: String(error) }, 'Value tombstone check failed; skipping write');
+    return true;
+  }
 }
 
 export async function recordConflict(

@@ -8,13 +8,41 @@
 
 import type { LifeNarrative, LifeSynthesis, ValuesAlignment } from './types.js';
 
+/** What the user has actually told us about their story (services/life-story). */
+export interface StoryHints {
+  readonly chapters: readonly string[];
+  readonly turningPoints: readonly string[];
+  readonly themes: readonly string[];
+  readonly values: readonly string[];
+}
+
+/** Read the life story store; empty hints when unavailable (never throws). */
+export async function loadStoryHints(userId: string): Promise<StoryHints> {
+  const empty: StoryHints = { chapters: [], turningPoints: [], themes: [], values: [] };
+  try {
+    const { getStoryView } = await import('../../../../services/life-story/index.js');
+    const view = await getStoryView(userId);
+    const titles = (kinds: readonly string[]) =>
+      view.items.filter((i) => kinds.includes(i.kind)).map((i) => i.title);
+    return {
+      chapters: titles(['chapter']),
+      turningPoints: titles(['turning_point', 'moment']),
+      themes: titles(['theme']),
+      values: view.values.map((v) => v.label),
+    };
+  } catch {
+    return empty;
+  }
+}
+
 // ============================================================================
 // LIFE NARRATIVE BUILDING
 // ============================================================================
 
 export function buildLifeNarrative(
   lifeSynthesis: LifeSynthesis,
-  valuesAlignment: ValuesAlignment
+  valuesAlignment: ValuesAlignment,
+  story?: StoryHints
 ): LifeNarrative {
   const narrative: LifeNarrative = {
     pastChapter: 'Unknown past',
@@ -70,6 +98,17 @@ export function buildLifeNarrative(
   }
   for (const conflict of valuesAlignment.conflictAreas) {
     narrative.unfinishedBusiness.push(conflict);
+  }
+
+  // What they actually told us beats inference: their chapters, turning points, themes, values.
+  if (story) {
+    if (story.chapters[0]) narrative.pastChapter = story.chapters[0];
+    narrative.recurringThemes = [
+      ...new Set([...story.themes, ...story.values, ...narrative.recurringThemes]),
+    ].slice(0, 5);
+    narrative.transformationMoments = [
+      ...new Set([...story.turningPoints.slice(0, 3), ...narrative.transformationMoments]),
+    ];
   }
 
   return narrative;

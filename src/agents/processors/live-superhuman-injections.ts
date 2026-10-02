@@ -620,7 +620,7 @@ Your superpower: You notice when their actions contradict their values.
         .then((m) => {
           const detected = m.detectValue(ctx.userText);
           if (detected) {
-            void m.recordValueMention(ctx.userId, detected);
+            void m.recordValueMention(ctx.userId, detected, { conversationId: ctx.sessionId });
           }
         })
         .catch((e) => log.debug({ error: String(e) }, 'Value recording skipped'));
@@ -847,6 +847,7 @@ Your superpower: You remember their WHOLE story.
               type: chapter.type,
               quote: ctx.userText.slice(0, 200),
               emotion: ctx.emotionalState.primary,
+              conversationId: ctx.sessionId,
             });
           }
         })

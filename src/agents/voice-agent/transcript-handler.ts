@@ -1528,6 +1528,12 @@ async function processFinalTranscript(
         await import('../../services/work-and-places/capture.js');
       await recordUserTurnWorkAndPlaces(userId, event.transcript, sessionId);
     }, 'work-and-places');
+    // 📖 Life story & values ("I grew up in Ohio", "family matters most to me");
+    // faith only with the user's Beliefs consent (checked inside)
+    fireAndForget(async () => {
+      const { recordUserTurnLifeStory } = await import('../../services/life-story/capture.js');
+      await recordUserTurnLifeStory(userId, event.transcript, sessionId);
+    }, 'life-story');
   }
 
   // Extract memorable moments

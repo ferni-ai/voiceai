@@ -135,6 +135,7 @@ import { initConversationSession } from '../integrations/conversation-session-in
 import { loadPreferenceBlock } from '../../services/user-preferences/context-block.js';
 import { loadHealthMoodBlock } from '../../services/health-memory/context-block.js';
 import { loadWorkAndPlacesBlock } from '../../services/work-and-places/context-block.js';
+import { loadLifeStoryBlock } from '../../services/life-story/context-block.js';
 
 const log = getLogger();
 
@@ -309,6 +310,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   const healthBlockPromise = userId ? loadHealthMoodBlock(userId) : Promise.resolve('');
   // Work & places (current job, upcoming trips, follow-ups): bounded, never throws
   const workPlacesBlockPromise = loadWorkAndPlacesBlock(userId);
+  // Life story & values (faith only with consent): bounded, never throws
+  const lifeStoryBlockPromise = loadLifeStoryBlock(userId);
   try {
     mark('load_prompts_start');
     // Personal insights (people, likely topics, openers): read in parallel, never blocks
@@ -370,6 +373,17 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       log.info(
         { personaId: persona.id, chars: workPlacesBlock.length },
         '💼 Work & places context injected'
+      );
+    }
+
+    // THEIR STORY & VALUES - roots, stories told, turning points, values, faith (consent);
+    // char-budgeted (see services/life-story/context-block.ts)
+    const lifeStoryBlock = await lifeStoryBlockPromise;
+    if (lifeStoryBlock) {
+      modelBaseInstructions += lifeStoryBlock;
+      log.info(
+        { personaId: persona.id, chars: lifeStoryBlock.length },
+        '📖 Life story & values context injected'
       );
     }
 

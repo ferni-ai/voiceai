@@ -72,6 +72,8 @@ export interface LifeChapter {
   createdAt: number;
   lastUpdated: number;
   conversationCount: number; // How many conversations touched this
+  /** Conversations this chapter was heard in (memory control cascades on these). */
+  sourceConversationIds?: string[];
 }
 
 export interface IdentityEvolution {
@@ -202,6 +204,12 @@ export function detectChapterMoment(
 const chapterCache = new Map<string, LifeChapter[]>();
 const identityCache = new Map<string, IdentityEvolution>();
 
+/** Drop cached chapters/identity (memory control deleted or exported-and-erased them). */
+export function forgetCachedNarrative(userId: string): void {
+  chapterCache.delete(userId);
+  identityCache.delete(userId);
+}
+
 export async function loadUserChapters(userId: string): Promise<LifeChapter[]> {
   if (chapterCache.has(userId)) {
     return chapterCache.get(userId) || [];
@@ -284,6 +292,8 @@ export async function createOrUpdateChapter(
     theme?: string;
     person?: string;
     emotion?: string;
+    /** Session/conversation the moment came from (provenance for memory control). */
+    conversationId?: string;
   }
 ): Promise<LifeChapter> {
   const chapters = await loadUserChapters(userId);
@@ -307,6 +317,15 @@ export async function createOrUpdateChapter(
       ongoing.keyEmotions.push(data.emotion);
     }
     ongoing.conversationCount++;
+    if (
+      data.conversationId &&
+      !(ongoing.sourceConversationIds ?? []).includes(data.conversationId)
+    ) {
+      ongoing.sourceConversationIds = [
+        ...(ongoing.sourceConversationIds ?? []),
+        data.conversationId,
+      ];
+    }
     ongoing.lastUpdated = Date.now();
 
     await saveChapter(ongoing);
@@ -331,6 +350,7 @@ export async function createOrUpdateChapter(
     createdAt: Date.now(),
     lastUpdated: Date.now(),
     conversationCount: 1,
+    ...(data.conversationId ? { sourceConversationIds: [data.conversationId] } : {}),
   };
 
   await saveChapter(newChapter);

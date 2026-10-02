@@ -80,6 +80,12 @@ export function registerBuiltInCategoryStores(): void {
       (await import('../health-memory/mood-timeline.js')).deleteAllMood(userId),
   });
   registerCategoryStore({
+    category: 'beliefs',
+    name: 'beliefsMemory',
+    count: async (userId) => (await import('../life-story/store.js')).countItems(userId, 'beliefs'),
+    deleteAll: async (userId) => (await import('../life-story/record.js')).deleteAllBeliefs(userId),
+  });
+  registerCategoryStore({
     category: 'health',
     name: 'medicalFoodRestrictions',
     count: async (userId) => (await medicalFoodPrefs(userId)).length,
