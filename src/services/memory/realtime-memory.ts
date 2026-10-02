@@ -21,72 +21,16 @@ import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { recordFallback, recordSuccess } from '../observability/firestore-monitor.js';
+import type {
+  ConversationMetadata,
+  ConversationTurn,
+  FirestoreDB,
+} from './realtime-memory.types.js';
 
 const log = getLogger().child({ module: 'realtime-memory' });
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface ConversationTurn {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  metadata?: {
-    emotion?: string;
-    topics?: string[];
-    durationMs?: number;
-  };
-  /** Monotonic per conversation, shared by both roles (see turn-sequencer.ts) */
-  turnNumber?: number;
-  /** Persona that spoke (assistant) or was being spoken to (user) */
-  personaId?: string;
-}
-
-export interface ConversationMetadata {
-  id: string;
-  userId: string;
-  personaId: string;
-  startedAt: Date;
-  endedAt?: Date;
-  turnCount: number;
-  summarized: boolean;
-  summary?: string;
-}
-
-// Firestore types (to avoid import issues)
-interface FirestoreDB {
-  collection: (path: string) => CollectionRef;
-  collectionGroup: (path: string) => CollectionRef;
-}
-
-interface CollectionRef {
-  doc: (id: string) => DocumentRef;
-  add: (data: unknown) => Promise<{ id: string }>;
-  orderBy: (field: string, direction?: 'asc' | 'desc') => CollectionRef;
-  where: (field: string, op: string, value: unknown) => CollectionRef;
-  limit: (n: number) => CollectionRef;
-  get: () => Promise<QuerySnapshot>;
-}
-
-interface DocumentRef {
-  collection: (path: string) => CollectionRef;
-  set: (data: unknown, options?: { merge?: boolean }) => Promise<void>;
-  update: (data: unknown) => Promise<void>;
-  get: () => Promise<DocumentSnapshot>;
-}
-
-interface QuerySnapshot {
-  docs: DocumentSnapshot[];
-  empty: boolean;
-}
-
-interface DocumentSnapshot {
-  id: string;
-  exists: boolean;
-  data: () => Record<string, unknown> | undefined;
-  ref: DocumentRef & { parent: { parent: DocumentRef | null } };
-}
+// Types live in realtime-memory.types.ts; re-exported for existing importers.
+export type { ConversationMetadata, ConversationTurn };
 
 // ============================================================================
 // FIRESTORE CLIENT
