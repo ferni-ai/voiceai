@@ -35,6 +35,8 @@ const SCREENS: Array<{ name: string; open?: (page: Page) => Promise<void> }> = [
       ['memories', 'Memories'],
       ['memories: goals & habits', 'Goals & habits'],
       ['memories: goals editor', 'Goals & habits'],
+      ['memories: work & places', 'Work & places'],
+      ['memories: work & places editor', 'Work & places'],
       ['memories: conversations', 'Conversations'],
       ['memories: transcript', 'Conversations'],
       ['memories: your data', 'Your data'],
@@ -54,6 +56,13 @@ const SCREENS: Array<{ name: string; open?: (page: Page) => Promise<void> }> = [
       if (name === 'memories: goals editor') {
         await dialog.getByRole('button', { name: 'Edit Run a half marathon' }).click();
         await dialog.getByRole('combobox', { name: 'Status' }).waitFor();
+      }
+      if (name === 'memories: work & places') {
+        await dialog.locator('[data-item-id="work_now"]').waitFor();
+      }
+      if (name === 'memories: work & places editor') {
+        await dialog.getByRole('button', { name: 'Correct: Nurse at Mercy Hospital' }).click();
+        await dialog.locator('[data-role="edit-status"]').waitFor();
       }
       if (name === 'memories: confirm') {
         await dialog.getByRole('button', { name: 'Delete everything' }).click();
