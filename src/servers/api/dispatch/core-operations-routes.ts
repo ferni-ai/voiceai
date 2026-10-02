@@ -32,6 +32,7 @@ import { handleConversationCostRoutes } from '../../../api/conversation-cost-rou
 import { handleMemoryRoutes } from '../../../api/memory-routes.js';
 import { handleUserPreferenceRoutes } from '../../../api/user-preferences-routes.js';
 import { handleWorkPlacesRoutes, isWorkPlacesRoute } from '../../../api/work-places-routes.js';
+import { handleLifeStoryRoutes, isLifeStoryRoute } from '../../../api/life-story-routes.js';
 import { handleMemoryControlRoutes } from '../../../api/memory-control-routes.js';
 import {
   handleSensitiveMemoryRoutes,
@@ -175,6 +176,12 @@ export async function dispatchOperationsRoutes(ctx: RouteContext): Promise<boole
   // Work & career, travel & places (user memory page)
   if (isWorkPlacesRoute(pathname)) {
     const handled = await handleWorkPlacesRoutes(req, res, pathname);
+    if (handled) return true;
+  }
+
+  // Life story & values, faith & beliefs (user memory page)
+  if (isLifeStoryRoute(pathname)) {
+    const handled = await handleLifeStoryRoutes(req, res, pathname);
     if (handled) return true;
   }
 

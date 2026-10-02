@@ -62,6 +62,10 @@ const h = vi.hoisted(() => {
       p.startsWith('/api/memory/me/work/') ||
       p === '/api/memory/me/places' ||
       p.startsWith('/api/memory/me/places/'),
+    isLifeStoryRoute: (p) =>
+      ['/api/memory/me/story', '/api/memory/me/beliefs'].some(
+        (x) => p === x || p.startsWith(`${x}/`)
+      ),
     isImportantDatesRoute: (p) =>
       p === '/api/memory/me/dates' ||
       p.startsWith('/api/memory/me/dates/') ||
@@ -735,6 +739,10 @@ vi.mock('../../../api/work-places-routes.js', () => ({
   isWorkPlacesRoute: h.auto('api/work-places-routes#isWorkPlacesRoute'),
   handleWorkPlacesRoutes: h.auto('api/work-places-routes#handleWorkPlacesRoutes'),
 }));
+vi.mock('../../../api/life-story-routes.js', () => ({
+  isLifeStoryRoute: h.auto('api/life-story-routes#isLifeStoryRoute'),
+  handleLifeStoryRoutes: h.auto('api/life-story-routes#handleLifeStoryRoutes'),
+}));
 vi.mock('../../../api/user-preferences-routes.js', () => ({
   handleUserPreferenceRoutes: h.auto('api/user-preferences-routes#handleUserPreferenceRoutes'),
 }));
@@ -907,6 +915,9 @@ const ROUTE_PREFIXES = [
   '/api/memory/me/preferences',
   '/api/memory/me/work',
   '/api/memory/me/places/',
+  '/api/memory/me/story',
+  '/api/memory/me/story/',
+  '/api/memory/me/beliefs',
   '/api/memory/me/dates',
   '/api/memory/me/dates/',
   '/api/memory/me/reminder-settings',
