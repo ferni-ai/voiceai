@@ -39,17 +39,19 @@ jobs:
   # ============================================================================
   # SETUP - Shared dependency installation and caching
   # ============================================================================
-  # runs-on: was [self-hosted, Linux, X64, gce] on all 13 jobs, but the repo has
-  # ZERO registered self-hosted runners (gh api .../actions/runners -> total_count 0).
-  # A job waiting for a runner is not covered by timeout-minutes (that starts when the
-  # job STARTS), so each run sat in GitHub's 24h queue timeout and was cancelled — the
-  # last three runs are all `cancelled` at 24h0m0s, going back to 2026-07-19. The
-  # pipeline produced no verdict at all, which reads the same as green.
-  # Moved to GitHub-hosted. deploy-gce.yml keeps self-hosted deliberately: it deploys
-  # TO gce, so running there is the point.
+  # runs-on comes from the CI_RUNNER repo variable (a JSON label list), falling back
+  # to ubuntu-latest when it is unset (the default). Setting it to
+  # ["self-hosted","Linux","X64","gce"] moves CI to the github-runner VM, an
+  # emergency fallback for when hosted runners are unavailable. If that VM is
+  # stopped, UNSET the variable: a job waiting
+  # for a runner is not covered by timeout-minutes, so with no runner online every
+  # run sits in GitHub's 24h queue and is cancelled with no verdict (2026-07).
+  # Deploys never run on it: deploy-gce.yml is GitHub-hosted, because PR code on
+  # that VM has docker (root) access and must not share a host with deploy
+  # credentials. The VM's identity is github-runner-ci (log/metric write only).
   setup:
     name: Setup & Cache Dependencies
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     outputs:
       cache-key: ${{ steps.cache-key.outputs.key }}
@@ -88,7 +90,7 @@ jobs:
   # ============================================================================
   lint:
     name: Lint & Type Check
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -134,7 +136,7 @@ jobs:
   # ============================================================================
   test-unit:
     name: Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     # 20 -> 35: the first run compiles the rust-perf binding from scratch on top of
     # an ~8 min test run. Cached cargo brings later runs back near the old budget.
     timeout-minutes: 35
@@ -231,7 +233,7 @@ jobs:
   # ============================================================================
   test-integration:
     name: Integration Tests (${{ matrix.shard }}/3)
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
     # Since the repo went private (2026-09-27) its runners are smaller: the
@@ -304,7 +306,7 @@ jobs:
   # ============================================================================
   test-agi-features:
     name: AGI Feature Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
     steps:
@@ -348,7 +350,7 @@ jobs:
   # ============================================================================
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: [setup, lint, test-unit, test-integration, test-agi-features]
     steps:
@@ -400,7 +402,7 @@ jobs:
   # ============================================================================
   security:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -459,7 +461,7 @@ jobs:
   # ============================================================================
   code-quality:
     name: Code Quality Metrics
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -497,7 +499,7 @@ jobs:
   # ============================================================================
   quality-gates:
     name: Quality Gates (Blocking)
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -535,7 +537,7 @@ jobs:
   # ============================================================================
   validation:
     name: Validation Checks
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -575,7 +577,7 @@ jobs:
   # ============================================================================
   e2e-validation:
     name: E2E Validation
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
     steps:
@@ -641,7 +643,7 @@ jobs:
   # ============================================================================
   frontend-quality:
     name: Frontend Quality
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
     steps:
@@ -705,7 +707,7 @@ jobs:
   # ============================================================================
   dependencies:
     name: Dependency Check
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 10
     needs: setup
     steps:
