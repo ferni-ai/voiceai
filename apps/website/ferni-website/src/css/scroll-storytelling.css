@@ -152,7 +152,7 @@ body:not(.at-top) .scroll-progress {
 
 /* Hover state */
 .scroll-progress__marker:hover .scroll-progress__marker-num {
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 .scroll-progress__marker:hover .scroll-progress__marker-dot {
@@ -179,7 +179,7 @@ body:not(.at-top) .scroll-progress {
 
 /* Active state */
 .scroll-progress__marker.is-active .scroll-progress__marker-num {
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   font-size: var(--text-2xs);
 }
 
@@ -211,7 +211,7 @@ body:not(.at-top) .scroll-progress__current {
   font-family: var(--font-display);
   font-size: var(--text-3xl);
   font-weight: 700;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   line-height: 1;
   letter-spacing: -0.02em;
 }

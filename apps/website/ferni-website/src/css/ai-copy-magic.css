@@ -290,7 +290,7 @@
 .btn--ghost.btn--adaptive {
   background: transparent;
   border: 2px solid color-mix(in srgb, var(--color-ferni) 30%, transparent);
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 .btn--ghost.btn--adaptive:hover {

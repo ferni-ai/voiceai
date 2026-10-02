@@ -736,7 +736,7 @@
 }
 
 .legal-article .callout--success strong {
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 /* Info Callout */

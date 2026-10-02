@@ -125,10 +125,10 @@
   color: var(--color-success);
 }
 .code-block .property {
-  color: var(--color-peter);
+  color: var(--color-peter-text);
 }
 .code-block .number {
-  color: var(--color-jordan);
+  color: var(--color-jordan-text);
 }
 
 /* ============================================================================
@@ -1473,7 +1473,7 @@ a.card:hover h3 {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   margin: 0 0 16px 0;
   padding: 0;
 }
@@ -1542,7 +1542,7 @@ a.card:hover h3 {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--color-jack);
+  color: var(--color-jack-text);
 }
 
 .memory-story__marker--now .memory-story__time {
@@ -1610,7 +1610,7 @@ a.card:hover h3 {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: var(--text-base);
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   margin: 0;
   padding: 0;
 }
@@ -1658,15 +1658,15 @@ a.card:hover h3 {
   padding: 5px 12px;
   border-radius: var(--radius-full);
   background: var(--color-bg-secondary);
-  color: var(--color-jack);
+  color: var(--color-jack-text);
   margin: 0;
 }
 
-.memory-story__tag--anxious { background: color-mix(in srgb, var(--color-carmen) 15%, transparent); color: var(--color-jack); }
+.memory-story__tag--anxious { background: color-mix(in srgb, var(--color-carmen) 15%, transparent); color: var(--color-jack-text); }
 .memory-story__tag--scared { background: color-mix(in srgb, var(--color-wood) 15%, transparent); color: var(--color-jack-secondary); }
-.memory-story__tag--distracted { background: color-mix(in srgb, var(--color-stone) 15%, transparent); color: var(--color-jack); }
+.memory-story__tag--distracted { background: color-mix(in srgb, var(--color-stone) 15%, transparent); color: var(--color-jack-text); }
 .memory-story__tag--guilty { background: color-mix(in srgb, var(--color-wood) 15%, transparent); color: var(--color-jack-secondary); }
-.memory-story__tag--relieved { background: color-mix(in srgb, var(--color-ferni) 15%, transparent); color: var(--color-ferni); }
+.memory-story__tag--relieved { background: color-mix(in srgb, var(--color-ferni) 15%, transparent); color: var(--color-ferni-text); }
 
 /* ============================================================================
    MEMORY STORY - Visual Polish & Cinematic Details
@@ -1761,7 +1761,7 @@ a.card:hover h3 {
 
 /* Insight panel footer sparkle */
 .memory-story__insight-footer svg {
-  color: var(--color-nayan);
+  color: var(--color-nayan-text);
   filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-nayan) 30%, transparent));
 }
 
@@ -1872,7 +1872,7 @@ a.card:hover h3 {
 
 .memory-story__insight-footer svg {
   flex-shrink: 0;
-  color: var(--color-nayan);
+  color: var(--color-nayan-text);
 }
 
 .memory-story__insight-footer em {
@@ -1908,7 +1908,7 @@ a.card:hover h3 {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   margin: 0 0 8px;
 }
 
@@ -1953,7 +1953,7 @@ a.card:hover h3 {
 .memory-dashboard__stat-label {
   font-family: 'Inter', var(--font-body), sans-serif;
   font-size: clamp(0.625rem, 1vw, 0.75rem);
-  color: var(--color-jack);
+  color: var(--color-jack-text);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 500;
@@ -1970,7 +1970,7 @@ a.card:hover h3 {
 }
 
 .memory-dashboard__stat--highlight .memory-dashboard__stat-value {
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 .memory-dashboard__stat-pulse {
@@ -2112,7 +2112,7 @@ a.card:hover h3 {
 }
 
 .memory-chart__change--positive {
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 .memory-chart__change--negative {
@@ -2260,7 +2260,7 @@ a.card:hover h3 {
 .memory-chart__insight-value--coral { color: var(--persona-jordan, var(--color-jordan)); }
 .memory-chart__insight-value--teal { color: var(--persona-peter, var(--color-peter)); }
 .memory-chart__insight-value--slate { color: var(--persona-alex, var(--color-alex)); }
-.memory-chart__insight-value--sage { color: var(--color-ferni); }
+.memory-chart__insight-value--sage { color: var(--color-ferni-text); }
 
 .memory-chart__insight-label {
   font-family: 'Inter', var(--font-body), sans-serif;
@@ -2353,7 +2353,7 @@ a.card:hover h3 {
 .memory-dashboard__pattern-text span {
   font-family: 'Inter', var(--font-body), sans-serif;
   font-size: clamp(0.625rem, 1vw, 0.75rem);
-  color: var(--color-jack);
+  color: var(--color-jack-text);
 }
 
 /* Connection Web */
@@ -2375,7 +2375,7 @@ a.card:hover h3 {
 .memory-dashboard__web-label {
   font-family: 'Inter', var(--font-body), sans-serif;
   font-size: var(--text-xs);
-  color: var(--color-jack);
+  color: var(--color-jack-text);
   margin: 0;
 }
 
@@ -2391,7 +2391,7 @@ a.card:hover h3 {
 }
 
 .memory-dashboard__footer-icon {
-  color: var(--color-nayan);
+  color: var(--color-nayan-text);
   display: flex;
   align-items: center;
 }
@@ -2405,7 +2405,7 @@ a.card:hover h3 {
 
 .memory-dashboard__footer em {
   font-style: italic;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   font-weight: 500;
 }
 

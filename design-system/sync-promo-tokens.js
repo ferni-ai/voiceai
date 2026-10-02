@@ -221,6 +221,7 @@ function generateColorVars(colors) {
   lines.push('     ============================================ */');
   lines.push(`  --color-accent-gold: ${midnight.accent.primary};`);
   lines.push(`  --color-accent-gold-hover: ${midnight.accent.hover};`);
+  lines.push(`  --color-accent-gold-text: ${themeTextInks(midnight).accentText};`);
   lines.push(`  --color-cedar: ${midnight.background.elevated};`);
   lines.push(`  --color-cedar-dark: ${midnight.background.primary};`);
   lines.push(`  --color-cedar-deep: #1f1a16;`);
@@ -822,6 +823,13 @@ function generateDarkThemeFile(colors, spacing, typography, animation, effects) 
     '  --info: #7da6cf;',
     '  --info-glow: rgba(125, 166, 207, 0.22);',
     '',
+    '  /* Semantic text inks (WCAG AA on the Cedar Night surfaces) */',
+    `  --success-text: ${themeTextInks(midnight).semanticText.successText};`,
+    `  --error-text: ${themeTextInks(midnight).semanticText.errorText};`,
+    `  --warning-text: ${themeTextInks(midnight).semanticText.warningText};`,
+    `  --info-text: ${themeTextInks(midnight).semanticText.infoText};`,
+    `  --on-accent: ${themeTextInks(midnight).onAccent};`,
+    '',
     '  /* Code syntax (on --bg-code) */',
     ...Object.entries(midnight.syntax || {})
       .filter(([key]) => !key.startsWith('_'))
@@ -830,12 +838,14 @@ function generateDarkThemeFile(colors, spacing, typography, animation, effects) 
     '  /* Personas */',
   ];
 
-  // Add persona colors
+  // Add persona colors (fills) and their text inks (WCAG AA on Cedar Night)
+  const personaInks = computePersonaInks(colors.personas, colors.themes);
   for (const [personaId, persona] of Object.entries(colors.personas)) {
     if (personaId.startsWith('_')) continue;
     const shortId = personaId.split('-')[0];
     lines.push(`  --persona-${shortId}: ${persona.primary};`);
     lines.push(`  --persona-${shortId}-glow: ${persona.glow};`);
+    lines.push(`  --persona-${shortId}-text: ${personaInks[personaId].midnight};`);
   }
 
   // Add spacing, typography, animation, effects

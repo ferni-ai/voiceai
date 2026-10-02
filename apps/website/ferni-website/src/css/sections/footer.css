@@ -558,37 +558,37 @@
 /* Brand colors for each persona orb */
 .team-avatar--ferni .team-avatar__orb {
   background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-secondary) 100%);
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   box-shadow: 0 4px 16px color-mix(in srgb, var(--color-ferni) 25%, transparent);
 }
 
 .team-avatar--maya .team-avatar__orb {
   background: linear-gradient(135deg, var(--color-maya) 0%, var(--color-maya-muted) 100%);
-  color: var(--color-maya);
+  color: var(--color-maya-text);
   box-shadow: 0 4px 16px color-mix(in srgb, var(--color-maya) 25%, transparent);
 }
 
 .team-avatar--peter .team-avatar__orb {
   background: linear-gradient(135deg, var(--color-peter) 0%, var(--color-peter-dark) 100%);
-  color: var(--color-peter);
+  color: var(--color-peter-text);
   box-shadow: 0 4px 16px color-mix(in srgb, var(--color-peter) 25%, transparent);
 }
 
 .team-avatar--jordan .team-avatar__orb {
   background: linear-gradient(135deg, var(--color-jordan) 0%, var(--color-jordan-muted) 100%);
-  color: var(--color-jordan);
+  color: var(--color-jordan-text);
   box-shadow: 0 4px 16px color-mix(in srgb, var(--color-jordan) 25%, transparent);
 }
 
 .team-avatar--alex .team-avatar__orb {
   background: linear-gradient(135deg, var(--color-alex) 0%, var(--color-alex-dark) 100%);
-  color: var(--color-alex);
+  color: var(--color-alex-text);
   box-shadow: 0 4px 16px color-mix(in srgb, var(--color-alex) 25%, transparent);
 }
 
 .team-avatar--nayan .team-avatar__orb {
   background: linear-gradient(135deg, var(--color-nayan) 0%, var(--color-jack) 100%);
-  color: var(--color-nayan);
+  color: var(--color-nayan-text);
   box-shadow: 0 4px 16px color-mix(in srgb, var(--color-nayan) 25%, transparent);
 }
 
@@ -768,7 +768,7 @@
 }
 
 .footer-logo:hover {
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 /* ============================================================================

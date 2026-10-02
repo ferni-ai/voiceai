@@ -17,13 +17,14 @@
 
       /* Gold accent - warm, not neon */
       --dev-accent: var(--color-accent-gold);
+      --dev-accent-text: var(--color-accent-gold-text);
       --dev-accent-hover: var(--color-accent-gold-hover);
       --dev-accent-subtle: color-mix(in srgb, var(--color-accent-gold) 15%, transparent);
 
       /* Warm text colors */
       --dev-text: var(--color-dark-text);
       --dev-text-secondary: var(--color-dark-text-secondary);
-      --dev-text-muted: var(--color-sand-dark);
+      --dev-text-muted: var(--color-dark-text-muted);
 
       /* Code blocks */
       --dev-code-bg: var(--color-bg-darker);
@@ -64,7 +65,7 @@
     }
 
     a {
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
       text-decoration: none;
       transition: color var(--duration-normal) ease;
     }
@@ -119,7 +120,7 @@
 
     .dev-nav-links a:hover,
     .dev-nav-links a.active {
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
     }
 
     /* Hero Section */
@@ -136,7 +137,7 @@
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
       margin-bottom: 1.5rem;
     }
 
@@ -223,7 +224,7 @@
     .dev-stat-value {
       font-size: 2rem;
       font-weight: 700;
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
       font-family: var(--font-mono);
     }
 
@@ -292,7 +293,7 @@
       justify-content: center;
       margin-bottom: 1rem;
       font-size: 1.25rem;
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
     }
 
     .dev-card h3 {
@@ -312,7 +313,7 @@
     .dev-card-link {
       font-size: 0.85rem;
       font-weight: 600;
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
     }
 
     /* Code Preview */
@@ -373,7 +374,7 @@
 
     .dev-code-block .comment { color: var(--color-stone-light); }
     .dev-code-block .string { color: var(--color-accent-gold); }
-    .dev-code-block .keyword { color: var(--color-jordan); }
+    .dev-code-block .keyword { color: var(--color-jordan-text); }
     .dev-code-block .function { color: var(--color-ferni-light); }
 
     /* Resources */
@@ -409,7 +410,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
       font-size: 1rem;
     }
 
@@ -460,7 +461,7 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
       margin-bottom: 0.6rem;
     }
 
@@ -494,7 +495,7 @@
     }
 
     .dev-footer a {
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
     }
 
     /* Responsive */

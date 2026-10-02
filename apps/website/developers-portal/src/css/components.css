@@ -14,7 +14,7 @@
   z-index: 9999;
   padding: var(--space-3) var(--space-5);
   background: var(--accent-primary);
-  color: var(--color-white);
+  color: var(--text-inverse);
   font-weight: 600;
   text-decoration: none;
   border-radius: var(--radius-lg);
@@ -610,7 +610,7 @@ pre code {
 
 .btn-primary {
   background: var(--accent-primary);
-  color: var(--color-white);
+  color: var(--text-inverse);
 }
 
 .btn-primary:hover {
@@ -675,7 +675,7 @@ pre code {
 /* Outline variant */
 .btn-outline {
   background: transparent;
-  color: var(--accent-primary);
+  color: var(--accent-text);
   border: 1px solid var(--accent-primary);
 }
 
@@ -951,7 +951,7 @@ pre code {
 }
 
 .terminal-prompt {
-  color: var(--success);
+  color: var(--success-text);
   margin-right: var(--space-2);
   user-select: none;
 }
@@ -1010,7 +1010,7 @@ pre code {
   align-items: center;
   justify-content: center;
   margin-bottom: var(--space-4);
-  color: var(--accent-primary);
+  color: var(--accent-text);
   transition: all var(--duration-normal) var(--ease-gentle);
 }
 
@@ -1102,7 +1102,7 @@ pre code {
   margin-top: var(--space-4);
   font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--accent-primary);
+  color: var(--accent-text);
   transition: all var(--duration-fast);
 }
 
@@ -1207,7 +1207,7 @@ pre code {
 .card-testimonial-quote::before {
   content: '"';
   font-size: var(--text-4xl);
-  color: var(--accent-primary);
+  color: var(--accent-text);
   line-height: 0;
   vertical-align: -0.4em;
   margin-right: var(--space-1);
@@ -1228,7 +1228,7 @@ pre code {
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: var(--accent-primary);
+  color: var(--accent-text);
 }
 
 .card-testimonial-info {
@@ -1910,7 +1910,7 @@ pre code {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--accent-text);
+  color: var(--text-primary);
   background: var(--accent-subtle);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);

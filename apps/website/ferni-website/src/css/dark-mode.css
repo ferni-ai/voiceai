@@ -756,27 +756,27 @@
   
   :root:not([data-theme="light"]) .memory-story__tag--anxious {
     background: color-mix(in srgb, var(--color-jordan) 20%, transparent);
-    color: var(--color-maya);
+    color: var(--color-maya-text);
   }
   
   :root:not([data-theme="light"]) .memory-story__tag--scared {
     background: color-mix(in srgb, var(--color-nayan) 20%, transparent);
-    color: var(--color-nayan);
+    color: var(--color-nayan-text);
   }
   
   :root:not([data-theme="light"]) .memory-story__tag--distracted {
     background: color-mix(in srgb, var(--color-alex) 20%, transparent);
-    color: var(--color-alex);
+    color: var(--color-alex-text);
   }
   
   :root:not([data-theme="light"]) .memory-story__tag--guilty {
     background: color-mix(in srgb, var(--color-maya) 20%, transparent);
-    color: var(--color-maya);
+    color: var(--color-maya-text);
   }
   
   :root:not([data-theme="light"]) .memory-story__tag--relieved {
     background: color-mix(in srgb, var(--color-ferni-light) 20%, transparent);
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
   }
   
   /* Ferni Response Card - Special Treatment */

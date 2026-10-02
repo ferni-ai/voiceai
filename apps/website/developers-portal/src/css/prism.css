@@ -137,7 +137,7 @@ pre[class*='language-']:hover .code-copy-btn {
 }
 
 .code-copy-btn.copied {
-  color: var(--success);
+  color: var(--success-text);
   border-color: var(--success);
 }
 
@@ -288,10 +288,10 @@ pre .token.inserted:not(.token) {
   margin-right: var(--space-3);
   pointer-events: none;
   user-select: none;
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .command-line-prompt > span::before {
   content: '$ ';
-  color: var(--success);
+  color: var(--success-text);
 }

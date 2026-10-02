@@ -18,6 +18,27 @@
 /* Import design tokens - SINGLE SOURCE OF TRUTH */
 @import './_tokens.css';
 
+/* Spacing in px. This site sets html { font-size: var(--text-base) } (15px), so
+   the rem-based spacing tokens would render 15/16 smaller than the layouts were
+   designed at. Same scale as the tokens, pinned to px. */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+  --space-40: 160px;
+}
+
+
 :root {
   /* Page-specific overrides - extend tokens, don't duplicate */
   
@@ -347,7 +368,7 @@ button {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   margin-bottom: var(--space-6);
 }
 
@@ -666,7 +687,7 @@ button {
 
 .showcase__app-status {
   font-size: var(--text-sm);
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 .showcase__app-message {
@@ -976,7 +997,7 @@ button {
 .team-card__role {
   font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   margin-bottom: var(--space-4);
 }
 
@@ -1027,7 +1048,7 @@ button {
 .feature__icon svg {
   width: 36px;
   height: 36px;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 .feature__title {
@@ -1284,13 +1305,13 @@ button {
 .pricing-card__features svg {
   width: 20px;
   height: 20px;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   flex-shrink: 0;
   margin-top: 2px;
 }
 
 .pricing-card--featured .pricing-card__features svg {
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 .pricing-card__cta {

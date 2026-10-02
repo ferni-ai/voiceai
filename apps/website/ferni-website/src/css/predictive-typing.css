@@ -162,22 +162,22 @@
 
 .demo-widget__emotion-badge--concern {
   background: color-mix(in srgb, var(--color-wood-dark) 15%, transparent);
-  color: var(--color-jack);
+  color: var(--color-jack-text);
 }
 
 .demo-widget__emotion-badge--delight {
   background: color-mix(in srgb, var(--color-ferni-light) 15%, transparent);
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 .demo-widget__emotion-badge--curious {
   background: color-mix(in srgb, var(--color-peter) 15%, transparent);
-  color: var(--color-peter);
+  color: var(--color-peter-text);
 }
 
 .demo-widget__emotion-badge--thinking {
   background: color-mix(in srgb, var(--color-alex) 15%, transparent);
-  color: var(--color-alex);
+  color: var(--color-alex-text);
 }
 
 /* ============================================================================

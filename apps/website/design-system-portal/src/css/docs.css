@@ -96,7 +96,7 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent-primary);
+  color: var(--accent-text);
 }
 
 .logo-icon svg {
@@ -455,7 +455,7 @@ pre code {
 .persona-vars {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  color: var(--text-dimmed);
+  color: var(--text-primary);
 }
 
 /* ========================================

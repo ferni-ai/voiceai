@@ -8,7 +8,9 @@
  *     var(--token), or color-mix(in srgb, var(--token) N%, transparent) for
  *     translucency (white/black are --color-white / --color-black)
  *   - no top-level :root/html block may redefine a generated token name, which
- *     is how local copies used to drift from the generated values
+ *     is how local copies used to drift from the generated values (spacing is
+ *     exempt: ferni-website pins the --space-* scale to px because its root
+ *     font-size is 15px)
  *
  * The generated files themselves (_tokens.css, tokens.css) are skipped.
  */
@@ -83,7 +85,8 @@ export function checkWebsiteCssTokens(root) {
       });
       for (const block of topLevelRootBlocks(src)) {
         for (const m of block.matchAll(/(--[\w-]+)\s*:/g)) {
-          if (names.has(m[1])) issues.push(`${rel}: redefines generated token ${m[1]} at :root`);
+          // Spacing may be pinned to px (ferni-website's root font-size is 15px)
+          if (names.has(m[1]) && !m[1].startsWith('--space-')) issues.push(`${rel}: redefines generated token ${m[1]} at :root`);
         }
       }
     }

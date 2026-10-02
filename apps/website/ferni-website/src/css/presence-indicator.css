@@ -79,7 +79,7 @@
 .presence-indicator__count {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   min-width: 24px;
   text-align: center;
   transition: transform var(--duration-normal) ease;

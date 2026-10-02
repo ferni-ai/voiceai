@@ -89,7 +89,7 @@
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   margin-bottom: var(--space-6);
   opacity: 0;
   animation: fadeInUp var(--duration-dramatic) var(--ease-out) var(--duration-faster) forwards;
@@ -114,7 +114,7 @@
 
 .hero-premium__headline-accent {
   display: block;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   /* No gradient - solid color is more confident */
 }
 
@@ -219,7 +219,7 @@
 .hero-premium__btn-phone svg {
   width: 18px;
   height: 18px;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 /* Trust row - inline social proof */

@@ -19,6 +19,26 @@
 @import './_tokens.css';
 @import './sections/persona-quiz.css';
 
+/* Spacing in px. This site sets html { font-size: var(--text-base) } (15px), so
+   the rem-based spacing tokens would render 15/16 smaller than the layouts were
+   designed at. Same scale as the tokens, pinned to px. */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+}
+
+
 /* ============================================
    CSS VARIABLES - BRAND COMPLIANT (EXTENSIONS)
    ============================================ */
@@ -742,7 +762,7 @@ button {
 }
 
 .hero__phone a {
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   text-decoration: none;
   font-weight: var(--font-weight-medium);
   transition: color var(--duration-fast) ease;
@@ -1014,37 +1034,37 @@ button {
 /* Persona-specific trait colors */
 .team-card--ferni .team-card__trait {
   background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   border-color: color-mix(in srgb, var(--color-ferni) 20%, transparent);
 }
 
 .team-card--nayan .team-card__trait {
   background: color-mix(in srgb, var(--color-jack) 10%, transparent);
-  color: var(--color-jack);
+  color: var(--color-jack-text);
   border-color: color-mix(in srgb, var(--color-jack) 20%, transparent);
 }
 
 .team-card--peter .team-card__trait {
   background: color-mix(in srgb, var(--color-peter) 10%, transparent);
-  color: var(--color-peter);
+  color: var(--color-peter-text);
   border-color: color-mix(in srgb, var(--color-peter) 20%, transparent);
 }
 
 .team-card--alex .team-card__trait {
   background: color-mix(in srgb, var(--color-alex) 10%, transparent);
-  color: var(--color-alex);
+  color: var(--color-alex-text);
   border-color: color-mix(in srgb, var(--color-alex) 20%, transparent);
 }
 
 .team-card--maya .team-card__trait {
   background: color-mix(in srgb, var(--color-maya) 10%, transparent);
-  color: var(--color-maya);
+  color: var(--color-maya-text);
   border-color: color-mix(in srgb, var(--color-maya) 20%, transparent);
 }
 
 .team-card--jordan .team-card__trait {
   background: color-mix(in srgb, var(--color-jordan) 10%, transparent);
-  color: var(--color-jordan);
+  color: var(--color-jordan-text);
   border-color: color-mix(in srgb, var(--color-jordan) 20%, transparent);
 }
 
@@ -1230,7 +1250,7 @@ button {
   );
 }
 .persona-avatar--ferni {
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 .persona-avatar--nayan .persona-avatar__orb {
@@ -1242,7 +1262,7 @@ button {
   );
 }
 .persona-avatar--nayan {
-  color: var(--color-nayan);
+  color: var(--color-nayan-text);
 }
 
 .persona-avatar--peter .persona-avatar__orb {
@@ -1254,7 +1274,7 @@ button {
   );
 }
 .persona-avatar--peter {
-  color: var(--color-peter);
+  color: var(--color-peter-text);
 }
 
 .persona-avatar--alex .persona-avatar__orb {
@@ -1266,7 +1286,7 @@ button {
   );
 }
 .persona-avatar--alex {
-  color: var(--color-alex);
+  color: var(--color-alex-text);
 }
 
 .persona-avatar--maya .persona-avatar__orb {
@@ -1278,7 +1298,7 @@ button {
   );
 }
 .persona-avatar--maya {
-  color: var(--color-maya);
+  color: var(--color-maya-text);
 }
 
 .persona-avatar--jordan .persona-avatar__orb {
@@ -1290,7 +1310,7 @@ button {
   );
 }
 .persona-avatar--jordan {
-  color: var(--color-jordan);
+  color: var(--color-jordan-text);
 }
 
 /* ===== IDLE ANIMATIONS ===== */
@@ -1711,7 +1731,7 @@ button {
 .capability__icon svg {
   width: 28px;
   height: 28px;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   transition: color var(--duration-slower) var(--ease-ease-in-out);
 }
 
@@ -1753,7 +1773,7 @@ button {
 
 .assistant-cta__text em {
   font-style: italic;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 /* ============================================
@@ -1807,7 +1827,7 @@ button {
 .testimonial__stars svg {
   width: 16px;
   height: 16px;
-  color: var(--color-nayan);
+  color: var(--color-nayan-text);
   fill: var(--color-nayan);
 }
 
@@ -5165,7 +5185,7 @@ img[loading='lazy']:not([data-src]) {
   font-size: var(--text-sm);
   font-weight: 700;
   /* Warm accent color - explicit for always-dark section */
-  color: var(--color-nayan);
+  color: var(--color-nayan-text);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -6772,7 +6792,7 @@ body[data-time-of-day='early-morning'] {
   }
 
   :root:not([data-theme="light"]) .feature__icon svg {
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
   }
 
   /* ===========================================
@@ -6851,7 +6871,7 @@ body.theme--dark .feature__icon {
 
 .theme--dark .feature__icon svg,
 body.theme--dark .feature__icon svg {
-  color: var(--color-ferni) !important;
+  color: var(--color-ferni-text) !important;
 }
 
 /* Story Section - "I'm here when others can't be." headline */
@@ -6928,7 +6948,7 @@ body.theme--dark .use-case__icon {
 
 .theme--dark .use-case__icon svg,
 body.theme--dark .use-case__icon svg {
-  color: var(--color-ferni) !important;
+  color: var(--color-ferni-text) !important;
 }
 
 /* ============================================
@@ -6998,7 +7018,7 @@ body:not(.theme--dark) .two-am__limit,
 
 body:not(.theme--dark) .two-am__limit-who,
 .theme--zen .two-am__limit-who {
-  color: var(--color-nayan) !important; /* Warm highlight */
+  color: var(--color-nayan-text) !important; /* Warm highlight */
 }
 
 body:not(.theme--dark) .two-am__limit-status,
@@ -7035,7 +7055,7 @@ body:not(.theme--dark) .memory-demo,
 
 body:not(.theme--dark) .memory-demo .section__eyebrow,
 .theme--zen .memory-demo .section__eyebrow {
-  color: var(--color-nayan) !important; /* Warm highlight */
+  color: var(--color-nayan-text) !important; /* Warm highlight */
 }
 
 body:not(.theme--dark) .memory-demo .section__title,
@@ -7078,7 +7098,7 @@ body:not(.theme--dark) .use-case__icon,
 
 body:not(.theme--dark) .use-case__icon svg,
 .theme--zen .use-case__icon svg {
-  color: var(--color-ferni) !important;
+  color: var(--color-ferni-text) !important;
 }
 
 /* Feature Cards - Dark text on white/cream cards */
@@ -7100,7 +7120,7 @@ body:not(.theme--dark) .feature__icon,
 
 body:not(.theme--dark) .feature__icon svg,
 .theme--zen .feature__icon svg {
-  color: var(--color-ferni) !important;
+  color: var(--color-ferni-text) !important;
 }
 
 /* Story Cards (Amplified, Built by Experts, etc.) */
@@ -7127,12 +7147,12 @@ body:not(.theme--dark) .story__text,
 
 body:not(.theme--dark) .story__text--highlight,
 .theme--zen .story__text--highlight {
-  color: var(--color-jordan) !important; /* Coral/terracotta for highlights */
+  color: var(--color-jordan-text) !important; /* Coral/terracotta for highlights */
 }
 
 body:not(.theme--dark) .story__text--highlight em,
 .theme--zen .story__text--highlight em {
-  color: var(--color-jordan) !important;
+  color: var(--color-jordan-text) !important;
 }
 
 /* Experience Section - Dark text on light background */
@@ -7163,13 +7183,13 @@ body:not(.theme--dark) .experience__list li,
 
 body:not(.theme--dark) .experience__list svg,
 .theme--zen .experience__list svg {
-  color: var(--color-ferni) !important;
+  color: var(--color-ferni-text) !important;
 }
 
 /* Proof Section - Values cards */
 body:not(.theme--dark) .proof__value-title,
 .theme--zen .proof__value-title {
-  color: var(--color-jordan) !important; /* Coral accent via token */
+  color: var(--color-jordan-text) !important; /* Coral accent via token */
 }
 
 body:not(.theme--dark) .proof__value-text,
@@ -7256,7 +7276,7 @@ body:not(.theme--dark) .chat-demo__label,
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   color: var(--color-ferni-green);
   margin-bottom: 24px;
   margin-bottom: var(--space-6);
@@ -7387,7 +7407,7 @@ body:not(.theme--dark) .chat-demo__label,
 }
 
 .story-page__section--dark .story-page__accent {
-  color: var(--color-nayan);
+  color: var(--color-nayan-text);
 }
 
 .story-page__aside {
@@ -7436,7 +7456,7 @@ body:not(.theme--dark) .chat-demo__label,
   font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: color-mix(in srgb, var(--color-white) 60%, transparent);
+  color: var(--color-paper);
   min-width: 120px;
 }
 

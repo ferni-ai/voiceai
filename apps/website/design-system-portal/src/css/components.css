@@ -359,17 +359,17 @@ pre code {
 
 .badge--success {
   background: var(--success-glow);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .badge--error {
   background: var(--error-glow);
-  color: var(--error);
+  color: var(--error-text);
 }
 
 .badge--warning {
   background: var(--warning-glow);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 /* ========================================

@@ -30,13 +30,14 @@
 
       /* Gold accent - warm, not neon */
       --dev-accent: var(--color-accent-gold);
+      --dev-accent-text: var(--color-accent-gold-text);
       --dev-accent-hover: var(--color-accent-gold-hover);
       --dev-accent-subtle: color-mix(in srgb, var(--color-accent-gold) 15%, transparent);
 
       /* Warm text colors */
       --dev-text: var(--color-dark-text);
       --dev-text-secondary: var(--color-dark-text-secondary);
-      --dev-text-muted: var(--color-sand-dark);
+      --dev-text-muted: var(--color-dark-text-muted);
 
       /* Code blocks - darker for contrast */
       --dev-code-bg: var(--color-bg-darker);
@@ -81,7 +82,7 @@
     }
 
     a {
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
       text-decoration: none;
       transition: color var(--duration-normal) ease;
     }
@@ -136,7 +137,7 @@
 
     .dev-nav-links a:hover,
     .dev-nav-links a.active {
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
     }
 
     .dev-nav-cta {
@@ -180,7 +181,7 @@
     }
 
     .article-back:hover {
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
     }
 
     .article-category {
@@ -335,7 +336,7 @@
     }
 
     .article-content li::marker {
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
     }
 
     /* ====== CODE BLOCKS - Professional Stripe-like styling ====== */
@@ -391,7 +392,7 @@
       padding: 0.15rem 0.4rem;
       border-radius: var(--radius-xs);
       font-size: 0.875em;
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
       border: 1px solid var(--dev-code-border);
     }
 
@@ -606,7 +607,7 @@
 
     .article-share-btn:hover {
       background: var(--dev-surface-elevated);
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
     }
 
     /* ====== CTA BOX ====== */
@@ -690,7 +691,7 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--dev-accent);
+      color: var(--dev-accent-text);
       margin-bottom: 0.375rem;
     }
 

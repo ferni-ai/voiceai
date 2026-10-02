@@ -252,7 +252,7 @@ select:focus-visible {
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

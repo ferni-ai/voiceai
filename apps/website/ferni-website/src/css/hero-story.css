@@ -261,7 +261,7 @@
 
 /* Tone-based styling */
 [data-ferni-response][data-tone='gentle'] {
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 [data-ferni-response][data-tone='grounded'] {
@@ -269,15 +269,15 @@
 }
 
 [data-ferni-response][data-tone='honest'] {
-  color: var(--color-peter);
+  color: var(--color-peter-text);
 }
 
 [data-ferni-response][data-tone='curious'] {
-  color: var(--color-alex);
+  color: var(--color-alex-text);
 }
 
 [data-ferni-response][data-tone='warm'] {
-  color: var(--color-maya);
+  color: var(--color-maya-text);
 }
 
 /* Follow-up text */

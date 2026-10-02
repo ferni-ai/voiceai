@@ -3053,7 +3053,7 @@ button {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
   margin-bottom: var(--space-2);
 }
 .ceo-name {

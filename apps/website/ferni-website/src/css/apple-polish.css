@@ -556,7 +556,7 @@
 .form-floating textarea:not(:placeholder-shown) ~ label {
   transform: translateY(-1.75rem);
   font-size: var(--text-xs);
-  color: var(--color-ferni);
+  color: var(--color-ferni-text);
 }
 
 /* Focus glow */

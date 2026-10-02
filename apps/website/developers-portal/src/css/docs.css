@@ -189,7 +189,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--accent-primary);
+  color: var(--accent-text);
   background: var(--accent-subtle);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
@@ -491,10 +491,10 @@
 }
 
 .callout-info .callout-icon {
-  color: var(--info);
+  color: var(--info-text);
 }
 .callout-info .callout-title {
-  color: var(--info);
+  color: var(--info-text);
 }
 
 .callout-warning {
@@ -503,10 +503,10 @@
 }
 
 .callout-warning .callout-icon {
-  color: var(--warning);
+  color: var(--warning-text);
 }
 .callout-warning .callout-title {
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .callout-error {
@@ -515,10 +515,10 @@
 }
 
 .callout-error .callout-icon {
-  color: var(--error);
+  color: var(--error-text);
 }
 .callout-error .callout-title {
-  color: var(--error);
+  color: var(--error-text);
 }
 
 .callout-success {
@@ -527,10 +527,10 @@
 }
 
 .callout-success .callout-icon {
-  color: var(--success);
+  color: var(--success-text);
 }
 .callout-success .callout-title {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 /* ========================================
