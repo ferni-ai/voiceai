@@ -742,24 +742,7 @@ async function processAmbientAwareness(
 
       // Store enhanced ambient context
       (userData as Record<string, unknown>).betterThanHumanAmbient = bthAmbientContext;
-
-      // Offer to pause in noisy environments
-      if (
-        ambient.recommendations.offerToPause &&
-        !userData.hasOfferedToPause &&
-        ambient.recommendations.acknowledgment
-      ) {
-        userData.pendingAmbientAcknowledgment = ambient.recommendations.acknowledgment;
-        userData.hasOfferedToPause = true;
-        logger.info(
-          {
-            environment: ambient.environment,
-            noiseLevel: ambient.noiseLevel,
-            acknowledgment: ambient.recommendations.acknowledgment,
-          },
-          '🔊 Noisy environment detected - will offer to pause'
-        );
-      }
+      // The offer to pause is made by buildAmbientAwarenessInjections, once per session.
     }
   } catch {
     // Ambient awareness is non-critical

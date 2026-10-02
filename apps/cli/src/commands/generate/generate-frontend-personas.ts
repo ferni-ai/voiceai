@@ -26,6 +26,7 @@ import { fileURLToPath } from 'url';
 // Get script directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+// This file lives in apps/cli/src/commands/generate/, five levels below the repo root.
 const projectRoot = join(__dirname, '..', '..', '..', '..', '..');
 
 // Types matching the persona manifest schema
@@ -386,6 +387,12 @@ async function loadAllBundles(): Promise<Map<string, { manifest: PersonaManifest
       await stat(manifestPath);
       const content = await readFile(manifestPath, 'utf-8');
       const manifest = JSON.parse(content) as PersonaManifest;
+      // Only the Ferni team appears in the web app; other bundles (e.g. the
+      // financial-legends personas) are not built for it.
+      if (manifest.team?.membership !== 'ferni-team') {
+        console.log(`⏭️  Skipped: ${entry.name} (not on the Ferni team)`);
+        continue;
+      }
       bundles.set(entry.name, { manifest, path: bundlePath });
       console.log(`✅ Loaded: ${entry.name}`);
     } catch (err) {

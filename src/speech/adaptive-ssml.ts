@@ -12,7 +12,6 @@
  * - ./adaptive-ssml/adaptation.ts - Core adaptive tagging
  * - ./adaptive-ssml/emotion-adaptation.ts - Emotion matching
  * - ./adaptive-ssml/specialized-taggers.ts - Purpose-specific taggers
- * - ./adaptive-ssml/phase-personality.ts - Phase-specific personality
  * - ./adaptive-ssml/cognitive-ssml.ts - Cognitive-aware SSML
  */
 

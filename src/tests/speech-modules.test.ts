@@ -134,81 +134,6 @@ describe('emotion-matching', () => {
     });
   });
 
-  describe('wrapWithEmotionProsody', () => {
-    it('should not wrap text for low confidence', () => {
-      const text = 'Hello there';
-      const modulation = {
-        speedAdjust: 0.1,
-        volumeAdjust: 1.1,
-        ssmlHints: { prosodyRate: 'medium', prosodyPitch: 'medium', prosodyVolume: 'medium' },
-        responseStyle: {
-          warmth: 'medium' as const,
-          energy: 'medium' as const,
-          pause: 'normal' as const,
-        },
-        matchedEmotion: 'happy',
-        confidence: 0.3,
-      };
-
-      const result = emotionMatching.wrapWithEmotionProsody(text, modulation);
-      expect(result).toBe(text);
-    });
-
-    it('should wrap with speed tag for slow rate', () => {
-      const text = 'Slow down';
-      const modulation = {
-        speedAdjust: -0.2,
-        volumeAdjust: 0.9,
-        ssmlHints: { prosodyRate: 'slow', prosodyPitch: 'low', prosodyVolume: 'soft' },
-        responseStyle: { warmth: 'high' as const, energy: 'low' as const, pause: 'more' as const },
-        matchedEmotion: 'sad',
-        confidence: 0.7,
-      };
-
-      const result = emotionMatching.wrapWithEmotionProsody(text, modulation);
-      expect(result).toContain('<speed ratio="0.85">');
-      expect(result).toContain('</speed>');
-    });
-
-    it('should wrap with volume tag for soft volume', () => {
-      const text = 'Speak softly';
-      const modulation = {
-        speedAdjust: 0,
-        volumeAdjust: 0.85,
-        ssmlHints: { prosodyRate: 'medium', prosodyPitch: 'medium', prosodyVolume: 'soft' },
-        responseStyle: {
-          warmth: 'high' as const,
-          energy: 'medium' as const,
-          pause: 'normal' as const,
-        },
-        matchedEmotion: 'anxious',
-        confidence: 0.6,
-      };
-
-      const result = emotionMatching.wrapWithEmotionProsody(text, modulation);
-      expect(result).toContain('<volume ratio="0.85">');
-    });
-
-    it('should wrap with emotion tag for high warmth', () => {
-      const text = 'I care about you';
-      const modulation = {
-        speedAdjust: 0,
-        volumeAdjust: 1.0,
-        ssmlHints: { prosodyRate: 'medium', prosodyPitch: 'medium', prosodyVolume: 'medium' },
-        responseStyle: {
-          warmth: 'high' as const,
-          energy: 'medium' as const,
-          pause: 'normal' as const,
-        },
-        matchedEmotion: 'empathetic',
-        confidence: 0.8,
-      };
-
-      const result = emotionMatching.wrapWithEmotionProsody(text, modulation);
-      expect(result).toContain('<emotion value="affectionate">');
-    });
-  });
-
   describe('getEmotionGuidance', () => {
     it('should return null for low confidence', () => {
       const modulation = {
@@ -1515,34 +1440,6 @@ describe('adaptive-ssml', () => {
     it('should tag wrap-ups warmly', () => {
       const result = adaptiveSsml.tagWrapUp('Take care', context);
       expect(result).toBeTruthy();
-    });
-  });
-
-  describe('phase-specific personality', () => {
-    let context: any;
-
-    beforeEach(() => {
-      context = speechContext.buildSpeechContext({});
-    });
-
-    it('should apply greeting personality', () => {
-      const result = adaptiveSsml.applyPhasePersonality('Hello', 'greeting', context);
-      expect(result).toContain('<emotion');
-    });
-
-    it('should apply supporting personality', () => {
-      const result = adaptiveSsml.applyPhasePersonality('I understand', 'supporting', context);
-      expect(result).toContain('<speed');
-    });
-
-    it('should apply advising personality', () => {
-      const result = adaptiveSsml.applyPhasePersonality('My advice is', 'advising', context);
-      expect(result).toBeTruthy();
-    });
-
-    it('should handle unknown phase', () => {
-      const result = adaptiveSsml.applyPhasePersonality('Text', 'unknown' as any, context);
-      expect(result).toBe('Text');
     });
   });
 });

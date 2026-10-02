@@ -53,7 +53,6 @@ const MODULE_LOADERS: Record<string, ModuleLoader> = {
   'speech/adaptive-ssml': async () => import('../../speech/adaptive-ssml.js'),
   'speech/voice-humanization': async () => import('../../speech/voice-humanization.js'),
   'speech/ambient-awareness': async () => import('../../speech/ambient-awareness.js'),
-  'speech/emotional-contagion': async () => import('../../speech/emotional-contagion.js'),
   'speech/multi-signal-laughter': async () => import('../../speech/multi-signal-laughter.js'),
 
   // Services
@@ -244,7 +243,6 @@ export async function preloadSessionModules(): Promise<void> {
 export async function preloadHumanizationModules(): Promise<void> {
   await LazyLoader.preload([
     'speech/voice-humanization',
-    'speech/emotional-contagion',
     'speech/ambient-awareness',
     'speech/multi-signal-laughter',
     'services/emotion-analysis/hume',

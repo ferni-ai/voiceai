@@ -10,12 +10,14 @@ The safety and trust systems operate at multiple points in the pipeline:
 
 ```
 User Speech → STT → Turn Processor → LLM → TTS → Voice Output
-                    ↑                  ↑
-                    │                  │
-         Pre-response Safety    (Limited post-response)
-         Crisis Detection       Streaming architecture
-         Trust Context Injection makes this difficult
+                    ↑
+                    │
+         Pre-response Safety
+         Crisis Detection
+         Trust Context Injection
 ```
+
+Nothing inspects or rewrites the reply after the LLM generates it.
 
 ## Key Architectural Decision: Pre-Response vs Post-Response
 
@@ -126,16 +128,12 @@ if (result.trustContext?.hasEmotionalMismatch) {
 | Function | Purpose |
 |----------|---------|
 | `detectCrisis()` | Analyze user text + voice for crisis indicators |
-| `guardPreResponse()` | Decide if LLM should be overridden |
-| `guardPostResponse()` | Check response for dismissive language (for non-streaming) |
-| `applyGuardResult()` | Apply modifications to response (for non-streaming) |
+| `guardPreResponse()` | Replace the reply with a pre-written one (988 resources) at severity >= 0.85 |
 
-### `src/agents/trust/trust-enforcer.ts`
-
-| Function | Purpose |
-|----------|---------|
-| `enforceTrustContext()` | Check if response properly addresses trust signals |
-| `buildRegenerationPrompt()` | Build prompt for regenerating blocked responses |
+Below 0.85 a detected crisis reaches the LLM only as injected context. No
+post-response guard guarantees crisis resources in that band. A post-response
+guard and a trust enforcer existed for a response processor that never ran on
+calls; both were removed.
 
 ### `src/agents/processors/turn-processor.ts`
 
@@ -151,22 +149,12 @@ if (result.trustContext?.hasEmotionalMismatch) {
 | Crisis handling | Override LLM or inject high-priority context |
 | Trust monitoring | Emit events to frontend, log for metrics |
 
-### `src/agents/voice-agent/response-processor.ts`
-
-**Note:** This module is EXPORTED but NOT CALLED in the main production flow.
-
-It contains trust enforcement and crisis guard logic that would work for non-streaming scenarios (text chat, buffered responses). It's documented for:
-- Future use in non-streaming modes
-- Testing and validation
-- Reference implementation
-
 ## Testing Strategy
 
 ### Unit Tests (`safety-integration.test.ts`)
 
 - Crisis detection patterns work correctly
 - Pre-response guard blocks appropriately
-- Trust enforcement identifies issues
 - Trust context summary shape is correct
 
 ### E2E Tests

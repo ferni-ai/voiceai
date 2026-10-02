@@ -180,8 +180,6 @@ export interface UserData {
   ambientNoiseLevel?: number; // 0-1 scale
   /** Whether we've already offered to pause for noisy environment this session */
   hasOfferedToPause?: boolean;
-  /** Ambient acknowledgment phrase to inject into next response */
-  pendingAmbientAcknowledgment?: string | null;
   /** Data capture acknowledgment to inject (e.g., "I saved Mom's number") */
   dataCaptureAcknowledgment?: string;
 

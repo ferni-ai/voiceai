@@ -31,7 +31,7 @@ const logger = getLogger();
 // TYPES
 // ============================================================================
 
-export type ReminderDeliveryMethod = 'sms' | 'email' | 'call' | 'voice_message';
+export type ReminderDeliveryMethod = 'sms' | 'email' | 'call' | 'voice_message' | 'in_app';
 
 export interface ScheduledReminder {
   id: string;
@@ -70,7 +70,8 @@ export interface ScheduledReminder {
   sourceRelationship?: string;
 
   // Status
-  status: 'pending' | 'delivered' | 'failed' | 'cancelled';
+  /** 'sending' = claimed by the delivery job; 'missed' = found too late to be useful. */
+  status: 'pending' | 'sending' | 'delivered' | 'failed' | 'cancelled' | 'missed';
   attempts: number;
   lastAttempt?: Date;
   error?: string;
@@ -313,6 +314,35 @@ export function getPendingReminders(userId: string): ScheduledReminder[] {
   return reminders.sort((a, b) => a.scheduledFor.getTime() - b.scheduledFor.getTime());
 }
 
+/** Rebuild a reminder from its Firestore document (dates are stored as ISO strings). */
+export function reminderFromDoc(id: string, data: Record<string, unknown>): ScheduledReminder {
+  const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
+  return {
+    id,
+    userId: String(data.userId ?? ''),
+    message: String(data.message ?? ''),
+    subject: str(data.subject),
+    context: str(data.context),
+    scheduledFor: new Date(data.scheduledFor as string),
+    timezone: str(data.timezone) || 'Etc/UTC',
+    deliveryMethod: (data.deliveryMethod as ReminderDeliveryMethod) || 'in_app',
+    deliveryAddress: str(data.deliveryAddress) ?? '',
+    contactId: str(data.contactId),
+    contactName: str(data.contactName),
+    isDirectToContact: data.isDirectToContact === true,
+    sourceIdentityId: str(data.sourceIdentityId),
+    sourceIdentityName: str(data.sourceIdentityName),
+    sourceRelationship: str(data.sourceRelationship),
+    status: (data.status as ScheduledReminder['status']) || 'pending',
+    attempts: Number(data.attempts ?? 0) || 0,
+    lastAttempt: data.lastAttempt ? new Date(data.lastAttempt as string) : undefined,
+    error: str(data.error),
+    createdAt: new Date((data.createdAt as string) ?? Date.now()),
+    createdBy: str(data.createdBy) || 'ferni',
+    personaId: str(data.personaId),
+  };
+}
+
 /**
  * Load pending reminders from Firestore into memory (call on startup)
  */
@@ -339,28 +369,7 @@ export async function loadRemindersFromFirestore(userId?: string): Promise<numbe
     let loadedCount = 0;
 
     for (const doc of snapshot.docs) {
-      const data = doc.data();
-      const reminder: ScheduledReminder = {
-        id: doc.id,
-        userId: data.userId,
-        message: data.message,
-        subject: data.subject,
-        context: data.context,
-        scheduledFor: new Date(data.scheduledFor),
-        timezone: data.timezone || 'Etc/UTC',
-        deliveryMethod: data.deliveryMethod,
-        deliveryAddress: data.deliveryAddress,
-        contactId: data.contactId,
-        contactName: data.contactName,
-        isDirectToContact: data.isDirectToContact,
-        status: data.status,
-        attempts: data.attempts || 0,
-        lastAttempt: data.lastAttempt ? new Date(data.lastAttempt) : undefined,
-        error: data.error,
-        createdAt: new Date(data.createdAt),
-        createdBy: data.createdBy || 'ferni',
-        personaId: data.personaId,
-      };
+      const reminder = reminderFromDoc(doc.id, doc.data());
 
       // Only load if not already in memory and still pending
       if (!reminderStore.has(reminder.id) && reminder.scheduledFor > new Date()) {
@@ -445,43 +454,39 @@ export async function cancelReminder(reminderId: string): Promise<boolean> {
  * Update reminder status after delivery attempt
  */
 async function updateReminderStatus(
-  reminderId: string,
+  reminder: ScheduledReminder,
   status: 'delivered' | 'failed',
   error?: string
 ): Promise<void> {
-  const reminder = reminderStore.get(reminderId);
-  if (reminder) {
-    reminder.status = status;
-    reminder.attempts += 1;
-    reminder.lastAttempt = new Date();
-    if (error) reminder.error = error;
-    reminderStore.set(reminderId, reminder);
+  reminder.status = status;
+  reminder.attempts += 1;
+  reminder.lastAttempt = new Date();
+  if (error) reminder.error = error;
+  if (reminderStore.has(reminder.id)) reminderStore.set(reminder.id, reminder);
 
-    // Also update in Firestore
-    try {
-      const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-      const db = getFirestoreDb();
-      if (db) {
-        const updateData: Record<string, unknown> = {
-          status,
-          attempts: reminder.attempts,
-          lastAttempt: reminder.lastAttempt.toISOString(),
-        };
-        if (error) updateData.error = error;
-
-        await db
-          .collection('bogle_users')
-          .doc(reminder.userId)
-          .collection('reminders')
-          .doc(reminderId)
-          .update(updateData);
-      }
-    } catch (firestoreError) {
-      getLogger().warn(
-        { error: String(firestoreError), reminderId },
-        'Failed to update reminder status in Firestore'
-      );
-    }
+  // Record the outcome whether or not this process created the reminder: the
+  // delivery job loads reminders from Firestore, so they aren't in this store.
+  try {
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (!db) return;
+    const updateData: Record<string, unknown> = {
+      status,
+      attempts: reminder.attempts,
+      lastAttempt: reminder.lastAttempt.toISOString(),
+    };
+    if (error) updateData.error = error;
+    await db
+      .collection('bogle_users')
+      .doc(reminder.userId)
+      .collection('reminders')
+      .doc(reminder.id)
+      .update(updateData);
+  } catch (firestoreError) {
+    getLogger().warn(
+      { error: String(firestoreError), reminderId: reminder.id },
+      'Failed to update reminder status in Firestore'
+    );
   }
 }
 
@@ -596,6 +601,19 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
           throw new Error(callResult.message);
         }
         logger.info({ callSid: callResult.callSid, personaId }, '📞 Reminder call initiated');
+        break;
+      }
+
+      case 'in_app': {
+        const { saveInAppMessage } = await import('../outreach/unified-delivery.js');
+        const saved = await saveInAppMessage(reminder.userId, {
+          type: 'reminder',
+          personaId: reminder.personaId || reminder.createdBy || 'ferni',
+          text: messageToDeliver,
+          reason: reminder.context ?? 'Reminder',
+          triggerId: reminder.id,
+        });
+        if (!saved.success) throw new Error(saved.error ?? 'in-app save failed');
         break;
       }
 
@@ -720,7 +738,7 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
         throw new Error(`Unknown delivery method: ${reminder.deliveryMethod}`);
     }
 
-    await updateReminderStatus(reminder.id, 'delivered');
+    await updateReminderStatus(reminder, 'delivered');
     getLogger().info({ reminderId: reminder.id }, '✅ Reminder delivered');
 
     // Record outcome for ML timing learning (if this reminder is about a contact)
@@ -753,7 +771,7 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
     return true;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    await updateReminderStatus(reminder.id, 'failed', errorMsg);
+    await updateReminderStatus(reminder, 'failed', errorMsg);
     getLogger().error({ reminderId: reminder.id, error: errorMsg }, '❌ Reminder delivery failed');
     return false;
   }

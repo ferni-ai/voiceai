@@ -17,7 +17,11 @@ env:
 jobs:
   check-bundle-size:
     name: Check Bundle Size
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # The repo's default token is read-only; this job's PR comment step needs write.
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
       - name: Checkout PR
