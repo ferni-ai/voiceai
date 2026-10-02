@@ -94,11 +94,11 @@ const DEFAULT_PERSONA: PersonaInfo = { name: 'Ferni', icon: PERSONA_ICONS.ferni,
 
 const PERSONAS: Record<string, PersonaInfo> = {
   ferni: DEFAULT_PERSONA,
-  peter: { name: 'Peter', icon: PERSONA_ICONS.peter, color: 'var(--color-peter, #3a6b73)', role: 'Research' },
-  alex: { name: 'Alex', icon: PERSONA_ICONS.alex, color: 'var(--color-alex, #5a6b8a)', role: 'Communications' },
-  maya: { name: 'Maya', icon: PERSONA_ICONS.maya, color: 'var(--color-maya, #a67a6a)', role: 'Habits & Routines' },
-  jordan: { name: 'Jordan', icon: PERSONA_ICONS.jordan, color: 'var(--color-jordan, #c4856a)', role: 'Events & Planning' },
-  nayan: { name: 'Nayan', icon: PERSONA_ICONS.nayan, color: 'var(--color-nayan, #b8956a)', role: 'Wisdom' },
+  peter: { name: 'Peter', icon: PERSONA_ICONS.peter, color: 'var(--color-peter)', role: 'Research' },
+  alex: { name: 'Alex', icon: PERSONA_ICONS.alex, color: 'var(--color-alex)', role: 'Communications' },
+  maya: { name: 'Maya', icon: PERSONA_ICONS.maya, color: 'var(--color-maya)', role: 'Habits & Routines' },
+  jordan: { name: 'Jordan', icon: PERSONA_ICONS.jordan, color: 'var(--color-jordan)', role: 'Events & Planning' },
+  nayan: { name: 'Nayan', icon: PERSONA_ICONS.nayan, color: 'var(--color-nayan)', role: 'Wisdom' },
 };
 
 /** Get persona info with guaranteed fallback */
@@ -569,7 +569,7 @@ function addStyles(): void {
       width: 90%;
       max-width: 560px;
       max-height: 85vh;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl);
       display: flex;
@@ -589,7 +589,7 @@ function addStyles(): void {
       align-items: center;
       justify-content: space-between;
       padding: var(--space-6, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.06));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .ferni-hub-greeting {
@@ -623,13 +623,13 @@ function addStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1.5rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
     .ferni-hub-subtitle {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #6B5E54);
+      color: var(--color-text-secondary);
       margin: 4px 0 0;
     }
 
@@ -678,7 +678,7 @@ function addStyles(): void {
     .ferni-hub-loading-dots span {
       width: 8px;
       height: 8px;
-      background: var(--color-ferni, #4a6741);
+      background: var(--color-ferni);
       border-radius: 50%;
       animation: bounce 1.4s ease-in-out infinite;
     }
@@ -773,7 +773,7 @@ function addStyles(): void {
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      color: white;
+      color: var(--color-white);
       padding: 8px;
       box-sizing: border-box;
     }
@@ -832,7 +832,7 @@ function addStyles(): void {
     .ferni-hub-action-chip {
       font-size: 0.75rem;
       padding: 4px 8px;
-      background: var(--color-ferni-tint, rgba(74, 103, 65, 0.1));
+      background: var(--color-ferni-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       color: var(--color-ferni-ink);
       border-radius: var(--radius-full, 100px);
       display: inline-flex;
@@ -991,8 +991,8 @@ function addStyles(): void {
       justify-content: center;
       gap: var(--space-2, 8px);
       padding: var(--space-4, 16px);
-      background: var(--color-ferni, #4a6741);
-      color: white;
+      background: var(--color-ferni);
+      color: var(--color-white);
       border: none;
       border-radius: var(--radius-lg, 12px);
       font-size: 1rem;
@@ -1002,7 +1002,7 @@ function addStyles(): void {
     }
 
     .ferni-hub-talk-btn:hover {
-      background: var(--color-ferni-hover, #3d5a35);
+      background: var(--color-ferni-hover, var(--color-ferni-secondary));
       transform: scale(1.02);
     }
 

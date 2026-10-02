@@ -184,7 +184,7 @@ export async function render(): Promise<string> {
       }
 
       .admin-section-desc {
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
         font-size: 0.875rem;
         margin-bottom: var(--space-4, 1rem);
       }
@@ -210,16 +210,16 @@ export async function render(): Promise<string> {
       .config-field label {
         font-size: 0.8125rem;
         font-weight: 500;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .config-field input,
       .config-field select {
         padding: var(--space-3, 0.75rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
-        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
+        border: 1px solid var(--admin-border-default, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
         font-family: inherit;
         font-size: 0.9375rem;
         transition: border-color var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
@@ -228,7 +228,7 @@ export async function render(): Promise<string> {
       .config-field input:focus,
       .config-field select:focus {
         outline: none;
-        border-color: var(--persona-primary, #4a6741);
+        border-color: var(--persona-primary, var(--color-ferni));
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -240,7 +240,7 @@ export async function render(): Promise<string> {
 
       .config-field-hint {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
       }
 
       .prompt-field {
@@ -251,10 +251,10 @@ export async function render(): Promise<string> {
         width: 100%;
         min-height: 200px;
         padding: var(--space-3, 0.75rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
-        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
+        border: 1px solid var(--admin-border-default, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.8125rem;
         line-height: 1.6;
@@ -264,7 +264,7 @@ export async function render(): Promise<string> {
 
       .prompt-field textarea:focus {
         outline: none;
-        border-color: var(--persona-primary, #4a6741);
+        border-color: var(--persona-primary, var(--color-ferni));
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -284,7 +284,7 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-2, 0.5rem);
         font-size: 0.8125rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .config-actions {
@@ -299,22 +299,22 @@ export async function render(): Promise<string> {
         gap: var(--space-3, 0.75rem);
         margin-bottom: var(--space-4, 1rem);
         padding-bottom: var(--space-4, 1rem);
-        border-bottom: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
+        border-bottom: 1px solid var(--admin-border-default, color-mix(in srgb, var(--color-white) 10%, transparent));
       }
 
       .persona-label {
         font-size: 0.875rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .persona-select {
         flex: 1;
         max-width: min(200px, 100%);
         padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
-        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
+        border: 1px solid var(--admin-border-default, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
         font-family: inherit;
         cursor: pointer;
       }
@@ -326,8 +326,8 @@ export async function render(): Promise<string> {
       }
 
       .admin-btn--danger {
-        background: var(--color-semantic-error, #dc3545);
-        color: white;
+        background: var(--color-semantic-error);
+        color: var(--color-white);
       }
 
       .admin-btn--danger:hover {
@@ -336,7 +336,7 @@ export async function render(): Promise<string> {
 
       .admin-hint {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
       }
 
       .status-message {
@@ -349,7 +349,7 @@ export async function render(): Promise<string> {
       }
 
       .status-message--success {
-        background: rgba(74, 103, 65, 0.2);
+        background: color-mix(in srgb, var(--color-ferni) 20%, transparent);
         color: var(--color-semantic-success-text);
       }
 
@@ -361,7 +361,7 @@ export async function render(): Promise<string> {
       .empty-state {
         text-align: center;
         padding: var(--space-6, 1.5rem);
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
       }
     </style>
   `;
@@ -717,20 +717,20 @@ function renderToolDefaultsForm(config: ToolConfig): string {
         display: flex;
         flex-direction: column;
         padding: var(--space-2, 0.5rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
-        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
+        border: 1px solid var(--admin-border-default, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: var(--radius-md, 8px);
         cursor: pointer;
         transition: border-color var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .tool-domain-checkbox:hover {
-        border-color: var(--persona-primary, #4a6741);
+        border-color: var(--persona-primary, var(--color-ferni));
       }
 
       .tool-domain-checkbox:has(input:checked) {
-        border-color: var(--persona-primary, #4a6741);
-        background: rgba(74, 103, 65, 0.1);
+        border-color: var(--persona-primary, var(--color-ferni));
+        background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
       }
 
       .tool-domain-checkbox input {
@@ -739,12 +739,12 @@ function renderToolDefaultsForm(config: ToolConfig): string {
 
       .tool-domain-name {
         font-weight: 500;
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       .tool-domain-desc {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
       }
 
       @media (prefers-reduced-motion: reduce) {

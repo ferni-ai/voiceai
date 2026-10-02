@@ -449,7 +449,7 @@ function injectStyles(): void {
       font-size: calc(14px * var(--z-scale, 1));
       font-weight: 700;
       font-style: italic;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
       opacity: 0;
       animation: floatZ 2.5s ${EASING.EASE_OUT} forwards;
       transform: translateX(var(--offset-x, 0));

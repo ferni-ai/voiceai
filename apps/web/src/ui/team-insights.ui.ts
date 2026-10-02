@@ -1013,7 +1013,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-white);
       box-shadow: 
         0 4px 20px rgba(74, 103, 65, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.15);
@@ -1071,8 +1071,8 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      color: var(--color-white);
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--color-black) 15%, transparent);
       transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
     }
     
@@ -1243,7 +1243,7 @@ function injectStyles(): void {
     .team-insights-empty__preview-pulse {
       width: 6px;
       height: 6px;
-      background: var(--persona-peter, #3a6b73);
+      background: var(--persona-peter, var(--color-peter));
       border-radius: 50%;
       animation: teamPulseDot 2s ease-in-out infinite;
     }
@@ -1270,7 +1270,7 @@ function injectStyles(): void {
       justify-content: center;
       font-size: 13px;
       font-weight: 600;
-      color: white;
+      color: var(--color-white);
       flex-shrink: 0;
     }
     
@@ -1355,7 +1355,7 @@ function injectStyles(): void {
     }
     
     .team-insight-card.insight-high-priority .insight-bubble {
-      border-left: 3px solid var(--color-warning, #b8956a);
+      border-left: 3px solid var(--color-warning, var(--color-nayan));
       padding-left: var(--space-md, 16px);
     }
     
@@ -1390,7 +1390,7 @@ function injectStyles(): void {
     .insight-avatar-initial {
       font-size: 14px;
       font-weight: 600;
-      color: white;
+      color: var(--color-white);
     }
     
     .insight-avatar-pulse {
@@ -1505,7 +1505,7 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .team-insights-empty__specialty {
-      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.04));
+      background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 4%, transparent));
     }
     
     [data-theme="midnight"] .team-insights-empty__preview-card {
@@ -1514,23 +1514,23 @@ function injectStyles(): void {
         rgba(58, 107, 115, 0.12),
         rgba(255, 255, 255, 0.02)
       );
-      border-color: rgba(58, 107, 115, 0.2);
+      border-color: color-mix(in srgb, var(--color-peter) 20%, transparent);
     }
     
     [data-theme="midnight"] .team-insights-empty__promise {
-      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.04));
+      background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 4%, transparent));
     }
     
     [data-theme="midnight"] .team-insights-backdrop {
-      background: rgba(0, 0, 0, 0.75);
+      background: color-mix(in srgb, var(--color-black) 75%, transparent);
     }
     
     [data-theme="midnight"] .team-insight-card {
-      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.04));
+      background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 4%, transparent));
     }
     
     [data-theme="midnight"] .team-insight-card:hover {
-      background: var(--color-bg-secondary, rgba(255, 255, 255, 0.06));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 6%, transparent));
     }
   `;
   document.head.appendChild(styleEl);

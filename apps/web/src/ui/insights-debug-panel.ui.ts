@@ -37,11 +37,11 @@ const PANEL_STYLES = `
     max-height: 80vh;
     background: var(--color-bg-elevated, #1a1a2e);
     border-radius: var(--radius-lg, 12px);
-    box-shadow: var(--shadow-xl, 0 20px 40px rgba(0,0,0,0.3));
+    box-shadow: var(--shadow-xl, 0 20px 40px color-mix(in srgb, var(--color-black) 30%, transparent));
     z-index: var(--z-modal, 2100);
     overflow: hidden;
     font-family: var(--font-body, 'Inter', sans-serif);
-    color: var(--color-text-primary, #faf6f0);
+    color: var(--color-text-primary);
     font-size: 13px;
   }
 
@@ -51,7 +51,7 @@ const PANEL_STYLES = `
     align-items: center;
     padding: 12px 16px;
     background: var(--color-bg-secondary, #2d2d44);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(255,255,255,0.1));
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
   .insights-debug-panel__title {
@@ -65,14 +65,14 @@ const PANEL_STYLES = `
   .insights-debug-panel__close {
     background: none;
     border: none;
-    color: var(--color-text-secondary, #e8e2da);
+    color: var(--color-text-secondary);
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
   }
 
   .insights-debug-panel__close:hover {
-    background: var(--color-bg-tertiary, rgba(255,255,255,0.1));
+    background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 10%, transparent));
   }
 
   .insights-debug-panel__content {
@@ -89,7 +89,7 @@ const PANEL_STYLES = `
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--color-text-muted, #c0b8ae);
+    color: var(--color-text-muted);
     margin-bottom: 8px;
     display: flex;
     align-items: center;
@@ -103,14 +103,14 @@ const PANEL_STYLES = `
   }
 
   .insights-debug-panel__stat {
-    background: var(--color-bg-tertiary, rgba(255,255,255,0.05));
+    background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 5%, transparent));
     padding: 8px 12px;
     border-radius: 8px;
   }
 
   .insights-debug-panel__stat-label {
     font-size: 10px;
-    color: var(--color-text-muted, #c0b8ae);
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }
@@ -140,18 +140,18 @@ const PANEL_STYLES = `
   }
 
   .insights-debug-panel__insight {
-    background: var(--color-bg-tertiary, rgba(255,255,255,0.05));
+    background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 5%, transparent));
     padding: 10px 12px;
     border-radius: 8px;
-    border-left: 3px solid var(--color-accent-primary, #4a6741);
+    border-left: 3px solid var(--color-accent-primary);
   }
 
   .insights-debug-panel__insight--high {
-    border-left-color: var(--color-semantic-error, #f87171);
+    border-left-color: var(--color-semantic-error);
   }
 
   .insights-debug-panel__insight--medium {
-    border-left-color: var(--color-semantic-warning, #fbbf24);
+    border-left-color: var(--color-semantic-warning);
   }
 
   .insights-debug-panel__insight-header {
@@ -165,12 +165,12 @@ const PANEL_STYLES = `
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    color: var(--color-text-muted, #c0b8ae);
+    color: var(--color-text-muted);
   }
 
   .insights-debug-panel__insight-time {
     font-size: 10px;
-    color: var(--color-text-dimmed, #a09890);
+    color: var(--color-text-dimmed);
   }
 
   .insights-debug-panel__insight-message {
@@ -183,7 +183,7 @@ const PANEL_STYLES = `
     gap: 8px;
     margin-top: 4px;
     font-size: 10px;
-    color: var(--color-text-dimmed, #a09890);
+    color: var(--color-text-dimmed);
   }
 
   .insights-debug-panel__actions {
@@ -204,27 +204,27 @@ const PANEL_STYLES = `
   }
 
   .insights-debug-panel__btn--primary {
-    background: var(--color-accent-primary, #4a6741);
+    background: var(--color-accent-primary);
     color: var(--color-text-on-accent);
   }
 
   .insights-debug-panel__btn--primary:hover {
-    background: var(--color-accent-secondary, #3d5a35);
+    background: var(--color-accent-secondary, var(--color-ferni-secondary));
   }
 
   .insights-debug-panel__btn--secondary {
-    background: var(--color-bg-tertiary, rgba(255,255,255,0.1));
-    color: var(--color-text-primary, #faf6f0);
+    background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 10%, transparent));
+    color: var(--color-text-primary);
   }
 
   .insights-debug-panel__btn--secondary:hover {
-    background: rgba(255,255,255,0.15);
+    background: color-mix(in srgb, var(--color-white) 15%, transparent);
   }
 
   .insights-debug-panel__empty {
     text-align: center;
     padding: 20px;
-    color: var(--color-text-muted, #c0b8ae);
+    color: var(--color-text-muted);
     font-size: 12px;
   }
 
@@ -233,7 +233,7 @@ const PANEL_STYLES = `
     justify-content: space-between;
     align-items: center;
     padding: 6px 0;
-    border-bottom: 1px solid var(--color-border-subtle, rgba(255,255,255,0.05));
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
   .insights-debug-panel__perf-entry:last-child {
@@ -256,7 +256,7 @@ const PANEL_STYLES = `
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.2);
+    background: color-mix(in srgb, var(--color-black) 20%, transparent);
     border-radius: 8px;
     margin-bottom: 8px;
   }
@@ -350,16 +350,16 @@ function getHealthStatus(state: ReturnType<typeof getNotificationState>): {
 } {
   if (state.wsConnected) {
     if (state.reconnectAttempts === 0) {
-      return { status: 'healthy', label: 'Healthy', color: 'var(--color-semantic-success, #22c55e)' };
+      return { status: 'healthy', label: 'Healthy', color: 'var(--color-semantic-success)' };
     }
-    return { status: 'degraded', label: 'Recovered', color: 'var(--color-semantic-warning, #f59e0b)' };
+    return { status: 'degraded', label: 'Recovered', color: 'var(--color-semantic-warning)' };
   }
   
   if (state.reconnectPending) {
-    return { status: 'degraded', label: 'Reconnecting...', color: 'var(--color-semantic-warning, #f59e0b)' };
+    return { status: 'degraded', label: 'Reconnecting...', color: 'var(--color-semantic-warning)' };
   }
   
-  return { status: 'disconnected', label: 'Disconnected', color: 'var(--color-semantic-error, #ef4444)' };
+  return { status: 'disconnected', label: 'Disconnected', color: 'var(--color-semantic-error)' };
 }
 
 function renderConnectionStats(): void {

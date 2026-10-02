@@ -94,7 +94,7 @@ function addSkeletonStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-background-primary, #0a0a0f);
+      background: var(--color-background-primary);
       transition: opacity var(--duration-slower, 400ms) var(--ease-ease-out, ease-out), 
                   visibility var(--duration-slower, 400ms) var(--ease-ease-out, ease-out);
     }
@@ -119,9 +119,9 @@ function addSkeletonStyles(): void {
       border-radius: var(--radius-full, 50%);
       background: linear-gradient(
         90deg,
-        var(--color-background-secondary, #1a1a2e) 25%,
-        var(--color-background-tertiary, #252542) 50%,
-        var(--color-background-secondary, #1a1a2e) 75%
+        var(--color-background-secondary) 25%,
+        var(--color-background-tertiary) 50%,
+        var(--color-background-secondary) 75%
       );
       background-size: 200% 100%;
     }
@@ -137,9 +137,9 @@ function addSkeletonStyles(): void {
       border-radius: var(--radius-xs, 4px);
       background: linear-gradient(
         90deg,
-        var(--color-background-secondary, #1a1a2e) 25%,
-        var(--color-background-tertiary, #252542) 50%,
-        var(--color-background-secondary, #1a1a2e) 75%
+        var(--color-background-secondary) 25%,
+        var(--color-background-tertiary) 50%,
+        var(--color-background-secondary) 75%
       );
       background-size: 200% 100%;
     }
@@ -160,9 +160,9 @@ function addSkeletonStyles(): void {
       border-radius: var(--radius-full, 24px);
       background: linear-gradient(
         90deg,
-        var(--color-background-secondary, #1a1a2e) 25%,
-        var(--color-background-tertiary, #252542) 50%,
-        var(--color-background-secondary, #1a1a2e) 75%
+        var(--color-background-secondary) 25%,
+        var(--color-background-tertiary) 50%,
+        var(--color-background-secondary) 75%
       );
       background-size: 200% 100%;
     }
@@ -179,9 +179,9 @@ function addSkeletonStyles(): void {
       border-radius: var(--radius-full, 50%);
       background: linear-gradient(
         90deg,
-        var(--color-background-secondary, #1a1a2e) 25%,
-        var(--color-background-tertiary, #252542) 50%,
-        var(--color-background-secondary, #1a1a2e) 75%
+        var(--color-background-secondary) 25%,
+        var(--color-background-tertiary) 50%,
+        var(--color-background-secondary) 75%
       );
       background-size: 200% 100%;
     }

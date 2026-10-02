@@ -842,7 +842,7 @@ function injectStyles(): void {
     .pull-indicator__ring {
       width: 40px;
       height: 40px;
-      border: 2px solid var(--persona-primary, #4a6741);
+      border: 2px solid var(--persona-primary, var(--color-ferni));
       border-radius: 50%;
       opacity: 0.5;
       transition: all ${DURATION.FAST}ms ease;
@@ -920,7 +920,7 @@ function injectStyles(): void {
     .immersive-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--color-background-primary, #1a1612);
+      background: var(--color-background-primary);
       opacity: 0.95;
     }
 

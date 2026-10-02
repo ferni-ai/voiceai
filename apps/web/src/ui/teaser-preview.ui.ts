@@ -584,8 +584,8 @@ export class TeaserPreviewUI {
       .teaser-preview {
         padding: var(--space-4);
         border-radius: var(--radius-lg, 12px);
-        background: var(--color-background-elevated, #FFFDFB);
-        border: 1px solid var(--color-border, rgba(0,0,0,0.08));
+        background: var(--color-background-elevated);
+        border: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 8%, transparent));
       }
 
       .teaser-header {
@@ -598,7 +598,7 @@ export class TeaserPreviewUI {
         align-items: center;
         gap: var(--space-1);
         padding: var(--space-1) var(--space-3);
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         border-radius: var(--radius-full, 9999px);
         margin-bottom: var(--space-2);
       }
@@ -626,13 +626,13 @@ export class TeaserPreviewUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 1.1rem;
         font-weight: 600;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-1);
       }
 
       .teaser-message {
         font-size: 0.85rem;
-        color: var(--color-text-secondary, #5a4a3a);
+        color: var(--color-text-secondary);
         margin: 0;
         line-height: 1.4;
       }
@@ -643,14 +643,14 @@ export class TeaserPreviewUI {
         gap: var(--space-1);
         margin-top: var(--space-2);
         padding: var(--space-2) var(--space-3);
-        background: var(--color-background-subtle, rgba(0,0,0,0.03));
+        background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 3%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
       .teaser-unlock-icon {
         width: 14px;
         height: 14px;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
       }
 
       .teaser-unlock-icon svg {
@@ -660,7 +660,7 @@ export class TeaserPreviewUI {
 
       .teaser-unlock-text {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
       }
 
       .teaser-content {
@@ -680,7 +680,7 @@ export class TeaserPreviewUI {
           to bottom,
           transparent 0%,
           transparent 60%,
-          var(--color-background-elevated, #FFFDFB) 100%
+          var(--color-background-elevated) 100%
         );
         pointer-events: none;
         border-radius: var(--radius-md, 8px);
@@ -688,14 +688,14 @@ export class TeaserPreviewUI {
 
       .teaser-footer {
         text-align: center;
-        border-top: 1px solid var(--color-border, rgba(0,0,0,0.05));
+        border-top: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 5%, transparent));
         padding-top: var(--space-3);
       }
 
       .teaser-cta {
         font-size: 0.8rem;
         font-style: italic;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
         margin: 0;
       }
 
@@ -706,7 +706,7 @@ export class TeaserPreviewUI {
         flex-direction: column;
         gap: var(--space-4);
         padding: var(--space-3);
-        background: var(--color-background-subtle, rgba(0,0,0,0.02));
+        background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -740,7 +740,7 @@ export class TeaserPreviewUI {
       .teaser-score-label {
         font-size: 0.75rem;
         font-weight: 500;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
         text-transform: uppercase;
         letter-spacing: 0.05em;
       }
@@ -763,21 +763,21 @@ export class TeaserPreviewUI {
 
       .teaser-metric-label {
         font-size: 0.75rem;
-        color: var(--color-text-secondary, #5a4a3a);
+        color: var(--color-text-secondary);
         width: 50px;
       }
 
       .teaser-metric-bar {
         flex: 1;
         height: 6px;
-        background: var(--color-border, rgba(0,0,0,0.1));
+        background: var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
         border-radius: var(--radius-full, 9999px);
         overflow: hidden;
       }
 
       .teaser-metric-fill {
         height: 100%;
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary, var(--color-ferni));
         border-radius: var(--radius-full, 9999px);
       }
 
@@ -792,7 +792,7 @@ export class TeaserPreviewUI {
 
       .teaser-trend-label {
         font-size: 0.7rem;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
       }
 
       /* ==================== PATTERNS TEASER ==================== */
@@ -805,9 +805,9 @@ export class TeaserPreviewUI {
 
       .teaser-pattern-card {
         padding: var(--space-3);
-        background: var(--color-background-subtle, rgba(0,0,0,0.02));
+        background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
         border-radius: var(--radius-md, 8px);
-        border-left: 3px solid var(--persona-primary, #4a6741);
+        border-left: 3px solid var(--persona-primary, var(--color-ferni));
       }
 
       .teaser-pattern-card--faded {
@@ -819,27 +819,27 @@ export class TeaserPreviewUI {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
       }
 
       .teaser-pattern-insight {
         font-size: 0.85rem;
         font-style: italic;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         margin: var(--space-1) 0;
         line-height: 1.4;
       }
 
       .teaser-pattern-frequency {
         font-size: 0.7rem;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
       }
 
       /* ==================== TRUST INSIGHTS TEASER ==================== */
 
       .teaser-trust {
         padding: var(--space-3);
-        background: var(--color-background-subtle, rgba(0,0,0,0.02));
+        background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -863,13 +863,13 @@ export class TeaserPreviewUI {
 
       .teaser-trust-stat-label {
         font-size: 0.65rem;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
       }
 
       .teaser-trust-growth-title {
         font-size: 0.75rem;
         font-weight: 500;
-        color: var(--color-text-secondary, #5a4a3a);
+        color: var(--color-text-secondary);
         display: block;
         margin-bottom: var(--space-2);
       }
@@ -882,7 +882,7 @@ export class TeaserPreviewUI {
 
       .teaser-trust-tag {
         padding: var(--space-1) var(--space-2);
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         border-radius: var(--radius-sm, 4px);
         font-size: 0.7rem;
         color: var(--persona-ink);
@@ -892,7 +892,7 @@ export class TeaserPreviewUI {
 
       .teaser-life {
         padding: var(--space-3);
-        background: var(--color-background-subtle, rgba(0,0,0,0.02));
+        background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -917,13 +917,13 @@ export class TeaserPreviewUI {
       .teaser-life-domain-name {
         font-size: 0.8rem;
         font-weight: 500;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
       }
 
       .teaser-life-domain-level {
         width: 80px;
         height: 6px;
-        background: var(--color-border, rgba(0,0,0,0.1));
+        background: var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
         border-radius: var(--radius-full, 9999px);
         overflow: hidden;
       }
@@ -931,13 +931,13 @@ export class TeaserPreviewUI {
       .teaser-life-domain-fill {
         height: 100%;
         width: var(--level);
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary, var(--color-ferni));
         border-radius: var(--radius-full, 9999px);
       }
 
       .teaser-life-domain-status {
         font-size: 0.7rem;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
         grid-column: 2 / -1;
       }
 
@@ -946,7 +946,7 @@ export class TeaserPreviewUI {
         align-items: flex-start;
         gap: var(--space-2);
         padding: var(--space-2);
-        background: var(--persona-tint, rgba(74, 103, 65, 0.05));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent));
         border-radius: var(--radius-sm, 4px);
       }
 
@@ -965,7 +965,7 @@ export class TeaserPreviewUI {
       .teaser-life-insight p {
         font-size: 0.8rem;
         font-style: italic;
-        color: var(--color-text-secondary, #5a4a3a);
+        color: var(--color-text-secondary);
         margin: 0;
         line-height: 1.4;
       }
@@ -980,16 +980,16 @@ export class TeaserPreviewUI {
 
       .teaser-prediction-card {
         padding: var(--space-3);
-        background: var(--color-background-subtle, rgba(0,0,0,0.02));
+        background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
       .teaser-prediction--accurate {
-        border-left: 3px solid var(--persona-primary, #4a6741);
+        border-left: 3px solid var(--persona-primary, var(--color-ferni));
       }
 
       .teaser-prediction--pending {
-        border-left: 3px solid var(--color-text-muted, #7a6a5a);
+        border-left: 3px solid var(--color-text-muted);
         opacity: 0.7;
       }
 
@@ -1002,19 +1002,19 @@ export class TeaserPreviewUI {
       }
 
       .teaser-prediction--pending .teaser-prediction-status {
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
       }
 
       .teaser-prediction-text {
         font-size: 0.85rem;
         font-style: italic;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         margin: var(--space-1) 0;
       }
 
       .teaser-prediction-result {
         font-size: 0.7rem;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
       }
 
       .teaser-prediction-accuracy {
@@ -1022,7 +1022,7 @@ export class TeaserPreviewUI {
         flex-direction: column;
         align-items: center;
         padding: var(--space-3);
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -1034,7 +1034,7 @@ export class TeaserPreviewUI {
 
       .teaser-prediction-accuracy-label {
         font-size: 0.7rem;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
       }
 
       /* ==================== TEAM INSIGHTS TEASER ==================== */
@@ -1049,7 +1049,7 @@ export class TeaserPreviewUI {
         display: flex;
         gap: var(--space-3);
         padding: var(--space-3);
-        background: var(--color-background-subtle, rgba(0,0,0,0.02));
+        background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -1064,9 +1064,9 @@ export class TeaserPreviewUI {
         flex-shrink: 0;
       }
 
-      .teaser-team-avatar--maya { background: var(--color-maya, #a67a6a); }
-      .teaser-team-avatar--peter { background: var(--color-peter, #3a6b73); }
-      .teaser-team-avatar--nayan { background: var(--color-nayan, #b8956a); }
+      .teaser-team-avatar--maya { background: var(--color-maya); }
+      .teaser-team-avatar--peter { background: var(--color-peter); }
+      .teaser-team-avatar--nayan { background: var(--color-nayan); }
 
       .teaser-team-insight-content {
         flex: 1;
@@ -1076,14 +1076,14 @@ export class TeaserPreviewUI {
       .teaser-team-name {
         font-size: 0.75rem;
         font-weight: 600;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         display: block;
         margin-bottom: var(--space-1);
       }
 
       .teaser-team-insight-content p {
         font-size: 0.8rem;
-        color: var(--color-text-secondary, #5a4a3a);
+        color: var(--color-text-secondary);
         margin: 0;
         line-height: 1.4;
       }
@@ -1098,7 +1098,7 @@ export class TeaserPreviewUI {
 
       .teaser-memory-card {
         padding: var(--space-3);
-        background: var(--color-background-subtle, rgba(0,0,0,0.02));
+        background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -1108,7 +1108,7 @@ export class TeaserPreviewUI {
 
       .teaser-memory-date {
         font-size: 0.65rem;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
       }
 
       .teaser-memory-type {
@@ -1123,14 +1123,14 @@ export class TeaserPreviewUI {
       .teaser-memory-content {
         font-size: 0.85rem;
         font-style: italic;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         margin: var(--space-1) 0;
         line-height: 1.4;
       }
 
       .teaser-memory-persona {
         font-size: 0.7rem;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
       }
 
       /* ==================== YOUR PEOPLE TEASER ==================== */
@@ -1146,7 +1146,7 @@ export class TeaserPreviewUI {
         align-items: center;
         gap: var(--space-3);
         padding: var(--space-3);
-        background: var(--color-background-subtle, rgba(0,0,0,0.02));
+        background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -1158,8 +1158,8 @@ export class TeaserPreviewUI {
         width: 40px;
         height: 40px;
         border-radius: var(--radius-full, 9999px);
-        background: var(--persona-primary, #4a6741);
-        color: white;
+        background: var(--persona-primary, var(--color-ferni));
+        color: var(--color-white);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1176,13 +1176,13 @@ export class TeaserPreviewUI {
       .teaser-person-name {
         font-size: 0.9rem;
         font-weight: 600;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         display: block;
       }
 
       .teaser-person-relation {
         font-size: 0.7rem;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
         display: block;
         margin: var(--space-1) 0;
       }
@@ -1195,25 +1195,25 @@ export class TeaserPreviewUI {
       }
 
       .teaser-person-sentiment--positive {
-        background: rgba(74, 103, 65, 0.1);
+        background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
         color: var(--persona-ink);
       }
 
       .teaser-person-sentiment--mixed {
-        background: rgba(180, 149, 106, 0.15);
-        color: #9a7a52;
+        background: color-mix(in srgb, var(--color-nayan) 15%, transparent);
+        color: var(--color-nayan-secondary);
       }
 
       .teaser-person-sentiment--check {
-        background: rgba(58, 107, 115, 0.1);
-        color: var(--color-peter, #3a6b73);
+        background: color-mix(in srgb, var(--color-peter) 10%, transparent);
+        color: var(--color-peter);
       }
 
       /* ==================== GROWTH ANALYTICS TEASER ==================== */
 
       .teaser-analytics {
         padding: var(--space-3);
-        background: var(--color-background-subtle, rgba(0,0,0,0.02));
+        background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -1230,7 +1230,7 @@ export class TeaserPreviewUI {
         display: flex;
         justify-content: space-between;
         font-size: 0.65rem;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
         margin-top: var(--space-1);
       }
 
@@ -1253,7 +1253,7 @@ export class TeaserPreviewUI {
 
       .teaser-analytics-stat-label {
         font-size: 0.65rem;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
       }
 
       /* ==================== HABITS TEASER ==================== */
@@ -1266,12 +1266,12 @@ export class TeaserPreviewUI {
 
       .teaser-habit-card {
         padding: var(--space-3);
-        background: var(--color-background-subtle, rgba(0,0,0,0.02));
+        background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
       .teaser-habit-card--at-risk {
-        border-left: 3px solid var(--color-jordan, #c4856a);
+        border-left: 3px solid var(--color-jordan);
       }
 
       .teaser-habit-info {
@@ -1284,12 +1284,12 @@ export class TeaserPreviewUI {
       .teaser-habit-name {
         font-size: 0.85rem;
         font-weight: 500;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
       }
 
       .teaser-habit-streak {
         font-size: 0.7rem;
-        color: var(--color-text-muted, #7a6a5a);
+        color: var(--color-text-muted);
       }
 
       .teaser-habit-calendar {
@@ -1301,11 +1301,11 @@ export class TeaserPreviewUI {
         width: 20px;
         height: 20px;
         border-radius: var(--radius-sm, 4px);
-        background: var(--color-border, rgba(0,0,0,0.1));
+        background: var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       }
 
       .teaser-habit-day--done {
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary, var(--color-ferni));
       }
 
       /* ==================== RESPONSIVE ==================== */

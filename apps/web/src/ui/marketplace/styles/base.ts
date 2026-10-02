@@ -48,10 +48,10 @@ export function getBaseStyles(): string {
       width: 90vw;
       max-width: min(900px, 100%);
       max-height: 85vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-2xl);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -182,8 +182,8 @@ export function getBaseStyles(): string {
 
     .marketplace-tab.active {
       background: var(--persona-primary, var(--color-accent-primary));
-      color: var(--persona-text, white);
-      box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.2);
+      color: var(--persona-text, var(--color-white));
+      box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--color-black) 20%, transparent);
     }
 
     .marketplace-tab:active {

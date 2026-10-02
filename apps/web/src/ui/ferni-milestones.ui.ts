@@ -1093,10 +1093,10 @@ function createCelebrationDisplay(milestone: Milestone): HTMLElement {
   // Category-specific accent color
   const accentColors: Record<string, string> = {
     relationship: 'var(--persona-primary, #4a6741)',
-    team: 'var(--color-peter, #3a6b73)',
-    conversation: 'var(--color-alex, #5a6b8a)',
-    discovery: 'var(--color-maya, #a67a6a)',
-    sweet: 'var(--color-nayan, #b8956a)',
+    team: 'var(--color-peter)',
+    conversation: 'var(--color-alex)',
+    discovery: 'var(--color-maya)',
+    sweet: 'var(--color-nayan)',
   };
 
   const accent = accentColors[milestone.category] || 'var(--persona-primary)';
@@ -1272,7 +1272,7 @@ function injectMilestoneStyles(): void {
       align-items: center;
       gap: var(--space-4, 16px);
       padding: var(--space-4, 16px) var(--space-6, 24px);
-      background: var(--color-background-elevated, #faf8f5);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 20px);
       box-shadow: 
         0 8px 32px rgba(0, 0, 0, 0.12),
@@ -1288,7 +1288,7 @@ function injectMilestoneStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-white);
     }
 
     .ferni-milestone__icon svg {
@@ -1306,27 +1306,27 @@ function injectMilestoneStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-base, 1rem);
       font-weight: 500;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       line-height: 1.4;
     }
 
     .ferni-milestone__subtitle {
       margin: var(--space-1, 4px) 0 0;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     /* Dark theme */
     [data-theme="midnight"] .ferni-milestone__content {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated);
     }
 
     [data-theme="midnight"] .ferni-milestone__message {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .ferni-milestone__subtitle {
-      color: var(--color-text-secondary, #e8e2da);
+      color: var(--color-text-secondary);
     }
 
     /* Mobile */

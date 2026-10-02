@@ -150,7 +150,7 @@ const EMPTY_STATE_STYLES = `
     font-size: 1.125rem;
     font-weight: 600;
     line-height: 1.3;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     margin: 0;
     letter-spacing: -0.01em;
   }
@@ -159,7 +159,7 @@ const EMPTY_STATE_STYLES = `
     font-family: var(--font-body, 'Inter', sans-serif);
     font-size: 0.875rem;
     line-height: 1.5;
-    color: var(--color-text-secondary, #5c544a);
+    color: var(--color-text-secondary);
     margin: 0;
     max-width: 320px;
   }
@@ -172,7 +172,7 @@ const EMPTY_STATE_STYLES = `
     color: var(--color-accent-text);
     margin: 0;
     padding: var(--space-2, 8px) var(--space-4, 16px);
-    background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+    background: var(--color-accent-subtle);
     border-radius: var(--radius-full, 9999px);
   }
 
@@ -209,7 +209,7 @@ const EMPTY_STATE_STYLES = `
     }
 
     .ferni-empty-state__encouragement {
-      background: var(--color-accent-subtle-dark, rgba(74, 103, 65, 0.15));
+      background: var(--color-accent-subtle-dark, color-mix(in srgb, var(--color-ferni) 15%, transparent));
     }
   }
 

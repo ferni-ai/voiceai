@@ -68,11 +68,11 @@ const QUALITY_THRESHOLDS = {
 
 // Quality colors (use CSS variables with fallbacks)
 const QUALITY_COLORS: Record<ConnectionQuality, string> = {
-  excellent: 'var(--color-semantic-success, #4a6741)',
-  good: 'var(--color-semantic-success, #5a8a4a)',
-  fair: 'var(--color-semantic-warning, #c49a5a)',
-  poor: 'var(--color-semantic-error, #c46464)',
-  disconnected: 'var(--color-text-muted, #756A5E)',
+  excellent: 'var(--color-semantic-success)',
+  good: 'var(--color-semantic-success)',
+  fair: 'var(--color-semantic-warning)',
+  poor: 'var(--color-semantic-error)',
+  disconnected: 'var(--color-text-muted)',
 };
 
 // Quality descriptions
@@ -118,12 +118,12 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-full, 9999px);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       opacity: 0;
       transform: translateY(-10px);
       transition:
@@ -132,7 +132,7 @@ function injectStyles(): void {
         background ${DURATION.FAST}ms ${EASING.STANDARD};
       pointer-events: none;
       user-select: none;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 16px color-mix(in srgb, var(--color-black) 8%, transparent);
     }
 
     .connection-quality--visible {
@@ -197,7 +197,7 @@ function injectStyles(): void {
 
     .connection-quality__bar {
       flex: 1;
-      background: var(--color-text-muted, #9a8a7a);
+      background: var(--color-text-muted);
       border-radius: 1px;
       transition: 
         height ${DURATION.NORMAL}ms ${EASING.STANDARD},
@@ -210,7 +210,7 @@ function injectStyles(): void {
     .connection-quality__bar:nth-child(4) { height: 100%; }
 
     .connection-quality__bar--active {
-      background: var(--quality-color, var(--color-semantic-success, #4a6741));
+      background: var(--quality-color, var(--color-semantic-success, var(--color-ferni)));
     }
 
     /* Label */
@@ -226,7 +226,7 @@ function injectStyles(): void {
       top: calc(100% + var(--space-2, 8px));
       right: 0;
       padding: var(--space-3, 12px);
-      background: var(--color-background-elevated, white);
+      background: var(--color-background-elevated);
       border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-lg, 12px);
       box-shadow: var(--shadow-lg);
@@ -290,11 +290,11 @@ function injectStyles(): void {
     /* Dark theme */
     [data-theme="midnight"] .connection-quality {
       background: var(--glass-surface-2, rgba(60, 50, 45, 0.8));
-      border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      border-color: var(--color-border-subtle);
     }
 
     [data-theme="midnight"] .connection-quality__details {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated);
     }
 
     /* Reduced motion */

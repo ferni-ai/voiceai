@@ -449,8 +449,8 @@ export function animateCounter(
 export const TIER_COLORS: Record<Founder['tier'], { bg: string; text: string; border: string }> = {
   seed: {
     bg: 'var(--color-semantic-info-bg, #e8f4fd)',
-    text: 'var(--color-semantic-info, #2563eb)',
-    border: 'var(--color-semantic-info, #2563eb)',
+    text: 'var(--color-semantic-info)',
+    border: 'var(--color-semantic-info)',
   },
   sprout: {
     bg: 'var(--persona-tint)',
@@ -459,13 +459,13 @@ export const TIER_COLORS: Record<Founder['tier'], { bg: string; text: string; bo
   },
   tree: {
     bg: 'var(--color-semantic-warning-bg, #fff8e6)',
-    text: 'var(--color-semantic-warning, #d97706)',
-    border: 'var(--color-semantic-warning, #d97706)',
+    text: 'var(--color-semantic-warning)',
+    border: 'var(--color-semantic-warning)',
   },
   forest: {
     bg: 'var(--color-semantic-success-bg, #ecfdf5)',
-    text: 'var(--color-semantic-success, #10b981)',
-    border: 'var(--color-semantic-success, #10b981)',
+    text: 'var(--color-semantic-success)',
+    border: 'var(--color-semantic-success)',
   },
 };
 

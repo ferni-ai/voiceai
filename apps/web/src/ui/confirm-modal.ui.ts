@@ -99,7 +99,7 @@ function ensureStylesExist(): void {
     .confirm-modal-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: color-mix(in srgb, var(--color-black) 50%, transparent);
     }
 
     .confirm-modal-container {
@@ -133,7 +133,7 @@ function ensureStylesExist(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 5%, transparent));
       color: var(--color-text-muted);
     }
     
@@ -184,7 +184,7 @@ function ensureStylesExist(): void {
     }
     
     .confirm-modal-btn--cancel {
-      background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 5%, transparent));
       color: var(--color-text-secondary);
       border: 1px solid var(--color-border-subtle);
     }
@@ -195,7 +195,7 @@ function ensureStylesExist(): void {
     }
     
     .confirm-modal-btn--confirm {
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       color: var(--color-text-on-accent);
     }
     
@@ -205,7 +205,7 @@ function ensureStylesExist(): void {
     
     .confirm-modal-btn--destructive {
       background: var(--color-error, #ef4444);
-      color: white;
+      color: var(--color-white);
     }
     
     .confirm-modal-btn--destructive:hover {

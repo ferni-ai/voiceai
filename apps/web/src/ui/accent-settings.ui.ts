@@ -191,10 +191,10 @@ function injectStyles(): void {
       max-width: clamp(294px, 90vw, 420px);
       max-height: 90vh;
       overflow-y: auto;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       transform: scale(0.95) translateY(10px);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
     }
@@ -213,9 +213,9 @@ function injectStyles(): void {
       height: 48px;
       margin: 0 auto 12px;
       padding: 12px;
-      background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+      background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
       border-radius: 50%;
-      color: white;
+      color: var(--color-white);
     }
 
     .accent-settings-icon svg {
@@ -228,7 +228,7 @@ function injectStyles(): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--color-accent-text, #4a6741);
+      color: var(--color-accent-text);
       margin-bottom: 4px;
     }
 
@@ -236,13 +236,13 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1.5rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0 0 8px 0;
     }
 
     .accent-settings-subtitle {
       font-size: 0.9rem;
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
       margin: 0;
       line-height: 1.5;
     }
@@ -256,17 +256,17 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-background-tertiary, #ebe6df);
+      background: var(--color-background-tertiary);
       border: none;
       border-radius: 50%;
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
     .accent-settings-close:hover {
-      background: var(--color-background-secondary, #f5f2ed);
-      color: var(--color-text-primary, #2c2520);
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
       transform: scale(1.05);
     }
 
@@ -285,10 +285,10 @@ function injectStyles(): void {
       align-items: center;
       gap: 6px;
       padding: 8px 12px;
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
       border-radius: var(--radius-full, 9999px);
       font-size: 0.8rem;
-      color: var(--color-accent-text, #4a6741);
+      color: var(--color-accent-text);
       margin-bottom: 20px;
     }
 
@@ -310,7 +310,7 @@ function injectStyles(): void {
       gap: 12px;
       width: 100%;
       padding: 16px;
-      background: var(--color-background-secondary, #f5f2ed);
+      background: var(--color-background-secondary);
       border: 2px solid transparent;
       border-radius: var(--radius-lg, 12px);
       cursor: pointer;
@@ -319,12 +319,12 @@ function injectStyles(): void {
     }
 
     .accent-option:hover {
-      background: var(--color-background-tertiary, #ebe6df);
+      background: var(--color-background-tertiary);
     }
 
     .accent-option.selected {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.12));
-      border-color: var(--persona-primary, #4a6741);
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 12%, transparent));
+      border-color: var(--persona-primary, var(--color-ferni));
     }
 
     .accent-option-flag {
@@ -333,7 +333,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-md, 8px);
       overflow: hidden;
       padding: 6px;
@@ -353,13 +353,13 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 0.95rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0 0 2px 0;
     }
 
     .accent-option-desc {
       font-size: 0.8rem;
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
       margin: 0;
     }
 
@@ -369,9 +369,9 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: 50%;
-      color: white;
+      color: var(--color-white);
       opacity: 0;
       transform: scale(0.8);
       transition: all ${DURATION.FAST}ms ${EASING.SPRING};
@@ -394,7 +394,7 @@ function injectStyles(): void {
       justify-content: space-between;
       padding: 16px;
       margin-top: 16px;
-      background: var(--color-background-secondary, #f5f2ed);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg, 12px);
     }
 
@@ -407,19 +407,19 @@ function injectStyles(): void {
     .accent-auto-detect-icon {
       width: 20px;
       height: 20px;
-      color: var(--color-accent-text, #4a6741);
+      color: var(--color-accent-text);
     }
 
     .accent-auto-detect-label {
       font-size: 0.9rem;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
     }
 
     .accent-toggle {
       position: relative;
       width: 48px;
       height: 26px;
-      background: var(--color-background-tertiary, #ebe6df);
+      background: var(--color-background-tertiary);
       border: none;
       border-radius: 13px;
       cursor: pointer;
@@ -427,7 +427,7 @@ function injectStyles(): void {
     }
 
     .accent-toggle.on {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
     }
 
     .accent-toggle-knob {
@@ -436,9 +436,9 @@ function injectStyles(): void {
       left: 3px;
       width: 20px;
       height: 20px;
-      background: white;
+      background: var(--color-white);
       border-radius: 50%;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      box-shadow: 0 1px 3px color-mix(in srgb, var(--color-black) 20%, transparent);
       transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
     }
 
@@ -451,10 +451,10 @@ function injectStyles(): void {
       width: 100%;
       margin-top: 20px;
       padding: 14px 24px;
-      background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+      background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
       border: none;
       border-radius: var(--radius-full, 9999px);
-      color: white;
+      color: var(--color-white);
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1rem;
       font-weight: 600;
@@ -464,7 +464,7 @@ function injectStyles(): void {
 
     .accent-save-btn:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 30%, transparent);
     }
 
     .accent-save-btn:active:not(:disabled) {
@@ -491,8 +491,8 @@ function injectStyles(): void {
     }
 
     .accent-message.success {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-      color: var(--color-accent-text, #4a6741);
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
+      color: var(--color-accent-text);
     }
 
     /* Loading state */
@@ -506,8 +506,8 @@ function injectStyles(): void {
     .accent-spinner {
       width: 32px;
       height: 32px;
-      border: 3px solid var(--color-background-tertiary, #ebe6df);
-      border-top-color: var(--persona-primary, #4a6741);
+      border: 3px solid var(--color-background-tertiary);
+      border-top-color: var(--persona-primary, var(--color-ferni));
       border-radius: 50%;
       animation: accent-spin 0.8s linear infinite;
     }
@@ -518,44 +518,44 @@ function injectStyles(): void {
 
     /* Dark theme */
     [data-theme="midnight"] .accent-settings-modal {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated);
     }
 
     [data-theme="midnight"] .accent-settings-title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .accent-settings-subtitle {
-      color: var(--color-text-secondary, #f0ebe4);
+      color: var(--color-text-secondary);
     }
 
     [data-theme="midnight"] .accent-settings-close {
-      background: var(--color-background-tertiary, #685852);
-      color: var(--color-text-secondary, #f0ebe4);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-secondary);
     }
 
     [data-theme="midnight"] .accent-option {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
 
     [data-theme="midnight"] .accent-option:hover {
-      background: var(--color-background-tertiary, #685852);
+      background: var(--color-background-tertiary);
     }
 
     [data-theme="midnight"] .accent-option-label {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .accent-option-desc {
-      color: var(--color-text-secondary, #f0ebe4);
+      color: var(--color-text-secondary);
     }
 
     [data-theme="midnight"] .accent-auto-detect {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
 
     [data-theme="midnight"] .accent-auto-detect-label {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     /* Responsive */

@@ -479,10 +479,10 @@ const STYLES = `
     position: relative;
     width: min(90vw, 640px);
     max-height: 90vh;
-    background: var(--color-bg-elevated, #FFFDFB);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    background: var(--color-bg-elevated, var(--color-white));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-xl, 20px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -497,7 +497,7 @@ const STYLES = `
   /* Header */
   .digital-twin-modal__header {
     padding: var(--space-6, 24px) var(--space-6, 24px) var(--space-4, 16px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    border-bottom: 1px solid var(--color-border-subtle);
     text-align: center;
     position: relative;
   }
@@ -513,7 +513,7 @@ const STYLES = `
     justify-content: center;
     border: none;
     background: transparent;
-    color: var(--color-text-muted, #7a6f63);
+    color: var(--color-text-muted);
     border-radius: var(--radius-full, 9999px);
     cursor: pointer;
     transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -521,7 +521,7 @@ const STYLES = `
 
   .digital-twin-modal__close:hover {
     background: var(--color-background-hover, rgba(44, 37, 32, 0.05));
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
   }
 
   .digital-twin-modal__close svg {
@@ -542,14 +542,14 @@ const STYLES = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: clamp(24px, 4vw, 28px);
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     line-height: 1.2;
     margin: 0;
   }
 
   .digital-twin-modal__subtitle {
     font-size: 15px;
-    color: var(--color-text-secondary, #5a5048);
+    color: var(--color-text-secondary);
     margin-top: var(--space-2, 8px);
     line-height: 1.5;
   }
@@ -574,12 +574,12 @@ const STYLES = `
     margin: 0 auto var(--space-5, 20px);
     border-radius: var(--radius-2xl, 24px);
     overflow: hidden;
-    background: linear-gradient(145deg, #fdfcfa 0%, #f3efe8 100%);
+    background: linear-gradient(145deg, var(--color-white) 0%, #f3efe8 100%);
     box-shadow: 
       0 8px 40px rgba(74, 103, 65, 0.1),
       0 4px 16px rgba(44, 37, 32, 0.06),
       inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(74, 103, 65, 0.08);
+    border: 1px solid color-mix(in srgb, var(--color-ferni) 8%, transparent);
     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
                 box-shadow 0.4s ease;
   }
@@ -616,12 +616,12 @@ const STYLES = `
     width: 80px;
     height: 80px;
     margin: 0 auto var(--space-6, 24px);
-    background: linear-gradient(135deg, var(--color-accent, #3d5a45), var(--color-ferni, #4a6741));
+    background: linear-gradient(135deg, var(--color-accent, #3d5a45), var(--color-ferni));
     border-radius: var(--radius-2xl, 24px);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-white);
   }
 
   .digital-twin-onboarding__icon svg {
@@ -633,13 +633,13 @@ const STYLES = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 20px;
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-3, 12px);
   }
 
   .digital-twin-onboarding__description {
     font-size: 15px;
-    color: var(--color-text-secondary, #5a5048);
+    color: var(--color-text-secondary);
     line-height: 1.6;
     max-width: min(400px, 100%);
     margin: 0 auto var(--space-6, 24px);
@@ -669,7 +669,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-accent-subtle, rgba(61, 90, 69, 0.1));
+    background: var(--color-accent-subtle);
     color: var(--color-accent-text);
     border-radius: var(--radius-md, 8px);
   }
@@ -682,13 +682,13 @@ const STYLES = `
   .digital-twin-feature__text h4 {
     font-size: 14px;
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-1, 4px);
   }
 
   .digital-twin-feature__text p {
     font-size: 13px;
-    color: var(--color-text-secondary, #5a5048);
+    color: var(--color-text-secondary);
     margin: 0;
     line-height: 1.5;
   }
@@ -704,8 +704,8 @@ const STYLES = `
     align-items: center;
     gap: var(--space-4, 16px);
     padding: var(--space-4, 16px);
-    background: var(--color-background-elevated, #fffdfb);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    background: var(--color-background-elevated);
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg, 12px);
     cursor: pointer;
     transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -713,7 +713,7 @@ const STYLES = `
 
   .digital-twin-card:hover {
     border-color: var(--color-accent, #3d5a45);
-    box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+    box-shadow: var(--shadow-md, 0 4px 6px -1px color-mix(in srgb, var(--color-black) 10%, transparent));
     transform: translateY(-2px);
   }
 
@@ -721,12 +721,12 @@ const STYLES = `
     width: 52px;
     height: 52px;
     flex-shrink: 0;
-    background: linear-gradient(135deg, var(--color-accent, #3d5a45), var(--color-ferni, #4a6741));
+    background: linear-gradient(135deg, var(--color-accent, #3d5a45), var(--color-ferni));
     border-radius: var(--radius-lg, 12px);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-white);
     position: relative;
   }
 
@@ -745,7 +745,7 @@ const STYLES = `
     gap: 2px;
     padding: 2px 6px;
     background: linear-gradient(135deg, #f59e0b, #ea580c);
-    color: white;
+    color: var(--color-white);
     font-size: 11px;
     font-weight: 700;
     border-radius: var(--radius-full, 9999px);
@@ -766,7 +766,7 @@ const STYLES = `
   .digital-twin-card__name {
     font-size: 16px;
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-1, 4px);
     white-space: nowrap;
     overflow: hidden;
@@ -775,7 +775,7 @@ const STYLES = `
 
   .digital-twin-card__meta {
     font-size: 13px;
-    color: var(--color-text-muted, #7a6f63);
+    color: var(--color-text-muted);
     display: flex;
     align-items: center;
     gap: var(--space-3, 12px);
@@ -810,8 +810,8 @@ const STYLES = `
     justify-content: center;
     gap: var(--space-2, 8px);
     padding: var(--space-4, 16px) var(--space-6, 24px);
-    background: linear-gradient(135deg, var(--color-accent, #3d5a45), var(--color-ferni, #4a6741));
-    color: white;
+    background: linear-gradient(135deg, var(--color-accent, #3d5a45), var(--color-ferni));
+    color: var(--color-white);
     font-size: 15px;
     font-weight: 600;
     border: none;
@@ -822,7 +822,7 @@ const STYLES = `
 
   .digital-twin-create-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px -4px var(--color-accent-glow, rgba(61, 90, 69, 0.4));
+    box-shadow: 0 8px 16px -4px var(--color-accent-glow);
   }
 
   .digital-twin-create-btn svg {
@@ -850,7 +850,7 @@ const STYLES = `
   }
 
   .digital-twin-add-btn:hover {
-    background: var(--color-accent-subtle, rgba(61, 90, 69, 0.1));
+    background: var(--color-accent-subtle);
   }
 
   .digital-twin-add-btn svg {
@@ -864,7 +864,7 @@ const STYLES = `
     font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: var(--color-text-muted, #7a6f63);
+    color: var(--color-text-muted);
     margin-bottom: var(--space-3, 12px);
     padding-left: var(--space-1, 4px);
   }
@@ -872,14 +872,14 @@ const STYLES = `
   /* Auto-capture card */
   .digital-twin-capture-card {
     background: var(--color-background-subtle, rgba(44, 37, 32, 0.03));
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg, 12px);
     padding: var(--space-4, 16px);
     margin-bottom: var(--space-4, 16px);
   }
 
   .digital-twin-capture-card--enabled {
-    background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+    background: var(--color-accent-subtle);
     border-color: var(--color-accent, #3d5a45);
   }
 
@@ -905,13 +905,13 @@ const STYLES = `
   .digital-twin-capture-title h4 {
     font-size: 14px;
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0;
   }
 
   .digital-twin-capture-description {
     font-size: 13px;
-    color: var(--color-text-secondary, #5a5048);
+    color: var(--color-text-secondary);
     line-height: 1.5;
     margin: 0;
   }
@@ -934,7 +934,7 @@ const STYLES = `
     position: absolute;
     cursor: pointer;
     inset: 0;
-    background: var(--color-border-subtle, rgba(44, 37, 32, 0.2));
+    background: var(--color-border-subtle);
     border-radius: var(--radius-full, 9999px);
     transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
   }
@@ -946,10 +946,10 @@ const STYLES = `
     width: 18px;
     left: 3px;
     bottom: 3px;
-    background: white;
+    background: var(--color-white);
     border-radius: 50%;
     transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--color-black) 20%, transparent);
   }
 
   .digital-twin-toggle input:checked + .digital-twin-toggle-track {
@@ -967,7 +967,7 @@ const STYLES = `
 
   /* Consent card (first-time setup) */
   .digital-twin-consent {
-    background: linear-gradient(135deg, var(--color-accent-subtle, rgba(61, 90, 69, 0.1)), transparent);
+    background: linear-gradient(135deg, var(--color-accent-subtle), transparent);
     border: 1px solid var(--color-accent, #3d5a45);
     border-radius: var(--radius-lg, 12px);
     padding: var(--space-5, 20px);
@@ -995,13 +995,13 @@ const STYLES = `
   .digital-twin-consent h4 {
     font-size: 16px;
     font-weight: 600;
-    color: var(--color-text-primary, #2c2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-2, 8px);
   }
 
   .digital-twin-consent p {
     font-size: 14px;
-    color: var(--color-text-secondary, #5a5048);
+    color: var(--color-text-secondary);
     line-height: 1.6;
     margin: 0 0 var(--space-4, 16px);
     max-width: min(320px, 100%);
@@ -1026,7 +1026,7 @@ const STYLES = `
 
   .digital-twin-consent__btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--color-accent-glow, rgba(61, 90, 69, 0.3));
+    box-shadow: 0 4px 12px var(--color-accent-glow);
   }
 
   .digital-twin-consent__btn svg {
@@ -1038,7 +1038,7 @@ const STYLES = `
     display: block;
     margin-top: var(--space-3, 12px);
     font-size: 13px;
-    color: var(--color-text-muted, #7a6f63);
+    color: var(--color-text-muted);
     background: none;
     border: none;
     cursor: pointer;
@@ -1047,7 +1047,7 @@ const STYLES = `
   }
 
   .digital-twin-consent__skip:hover {
-    color: var(--color-text-secondary, #5a5048);
+    color: var(--color-text-secondary);
   }
 
   /* Loading state */
@@ -1058,13 +1058,13 @@ const STYLES = `
     justify-content: center;
     padding: var(--space-12, 48px) 0;
     gap: var(--space-3, 12px);
-    color: var(--color-text-muted, #7a6f63);
+    color: var(--color-text-muted);
   }
 
   .digital-twin-loading__spinner {
     width: 32px;
     height: 32px;
-    border: 2px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+    border: 2px solid var(--color-border-subtle);
     border-top-color: var(--color-accent, #3d5a45);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -1077,13 +1077,13 @@ const STYLES = `
   /* Dark theme overrides */
   [data-theme="dark"] .digital-twin-modal__container,
   [data-theme="zen"] .digital-twin-modal__container {
-    background: var(--color-background-elevated, #3a3530);
+    background: var(--color-background-elevated);
   }
 
   [data-theme="dark"] .digital-twin-card,
   [data-theme="zen"] .digital-twin-card {
-    background: var(--color-background-subtle, rgba(255, 255, 255, 0.05));
-    border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    background: var(--color-background-subtle, color-mix(in srgb, var(--color-white) 5%, transparent));
+    border-color: var(--color-border-subtle);
   }
 
   [data-theme="dark"] .digital-twin-card:hover,
@@ -1093,7 +1093,7 @@ const STYLES = `
 
   [data-theme="dark"] .digital-twin-feature,
   [data-theme="zen"] .digital-twin-feature {
-    background: var(--color-background-subtle, rgba(255, 255, 255, 0.05));
+    background: var(--color-background-subtle, color-mix(in srgb, var(--color-white) 5%, transparent));
   }
 
   /* Responsive */

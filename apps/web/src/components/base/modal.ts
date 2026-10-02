@@ -358,15 +358,15 @@ export function injectModalStyles(): void {
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+      box-shadow: var(--shadow-2xl, 0 25px 50px -12px color-mix(in srgb, var(--color-black) 25%, transparent));
     }
 
     .ferni-modal__header {
       position: relative;
       padding: var(--space-6, 24px) var(--space-6, 24px) var(--space-4, 16px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .ferni-modal__eyebrow {
@@ -384,7 +384,7 @@ export function injectModalStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 24px;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
       line-height: 1.3;
     }
@@ -392,7 +392,7 @@ export function injectModalStyles(): void {
     .ferni-modal__tagline {
       font-family: var(--font-body, Inter, sans-serif);
       font-size: 14px;
-      color: var(--color-text-secondary, rgba(44, 37, 32, 0.7));
+      color: var(--color-text-secondary);
       margin: var(--space-2, 8px) 0 0;
     }
 
@@ -409,13 +409,13 @@ export function injectModalStyles(): void {
       border: none;
       border-radius: var(--radius-full, 9999px);
       cursor: pointer;
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.5));
+      color: var(--color-text-muted);
       transition: all 0.15s ease;
     }
 
     .ferni-modal__close:hover {
       background: var(--color-background-hover, rgba(44, 37, 32, 0.05));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .ferni-modal__close:focus-visible {

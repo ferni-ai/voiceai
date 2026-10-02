@@ -350,7 +350,7 @@ export function injectScreenReaderStyles(): void {
       position: absolute;
       top: -40px;
       left: 0;
-      background: var(--color-accent-primary, #2d5a3d);
+      background: var(--color-accent-primary);
       color: var(--color-text-on-accent);
       padding: 8px 16px;
       z-index: var(--z-skip-link);

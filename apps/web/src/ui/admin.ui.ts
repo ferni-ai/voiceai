@@ -1360,8 +1360,8 @@ export function injectAdminStyles(): void {
 
     .admin-btn {
       padding: 0.5rem 1rem;
-      border: 1px solid rgba(255,255,255,0.2);
-      background: rgba(255,255,255,0.1);
+      border: 1px solid color-mix(in srgb, var(--color-white) 20%, transparent);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
       color: var(--color-text-primary);
       border-radius: 6px;
       cursor: pointer;
@@ -1369,7 +1369,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-btn:hover {
-      background: rgba(255,255,255,0.2);
+      background: color-mix(in srgb, var(--color-white) 20%, transparent);
     }
 
     .admin-btn--primary {
@@ -1397,7 +1397,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-hint {
-      color: rgba(255,255,255,0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
       font-size: 0.875rem;
       margin-bottom: 1rem;
     }
@@ -1410,7 +1410,7 @@ export function injectAdminStyles(): void {
 
     .admin-roster-divider {
       padding: 0.5rem 0;
-      color: rgba(255,255,255,0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -1421,15 +1421,15 @@ export function injectAdminStyles(): void {
       align-items: center;
       gap: 1rem;
       padding: 1rem;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
       border-radius: 8px;
       transition: transform 0.2s, opacity 0.2s;
     }
 
     .admin-agent-card:hover {
-      background: rgba(255,255,255,0.1);
-      border-color: var(--agent-primary, rgba(255,255,255,0.2));
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
+      border-color: var(--agent-primary, color-mix(in srgb, var(--color-white) 20%, transparent));
     }
 
     .admin-agent-card.dragging {
@@ -1438,12 +1438,12 @@ export function injectAdminStyles(): void {
 
     .admin-agent-card--coordinator {
       border-color: var(--agent-primary, var(--persona-primary));
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
     }
 
     .admin-agent-drag-handle {
       cursor: grab;
-      color: rgba(255,255,255,0.3);
+      color: color-mix(in srgb, var(--color-white) 30%, transparent);
       user-select: none;
     }
 
@@ -1468,7 +1468,7 @@ export function injectAdminStyles(): void {
 
     .admin-agent-subtitle {
       font-size: 0.875rem;
-      color: rgba(255,255,255,0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
     }
 
     .admin-agent-actions {
@@ -1508,7 +1508,7 @@ export function injectAdminStyles(): void {
     .admin-toggle-slider {
       position: absolute;
       inset: 0;
-      background: rgba(255,255,255,0.2);
+      background: color-mix(in srgb, var(--color-white) 20%, transparent);
       border-radius: 22px;
       cursor: pointer;
       transition: background 0.2s;
@@ -1545,8 +1545,8 @@ export function injectAdminStyles(): void {
       align-items: center;
       gap: 1rem;
       padding: 1rem;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
       border-radius: 8px;
     }
 
@@ -1597,7 +1597,7 @@ export function injectAdminStyles(): void {
 
     .admin-template-desc {
       font-size: 0.875rem;
-      color: rgba(255,255,255,0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
     }
 
     .admin-quick-actions {
@@ -1612,15 +1612,15 @@ export function injectAdminStyles(): void {
       align-items: center;
       gap: 0.5rem;
       padding: 1.5rem;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
       border-radius: 8px;
       cursor: pointer;
       transition: transform 0.2s, opacity 0.2s;
     }
 
     .admin-action-card:hover {
-      background: rgba(255,255,255,0.1);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
       transform: translateY(-2px);
     }
 
@@ -1644,7 +1644,7 @@ export function injectAdminStyles(): void {
     .admin-detail-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-medium, rgba(0,0,0,0.5));
+      background: var(--backdrop-medium, color-mix(in srgb, var(--color-black) 50%, transparent));
     }
 
     .admin-detail-content {
@@ -1704,7 +1704,7 @@ export function injectAdminStyles(): void {
 
     .admin-detail-section {
       padding: 1.5rem;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
     }
 
     .admin-detail-section h3 {
@@ -1720,15 +1720,15 @@ export function injectAdminStyles(): void {
       display: block;
       margin-bottom: 0.25rem;
       font-size: 0.875rem;
-      color: rgba(255,255,255,0.7);
+      color: color-mix(in srgb, var(--color-white) 70%, transparent);
     }
 
     .admin-form-group input,
     .admin-form-group textarea {
       width: 100%;
       padding: 0.5rem;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-white) 20%, transparent);
       border-radius: 4px;
       color: var(--color-text-primary);
       font-size: 1rem;
@@ -1781,7 +1781,7 @@ export function injectAdminStyles(): void {
     .admin-spinner {
       width: 40px;
       height: 40px;
-      border: 3px solid rgba(255,255,255,0.2);
+      border: 3px solid color-mix(in srgb, var(--color-white) 20%, transparent);
       border-top-color: var(--color-text-primary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
@@ -1802,7 +1802,7 @@ export function injectAdminStyles(): void {
 
     /* TTS Monitoring Section */
     .admin-tts-monitoring {
-      background: linear-gradient(135deg, rgba(58, 107, 115, 0.1), rgba(74, 103, 65, 0.05));
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-peter) 10%, transparent), color-mix(in srgb, var(--color-ferni) 5%, transparent));
       padding: 1.5rem;
       border-radius: 12px;
       border: 1px solid rgba(59, 130, 246, 0.2);
@@ -1819,7 +1819,7 @@ export function injectAdminStyles(): void {
     .admin-tts-loading {
       text-align: center;
       padding: 2rem;
-      color: rgba(255,255,255,0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
     }
 
     .admin-tts-error {
@@ -1844,8 +1844,8 @@ export function injectAdminStyles(): void {
     }
 
     .admin-tts-stat-card {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
       border-radius: 8px;
       padding: 1rem;
       text-align: center;
@@ -1859,7 +1859,7 @@ export function injectAdminStyles(): void {
 
     .admin-tts-stat-label {
       font-size: 0.75rem;
-      color: rgba(255,255,255,0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
       text-transform: uppercase;
       letter-spacing: 0.05em;
       margin-top: 0.25rem;
@@ -1868,14 +1868,14 @@ export function injectAdminStyles(): void {
     .admin-tts-patterns {
       margin-top: 1rem;
       padding: 1rem;
-      background: rgba(255,255,255,0.02);
+      background: color-mix(in srgb, var(--color-white) 2%, transparent);
       border-radius: 8px;
     }
 
     .admin-tts-patterns h4 {
       margin: 0 0 0.5rem;
       font-size: 0.875rem;
-      color: rgba(255,255,255,0.7);
+      color: color-mix(in srgb, var(--color-white) 70%, transparent);
     }
 
     .admin-tts-pattern-list {
@@ -1889,7 +1889,7 @@ export function injectAdminStyles(): void {
       justify-content: space-between;
       align-items: center;
       padding: 0.5rem 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid color-mix(in srgb, var(--color-white) 5%, transparent);
     }
 
     .admin-tts-pattern-list li:last-child {
@@ -1897,7 +1897,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-tts-pattern-list code {
-      background: rgba(0,0,0,0.3);
+      background: color-mix(in srgb, var(--color-black) 30%, transparent);
       padding: 0.125rem 0.375rem;
       border-radius: 4px;
       font-size: 0.8rem;
@@ -1905,7 +1905,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-tts-pattern-list .count {
-      color: rgba(255,255,255,0.4);
+      color: color-mix(in srgb, var(--color-white) 40%, transparent);
       font-size: 0.75rem;
     }
 
@@ -1931,11 +1931,11 @@ export function injectAdminStyles(): void {
 
     .admin-tts-issue-info .time {
       font-size: 0.75rem;
-      color: rgba(255,255,255,0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
     }
 
     .admin-tts-issue-info .preview {
-      background: rgba(0,0,0,0.3);
+      background: color-mix(in srgb, var(--color-black) 30%, transparent);
       padding: 0.5rem;
       border-radius: 4px;
       font-size: 0.8rem;
@@ -1960,10 +1960,10 @@ export function injectAdminStyles(): void {
 
     /* Avatar Soul Lab */
     .admin-soul-lab {
-      background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(154, 123, 90, 0.05));
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 10%, transparent), color-mix(in srgb, var(--color-jack) 5%, transparent));
       padding: 1.5rem;
       border-radius: 12px;
-      border: 1px solid rgba(74, 103, 65, 0.2);
+      border: 1px solid color-mix(in srgb, var(--color-ferni) 20%, transparent);
     }
 
     .admin-soul-lab h2 {
@@ -1976,7 +1976,7 @@ export function injectAdminStyles(): void {
       align-items: center;
       gap: 2rem;
       padding: 1.5rem;
-      background: rgba(0, 0, 0, 0.2);
+      background: color-mix(in srgb, var(--color-black) 20%, transparent);
       border-radius: 12px;
       margin-bottom: 1.5rem;
     }
@@ -2021,7 +2021,7 @@ export function injectAdminStyles(): void {
       position: absolute;
       inset: 0;
       border-radius: 50%;
-      background: radial-gradient(circle, transparent 30%, rgba(154, 123, 90, 0.2) 50%, transparent 70%);
+      background: radial-gradient(circle, transparent 30%, color-mix(in srgb, var(--color-jack) 20%, transparent) 50%, transparent 70%);
       animation: comfortPulsePreview 2.5s ease-out infinite;
     }
 
@@ -2040,20 +2040,20 @@ export function injectAdminStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 30px rgba(74, 103, 65, 0.4);
+      box-shadow: 0 0 30px color-mix(in srgb, var(--color-ferni) 40%, transparent);
       transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.5s ease;
       z-index: var(--z-docked);
     }
 
     .admin-soul-preview-avatar.protective {
       transform: scale(1.08);
-      box-shadow: 0 0 40px rgba(154, 123, 90, 0.6);
+      box-shadow: 0 0 40px color-mix(in srgb, var(--color-jack) 60%, transparent);
     }
 
     .admin-soul-preview-initial {
       font-size: 1.75rem;
       font-weight: bold;
-      color: white;
+      color: var(--color-white);
       z-index: var(--z-docked);
     }
 
@@ -2065,7 +2065,7 @@ export function injectAdminStyles(): void {
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), transparent);
+      background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--color-white) 30%, transparent), transparent);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2090,7 +2090,7 @@ export function injectAdminStyles(): void {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,255,0.8), transparent);
+      background: radial-gradient(circle, color-mix(in srgb, var(--color-white) 80%, transparent), transparent);
       top: 20%;
       left: 20%;
       animation: shimmerOrbitPreview 3s linear infinite;
@@ -2139,7 +2139,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-soul-preview-status .status-label {
-      color: rgba(255,255,255,0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
       min-width: 60px;
     }
 
@@ -2156,8 +2156,8 @@ export function injectAdminStyles(): void {
     }
 
     .admin-soul-card {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
       border-radius: 8px;
       padding: 1rem;
     }
@@ -2171,7 +2171,7 @@ export function injectAdminStyles(): void {
     .admin-soul-card p {
       margin: 0 0 0.75rem;
       font-size: 0.8rem;
-      color: rgba(255,255,255,0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
     }
 
     .admin-soul-card--wide {
@@ -2198,14 +2198,14 @@ export function injectAdminStyles(): void {
 
     .admin-soul-slider label {
       font-size: 0.85rem;
-      color: rgba(255,255,255,0.7);
+      color: color-mix(in srgb, var(--color-white) 70%, transparent);
     }
 
     .admin-soul-slider input[type="range"] {
       width: 100%;
       height: 6px;
       border-radius: 3px;
-      background: rgba(255,255,255,0.1);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
       appearance: none;
       cursor: pointer;
     }

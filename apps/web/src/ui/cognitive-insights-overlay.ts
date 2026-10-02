@@ -70,12 +70,12 @@ const STYLES = `
     z-index: var(--z-notification);
     max-width: min(320px, 100%);
     padding: var(--ma-pause, 13px) var(--ma-rest, 21px);
-    background: var(--color-bg-elevated, #FFFDFB);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    background: var(--color-bg-elevated, var(--color-white));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg, 1rem);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
     font-family: var(--font-body, 'Inter', sans-serif);
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     opacity: 0;
     transform: translateX(20px);
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -118,7 +118,7 @@ const STYLES = `
   .insight-icon {
     width: 20px;
     height: 20px;
-    stroke: var(--persona-primary, #4a6741);
+    stroke: var(--persona-primary, var(--color-ferni));
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
@@ -150,11 +150,11 @@ const STYLES = `
   /* Dark Theme - WCAG AA Compliant */
   [data-theme="midnight"] .insight-label,
   [data-theme="midnight"] .insight-detail {
-    color: var(--color-text-muted, #e8e2da);
+    color: var(--color-text-muted);
   }
   
   [data-theme="midnight"] .insight-message {
-    color: var(--color-text-primary, #faf6f0);
+    color: var(--color-text-primary);
   }
   
   .insight-progress {
@@ -163,14 +163,14 @@ const STYLES = `
     left: 0;
     right: 0;
     height: 2px;
-    background: var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+    background: var(--color-border-subtle);
     border-radius: 0 0 var(--radius-lg, 1rem) var(--radius-lg, 1rem);
     overflow: hidden;
   }
   
   .insight-progress-bar {
     height: 100%;
-    background: var(--persona-primary, #4a6741);
+    background: var(--persona-primary, var(--color-ferni));
     transform-origin: left;
     animation: insightProgress var(--insight-duration, 4000ms) linear forwards;
   }

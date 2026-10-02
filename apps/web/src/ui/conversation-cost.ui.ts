@@ -69,11 +69,11 @@ function injectStyles(): void {
       left: 50%;
       transform: translateX(-50%) translateY(20px) scale(0.95);
       opacity: 0;
-      background: var(--color-bg-elevated, #FFFDFB);
+      background: var(--color-bg-elevated, var(--color-white));
       border-radius: var(--radius-xl, 16px);
       padding: var(--space-md, 16px) var(--space-lg, 24px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
+      border: 1px solid var(--color-border-subtle);
       z-index: var(--z-notification, 3000);
       max-width: min(320px, 100%);
       text-align: center;
@@ -95,7 +95,7 @@ function injectStyles(): void {
       font-size: 0.65rem;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--color-text-muted, #ccc);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-xs, 4px);
     }
 
@@ -109,7 +109,7 @@ function injectStyles(): void {
 
     .ferni-cost-message {
       font-size: 0.85rem;
-      color: var(--color-text-secondary, #e8e2da);
+      color: var(--color-text-secondary);
       margin-bottom: var(--space-sm, 8px);
       line-height: 1.4;
     }
@@ -117,7 +117,7 @@ function injectStyles(): void {
     .ferni-cost-cta {
       font-size: 0.9rem;
       font-weight: 600;
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-sm, 8px);
     }
 
@@ -135,7 +135,7 @@ function injectStyles(): void {
       gap: 4px;
       padding: var(--space-xs, 4px) var(--space-sm, 8px);
       border-radius: var(--radius-full, 999px);
-      border: 1px solid var(--persona-primary, #4a6741);
+      border: 1px solid var(--persona-primary, var(--color-ferni));
       background: transparent;
       color: var(--persona-ink);
       font-size: 0.75rem;
@@ -151,8 +151,8 @@ function injectStyles(): void {
     }
 
     .ferni-tip-btn:hover {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .ferni-tip-btn:focus-visible {
@@ -161,8 +161,8 @@ function injectStyles(): void {
     }
 
     .ferni-tip-btn.primary {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .ferni-cost-dismiss {
@@ -171,7 +171,7 @@ function injectStyles(): void {
       justify-content: center;
       gap: 4px;
       font-size: 0.7rem;
-      color: var(--color-text-muted, #999);
+      color: var(--color-text-muted);
       cursor: pointer;
       transition: color ${DURATION.FAST}ms;
     }
@@ -207,7 +207,7 @@ const ICON_FLOWER = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="
 const ICON_TREE = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 10v.2A3 3 0 0 1 8.9 16v0H5v0h0a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0Z"/><path d="M7 16v6"/><path d="M13 19v3"/><path d="M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.7L13 3l-1.4 1.5"/></svg>`;
 
 /** Heart icon - for dismiss text */
-const ICON_HEART = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="var(--color-ferni, #4a6741)" stroke="var(--color-ferni, #4a6741)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`;
+const ICON_HEART = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="var(--color-ferni)" stroke="var(--color-ferni)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`;
 
 /**
  * Get a friendly label for tip tier (plant a seed metaphor) with Lucide icons

@@ -81,9 +81,9 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-3, 12px);
       padding: var(--space-3, 12px) var(--space-4, 16px);
-      background: var(--color-background-elevated, rgba(255, 253, 251, 0.95));
+      background: var(--color-background-elevated);
       border-radius: var(--radius-xl, 16px);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border: 1px solid var(--color-border-subtle);
     }
 
     .seeds-balance {
@@ -101,13 +101,13 @@ function injectStyles(): void {
     .seeds-balance-amount {
       font-size: 1.25rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       font-variant-numeric: tabular-nums;
     }
 
     .seeds-balance-label {
       font-size: 0.75rem;
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.6));
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -117,7 +117,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding-left: var(--space-3, 12px);
-      border-left: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-left: 1px solid var(--color-border-subtle);
     }
 
     .seeds-streak-icon {
@@ -129,12 +129,12 @@ function injectStyles(): void {
     .seeds-streak-count {
       font-size: 1rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .seeds-streak-label {
       font-size: 0.75rem;
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.6));
+      color: var(--color-text-muted);
     }
 
     .seeds-daily-bonus {
@@ -142,14 +142,14 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
       border-radius: var(--radius-lg, 12px);
       cursor: pointer;
       transition: background ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
 
     .seeds-daily-bonus:hover {
-      background: var(--persona-glow, rgba(74, 103, 65, 0.15));
+      background: var(--persona-glow, color-mix(in srgb, var(--color-ferni) 15%, transparent));
     }
 
     .seeds-daily-bonus-icon {
@@ -195,7 +195,7 @@ function injectStyles(): void {
       flex-direction: column;
       gap: var(--space-3, 12px);
       padding: var(--space-4, 16px);
-      background: var(--color-background-secondary, #f8f6f3);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-xl, 16px);
       margin: var(--space-4, 16px);
     }
@@ -209,7 +209,7 @@ function injectStyles(): void {
     .seeds-settings-title {
       font-size: 0.75rem;
       font-weight: 600;
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.6));
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -234,12 +234,12 @@ function injectStyles(): void {
     .seeds-settings-value-text {
       font-size: 1.125rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .seeds-settings-info {
       font-size: 0.8125rem;
-      color: var(--color-text-secondary, rgba(44, 37, 32, 0.7));
+      color: var(--color-text-secondary);
     }
 
     .seeds-progress {
@@ -250,21 +250,21 @@ function injectStyles(): void {
 
     .seeds-progress-bar {
       height: 6px;
-      background: var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-border-subtle);
       border-radius: 3px;
       overflow: hidden;
     }
 
     .seeds-progress-fill {
       height: 100%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: 3px;
       transition: width ${DURATION.SLOW}ms ${EASING.GENTLE};
     }
 
     .seeds-progress-text {
       font-size: 0.75rem;
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.6));
+      color: var(--color-text-muted);
     }
 
     /* Action buttons */
@@ -273,7 +273,7 @@ function injectStyles(): void {
       gap: var(--space-2, 8px);
       margin-top: var(--space-2, 8px);
       padding-top: var(--space-3, 12px);
-      border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-top: 1px solid var(--color-border-subtle);
     }
 
     .seeds-action-btn {
@@ -283,19 +283,19 @@ function injectStyles(): void {
       justify-content: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 3%, transparent));
       border: none;
       border-radius: var(--radius-lg, 12px);
       font-size: 0.8125rem;
       font-weight: 500;
-      color: var(--color-text-secondary, rgba(44, 37, 32, 0.7));
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
 
     .seeds-action-btn:hover {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 6%, transparent));
+      color: var(--color-text-primary);
     }
 
     .seeds-action-btn svg {
@@ -304,12 +304,12 @@ function injectStyles(): void {
     }
 
     .seeds-action-btn--primary {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
       color: var(--persona-ink);
     }
 
     .seeds-action-btn--primary:hover {
-      background: var(--persona-glow, rgba(74, 103, 65, 0.15));
+      background: var(--persona-glow, color-mix(in srgb, var(--color-ferni) 15%, transparent));
     }
 
     /* Persona primary is too dark to read on the midnight theme; use the

@@ -147,10 +147,10 @@ function injectStyles(): void {
       width: 94%;
       max-width: clamp(336px, 90vw, 480px);
       max-height: 85vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -190,7 +190,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
       line-height: 1.2;
     }
@@ -205,14 +205,14 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
 
     .id-close:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     /* =========================================================================
@@ -234,7 +234,7 @@ function injectStyles(): void {
       align-items: flex-start;
       gap: var(--space-3, 0.75rem);
       padding: var(--space-3, 0.75rem);
-      background: var(--color-bg-secondary, rgba(250, 248, 245, 0.5));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 50%, transparent));
       border-radius: var(--radius-lg, 1rem);
       margin-bottom: var(--space-2, 0.5rem);
     }
@@ -243,7 +243,7 @@ function injectStyles(): void {
       width: 40px;
       height: 40px;
       border-radius: var(--radius-lg, 1rem);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       color: var(--persona-ink);
       display: flex;
       align-items: center;
@@ -264,12 +264,12 @@ function injectStyles(): void {
     .id-date-label {
       font-weight: 600;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .id-date-meta {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       display: flex;
       align-items: center;
       gap: var(--space-2, 0.5rem);
@@ -296,13 +296,13 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: all ${DURATION.FAST}ms;
     }
 
     .id-date-action:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .id-date-action.delete:hover {
@@ -316,8 +316,8 @@ function injectStyles(): void {
     
     .id-form {
       padding: var(--space-4, 1rem);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.04));
-      border: 1px solid var(--persona-primary, #4a6741);
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 4%, transparent));
+      border: 1px solid var(--persona-primary, var(--color-ferni));
       border-radius: var(--radius-lg, 1rem);
       margin-bottom: var(--space-3, 0.75rem);
     }
@@ -342,7 +342,7 @@ function injectStyles(): void {
     .id-form-label {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-1, 0.25rem);
       display: block;
     }
@@ -353,13 +353,13 @@ function injectStyles(): void {
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
       border-radius: var(--radius-md, 0.5rem);
       font-size: var(--text-sm, 0.875rem);
-      background: var(--color-background-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
       outline: none;
     }
 
     .id-form-input:focus {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
     }
 
     .id-form-select {
@@ -368,8 +368,8 @@ function injectStyles(): void {
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
       border-radius: var(--radius-md, 0.5rem);
       font-size: var(--text-sm, 0.875rem);
-      background: var(--color-background-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
       outline: none;
       cursor: pointer;
     }
@@ -379,14 +379,14 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 0.5rem);
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       cursor: pointer;
     }
 
     .id-form-checkbox input {
       width: 16px;
       height: 16px;
-      accent-color: var(--persona-primary, #4a6741);
+      accent-color: var(--persona-primary, var(--color-ferni));
     }
 
     .id-form-actions {
@@ -408,17 +408,17 @@ function injectStyles(): void {
     .id-form-btn-cancel {
       background: transparent;
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.15));
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .id-form-btn-save {
-      background: var(--persona-primary, #4a6741);
-      border: 1px solid var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      border: 1px solid var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .id-form-btn-save:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
     }
 
     /* =========================================================================
@@ -435,7 +435,7 @@ function injectStyles(): void {
       border: 2px dashed var(--color-border, rgba(44, 37, 32, 0.15));
       border-radius: var(--radius-lg, 1rem);
       background: transparent;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
       cursor: pointer;
@@ -443,9 +443,9 @@ function injectStyles(): void {
     }
 
     .id-add-btn:hover {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       color: var(--persona-ink);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.03));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 3%, transparent));
     }
 
     .id-add-btn svg {
@@ -460,7 +460,7 @@ function injectStyles(): void {
     .id-empty {
       text-align: center;
       padding: var(--space-8, 2rem) var(--space-4, 1rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .id-empty-icon {
@@ -490,15 +490,15 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      background: var(--persona-primary, #4a6741);
-      border: 1px solid var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      border: 1px solid var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .id-footer-btn:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
     }
 
     .id-footer-btn:disabled {

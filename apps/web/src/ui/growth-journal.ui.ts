@@ -370,7 +370,7 @@ function injectStyles(): void {
       align-items: flex-start;
       justify-content: space-between;
       padding: var(--space-lg, 26px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
       flex-shrink: 0;
     }
 
@@ -378,13 +378,13 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-lg, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #F5F1E8);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
     .growth-journal-subtitle {
       font-size: var(--font-size-sm, 0.875rem);
-      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
+      color: var(--color-text-muted);
       margin: var(--space-2xs, 2px) 0 0;
     }
 
@@ -397,7 +397,7 @@ function injectStyles(): void {
       background: transparent;
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
+      color: var(--color-text-muted);
       font-size: 24px;
       cursor: pointer;
       flex-shrink: 0;
@@ -405,12 +405,12 @@ function injectStyles(): void {
     }
 
     .growth-journal-close:hover {
-      color: var(--color-text-primary, #F5F1E8);
+      color: var(--color-text-primary);
       background: var(--color-bg-elevated, rgba(245, 241, 232, 0.1));
     }
 
     .growth-journal-close:focus-visible {
-      outline: 2px solid var(--color-accent-primary, #4a6741);
+      outline: 2px solid var(--color-accent-primary);
       outline-offset: 2px;
     }
 
@@ -432,7 +432,7 @@ function injectStyles(): void {
       justify-content: center;
       text-align: center;
       padding: var(--space-xl, 42px);
-      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
+      color: var(--color-text-muted);
     }
 
     .growth-journal-empty-icon {
@@ -451,7 +451,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-md, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #F5F1E8);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-sm, 8px);
     }
 
@@ -464,7 +464,7 @@ function injectStyles(): void {
     /* Entry cards */
     .growth-journal-entry {
       background: var(--entry-bg, transparent);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-lg, 16px);
       padding: var(--space-md, 16px);
       transition: transform ${DURATION.FAST}ms, box-shadow ${DURATION.FAST}ms;
@@ -495,20 +495,20 @@ function injectStyles(): void {
 
     .growth-journal-entry-date {
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
+      color: var(--color-text-muted);
     }
 
     .growth-journal-entry-title {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-md, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #F5F1E8);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-xs, 4px);
     }
 
     .growth-journal-entry-content {
       font-size: var(--font-size-sm, 0.875rem);
-      color: var(--color-text-secondary, rgba(245, 241, 232, 0.8));
+      color: var(--color-text-secondary);
       line-height: 1.5;
       margin: 0;
     }
@@ -525,7 +525,7 @@ function injectStyles(): void {
       background: var(--color-bg-elevated, rgba(245, 241, 232, 0.08));
       border-radius: var(--radius-sm, 4px);
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
+      color: var(--color-text-muted);
     }
 
     /* Mobile responsive */

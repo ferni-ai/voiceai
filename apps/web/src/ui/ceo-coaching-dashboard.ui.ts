@@ -746,7 +746,7 @@ class CEOCoachingDashboardUI {
         max-height: 90vh;
         overflow-y: auto;
         background: var(--color-background-elevated);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 1.5rem);
         box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
       }
@@ -759,7 +759,7 @@ class CEOCoachingDashboardUI {
         align-items: center;
         justify-content: space-between;
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .ceo-dashboard__title {
@@ -951,7 +951,7 @@ class CEOCoachingDashboardUI {
         align-items: center;
         gap: var(--space-2, 8px);
         padding: var(--space-2, 8px) 0;
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .ceo-dashboard__win-item:last-child {
@@ -1031,7 +1031,7 @@ class CEOCoachingDashboardUI {
         align-items: center;
         gap: var(--space-2, 8px);
         padding: var(--space-2, 8px) 0;
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .ceo-dashboard__priority-item:last-child {
@@ -1071,7 +1071,7 @@ class CEOCoachingDashboardUI {
         align-items: flex-start;
         gap: var(--space-2, 8px);
         padding: var(--space-2, 8px) 0;
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .ceo-dashboard__gratitude-item:last-child {
@@ -1116,7 +1116,7 @@ class CEOCoachingDashboardUI {
          ======================================================================== */
       .ceo-dashboard__insights {
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       .ceo-dashboard__insights h3 {
@@ -1138,7 +1138,7 @@ class CEOCoachingDashboardUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         color: var(--color-text-secondary);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .ceo-dashboard__insights-list li:last-child {
@@ -1172,7 +1172,7 @@ class CEOCoachingDashboardUI {
       .ceo-dashboard__loading-spinner {
         width: 32px;
         height: 32px;
-        border: 3px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+        border: 3px solid var(--color-border-subtle);
         border-top-color: var(--color-accent-primary);
         border-radius: 50%;
         animation: ceo-spin 0.8s linear infinite;

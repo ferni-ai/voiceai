@@ -668,7 +668,7 @@ function renderStyles(): string {
 
       .worker-btn--danger:hover {
         background: var(--color-error, #ef4444);
-        color: white;
+        color: var(--color-white);
       }
 
       /* Summary */

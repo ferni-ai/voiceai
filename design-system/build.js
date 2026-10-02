@@ -5305,11 +5305,18 @@ function build() {
   // Base colors: pure white/black for overlays, scrims and shadows
   if (colors.base) {
     output.push('/* ========================================');
-    output.push('   BASE COLORS (mix with color-mix() for translucency)');
+    output.push('   BASE COLORS + PERSONA FILLS (mix with color-mix() for translucency)');
     output.push('   ======================================== */');
     output.push(':root {');
     for (const [key, value] of Object.entries(colors.base)) {
       if (!key.startsWith('_')) output.push(`  --color-${key}: ${value};`);
+    }
+    // Persona fills, the same in every theme (text uses --color-{id}-ink)
+    for (const [personaId, persona] of Object.entries(colors.personas)) {
+      if (personaId.startsWith('_') || !persona.primary) continue;
+      const id = personaId.split('-')[0];
+      output.push(`  --color-${id}: ${persona.primary};`);
+      if (persona.secondary) output.push(`  --color-${id}-secondary: ${persona.secondary};`);
     }
     output.push('}');
     output.push('');

@@ -680,15 +680,15 @@ export function injectActionsTakenStyles(): void {
   style.id = 'viz-actions-taken-styles';
   style.textContent = `
     .viz-actions-taken {
-      --viz-bg-secondary: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
-      --viz-bg-tertiary: var(--color-bg-tertiary, rgba(0, 0, 0, 0.05));
-      --viz-border-subtle: var(--color-border-subtle, rgba(0, 0, 0, 0.08));
-      --viz-border-medium: var(--color-border-medium, rgba(0, 0, 0, 0.15));
-      --viz-text-primary: var(--color-text-primary, #2C2520);
-      --viz-text-secondary: var(--color-text-secondary, #5a5248);
-      --viz-text-muted: var(--color-text-muted, #9a8f85);
+      --viz-bg-secondary: var(--color-bg-secondary, color-mix(in srgb, var(--color-black) 3%, transparent));
+      --viz-bg-tertiary: var(--color-bg-tertiary, color-mix(in srgb, var(--color-black) 5%, transparent));
+      --viz-border-subtle: var(--color-border-subtle);
+      --viz-border-medium: var(--color-border-medium);
+      --viz-text-primary: var(--color-text-primary);
+      --viz-text-secondary: var(--color-text-secondary);
+      --viz-text-muted: var(--color-text-muted);
       --viz-accent: var(--color-accent, #3D5A45);
-      --viz-text-on-accent: var(--color-text-on-accent, #FFFFFF);
+      --viz-text-on-accent: var(--color-text-on-accent);
     }
 
     .viz-care-card {
@@ -704,13 +704,13 @@ export function injectActionsTakenStyles(): void {
 
     @media (prefers-color-scheme: dark) {
       .viz-actions-taken {
-        --viz-bg-secondary: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
-        --viz-bg-tertiary: var(--color-bg-tertiary, rgba(255, 255, 255, 0.08));
-        --viz-border-subtle: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-        --viz-border-medium: var(--color-border-medium, rgba(255, 255, 255, 0.2));
-        --viz-text-primary: var(--color-text-primary, #faf6f0);
-        --viz-text-secondary: var(--color-text-secondary, #e8e2da);
-        --viz-text-muted: var(--color-text-muted, #b0a89e);
+        --viz-bg-secondary: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 5%, transparent));
+        --viz-bg-tertiary: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 8%, transparent));
+        --viz-border-subtle: var(--color-border-subtle);
+        --viz-border-medium: var(--color-border-medium);
+        --viz-text-primary: var(--color-text-primary);
+        --viz-text-secondary: var(--color-text-secondary);
+        --viz-text-muted: var(--color-text-muted);
       }
     }
   `;

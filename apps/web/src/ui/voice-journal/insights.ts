@@ -115,18 +115,18 @@ function renderMoodTrendChart(entries: CustomAgentMemory[]): string {
  */
 function getMoodColor(mood: string): string {
   const colorMap: Record<string, string> = {
-    happy: 'var(--color-semantic-success, #4a6741)',
-    excited: 'var(--color-semantic-success, #4a6741)',
-    grateful: 'var(--color-semantic-success, #4a6741)',
+    happy: 'var(--color-semantic-success)',
+    excited: 'var(--color-semantic-success)',
+    grateful: 'var(--color-semantic-success)',
     calm: 'var(--color-accent, #4a6741)',
     hopeful: 'var(--color-accent, #4a6741)',
-    neutral: 'var(--color-text-muted, #888)',
-    reflective: 'var(--color-text-muted, #888)',
-    tired: 'var(--color-semantic-warning, #c4856a)',
-    anxious: 'var(--color-semantic-error, #dc2626)',
-    sad: 'var(--color-semantic-error, #dc2626)',
-    angry: 'var(--color-semantic-error, #dc2626)',
-    overwhelmed: 'var(--color-semantic-error, #dc2626)',
+    neutral: 'var(--color-text-muted)',
+    reflective: 'var(--color-text-muted)',
+    tired: 'var(--color-semantic-warning)',
+    anxious: 'var(--color-semantic-error)',
+    sad: 'var(--color-semantic-error)',
+    angry: 'var(--color-semantic-error)',
+    overwhelmed: 'var(--color-semantic-error)',
   };
   return colorMap[mood] || 'var(--color-accent, #4a6741)';
 }
@@ -136,9 +136,9 @@ function getMoodColor(mood: string): string {
  */
 function renderMoodLegend(): string {
   const categories = [
-    { label: 'Positive', color: 'var(--color-semantic-success, #4a6741)' },
-    { label: 'Neutral', color: 'var(--color-text-muted, #888)' },
-    { label: 'Challenging', color: 'var(--color-semantic-error, #dc2626)' },
+    { label: 'Positive', color: 'var(--color-semantic-success)' },
+    { label: 'Neutral', color: 'var(--color-text-muted)' },
+    { label: 'Challenging', color: 'var(--color-semantic-error)' },
   ];
   
   return categories.map((cat) => `

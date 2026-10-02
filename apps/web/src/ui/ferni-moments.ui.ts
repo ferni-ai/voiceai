@@ -190,14 +190,14 @@ const MOMENTS: Record<MomentType, MomentConfig> = {
     animation: 'bounce',
     count: 1,
     avatarReaction: 'bounce',
-    color: 'var(--color-semantic-warning, #b8956a)',
+    color: 'var(--color-semantic-warning)',
   },
   hearts: {
     icon: 'heart',
     duration: 2500,
     animation: 'float',
     count: 3,
-    color: 'var(--color-semantic-error, #a67a6a)',
+    color: 'var(--color-semantic-error)',
   },
   thinking: {
     icon: 'thinking',
@@ -214,7 +214,7 @@ const MOMENTS: Record<MomentType, MomentConfig> = {
     duration: 3000,
     animation: 'fade',
     count: 1,
-    color: 'var(--color-text-secondary, #9a7b5a)',
+    color: 'var(--color-text-secondary)',
   },
   sunshine: {
     icon: 'sun',
@@ -222,21 +222,21 @@ const MOMENTS: Record<MomentType, MomentConfig> = {
     animation: 'pulse',
     count: 1,
     avatarReaction: 'glow',
-    color: 'var(--color-semantic-warning, #c4856a)',
+    color: 'var(--color-semantic-warning)',
   },
   cozy: {
     icon: 'flame',
     duration: 3000,
     animation: 'fade',
     avatarReaction: 'glow',
-    color: 'var(--color-semantic-warning, #c4856a)',
+    color: 'var(--color-semantic-warning)',
   },
   moonlight: {
     icon: 'moon',
     duration: 2500,
     animation: 'fade',
     count: 1,
-    color: 'var(--color-text-muted, #5a6b8a)',
+    color: 'var(--color-text-muted)',
   },
   sleepy: {
     icon: 'cloudMoon',
@@ -244,7 +244,7 @@ const MOMENTS: Record<MomentType, MomentConfig> = {
     animation: 'float',
     count: 1,
     avatarReaction: 'nod',
-    color: 'var(--color-text-muted, #5a6b8a)',
+    color: 'var(--color-text-muted)',
   },
 
   // === CONTEXTUAL ===
@@ -261,7 +261,7 @@ const MOMENTS: Record<MomentType, MomentConfig> = {
     duration: 2000,
     animation: 'spin',
     count: 4,
-    color: 'var(--color-semantic-warning, #b8956a)',
+    color: 'var(--color-semantic-warning)',
   },
   books: {
     icon: 'bookOpen',
@@ -323,7 +323,7 @@ const MOMENTS: Record<MomentType, MomentConfig> = {
     animation: 'bounce',
     count: 1,
     avatarReaction: 'bounce',
-    color: 'var(--color-semantic-warning, #c4856a)',
+    color: 'var(--color-semantic-warning)',
   },
   streakFire: {
     icon: 'flame',
@@ -331,7 +331,7 @@ const MOMENTS: Record<MomentType, MomentConfig> = {
     animation: 'pulse',
     count: 3,
     avatarReaction: 'glow',
-    color: 'var(--color-semantic-warning, #c4856a)',
+    color: 'var(--color-semantic-warning)',
   },
   trophy: {
     icon: 'trophy',
@@ -339,7 +339,7 @@ const MOMENTS: Record<MomentType, MomentConfig> = {
     animation: 'bounce',
     count: 1,
     avatarReaction: 'bounce',
-    color: 'var(--color-semantic-warning, #b8956a)',
+    color: 'var(--color-semantic-warning)',
   },
   levelUp: {
     icon: 'trendingUp',
@@ -379,7 +379,7 @@ const MOMENTS: Record<MomentType, MomentConfig> = {
     animation: 'shake',
     count: 1,
     avatarReaction: 'shake',
-    color: 'var(--color-text-muted, #5a6b8a)',
+    color: 'var(--color-text-muted)',
   },
   fan: {
     icon: 'wind',
@@ -387,7 +387,7 @@ const MOMENTS: Record<MomentType, MomentConfig> = {
     animation: 'shake',
     count: 1,
     avatarReaction: 'pulse',
-    color: 'var(--color-semantic-warning, #c4856a)',
+    color: 'var(--color-semantic-warning)',
   },
 };
 

@@ -452,8 +452,8 @@ class CalendarSelectionUI {
         max-width: clamp(294px, 90vw, 420px);
         max-height: 80vh;
         overflow-y: auto;
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        background: var(--color-background-elevated);
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 1.5rem);
         box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
         transform: ${prefersReducedMotion() ? 'none' : 'scale(0.95)'};
@@ -469,10 +469,10 @@ class CalendarSelectionUI {
         align-items: center;
         gap: var(--space-3, 12px);
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
         position: sticky;
         top: 0;
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         z-index: var(--z-docked);
       }
 
@@ -485,13 +485,13 @@ class CalendarSelectionUI {
         padding: 0;
         background: transparent;
         border: none;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .calendar-selection__back:hover {
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .calendar-selection__back svg {
@@ -512,7 +512,7 @@ class CalendarSelectionUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-lg, 1.125rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
@@ -523,17 +523,17 @@ class CalendarSelectionUI {
         width: 32px;
         height: 32px;
         padding: 0;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border: none;
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .calendar-selection__close:hover {
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
       }
 
       .calendar-selection__close svg {
@@ -555,8 +555,8 @@ class CalendarSelectionUI {
       .calendar-selection__spinner {
         width: 32px;
         height: 32px;
-        border: 3px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
-        border-top-color: var(--color-accent-primary, #2d5a3d);
+        border: 3px solid var(--color-border-subtle);
+        border-top-color: var(--color-accent-primary);
         border-radius: 50%;
         animation: selection-spin 0.8s linear infinite;
         margin-bottom: var(--ma-breath, 13px);
@@ -569,21 +569,21 @@ class CalendarSelectionUI {
       .calendar-selection__loading p {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0;
       }
 
       .calendar-selection__description {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0 0 var(--ma-breath, 13px) 0;
         line-height: 1.5;
       }
 
       .calendar-selection__select-all {
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-md, 8px);
         margin-bottom: var(--space-3, 12px);
       }
@@ -595,7 +595,7 @@ class CalendarSelectionUI {
         cursor: pointer;
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .calendar-selection__checkbox-label input[type="checkbox"] {
@@ -611,8 +611,8 @@ class CalendarSelectionUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-background-elevated, #fffdfb);
-        border: 2px solid var(--color-border-subtle, rgba(44, 37, 32, 0.2));
+        background: var(--color-background-elevated);
+        border: 2px solid var(--color-border-subtle);
         border-radius: var(--radius-sm, 4px);
         color: transparent;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -624,13 +624,13 @@ class CalendarSelectionUI {
       }
 
       .calendar-selection__checkbox-label input:checked + .calendar-selection__checkmark {
-        background: var(--color-accent-primary, #2d5a3d);
-        border-color: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
+        border-color: var(--color-accent-primary);
         color: var(--color-text-on-accent);
       }
 
       .calendar-selection__checkbox-label input:focus-visible + .calendar-selection__checkmark {
-        outline: 2px solid var(--color-accent-primary, #2d5a3d);
+        outline: 2px solid var(--color-accent-primary);
         outline-offset: 2px;
       }
 
@@ -646,14 +646,14 @@ class CalendarSelectionUI {
         align-items: center;
         gap: var(--space-3, 12px);
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-md, 8px);
         cursor: pointer;
         transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .calendar-selection__item:hover {
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
       }
 
       .calendar-selection__item input[type="checkbox"] {
@@ -667,7 +667,7 @@ class CalendarSelectionUI {
         width: 12px;
         height: 12px;
         border-radius: var(--radius-full, 9999px);
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         flex-shrink: 0;
       }
 
@@ -675,7 +675,7 @@ class CalendarSelectionUI {
         flex: 1;
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .calendar-selection__primary-badge {
@@ -683,7 +683,7 @@ class CalendarSelectionUI {
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
         padding: 2px 8px;
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
         border-radius: var(--radius-full, 9999px);
       }
@@ -718,8 +718,8 @@ class CalendarSelectionUI {
         font-size: 10px;
         font-weight: var(--font-weight-normal, 400);
         padding: 1px 6px;
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-muted, #756a5e);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-muted);
         border-radius: var(--radius-full, 9999px);
         max-width: 100px;
         overflow: hidden;
@@ -733,8 +733,8 @@ class CalendarSelectionUI {
         font-size: 10px;
         font-weight: var(--font-weight-normal, 400);
         padding: 1px 6px;
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-text-muted, #756a5e);
+        background: var(--color-background-secondary);
+        color: var(--color-text-muted);
         border-radius: var(--radius-full, 9999px);
       }
 
@@ -747,7 +747,7 @@ class CalendarSelectionUI {
         width: 48px;
         height: 48px;
         margin: 0 auto var(--ma-breath, 13px);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .calendar-selection__empty-icon svg {
@@ -759,14 +759,14 @@ class CalendarSelectionUI {
         font-family: var(--font-display);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-1, 4px) 0;
       }
 
       .calendar-selection__empty-desc {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .calendar-selection__actions {
@@ -787,7 +787,7 @@ class CalendarSelectionUI {
       }
 
       .calendar-selection__btn--primary {
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
       }
 
@@ -797,12 +797,12 @@ class CalendarSelectionUI {
 
       .calendar-selection__btn--secondary {
         background: transparent;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .calendar-selection__btn--secondary:hover {
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-text-secondary, #5c544a);
+        background: var(--color-background-secondary);
+        color: var(--color-text-secondary);
       }
 
       .calendar-selection__btn:disabled {
@@ -812,32 +812,32 @@ class CalendarSelectionUI {
 
       /* Dark theme */
       [data-theme="midnight"] .calendar-selection__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated);
       }
 
       [data-theme="midnight"] .calendar-selection__header {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated);
       }
 
       [data-theme="midnight"] .calendar-selection__title,
       [data-theme="midnight"] .calendar-selection__empty p,
       [data-theme="midnight"] .calendar-selection__item-name,
       [data-theme="midnight"] .calendar-selection__checkbox-label {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .calendar-selection__select-all,
       [data-theme="midnight"] .calendar-selection__item {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .calendar-selection__item:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .calendar-selection__checkmark {
-        background: var(--color-background-secondary, #60504a);
-        border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.2));
+        background: var(--color-background-secondary);
+        border-color: var(--color-border-subtle);
       }
 
       @media (max-width: clamp(336px, 90vw, 480px)) {

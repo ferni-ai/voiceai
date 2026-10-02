@@ -251,7 +251,7 @@ export class MemoryFeedbackManager {
         background: rgba(30, 30, 35, 0.75);
         backdrop-filter: blur(var(--glass-blur-medium, 16px));
         -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent);
         border-radius: 16px;
         padding: 6px 12px;
         display: flex;
@@ -286,13 +286,13 @@ export class MemoryFeedbackManager {
 
       .memory-feedback__label {
         font-size: 10px;
-        color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+        color: var(--color-text-muted);
         font-weight: 500;
       }
 
       .memory-feedback__preview {
         font-size: 11px;
-        color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+        color: var(--color-text-secondary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -310,7 +310,7 @@ export class MemoryFeedbackManager {
         border-radius: 6px;
         padding: 6px;
         cursor: pointer;
-        color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+        color: var(--color-text-muted);
         transition: 
           background ${DURATION.FAST}ms ${EASING.STANDARD},
           color ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -320,13 +320,13 @@ export class MemoryFeedbackManager {
       }
 
       .memory-feedback__btn:hover {
-        background: rgba(255, 255, 255, 0.08);
+        background: color-mix(in srgb, var(--color-white) 8%, transparent);
       }
 
       .memory-feedback__btn:focus-visible {
-        outline: 2px solid var(--color-accent-primary, #4a6741);
+        outline: 2px solid var(--color-accent-primary);
         outline-offset: 2px;
-        background: rgba(255, 255, 255, 0.08);
+        background: color-mix(in srgb, var(--color-white) 8%, transparent);
       }
 
       .memory-feedback__btn--helpful:hover,
@@ -341,7 +341,7 @@ export class MemoryFeedbackManager {
 
       .memory-feedback__btn--dismiss:hover,
       .memory-feedback__btn--dismiss:focus-visible {
-        color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+        color: var(--color-text-secondary);
       }
 
       @media (prefers-reduced-motion: reduce) {

@@ -400,7 +400,7 @@ class YourStoryUI {
     // Loading state while we fetch data
     const loading = el('div', 'your-story__care-loading');
     loading.innerHTML = `
-      <div style="text-align: center; padding: var(--viz-space-breath, 1rem); color: var(--color-text-muted, #9a8f85);">
+      <div style="text-align: center; padding: var(--viz-space-breath, 1rem); color: var(--color-text-muted);">
         <p>${t('yourStory.care.loading', 'Loading your care moments...')}</p>
       </div>
     `;
@@ -591,9 +591,9 @@ class YourStoryUI {
   private showActionsError(): void {
     const container = this.panel?.querySelector('#viz-actions-taken');
     if (!container) return;
-    container.innerHTML = `<div class="error-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn't load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>`;
+    container.innerHTML = `<div class="error-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted);">Couldn't load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>`;
     container.querySelector('button')?.addEventListener('click', () => {
-      container.innerHTML = '<div class="loading-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Loading...</div>';
+      container.innerHTML = '<div class="loading-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted);">Loading...</div>';
       void this.fetchActionsData();
     });
   }
@@ -668,9 +668,9 @@ class YourStoryUI {
         position: relative;
         width: min(95%, 52rem); /* 832px - container 5xl */
         max-height: 90vh;
-        background: var(--color-bg-elevated, #ffffff);
+        background: var(--color-bg-elevated, var(--color-white));
         border-radius: var(--radius-2xl, 1.5rem);
-        box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.15));
+        box-shadow: var(--shadow-2xl, 0 25px 50px -12px color-mix(in srgb, var(--color-black) 15%, transparent));
         overflow: hidden;
         transform: translateY(1.25rem) scale(0.96);
         opacity: 0;
@@ -721,11 +721,11 @@ class YourStoryUI {
         background: transparent;
       }
       .your-story__content::-webkit-scrollbar-thumb {
-        background: var(--color-border-subtle, #e5e2de);
+        background: var(--color-border-subtle);
         border-radius: 3px;
       }
       .your-story__content::-webkit-scrollbar-thumb:hover {
-        background: var(--color-border-medium, #d0ccc6);
+        background: var(--color-border-medium);
       }
 
       /* ========================================================================
@@ -752,7 +752,7 @@ class YourStoryUI {
         font-weight: 700;
         line-height: 1.15;
         letter-spacing: -0.015em;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
@@ -761,7 +761,7 @@ class YourStoryUI {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 0.8125rem; /* 13px - bodySmall */
         line-height: 1.5;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0.5rem 0 0;
         opacity: 0.9;
       }
@@ -778,7 +778,7 @@ class YourStoryUI {
         border: none;
         padding: 0;
         cursor: pointer;
-        color: var(--color-text-muted, #8a8279);
+        color: var(--color-text-muted);
         border-radius: var(--radius-lg, 1rem);
         transition:
           background 150ms cubic-bezier(0.4, 0, 0.2, 1),
@@ -788,7 +788,7 @@ class YourStoryUI {
 
       .your-story__close:hover {
         background: var(--color-bg-tertiary, #f5f3f0);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         transform: scale(0.98);
       }
 
@@ -851,12 +851,12 @@ class YourStoryUI {
         font-family: var(--font-body, 'Inter', sans-serif);
         
         /* visionOS glass morphism */
-        background: var(--glass-thin-background, rgba(255, 255, 255, 0.7));
+        background: var(--glass-thin-background, color-mix(in srgb, var(--color-white) 70%, transparent));
         backdrop-filter: var(--glass-blur, blur(16px));
         -webkit-backdrop-filter: var(--glass-blur, blur(16px));
         border: 1px solid var(--glass-thin-border, rgba(44, 37, 32, 0.08));
         border-radius: var(--radius-lg, 1rem);
-        box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.04));
+        box-shadow: var(--shadow-sm, 0 2px 12px color-mix(in srgb, var(--color-black) 4%, transparent));
         
         /* Pixar-style hover transition */
         transition: 
@@ -866,7 +866,7 @@ class YourStoryUI {
 
       .your-story__stat:hover {
         transform: translateY(-2px) scale(1.02);
-        box-shadow: var(--shadow-md, 0 4px 20px rgba(0, 0, 0, 0.08));
+        box-shadow: var(--shadow-md, 0 4px 20px color-mix(in srgb, var(--color-black) 8%, transparent));
       }
 
       /* Icon bounce on stat hover */
@@ -893,14 +893,14 @@ class YourStoryUI {
         font-size: 1.5rem; /* 24px - hero metric */
         font-weight: 700;
         line-height: 1;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         letter-spacing: -0.02em;
       }
 
       .your-story__stat-label {
         font-size: 0.6875rem; /* 11px */
         font-weight: 500;
-        color: var(--color-text-muted, #8a8279);
+        color: var(--color-text-muted);
         text-transform: uppercase;
         letter-spacing: 0.04em;
       }
@@ -916,14 +916,14 @@ class YourStoryUI {
           var(--color-bg-tertiary, #f9f8f6) 0%,
           var(--color-bg-elevated, #fffdfb) 100%
         );
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border: 1px solid var(--color-border-subtle);
         padding: 1rem 1.3125rem; /* md (16px) vertical, rest (21px) horizontal */
         border-radius: var(--radius-xl, 1.25rem);
         margin-bottom: 1.3125rem; /* MA: rest (21px) */
         animation: your-story-fade-in 400ms cubic-bezier(0.4, 0, 0.2, 1) 150ms both;
         
         /* Subtle shadow for depth */
-        box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.03));
+        box-shadow: var(--shadow-sm, 0 2px 8px color-mix(in srgb, var(--color-black) 3%, transparent));
         
         /* Hover effect */
         transition: 
@@ -932,7 +932,7 @@ class YourStoryUI {
       }
 
       .your-story__stage:hover {
-        box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.05));
+        box-shadow: var(--shadow-md, 0 4px 16px color-mix(in srgb, var(--color-black) 5%, transparent));
         transform: translateY(-1px);
       }
 
@@ -957,7 +957,7 @@ class YourStoryUI {
         font-size: 0.75rem; /* 12px caption */
         font-weight: 500;
         font-style: italic;
-        color: var(--color-text-muted, #8a8279);
+        color: var(--color-text-muted);
         text-align: right;
       }
 
@@ -966,8 +966,8 @@ class YourStoryUI {
         height: 6px;
         background: linear-gradient(
           90deg,
-          var(--color-border-subtle, #e5e2de) 0%,
-          var(--color-border-medium, #d8d4ce) 100%
+          var(--color-border-subtle) 0%,
+          var(--color-border-medium) 100%
         );
         border-radius: 3px;
         overflow: visible;
@@ -982,7 +982,7 @@ class YourStoryUI {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 0.625rem;
         font-weight: 600;
-        color: var(--color-text-muted, #8a8279);
+        color: var(--color-text-muted);
         letter-spacing: 0.02em;
       }
 
@@ -991,7 +991,7 @@ class YourStoryUI {
         background: linear-gradient(
           90deg,
           var(--color-accent, #3D5A45) 0%,
-          var(--color-accent-hover, #4a6b52) 60%,
+          var(--color-accent-hover) 60%,
           var(--color-accent-light, #5a7b5a) 100%
         );
         border-radius: 3px;
@@ -1011,7 +1011,7 @@ class YourStoryUI {
         width: 10px;
         height: 10px;
         background: var(--color-accent, #3D5A45);
-        border: 2px solid var(--color-bg-elevated, #fffdfb);
+        border: 2px solid var(--color-bg-elevated, var(--color-white));
         border-radius: 50%;
         box-shadow: var(--shadow-glow-sm, 0 0 6px rgba(61, 90, 69, 0.4));
       }
@@ -1057,7 +1057,7 @@ class YourStoryUI {
         align-items: center;
         gap: 0.375rem; /* 6px */
         padding: 0.375rem 0.75rem; /* 6px 12px */
-        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+        background: var(--color-accent-subtle);
         color: var(--color-accent-text);
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 0.6875rem; /* label */
@@ -1070,7 +1070,7 @@ class YourStoryUI {
       }
 
       .your-story__milestone:hover {
-        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.15));
+        background: var(--color-accent-subtle);
         transform: scale(1.04);
         box-shadow: var(--shadow-sm, 0 2px 8px rgba(61, 90, 69, 0.15));
       }
@@ -1104,7 +1104,7 @@ class YourStoryUI {
         padding: 1rem 1.3125rem; /* md (16px) horizontal, rest (21px) */
         background: linear-gradient(
           135deg,
-          var(--color-accent-subtle, rgba(61, 90, 69, 0.06)) 0%,
+          var(--color-accent-subtle) 0%,
           rgba(61, 90, 69, 0.02) 100%
         );
         border: 1px solid var(--color-accent, rgba(61, 90, 69, 0.2));
@@ -1126,7 +1126,7 @@ class YourStoryUI {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 0.8125rem; /* bodySmall */
         line-height: 1.6;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
       }
 
       /* ========================================================================
@@ -1155,7 +1155,7 @@ class YourStoryUI {
         box-shadow: var(--shadow-sm, 0 4px 16px rgba(44, 37, 32, 0.04));
         
         /* Subtle border */
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+        border: 1px solid var(--color-border-subtle);
         
         /* Entrance animation */
         animation: your-story-slide-up 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -1212,7 +1212,7 @@ class YourStoryUI {
         font-weight: 600;
         line-height: 1.3;
         letter-spacing: -0.01em;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         margin: 0 0 1.3125rem; /* rest (21px) */
         position: relative;
         padding-left: 0.875rem;
@@ -1232,11 +1232,11 @@ class YourStoryUI {
 
       /* Section-specific accent bars */
       .your-story__section:nth-child(2) .your-story__section-title::before {
-        background: var(--persona-nayan-primary, #b8956a);
+        background: var(--persona-nayan-primary, var(--color-nayan));
       }
 
       .your-story__section:nth-child(3) .your-story__section-title::before {
-        background: var(--persona-peter-primary, #3a6b73);
+        background: var(--persona-peter-primary, var(--color-peter));
       }
 
       /* ========================================================================
@@ -1248,8 +1248,8 @@ class YourStoryUI {
         margin-bottom: 1.3125rem; /* rest (21px) */
         border-radius: var(--radius-xl, 1.25rem);
         overflow: hidden;
-        background: var(--color-bg-tertiary, #f9f8f6);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+        background: var(--color-bg-tertiary, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
       }
 
       .your-story__viz-row {
@@ -1266,8 +1266,8 @@ class YourStoryUI {
 
       .your-story__compact-viz {
         min-height: 180px;
-        background: var(--color-bg-tertiary, #f9f8f6);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+        background: var(--color-bg-tertiary, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 1.25rem);
         padding: 0.8125rem; /* pause (13px) */
         overflow: hidden;
@@ -1280,7 +1280,7 @@ class YourStoryUI {
 
       .your-story__compact-viz:hover {
         transform: translateY(-2px);
-        box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.06));
+        box-shadow: var(--shadow-lg, 0 8px 24px color-mix(in srgb, var(--color-black) 6%, transparent));
       }
 
       /* Ensure proper content flow within viz containers */
@@ -1297,10 +1297,10 @@ class YourStoryUI {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 0.8125rem; /* bodySmall */
         line-height: 1.5;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0;
         padding: 0.8125rem 1rem; /* pause (13px) vertical, md horizontal */
-        background: var(--color-bg-secondary, #faf9f7);
+        background: var(--color-bg-secondary, var(--color-white));
         border-left: 3px solid var(--color-accent, rgba(61, 90, 69, 0.3));
         border-radius: 0 var(--radius-md, 0.75rem) var(--radius-md, 0.75rem) 0;
       }
@@ -1336,9 +1336,9 @@ class YourStoryUI {
         height: 0.875rem;
         background: linear-gradient(
           90deg,
-          var(--color-border-subtle, rgba(44, 37, 32, 0.08)) 0%,
-          var(--color-border-medium, rgba(44, 37, 32, 0.12)) 50%,
-          var(--color-border-subtle, rgba(44, 37, 32, 0.08)) 100%
+          var(--color-border-subtle) 0%,
+          var(--color-border-medium) 50%,
+          var(--color-border-subtle) 100%
         );
         border-radius: var(--radius-sm, 0.375rem);
         animation: your-story-skeleton-pulse 1.5s ease-in-out infinite;
@@ -1400,7 +1400,7 @@ class YourStoryUI {
           var(--color-bg-secondary, rgba(44, 37, 32, 0.06)) 100%
         );
         border-radius: var(--radius-xl, 1.25rem);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+        border: 1px solid var(--color-border-subtle);
         animation: your-story-skeleton-pulse 1.5s ease-in-out infinite;
         position: relative;
         overflow: hidden;
@@ -1435,12 +1435,12 @@ class YourStoryUI {
         padding: 1rem;
         background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.03));
         border-radius: var(--radius-xl, 1.25rem);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+        border: 1px solid var(--color-border-subtle);
       }
 
       .your-story__skeleton-progress {
         height: 6px;
-        background: var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-border-subtle);
         border-radius: 3px;
         margin-top: 0.5rem;
         position: relative;
@@ -1472,7 +1472,7 @@ class YourStoryUI {
           var(--color-bg-secondary, rgba(250, 246, 240, 0.8)) 100%
         );
         border-radius: var(--radius-xl, 1.25rem);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+        border: 1px solid var(--color-border-subtle);
       }
 
       .your-story__skeleton-section:nth-child(2) {
@@ -1499,7 +1499,7 @@ class YourStoryUI {
           var(--color-bg-secondary, rgba(44, 37, 32, 0.06)) 100%
         );
         border-radius: var(--radius-xl, 1.25rem);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+        border: 1px solid var(--color-border-subtle);
         animation: your-story-skeleton-pulse 1.5s ease-in-out infinite;
         position: relative;
         overflow: hidden;
@@ -1531,7 +1531,7 @@ class YourStoryUI {
         text-align: center;
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 0.8125rem;
-        color: var(--color-text-muted, #8a8279);
+        color: var(--color-text-muted);
         margin-top: 1rem;
       }
 
@@ -1542,14 +1542,14 @@ class YourStoryUI {
         align-items: center;
         justify-content: center;
         padding: 3.4rem; /* meditation (55px) */
-        color: var(--color-text-muted, #8a8279);
+        color: var(--color-text-muted);
         text-align: center;
       }
 
       .your-story__loading-spinner {
         width: 2.5rem;
         height: 2.5rem;
-        border: 2px solid var(--color-border-subtle, #e5e2de);
+        border: 2px solid var(--color-border-subtle);
         border-top-color: var(--color-accent, #3D5A45);
         border-radius: 50%;
         animation: your-story-spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
@@ -1865,7 +1865,7 @@ class YourStoryUI {
       @media (prefers-color-scheme: dark) {
         .your-story__card {
           background: rgba(44, 37, 32, 0.85);
-          border-color: rgba(255, 255, 255, 0.06);
+          border-color: color-mix(in srgb, var(--color-white) 6%, transparent);
         }
 
         .your-story__card::before {
@@ -1883,12 +1883,12 @@ class YourStoryUI {
             rgba(44, 37, 32, 0.6) 0%,
             rgba(55, 47, 42, 0.5) 100%
           );
-          border-color: rgba(255, 255, 255, 0.06);
-          box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.15));
+          border-color: color-mix(in srgb, var(--color-white) 6%, transparent);
+          box-shadow: var(--shadow-md, 0 4px 16px color-mix(in srgb, var(--color-black) 15%, transparent));
         }
 
         .your-story__section:hover {
-          box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.2));
+          box-shadow: var(--shadow-lg, 0 8px 24px color-mix(in srgb, var(--color-black) 20%, transparent));
         }
 
         .your-story__section:nth-child(1) {
@@ -1920,22 +1920,22 @@ class YourStoryUI {
 
         /* Dark mode stat cards */
         .your-story__stat {
-          background: rgba(255, 255, 255, 0.04);
-          border-color: rgba(255, 255, 255, 0.08);
+          background: color-mix(in srgb, var(--color-white) 4%, transparent);
+          border-color: color-mix(in srgb, var(--color-white) 8%, transparent);
         }
 
         .your-story__stat:hover {
-          background: rgba(255, 255, 255, 0.06);
+          background: color-mix(in srgb, var(--color-white) 6%, transparent);
         }
 
         /* Dark mode compact viz */
         .your-story__compact-viz {
           background: rgba(44, 37, 32, 0.5);
-          border-color: rgba(255, 255, 255, 0.06);
+          border-color: color-mix(in srgb, var(--color-white) 6%, transparent);
         }
 
         .your-story__compact-viz:hover {
-          box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.3));
+          box-shadow: var(--shadow-lg, 0 8px 24px color-mix(in srgb, var(--color-black) 30%, transparent));
         }
 
         /* Dark mode stage card */
@@ -1945,16 +1945,16 @@ class YourStoryUI {
             rgba(44, 37, 32, 0.7) 0%,
             rgba(55, 47, 42, 0.6) 100%
           );
-          border-color: rgba(255, 255, 255, 0.06);
-          box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.2));
+          border-color: color-mix(in srgb, var(--color-white) 6%, transparent);
+          box-shadow: var(--shadow-sm, 0 2px 8px color-mix(in srgb, var(--color-black) 20%, transparent));
         }
 
         .your-story__stage:hover {
-          box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.25));
+          box-shadow: var(--shadow-md, 0 4px 16px color-mix(in srgb, var(--color-black) 25%, transparent));
         }
 
         .your-story__stage-progress {
-          background: rgba(255, 255, 255, 0.1);
+          background: color-mix(in srgb, var(--color-white) 10%, transparent);
         }
 
         .your-story__stage-bar::before {
@@ -1976,7 +1976,7 @@ class YourStoryUI {
       .your-story .viz-header {
         margin-bottom: 0.8125rem; /* pause (13px) */
         padding-bottom: 0.5rem; /* breath (8px) */
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .your-story .viz-header h3 {
@@ -1985,7 +1985,7 @@ class YourStoryUI {
         font-weight: 600;
         line-height: 1.3;
         letter-spacing: -0.01em;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         margin: 0 0 0.25rem;
       }
 
@@ -1993,19 +1993,19 @@ class YourStoryUI {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 0.6875rem; /* label - 11px */
         font-weight: 500;
-        color: var(--color-text-muted, #8a8279);
+        color: var(--color-text-muted);
         margin: 0;
         letter-spacing: 0.01em;
       }
 
       /* MOBILE CARD - Solid background */
       .your-story .mobile-card {
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-lg, 1rem);
         padding: 0.8125rem 1rem; /* pause vertical, md horizontal */
         margin-top: 0.8125rem; /* pause */
-        box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.06));
+        box-shadow: var(--shadow-sm, 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent));
         transition:
           transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
           box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -2017,12 +2017,12 @@ class YourStoryUI {
 
       .your-story .mobile-card:hover {
         transform: translateY(-1px);
-        box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.05));
+        box-shadow: var(--shadow-md, 0 4px 16px color-mix(in srgb, var(--color-black) 5%, transparent));
       }
 
       /* Subtle border glow on mobile card hover */
       .your-story .mobile-card:hover {
-        border-color: var(--color-accent-subtle, rgba(61, 90, 69, 0.15));
+        border-color: var(--color-accent-subtle);
       }
 
       /* Focus ring for keyboard navigation */
@@ -2044,7 +2044,7 @@ class YourStoryUI {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 0.8125rem; /* bodySmall - 13px */
         font-weight: 600;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         letter-spacing: -0.005em;
       }
 
@@ -2053,7 +2053,7 @@ class YourStoryUI {
         display: inline-flex;
         align-items: center;
         padding: 0.25rem 0.625rem; /* 4px 10px */
-        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+        background: var(--color-accent-subtle);
         color: var(--color-accent-text);
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 0.6875rem; /* label - 11px */
@@ -2068,7 +2068,7 @@ class YourStoryUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 0.875rem; /* 14px */
         font-weight: 600;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         margin: 0.5rem 0; /* breath */
       }
 
@@ -2077,7 +2077,7 @@ class YourStoryUI {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 0.75rem; /* caption - 12px */
         line-height: 1.5;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin-top: 0.8125rem; /* pause */
         padding: 0.625rem 0.8125rem; /* 10px 13px */
         background: var(--tonal-surface1, rgba(44, 37, 32, 0.02));
@@ -2112,7 +2112,7 @@ class YourStoryUI {
 
       /* Priority dots - semantic colors */
       .your-story .mobile-card div[style*="border-radius: 50%"][style*="8px"] {
-        box-shadow: var(--shadow-xs, 0 1px 3px rgba(0, 0, 0, 0.1));
+        box-shadow: var(--shadow-xs, 0 1px 3px color-mix(in srgb, var(--color-black) 10%, transparent));
       }
 
       /* Override flex containers in visualizations */
@@ -2175,7 +2175,7 @@ class YourStoryUI {
 
       /* Progress/gauge elements */
       .your-story div[style*="border-radius"][style*="100%"] {
-        box-shadow: var(--shadow-sm, 0 2px 6px rgba(0, 0, 0, 0.08));
+        box-shadow: var(--shadow-sm, 0 2px 6px color-mix(in srgb, var(--color-black) 8%, transparent));
       }
 
       /* ========================================================================
@@ -2186,17 +2186,17 @@ class YourStoryUI {
       /* Category panels in Open Loops - solid background */
       .your-story__compact-viz[data-viz="open-loops"] div[style*="background: var(--color-background)"],
       .your-story__compact-viz[data-viz="open-loops"] div[style*="background"][style*="padding: 12px"] {
-        background: var(--color-bg-elevated, #FFFDFB) !important;
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08)) !important;
-        box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.06)) !important;
+        background: var(--color-bg-elevated, var(--color-white)) !important;
+        border: 1px solid var(--color-border-subtle) !important;
+        box-shadow: var(--shadow-sm, 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent)) !important;
       }
 
       /* Stats panels - elevated solid treatment */
       .your-story__compact-viz div[style*="background: var(--color-bg-elevated)"],
       .your-story__compact-viz div[style*="padding: 16px"][style*="border-radius: 12px"] {
-        background: var(--color-bg-elevated, #FFFDFB) !important;
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08)) !important;
-        box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.08)) !important;
+        background: var(--color-bg-elevated, var(--color-white)) !important;
+        border: 1px solid var(--color-border-subtle) !important;
+        box-shadow: var(--shadow-md, 0 4px 12px color-mix(in srgb, var(--color-black) 8%, transparent)) !important;
       }
 
       /* Content grid in tablet builders - tighter padding */
@@ -2212,7 +2212,7 @@ class YourStoryUI {
 
       /* Priority dots - add subtle shadow */
       .your-story__compact-viz div[style*="width: 8px"][style*="border-radius: 50%"] {
-        box-shadow: var(--shadow-xs, 0 1px 3px rgba(0, 0, 0, 0.15)) !important;
+        box-shadow: var(--shadow-xs, 0 1px 3px color-mix(in srgb, var(--color-black) 15%, transparent)) !important;
       }
 
       /* Age/date text - proper typography */
@@ -2236,7 +2236,7 @@ class YourStoryUI {
 
       /* Section labels in stats panels */
       .your-story__compact-viz div[style*="text-transform: uppercase"][style*="letter-spacing"] {
-        color: var(--color-text-muted, #8a8279) !important;
+        color: var(--color-text-muted) !important;
         font-size: 0.6875rem !important;
         font-weight: 600 !important;
       }
@@ -2259,7 +2259,7 @@ class YourStoryUI {
 
       .your-story .mobile-card > div:not(.mobile-card-header):not([style*="flex"]) {
         padding: 0.5rem 0; /* breath vertical */
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .your-story .mobile-card > div:last-child {
@@ -2269,7 +2269,7 @@ class YourStoryUI {
 
       /* Category icons in loop items */
       .your-story span[style*="font-size: 0.85rem"] {
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
       }
 
       /* ========================================================================
@@ -2291,7 +2291,7 @@ class YourStoryUI {
       .your-story__compact-viz[data-viz="predictions"] div[style*="margin-top"][style*="padding"] {
         margin-top: 0.8125rem !important;
         padding-top: 0.8125rem !important;
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06)) !important;
+        border-top: 1px solid var(--color-border-subtle) !important;
       }
 
       /* ========================================================================

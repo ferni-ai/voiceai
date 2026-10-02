@@ -1039,10 +1039,10 @@ function injectStyles(): void {
 
     .subscription-card {
       position: relative;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       max-width: min(900px, 100%);
       width: 100%;
       max-height: 90vh;
@@ -1065,25 +1065,25 @@ function injectStyles(): void {
       min-width: 44px;
       min-height: 44px;
       border: 2px solid transparent;
-      background: var(--color-background-secondary, #f5f3f0);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-full, 9999px);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
     .subscription-close:hover {
-      background: var(--color-background-tertiary, #ebe8e3);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
     }
     
     .subscription-close:focus {
       outline: none;
-      border-color: var(--persona-primary, #4a6741);
-      box-shadow: 0 0 0 3px var(--persona-tint, rgba(74, 103, 65, 0.3));
+      border-color: var(--persona-primary, var(--color-ferni));
+      box-shadow: 0 0 0 3px var(--persona-tint, color-mix(in srgb, var(--color-ferni) 30%, transparent));
     }
     
     .subscription-close:focus:not(:focus-visible) {
@@ -1115,13 +1115,13 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 2rem;
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-2, 8px);
     }
     
     .subscription-subtitle {
       font-size: 1.125rem;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
       margin: 0;
       max-width: clamp(350px, 90vw, 500px);
       margin-inline: auto;
@@ -1133,7 +1133,7 @@ function injectStyles(): void {
       height: 64px;
       margin: 0 auto var(--space-4, 16px);
       padding: var(--space-4, 16px);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-full, 9999px);
       color: var(--persona-ink);
     }
@@ -1145,7 +1145,7 @@ function injectStyles(): void {
     
     .reset-date {
       font-size: 0.875rem;
-      color: var(--color-text-muted, #7a6f63);
+      color: var(--color-text-muted);
       margin-top: var(--space-2, 8px);
     }
     
@@ -1159,7 +1159,7 @@ function injectStyles(): void {
     
     .tier-card {
       position: relative;
-      background: var(--color-background-secondary, #faf8f5);
+      background: var(--color-background-secondary);
       border: 2px solid transparent;
       border-radius: var(--radius-xl, 16px);
       padding: var(--space-6, 24px);
@@ -1179,15 +1179,15 @@ function injectStyles(): void {
     }
     
     .tier-card--popular {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       background: linear-gradient(135deg, 
         var(--persona-tint, rgba(74, 103, 65, 0.05)) 0%,
-        var(--color-background-secondary, #faf8f5) 100%
+        var(--color-background-secondary) 100%
       );
     }
     
     .tier-card--current {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
     }
     
     .tier-badge {
@@ -1196,8 +1196,8 @@ function injectStyles(): void {
       left: 50%;
       transform: translateX(-50%);
       padding: var(--space-1, 4px) var(--space-3, 12px);
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       font-size: 0.75rem;
       font-weight: 600;
       border-radius: var(--radius-full, 9999px);
@@ -1213,20 +1213,20 @@ function injectStyles(): void {
     }
     
     .tier-badge--current {
-      background: var(--color-text-secondary, #5a5048);
+      background: var(--color-text-secondary);
     }
     
     .tier-name {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1.25rem;
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 4px);
     }
     
     .tier-description {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
       margin: 0 0 var(--space-4, 16px);
     }
     
@@ -1238,12 +1238,12 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 2rem;
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .tier-period {
       font-size: 0.875rem;
-      color: var(--color-text-muted, #7a6f63);
+      color: var(--color-text-muted);
     }
     
     .tier-features {
@@ -1257,9 +1257,9 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
       padding: var(--space-2, 8px) 0;
-      border-bottom: 1px solid var(--color-border-subtle, #e8e4de);
+      border-bottom: 1px solid var(--color-border-subtle);
     }
     
     .tier-features li:last-child {
@@ -1279,7 +1279,7 @@ function injectStyles(): void {
       width: 100%;
       min-height: 44px;
       padding: var(--space-3, 12px) var(--space-4, 16px);
-      border: 2px solid var(--persona-primary, #4a6741);
+      border: 2px solid var(--persona-primary, var(--color-ferni));
       background: transparent;
       color: var(--persona-ink);
       font-size: 1rem;
@@ -1294,13 +1294,13 @@ function injectStyles(): void {
     }
     
     .tier-button:hover:not(:disabled) {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
     
     .tier-button:focus {
       outline: none;
-      box-shadow: 0 0 0 3px var(--persona-tint, rgba(74, 103, 65, 0.4));
+      box-shadow: 0 0 0 3px var(--persona-tint, color-mix(in srgb, var(--color-ferni) 40%, transparent));
     }
     
     .tier-button:focus:not(:focus-visible) {
@@ -1317,12 +1317,12 @@ function injectStyles(): void {
     }
     
     .tier-card--popular .tier-button {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
     
     .tier-card--popular .tier-button:hover:not(:disabled) {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
     }
     
     /* Spinner Animation */
@@ -1371,29 +1371,29 @@ function injectStyles(): void {
     }
     
     .limit-button--primary {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       border: none;
     }
     
     .limit-button--primary:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
     }
     
     .limit-button--primary:focus {
       outline: none;
-      box-shadow: 0 0 0 3px var(--persona-tint, rgba(74, 103, 65, 0.4));
+      box-shadow: 0 0 0 3px var(--persona-tint, color-mix(in srgb, var(--color-ferni) 40%, transparent));
     }
     
     .limit-button--secondary {
       background: transparent;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
       border: 2px solid var(--color-border, #d4d0c8);
     }
     
     .limit-button--secondary:hover {
-      background: var(--color-background-secondary, #faf8f5);
-      border-color: var(--color-text-secondary, #5a5048);
+      background: var(--color-background-secondary);
+      border-color: var(--color-text-secondary);
     }
     
     .limit-button--secondary:focus {
@@ -1404,7 +1404,7 @@ function injectStyles(): void {
     .subscription-footer {
       text-align: center;
       font-size: 0.875rem;
-      color: var(--color-text-muted, #7a6f63);
+      color: var(--color-text-muted);
       margin: 0;
     }
     
@@ -1448,7 +1448,7 @@ function injectStyles(): void {
     
     .celebration-message {
       font-size: 1.125rem;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
       line-height: 1.6;
       margin: 0 0 var(--space-6, 24px);
     }
@@ -1463,8 +1463,8 @@ function injectStyles(): void {
       left: auto;
       transform: none;
       display: inline-flex;
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       padding: var(--space-2, 8px) var(--space-4, 16px);
       border-radius: var(--radius-full, 9999px);
       font-size: 0.875rem;
@@ -1478,8 +1478,8 @@ function injectStyles(): void {
       gap: var(--space-2, 8px);
       min-height: 48px;
       padding: var(--space-4, 16px) var(--space-8, 32px);
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       border: none;
       border-radius: var(--radius-lg, 12px);
       font-size: 1rem;
@@ -1489,13 +1489,13 @@ function injectStyles(): void {
     }
     
     .celebration-button:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
       transform: translateY(-2px);
     }
     
     .celebration-button:focus {
       outline: none;
-      box-shadow: 0 0 0 3px var(--persona-tint, rgba(74, 103, 65, 0.4));
+      box-shadow: 0 0 0 3px var(--persona-tint, color-mix(in srgb, var(--color-ferni) 40%, transparent));
     }
     
     @media (prefers-reduced-motion: reduce) {
@@ -1520,10 +1520,10 @@ function injectStyles(): void {
       bottom: 100px;
       left: 50%;
       transform: translateX(-50%);
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-full, 9999px);
       padding: var(--space-3, 12px) var(--space-5, 20px);
-      box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+      box-shadow: var(--shadow-lg, 0 10px 15px -3px color-mix(in srgb, var(--color-black) 10%, transparent));
       cursor: pointer;
       transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
       z-index: var(--z-toast, 1100);
@@ -1531,7 +1531,7 @@ function injectStyles(): void {
     
     .usage-indicator:hover {
       transform: translateX(-50%) translateY(-2px);
-      box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1));
+      box-shadow: var(--shadow-xl, 0 20px 25px -5px color-mix(in srgb, var(--color-black) 10%, transparent));
     }
     
     .usage-indicator--hidden {
@@ -1549,21 +1549,21 @@ function injectStyles(): void {
     .usage-indicator__text {
       font-size: 0.875rem;
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       white-space: nowrap;
     }
     
     .usage-indicator__bar {
       width: 60px;
       height: 6px;
-      background: var(--color-background-tertiary, #e8e4de);
+      background: var(--color-background-tertiary);
       border-radius: var(--radius-full, 9999px);
       overflow: hidden;
     }
     
     .usage-indicator__fill {
       height: 100%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: var(--radius-full, 9999px);
       transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
     }
@@ -1575,28 +1575,28 @@ function injectStyles(): void {
       }
       
       .subscription-card {
-        background: var(--color-background-elevated, #3a3330);
+        background: var(--color-background-elevated);
       }
       
       .tier-card {
-        background: var(--color-background-secondary, #4a4540);
+        background: var(--color-background-secondary);
       }
       
       .tier-features li {
-        border-color: var(--color-border-subtle, #5a5550);
+        border-color: var(--color-border-subtle);
       }
       
       .subscription-title,
       .tier-name,
       .tier-amount {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
       
       .subscription-subtitle,
       .tier-description,
       .tier-features li,
       .celebration-message {
-        color: var(--color-text-secondary, #e8e2da);
+        color: var(--color-text-secondary);
       }
       
       .subscription-eyebrow {
@@ -1604,24 +1604,24 @@ function injectStyles(): void {
       }
       
       .subscription-close {
-        background: var(--color-background-secondary, #4a4540);
-        color: var(--color-text-secondary, #e8e2da);
+        background: var(--color-background-secondary);
+        color: var(--color-text-secondary);
       }
       
       .subscription-close:hover {
-        background: var(--color-background-tertiary, #5a5550);
+        background: var(--color-background-tertiary);
       }
       
       .usage-indicator {
-        background: var(--color-background-elevated, #3a3330);
+        background: var(--color-background-elevated);
       }
       
       .usage-indicator__text {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
       
       .usage-indicator__bar {
-        background: var(--color-background-tertiary, #5a5550);
+        background: var(--color-background-tertiary);
       }
     }
     

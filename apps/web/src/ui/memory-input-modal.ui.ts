@@ -149,7 +149,7 @@ function ensureStylesExist(): void {
     .memory-input-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: color-mix(in srgb, var(--color-black) 50%, transparent);
     }
 
     .memory-input-container {
@@ -174,7 +174,7 @@ function ensureStylesExist(): void {
     
     .memory-input-header {
       padding: var(--space-lg, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -236,8 +236,8 @@ function ensureStylesExist(): void {
     }
     
     .memory-type-btn--selected {
-      border-color: var(--color-accent, #4a6741);
-      background: rgba(74, 103, 65, 0.1);
+      border-color: var(--color-accent, var(--color-ferni));
+      background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
     }
     
     .memory-type-btn--selected .memory-type-icon {
@@ -376,7 +376,7 @@ function ensureStylesExist(): void {
     }
     
     .memory-input-btn--save {
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       color: var(--color-text-on-accent);
     }
     

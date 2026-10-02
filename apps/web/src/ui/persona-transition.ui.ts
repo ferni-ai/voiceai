@@ -207,7 +207,7 @@ class PersonaTransitionUI {
         z-index: var(--z-docked);
         max-width: min(400px, 100%);
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        background: var(--color-background-elevated, rgba(255, 253, 251, 0.95));
+        background: var(--color-background-elevated);
         border-radius: var(--radius-xl, 1.5rem);
         box-shadow: var(--shadow-xl, 0 16px 32px rgba(44, 37, 32, 0.15));
         text-align: center;
@@ -227,7 +227,7 @@ class PersonaTransitionUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin-bottom: var(--space-2, 8px);
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -239,22 +239,22 @@ class PersonaTransitionUI {
         font-size: var(--text-base, 1rem);
         font-style: italic;
         line-height: 1.6;
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .persona-transition__handoff {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .persona-transition__banter {
-        background: var(--color-background-elevated, rgba(112, 96, 90, 0.95));
+        background: var(--color-background-elevated);
       }
 
       [data-theme="midnight"] .persona-transition__text {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       @media (prefers-reduced-motion: reduce) {

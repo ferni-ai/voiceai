@@ -427,10 +427,10 @@ export class MarketingDashboard {
         width: 90%;
         max-width: clamp(420px, 90vw, 600px);
         max-height: 85vh;
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -447,7 +447,7 @@ export class MarketingDashboard {
         justify-content: space-between;
         align-items: flex-start;
         padding: var(--space-6, 24px);
-        border-bottom: 1px solid var(--color-border, rgba(0,0,0,0.1));
+        border-bottom: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       }
 
       .header-text .eyebrow {
@@ -477,7 +477,7 @@ export class MarketingDashboard {
       }
 
       .close-btn:hover {
-        background: rgba(0, 0, 0, 0.05);
+        background: color-mix(in srgb, var(--color-black) 5%, transparent);
       }
 
       .dashboard-content {
@@ -513,7 +513,7 @@ export class MarketingDashboard {
         padding: var(--space-4, 16px);
         background: var(--color-background);
         border-radius: var(--radius-lg, 12px);
-        border: 1px solid var(--color-border, rgba(0,0,0,0.08));
+        border: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 8%, transparent));
       }
 
       .account-card.connected {
@@ -528,7 +528,7 @@ export class MarketingDashboard {
         align-items: center;
         justify-content: center;
         background: var(--color-text-primary);
-        color: white;
+        color: var(--color-white);
         border-radius: 8px;
         font-weight: 700;
         font-size: 1.25rem;
@@ -557,14 +557,14 @@ export class MarketingDashboard {
         font-weight: 500;
         cursor: pointer;
         transition: all ${DURATION.FAST}ms;
-        border: 1px solid var(--color-border, rgba(0,0,0,0.1));
-        background: white;
+        border: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
+        background: var(--color-white);
         color: var(--color-text-primary);
       }
 
       .account-action:hover {
         background: var(--color-alex);
-        color: white;
+        color: var(--color-white);
         border-color: var(--color-alex-text);
       }
 
@@ -588,7 +588,7 @@ export class MarketingDashboard {
         align-items: center;
         justify-content: center;
         background: var(--color-text-primary);
-        color: white;
+        color: var(--color-white);
         border-radius: 6px;
         font-weight: 700;
         font-size: 1rem;
@@ -619,7 +619,7 @@ export class MarketingDashboard {
       .insights {
         margin-top: var(--space-4, 16px);
         padding: var(--space-4, 16px);
-        background: rgba(90, 107, 138, 0.1);
+        background: color-mix(in srgb, var(--color-alex) 10%, transparent);
         border-radius: var(--radius-lg, 12px);
       }
 
@@ -659,7 +659,7 @@ export class MarketingDashboard {
         align-items: center;
         justify-content: center;
         background: var(--color-text-primary);
-        color: white;
+        color: var(--color-white);
         border-radius: 4px;
         font-weight: 700;
         font-size: 0.75rem;
@@ -689,12 +689,12 @@ export class MarketingDashboard {
       }
 
       .post-status.scheduled {
-        background: rgba(90, 107, 138, 0.1);
+        background: color-mix(in srgb, var(--color-alex) 10%, transparent);
         color: var(--color-alex-text);
       }
 
       .post-status.posted {
-        background: rgba(74, 103, 65, 0.1);
+        background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
         color: var(--color-ferni-text);
       }
 
@@ -715,7 +715,7 @@ export class MarketingDashboard {
         gap: 8px;
         padding: 12px 20px;
         background: var(--color-alex);
-        color: white;
+        color: var(--color-white);
         border: none;
         border-radius: var(--radius-lg, 12px);
         font-size: 0.9375rem;
@@ -757,7 +757,7 @@ export class MarketingDashboard {
       .loading-spinner {
         width: 32px;
         height: 32px;
-        border: 3px solid var(--color-border, rgba(0,0,0,0.1));
+        border: 3px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
         border-top-color: var(--color-alex-text);
         border-radius: 50%;
         animation: spin 1s linear infinite;

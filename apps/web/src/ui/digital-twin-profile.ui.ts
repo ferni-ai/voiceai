@@ -1408,10 +1408,10 @@ function getProfileStyles(): string {
       width: 90vw;
       max-width: clamp(448px, 90vw, 640px);
       max-height: 90vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -1426,7 +1426,7 @@ function getProfileStyles(): string {
     /* Header */
     .profile-header {
       padding: var(--space-md, 16px) var(--space-lg, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -1478,7 +1478,7 @@ function getProfileStyles(): string {
     
     .progress-fill {
       height: 100%;
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       border-radius: 2px;
       transition: width ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
@@ -1503,7 +1503,7 @@ function getProfileStyles(): string {
     }
     
     .progress-step--complete {
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       color: var(--color-text-on-accent);
     }
     
@@ -1538,7 +1538,7 @@ function getProfileStyles(): string {
     }
     
     .profile-btn--primary {
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       color: var(--color-text-on-accent);
       border: none;
     }
@@ -1557,8 +1557,8 @@ function getProfileStyles(): string {
       display: inline-block;
       width: 14px;
       height: 14px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-top-color: white;
+      border: 2px solid color-mix(in srgb, var(--color-white) 30%, transparent);
+      border-top-color: var(--color-white);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
       margin-right: 6px;
@@ -1716,7 +1716,7 @@ function getProfileStyles(): string {
     .form-input:focus,
     .form-textarea:focus {
       outline: none;
-      border-color: var(--color-accent, #4a6741);
+      border-color: var(--color-accent, var(--color-ferni));
     }
     
     .form-textarea {
@@ -1743,7 +1743,7 @@ function getProfileStyles(): string {
     .add-btn:hover,
     .add-btn:focus-visible {
       background: var(--color-bg-tertiary);
-      border-color: var(--color-accent, #4a6741);
+      border-color: var(--color-accent, var(--color-ferni));
       color: var(--color-text-primary);
     }
     
@@ -1908,7 +1908,7 @@ function getProfileStyles(): string {
       appearance: none;
       width: 18px;
       height: 18px;
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       border-radius: 50%;
       cursor: pointer;
     }
@@ -1916,7 +1916,7 @@ function getProfileStyles(): string {
     .form-slider::-moz-range-thumb {
       width: 18px;
       height: 18px;
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       border-radius: 50%;
       cursor: pointer;
       border: none;
@@ -1939,7 +1939,7 @@ function getProfileStyles(): string {
     .toggle-option input[type="checkbox"] {
       width: 18px;
       height: 18px;
-      accent-color: var(--color-accent, #4a6741);
+      accent-color: var(--color-accent, var(--color-ferni));
     }
     
     .toggle-text {
@@ -1974,8 +1974,8 @@ function getProfileStyles(): string {
     }
     
     .value-chip--selected {
-      background: rgba(74, 103, 65, 0.2);
-      border-color: var(--color-accent, #4a6741);
+      background: color-mix(in srgb, var(--color-ferni) 20%, transparent);
+      border-color: var(--color-accent, var(--color-ferni));
       color: var(--color-accent-text);
     }
     
@@ -2032,8 +2032,8 @@ function getProfileStyles(): string {
     }
     
     .review-philosophy {
-      background: linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(74, 103, 65, 0.05));
-      border: 1px solid rgba(74, 103, 65, 0.3);
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 15%, transparent), color-mix(in srgb, var(--color-ferni) 5%, transparent));
+      border: 1px solid color-mix(in srgb, var(--color-ferni) 30%, transparent);
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-md, 16px);
       margin-bottom: var(--space-md, 16px);

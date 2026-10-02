@@ -531,15 +531,15 @@ export async function render(): Promise<string> {
     <style>
       .finops-section {
         /* Ferni Design System tokens */
-        --card-bg: var(--color-background-elevated, var(--color-bg-elevated, #2a2a3e));
-        --text-primary: var(--color-text-primary, #faf6f0);
-        --text-secondary: var(--color-text-secondary, #e8e2da);
-        --text-muted: var(--color-text-muted, #ddd6cc);
-        --accent: var(--color-ferni, var(--color-accent-primary, #4a6741));
-        --warning: var(--color-semantic-warning, #c4856a);
-        --critical: var(--color-semantic-error, #b54a4a);
-        --success: var(--color-semantic-success, #4a6741);
-        --border-subtle: rgba(255, 255, 255, 0.08);
+        --card-bg: var(--color-background-elevated);
+        --text-primary: var(--color-text-primary);
+        --text-secondary: var(--color-text-secondary);
+        --text-muted: var(--color-text-muted);
+        --accent: var(--color-ferni);
+        --warning: var(--color-semantic-warning);
+        --critical: var(--color-semantic-error);
+        --success: var(--color-semantic-success);
+        --border-subtle: color-mix(in srgb, var(--color-white) 8%, transparent);
       }
 
       .health-banner {
@@ -683,7 +683,7 @@ export async function render(): Promise<string> {
       .econ-row.highlight {
         color: var(--text-primary);
         font-weight: 600;
-        border-top: 1px solid rgba(255,255,255,0.1);
+        border-top: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
         margin-top: var(--space-sm, 0.5rem);
         padding-top: var(--space-sm, 0.5rem);
       }
@@ -726,7 +726,7 @@ export async function render(): Promise<string> {
       .service-bar-container {
         flex: 1;
         height: 20px;
-        background: rgba(255,255,255,0.1);
+        background: color-mix(in srgb, var(--color-white) 10%, transparent);
         border-radius: var(--radius-sm, 4px);
         overflow: hidden;
       }
@@ -765,7 +765,7 @@ export async function render(): Promise<string> {
       .config-item input {
         padding: var(--space-sm, 0.5rem);
         background: var(--card-bg);
-        border: 1px solid rgba(255,255,255,0.2);
+        border: 1px solid color-mix(in srgb, var(--color-white) 20%, transparent);
         border-radius: var(--radius-md, 6px);
         color: var(--text-primary);
         font-family: var(--font-mono, monospace);
@@ -774,7 +774,7 @@ export async function render(): Promise<string> {
       .btn-small {
         padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
         background: var(--accent);
-        color: white;
+        color: var(--color-white);
         border: none;
         border-radius: var(--radius-md, 6px);
         cursor: pointer;
@@ -803,7 +803,7 @@ export async function render(): Promise<string> {
       .loading-spinner {
         width: 40px;
         height: 40px;
-        border: 3px solid rgba(255,255,255,0.1);
+        border: 3px solid color-mix(in srgb, var(--color-white) 10%, transparent);
         border-top-color: var(--accent);
         border-radius: 50%;
         animation: spin 1s linear infinite;
@@ -818,7 +818,7 @@ export async function render(): Promise<string> {
         border: 1px solid var(--accent);
         border-radius: var(--radius-lg, 8px);
         padding: var(--space-md, 1rem);
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.08) 0%, transparent 100%);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 8%, transparent) 0%, transparent 100%);
       }
 
       .ltv-cac-grid {
@@ -874,7 +874,7 @@ export async function render(): Promise<string> {
       .ltv-row.confidence {
         margin-top: var(--space-sm, 0.5rem);
         padding-top: var(--space-sm, 0.5rem);
-        border-top: 1px solid rgba(255,255,255,0.1);
+        border-top: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
       }
 
       .ltv-value {
@@ -962,7 +962,7 @@ export async function render(): Promise<string> {
       }
 
       .power-users-table th {
-        background: rgba(255,255,255,0.05);
+        background: color-mix(in srgb, var(--color-white) 5%, transparent);
         color: var(--text-secondary);
         font-size: 0.75rem;
         text-transform: uppercase;
@@ -970,14 +970,14 @@ export async function render(): Promise<string> {
       }
 
       .power-users-table td {
-        border-top: 1px solid rgba(255,255,255,0.05);
+        border-top: 1px solid color-mix(in srgb, var(--color-white) 5%, transparent);
         color: var(--text-primary);
         font-family: var(--font-mono, monospace);
         font-size: 0.85rem;
       }
 
       .power-users-table tr:hover {
-        background: rgba(255,255,255,0.02);
+        background: color-mix(in srgb, var(--color-white) 2%, transparent);
       }
 
       .status-badge {

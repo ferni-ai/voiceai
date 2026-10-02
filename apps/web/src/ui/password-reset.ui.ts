@@ -163,10 +163,10 @@ function applyResetStyles(overlay: HTMLElement): void {
       position: relative;
       width: 90%;
       max-width: min(400px, 100%);
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       transform: scale(0.95);
       opacity: 0;
       transition: all ${DURATION.SLOW}ms ${EASING.SPRING};
@@ -176,7 +176,7 @@ function applyResetStyles(overlay: HTMLElement): void {
       justify-content: space-between;
       align-items: flex-start;
       padding: var(--space-6, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.05));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
     .password-reset-header .eyebrow {
       font-size: 0.75rem;
@@ -190,12 +190,12 @@ function applyResetStyles(overlay: HTMLElement): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1.5rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 4px) 0;
     }
     .password-reset-header .tagline {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
       margin: 0;
     }
     .close-btn {
@@ -203,12 +203,12 @@ function applyResetStyles(overlay: HTMLElement): void {
       border: none;
       cursor: pointer;
       padding: var(--space-2, 8px);
-      color: var(--color-text-muted, #a0958f);
+      color: var(--color-text-muted);
       border-radius: var(--radius-full, 999px);
       transition: background ${DURATION.FAST}ms;
     }
     .close-btn:hover {
-      background: var(--color-background-subtle, rgba(0,0,0,0.05));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 5%, transparent));
     }
     .password-reset-content {
       padding: var(--space-6, 24px);
@@ -226,11 +226,11 @@ function applyResetStyles(overlay: HTMLElement): void {
     .form-field label {
       font-size: 0.8125rem;
       font-weight: 500;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
     }
     .form-field input {
       padding: var(--space-3, 12px);
-      border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.1));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-md, 8px);
       font-size: 1rem;
       font-family: var(--font-body, Inter, sans-serif);
@@ -238,12 +238,12 @@ function applyResetStyles(overlay: HTMLElement): void {
     }
     .form-field input:focus {
       outline: none;
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
     }
     .submit-btn {
       padding: var(--space-3, 12px) var(--space-4, 16px);
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       border: none;
       border-radius: var(--radius-lg, 12px);
       font-family: var(--font-body, Inter, sans-serif);
@@ -253,7 +253,7 @@ function applyResetStyles(overlay: HTMLElement): void {
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     .submit-btn:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
       transform: translateY(-1px);
     }
     .password-reset-loading,
@@ -274,17 +274,17 @@ function applyResetStyles(overlay: HTMLElement): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1.25rem;
       margin: 0 0 var(--space-2, 8px) 0;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     .password-reset-success p {
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
       margin: 0;
     }
     .spinner {
       width: 32px;
       height: 32px;
-      border: 3px solid var(--color-border-subtle, rgba(0,0,0,0.1));
-      border-top-color: var(--persona-primary, #4a6741);
+      border: 3px solid var(--color-border-subtle);
+      border-top-color: var(--persona-primary, var(--color-ferni));
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }

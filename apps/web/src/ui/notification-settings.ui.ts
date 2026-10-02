@@ -942,10 +942,10 @@ class NotificationSettingsUI {
         width: 100%;
         max-width: clamp(360px, 90vw, 520px);
         max-height: 85vh;
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -960,14 +960,14 @@ class NotificationSettingsUI {
         align-items: center;
         justify-content: space-between;
         padding: var(--space-5, 20px) var(--space-6, 24px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .notif-settings__header h2 {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-lg, 1.125rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
@@ -978,15 +978,15 @@ class NotificationSettingsUI {
         width: 34px;
         height: 34px;
         padding: 0;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border: none;
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
-      .notif-settings__close:hover { background: var(--color-background-secondary, #f5f2ed); color: var(--color-text-primary, #2c2520); }
+      .notif-settings__close:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
       .notif-settings__close svg { width: 16px; height: 16px; }
 
       /* Tabs */
@@ -994,7 +994,7 @@ class NotificationSettingsUI {
         display: flex;
         gap: var(--space-2, 8px);
         padding: var(--space-3, 12px) var(--space-6, 24px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .notif-settings__tab {
@@ -1010,7 +1010,7 @@ class NotificationSettingsUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
@@ -1020,11 +1020,11 @@ class NotificationSettingsUI {
         height: 18px;
       }
 
-      .notif-settings__tab:hover { background: var(--color-background-secondary, #f5f2ed); }
+      .notif-settings__tab:hover { background: var(--color-background-secondary); }
 
       .notif-settings__tab--active {
-        background: var(--persona-primary, #4a6741);
-        color: white;
+        background: var(--persona-primary, var(--color-ferni));
+        color: var(--color-white);
       }
 
       .notif-settings__tab--active:hover { background: var(--persona-secondary, #3d5a35); }
@@ -1045,7 +1045,7 @@ class NotificationSettingsUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-2, 8px) 0;
       }
 
@@ -1066,14 +1066,14 @@ class NotificationSettingsUI {
         align-items: center;
         justify-content: space-between;
         padding: var(--space-3, 12px) 0;
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .notif-settings__row:last-child { border-bottom: none; }
 
       .notif-settings__row--main {
         padding: var(--space-4, 16px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 0.75rem);
         border-bottom: none;
         margin-bottom: var(--space-3, 12px);
@@ -1086,7 +1086,7 @@ class NotificationSettingsUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .notif-settings__desc {
@@ -1117,7 +1117,7 @@ class NotificationSettingsUI {
       .notif-settings__toggle-track {
         position: absolute;
         inset: 0;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border-radius: var(--radius-full, 9999px);
         transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
       }
@@ -1129,14 +1129,14 @@ class NotificationSettingsUI {
         left: 2px;
         width: 24px;
         height: 24px;
-        background: white;
+        background: var(--color-white);
         border-radius: 50%;
         box-shadow: var(--shadow-sm, 0 1px 2px rgba(44, 37, 32, 0.1));
         transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
       }
 
       .notif-settings__toggle input:checked + .notif-settings__toggle-track {
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
       }
 
       .notif-settings__toggle input:checked + .notif-settings__toggle-track::after {
@@ -1174,7 +1174,7 @@ class NotificationSettingsUI {
       }
 
       .notif-settings__time-field input:focus {
-        border-color: var(--color-accent-primary, #2d5a3d);
+        border-color: var(--color-accent-primary);
       }
 
       /* Footer */
@@ -1183,7 +1183,7 @@ class NotificationSettingsUI {
         justify-content: flex-end;
         gap: var(--space-3, 12px);
         padding: var(--space-4, 16px) var(--space-6, 24px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       .notif-settings__btn {
@@ -1198,20 +1198,20 @@ class NotificationSettingsUI {
       }
 
       .notif-settings__btn--primary {
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
       }
 
-      .notif-settings__btn--primary:hover { background: var(--color-accent-hover, #3a7050); }
+      .notif-settings__btn--primary:hover { background: var(--color-accent-hover); }
 
       .notif-settings__btn--secondary {
         background: transparent;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .notif-settings__btn--secondary:hover {
-        color: var(--color-text-primary, #2c2520);
-        background: var(--color-background-secondary, #f5f2ed);
+        color: var(--color-text-primary);
+        background: var(--color-background-secondary);
       }
 
       /* Loading state */
@@ -1229,7 +1229,7 @@ class NotificationSettingsUI {
         width: 24px;
         height: 24px;
         border: 2px solid var(--color-border-subtle);
-        border-top-color: var(--persona-primary, #4a6741);
+        border-top-color: var(--persona-primary, var(--color-ferni));
         border-radius: 50%;
         animation: notif-spin 0.8s linear infinite;
       }
@@ -1243,7 +1243,7 @@ class NotificationSettingsUI {
         text-align: center;
         padding: var(--space-4, 16px) var(--space-2, 8px) var(--space-6, 24px);
         margin-bottom: var(--space-4, 16px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .notif-settings__hero-icon {
@@ -1253,7 +1253,7 @@ class NotificationSettingsUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.12)), var(--persona-tint, rgba(74, 103, 65, 0.04)));
+        background: linear-gradient(135deg, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 12%, transparent)), var(--persona-tint, color-mix(in srgb, var(--color-ferni) 4%, transparent)));
         border-radius: var(--radius-full);
         color: var(--persona-ink);
       }
@@ -1303,7 +1303,7 @@ class NotificationSettingsUI {
         align-items: center;
         gap: var(--space-1, 4px);
         padding: var(--space-1, 4px) var(--space-2, 8px);
-        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.15)), var(--persona-tint, rgba(74, 103, 65, 0.05)));
+        background: linear-gradient(135deg, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 15%, transparent)), var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent)));
         border-radius: var(--radius-full);
         font-size: 10px;
         font-weight: var(--font-weight-semibold, 600);
@@ -1318,7 +1318,7 @@ class NotificationSettingsUI {
         align-items: center;
         gap: var(--space-3, 12px);
         padding: var(--space-3, 12px) 0;
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .notif-settings__capability-row:last-child {
@@ -1341,47 +1341,47 @@ class NotificationSettingsUI {
       }
 
       .notif-settings__capability-icon--guardian {
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         color: var(--persona-ink);
       }
 
       .notif-settings__capability-icon--ritual {
-        background: rgba(166, 122, 106, 0.1);
+        background: color-mix(in srgb, var(--color-maya) 10%, transparent);
         color: var(--persona-maya-ink);
       }
 
       .notif-settings__capability-icon--streak {
-        background: rgba(196, 133, 106, 0.1);
+        background: color-mix(in srgb, var(--color-jordan) 10%, transparent);
         color: var(--persona-jordan-ink);
       }
 
       .notif-settings__capability-icon--prediction {
-        background: rgba(58, 107, 115, 0.1);
+        background: color-mix(in srgb, var(--color-peter) 10%, transparent);
         color: var(--persona-peter-ink);
       }
 
       .notif-settings__capability-icon--team {
-        background: rgba(90, 107, 138, 0.1);
+        background: color-mix(in srgb, var(--color-alex) 10%, transparent);
         color: var(--persona-alex-ink);
       }
 
       .notif-settings__capability-icon--email {
-        background: rgba(90, 107, 138, 0.1);
+        background: color-mix(in srgb, var(--color-alex) 10%, transparent);
         color: var(--persona-alex-ink);
       }
 
       .notif-settings__capability-icon--sms {
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         color: var(--persona-ink);
       }
 
       .notif-settings__capability-icon--milestone {
-        background: rgba(184, 149, 106, 0.1);
+        background: color-mix(in srgb, var(--color-nayan) 10%, transparent);
         color: var(--persona-nayan-ink);
       }
 
       .notif-settings__capability-icon--recap {
-        background: rgba(58, 107, 115, 0.1);
+        background: color-mix(in srgb, var(--color-peter) 10%, transparent);
         color: var(--persona-peter-ink);
       }
 
@@ -1392,7 +1392,7 @@ class NotificationSettingsUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         border-radius: var(--radius-lg, 12px);
         color: var(--persona-ink);
         flex-shrink: 0;
@@ -1409,7 +1409,7 @@ class NotificationSettingsUI {
         align-items: flex-start;
         gap: var(--space-2, 8px);
         padding: var(--space-3, 12px);
-        background: var(--persona-tint, rgba(74, 103, 65, 0.05));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent));
         border-radius: var(--radius-lg, 12px);
         margin-top: var(--space-4, 16px);
         font-size: var(--text-xs, 0.75rem);
@@ -1442,7 +1442,7 @@ class NotificationSettingsUI {
       .notif-settings__guardian-ring {
         position: absolute;
         border-radius: 50%;
-        border: 2px solid var(--persona-primary, #4a6741);
+        border: 2px solid var(--persona-primary, var(--color-ferni));
       }
 
       .notif-settings__guardian-ring--outer {
@@ -1473,7 +1473,7 @@ class NotificationSettingsUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.15)), var(--persona-tint, rgba(74, 103, 65, 0.05)));
+        background: linear-gradient(135deg, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 15%, transparent)), var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent)));
         border-radius: 50%;
         color: var(--persona-ink);
       }
@@ -1508,7 +1508,7 @@ class NotificationSettingsUI {
         justify-content: center;
         gap: var(--space-1, 4px);
         padding: var(--space-1, 4px) var(--space-3, 12px);
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         border-radius: var(--radius-full);
         margin: var(--space-4, 16px) auto;
         color: var(--persona-ink);
@@ -1534,7 +1534,7 @@ class NotificationSettingsUI {
         left: 0;
         right: 0;
         height: 40px;
-        background: linear-gradient(to bottom, transparent, var(--color-bg-elevated, #FFFDFB));
+        background: linear-gradient(to bottom, transparent, var(--color-bg-elevated, var(--color-white)));
         pointer-events: none;
         border-radius: 0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
       }
@@ -1544,7 +1544,7 @@ class NotificationSettingsUI {
         align-items: flex-start;
         gap: var(--space-3, 12px);
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 12px);
         opacity: 0;
         transform: translateY(8px);
@@ -1571,7 +1571,7 @@ class NotificationSettingsUI {
         justify-content: center;
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: white;
+        color: var(--color-white);
         flex-shrink: 0;
       }
 
@@ -1620,7 +1620,7 @@ class NotificationSettingsUI {
         color: var(--persona-ink);
         flex-shrink: 0;
         padding: var(--space-1, 4px) var(--space-2, 8px);
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         border-radius: var(--radius-sm, 6px);
       }
 
@@ -1638,7 +1638,7 @@ class NotificationSettingsUI {
         align-items: center;
         text-align: center;
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 12px);
         opacity: 0;
         transform: translateY(8px);
@@ -1658,7 +1658,7 @@ class NotificationSettingsUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--persona-tint, rgba(74, 103, 65, 0.15));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 15%, transparent));
         border-radius: var(--radius-full);
         color: var(--persona-ink);
         margin-bottom: var(--space-2, 8px);
@@ -1705,7 +1705,7 @@ class NotificationSettingsUI {
         justify-content: center;
         gap: var(--space-2, 8px);
         padding: var(--space-3, 12px) var(--space-4, 16px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 12px);
         font-size: var(--text-xs, 0.75rem);
         color: var(--color-text-secondary);
@@ -1726,7 +1726,7 @@ class NotificationSettingsUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         border-radius: var(--radius-full);
         color: var(--persona-ink);
       }
@@ -1768,7 +1768,7 @@ class NotificationSettingsUI {
 
       .notif-settings__upcoming-item {
         padding: var(--space-4, 16px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 12px);
         transition: transform ${DURATION.FAST}ms ${EASING.STANDARD}, box-shadow ${DURATION.FAST}ms;
       }
@@ -1794,8 +1794,8 @@ class NotificationSettingsUI {
         justify-content: center;
         font-size: var(--text-sm);
         font-weight: var(--font-weight-semibold);
-        color: white;
-        background: var(--persona-primary, #4a6741);
+        color: var(--color-white);
+        background: var(--persona-primary, var(--color-ferni));
         flex-shrink: 0;
       }
 
@@ -1843,17 +1843,17 @@ class NotificationSettingsUI {
       }
 
       .notif-settings__upcoming-priority--high {
-        background: var(--color-semantic-error-glow, rgba(239, 68, 68, 0.1));
+        background: var(--color-semantic-error-glow);
         color: var(--color-semantic-error-text);
       }
 
       .notif-settings__upcoming-priority--medium {
-        background: var(--color-semantic-warning-glow, rgba(245, 158, 11, 0.1));
+        background: var(--color-semantic-warning-glow);
         color: var(--color-semantic-warning-text);
       }
 
       .notif-settings__upcoming-priority--low {
-        background: var(--color-semantic-success-glow, rgba(34, 197, 94, 0.1));
+        background: var(--color-semantic-success-glow);
         color: var(--color-semantic-success-text);
       }
 
@@ -1881,7 +1881,7 @@ class NotificationSettingsUI {
         justify-content: center;
         gap: var(--space-2, 8px);
         padding: var(--space-2, 8px) var(--space-3, 12px);
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         border: none;
         border-radius: var(--radius-md);
         font-family: var(--font-display);
@@ -1982,21 +1982,21 @@ class NotificationSettingsUI {
 
       /* Dark theme */
       [data-theme="midnight"] .notif-settings { background: var(--backdrop-page); }
-      [data-theme="midnight"] .notif-settings__card { background: var(--color-background-elevated, #70605a); }
+      [data-theme="midnight"] .notif-settings__card { background: var(--color-background-elevated); }
       [data-theme="midnight"] .notif-settings__header h2,
       [data-theme="midnight"] .notif-settings__group h3,
-      [data-theme="midnight"] .notif-settings__label { color: var(--color-text-primary, #faf6f0); }
+      [data-theme="midnight"] .notif-settings__label { color: var(--color-text-primary); }
       [data-theme="midnight"] .notif-settings__row--main,
-      [data-theme="midnight"] .notif-settings__upcoming-item { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .notif-settings__toggle-track { background: var(--color-background-tertiary, #685852); }
-      [data-theme="midnight"] .notif-settings__time-field input { background: var(--color-background-secondary, #60504a); color: var(--color-text-primary, #faf6f0); }
-      [data-theme="midnight"] .notif-settings__close { background: var(--color-background-tertiary, #685852); color: var(--color-text-secondary, #f0ebe4); }
-      [data-theme="midnight"] .notif-settings__tab { color: var(--color-text-secondary, #f0ebe4); }
-      [data-theme="midnight"] .notif-settings__tab:hover { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .notif-settings__empty-tip { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .notif-settings__upcoming-btn { background: var(--color-background-tertiary, #685852); }
-      [data-theme="midnight"] .notif-settings__dialog { background: var(--color-background-elevated, #70605a); }
-      [data-theme="midnight"] .notif-settings__dialog-option { background: var(--color-background-secondary, #60504a); color: var(--color-text-primary, #faf6f0); }
+      [data-theme="midnight"] .notif-settings__upcoming-item { background: var(--color-background-secondary); }
+      [data-theme="midnight"] .notif-settings__toggle-track { background: var(--color-background-tertiary); }
+      [data-theme="midnight"] .notif-settings__time-field input { background: var(--color-background-secondary); color: var(--color-text-primary); }
+      [data-theme="midnight"] .notif-settings__close { background: var(--color-background-tertiary); color: var(--color-text-secondary); }
+      [data-theme="midnight"] .notif-settings__tab { color: var(--color-text-secondary); }
+      [data-theme="midnight"] .notif-settings__tab:hover { background: var(--color-background-secondary); }
+      [data-theme="midnight"] .notif-settings__empty-tip { background: var(--color-background-secondary); }
+      [data-theme="midnight"] .notif-settings__upcoming-btn { background: var(--color-background-tertiary); }
+      [data-theme="midnight"] .notif-settings__dialog { background: var(--color-background-elevated); }
+      [data-theme="midnight"] .notif-settings__dialog-option { background: var(--color-background-secondary); color: var(--color-text-primary); }
 
       /* Dark theme - New Better Than Human elements */
       [data-theme="midnight"] .notif-settings__hero-icon {
@@ -2006,17 +2006,17 @@ class NotificationSettingsUI {
       [data-theme="midnight"] .notif-settings__hero-title,
       [data-theme="midnight"] .notif-settings__empty-title,
       [data-theme="midnight"] .notif-settings__sample-persona,
-      [data-theme="midnight"] .notif-settings__capability-name { color: var(--color-text-primary, #faf6f0); }
+      [data-theme="midnight"] .notif-settings__capability-name { color: var(--color-text-primary); }
       [data-theme="midnight"] .notif-settings__hero-desc,
       [data-theme="midnight"] .notif-settings__empty-subtitle,
       [data-theme="midnight"] .notif-settings__empty-cta-text,
-      [data-theme="midnight"] .notif-settings__sample-preview { color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .notif-settings__sample-preview { color: var(--color-text-secondary); }
       [data-theme="midnight"] .notif-settings__section-badge {
         background: linear-gradient(135deg, var(--persona-tint-dark, rgba(140, 179, 128, 0.25)), var(--persona-tint-dark, rgba(140, 179, 128, 0.1)));
         color: var(--persona-ink);
       }
       [data-theme="midnight"] .notif-settings__capability-icon {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary);
       }
       [data-theme="midnight"] .notif-settings__capability-icon--guardian { color: var(--persona-ink); }
       [data-theme="midnight"] .notif-settings__capability-icon--ritual { color: #c9a99a; }
@@ -2024,11 +2024,11 @@ class NotificationSettingsUI {
       [data-theme="midnight"] .notif-settings__capability-icon--prediction { color: #6a9ba3; }
       [data-theme="midnight"] .notif-settings__capability-icon--team { color: #8a9bba; }
       [data-theme="midnight"] .notif-settings__row-icon {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary);
         color: var(--persona-ink);
       }
       [data-theme="midnight"] .notif-settings__quiet-note {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
       [data-theme="midnight"] .notif-settings__quiet-note svg { color: var(--persona-ink); }
       [data-theme="midnight"] .notif-settings__guardian-ring { border-color: var(--persona-primary-dark, #8cb380); }
@@ -2041,17 +2041,17 @@ class NotificationSettingsUI {
         color: var(--persona-ink);
       }
       [data-theme="midnight"] .notif-settings__sample-checkin {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
       [data-theme="midnight"] .notif-settings__sample-checkins::after {
-        background: linear-gradient(to bottom, transparent, var(--color-background-elevated, #70605a));
+        background: linear-gradient(to bottom, transparent, var(--color-background-elevated));
       }
       [data-theme="midnight"] .notif-settings__sample-reason {
         background: var(--persona-tint-dark, rgba(140, 179, 128, 0.15));
         color: var(--persona-ink);
       }
       [data-theme="midnight"] .notif-settings__capability {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
       [data-theme="midnight"] .notif-settings__capability-badge {
         background: var(--persona-tint-dark, rgba(140, 179, 128, 0.2));

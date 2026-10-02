@@ -322,7 +322,7 @@ export class CelebrationUI {
       transform: 'translate(-50%, -50%) scale(0.8)',
       opacity: '0',
       padding: 'var(--space-6, 24px) var(--space-8, 32px)',
-      background: 'var(--color-background-elevated, #FFFDFB)',
+      background: 'var(--color-background-elevated)',
       borderRadius: 'var(--radius-2xl, 24px)',
       boxShadow: 'var(--shadow-2xl), 0 0 60px rgba(74, 103, 65, 0.3)',
       textAlign: 'center',
@@ -349,7 +349,7 @@ export class CelebrationUI {
         fontFamily: 'var(--font-display)',
         fontSize: '24px',
         fontWeight: '600',
-        color: 'var(--color-text-primary, #2C2520)',
+        color: 'var(--color-text-primary)',
         margin: '0 0 8px 0',
       });
       card.appendChild(title);
@@ -363,7 +363,7 @@ export class CelebrationUI {
       Object.assign(subtitle.style, {
         fontFamily: 'var(--font-body)',
         fontSize: '16px',
-        color: 'var(--color-text-secondary, #70605a)',
+        color: 'var(--color-text-secondary)',
         margin: '0',
       });
       card.appendChild(subtitle);

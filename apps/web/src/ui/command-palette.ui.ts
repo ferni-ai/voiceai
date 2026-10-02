@@ -293,8 +293,8 @@ function injectStyles(): void {
       width: 100%;
       max-width: 560px;
       margin: 0 var(--space-4, 16px);
-      background: var(--color-background-elevated, white);
-      border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.1));
+      background: var(--color-background-elevated);
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 16px);
       box-shadow: 
         0 20px 40px rgba(0, 0, 0, 0.15),
@@ -318,7 +318,7 @@ function injectStyles(): void {
     }
 
     .command-palette__search-icon {
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       flex-shrink: 0;
     }
 
@@ -328,12 +328,12 @@ function injectStyles(): void {
       background: transparent;
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-base, 16px);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       outline: none;
     }
 
     .command-palette__input::placeholder {
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
     }
 
     .command-palette__shortcut {
@@ -341,7 +341,7 @@ function injectStyles(): void {
       font-size: var(--text-xs, 12px);
       color: var(--color-text-muted);
       padding: var(--space-1, 4px) var(--space-2, 8px);
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-sm, 4px);
     }
 
@@ -383,11 +383,11 @@ function injectStyles(): void {
 
     .command-palette__item:hover,
     .command-palette__item--selected {
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
     }
 
     .command-palette__item--selected {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
     }
 
     .command-palette__item-icon {
@@ -396,15 +396,15 @@ function injectStyles(): void {
       justify-content: center;
       width: 32px;
       height: 32px;
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-md, 8px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       flex-shrink: 0;
     }
 
     .command-palette__item--selected .command-palette__item-icon {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .command-palette__item-content {
@@ -416,7 +416,7 @@ function injectStyles(): void {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
       font-weight: var(--font-weight-medium, 500);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .command-palette__item-description {
@@ -430,7 +430,7 @@ function injectStyles(): void {
       font-size: var(--text-xs, 12px);
       color: var(--color-text-muted);
       padding: 2px var(--space-2, 8px);
-      background: var(--color-background-tertiary, #E8E0D5);
+      background: var(--color-background-tertiary);
       border-radius: var(--radius-sm, 4px);
     }
 
@@ -469,13 +469,13 @@ function injectStyles(): void {
     }
 
     [data-theme="midnight"] .command-palette__container {
-      background: var(--color-background-elevated, #70605a);
-      border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      background: var(--color-background-elevated);
+      border-color: var(--color-border-subtle);
     }
 
     [data-theme="midnight"] .command-palette__item:hover,
     [data-theme="midnight"] .command-palette__item--selected {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
 
     /* Reduced motion */

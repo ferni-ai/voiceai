@@ -171,7 +171,7 @@ export async function render(): Promise<string> {
 
       .diagnostics-stat-label {
         font-size: 0.75rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         margin-top: var(--space-1, 0.25rem);
@@ -192,15 +192,15 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-2, 0.5rem);
         padding: var(--space-4, 1rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
-        border: 2px solid var(--node-color, rgba(255, 255, 255, 0.1));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
+        border: 2px solid var(--node-color, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: var(--radius-lg, 12px);
         min-width: min(100px, 100%);
         transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .flow-node:hover {
-        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.06));
+        background: var(--admin-surface-hover, color-mix(in srgb, var(--color-white) 6%, transparent));
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -218,7 +218,7 @@ export async function render(): Promise<string> {
         justify-content: center;
         font-weight: 700;
         font-size: 0.75rem;
-        color: white;
+        color: var(--color-white);
       }
 
       .flow-node-name {
@@ -229,7 +229,7 @@ export async function render(): Promise<string> {
       .flow-arrow {
         display: flex;
         align-items: center;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
       }
 
       .flow-arrow svg {
@@ -253,7 +253,7 @@ export async function render(): Promise<string> {
       }
 
       .handoff-status--success {
-        background: rgba(74, 103, 65, 0.2);
+        background: color-mix(in srgb, var(--color-ferni) 20%, transparent);
         color: var(--color-semantic-success-text);
       }
 
@@ -273,7 +273,7 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-3, 0.75rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -291,18 +291,18 @@ export async function render(): Promise<string> {
       }
 
       .health-indicator--healthy {
-        background: var(--color-semantic-success, #4a6741);
-        box-shadow: 0 0 8px var(--color-semantic-success, #4a6741);
+        background: var(--color-semantic-success);
+        box-shadow: 0 0 8px var(--color-semantic-success);
       }
 
       .health-indicator--degraded {
-        background: var(--color-semantic-warning, #d4a84b);
-        box-shadow: 0 0 8px var(--color-semantic-warning, #d4a84b);
+        background: var(--color-semantic-warning);
+        box-shadow: 0 0 8px var(--color-semantic-warning);
       }
 
       .health-indicator--down {
-        background: var(--color-semantic-error, #c44536);
-        box-shadow: 0 0 8px var(--color-semantic-error, #c44536);
+        background: var(--color-semantic-error);
+        box-shadow: 0 0 8px var(--color-semantic-error);
       }
 
       @keyframes diagnostics-pulse {
@@ -321,13 +321,13 @@ export async function render(): Promise<string> {
 
       .health-detail {
         font-size: 0.75rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .empty-state {
         text-align: center;
         padding: var(--space-8, 2rem);
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .empty-state .admin-icon {
@@ -338,7 +338,7 @@ export async function render(): Promise<string> {
 
       .empty-state h3 {
         margin: 0 0 var(--space-2, 0.5rem) 0;
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
         font-size: 1rem;
       }
 

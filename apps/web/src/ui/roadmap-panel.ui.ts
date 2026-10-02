@@ -1112,10 +1112,10 @@ class RoadmapPanelUI {
         width: 100%;
         max-width: clamp(420px, 90vw, 600px);
         max-height: 85vh;
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -1135,7 +1135,7 @@ class RoadmapPanelUI {
         align-items: flex-start;
         gap: var(--space-3, 12px);
         padding: var(--space-5, 20px) var(--space-6, 24px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-bottom: 1px solid var(--color-border-subtle);
         flex-shrink: 0;
       }
 
@@ -1171,7 +1171,7 @@ class RoadmapPanelUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-xl, 1.25rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
         line-height: 1.2;
       }
@@ -1184,10 +1184,10 @@ class RoadmapPanelUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border: none;
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
         flex-shrink: 0;
@@ -1195,8 +1195,8 @@ class RoadmapPanelUI {
 
       .roadmap-panel__close:hover,
       .roadmap-panel__back:hover {
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
         transform: scale(1.05);
       }
 
@@ -1214,7 +1214,7 @@ class RoadmapPanelUI {
         align-items: center;
         gap: var(--space-1, 4px);
         padding: var(--space-2, 8px) var(--space-3, 12px);
-        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+        background: var(--color-accent-subtle);
         border-radius: var(--radius-full, 9999px);
         flex-shrink: 0;
         cursor: default;
@@ -1241,7 +1241,7 @@ class RoadmapPanelUI {
         font-size: 10px;
         font-weight: 700;
         color: var(--color-text-tertiary, #8a817a);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: 50%;
         cursor: help;
         margin-left: 2px;
@@ -1249,7 +1249,7 @@ class RoadmapPanelUI {
       }
 
       .roadmap-panel__seed-info-trigger:hover {
-        background: var(--color-accent-primary, #3D5A45);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
       }
 
@@ -1296,20 +1296,20 @@ class RoadmapPanelUI {
       .roadmap-panel__streak-text {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
       }
 
       .roadmap-panel__streak-bar {
         width: 40px;
         height: 4px;
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-full, 9999px);
         overflow: hidden;
       }
 
       .roadmap-panel__streak-bar-fill {
         height: 100%;
-        background: linear-gradient(90deg, var(--color-semantic-warning, #ff8c00), #ff6b00);
+        background: linear-gradient(90deg, var(--color-semantic-warning), #ff6b00);
         border-radius: var(--radius-full, 9999px);
         transition: width ${DURATION.NORMAL}ms ${EASING.SPRING};
       }
@@ -1335,10 +1335,10 @@ class RoadmapPanelUI {
         z-index: var(--z-docked);
         min-width: min(240px, 100%);
         padding: var(--space-4, 16px);
-        background: var(--color-background-elevated, #fff);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-lg, 12px);
-        box-shadow: var(--shadow-lg, 0 20px 40px rgba(0, 0, 0, 0.15));
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        box-shadow: var(--shadow-lg, 0 20px 40px color-mix(in srgb, var(--color-black) 15%, transparent));
+        border: 1px solid var(--color-border-subtle);
         animation: tooltipFadeIn ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
@@ -1362,14 +1362,14 @@ class RoadmapPanelUI {
         height: 0;
         border-left: 8px solid transparent;
         border-right: 8px solid transparent;
-        border-bottom: 8px solid var(--color-background-elevated, #fff);
+        border-bottom: 8px solid var(--color-background-elevated);
       }
 
       .roadmap-panel__seeds-tooltip-title {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-3, 12px) 0;
       }
 
@@ -1388,7 +1388,7 @@ class RoadmapPanelUI {
         gap: var(--space-2, 8px);
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
       }
 
       .roadmap-panel__seeds-tooltip-icon {
@@ -1401,7 +1401,7 @@ class RoadmapPanelUI {
       .roadmap-panel__seeds-tooltip-note {
         margin: var(--space-3, 12px) 0 0 0;
         padding-top: var(--space-3, 12px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-top: 1px solid var(--color-border-subtle);
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-xs, 0.75rem);
         color: var(--color-text-tertiary, #8a817a);
@@ -1433,7 +1433,7 @@ class RoadmapPanelUI {
       .roadmap-panel__loading-text {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-base, 1rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0;
       }
 
@@ -1449,7 +1449,7 @@ class RoadmapPanelUI {
       .roadmap-panel__intro {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-base, 1rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         line-height: 1.6;
         margin: 0 0 var(--space-5, 20px) 0;
       }
@@ -1462,11 +1462,11 @@ class RoadmapPanelUI {
         flex-wrap: wrap;
         gap: var(--space-3, 12px);
         padding: var(--space-4, 16px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-xl, 16px);
         margin-bottom: var(--space-6, 24px);
         justify-content: center;
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border: 1px solid var(--color-border-subtle);
       }
 
       .roadmap-panel__legend-item {
@@ -1474,9 +1474,9 @@ class RoadmapPanelUI {
         align-items: center;
         gap: var(--space-2, 8px);
         padding: var(--space-1, 4px) var(--space-3, 12px);
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-full, 9999px);
-        box-shadow: var(--shadow-xs, 0 1px 2px rgba(0, 0, 0, 0.04));
+        box-shadow: var(--shadow-xs, 0 1px 2px color-mix(in srgb, var(--color-black) 4%, transparent));
       }
 
       .roadmap-panel__legend-icon {
@@ -1495,7 +1495,7 @@ class RoadmapPanelUI {
       .roadmap-panel__legend-label {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         font-weight: var(--font-weight-medium, 500);
       }
 
@@ -1525,7 +1525,7 @@ class RoadmapPanelUI {
         content: '';
         width: 4px;
         height: 16px;
-        background: var(--color-accent-primary, #3D5A45);
+        background: var(--color-accent-primary);
         border-radius: 2px;
       }
 
@@ -1565,8 +1565,8 @@ class RoadmapPanelUI {
         flex-direction: column;
         gap: var(--space-2, 8px);
         padding: var(--space-4, 16px);
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-background-elevated);
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-lg, 12px);
         cursor: pointer;
         transition: all ${DURATION.SLOW}ms ${EASING.SPRING};
@@ -1576,13 +1576,13 @@ class RoadmapPanelUI {
       }
 
       .roadmap-card:hover {
-        border-color: var(--color-accent-primary, #3D5A45);
-        box-shadow: var(--shadow-lg, 0 8px 16px rgba(0, 0, 0, 0.1));
+        border-color: var(--color-accent-primary);
+        box-shadow: var(--shadow-lg, 0 8px 16px color-mix(in srgb, var(--color-black) 10%, transparent));
         transform: translateY(-2px);
       }
 
       .roadmap-card:focus-visible {
-        outline: 2px solid var(--color-accent-primary, #3D5A45);
+        outline: 2px solid var(--color-accent-primary);
         outline-offset: 2px;
       }
 
@@ -1598,7 +1598,7 @@ class RoadmapPanelUI {
         width: 40px;
         height: 40px;
         padding: 8px;
-        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+        background: var(--color-accent-subtle);
         border-radius: var(--radius-lg, 12px);
         color: var(--color-accent-text);
         transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
@@ -1640,22 +1640,22 @@ class RoadmapPanelUI {
 
       /* Stage color classes - using design system semantic colors */
       .stage--seed {
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-muted, #756a5e);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-muted);
       }
 
       .stage--sprout {
-        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+        background: var(--color-accent-subtle);
         color: var(--color-accent-text);
       }
 
       .stage--bud {
-        background: var(--color-semantic-warning-glow, rgba(166, 124, 53, 0.18));
+        background: var(--color-semantic-warning-glow);
         color: var(--color-semantic-warning-text);
       }
 
       .stage--bloom {
-        background: var(--color-semantic-success-glow, rgba(61, 122, 82, 0.18));
+        background: var(--color-semantic-success-glow);
         color: var(--color-semantic-success-text);
       }
 
@@ -1663,7 +1663,7 @@ class RoadmapPanelUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
         line-height: 1.3;
         position: relative;
@@ -1673,7 +1673,7 @@ class RoadmapPanelUI {
       .roadmap-card__arrival {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0;
         position: relative;
         z-index: var(--z-docked);
@@ -1707,7 +1707,7 @@ class RoadmapPanelUI {
       .roadmap-card__count {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .roadmap-card__chevron {
@@ -1717,7 +1717,7 @@ class RoadmapPanelUI {
         transform: translateY(-50%);
         width: 16px;
         height: 16px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         opacity: 0;
         transition: opacity ${DURATION.FAST}ms ${EASING.STANDARD};
       }
@@ -1751,22 +1751,22 @@ class RoadmapPanelUI {
       }
 
       .roadmap-detail__icon.stage--seed {
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-muted, #756a5e);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-muted);
       }
 
       .roadmap-detail__icon.stage--sprout {
-        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+        background: var(--color-accent-subtle);
         color: var(--color-accent-text);
       }
 
       .roadmap-detail__icon.stage--bud {
-        background: var(--color-semantic-warning-glow, rgba(166, 124, 53, 0.18));
+        background: var(--color-semantic-warning-glow);
         color: var(--color-semantic-warning-text);
       }
 
       .roadmap-detail__icon.stage--bloom {
-        background: var(--color-semantic-success-glow, rgba(61, 122, 82, 0.18));
+        background: var(--color-semantic-success-glow);
         color: var(--color-semantic-success-text);
       }
 
@@ -1802,7 +1802,7 @@ class RoadmapPanelUI {
       .roadmap-detail__description {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-base, 1rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         line-height: 1.7;
         margin: 0 0 var(--space-5, 20px) 0;
         font-style: italic;
@@ -1813,7 +1813,7 @@ class RoadmapPanelUI {
         align-items: center;
         justify-content: space-between;
         padding: var(--space-3, 12px) var(--space-4, 16px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-md, 8px);
         margin-bottom: var(--space-5, 20px);
       }
@@ -1821,7 +1821,7 @@ class RoadmapPanelUI {
       .roadmap-detail__timeline-label {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .roadmap-detail__timeline-value {
@@ -1837,16 +1837,16 @@ class RoadmapPanelUI {
 
       .roadmap-detail__section--existing {
         padding: var(--space-4, 16px);
-        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.05));
+        background: var(--color-accent-subtle);
         border-radius: var(--radius-lg, 12px);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border: 1px solid var(--color-border-subtle);
       }
 
       .roadmap-detail__section-title {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-3, 12px) 0;
       }
 
@@ -1859,10 +1859,10 @@ class RoadmapPanelUI {
       .roadmap-detail__list-item {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         line-height: 1.6;
         padding: var(--space-2, 8px) 0;
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
         display: flex;
         align-items: flex-start;
         gap: var(--space-2, 8px);
@@ -1877,7 +1877,7 @@ class RoadmapPanelUI {
         content: '';
         width: 6px;
         height: 6px;
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary, var(--color-ferni));
         border-radius: 50%;
         flex-shrink: 0;
         margin-top: 7px;
@@ -1907,9 +1907,9 @@ class RoadmapPanelUI {
         flex-direction: column;
         gap: var(--space-4, 16px);
         padding: var(--space-5, 20px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-xl, 16px);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border: 1px solid var(--color-border-subtle);
       }
 
       .roadmap-detail__seed-stats {
@@ -1917,7 +1917,7 @@ class RoadmapPanelUI {
         justify-content: space-between;
         align-items: center;
         padding-bottom: var(--space-3, 12px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .roadmap-detail__seed-total {
@@ -1941,13 +1941,13 @@ class RoadmapPanelUI {
       .roadmap-detail__seed-total-label {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .roadmap-detail__seed-gardeners {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
       }
 
       .roadmap-detail__your-seeds {
@@ -1955,14 +1955,14 @@ class RoadmapPanelUI {
         align-items: center;
         gap: var(--space-2, 8px);
         padding: var(--space-3, 12px);
-        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+        background: var(--color-accent-subtle);
         border-radius: var(--radius-md, 8px);
       }
 
       .roadmap-detail__your-seeds-label {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
       }
 
       .roadmap-detail__your-seeds-count {
@@ -1984,20 +1984,20 @@ class RoadmapPanelUI {
         justify-content: center;
         gap: var(--space-2, 8px);
         padding: var(--space-3, 12px) var(--space-4, 16px);
-        background: var(--color-background-elevated, #fffdfb);
-        border: 2px solid var(--color-border-medium, rgba(44, 37, 32, 0.12));
+        background: var(--color-background-elevated);
+        border: 2px solid var(--color-border-medium);
         border-radius: var(--radius-lg, 12px);
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         cursor: pointer;
         transition: all ${DURATION.MODERATE}ms ${EASING.SPRING};
       }
 
       .roadmap-detail__seed-btn:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.08));
+        box-shadow: var(--shadow-md, 0 4px 8px color-mix(in srgb, var(--color-black) 8%, transparent));
       }
 
       .roadmap-detail__seed-btn:active:not(:disabled) {
@@ -2005,7 +2005,7 @@ class RoadmapPanelUI {
       }
 
       .roadmap-detail__seed-btn:focus-visible {
-        outline: 2px solid var(--color-accent-primary, #3D5A45);
+        outline: 2px solid var(--color-accent-primary);
         outline-offset: 2px;
       }
 
@@ -2015,24 +2015,24 @@ class RoadmapPanelUI {
       }
 
       .roadmap-detail__seed-btn--add {
-        background: var(--color-accent-primary, #3D5A45);
-        border-color: var(--color-accent-primary, #3D5A45);
+        background: var(--color-accent-primary);
+        border-color: var(--color-accent-primary);
         color: var(--color-text-on-accent);
       }
 
       .roadmap-detail__seed-btn--add:hover:not(:disabled) {
-        background: var(--color-accent-hover, #4a6b52);
-        border-color: var(--color-accent-hover, #4a6b52);
+        background: var(--color-accent-hover);
+        border-color: var(--color-accent-hover);
       }
 
       .roadmap-detail__seed-btn--remove {
         background: transparent;
-        border-color: var(--color-border-medium, rgba(44, 37, 32, 0.12));
-        color: var(--color-text-secondary, #5c544a);
+        border-color: var(--color-border-medium);
+        color: var(--color-text-secondary);
       }
 
       .roadmap-detail__seed-btn--remove:hover:not(:disabled) {
-        border-color: var(--color-semantic-error, #b5453a);
+        border-color: var(--color-semantic-error);
         color: var(--color-semantic-error-text);
       }
 
@@ -2045,7 +2045,7 @@ class RoadmapPanelUI {
       .roadmap-detail__vote-hint {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         text-align: center;
         margin: 0;
         font-style: italic;
@@ -2063,16 +2063,16 @@ class RoadmapPanelUI {
         flex-direction: column;
         gap: var(--space-3, 12px);
         padding: var(--space-4, 16px);
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-lg, 12px);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border: 1px solid var(--color-border-subtle);
       }
 
       .roadmap-detail__allocator-label {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         text-align: center;
       }
 
@@ -2088,19 +2088,19 @@ class RoadmapPanelUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border: none;
         border-radius: var(--radius-full, 9999px);
         font-size: var(--text-lg, 1.125rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
         flex-shrink: 0;
       }
 
       .roadmap-detail__slider-btn:hover {
-        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+        background: var(--color-accent-subtle);
         color: var(--color-accent-text);
         transform: scale(1.1);
       }
@@ -2120,7 +2120,7 @@ class RoadmapPanelUI {
         appearance: none;
         width: 100%;
         height: 8px;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border-radius: var(--radius-full, 9999px);
         outline: none;
         cursor: pointer;
@@ -2135,7 +2135,7 @@ class RoadmapPanelUI {
         top: 0;
         height: 100%;
         width: var(--slider-percent);
-        background: var(--color-accent-primary, #3D5A45);
+        background: var(--color-accent-primary);
         border-radius: var(--radius-full, 9999px);
         pointer-events: none;
       }
@@ -2145,10 +2145,10 @@ class RoadmapPanelUI {
         appearance: none;
         width: 24px;
         height: 24px;
-        background: var(--color-accent-primary, #3D5A45);
+        background: var(--color-accent-primary);
         border-radius: var(--radius-full, 9999px);
         cursor: grab;
-        box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.08));
+        box-shadow: var(--shadow-md, 0 4px 8px color-mix(in srgb, var(--color-black) 8%, transparent));
         transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
         position: relative;
         z-index: var(--z-docked);
@@ -2166,11 +2166,11 @@ class RoadmapPanelUI {
       .roadmap-detail__slider::-moz-range-thumb {
         width: 24px;
         height: 24px;
-        background: var(--color-accent-primary, #3D5A45);
+        background: var(--color-accent-primary);
         border: none;
         border-radius: var(--radius-full, 9999px);
         cursor: grab;
-        box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.08));
+        box-shadow: var(--shadow-md, 0 4px 8px color-mix(in srgb, var(--color-black) 8%, transparent));
       }
 
       .roadmap-detail__slider-value {
@@ -2195,7 +2195,7 @@ class RoadmapPanelUI {
       .roadmap-detail__slider-label {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .roadmap-detail__plant-btn {
@@ -2204,7 +2204,7 @@ class RoadmapPanelUI {
         justify-content: center;
         gap: var(--space-2, 8px);
         padding: var(--space-4, 16px) var(--space-6, 24px);
-        background: var(--color-accent-primary, #3D5A45);
+        background: var(--color-accent-primary);
         border: none;
         border-radius: var(--radius-full, 9999px);
         font-family: var(--font-body, Inter, sans-serif);
@@ -2213,13 +2213,13 @@ class RoadmapPanelUI {
         color: var(--color-text-on-accent);
         cursor: pointer;
         transition: all ${DURATION.MODERATE}ms ${EASING.SPRING};
-        box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.08));
+        box-shadow: var(--shadow-md, 0 4px 8px color-mix(in srgb, var(--color-black) 8%, transparent));
       }
 
       .roadmap-detail__plant-btn:hover:not(:disabled) {
-        background: var(--color-accent-hover, #4a6b52);
+        background: var(--color-accent-hover);
         transform: translateY(-2px);
-        box-shadow: var(--shadow-lg, 0 8px 16px rgba(0, 0, 0, 0.12));
+        box-shadow: var(--shadow-lg, 0 8px 16px color-mix(in srgb, var(--color-black) 12%, transparent));
       }
 
       .roadmap-detail__plant-btn:active:not(:disabled) {
@@ -2241,20 +2241,20 @@ class RoadmapPanelUI {
         width: 100%;
         padding: var(--space-3, 12px);
         background: transparent;
-        border: 1px solid var(--color-border-medium, rgba(44, 37, 32, 0.12));
+        border: 1px solid var(--color-border-medium);
         border-radius: var(--radius-md, 8px);
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
         text-align: center;
       }
 
       .roadmap-detail__remove-btn:hover:not(:disabled) {
-        border-color: var(--color-semantic-error, #b5453a);
+        border-color: var(--color-semantic-error);
         color: var(--color-semantic-error-text);
-        background: var(--color-semantic-error-glow, rgba(181, 69, 58, 0.08));
+        background: var(--color-semantic-error-glow);
       }
 
       .roadmap-detail__remove-btn:disabled {
@@ -2267,14 +2267,14 @@ class RoadmapPanelUI {
          ======================================================================== */
       .roadmap-panel__footer {
         padding: var(--space-4, 16px) var(--space-6, 24px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-top: 1px solid var(--color-border-subtle);
         flex-shrink: 0;
       }
 
       .roadmap-panel__footer-text {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         text-align: center;
         margin: 0;
         font-style: italic;
@@ -2292,22 +2292,22 @@ class RoadmapPanelUI {
         padding: var(--space-4, 16px) var(--space-5, 20px);
         margin-top: var(--space-6, 24px);
         background: linear-gradient(135deg,
-          var(--color-accent-primary, #3D5A45) 0%,
-          var(--color-accent-hover, #4a6b52) 100%);
+          var(--color-accent-primary) 0%,
+          var(--color-accent-hover) 100%);
         border: none;
         border-radius: var(--radius-lg, 12px);
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: white;
+        color: var(--color-white);
         cursor: pointer;
         transition: all ${DURATION.MODERATE}ms ${EASING.SPRING};
-        box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.08));
+        box-shadow: var(--shadow-md, 0 4px 8px color-mix(in srgb, var(--color-black) 8%, transparent));
       }
 
       .roadmap-panel__suggest-btn:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: var(--shadow-lg, 0 8px 16px rgba(0, 0, 0, 0.12));
+        box-shadow: var(--shadow-lg, 0 8px 16px color-mix(in srgb, var(--color-black) 12%, transparent));
       }
 
       .roadmap-panel__suggest-btn:active:not(:disabled) {
@@ -2317,7 +2317,7 @@ class RoadmapPanelUI {
       .roadmap-panel__suggest-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
-        background: var(--color-text-muted, #756a5e);
+        background: var(--color-text-muted);
       }
 
       .roadmap-panel__suggest-icon {
@@ -2334,7 +2334,7 @@ class RoadmapPanelUI {
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-normal, 400);
         opacity: 0.85;
-        background: rgba(255, 255, 255, 0.15);
+        background: color-mix(in srgb, var(--color-white) 15%, transparent);
         padding: var(--space-1, 4px) var(--space-2, 8px);
         border-radius: var(--radius-full, 9999px);
       }
@@ -2346,10 +2346,10 @@ class RoadmapPanelUI {
         margin-top: var(--space-6, 24px);
         padding: var(--space-5, 20px);
         background: linear-gradient(135deg,
-          var(--color-accent-glow, rgba(61, 90, 69, 0.08)) 0%,
-          var(--color-semantic-success-glow, rgba(61, 90, 69, 0.04)) 100%);
+          var(--color-accent-glow) 0%,
+          var(--color-semantic-success-glow) 100%);
         border-radius: var(--radius-lg, 12px);
-        border: 1px solid var(--color-accent-subtle, rgba(61, 90, 69, 0.12));
+        border: 1px solid var(--color-accent-subtle);
       }
 
       .roadmap-panel__recommendations-header {
@@ -2368,14 +2368,14 @@ class RoadmapPanelUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
       .roadmap-panel__recommendations-subtitle {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0 0 var(--space-4, 16px) 0;
       }
 
@@ -2390,8 +2390,8 @@ class RoadmapPanelUI {
         align-items: flex-start;
         gap: var(--space-3, 12px);
         padding: var(--space-3, 12px);
-        background: var(--color-background-primary, #fcfaf7);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-background-primary);
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-md, 8px);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -2401,8 +2401,8 @@ class RoadmapPanelUI {
       }
 
       .roadmap-recommendation:hover {
-        border-color: var(--color-accent-primary, #3D5A45);
-        box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.08));
+        border-color: var(--color-accent-primary);
+        box-shadow: var(--shadow-md, 0 4px 8px color-mix(in srgb, var(--color-black) 8%, transparent));
         transform: translateY(-1px);
       }
 
@@ -2412,7 +2412,7 @@ class RoadmapPanelUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-accent-glow, rgba(61, 90, 69, 0.08));
+        background: var(--color-accent-glow);
         border-radius: var(--radius-full, 9999px);
         flex-shrink: 0;
         color: var(--persona-ink);
@@ -2451,13 +2451,13 @@ class RoadmapPanelUI {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
       }
 
       .roadmap-recommendation__reason {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0 0 var(--space-2, 8px) 0;
         font-style: italic;
       }
@@ -2497,7 +2497,7 @@ class RoadmapPanelUI {
         border: none;
         border-radius: var(--radius-full, 9999px);
         font-size: 14px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         cursor: pointer;
         opacity: 0;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -2508,7 +2508,7 @@ class RoadmapPanelUI {
       }
 
       .roadmap-recommendation__dismiss:hover {
-        background: var(--color-semantic-error-glow, rgba(181, 69, 58, 0.08));
+        background: var(--color-semantic-error-glow);
         color: var(--color-semantic-error-text);
       }
 
@@ -2527,7 +2527,7 @@ class RoadmapPanelUI {
       .roadmap-suggestion__intro {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #4a423b);
+        color: var(--color-text-secondary);
         line-height: 1.6;
         margin: 0;
       }
@@ -2542,7 +2542,7 @@ class RoadmapPanelUI {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
       }
 
       .roadmap-suggestion__required {
@@ -2557,9 +2557,9 @@ class RoadmapPanelUI {
         padding: var(--space-3, 12px) var(--space-4, 16px);
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-base, 1rem);
-        color: var(--color-text-primary, #2C2520);
-        background: var(--color-background-primary, #fcfaf7);
-        border: 1px solid var(--color-border-medium, rgba(44, 37, 32, 0.12));
+        color: var(--color-text-primary);
+        background: var(--color-background-primary);
+        border: 1px solid var(--color-border-medium);
         border-radius: var(--radius-md, 8px);
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
@@ -2568,13 +2568,13 @@ class RoadmapPanelUI {
       .roadmap-suggestion__textarea:focus,
       .roadmap-suggestion__select:focus {
         outline: none;
-        border-color: var(--color-accent-primary, #3D5A45);
-        box-shadow: 0 0 0 3px var(--color-accent-glow, rgba(61, 90, 69, 0.15));
+        border-color: var(--color-accent-primary);
+        box-shadow: 0 0 0 3px var(--color-accent-glow);
       }
 
       .roadmap-suggestion__input::placeholder,
       .roadmap-suggestion__textarea::placeholder {
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .roadmap-suggestion__textarea {
@@ -2595,7 +2595,7 @@ class RoadmapPanelUI {
       .roadmap-suggestion__char-count {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         text-align: right;
       }
 
@@ -2612,11 +2612,11 @@ class RoadmapPanelUI {
         align-items: center;
         gap: var(--space-3, 12px);
         padding: var(--space-4, 16px);
-        background: var(--color-accent-glow, rgba(61, 90, 69, 0.08));
+        background: var(--color-accent-glow);
         border-radius: var(--radius-md, 8px);
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #4a423b);
+        color: var(--color-text-secondary);
       }
 
       .roadmap-suggestion__cost-icon {
@@ -2630,7 +2630,7 @@ class RoadmapPanelUI {
         justify-content: center;
         gap: var(--space-2, 8px);
         padding: var(--space-4, 16px) var(--space-6, 24px);
-        background: var(--color-accent-primary, #3D5A45);
+        background: var(--color-accent-primary);
         border: none;
         border-radius: var(--radius-full, 9999px);
         font-family: var(--font-body, Inter, sans-serif);
@@ -2639,14 +2639,14 @@ class RoadmapPanelUI {
         color: var(--color-text-on-accent);
         cursor: pointer;
         transition: all ${DURATION.MODERATE}ms ${EASING.SPRING};
-        box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.08));
+        box-shadow: var(--shadow-md, 0 4px 8px color-mix(in srgb, var(--color-black) 8%, transparent));
         margin-top: var(--space-4, 16px);
       }
 
       .roadmap-suggestion__submit:hover:not(:disabled) {
-        background: var(--color-accent-hover, #4a6b52);
+        background: var(--color-accent-hover);
         transform: translateY(-2px);
-        box-shadow: var(--shadow-lg, 0 8px 16px rgba(0, 0, 0, 0.12));
+        box-shadow: var(--shadow-lg, 0 8px 16px color-mix(in srgb, var(--color-black) 12%, transparent));
       }
 
       .roadmap-suggestion__submit:active:not(:disabled) {
@@ -2680,7 +2680,7 @@ class RoadmapPanelUI {
       .roadmap-suggestion__success-icon {
         width: 80px;
         height: 80px;
-        background: var(--color-semantic-success-glow, rgba(61, 90, 69, 0.15));
+        background: var(--color-semantic-success-glow);
         border-radius: var(--radius-full, 9999px);
         display: flex;
         align-items: center;
@@ -2699,14 +2699,14 @@ class RoadmapPanelUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-xl, 1.25rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
       .roadmap-suggestion__success-text {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-base, 1rem);
-        color: var(--color-text-secondary, #4a423b);
+        color: var(--color-text-secondary);
         line-height: 1.6;
         margin: 0;
         max-width: min(280px, 100%);
@@ -2718,7 +2718,7 @@ class RoadmapPanelUI {
         justify-content: center;
         gap: var(--space-2, 8px);
         padding: var(--space-3, 12px) var(--space-6, 24px);
-        background: var(--color-accent-primary, #3D5A45);
+        background: var(--color-accent-primary);
         border: none;
         border-radius: var(--radius-full, 9999px);
         font-family: var(--font-body, Inter, sans-serif);
@@ -2731,7 +2731,7 @@ class RoadmapPanelUI {
       }
 
       .roadmap-suggestion__done-btn:hover {
-        background: var(--color-accent-hover, #4a6b52);
+        background: var(--color-accent-hover);
         transform: translateY(-2px);
       }
 
@@ -2739,118 +2739,118 @@ class RoadmapPanelUI {
          DARK THEME (Midnight / Cedar Night)
          ======================================================================== */
       [data-theme="midnight"] .roadmap-panel__backdrop {
-        background: var(--color-background-overlay, rgba(88, 72, 64, 0.95));
+        background: var(--color-background-overlay);
       }
 
       [data-theme="midnight"] .roadmap-panel__card {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated);
         box-shadow: var(--shadow-2xl);
       }
 
       [data-theme="midnight"] .roadmap-panel__title {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .roadmap-panel__eyebrow {
-        color: var(--color-accent-text, #e8c870);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-panel__eyebrow-icon {
-        color: var(--color-accent-text, #e8c870);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-panel__close,
       [data-theme="midnight"] .roadmap-panel__back {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-secondary, #f0ebe4);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .roadmap-panel__close:hover,
       [data-theme="midnight"] .roadmap-panel__back:hover {
-        background: var(--color-background-secondary, #60504a);
-        color: var(--color-text-primary, #faf6f0);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .roadmap-panel__intro {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .roadmap-panel__legend {
-        background: var(--color-background-tertiary, #685852);
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+        background: var(--color-background-tertiary);
+        border-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .roadmap-panel__legend-item {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated);
         box-shadow: var(--shadow-sm);
       }
 
       [data-theme="midnight"] .roadmap-panel__section-title {
-        color: var(--color-accent-text, #e8c870);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-panel__section-title::before {
-        background: var(--color-accent-primary, #d4a84a);
+        background: var(--color-accent-primary);
       }
 
       [data-theme="midnight"] .roadmap-card {
-        background: var(--color-background-tertiary, #685852);
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+        background: var(--color-background-tertiary);
+        border-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .roadmap-card:hover {
-        border-color: var(--color-accent-primary, #d4a84a);
+        border-color: var(--color-accent-primary);
         box-shadow: var(--shadow-lg);
       }
 
       [data-theme="midnight"] .roadmap-card__icon {
-        background: var(--color-accent-subtle, rgba(212, 168, 74, 0.08));
-        color: var(--color-accent-text, #e8c870);
+        background: var(--color-accent-subtle);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-card__headline {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .roadmap-card__arrival,
       [data-theme="midnight"] .roadmap-card__count,
       [data-theme="midnight"] .roadmap-card__chevron {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .roadmap-detail__icon {
-        background: var(--color-accent-subtle, rgba(212, 168, 74, 0.08));
-        color: var(--color-accent-text, #e8c870);
+        background: var(--color-accent-subtle);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-detail__description {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .roadmap-detail__timeline {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .roadmap-detail__timeline-value {
-        color: var(--color-accent-text, #e8c870);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-detail__section-title {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .roadmap-detail__section--existing {
-        background: var(--color-accent-subtle, rgba(212, 168, 74, 0.05));
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+        background: var(--color-accent-subtle);
+        border-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .roadmap-detail__list-item {
-        color: var(--color-text-secondary, #f0ebe4);
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+        color: var(--color-text-secondary);
+        border-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .roadmap-detail__list-item::before {
-        background: var(--color-accent-primary, #d4a84a);
+        background: var(--color-accent-primary);
       }
 
       [data-theme="midnight"] .roadmap-detail__check {
@@ -2858,21 +2858,21 @@ class RoadmapPanelUI {
       }
 
       [data-theme="midnight"] .roadmap-panel__seed-balance {
-        background: var(--color-accent-subtle, rgba(212, 168, 74, 0.12));
+        background: var(--color-accent-subtle);
       }
 
       [data-theme="midnight"] .roadmap-panel__seed-count {
-        color: var(--color-accent-text, #e8c870);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-panel__seed-info-trigger {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary);
         color: var(--color-text-tertiary, #b5a99a);
       }
 
       [data-theme="midnight"] .roadmap-panel__seed-info-trigger:hover {
-        background: var(--color-accent-primary, #d4a84a);
-        color: var(--color-text-on-accent, #2c2520);
+        background: var(--color-accent-primary);
+        color: var(--color-text-on-accent);
       }
 
       [data-theme="midnight"] .roadmap-panel__streak-progress {
@@ -2884,11 +2884,11 @@ class RoadmapPanelUI {
       }
 
       [data-theme="midnight"] .roadmap-panel__streak-text {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .roadmap-panel__streak-bar {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .roadmap-panel__streak-next {
@@ -2896,84 +2896,84 @@ class RoadmapPanelUI {
       }
 
       [data-theme="midnight"] .roadmap-panel__seeds-tooltip {
-        background: var(--color-background-elevated, #5a4a45);
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+        background: var(--color-background-elevated);
+        border-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .roadmap-panel__seeds-tooltip-arrow {
-        border-bottom-color: var(--color-background-elevated, #5a4a45);
+        border-bottom-color: var(--color-background-elevated);
       }
 
       [data-theme="midnight"] .roadmap-panel__seeds-tooltip-title {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .roadmap-panel__seeds-tooltip-list li {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .roadmap-panel__seeds-tooltip-note {
         color: var(--color-text-tertiary, #b5a99a);
-        border-top-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+        border-top-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .roadmap-detail__vote {
-        background: var(--color-background-tertiary, #685852);
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+        background: var(--color-background-tertiary);
+        border-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .roadmap-detail__seed-stats {
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+        border-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .roadmap-detail__seed-total-count {
-        color: var(--color-accent-text, #e8c870);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-detail__seed-total-label {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .roadmap-detail__seed-gardeners {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .roadmap-detail__your-seeds {
-        background: var(--color-accent-subtle, rgba(212, 168, 74, 0.12));
+        background: var(--color-accent-subtle);
       }
 
       [data-theme="midnight"] .roadmap-detail__your-seeds-label {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .roadmap-detail__your-seeds-count {
-        color: var(--color-accent-text, #e8c870);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-detail__seed-btn {
-        background: var(--color-background-elevated, #70605a);
-        border-color: var(--color-border-medium, rgba(215, 185, 145, 0.2));
-        color: var(--color-text-primary, #faf6f0);
+        background: var(--color-background-elevated);
+        border-color: var(--color-border-medium);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .roadmap-detail__seed-btn--add {
-        background: var(--color-accent-primary, #d4a84a);
-        border-color: var(--color-accent-primary, #d4a84a);
-        color: var(--color-text-on-accent, #2c2520);
+        background: var(--color-accent-primary);
+        border-color: var(--color-accent-primary);
+        color: var(--color-text-on-accent);
       }
 
       [data-theme="midnight"] .roadmap-detail__seed-btn--add:hover:not(:disabled) {
-        background: var(--color-accent-text, #e8c870);
-        border-color: var(--color-accent-text, #e8c870);
+        background: var(--color-accent-text);
+        border-color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-detail__seed-btn--remove:hover:not(:disabled) {
-        border-color: var(--color-semantic-error, #e07575);
+        border-color: var(--color-semantic-error);
         color: var(--color-semantic-error-text);
       }
 
       [data-theme="midnight"] .roadmap-detail__vote-hint {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .roadmap-detail__vote-hint--empty {
@@ -2981,170 +2981,170 @@ class RoadmapPanelUI {
       }
 
       [data-theme="midnight"] .roadmap-detail__allocator {
-        background: var(--color-background-elevated, #70605a);
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+        background: var(--color-background-elevated);
+        border-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .roadmap-detail__allocator-label {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .roadmap-detail__slider-btn {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-secondary, #f0ebe4);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .roadmap-detail__slider-btn:hover {
-        background: var(--color-accent-subtle, rgba(212, 168, 74, 0.12));
-        color: var(--color-accent-text, #e8c870);
+        background: var(--color-accent-subtle);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-detail__slider {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .roadmap-detail__slider::before {
-        background: var(--color-accent-primary, #d4a84a);
+        background: var(--color-accent-primary);
       }
 
       [data-theme="midnight"] .roadmap-detail__slider::-webkit-slider-thumb {
-        background: var(--color-accent-primary, #d4a84a);
+        background: var(--color-accent-primary);
       }
 
       [data-theme="midnight"] .roadmap-detail__slider::-moz-range-thumb {
-        background: var(--color-accent-primary, #d4a84a);
+        background: var(--color-accent-primary);
       }
 
       [data-theme="midnight"] .roadmap-detail__slider-count {
-        color: var(--color-accent-text, #e8c870);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-detail__slider-label {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .roadmap-detail__plant-btn {
-        background: var(--color-accent-primary, #d4a84a);
-        color: var(--color-text-on-accent, #2c2520);
+        background: var(--color-accent-primary);
+        color: var(--color-text-on-accent);
       }
 
       [data-theme="midnight"] .roadmap-detail__plant-btn:hover:not(:disabled) {
-        background: var(--color-accent-text, #e8c870);
+        background: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-detail__remove-btn {
-        border-color: var(--color-border-medium, rgba(215, 185, 145, 0.2));
-        color: var(--color-text-muted, #e8e2da);
+        border-color: var(--color-border-medium);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .roadmap-detail__remove-btn:hover:not(:disabled) {
-        border-color: var(--color-semantic-error, #e07575);
+        border-color: var(--color-semantic-error);
         color: var(--color-semantic-error-text);
-        background: var(--color-semantic-error-glow, rgba(224, 117, 117, 0.12));
+        background: var(--color-semantic-error-glow);
       }
 
       [data-theme="midnight"] .roadmap-panel__footer {
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+        border-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .roadmap-panel__footer-text {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       /* Dark theme suggest button */
       [data-theme="midnight"] .roadmap-panel__suggest-btn {
         background: linear-gradient(135deg,
-          var(--color-accent-primary, #d4a84a) 0%,
-          var(--color-accent-text, #e8c870) 100%);
-        color: var(--color-text-on-accent, #2c2520);
+          var(--color-accent-primary) 0%,
+          var(--color-accent-text) 100%);
+        color: var(--color-text-on-accent);
       }
 
       [data-theme="midnight"] .roadmap-panel__suggest-btn:disabled {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-muted, #e8e2da);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-muted);
       }
 
       /* Dark theme recommendations */
       [data-theme="midnight"] .roadmap-panel__recommendations {
         background: linear-gradient(135deg,
-          var(--color-accent-subtle, rgba(212, 168, 74, 0.08)) 0%,
-          var(--color-accent-subtle, rgba(212, 168, 74, 0.04)) 100%);
-        border-color: var(--color-accent-subtle, rgba(212, 168, 74, 0.15));
+          var(--color-accent-subtle) 0%,
+          var(--color-accent-subtle) 100%);
+        border-color: var(--color-accent-subtle);
       }
 
       [data-theme="midnight"] .roadmap-panel__recommendations-title {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .roadmap-panel__recommendations-subtitle {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .roadmap-recommendation {
-        background: var(--color-background-tertiary, #685852);
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+        background: var(--color-background-tertiary);
+        border-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .roadmap-recommendation:hover {
-        border-color: var(--color-accent-primary, #d4a84a);
+        border-color: var(--color-accent-primary);
       }
 
       [data-theme="midnight"] .roadmap-recommendation__badge {
-        background: var(--color-accent-subtle, rgba(212, 168, 74, 0.12));
+        background: var(--color-accent-subtle);
       }
 
       [data-theme="midnight"] .roadmap-recommendation__icon {
-        color: var(--color-accent-text, #e8c870);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-recommendation__headline {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .roadmap-recommendation__reason {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .roadmap-recommendation__cta {
-        color: var(--color-accent-text, #e8c870);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .roadmap-recommendation__dismiss {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .roadmap-recommendation__dismiss:hover {
-        background: var(--color-semantic-error-glow, rgba(224, 117, 117, 0.12));
+        background: var(--color-semantic-error-glow);
         color: var(--color-semantic-error-text);
       }
 
       /* Dark theme suggestion form */
       [data-theme="midnight"] .roadmap-suggestion__intro {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .roadmap-suggestion__label {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .roadmap-suggestion__input,
       [data-theme="midnight"] .roadmap-suggestion__textarea,
       [data-theme="midnight"] .roadmap-suggestion__select {
-        background: var(--color-background-tertiary, #685852);
-        border-color: var(--color-border-medium, rgba(215, 185, 145, 0.2));
-        color: var(--color-text-primary, #faf6f0);
+        background: var(--color-background-tertiary);
+        border-color: var(--color-border-medium);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .roadmap-suggestion__input:focus,
       [data-theme="midnight"] .roadmap-suggestion__textarea:focus,
       [data-theme="midnight"] .roadmap-suggestion__select:focus {
-        border-color: var(--color-accent-primary, #d4a84a);
-        box-shadow: 0 0 0 3px var(--color-accent-subtle, rgba(212, 168, 74, 0.2));
+        border-color: var(--color-accent-primary);
+        box-shadow: 0 0 0 3px var(--color-accent-subtle);
       }
 
       [data-theme="midnight"] .roadmap-suggestion__input::placeholder,
       [data-theme="midnight"] .roadmap-suggestion__textarea::placeholder {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .roadmap-suggestion__select {
@@ -3152,63 +3152,63 @@ class RoadmapPanelUI {
       }
 
       [data-theme="midnight"] .roadmap-suggestion__char-count {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .roadmap-suggestion__cost-notice {
-        background: var(--color-accent-subtle, rgba(212, 168, 74, 0.12));
-        color: var(--color-text-secondary, #f0ebe4);
+        background: var(--color-accent-subtle);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .roadmap-suggestion__submit {
-        background: var(--color-accent-primary, #d4a84a);
-        color: var(--color-text-on-accent, #2c2520);
+        background: var(--color-accent-primary);
+        color: var(--color-text-on-accent);
       }
 
       [data-theme="midnight"] .roadmap-suggestion__submit:hover:not(:disabled) {
-        background: var(--color-accent-text, #e8c870);
+        background: var(--color-accent-text);
       }
 
       /* Dark theme suggestion success */
       [data-theme="midnight"] .roadmap-suggestion__success-icon {
-        background: var(--color-accent-subtle, rgba(212, 168, 74, 0.15));
+        background: var(--color-accent-subtle);
       }
 
       [data-theme="midnight"] .roadmap-suggestion__success-title {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .roadmap-suggestion__success-text {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .roadmap-suggestion__done-btn {
-        background: var(--color-accent-primary, #d4a84a);
-        color: var(--color-text-on-accent, #2c2520);
+        background: var(--color-accent-primary);
+        color: var(--color-text-on-accent);
       }
 
       [data-theme="midnight"] .roadmap-suggestion__done-btn:hover {
-        background: var(--color-accent-text, #e8c870);
+        background: var(--color-accent-text);
       }
 
       /* Dark theme stage colors */
       [data-theme="midnight"] .stage--seed {
-        background: var(--color-background-secondary, #60504a);
-        color: var(--color-text-muted, #e8e2da);
+        background: var(--color-background-secondary);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .stage--sprout {
-        background: var(--color-accent-subtle, rgba(212, 168, 74, 0.08));
-        color: var(--color-accent-text, #e8c870);
+        background: var(--color-accent-subtle);
+        color: var(--color-accent-text);
       }
 
       [data-theme="midnight"] .stage--bud {
-        background: var(--color-semantic-warning-glow, rgba(224, 184, 96, 0.22));
+        background: var(--color-semantic-warning-glow);
         color: var(--color-semantic-warning-text);
       }
 
       [data-theme="midnight"] .stage--bloom {
-        background: var(--color-semantic-success-glow, rgba(107, 196, 143, 0.22));
+        background: var(--color-semantic-success-glow);
         color: var(--color-semantic-success-text);
       }
 

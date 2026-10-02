@@ -137,21 +137,21 @@ export function render(): string {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-4, 1rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
-        border: 1px solid var(--admin-border-subtle, rgba(255, 255, 255, 0.05));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
+        border: 1px solid var(--admin-border-subtle, color-mix(in srgb, var(--color-white) 5%, transparent));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
         text-decoration: none;
         transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .quick-link:hover {
-        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.06));
-        border-color: var(--persona-primary, #4a6741);
+        background: var(--admin-surface-hover, color-mix(in srgb, var(--color-white) 6%, transparent));
+        border-color: var(--persona-primary, var(--color-ferni));
       }
 
       .quick-link:focus-visible {
-        outline: 2px solid var(--persona-primary, #4a6741);
+        outline: 2px solid var(--persona-primary, var(--color-ferni));
         outline-offset: 2px;
       }
 
@@ -191,18 +191,18 @@ export function render(): string {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-3, 0.75rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.02));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 2%, transparent));
         border-radius: var(--radius-md, 8px);
         cursor: pointer;
         transition: background var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .api-endpoint:hover {
-        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.05));
+        background: var(--admin-surface-hover, color-mix(in srgb, var(--color-white) 5%, transparent));
       }
 
       .api-endpoint:focus-visible {
-        outline: 2px solid var(--persona-primary, #4a6741);
+        outline: 2px solid var(--persona-primary, var(--color-ferni));
         outline-offset: 2px;
       }
 
@@ -235,7 +235,7 @@ export function render(): string {
 
       .api-desc {
         font-size: 0.75rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
         max-width: min(300px, 100%);
       }
 
@@ -243,8 +243,8 @@ export function render(): string {
         font-size: 0.625rem;
         padding: 0.125rem 0.375rem;
         border-radius: var(--radius-sm, 4px);
-        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
-        color: var(--color-text-muted, #756A5E);
+        background: var(--admin-surface-active, color-mix(in srgb, var(--color-white) 10%, transparent));
+        color: var(--color-text-muted);
       }
 
       .api-auth--admin {
@@ -267,9 +267,9 @@ export function render(): string {
       .tester-method {
         padding: var(--space-3, 0.75rem);
         background: var(--color-background, #1a1612);
-        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
+        border: 1px solid var(--admin-border-default, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.875rem;
         transition: border-color var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
@@ -279,9 +279,9 @@ export function render(): string {
         flex: 1;
         padding: var(--space-3, 0.75rem);
         background: var(--color-background, #1a1612);
-        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
+        border: 1px solid var(--admin-border-default, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.875rem;
         transition: border-color var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
@@ -290,7 +290,7 @@ export function render(): string {
       .tester-url:focus,
       .tester-method:focus {
         outline: none;
-        border-color: var(--persona-primary, #4a6741);
+        border-color: var(--persona-primary, var(--color-ferni));
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -304,9 +304,9 @@ export function render(): string {
         width: 100%;
         padding: var(--space-3, 0.75rem);
         background: var(--color-background, #1a1612);
-        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
+        border: 1px solid var(--admin-border-default, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.8125rem;
         resize: vertical;
@@ -315,7 +315,7 @@ export function render(): string {
 
       .tester-body:focus {
         outline: none;
-        border-color: var(--persona-primary, #4a6741);
+        border-color: var(--persona-primary, var(--color-ferni));
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -337,7 +337,7 @@ export function render(): string {
       }
 
       .tester-hint {
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         text-align: center;
         margin: 0;
       }

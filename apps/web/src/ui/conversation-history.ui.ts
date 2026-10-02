@@ -158,7 +158,7 @@ class ConversationHistoryUI {
             </svg>
           </button>
         </header>
-        <div class="history__loading" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Loading...</div>
+        <div class="history__loading" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted);">Loading...</div>
       </div>
     `;
     this.panel.querySelector('.history__close')?.addEventListener('click', () => this.hide());
@@ -186,7 +186,7 @@ class ConversationHistoryUI {
             </svg>
           </button>
         </header>
-        <div class="history__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn't load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>
+        <div class="history__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted);">Couldn't load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>
       </div>
     `;
     this.panel.querySelector('.history__close')?.addEventListener('click', () => this.hide());
@@ -449,10 +449,10 @@ class ConversationHistoryUI {
         width: 100%;
         max-width: clamp(336px, 90vw, 480px);
         max-height: 80vh;
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -590,7 +590,7 @@ class ConversationHistoryUI {
         font-family: var(--font-display);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: white;
+        color: var(--color-white);
         background: var(--persona-primary, var(--color-accent-primary));
       }
 
@@ -728,7 +728,7 @@ class ConversationHistoryUI {
         align-items: center;
         justify-content: center;
         background: var(--persona-primary, var(--color-accent-primary));
-        color: white;
+        color: var(--color-white);
         font-size: 10px;
         border-radius: var(--radius-full);
         box-shadow: var(--shadow-sm);

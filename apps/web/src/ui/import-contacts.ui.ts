@@ -116,10 +116,10 @@ function injectStyles(): void {
       width: 90%;
       max-width: clamp(350px, 90vw, 500px);
       max-height: 80vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-2xl, 1rem);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -133,7 +133,7 @@ function injectStyles(): void {
     
     .ic-header {
       padding: var(--space-6, 1.5rem);
-      border-bottom: 1px solid var(--color-border, rgba(0,0,0,0.1));
+      border-bottom: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
     }
     
     .ic-eyebrow {
@@ -148,13 +148,13 @@ function injectStyles(): void {
     .ic-title {
       font-size: 1.5rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
     
     .ic-subtitle {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
       margin-top: var(--space-1, 0.25rem);
     }
     
@@ -165,14 +165,14 @@ function injectStyles(): void {
       padding: var(--space-2, 0.5rem);
       background: none;
       border: none;
-      color: var(--color-text-muted, #8a7a6a);
+      color: var(--color-text-muted);
       cursor: pointer;
       border-radius: var(--radius-full);
       transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
     .ic-close:hover {
-      background: var(--color-background-hover, rgba(0,0,0,0.05));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 5%, transparent));
     }
     
     .ic-content {
@@ -192,8 +192,8 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-3, 0.75rem);
       padding: var(--space-4, 1rem);
-      background: var(--color-background, #fff);
-      border: 2px solid var(--color-border, rgba(0,0,0,0.1));
+      background: var(--color-background, var(--color-white));
+      border: 2px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       border-radius: var(--radius-lg, 0.75rem);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -201,13 +201,13 @@ function injectStyles(): void {
     }
     
     .ic-source-btn:hover {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       background: var(--color-background-hover, #f5f1e8);
     }
     
     .ic-source-btn.selected {
-      border-color: var(--persona-primary, #4a6741);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      border-color: var(--persona-primary, var(--color-ferni));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
     }
     
     .ic-source-icon {
@@ -216,9 +216,9 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-background-elevated, #faf6f0);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-md);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .ic-source-info {
@@ -227,12 +227,12 @@ function injectStyles(): void {
     
     .ic-source-name {
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .ic-source-desc {
       font-size: 0.75rem;
-      color: var(--color-text-muted, #8a7a6a);
+      color: var(--color-text-muted);
     }
     
     .ic-file-input {
@@ -240,7 +240,7 @@ function injectStyles(): void {
     }
     
     .ic-drop-zone {
-      border: 2px dashed var(--color-border, rgba(0,0,0,0.15));
+      border: 2px dashed var(--color-border, color-mix(in srgb, var(--color-black) 15%, transparent));
       border-radius: var(--radius-lg);
       padding: var(--space-8, 2rem);
       text-align: center;
@@ -249,17 +249,17 @@ function injectStyles(): void {
     }
     
     .ic-drop-zone.drag-over {
-      border-color: var(--persona-primary, #4a6741);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      border-color: var(--persona-primary, var(--color-ferni));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
     }
     
     .ic-drop-icon {
-      color: var(--color-text-muted, #8a7a6a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-3, 0.75rem);
     }
     
     .ic-drop-text {
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
       font-size: 0.875rem;
     }
     
@@ -284,14 +284,14 @@ function injectStyles(): void {
     
     .ic-progress-fill {
       height: 100%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: var(--radius-full);
       transition: width ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
     
     .ic-progress-text {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
       margin-top: var(--space-2, 0.5rem);
       text-align: center;
     }
@@ -309,7 +309,7 @@ function injectStyles(): void {
     
     .ic-preview-title {
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .ic-select-all {
@@ -324,7 +324,7 @@ function injectStyles(): void {
     .ic-preview-list {
       max-height: 200px;
       overflow-y: auto;
-      border: 1px solid var(--color-border, rgba(0,0,0,0.1));
+      border: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       border-radius: var(--radius-lg);
     }
     
@@ -333,7 +333,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-3, 0.75rem);
       padding: var(--space-3, 0.75rem);
-      border-bottom: 1px solid var(--color-border, rgba(0,0,0,0.05));
+      border-bottom: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 5%, transparent));
       cursor: pointer;
       transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
     }
@@ -349,18 +349,18 @@ function injectStyles(): void {
     .ic-preview-check {
       width: 20px;
       height: 20px;
-      border: 2px solid var(--color-border, rgba(0,0,0,0.2));
+      border: 2px solid var(--color-border, color-mix(in srgb, var(--color-black) 20%, transparent));
       border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-white);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
     .ic-preview-item.selected .ic-preview-check {
-      background: var(--persona-primary, #4a6741);
-      border-color: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
+      border-color: var(--persona-primary, var(--color-ferni));
     }
     
     .ic-preview-info {
@@ -370,7 +370,7 @@ function injectStyles(): void {
     
     .ic-preview-name {
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -378,7 +378,7 @@ function injectStyles(): void {
     
     .ic-preview-email {
       font-size: 0.75rem;
-      color: var(--color-text-muted, #8a7a6a);
+      color: var(--color-text-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -386,7 +386,7 @@ function injectStyles(): void {
     
     .ic-footer {
       padding: var(--space-4, 1rem) var(--space-6, 1.5rem);
-      border-top: 1px solid var(--color-border, rgba(0,0,0,0.1));
+      border-top: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       display: flex;
       justify-content: flex-end;
       gap: var(--space-3, 0.75rem);
@@ -404,7 +404,7 @@ function injectStyles(): void {
     .ic-btn-secondary {
       background: var(--tonal-surface-2);
       border: none;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
     }
 
     .ic-btn-secondary:hover {
@@ -416,13 +416,13 @@ function injectStyles(): void {
     }
     
     .ic-btn-primary {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border: none;
-      color: white;
+      color: var(--color-white);
     }
     
     .ic-btn-primary:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
     }
     
     .ic-btn-primary:disabled {

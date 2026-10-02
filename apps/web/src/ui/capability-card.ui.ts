@@ -75,8 +75,8 @@ const ICONS: Record<string, string> = {
 
 const styles = `
   .capability-card {
-    background: var(--color-bg-elevated, #FFFDFB);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    background: var(--color-bg-elevated, var(--color-white));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg, 16px);
     padding: var(--space-4, 16px);
     cursor: pointer;
@@ -87,8 +87,8 @@ const styles = `
   
   .capability-card:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
-    border-color: var(--color-ferni, #4a6741);
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px color-mix(in srgb, var(--color-black) 10%, transparent));
+    border-color: var(--color-ferni);
   }
   
   .capability-card:active {
@@ -106,7 +106,7 @@ const styles = `
     width: 40px;
     height: 40px;
     border-radius: var(--radius-md, 12px);
-    background: var(--color-ferni-tint, rgba(74, 103, 65, 0.1));
+    background: var(--color-ferni-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -128,14 +128,14 @@ const styles = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 15px;
     font-weight: 600;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-1, 4px) 0;
     line-height: 1.3;
   }
   
   .capability-card__description {
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
     margin: 0;
     line-height: 1.4;
   }
@@ -144,8 +144,8 @@ const styles = `
     position: absolute;
     top: var(--space-2, 8px);
     right: var(--space-2, 8px);
-    background: linear-gradient(135deg, var(--color-ferni, #4a6741), var(--color-ferni-secondary, #3d5a35));
-    color: white;
+    background: linear-gradient(135deg, var(--color-ferni), var(--color-ferni-secondary));
+    color: var(--color-white);
     font-size: 9px;
     font-weight: 700;
     text-transform: uppercase;
@@ -163,7 +163,7 @@ const styles = `
     background: var(--color-bg-subtle, #f8f6f4);
     border-radius: var(--radius-md, 12px);
     font-size: 12px;
-    color: var(--color-text-muted, #a09080);
+    color: var(--color-text-muted);
   }
   
   .capability-card__voice-trigger svg {
@@ -180,9 +180,9 @@ const styles = `
   .capability-card__human-limitation {
     margin-top: var(--space-2, 8px);
     padding-top: var(--space-2, 8px);
-    border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    border-top: 1px solid var(--color-border-subtle);
     font-size: 11px;
-    color: var(--color-text-muted, #a09080);
+    color: var(--color-text-muted);
     line-height: 1.4;
   }
   
@@ -216,7 +216,7 @@ const styles = `
   @media (prefers-color-scheme: dark) {
     .capability-card {
       background: var(--color-bg-elevated-dark, #2a2420);
-      border-color: var(--color-border-subtle-dark, rgba(255, 255, 255, 0.08));
+      border-color: var(--color-border-subtle-dark, color-mix(in srgb, var(--color-white) 8%, transparent));
     }
     
     .capability-card__name {

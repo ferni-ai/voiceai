@@ -126,7 +126,7 @@ function injectStyles(): void {
       width: 90%;
       max-width: clamp(364px, 90vw, 520px);
       max-height: 85vh;
-      background: var(--color-background-elevated, #faf6f0);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 1rem);
       box-shadow: var(--shadow-2xl);
       overflow: hidden;
@@ -142,7 +142,7 @@ function injectStyles(): void {
     
     .br-header {
       padding: var(--space-6, 1.5rem);
-      border-bottom: 1px solid var(--color-border, rgba(0,0,0,0.1));
+      border-bottom: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
     }
     
     .br-eyebrow {
@@ -157,7 +157,7 @@ function injectStyles(): void {
     .br-title {
       font-size: 1.5rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
       display: flex;
       align-items: center;
@@ -166,7 +166,7 @@ function injectStyles(): void {
     
     .br-subtitle {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
       margin-top: var(--space-1, 0.25rem);
     }
     
@@ -177,14 +177,14 @@ function injectStyles(): void {
       padding: var(--space-2, 0.5rem);
       background: none;
       border: none;
-      color: var(--color-text-muted, #8a7a6a);
+      color: var(--color-text-muted);
       cursor: pointer;
       border-radius: var(--radius-full);
       transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
     .br-close:hover {
-      background: var(--color-background-hover, rgba(0,0,0,0.05));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 5%, transparent));
     }
     
     .br-content {
@@ -204,7 +204,7 @@ function injectStyles(): void {
     .br-section-title {
       font-size: 0.875rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-3, 0.75rem);
       display: flex;
       align-items: center;
@@ -220,7 +220,7 @@ function injectStyles(): void {
       justify-content: space-between;
       align-items: center;
       padding: var(--space-3, 0.75rem) 0;
-      border-bottom: 1px solid var(--color-border, rgba(0,0,0,0.05));
+      border-bottom: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 5%, transparent));
     }
     
     .br-setting:last-child {
@@ -234,12 +234,12 @@ function injectStyles(): void {
     
     .br-setting-label {
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .br-setting-desc {
       font-size: 0.75rem;
-      color: var(--color-text-muted, #8a7a6a);
+      color: var(--color-text-muted);
       margin-top: 2px;
     }
     
@@ -254,7 +254,7 @@ function injectStyles(): void {
     }
     
     .br-toggle.active {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
     }
     
     .br-toggle::after {
@@ -264,7 +264,7 @@ function injectStyles(): void {
       left: 2px;
       width: 20px;
       height: 20px;
-      background: white;
+      background: var(--color-white);
       border-radius: 50%;
       box-shadow: var(--shadow-sm);
       transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
@@ -276,10 +276,10 @@ function injectStyles(): void {
     
     .br-select {
       padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-      background: var(--color-background, #fff);
-      border: 1px solid var(--color-border, rgba(0,0,0,0.15));
+      background: var(--color-background, var(--color-white));
+      border: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 15%, transparent));
       border-radius: var(--radius-md);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       font-size: 0.875rem;
       cursor: pointer;
       min-width: 80px;
@@ -287,12 +287,12 @@ function injectStyles(): void {
     
     .br-select:focus {
       outline: none;
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
     }
     
     .br-upcoming {
-      background: var(--color-background, #fff);
-      border: 1px solid var(--color-border, rgba(0,0,0,0.1));
+      background: var(--color-background, var(--color-white));
+      border: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       border-radius: var(--radius-lg);
       overflow: hidden;
     }
@@ -300,7 +300,7 @@ function injectStyles(): void {
     .br-upcoming-empty {
       padding: var(--space-4, 1rem);
       text-align: center;
-      color: var(--color-text-muted, #8a7a6a);
+      color: var(--color-text-muted);
       font-size: 0.875rem;
     }
     
@@ -309,7 +309,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-3, 0.75rem);
       padding: var(--space-3, 0.75rem);
-      border-bottom: 1px solid var(--color-border, rgba(0,0,0,0.05));
+      border-bottom: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 5%, transparent));
     }
     
     .br-date-item:last-child {
@@ -322,7 +322,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-md);
       color: var(--persona-ink);
     }
@@ -333,12 +333,12 @@ function injectStyles(): void {
     
     .br-date-name {
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .br-date-type {
       font-size: 0.75rem;
-      color: var(--color-text-muted, #8a7a6a);
+      color: var(--color-text-muted);
     }
     
     .br-date-countdown {
@@ -358,7 +358,7 @@ function injectStyles(): void {
     
     .br-footer {
       padding: var(--space-4, 1rem) var(--space-6, 1.5rem);
-      border-top: 1px solid var(--color-border, rgba(0,0,0,0.1));
+      border-top: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       display: flex;
       justify-content: flex-end;
       gap: var(--space-3, 0.75rem);
@@ -376,7 +376,7 @@ function injectStyles(): void {
     .br-btn-secondary {
       background: var(--tonal-surface-2);
       border: none;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
     }
 
     .br-btn-secondary:hover {
@@ -388,13 +388,13 @@ function injectStyles(): void {
     }
     
     .br-btn-primary {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border: none;
-      color: white;
+      color: var(--color-white);
     }
     
     .br-btn-primary:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
     }
     
     .br-btn-primary:disabled {

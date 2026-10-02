@@ -365,7 +365,7 @@ function injectStyles(): void {
     
     .unlock-card {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: 
         0 25px 50px -12px rgba(0, 0, 0, 0.25),
@@ -384,20 +384,20 @@ function injectStyles(): void {
       width: 36px;
       height: 36px;
       border: none;
-      background: var(--color-background-secondary, #f5f3f0);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-full, 9999px);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #7a6f63);
+      color: var(--color-text-muted);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       z-index: var(--z-docked);
     }
     
     .unlock-close:hover {
-      background: var(--color-background-tertiary, #ebe8e3);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
     }
     
     .unlock-close svg {
@@ -487,7 +487,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-white);
       box-shadow: 0 2px 8px rgba(230, 184, 0, 0.4);
     }
     
@@ -517,7 +517,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1.75rem;
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 4px);
       line-height: 1.2;
     }
@@ -532,7 +532,7 @@ function injectStyles(): void {
     .unlock-message {
       font-size: 0.95rem;
       line-height: 1.6;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
       margin: 0;
     }
     
@@ -564,13 +564,13 @@ function injectStyles(): void {
     }
     
     .unlock-button--primary {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       border: none;
     }
     
     .unlock-button--primary:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
       transform: translateY(-1px);
     }
     
@@ -580,18 +580,18 @@ function injectStyles(): void {
     
     .unlock-button--secondary {
       background: transparent;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
       border: 2px solid var(--color-border, #d4d0c8);
     }
     
     .unlock-button--secondary:hover {
-      background: var(--color-background-secondary, #faf8f5);
+      background: var(--color-background-secondary);
       border-color: var(--color-border-hover, #c4c0b8);
     }
     
     .unlock-footer {
       font-size: 0.8rem;
-      color: var(--color-text-muted, #7a6f63);
+      color: var(--color-text-muted);
       margin: 0;
     }
     
@@ -602,7 +602,7 @@ function injectStyles(): void {
       }
       
       .unlock-card {
-        background: var(--color-background-elevated, #3a3330);
+        background: var(--color-background-elevated);
       }
     }
     

@@ -144,7 +144,7 @@ export function createRoutingStatsPanel(): HTMLElement {
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
         display: flex;
         align-items: center;
         gap: 6px;
@@ -154,7 +154,7 @@ export function createRoutingStatsPanel(): HTMLElement {
         display: inline-block;
         width: 8px;
         height: 8px;
-        background: var(--color-semantic-success, #4ade80);
+        background: var(--color-semantic-success);
         border-radius: 50%;
       }
       .routing-stats-grid {
@@ -169,13 +169,13 @@ export function createRoutingStatsPanel(): HTMLElement {
       }
       .routing-stat-label {
         font-size: 10px;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
         margin-bottom: 2px;
       }
       .routing-stat-value {
         font-size: 16px;
         font-weight: 600;
-        color: var(--color-text-primary, #fff);
+        color: var(--color-text-primary);
       }
       .routing-stat-value.good {
         color: var(--color-semantic-success-text);
@@ -186,7 +186,7 @@ export function createRoutingStatsPanel(): HTMLElement {
       .routing-paths {
         margin-top: var(--space-sm, 8px);
         padding-top: var(--space-sm, 8px);
-        border-top: 1px solid var(--color-border-subtle, #333);
+        border-top: 1px solid var(--color-border-subtle);
       }
       .routing-path {
         display: flex;
@@ -195,16 +195,16 @@ export function createRoutingStatsPanel(): HTMLElement {
         font-size: 11px;
       }
       .routing-path-name {
-        color: var(--color-text-secondary, #aaa);
+        color: var(--color-text-secondary);
       }
       .routing-path-count {
-        color: var(--color-text-primary, #fff);
+        color: var(--color-text-primary);
         font-weight: 500;
       }
       .routing-tools {
         margin-top: var(--space-sm, 8px);
         padding-top: var(--space-sm, 8px);
-        border-top: 1px solid var(--color-border-subtle, #333);
+        border-top: 1px solid var(--color-border-subtle);
       }
       .routing-tool {
         display: flex;
@@ -217,7 +217,7 @@ export function createRoutingStatsPanel(): HTMLElement {
         font-family: monospace;
       }
       .no-data {
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
         font-style: italic;
         text-align: center;
         padding: var(--space-md, 16px);

@@ -122,7 +122,7 @@ export async function render(): Promise<string> {
 
       .agents-count {
         font-size: 0.875rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .agents-header-actions {
@@ -133,7 +133,7 @@ export async function render(): Promise<string> {
       .section-hint {
         font-size: 0.75rem;
         font-weight: 400;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         margin-left: auto;
       }
 
@@ -148,15 +148,15 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-4, 1rem);
         padding: var(--space-4, 1rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
-        border: 1px solid var(--admin-border-subtle, rgba(255, 255, 255, 0.05));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
+        border: 1px solid var(--admin-border-subtle, color-mix(in srgb, var(--color-white) 5%, transparent));
         border-radius: var(--radius-md, 8px);
         transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .agent-card:hover {
-        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.06));
-        border-color: var(--agent-color, rgba(255, 255, 255, 0.1));
+        background: var(--admin-surface-hover, color-mix(in srgb, var(--color-white) 6%, transparent));
+        border-color: var(--agent-color, color-mix(in srgb, var(--color-white) 10%, transparent));
       }
 
       .agent-card.dragging {
@@ -164,7 +164,7 @@ export async function render(): Promise<string> {
       }
 
       .agent-card--coordinator {
-        border-left: 3px solid var(--agent-color, var(--persona-primary, #4a6741));
+        border-left: 3px solid var(--agent-color, var(--persona-primary, var(--color-ferni)));
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -175,7 +175,7 @@ export async function render(): Promise<string> {
 
       .agent-drag {
         cursor: grab;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         user-select: none;
         display: flex;
         align-items: center;
@@ -195,7 +195,7 @@ export async function render(): Promise<string> {
         justify-content: center;
         font-weight: 700;
         font-size: 0.875rem;
-        color: white;
+        color: var(--color-white);
       }
 
       .agent-info {
@@ -209,7 +209,7 @@ export async function render(): Promise<string> {
 
       .agent-subtitle {
         font-size: 0.8125rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .agent-actions {
@@ -227,7 +227,7 @@ export async function render(): Promise<string> {
         background: transparent;
         border: none;
         border-radius: var(--radius-sm, 4px);
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
         cursor: pointer;
         opacity: 0.6;
         transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
@@ -235,12 +235,12 @@ export async function render(): Promise<string> {
 
       .agent-action-btn:hover {
         opacity: 1;
-        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.06));
-        color: var(--color-text-primary, #faf6f0);
+        background: var(--admin-surface-hover, color-mix(in srgb, var(--color-white) 6%, transparent));
+        color: var(--color-text-primary);
       }
 
       .agent-action-btn:focus-visible {
-        outline: 2px solid var(--persona-primary, #4a6741);
+        outline: 2px solid var(--persona-primary, var(--color-ferni));
         outline-offset: 2px;
       }
 
@@ -266,20 +266,20 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-4, 1rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
-        border: 1px solid var(--admin-border-subtle, rgba(255, 255, 255, 0.05));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
+        border: 1px solid var(--admin-border-subtle, color-mix(in srgb, var(--color-white) 5%, transparent));
         border-radius: var(--radius-md, 8px);
         cursor: pointer;
         transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .template-card:hover {
-        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.06));
+        background: var(--admin-surface-hover, color-mix(in srgb, var(--color-white) 6%, transparent));
         transform: translateY(-2px);
       }
 
       .template-card:focus-visible {
-        outline: 2px solid var(--persona-primary, #4a6741);
+        outline: 2px solid var(--persona-primary, var(--color-ferni));
         outline-offset: 2px;
       }
 
@@ -298,7 +298,7 @@ export async function render(): Promise<string> {
         justify-content: center;
         width: 48px;
         height: 48px;
-        background: var(--admin-surface-active, rgba(255, 255, 255, 0.08));
+        background: var(--admin-surface-active, color-mix(in srgb, var(--color-white) 8%, transparent));
         border-radius: var(--radius-md, 8px);
         color: var(--persona-ink);
       }
@@ -319,7 +319,7 @@ export async function render(): Promise<string> {
 
       .template-desc {
         font-size: 0.75rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
     </style>
   `;

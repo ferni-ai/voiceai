@@ -216,7 +216,7 @@ export async function render(): Promise<string> {
 
       .evalops-stat-label {
         font-size: 0.75rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         margin-top: var(--space-1, 0.25rem);
@@ -230,7 +230,7 @@ export async function render(): Promise<string> {
 
       .evalops-last-run {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         margin-top: var(--space-3, 0.75rem);
       }
 
@@ -242,7 +242,7 @@ export async function render(): Promise<string> {
 
       .dimension-item {
         padding: var(--space-4, 1rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -269,7 +269,7 @@ export async function render(): Promise<string> {
 
       .dimension-bar {
         height: 4px;
-        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
+        background: var(--admin-surface-active, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: 2px;
         overflow: hidden;
         margin-bottom: var(--space-2, 0.5rem);
@@ -289,14 +289,14 @@ export async function render(): Promise<string> {
 
       .dimension-desc {
         font-size: 0.75rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .section-badge {
         font-size: 0.75rem;
         font-weight: 600;
         padding: 0.125rem 0.5rem;
-        background: var(--color-semantic-warning, #d4a84b);
+        background: var(--color-semantic-warning);
         color: var(--color-background, #1a1612);
         border-radius: var(--radius-full, 9999px);
         margin-left: auto;
@@ -313,8 +313,8 @@ export async function render(): Promise<string> {
         align-items: flex-start;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-3, 0.75rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
-        border-left: 3px solid var(--color-semantic-warning, #d4a84b);
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
+        border-left: 3px solid var(--color-semantic-warning);
         border-radius: 0 var(--radius-md, 8px) var(--radius-md, 8px) 0;
       }
 
@@ -348,24 +348,24 @@ export async function render(): Promise<string> {
       .flagged-dimension {
         font-size: 0.75rem;
         padding: 0.125rem 0.375rem;
-        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
+        background: var(--admin-surface-active, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: var(--radius-sm, 4px);
       }
 
       .flagged-reason {
         font-size: 0.8125rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .flagged-time {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
       }
 
       .flagged-empty {
         text-align: center;
         padding: var(--space-6, 1.5rem);
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .flags-list {
@@ -379,7 +379,7 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-4, 1rem);
         padding: var(--space-3, 0.75rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -394,7 +394,7 @@ export async function render(): Promise<string> {
 
       .flag-desc {
         font-size: 0.75rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
     </style>
   `;
@@ -404,10 +404,10 @@ function renderDimension(name: string, score: number, desc: string): string {
   const scoreClass = score >= 90 ? 'high' : score >= 70 ? 'medium' : 'low';
   const barColor =
     score >= 90
-      ? 'var(--color-semantic-success, #4a6741)'
+      ? 'var(--color-semantic-success)'
       : score >= 70
-        ? 'var(--color-semantic-warning, #d4a84b)'
-        : 'var(--color-semantic-error, #c44536)';
+        ? 'var(--color-semantic-warning)'
+        : 'var(--color-semantic-error)';
 
   return `
     <div class="dimension-item">

@@ -226,7 +226,7 @@ function injectStyles(): void {
       width: 100%;
       max-width: 480px;
       max-height: calc(100vh - 100px);
-      background: var(--color-background-elevated, white);
+      background: var(--color-background-elevated);
       border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 16px);
       box-shadow: var(--shadow-2xl);
@@ -259,7 +259,7 @@ function injectStyles(): void {
       justify-content: center;
       width: 40px;
       height: 40px;
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-lg, 12px);
       color: var(--persona-ink);
     }
@@ -268,7 +268,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-lg, 18px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
@@ -335,13 +335,13 @@ function injectStyles(): void {
     }
 
     .shortcuts-panel__item:hover {
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
     }
 
     .shortcuts-panel__item-label {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .shortcuts-panel__keys {
@@ -356,7 +356,7 @@ function injectStyles(): void {
       min-width: 24px;
       height: 24px;
       padding: 0 var(--space-2, 8px);
-      background: var(--color-background-tertiary, #E8E0D5);
+      background: var(--color-background-tertiary);
       border-radius: var(--radius-sm, 4px);
       font-family: var(--font-mono, monospace);
       font-size: var(--text-xs, 12px);
@@ -378,11 +378,11 @@ function injectStyles(): void {
     }
 
     [data-theme="midnight"] .shortcuts-panel__card {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated);
     }
 
     [data-theme="midnight"] .shortcuts-panel__key {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
 
     /* Reduced motion */

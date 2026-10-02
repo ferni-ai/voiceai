@@ -319,7 +319,7 @@ function injectStyles(): void {
     .earn-seeds-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: color-mix(in srgb, var(--color-black) 50%, transparent);
     }
 
     .earn-seeds-content {
@@ -343,14 +343,14 @@ function injectStyles(): void {
       border: none;
       padding: var(--space-2, 8px);
       cursor: pointer;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       border-radius: var(--radius-full, 9999px);
       transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .earn-seeds-close:hover {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
-      color: var(--color-text-primary, #2c2520);
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 5%, transparent));
+      color: var(--color-text-primary);
     }
 
     .earn-seeds-header {
@@ -364,9 +364,9 @@ function injectStyles(): void {
       justify-content: center;
       width: 64px;
       height: 64px;
-      background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+      background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
       border-radius: 50%;
-      color: white;
+      color: var(--color-white);
       margin-bottom: var(--space-4, 16px);
     }
 
@@ -374,13 +374,13 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-2, 8px);
     }
 
     .earn-seeds-subtitle {
       font-size: var(--text-base, 1rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin: 0;
     }
 
@@ -395,7 +395,7 @@ function injectStyles(): void {
       align-items: flex-start;
       gap: var(--space-3, 12px);
       padding: var(--space-3, 12px);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 3%, transparent));
       border-radius: var(--radius-lg, 12px);
       opacity: 0;
     }
@@ -407,7 +407,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-background-elevated, white);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-md, 8px);
       color: var(--persona-ink);
     }
@@ -420,13 +420,13 @@ function injectStyles(): void {
     .earn-method-title {
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 4px);
     }
 
     .earn-method-description {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin: 0;
       line-height: 1.4;
     }
@@ -436,7 +436,7 @@ function injectStyles(): void {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
       color: var(--persona-ink);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       padding: var(--space-1, 4px) var(--space-2, 8px);
       border-radius: var(--radius-full, 9999px);
       white-space: nowrap;
@@ -461,28 +461,28 @@ function injectStyles(): void {
     }
 
     .earn-seeds-btn--primary {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .earn-seeds-btn--primary:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
       transform: translateY(-1px);
     }
 
     .earn-seeds-note {
       margin: var(--space-3, 12px) 0 0;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     /* Dark theme */
     [data-theme="midnight"] .earn-seeds-backdrop {
-      background: rgba(8, 8, 12, 0.8);
+      background: color-mix(in srgb, var(--color-black) 80%, transparent);
     }
 
     [data-theme="midnight"] .earn-seeds-content {
-      background: var(--color-background-elevated, #1a1a1f);
+      background: var(--color-background-elevated);
     }
 
     /* Mobile */

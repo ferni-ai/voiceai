@@ -875,10 +875,10 @@ class GamePickerUI {
         width: 90%;
         max-width: clamp(350px, 90vw, 500px);
         max-height: 85vh;
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -912,13 +912,13 @@ class GamePickerUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 28px;
         font-weight: 700;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-1, 4px);
       }
       
       .game-picker__subtitle {
         font-size: 15px;
-        color: var(--color-text-secondary, #6B5D52);
+        color: var(--color-text-secondary);
         margin: 0;
       }
       
@@ -935,13 +935,13 @@ class GamePickerUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--color-text-secondary, #6B5D52);
+        color: var(--color-text-secondary);
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
       
       .game-picker__close:hover {
         background: var(--color-background-hover, #E8E2DA);
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
       }
       
       /* Category Tabs */
@@ -964,7 +964,7 @@ class GamePickerUI {
         border-radius: var(--radius-full, 50px);
         font-size: 13px;
         font-weight: 500;
-        color: var(--color-text-secondary, #6B5D52);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
@@ -976,18 +976,18 @@ class GamePickerUI {
       
       .game-picker__tab:hover {
         background: var(--color-background-subtle, #F5F1E8);
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
       }
       
       .game-picker__tab--active {
-        background: var(--persona-primary, #4a6741);
-        color: white;
-        border-color: var(--persona-primary, #4a6741);
+        background: var(--persona-primary, var(--color-ferni));
+        color: var(--color-white);
+        border-color: var(--persona-primary, var(--color-ferni));
       }
       
       .game-picker__tab--active:hover {
-        background: var(--persona-primary, #4a6741);
-        color: white;
+        background: var(--persona-primary, var(--color-ferni));
+        color: var(--color-white);
       }
       
       /* Games List */
@@ -1018,28 +1018,28 @@ class GamePickerUI {
       .game-picker__library-notice p {
         margin: 0;
         font-size: 14px;
-        color: var(--color-text-secondary, #6B5D52);
+        color: var(--color-text-secondary);
       }
       
       .game-picker__library-hint {
         font-size: 12px !important;
-        color: var(--color-text-muted, #9A8B7A) !important;
+        color: var(--color-text-muted) !important;
         margin-top: var(--space-2, 8px) !important;
       }
 
       .game-picker__reflection-notice {
-        background: linear-gradient(135deg, var(--color-background-subtle, #F5F1E8), rgba(74, 103, 65, 0.08));
+        background: linear-gradient(135deg, var(--color-background-subtle, #F5F1E8), color-mix(in srgb, var(--color-ferni) 8%, transparent));
         border-radius: var(--radius-lg, 12px);
         padding: var(--space-4, 16px);
         margin-bottom: var(--space-3, 12px);
         text-align: center;
-        border: 1px solid rgba(74, 103, 65, 0.15);
+        border: 1px solid color-mix(in srgb, var(--color-ferni) 15%, transparent);
       }
 
       .game-picker__reflection-notice p {
         margin: 0;
         font-size: 14px;
-        color: var(--color-text-secondary, #6B5D52);
+        color: var(--color-text-secondary);
       }
       
       /* Game Card */
@@ -1082,7 +1082,7 @@ class GamePickerUI {
       .game-card__icon {
         width: 48px;
         height: 48px;
-        background: var(--color-background-elevated, white);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-lg, 12px);
         display: flex;
         align-items: center;
@@ -1109,7 +1109,7 @@ class GamePickerUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 16px;
         font-weight: 600;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-1, 4px);
       }
       
@@ -1125,17 +1125,17 @@ class GamePickerUI {
       
       .game-card__badge--new {
         background: var(--color-warning, #E8A838);
-        color: white;
+        color: var(--color-white);
       }
       
       .game-card__badge--spotify {
         background: #1DB954;
-        color: white;
+        color: var(--color-white);
       }
       
       .game-card__description {
         font-size: 13px;
-        color: var(--color-text-secondary, #6B5D52);
+        color: var(--color-text-secondary);
         margin: 0 0 var(--space-2, 8px);
         line-height: 1.4;
       }
@@ -1154,11 +1154,11 @@ class GamePickerUI {
       }
       
       .game-card__duration {
-        color: var(--color-text-muted, #9A8B7A);
+        color: var(--color-text-muted);
       }
       
       .game-card__arrow {
-        color: var(--color-text-muted, #9A8B7A);
+        color: var(--color-text-muted);
         transition: transform ${DURATION.FAST}ms ${EASING.STANDARD};
       }
       
@@ -1176,17 +1176,17 @@ class GamePickerUI {
       
       .game-picker__footer p {
         font-size: 13px;
-        color: var(--color-text-muted, #9A8B7A);
+        color: var(--color-text-muted);
         margin: 0;
       }
       
       /* Dark theme */
       [data-theme="dark"] .game-picker__backdrop {
-        background: rgba(0, 0, 0, 0.7);
+        background: color-mix(in srgb, var(--color-black) 70%, transparent);
       }
       
       [data-theme="dark"] .game-picker__content {
-        background: var(--color-background-elevated, #3a3330);
+        background: var(--color-background-elevated);
       }
       
       [data-theme="dark"] .game-card {
@@ -1198,7 +1198,7 @@ class GamePickerUI {
       }
       
       [data-theme="dark"] .game-card__icon {
-        background: var(--color-background-elevated, #3a3330);
+        background: var(--color-background-elevated);
       }
       
       /* Help button */
@@ -1212,7 +1212,7 @@ class GamePickerUI {
         border: 1px solid var(--color-border, #E8E2DA);
         border-radius: var(--radius-full, 50px);
         font-size: 13px;
-        color: var(--color-text-secondary, #6B5D52);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
@@ -1245,7 +1245,7 @@ class GamePickerUI {
         max-width: clamp(336px, 90vw, 480px);
         max-height: 80vh;
         overflow-y: auto;
-        background: var(--color-background-elevated, #FFFDFB);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-2xl, 24px);
         padding: var(--space-6, 24px);
         box-shadow: var(--shadow-2xl);
@@ -1264,20 +1264,20 @@ class GamePickerUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--color-text-secondary, #6B5D52);
+        color: var(--color-text-secondary);
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
       
       .game-help-modal__close:hover {
         background: var(--color-background-hover, #E8E2DA);
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
       }
       
       .game-help-modal__title {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 24px;
         margin: 0 0 var(--space-4, 16px);
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         display: flex;
         align-items: center;
         gap: var(--space-3, 12px);
@@ -1297,7 +1297,7 @@ class GamePickerUI {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: var(--color-text-muted, #9A8B7A);
+        color: var(--color-text-muted);
         margin: var(--space-5, 20px) 0 var(--space-3, 12px);
         padding-top: var(--space-3, 12px);
         border-top: 1px solid var(--color-border, #E8E2DA);
@@ -1323,7 +1323,7 @@ class GamePickerUI {
         font-size: 16px;
         font-weight: 600;
         margin: 0 0 var(--space-2, 8px);
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         display: flex;
         align-items: center;
         gap: var(--space-2, 8px);
@@ -1342,7 +1342,7 @@ class GamePickerUI {
       
       .game-help-section p {
         font-size: 14px;
-        color: var(--color-text-secondary, #6B5D52);
+        color: var(--color-text-secondary);
         margin: 0 0 var(--space-2, 8px);
         line-height: 1.5;
       }
@@ -1351,7 +1351,7 @@ class GamePickerUI {
         margin: 0;
         padding-left: var(--space-5, 20px);
         font-size: 13px;
-        color: var(--color-text-muted, #9A8B7A);
+        color: var(--color-text-muted);
       }
       
       .game-help-section li {
@@ -1363,7 +1363,7 @@ class GamePickerUI {
         padding: var(--space-4, 16px);
         border-radius: var(--radius-lg, 12px);
         font-size: 14px;
-        color: var(--color-text-secondary, #6B5D52);
+        color: var(--color-text-secondary);
         display: flex;
         align-items: flex-start;
         gap: var(--space-3, 12px);

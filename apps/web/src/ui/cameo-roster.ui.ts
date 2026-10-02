@@ -566,14 +566,14 @@ function createWelcomeSparkles(element: HTMLElement): void {
       position: fixed;
       width: 4px;
       height: 4px;
-      background: var(--color-sparkle, white);
+      background: var(--color-sparkle, var(--color-white));
       border-radius: 50%;
       left: ${centerX}px;
       top: ${centerY}px;
       transform: translate(-50%, -50%);
       pointer-events: none;
       z-index: var(--z-dropdown, 1000);
-      box-shadow: 0 0 6px var(--color-sparkle, white), 0 0 12px var(--color-glow-white, rgba(255, 255, 255, 0.6));
+      box-shadow: 0 0 6px var(--color-sparkle, var(--color-white)), 0 0 12px var(--color-glow-white, color-mix(in srgb, var(--color-white) 60%, transparent));
     `;
 
     document.body.appendChild(sparkle);

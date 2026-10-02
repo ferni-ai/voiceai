@@ -552,10 +552,10 @@ class IntegrationsSettingsUI {
         width: 90%;
         max-width: clamp(364px, 90vw, 520px);
         max-height: 85vh;
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -574,7 +574,7 @@ class IntegrationsSettingsUI {
         align-items: center;
         justify-content: space-between;
         padding: var(--space-5, 20px) var(--space-6, 24px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-bottom: 1px solid var(--color-border-subtle);
         flex-shrink: 0;
       }
 
@@ -590,9 +590,9 @@ class IntegrationsSettingsUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, var(--color-accent-primary, #2d5a3d), var(--color-accent-secondary, #4a6741));
+        background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary, var(--color-ferni)));
         border-radius: var(--radius-lg, 0.75rem);
-        color: white;
+        color: var(--color-white);
       }
 
       .integrations-settings__icon-wrap svg {
@@ -604,14 +604,14 @@ class IntegrationsSettingsUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-lg, 1.125rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
       .integrations-settings__subtitle {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0;
       }
 
@@ -622,17 +622,17 @@ class IntegrationsSettingsUI {
         width: 36px;
         height: 36px;
         padding: 0;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border: none;
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .integrations-settings__close:hover {
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
       }
 
       .integrations-settings__close:focus-visible {
@@ -651,8 +651,8 @@ class IntegrationsSettingsUI {
         align-items: center;
         gap: var(--space-4, 16px);
         padding: var(--space-4, 16px) var(--space-6, 24px);
-        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.06)), transparent);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        background: linear-gradient(135deg, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 6%, transparent)), transparent);
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .integrations-settings__capabilities-info {
@@ -665,26 +665,26 @@ class IntegrationsSettingsUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-xl, 1.25rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-accent-text, #2d5a3d);
+        color: var(--color-accent-text);
       }
 
       .integrations-settings__capabilities-label {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
       }
 
       .integrations-settings__capabilities-progress {
         flex: 1;
         height: 6px;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border-radius: var(--radius-full, 9999px);
         overflow: hidden;
       }
 
       .integrations-settings__capabilities-fill {
         height: 100%;
-        background: linear-gradient(90deg, var(--color-accent-primary, #2d5a3d), var(--color-accent-secondary, #4a6741));
+        background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary, var(--color-ferni)));
         border-radius: var(--radius-full, 9999px);
         transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
       }
@@ -699,7 +699,7 @@ class IntegrationsSettingsUI {
       /* Sections */
       .integrations-settings__section {
         padding: var(--space-4, 16px) 0;
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .integrations-settings__section:last-child {
@@ -719,7 +719,7 @@ class IntegrationsSettingsUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-md, 0.5rem);
         color: var(--color-accent-text);
         flex-shrink: 0;
@@ -738,14 +738,14 @@ class IntegrationsSettingsUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
       .integrations-settings__section-info p {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0;
       }
 
@@ -773,8 +773,8 @@ class IntegrationsSettingsUI {
       }
 
       .integrations-settings__status--disconnected {
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-muted, #756a5e);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-muted);
       }
 
       /* Connected Info */
@@ -783,7 +783,7 @@ class IntegrationsSettingsUI {
         align-items: center;
         justify-content: space-between;
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-md, 0.5rem);
         margin-bottom: var(--space-3, 12px);
       }
@@ -792,13 +792,13 @@ class IntegrationsSettingsUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .integrations-settings__profile-headline {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0 0 var(--space-3, 12px) 0;
         padding: 0 var(--space-3, 12px);
         line-height: 1.4;
@@ -810,18 +810,18 @@ class IntegrationsSettingsUI {
         gap: var(--space-1, 4px);
         padding: var(--space-1, 4px) var(--space-2, 8px);
         background: transparent;
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.2));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-md, 0.5rem);
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .integrations-settings__disconnect-btn:hover {
         background: var(--color-semantic-error-bg, rgba(220, 53, 69, 0.1));
-        border-color: var(--color-semantic-error, #dc3545);
+        border-color: var(--color-semantic-error);
         color: var(--color-semantic-error-text);
       }
 
@@ -848,20 +848,20 @@ class IntegrationsSettingsUI {
         gap: var(--space-3, 12px);
         width: 100%;
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border: 1px solid transparent;
         border-radius: var(--radius-md, 0.5rem);
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         cursor: pointer;
         text-align: left;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .integrations-settings__platform-btn:hover {
-        background: var(--color-background-tertiary, #ebe6df);
-        border-color: var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+        background: var(--color-background-tertiary);
+        border-color: var(--color-border-subtle);
       }
 
       .integrations-settings__platform-btn:focus-visible {
@@ -875,7 +875,7 @@ class IntegrationsSettingsUI {
       }
 
       .integrations-settings__platform-btn--disabled:hover {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-color: transparent;
       }
 
@@ -884,8 +884,8 @@ class IntegrationsSettingsUI {
         padding: 2px 8px;
         font-size: 10px;
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-muted, #756a5e);
-        background: var(--color-background-tertiary, #ebe6df);
+        color: var(--color-text-muted);
+        background: var(--color-background-tertiary);
         border-radius: var(--radius-sm, 4px);
         text-transform: uppercase;
         letter-spacing: 0.03em;
@@ -912,7 +912,7 @@ class IntegrationsSettingsUI {
       .integrations-settings__platform-btn > svg:last-child {
         width: 16px;
         height: 16px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       /* Connect Button */
@@ -923,7 +923,7 @@ class IntegrationsSettingsUI {
         gap: var(--space-2, 8px);
         width: 100%;
         padding: var(--space-3, 12px);
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         border: none;
         border-radius: var(--radius-md, 0.5rem);
         font-family: var(--font-body);
@@ -935,7 +935,7 @@ class IntegrationsSettingsUI {
       }
 
       .integrations-settings__connect-btn:hover {
-        background: var(--color-accent-secondary, #4a6741);
+        background: var(--color-accent-secondary, var(--color-ferni));
       }
 
       .integrations-settings__connect-btn:focus-visible {
@@ -955,11 +955,11 @@ class IntegrationsSettingsUI {
         gap: var(--space-2, 8px);
         margin-top: var(--space-3, 12px);
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-md, 0.5rem);
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         line-height: 1.5;
       }
 
@@ -984,11 +984,11 @@ class IntegrationsSettingsUI {
         align-items: center;
         gap: var(--space-1, 4px);
         padding: var(--space-1, 4px) var(--space-2, 8px);
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border-radius: var(--radius-full, 9999px);
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .integrations-settings__capability--active {
@@ -1015,7 +1015,7 @@ class IntegrationsSettingsUI {
         align-items: center;
         justify-content: space-between;
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-md, 0.5rem);
         margin-bottom: var(--space-3, 12px);
       }
@@ -1030,13 +1030,13 @@ class IntegrationsSettingsUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-xl, 1.25rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-accent-text, #2d5a3d);
+        color: var(--color-accent-text);
       }
 
       .integrations-settings__stat-label {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
       }
 
       .integrations-settings__social-actions {
@@ -1050,7 +1050,7 @@ class IntegrationsSettingsUI {
         border: none;
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-accent-text, #2d5a3d);
+        color: var(--color-accent-text);
         cursor: pointer;
         text-decoration: underline;
         text-underline-offset: 2px;
@@ -1078,68 +1078,68 @@ class IntegrationsSettingsUI {
          DARK THEME
          ======================================================================== */
       [data-theme="midnight"] .integrations-settings__backdrop {
-        background: var(--backdrop-modal, rgba(0, 0, 0, 0.6));
+        background: var(--backdrop-modal, color-mix(in srgb, var(--color-black) 60%, transparent));
       }
 
       [data-theme="midnight"] .integrations-settings__card {
-        background: var(--color-background-elevated, #504540);
+        background: var(--color-background-elevated);
       }
 
       [data-theme="midnight"] .integrations-settings__header h2 {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .integrations-settings__subtitle {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .integrations-settings__close {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-secondary, #f0ebe4);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .integrations-settings__close:hover {
-        background: var(--color-background-secondary, #60504a);
-        color: var(--color-text-primary, #faf6f0);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .integrations-settings__section-icon {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
         color: var(--color-ferni-ink);
       }
 
       [data-theme="midnight"] .integrations-settings__section-info h3 {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .integrations-settings__section-info p {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .integrations-settings__status--disconnected {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-muted, #e8e2da);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .integrations-settings__connected-info {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .integrations-settings__platform-name {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .integrations-settings__profile-headline {
-        color: var(--color-text-muted, #e8e2da);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .integrations-settings__platform-btn {
-        background: var(--color-background-secondary, #60504a);
-        color: var(--color-text-primary, #faf6f0);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .integrations-settings__platform-btn:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .integrations-settings__connect-btn {
@@ -1147,26 +1147,26 @@ class IntegrationsSettingsUI {
       }
 
       [data-theme="midnight"] .integrations-settings__connect-btn:hover {
-        background: var(--color-accent-primary, #4a6741);
+        background: var(--color-accent-primary);
       }
 
       [data-theme="midnight"] .integrations-settings__privacy-note {
-        background: var(--color-background-secondary, #60504a);
-        color: var(--color-text-muted, #e8e2da);
+        background: var(--color-background-secondary);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .integrations-settings__capability {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-muted, #e8e2da);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-muted);
       }
 
       [data-theme="midnight"] .integrations-settings__social-info {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .integrations-settings__stat-label,
       [data-theme="midnight"] .integrations-settings__capabilities-label {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       /* ========================================================================

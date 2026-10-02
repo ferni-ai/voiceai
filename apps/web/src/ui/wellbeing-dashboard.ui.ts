@@ -113,10 +113,10 @@ const styles = `
     width: 95%;
     max-width: clamp(504px, 90vw, 720px);
     max-height: 90vh;
-    background: var(--color-bg-elevated, #FFFDFB);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    background: var(--color-bg-elevated, var(--color-white));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-xl, 20px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -130,7 +130,7 @@ const styles = `
   
   .wellbeing-modal__header {
     padding: var(--space-6, 24px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    border-bottom: 1px solid var(--color-border-subtle);
     flex-shrink: 0;
     text-align: center;
   }
@@ -206,7 +206,7 @@ const styles = `
   
   .wellbeing-score-ring__background {
     fill: none;
-    stroke: var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    stroke: var(--color-border-subtle);
     stroke-width: 12;
   }
   
@@ -278,7 +278,7 @@ const styles = `
   }
   
   .wellbeing-dimension-card:hover {
-    border-color: var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    border-color: var(--color-border-subtle);
   }
   
   .wellbeing-dimension-card__header {
@@ -308,7 +308,7 @@ const styles = `
   }
   
   .wellbeing-dimension-card__trend--up {
-    background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+    background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
     color: var(--color-ferni-text);
   }
   
@@ -318,7 +318,7 @@ const styles = `
   }
   
   .wellbeing-dimension-card__trend--down {
-    background: var(--color-maya-tint, rgba(166, 122, 106, 0.1));
+    background: var(--color-maya-tint, color-mix(in srgb, var(--color-maya) 10%, transparent));
     color: var(--color-maya-text);
   }
   
@@ -383,16 +383,16 @@ const styles = `
 
   /* Calendar cell score levels - use CSS variables for theming */
   .wellbeing-calendar__cell--high {
-    background: var(--color-calendar-high, rgba(74, 103, 65, 0.8));
+    background: var(--color-calendar-high, color-mix(in srgb, var(--color-ferni) 80%, transparent));
   }
   .wellbeing-calendar__cell--medium {
-    background: var(--color-calendar-medium, rgba(154, 123, 90, 0.8));
+    background: var(--color-calendar-medium, color-mix(in srgb, var(--color-jack) 80%, transparent));
   }
   .wellbeing-calendar__cell--low {
-    background: var(--color-calendar-low, rgba(166, 122, 106, 0.6));
+    background: var(--color-calendar-low, color-mix(in srgb, var(--color-maya) 60%, transparent));
   }
   .wellbeing-calendar__cell--very-low {
-    background: var(--color-calendar-very-low, rgba(166, 122, 106, 0.3));
+    background: var(--color-calendar-very-low, color-mix(in srgb, var(--color-maya) 30%, transparent));
   }
   
   /* Achievements */
@@ -432,10 +432,10 @@ const styles = `
   
   /* Prediction */
   .wellbeing-prediction {
-    background: var(--gradient-prediction, linear-gradient(135deg, rgba(74, 103, 65, 0.05), rgba(58, 107, 115, 0.05)));
+    background: var(--gradient-prediction, linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 5%, transparent), color-mix(in srgb, var(--color-peter) 5%, transparent)));
     border-radius: var(--radius-lg, 12px);
     padding: var(--space-5, 20px);
-    border: 1px solid var(--persona-tint, rgba(74, 103, 65, 0.1));
+    border: 1px solid var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
   }
   
   .wellbeing-prediction__forecast {
@@ -491,7 +491,7 @@ const styles = `
   .wellbeing-spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    border: 4px solid var(--color-border-subtle);
     border-top-color: var(--color-ferni-text);
     border-radius: 50%;
     animation: wellbeing-spin var(--duration-entrance, 1000ms) linear infinite;
@@ -623,7 +623,7 @@ const styles = `
     /* Ferni's warm sage green */
     color: var(--color-ferni-ink);
     /* Soft glow for warmth */
-    filter: drop-shadow(0 0 16px rgba(74, 103, 65, 0.3));
+    filter: drop-shadow(0 0 16px color-mix(in srgb, var(--color-ferni) 30%, transparent));
     /* Organic heartbeat - alive and gentle */
     animation: wellbeing-heartbeat 2.5s var(--ease-gentle, cubic-bezier(0.25, 0.1, 0.25, 1)) infinite;
   }
@@ -686,9 +686,9 @@ const styles = `
     align-items: center;
     gap: var(--space-2, 8px);
     padding: var(--space-4, 16px) var(--space-2, 8px);
-    background: var(--color-bg-elevated, #FFFDFB);
+    background: var(--color-bg-elevated, var(--color-white));
     border-radius: var(--radius-xl, 16px);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    border: 1px solid var(--color-border-subtle);
     box-shadow: 
       0 2px 8px rgba(0, 0, 0, 0.04),
       0 0 0 1px rgba(255, 255, 255, 0.4) inset;
@@ -795,7 +795,7 @@ const styles = `
   .wellbeing-empty__calendar-cell {
     aspect-ratio: 1;
     border-radius: var(--radius-md, 8px);
-    background: var(--color-border-subtle, rgba(112, 96, 90, 0.08));
+    background: var(--color-border-subtle);
     --base-opacity: 0.5;
     opacity: var(--base-opacity);
     transition: all 0.3s ease;
@@ -851,7 +851,7 @@ const styles = `
       rgba(184, 149, 106, 0.04) 100%
     );
     border-radius: var(--radius-xl, 16px);
-    border: 1px solid rgba(74, 103, 65, 0.1);
+    border: 1px solid color-mix(in srgb, var(--color-ferni) 10%, transparent);
     animation: wellbeing-fade-in-up 0.6s ease-out both;
     animation-delay: 0.3s;
     /* Subtle gradient text effect */
@@ -894,7 +894,7 @@ const styles = `
   /* Footer */
   .wellbeing-modal__footer {
     padding: var(--space-4, 16px) var(--space-6, 24px);
-    border-top: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    border-top: 1px solid var(--color-border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -915,7 +915,7 @@ const styles = `
     transition: all var(--duration-fast, 100ms) ease;
     border: none;
     background: var(--color-ferni);
-    color: white;
+    color: var(--color-white);
   }
   
   .wellbeing-btn:hover {
@@ -931,7 +931,7 @@ const styles = `
   }
   
   .wellbeing-btn--secondary:hover {
-    background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+    background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
     transform: translateY(-1px);
   }
   
@@ -957,7 +957,7 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-modal__header {
-    border-bottom-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    border-bottom-color: var(--color-border-subtle);
   }
 
   [data-theme="midnight"] .wellbeing-modal__eyebrow {
@@ -1001,15 +1001,15 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-dimension-card:hover {
-    border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    border-color: var(--color-border-subtle);
   }
 
   [data-theme="midnight"] .wellbeing-score-ring__background {
-    stroke: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    stroke: var(--color-border-subtle);
   }
 
   [data-theme="midnight"] .wellbeing-spinner {
-    border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    border-color: var(--color-border-subtle);
     border-top-color: var(--color-accent-secondary);
   }
 
@@ -1039,7 +1039,7 @@ const styles = `
   }
   
   [data-theme="midnight"] .wellbeing-empty__icon {
-    filter: drop-shadow(0 0 16px rgba(74, 103, 65, 0.6));
+    filter: drop-shadow(0 0 16px color-mix(in srgb, var(--color-ferni) 60%, transparent));
   }
   
   [data-theme="midnight"] .wellbeing-empty__title {
@@ -1055,7 +1055,7 @@ const styles = `
   
   [data-theme="midnight"] .wellbeing-empty__dimension {
     background: rgba(30, 30, 35, 0.95);
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: color-mix(in srgb, var(--color-white) 8%, transparent);
     box-shadow: 
       0 4px 24px rgba(0, 0, 0, 0.3),
       0 0 0 1px rgba(255, 255, 255, 0.05) inset,
@@ -1096,7 +1096,7 @@ const styles = `
   }
   
   [data-theme="midnight"] .wellbeing-empty__calendar-cell {
-    background: rgba(255, 255, 255, 0.06);
+    background: color-mix(in srgb, var(--color-white) 6%, transparent);
   }
   
   [data-theme="midnight"] .wellbeing-empty__calendar-cell--highlight {
@@ -1111,7 +1111,7 @@ const styles = `
       rgba(166, 122, 106, 0.08) 50%,
       rgba(184, 149, 106, 0.08) 100%
     );
-    border-color: rgba(74, 103, 65, 0.2);
+    border-color: color-mix(in srgb, var(--color-ferni) 20%, transparent);
   }
   
   [data-theme="midnight"] .wellbeing-empty__preview-label {
@@ -1119,7 +1119,7 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-modal__footer {
-    border-top-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    border-top-color: var(--color-border-subtle);
   }
 
   [data-theme="midnight"] .wellbeing-btn {
@@ -1160,7 +1160,7 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-prediction {
-    background: var(--gradient-prediction-dark, linear-gradient(135deg, rgba(124, 179, 107, 0.08), rgba(58, 107, 115, 0.08)));
+    background: var(--gradient-prediction-dark, linear-gradient(135deg, rgba(124, 179, 107, 0.08), color-mix(in srgb, var(--color-peter) 8%, transparent)));
     border-color: var(--persona-tint, rgba(124, 179, 107, 0.2));
   }
 
@@ -1177,7 +1177,7 @@ const styles = `
     background: var(--color-calendar-high-dark, rgba(124, 179, 107, 0.8));
   }
   [data-theme="midnight"] .wellbeing-calendar__cell--medium {
-    background: var(--color-calendar-medium-dark, rgba(184, 149, 106, 0.7));
+    background: var(--color-calendar-medium-dark, color-mix(in srgb, var(--color-nayan) 70%, transparent));
   }
   [data-theme="midnight"] .wellbeing-calendar__cell--low {
     background: var(--color-calendar-low-dark, rgba(201, 162, 85, 0.5));
@@ -1735,7 +1735,7 @@ function renderContent(): void {
 
   if (loadError) {
     content.innerHTML = `
-      <div class="wellbeing-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
+      <div class="wellbeing-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted);">
         Couldn't load data. <button type="button" class="wellbeing-btn" style="margin-top: var(--space-4); color: var(--color-ferni-ink);">Try again?</button>
       </div>
     `;

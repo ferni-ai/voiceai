@@ -467,10 +467,10 @@ class WearableSettingsUI {
         max-width: clamp(336px, 90vw, 480px);
         max-height: 90vh;
         overflow-y: auto;
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         transform: ${prefersReducedMotion() ? 'none' : 'scale(0.95)'};
         transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
       }
@@ -484,7 +484,7 @@ class WearableSettingsUI {
         align-items: center;
         gap: var(--space-3, 12px);
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .wearable-settings__icon {
@@ -503,7 +503,7 @@ class WearableSettingsUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-lg, 1.125rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
@@ -514,17 +514,17 @@ class WearableSettingsUI {
         width: 32px;
         height: 32px;
         padding: 0;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border: none;
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .wearable-settings__close:hover {
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
       }
 
       .wearable-settings__close svg {
@@ -543,7 +543,7 @@ class WearableSettingsUI {
       .wearable-settings__intro p {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0;
         line-height: 1.5;
       }
@@ -553,7 +553,7 @@ class WearableSettingsUI {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         margin: 0 0 var(--space-3, 12px) 0;
@@ -564,7 +564,7 @@ class WearableSettingsUI {
         align-items: center;
         gap: var(--space-3, 12px);
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 0.75rem);
         margin-bottom: var(--space-2, 8px);
       }
@@ -579,9 +579,9 @@ class WearableSettingsUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-md, 0.5rem);
-        color: var(--color-text-secondary, #6b5b4f);
+        color: var(--color-text-secondary);
       }
 
       .wearable-settings__provider-icon svg {
@@ -605,13 +605,13 @@ class WearableSettingsUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .wearable-settings__provider-desc {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .wearable-settings__provider-btn {
@@ -619,7 +619,7 @@ class WearableSettingsUI {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-md, 0.5rem);
@@ -633,19 +633,19 @@ class WearableSettingsUI {
 
       .wearable-settings__provider-btn--disconnect {
         background: transparent;
-        color: var(--color-text-muted, #756a5e);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.2));
+        color: var(--color-text-muted);
+        border: 1px solid var(--color-border-subtle);
       }
 
       .wearable-settings__provider-btn--disconnect:hover {
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         color: var(--color-semantic-error-text);
-        border-color: var(--color-semantic-error, #b5453a);
+        border-color: var(--color-semantic-error);
       }
 
       .wearable-settings__provider-btn--disabled {
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-muted, #756a5e);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-muted);
         cursor: not-allowed;
         opacity: 0.7;
       }
@@ -661,8 +661,8 @@ class WearableSettingsUI {
         padding: 2px 6px;
         font-size: 10px;
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-muted, #756a5e);
-        background: var(--color-background-tertiary, #ebe6df);
+        color: var(--color-text-muted);
+        background: var(--color-background-tertiary);
         border-radius: var(--radius-sm, 4px);
         text-transform: uppercase;
         letter-spacing: 0.03em;
@@ -683,13 +683,13 @@ class WearableSettingsUI {
       .wearable-settings__toggle input {
         width: 18px;
         height: 18px;
-        accent-color: var(--color-accent-primary, #2d5a3d);
+        accent-color: var(--color-accent-primary);
       }
 
       .wearable-settings__toggle span {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .wearable-settings__privacy {
@@ -698,7 +698,7 @@ class WearableSettingsUI {
         gap: var(--space-3, 12px);
         margin-top: var(--ma-rest, 21px);
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 0.75rem);
       }
 
@@ -717,7 +717,7 @@ class WearableSettingsUI {
       .wearable-settings__privacy p {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0;
         line-height: 1.5;
       }
@@ -733,8 +733,8 @@ class WearableSettingsUI {
       .wearable-settings__spinner {
         width: 32px;
         height: 32px;
-        border: 3px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
-        border-top-color: var(--color-accent-primary, #2d5a3d);
+        border: 3px solid var(--color-border-subtle);
+        border-top-color: var(--color-accent-primary);
         border-radius: 50%;
         animation: wearable-spin 0.8s linear infinite;
         margin-bottom: var(--ma-breath, 13px);
@@ -748,7 +748,7 @@ class WearableSettingsUI {
       .wearable-settings__error p {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0 0 var(--ma-breath, 13px) 0;
       }
 
@@ -756,8 +756,8 @@ class WearableSettingsUI {
         padding: var(--space-2, 8px) var(--space-4, 16px);
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-primary);
         border: none;
         border-radius: var(--radius-md, 0.5rem);
         cursor: pointer;
@@ -765,23 +765,23 @@ class WearableSettingsUI {
 
       /* Dark Theme */
       [data-theme="midnight"] .wearable-settings__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated);
       }
 
       [data-theme="midnight"] .wearable-settings__title,
       [data-theme="midnight"] .wearable-settings__provider-name,
       [data-theme="midnight"] .wearable-settings__toggle span {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .wearable-settings__provider,
       [data-theme="midnight"] .wearable-settings__privacy {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .wearable-settings__provider-icon {
-        background: var(--color-background-elevated, #70605a);
-        color: var(--color-text-secondary, #e8e2da);
+        background: var(--color-background-elevated);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .wearable-settings__provider--connected .wearable-settings__provider-icon {

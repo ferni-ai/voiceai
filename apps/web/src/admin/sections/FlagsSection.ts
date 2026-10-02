@@ -124,7 +124,7 @@ export async function render(): Promise<string> {
         left: var(--space-3, 0.75rem);
         top: 50%;
         transform: translateY(-50%);
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         display: flex;
         pointer-events: none;
       }
@@ -138,22 +138,22 @@ export async function render(): Promise<string> {
         width: 100%;
         padding: var(--space-3, 0.75rem);
         padding-left: calc(var(--space-3, 0.75rem) * 2 + 16px);
-        background: var(--color-background-elevated, #2c2520);
-        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
+        background: var(--color-background-elevated);
+        border: 1px solid var(--admin-border-default, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
         font-size: 0.9375rem;
         font-family: inherit;
         transition: border-color var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .flags-search-input::placeholder {
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
       }
 
       .flags-search-input:focus {
         outline: none;
-        border-color: var(--persona-primary, #4a6741);
+        border-color: var(--persona-primary, var(--color-ferni));
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -170,7 +170,7 @@ export async function render(): Promise<string> {
       .category-count {
         font-size: 0.75rem;
         font-weight: 400;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         margin-left: auto;
       }
 
@@ -185,13 +185,13 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-4, 1rem);
         padding: var(--space-4, 1rem);
-        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        background: var(--admin-surface-subtle, color-mix(in srgb, var(--color-white) 3%, transparent));
         border-radius: var(--radius-md, 8px);
         transition: background var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .flag-item:hover {
-        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.05));
+        background: var(--admin-surface-hover, color-mix(in srgb, var(--color-white) 5%, transparent));
       }
 
       .flag-item--disabled {
@@ -223,15 +223,15 @@ export async function render(): Promise<string> {
       .flag-id {
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.6875rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         padding: 0.125rem 0.375rem;
-        background: var(--admin-surface-active, rgba(255, 255, 255, 0.05));
+        background: var(--admin-surface-active, color-mix(in srgb, var(--color-white) 5%, transparent));
         border-radius: var(--radius-sm, 4px);
       }
 
       .flag-desc {
         font-size: 0.8125rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .flag-controls {
@@ -248,16 +248,16 @@ export async function render(): Promise<string> {
 
       .flag-percentage-label {
         font-size: 0.75rem;
-        color: var(--color-text-secondary, #a89a8c);
+        color: var(--color-text-secondary);
       }
 
       .flag-percentage-input {
         width: 60px;
         padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
-        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
-        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
+        background: var(--admin-surface-active, color-mix(in srgb, var(--color-white) 10%, transparent));
+        border: 1px solid var(--admin-border-default, color-mix(in srgb, var(--color-white) 10%, transparent));
         border-radius: var(--radius-sm, 4px);
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.8125rem;
         text-align: center;
@@ -266,7 +266,7 @@ export async function render(): Promise<string> {
 
       .flag-percentage-input:focus {
         outline: none;
-        border-color: var(--persona-primary, #4a6741);
+        border-color: var(--persona-primary, var(--color-ferni));
       }
 
       @media (prefers-reduced-motion: reduce) {

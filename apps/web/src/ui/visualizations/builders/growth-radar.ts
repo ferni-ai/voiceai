@@ -337,7 +337,7 @@ function buildTablet(
     ring.setAttribute('cy', String(center));
     ring.setAttribute('r', String(maxRadius * scale));
     ring.setAttribute('fill', 'none');
-    ring.setAttribute('stroke', 'var(--color-border-subtle, rgba(44, 37, 32, 0.08))');
+    ring.setAttribute('stroke', 'var(--color-border-subtle)');
     ring.setAttribute('stroke-width', '1');
     ring.setAttribute('stroke-dasharray', i === 2 ? 'none' : '4 4');
     ring.setAttribute('opacity', String(0.4 + i * 0.2));
@@ -356,7 +356,7 @@ function buildTablet(
     line.setAttribute('y1', String(center));
     line.setAttribute('x2', String(x));
     line.setAttribute('y2', String(y));
-    line.setAttribute('stroke', 'var(--color-border-subtle, rgba(44, 37, 32, 0.06))');
+    line.setAttribute('stroke', 'var(--color-border-subtle)');
     line.setAttribute('stroke-width', '1');
     svg.appendChild(line);
   });
@@ -416,7 +416,7 @@ function buildTablet(
     text.setAttribute('dominant-baseline', 'middle');
     text.setAttribute('font-size', '11');
     text.setAttribute('font-weight', '500');
-    text.setAttribute('fill', dim.name === topDim.name ? color : 'var(--color-text-secondary, #5c544a)');
+    text.setAttribute('fill', dim.name === topDim.name ? color : 'var(--color-text-secondary)');
     text.setAttribute('class', 'gfp-label');
     text.textContent = dim.name;
     svg.appendChild(text);
@@ -444,7 +444,7 @@ function buildTablet(
   centerBg.setAttribute('cy', String(center));
   centerBg.setAttribute('r', '28');
   centerBg.setAttribute('fill', 'var(--color-bg-elevated, #FFFDFB)');
-  centerBg.setAttribute('stroke', 'var(--color-border-subtle, rgba(44, 37, 32, 0.1))');
+  centerBg.setAttribute('stroke', 'var(--color-border-subtle)');
   overallGroup.appendChild(centerBg);
   
   const scoreText = createSvgElement('text');
@@ -453,7 +453,7 @@ function buildTablet(
   scoreText.setAttribute('text-anchor', 'middle');
   scoreText.setAttribute('font-size', '18');
   scoreText.setAttribute('font-weight', '700');
-  scoreText.setAttribute('fill', 'var(--color-text-primary, #2C2520)');
+  scoreText.setAttribute('fill', 'var(--color-text-primary)');
   scoreText.textContent = `${Math.round(data.overallGrowth * 100)}`;
   overallGroup.appendChild(scoreText);
   
@@ -463,7 +463,7 @@ function buildTablet(
   percentText.setAttribute('text-anchor', 'middle');
   percentText.setAttribute('font-size', '9');
   percentText.setAttribute('font-weight', '500');
-  percentText.setAttribute('fill', 'var(--color-text-muted, #8a8279)');
+  percentText.setAttribute('fill', 'var(--color-text-muted)');
   percentText.textContent = 'overall';
   overallGroup.appendChild(percentText);
   
@@ -582,7 +582,7 @@ function injectFingerPrintStyles(): void {
       font-size: 0.625rem;
       font-weight: 600;
       letter-spacing: 0.1em;
-      color: var(--color-text-muted, #8a8279);
+      color: var(--color-text-muted);
       margin-bottom: 4px;
     }
     
@@ -591,7 +591,7 @@ function injectFingerPrintStyles(): void {
       font-size: 1.125rem;
       font-weight: 600;
       line-height: 1.3;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
     
@@ -634,15 +634,15 @@ function injectFingerPrintStyles(): void {
       align-items: center;
       gap: 10px;
       padding: 10px 12px;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: 10px;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     
     .gfp-insight-card:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--color-black) 6%, transparent);
     }
     
     .gfp-insight-icon {
@@ -671,7 +671,7 @@ function injectFingerPrintStyles(): void {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.625rem;
       font-weight: 500;
-      color: var(--color-text-muted, #8a8279);
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -680,7 +680,7 @@ function injectFingerPrintStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 0.875rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     @media (prefers-reduced-motion: reduce) {

@@ -592,7 +592,7 @@ export class YourYearWithFerni {
         width: 90%;
         max-width: 800px;
         max-height: 85vh;
-        background: var(--color-bg-elevated, #FFFFFF);
+        background: var(--color-bg-elevated, var(--color-white));
       }
 
       .your-year-modal--empty {
@@ -609,8 +609,8 @@ export class YourYearWithFerni {
       }
 
       .your-year-modal--empty .your-year-content {
-        background: var(--color-bg-elevated, #FFFFFF);
-        border: 1px solid var(--color-border-subtle, rgba(29, 27, 24, 0.06));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-2xl, 24px);
         box-shadow: var(--shadow-2xl, 0 25px 50px rgba(29, 27, 24, 0.12));
         overflow: hidden;
@@ -646,7 +646,7 @@ export class YourYearWithFerni {
       }
 
       .your-year-close svg {
-        color: var(--color-text-secondary, #4A4641);
+        color: var(--color-text-secondary);
         width: 20px;
         height: 20px;
       }
@@ -655,8 +655,8 @@ export class YourYearWithFerni {
       .your-year-header {
         padding: var(--space-8, 32px) var(--space-8, 32px) var(--space-6, 24px);
         text-align: center;
-        background: var(--color-bg-elevated, #FFFFFF);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(29, 27, 24, 0.06));
+        background: var(--color-bg-elevated, var(--color-white));
+        border-bottom: 1px solid var(--color-border-subtle);
         position: relative;
       }
 
@@ -686,7 +686,7 @@ export class YourYearWithFerni {
         font-weight: var(--font-bold, 700);
         letter-spacing: var(--tracking-tight, -0.015em);
         line-height: var(--leading-tight, 1.15);
-        color: var(--color-text-primary, #1D1B18);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-3, 12px);
       }
 
@@ -695,7 +695,7 @@ export class YourYearWithFerni {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-normal, 400);
-        color: var(--color-text-secondary, #4A4641);
+        color: var(--color-text-secondary);
         line-height: var(--leading-normal, 1.5);
         max-width: 400px;
         margin: 0 auto;
@@ -705,7 +705,7 @@ export class YourYearWithFerni {
         padding: var(--space-6, 24px);
         overflow-y: auto;
         max-height: calc(85vh - 160px);
-        background: var(--color-bg-primary, #FAF8F5);
+        background: var(--color-bg-primary, var(--color-white));
       }
 
       /* Stats Grid */
@@ -726,8 +726,8 @@ export class YourYearWithFerni {
       .your-year-stat-card {
         text-align: center;
         padding: var(--space-5, 20px) var(--space-4, 16px);
-        background: var(--color-bg-elevated, #FFFFFF);
-        border: 1px solid var(--color-border-subtle, rgba(29, 27, 24, 0.06));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-lg, 12px);
         box-shadow: var(--shadow-sm, 0 1px 3px rgba(29, 27, 24, 0.06));
       }
@@ -744,14 +744,14 @@ export class YourYearWithFerni {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-semibold, 600);
-        color: var(--color-text-primary, #1D1B18);
+        color: var(--color-text-primary);
         margin-top: var(--space-1, 4px);
       }
 
       .your-year-stat-subtext {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 11px;
-        color: var(--color-text-muted, #8A847C);
+        color: var(--color-text-muted);
         margin-top: var(--space-1, 4px);
       }
 
@@ -776,8 +776,8 @@ export class YourYearWithFerni {
         display: flex;
         gap: 3px;
         padding: var(--space-4, 16px);
-        background: var(--color-bg-elevated, #FFFFFF);
-        border: 1px solid var(--color-border-subtle, rgba(29, 27, 24, 0.06));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-lg, 12px);
         overflow-x: auto;
       }
@@ -799,7 +799,7 @@ export class YourYearWithFerni {
       .heatmap-day[data-intensity="1"] { background: var(--color-ferni-subtle, rgba(74, 103, 65, 0.15)); }
       .heatmap-day[data-intensity="2"] { background: rgba(74, 103, 65, 0.35); }
       .heatmap-day[data-intensity="3"] { background: rgba(74, 103, 65, 0.55); }
-      .heatmap-day[data-intensity="4"] { background: var(--color-ferni, #4A6741); }
+      .heatmap-day[data-intensity="4"] { background: var(--color-ferni); }
 
       /* Timeline */
       .your-year-timeline {
@@ -834,14 +834,14 @@ export class YourYearWithFerni {
         width: 10px;
         height: 10px;
         border-radius: var(--radius-full, 9999px);
-        background: var(--color-ferni, #4A6741);
-        box-shadow: 0 0 0 3px var(--color-ferni-subtle, rgba(74, 103, 65, 0.2));
+        background: var(--color-ferni);
+        box-shadow: 0 0 0 3px var(--color-ferni-subtle, color-mix(in srgb, var(--color-ferni) 20%, transparent));
       }
 
       .timeline-date {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 11px;
-        color: var(--color-text-muted, #8A847C);
+        color: var(--color-text-muted);
         margin-bottom: var(--space-1, 4px);
       }
 
@@ -849,14 +849,14 @@ export class YourYearWithFerni {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-weight: var(--font-semibold, 600);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-primary, #1D1B18);
+        color: var(--color-text-primary);
         text-transform: capitalize;
       }
 
       .timeline-context {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #4A4641);
+        color: var(--color-text-secondary);
         margin-top: var(--space-1, 4px);
       }
 
@@ -888,7 +888,7 @@ export class YourYearWithFerni {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
+        color: var(--color-white);
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-lg, 1.25rem);
         font-weight: var(--font-semibold, 600);
@@ -910,14 +910,14 @@ export class YourYearWithFerni {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-weight: var(--font-semibold, 600);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-primary, #1D1B18);
+        color: var(--color-text-primary);
         margin-bottom: var(--space-1, 4px);
       }
 
       .team-unlocked {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 11px;
-        color: var(--color-text-muted, #8A847C);
+        color: var(--color-text-muted);
       }
 
       /* Dreams */
@@ -932,8 +932,8 @@ export class YourYearWithFerni {
         align-items: flex-start;
         gap: var(--space-3, 12px);
         padding: var(--space-4, 16px);
-        background: var(--color-bg-elevated, #FFFFFF);
-        border: 1px solid var(--color-border-subtle, rgba(29, 27, 24, 0.06));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-lg, 12px);
         transition: border-color var(--duration-fast, 150ms) var(--ease-out);
       }
@@ -943,8 +943,8 @@ export class YourYearWithFerni {
       }
 
       .dream-item.achieved {
-        background: var(--color-ferni-subtle, rgba(74, 103, 65, 0.08));
-        border-color: var(--color-ferni-border, rgba(74, 103, 65, 0.2));
+        background: var(--color-ferni-subtle, color-mix(in srgb, var(--color-ferni) 8%, transparent));
+        border-color: var(--color-ferni-border, color-mix(in srgb, var(--color-ferni) 20%, transparent));
       }
 
       .dream-icon {
@@ -969,13 +969,13 @@ export class YourYearWithFerni {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-weight: var(--font-medium, 500);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-primary, #1D1B18);
+        color: var(--color-text-primary);
       }
 
       .dream-meta {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #8A847C);
+        color: var(--color-text-muted);
         margin-top: var(--space-1, 4px);
       }
 

@@ -56,10 +56,10 @@ function getStyles(): string {
 
     .trust-journey-card {
       position: relative;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       max-width: clamp(504px, 90vw, 720px);
       width: calc(100% - var(--space-8, 32px));
       max-height: calc(100vh - var(--space-12, 48px));
@@ -83,8 +83,8 @@ function getStyles(): string {
       align-items: flex-start;
       justify-content: space-between;
       padding: var(--space-6, 24px) var(--space-6, 24px) var(--space-4, 16px);
-      background: linear-gradient(to bottom, var(--persona-tint, rgba(74, 103, 65, 0.05)), transparent);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      background: linear-gradient(to bottom, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent)), transparent);
+      border-bottom: 1px solid var(--color-border-subtle);
     }
     
     .trust-journey-header-content { flex: 1; }
@@ -98,7 +98,7 @@ function getStyles(): string {
       font-weight: var(--font-weight-bold, 700);
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--color-accent-text, var(--persona-primary, #4a6741));
+      color: var(--color-accent-text);
       margin-bottom: var(--space-1, 4px);
     }
     
@@ -108,7 +108,7 @@ function getStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-2xl, 28px);
       font-weight: var(--font-weight-bold, 700);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 4px);
       line-height: var(--leading-tight, 1.2);
     }
@@ -116,7 +116,7 @@ function getStyles(): string {
     .trust-journey-subtitle {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       margin: 0;
     }
     
@@ -132,24 +132,24 @@ function getStyles(): string {
       width: 40px;
       height: 40px;
       padding: 0;
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border: none;
       border-radius: var(--radius-full, 9999px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
     .trust-journey-action-btn:hover {
-      background: var(--color-background-tertiary, #E8E0D5);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
       transform: scale(1.05);
     }
     
     .trust-journey-action-btn:focus-visible {
-      outline: 2px solid var(--color-accent-primary, var(--persona-primary, #4a6741));
+      outline: 2px solid var(--color-accent-primary);
       outline-offset: 2px;
-      background: var(--color-background-tertiary, #E8E0D5);
+      background: var(--color-background-tertiary);
     }
     
     .trust-journey-action-btn:active { transform: scale(0.95); }
@@ -184,7 +184,7 @@ function getStyles(): string {
     
     .trust-strength-bg {
       fill: none;
-      stroke: var(--color-background-tertiary, #E8E0D5);
+      stroke: var(--color-background-tertiary);
       stroke-width: 12;
     }
     
@@ -210,14 +210,14 @@ function getStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-4xl, 40px);
       font-weight: var(--font-weight-bold, 700);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       line-height: 1;
     }
     
     .trust-strength-label {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -226,7 +226,7 @@ function getStyles(): string {
       text-align: center;
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-base, 16px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       max-width: min(400px, 100%);
       margin: 0 auto;
       line-height: var(--leading-relaxed, 1.6);
@@ -241,7 +241,7 @@ function getStyles(): string {
     }
     
     .trust-stat-card {
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-4, 16px);
       text-align: center;
@@ -250,7 +250,7 @@ function getStyles(): string {
     }
     
     .trust-stat-card:hover {
-      background: var(--color-background-tertiary, #E8E0D5);
+      background: var(--color-background-tertiary);
       transform: translateY(-2px);
     }
     
@@ -261,9 +261,9 @@ function getStyles(): string {
       width: 40px;
       height: 40px;
       margin: 0 auto var(--space-2, 8px);
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-full, 9999px);
-      color: var(--color-accent-text, var(--persona-primary, #4a6741));
+      color: var(--color-accent-text);
     }
     
     .trust-stat-icon svg { width: 20px; height: 20px; }
@@ -272,7 +272,7 @@ function getStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-2xl, 28px);
       font-weight: var(--font-weight-bold, 700);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       line-height: 1;
       margin-bottom: var(--space-1, 4px);
     }
@@ -280,7 +280,7 @@ function getStyles(): string {
     .trust-stat-label {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
     }
     
     /* Section Headers */
@@ -299,9 +299,9 @@ function getStyles(): string {
       justify-content: center;
       width: 32px;
       height: 32px;
-      background: linear-gradient(135deg, var(--persona-primary, #4a6741) 0%, var(--persona-secondary, #3d5a35) 100%);
+      background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)) 0%, var(--persona-secondary, var(--color-ferni-secondary)) 100%);
       border-radius: var(--radius-md, 8px);
-      color: white;
+      color: var(--color-white);
     }
     
     .trust-section-icon svg { width: 16px; height: 16px; }
@@ -310,7 +310,7 @@ function getStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-lg, 18px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
     
@@ -326,11 +326,11 @@ function getStyles(): string {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-full, 9999px);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      color: var(--color-accent-text, var(--persona-primary, #4a6741));
+      color: var(--color-accent-text);
     }
     
     .growth-pattern-count {
@@ -340,11 +340,11 @@ function getStyles(): string {
       min-width: 20px;
       height: 20px;
       padding: 0 6px;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: var(--radius-full, 9999px);
       font-size: var(--text-xs, 12px);
       font-weight: var(--font-weight-bold, 700);
-      color: white;
+      color: var(--color-white);
     }
     
     /* Timeline */
@@ -360,7 +360,7 @@ function getStyles(): string {
       top: 4px;
       bottom: 4px;
       width: 2px;
-      background: linear-gradient(to bottom, var(--persona-primary, #4a6741), transparent);
+      background: linear-gradient(to bottom, var(--persona-primary, var(--color-ferni)), transparent);
       border-radius: 1px;
     }
     
@@ -383,19 +383,19 @@ function getStyles(): string {
       top: 6px;
       width: 10px;
       height: 10px;
-      background: var(--color-background-elevated, #FFFDFB);
-      border: 2px solid var(--persona-primary, #4a6741);
+      background: var(--color-background-elevated);
+      border: 2px solid var(--persona-primary, var(--color-ferni));
       border-radius: var(--radius-full, 9999px);
     }
     
-    .timeline-item--growth::before { border-color: var(--color-semantic-success, #3d7a52); }
-    .timeline-item--win::before { border-color: var(--color-semantic-warning, #c49a6c); }
-    .timeline-item--callback::before { border-color: var(--color-semantic-info, #3a6b9c); }
+    .timeline-item--growth::before { border-color: var(--color-semantic-success); }
+    .timeline-item--win::before { border-color: var(--color-semantic-warning); }
+    .timeline-item--callback::before { border-color: var(--color-semantic-info); }
     
     .timeline-date {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-1, 4px);
     }
     
@@ -403,14 +403,14 @@ function getStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-sm, 14px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-1, 4px);
     }
     
     .timeline-description {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       line-height: var(--leading-relaxed, 1.5);
     }
     
@@ -425,23 +425,23 @@ function getStyles(): string {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-4, 16px);
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border: none;
       border-radius: var(--radius-full, 9999px);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
     .timeline-load-more-btn:hover {
-      background: var(--color-background-tertiary, #E8E0D5);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
     }
     
     .timeline-load-more-btn:focus-visible {
-      outline: 2px solid var(--color-accent-primary, var(--persona-primary, #4a6741));
+      outline: 2px solid var(--color-accent-primary);
       outline-offset: 2px;
     }
     
@@ -454,7 +454,7 @@ function getStyles(): string {
       gap: var(--space-2, 8px);
       margin-bottom: var(--space-4, 16px);
       padding-bottom: var(--space-3, 12px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
     
     .timeline-filter-tab {
@@ -463,33 +463,33 @@ function getStyles(): string {
       gap: var(--space-1, 4px);
       padding: var(--space-1, 4px) var(--space-3, 12px);
       background: transparent;
-      border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.1));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-full, 9999px);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
       font-weight: var(--font-weight-medium, 500);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
     .timeline-filter-tab:hover {
-      background: var(--color-background-secondary, #F5F1E8);
-      border-color: var(--color-border-medium, rgba(0,0,0,0.15));
+      background: var(--color-background-secondary);
+      border-color: var(--color-border-medium);
     }
     
     .timeline-filter-tab--active {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-      border-color: var(--persona-primary, #4a6741);
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
+      border-color: var(--persona-primary, var(--color-ferni));
       color: var(--persona-ink);
     }
     
     .timeline-filter-tab--active:hover {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.15));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 15%, transparent));
     }
     
     .timeline-filter-tab:focus-visible {
-      outline: 2px solid var(--color-accent-primary, var(--persona-primary, #4a6741));
+      outline: 2px solid var(--color-accent-primary);
       outline-offset: 2px;
     }
     
@@ -500,15 +500,15 @@ function getStyles(): string {
       min-width: 18px;
       height: 18px;
       padding: 0 var(--space-1, 4px);
-      background: var(--color-background-tertiary, #E8E0D5);
+      background: var(--color-background-tertiary);
       border-radius: var(--radius-full, 9999px);
       font-size: var(--text-2xs, 10px);
       font-weight: var(--font-weight-bold, 700);
     }
     
     .timeline-filter-tab--active .timeline-filter-count {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
     
     /* Boundaries Message */
@@ -517,9 +517,9 @@ function getStyles(): string {
       align-items: center;
       gap: var(--space-3, 12px);
       padding: var(--space-4, 16px);
-      background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.05)), transparent);
+      background: linear-gradient(135deg, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent)), transparent);
       border-radius: var(--radius-lg, 12px);
-      border-left: 3px solid var(--persona-primary, #4a6741);
+      border-left: 3px solid var(--persona-primary, var(--color-ferni));
     }
     
     .boundaries-icon {
@@ -528,9 +528,9 @@ function getStyles(): string {
       justify-content: center;
       width: 44px;
       height: 44px;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: var(--radius-full, 9999px);
-      color: white;
+      color: var(--color-white);
       flex-shrink: 0;
     }
     
@@ -539,7 +539,7 @@ function getStyles(): string {
     .boundaries-text {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-base, 16px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       line-height: var(--leading-relaxed, 1.6);
     }
     
@@ -556,7 +556,7 @@ function getStyles(): string {
     .trust-journey-loading-spinner {
       width: 48px;
       height: 48px;
-      border: 3px solid var(--color-background-tertiary, #E8E0D5);
+      border: 3px solid var(--color-background-tertiary);
       border-top-color: var(--color-text-secondary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
@@ -566,7 +566,7 @@ function getStyles(): string {
     .trust-journey-loading-text {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-base, 16px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
     }
     
     /* Skeleton Loading */
@@ -576,14 +576,14 @@ function getStyles(): string {
       width: min(180px, 100%);
       height: 180px;
       margin: 0 auto var(--space-4, 16px);
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: 50%;
       animation: skeleton-pulse 1.5s ease-in-out infinite;
     }
     
     .skeleton-text {
       height: 16px;
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-sm, 4px);
       animation: skeleton-pulse 1.5s ease-in-out infinite;
     }
@@ -600,7 +600,7 @@ function getStyles(): string {
     
     .skeleton-stat {
       height: 100px;
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg, 12px);
       animation: skeleton-pulse 1.5s ease-in-out infinite;
     }
@@ -623,9 +623,9 @@ function getStyles(): string {
       width: 80px;
       height: 80px;
       margin: 0 auto var(--space-4, 16px);
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-full, 9999px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
     }
     
     .trust-journey-empty-icon svg { width: 36px; height: 36px; }
@@ -634,14 +634,14 @@ function getStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 20px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-2, 8px);
     }
     
     .trust-journey-empty-text {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-base, 16px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       max-width: min(320px, 100%);
       margin: 0 auto;
     }
@@ -659,7 +659,7 @@ function getStyles(): string {
       width: 64px;
       height: 64px;
       margin: 0 auto var(--space-4, 16px);
-      background: var(--color-semantic-error-tint, rgba(200, 100, 100, 0.1));
+      background: var(--color-semantic-error-tint);
       border-radius: var(--radius-full, 9999px);
       color: var(--color-semantic-error-text);
     }
@@ -670,14 +670,14 @@ function getStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-lg, 18px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-2, 8px);
     }
     
     .trust-journey-error-text {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       margin-bottom: var(--space-4, 16px);
     }
     
@@ -686,19 +686,19 @@ function getStyles(): string {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-4, 16px);
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border: none;
       border-radius: var(--radius-full, 9999px);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      color: white;
+      color: var(--color-white);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
     .trust-journey-retry-btn:hover { background: var(--persona-secondary, #3d5a35); }
     .trust-journey-retry-btn:focus-visible {
-      outline: 2px solid var(--color-accent-primary, var(--persona-primary, #4a6741));
+      outline: 2px solid var(--color-accent-primary);
       outline-offset: 2px;
     }
     
@@ -709,11 +709,11 @@ function getStyles(): string {
       justify-content: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-4, 16px);
-      background: var(--color-semantic-warning-tint, rgba(196, 154, 108, 0.1));
+      background: var(--color-semantic-warning-tint);
       color: var(--color-semantic-warning-text);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
     
     .trust-journey-offline-banner svg { width: 16px; height: 16px; }
@@ -726,7 +726,7 @@ function getStyles(): string {
     }
     
     [data-theme="midnight"] .trust-journey-card {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated);
     }
     
     [data-theme="midnight"] .trust-journey-title,
@@ -736,7 +736,7 @@ function getStyles(): string {
     [data-theme="midnight"] .timeline-title,
     [data-theme="midnight"] .trust-journey-empty-title,
     [data-theme="midnight"] .trust-journey-error-title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
     
     [data-theme="midnight"] .trust-journey-subtitle,
@@ -745,7 +745,7 @@ function getStyles(): string {
     [data-theme="midnight"] .timeline-description,
     [data-theme="midnight"] .trust-journey-empty-text,
     [data-theme="midnight"] .trust-journey-error-text {
-      color: var(--color-text-secondary, #f0ebe4);
+      color: var(--color-text-secondary);
     }
     
     [data-theme="midnight"] .trust-stat-card,
@@ -753,50 +753,50 @@ function getStyles(): string {
     [data-theme="midnight"] .trust-journey-action-btn,
     [data-theme="midnight"] .timeline-load-more-btn,
     [data-theme="midnight"] .timeline-filter-tab {
-      background: var(--color-background-secondary, #60504a);
-      border-color: var(--color-border-subtle, rgba(255,255,255,0.1));
+      background: var(--color-background-secondary);
+      border-color: var(--color-border-subtle);
     }
     
     [data-theme="midnight"] .trust-stat-card:hover,
     [data-theme="midnight"] .trust-journey-action-btn:hover,
     [data-theme="midnight"] .timeline-load-more-btn:hover,
     [data-theme="midnight"] .timeline-filter-tab:hover {
-      background: var(--color-background-tertiary, #504540);
+      background: var(--color-background-tertiary);
     }
     
     [data-theme="midnight"] .timeline-filter-tab--active {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.2));
-      border-color: var(--persona-primary, #4a6741);
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 20%, transparent));
+      border-color: var(--persona-primary, var(--color-ferni));
       color: var(--persona-ink);
     }
     
     [data-theme="midnight"] .timeline-filter-count {
-      background: var(--color-background-tertiary, #504540);
+      background: var(--color-background-tertiary);
     }
     
     [data-theme="midnight"] .timeline-filter-tabs {
-      border-bottom-color: var(--color-border-subtle, rgba(255,255,255,0.1));
+      border-bottom-color: var(--color-border-subtle);
     }
     
     [data-theme="midnight"] .trust-stat-icon {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated);
     }
     
     [data-theme="midnight"] .trust-strength-bg {
-      stroke: var(--color-background-secondary, #60504a);
+      stroke: var(--color-background-secondary);
     }
     
     [data-theme="midnight"] .trust-journey-eyebrow,
     [data-theme="midnight"] .trust-strength-label,
     [data-theme="midnight"] .trust-stat-label,
     [data-theme="midnight"] .timeline-date {
-      color: var(--color-text-muted, #e8e2da);
+      color: var(--color-text-muted);
     }
     
     [data-theme="midnight"] .skeleton-ring,
     [data-theme="midnight"] .skeleton-text,
     [data-theme="midnight"] .skeleton-stat {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
     
     /* ========================================================================

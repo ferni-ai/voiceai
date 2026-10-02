@@ -128,7 +128,7 @@ const ILLUSTRATIONS: Record<string, string> = {
       <path d="M60 90 L60 55" stroke="var(--persona-primary, #4a6741)" stroke-width="3" stroke-linecap="round"/>
       <path d="M60 70 Q45 60 50 45 Q55 35 60 45 Q65 35 70 45 Q75 60 60 70" fill="var(--persona-primary, #4a6741)" opacity="0.7"/>
       <!-- Ground -->
-      <ellipse cx="60" cy="95" rx="25" ry="5" fill="var(--color-text-muted, #9a8a7a)" opacity="0.3"/>
+      <ellipse cx="60" cy="95" rx="25" ry="5" fill="var(--color-text-muted)" opacity="0.3"/>
     </svg>
   `,
   journey: `
@@ -136,7 +136,7 @@ const ILLUSTRATIONS: Record<string, string> = {
       <!-- Path/journey line -->
       <path d="M20 80 Q40 60 60 65 Q80 70 100 50" stroke="var(--persona-primary, #4a6741)" stroke-width="3" stroke-linecap="round" fill="none" stroke-dasharray="6 4"/>
       <!-- Milestone dots -->
-      <circle cx="20" cy="80" r="5" fill="var(--color-text-muted, #9a8a7a)" opacity="0.5"/>
+      <circle cx="20" cy="80" r="5" fill="var(--color-text-muted)" opacity="0.5"/>
       <circle cx="60" cy="65" r="5" fill="var(--persona-primary, #4a6741)" opacity="0.7"/>
       <circle cx="100" cy="50" r="6" fill="var(--persona-primary, #4a6741)"/>
     </svg>
@@ -147,8 +147,8 @@ const ILLUSTRATIONS: Record<string, string> = {
       <circle cx="60" cy="40" r="12" fill="var(--persona-primary, #4a6741)"/>
       <path d="M45 60 Q45 50 60 50 Q75 50 75 60 L75 75 L45 75 Z" fill="var(--persona-primary, #4a6741)" opacity="0.7"/>
       <!-- Side figures (faded) -->
-      <circle cx="30" cy="55" r="8" fill="var(--color-text-muted, #9a8a7a)" opacity="0.3"/>
-      <circle cx="90" cy="55" r="8" fill="var(--color-text-muted, #9a8a7a)" opacity="0.3"/>
+      <circle cx="30" cy="55" r="8" fill="var(--color-text-muted)" opacity="0.3"/>
+      <circle cx="90" cy="55" r="8" fill="var(--color-text-muted)" opacity="0.3"/>
     </svg>
   `,
   search: `
@@ -161,14 +161,14 @@ const ILLUSTRATIONS: Record<string, string> = {
   offline: `
     <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
       <!-- Cloud with line through -->
-      <path d="M30 70 Q20 70 20 60 Q20 50 30 50 Q30 35 50 35 Q65 35 70 45 Q80 40 90 50 Q100 50 100 60 Q100 70 90 70 Z" fill="var(--color-text-muted, #9a8a7a)" opacity="0.3"/>
+      <path d="M30 70 Q20 70 20 60 Q20 50 30 50 Q30 35 50 35 Q65 35 70 45 Q80 40 90 50 Q100 50 100 60 Q100 70 90 70 Z" fill="var(--color-text-muted)" opacity="0.3"/>
       <line x1="25" y1="85" x2="95" y2="25" stroke="var(--persona-primary, #4a6741)" stroke-width="3" stroke-linecap="round"/>
     </svg>
   `,
   oops: `
     <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
       <!-- Friendly face with oops expression -->
-      <circle cx="60" cy="60" r="40" fill="var(--color-background-elevated, #FFFDFB)" stroke="var(--persona-primary, #4a6741)" stroke-width="3"/>
+      <circle cx="60" cy="60" r="40" fill="var(--color-background-elevated)" stroke="var(--persona-primary, #4a6741)" stroke-width="3"/>
       <circle cx="45" cy="50" r="4" fill="var(--persona-primary, #4a6741)"/>
       <circle cx="75" cy="50" r="4" fill="var(--persona-primary, #4a6741)"/>
       <path d="M45 75 Q60 65 75 75" stroke="var(--persona-primary, #4a6741)" stroke-width="3" stroke-linecap="round" fill="none"/>
@@ -179,7 +179,7 @@ const ILLUSTRATIONS: Record<string, string> = {
       <!-- Lock -->
       <rect x="35" y="55" width="50" height="40" rx="5" fill="var(--persona-primary, #4a6741)" opacity="0.8"/>
       <path d="M45 55 L45 40 Q45 25 60 25 Q75 25 75 40 L75 55" stroke="var(--persona-primary, #4a6741)" stroke-width="4" fill="none"/>
-      <circle cx="60" cy="75" r="5" fill="var(--color-background-elevated, #FFFDFB)"/>
+      <circle cx="60" cy="75" r="5" fill="var(--color-background-elevated)"/>
     </svg>
   `,
   sparkle: `
@@ -239,7 +239,7 @@ export class EmptyStateUI {
         fontFamily: 'var(--font-display)',
         fontSize: '20px',
         fontWeight: '600',
-        color: 'var(--color-text-primary, #2C2520)',
+        color: 'var(--color-text-primary)',
         margin: '0 0 8px 0',
       });
       element.appendChild(title);
@@ -254,7 +254,7 @@ export class EmptyStateUI {
         fontFamily: 'var(--font-body)',
         fontSize: '15px',
         lineHeight: '1.6',
-        color: 'var(--color-text-secondary, #70605a)',
+        color: 'var(--color-text-secondary)',
         margin: '0 0 24px 0',
         maxWidth: '320px',
       });
@@ -354,7 +354,7 @@ export class EmptyStateUI {
       borderRadius: 'var(--radius-full, 9999px)',
       border: isPrimary ? 'none' : '1px solid var(--color-border, #d4cfc7)',
       background: isPrimary ? 'var(--persona-primary, #4a6741)' : 'transparent',
-      color: isPrimary ? 'white' : 'var(--color-text-primary, #2C2520)',
+      color: isPrimary ? 'white' : 'var(--color-text-primary)',
       cursor: 'pointer',
       transition: `all ${DURATION.FAST}ms ${EASING.STANDARD}`,
     });
@@ -365,7 +365,7 @@ export class EmptyStateUI {
         button.style.transform = 'scale(1.02)';
         button.style.boxShadow = 'var(--shadow-md)';
       } else {
-        button.style.background = 'var(--color-background-secondary, #f5f1e8)';
+        button.style.background = 'var(--color-background-secondary)';
       }
     });
     
@@ -487,7 +487,7 @@ export class EmptyStateUI {
       flexDirection: 'column',
       alignItems: 'center',
       padding: 'var(--space-6, 24px)',
-      background: 'var(--color-background-secondary, #f5f1e8)',
+      background: 'var(--color-background-secondary)',
       borderRadius: 'var(--radius-xl, 20px)',
       position: 'relative',
       opacity: '0',
@@ -537,7 +537,7 @@ export class EmptyStateUI {
     Object.assign(message.style, {
       fontFamily: 'var(--font-body)',
       fontSize: '14px',
-      color: 'var(--color-text-secondary, #70605a)',
+      color: 'var(--color-text-secondary)',
       textAlign: 'center',
       margin: '0 0 var(--space-4, 16px)',
       fontStyle: 'italic',

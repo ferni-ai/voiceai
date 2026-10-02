@@ -428,7 +428,7 @@ function buildTablet(
   const bgPath = createSvgElement('path');
   bgPath.setAttribute('d', `M ${startX} ${baseY} Q ${startX + pathWidth * 0.5} ${peakY} ${endX} ${baseY}`);
   bgPath.setAttribute('fill', 'none');
-  bgPath.setAttribute('stroke', 'var(--color-border-subtle, rgba(44, 37, 32, 0.12))');
+  bgPath.setAttribute('stroke', 'var(--color-border-subtle)');
   bgPath.setAttribute('stroke-width', '3');
   bgPath.setAttribute('stroke-linecap', 'round');
   bgPath.setAttribute('stroke-dasharray', '8 6');
@@ -512,7 +512,7 @@ function buildTablet(
       marker.setAttribute('cx', String(x));
       marker.setAttribute('cy', String(y));
       marker.setAttribute('r', isPast ? '5' : '4');
-      marker.setAttribute('fill', isPast ? phaseColor : 'var(--color-text-dimmed, #c0b8ae)');
+      marker.setAttribute('fill', isPast ? phaseColor : 'var(--color-text-dimmed)');
       marker.setAttribute('opacity', isPast ? '0.9' : '0.5');
       markerGroup.appendChild(marker);
     }
@@ -525,7 +525,7 @@ function buildTablet(
     label.setAttribute('text-anchor', 'middle');
     label.setAttribute('font-size', isCurrent ? '11' : '9');
     label.setAttribute('font-weight', isCurrent ? '600' : '500');
-    label.setAttribute('fill', isCurrent ? phaseColor : (isPast ? 'var(--color-text-secondary, #5c544a)' : 'var(--color-text-muted, #8a8279)'));
+    label.setAttribute('fill', isCurrent ? phaseColor : (isPast ? 'var(--color-text-secondary)' : 'var(--color-text-muted)'));
     label.setAttribute('class', 'ej-phase-label');
     label.textContent = phase.name;
     markerGroup.appendChild(label);
@@ -589,7 +589,7 @@ function buildTablet(
     const pill = createElement('div', `ej-pill ${isCurrent ? 'ej-pill-current' : ''} ${isPast ? 'ej-pill-past' : ''}`);
     
     const dot = createElement('span', 'ej-pill-dot');
-    setStyles(dot, { background: isCurrent || isPast ? phaseColor : 'var(--color-text-dimmed, #c0b8ae)' });
+    setStyles(dot, { background: isCurrent || isPast ? phaseColor : 'var(--color-text-dimmed)' });
     pill.appendChild(dot);
     
     const name = createElement('span', 'ej-pill-name', phase.name);
@@ -652,7 +652,7 @@ function injectJourneyStyles(): void {
       font-size: 0.5625rem;
       font-weight: 600;
       letter-spacing: 0.12em;
-      color: var(--color-text-muted, #8a8279);
+      color: var(--color-text-muted);
       margin-bottom: 4px;
     }
     
@@ -668,7 +668,7 @@ function injectJourneyStyles(): void {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.75rem;
       font-style: italic;
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
       margin: 0;
     }
     
@@ -709,8 +709,8 @@ function injectJourneyStyles(): void {
     .ej-stat-card {
       flex: 1;
       padding: 10px 12px;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: 10px;
     }
     
@@ -721,7 +721,7 @@ function injectJourneyStyles(): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: var(--color-text-muted, #8a8279);
+      color: var(--color-text-muted);
       margin-bottom: 4px;
     }
     
@@ -730,14 +730,14 @@ function injectJourneyStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1.125rem;
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       line-height: 1.2;
       margin-bottom: 6px;
     }
     
     .ej-progress-bar {
       height: 4px;
-      background: var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+      background: var(--color-border-subtle);
       border-radius: 2px;
       overflow: hidden;
     }
@@ -760,7 +760,7 @@ function injectJourneyStyles(): void {
       align-items: center;
       gap: 5px;
       padding: 4px 10px;
-      background: var(--color-bg-secondary, #faf9f7);
+      background: var(--color-bg-secondary, var(--color-white));
       border-radius: 100px;
       transition: transform 0.15s ease, background 0.15s ease;
     }
@@ -770,8 +770,8 @@ function injectJourneyStyles(): void {
     }
     
     .ej-pill-current {
-      background: var(--color-bg-elevated, #FFFDFB);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      background: var(--color-bg-elevated, var(--color-white));
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
     }
     
     .ej-pill-past {
@@ -789,7 +789,7 @@ function injectJourneyStyles(): void {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.625rem;
       font-weight: 500;
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
     }
     
     .ej-pill-current .ej-pill-name {

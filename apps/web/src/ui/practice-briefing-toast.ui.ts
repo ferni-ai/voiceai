@@ -201,7 +201,7 @@ function injectStyles(): void {
       width: 40px;
       height: 40px;
       border-radius: var(--radius-lg);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -351,7 +351,7 @@ function injectStyles(): void {
     .practice-briefing-toast__btn--primary {
       background: var(--persona-primary, var(--color-accent-primary));
       border: none;
-      color: white;
+      color: var(--color-white);
     }
 
     .practice-briefing-toast__btn--primary:hover {

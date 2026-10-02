@@ -112,10 +112,10 @@ const styles = `
     width: 95%;
     max-width: 900px;
     max-height: 90vh;
-    background: var(--color-bg-elevated, #FFFDFB);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    background: var(--color-bg-elevated, var(--color-white));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-xl, 20px);
-    box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+    box-shadow: var(--shadow-2xl, 0 25px 50px -12px color-mix(in srgb, var(--color-black) 25%, transparent));
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -129,9 +129,9 @@ const styles = `
   
   .superhuman-dashboard__header {
     padding: var(--space-6, 24px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    border-bottom: 1px solid var(--color-border-subtle);
     flex-shrink: 0;
-    background: linear-gradient(135deg, var(--color-ferni-tint, rgba(74, 103, 65, 0.1)), transparent);
+    background: linear-gradient(135deg, var(--color-ferni-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent)), transparent);
   }
   
   .superhuman-dashboard__header-top {
@@ -171,26 +171,26 @@ const styles = `
   }
   
   .superhuman-dashboard__close:hover {
-    background: rgba(255, 255, 255, 0.5);
+    background: color-mix(in srgb, var(--color-white) 50%, transparent);
   }
   
   .superhuman-dashboard__close svg {
     width: 20px;
     height: 20px;
-    color: var(--color-text-muted, #a09080);
+    color: var(--color-text-muted);
   }
   
   .superhuman-dashboard__title {
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 24px;
     font-weight: 700;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-2, 8px) 0;
   }
   
   .superhuman-dashboard__subtitle {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
     margin: 0;
   }
   
@@ -231,7 +231,7 @@ const styles = `
     width: 32px;
     height: 32px;
     border-radius: var(--radius-md, 12px);
-    background: var(--color-ferni-tint, rgba(74, 103, 65, 0.15));
+    background: var(--color-ferni-tint, color-mix(in srgb, var(--color-ferni) 15%, transparent));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -247,7 +247,7 @@ const styles = `
   .superhuman-dashboard__metric-label {
     font-size: 12px;
     font-weight: 500;
-    color: var(--color-text-muted, #a09080);
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.03em;
     margin-bottom: var(--space-1, 4px);
@@ -257,7 +257,7 @@ const styles = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 28px;
     font-weight: 700;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     line-height: 1;
     margin-bottom: var(--space-2, 8px);
   }
@@ -279,7 +279,7 @@ const styles = `
   }
   
   .superhuman-dashboard__metric-trend--stable {
-    color: var(--color-text-muted, #a09080);
+    color: var(--color-text-muted);
   }
   
   .superhuman-dashboard__metric-trend svg {
@@ -312,7 +312,7 @@ const styles = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 16px;
     font-weight: 600;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     margin: 0;
   }
   
@@ -351,19 +351,19 @@ const styles = `
   .superhuman-dashboard__list-title {
     font-size: 14px;
     font-weight: 500;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-1, 4px) 0;
   }
   
   .superhuman-dashboard__list-desc {
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
     margin: 0;
   }
   
   .superhuman-dashboard__progress-bar {
     height: 8px;
-    background: var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+    background: var(--color-border-subtle);
     border-radius: 4px;
     overflow: hidden;
     margin-top: var(--space-2, 8px);
@@ -371,7 +371,7 @@ const styles = `
   
   .superhuman-dashboard__progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--color-ferni, #4a6741), var(--color-ferni-secondary, #3d5a35));
+    background: linear-gradient(90deg, var(--color-ferni), var(--color-ferni-secondary));
     border-radius: 4px;
     transition: width var(--duration-slow, 300ms) var(--ease-spring);
   }
@@ -394,14 +394,14 @@ const styles = `
     align-items: center;
     justify-content: center;
     padding: var(--space-8, 32px);
-    color: var(--color-text-muted, #a09080);
+    color: var(--color-text-muted);
   }
   
   .superhuman-dashboard__loading-spinner {
     width: 32px;
     height: 32px;
-    border: 3px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
-    border-top-color: var(--color-ferni, #4a6741);
+    border: 3px solid var(--color-border-subtle);
+    border-top-color: var(--color-ferni);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: var(--space-3, 12px);
@@ -424,7 +424,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, var(--color-ferni-tint, rgba(74, 103, 65, 0.15)), var(--color-ferni-tint, rgba(74, 103, 65, 0.05)));
+    background: linear-gradient(135deg, var(--color-ferni-tint, color-mix(in srgb, var(--color-ferni) 15%, transparent)), var(--color-ferni-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent)));
     border-radius: var(--radius-full, 9999px);
   }
   
@@ -438,13 +438,13 @@ const styles = `
     font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     font-size: 22px;
     font-weight: 700;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     margin: 0 0 var(--space-2, 8px) 0;
   }
   
   .superhuman-dashboard__welcome-text {
     font-size: 15px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
     margin: 0 auto var(--space-6, 24px);
     max-width: 400px;
     line-height: 1.5;
@@ -463,7 +463,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--color-text-muted, #a09080);
+    color: var(--color-text-muted);
     margin: 0 0 var(--space-4, 16px) 0;
   }
   
@@ -491,7 +491,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-bg-elevated, #FFFDFB);
+    background: var(--color-bg-elevated, var(--color-white));
     border-radius: var(--radius-md, 12px);
     flex-shrink: 0;
   }
@@ -505,14 +505,14 @@ const styles = `
   .superhuman-dashboard__unlock-item strong {
     font-size: 14px;
     font-weight: 600;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     display: block;
     margin-bottom: 2px;
   }
   
   .superhuman-dashboard__unlock-item p {
     font-size: 12px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary);
     margin: 0;
     line-height: 1.4;
   }
@@ -521,8 +521,8 @@ const styles = `
     display: inline-flex;
     align-items: center;
     gap: var(--space-2, 8px);
-    background: linear-gradient(135deg, var(--color-ferni, #4a6741), var(--color-ferni-secondary, #3d5a35));
-    color: white;
+    background: linear-gradient(135deg, var(--color-ferni), var(--color-ferni-secondary));
+    color: var(--color-white);
     border: none;
     border-radius: var(--radius-full, 9999px);
     padding: var(--space-3, 12px) var(--space-6, 24px);
@@ -535,7 +535,7 @@ const styles = `
   
   .superhuman-dashboard__start-btn:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px color-mix(in srgb, var(--color-black) 10%, transparent));
   }
   
   .superhuman-dashboard__start-btn svg {
@@ -550,7 +550,7 @@ const styles = `
     }
     
     .superhuman-dashboard__header {
-      background: linear-gradient(135deg, var(--color-ferni-tint-dark, rgba(74, 103, 65, 0.2)), transparent);
+      background: linear-gradient(135deg, var(--color-ferni-tint-dark, color-mix(in srgb, var(--color-ferni) 20%, transparent)), transparent);
     }
     
     .superhuman-dashboard__title,

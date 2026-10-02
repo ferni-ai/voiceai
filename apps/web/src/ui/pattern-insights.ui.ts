@@ -405,20 +405,20 @@ function injectStyles(): void {
       align-items: center;
       justify-content: space-between;
       padding: var(--space-md, 16px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .pattern-insights-card__title {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-md, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #F5F1E8);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
     .pattern-insights-card__subtitle {
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
+      color: var(--color-text-muted);
       margin: var(--space-2xs, 2px) 0 0;
     }
 
@@ -431,7 +431,7 @@ function injectStyles(): void {
       background: var(--color-bg-elevated, rgba(245, 241, 232, 0.1));
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: var(--color-text-secondary, rgba(245, 241, 232, 0.8));
+      color: var(--color-text-secondary);
       font-size: 18px;
       font-weight: bold;
       cursor: pointer;
@@ -440,11 +440,11 @@ function injectStyles(): void {
 
     .pattern-insights-card__toggle:hover {
       background: var(--color-bg-tertiary, rgba(245, 241, 232, 0.15));
-      color: var(--color-text-primary, #F5F1E8);
+      color: var(--color-text-primary);
     }
 
     .pattern-insights-card__toggle:focus-visible {
-      outline: 2px solid var(--color-accent-primary, #4a6741);
+      outline: 2px solid var(--color-accent-primary);
       outline-offset: 2px;
     }
 
@@ -462,7 +462,7 @@ function injectStyles(): void {
     .pattern-insights-card__empty {
       padding: var(--space-lg, 26px);
       text-align: center;
-      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
+      color: var(--color-text-muted);
       font-style: italic;
       margin: 0;
     }
@@ -472,7 +472,7 @@ function injectStyles(): void {
       display: flex;
       gap: var(--space-sm, 8px);
       padding: var(--space-md, 16px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .pattern-insights-item:last-child {
@@ -506,7 +506,7 @@ function injectStyles(): void {
     .pattern-insights-item__title {
       font-size: var(--font-size-sm, 0.875rem);
       font-weight: 500;
-      color: var(--color-text-primary, #F5F1E8);
+      color: var(--color-text-primary);
     }
 
     .pattern-insights-item__trend {
@@ -523,7 +523,7 @@ function injectStyles(): void {
     }
 
     .pattern-insights-item__trend--stable {
-      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
+      color: var(--color-text-muted);
     }
 
     .pattern-insights-item__value {
@@ -535,7 +535,7 @@ function injectStyles(): void {
 
     .pattern-insights-item__description {
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-secondary, rgba(245, 241, 232, 0.8));
+      color: var(--color-text-secondary);
       line-height: 1.4;
       margin: var(--space-2xs, 2px) 0 0;
     }
@@ -546,11 +546,11 @@ function injectStyles(): void {
     }
 
     .pattern-insights-item--mood {
-      background: var(--color-insight-mood, rgba(196, 133, 106, 0.06));
+      background: var(--color-insight-mood, color-mix(in srgb, var(--color-jordan) 6%, transparent));
     }
 
     .pattern-insights-item--frequency {
-      background: var(--color-insight-frequency, rgba(74, 103, 65, 0.06));
+      background: var(--color-insight-frequency, color-mix(in srgb, var(--color-ferni) 6%, transparent));
     }
 
     .pattern-insights-item--topic {
@@ -558,7 +558,7 @@ function injectStyles(): void {
     }
 
     .pattern-insights-item--growth {
-      background: var(--color-insight-growth, rgba(74, 103, 65, 0.08));
+      background: var(--color-insight-growth, color-mix(in srgb, var(--color-ferni) 8%, transparent));
     }
 
     /* Reduced motion */

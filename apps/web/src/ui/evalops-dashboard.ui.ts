@@ -863,7 +863,7 @@ function injectStyles(): void {
       max-height: 85vh;
       background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 20px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25));
+      box-shadow: var(--shadow-2xl, 0 25px 50px -12px color-mix(in srgb, var(--color-black) 25%, transparent));
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -880,7 +880,7 @@ function injectStyles(): void {
       justify-content: space-between;
       align-items: center;
       padding: var(--space-4, 16px) var(--space-6, 24px);
-      border-bottom: 1px solid var(--color-border, rgba(0,0,0,0.1));
+      border-bottom: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
     }
     
     .evalops-header .eyebrow {
@@ -914,14 +914,14 @@ function injectStyles(): void {
     }
     
     .close-btn:hover, .refresh-btn:hover {
-      background: var(--color-background-hover, rgba(0,0,0,0.05));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 5%, transparent));
     }
     
     .evalops-tabs {
       display: flex;
       gap: var(--space-1, 4px);
       padding: var(--space-2, 8px) var(--space-6, 24px);
-      border-bottom: 1px solid var(--color-border, rgba(0,0,0,0.1));
+      border-bottom: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       background: var(--color-background-subtle);
     }
     
@@ -940,14 +940,14 @@ function injectStyles(): void {
     }
     
     .tab-btn:hover {
-      background: var(--color-background-hover, rgba(0,0,0,0.05));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 5%, transparent));
     }
     
     .tab-btn.active {
-      background: var(--color-background-elevated, white);
+      background: var(--color-background-elevated);
       color: var(--color-text-secondary);
       font-weight: 500;
-      box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+      box-shadow: var(--shadow-sm, 0 1px 2px color-mix(in srgb, var(--color-black) 5%, transparent));
     }
     
     .evalops-content {
@@ -958,7 +958,7 @@ function injectStyles(): void {
     
     .evalops-footer {
       padding: var(--space-3, 12px) var(--space-6, 24px);
-      border-top: 1px solid var(--color-border, rgba(0,0,0,0.1));
+      border-top: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       background: var(--color-background-subtle);
     }
     
@@ -980,9 +980,9 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-3, 12px);
       padding: var(--space-4, 16px);
-      background: var(--color-background-elevated, white);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-lg, 12px);
-      box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+      box-shadow: var(--shadow-sm, 0 1px 2px color-mix(in srgb, var(--color-black) 5%, transparent));
     }
     
     .card-icon {
@@ -992,7 +992,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-white);
     }
     
     .card-icon--primary { background: var(--persona-primary, var(--color-accent-primary)); }
@@ -1035,7 +1035,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-3, 12px);
       padding: var(--space-3, 12px);
-      background: var(--color-background-elevated, white);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-md, 8px);
       border-left: 3px solid;
     }
@@ -1049,7 +1049,7 @@ function injectStyles(): void {
       height: 40px;
       border-radius: 50%;
       background: var(--persona-primary);
-      color: white;
+      color: var(--color-white);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1067,7 +1067,7 @@ function injectStyles(): void {
     
     .persona-score-bar {
       height: 6px;
-      background: var(--color-border, rgba(0,0,0,0.1));
+      background: var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       border-radius: 3px;
       margin: var(--space-1, 4px) 0;
       overflow: hidden;
@@ -1096,8 +1096,8 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-4, 16px);
-      background: var(--color-background-elevated, white);
-      border: 1px solid var(--color-border, rgba(0,0,0,0.1));
+      background: var(--color-background-elevated);
+      border: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       border-radius: var(--radius-md, 8px);
       cursor: pointer;
       font-size: 14px;
@@ -1106,12 +1106,12 @@ function injectStyles(): void {
     
     .action-btn:hover {
       border-color: var(--color-text-secondary);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
     }
     
     .action-btn--primary {
       background: var(--persona-primary);
-      color: white;
+      color: var(--color-white);
       border-color: transparent;
     }
     
@@ -1136,7 +1136,7 @@ function injectStyles(): void {
       justify-content: space-between;
       align-items: center;
       padding: var(--space-3, 12px) 0;
-      border-bottom: 1px solid var(--color-border, rgba(0,0,0,0.05));
+      border-bottom: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 5%, transparent));
     }
     
     .config-label {
@@ -1183,7 +1183,7 @@ function injectStyles(): void {
       height: 20px;
       left: 3px;
       bottom: 3px;
-      background: white;
+      background: var(--color-white);
       border-radius: 50%;
       transition: ${DURATION.FAST}ms;
     }
@@ -1246,7 +1246,7 @@ function injectStyles(): void {
       transform: translateX(-50%) translateY(20px);
       padding: var(--space-3, 12px) var(--space-6, 24px);
       background: var(--color-text-primary);
-      color: white;
+      color: var(--color-white);
       border-radius: var(--radius-full, 999px);
       font-size: 14px;
       opacity: 0;
@@ -1275,10 +1275,10 @@ function injectStyles(): void {
     }
     
     .persona-detail-card {
-      background: var(--color-background-elevated, white);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-4, 16px);
-      box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+      box-shadow: var(--shadow-sm, 0 1px 2px color-mix(in srgb, var(--color-black) 5%, transparent));
     }
     
     .persona-header {
@@ -1329,7 +1329,7 @@ function injectStyles(): void {
     .metric-bar {
       width: 80px;
       height: 6px;
-      background: var(--color-border, rgba(0,0,0,0.1));
+      background: var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       border-radius: 3px;
       overflow: hidden;
     }
@@ -1368,7 +1368,7 @@ function injectStyles(): void {
     }
     
     .persona-action-btn:hover {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.15));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 15%, transparent));
     }
     
     /* Section headers */
@@ -1450,7 +1450,7 @@ function injectStyles(): void {
     
     .scenarios-actions {
       padding-top: var(--space-4, 16px);
-      border-top: 1px solid var(--color-border, rgba(0,0,0,0.1));
+      border-top: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
     }
   `;
   

@@ -2046,7 +2046,7 @@ function injectSoulStyles(): void {
     
     [data-theme="light"] .pupil-inner,
     [data-theme="zen"] .pupil-inner {
-      background: var(--color-text-primary, #1a1612);
+      background: var(--color-text-primary);
     }
     
     [data-theme="light"] .soul-grain-overlay,

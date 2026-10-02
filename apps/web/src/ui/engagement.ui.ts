@@ -529,7 +529,7 @@ export class EngagementUI {
         width: 100%;
         max-width: clamp(294px, 90vw, 420px);
         max-height: 80vh;
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-2xl, 1.5rem);
         box-shadow: var(--shadow-2xl);
         border: 1px solid var(--color-border-subtle);
@@ -927,7 +927,7 @@ export class EngagementUI {
 
       .engagement-empty__cta {
         background: var(--persona-primary, var(--color-accent-primary));
-        color: white;
+        color: var(--color-white);
         border: none;
         padding: var(--space-3, 12px) var(--space-6, 24px);
         border-radius: var(--radius-full);

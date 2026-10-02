@@ -209,7 +209,7 @@ function injectStyles(): void {
       width: 90%;
       max-width: 420px;
       max-height: 85vh;
-      background: var(--color-background-elevated, #fffdfb);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-xl, 1rem);
       box-shadow: var(--shadow-2xl);
       display: flex;
@@ -228,7 +228,7 @@ function injectStyles(): void {
       align-items: center;
       justify-content: space-between;
       padding: var(--space-5, 20px) var(--space-6, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .apple-health-settings__title {
@@ -245,7 +245,7 @@ function injectStyles(): void {
       justify-content: center;
       background: linear-gradient(135deg, #ff2d55, #ff6b8a);
       border-radius: var(--radius-lg, 0.75rem);
-      color: white;
+      color: var(--color-white);
     }
 
     .apple-health-settings__title-icon svg {
@@ -257,7 +257,7 @@ function injectStyles(): void {
       font-family: var(--font-display);
       font-size: var(--text-lg, 1.125rem);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
@@ -267,7 +267,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-background-tertiary, #ebe6df);
+      background: var(--color-background-tertiary);
       border: none;
       border-radius: var(--radius-full);
       color: var(--color-text-secondary);
@@ -335,7 +335,7 @@ function injectStyles(): void {
     }
 
     .apple-health-settings__instructions {
-      background: var(--color-background-secondary, #f5f2ed);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg);
       padding: var(--space-4, 16px);
       text-align: left;
@@ -368,7 +368,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: var(--color-background-secondary, #f5f2ed);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg);
       padding: var(--space-4, 16px);
       margin-bottom: var(--space-6, 24px);
@@ -494,7 +494,7 @@ function injectStyles(): void {
     }
 
     .apple-health-settings__metric {
-      background: var(--color-background-secondary, #f5f2ed);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-md);
       padding: var(--space-3, 12px);
     }
@@ -604,17 +604,17 @@ function injectStyles(): void {
 
     /* Dark theme */
     [data-theme="midnight"] .apple-health-settings__panel {
-      background: var(--color-background-elevated, #504540);
+      background: var(--color-background-elevated);
     }
 
     [data-theme="midnight"] .apple-health-settings__title h2 {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .apple-health-settings__status,
     [data-theme="midnight"] .apple-health-settings__metric,
     [data-theme="midnight"] .apple-health-settings__instructions {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
 
     /* Reduced motion */

@@ -283,7 +283,7 @@ function getStyles(): string {
         align-items: center;
         justify-content: center;
         border-radius: var(--radius-full, 50%);
-        background: var(--color-ferni-light, rgba(74, 103, 65, 0.1));
+        background: var(--color-ferni-light, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         color: var(--color-ferni-ink);
         margin-bottom: var(--space-2, 8px);
       }
@@ -301,7 +301,7 @@ function getStyles(): string {
       .speech-stat-value {
         font-size: 2rem;
         font-weight: 700;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
         line-height: 1;
       }
 
@@ -310,7 +310,7 @@ function getStyles(): string {
 
       .speech-stat-label {
         font-size: 0.875rem;
-        color: var(--color-text-muted, #666);
+        color: var(--color-text-muted);
         margin-top: var(--space-1, 4px);
       }
 
@@ -333,7 +333,7 @@ function getStyles(): string {
       }
 
       .persona-metrics-card {
-        background: var(--color-background-elevated, #FFFDFB);
+        background: var(--color-background-elevated);
         border: 1px solid var(--color-border, #e5e5e5);
         border-radius: var(--radius-lg, 12px);
         padding: var(--space-4, 16px);
@@ -351,12 +351,12 @@ function getStyles(): string {
       .persona-name {
         font-weight: 600;
         text-transform: capitalize;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-text-primary);
       }
 
       .persona-sessions {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #666);
+        color: var(--color-text-muted);
       }
 
       .persona-metrics-grid {
@@ -373,7 +373,7 @@ function getStyles(): string {
 
       .metric-label {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #666);
+        color: var(--color-text-muted);
       }
 
       .metric-value {
@@ -388,7 +388,7 @@ function getStyles(): string {
         padding-top: var(--space-2, 8px);
         border-top: 1px solid var(--color-border-light, #f0f0f0);
         font-size: 0.75rem;
-        color: var(--color-text-muted, #666);
+        color: var(--color-text-muted);
       }
 
       /* Active Sessions */
@@ -403,7 +403,7 @@ function getStyles(): string {
         grid-template-columns: 1fr auto auto auto auto;
         gap: var(--space-4, 16px);
         padding: var(--space-3, 12px);
-        background: var(--color-background, #FFFDFB);
+        background: var(--color-background, var(--color-white));
         border-radius: var(--radius-md, 8px);
         align-items: center;
       }
@@ -441,7 +441,7 @@ function getStyles(): string {
         justify-content: center;
         gap: var(--space-2, 8px);
         padding: var(--space-8, 32px);
-        color: var(--color-text-muted, #666);
+        color: var(--color-text-muted);
       }
 
       /* Alerts */

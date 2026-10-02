@@ -70,14 +70,14 @@ const STYLES = `
   align-items: center;
   gap: var(--space-3, 12px);
   padding: var(--space-3, 12px) var(--space-4, 16px);
-  background: var(--color-background-secondary, #f5f2ed);
+  background: var(--color-background-secondary);
   border-radius: var(--radius-lg, 12px);
   cursor: pointer;
   transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
 }
 
 .next-checkin-widget:hover {
-  background: var(--color-background-tertiary, #eae7e2);
+  background: var(--color-background-tertiary);
   transform: translateY(-1px);
 }
 
@@ -93,7 +93,7 @@ const STYLES = `
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-white);
   flex-shrink: 0;
 }
 
@@ -122,7 +122,7 @@ const STYLES = `
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: var(--color-text-muted, #8a8078);
+  color: var(--color-text-muted);
   margin-bottom: 2px;
 }
 
@@ -133,7 +133,7 @@ const STYLES = `
 .next-checkin-time {
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -142,7 +142,7 @@ const STYLES = `
 .next-checkin-time svg {
   width: 14px;
   height: 14px;
-  color: var(--color-text-muted, #8a8078);
+  color: var(--color-text-muted);
 }
 
 .next-checkin-widget--compact .next-checkin-time {
@@ -151,12 +151,12 @@ const STYLES = `
 
 .next-checkin-persona {
   font-size: 12px;
-  color: var(--color-text-secondary, #5c544a);
+  color: var(--color-text-secondary);
   margin-top: 2px;
 }
 
 .next-checkin-arrow {
-  color: var(--color-text-muted, #8a8078);
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
@@ -165,9 +165,9 @@ const STYLES = `
   align-items: center;
   gap: var(--space-2, 8px);
   padding: var(--space-3, 12px) var(--space-4, 16px);
-  background: var(--color-background-secondary, #f5f2ed);
+  background: var(--color-background-secondary);
   border-radius: var(--radius-lg, 12px);
-  color: var(--color-text-muted, #8a8078);
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
@@ -178,10 +178,10 @@ const STYLES = `
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .next-checkin-widget {
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, var(--color-white) 5%, transparent);
   }
   .next-checkin-widget:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, var(--color-white) 8%, transparent);
   }
 }
 

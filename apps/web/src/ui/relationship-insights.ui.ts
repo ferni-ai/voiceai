@@ -75,7 +75,7 @@ const ICONS = {
 
 // Priority colors
 const PRIORITY_COLORS: Record<RelationshipInsight['priority'], string> = {
-  high: 'var(--color-semantic-error, #c44)',
+  high: 'var(--color-semantic-error)',
   medium: 'var(--nayan-primary, #b8956a)',
   low: 'var(--persona-primary, #4a6741)',
 };

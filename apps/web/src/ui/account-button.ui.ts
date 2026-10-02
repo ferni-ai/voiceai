@@ -137,15 +137,15 @@ function createAccountButton(): void {
     alignItems: 'center',
     gap: 'var(--space-2, 8px)',
     padding: 'var(--space-2, 8px) var(--space-3, 12px)',
-    background: 'var(--color-background-elevated, rgba(255,255,255,0.9))',
+    background: 'var(--color-background-elevated)',
     backdropFilter: 'blur(10px)',
-    border: '1px solid var(--color-border-subtle, rgba(0,0,0,0.1))',
+    border: '1px solid var(--color-border-subtle)',
     borderRadius: 'var(--radius-full, 999px)',
     cursor: 'pointer',
     fontFamily: 'var(--font-body, Inter, sans-serif)',
     fontSize: '0.875rem',
     fontWeight: '500',
-    color: 'var(--color-text-primary, #2C2520)',
+    color: 'var(--color-text-primary)',
     transition: `all ${DURATION.NORMAL}ms ${EASING.STANDARD}`,
   });
 
@@ -333,9 +333,9 @@ function applyModalStyles(overlay: HTMLElement): void {
       position: relative;
       width: 90%;
       max-width: min(400px, 100%);
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 24px 48px rgba(0,0,0,0.2));
+      box-shadow: var(--shadow-2xl, 0 24px 48px color-mix(in srgb, var(--color-black) 20%, transparent));
       transform: scale(0.95);
       opacity: 0;
       transition: all ${DURATION.SLOW}ms ${EASING.SPRING};
@@ -345,7 +345,7 @@ function applyModalStyles(overlay: HTMLElement): void {
       justify-content: space-between;
       align-items: flex-start;
       padding: var(--space-6, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.05));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
     .account-modal-header .eyebrow {
       font-size: 0.75rem;
@@ -359,12 +359,12 @@ function applyModalStyles(overlay: HTMLElement): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1.5rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 4px) 0;
     }
     .account-modal-header .tagline {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
       margin: 0;
     }
     .close-btn {
@@ -372,12 +372,12 @@ function applyModalStyles(overlay: HTMLElement): void {
       border: none;
       cursor: pointer;
       padding: var(--space-2, 8px);
-      color: var(--color-text-muted, #a0958f);
+      color: var(--color-text-muted);
       border-radius: var(--radius-full, 999px);
       transition: background ${DURATION.FAST}ms;
     }
     .close-btn:hover {
-      background: var(--color-background-subtle, rgba(0,0,0,0.05));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 5%, transparent));
     }
     .account-modal-content {
       padding: var(--space-6, 24px);
@@ -393,9 +393,9 @@ function applyModalStyles(overlay: HTMLElement): void {
       justify-content: center;
       gap: var(--space-3, 12px);
       padding: var(--space-3, 12px) var(--space-4, 16px);
-      border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.1));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-lg, 12px);
-      background: var(--color-background-elevated, white);
+      background: var(--color-background-elevated);
       font-family: var(--font-body, Inter, sans-serif);
       font-size: 0.9375rem;
       font-weight: 500;
@@ -407,20 +407,20 @@ function applyModalStyles(overlay: HTMLElement): void {
       transform: translateY(-1px);
     }
     .google-btn { color: #1f1f1f; }
-    .apple-btn { color: var(--color-text-primary, #000); }
+    .apple-btn { color: var(--color-text-primary); }
     .divider {
       display: flex;
       align-items: center;
       gap: var(--space-4, 16px);
       margin: var(--space-5, 20px) 0;
-      color: var(--color-text-muted, #a0958f);
+      color: var(--color-text-muted);
       font-size: 0.8125rem;
     }
     .divider::before, .divider::after {
       content: '';
       flex: 1;
       height: 1px;
-      background: var(--color-border-subtle, rgba(0,0,0,0.1));
+      background: var(--color-border-subtle);
     }
     .email-form {
       display: flex;
@@ -435,11 +435,11 @@ function applyModalStyles(overlay: HTMLElement): void {
     .form-field label {
       font-size: 0.8125rem;
       font-weight: 500;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary);
     }
     .form-field input {
       padding: var(--space-3, 12px);
-      border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.1));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-md, 8px);
       font-size: 1rem;
       font-family: var(--font-body, Inter, sans-serif);
@@ -447,12 +447,12 @@ function applyModalStyles(overlay: HTMLElement): void {
     }
     .form-field input:focus {
       outline: none;
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
     }
     .submit-btn {
       padding: var(--space-3, 12px) var(--space-4, 16px);
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       border: none;
       border-radius: var(--radius-lg, 12px);
       font-family: var(--font-body, Inter, sans-serif);
@@ -462,12 +462,12 @@ function applyModalStyles(overlay: HTMLElement): void {
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     .submit-btn:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
       transform: translateY(-1px);
     }
     .privacy-note {
       font-size: 0.75rem;
-      color: var(--color-text-muted, #a0958f);
+      color: var(--color-text-muted);
       text-align: center;
       margin-top: var(--space-4, 16px);
     }
@@ -484,8 +484,8 @@ function applyModalStyles(overlay: HTMLElement): void {
     .spinner {
       width: 32px;
       height: 32px;
-      border: 3px solid var(--color-border-subtle, rgba(0,0,0,0.1));
-      border-top-color: var(--persona-primary, #4a6741);
+      border: 3px solid var(--color-border-subtle);
+      border-top-color: var(--persona-primary, var(--color-ferni));
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -670,7 +670,7 @@ function showAccountMenu(): void {
     position: 'fixed',
     top: 'var(--space-14, 56px)',
     right: 'var(--space-4, 16px)',
-    background: 'var(--color-background-elevated, white)',
+    background: 'var(--color-background-elevated)',
     borderRadius: 'var(--radius-lg, 12px)',
     boxShadow: 'var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.15))',
     overflow: 'hidden',
@@ -696,7 +696,7 @@ function showAccountMenu(): void {
       background: var(--color-background-subtle, #f5f3f0);
     }
     .account-info {
-      border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
       cursor: default;
       display: flex;
       flex-direction: column;
@@ -707,11 +707,11 @@ function showAccountMenu(): void {
     }
     .account-label {
       font-size: 0.75rem;
-      color: var(--color-text-muted, #8a7f75);
+      color: var(--color-text-muted);
     }
     .account-email {
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
   `;
   menu.appendChild(style);

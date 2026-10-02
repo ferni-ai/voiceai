@@ -129,8 +129,8 @@ const styles = `
     width: 95%;
     max-width: 720px;
     max-height: 85vh;
-    background: var(--color-bg-elevated, #FFFDFB);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    background: var(--color-bg-elevated, var(--color-white));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-xl, 20px);
     box-shadow: var(--shadow-xl);
     overflow: hidden;
@@ -147,7 +147,7 @@ const styles = `
   /* Header - warm, personal */
   .ferni-care__header {
     padding: var(--space-6, 24px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    border-bottom: 1px solid var(--color-border-subtle);
     flex-shrink: 0;
   }
   
@@ -162,7 +162,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--color-ferni-text, #4a6741);
+    color: var(--color-ferni-text, var(--color-ferni));
     margin-bottom: var(--space-1, 4px);
   }
   
@@ -225,8 +225,8 @@ const styles = `
   }
   
   .ferni-care__tab.active {
-    background: var(--color-ferni, #4a6741);
-    color: white;
+    background: var(--color-ferni);
+    color: var(--color-white);
   }
   
   /* Content */
@@ -249,7 +249,7 @@ const styles = `
     gap: var(--space-4, 16px);
     padding: var(--space-4, 16px);
     background: var(--color-background-subtle, rgba(112, 96, 90, 0.03));
-    border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.08));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg, 12px);
     cursor: pointer;
     transition: all var(--duration-fast, 100ms) ease;
@@ -257,18 +257,18 @@ const styles = `
   
   .ferni-routine:hover {
     background: var(--color-background-hover, rgba(112, 96, 90, 0.06));
-    border-color: var(--color-border-medium, rgba(112, 96, 90, 0.15));
+    border-color: var(--color-border-medium);
   }
   
   .ferni-routine__icon {
     width: 48px;
     height: 48px;
     border-radius: var(--radius-md, 8px);
-    background: linear-gradient(135deg, var(--color-ferni, #4a6741) 0%, var(--color-ferni-dark, #3d5a35) 100%);
+    background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-dark, var(--color-ferni-secondary)) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-white);
     flex-shrink: 0;
   }
   
@@ -307,7 +307,7 @@ const styles = `
   }
   
   .ferni-routine__status--active {
-    background: rgba(74, 103, 65, 0.1);
+    background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
     color: var(--color-ferni-ink);
   }
   
@@ -331,7 +331,7 @@ const styles = `
     height: 32px;
     border-radius: 50%;
     border: none;
-    background: var(--color-bg-elevated, white);
+    background: var(--color-bg-elevated, var(--color-white));
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -341,8 +341,8 @@ const styles = `
   }
   
   .ferni-routine__btn:hover {
-    background: var(--color-ferni, #4a6741);
-    color: white;
+    background: var(--color-ferni);
+    color: var(--color-white);
   }
   
   /* Empty State - warm, inviting */
@@ -380,8 +380,8 @@ const styles = `
   .ferni-empty__btn {
     padding: var(--space-3, 12px) var(--space-6, 24px);
     border: none;
-    background: var(--color-ferni, #4a6741);
-    color: white;
+    background: var(--color-ferni);
+    color: var(--color-white);
     border-radius: var(--radius-full, 9999px);
     font-size: 14px;
     font-weight: 600;
@@ -398,7 +398,7 @@ const styles = `
   .ferni-add-btn {
     width: 100%;
     padding: var(--space-4, 16px);
-    border: 2px dashed var(--color-border-medium, rgba(112, 96, 90, 0.2));
+    border: 2px dashed var(--color-border-medium);
     background: transparent;
     border-radius: var(--radius-lg, 12px);
     font-size: 14px;
@@ -413,9 +413,9 @@ const styles = `
   }
   
   .ferni-add-btn:hover {
-    border-color: var(--color-ferni, #4a6741);
+    border-color: var(--color-ferni);
     color: var(--color-ferni-ink);
-    background: rgba(74, 103, 65, 0.02);
+    background: color-mix(in srgb, var(--color-ferni) 2%, transparent);
   }
   
   /* Loading */
@@ -431,7 +431,7 @@ const styles = `
     width: 24px;
     height: 24px;
     border: 2px solid var(--color-border-subtle);
-    border-top-color: var(--color-ferni, #4a6741);
+    border-top-color: var(--color-ferni);
     border-radius: 50%;
     animation: ferni-spin 0.8s linear infinite;
   }

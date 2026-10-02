@@ -47,10 +47,10 @@ export function getJournalStyles(): string {
       width: 90vw;
       max-width: clamp(476px, 90vw, 680px);
       max-height: 90vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-2xl, 24px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -68,7 +68,7 @@ export function getJournalStyles(): string {
     
     .journal-header {
       padding: var(--space-md, 16px) var(--space-lg, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -78,14 +78,14 @@ export function getJournalStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1.25rem;
       font-weight: 600;
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
       margin: 0;
     }
     
     .journal-subtitle {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.8rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
       margin: 2px 0 0;
     }
     
@@ -122,7 +122,7 @@ export function getJournalStyles(): string {
       display: flex;
       gap: var(--space-xs, 4px);
       padding: var(--space-sm, 8px) var(--space-lg, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
     
     .journal-tab {
@@ -148,13 +148,13 @@ export function getJournalStyles(): string {
     }
     
     .journal-tab--active {
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       color: var(--color-text-on-accent);
     }
     
     .journal-tab--active:hover,
     .journal-tab--active:focus-visible {
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       color: var(--color-text-on-accent);
       filter: brightness(1.1);
     }
@@ -187,9 +187,9 @@ export function getJournalStyles(): string {
     
     .prompt-card {
       background: linear-gradient(135deg, 
-        var(--color-accent-subtle, rgba(74, 103, 65, 0.15)), 
+        var(--color-accent-subtle), 
         var(--color-accent-subtle-fade, rgba(74, 103, 65, 0.05)));
-      border: 1px solid var(--color-accent-border, rgba(74, 103, 65, 0.3));
+      border: 1px solid var(--color-accent-border, color-mix(in srgb, var(--color-ferni) 30%, transparent));
       border-radius: var(--radius-xl, 16px);
       padding: var(--space-lg, 20px);
     }
@@ -292,7 +292,7 @@ export function getJournalStyles(): string {
       transform: translate(-50%, -50%);
       font-family: var(--font-mono, 'Space Mono', monospace);
       font-size: 1.5rem;
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
     }
     
     .recorder-controls {
@@ -304,7 +304,7 @@ export function getJournalStyles(): string {
       align-items: center;
       gap: var(--space-sm, 8px);
       padding: var(--space-sm, 12px) var(--space-lg, 24px);
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       border: none;
       border-radius: var(--radius-full, 999px);
       color: var(--color-text-on-accent);
@@ -321,12 +321,12 @@ export function getJournalStyles(): string {
     }
     
     .recorder-btn.recording {
-      background: var(--color-semantic-error, #dc2626);
+      background: var(--color-semantic-error);
       animation: pulse-recording 1.5s infinite;
     }
     
     @keyframes pulse-recording {
-      0%, 100% { box-shadow: 0 0 0 0 var(--color-semantic-error-glow, rgba(220, 38, 38, 0.4)); }
+      0%, 100% { box-shadow: 0 0 0 0 var(--color-semantic-error-glow); }
       50% { box-shadow: 0 0 0 10px var(--color-semantic-error-transparent, rgba(220, 38, 38, 0)); }
     }
     
@@ -344,7 +344,7 @@ export function getJournalStyles(): string {
     .mood-label {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.85rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
     }
     
     .mood-options {
@@ -359,7 +359,7 @@ export function getJournalStyles(): string {
       height: 44px;
       border-radius: 50%;
       border: 2px solid transparent;
-      background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 5%, transparent));
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -374,8 +374,8 @@ export function getJournalStyles(): string {
     }
     
     .mood-option--selected {
-      border-color: var(--color-accent, #4a6741);
-      background: var(--color-accent-subtle, rgba(74, 103, 65, 0.2));
+      border-color: var(--color-accent, var(--color-ferni));
+      background: var(--color-accent-subtle);
     }
     
     .mood-icon {
@@ -459,7 +459,7 @@ export function getJournalStyles(): string {
     .activity-bar {
       flex: 1;
       min-height: 4px;
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       border-radius: 2px;
       transition: height ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
@@ -541,7 +541,7 @@ export function getJournalStyles(): string {
     }
     
     .calendar-day--has-entry {
-      background: var(--color-accent-subtle, rgba(74, 103, 65, 0.2));
+      background: var(--color-accent-subtle);
       color: var(--color-text-primary);
     }
     
@@ -550,7 +550,7 @@ export function getJournalStyles(): string {
       bottom: 3px;
       width: 4px;
       height: 4px;
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       border-radius: 50%;
     }
     
@@ -566,7 +566,7 @@ export function getJournalStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 0.85rem;
       font-weight: 600;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
       margin: 0 0 var(--space-md, 16px);
@@ -597,14 +597,14 @@ export function getJournalStyles(): string {
     
     .journal-entry {
       padding: var(--space-md, 14px);
-      background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 5%, transparent));
       border-radius: var(--radius-lg, 12px);
-      border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+      border: 1px solid var(--color-border-subtle);
     }
     
     .journal-entry--auto {
       background: linear-gradient(135deg, 
-        var(--color-accent-subtle, rgba(61, 90, 69, 0.08)), 
+        var(--color-accent-subtle), 
         var(--color-bg-secondary, rgba(255, 255, 255, 0.05))
       );
       border-left: 3px solid var(--color-accent, #3d5a45);
@@ -623,7 +623,7 @@ export function getJournalStyles(): string {
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--color-accent-text);
-      background: var(--color-accent-subtle, rgba(61, 90, 69, 0.15));
+      background: var(--color-accent-subtle);
       padding: 2px 8px;
       border-radius: var(--radius-full, 9999px);
     }
@@ -631,7 +631,7 @@ export function getJournalStyles(): string {
     .entry-date {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.7rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
     }
     
     .entry-mood {
@@ -643,7 +643,7 @@ export function getJournalStyles(): string {
     .entry-content {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.85rem;
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
       margin: 0;
       line-height: 1.5;
     }
@@ -690,7 +690,7 @@ export function getJournalStyles(): string {
       align-items: center;
       gap: var(--space-sm, 8px);
       padding: var(--space-sm, 12px) var(--space-lg, 24px);
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       border: none;
       border-radius: var(--radius-full, 999px);
       color: var(--color-text-on-accent);
@@ -809,17 +809,17 @@ export function getJournalStyles(): string {
     
     .calendar-day--has-entry:hover,
     .calendar-day--has-entry:focus-visible {
-      background: var(--color-accent-subtle, rgba(74, 103, 65, 0.3));
+      background: var(--color-accent-subtle);
       transform: scale(1.1);
     }
     
     .calendar-day--selected {
-      background: var(--color-accent, #4a6741) !important;
+      background: var(--color-accent, var(--color-ferni)) !important;
       color: var(--color-text-on-accent) !important;
     }
     
     .calendar-day--selected .calendar-dot {
-      background: white;
+      background: var(--color-white);
     }
     
     .calendar-filter-active {
@@ -829,7 +829,7 @@ export function getJournalStyles(): string {
       gap: var(--space-sm, 8px);
       margin-top: var(--space-sm, 8px);
       padding: var(--space-sm, 8px) var(--space-md, 12px);
-      background: var(--color-accent-subtle, rgba(74, 103, 65, 0.1));
+      background: var(--color-accent-subtle);
       border-radius: var(--radius-md, 8px);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.8rem;
@@ -854,7 +854,7 @@ export function getJournalStyles(): string {
     
     .calendar-clear-filter:hover,
     .calendar-clear-filter:focus-visible {
-      background: var(--color-accent-subtle, rgba(74, 103, 65, 0.2));
+      background: var(--color-accent-subtle);
     }
     
     .entries-clear-filter {
@@ -862,7 +862,7 @@ export function getJournalStyles(): string {
       align-items: center;
       gap: var(--space-sm, 8px);
       padding: var(--space-sm, 10px) var(--space-md, 16px);
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       border: none;
       border-radius: var(--radius-full, 999px);
       color: var(--color-text-on-accent);
@@ -903,7 +903,7 @@ export function getJournalStyles(): string {
     
     .journal-search-input:focus {
       outline: none;
-      border-color: var(--color-accent, #4a6741);
+      border-color: var(--color-accent, var(--color-ferni));
     }
     
     .journal-search-input::placeholder {
@@ -924,7 +924,7 @@ export function getJournalStyles(): string {
        ======================================================================== */
     
     .search-highlight {
-      background: var(--color-accent-subtle, rgba(74, 103, 65, 0.3));
+      background: var(--color-accent-subtle);
       color: var(--color-text-primary);
       padding: 0 2px;
       border-radius: 2px;
@@ -957,7 +957,7 @@ export function getJournalStyles(): string {
     
     .entries-filter-clear-btn:hover,
     .entries-filter-clear-btn:focus-visible {
-      background: var(--color-accent-subtle, rgba(74, 103, 65, 0.1));
+      background: var(--color-accent-subtle);
     }
     
     /* ========================================================================
@@ -990,7 +990,7 @@ export function getJournalStyles(): string {
     .mood-bar {
       flex: 1;
       min-width: 24px;
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       border-radius: var(--radius-sm, 4px) var(--radius-sm, 4px) 0 0;
       position: relative;
       transition: height ${DURATION.NORMAL}ms ${EASING.STANDARD};

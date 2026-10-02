@@ -78,7 +78,7 @@ const styles = `
   align-items: center;
   gap: var(--space-sm, 8px);
   padding: var(--space-sm, 8px) var(--space-md, 16px);
-  background: var(--color-bg-elevated, #FFFDFB);
+  background: var(--color-bg-elevated, var(--color-white));
   border-radius: var(--radius-full, 9999px);
   box-shadow: var(--shadow-md);
   cursor: pointer;
@@ -99,7 +99,7 @@ const styles = `
 }
 
 .onboarding-progress-widget:focus-visible {
-  outline: 2px solid var(--color-accent-primary, #3D5A45);
+  outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
 }
 
@@ -117,13 +117,13 @@ const styles = `
 
 .onboarding-progress-ring-bg {
   fill: none;
-  stroke: var(--color-border-subtle, #E8E2DD);
+  stroke: var(--color-border-subtle);
   stroke-width: 3;
 }
 
 .onboarding-progress-ring-fg {
   fill: none;
-  stroke: var(--color-ferni, #4a6741);
+  stroke: var(--color-ferni);
   stroke-width: 3;
   stroke-linecap: round;
   transition: stroke-dashoffset ${DURATION.SLOW}ms ${EASING.SPRING};
@@ -137,12 +137,12 @@ const styles = `
   justify-content: center;
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
 }
 
 .onboarding-progress-label {
   font-size: 13px;
-  color: var(--color-text-secondary, #6B6560);
+  color: var(--color-text-secondary);
   max-width: 120px;
   white-space: nowrap;
   overflow: hidden;
@@ -150,7 +150,7 @@ const styles = `
 }
 
 .onboarding-progress-label strong {
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 
@@ -181,10 +181,10 @@ const styles = `
 
 .onboarding-progress-card {
   position: relative;
-  background: var(--color-bg-elevated, #FFFDFB);
-  border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  background: var(--color-bg-elevated, var(--color-white));
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xl, 20px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
   width: 100%;
   max-width: 380px;
   padding: var(--space-xl, 42px) var(--space-lg, 26px);
@@ -204,13 +204,13 @@ const styles = `
 .onboarding-progress-header h2 {
   font-size: 20px;
   font-weight: 600;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   margin: 0 0 var(--space-xs, 4px) 0;
 }
 
 .onboarding-progress-header p {
   font-size: 14px;
-  color: var(--color-text-secondary, #6B6560);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -251,7 +251,7 @@ const styles = `
   gap: var(--space-sm, 8px);
   padding: var(--space-sm, 8px);
   border-radius: var(--radius-md, 8px);
-  background: var(--color-bg-secondary, #FAF8F5);
+  background: var(--color-bg-secondary, var(--color-white));
   opacity: 0.5;
   transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD},
               background ${DURATION.NORMAL}ms ${EASING.STANDARD};
@@ -259,20 +259,20 @@ const styles = `
 
 .onboarding-milestone.reached {
   opacity: 1;
-  background: var(--persona-tint-ferni, rgba(74, 103, 65, 0.08));
+  background: var(--persona-tint-ferni, color-mix(in srgb, var(--color-ferni) 8%, transparent));
 }
 
 .onboarding-milestone.current {
   opacity: 1;
-  background: var(--persona-tint-ferni, rgba(74, 103, 65, 0.12));
-  box-shadow: 0 0 0 1px var(--color-ferni, #4a6741);
+  background: var(--persona-tint-ferni, color-mix(in srgb, var(--color-ferni) 12%, transparent));
+  box-shadow: 0 0 0 1px var(--color-ferni);
 }
 
 .onboarding-milestone-icon {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-full, 9999px);
-  background: var(--color-bg-elevated, #FFFDFB);
+  background: var(--color-bg-elevated, var(--color-white));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -282,7 +282,7 @@ const styles = `
 .onboarding-milestone-icon svg {
   width: 16px;
   height: 16px;
-  color: var(--color-text-muted, #9B9590);
+  color: var(--color-text-muted);
 }
 
 .onboarding-milestone.reached .onboarding-milestone-icon svg,
@@ -298,19 +298,19 @@ const styles = `
 .onboarding-milestone-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .onboarding-milestone-desc {
   font-size: 11px;
-  color: var(--color-text-secondary, #6B6560);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
 .onboarding-milestone-day {
   font-size: 11px;
-  color: var(--color-text-muted, #9B9590);
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
@@ -327,16 +327,16 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted, #9B9590);
+  color: var(--color-text-muted);
   transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
 }
 
 .onboarding-progress-close:hover {
-  background: var(--color-bg-secondary, #FAF8F5);
+  background: var(--color-bg-secondary, var(--color-white));
 }
 
 .onboarding-progress-close:focus-visible {
-  outline: 2px solid var(--color-accent-primary, #3D5A45);
+  outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
 }
 

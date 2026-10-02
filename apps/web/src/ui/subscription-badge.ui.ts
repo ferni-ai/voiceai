@@ -399,12 +399,12 @@ function injectStyles(): void {
       gap: var(--space-1, 4px);
       padding: var(--space-1, 4px) var(--space-2, 8px);
       margin-top: var(--space-2, 8px);
-      background: var(--color-background-secondary, rgba(255, 253, 251, 0.8));
-      border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.1));
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-full, 9999px);
       font-size: 0.75rem;
       font-weight: 500;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       opacity: 0;
@@ -421,13 +421,13 @@ function injectStyles(): void {
     }
     
     .subscription-badge:hover {
-      background: var(--color-background-tertiary, #f5f3f0);
+      background: var(--color-background-tertiary);
       border-color: var(--color-border, #d4d0c8);
     }
     
     .subscription-badge:focus {
       outline: none;
-      box-shadow: 0 0 0 2px var(--persona-tint, rgba(74, 103, 65, 0.3));
+      box-shadow: 0 0 0 2px var(--persona-tint, color-mix(in srgb, var(--color-ferni) 30%, transparent));
     }
     
     .subscription-badge:focus:not(:focus-visible) {
@@ -462,15 +462,15 @@ function injectStyles(): void {
     
     /* Premium state */
     .subscription-badge--premium {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
-      border-color: var(--persona-primary, #4a6741);
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
+      border-color: var(--persona-primary, var(--color-ferni));
       color: var(--persona-ink);
     }
     
     /* Trial state - special "gift" styling */
     .subscription-badge--trial {
-      background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(106, 138, 97, 0.15));
-      border-color: var(--persona-primary, #4a6741);
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 10%, transparent), rgba(106, 138, 97, 0.15));
+      border-color: var(--persona-primary, var(--color-ferni));
       color: var(--persona-ink);
     }
     
@@ -516,7 +516,7 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .subscription-badge--trial {
-      background: linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(106, 138, 97, 0.2));
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 15%, transparent), rgba(106, 138, 97, 0.2));
       color: var(--color-accent-text);
     }
     

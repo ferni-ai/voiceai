@@ -625,9 +625,9 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255, 255, 255, 0.2);
+      background: color-mix(in srgb, var(--color-white) 20%, transparent);
       border-radius: var(--radius-lg);
-      color: white;
+      color: var(--color-white);
     }
 
     .tier-icon svg {
@@ -642,18 +642,18 @@ function injectStyles(): void {
     .tier-name {
       display: block;
       font-weight: 600;
-      color: white;
+      color: var(--color-white);
       font-size: 1.125rem;
     }
 
     .tier-desc {
       font-size: 0.875rem;
-      color: rgba(255, 255, 255, 0.8);
+      color: color-mix(in srgb, var(--color-white) 80%, transparent);
     }
 
     .tier-upgrade {
       padding: var(--space-2, 8px) var(--space-4, 16px);
-      background: white;
+      background: var(--color-white);
       color: var(--tier-color);
       border: none;
       border-radius: var(--radius-full);
@@ -668,7 +668,7 @@ function injectStyles(): void {
     }
 
     .tier-upgrade:focus-visible {
-      outline: 2px solid white;
+      outline: 2px solid var(--color-white);
       outline-offset: 2px;
     }
 

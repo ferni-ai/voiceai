@@ -607,7 +607,7 @@ class GroupCoachingUI {
         max-width: clamp(336px, 90vw, 480px);
         max-height: 90vh;
         overflow-y: auto;
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-xl, 1.5rem);
         box-shadow: var(--shadow-2xl);
         transform: ${prefersReducedMotion() ? 'none' : 'scale(0.95)'};
@@ -705,7 +705,7 @@ class GroupCoachingUI {
       }
 
       .group-coaching__create-btn {
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
       }
 
@@ -917,13 +917,13 @@ class GroupCoachingUI {
       }
 
       .group-coaching__session-status-badge--waiting {
-        background: var(--color-semantic-warning, #a67c35);
-        color: white;
+        background: var(--color-semantic-warning);
+        color: var(--color-white);
       }
 
       .group-coaching__session-status-badge--active {
-        background: var(--color-semantic-success, #3d7a52);
-        color: white;
+        background: var(--color-semantic-success);
+        color: var(--color-white);
       }
 
       .group-coaching__session-id {
@@ -1064,20 +1064,20 @@ class GroupCoachingUI {
 
       /* Dark Theme */
       [data-theme="midnight"] .group-coaching__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated);
       }
 
       [data-theme="midnight"] .group-coaching__title,
       [data-theme="midnight"] .group-coaching__session-type,
       [data-theme="midnight"] .group-coaching__type-name,
       [data-theme="midnight"] .group-coaching__participant-name {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .group-coaching__session,
       [data-theme="midnight"] .group-coaching__type,
       [data-theme="midnight"] .group-coaching__participant {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
 
       @media (max-width: clamp(336px, 90vw, 480px)) {

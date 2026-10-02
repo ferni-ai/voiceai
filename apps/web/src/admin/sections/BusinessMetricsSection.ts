@@ -287,7 +287,7 @@ export function render(): string {
 
       .metric-card.highlight {
         background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
-        color: white;
+        color: var(--color-white);
       }
 
       .metric-icon {
@@ -308,7 +308,7 @@ export function render(): string {
       }
 
       .metric-card.highlight .metric-label {
-        color: rgba(255,255,255,0.8);
+        color: color-mix(in srgb, var(--color-white) 80%, transparent);
       }
 
       .metric-trend {
@@ -501,7 +501,7 @@ export function render(): string {
       .metric-card:focus-visible,
       .persona-item:focus-visible,
       .event-item:focus-visible {
-        outline: 2px solid var(--admin-accent, #4a6741);
+        outline: 2px solid var(--admin-accent, var(--color-ferni));
         outline-offset: 2px;
       }
 

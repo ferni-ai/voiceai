@@ -652,7 +652,7 @@ function injectAdminPortalStyles(): void {
       --admin-surface-subtle: rgba(250, 246, 240, 0.04);
       --admin-surface-hover: rgba(250, 246, 240, 0.08);
       --admin-surface-active: rgba(250, 246, 240, 0.12);
-      --admin-accent: #4a6741;
+      --admin-accent: var(--color-ferni);
       --admin-accent-hover: #5a7a50;
     }
     
@@ -777,7 +777,7 @@ function injectAdminPortalStyles(): void {
 
     .admin-nav-btn.active {
       background: var(--admin-accent);
-      color: #ffffff;
+      color: var(--color-white);
     }
 
     .admin-nav-icon {
@@ -802,7 +802,7 @@ function injectAdminPortalStyles(): void {
       font-size: 0.625rem;
       font-weight: 700;
       padding: 0.125rem 0.375rem;
-      background: var(--color-semantic-warning, #d4a84b);
+      background: var(--color-semantic-warning);
       color: var(--color-background, #1a1612);
       border-radius: var(--radius-full, 9999px);
     }
@@ -843,7 +843,7 @@ function injectAdminPortalStyles(): void {
 
     .admin-env-badge--prod {
       background: var(--admin-accent);
-      color: #ffffff;
+      color: var(--color-white);
     }
 
     /* Main Content */
@@ -997,7 +997,7 @@ function injectAdminPortalStyles(): void {
     .admin-btn--primary {
       background: var(--admin-accent) !important;
       border-color: transparent;
-      color: #ffffff !important;
+      color: var(--color-white) !important;
     }
 
     .admin-btn--primary:hover {
@@ -1109,7 +1109,7 @@ function injectAdminPortalStyles(): void {
       background: #352e28;
       border: 1px solid rgba(250, 246, 240, 0.12);
       border-radius: var(--radius-xl, 16px);
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--color-black) 50%, transparent);
     }
 
     .admin-modal-header {
@@ -1235,9 +1235,9 @@ function injectAdminPortalStyles(): void {
     }
 
     .admin-btn--danger {
-      background: var(--color-semantic-error, #c44536);
-      border-color: var(--color-semantic-error, #c44536);
-      color: white;
+      background: var(--color-semantic-error);
+      border-color: var(--color-semantic-error);
+      color: var(--color-white);
     }
 
     .admin-btn--danger:hover {
@@ -1246,7 +1246,7 @@ function injectAdminPortalStyles(): void {
     }
 
     .admin-btn--danger:focus-visible {
-      outline: 2px solid var(--color-semantic-error, #c44536);
+      outline: 2px solid var(--color-semantic-error);
       outline-offset: 2px;
     }
 

@@ -374,7 +374,7 @@ export function createLoadingOrchestrator(
   progressBar.style.cssText = `
     width: 100%;
     height: 4px;
-    background: rgba(255,255,255,0.1);
+    background: color-mix(in srgb, var(--color-white) 10%, transparent);
     border-radius: 2px;
     overflow: hidden;
     display: none;
@@ -395,7 +395,7 @@ export function createLoadingOrchestrator(
   message.className = 'ferni-loading-message';
   message.style.cssText = `
     font-size: 14px;
-    color: var(--color-text-muted, #888);
+    color: var(--color-text-muted);
     display: none;
   `;
 

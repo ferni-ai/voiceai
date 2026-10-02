@@ -404,7 +404,7 @@ class NotificationsUI {
 
       .notification__action:hover {
         background: var(--notification-border);
-        color: white;
+        color: var(--color-white);
         transform: scale(1.02);
       }
 

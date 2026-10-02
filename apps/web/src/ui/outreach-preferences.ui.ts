@@ -101,10 +101,10 @@ const STYLES = `
     width: 100%;
     max-width: clamp(294px, 90vw, 420px);
     max-height: 85vh;
-    background: var(--color-bg-elevated, #FFFDFB);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    background: var(--color-bg-elevated, var(--color-white));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-xl, 20px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
     overflow: hidden;
     transform: scale(0.9);
     transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
@@ -120,7 +120,7 @@ const STYLES = `
     align-items: center;
     justify-content: space-between;
     padding: var(--space-6, 24px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
   .outreach-prefs-header-left {
@@ -140,7 +140,7 @@ const STYLES = `
   .outreach-prefs-title {
     font-size: 20px;
     font-weight: 600;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
     margin: 0;
   }
 
@@ -153,13 +153,13 @@ const STYLES = `
     background: transparent;
     border: none;
     border-radius: var(--radius-full, 9999px);
-    color: var(--color-text-secondary, #5c544a);
+    color: var(--color-text-secondary);
     cursor: pointer;
     transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
   }
 
   .outreach-prefs-close:hover {
-    background: var(--color-background-secondary, #f5f2ed);
+    background: var(--color-background-secondary);
   }
 
   .outreach-prefs-close svg {
@@ -188,7 +188,7 @@ const STYLES = `
     font-weight: 600;
     letter-spacing: 0.5px;
     text-transform: uppercase;
-    color: var(--color-text-muted, #8a8078);
+    color: var(--color-text-muted);
     margin-bottom: var(--space-3, 12px);
   }
 
@@ -198,7 +198,7 @@ const STYLES = `
     align-items: center;
     justify-content: space-between;
     padding: var(--space-4, 16px);
-    background: var(--color-background-secondary, #f5f2ed);
+    background: var(--color-background-secondary);
     border-radius: var(--radius-lg, 12px);
     margin-bottom: var(--space-3, 12px);
   }
@@ -211,12 +211,12 @@ const STYLES = `
 
   .outreach-prefs-toggle-label {
     font-weight: 500;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
   }
 
   .outreach-prefs-toggle-desc {
     font-size: 13px;
-    color: var(--color-text-muted, #8a8078);
+    color: var(--color-text-muted);
   }
 
   /* Toggle Switch */
@@ -231,7 +231,7 @@ const STYLES = `
   }
 
   .outreach-prefs-toggle--on {
-    background: var(--persona-primary, #4a6741);
+    background: var(--persona-primary, var(--color-ferni));
   }
 
   .outreach-prefs-toggle-knob {
@@ -240,9 +240,9 @@ const STYLES = `
     left: 2px;
     width: 24px;
     height: 24px;
-    background: white;
+    background: var(--color-white);
     border-radius: var(--radius-full, 9999px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px color-mix(in srgb, var(--color-black) 10%, transparent);
     transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
   }
 
@@ -262,7 +262,7 @@ const STYLES = `
     align-items: center;
     gap: var(--space-2, 8px);
     padding: var(--space-3, 12px);
-    background: var(--color-background-secondary, #f5f2ed);
+    background: var(--color-background-secondary);
     border: 2px solid transparent;
     border-radius: var(--radius-md, 8px);
     cursor: pointer;
@@ -270,12 +270,12 @@ const STYLES = `
   }
 
   .outreach-prefs-channel:hover {
-    background: var(--color-background-tertiary, #eae7e2);
+    background: var(--color-background-tertiary);
   }
 
   .outreach-prefs-channel--selected {
     border-color: var(--color-text-secondary);
-    background: rgba(74, 103, 65, 0.08);
+    background: color-mix(in srgb, var(--color-ferni) 8%, transparent);
   }
 
   .outreach-prefs-channel-check {
@@ -286,13 +286,13 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-white);
     background: transparent;
     transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
   }
 
   .outreach-prefs-channel--selected .outreach-prefs-channel-check {
-    background: var(--persona-primary, #4a6741);
+    background: var(--persona-primary, var(--color-ferni));
     border-color: var(--color-text-secondary);
   }
 
@@ -313,7 +313,7 @@ const STYLES = `
     align-items: center;
     gap: var(--space-4, 16px);
     padding: var(--space-3, 12px);
-    background: var(--color-background-secondary, #f5f2ed);
+    background: var(--color-background-secondary);
     border-radius: var(--radius-lg, 12px);
     margin-bottom: var(--space-3, 12px);
   }
@@ -321,7 +321,7 @@ const STYLES = `
   .outreach-prefs-slider-label {
     flex: 1;
     font-weight: 500;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
   }
 
   .outreach-prefs-slider-value {
@@ -346,10 +346,10 @@ const STYLES = `
     appearance: none;
     width: 18px;
     height: 18px;
-    background: var(--persona-primary, #4a6741);
+    background: var(--persona-primary, var(--color-ferni));
     border-radius: var(--radius-full, 9999px);
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 4px color-mix(in srgb, var(--color-black) 15%, transparent);
     transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
   }
 
@@ -368,12 +368,12 @@ const STYLES = `
   .outreach-prefs-time-input {
     flex: 1;
     padding: var(--space-3, 12px);
-    background: var(--color-background-secondary, #f5f2ed);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+    background: var(--color-background-secondary);
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-md, 8px);
     font-family: inherit;
     font-size: 14px;
-    color: var(--color-text-primary, #2C2520);
+    color: var(--color-text-primary);
   }
 
   .outreach-prefs-time-input:focus {
@@ -383,7 +383,7 @@ const STYLES = `
 
   .outreach-prefs-time-label {
     font-size: 13px;
-    color: var(--color-text-muted, #8a8078);
+    color: var(--color-text-muted);
     min-width: 30px;
     text-align: center;
   }
@@ -397,30 +397,30 @@ const STYLES = `
 
   .outreach-prefs-day {
     padding: var(--space-2, 8px) var(--space-3, 12px);
-    background: var(--color-background-secondary, #f5f2ed);
+    background: var(--color-background-secondary);
     border: 2px solid transparent;
     border-radius: var(--radius-md, 8px);
     font-size: 13px;
     font-weight: 500;
-    color: var(--color-text-secondary, #5c544a);
+    color: var(--color-text-secondary);
     cursor: pointer;
     transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
   }
 
   .outreach-prefs-day:hover {
-    background: var(--color-background-tertiary, #eae7e2);
+    background: var(--color-background-tertiary);
   }
 
   .outreach-prefs-day--selected {
     border-color: var(--color-text-secondary);
-    background: rgba(74, 103, 65, 0.08);
+    background: color-mix(in srgb, var(--color-ferni) 8%, transparent);
     color: var(--color-text-secondary);
   }
 
   /* Footer */
   .outreach-prefs-footer {
     padding: var(--space-4, 16px) var(--space-6, 24px);
-    border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+    border-top: 1px solid var(--color-border-subtle);
     display: flex;
     justify-content: flex-end;
     gap: var(--space-3, 12px);
@@ -439,21 +439,21 @@ const STYLES = `
   .outreach-prefs-btn--secondary {
     background: transparent;
     border: 1px solid var(--color-border, rgba(44, 37, 32, 0.2));
-    color: var(--color-text-secondary, #5c544a);
+    color: var(--color-text-secondary);
   }
 
   .outreach-prefs-btn--secondary:hover {
-    background: var(--color-background-secondary, #f5f2ed);
+    background: var(--color-background-secondary);
   }
 
   .outreach-prefs-btn--primary {
-    background: var(--persona-primary, #4a6741);
+    background: var(--persona-primary, var(--color-ferni));
     border: none;
-    color: white;
+    color: var(--color-white);
   }
 
   .outreach-prefs-btn--primary:hover {
-    background: var(--persona-secondary, #3d5a35);
+    background: var(--persona-secondary, var(--color-ferni-secondary));
     transform: translateY(-1px);
   }
 

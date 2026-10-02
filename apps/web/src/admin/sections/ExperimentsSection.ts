@@ -237,12 +237,12 @@ export async function render(): Promise<string> {
       }
 
       .admin-btn.primary {
-        background: var(--persona-primary, #4a6741);
-        color: white;
+        background: var(--persona-primary, var(--color-ferni));
+        color: var(--color-white);
       }
 
       .admin-btn.primary:hover {
-        background: var(--persona-primary-hover, #3d5a35);
+        background: var(--persona-primary-hover, var(--color-ferni-secondary));
       }
 
       .experiments-list {
@@ -287,8 +287,8 @@ export async function render(): Promise<string> {
       }
 
       .experiment-status.running {
-        background: rgba(74, 103, 65, 0.15);
-        color: #4a6741;
+        background: color-mix(in srgb, var(--color-ferni) 15%, transparent);
+        color: var(--color-ferni);
       }
 
       .experiment-status.completed {
@@ -336,7 +336,7 @@ export async function render(): Promise<string> {
 
       .variant-name .winner-badge {
         background: #22c55e;
-        color: white;
+        color: var(--color-white);
         padding: 2px 6px;
         border-radius: var(--radius-full);
         font-size: 10px;
@@ -378,7 +378,7 @@ export async function render(): Promise<string> {
 
       .progress-fill {
         height: 100%;
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary, var(--color-ferni));
         border-radius: var(--radius-full);
         transition: width 0.3s ease;
       }
@@ -397,7 +397,7 @@ export async function render(): Promise<string> {
         font-size: var(--text-sm);
         color: var(--color-text-secondary);
         margin-bottom: var(--space-4);
-        border-left: 3px solid var(--persona-primary, #4a6741);
+        border-left: 3px solid var(--persona-primary, var(--color-ferni));
       }
 
       .experiment-actions {
