@@ -14,6 +14,7 @@
  */
 
 import fs from 'fs';
+import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -249,7 +250,7 @@ function build() {
   ];
 
   // Write output
-  fs.writeFileSync(CONFIG.output, output.join('\n'));
+  writeIfChanged(CONFIG.output, output.join('\n'));
   console.log(`  ✅ Generated: ${CONFIG.output}`);
   console.log('     → Uses CSS variable references for auto-sync with design-tokens.css');
 
