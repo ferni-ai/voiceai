@@ -53,6 +53,11 @@ const h = vi.hoisted(() => {
     isSubscriptionRoute: (p) => p.startsWith('/api/subscription') || p.startsWith('/subscription'),
     isMonetizationRoute: (p) => p.startsWith('/api/monetization'),
     isAppleRoute: (p) => p.startsWith('/api/apple/iap'),
+    isWorkPlacesRoute: (p) =>
+      p === '/api/memory/me/work' ||
+      p.startsWith('/api/memory/me/work/') ||
+      p === '/api/memory/me/places' ||
+      p.startsWith('/api/memory/me/places/'),
     isImportantDatesRoute: (p) =>
       p === '/api/memory/me/dates' ||
       p.startsWith('/api/memory/me/dates/') ||
@@ -712,6 +717,10 @@ vi.mock('../../../api/memory-control-routes.js', () => ({
 vi.mock('../../../api/memory-routes.js', () => ({
   handleMemoryRoutes: h.auto('api/memory-routes#handleMemoryRoutes'),
 }));
+vi.mock('../../../api/work-places-routes.js', () => ({
+  isWorkPlacesRoute: h.auto('api/work-places-routes#isWorkPlacesRoute'),
+  handleWorkPlacesRoutes: h.auto('api/work-places-routes#handleWorkPlacesRoutes'),
+}));
 vi.mock('../../../api/user-preferences-routes.js', () => ({
   handleUserPreferenceRoutes: h.auto('api/user-preferences-routes#handleUserPreferenceRoutes'),
 }));
@@ -882,6 +891,8 @@ const ROUTE_PREFIXES = [
   '/api/trust/',
   '/api/semantic-intelligence',
   '/api/memory/me/preferences',
+  '/api/memory/me/work',
+  '/api/memory/me/places/',
   '/api/memory/me/dates',
   '/api/memory/me/dates/',
   '/api/memory/me/reminder-settings',
