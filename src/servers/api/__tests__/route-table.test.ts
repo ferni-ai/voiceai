@@ -53,6 +53,10 @@ const h = vi.hoisted(() => {
     isSubscriptionRoute: (p) => p.startsWith('/api/subscription') || p.startsWith('/subscription'),
     isMonetizationRoute: (p) => p.startsWith('/api/monetization'),
     isAppleRoute: (p) => p.startsWith('/api/apple/iap'),
+    isImportantDatesRoute: (p) =>
+      p === '/api/memory/me/dates' ||
+      p.startsWith('/api/memory/me/dates/') ||
+      p === '/api/memory/me/reminder-settings',
   };
 
   function shape(value: unknown, depth = 0): string {
@@ -593,6 +597,9 @@ vi.mock('../../../api/v2/index.js', () => ({
 vi.mock('../../../api/migration-routes.js', () => ({
   default: h.auto('api/migration-routes#default'),
 }));
+vi.mock('../../../api/identity-link-routes.js', () => ({
+  default: h.auto('api/identity-link-routes#default'),
+}));
 vi.mock('../../../api/account-routes.js', () => ({
   default: h.auto('api/account-routes#default'),
 }));
@@ -694,6 +701,10 @@ vi.mock('../../../api/visual-storytelling-routes.js', () => ({
   handleVisualStorytellingRoutes: h.auto(
     'api/visual-storytelling-routes#handleVisualStorytellingRoutes'
   ),
+}));
+vi.mock('../../../api/important-dates-routes.js', () => ({
+  isImportantDatesRoute: h.auto('api/important-dates-routes#isImportantDatesRoute'),
+  handleImportantDatesRoutes: h.auto('api/important-dates-routes#handleImportantDatesRoutes'),
 }));
 vi.mock('../../../api/memory-routes.js', () => ({
   handleMemoryRoutes: h.auto('api/memory-routes#handleMemoryRoutes'),
@@ -839,6 +850,7 @@ const ROUTE_PREFIXES = [
   '/api/v1/',
   '/api/v2/',
   '/api/auth/migrat',
+  '/api/identity/',
   '/api/account',
   '/api/session/accent',
   '/api/auth/',
@@ -863,6 +875,9 @@ const ROUTE_PREFIXES = [
   '/api/practice-view',
   '/api/trust/',
   '/api/semantic-intelligence',
+  '/api/memory/me/dates',
+  '/api/memory/me/dates/',
+  '/api/memory/me/reminder-settings',
   '/api/memory',
   '/api/actions',
   '/api/relationship/progress',

@@ -544,6 +544,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
           turnNumber: turnCount,
           voiceEmotion: analysisResult.analysis.emotion.primary,
           personaId: ctx.persona?.id,
+          conversationId: services.realtimeConversationId,
         });
 
         const { recordTurn } = await import('../../../memory/dynamic/index.js');

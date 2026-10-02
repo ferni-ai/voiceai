@@ -22,7 +22,10 @@ import type { ConversationManager } from '../../services/conversation-manager.js
 import type { PersonaId } from '../../personas/types.js';
 import type { UserData } from '../shared/types.js';
 import { nextTurnNumber } from '../../services/memory/turn-sequencer.js';
-import { rememberSessionTurn } from '../../memory/capture/session-turn-ring.js';
+import {
+  getPrecedingAssistantText,
+  rememberSessionTurn,
+} from '../../memory/capture/session-turn-ring.js';
 import { processActiveListeningFinal } from './active-listening-handler.js';
 
 const log = createLogger({ module: 'user-turn-capture' });
@@ -56,6 +59,10 @@ async function captureDynamicMemory(
     turnNumber,
     transcript: input.transcript,
     personaId: input.personaId,
+    // Fact provenance (dynamic_facts.sourceConversationIds)
+    conversationId: input.services?.realtimeConversationId,
+    // What Ferni asked just before, so "Yes, she's seven" can be resolved
+    previousAssistantTurn: getPrecedingAssistantText(input.sessionId, turnNumber),
   });
   recordTurn(input.sessionId, userId, captureResult, input.transcript, turnNumber, input.personaId);
 }

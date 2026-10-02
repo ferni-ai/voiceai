@@ -123,5 +123,5 @@ export const MIN_USER_ID_LENGTH = 4;
 /** Maximum valid user ID length */
 export const MAX_USER_ID_LENGTH = 128;
 
-/** Regex pattern for valid user IDs */
-export const USER_ID_PATTERN = /^[a-zA-Z0-9_\-.@:]+$/;
+/** Regex pattern for valid user IDs (`+` for phone-keyed ids like `phone:+15551234567`) */
+export const USER_ID_PATTERN = /^[a-zA-Z0-9_\-.@:+]+$/;

@@ -232,6 +232,14 @@ export const REGISTERED_TOOLS = [
   'addContact',
 
   // ============================================================================
+  // IMPORTANT DATES (family domain; defined outside index.ts so the generated
+  // DOMAIN_TOOL_IDS scan doesn't see them — routed by important-dates-executor)
+  // ============================================================================
+  'rememberSpecialDate',
+  'listSpecialDates',
+  'stopDateReminders',
+
+  // ============================================================================
   // LANGUAGE/SETTINGS (not in domains)
   // ============================================================================
   'setSpokenLanguage',

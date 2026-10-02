@@ -13,7 +13,7 @@ vi.mock('../../../services/conversation-thread/thread-recorder.js', () => ({
   recordUserMessage,
 }));
 
-const fastCapture = vi.fn(async (_input: { turnNumber: number; sessionId: string }) => ({
+const fastCapture = vi.fn(async (_input: Record<string, unknown>) => ({
   mentionedEntities: [],
   emotionSignals: [],
   topicHints: [],
@@ -220,7 +220,14 @@ describe('turn numbering across roles', () => {
 
     session.emit('conversation_item_added', assistantItem('g', 'Hi, I am Ferni. What is on your mind?'));
     await vi.waitFor(() => expect(addTurn).toHaveBeenCalledTimes(1));
-    captureUserTurn({ transcript: 'Work stress, honestly', sessionId: SESSION, userId: undefined, services, personaId: 'ferni', userData });
+    captureUserTurn({
+      transcript: 'Work stress, honestly',
+      sessionId: SESSION,
+      userId: 'user-ctx',
+      services: Object.assign(services, { realtimeConversationId: 'conv_ctx' }),
+      personaId: 'ferni',
+      userData,
+    });
     await vi.waitFor(() => expect(addTurn).toHaveBeenCalledTimes(2));
     session.emit('conversation_item_added', assistantItem('r1', 'That sounds heavy. What part weighs most?'));
     await vi.waitFor(() => expect(addTurn).toHaveBeenCalledTimes(3));
@@ -233,6 +240,13 @@ describe('turn numbering across roles', () => {
     ]);
     // Extraction context: the agent's question before the user's answer
     expect(getPrecedingAssistantText(SESSION, 2)).toBe('Hi, I am Ferni. What is on your mind?');
+    // ...and it reaches deep extraction with the conversation id for provenance
+    await vi.waitFor(() => expect(fastCapture).toHaveBeenCalledTimes(1));
+    expect(fastCapture.mock.calls[0]?.[0]).toMatchObject({
+      turnNumber: 2,
+      conversationId: 'conv_ctx',
+      previousAssistantTurn: 'Hi, I am Ferni. What is on your mind?',
+    });
   });
 
   it('numbers sessions independently', () => {

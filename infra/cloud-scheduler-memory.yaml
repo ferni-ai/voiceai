@@ -114,6 +114,26 @@ jobs:
       minBackoffDuration: 60s
       maxBackoffDuration: 300s
 
+  # Important-date reminders - every 15 minutes
+  # Sends due birthday/anniversary/deadline reminders (push, opted-in SMS/email,
+  # in-app), idempotent per date+offset+year; respects quiet hours.
+  # Like the other /api/jobs/* routes it requires the scheduler's OIDC token
+  # (add --oidc-service-account-email when creating it).
+  - name: deliver-date-reminders
+    description: Important-date reminders (birthdays, anniversaries, deadlines)
+    schedule: "*/15 * * * *"  # Every 15 minutes
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/deliver-date-reminders
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 1
+      minBackoffDuration: 30s
+      maxBackoffDuration: 60s
+
 # ============================================================================
 # MANUAL DEPLOYMENT COMMANDS
 # ============================================================================
@@ -174,6 +194,16 @@ jobs:
 #   --message-body='{"dryRun": false}' \
 #   --time-zone="America/Los_Angeles" \
 #   --description="Nightly Superhuman Memory maintenance (LLM links, patterns, protection)"
+#
+# gcloud scheduler jobs create http deliver-date-reminders \
+#   --location=us-central1 \
+#   --schedule="*/15 * * * *" \
+#   --uri="https://app.ferni.ai/api/jobs/deliver-date-reminders" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --oidc-service-account-email=<scheduler-service-account> \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Important-date reminders (birthdays, anniversaries, deadlines)"
 #
 # ============================================================================
 # TESTING COMMANDS

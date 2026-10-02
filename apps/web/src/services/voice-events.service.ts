@@ -102,6 +102,7 @@ function handleShowView(data: ShowViewData): void {
     'your-story': 'ferni:open-your-story',
     'memory-lane': 'ferni:open-memory-lane',
     history: 'ferni:open-history',
+    memories: 'ferni:open-memories',
     patterns: 'ferni:open-patterns',
     quiz: 'ferni:open-quiz',
     music: 'ferni:open-music',

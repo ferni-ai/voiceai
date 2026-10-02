@@ -173,6 +173,12 @@ export function recordTurn(
     '🧠 [MEMORY-AUDIT] recordTurn START'
   );
 
+  // The same utterance captured by a second path this turn: already recorded.
+  if (captureResult.duplicate) {
+    log.debug({ sessionId, turnNumber }, 'recordTurn: duplicate capture skipped');
+    return;
+  }
+
   const buffer = getSTMBuffer(sessionId, userId);
 
   // Create turn memory

@@ -31,9 +31,15 @@
       }
     },
     "recallFromMemory": {
-      "description": "Semantic search across stored memories. Finds memories by meaning, not just keywords. Returns matches with temporal context showing when the memory was stored.",
+      "description": "Look up what you know about THIS user: facts they've shared and the people in their life (family, pets, work, preferences, goals), ranked by meaning and keywords. Call when they ask what you remember or know about them ('what do you know about my sister?', 'do you remember my dog's name?') or when a specific personal detail would help. Returns short facts; weave them in naturally, never read them out as a list.",
       "parameters": {
-        "topic": "What to recall - conceptual, not exact match. Examples: 'retirement plans', 'family situation', 'their concerns', 'career goals'"
+        "topic": "What to recall - conceptual, not exact match. Examples: 'my sister', 'their dog', 'family situation', 'career goals'"
+      }
+    },
+    "recallPreviousConversation": {
+      "description": "Search THIS user's past conversations with you (summaries and what was actually said). Call when they refer to an earlier talk ('remember what we talked about last week?', 'what did I say about the move?', 'last time I told you...'). Returns dated snippets with conversation ids; refer to them naturally ('last Tuesday you mentioned...').",
+      "parameters": {
+        "query": "Topic or words to find in past conversations. Examples: 'the job interview', 'moving to Denver', 'my mom's surgery'"
       }
     },
     "getWeather": {
