@@ -15,59 +15,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiDelete } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface OuraSleepSummary {
-  date: string;
-  score: number;
-  totalSleep: number;
-  efficiency: number;
-  remSleep: number;
-  deepSleep: number;
-  lightSleep: number;
-  averageHrv: number;
-  averageHeartRate: number;
-}
-
-interface OuraReadinessSummary {
-  date: string;
-  score: number;
-  temperatureDeviation: number;
-  contributors: {
-    activityBalance: number;
-    bodyTemperature: number;
-    hrvBalance: number;
-    previousNight: number;
-    restingHeartRate: number;
-    sleepBalance: number;
-  };
-}
-
-interface OuraActivitySummary {
-  date: string;
-  score: number;
-  steps: number;
-  activeCalories: number;
-  highActivityTime: number;
-  mediumActivityTime: number;
-}
-
-interface OuraStatus {
-  connected: boolean;
-  sleep?: OuraSleepSummary;
-  readiness?: OuraReadinessSummary;
-  activity?: OuraActivitySummary;
-  error?: string;
-}
-
-interface OuraSettingsCallbacks {
-  onConnected?: () => void;
-  onDisconnected?: () => void;
-  onClose?: () => void;
-}
+import type { OuraStatus, OuraSettingsCallbacks } from './oura-settings.types.js';
 
 // ============================================================================
 // STATE
