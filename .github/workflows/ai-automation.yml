@@ -184,10 +184,15 @@ jobs:
       # docs/DEFINITION-OF-CLEAN.md: the bundle may not grow past the committed
       # baseline (it is already 3-5x over budget; this stops it getting worse).
       # The report goes to the job summary: the workflow token can't comment.
+      # pipefail: without it the step takes tee's exit code and a regression
+      # passes. The summary is written before exiting so a failure is readable.
       - name: Bundle ratchet
         run: |
-          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --bundle | tee bundle.txt
+          set -o pipefail
+          status=0
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --bundle | tee bundle.txt || status=$?
           { echo '### Bundle size'; echo '```'; cat bundle.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
 
   pr-brand-check:
     name: ✍️ Brand Voice Check
