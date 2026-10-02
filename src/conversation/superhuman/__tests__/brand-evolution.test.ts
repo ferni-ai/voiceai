@@ -47,10 +47,6 @@ import {
   processBrandEvolution,
 } from '../brand-evolution-integration.js';
 
-// A fixed afternoon local time. Brand secrets fire at 02:22, 03:33, 04:44 and
-// 11:11, so tests that used new Date() failed when CI ran at one of those minutes.
-const NEUTRAL_LOCAL_TIME = new Date('2026-01-15T14:00:00');
-
 // Reflection Sunday
 import {
   getCurrentWeekNumber,
@@ -67,6 +63,11 @@ import {
   generateEmailBody,
   calculateMonthStats,
 } from '../../../services/rituals/growth-letter.js';
+
+// A Wednesday at 14:07 local: no time-of-day secret (2:22, 3:33, 4:44, 11:11)
+// or date secret (solstices, equinoxes, Friday the 13th) can fire. With
+// `new Date()` these tests failed whenever CI ran at one of those minutes.
+const ORDINARY_TIME = new Date(2026, 0, 14, 14, 7);
 
 describe('Brand Evolution Features', () => {
   beforeEach(() => {
@@ -85,7 +86,7 @@ describe('Brand Evolution Features', () => {
       const context: SecretContext = {
         userId: 'test-user',
         conversationCount: 7,
-        localTime: NEUTRAL_LOCAL_TIME,
+        localTime: ORDINARY_TIME,
       };
 
       const result = checkBrandSecrets(context);
@@ -102,7 +103,7 @@ describe('Brand Evolution Features', () => {
         userId: 'test-user',
         conversationCount: 5,
         userMessage: 'Open the pod bay doors, HAL',
-        localTime: NEUTRAL_LOCAL_TIME,
+        localTime: ORDINARY_TIME,
       };
 
       const result = checkBrandSecrets(context);
@@ -130,7 +131,7 @@ describe('Brand Evolution Features', () => {
       const context: SecretContext = {
         userId: 'test-user',
         conversationCount: 7,
-        localTime: NEUTRAL_LOCAL_TIME,
+        localTime: ORDINARY_TIME,
       };
 
       // First check triggers it
@@ -415,7 +416,7 @@ describe('Brand Evolution Features', () => {
       processBrandEvolution({
         userId: 'test-user',
         conversationCount: 5,
-        localTime: NEUTRAL_LOCAL_TIME,
+        localTime: ORDINARY_TIME,
       });
 
       // Reset should not throw
