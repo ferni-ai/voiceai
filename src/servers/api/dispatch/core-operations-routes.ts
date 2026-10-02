@@ -31,6 +31,10 @@ import { handleFinOpsRoutes } from '../../../api/finops-routes.js';
 import { handleConversationCostRoutes } from '../../../api/conversation-cost-routes.js';
 import { handleMemoryRoutes } from '../../../api/memory-routes.js';
 import { handleMemoryControlRoutes } from '../../../api/memory-control-routes.js';
+import {
+  handleImportantDatesRoutes,
+  isImportantDatesRoute,
+} from '../../../api/important-dates-routes.js';
 import { handleActionRoutes } from '../../../api/action-routes.js';
 import { handleSemanticIntelligenceRoutes } from '../routes/semantic-intelligence.js';
 import type { RouteContext } from './route-context.js';
@@ -152,6 +156,12 @@ export async function dispatchOperationsRoutes(ctx: RouteContext): Promise<boole
   // Semantic Intelligence routes (Better Than Human V3)
   if (pathname.startsWith('/api/semantic-intelligence')) {
     const handled = await handleSemanticIntelligenceRoutes(req, res, pathname);
+    if (handled) return true;
+  }
+
+  // Important dates & reminder settings (user memory page)
+  if (isImportantDatesRoute(pathname)) {
+    const handled = await handleImportantDatesRoutes(req, res, pathname);
     if (handled) return true;
   }
 

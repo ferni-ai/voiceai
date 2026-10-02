@@ -1,361 +1,288 @@
 /**
- * Special Dates Tool
+ * Important-date voice tools.
  *
- * Manage birthdays, anniversaries, and special dates for contacts.
- * "Remember mom's birthday is March 15th"
+ *   rememberSpecialDate — "Remember my anniversary is June 12",
+ *                         "Remind me about Sam's birthday a week before"
+ *   listSpecialDates    — "What's coming up?"
+ *   stopDateReminders   — "Stop reminding me about the tax deadline"
+ *
+ * All three use the canonical important-dates store, so the web memory page,
+ * detection and reminders see the same dates. The persona says the result in
+ * their own voice; these strings stay short and warm.
  *
  * @module tools/domains/family/special-dates-tool
  */
 
 import { z } from 'zod';
+import { llm } from '@livekit/agents';
 import { createLogger } from '../../../utils/safe-logger.js';
+import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import {
-  saveSpecialDate,
-  listSpecialDates,
-  type SpecialDate,
-} from '../../../intelligence/context-builders/family/special-dates-awareness.js';
+  createUserDate,
+  deleteImportantDate,
+  editImportantDate,
+  findImportantDates,
+  getUpcomingDates,
+  parseSpokenDate,
+  resolveTimeZone,
+  toStoredDate,
+  type ImportantDateRecord,
+} from '../../../services/important-dates/index.js';
+import { localToday, parseStoredDate } from '../../../services/important-dates/date-math.js';
+import { whenPhrase } from '../../../services/important-dates/copy.js';
+import {
+  kindFrom,
+  parseLeadTimes,
+  spokenDate,
+  spokenLeadTimes,
+  titleFor,
+} from './special-dates-helpers.js';
 
 const log = createLogger({ module: 'special-dates-tool' });
+
+const SORRY = "I couldn't get to your dates just now. Try again in a moment?";
+const NEED_USER = 'I need to know who you are before I can keep dates for you.';
 
 // ============================================================================
 // SCHEMAS
 // ============================================================================
 
 export const rememberSpecialDateSchema = z.object({
-  contactName: z.string().describe('Name of the person (e.g., "mom", "Betty", "Dad")'),
-  dateType: z
-    .enum(['birthday', 'anniversary', 'memorial', 'custom'])
-    .describe('Type of special date'),
-  date: z.string().describe('The date in natural format (e.g., "March 15", "3/15", "March 15th")'),
-  year: z.number().optional().describe('Birth year (for calculating age) - optional'),
-  label: z.string().optional().describe('Custom label for the date (e.g., "Mom\'s retirement")'),
+  person: z
+    .string()
+    .optional()
+    .describe('Whose date it is ("Sam", "mom"). Leave empty for the user\'s own date.'),
+  kind: z
+    .enum(['birthday', 'anniversary', 'event', 'deadline', 'memorial', 'other'])
+    .describe('What kind of date this is'),
+  date: z
+    .string()
+    .optional()
+    .describe(
+      'The date as the user said it ("June 12", "June 12 2015", "next Friday"). Omit when only changing reminders for a date already saved.'
+    ),
+  label: z
+    .string()
+    .optional()
+    .describe('A name for events/deadlines ("Tax return", "Mom\'s retirement party")'),
+  recurring: z
+    .boolean()
+    .optional()
+    .describe('Repeats every year. Defaults to yes for birthdays/anniversaries, no otherwise.'),
+  remindBefore: z
+    .union([z.number(), z.array(z.number()), z.string()])
+    .optional()
+    .describe(
+      'When to remind: days before (7, [7,1]) or words ("a week before", "the day before")'
+    ),
 });
 
 export const listSpecialDatesSchema = z.object({
-  contactName: z
-    .string()
-    .optional()
-    .describe('Filter to a specific person, or leave empty for all'),
+  withinDays: z.number().optional().describe('How many days ahead to look (default 30)'),
+  person: z.string().optional().describe('Only dates for this person'),
 });
 
+export const stopDateRemindersSchema = z.object({
+  which: z.string().describe('Which date ("Sam\'s birthday", "the tax deadline")'),
+  forget: z
+    .boolean()
+    .optional()
+    .describe('True to forget the date entirely, not just stop the reminders'),
+});
+
+type RememberArgs = z.infer<typeof rememberSpecialDateSchema>;
+type ListArgs = z.infer<typeof listSpecialDatesSchema>;
+type StopArgs = z.infer<typeof stopDateRemindersSchema>;
+
 // ============================================================================
-// DATE PARSING
+// IMPLEMENTATIONS
 // ============================================================================
 
-/**
- * Validate that a day is valid for a given month
- */
-function isValidDayForMonth(month: number, day: number): boolean {
-  // Days in each month (non-leap year - we're lenient on Feb 29)
-  const daysInMonth: Record<number, number> = {
-    1: 31,
-    2: 29,
-    3: 31,
-    4: 30,
-    5: 31,
-    6: 30,
-    7: 31,
-    8: 31,
-    9: 30,
-    10: 31,
-    11: 30,
-    12: 31,
-  };
-
-  if (month < 1 || month > 12) return false;
-  if (day < 1 || day > daysInMonth[month]) return false;
-  return true;
+async function findOne(
+  userId: string,
+  query: string
+): Promise<{ record?: ImportantDateRecord; many?: ImportantDateRecord[]; error?: true }> {
+  const found = await findImportantDates(userId, query);
+  if (!found.success) return { error: true };
+  if (found.data.length === 1) return { record: found.data[0] };
+  if (found.data.length > 1) return { many: found.data };
+  return {};
 }
 
-/**
- * Parse natural date format to MM-DD
- */
-function parseToMMDD(dateStr: string): string | null {
-  const months: Record<string, number> = {
-    january: 1,
-    jan: 1,
-    february: 2,
-    feb: 2,
-    march: 3,
-    mar: 3,
-    april: 4,
-    apr: 4,
-    may: 5,
-    june: 6,
-    jun: 6,
-    july: 7,
-    jul: 7,
-    august: 8,
-    aug: 8,
-    september: 9,
-    sep: 9,
-    sept: 9,
-    october: 10,
-    oct: 10,
-    november: 11,
-    nov: 11,
-    december: 12,
-    dec: 12,
-  };
-
-  const lower = dateStr.toLowerCase().trim();
-
-  // Try "Month Day" format (March 15, March 15th)
-  const monthDayMatch = lower.match(/([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?/);
-  if (monthDayMatch) {
-    const month = months[monthDayMatch[1]];
-    const day = parseInt(monthDayMatch[2]);
-    if (month && isValidDayForMonth(month, day)) {
-      return `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    }
-  }
-
-  // Try "Day Month" format (15 March, 15th of March)
-  const dayMonthMatch = lower.match(/(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([a-z]+)/);
-  if (dayMonthMatch) {
-    const day = parseInt(dayMonthMatch[1]);
-    const month = months[dayMonthMatch[2]];
-    if (month && isValidDayForMonth(month, day)) {
-      return `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    }
-  }
-
-  // Try MM/DD or M/D format
-  const slashMatch = lower.match(/(\d{1,2})\/(\d{1,2})/);
-  if (slashMatch) {
-    const month = parseInt(slashMatch[1]);
-    const day = parseInt(slashMatch[2]);
-    if (isValidDayForMonth(month, day)) {
-      return `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    }
-  }
-
-  // Try MM-DD format
-  const dashMatch = lower.match(/(\d{1,2})-(\d{1,2})/);
-  if (dashMatch) {
-    const month = parseInt(dashMatch[1]);
-    const day = parseInt(dashMatch[2]);
-    if (isValidDayForMonth(month, day)) {
-      return `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    }
-  }
-
-  return null;
-}
-
-/**
- * Format MM-DD to readable format
- */
-function formatDate(mmdd: string): string {
-  const months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
-  const [month, day] = mmdd.split('-').map(Number);
-  if (!month || !day) return mmdd;
-
-  return `${months[month - 1]} ${day}`;
-}
-
-// ============================================================================
-// TOOL IMPLEMENTATIONS
-// ============================================================================
-
-/**
- * Remember a special date for a contact
- */
 export async function rememberSpecialDate(
-  params: z.infer<typeof rememberSpecialDateSchema>,
-  ctx: { userId: string }
+  args: RememberArgs,
+  ctx: { userId: string; personaId?: string; sessionId?: string }
 ): Promise<string> {
-  const { contactName, dateType, date, year, label } = params;
+  if (!ctx.userId || ctx.userId === 'anonymous') return NEED_USER;
+  const { kind, subtype } = kindFrom(args.kind);
+  const title = titleFor(kind, args.person, args.label);
+  const offsets = parseLeadTimes(args.remindBefore);
 
-  log.info({ contactName, dateType, date, userId: ctx.userId }, 'Remembering special date');
-
-  // Parse the date
-  const mmdd = parseToMMDD(date);
-  if (!mmdd) {
-    return (
-      `I couldn't understand the date "${date}". ` + `Could you say it like "March 15" or "3/15"?`
-    );
+  // No date: change reminders on a date we already have.
+  if (!args.date) {
+    const { record, many, error } = await findOne(ctx.userId, title);
+    if (error) return SORRY;
+    if (many)
+      return `I have a few dates like that: ${many.map((r) => r.title).join(', ')}. Which one?`;
+    if (!record) return `When is ${title.startsWith('Your ') ? title.toLowerCase() : title}?`;
+    if (!offsets) return `I've got ${record.title} on ${spokenDate(record.date)}.`;
+    const edited = await editImportantDate(ctx.userId, record.id, {
+      reminderOffsets: offsets,
+      remindersEnabled: true,
+    });
+    if (!edited.success) return SORRY;
+    return `Done. I'll remind you about ${record.title} ${spokenLeadTimes(offsets)}.`;
   }
 
-  // Try to resolve contact phone from entity store
-  let phone: string | undefined;
-  try {
-    const { findContactForTelephony, isEntityStoreReady } =
-      await import('../../../memory/entity-store/integration.js');
-    if (isEntityStoreReady()) {
-      const contact = await findContactForTelephony(ctx.userId, contactName);
-      if (contact) {
-        phone = contact.phone;
-      }
-    }
-  } catch {
-    // Non-critical
-  }
+  const tz = await resolveTimeZone(ctx.userId);
+  const today = localToday(new Date(), tz);
+  const parsed = parseSpokenDate(args.date, today);
+  if (!parsed) return `I didn't catch the date. Could you say it like "June 12"?`;
+  const recurring =
+    args.recurring ?? (kind === 'birthday' || kind === 'anniversary' || subtype === 'memorial');
+  const stored = toStoredDate(parsed, recurring, today);
 
-  // Save the date
-  await saveSpecialDate(ctx.userId, {
-    contactName,
-    relationship: 'family', // Default, could be enhanced
-    dateType,
-    date: mmdd,
-    year,
-    label,
-    phone,
+  const saved = await createUserDate(ctx.userId, {
+    title,
+    date: stored,
+    recurring,
+    kind,
+    ...(args.person ? { person: args.person } : {}),
+    ...(offsets ? { reminderOffsets: offsets } : {}),
+    ...(ctx.personaId ? { personaId: ctx.personaId } : {}),
+    ...(ctx.sessionId ? { conversationId: ctx.sessionId } : {}),
   });
-
-  // Build response
-  const formattedDate = formatDate(mmdd);
-  const dateTypeText = {
-    birthday: 'birthday',
-    anniversary: 'anniversary',
-    memorial: 'memorial day',
-    custom: label || 'special date',
-  }[dateType];
-
-  let response = `Got it! I'll remember ${contactName}'s ${dateTypeText} is on ${formattedDate}`;
-
-  if (year && dateType === 'birthday') {
-    const age = new Date().getFullYear() - year;
-    response += ` (${age} years old this year)`;
+  if (!saved.success) {
+    log.warn({ error: saved.error.message, userId: ctx.userId }, 'Could not save date');
+    return saved.error.code === 'invalid_input'
+      ? `I didn't catch the date. Could you say it like "June 12"?`
+      : SORRY;
   }
-
-  response += `. I'll remind you when it's coming up!`;
-
-  if (phone) {
-    response += ` And I have their number, so I can call them for you on the day.`;
-  }
-
-  return response;
+  const r = saved.data;
+  const lead = r.reminders.enabled
+    ? ` I'll remind you ${spokenLeadTimes(r.reminders.offsets)}.`
+    : '';
+  return `Got it. ${r.title} is ${spokenDate(r.date)}.${lead}`;
 }
 
-/**
- * List special dates
- */
-export async function getSpecialDates(
-  params: z.infer<typeof listSpecialDatesSchema>,
-  ctx: { userId: string }
-): Promise<string> {
-  const { contactName } = params;
-
-  const dates = await listSpecialDates(ctx.userId);
-
-  if (dates.length === 0) {
-    return (
-      "I don't have any special dates saved yet. " +
-      'You can tell me birthdays and anniversaries like: ' +
-      '"Mom\'s birthday is March 15th" or "My parents\' anniversary is June 20th".'
-    );
+export async function listSpecialDates(args: ListArgs, ctx: { userId: string }): Promise<string> {
+  if (!ctx.userId || ctx.userId === 'anonymous') return NEED_USER;
+  const days = Math.max(0, Math.min(366, Math.round(args.withinDays ?? 30)));
+  const upcoming = await getUpcomingDates(ctx.userId, days);
+  if (!upcoming.success) return SORRY;
+  let items = upcoming.data;
+  if (args.person) {
+    const p = args.person.toLowerCase();
+    items = items.filter((u) => `${u.record.title} ${u.record.key}`.toLowerCase().includes(p));
   }
-
-  // Filter if contactName provided
-  let filtered = dates;
-  if (contactName) {
-    const lower = contactName.toLowerCase();
-    filtered = dates.filter((d) => d.contactName.toLowerCase().includes(lower));
-
-    if (filtered.length === 0) {
-      return `I don't have any special dates saved for "${contactName}". Want to add one?`;
-    }
+  if (items.length === 0) {
+    return days >= 30
+      ? `Nothing in the next ${days} days. Want to tell me a birthday or anniversary to keep track of?`
+      : `Nothing coming up in the next ${days} days.`;
   }
-
-  // Group by upcoming
-  const today = new Date();
-  const currentMMDD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-  const sorted = [...filtered].sort((a, b) => {
-    // Sort by how soon the date is
-    const aNext = getNextOccurrence(a.date, currentMMDD);
-    const bNext = getNextOccurrence(b.date, currentMMDD);
-    return aNext - bNext;
+  const lines = items.slice(0, 8).map((u) => {
+    const occ = parseStoredDate(u.occursOn);
+    const civil =
+      occ && occ.year !== undefined ? { year: occ.year, month: occ.month, day: occ.day } : null;
+    const when = civil ? whenPhrase(u.daysUntil, civil) : u.occursOn;
+    const years =
+      u.yearsSince && u.record.kind === 'birthday'
+        ? ` (turning ${u.yearsSince})`
+        : u.yearsSince && u.record.kind === 'anniversary'
+          ? ` (${u.yearsSince} years)`
+          : '';
+    return `${u.record.title}${years}: ${when}`;
   });
-
-  const lines: string[] = ["Here are the special dates I'm tracking:", ''];
-
-  for (const date of sorted) {
-    const formattedDate = formatDate(date.date);
-    const daysUntil = getDaysUntil(date.date);
-    const untilText =
-      daysUntil === 0
-        ? '**TODAY!**'
-        : daysUntil === 1
-          ? 'tomorrow'
-          : daysUntil <= 7
-            ? `in ${daysUntil} days`
-            : daysUntil <= 30
-              ? `in ${Math.ceil(daysUntil / 7)} weeks`
-              : `on ${formattedDate}`;
-
-    const typeEmoji = {
-      birthday: '🎂',
-      anniversary: '💍',
-      memorial: '🕯️',
-      custom: '📅',
-    }[date.dateType];
-
-    lines.push(
-      `${typeEmoji} **${date.contactName}**'s ${date.dateType}: ${formattedDate} (${untilText})`
-    );
-  }
-
-  lines.push('');
-  lines.push('Want me to add more, or call someone on their special day?');
-
-  return lines.join('\n');
+  const more = items.length > 8 ? ` And ${items.length - 8} more.` : '';
+  return `Coming up: ${lines.join('; ')}.${more}`;
 }
 
-function getNextOccurrence(mmdd: string, todayMMDD: string): number {
-  const [month, day] = mmdd.split('-').map(Number);
-  const [todayMonth, todayDay] = todayMMDD.split('-').map(Number);
-
-  const today = new Date();
-  const thisYear = today.getFullYear();
-
-  let targetDate = new Date(thisYear, month - 1, day);
-  if (targetDate < today) {
-    targetDate = new Date(thisYear + 1, month - 1, day);
+export async function stopDateReminders(args: StopArgs, ctx: { userId: string }): Promise<string> {
+  if (!ctx.userId || ctx.userId === 'anonymous') return NEED_USER;
+  const { record, many, error } = await findOne(ctx.userId, args.which);
+  if (error) return SORRY;
+  if (many) return `I have a few like that: ${many.map((r) => r.title).join(', ')}. Which one?`;
+  if (!record) return `I don't have a date called "${args.which}".`;
+  if (args.forget) {
+    const deleted = await deleteImportantDate(ctx.userId, record.id, 'voice_forget');
+    return deleted.success ? `Okay, I've forgotten ${record.title}.` : SORRY;
   }
-
-  return Math.ceil((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-function getDaysUntil(mmdd: string): number {
-  const today = new Date();
-  const todayMMDD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  return getNextOccurrence(mmdd, todayMMDD);
+  const edited = await editImportantDate(ctx.userId, record.id, { remindersEnabled: false });
+  return edited.success
+    ? `Okay, no more reminders for ${record.title}. I'll still remember it.`
+    : SORRY;
 }
 
 // ============================================================================
 // TOOL DEFINITIONS
 // ============================================================================
 
-export const specialDateTools = [
-  {
-    name: 'rememberSpecialDate',
-    description:
-      'Remember a birthday, anniversary, or special date for someone. Examples: "Mom\'s birthday is March 15", "Remember my parents\' anniversary is June 20th"',
-    schema: rememberSpecialDateSchema,
-    execute: rememberSpecialDate,
-  },
-  {
-    name: 'listSpecialDates',
-    description: 'List saved birthdays, anniversaries, and special dates. Can filter by person.',
-    schema: listSpecialDatesSchema,
-    execute: getSpecialDates,
-  },
+function toolCtx(ctx: ToolContext): { userId: string; personaId?: string; sessionId?: string } {
+  return {
+    userId: ctx.userId,
+    ...(ctx.agentId ? { personaId: ctx.agentId } : {}),
+    ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
+  };
+}
+
+async function safely(fn: () => Promise<string>): Promise<string> {
+  try {
+    return await fn();
+  } catch (error) {
+    log.error({ error: String(error) }, 'Important date tool failed');
+    return SORRY;
+  }
+}
+
+export const rememberSpecialDateToolDef: ToolDefinition = {
+  id: 'rememberSpecialDate',
+  name: 'Remember Important Date',
+  description: 'Remember a birthday, anniversary, event or deadline, and when to remind',
+  domain: 'family',
+  tags: ['dates', 'birthday', 'anniversary', 'reminder', 'memory'],
+  create: (ctx: ToolContext): Tool =>
+    llm.tool({
+      description:
+        'Remember an important date (birthday, anniversary, event, deadline) and remind the user about it. Also use to change when to remind for a date already saved. Examples: "Remember my anniversary is June 12", "Mom\'s birthday is March 3rd", "Remind me about Sam\'s birthday a week before".',
+      parameters: rememberSpecialDateSchema,
+      execute: async (args: RememberArgs) => safely(() => rememberSpecialDate(args, toolCtx(ctx))),
+    }),
+};
+
+export const listSpecialDatesToolDef: ToolDefinition = {
+  id: 'listSpecialDates',
+  name: 'Upcoming Important Dates',
+  description: "List upcoming birthdays, anniversaries and deadlines ('what's coming up?')",
+  domain: 'family',
+  tags: ['dates', 'birthday', 'anniversary', 'upcoming'],
+  create: (ctx: ToolContext): Tool =>
+    llm.tool({
+      description:
+        'List the user\'s upcoming important dates. Examples: "What\'s coming up?", "Any birthdays this month?", "When is Sam\'s birthday?"',
+      parameters: listSpecialDatesSchema,
+      execute: async (args: ListArgs) => safely(() => listSpecialDates(args, toolCtx(ctx))),
+    }),
+};
+
+export const stopDateRemindersToolDef: ToolDefinition = {
+  id: 'stopDateReminders',
+  name: 'Stop Date Reminders',
+  description: 'Stop reminders for an important date, or forget the date',
+  domain: 'family',
+  tags: ['dates', 'reminder', 'stop', 'forget'],
+  create: (ctx: ToolContext): Tool =>
+    llm.tool({
+      description:
+        'Stop reminding the user about an important date (keeps the date), or forget it entirely with forget=true. Examples: "Stop reminding me about the tax deadline", "Forget Sam\'s birthday".',
+      parameters: stopDateRemindersSchema,
+      execute: async (args: StopArgs) => safely(() => stopDateReminders(args, toolCtx(ctx))),
+    }),
+};
+
+export const specialDateToolDefs: ToolDefinition[] = [
+  rememberSpecialDateToolDef,
+  listSpecialDatesToolDef,
+  stopDateRemindersToolDef,
 ];
 
-export default specialDateTools;
+export default specialDateToolDefs;

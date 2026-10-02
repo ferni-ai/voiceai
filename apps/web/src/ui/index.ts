@@ -473,20 +473,6 @@ export type {
   HouseholdMember,
 } from './household-manager.ui.js';
 
-// Conversation Memory Browser - Browse past conversations and memories
-export {
-  conversationMemory,
-  getSelectedConversation,
-  hideConversationMemory,
-  initConversationMemory,
-  showConversationMemory,
-} from './conversation-memory.ui.js';
-export type {
-  Conversation,
-  ConversationMemoryCallbacks,
-  ConversationMemory as ConversationMemoryData,
-} from './conversation-memory.ui.js';
-
 // Integrations Settings UI - Better-than-Human connections
 export {
   getIntegrationsSettingsUI,

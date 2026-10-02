@@ -178,6 +178,11 @@
       "patterns": ["saveNote", "getNotes", "journal"]
     },
 
+    "importantDates": {
+      "description": "Important dates and date reminders",
+      "patterns": ["rememberSpecialDate", "listSpecialDates", "stopDateReminders", "trackImportantDate"]
+    },
+
     "calendar": {
       "description": "Calendar and scheduling tools",
       "patterns": [

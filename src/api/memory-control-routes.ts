@@ -46,6 +46,7 @@ import {
   sendJSON,
 } from './helpers.js';
 import { requestUserId } from './identity-guard.js';
+import { isImportantDatesRoute } from './important-dates-routes.js';
 
 const log = createLogger({ module: 'MemoryControlRoutes' });
 
@@ -70,7 +71,9 @@ const LIMITS = {
   deleteAll: { maxRequests: 3, windowMs: 60 * 60_000 },
 } as const;
 
+/** `/api/memory/me...`, except the important-dates paths, which have their own handler. */
 export function isMemoryControlPath(pathname: string): boolean {
+  if (isImportantDatesRoute(pathname)) return false;
   return pathname === MEMORY_ME_PREFIX || pathname.startsWith(`${MEMORY_ME_PREFIX}/`);
 }
 

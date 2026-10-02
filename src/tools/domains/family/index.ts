@@ -14,6 +14,7 @@
  *   Communication: prepareForTalk, planFamilyMeeting, discussValues
  *   Elder Care: coordinateElderCare, findCareResources
  *   Traditions: createTradition
+ *   Important dates: rememberSpecialDate, listSpecialDates, stopDateReminders
  */
 
 import { createDomainExport } from '../../registry/loader.js';
@@ -1001,6 +1002,13 @@ import {
   toggleCheckinToolDef,
 } from './schedule-family-checkin.js';
 
+// Important dates (canonical store + reminders)
+import {
+  rememberSpecialDateToolDef,
+  listSpecialDatesToolDef,
+  stopDateRemindersToolDef,
+} from './special-dates-tool.js';
+
 const familyTools: ToolDefinition[] = [
   // Parenting
   coachParentingChallengeDef,
@@ -1030,6 +1038,10 @@ const familyTools: ToolDefinition[] = [
   listFamilyCheckinsToolDef,
   getCheckinStatusToolDef,
   toggleCheckinToolDef,
+  // Important dates & reminders
+  rememberSpecialDateToolDef,
+  listSpecialDatesToolDef,
+  stopDateRemindersToolDef,
 ];
 
 // ============================================================================
