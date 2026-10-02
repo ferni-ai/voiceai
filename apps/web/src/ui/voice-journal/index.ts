@@ -35,7 +35,6 @@ import {
   setModal,
   getCurrentTab,
   setCurrentTab,
-  getCurrentAgent,
   setCurrentAgent,
   setEntries,
   setCurrentPrompt,
@@ -54,6 +53,7 @@ import { renderEntries, deleteEntry } from './entries.js';
 import { renderInsights } from './insights.js';
 import { exportJournal, shareJournal } from './export.js';
 import { getJournalStyles } from './styles.js';
+import { handleSyncEvent } from './sync-events.js';
 
 const log = createLogger('VoiceJournalUI');
 
@@ -473,37 +473,6 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
 }
 
 /**
- * Handle real-time sync events from other devices
- */
-async function handleSyncEvent(event: JournalSyncEvent): Promise<void> {
-  const currentAgent = getCurrentAgent();
-  if (!currentAgent || event.agentId !== currentAgent.id) return;
-  
-  log.debug('Received sync event:', event.type);
-  
-  if (event.type === 'entry_added' || event.type === 'entry_deleted' || event.type === 'entry_updated') {
-    // Reload entries from server
-    const entries = (await listMemories(currentAgent.id, 'journalEntry')) || [];
-    setEntries(entries);
-    
-    // Re-render all sections
-    renderStats();
-    renderCalendar();
-    renderEntries();
-    renderInsights();
-    
-    // Show toast notification
-    const { toast } = await import('../whisper.ui.js');
-    if (event.type === 'entry_added') {
-      toast.info(t('toasts.newEntrySynced'));
-    } else if (event.type === 'entry_deleted') {
-      toast.info(t('toasts.entryRemoved'));
-    }
-  }
-}
-
-
-/**
  * Close the voice journal
  */
 export function closeVoiceJournal(): void {
@@ -533,4 +502,3 @@ export function closeVoiceJournal(): void {
 // ============================================================================
 
 export type { JournalTab, JournalPrompt, JournalStats, MoodOption } from './types.js';
-
