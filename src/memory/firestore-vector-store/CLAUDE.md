@@ -46,6 +46,18 @@ const results = await vectorStore.search('How is college going?', {
 });
 ```
 
+## Privacy Removal
+
+Every user-derived entry must carry `metadata.userId`, because erasure finds entries by that field:
+
+```typescript
+await vectorStore.removeDocumentsForUser(userId, ['conversation_s1']); // by ID, clears the user's search cache
+await vectorStore.removeAllForUser(userId); // account / memory wipe, pages until nothing is left
+```
+
+Vector IDs are global (`conversation_<summaryId>`, `conversation_fact_<factDocId>`), so callers check
+`metadata.userId` before removing by ID (see `services/memory-control/derived-stores.ts`).
+
 ## Health Monitoring
 
 ```typescript

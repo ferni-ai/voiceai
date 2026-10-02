@@ -63,6 +63,9 @@ export {
   insertMemoryAnchor,
   getMemoryAnchorsByUser,
   markAnchorRecalled,
+  // Privacy deletion
+  deleteUserGraphRecords,
+  type GraphDeletionScope,
 } from './client.js';
 
 // Graph queries
