@@ -15,6 +15,7 @@
  */
 
 import fs from 'fs';
+import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -185,7 +186,7 @@ function build() {
   }
 
   // Write output
-  fs.writeFileSync(CONFIG.outputFile, tsContent);
+  writeIfChanged(CONFIG.outputFile, tsContent);
   console.log(`\n  ✅ Generated: ${CONFIG.outputFile}`);
 
   console.log('\n✅ Avatar images generation complete!\n');
