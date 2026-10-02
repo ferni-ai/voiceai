@@ -30,6 +30,15 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { BuilderCategory } from '../core/categories.js';
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../core/types.js';
 import { createHintInjection, createStandardInjection, registerContextBuilder } from '../index.js';
+import type {
+  DynamicEntity,
+  DynamicFact,
+  DynamicRelationship,
+  HumanSignal,
+  HumanMemoryProfile,
+  PromotedEntity,
+  TopicPattern,
+} from './dynamic-memory-context.types.js';
 
 const log = createLogger({ module: 'context:dynamic-memory' });
 
@@ -65,90 +74,6 @@ let config = { ...DEFAULT_CONFIG };
  */
 export function configureDynamicMemory(newConfig: Partial<DynamicMemoryConfig>): void {
   config = { ...config, ...newConfig };
-}
-
-// ============================================================================
-// FIRESTORE TYPES
-// ============================================================================
-
-interface DynamicEntity {
-  id: string;
-  name: string;
-  type: 'person' | 'place' | 'organization' | 'event' | 'concept' | 'thing';
-  attributes: Record<string, string>;
-  importance: number;
-  mentionCount: number;
-  lastMentioned: Date;
-  createdAt: Date;
-}
-
-interface DynamicFact {
-  id: string;
-  entityName: string;
-  factType: 'attribute' | 'event' | 'relationship' | 'state' | 'preference';
-  key: string;
-  value: string;
-  confidence: number;
-  temporalContext?: string;
-  extractedAt: Date;
-}
-
-interface DynamicRelationship {
-  id: string;
-  source: string;
-  target: string;
-  type: string;
-  strength: number;
-  bidirectional: boolean;
-  createdAt: Date;
-}
-
-/**
- * Human signals from LLM extraction (Jan 2026)
- * "Better Than Human" - things a human friend would forget
- */
-interface HumanSignal {
-  id: string;
-  type: string;
-  value: string;
-  context?: string;
-  confidence: number;
-  extractedAt: Date;
-}
-
-interface HumanMemoryProfile {
-  importantDates: HumanSignal[];
-  values: HumanSignal[];
-  dreams: HumanSignal[];
-  fears: HumanSignal[];
-  growthMarkers: HumanSignal[];
-  comfortPatterns: HumanSignal[];
-  challenges: HumanSignal[];
-  stressTriggers: HumanSignal[];
-  importantPeople: HumanSignal[];
-}
-
-// ============================================================================
-// PROMOTED ENTITY / TOPIC PATTERN TYPES (from STM promotion)
-// ============================================================================
-
-interface PromotedEntity {
-  id: string;
-  name: string;
-  type: string;
-  mentionCount: number;
-  importance: number;
-  lastContext: string;
-  promotedAt: Date;
-}
-
-interface TopicPattern {
-  id: string;
-  sessionId: string;
-  topics: string[];
-  transitions: string[];
-  dominantTopic: string;
-  promotedAt: Date;
 }
 
 // ============================================================================
