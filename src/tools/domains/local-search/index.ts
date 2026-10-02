@@ -12,6 +12,7 @@
  * @module tools/domains/local-search
  */
 
+import { allergyReminder, getDietaryConstraints } from '../../../services/user-preferences/food.js';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
@@ -312,6 +313,8 @@ const findRestaurantsDef: ToolDefinition = {
 
           let response = `**${cleanCuisine || 'Restaurant'} Options near ${location}**\n\n`;
           response += formatResults(results, cleanCuisine || 'restaurants', location);
+          const reminder = allergyReminder(await getDietaryConstraints(ctx.userId));
+          if (reminder) response += `\n\n${reminder}`;
 
           return response;
         } catch (error) {

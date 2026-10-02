@@ -260,6 +260,18 @@ export async function syncSpotifyLibrary(
     // Cache the data
     libraryCache.set(userId, libraryData);
 
+    // Listening history feeds the user's media profile (explicit statements still win)
+    void import('../user-preferences/media.js')
+      .then((m) =>
+        m.importListeningHistory(userId, {
+          artists: topArtists.map((a) => a.name),
+          genres: topGenres,
+        })
+      )
+      .catch((e: unknown) =>
+        log.debug({ error: String(e), userId }, 'Listening history import skipped')
+      );
+
     log.info(
       {
         userId,

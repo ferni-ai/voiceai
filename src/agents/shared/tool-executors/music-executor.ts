@@ -43,7 +43,7 @@ const HANDLED_TOOLS = [
 async function execute(
   fn: string,
   args: Record<string, unknown>,
-  _ctx: ToolExecutionContext
+  ctx: ToolExecutionContext
 ): Promise<unknown | null> {
   const fnLower = fn.toLowerCase();
 
@@ -64,8 +64,12 @@ async function execute(
   ];
   if (playMusicTools.includes(fnLower)) {
     const { playMusicUnified } = await import('../../../tools/domains/entertainment/music.js');
-    const query = (args.query as string) || 'music';
-    log.info({ query, toolId: fn }, '🎵 Playing music via playMusicUnified');
+    const requested = (args.query as string) || 'music';
+    // Open-ended requests ("play something", "music for working") honour the
+    // user's media profile: mood associations > stated favourites > listening history.
+    const { resolveMusicQueryForUser } = await import('../../../services/user-preferences/media.js');
+    const query = (await resolveMusicQueryForUser(ctx.userId, requested)) ?? requested;
+    log.info({ query, requested, toolId: fn }, '🎵 Playing music via playMusicUnified');
     return playMusicUnified(query);
   }
 
@@ -137,6 +141,13 @@ async function execute(
     const mood = args.mood as string;
 
     if (mood) {
+      const { resolveMusicQueryForUser } = await import('../../../services/user-preferences/media.js');
+      const pick = await resolveMusicQueryForUser(ctx.userId, '', mood);
+      if (pick) {
+        const { playMusicUnified } = await import('../../../tools/domains/entertainment/music.js');
+        log.info({ mood, pick }, '🎵 Mood matched a remembered music association');
+        return playMusicUnified(pick);
+      }
       log.info({ mood }, '🎵 Suggesting music for mood');
       return suggestAndPlayMusic(mood);
     }

@@ -16,6 +16,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, Tool, ToolContext } from '../../registry/types.js';
 import { createDomainExport } from '../../registry/loader.js';
 import { getMealPlanner } from '../../../services/meals/meal-planner.js';
+import { recordDietarySettings } from '../../../services/user-preferences/food.js';
 import {
   addRecipe,
   searchRecipes,
@@ -392,6 +393,12 @@ const trackDietaryPreferencesDef: ToolDefinition = {
           restrictions: (params.restrictions || []) as DietaryTag[],
           allergies: params.allergies || [],
           dislikedIngredients: params.disliked || [],
+        });
+        // Same needs in the user's preference profile, so every food/restaurant tool honours them
+        await recordDietarySettings(userId, {
+          allergies: params.allergies,
+          restrictions: params.restrictions,
+          disliked: params.disliked,
         });
 
         let response = '✅ **Dietary preferences updated:**\n\n';
