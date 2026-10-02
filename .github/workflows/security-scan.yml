@@ -113,12 +113,6 @@ jobs:
   codeql:
     name: CodeQL Analysis
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
-    # actions: read lets the analyze step read its own workflow run; without it
-    # the step ends in a "configuration error" on this private repo.
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
 
     steps:
       - name: Checkout
@@ -133,9 +127,11 @@ jobs:
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
 
-      # Uploading to code scanning needs GitHub Code Security on a private repo,
-      # which is not enabled. Keep the analysis and publish the SARIF as an
-      # artifact instead of failing on the upload.
+      # The repo is private and GitHub Code Security is off, so code scanning
+      # rejects uploads ("Code Security must be enabled") and this job failed
+      # on every PR. Analyze anyway, keep the SARIF as an artifact and count
+      # findings in the job summary. If Code Security is turned on, set
+      # upload back to 'always' to get PR annotations.
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
@@ -143,12 +139,22 @@ jobs:
           upload: never
           output: codeql-results
 
-      - name: Upload CodeQL results
+      - name: Summarize findings
+        if: always()
+        run: |
+          shopt -s nullglob
+          files=(codeql-results/*.sarif)
+          if [ ${#files[@]} -eq 0 ]; then echo "No SARIF produced" >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          jq -r '[.runs[].results[] | (.level // "warning")] | group_by(.) | map("\(.[0]): \(length)") | join(", ")' \
+            "${files[@]}" | sed 's/^/CodeQL findings: /' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep SARIF
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: codeql-sarif
           path: codeql-results
+          retention-days: 14
           if-no-files-found: ignore
 
   # Secret scanning (check for accidentally committed secrets)
