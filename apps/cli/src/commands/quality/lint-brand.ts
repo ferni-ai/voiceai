@@ -42,7 +42,7 @@ export interface LintResults {
 
 const ROOT_DIR = process.cwd();
 
-const INCLUDE_PATTERNS = [
+export const INCLUDE_PATTERNS = [
   'apps/web/src/**/*.ts',
   'src/**/*.ts',
   'design-system/**/*.ts',
@@ -50,7 +50,7 @@ const INCLUDE_PATTERNS = [
   'apps/website/ferni-website/src/**/*.{ts,js,njk,css}',
 ];
 
-const EXCLUDE_PATTERNS = [
+export const EXCLUDE_PATTERNS = [
   '**/node_modules/**',
   '**/dist/**',
   '**/*.d.ts',
