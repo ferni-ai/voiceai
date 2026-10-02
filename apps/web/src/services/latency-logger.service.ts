@@ -100,16 +100,16 @@ export function markAgentSpeechStart(): void {
 
   if (isEnabled) {
     const tier = latency < 500 ? '🟢' : latency < 1000 ? '🟡' : latency < 1500 ? '🟠' : '🔴';
-    console.log(
+    log.info(
       `%c${tier} Turn ${turnNum}: Response latency ${latency}ms`,
       `color: ${latency < 500 ? '#4a6741' : latency < 1000 ? '#c4856a' : latency < 1500 ? '#a67a6a' : '#cc3333'}; font-weight: bold;`
     );
 
     if (latency > SLOW_THRESHOLD_MS) {
-      console.warn(`⚠️ Slow response detected: ${latency}ms (threshold: ${SLOW_THRESHOLD_MS}ms)`);
+      log.warn(`⚠️ Slow response detected: ${latency}ms (threshold: ${SLOW_THRESHOLD_MS}ms)`);
     }
     if (latency > CRITICAL_THRESHOLD_MS) {
-      console.error(`🚨 CRITICAL: Response took ${latency}ms (>${CRITICAL_THRESHOLD_MS}ms)`);
+      log.error(`🚨 CRITICAL: Response took ${latency}ms (>${CRITICAL_THRESHOLD_MS}ms)`);
     }
   }
 
@@ -180,23 +180,23 @@ export function getHistory(limit = 10): TurnTiming[] {
 export function printSummary(): void {
   const stats = getStats();
 
-  console.log('\n%c📊 LATENCY SUMMARY', 'font-size: 14px; font-weight: bold; color: #4a6741;');
-  console.log('─'.repeat(40));
-  console.log(`Total turns: ${stats.totalTurns}`);
-  console.log(`Average latency: ${stats.avgResponseLatencyMs}ms`);
-  console.log(`Min/Max: ${stats.minResponseLatencyMs}ms / ${stats.maxResponseLatencyMs}ms`);
-  console.log(`P50: ${stats.p50ResponseLatencyMs}ms | P95: ${stats.p95ResponseLatencyMs}ms`);
-  console.log(`Slow turns (>${SLOW_THRESHOLD_MS}ms): ${stats.slowTurns}`);
-  console.log(`Critical turns (>${CRITICAL_THRESHOLD_MS}ms): ${stats.criticalTurns}`);
-  console.log('─'.repeat(40));
+  log.info('\n%c📊 LATENCY SUMMARY', 'font-size: 14px; font-weight: bold; color: #4a6741;');
+  log.info('─'.repeat(40));
+  log.info(`Total turns: ${stats.totalTurns}`);
+  log.info(`Average latency: ${stats.avgResponseLatencyMs}ms`);
+  log.info(`Min/Max: ${stats.minResponseLatencyMs}ms / ${stats.maxResponseLatencyMs}ms`);
+  log.info(`P50: ${stats.p50ResponseLatencyMs}ms | P95: ${stats.p95ResponseLatencyMs}ms`);
+  log.info(`Slow turns (>${SLOW_THRESHOLD_MS}ms): ${stats.slowTurns}`);
+  log.info(`Critical turns (>${CRITICAL_THRESHOLD_MS}ms): ${stats.criticalTurns}`);
+  log.info('─'.repeat(40));
 
   if (stats.slowTurns > 0) {
-    console.log('\n⚠️ Recent slow turns:');
+    log.info('\n⚠️ Recent slow turns:');
     turnHistory
       .filter((t) => t.responseLatencyMs && t.responseLatencyMs > SLOW_THRESHOLD_MS)
       .slice(-5)
       .forEach((t) => {
-        console.log(`  Turn ${t.turnNumber}: ${t.responseLatencyMs}ms - "${t.transcript || '...'}""`);
+        log.info(`  Turn ${t.turnNumber}: ${t.responseLatencyMs}ms - "${t.transcript || '...'}""`);
       });
   }
 }
@@ -221,15 +221,15 @@ export function clear(): void {
  */
 export function enable(): void {
   isEnabled = true;
-  console.log(
+  log.info(
     '%c⏱️ Latency logging ENABLED',
     'color: #4a6741; font-weight: bold; font-size: 12px;'
   );
-  console.log('Commands:');
-  console.log('  window.ferniLatency.summary() - Show latency summary');
-  console.log('  window.ferniLatency.history() - Show recent turns');
-  console.log('  window.ferniLatency.stats() - Get stats object');
-  console.log('  window.ferniLatency.disable() - Turn off logging');
+  log.info('Commands:');
+  log.info('  window.ferniLatency.summary() - Show latency summary');
+  log.info('  window.ferniLatency.history() - Show recent turns');
+  log.info('  window.ferniLatency.stats() - Get stats object');
+  log.info('  window.ferniLatency.disable() - Turn off logging');
 }
 
 /**
@@ -237,7 +237,7 @@ export function enable(): void {
  */
 export function disable(): void {
   isEnabled = false;
-  console.log('%c⏱️ Latency logging DISABLED', 'color: #888; font-weight: bold;');
+  log.info('⏱️ Latency logging DISABLED');
 }
 
 /**
@@ -279,7 +279,7 @@ if (typeof window !== 'undefined') {
     disable,
     summary: printSummary,
     history: () => {
-      console.table(getHistory(20));
+      log.debug(getHistory(20));
     },
     stats: getStats,
     clear,

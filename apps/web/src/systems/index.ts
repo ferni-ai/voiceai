@@ -20,6 +20,11 @@
 
 // Import transcendent CSS utility classes (Vite handles bundling)
 import './transcendent.css';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Index');
+
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Re-exports - Core Systems
@@ -329,7 +334,7 @@ export function initTranscendentSystems(
 ): TranscendentSystems {
   if (initialized) {
     if (config.debug) {
-      console.log('[TranscendentSystems] Already initialized');
+      log.info('[TranscendentSystems] Already initialized');
     }
     return {
       isInitialized: true,
@@ -358,7 +363,7 @@ export function initTranscendentSystems(
   currentConfig = fullConfig;
 
   if (fullConfig.debug) {
-    console.log('[TranscendentSystems] Initializing...', fullConfig);
+    log.info('[TranscendentSystems] Initializing...', fullConfig);
   }
 
   // Initialize breath sync (foundation for all animation timing)
@@ -366,7 +371,7 @@ export function initTranscendentSystems(
     const { initBreathSync } = require('./breath-sync.js');
     initBreathSync();
     if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Breath sync initialized');
+      log.info('[TranscendentSystems] Breath sync initialized');
     }
   }
 
@@ -379,7 +384,7 @@ export function initTranscendentSystems(
     if (fullConfig.avatarContainer) {
       player.bindToAvatar(fullConfig.avatarContainer);
       if (fullConfig.debug) {
-        console.log('[TranscendentSystems] Expression player bound to avatar');
+        log.info('[TranscendentSystems] Expression player bound to avatar');
       }
     }
   }
@@ -389,7 +394,7 @@ export function initTranscendentSystems(
     const { getMomentOrchestrator } = require('./moment-orchestrator.js');
     getMomentOrchestrator();
     if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Moment orchestrator initialized');
+      log.info('[TranscendentSystems] Moment orchestrator initialized');
     }
   }
 
@@ -398,7 +403,7 @@ export function initTranscendentSystems(
     const { initEmotionalColor } = require('./emotional-color.js');
     initEmotionalColor();
     if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Emotional color system initialized');
+      log.info('[TranscendentSystems] Emotional color system initialized');
     }
   }
 
@@ -407,7 +412,7 @@ export function initTranscendentSystems(
     const { initStaggerObserver } = require('./overlapping-action.js');
     initStaggerObserver();
     if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Overlapping action observer initialized');
+      log.info('[TranscendentSystems] Overlapping action observer initialized');
     }
   }
 
@@ -416,17 +421,17 @@ export function initTranscendentSystems(
     const { autoBindSecondaryActions } = require('./secondary-action.js');
     secondaryActionsCleanup = autoBindSecondaryActions(fullConfig.interactiveContainer);
     if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Secondary actions bound to interactive elements');
+      log.info('[TranscendentSystems] Secondary actions bound to interactive elements');
     }
   }
 
   // Physics and micro-interactions are stateless - no initialization needed
   // They're available immediately via the exported functions
   if (fullConfig.physics && fullConfig.debug) {
-    console.log('[TranscendentSystems] Physics system available');
+    log.info('[TranscendentSystems] Physics system available');
   }
   if (fullConfig.microInteractions && fullConfig.debug) {
-    console.log('[TranscendentSystems] Micro-interactions available');
+    log.info('[TranscendentSystems] Micro-interactions available');
   }
 
   // Phase 2: Polish & Refinement Systems
@@ -435,7 +440,7 @@ export function initTranscendentSystems(
     const { initContextualSpacing } = require('./contextual-spacing.js');
     initContextualSpacing();
     if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Contextual spacing initialized');
+      log.info('[TranscendentSystems] Contextual spacing initialized');
     }
   }
 
@@ -444,7 +449,7 @@ export function initTranscendentSystems(
     const { initVoiceTypography } = require('./voice-typography.js');
     initVoiceTypography();
     if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Voice typography initialized');
+      log.info('[TranscendentSystems] Voice typography initialized');
     }
   }
 
@@ -453,14 +458,14 @@ export function initTranscendentSystems(
     const { initImperfectionObserver } = require('./imperfection.js');
     initImperfectionObserver();
     if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Imperfection engine initialized');
+      log.info('[TranscendentSystems] Imperfection engine initialized');
     }
   }
 
   initialized = true;
 
   if (fullConfig.debug) {
-    console.log('[TranscendentSystems] All systems initialized');
+    log.info('[TranscendentSystems] All systems initialized');
   }
 
   return {
@@ -513,7 +518,7 @@ export function destroyTranscendentSystems(): void {
   currentConfig = {};
 
   if (currentConfig.debug) {
-    console.log('[TranscendentSystems] All systems destroyed');
+    log.info('[TranscendentSystems] All systems destroyed');
   }
 }
 
@@ -530,7 +535,7 @@ export function isTranscendentSystemsInitialized(): boolean {
  */
 export function bindToAvatar(container: HTMLElement): void {
   if (!initialized) {
-    console.warn('[TranscendentSystems] Not initialized, cannot bind to avatar');
+    log.warn('[TranscendentSystems] Not initialized, cannot bind to avatar');
     return;
   }
 

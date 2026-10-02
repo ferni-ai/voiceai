@@ -21,6 +21,11 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('VibeController.ui');
+
+
 
 // ============================================================================
 // USER PREFERENCES
@@ -1821,7 +1826,7 @@ async function fetchState(): Promise<void> {
       currentState.temperature = { ...currentState.temperature, ...thermoRes.data };
     }
   } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to fetch vibe state:', error);
+    if (import.meta.env?.DEV) log.debug('Failed to fetch vibe state:', error);
   }
 }
 
@@ -1855,7 +1860,7 @@ async function activatePreset(preset: VibePresetUI): Promise<void> {
       toast.warning(result.data?.message || t('vibe.couldNotFullySet', "Couldn't fully set the vibe"));
     }
   } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to activate preset:', error);
+    if (import.meta.env?.DEV) log.debug('Failed to activate preset:', error);
     toast.error(t('vibe.couldNotSetVibe', "Couldn't set that vibe. Try again?"));
   } finally {
     loadingState.activatingPreset = null;
@@ -1874,7 +1879,7 @@ async function toggleMusic(): Promise<void> {
     }
     render();
   } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to toggle music:', error);
+    if (import.meta.env?.DEV) log.debug('Failed to toggle music:', error);
     toast.error(t('vibe.couldNotControlMusic', "Couldn't control music. Try again?"));
   }
 }
@@ -1884,7 +1889,7 @@ async function skipTrack(): Promise<void> {
     await apiPost('/api/spotify/skip', {});
     toast.info(t('vibe.skipped', 'Skipped'));
   } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to skip track:', error);
+    if (import.meta.env?.DEV) log.debug('Failed to skip track:', error);
   }
 }
 
@@ -1892,7 +1897,7 @@ async function setMusicVolume(volume: number): Promise<void> {
   try {
     await apiPost('/api/spotify/volume', { volume });
   } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to set volume:', error);
+    if (import.meta.env?.DEV) log.debug('Failed to set volume:', error);
   }
 }
 
@@ -1900,7 +1905,7 @@ async function setLightBrightness(brightness: number): Promise<void> {
   try {
     await apiPost('/api/vibe/lights', { brightness });
   } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to set brightness:', error);
+    if (import.meta.env?.DEV) log.debug('Failed to set brightness:', error);
   }
 }
 
@@ -1908,7 +1913,7 @@ async function setLightColorTemp(colorTemp: number): Promise<void> {
   try {
     await apiPost('/api/vibe/lights', { colorTemp });
   } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to set color temp:', error);
+    if (import.meta.env?.DEV) log.debug('Failed to set color temp:', error);
   }
 }
 
@@ -1925,7 +1930,7 @@ async function adjustTemperature(delta: number): Promise<void> {
       holdType: 'nextTransition',
     });
   } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to adjust temperature:', error);
+    if (import.meta.env?.DEV) log.debug('Failed to adjust temperature:', error);
     toast.error(t('vibe.couldNotChangeTemp', "Couldn't change temperature. Try again?"));
   } finally {
     loadingState.adjustingTemperature = false;
@@ -1973,7 +1978,7 @@ async function connectLightsViaHomeAssistant(): Promise<void> {
       showingLightsSetup = false;
     }
   } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to connect Home Assistant:', error);
+    if (import.meta.env?.DEV) log.debug('Failed to connect Home Assistant:', error);
     toast.error(t('vibe.couldNotConnectHA', "Couldn't connect. Check your Home Assistant URL."));
   } finally {
     loadingState.connectingLights = false;
@@ -1998,7 +2003,7 @@ async function connectLightsViaHue(): Promise<void> {
       toast.info(result.data?.message || t('vibe.pressHueButton', 'Press the button on your Hue bridge, then try again'));
     }
   } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to connect Hue:', error);
+    if (import.meta.env?.DEV) log.debug('Failed to connect Hue:', error);
     toast.error(t('vibe.couldNotFindHue', "Couldn't find Hue bridge. Is it on?"));
   } finally {
     loadingState.connectingLights = false;
@@ -2054,7 +2059,7 @@ async function connectThermostatViaEcobee(): Promise<void> {
   } catch (error) {
     loadingState.connectingThermostat = false;
     render();
-    if (import.meta.env?.DEV) console.debug('Failed to connect Ecobee:', error);
+    if (import.meta.env?.DEV) log.debug('Failed to connect Ecobee:', error);
     toast.error(t('vibe.couldNotConnect', "Couldn't connect. Try again?"));
   }
 }
@@ -2134,7 +2139,7 @@ async function connectThermostatViaNest(): Promise<void> {
       showingThermostatSetup = false;
     }
   } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to connect Nest:', error);
+    if (import.meta.env?.DEV) log.debug('Failed to connect Nest:', error);
     toast.error(t('vibe.couldNotConnect', "Couldn't connect. Try again?"));
   } finally {
     loadingState.connectingThermostat = false;
@@ -2155,7 +2160,7 @@ async function connectThermostatViaHomeAssistant(): Promise<void> {
       showingThermostatSetup = false;
     }
   } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to connect Home Assistant climate:', error);
+    if (import.meta.env?.DEV) log.debug('Failed to connect Home Assistant climate:', error);
     toast.error(t('vibe.couldNotConnect', "Couldn't connect. Try again?"));
   } finally {
     loadingState.connectingThermostat = false;

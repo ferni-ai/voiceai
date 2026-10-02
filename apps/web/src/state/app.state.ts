@@ -15,6 +15,11 @@ import { getCoach, getPersona } from '../config/personas.js';
 import type { AuthState } from '../services/firebase-auth.service.js';
 import type { AudioState, ConnectionState, SpotifyState } from '../types/events.js';
 import type { PersonaConfig, PersonaId } from '../types/persona.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('App.state');
+
+
 
 // ============================================================================
 // STATE SHAPE
@@ -115,7 +120,7 @@ function safeSetItem(key: string, value: string): void {
     localStorage.setItem(key, value);
   } catch {
     // Private browsing mode - silently ignore
-    console.debug(`Could not persist ${key} (private browsing?)`);
+    log.debug(`Could not persist ${key} (private browsing?)`);
   }
 }
 

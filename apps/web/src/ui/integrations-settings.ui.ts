@@ -18,6 +18,11 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('IntegrationsSettings.ui');
+
+
 
 // ============================================================================
 // TYPES
@@ -161,7 +166,7 @@ class IntegrationsSettingsUI {
         this.capabilities = response.data.capabilities;
       }
     } catch (error) {
-      if (import.meta.env?.DEV) console.debug('Failed to fetch integration status:', error);
+      if (import.meta.env?.DEV) log.debug('Failed to fetch integration status:', error);
       // Set defaults
       this.status = {
         biometrics: { connected: false, platform: null },

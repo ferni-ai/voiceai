@@ -12,6 +12,9 @@
  */
 
 import { DURATION } from '../config/animation-constants.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('BreathSync');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -247,7 +250,7 @@ class BreathSyncManager {
       try {
         listener(stateCopy);
       } catch (e) {
-        console.error('[BreathSync] Listener error:', e);
+        log.error('[BreathSync] Listener error:', e);
       }
     });
   }
@@ -365,6 +368,11 @@ Usage in CSS:
 For more complex animations, subscribe to updates:
 
 import { getBreathSync } from './breath-sync.js';
+import { createLogger } from '../utils/logger.js';
+const log = createLogger('BreathSync');
+
+
+
 
 getBreathSync().subscribe((state) => {
   // Custom animation logic based on state.phase

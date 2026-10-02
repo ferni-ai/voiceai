@@ -17,6 +17,11 @@
  * // Use named types:
  * async function save(): Promise<OperationResult> { ... }
  */
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Results');
+
+
 
 // ============================================================================
 // CORE RESULT TYPES
@@ -151,9 +156,9 @@ export interface PurchaseResult extends OperationResult {
  * @example
  * const result = await saveData();
  * if (isSuccess(result)) {
- *   console.log('Saved!'); // result.error is undefined here
+ *   log.info('Saved!'); // result.error is undefined here
  * } else {
- *   console.error(result.error); // result.error is string here
+ *   log.error(result.error); // result.error is string here
  * }
  */
 export function isSuccess<T extends OperationResult>(result: T): result is T & { success: true; error: undefined } {

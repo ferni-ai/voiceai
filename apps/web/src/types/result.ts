@@ -24,11 +24,16 @@
  * // Use the result
  * const result = await fetchUser('123');
  * if (isOk(result)) {
- *   console.log(result.value.name);
+ *   log.info(result.value.name);
  * } else {
  *   showError(result.error.message);
  * }
  */
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Result');
+
+
 
 // ============================================================================
 // CORE RESULT TYPE
@@ -108,7 +113,7 @@ export function err<E>(error: E): Err<E> {
  * const result = await fetchUser(id);
  * if (isOk(result)) {
  *   // TypeScript knows result.value exists here
- *   console.log(result.value.name);
+ *   log.info(result.value.name);
  * }
  */
 export function isOk<T, E>(result: Result<T, E>): result is Ok<T> {

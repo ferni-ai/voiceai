@@ -15,6 +15,11 @@
 import { getExpressionPlayer } from './expression-player.js';
 import { getBreathSync } from './breath-sync.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('MomentOrchestrator');
+
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -426,7 +431,7 @@ class MomentOrchestrator {
   async play(name: string): Promise<boolean> {
     const moment = SIGNATURE_MOMENTS[name];
     if (!moment) {
-      console.warn(`[MomentOrchestrator] Unknown moment: ${name}`);
+      log.warn(`[MomentOrchestrator] Unknown moment: ${name}`);
       return false;
     }
 
@@ -434,14 +439,14 @@ class MomentOrchestrator {
     const lastTime = this.lastMomentTimes.get(name) ?? 0;
     const now = Date.now();
     if (moment.minTimeSinceLast && now - lastTime < moment.minTimeSinceLast) {
-      console.debug(`[MomentOrchestrator] Moment ${name} on cooldown`);
+      log.debug(`[MomentOrchestrator] Moment ${name} on cooldown`);
       return false;
     }
 
     // Check if we can interrupt current
     if (this.activeMoment) {
       if (!this.activeMoment.canInterrupt) {
-        console.debug(`[MomentOrchestrator] Cannot interrupt ${this.activeMoment.name}`);
+        log.debug(`[MomentOrchestrator] Cannot interrupt ${this.activeMoment.name}`);
         return false;
       }
       this.interrupt();
@@ -669,7 +674,7 @@ class MomentOrchestrator {
       try {
         listener(event, moment, phase);
       } catch (e) {
-        console.error('[MomentOrchestrator] Listener error:', e);
+        log.error('[MomentOrchestrator] Listener error:', e);
       }
     });
   }

@@ -13,6 +13,11 @@ import {
   interpolateKeyframes,
 } from '../config/micro-expressions.js';
 import { DURATION } from '../config/animation-constants.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('ExpressionPlayer');
+
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -116,7 +121,7 @@ class ExpressionPlayer {
   play(name: string, callback?: () => void): void {
     const expression = MICRO_EXPRESSIONS[name];
     if (!expression) {
-      console.warn(`[ExpressionPlayer] Unknown expression: ${name}`);
+      log.warn(`[ExpressionPlayer] Unknown expression: ${name}`);
       return;
     }
     this.queueExpression(expression, callback);
@@ -383,7 +388,7 @@ class ExpressionPlayer {
       try {
         listener(event, expression);
       } catch (e) {
-        console.error('[ExpressionPlayer] Listener error:', e);
+        log.error('[ExpressionPlayer] Listener error:', e);
       }
     });
   }

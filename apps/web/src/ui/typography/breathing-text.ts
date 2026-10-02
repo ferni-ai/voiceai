@@ -15,6 +15,12 @@
  */
 
 import type { MoodState } from '../color/mood-palette.js';
+import { createLogger } from '../../utils/logger.js';
+
+const log = createLogger('BreathingText');
+
+
+
 
 // ============================================================================
 // TYPES
@@ -242,7 +248,7 @@ export function applyBreathingTypography(config: BreathingConfig): () => void {
     : opts.target;
 
   if (!element) {
-    console.warn('[breathing-text] Target element not found:', opts.target);
+    log.warn('[breathing-text] Target element not found:', opts.target);
     return () => {};
   }
 
@@ -430,7 +436,7 @@ export function applyBreathingToAll(
 export function stopAllBreathing(): void {
   // Note: WeakMap doesn't support iteration, so we need to track elements separately
   // For now, callers should track their own cleanup functions
-  console.warn('[breathing-text] stopAllBreathing requires manual tracking. Use cleanup functions.');
+  log.warn('[breathing-text] stopAllBreathing requires manual tracking. Use cleanup functions.');
 }
 
 // ============================================================================

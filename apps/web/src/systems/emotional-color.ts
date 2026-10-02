@@ -10,6 +10,9 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { getBreathSync } from './breath-sync.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('EmotionalColor');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -414,7 +417,7 @@ class EmotionalColorManager {
       try {
         listener(stateCopy);
       } catch (e) {
-        console.error('[EmotionalColor] Listener error:', e);
+        log.error('[EmotionalColor] Listener error:', e);
       }
     });
   }
@@ -506,6 +509,11 @@ Usage in CSS:
 For more control, subscribe to state changes:
 
 import { getEmotionalColor } from './emotional-color.js';
+import { createLogger } from '../utils/logger.js';
+const log = createLogger('EmotionalColor');
+
+
+
 
 getEmotionalColor().subscribe((state) => {
   // Custom logic based on state.warmth, state.intensity, etc.

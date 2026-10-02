@@ -29,12 +29,12 @@
  *
  * // Get current best-known location (passive sources)
  * const loc = await getLocation();
- * console.log(loc.city, loc.countryCode);
+ * log.info(loc.city, loc.countryCode);
  *
  * // Request precise location (with warm prompt)
  * const precise = await requestPreciseLocation('weather');
  * if (precise.success) {
- *   console.log('Got precise location:', precise.city);
+ *   log.info('Got precise location:', precise.city);
  * }
  *
  * // Let user set manually
