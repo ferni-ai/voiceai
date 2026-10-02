@@ -3171,6 +3171,9 @@
       "intro": "Some things are more personal: your health, your money, and what you believe. I only remember those if you say yes, and you can switch each one off anytime.",
       "agree": "Yes, remember these",
       "decline": "Not now",
+      "reask": "I've updated how I explain this. Your switches below stay as they are.",
+      "keep": "Keep my choices",
+      "kept": "Got it. Nothing changed.",
       "kind": {
         "condition": "Conditions",
         "medication": "Medications",

@@ -39,6 +39,8 @@ export interface MemoryConsent {
 
 export interface ConsentView {
   consent: MemoryConsent;
+  /** Ask the upfront question (again): never answered, or answered older wording. */
+  needsAnswer?: boolean;
   stored: Record<SensitiveCategory, number>;
   safetyExceptions: Array<{ category: SensitiveCategory; kind: string; description: string }>;
 }
@@ -131,6 +133,11 @@ export async function getConsent(): AsyncResult<ConsentView, ApiError> {
 /** The upfront question: yes turns all three on, no records the answer with all off. */
 export async function answerConsent(agree: boolean): AsyncResult<ConsentView, ApiError> {
   return unwrap(await apiPut<ConsentView>(`${BASE}/consent`, { agreeAll: agree }), 'save that');
+}
+
+/** Asked again after the wording changed: answer it and keep every switch as it is. */
+export async function keepConsentChoices(): AsyncResult<ConsentView, ApiError> {
+  return unwrap(await apiPut<ConsentView>(`${BASE}/consent`, { keepChoices: true }), 'save that');
 }
 
 export async function setCategory(

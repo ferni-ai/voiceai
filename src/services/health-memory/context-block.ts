@@ -13,7 +13,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getConsent } from '../memory-consent/store.js';
-import type { MemoryConsent } from '../memory-consent/types.js';
+import { needsConsentAnswer, type MemoryConsent } from '../memory-consent/types.js';
 import { buildMoodInsight } from './mood-model.js';
 import { listMoodTimeline } from './mood-timeline.js';
 import { listHealthItems } from './store.js';
@@ -29,6 +29,15 @@ const FOOTER =
   '\nBring these up only when it fits, kindly and briefly. Never diagnose or give medical advice.\n';
 const ASK_HINT =
   '\n\n## Sensitive Memory\nThey haven\'t said whether you may remember health, money or faith details. If they share something like that, you can ask once, lightly: "Want me to remember things like that? You can change it anytime." If they say yes or no, use setMemoryConsent.\n';
+
+const REASK_HINT =
+  '\n\n## Sensitive Memory\nThey answered whether you may remember health, money or faith details, but how you explain it has changed since. If it comes up naturally, check once, lightly: "Still okay for me to remember things like that? Nothing changes unless you say so." Use setMemoryConsent for whatever they choose.\n';
+
+/** The consent question to raise, if any: first ask, or ask again after the wording changed. */
+export function consentAskHint(consent: Pick<MemoryConsent, 'answeredAt' | 'version'>): string {
+  if (!needsConsentAnswer(consent)) return '';
+  return consent.answeredAt === null ? ASK_HINT : REASK_HINT;
+}
 
 function shortDate(iso: string): string {
   const d = new Date(iso);
@@ -50,8 +59,10 @@ export function buildHealthMoodBlock(input: HealthBlockInput): string {
   const { consent, items, timeline } = input;
   const budget = input.budget ?? DEFAULT_HEALTH_BLOCK_BUDGET;
   if (!consent.categories.health.enabled) {
-    return consent.answeredAt === null && ASK_HINT.length <= budget ? ASK_HINT : '';
+    const hint = consentAskHint(consent);
+    return hint.length <= budget ? hint : '';
   }
+  const reask = consentAskHint(consent);
   const now = (input.now ?? new Date()).getTime();
   const age = (iso: string) => now - Date.parse(iso);
 
@@ -80,7 +91,7 @@ export function buildHealthMoodBlock(input: HealthBlockInput): string {
     ...recent,
     ...(insight ? [`- Mood lately: ${insight}`] : []),
   ];
-  if (lines.length === 0) return '';
+  if (lines.length === 0) return reask.length <= budget ? reask : '';
 
   let body = '';
   for (const line of lines) {
@@ -88,7 +99,8 @@ export function buildHealthMoodBlock(input: HealthBlockInput): string {
     if (HEADER.length + next.length + FOOTER.length > budget) break;
     body = next;
   }
-  return body ? `${HEADER}${body}${FOOTER}` : '';
+  const block = body ? `${HEADER}${body}${FOOTER}` : '';
+  return block.length + reask.length <= budget ? `${block}${reask}` : block;
 }
 
 /**

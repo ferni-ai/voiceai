@@ -33,6 +33,7 @@ vi.mock('../../src/ui/memory-control/confirm-dialog.js', () => ({
 type Cat = 'health' | 'finances' | 'beliefs';
 const state = vi.hoisted(() => ({
   answeredAt: null as string | null,
+  needsAnswer: undefined as boolean | undefined,
   enabled: { health: false, finances: false, beliefs: false } as Record<Cat, boolean>,
   stored: { health: 0, finances: 0, beliefs: 0 } as Record<Cat, number>,
   items: [] as Array<Record<string, unknown>>,
@@ -49,6 +50,7 @@ function view() {
       categories: { health: cat('health'), finances: cat('finances'), beliefs: cat('beliefs') },
       updatedAt: null,
     },
+    ...(state.needsAnswer === undefined ? {} : { needsAnswer: state.needsAnswer }),
     stored: { ...state.stored },
     safetyExceptions: [],
   };
@@ -61,6 +63,11 @@ vi.mock('../../src/services/sensitive-memory.service.js', () => ({
     state.calls.push(`answer:${agree}`);
     state.answeredAt = '2026-10-01T00:00:00Z';
     for (const c of ['health', 'finances', 'beliefs'] as Cat[]) state.enabled[c] = agree;
+    return { ok: true, value: view() };
+  }),
+  keepConsentChoices: vi.fn(async () => {
+    state.calls.push('keep-choices');
+    state.needsAnswer = false;
     return { ok: true, value: view() };
   }),
   setCategory: vi.fn(async (c: Cat, on: boolean) => {
@@ -125,6 +132,7 @@ const click = async (el: Element | null) => {
 beforeEach(() => {
   document.body.innerHTML = '';
   state.answeredAt = null;
+  state.needsAnswer = undefined;
   state.enabled = { health: false, finances: false, beliefs: false };
   state.stored = { health: 0, finances: 0, beliefs: 0 };
   state.items = [];
@@ -152,6 +160,25 @@ describe('Sensitive tab', () => {
       .querySelectorAll('[role="switch"]')
       .forEach((s) => expect(s.getAttribute('aria-checked')).toBe('true'));
     expect(host.querySelector('[data-action="agree-all"]')).toBeNull();
+  });
+
+  it('asks once more after the wording changed; "keep my choices" changes no switch', async () => {
+    state.answeredAt = 'then';
+    state.needsAnswer = true;
+    state.enabled.health = true;
+    const host = await mount();
+    expect(host.querySelector('[data-role="consent-reask"]')).not.toBeNull();
+    expect(host.querySelector('[data-action="decline-all"]')).toBeNull();
+    expect(host.querySelector('#memory-switch-health')?.getAttribute('aria-checked')).toBe('true');
+
+    await click(host.querySelector('[data-action="keep-choices"]'));
+    expect(state.calls).toEqual(['keep-choices']);
+    expect(toast.success).toHaveBeenCalledWith('Got it. Nothing changed.');
+    expect(host.querySelector('[data-action="keep-choices"]')).toBeNull();
+    expect(host.querySelector('#memory-switch-health')?.getAttribute('aria-checked')).toBe('true');
+    expect(host.querySelector('#memory-switch-finances')?.getAttribute('aria-checked')).toBe(
+      'false'
+    );
   });
 
   it('switching a category off offers to delete what is stored (and keeps allergies)', async () => {

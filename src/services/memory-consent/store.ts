@@ -24,6 +24,7 @@ import {
   SENSITIVE_CATEGORIES,
   USERS_COLLECTION,
   isSensitiveCategory,
+  needsConsentAnswer,
   type CategoryConsent,
   type ConsentError,
   type ConsentSource,
@@ -83,7 +84,8 @@ export function parseConsent(raw: unknown): MemoryConsent {
     unknown
   >;
   return {
-    version: typeof r.version === 'number' ? r.version : CONSENT_VERSION,
+    // Records from before versioning answered the first wording.
+    version: typeof r.version === 'number' ? r.version : 1,
     answeredAt: typeof r.answeredAt === 'string' ? r.answeredAt : null,
     categories: {
       health: parseCategory(cats.health),
@@ -168,9 +170,16 @@ export async function updateConsent(
     if (categories[category].enabled !== want) flipped.push([category, want]);
     categories[category] = { enabled: want, updatedAt: now, source: change.source };
   }
+  // A deliberate choice answers the current wording; re-answering after the
+  // wording changed records a fresh answer time.
+  const answering = change.answered !== false;
   const next: MemoryConsent = {
-    version: CONSENT_VERSION,
-    answeredAt: change.answered === false ? before.answeredAt : (before.answeredAt ?? now),
+    version: answering ? CONSENT_VERSION : before.version,
+    answeredAt: !answering
+      ? before.answeredAt
+      : needsConsentAnswer(before)
+        ? now
+        : (before.answeredAt ?? now),
     categories,
     updatedAt: now,
   };
@@ -216,6 +225,17 @@ export function setCategoryConsent(
     return Promise.resolve(err('invalid_category', `Unknown category ${String(category)}`));
   }
   return updateConsent(userId, { categories: { [category]: enabled }, source, answered: true });
+}
+
+/**
+ * Answer the upfront question again after its wording changed, keeping every
+ * switch exactly as it is ("keep my choices").
+ */
+export function confirmConsentChoices(
+  userId: string,
+  source: ConsentSource
+): Promise<Result<MemoryConsent, ConsentError>> {
+  return updateConsent(userId, { categories: {}, source, answered: true });
 }
 
 /** The one upfront question: yes turns every category on, no records the answer with all off. */
