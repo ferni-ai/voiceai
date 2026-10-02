@@ -28,7 +28,6 @@ import {
 } from '../advanced-humanization.js';
 import { getSessionAudioProsodyAnalyzer, type ProsodyFeatures } from '../audio-prosody.js';
 import { getBackchannelEngine } from '../backchanneling/index.js';
-import { getEmotionalContagionService } from '../emotional-contagion.js';
 import { getEnhancedTurnPredictor } from '../enhanced-turn-prediction.js';
 import {
   getHumanListeningPipeline,
@@ -223,67 +222,6 @@ describe('E2E Speech Pipeline', () => {
   });
 
   // -------------------------------------------------------------------------
-  // EMOTIONAL CONTAGION CONTINUITY
-  // -------------------------------------------------------------------------
-
-  describe('Emotional Contagion Continuity', () => {
-    it('should maintain emotional momentum across turns', () => {
-      const contagion = getEmotionalContagionService(sessionId);
-
-      // Record several warm, supportive utterances
-      contagion.recordUtterance({
-        emotion: 'empathetic',
-        valence: -0.2,
-        arousal: 0.4,
-        warmth: 'high',
-        wasSupporting: true,
-      });
-
-      contagion.recordUtterance({
-        emotion: 'empathetic',
-        valence: -0.1,
-        arousal: 0.4,
-        warmth: 'high',
-        wasSupporting: true,
-      });
-
-      contagion.recordUtterance({
-        emotion: 'warm',
-        valence: 0,
-        arousal: 0.5,
-        warmth: 'high',
-        wasSupporting: true,
-      });
-
-      const momentum = contagion.getMomentum();
-
-      // Should maintain high warmth
-      expect(momentum.warmth).toBe('high');
-      expect(momentum.turnsAtState).toBeGreaterThanOrEqual(1);
-    });
-
-    it('should provide continuity hints for TTS', () => {
-      const contagion = getEmotionalContagionService(sessionId);
-
-      // Build up supportive momentum
-      contagion.recordUtterance({
-        emotion: 'empathetic',
-        valence: -0.2,
-        arousal: 0.3,
-        warmth: 'high',
-        wasSupporting: true,
-      });
-
-      const hints = contagion.getContinuityHints(
-        createMockEmotionalArc({ needsEmotionalSupport: true })
-      );
-
-      expect(hints.emotion.tag).not.toBe('neutral');
-      expect(hints.closingWarmth).toBe(true);
-    });
-  });
-
-  // -------------------------------------------------------------------------
   // TURN PREDICTION INTEGRATION
   // -------------------------------------------------------------------------
 
@@ -455,7 +393,6 @@ describe('E2E Speech Pipeline', () => {
       // Initialize multiple services
       getHumanListeningPipeline(additionalSessionId);
       getVoiceHumanizationService(additionalSessionId);
-      getEmotionalContagionService(additionalSessionId);
       getEnhancedTurnPredictor(additionalSessionId);
       getBackchannelEngine(additionalSessionId, 'enhanced');
       getSessionAudioProsodyAnalyzer(additionalSessionId);

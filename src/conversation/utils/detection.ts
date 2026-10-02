@@ -11,11 +11,9 @@
  * @module @ferni/conversation/utils/detection
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
-const log = createLogger({ module: 'ConversationDetection' });
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
@@ -157,23 +155,6 @@ export const EVIDENCE_PATTERNS = [
 ] as const;
 
 /**
- * Patterns indicating breakthrough/insight moment
- */
-export const BREAKTHROUGH_PATTERNS = [
-  /I (just )?realized/i,
-  /it hit me/i,
-  /I (just )?figured out/i,
-  /maybe what I need/i,
-  /finally/i,
-  /for the first time/i,
-  /I never thought of it/i,
-  /I'?ve never told anyone/i,
-  /this is hard to say/i,
-  /oh my god/i,
-  /wait\s*[,.!]/i,
-] as const;
-
-/**
  * Patterns indicating agent is giving advice
  */
 export const ADVICE_PATTERNS = [
@@ -261,102 +242,9 @@ export const DEEP_SHARING_PATTERNS = [
   /what i really want/i,
 ] as const;
 
-/**
- * Hesitation signals for first-turn detection
- */
-export const HESITATION_PATTERNS = [
-  // Deflection
-  /^(fine|okay|good|not bad|alright|ok)\.?$/i,
-  /^(i'?m? )?(doing )?(fine|okay|good|alright)/i,
-  /nothing (much|really|special)/i,
-  /just (wanted to|thought i'd|checking in)/i,
-  // Minimizing
-  /not that (big|important|bad)/i,
-  /no big deal/i,
-  /it'?s? (nothing|fine|whatever)/i,
-  /doesn'?t (matter|bother)/i,
-  // Hedging
-  /i guess/i,
-  /maybe i/i,
-  /i don'?t (really )?know/i,
-  /sort of/i,
-  /kind of/i,
-  /probably/i,
-  // Trailing off
-  /\.\.\./,
-  /anyway\s*\.?$/i,
-  // Vague responses
-  /^(um|uh|hmm)/i,
-  /^just.*$/i,
-] as const;
-
 // ============================================================================
 // ENERGY DETECTION
 // ============================================================================
-
-/**
- * Detect user's energy level from their message
- *
- * @param userMessage - The user's message to analyze
- * @returns The detected energy level
- *
- * @example
- * detectUserEnergy("This is AMAZING!!!") // 'high'
- * detectUserEnergy("I'm so tired...") // 'low'
- * detectUserEnergy("That sounds good") // 'medium'
- */
-export function detectUserEnergy(userMessage: string): EnergyLevel {
-  if (!userMessage) return 'medium';
-
-  const lower = userMessage.toLowerCase();
-
-  // Check for high energy signals
-  let highScore = 0;
-  const highSignals: string[] = [];
-  for (const pattern of HIGH_ENERGY_PATTERNS) {
-    if (pattern.test(userMessage)) {
-      highScore++;
-      highSignals.push(pattern.source);
-    }
-  }
-
-  // Check for low energy signals
-  let lowScore = 0;
-  const lowSignals: string[] = [];
-  for (const pattern of LOW_ENERGY_PATTERNS) {
-    if (pattern.test(lower)) {
-      lowScore++;
-      lowSignals.push(pattern.source);
-    }
-  }
-
-  // Word count and punctuation analysis
-  // 🦀 Rust-accelerated word counting
-  const wordCount = RUST_COUNTING_AVAILABLE
-    ? countWordsRust(userMessage)
-    : userMessage.split(/\s+/).length;
-  const exclamationCount = (userMessage.match(/!/g) || []).length;
-  const questionCount = (userMessage.match(/\?/g) || []).length;
-  const capsRatio = (userMessage.match(/[A-Z]/g) || []).length / Math.max(userMessage.length, 1);
-
-  // High energy: lots of exclamations, caps, short excited messages
-  if (exclamationCount >= 2 || capsRatio > 0.3) highScore++;
-  if (wordCount < 10 && exclamationCount > 0) highScore++;
-
-  // Low energy: short responses, trailing off
-  if (wordCount < 5 && !exclamationCount && !questionCount) lowScore++;
-  if (/\.{2,}$/.test(userMessage)) lowScore++;
-
-  // Determine energy level
-  if (highScore >= 2 || (highScore > 0 && lowScore === 0 && exclamationCount > 0)) {
-    return 'high';
-  }
-  if (lowScore >= 2 || (lowScore > 0 && highScore === 0)) {
-    return HEAVY_CONTENT_PATTERNS.some((p) => p.test(lower)) ? 'subdued' : 'low';
-  }
-
-  return 'medium';
-}
 
 /**
  * Detect user energy with detailed result
@@ -464,13 +352,6 @@ export function detectEmotionalContent(text: string): boolean {
 }
 
 /**
- * Detect if content is heavy/serious
- */
-export function detectHeavyContent(text: string): boolean {
-  return HEAVY_CONTENT_PATTERNS.some((p) => p.test(text));
-}
-
-/**
  * Detect heavy content and return which keywords were found
  * Useful when you need to know *what* was detected, not just *if*
  *
@@ -492,20 +373,6 @@ export function detectHeavyContentKeywords(text: string): string[] {
   }
 
   return found;
-}
-
-/**
- * Detect if user presented evidence or counter-argument
- */
-export function detectEvidence(userMessage: string): boolean {
-  return EVIDENCE_PATTERNS.some((p) => p.test(userMessage));
-}
-
-/**
- * Detect breakthrough/insight moment
- */
-export function detectBreakthrough(userMessage: string): boolean {
-  return BREAKTHROUGH_PATTERNS.some((p) => p.test(userMessage));
 }
 
 /**
@@ -569,14 +436,6 @@ export function detectHighEngagement(userMessage: string): boolean {
 }
 
 /**
- * Detect hesitation in user message (for first-turn "I notice" moments)
- */
-export function detectHesitation(userMessage: string): boolean {
-  const lower = userMessage.toLowerCase();
-  return HESITATION_PATTERNS.some((p) => p.test(lower));
-}
-
-/**
  * Get overall engagement level with confidence
  */
 export function detectEngagementLevel(userMessage: string): DetectionResult<EngagementLevel> {
@@ -613,59 +472,11 @@ export function detectEngagementLevel(userMessage: string): DetectionResult<Enga
 }
 
 // ============================================================================
-// COMPOSITE DETECTION
-// ============================================================================
-
-/**
- * Combined analysis result for a user message
- */
-export interface MessageAnalysis {
-  energy: EnergyLevel;
-  topicWeight: TopicWeight;
-  engagement: EngagementLevel;
-  hasEvidence: boolean;
-  isBreakthrough: boolean;
-  hasHesitation: boolean;
-  isEmotional: boolean;
-  isHeavy: boolean;
-  confidence: number;
-}
-
-/**
- * Perform comprehensive analysis of a user message
- *
- * @param userMessage - The user's message to analyze
- * @param detectedEmotion - Optional detected emotion
- * @returns Complete message analysis
- */
-export function analyzeMessage(userMessage: string, detectedEmotion?: string): MessageAnalysis {
-  const energyResult = detectUserEnergyDetailed(userMessage);
-  const engagementResult = detectEngagementLevel(userMessage);
-
-  const analysis: MessageAnalysis = {
-    energy: energyResult.value!,
-    topicWeight: classifyTopicWeight(userMessage, detectedEmotion),
-    engagement: engagementResult.value!,
-    hasEvidence: detectEvidence(userMessage),
-    isBreakthrough: detectBreakthrough(userMessage),
-    hasHesitation: detectHesitation(userMessage),
-    isEmotional: detectEmotionalContent(userMessage),
-    isHeavy: detectHeavyContent(userMessage),
-    confidence: (energyResult.confidence + engagementResult.confidence) / 2,
-  };
-
-  log.debug({ analysis, messageLength: userMessage.length }, 'Message analyzed');
-
-  return analysis;
-}
-
-// ============================================================================
 // EXPORTS
 // ============================================================================
 
 export default {
   // Energy
-  detectUserEnergy,
   detectUserEnergyDetailed,
 
   // Topic weight
@@ -673,20 +484,13 @@ export default {
 
   // Content detection
   detectEmotionalContent,
-  detectHeavyContent,
   detectHeavyContentKeywords,
-  detectEvidence,
-  detectBreakthrough,
   detectAdviceGiving,
 
   // Engagement
   detectDisengagement,
   detectHighEngagement,
-  detectHesitation,
   detectEngagementLevel,
-
-  // Composite
-  analyzeMessage,
 
   // Pattern constants (for testing/extension)
   HIGH_ENERGY_PATTERNS,
@@ -696,10 +500,8 @@ export default {
   HEAVY_CONTENT_KEYWORDS,
   LIGHT_CONTENT_PATTERNS,
   EVIDENCE_PATTERNS,
-  BREAKTHROUGH_PATTERNS,
   ADVICE_PATTERNS,
   DISENGAGEMENT_PATTERNS,
   HIGH_ENGAGEMENT_PATTERNS,
   DEEP_SHARING_PATTERNS,
-  HESITATION_PATTERNS,
 };
