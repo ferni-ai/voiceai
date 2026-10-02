@@ -8,7 +8,6 @@ import { describe, it, expect } from 'vitest';
 
 import {
   // Energy detection
-  detectUserEnergy,
   detectUserEnergyDetailed,
 
   // Topic weight
@@ -16,8 +15,6 @@ import {
 
   // Content detection
   detectEmotionalContent,
-  detectHeavyContent,
-  detectEvidence,
   detectBreakthrough,
   detectAdviceGiving,
 
@@ -33,75 +30,6 @@ import {
 // ============================================================================
 // ENERGY DETECTION TESTS
 // ============================================================================
-
-describe('detectUserEnergy', () => {
-  describe('high energy detection', () => {
-    it('should detect high energy from multiple exclamation marks', () => {
-      expect(detectUserEnergy('This is amazing!!!')).toBe('high');
-      expect(detectUserEnergy('YES!!')).toBe('high');
-    });
-
-    it('should detect high energy from enthusiasm words', () => {
-      expect(detectUserEnergy("I'm so excited about this!")).toBe('high');
-      expect(detectUserEnergy('This is AWESOME')).toBe('high');
-      expect(detectUserEnergy("Can't wait to start!")).toBe('high');
-    });
-
-    it('should detect high energy from OMG patterns', () => {
-      expect(detectUserEnergy('OMG that is incredible!')).toBe('high');
-      expect(detectUserEnergy('Oh my god, wow!')).toBe('high');
-    });
-
-    it('should detect high energy from caps ratio', () => {
-      expect(detectUserEnergy('THIS IS THE BEST DAY!')).toBe('high');
-    });
-  });
-
-  describe('low energy detection', () => {
-    it('should detect low energy from tired/exhausted words', () => {
-      expect(detectUserEnergy("I'm so tired")).toBe('low');
-      expect(detectUserEnergy('Feeling drained today')).toBe('low');
-      expect(detectUserEnergy('Just exhausted')).toBe('low');
-    });
-
-    it('should detect low energy from struggling words', () => {
-      expect(detectUserEnergy("I'm really struggling with this")).toBe('low');
-      expect(detectUserEnergy("It's been a tough week")).toBe('low');
-    });
-
-    it('should detect low energy from uncertainty patterns', () => {
-      expect(detectUserEnergy('I guess...')).toBe('low');
-      expect(detectUserEnergy("I don't know, maybe")).toBe('low');
-    });
-
-    it('should detect low energy from trailing off', () => {
-      expect(detectUserEnergy('Just thinking...')).toBe('low');
-      expect(detectUserEnergy('Sigh...')).toBe('low');
-    });
-
-    it('should detect subdued energy for heavy content', () => {
-      expect(detectUserEnergy("I'm struggling with depression")).toBe('subdued');
-      expect(detectUserEnergy('Dealing with trauma')).toBe('subdued');
-    });
-  });
-
-  describe('medium energy detection', () => {
-    it('should return medium for neutral messages with sufficient length', () => {
-      expect(detectUserEnergy('I was thinking about the project we discussed')).toBe('medium');
-      expect(detectUserEnergy('Let me know what you think about the proposal')).toBe('medium');
-    });
-
-    it('should return medium for empty messages', () => {
-      expect(detectUserEnergy('')).toBe('medium');
-    });
-
-    it('should handle short neutral responses', () => {
-      // Short responses without emotion markers may lean low due to brevity
-      const result = detectUserEnergy('That sounds good');
-      expect(['medium', 'low']).toContain(result);
-    });
-  });
-});
 
 describe('detectUserEnergyDetailed', () => {
   it('should return detailed result with confidence and signals', () => {
@@ -208,57 +136,6 @@ describe('detectEmotionalContent', () => {
   it('should return false for neutral content', () => {
     expect(detectEmotionalContent('The meeting is at 3pm')).toBe(false);
     expect(detectEmotionalContent('Let me check that for you')).toBe(false);
-  });
-});
-
-describe('detectHeavyContent', () => {
-  it('should detect death-related content', () => {
-    expect(detectHeavyContent('Someone died')).toBe(true);
-    expect(detectHeavyContent('He passed away')).toBe(true);
-  });
-
-  it('should detect trauma content', () => {
-    expect(detectHeavyContent('Dealing with trauma')).toBe(true);
-    expect(detectHeavyContent('Experienced abuse')).toBe(true);
-  });
-
-  it('should detect crisis content', () => {
-    expect(detectHeavyContent('In a crisis')).toBe(true);
-    expect(detectHeavyContent('Thoughts of suicide')).toBe(true);
-  });
-
-  it('should detect health content', () => {
-    expect(detectHeavyContent('Diagnosed with cancer')).toBe(true);
-    expect(detectHeavyContent('Terminal illness')).toBe(true);
-  });
-
-  it('should return false for light content', () => {
-    expect(detectHeavyContent('Going to the movies')).toBe(false);
-    expect(detectHeavyContent('Had a great lunch')).toBe(false);
-  });
-});
-
-describe('detectEvidence', () => {
-  it('should detect counter-argument patterns', () => {
-    expect(detectEvidence("Here's the thing though")).toBe(true);
-    expect(detectEvidence('But actually, I disagree')).toBe(true);
-    expect(detectEvidence('What about this scenario?')).toBe(true);
-  });
-
-  it('should detect experience-based evidence', () => {
-    expect(detectEvidence('In my experience, that works')).toBe(true);
-    expect(detectEvidence('When I tried that, it failed')).toBe(true);
-    expect(detectEvidence('What happened was different')).toBe(true);
-  });
-
-  it('should detect disagreement patterns', () => {
-    expect(detectEvidence('I disagree with that')).toBe(true);
-    expect(detectEvidence("That's not how I see it")).toBe(true);
-  });
-
-  it('should return false for agreement', () => {
-    expect(detectEvidence('I agree with you')).toBe(false);
-    expect(detectEvidence('That makes sense')).toBe(false);
   });
 });
 

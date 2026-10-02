@@ -9,18 +9,12 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import {
-  resetConversationHumanizer,
-} from '../conversation/humanizer/index.js';
+import { resetConversationHumanizer } from '../conversation/humanizer/index.js';
 import {
   getInterruptionHandler,
   resetInterruptionHandler,
   type InterruptionHandler,
 } from '../conversation/interruption-handler.js';
-import {
-  getSpeechNaturalizer,
-  resetSpeechNaturalizer,
-} from '../conversation/speech-naturalizer/index.js';
 import {
   getActiveListeningEngine,
   resetActiveListeningEngine,
@@ -250,14 +244,12 @@ describe('InterruptionHandler', () => {
 describe('Humanization Pipeline E2E', () => {
   beforeEach(() => {
     resetConversationHumanizer();
-    resetSpeechNaturalizer();
     resetActiveListeningEngine();
     resetInterruptionHandler();
   });
 
   afterEach(() => {
     resetConversationHumanizer();
-    resetSpeechNaturalizer();
     resetActiveListeningEngine();
     resetInterruptionHandler();
   });

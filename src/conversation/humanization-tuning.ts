@@ -10,7 +10,7 @@
  * - MaxPerSession = hard cap per conversation
  *
  * PERSONA PROFILES:
- * Each persona can override defaults via getPersonaTuning(personaId)
+ * Each persona can override defaults (read them via getTuningValue(personaId, category))
  *
  * @module @ferni/conversation/humanization-tuning
  */
@@ -396,7 +396,7 @@ const PERSONA_OVERRIDES: Record<string, DeepPartial<typeof DEFAULT_TUNING>> = {
 /**
  * Get tuning for a specific persona (merges defaults with overrides)
  */
-export function getPersonaTuning(personaId: string): HumanizationTuning {
+function getPersonaTuning(personaId: string): HumanizationTuning {
   const overrides = PERSONA_OVERRIDES[personaId];
   if (!overrides) {
     return DEFAULT_TUNING;
@@ -413,53 +413,6 @@ export function getTuningValue<K extends keyof HumanizationTuning>(
   category: K
 ): HumanizationTuning[K] {
   return getPersonaTuning(personaId)[category];
-}
-
-/**
- * Check if a feature should fire based on probability
- * Uses deterministic hashing for reproducibility
- */
-export function shouldFireFeature(probability: number, seed: string): boolean {
-  if (probability <= 0) return false;
-  if (probability >= 1) return true;
-
-  // FNV-1a 32-bit hash for deterministic pseudo-random
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < seed.length; i++) {
-    hash ^= seed.charCodeAt(i);
-    hash = (hash * 0x01000193) >>> 0;
-  }
-  const roll = hash / 0xffffffff;
-  return roll < probability;
-}
-
-/**
- * Get effective probability with context modifiers
- */
-export function getEffectiveProbability(
-  baseProbability: number,
-  context: {
-    isSeriousContext?: boolean;
-    isDistressedUser?: boolean;
-    turnNumber?: number;
-    personaId?: string;
-  }
-): number {
-  let probability = baseProbability;
-  const tuning = context.personaId ? getPersonaTuning(context.personaId) : DEFAULT_TUNING;
-
-  // Apply context modifiers
-  if (context.isSeriousContext) {
-    probability *= tuning.naturalness.seriousContextMultiplier;
-  }
-  if (context.isDistressedUser) {
-    probability *= tuning.naturalness.distressedUserMultiplier;
-  }
-  if (context.turnNumber && context.turnNumber < 3) {
-    probability *= tuning.naturalness.earlyTurnMultiplier;
-  }
-
-  return Math.max(0, Math.min(1, probability));
 }
 
 // ============================================================================
