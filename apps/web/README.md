@@ -91,16 +91,17 @@ The Dev Panel provides testing tools for personas, celebrations, tier simulation
 
 ### Production Access
 
-In production, you need the admin key to access the dev panel:
+In production the dev panel needs the admin key the build was made with
+(`VITE_DEV_PANEL_KEY`). There is no default: a build without one has no dev
+panel in production.
 
 ```bash
-# Option 1: URL parameter (stores key for future visits)
-https://your-site.com/?dev=ferni2024
-
-# Option 2: Browser console
-localStorage.setItem('ferni_admin_key', 'ferni2024');
-location.reload();
+# The key is not remembered: add it to the URL on each visit.
+https://your-site.com/?dev=<VITE_DEV_PANEL_KEY>
 ```
+
+The panel's "bypass unlocks" toggle only takes effect on voice agents with
+`ALLOW_CLIENT_DEV_MODE=true` (dev); prod agents ignore it.
 
 Once authenticated, use `Cmd/Ctrl+Shift+D` to toggle the panel anytime.
 

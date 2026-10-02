@@ -30,18 +30,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
 
-      # The locales carry known gaps tracked for cleanup; fail on new ones
       - name: Check i18n integrity
         id: i18n-check
         run: |
           echo "🌐 Checking i18n integrity..."
-          scripts/ci/i18n-new-problems.sh ${{ github.event.pull_request.base.sha || github.event.before }}
+          pnpm i18n:check
         continue-on-error: true
 
       - name: Show sync instructions (on failure)
@@ -49,7 +46,7 @@ jobs:
         run: |
           echo ""
           echo "══════════════════════════════════════════════════════════════"
-          echo "❌ i18n VALIDATION FAILED: this change adds i18n problems"
+          echo "❌ i18n VALIDATION FAILED"
           echo "══════════════════════════════════════════════════════════════"
           echo ""
           echo "To fix this, run locally:"

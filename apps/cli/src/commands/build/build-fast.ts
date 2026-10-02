@@ -17,6 +17,7 @@
  * the runtime doesn't need type declarations.
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync } from 'child_process';
 import * as esbuild from 'esbuild';
 import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
@@ -25,7 +26,7 @@ import { fileURLToPath } from 'url';
 import { ESBUILD_SUPPORTED, ESBUILD_TARGET } from './esbuild-target.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
+const PROJECT_ROOT = findProjectRoot();
 
 // ============================================================================
 // CONFIGURATION

@@ -19,6 +19,7 @@
  *   --container: dist/ferni-bundle/  (bundled JS + wrapper, ~2MB)
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync } from 'child_process';
 import { chmodSync, copyFileSync, existsSync, mkdirSync, statSync, unlinkSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
@@ -26,7 +27,7 @@ import { fileURLToPath } from 'url';
 import { platform } from 'os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
+const PROJECT_ROOT = findProjectRoot();
 
 // Colors for terminal output
 const colors = {

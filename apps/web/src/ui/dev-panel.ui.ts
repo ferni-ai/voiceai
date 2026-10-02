@@ -135,7 +135,7 @@ const isDevEnvironment = (): boolean => {
 
 // Admin key for production dev panel access
 // Configure via environment variables:
-//   VITE_DEV_PANEL_KEY  - The secret key required for access (default: 'ferni2024')
+//   VITE_DEV_PANEL_KEY  - The secret key required for access (no default: unset = no key access)
 //   VITE_DEV_PANEL_AUTO - Set to 'true' to auto-enable dev panel (for admin deployments)
 const getEnvConfig = () => {
   try {
@@ -148,11 +148,11 @@ const getEnvConfig = () => {
       }
     ).env;
     return {
-      adminKey: env?.VITE_DEV_PANEL_KEY || 'ferni2024',
+      adminKey: env?.VITE_DEV_PANEL_KEY || null, // no default: it was public
       autoEnable: env?.VITE_DEV_PANEL_AUTO === 'true',
     };
   } catch {
-    return { adminKey: 'ferni2024', autoEnable: false };
+    return { adminKey: null, autoEnable: false };
   }
 };
 
@@ -177,7 +177,7 @@ const checkAdminAccess = (): boolean => {
 
   // Check URL parameter with key (must be present in URL - no longer stored)
   const urlKey = urlParams.get('dev');
-  if (urlKey && urlKey === ENV_CONFIG.adminKey) {
+  if (urlKey && ENV_CONFIG.adminKey && urlKey === ENV_CONFIG.adminKey) {
     return true;
   }
 

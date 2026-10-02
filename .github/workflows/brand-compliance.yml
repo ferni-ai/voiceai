@@ -3,6 +3,7 @@ name: Brand Compliance
 on:
   pull_request:
     paths:
+      - 'apps/cli/src/commands/quality/**'
       - 'apps/web/src/**'
       - 'src/**'
       - 'design-system/**'
@@ -12,6 +13,7 @@ on:
     branches:
       - main
     paths:
+      - 'apps/cli/src/commands/quality/**'
       - 'apps/web/src/**'
       - 'src/**'
       - 'design-system/**'
@@ -126,6 +128,16 @@ jobs:
         run: |
           echo "::warning::Brand compliance violations found. See PR comment for details."
           echo "These are pre-existing issues tracked for cleanup."
+
+      # Reported above for information; the ratchet below is what can fail the job.
+      # The ratchet (docs/DEFINITION-OF-CLEAN.md): fails only when this change
+      # makes things worse than the committed baseline: a file over 500 lines
+      # grows or a new one starts over it, any critical brand copy, or more
+      # brand-copy warnings / brand-lint errors. The old step ran the full
+      # linter (thousands of pre-existing errors) and tried to post it all as a
+      # PR comment, which the workflow token can't do: red on every PR.
+      - name: Quality ratchet
+        run: pnpm tsx apps/cli/src/commands/quality/ratchet.ts
 
   lint-tokens:
     name: Token Validation
