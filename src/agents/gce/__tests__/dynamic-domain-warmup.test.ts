@@ -6,7 +6,7 @@ vi.mock('../../shared/tool-executors/dynamic-domain-executor.js', () => ({
   getDynamicDomainLoadReport,
 }));
 
-const { startDynamicDomainWarmup } = await import('../warmup.js');
+const { startDynamicDomainWarmup } = await import('../dynamic-domain-warmup.js');
 
 describe('startDynamicDomainWarmup', () => {
   beforeEach(() => {
