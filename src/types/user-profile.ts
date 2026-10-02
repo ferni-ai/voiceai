@@ -108,6 +108,12 @@ export interface SharedStory {
 export interface ConversationSummary {
   id: string;
   sessionId: string;
+  /**
+   * The realtime conversation (`bogle_users/{uid}/conversations/{id}`) this
+   * summarizes, when known. Lets conversation delete find the summary and
+   * recall cite it; the voice sessionId differs from the conversation id.
+   */
+  conversationId?: string;
   timestamp: Date;
   duration: number; // in seconds
   turnCount: number;

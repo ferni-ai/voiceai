@@ -43,6 +43,17 @@ export function categoryLabelFor(category: SensitiveCategory): string {
   return CATEGORY_COPY[category].label();
 }
 
+const INLINE_FALLBACK: Record<SensitiveCategory, string> = {
+  health: 'your health & mood',
+  finances: 'your money',
+  beliefs: 'your faith & beliefs',
+};
+
+/** The category as it reads mid-sentence; per locale, since casing and articles differ. */
+export function categoryInlineLabelFor(category: SensitiveCategory): string {
+  return t(`memoryControl.sensitive.inline.${category}`, INLINE_FALLBACK[category]);
+}
+
 function storedLine(view: ConsentView, category: SensitiveCategory): string {
   const n = view.stored[category] ?? 0;
   if (view.consent.categories[category].enabled || n <= 0) return '';
@@ -54,7 +65,9 @@ function storedLine(view: ConsentView, category: SensitiveCategory): string {
 }
 
 export function renderConsentCard(view: ConsentView, health: HealthSnapshot | null): string {
-  const unanswered = view.consent.answeredAt === null;
+  // Ask when never answered, or once more after the wording changed (switches stay as they are).
+  const unanswered = view.needsAnswer ?? view.consent.answeredAt === null;
+  const reask = unanswered && view.consent.answeredAt !== null;
   const rows = SENSITIVE_CATEGORIES.map((category) => {
     const on = view.consent.categories[category].enabled;
     const id = `memory-switch-${category}`;
@@ -101,13 +114,28 @@ export function renderConsentCard(view: ConsentView, health: HealthSnapshot | nu
       )}</p>
       ${
         unanswered
-          ? `<div class="memory-consent__ask">
+          ? `${
+              reask
+                ? `<p class="memory-consent__intro" data-role="consent-reask">${esc(
+                    t(
+                      'memoryControl.sensitive.reask',
+                      "I've updated how I explain this. Your switches below stay as they are."
+                    )
+                  )}</p>`
+                : ''
+            }<div class="memory-consent__ask">
           <button type="button" class="memory-btn memory-btn--primary" data-action="agree-all">${esc(
             t('memoryControl.sensitive.agree', 'Yes, remember these')
           )}</button>
-          <button type="button" class="memory-btn memory-btn--quiet" data-action="decline-all">${esc(
-            t('memoryControl.sensitive.decline', 'Not now')
-          )}</button>
+          ${
+            reask
+              ? `<button type="button" class="memory-btn memory-btn--quiet" data-action="keep-choices">${esc(
+                  t('memoryControl.sensitive.keep', 'Keep my choices')
+                )}</button>`
+              : `<button type="button" class="memory-btn memory-btn--quiet" data-action="decline-all">${esc(
+                  t('memoryControl.sensitive.decline', 'Not now')
+                )}</button>`
+          }
         </div>`
           : ''
       }

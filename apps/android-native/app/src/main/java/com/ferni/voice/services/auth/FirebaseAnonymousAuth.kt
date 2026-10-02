@@ -50,6 +50,22 @@ class FirebaseAnonymousAuth(
         return signUp().also(store::save).idToken
     }
 
+    /**
+     * The anonymous session's ID token, or null when there is none. Read it
+     * before signing in to an account, then hand it to [IdentityLinker] so the
+     * anonymous user's memory follows the account. Never signs up.
+     */
+    @Synchronized
+    fun currentAnonymousIdToken(): String? {
+        val saved = store.load() ?: return null
+        if (saved.expiresAtEpochMs - EXPIRY_MARGIN_MS > clock()) return saved.idToken
+        return try {
+            refresh(saved.refreshToken).also(store::save).idToken
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     /** Drop cached credentials (e.g. after the server rejects the token). */
     @Synchronized
     fun invalidate() = store.clear()

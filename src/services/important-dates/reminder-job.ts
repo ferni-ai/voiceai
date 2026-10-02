@@ -14,6 +14,9 @@
  *   5. delivers with channel fallback, records the outcome on the claim, and
  *      schedules the date's next reminder.
  *
+ * The same run then delivers due habit check-in nudges (`habit.nextNudgeAt`,
+ * see habit-nudge-delivery.ts) with the same settings, boundaries and claims.
+ *
  * @module services/important-dates/reminder-job
  */
 
@@ -42,6 +45,7 @@ import {
   type ScheduleContext,
 } from './reminder-schedule.js';
 import { getReminderSettings, resolveTimeZone } from './settings.js';
+import { deliverDueHabitNudges, type HabitNudgeRunResult } from './habit-nudge-delivery.js';
 import { DATES_COLLECTION, DELIVERIES_COLLECTION, userRef, withSchedule } from './store.js';
 import type { ImportantDateRecord } from './types.js';
 
@@ -60,6 +64,8 @@ export interface DateReminderRunResult {
   suppressed: number;
   rescheduled: number;
   dryRun: boolean;
+  /** Habit check-in nudges handled in the same run (null when that part failed). */
+  habits?: HabitNudgeRunResult | null;
 }
 
 export interface DateReminderJobOptions {
@@ -103,7 +109,11 @@ export async function claimReminder(
   });
 }
 
-async function externalSentToday(db: Firestore, userId: string, day: string): Promise<number> {
+export async function externalSentToday(
+  db: Firestore,
+  userId: string,
+  day: string
+): Promise<number> {
   const snap = await userRef(db, userId)
     .collection(DELIVERIES_COLLECTION)
     .where('remindOn', '==', day)
@@ -173,9 +183,18 @@ export async function deliverDueDateReminders(
     .limit(opts.limit ?? 200)
     .get();
   result.due = snapshot.size;
-  if (snapshot.empty) return result;
-  const server = opts.server ?? (await serverChannels());
+  let server: ServerChannels | undefined = opts.server;
+  const getServer = async (): Promise<ServerChannels> => (server ??= await serverChannels());
   const contexts = new Map<string, ScheduleContext>();
+  const contextFor = async (userId: string): Promise<ScheduleContext> => {
+    let ctx = contexts.get(userId);
+    if (!ctx) {
+      const settings = await getReminderSettings(userId);
+      ctx = { timeZone: await resolveTimeZone(userId, settings), now, settings };
+      contexts.set(userId, ctx);
+    }
+    return ctx;
+  };
 
   for (const doc of snapshot.docs) {
     // Owner from the path (bogle_users/{uid}/important_dates/{id}), never a field.
@@ -183,18 +202,33 @@ export async function deliverDueDateReminders(
     const record = userId ? recordFromDoc(doc.id, doc.data()) : null;
     if (!userId || !record) continue;
     try {
-      let ctx = contexts.get(userId);
-      if (!ctx) {
-        const settings = await getReminderSettings(userId);
-        ctx = { timeZone: await resolveTimeZone(userId, settings), now, settings };
-        contexts.set(userId, ctx);
-      }
-      const outcome = await processDate(db, userId, record, ctx, { dryRun, send, server });
+      const ctx = await contextFor(userId);
+      const outcome = await processDate(db, userId, record, ctx, {
+        dryRun,
+        send,
+        server: await getServer(),
+      });
       result[outcome]++;
     } catch (error) {
       result.failed++;
       log.error({ error: String(error), userId, id: record.id }, 'Date reminder failed');
     }
+  }
+
+  try {
+    result.habits = await deliverDueHabitNudges(db, {
+      now,
+      limit: opts.limit ?? 200,
+      dryRun,
+      send,
+      server: getServer,
+      contextFor,
+      externalSentToday,
+    });
+  } catch (error) {
+    // e.g. the collection-group index is still building; dates already went out.
+    result.habits = null;
+    log.error({ error: String(error) }, 'Habit nudges failed');
   }
   if (result.due > 0) log.info(result, 'Date reminder run');
   return result;

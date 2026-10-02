@@ -163,6 +163,7 @@ import {
 
 // Persistence metrics for observability
 import { persistenceMetrics } from '../analytics/persistence-metrics.js';
+import { withConversationId } from './summarization.js';
 
 // ============================================================================
 // SESSION STATE
@@ -1732,6 +1733,7 @@ export async function createSessionServices(
                 '❌ All summarization methods failed - will use fallback'
               );
             } else {
+              summary = withConversationId(summary, realtimeConversationId);
               await global.store.saveSummary(validatedUserId, summary);
 
               // Index for semantic retrieval
@@ -1748,6 +1750,7 @@ export async function createSessionServices(
                   topics: summary.mainTopics,
                   timestamp: summary.timestamp,
                   embedding: summary.embedding,
+                  ...(summary.conversationId ? { conversationId: summary.conversationId } : {}),
                 });
 
                 getLogger().info('Indexed conversation for future retrieval');
