@@ -407,21 +407,32 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
 
   describe('TTL Cleanup', () => {
     it('should get TTL statistics', async () => {
-      const { getTTLStatistics } = await import('../../services/data-layer/ttl-cleanup.js');
+      const { getTTLStatistics, TTL_CONFIGS } =
+        await import('../../services/data-layer/ttl-cleanup.js');
 
-      const stats = getTTLStatistics();
+      const stats = await getTTLStatistics();
 
-      expect(stats).toBeDefined();
-      expect(typeof stats).toBe('object');
-      // Should have entries for entity types with TTL
-      expect(Object.keys(stats).length).toBeGreaterThan(0);
+      // One entry per collection that has a TTL
+      expect(TTL_CONFIGS.length).toBeGreaterThan(0);
+      expect(stats.collections).toBe(TTL_CONFIGS.length);
+      expect(stats.configured).toHaveLength(TTL_CONFIGS.length);
+      expect(stats.configured[0]).toEqual({
+        path: TTL_CONFIGS[0].path,
+        ttlDays: TTL_CONFIGS[0].ttlDays,
+      });
     });
 
     it('should run cleanup without errors', async () => {
-      const { cleanupExpiredDocuments } = await import('../../services/data-layer/ttl-cleanup.js');
+      const { runTTLCleanup, TTL_CONFIGS } =
+        await import('../../services/data-layer/ttl-cleanup.js');
 
-      // Should complete without throwing (even if no docs to clean)
-      await expect(cleanupExpiredDocuments()).resolves.not.toThrow();
+      // runTTLCleanup catches its own failures and counts them in totalErrors,
+      // so "without errors" means totalErrors is 0, not just "didn't throw".
+      const report = await runTTLCleanup();
+
+      expect(report.totalErrors).toBe(0);
+      expect(report.results).toHaveLength(TTL_CONFIGS.length);
+      expect(report.results.every((r) => r.errors === 0)).toBe(true);
     });
   });
 
@@ -756,8 +767,9 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
       // Search for non-existent user
       const results = await searchUserContext('non-existent-user', 'anything');
 
-      // Should return empty results, not throw
-      expect(Array.isArray(results) || results === undefined).toBe(true);
+      // Should return an empty context for that user, not throw
+      expect(results.userId).toBe('non-existent-user');
+      expect(results.relevantMemories).toEqual([]);
     });
 
     it('should handle malformed content gracefully', async () => {
