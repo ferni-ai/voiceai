@@ -11,7 +11,6 @@ import { getDemoTeamHuddle, isDemoDataEnabled } from '../services/engagement-dem
 import { fetchYourStory } from '../services/your-story.service.js';
 import { getAnalyticsDashboardUI } from '../ui/analytics-dashboard.ui.js';
 import { getCognitiveInsightsUI } from '../ui/cognitive-insights.ui.js';
-import { getConversationHistoryUI } from '../ui/conversation-history.ui.js';
 import { getDataExportUI } from '../ui/data-export.ui.js';
 import { getPredictionTrackerUI } from '../ui/prediction-tracker.ui.js';
 import { showTeamHuddle as showTeamHuddleUI } from '../ui/team-huddle.ui.js';
@@ -43,81 +42,29 @@ const log = createLogger('PanelMethods');
 // ============================================================================
 
 /**
- * Show conversation history panel.
- * Fetches real data from API, falls back to demo data in development.
+ * Open "What Ferni remembers" on a tab. The panel is loaded on demand so it
+ * stays out of the startup bundle.
+ */
+export async function openMemoryPanel(
+  tab: 'memories' | 'conversations' | 'data' = 'memories'
+): Promise<void> {
+  void trackScreen('journal');
+  try {
+    const { openMemoryPanel: open } = await import('../ui/memory-control/memory-panel.ui.js');
+    open(tab);
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to open memory panel');
+    const { toast } = await import('../ui/whisper.ui.js');
+    toast.error("Couldn't open that. Try again?");
+  }
+}
+
+/**
+ * Show past conversations. These now come from the memory control API in
+ * the "What Ferni remembers" panel instead of demo data.
  */
 export async function showConversationHistory(): Promise<void> {
-  void trackScreen('journal');
-  getConversationHistoryUI().showLoading();
-
-  // TODO: Backend GET /api/conversations not implemented yet.
-  // When the handler exists, uncomment the fetch below.
-  // try {
-  //   const response = await fetch('/api/conversations');
-  //   if (response.ok) {
-  //     const data = await response.json();
-  //     getConversationHistoryUI().show(data);
-  //     return;
-  //   }
-  // } catch (err) {
-  //   log.debug('API fetch failed, checking for demo mode');
-  // }
-
-  // Fall back to demo data if enabled
-  if (isDemoDataEnabled()) {
-    const demoData = {
-      sessions: [
-        {
-          id: '1',
-          date: new Date(Date.now() - 86400000).toISOString(),
-          personaId: 'ferni',
-          personaName: 'Ferni',
-          duration: 15,
-          messageCount: 24,
-          mood: 'sunny' as const,
-          insights: [
-            'You mentioned wanting to exercise more',
-            'Morning routines seem important to you',
-          ],
-          highlights: ['Great progress on sleep goals'],
-          topicsDiscussed: ['Sleep', 'Exercise', 'Mindfulness'],
-        },
-        {
-          id: '2',
-          date: new Date(Date.now() - 172800000).toISOString(),
-          personaId: 'maya-santos',
-          personaName: 'Maya Santos',
-          duration: 8,
-          messageCount: 12,
-          mood: 'partly-cloudy' as const,
-          insights: ['Two-minute rule resonates with you'],
-          highlights: [],
-          topicsDiscussed: ['Habits', 'Productivity'],
-        },
-        {
-          id: '3',
-          date: new Date(Date.now() - 259200000).toISOString(),
-          personaId: 'alex-chen',
-          personaName: 'Alex Chen',
-          duration: 22,
-          messageCount: 35,
-          mood: 'sunny' as const,
-          insights: ['Communication patterns at work', 'Meeting prep strategies'],
-          highlights: ['Clarity on project priorities'],
-          topicsDiscussed: ['Work', 'Communication', 'Planning'],
-        },
-      ],
-      totalSessions: 3,
-      totalMinutes: 45,
-      favoritePersona: 'ferni',
-      insightCount: 5,
-    };
-    getConversationHistoryUI().show(demoData);
-    return;
-  }
-
-  // Show error state with retry when fetch fails and demo data is disabled
-  getConversationHistoryUI().showError(() => void showConversationHistory());
+  await openMemoryPanel('conversations');
 }
 
 // ============================================================================
