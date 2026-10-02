@@ -20,6 +20,12 @@ import { getFirestoreVectorStore, type FirestoreVectorStore } from '../firestore
 import { getMemoryMetricsCollector } from '../memory-metrics.js';
 import { isOk } from '../result.js';
 import { getRetrievalExplainer } from './retrieval-explanations.js';
+import type {
+  ExplainedRAGContext,
+  ExplainedRAGResult,
+  RAGContext,
+  RAGResult,
+} from './semantic-rag.types.js';
 import {
   getVectorStore,
   type VectorDocument,
@@ -58,46 +64,13 @@ function getActiveStore(): AnyVectorStore {
   return getVectorStore();
 }
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-/**
- * RAG search result
- */
-export interface RAGResult {
-  content: string;
-  source: string;
-  category?: string;
-  score: number;
-  metadata?: Record<string, unknown>;
-}
-
-/**
- * RAG context for injection into prompts
- */
-export interface RAGContext {
-  results: RAGResult[];
-  formattedContext: string;
-  queryEmbedding?: number[];
-}
-
-/**
- * RAG result with natural language explanation
- */
-export interface ExplainedRAGResult extends RAGResult {
-  /** Natural language explanation of why this was retrieved */
-  explanation?: string;
-  /** Suggested way to reference this in conversation */
-  suggestedReference?: string;
-}
-
-/**
- * Enhanced RAG context with explanations
- */
-export interface ExplainedRAGContext extends RAGContext {
-  explainedResults: ExplainedRAGResult[];
-}
+// TYPES (see semantic-rag.types.ts)
+export type {
+  RAGResult,
+  RAGContext,
+  ExplainedRAGResult,
+  ExplainedRAGContext,
+} from './semantic-rag.types.js';
 
 // ============================================================================
 // KNOWLEDGE BASE INDEXING
