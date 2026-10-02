@@ -886,13 +886,6 @@
   // ============================================================================
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Check for reduced motion preference globally
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (prefersReducedMotion) {
-      console.log('[Ferni Animations] Reduced motion preferred, animations minimized');
-    }
-
     // Initialize animation systems (scroll reveal handled by inline script)
     new MemoryDemoAnimation(); // Apple-Bold memory demo with staggered reveals
     new AvatarBreathingSystem();
@@ -903,6 +896,5 @@
     new FAQAnimation();
     new SmoothScroll();
 
-    console.log('[Ferni Animations] All systems initialized 🎬');
   });
 })(); // End IIFE
