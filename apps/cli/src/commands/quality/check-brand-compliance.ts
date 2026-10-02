@@ -12,6 +12,7 @@
 
 import { execSync } from 'child_process';
 import * as fs from 'fs';
+import { pathToFileURL } from 'url';
 
 // ============================================================================
 // CONFIGURATION
@@ -26,7 +27,10 @@ const COPY_PATHS = [
   'src/services/experiments/variant-library.ts',
 ];
 
-// Banned phrases (critical)
+// Banned phrases (critical): BRAND-VOICE-GUIDE.md's list, plus robotic
+// disclaimers. Not "I'm an AI": Ferni never hides what it is, and an honest
+// "I know I'm an AI, but that doesn't mean I don't care" is on-brand. Not
+// "I'm just a" either: it flagged "I'm just a little worried".
 const BANNED_PHRASES = [
   'As an AI',
   "I'm designed to",
@@ -37,24 +41,21 @@ const BANNED_PHRASES = [
   'Virtual assistant',
   'Digital companion',
   'AI assistant',
+  'As a language model',
+  'Based on my training',
+  'My algorithms',
+  'I was programmed',
+  'My creators',
+  "I don't have feelings",
   'Unlike other AI',
   'Unlike other chatbots',
   'Not your typical AI',
-  "I'm an AI",
-  'I was programmed',
-  'My algorithms',
-  'Based on my training',
-  "I don't have feelings",
-  "I'm just a",
-  'As a language model',
-  'My creators',
 ];
 
 // Words to avoid (warning)
 const WORDS_TO_AVOID = [
   'chatbot',
-  'bot ',
-  ' bot',
+  'bot',
   'virtual assistant',
   'AI assistant',
   'utilize',
@@ -66,7 +67,8 @@ const WORDS_TO_AVOID = [
   'revolutionary',
   'cutting-edge',
   'state-of-the-art',
-  'game-chang',
+  'game-changer',
+  'game-changing',
   'innovative',
   'disruptive',
 ];
@@ -75,7 +77,26 @@ const WORDS_TO_AVOID = [
 // HELPERS
 // ============================================================================
 
-interface Violation {
+/**
+ * The words a user can see on a line: string literals in code, text between
+ * tags in HTML. Matching whole lines flagged code: 362 of 445 warnings on
+ * 2026-10-01 were "bot" inside `bottom` (scroll handlers, CSS).
+ */
+export function visibleCopy(line: string, file: string): string {
+  if (/\.html?$/.test(file)) return line.replace(/<[^>]*>/g, ' ');
+  const parts: string[] = [];
+  for (const m of line.matchAll(/(['"`])((?:\\.|(?!\1).)*)\1/g)) parts.push(m[2]);
+  return parts.join(' ');
+}
+
+/** A whole-word, case-insensitive match (plural allowed); its column, or -1. */
+export function findTerm(text: string, term: string): number {
+  const escaped = term.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = new RegExp(`(?<![\\p{L}\\p{N}])${escaped}s?(?![\\p{L}\\p{N}])`, 'iu').exec(text);
+  return m ? m.index : -1;
+}
+
+export interface Violation {
   file: string;
   line: number;
   column: number;
@@ -100,7 +121,7 @@ function getChangedFiles(): string[] {
   }
 }
 
-function getAllRelevantFiles(): string[] {
+export function getAllRelevantFiles(): string[] {
   const files: string[] = [];
 
   for (const pattern of COPY_PATHS) {
@@ -117,7 +138,7 @@ function getAllRelevantFiles(): string[] {
   return [...new Set(files)];
 }
 
-function checkFile(filePath: string): Violation[] {
+export function checkFile(filePath: string): Violation[] {
   const violations: Violation[] = [];
 
   try {
@@ -130,11 +151,12 @@ function checkFile(filePath: string): Violation[] {
         return;
       }
 
+      const copy = visibleCopy(line, filePath);
+      if (!copy.trim()) return;
+
       // Check banned phrases (critical)
       for (const phrase of BANNED_PHRASES) {
-        const lowerLine = line.toLowerCase();
-        const lowerPhrase = phrase.toLowerCase();
-        const index = lowerLine.indexOf(lowerPhrase);
+        const index = findTerm(copy, phrase);
 
         if (index !== -1) {
           violations.push({
@@ -150,9 +172,7 @@ function checkFile(filePath: string): Violation[] {
 
       // Check avoided words (warning)
       for (const word of WORDS_TO_AVOID) {
-        const lowerLine = line.toLowerCase();
-        const lowerWord = word.toLowerCase();
-        const index = lowerLine.indexOf(lowerWord);
+        const index = findTerm(copy, word);
 
         if (index !== -1) {
           violations.push({
@@ -274,8 +294,11 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((error) => {
-  console.error('Error running brand check:', error);
-  process.exit(1);
-});
+// Run only from the command line, so the quality ratchet can import the checks.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error('Error running brand check:', error);
+    process.exit(1);
+  });
+}
 

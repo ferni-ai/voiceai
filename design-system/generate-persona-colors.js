@@ -11,6 +11,7 @@
  */
 
 import fs from 'fs';
+import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -129,7 +130,7 @@ function build() {
   const tsContent = generatePersonaColorsTS(personas);
 
   // Write output
-  fs.writeFileSync(CONFIG.outputFile, tsContent);
+  writeIfChanged(CONFIG.outputFile, tsContent);
   console.log(`  ✅ Generated: ${CONFIG.outputFile}`);
 
   console.log('\n✅ Persona colors generation complete!\n');

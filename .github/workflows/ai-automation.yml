@@ -179,10 +179,9 @@ jobs:
     name: 📦 Bundle Size Check
     if: github.event_name == 'pull_request'
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
-    # The repo's default token is read-only; "Comment Bundle Size" needs write.
+    # Read-only: the ratchet reports to the job summary, not a PR comment.
     permissions:
       contents: read
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -191,41 +190,23 @@ jobs:
         with:
           frozen-lockfile: 'false'
 
+      # The build must succeed: it used to fail silently (continue-on-error),
+      # and the budget step then measured nothing (it looked in the wrong dir).
       - name: Build frontend
         run: pnpm build:frontend
-        continue-on-error: true
 
-      - name: Check Bundle Budget
-        id: bundle
+      # docs/DEFINITION-OF-CLEAN.md: the bundle may not grow past the committed
+      # baseline (it is already 3-5x over budget; this stops it getting worse).
+      # The report goes to the job summary: the workflow token can't comment.
+      # pipefail: without it the step takes tee's exit code and a regression
+      # passes. The summary is written before exiting so a failure is readable.
+      - name: Bundle ratchet
         run: |
-          RESULT=$(pnpm tsx apps/cli/src/index.ts perf budget 2>&1)
-          echo "result<<EOF" >> $GITHUB_OUTPUT
-          echo "$RESULT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-          if echo "$RESULT" | grep -q "exceeded"; then
-            echo "exceeded=true" >> $GITHUB_OUTPUT
-          else
-            echo "exceeded=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Comment Bundle Size
-        uses: actions/github-script@v7
-        # Untrusted text (PR-derived) goes through env, never into the script source.
-        env:
-          EXCEEDED: ${{ steps.bundle.outputs.exceeded }}
-          BUNDLE_RESULT: ${{ steps.bundle.outputs.result }}
-        with:
-          script: |
-            const exceeded = process.env.EXCEEDED === 'true';
-            const emoji = exceeded ? '⚠️' : '✅';
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## ${emoji} Bundle Size Report\n\n\`\`\`\n${process.env.BUNDLE_RESULT}\n\`\`\``
-            });
+          set -o pipefail
+          status=0
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --bundle | tee bundle.txt || status=$?
+          { echo '### Bundle size'; echo '```'; cat bundle.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
 
   pr-brand-check:
     name: ✍️ Brand Voice Check

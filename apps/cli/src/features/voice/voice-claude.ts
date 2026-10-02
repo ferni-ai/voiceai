@@ -22,6 +22,7 @@
  *   ferni code --dir ./myproject  # Work in a specific directory
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { config as dotenvConfig } from 'dotenv';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -32,7 +33,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 // Detect if running as SEA binary (shim URL) vs normal execution
 const isSEA = import.meta.url.includes('ferni-sea-binary');
 const __dirname = isSEA ? process.cwd() : dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = isSEA ? process.cwd() : join(__dirname, '..', '..', '..', '..', '..');
+const PROJECT_ROOT = isSEA ? process.cwd() : findProjectRoot();
 
 // Load environment
 dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
