@@ -38,6 +38,7 @@ import { createLogger } from '../utils/logger.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
 import { marketplaceUI } from './marketplace.ui.js';
 import { toast } from './whisper.ui.js';
+import { trackedTimeout, clearAllTrackedTimeouts } from './team-timeouts.js';
 
 const log = createLogger('TeamUI');
 
@@ -48,41 +49,6 @@ const log = createLogger('TeamUI');
 let rosterContainer: HTMLElement | null = null;
 const teamMemberElements: Map<PersonaId, HTMLElement> = new Map();
 const cleanupFunctions: (() => void)[] = [];
-
-// FIX BUG: Track all setTimeout IDs for cleanup to prevent memory leaks
-const activeTimeouts: Set<ReturnType<typeof setTimeout>> = new Set();
-
-/**
- * Tracked setTimeout that automatically removes itself when done.
- * All timeouts are cleared on dispose() to prevent memory leaks during HMR.
- */
-function trackedTimeout(callback: () => void, delay: number): ReturnType<typeof setTimeout> {
-  const id = setTimeout(() => {
-    activeTimeouts.delete(id);
-    callback();
-  }, delay);
-  activeTimeouts.add(id);
-  return id;
-}
-
-/**
- * Clear a tracked timeout early (e.g., if animation is cancelled).
- */
-function _clearTrackedTimeout(id: ReturnType<typeof setTimeout>): void {
-  clearTimeout(id);
-  activeTimeouts.delete(id);
-}
-void _clearTrackedTimeout; // Suppress unused warning - available for cleanup
-
-/**
- * Clear all tracked timeouts (called on dispose).
- */
-function clearAllTrackedTimeouts(): void {
-  for (const id of activeTimeouts) {
-    clearTimeout(id);
-  }
-  activeTimeouts.clear();
-}
 
 // ============================================================================
 // AVATAR EYES - SVG Creation Helper
