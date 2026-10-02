@@ -15,7 +15,14 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Import systems under test
-import { embed, cosineSimilarity, getEmbeddingProvider } from '../memory/embeddings.js';
+import {
+  embed,
+  cosineSimilarity,
+  getEmbeddingProvider,
+  setEmbeddingProvider,
+  LocalEmbeddings,
+  type EmbeddingProvider,
+} from '../memory/embeddings.js';
 import {
   findSimilarCached,
   storeInSemanticCache,
@@ -37,6 +44,23 @@ const USE_REAL_EMBEDDINGS = !!process.env.GOOGLE_API_KEY || !!process.env.OPENAI
 function isUsingLocalEmbeddings(): boolean {
   const provider = getEmbeddingProvider();
   return provider.model === 'local-random';
+}
+
+/**
+ * Pin local embeddings for the enclosing describe, then restore the previous
+ * provider. Shape-only tests must not depend on the environment's provider:
+ * Vertex AI is picked whenever GOOGLE_CLOUD_PROJECT is set, and returns 403
+ * without credentials. 768 matches the memory system's vector store.
+ */
+function useLocalEmbeddings(): void {
+  let previous: EmbeddingProvider;
+  beforeAll(() => {
+    previous = getEmbeddingProvider();
+    setEmbeddingProvider(new LocalEmbeddings(768));
+  });
+  afterAll(() => {
+    setEmbeddingProvider(previous);
+  });
 }
 
 import { TEST_LLM_MODEL } from './test-llm-config.js';
@@ -549,6 +573,8 @@ describe('Memory Retrieval Relevance', () => {
 
 describe('Edge Cases & Robustness', () => {
   describe('Ambiguous Queries', () => {
+    useLocalEmbeddings();
+
     const AMBIGUOUS_CASES = [
       {
         query: 'How is it going?',
@@ -613,6 +639,8 @@ describe('Edge Cases & Robustness', () => {
   });
 
   describe('Empty and Invalid Inputs', () => {
+    useLocalEmbeddings();
+
     it('should reject empty and whitespace-only input', async () => {
       // embed() guards against empty text rather than returning a zero vector,
       // which would silently poison every similarity comparison.

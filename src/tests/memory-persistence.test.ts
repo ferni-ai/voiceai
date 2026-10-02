@@ -278,6 +278,23 @@ describe('Memory Persistence', () => {
   });
 
   describe('Semantic Search', () => {
+    // Pin local embeddings so this test never reaches a real provider: Vertex AI
+    // is picked whenever GOOGLE_CLOUD_PROJECT is set and returns 403 without
+    // credentials. 768 matches the dimensions the memory system's vector store uses.
+    let previousProvider: import('../memory/embeddings.js').EmbeddingProvider;
+
+    beforeAll(async () => {
+      const { getEmbeddingProvider, setEmbeddingProvider, LocalEmbeddings } =
+        await import('../memory/embeddings.js');
+      previousProvider = getEmbeddingProvider();
+      setEmbeddingProvider(new LocalEmbeddings(768));
+    });
+
+    afterAll(async () => {
+      const { setEmbeddingProvider } = await import('../memory/embeddings.js');
+      setEmbeddingProvider(previousProvider);
+    });
+
     it('should find relevant conversations via semantic search', async () => {
       const { initializeMemorySystem, shutdownMemorySystem, semanticSearch } =
         await import('../memory/index.js');
