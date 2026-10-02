@@ -339,7 +339,8 @@ describe('ProductivityExecutor', () => {
       expect(result).toContain('coming soon');
     });
 
-    it('should acknowledge goal update as being implemented', async () => {
+    it('should ask which goal to update when none is named', async () => {
+      // updateGoal is implemented on the aspirations store (see aspirations-routing.test.ts).
       const ctx = createContext();
       const result = await productivityExecutor.execute(
         'updateGoal',
@@ -347,7 +348,7 @@ describe('ProductivityExecutor', () => {
         ctx
       );
 
-      expect(result).toContain('being implemented');
+      expect(result).toContain('Which goal');
     });
   });
 });

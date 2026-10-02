@@ -43,7 +43,12 @@ export const toIso = (v: unknown): string | undefined => toDate(v)?.toISOString(
 export function toDay(v: unknown, timeZone: string): string | undefined {
   if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
   const d = toDate(v);
-  return d ? formatCivil(localToday(d, timeZone)) : undefined;
+  if (!d) return undefined;
+  // A date-only value saved as midnight UTC (e.g. a goal's target date) means that day.
+  if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0) {
+    return d.toISOString().slice(0, 10);
+  }
+  return formatCivil(localToday(d, timeZone));
 }
 
 export interface LegacyCheckIn {
