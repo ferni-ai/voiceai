@@ -731,7 +731,7 @@ function injectStyles(): void {
     
     .hint-content {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-xl, 16px);
       box-shadow: 
         0 8px 24px rgba(44, 37, 32, 0.15),
@@ -749,7 +749,7 @@ function injectStyles(): void {
       background: transparent;
       border: none;
       border-radius: var(--radius-full, 9999px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       cursor: pointer;
       opacity: 0.5;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -757,7 +757,7 @@ function injectStyles(): void {
     
     .hint-close:hover {
       opacity: 1;
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
     }
     
     .hint-close svg {
@@ -772,7 +772,7 @@ function injectStyles(): void {
       width: 40px;
       height: 40px;
       margin: 0 auto var(--space-3, 12px);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-full, 9999px);
       color: var(--persona-ink);
     }
@@ -786,7 +786,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-base, 16px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 4px);
       text-align: center;
     }
@@ -794,7 +794,7 @@ function injectStyles(): void {
     .hint-message {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       margin: 0 0 var(--space-3, 12px);
       line-height: var(--leading-relaxed, 1.5);
       text-align: center;
@@ -807,8 +807,8 @@ function injectStyles(): void {
       gap: var(--space-2, 8px);
       width: 100%;
       padding: var(--space-3, 12px);
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-sm, 14px);
       font-weight: var(--font-weight-semibold, 600);
@@ -819,7 +819,7 @@ function injectStyles(): void {
     }
     
     .hint-cta:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
       transform: translateY(-1px);
     }
     
@@ -835,14 +835,14 @@ function injectStyles(): void {
       padding: var(--space-2, 8px);
       background: none;
       border: none;
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       font-size: var(--text-xs, 12px);
       cursor: pointer;
       transition: color ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
     .hint-dismiss-text:hover {
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
     }
     
     /* ========================================================================
@@ -869,7 +869,7 @@ function injectStyles(): void {
       position: absolute;
       width: 12px;
       height: 12px;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       transform: rotate(45deg);
     }
     
@@ -926,26 +926,26 @@ function injectStyles(): void {
        DARK THEME
        ======================================================================== */
     [data-theme="midnight"] .hint-content {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated);
       box-shadow: 
         0 8px 24px rgba(0, 0, 0, 0.3),
         0 0 0 1px rgba(255, 255, 255, 0.1);
     }
     
     [data-theme="midnight"] .hint-title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
     
     [data-theme="midnight"] .hint-message {
-      color: var(--color-text-secondary, #f0ebe4);
+      color: var(--color-text-secondary);
     }
     
     [data-theme="midnight"] .hint-arrow {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated);
     }
     
     [data-theme="midnight"] .hint-close:hover {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
     
     /* ========================================================================

@@ -69,9 +69,9 @@ export function getVisualizationStyles(): string {
       --viz-text-3xl: 2rem;       /* 32px - large metric */
 
       /* Visualization-specific semantic colors */
-      --viz-energy-emotional: var(--persona-maya, #a67a6a);
-      --viz-energy-mental: var(--persona-peter, #3a6b73);
-      --viz-energy-physical: var(--persona-ferni, #4a6741);
+      --viz-energy-emotional: var(--persona-maya, var(--color-maya));
+      --viz-energy-mental: var(--persona-peter, var(--color-peter));
+      --viz-energy-physical: var(--persona-ferni, var(--color-ferni));
 
       /*
        * Status (--viz-status-*) and priority (--viz-priority-*) tokens come
@@ -80,47 +80,47 @@ export function getVisualizationStyles(): string {
        */
 
       /* Mood tokens - sourced from design system (--viz-moods-*) */
-      --viz-mood-calm: var(--viz-moods-calm, #3D5A45);
-      --viz-mood-joyful: var(--viz-moods-joyful, #c4956a);
-      --viz-mood-anxious: var(--viz-moods-anxious, #b5453a);
-      --viz-mood-tired: var(--viz-moods-tired, #756a5e);
-      --viz-mood-focused: var(--viz-moods-focused, #3a6b73);
-      --viz-mood-reflective: var(--viz-moods-reflective, #7a6a8a);
-      --viz-mood-stressed: var(--viz-moods-stressed, #a54545);
-      --viz-mood-energized: var(--viz-moods-energized, #4a7a52);
-      --viz-mood-peaceful: var(--viz-moods-peaceful, #5a8a73);
-      --viz-mood-uncertain: var(--viz-moods-uncertain, #6a6a6a);
+      --viz-mood-calm: var(--viz-moods-calm);
+      --viz-mood-joyful: var(--viz-moods-joyful);
+      --viz-mood-anxious: var(--viz-moods-anxious);
+      --viz-mood-tired: var(--viz-moods-tired);
+      --viz-mood-focused: var(--viz-moods-focused);
+      --viz-mood-reflective: var(--viz-moods-reflective);
+      --viz-mood-stressed: var(--viz-moods-stressed);
+      --viz-mood-energized: var(--viz-moods-energized);
+      --viz-mood-peaceful: var(--viz-moods-peaceful);
+      --viz-mood-uncertain: var(--viz-moods-uncertain);
 
       /* Chapter tokens - sourced from design system (--viz-chapters-*) */
-      --viz-chapter-growth: var(--viz-chapters-growth, #3D5A45);
-      --viz-chapter-challenge: var(--viz-chapters-challenge, #b5453a);
-      --viz-chapter-transition: var(--viz-chapters-transition, #c4956a);
-      --viz-chapter-celebration: var(--viz-chapters-celebration, #4a7a52);
-      --viz-chapter-reflection: var(--viz-chapters-reflection, #7a6a8a);
+      --viz-chapter-growth: var(--viz-chapters-growth);
+      --viz-chapter-challenge: var(--viz-chapters-challenge);
+      --viz-chapter-transition: var(--viz-chapters-transition);
+      --viz-chapter-celebration: var(--viz-chapters-celebration);
+      --viz-chapter-reflection: var(--viz-chapters-reflection);
 
       /* Semantic colors for DOM elements */
       --viz-accent: var(--color-accent, #3D5A45);
       --viz-accent-secondary: var(--persona-ferni-secondary, #5a8b73);
-      --viz-text-primary: var(--color-text-primary, #2C2520);
-      --viz-text-secondary: var(--color-text-secondary, #5c544a);
-      --viz-text-muted: var(--color-text-muted, #756a5e);
-      --viz-border-subtle: var(--color-border-subtle, rgba(44, 37, 32, 0.08));
-      --viz-bg-elevated: var(--color-bg-elevated, #FFFDFB);
+      --viz-text-primary: var(--color-text-primary);
+      --viz-text-secondary: var(--color-text-secondary);
+      --viz-text-muted: var(--color-text-muted);
+      --viz-border-subtle: var(--color-border-subtle);
+      --viz-bg-elevated: var(--color-bg-elevated, var(--color-white));
 
       /* Glass morphism layers */
-      --viz-glass-bg: var(--glass-regular-background, rgba(255, 255, 255, 0.70));
+      --viz-glass-bg: var(--glass-regular-background, color-mix(in srgb, var(--color-white) 70%, transparent));
       --viz-glass-blur: var(--glass-regular-blur, 16px);
       --viz-glass-border: var(--glass-regular-border, rgba(44, 37, 32, 0.08));
-      --viz-glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-      --viz-glass-shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+      --viz-glass-shadow: 0 4px 24px color-mix(in srgb, var(--color-black) 6%, transparent), 0 1px 3px color-mix(in srgb, var(--color-black) 4%, transparent);
+      --viz-glass-shadow-elevated: 0 8px 32px color-mix(in srgb, var(--color-black) 8%, transparent), 0 2px 6px color-mix(in srgb, var(--color-black) 4%, transparent);
     }
 
     /* Dark mode overrides */
     [data-theme="midnight"] {
-      --viz-glass-bg: var(--glass-regular-background, rgba(255, 255, 255, 0.08));
-      --viz-glass-border: var(--glass-regular-border, rgba(255, 255, 255, 0.10));
-      --viz-glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
-      --viz-glass-shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25);
+      --viz-glass-bg: var(--glass-regular-background, color-mix(in srgb, var(--color-white) 8%, transparent));
+      --viz-glass-border: var(--glass-regular-border, color-mix(in srgb, var(--color-white) 10%, transparent));
+      --viz-glass-shadow: 0 4px 24px color-mix(in srgb, var(--color-black) 30%, transparent), 0 1px 3px color-mix(in srgb, var(--color-black) 20%, transparent);
+      --viz-glass-shadow-elevated: 0 8px 32px color-mix(in srgb, var(--color-black) 40%, transparent), 0 2px 6px color-mix(in srgb, var(--color-black) 25%, transparent);
     }
 
     /* ========================================================================
@@ -147,7 +147,7 @@ export function getVisualizationStyles(): string {
     }
 
     .viz-card--elevated {
-      background: var(--color-bg-elevated, #FFFDFB);
+      background: var(--color-bg-elevated, var(--color-white));
       box-shadow: var(--viz-glass-shadow-elevated);
     }
 
@@ -185,7 +185,7 @@ export function getVisualizationStyles(): string {
     }
 
     .viz-card--accent-secondary {
-      border-left: 3px solid var(--persona-nayan, #b8956a);
+      border-left: 3px solid var(--persona-nayan, var(--color-nayan));
     }
 
     .viz-card--priority-high {
@@ -204,7 +204,7 @@ export function getVisualizationStyles(): string {
     .viz-header {
       margin-bottom: var(--viz-space-pause);
       padding-bottom: var(--viz-space-breath);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .viz-header__title {
@@ -213,7 +213,7 @@ export function getVisualizationStyles(): string {
       font-weight: 600;
       line-height: 1.3;
       letter-spacing: -0.01em;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 0.25rem;
     }
 
@@ -221,7 +221,7 @@ export function getVisualizationStyles(): string {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-xs);
       font-weight: 500;
-      color: var(--color-text-muted, #756a5e);
+      color: var(--color-text-muted);
       margin: 0;
       letter-spacing: 0.01em;
     }
@@ -245,7 +245,7 @@ export function getVisualizationStyles(): string {
       font-weight: 700;
       line-height: 1;
       letter-spacing: -0.02em;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .viz-metric__value--accent {
@@ -264,7 +264,7 @@ export function getVisualizationStyles(): string {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-xs);
       font-weight: 500;
-      color: var(--color-text-muted, #756a5e);
+      color: var(--color-text-muted);
       margin-top: 0.25rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -299,7 +299,7 @@ export function getVisualizationStyles(): string {
       align-items: center;
       gap: var(--viz-space-breath);
       padding: var(--viz-space-breath) 0;
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .viz-stat-row:last-of-type {
@@ -309,14 +309,14 @@ export function getVisualizationStyles(): string {
     .viz-stat-row__label {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-base);
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
     }
 
     .viz-stat-row__value {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-base);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .viz-stat-row__value--accent {
@@ -341,13 +341,13 @@ export function getVisualizationStyles(): string {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-base);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .viz-stat__label {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-base);
-      color: var(--color-text-muted, #756a5e);
+      color: var(--color-text-muted);
       margin-left: 0.25rem;
     }
 
@@ -360,7 +360,7 @@ export function getVisualizationStyles(): string {
       align-items: center;
       gap: 0.375rem;
       padding: 0.25rem 0.625rem;
-      background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+      background: var(--color-accent-subtle);
       color: var(--color-accent-text);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-xs);
@@ -380,7 +380,7 @@ export function getVisualizationStyles(): string {
     }
 
     .viz-badge--status-balanced {
-      background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
+      background: var(--color-accent-subtle);
       color: var(--viz-status-balanced);
     }
 
@@ -490,7 +490,7 @@ export function getVisualizationStyles(): string {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-sm);
       line-height: 1.5;
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
       padding: var(--viz-space-breath) var(--viz-space-pause);
       background: var(--tonal-surface1, rgba(44, 37, 32, 0.02));
       border-radius: var(--radius-md, 0.75rem);
@@ -549,7 +549,7 @@ export function getVisualizationStyles(): string {
 
     .viz-divider {
       height: 1px;
-      background: var(--color-border-subtle, rgba(44, 37, 32, 0.06));
+      background: var(--color-border-subtle);
       margin: var(--viz-space-pause) 0;
     }
 
@@ -567,7 +567,7 @@ export function getVisualizationStyles(): string {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-xs);
       font-weight: 600;
-      color: var(--color-text-muted, #756a5e);
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -654,7 +654,7 @@ export function getVisualizationStyles(): string {
       left: var(--viz-space-rest);
       right: var(--viz-space-rest);
       height: 2px;
-      background: var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-border-subtle);
       transform: translateY(-50%);
     }
 
@@ -673,7 +673,7 @@ export function getVisualizationStyles(): string {
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: var(--color-text-muted, #756a5e);
+      background: var(--color-text-muted);
       margin: 0 auto var(--viz-space-breath);
       transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -682,17 +682,17 @@ export function getVisualizationStyles(): string {
       width: 16px;
       height: 16px;
       background: var(--color-accent, #3D5A45);
-      box-shadow: 0 0 0 4px var(--color-accent-glow, rgba(61, 90, 69, 0.2));
+      box-shadow: 0 0 0 4px var(--color-accent-glow);
     }
 
     .viz-timeline__label {
       font-size: var(--viz-text-xs);
-      color: var(--color-text-muted, #756a5e);
+      color: var(--color-text-muted);
     }
 
     .viz-timeline__label--active {
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     /* Additional timeline classes for life-timeline */
@@ -702,7 +702,7 @@ export function getVisualizationStyles(): string {
       left: var(--viz-space-rest);
       right: var(--viz-space-rest);
       height: 2px;
-      background: var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-border-subtle);
       transform: translateY(-50%);
     }
 
@@ -710,7 +710,7 @@ export function getVisualizationStyles(): string {
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background: var(--color-text-muted, #756a5e);
+      background: var(--color-text-muted);
       margin: 0 auto;
       transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -719,7 +719,7 @@ export function getVisualizationStyles(): string {
       width: 14px;
       height: 14px;
       background: var(--color-accent, #3D5A45);
-      box-shadow: 0 0 0 3px var(--color-accent-glow, rgba(61, 90, 69, 0.2));
+      box-shadow: 0 0 0 3px var(--color-accent-glow);
     }
 
     /* Timeline dots by chapter type */
@@ -737,20 +737,20 @@ export function getVisualizationStyles(): string {
     .viz-timeline-chapter__title {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-xs);
-      color: var(--color-text-muted, #756a5e);
+      color: var(--color-text-muted);
       margin-top: var(--viz-space-breath);
       font-weight: 400;
     }
 
     .viz-timeline-chapter__title--active {
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .viz-timeline-chapter__year {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-2xs);
-      color: var(--color-text-muted, #756a5e);
+      color: var(--color-text-muted);
       margin-top: 0.125rem;
     }
 
@@ -763,7 +763,7 @@ export function getVisualizationStyles(): string {
     }
 
     .viz-arrow {
-      color: var(--color-text-muted, #756a5e);
+      color: var(--color-text-muted);
       font-size: var(--viz-text-md);
     }
 
@@ -781,7 +781,7 @@ export function getVisualizationStyles(): string {
       text-align: center;
       font-size: var(--viz-text-2xs);
       font-weight: 600;
-      color: var(--color-text-muted, #756a5e);
+      color: var(--color-text-muted);
       padding: var(--viz-space-breath) 0;
     }
 
@@ -802,7 +802,7 @@ export function getVisualizationStyles(): string {
     }
 
     .viz-calendar__cell--mood {
-      color: white;
+      color: var(--color-white);
     }
 
     .viz-calendar__cell--today {
@@ -839,7 +839,7 @@ export function getVisualizationStyles(): string {
     .viz-day-label {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-2xs);
-      color: var(--color-text-muted, #756a5e);
+      color: var(--color-text-muted);
       text-align: center;
     }
 
@@ -879,7 +879,7 @@ export function getVisualizationStyles(): string {
       display: flex;
       gap: var(--viz-space-breath);
       padding: var(--viz-space-breath) 0;
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .viz-loop-item:last-child {
@@ -904,7 +904,7 @@ export function getVisualizationStyles(): string {
 
     .viz-loop-item__desc {
       font-size: var(--viz-text-md);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -919,7 +919,7 @@ export function getVisualizationStyles(): string {
     .viz-loop-item__category,
     .viz-loop-item__age {
       font-size: var(--viz-text-sm);
-      color: var(--color-text-muted, #756a5e);
+      color: var(--color-text-muted);
     }
 
     /* Priority dots */
@@ -948,7 +948,7 @@ export function getVisualizationStyles(): string {
     .viz-loop-desc {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--viz-text-md);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       flex: 1;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -1000,7 +1000,7 @@ export function getVisualizationStyles(): string {
       justify-content: center;
       font-size: var(--viz-text-xs);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       box-shadow: var(--viz-glass-shadow);
       transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
     }

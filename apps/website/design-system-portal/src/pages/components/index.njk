@@ -350,7 +350,7 @@ permalink: /components/
 }
 
 .toast-demo svg {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .input-demo {
@@ -377,17 +377,17 @@ permalink: /components/
 
 .badge-demo-success {
   background: color-mix(in srgb, var(--success) 15%, transparent);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .badge-demo-warning {
   background: color-mix(in srgb, var(--warning) 20%, transparent);
-  color: #92400e;
+  color: var(--accent-pressed);
 }
 
 .badge-demo-info {
   background: var(--accent-subtle);
-  color: var(--accent-primary);
+  color: var(--accent-text);
 }
 
 /* Dropdown Preview */
@@ -454,7 +454,7 @@ permalink: /components/
   border: 3px solid var(--border-subtle);
   border-top-color: var(--accent-primary);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin var(--duration-cinematic) linear infinite;
 }
 
 @keyframes spin {
@@ -503,7 +503,7 @@ permalink: /components/
 .tooltip-demo-popup {
   margin-top: var(--space-2);
   padding: var(--space-1) var(--space-2);
-  background: var(--bg-inverse);
+  background: var(--text-primary);
   color: var(--text-inverse);
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
@@ -557,7 +557,7 @@ permalink: /components/
   align-items: center;
   justify-content: center;
   margin-bottom: var(--space-4);
-  color: var(--accent-primary);
+  color: var(--accent-text);
 }
 
 .principle h4 {

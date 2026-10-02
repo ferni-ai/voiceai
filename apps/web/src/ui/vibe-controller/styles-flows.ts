@@ -23,7 +23,7 @@ export function getFlowStyles(): string {
       width: 48px;
       height: 48px;
       margin-bottom: var(--space-sm, 12px);
-      color: var(--color-text-dimmed, #A89D90);
+      color: var(--color-text-dimmed);
     }
 
     .vibe-not-connected__icon svg {
@@ -33,16 +33,16 @@ export function getFlowStyles(): string {
 
     .vibe-not-connected__text {
       font-size: 0.875rem;
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-md, 16px);
     }
 
     .vibe-not-connected__btn {
       padding: var(--space-sm, 10px) var(--space-lg, 20px);
-      background: var(--color-ferni, #3D5A45);
+      background: var(--color-ferni);
       border: none;
       border-radius: var(--radius-full, 9999px);
-      color: white;
+      color: var(--color-white);
       font-size: 0.875rem;
       font-weight: 500;
       cursor: pointer;
@@ -63,9 +63,9 @@ export function getFlowStyles(): string {
       width: 100%;
       padding: var(--space-sm, 12px);
       background: none;
-      border: 1px dashed var(--color-border-medium, rgba(44, 37, 32, 0.15));
+      border: 1px dashed var(--color-border-medium);
       border-radius: var(--radius-md, 12px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       font-size: 0.875rem;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
@@ -74,8 +74,8 @@ export function getFlowStyles(): string {
 
     .vibe-more-toggle:hover {
       background: var(--color-bg-secondary, rgba(44, 37, 32, 0.03));
-      color: var(--color-text-primary, #2C2520);
-      border-color: var(--color-ferni, #3D5A45);
+      color: var(--color-text-primary);
+      border-color: var(--color-ferni);
     }
 
     .vibe-more-toggle svg {
@@ -127,7 +127,7 @@ export function getFlowStyles(): string {
 
     .vibe-activity--active {
       background: var(--color-ferni-tint, rgba(61, 90, 69, 0.1));
-      border-color: var(--color-ferni, #3D5A45);
+      border-color: var(--color-ferni);
     }
 
     .vibe-activity__icon {
@@ -136,7 +136,7 @@ export function getFlowStyles(): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
     }
 
     .vibe-activity--active .vibe-activity__icon {
@@ -151,7 +151,7 @@ export function getFlowStyles(): string {
     .vibe-activity__name {
       font-size: 0.75rem;
       font-weight: 500;
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       text-align: center;
     }
 
@@ -187,13 +187,13 @@ export function getFlowStyles(): string {
     .vibe-setup__title {
       font-size: 1.125rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-xs, 8px) 0;
     }
 
     .vibe-setup__desc {
       font-size: 0.875rem;
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       margin: 0 0 var(--space-lg, 24px) 0;
       line-height: 1.5;
     }
@@ -210,15 +210,15 @@ export function getFlowStyles(): string {
       align-items: center;
       gap: var(--space-md, 16px);
       padding: var(--space-md, 16px);
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-md, 12px);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .vibe-setup__option:hover {
-      border-color: var(--color-ferni, #3D5A45);
+      border-color: var(--color-ferni);
       transform: translateY(-1px);
     }
 
@@ -230,7 +230,7 @@ export function getFlowStyles(): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
     }
 
     .vibe-setup__option-icon svg {
@@ -246,16 +246,16 @@ export function getFlowStyles(): string {
     .vibe-setup__option-name {
       font-size: 0.9375rem;
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .vibe-setup__option-desc {
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
     }
 
     .vibe-setup__option-arrow {
-      color: var(--color-text-dimmed, #A89D90);
+      color: var(--color-text-dimmed);
     }
 
     .vibe-setup__option-arrow svg {
@@ -266,14 +266,14 @@ export function getFlowStyles(): string {
     .vibe-setup__skip {
       background: none;
       border: none;
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       font-size: 0.875rem;
       cursor: pointer;
       padding: var(--space-sm, 8px);
     }
 
     .vibe-setup__skip:hover {
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     /* Connection Status Badges */
@@ -282,14 +282,14 @@ export function getFlowStyles(): string {
       align-items: center;
       gap: var(--space-xs, 4px);
       padding: var(--space-2xs, 4px) var(--space-sm, 10px);
-      background: var(--color-semantic-success-tint, rgba(34, 197, 94, 0.1));
+      background: var(--color-semantic-success-tint);
       border-radius: var(--radius-full, 9999px);
       font-size: 0.75rem;
       color: var(--color-semantic-success-text);
     }
 
     .vibe-connection-badge--warning {
-      background: var(--color-semantic-warning-tint, rgba(245, 158, 11, 0.1));
+      background: var(--color-semantic-warning-tint);
       color: var(--color-semantic-warning-text);
     }
 
@@ -338,7 +338,7 @@ export function getFlowStyles(): string {
     }
 
     .ecobee-pin-card {
-      background: var(--color-bg-elevated, #FFFDFB);
+      background: var(--color-bg-elevated, var(--color-white));
       border-radius: var(--radius-2xl, 20px);
       padding: var(--space-lg, 24px);
       max-width: 400px;
@@ -347,14 +347,14 @@ export function getFlowStyles(): string {
     }
 
     .ecobee-pin-card h3 {
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-md, 16px);
       font-size: 1.25rem;
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
     }
 
     .ecobee-pin-card__instructions {
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       margin: 0 0 var(--space-md, 16px);
     }
 
@@ -372,7 +372,7 @@ export function getFlowStyles(): string {
 
     .ecobee-pin-card__steps {
       text-align: left;
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       padding-left: var(--space-lg, 20px);
       margin: 0 0 var(--space-md, 16px);
     }
@@ -382,17 +382,17 @@ export function getFlowStyles(): string {
     }
 
     .ecobee-pin-card__expires {
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       font-size: 0.875rem;
       margin: 0 0 var(--space-md, 16px);
     }
 
     .ecobee-pin-card__cancel {
       background: transparent;
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-sm, 12px) var(--space-lg, 20px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       cursor: pointer;
       font-size: 1rem;
       transition: all ${DURATION.FAST}ms;
@@ -400,11 +400,11 @@ export function getFlowStyles(): string {
 
     .ecobee-pin-card__cancel:hover {
       background: var(--color-bg-secondary, rgba(44, 37, 32, 0.03));
-      border-color: var(--color-border-medium, rgba(44, 37, 32, 0.15));
+      border-color: var(--color-border-medium);
     }
 
     .ecobee-pin-card__cancel:focus-visible {
-      outline: 2px solid var(--color-ferni, #3D5A45);
+      outline: 2px solid var(--color-ferni);
       outline-offset: 2px;
     }
 

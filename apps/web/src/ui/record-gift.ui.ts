@@ -180,10 +180,10 @@ function injectStyles(): void {
       width: 94%;
       max-width: clamp(308px, 90vw, 440px);
       max-height: 90vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -223,7 +223,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
       line-height: 1.2;
     }
@@ -238,14 +238,14 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
 
     .rg-close:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     /* =========================================================================
@@ -270,7 +270,7 @@ function injectStyles(): void {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
       letter-spacing: 0.03em;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-2, 0.5rem);
       display: block;
     }
@@ -299,18 +299,18 @@ function injectStyles(): void {
     }
 
     .rg-direction:hover {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted);
     }
 
     .rg-direction.selected {
-      border-color: var(--persona-primary, #4a6741);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.05));
+      border-color: var(--persona-primary, var(--color-ferni));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent));
     }
 
     .rg-direction-icon {
       width: 32px;
       height: 32px;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: color ${DURATION.FAST}ms;
     }
 
@@ -321,7 +321,7 @@ function injectStyles(): void {
     .rg-direction-label {
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .rg-direction.selected .rg-direction-label {
@@ -339,19 +339,19 @@ function injectStyles(): void {
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
-      background: var(--color-background-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
       outline: none;
       transition: border-color ${DURATION.FAST}ms, box-shadow ${DURATION.FAST}ms;
     }
 
     .rg-input:focus {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
     .rg-input::placeholder {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .rg-select {
@@ -360,8 +360,8 @@ function injectStyles(): void {
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
-      background: var(--color-background-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
       outline: none;
       cursor: pointer;
       appearance: none;
@@ -372,7 +372,7 @@ function injectStyles(): void {
     }
 
     .rg-select:focus {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
@@ -409,16 +409,16 @@ function injectStyles(): void {
     }
 
     .rg-reaction:hover {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted);
     }
 
     .rg-reaction.selected {
-      border-color: var(--persona-primary, #4a6741);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      border-color: var(--persona-primary, var(--color-ferni));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
     }
 
     .rg-reaction-icon {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: color ${DURATION.FAST}ms;
     }
 
@@ -434,7 +434,7 @@ function injectStyles(): void {
     .rg-reaction-label {
       font-size: var(--text-xxs, 0.625rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .rg-reaction.selected .rg-reaction-label {
@@ -453,7 +453,7 @@ function injectStyles(): void {
       border: none;
       background: none;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       cursor: pointer;
       transition: color ${DURATION.FAST}ms;
     }
@@ -487,15 +487,15 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
       font-family: inherit;
-      background: var(--color-background-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
       outline: none;
       resize: vertical;
       transition: border-color ${DURATION.FAST}ms, box-shadow ${DURATION.FAST}ms;
     }
 
     .rg-textarea:focus {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
@@ -523,7 +523,7 @@ function injectStyles(): void {
     .rg-btn-secondary {
       background: var(--tonal-surface-2);
       border: none;
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .rg-btn-secondary:hover {
@@ -535,14 +535,14 @@ function injectStyles(): void {
     }
 
     .rg-btn-primary {
-      background: var(--persona-primary, #4a6741);
-      border: 1px solid var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      border: 1px solid var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .rg-btn-primary:hover {
-      background: var(--persona-secondary, #3d5a35);
-      border-color: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
+      border-color: var(--persona-secondary, var(--color-ferni-secondary));
     }
 
     .rg-btn-primary:disabled {

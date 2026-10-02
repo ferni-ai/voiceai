@@ -7,7 +7,8 @@
 ## Quick Start
 
 ```html
-<link rel="stylesheet" href="master-tokens.css">
+<link rel="stylesheet" href="../ferni-design-tokens.css">
+<link rel="stylesheet" href="../brand-base.css">
 <link rel="stylesheet" href="visualizations/components.css">
 <link rel="stylesheet" href="visualizations/animations.css">
 
@@ -140,7 +141,7 @@ FerniViz.makeShareable(element);  // Adds share button
 
 ## Design Tokens
 
-All styles inherit from `master-tokens.css`:
+All styles inherit from `ferni-design-tokens.css`:
 
 | Token | Usage |
 |-------|-------|

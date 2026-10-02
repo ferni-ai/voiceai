@@ -6,10 +6,11 @@
   <title>Alex Chen - Expression Gallery</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Design System: Single source of truth -->
-  <link rel="stylesheet" href="../../master-tokens.css">
+  <link rel="stylesheet" href="../../ferni-design-tokens.css">
+  <link rel="stylesheet" href="../../brand-base.css">
   <link rel="stylesheet" href="../../brand-components.css">
   <style>
-    /* Alex-specific overrides - base tokens from master-tokens.css */
+    /* Alex-specific overrides - base tokens from ferni-design-tokens.css */
     :root {
       /* Alex's Colors */
       --persona-start: var(--color-alex-light);
@@ -36,7 +37,7 @@
       min-height: 100vh;
     }
 
-    /* Navigation - uses .nav from master-tokens.css */
+    /* Navigation - uses .nav from ferni-design-tokens.css */
 
     .header {
       text-align: center;
@@ -173,7 +174,7 @@
       font-weight: 500;
       color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.2s var(--ease-spring);
+      transition: all 0.2s var(--ease-ease-out-back);
     }
     .micro-btn:hover { border-color: var(--persona-start); color: var(--persona-end); }
 
@@ -213,7 +214,7 @@
       border-radius: 12px;
       text-align: center;
       cursor: pointer;
-      transition: all 0.2s var(--ease-spring);
+      transition: all 0.2s var(--ease-ease-out-back);
       border: 2px solid transparent;
     }
     .micro-card:hover { border-color: var(--persona-start); transform: translateY(-2px); }
@@ -289,7 +290,7 @@
       font-weight: 500;
       color: var(--text-primary);
       cursor: pointer;
-      transition: all 0.28s var(--ease-spring);
+      transition: all 0.28s var(--ease-ease-out-back);
       text-align: left;
     }
     .expression-btn:hover { border-color: var(--persona-start); transform: translateY(-2px); }

@@ -741,7 +741,7 @@ const styles = `
 }
 
 .team-member .initial {
-  color: white;
+  color: var(--color-white);
   font-weight: 600;
   font-size: 1.25rem;
 }
@@ -772,7 +772,7 @@ const styles = `
   width: 20px;
   height: 20px;
   background: var(--persona-color);
-  color: white;
+  color: var(--color-white);
   border-radius: var(--radius-full);
   font-size: 12px;
   align-items: center;
@@ -945,7 +945,7 @@ const styles = `
 }
 
 .participant .initial {
-  color: white;
+  color: var(--color-white);
   font-weight: 600;
   font-size: 0.875rem;
 }

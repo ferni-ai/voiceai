@@ -6,14 +6,15 @@
   <title>Ferni Motion Language - Animation Studio Showcase</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <!-- Design System: Single source of truth -->
-  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../ferni-design-tokens.css">
+  <link rel="stylesheet" href="../brand-base.css">
   <link rel="stylesheet" href="../brand-components.css">
   <style>
     /* Page-specific overrides - mapped to design token palette */
     :root {
       /* Emotional glow colors mapped to persona/semantic palette */
-      --bg-dark: var(--color-natural-ink-dark);
-      --glow-neutral: var(--color-warm-white);
+      --bg-dark: var(--color-ink-deep);
+      --glow-neutral: var(--color-bg-primary);
       --glow-joy: var(--color-nayan-light);
       --glow-concern: var(--color-nayan-dark);
       --glow-excitement: var(--color-jordan);
@@ -43,7 +44,7 @@
       left: 0;
       right: 0;
       z-index: 1000;
-      background: var(--glass-bg-light);
+      background: var(--glass-thin-bg);
       backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--border-subtle);
       padding: 12px 24px;
@@ -208,7 +209,7 @@
       position: relative;
       width: var(--size);
       height: var(--size);
-      transition: transform 0.4s var(--ease-spring);
+      transition: transform 0.4s var(--ease-ease-out-back);
     }
 
     .avatar-svg {
@@ -274,7 +275,7 @@
 
     /* LID TRANSITIONS with anticipation */
     .lid-top, .lid-bottom {
-      transition: d 0.35s var(--ease-spring);
+      transition: d 0.35s var(--ease-ease-out-back);
     }
 
     .ferni-avatar.anticipation .lid-top,
@@ -301,13 +302,13 @@
     /* Smile Creases */
     .smile-crease {
       opacity: 0;
-      transition: opacity 0.3s var(--ease-gentle), stroke-width 0.2s var(--ease-spring);
+      transition: opacity 0.3s var(--ease-gentle), stroke-width 0.2s var(--ease-ease-out-back);
     }
 
     /* Sparkle Stars */
     .sparkle-group {
       opacity: 0;
-      transition: all 0.2s var(--ease-spring);
+      transition: all 0.2s var(--ease-ease-out-back);
     }
 
     .sparkle-star {
@@ -733,7 +734,7 @@
       border-radius: 12px;
       text-align: center;
       cursor: pointer;
-      transition: all 0.3s var(--ease-spring);
+      transition: all 0.3s var(--ease-ease-out-back);
       border: 2px solid transparent;
       background: var(--bg-primary);
     }

@@ -384,10 +384,10 @@ class VideoSettingsUI {
         max-width: clamp(294px, 90vw, 420px);
         max-height: 90vh;
         overflow-y: auto;
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         transform: ${prefersReducedMotion() ? 'none' : 'scale(0.95)'};
         transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
       }
@@ -465,7 +465,7 @@ class VideoSettingsUI {
       .video-settings__coming-soon-icon {
         width: 48px;
         height: 48px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin-bottom: var(--space-4, 16px);
         opacity: 0.6;
       }
@@ -679,19 +679,19 @@ class VideoSettingsUI {
 
       /* Dark Theme */
       [data-theme="midnight"] .video-settings__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated);
       }
 
       [data-theme="midnight"] .video-settings__title,
       [data-theme="midnight"] .video-settings__control-label,
       [data-theme="midnight"] .video-settings__mode-label {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .video-settings__control,
       [data-theme="midnight"] .video-settings__mode,
       [data-theme="midnight"] .video-settings__note {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
 
       @media (max-width: clamp(336px, 90vw, 480px)) {

@@ -1135,8 +1135,8 @@ class CalendarSettingsUI {
       .calendar-settings__wrapper {
         width: 100%;
         max-width: min(400px, 100%);
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        background: var(--color-background-elevated);
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 1.5rem);
         box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
         transform: ${prefersReducedMotion() ? 'none' : 'scale(0.95)'};
@@ -1155,7 +1155,7 @@ class CalendarSettingsUI {
         align-items: center;
         gap: var(--space-3, 12px);
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .calendar-settings__icon {
@@ -1174,7 +1174,7 @@ class CalendarSettingsUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-lg, 1.125rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
@@ -1185,17 +1185,17 @@ class CalendarSettingsUI {
         width: 32px;
         height: 32px;
         padding: 0;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border: none;
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .calendar-settings__close:hover {
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
       }
 
       .calendar-settings__close svg {
@@ -1227,7 +1227,7 @@ class CalendarSettingsUI {
       }
 
       .calendar-settings__status--disconnected {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
       }
 
       .calendar-settings__status-icon {
@@ -1236,7 +1236,7 @@ class CalendarSettingsUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-full, 9999px);
         flex-shrink: 0;
       }
@@ -1246,7 +1246,7 @@ class CalendarSettingsUI {
       }
 
       .calendar-settings__status--disconnected .calendar-settings__status-icon {
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .calendar-settings__status-icon svg {
@@ -1264,13 +1264,13 @@ class CalendarSettingsUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .calendar-settings__status-detail {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       /* ========================================================================
@@ -1280,7 +1280,7 @@ class CalendarSettingsUI {
         display: flex;
         justify-content: space-between;
         padding: var(--space-2, 8px) 0;
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .calendar-settings__info:last-of-type {
@@ -1290,13 +1290,13 @@ class CalendarSettingsUI {
       .calendar-settings__info-label {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .calendar-settings__info-value {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       /* ========================================================================
@@ -1308,7 +1308,7 @@ class CalendarSettingsUI {
         gap: var(--space-2, 8px);
         margin-bottom: var(--ma-rest, 21px);
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 12px);
       }
 
@@ -1321,7 +1321,7 @@ class CalendarSettingsUI {
       .calendar-settings__service-icon {
         width: 20px;
         height: 20px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .calendar-settings__service-icon svg {
@@ -1333,7 +1333,7 @@ class CalendarSettingsUI {
         flex: 1;
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .calendar-settings__service-status {
@@ -1345,7 +1345,7 @@ class CalendarSettingsUI {
       }
 
       .calendar-settings__service-status--active {
-        background: var(--color-semantic-success-bg, rgba(74, 103, 65, 0.1));
+        background: var(--color-semantic-success-bg, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         color: var(--color-semantic-success-text);
       }
 
@@ -1360,7 +1360,7 @@ class CalendarSettingsUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-2, 8px) 0;
       }
 
@@ -1373,7 +1373,7 @@ class CalendarSettingsUI {
       .calendar-settings__benefits li {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin-bottom: var(--space-1, 4px);
         line-height: 1.5;
       }
@@ -1416,12 +1416,12 @@ class CalendarSettingsUI {
 
       .calendar-settings__btn--ghost {
         background: transparent;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .calendar-settings__btn--ghost:hover {
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-text-secondary, #5c544a);
+        background: var(--color-background-secondary);
+        color: var(--color-text-secondary);
       }
 
       /* ========================================================================
@@ -1429,7 +1429,7 @@ class CalendarSettingsUI {
          ======================================================================== */
       .calendar-settings__native {
         padding: var(--space-4, 16px);
-        background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+        background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
         border-radius: var(--radius-lg, 12px);
         margin-bottom: var(--ma-rest, 21px);
       }
@@ -1444,7 +1444,7 @@ class CalendarSettingsUI {
       .calendar-settings__native-description {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0;
         line-height: 1.5;
       }
@@ -1468,13 +1468,13 @@ class CalendarSettingsUI {
         content: '';
         flex: 1;
         height: 1px;
-        background: var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-border-subtle);
       }
 
       .calendar-settings__divider span {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         text-transform: uppercase;
         letter-spacing: 0.05em;
       }
@@ -1490,18 +1490,18 @@ class CalendarSettingsUI {
 
       .calendar-settings__provider {
         padding: var(--space-3, 12px);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-lg, 12px);
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .calendar-settings__provider--connected {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
       }
 
       .calendar-settings__provider--available:hover {
-        border-color: var(--color-accent-primary, #4a6741);
-        background: var(--color-background-secondary, #f5f2ed);
+        border-color: var(--color-accent-primary);
+        background: var(--color-background-secondary);
       }
 
       .calendar-settings__provider--coming-soon {
@@ -1539,13 +1539,13 @@ class CalendarSettingsUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .calendar-settings__provider-status {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .calendar-settings__provider-badge {
@@ -1557,19 +1557,19 @@ class CalendarSettingsUI {
       }
 
       .calendar-settings__provider-badge--synced {
-        background: var(--color-semantic-success-bg, rgba(74, 103, 65, 0.1));
+        background: var(--color-semantic-success-bg, color-mix(in srgb, var(--color-ferni) 10%, transparent));
         color: var(--color-semantic-success-text);
       }
 
       .calendar-settings__provider-badge--soon {
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-muted, #756a5e);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-muted);
       }
 
       .calendar-settings__provider-meta {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin-top: var(--space-2, 8px);
         margin-left: 36px;
       }
@@ -1582,7 +1582,7 @@ class CalendarSettingsUI {
       }
 
       .calendar-settings__btn--primary {
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
       }
 
@@ -1591,23 +1591,23 @@ class CalendarSettingsUI {
       }
 
       .calendar-settings__btn--secondary {
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-primary);
       }
 
       .calendar-settings__btn--secondary:hover {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
       }
 
       .calendar-settings__btn--danger {
         background: transparent;
         color: var(--color-semantic-error-text);
-        border: 1px solid var(--color-semantic-error, #b5453a);
+        border: 1px solid var(--color-semantic-error);
       }
 
       .calendar-settings__btn--danger:hover {
-        background: var(--color-semantic-error, #b5453a);
-        color: white;
+        background: var(--color-semantic-error);
+        color: var(--color-white);
       }
 
       .calendar-settings__btn:disabled {
@@ -1629,14 +1629,14 @@ class CalendarSettingsUI {
       .calendar-settings__notifications-section {
         margin-top: var(--ma-rest, 21px);
         padding-top: var(--ma-breath, 13px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       .calendar-settings__section-title {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0 0 var(--ma-breath, 13px) 0;
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -1660,7 +1660,7 @@ class CalendarSettingsUI {
         width: 18px;
         height: 18px;
         margin: 2px 0 0 0;
-        accent-color: var(--color-accent-primary, #2d5a3d);
+        accent-color: var(--color-accent-primary);
         cursor: pointer;
         flex-shrink: 0;
       }
@@ -1675,13 +1675,13 @@ class CalendarSettingsUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .calendar-settings__toggle-desc {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         line-height: 1.4;
       }
 
@@ -1691,7 +1691,7 @@ class CalendarSettingsUI {
       .calendar-settings__conflicts-section {
         margin-top: var(--ma-rest, 21px);
         padding-top: var(--ma-breath, 13px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       .calendar-settings__btn--full {
@@ -1706,7 +1706,7 @@ class CalendarSettingsUI {
         margin-top: var(--ma-breath, 13px);
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         text-align: center;
       }
 
@@ -1723,8 +1723,8 @@ class CalendarSettingsUI {
       .calendar-settings__spinner {
         width: 32px;
         height: 32px;
-        border: 3px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
-        border-top-color: var(--color-accent-primary, #2d5a3d);
+        border: 3px solid var(--color-border-subtle);
+        border-top-color: var(--color-accent-primary);
         border-radius: 50%;
         animation: calendar-spin 0.8s linear infinite;
         margin-bottom: var(--ma-breath, 13px);
@@ -1733,7 +1733,7 @@ class CalendarSettingsUI {
       .calendar-settings__loading p {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0;
       }
 
@@ -1748,7 +1748,7 @@ class CalendarSettingsUI {
       .calendar-settings__error p {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0 0 var(--ma-breath, 13px) 0;
       }
 
@@ -1756,14 +1756,14 @@ class CalendarSettingsUI {
          DARK THEME
          ======================================================================== */
       [data-theme="midnight"] .calendar-settings__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated);
       }
 
       [data-theme="midnight"] .calendar-settings__title,
       [data-theme="midnight"] .calendar-settings__status-label,
       [data-theme="midnight"] .calendar-settings__info-value,
       [data-theme="midnight"] .calendar-settings__benefits h3 {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .calendar-settings__status--connected {
@@ -1771,34 +1771,34 @@ class CalendarSettingsUI {
       }
 
       [data-theme="midnight"] .calendar-settings__status--disconnected {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .calendar-settings__status-icon {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated);
       }
 
       [data-theme="midnight"] .calendar-settings__close {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-secondary, #f0ebe4);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .calendar-settings__services {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .calendar-settings__service-name {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .calendar-settings__service-status--active {
-        background: var(--color-semantic-success-bg, rgba(74, 103, 65, 0.2));
+        background: var(--color-semantic-success-bg, color-mix(in srgb, var(--color-ferni) 20%, transparent));
         color: var(--color-semantic-success-text);
       }
 
       [data-theme="midnight"] .calendar-settings__btn--secondary {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-primary, #faf6f0);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-primary);
       }
 
       /* ========================================================================
@@ -1813,20 +1813,20 @@ class CalendarSettingsUI {
         padding: 0;
         background: transparent;
         border: none;
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .calendar-settings__back:hover {
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .calendar-settings__apple-setup h3 {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-4, 16px) 0;
       }
 
@@ -1837,7 +1837,7 @@ class CalendarSettingsUI {
       .calendar-settings__apple-steps ol {
         margin: 0;
         padding-left: var(--space-6, 24px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         line-height: 1.6;
@@ -1872,33 +1872,33 @@ class CalendarSettingsUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .calendar-settings__form-group input {
         padding: var(--space-3, 12px);
         font-family: var(--font-body);
         font-size: var(--text-base, 1rem);
-        color: var(--color-text-primary, #2c2520);
-        background: var(--color-background-primary, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.15));
+        color: var(--color-text-primary);
+        background: var(--color-background-primary);
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-md, 8px);
         transition: border-color ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .calendar-settings__form-group input:focus {
         outline: none;
-        border-color: var(--color-accent-primary, #2d5a3d);
+        border-color: var(--color-accent-primary);
       }
 
       .calendar-settings__form-group input::placeholder {
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .calendar-settings__form-group small {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin-top: var(--space-1, 4px);
       }
 
@@ -1920,17 +1920,17 @@ class CalendarSettingsUI {
       }
 
       [data-theme="midnight"] .calendar-settings__form-group input {
-        background: var(--color-background-tertiary, #685852);
-        border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-        color: var(--color-text-primary, #faf6f0);
+        background: var(--color-background-tertiary);
+        border-color: var(--color-border-subtle);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .calendar-settings__apple-setup h3 {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .calendar-settings__apple-steps ol {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       /* ========================================================================

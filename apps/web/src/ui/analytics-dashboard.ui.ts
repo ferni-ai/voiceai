@@ -795,7 +795,7 @@ class AnalyticsDashboardUI {
         max-height: 90vh;
         overflow-y: auto;
         background: var(--color-background-elevated);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 1.5rem);
         box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
       }
@@ -808,7 +808,7 @@ class AnalyticsDashboardUI {
         align-items: center;
         justify-content: space-between;
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .analytics__title {
@@ -1005,7 +1005,7 @@ class AnalyticsDashboardUI {
          ======================================================================== */
       .analytics__insights {
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       .analytics__insights h3 {
@@ -1029,7 +1029,7 @@ class AnalyticsDashboardUI {
         padding: var(--space-3, 12px) 0;
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .analytics__insight-item:last-child {
@@ -1096,7 +1096,7 @@ class AnalyticsDashboardUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         color: var(--color-text-secondary);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .analytics__insights-list li:last-child {
@@ -1152,7 +1152,7 @@ class AnalyticsDashboardUI {
       }
 
       .analytics__grid-line {
-        stroke: var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+        stroke: var(--color-border-subtle);
         stroke-dasharray: 4 4;
       }
 
@@ -1220,7 +1220,7 @@ class AnalyticsDashboardUI {
       .analytics__loading-spinner {
         width: 32px;
         height: 32px;
-        border: 3px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+        border: 3px solid var(--color-border-subtle);
         border-top-color: var(--color-accent-primary);
         border-radius: 50%;
         animation: analytics-spin 0.8s linear infinite;
@@ -1457,7 +1457,7 @@ class AnalyticsDashboardUI {
          ======================================================================== */
       .analytics__growth-section {
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       .analytics__growth-section .analytics__section-header {

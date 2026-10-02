@@ -404,8 +404,8 @@ function getStyles(): string {
     }
 
     .action-card {
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 16px);
       box-shadow: var(--shadow-xl);
       overflow: hidden;
@@ -435,7 +435,7 @@ function getStyles(): string {
     }
 
     .action-card-success {
-      border-color: var(--color-success, #4a6741);
+      border-color: var(--color-success, var(--color-ferni));
     }
 
     .action-card-header {
@@ -450,7 +450,7 @@ function getStyles(): string {
       width: 40px;
       height: 40px;
       padding: var(--space-2);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-lg);
       color: var(--persona-ink);
       flex-shrink: 0;
@@ -613,8 +613,8 @@ function getStyles(): string {
     }
 
     .action-btn-approve {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .action-btn-approve:hover:not(:disabled) {
@@ -630,8 +630,8 @@ function getStyles(): string {
     .btn-loading {
       width: 16px;
       height: 16px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: white;
+      border: 2px solid color-mix(in srgb, var(--color-white) 30%, transparent);
+      border-top-color: var(--color-white);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
@@ -670,7 +670,7 @@ function getStyles(): string {
       padding: var(--space-4);
       font-size: var(--text-lg);
       font-weight: 600;
-      color: var(--color-success, #4a6741);
+      color: var(--color-success, var(--color-ferni));
     }
 
     .success-icon {

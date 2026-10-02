@@ -124,8 +124,8 @@ function injectStyles(): void {
       max-width: 420px;
       max-height: 85vh;
       overflow-y: auto;
-      background: var(--color-bg-elevated, #fffdfb);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
       box-shadow: var(--shadow-xl);
       transform: scale(0.95) translateY(10px);
@@ -141,7 +141,7 @@ function injectStyles(): void {
       align-items: flex-start;
       justify-content: space-between;
       padding: var(--space-6, 1.5rem) var(--space-6, 1.5rem) var(--space-4, 1rem);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .sleep-settings__title-group {
@@ -163,7 +163,7 @@ function injectStyles(): void {
       font-size: 1.5rem;
       font-weight: 600;
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .sleep-settings__close {
@@ -174,15 +174,15 @@ function injectStyles(): void {
       height: 40px;
       border: none;
       border-radius: var(--radius-full, 50%);
-      background: var(--color-background-tertiary, rgba(44, 37, 32, 0.04));
-      color: var(--color-text-secondary, #5a524c);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
 
     .sleep-settings__close:hover {
-      background: var(--color-background-secondary, rgba(44, 37, 32, 0.08));
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
     }
 
     .sleep-settings__content {
@@ -198,7 +198,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-4, 1rem);
       padding: var(--space-4, 1rem);
-      background: var(--color-background-tertiary, rgba(44, 37, 32, 0.04));
+      background: var(--color-background-tertiary);
       border-radius: var(--radius-lg, 12px);
     }
 
@@ -212,13 +212,13 @@ function injectStyles(): void {
 
     .sleep-settings__preview-name {
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
     .sleep-settings__preview-desc {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #5a524c);
+      color: var(--color-text-secondary);
       margin: 0;
     }
 
@@ -234,7 +234,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 0.5rem);
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .sleep-settings__time-label svg {
@@ -253,7 +253,7 @@ function injectStyles(): void {
       flex: 1;
       height: 8px;
       border-radius: 4px;
-      background: var(--color-background-secondary, rgba(44, 37, 32, 0.08));
+      background: var(--color-background-secondary);
       -webkit-appearance: none;
       appearance: none;
       cursor: pointer;
@@ -264,8 +264,8 @@ function injectStyles(): void {
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: var(--persona-primary, #4a6741);
-      border: 3px solid white;
+      background: var(--persona-primary, var(--color-ferni));
+      border: 3px solid var(--color-white);
       box-shadow: var(--shadow-sm);
       cursor: grab;
       transition: transform ${DURATION.FAST}ms;
@@ -285,7 +285,7 @@ function injectStyles(): void {
       text-align: right;
       font-weight: 600;
       font-variant-numeric: tabular-nums;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     /* Toggles */
@@ -300,14 +300,14 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-3, 0.75rem);
       padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
-      background: var(--color-background-tertiary, rgba(44, 37, 32, 0.04));
+      background: var(--color-background-tertiary);
       border-radius: var(--radius-lg, 12px);
       cursor: pointer;
       transition: background ${DURATION.FAST}ms;
     }
 
     .sleep-settings__toggle:hover {
-      background: var(--color-background-secondary, rgba(44, 37, 32, 0.08));
+      background: var(--color-background-secondary);
     }
 
     .sleep-settings__toggle-icon {
@@ -317,13 +317,13 @@ function injectStyles(): void {
       align-items: center;
       justify-content: center;
       border-radius: var(--radius-md, 8px);
-      background: var(--color-background-elevated, #fffdfb);
-      color: var(--color-text-secondary, #5a524c);
+      background: var(--color-background-elevated);
+      color: var(--color-text-secondary);
     }
 
     .sleep-settings__toggle--active .sleep-settings__toggle-icon {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .sleep-settings__toggle-info {
@@ -332,13 +332,13 @@ function injectStyles(): void {
 
     .sleep-settings__toggle-name {
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
     .sleep-settings__toggle-desc {
       font-size: 0.8125rem;
-      color: var(--color-text-secondary, #5a524c);
+      color: var(--color-text-secondary);
       margin: 0;
     }
 
@@ -346,13 +346,13 @@ function injectStyles(): void {
       width: 44px;
       height: 24px;
       border-radius: 12px;
-      background: var(--color-background-secondary, rgba(44, 37, 32, 0.12));
+      background: var(--color-background-secondary);
       position: relative;
       transition: background ${DURATION.FAST}ms;
     }
 
     .sleep-settings__toggle--active .sleep-settings__toggle-switch {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
     }
 
     .sleep-settings__toggle-switch::after {
@@ -363,7 +363,7 @@ function injectStyles(): void {
       width: 20px;
       height: 20px;
       border-radius: 50%;
-      background: white;
+      background: var(--color-white);
       box-shadow: var(--shadow-xs);
       transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
     }
@@ -377,7 +377,7 @@ function injectStyles(): void {
       display: flex;
       gap: var(--space-3, 0.75rem);
       padding-top: var(--space-4, 1rem);
-      border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-top: 1px solid var(--color-border-subtle);
     }
 
     .sleep-settings__btn {
@@ -395,22 +395,22 @@ function injectStyles(): void {
     }
 
     .sleep-settings__btn--secondary {
-      background: var(--color-background-tertiary, rgba(44, 37, 32, 0.04));
-      color: var(--color-text-secondary, #5a524c);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-secondary);
     }
 
     .sleep-settings__btn--secondary:hover {
-      background: var(--color-background-secondary, rgba(44, 37, 32, 0.08));
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
     }
 
     .sleep-settings__btn--primary {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .sleep-settings__btn--primary:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
     }
 
     .sleep-settings__btn svg {
@@ -421,11 +421,11 @@ function injectStyles(): void {
     /* Dark theme */
     [data-theme="midnight"] .sleep-settings__panel {
       background: var(--color-bg-elevated, #1a1a1f);
-      border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+      border-color: var(--color-border-subtle);
     }
 
     [data-theme="midnight"] .sleep-settings__backdrop {
-      background: rgba(0, 0, 0, 0.8);
+      background: color-mix(in srgb, var(--color-black) 80%, transparent);
     }
   `;
   document.head.appendChild(styles);

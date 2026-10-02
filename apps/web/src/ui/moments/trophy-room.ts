@@ -737,7 +737,7 @@ const TROPHY_ROOM_STYLES = `
   width: clamp(320px, 90vw, 480px);
   max-height: calc(100vh - 48px);
   max-height: calc(100dvh - 48px);
-  background: var(--color-background-elevated, #FFFDFB);
+  background: var(--color-background-elevated);
   border-radius: var(--radius-2xl, 24px);
   overflow: hidden;
   display: flex;
@@ -771,20 +771,20 @@ const TROPHY_ROOM_STYLES = `
   width: 36px;
   height: 36px;
   border: none;
-  background: var(--color-background-secondary, #f5f3f0);
+  background: var(--color-background-secondary);
   border-radius: var(--radius-full, 9999px);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted, #7a6f63);
+  color: var(--color-text-muted);
   transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
   z-index: 10;
 }
 
 .trophy-room__close:hover {
-  background: var(--color-background-tertiary, #ebe8e3);
-  color: var(--color-text-primary, #2C2520);
+  background: var(--color-background-tertiary);
+  color: var(--color-text-primary);
 }
 
 .trophy-room__close svg {
@@ -811,13 +811,13 @@ const TROPHY_ROOM_STYLES = `
   font-family: var(--font-display, 'Plus Jakarta Sans');
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   margin: 0 0 var(--space-1, 4px) 0;
 }
 
 .trophy-room__subtitle {
   font-size: 0.875rem;
-  color: var(--color-text-secondary, #5a5048);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -852,7 +852,7 @@ const TROPHY_ROOM_STYLES = `
 
 .trophy-room__tab--active {
   opacity: 1;
-  border-bottom-color: var(--persona-primary, #4a6741);
+  border-bottom-color: var(--persona-primary, var(--color-ferni));
 }
 
 .trophy-room__tab-icon {
@@ -862,7 +862,7 @@ const TROPHY_ROOM_STYLES = `
 .trophy-room__tab-label {
   font-size: 0.7rem;
   font-weight: 500;
-  color: var(--color-text-secondary, #5a5048);
+  color: var(--color-text-secondary);
 }
 
 .trophy-room__grid {
@@ -881,7 +881,7 @@ const TROPHY_ROOM_STYLES = `
   align-items: center;
   gap: var(--space-2, 8px);
   padding: var(--space-4, 16px);
-  background: var(--color-background-secondary, #faf8f5);
+  background: var(--color-background-secondary);
   border-radius: var(--radius-xl, 16px);
   cursor: pointer;
   transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -889,7 +889,7 @@ const TROPHY_ROOM_STYLES = `
 }
 
 .trophy-room__badge:not(.trophy-room__badge--locked):hover {
-  background: var(--color-background-tertiary, #f5f2ed);
+  background: var(--color-background-tertiary);
   transform: translateY(-2px);
 }
 
@@ -911,7 +911,7 @@ const TROPHY_ROOM_STYLES = `
 }
 
 .trophy-room__badge--locked .trophy-room__badge-icon {
-  color: var(--color-text-muted, #7a6f63);
+  color: var(--color-text-muted);
 }
 
 .trophy-room__badge--locked .trophy-room__badge-icon svg {
@@ -922,17 +922,17 @@ const TROPHY_ROOM_STYLES = `
 .trophy-room__badge-name {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   text-align: center;
 }
 
 .trophy-room__badge--locked .trophy-room__badge-name {
-  color: var(--color-text-muted, #7a6f63);
+  color: var(--color-text-muted);
 }
 
 .trophy-room__badge-date {
   font-size: 0.625rem;
-  color: var(--color-text-muted, #7a6f63);
+  color: var(--color-text-muted);
 }
 
 /* Detail Modal */
@@ -957,13 +957,13 @@ const TROPHY_ROOM_STYLES = `
 .trophy-room__detail-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: color-mix(in srgb, var(--color-black) 50%, transparent);
 }
 
 .trophy-room__detail-card {
   position: relative;
   width: clamp(280px, 85vw, 360px);
-  background: var(--color-background-elevated, #FFFDFB);
+  background: var(--color-background-elevated);
   border-radius: var(--radius-2xl, 24px);
   padding: var(--space-8, 32px);
   text-align: center;
@@ -986,19 +986,19 @@ const TROPHY_ROOM_STYLES = `
   width: 32px;
   height: 32px;
   border: none;
-  background: var(--color-background-secondary, #f5f3f0);
+  background: var(--color-background-secondary);
   border-radius: var(--radius-full, 9999px);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted, #7a6f63);
+  color: var(--color-text-muted);
   transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
 }
 
 .trophy-room__detail-close:hover {
-  background: var(--color-background-tertiary, #ebe8e3);
-  color: var(--color-text-primary, #2C2520);
+  background: var(--color-background-tertiary);
+  color: var(--color-text-primary);
 }
 
 .trophy-room__detail-close svg {
@@ -1023,25 +1023,25 @@ const TROPHY_ROOM_STYLES = `
   font-family: var(--font-display, 'Plus Jakarta Sans');
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   margin: 0 0 var(--space-2, 8px) 0;
 }
 
 .trophy-room__detail-description {
   font-size: 0.875rem;
-  color: var(--color-text-secondary, #5a5048);
+  color: var(--color-text-secondary);
   margin: 0 0 var(--space-4, 16px) 0;
 }
 
 .trophy-room__detail-quote {
   font-size: 0.875rem;
   font-style: italic;
-  color: var(--color-text-secondary, #5a5048);
+  color: var(--color-text-secondary);
   margin: 0 0 var(--space-4, 16px) 0;
   padding: var(--space-4, 16px);
-  background: var(--color-background-secondary, #faf8f5);
+  background: var(--color-background-secondary);
   border-radius: var(--radius-lg, 12px);
-  border-left: 3px solid var(--persona-primary, #4a6741);
+  border-left: 3px solid var(--persona-primary, var(--color-ferni));
 }
 
 .trophy-room__detail-quote cite {
@@ -1054,7 +1054,7 @@ const TROPHY_ROOM_STYLES = `
 
 .trophy-room__detail-date {
   font-size: 0.75rem;
-  color: var(--color-text-muted, #7a6f63);
+  color: var(--color-text-muted);
   margin-bottom: var(--space-4, 16px);
 }
 
@@ -1063,8 +1063,8 @@ const TROPHY_ROOM_STYLES = `
   align-items: center;
   gap: var(--space-2, 8px);
   padding: var(--space-3, 12px) var(--space-5, 20px);
-  background: var(--persona-primary, #4a6741);
-  color: white;
+  background: var(--persona-primary, var(--color-ferni));
+  color: var(--color-white);
   border: none;
   border-radius: var(--radius-lg, 12px);
   font-size: 0.875rem;
@@ -1074,7 +1074,7 @@ const TROPHY_ROOM_STYLES = `
 }
 
 .trophy-room__detail-share:hover {
-  background: var(--persona-secondary, #3d5a35);
+  background: var(--persona-secondary, var(--color-ferni-secondary));
   transform: translateY(-1px);
 }
 
@@ -1086,23 +1086,23 @@ const TROPHY_ROOM_STYLES = `
 /* Dark Theme */
 @media (prefers-color-scheme: dark) {
   .trophy-room__container {
-    background: var(--color-background-elevated, #3a3330);
+    background: var(--color-background-elevated);
   }
   
   .trophy-room__detail-card {
-    background: var(--color-background-elevated, #3a3330);
+    background: var(--color-background-elevated);
   }
   
   .trophy-room__badge {
-    background: var(--color-background-secondary, #2a2520);
+    background: var(--color-background-secondary);
   }
   
   .trophy-room__badge:not(.trophy-room__badge--locked):hover {
-    background: var(--color-background-tertiary, #3a3530);
+    background: var(--color-background-tertiary);
   }
   
   .trophy-room__detail-quote {
-    background: var(--color-background-secondary, #2a2520);
+    background: var(--color-background-secondary);
   }
 }
 

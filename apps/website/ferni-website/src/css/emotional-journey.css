@@ -12,10 +12,10 @@
   
   background: linear-gradient(
     180deg,
-    rgba(245, 241, 232, 0.5) 0%,
-    rgba(255, 255, 255, 0.8) 100%
+    color-mix(in srgb, var(--color-sand-light) 50%, transparent) 0%,
+    color-mix(in srgb, var(--color-white) 80%, transparent) 100%
   );
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   padding: var(--journey-padding);
   position: relative;
   overflow: hidden;
@@ -28,12 +28,12 @@
   inset: 0;
   background-image: radial-gradient(
     circle at 20% 30%,
-    rgba(74, 103, 65, 0.03) 0%,
+    color-mix(in srgb, var(--color-ferni) 3%, transparent) 0%,
     transparent 50%
   ),
   radial-gradient(
     circle at 80% 70%,
-    rgba(58, 107, 115, 0.03) 0%,
+    color-mix(in srgb, var(--color-peter) 3%, transparent) 0%,
     transparent 50%
   );
   pointer-events: none;
@@ -51,16 +51,16 @@
 }
 
 .emotional-journey__title {
-  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-family: var(--font-display);
   font-size: var(--text-2xl);
   font-weight: 600;
-  color: var(--color-text-primary, var(--color-text-primary));
+  color: var(--color-text-primary);
   margin: 0 0 8px;
 }
 
 .emotional-journey__subtitle {
   font-size: var(--text-base);
-  color: var(--color-text-secondary, var(--color-text-secondary));
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -89,8 +89,8 @@
   opacity: 0;
   transform: translateY(20px);
   transition: 
-    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity var(--duration-deliberate) var(--ease-cinematic),
+    transform var(--duration-deliberate) var(--ease-cinematic);
   transition-delay: var(--animation-delay, 0ms);
   cursor: pointer;
 }
@@ -113,7 +113,7 @@
   inset: 4px;
   background: var(--emotion-color, var(--color-text-secondary));
   border-radius: 50%;
-  transition: transform 0.3s ease;
+  transition: transform var(--duration-slow) ease;
 }
 
 .emotional-journey__pulse {
@@ -146,7 +146,7 @@
   display: block;
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--color-text-secondary, var(--color-text-secondary));
+  color: var(--color-text-secondary);
   margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -166,18 +166,17 @@
   left: 50%;
   transform: translateX(-50%) translateY(8px);
   width: 280px;
-  background: white;
+  background: var(--color-white);
   border-radius: var(--radius-md);
   padding: 16px;
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.12),
-    0 0 0 1px rgba(0, 0, 0, 0.04);
+    var(--shadow-xl);
   opacity: 0;
   visibility: hidden;
   transition: 
-    opacity 0.2s ease,
-    visibility 0.2s ease,
-    transform 0.2s ease;
+    opacity var(--duration-normal) ease,
+    visibility var(--duration-normal) ease,
+    transform var(--duration-normal) ease;
   z-index: 100;
 }
 
@@ -190,16 +189,16 @@
 
 .emotional-journey__message {
   font-size: var(--text-sm);
-  color: var(--color-text-secondary, var(--color-text-secondary));
+  color: var(--color-text-secondary);
   font-style: italic;
   margin: 0 0 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-black) 6%, transparent);
 }
 
 .emotional-journey__response {
   font-size: var(--text-sm);
-  color: var(--color-ferni, var(--color-ferni));
+  color: var(--color-ferni-text);
   margin: 0;
 }
 
@@ -220,8 +219,8 @@
   transform: scaleX(0);
   transform-origin: left center;
   transition: 
-    opacity 0.6s ease 0.5s,
-    transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+    opacity var(--duration-deliberate) ease var(--duration-slowest),
+    transform var(--duration-dramatic) var(--ease-cinematic) var(--duration-slow);
 }
 
 .emotional-journey.is-animating .emotional-journey__wave {
@@ -240,7 +239,7 @@
 }
 
 .emotional-journey.is-animating .emotional-journey__wave-path {
-  animation: wave-draw 2s ease-out 0.5s forwards;
+  animation: wave-draw 2s ease-out var(--duration-slowest) forwards;
 }
 
 @keyframes wave-draw {
@@ -259,7 +258,7 @@
   gap: 24px;
   flex-wrap: wrap;
   opacity: 0;
-  transition: opacity 0.5s ease 1s;
+  transition: opacity var(--duration-slowest) ease var(--duration-dramatic);
 }
 
 .emotional-journey.is-animating .emotional-journey__legend {
@@ -280,7 +279,7 @@
 
 .emotional-journey__legend-label {
   font-size: var(--text-xs);
-  color: var(--color-text-secondary, var(--color-text-secondary));
+  color: var(--color-text-secondary);
 }
 
 /* ============================================================================

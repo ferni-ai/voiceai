@@ -380,7 +380,7 @@ permalink: /sounds-haptics/
         <div class="haptic-pattern-card">
           <div class="pattern-waveform ferni-breath">
             <svg viewBox="0 0 200 50" preserveAspectRatio="none">
-              <path d="M0,25 Q25,10 50,25 T100,25 T150,25 T200,25" fill="none" stroke="var(--color-ferni)" stroke-width="2"/>
+              <path d="M0,25 Q25,10 50,25 T100,25 T150,25 T200,25" fill="none" stroke="var(--persona-ferni)" stroke-width="2"/>
             </svg>
           </div>
           <h4>Ferni Breath</h4>
@@ -396,7 +396,7 @@ permalink: /sounds-haptics/
         <div class="haptic-pattern-card">
           <div class="pattern-waveform warm-pulse">
             <svg viewBox="0 0 200 50" preserveAspectRatio="none">
-              <path d="M0,40 Q50,10 100,25 Q150,40 200,40" fill="none" stroke="var(--color-maya)" stroke-width="2"/>
+              <path d="M0,40 Q50,10 100,25 Q150,40 200,40" fill="none" stroke="var(--persona-maya)" stroke-width="2"/>
             </svg>
           </div>
           <h4>Warm Pulse</h4>
@@ -412,7 +412,7 @@ permalink: /sounds-haptics/
         <div class="haptic-pattern-card">
           <div class="pattern-waveform heartbeat">
             <svg viewBox="0 0 200 50" preserveAspectRatio="none">
-              <path d="M0,25 L20,25 L30,10 L40,40 L50,25 L80,25 L90,15 L100,35 L110,25 L200,25" fill="none" stroke="var(--color-jordan)" stroke-width="2"/>
+              <path d="M0,25 L20,25 L30,10 L40,40 L50,25 L80,25 L90,15 L100,35 L110,25 L200,25" fill="none" stroke="var(--persona-jordan)" stroke-width="2"/>
             </svg>
           </div>
           <h4>Heartbeat</h4>
@@ -428,7 +428,7 @@ permalink: /sounds-haptics/
         <div class="haptic-pattern-card">
           <div class="pattern-waveform slow-breath">
             <svg viewBox="0 0 200 50" preserveAspectRatio="none">
-              <path d="M0,40 Q100,5 200,40" fill="none" stroke="var(--color-nayan)" stroke-width="2"/>
+              <path d="M0,40 Q100,5 200,40" fill="none" stroke="var(--persona-nayan)" stroke-width="2"/>
             </svg>
           </div>
           <h4>Slow Breath</h4>
@@ -444,7 +444,7 @@ permalink: /sounds-haptics/
         <div class="haptic-pattern-card">
           <div class="pattern-waveform quick-breath">
             <svg viewBox="0 0 200 50" preserveAspectRatio="none">
-              <path d="M0,40 Q30,10 60,25 Q90,35 120,40 L200,40" fill="none" stroke="var(--color-peter)" stroke-width="2"/>
+              <path d="M0,40 Q30,10 60,25 Q90,35 120,40 L200,40" fill="none" stroke="var(--persona-peter)" stroke-width="2"/>
             </svg>
           </div>
           <h4>Quick Breath</h4>
@@ -792,7 +792,7 @@ function playFerniBreath() {
 }
 
 .sound-card.celebration {
-  border-left: 3px solid var(--color-jordan);
+  border-left: 3px solid var(--persona-jordan);
 }
 
 .sound-header {
@@ -810,7 +810,7 @@ function playFerniBreath() {
 
 .sound-duration {
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
   font-family: var(--font-mono);
 }
 
@@ -829,12 +829,12 @@ function playFerniBreath() {
 }
 
 .sound-tag.loop {
-  background: var(--color-peter);
+  background: var(--persona-peter);
 }
 
 .sound-volume {
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
 }
 
 .sound-desc {
@@ -848,12 +848,12 @@ function playFerniBreath() {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--duration-normal) ease;
 }
 
 .sound-play:hover {
@@ -880,29 +880,29 @@ function playFerniBreath() {
   align-items: start;
 }
 
-.persona-sound-card[data-persona="ferni"] { border-left: 3px solid var(--color-ferni); }
-.persona-sound-card[data-persona="maya"] { border-left: 3px solid var(--color-maya); }
-.persona-sound-card[data-persona="peter"] { border-left: 3px solid var(--color-peter); }
-.persona-sound-card[data-persona="alex"] { border-left: 3px solid var(--color-alex); }
-.persona-sound-card[data-persona="jordan"] { border-left: 3px solid var(--color-jordan); }
-.persona-sound-card[data-persona="nayan"] { border-left: 3px solid var(--color-nayan); }
+.persona-sound-card[data-persona="ferni"] { border-left: 3px solid var(--persona-ferni); }
+.persona-sound-card[data-persona="maya"] { border-left: 3px solid var(--persona-maya); }
+.persona-sound-card[data-persona="peter"] { border-left: 3px solid var(--persona-peter); }
+.persona-sound-card[data-persona="alex"] { border-left: 3px solid var(--persona-alex); }
+.persona-sound-card[data-persona="jordan"] { border-left: 3px solid var(--persona-jordan); }
+.persona-sound-card[data-persona="nayan"] { border-left: 3px solid var(--persona-nayan); }
 
 .persona-avatar {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-lg);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.persona-sound-card[data-persona="ferni"] .persona-avatar { color: var(--color-ferni); }
-.persona-sound-card[data-persona="maya"] .persona-avatar { color: var(--color-maya); }
-.persona-sound-card[data-persona="peter"] .persona-avatar { color: var(--color-peter); }
-.persona-sound-card[data-persona="alex"] .persona-avatar { color: var(--color-alex); }
-.persona-sound-card[data-persona="jordan"] .persona-avatar { color: var(--color-jordan); }
-.persona-sound-card[data-persona="nayan"] .persona-avatar { color: var(--color-nayan); }
+.persona-sound-card[data-persona="ferni"] .persona-avatar { color: var(--persona-ferni-text); }
+.persona-sound-card[data-persona="maya"] .persona-avatar { color: var(--persona-maya-text); }
+.persona-sound-card[data-persona="peter"] .persona-avatar { color: var(--persona-peter-text); }
+.persona-sound-card[data-persona="alex"] .persona-avatar { color: var(--persona-alex-text); }
+.persona-sound-card[data-persona="jordan"] .persona-avatar { color: var(--persona-jordan-text); }
+.persona-sound-card[data-persona="nayan"] .persona-avatar { color: var(--persona-nayan-text); }
 
 .persona-sound-info {
   display: flex;
@@ -916,7 +916,7 @@ function playFerniBreath() {
 
 .persona-duration {
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
   font-family: var(--font-mono);
 }
 
@@ -947,19 +947,19 @@ function playFerniBreath() {
 }
 
 .ambient-visual.zen-garden {
-  background: linear-gradient(135deg, #4a6741 0%, #5a8a62 50%, #3a5a4a 100%);
+  background: linear-gradient(135deg, var(--persona-ferni) 0%, var(--persona-ferni) 50%, var(--persona-marcus) 100%);
 }
 
 .ambient-visual.cozy-interior {
-  background: linear-gradient(135deg, #a67a6a 0%, #c4a080 50%, #8a6a5a 100%);
+  background: linear-gradient(135deg, var(--persona-maya) 0%, var(--persona-nayan) 50%, var(--persona-maya) 100%);
 }
 
 .ambient-visual.focused-calm {
-  background: linear-gradient(135deg, #5a6b8a 0%, #7a8ba0 50%, #4a5a7a 100%);
+  background: linear-gradient(135deg, var(--persona-alex) 0%, var(--persona-alex) 50%, var(--persona-alex) 100%);
 }
 
 .ambient-visual.night-mode {
-  background: linear-gradient(135deg, #1a1a2e 0%, #2a2a4e 50%, #16213e 100%);
+  background: linear-gradient(135deg, var(--persona-kenji) 0%, var(--persona-kenji) 50%, var(--persona-kenji) 100%);
 }
 
 .ambient-info {
@@ -973,7 +973,7 @@ function playFerniBreath() {
 .ambient-duration,
 .ambient-volume {
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
   margin-right: var(--space-3);
 }
 
@@ -1009,7 +1009,7 @@ function playFerniBreath() {
 
 .intensity-bar {
   height: 8px;
-  background: linear-gradient(90deg, var(--accent-primary) var(--intensity), var(--bg-subtle) var(--intensity));
+  background: linear-gradient(90deg, var(--accent-primary) var(--intensity), var(--bg-secondary) var(--intensity));
   border-radius: var(--radius-full);
 }
 
@@ -1019,7 +1019,7 @@ function playFerniBreath() {
 
 .intensity-value {
   font-size: var(--text-sm);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
   font-family: var(--font-mono);
 }
 
@@ -1046,7 +1046,7 @@ function playFerniBreath() {
 .pattern-waveform {
   height: 50px;
   margin-bottom: var(--space-4);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-md);
   padding: var(--space-2);
 }
@@ -1064,7 +1064,7 @@ function playFerniBreath() {
   display: flex;
   gap: var(--space-3);
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
   margin-bottom: var(--space-3);
 }
 
@@ -1073,7 +1073,7 @@ function playFerniBreath() {
   margin-top: var(--space-3);
   font-size: var(--text-xs);
   padding: var(--space-2) var(--space-3);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-sm);
 }
 
@@ -1092,12 +1092,12 @@ function playFerniBreath() {
   border: 1px solid var(--border-subtle);
 }
 
-.persona-haptic-card[data-persona="ferni"] { border-top: 3px solid var(--color-ferni); }
-.persona-haptic-card[data-persona="maya"] { border-top: 3px solid var(--color-maya); }
-.persona-haptic-card[data-persona="peter"] { border-top: 3px solid var(--color-peter); }
-.persona-haptic-card[data-persona="alex"] { border-top: 3px solid var(--color-alex); }
-.persona-haptic-card[data-persona="jordan"] { border-top: 3px solid var(--color-jordan); }
-.persona-haptic-card[data-persona="nayan"] { border-top: 3px solid var(--color-nayan); }
+.persona-haptic-card[data-persona="ferni"] { border-top: 3px solid var(--persona-ferni); }
+.persona-haptic-card[data-persona="maya"] { border-top: 3px solid var(--persona-maya); }
+.persona-haptic-card[data-persona="peter"] { border-top: 3px solid var(--persona-peter); }
+.persona-haptic-card[data-persona="alex"] { border-top: 3px solid var(--persona-alex); }
+.persona-haptic-card[data-persona="jordan"] { border-top: 3px solid var(--persona-jordan); }
+.persona-haptic-card[data-persona="nayan"] { border-top: 3px solid var(--persona-nayan); }
 
 .persona-haptic-header {
   display: flex;
@@ -1112,12 +1112,12 @@ function playFerniBreath() {
   border-radius: var(--radius-full);
 }
 
-.persona-haptic-card[data-persona="ferni"] .persona-dot { background: var(--color-ferni); }
-.persona-haptic-card[data-persona="maya"] .persona-dot { background: var(--color-maya); }
-.persona-haptic-card[data-persona="peter"] .persona-dot { background: var(--color-peter); }
-.persona-haptic-card[data-persona="alex"] .persona-dot { background: var(--color-alex); }
-.persona-haptic-card[data-persona="jordan"] .persona-dot { background: var(--color-jordan); }
-.persona-haptic-card[data-persona="nayan"] .persona-dot { background: var(--color-nayan); }
+.persona-haptic-card[data-persona="ferni"] .persona-dot { background: var(--persona-ferni); }
+.persona-haptic-card[data-persona="maya"] .persona-dot { background: var(--persona-maya); }
+.persona-haptic-card[data-persona="peter"] .persona-dot { background: var(--persona-peter); }
+.persona-haptic-card[data-persona="alex"] .persona-dot { background: var(--persona-alex); }
+.persona-haptic-card[data-persona="jordan"] .persona-dot { background: var(--persona-jordan); }
+.persona-haptic-card[data-persona="nayan"] .persona-dot { background: var(--persona-nayan); }
 
 .persona-haptic-desc {
   font-size: var(--text-sm);
@@ -1136,7 +1136,7 @@ function playFerniBreath() {
   justify-content: space-between;
   align-items: center;
   padding: var(--space-2) var(--space-3);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
 }
@@ -1148,7 +1148,7 @@ function playFerniBreath() {
 .action-pattern {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
 }
 
 /* Emotional Haptic Grid */
@@ -1224,7 +1224,7 @@ function playFerniBreath() {
 
 .rule-card code {
   font-size: var(--text-xs);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   padding: 2px 6px;
   border-radius: var(--radius-sm);
 }

@@ -544,7 +544,7 @@ rituals.on('ritual:complete', (ritual) => {
 
 /* Philosophy Card */
 .philosophy-card {
-  background: linear-gradient(135deg, var(--bg-elevated), var(--bg-subtle));
+  background: linear-gradient(135deg, var(--bg-elevated), var(--bg-secondary));
   border-radius: var(--radius-xl);
   padding: var(--space-8);
   border: 1px solid var(--border-subtle);
@@ -578,7 +578,7 @@ rituals.on('ritual:complete', (ritual) => {
   border-radius: var(--radius-lg);
   padding: var(--space-5);
   border: 1px solid var(--border-subtle);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform var(--duration-normal), box-shadow var(--duration-normal);
 }
 
 .ritual-card:hover {
@@ -599,17 +599,17 @@ rituals.on('ritual:complete', (ritual) => {
   flex-shrink: 0;
 }
 
-.wake-icon { background: linear-gradient(135deg, #FFD93D, #FF9F1C); }
-.connection-icon { background: linear-gradient(135deg, var(--color-ferni), var(--color-peter)); }
-.listening-icon { background: linear-gradient(135deg, var(--color-peter), var(--color-alex)); }
-.persona-icon { background: linear-gradient(135deg, var(--color-maya), var(--color-jordan)); }
-.small-win-icon { background: linear-gradient(135deg, #4ADE80, #22C55E); }
-.big-win-icon { background: linear-gradient(135deg, #FBBF24, #F59E0B); }
-.streak-icon { background: linear-gradient(135deg, #F472B6, #EC4899); }
-.team-icon { background: linear-gradient(135deg, var(--color-nayan), var(--color-ferni)); }
-.deep-icon { background: linear-gradient(135deg, #818CF8, #6366F1); }
-.thinking-icon { background: linear-gradient(135deg, var(--color-maya), var(--color-alex)); }
-.goodbye-icon { background: linear-gradient(135deg, var(--color-jordan), var(--color-nayan)); }
+.wake-icon { background: linear-gradient(135deg, var(--accent-text), var(--warning)); }
+.connection-icon { background: linear-gradient(135deg, var(--persona-ferni), var(--persona-peter)); }
+.listening-icon { background: linear-gradient(135deg, var(--persona-peter), var(--persona-alex)); }
+.persona-icon { background: linear-gradient(135deg, var(--persona-maya), var(--persona-jordan)); }
+.small-win-icon { background: linear-gradient(135deg, var(--success), var(--success)); }
+.big-win-icon { background: linear-gradient(135deg, var(--warning), var(--warning)); }
+.streak-icon { background: linear-gradient(135deg, var(--persona-sasha), var(--persona-sasha)); }
+.team-icon { background: linear-gradient(135deg, var(--persona-nayan), var(--persona-ferni)); }
+.deep-icon { background: linear-gradient(135deg, var(--persona-amara), var(--persona-amara)); }
+.thinking-icon { background: linear-gradient(135deg, var(--persona-maya), var(--persona-alex)); }
+.goodbye-icon { background: linear-gradient(135deg, var(--persona-jordan), var(--persona-nayan)); }
 
 .ritual-meta h3 {
   margin: 0 0 var(--space-1);
@@ -619,8 +619,8 @@ rituals.on('ritual:complete', (ritual) => {
 .ritual-trigger {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
-  background: var(--bg-subtle);
+  color: var(--text-dimmed);
+  background: var(--bg-secondary);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
 }
@@ -638,7 +638,7 @@ rituals.on('ritual:complete', (ritual) => {
   gap: var(--space-2);
   margin-bottom: var(--space-4);
   padding: var(--space-3);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-md);
 }
 
@@ -656,10 +656,10 @@ rituals.on('ritual:complete', (ritual) => {
   flex-shrink: 0;
 }
 
-.step[data-type="glow"] .step-icon { background: linear-gradient(135deg, #FFD93D, #FF9F1C); }
-.step[data-type="audio"] .step-icon { background: linear-gradient(135deg, #60A5FA, #3B82F6); }
-.step[data-type="haptic"] .step-icon { background: linear-gradient(135deg, #A78BFA, #8B5CF6); }
-.step[data-type="visual"] .step-icon { background: linear-gradient(135deg, #4ADE80, #22C55E); }
+.step[data-type="glow"] .step-icon { background: linear-gradient(135deg, var(--accent-text), var(--warning)); }
+.step[data-type="audio"] .step-icon { background: linear-gradient(135deg, var(--info), var(--info)); }
+.step[data-type="haptic"] .step-icon { background: linear-gradient(135deg, var(--persona-amara), var(--persona-amara)); }
+.step[data-type="visual"] .step-icon { background: linear-gradient(135deg, var(--success), var(--success)); }
 
 .step-action {
   flex: 1;
@@ -669,7 +669,7 @@ rituals.on('ritual:complete', (ritual) => {
 
 .step-delay {
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
 }
 
 /* Ritual Footer */
@@ -687,23 +687,23 @@ rituals.on('ritual:complete', (ritual) => {
   font-weight: 600;
 }
 
-.emotion-badge.welcoming { background: rgba(74, 222, 128, 0.15); color: #22C55E; }
-.emotion-badge.reassuring { background: rgba(74, 103, 65, 0.15); color: var(--color-ferni); }
-.emotion-badge.attentive { background: rgba(58, 107, 115, 0.15); color: var(--color-peter); }
-.emotion-badge.introducing { background: rgba(166, 122, 106, 0.15); color: var(--color-maya); }
-.emotion-badge.proud { background: rgba(74, 222, 128, 0.15); color: #22C55E; }
-.emotion-badge.ecstatic { background: rgba(251, 191, 36, 0.15); color: #F59E0B; }
-.emotion-badge.impressed { background: rgba(244, 114, 182, 0.15); color: #EC4899; }
-.emotion-badge.supportive { background: rgba(129, 140, 248, 0.15); color: #6366F1; }
-.emotion-badge.caring { background: rgba(166, 122, 106, 0.15); color: var(--color-maya); }
-.emotion-badge.grateful { background: rgba(196, 133, 106, 0.15); color: var(--color-jordan); }
+.emotion-badge.welcoming { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success-text); }
+.emotion-badge.reassuring { background: color-mix(in srgb, var(--persona-ferni) 15%, transparent); color: var(--persona-ferni-text); }
+.emotion-badge.attentive { background: color-mix(in srgb, var(--persona-peter) 15%, transparent); color: var(--persona-peter-text); }
+.emotion-badge.introducing { background: color-mix(in srgb, var(--persona-maya) 15%, transparent); color: var(--persona-maya-text); }
+.emotion-badge.proud { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success-text); }
+.emotion-badge.ecstatic { background: color-mix(in srgb, var(--warning) 15%, transparent); color: var(--warning-text); }
+.emotion-badge.impressed { background: color-mix(in srgb, var(--persona-sasha) 15%, transparent); color: var(--persona-sasha-text); }
+.emotion-badge.supportive { background: color-mix(in srgb, var(--persona-amara) 15%, transparent); color: var(--persona-amara-text); }
+.emotion-badge.caring { background: color-mix(in srgb, var(--persona-maya) 15%, transparent); color: var(--persona-maya-text); }
+.emotion-badge.grateful { background: color-mix(in srgb, var(--persona-jordan) 15%, transparent); color: var(--persona-jordan-text); }
 
 .priority-badge,
 .subtle-badge,
 .cooldown-badge,
 .milestone-list {
   font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-dimmed);
 }
 
 .subtle-badge {
@@ -733,10 +733,10 @@ rituals.on('ritual:complete', (ritual) => {
   margin: 0 auto var(--space-4);
 }
 
-.glow-type { background: linear-gradient(135deg, #FFD93D, #FF9F1C); }
-.audio-type { background: linear-gradient(135deg, #60A5FA, #3B82F6); }
-.haptic-type { background: linear-gradient(135deg, #A78BFA, #8B5CF6); }
-.visual-type { background: linear-gradient(135deg, #4ADE80, #22C55E); }
+.glow-type { background: linear-gradient(135deg, var(--accent-text), var(--warning)); }
+.audio-type { background: linear-gradient(135deg, var(--info), var(--info)); }
+.haptic-type { background: linear-gradient(135deg, var(--persona-amara), var(--persona-amara)); }
+.visual-type { background: linear-gradient(135deg, var(--success), var(--success)); }
 
 .step-type-card h4 {
   margin-bottom: var(--space-2);
@@ -778,15 +778,15 @@ rituals.on('ritual:complete', (ritual) => {
 
 .option {
   padding: var(--space-2) var(--space-3);
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
 .option.active {
-  background: var(--color-accent);
-  color: white;
+  background: var(--accent-primary);
+  color: var(--text-inverse);
 }
 
 .preference-toggles {
@@ -815,14 +815,14 @@ rituals.on('ritual:complete', (ritual) => {
 .slider-track {
   flex: 1;
   height: 6px;
-  background: var(--bg-subtle);
+  background: var(--bg-secondary);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .slider-fill {
   height: 100%;
-  background: var(--color-accent);
+  background: var(--accent-primary);
   border-radius: var(--radius-full);
 }
 

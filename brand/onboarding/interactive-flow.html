@@ -8,12 +8,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Design System: Single source of truth -->
-    <link rel="stylesheet" href="../master-tokens.css">
+    <link rel="stylesheet" href="../ferni-design-tokens.css">
+    <link rel="stylesheet" href="../brand-base.css">
     <link rel="stylesheet" href="../brand-components.css">
     <style>
         /* Page-specific overrides only */
         :root {
-            --bg-phone: var(--color-natural-ink);
+            --bg-phone: var(--color-text-primary);
             --accent-warm: #C4A265;
         }
 
@@ -46,9 +47,9 @@
             align-items: center;
             justify-content: space-between;
             padding: var(--space-4) var(--space-8);
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--glass-blur));
-            -webkit-backdrop-filter: blur(var(--glass-blur));
+            background: var(--glass-thick-bg);
+            backdrop-filter: blur(var(--blur-glass));
+            -webkit-backdrop-filter: blur(var(--blur-glass));
             border-bottom: 1px solid var(--color-border-subtle);
             z-index: 1000;
         }
@@ -61,7 +62,7 @@
             color: var(--color-text-primary);
             font-family: var(--font-display);
             font-size: var(--text-base);
-            font-weight: var(--font-medium);
+            font-weight: var(--font-weight-medium);
         }
 
         .nav-logo svg {
@@ -87,8 +88,8 @@
         }
 
         .nav-current {
-            color: var(--color-ferni);
-            font-weight: var(--font-medium);
+            color: var(--color-ferni-text);
+            font-weight: var(--font-weight-medium);
             font-size: var(--text-sm);
         }
 
@@ -133,7 +134,7 @@
             padding: var(--space-10) var(--space-8);
             opacity: 0;
             transform: translateX(100%);
-            transition: all var(--duration-slow) var(--ease-out);
+            transition: all var(--duration-slower) var(--ease-out);
             text-align: center;
             background: var(--color-bg-elevated);
         }
@@ -199,8 +200,8 @@
            ============================================ */
         .title {
             font-family: var(--font-display);
-            font-size: var(--text-2xl);
-            font-weight: var(--font-normal);
+            font-size: var(--text-3xl);
+            font-weight: var(--font-weight-regular);
             margin-bottom: var(--space-5);
             line-height: var(--leading-tight);
             color: var(--color-text-primary);
@@ -208,7 +209,7 @@
 
         .subtitle {
             font-family: var(--font-body);
-            font-size: var(--text-lg);
+            font-size: var(--text-xl);
             color: var(--color-text-secondary);
             line-height: var(--leading-relaxed);
             margin-bottom: var(--space-8);
@@ -216,7 +217,7 @@
 
         .copy {
             font-family: var(--font-body);
-            font-size: var(--text-lg);
+            font-size: var(--text-xl);
             line-height: 1.8;
             color: var(--color-text-secondary);
         }
@@ -224,7 +225,7 @@
         .copy p {
             margin-bottom: var(--space-3);
             opacity: 0;
-            animation: fadeInUp var(--duration-slow) forwards;
+            animation: fadeInUp var(--duration-slower) forwards;
         }
 
         .screen.active .copy p:nth-child(1) { animation-delay: 0.3s; }
@@ -248,12 +249,12 @@
             border-radius: var(--radius-full);
             color: var(--color-text-inverted);
             font-size: var(--text-base);
-            font-weight: var(--font-medium);
+            font-weight: var(--font-weight-medium);
             cursor: pointer;
             transition: all var(--duration-normal) var(--ease-out);
             margin-top: var(--space-8);
             opacity: 0;
-            animation: fadeIn var(--duration-slow) 1.5s forwards;
+            animation: fadeIn var(--duration-slower) 1.5s forwards;
         }
 
         @keyframes fadeIn {
@@ -289,7 +290,7 @@
         .dot.active {
             background: var(--color-ferni);
             width: var(--space-6);
-            border-radius: var(--radius-sm);
+            border-radius: var(--radius-xs);
             border-color: transparent;
         }
 
@@ -302,7 +303,7 @@
 
         .screen-1 .hook-text {
             font-family: var(--font-display);
-            font-size: var(--text-xl);
+            font-size: var(--text-2xl);
             font-weight: var(--font-light);
             color: var(--color-text-primary);
             opacity: 0;
@@ -313,7 +314,7 @@
         .screen-1 .hook-text:nth-child(3) { animation-delay: 1s; }
         .screen-1 .hook-text:nth-child(4) {
             animation-delay: 1.8s;
-            font-size: var(--text-2xl);
+            font-size: var(--text-3xl);
             color: var(--color-text-secondary);
         }
 
@@ -400,7 +401,7 @@
             justify-content: center;
             opacity: 0;
             transform: scale(0);
-            transition: all 0.4s var(--ease-spring);
+            transition: all 0.4s var(--ease-ease-out-back);
             box-shadow: var(--shadow-md);
         }
 
@@ -417,7 +418,7 @@
         /* Accessibility: Dark icons on light persona backgrounds (Jordan, Nayan) */
         .team-avatar[style*="color-jordan"] svg,
         .team-avatar[style*="color-nayan"] svg {
-            stroke: var(--color-natural-ink);
+            stroke: var(--color-text-primary);
         }
 
         .team-avatar.visible {
@@ -436,7 +437,7 @@
             color: var(--color-text-secondary);
             margin-top: var(--space-2);
             min-height: var(--space-6);
-            font-weight: var(--font-medium);
+            font-weight: var(--font-weight-medium);
         }
 
         /* ============================================
@@ -447,7 +448,7 @@
         }
 
         .screen-6 .copy p:last-child {
-            font-weight: var(--font-medium);
+            font-weight: var(--font-weight-medium);
             color: var(--color-text-primary);
         }
 
@@ -473,9 +474,9 @@
         .nav-btn {
             font-family: var(--font-body);
             padding: var(--space-2) var(--space-6);
-            background: var(--glass-bg);
+            background: var(--glass-thick-bg);
             border: 1px solid var(--color-border-subtle);
-            border-radius: var(--radius-xl);
+            border-radius: var(--radius-lg);
             color: var(--color-text-secondary);
             cursor: pointer;
             transition: all var(--duration-normal);
@@ -518,9 +519,9 @@
             right: 0;
             padding: var(--space-8) var(--space-6);
             text-align: center;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--glass-blur));
-            -webkit-backdrop-filter: blur(var(--glass-blur));
+            background: var(--glass-thick-bg);
+            backdrop-filter: blur(var(--blur-glass));
+            -webkit-backdrop-filter: blur(var(--blur-glass));
             border-top: 1px solid var(--color-border-subtle);
             display: none; /* Hidden during onboarding demo */
         }
@@ -555,7 +556,7 @@
         }
 
         .footer-links a:hover {
-            color: var(--color-ferni);
+            color: var(--color-ferni-text);
         }
 
         .footer-copyright {
@@ -645,17 +646,17 @@
 
             <!-- Screen 5: Meet the Team -->
             <div class="screen" data-screen="5">
-                <div class="title" style="font-size: var(--text-xl);">I have a team.</div>
+                <div class="title" style="font-size: var(--text-2xl);">I have a team.</div>
                 <div class="team-avatars">
                     <!-- Ferni - Heart/Core (leaf icon) -->
-                    <div class="team-avatar" style="background: var(--color-ferni); color: var(--color-ferni);" data-name="Ferni - The Heart">
+                    <div class="team-avatar" style="background: var(--color-ferni); color: var(--color-ferni-text);" data-name="Ferni - The Heart">
                         <svg viewBox="0 0 24 24">
                             <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
                             <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
                         </svg>
                     </div>
                     <!-- Maya - Habits (seedling/sprout icon) -->
-                    <div class="team-avatar" style="background: var(--color-maya); color: var(--color-maya);" data-name="Maya - Habits Coach">
+                    <div class="team-avatar" style="background: var(--color-maya); color: var(--color-maya-text);" data-name="Maya - Habits Coach">
                         <svg viewBox="0 0 24 24">
                             <path d="M7 20h10"/>
                             <path d="M10 20c5.5-2.5.8-6.4 3-10"/>
@@ -664,7 +665,7 @@
                         </svg>
                     </div>
                     <!-- Peter - Patterns (chart/analytics icon) -->
-                    <div class="team-avatar" style="background: var(--color-peter); color: var(--color-peter);" data-name="Peter - The Quant">
+                    <div class="team-avatar" style="background: var(--color-peter); color: var(--color-peter-text);" data-name="Peter - The Quant">
                         <svg viewBox="0 0 24 24">
                             <line x1="12" y1="20" x2="12" y2="10"/>
                             <line x1="18" y1="20" x2="18" y2="4"/>
@@ -672,14 +673,14 @@
                         </svg>
                     </div>
                     <!-- Jordan - Milestones (flag/target icon) -->
-                    <div class="team-avatar" style="background: var(--color-jordan); color: var(--color-jordan);" data-name="Jordan - Lifetime Planner">
+                    <div class="team-avatar" style="background: var(--color-jordan); color: var(--color-jordan-text);" data-name="Jordan - Lifetime Planner">
                         <svg viewBox="0 0 24 24">
                             <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
                             <line x1="4" y1="22" x2="4" y2="15"/>
                         </svg>
                     </div>
                     <!-- Alex - Words (message/pen icon) -->
-                    <div class="team-avatar" style="background: var(--color-alex); color: var(--color-alex);" data-name="Alex - Chief of Staff">
+                    <div class="team-avatar" style="background: var(--color-alex); color: var(--color-alex-text);" data-name="Alex - Chief of Staff">
                         <svg viewBox="0 0 24 24">
                             <path d="M12 19l7-7 3 3-7 7-3-3z"/>
                             <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
@@ -688,7 +689,7 @@
                         </svg>
                     </div>
                     <!-- Nayan - Wisdom (sunrise/enlightenment icon) -->
-                    <div class="team-avatar" style="background: var(--color-nayan); color: var(--color-nayan);" data-name="Nayan - The Sage">
+                    <div class="team-avatar" style="background: var(--color-nayan); color: var(--color-nayan-text);" data-name="Nayan - The Sage">
                         <svg viewBox="0 0 24 24">
                             <path d="M12 2v8"/>
                             <path d="m4.93 10.93 1.41 1.41"/>

@@ -17,15 +17,11 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-spring-heavy: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  --ease-gentle: cubic-bezier(0.4, 0.0, 0.2, 1);
-  --ease-organic: cubic-bezier(0.23, 1, 0.32, 1);
   
-  --glow-sage: rgba(74, 103, 65, 0.4);
-  --glow-teal: rgba(58, 107, 115, 0.45);
-  --glow-warm: rgba(255, 180, 120, 0.45);
-  --glow-golden: rgba(196, 162, 101, 0.5);
+  --glow-sage: color-mix(in srgb, var(--color-ferni) 40%, transparent);
+  --glow-teal: color-mix(in srgb, var(--color-peter) 45%, transparent);
+  --glow-warm: color-mix(in srgb, var(--color-peach-warm) 45%, transparent);
+  --glow-golden: color-mix(in srgb, var(--color-tea-light) 50%, transparent);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -37,11 +33,11 @@
   position: relative;
   width: var(--size);
   height: var(--size);
-  margin: 0 auto var(--space-8, 32px);
+  margin: 0 auto var(--space-8);
   cursor: pointer;
   z-index: 10;
   transform-origin: center bottom;
-  transition: transform 0.4s var(--ease-spring);
+  transition: transform var(--duration-slower) var(--ease-ease-out-back);
 }
 
 .avatar-svg {
@@ -59,7 +55,7 @@
   stroke: var(--ferni, var(--color-ferni));
   stroke-width: 1.5;
   opacity: 0.3;
-  transition: all 0.4s var(--ease-gentle);
+  transition: all var(--duration-slower) var(--ease-standard);
   transform-origin: center center;
 }
 
@@ -69,7 +65,7 @@
   stroke-width: 3;
   filter: blur(4px);
   opacity: 0.4;
-  transition: all 0.5s ease;
+  transition: all var(--duration-slowest) ease;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -104,22 +100,22 @@
   /* Smooth eye shape changes - the heart of Luxo expression! 
      SVG attributes like rx/ry need explicit transition properties */
   transition: 
-    rx 0.4s var(--ease-spring),
-    ry 0.4s var(--ease-spring),
-    transform 0.4s var(--ease-spring);
+    rx var(--duration-slower) var(--ease-ease-out-back),
+    ry var(--duration-slower) var(--ease-ease-out-back),
+    transform var(--duration-slower) var(--ease-ease-out-back);
 }
 
 .eye-left, .eye-right {
   transform-origin: center center;
   /* Smooth transitions for ellipse dimensions */
   transition: 
-    rx 0.4s var(--ease-spring),
-    ry 0.4s var(--ease-spring),
-    transform 0.4s var(--ease-spring);
+    rx var(--duration-slower) var(--ease-ease-out-back),
+    ry var(--duration-slower) var(--ease-ease-out-back),
+    transform var(--duration-slower) var(--ease-ease-out-back);
 }
 
 .ferni-avatar.blinking .eye-white {
-  animation: blink 0.15s ease-in-out;
+  animation: blink var(--duration-fast) ease-in-out;
 }
 
 @keyframes blink {
@@ -132,11 +128,11 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .eyes-group {
-  transition: transform 0.8s var(--ease-organic);
+  transition: transform var(--duration-cinematic) var(--ease-organic);
 }
 
 .ferni-avatar.gazing .eyes-group {
-  animation: gazeDrift 8s ease-in-out infinite;
+  animation: gazeDrift var(--duration-ambient) ease-in-out infinite;
 }
 
 @keyframes gazeDrift {
@@ -152,7 +148,7 @@
 
 .smile-crease {
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--duration-slow) ease;
 }
 
 .sparkle-group {
@@ -383,7 +379,7 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .ferni-avatar.micro-recognition .eye-white {
-  animation: microRecognition 80ms ease-out;
+  animation: microRecognition var(--duration-micro) ease-out;
 }
 
 @keyframes microRecognition {
@@ -392,7 +388,7 @@
 }
 
 .ferni-avatar.micro-interest .eye-white {
-  animation: microInterest 90ms ease-out;
+  animation: microInterest var(--duration-faster) ease-out;
 }
 
 @keyframes microInterest {
@@ -401,7 +397,7 @@
 }
 
 .ferni-avatar.micro-warmth .eye-white {
-  animation: microWarmth 100ms ease-out;
+  animation: microWarmth var(--duration-faster) ease-out;
 }
 
 @keyframes microWarmth {

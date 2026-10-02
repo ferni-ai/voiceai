@@ -10,7 +10,7 @@
 
 | Asset | Location | Status |
 |-------|----------|--------|
-| **Design System v2.0** | `brand/master-tokens.css` | Production-ready |
+| **Design System v2.0** | `brand/ferni-design-tokens.css` | Production-ready |
 | **Component Library** | `brand/brand-components.css` | Production-ready |
 | **6 Persona Avatars** | `brand/characters/*/` | Complete with expressions |
 | **100+ Capabilities** | `brand/capabilities/` | Documented and visualized |
@@ -48,7 +48,7 @@ Create a marketing landing page that showcases Ferni using the brand library.
 **Technical Setup**:
 ```html
 <!-- Use brand library directly -->
-<link rel="stylesheet" href="../../../brand/master-tokens.css">
+<link rel="stylesheet" href="../../../brand/ferni-design-tokens.css">
 <link rel="stylesheet" href="../../../brand/brand-components.css">
 ```
 
@@ -237,7 +237,7 @@ Create a marketing landing page that showcases Ferni using the brand library.
 
 - [ ] **Link brand library CSS**
   ```html
-  <link rel="stylesheet" href="../../../brand/master-tokens.css">
+  <link rel="stylesheet" href="../../../brand/ferni-design-tokens.css">
   <link rel="stylesheet" href="../../../brand/brand-components.css">
   ```
 

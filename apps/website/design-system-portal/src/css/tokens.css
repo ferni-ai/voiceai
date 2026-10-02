@@ -29,6 +29,10 @@
   --text-dimmed: #e0d8ce;
   --text-inverse: #2a2420;
 
+  /* Base (mix with color-mix() for translucency) */
+  --color-white: #ffffff;
+  --color-black: #000000;
+
   /* Accent - Gold */
   --accent-primary: #d4a84a;
   --accent-hover: #e0bc6a;
@@ -52,37 +56,70 @@
   --info: #7da6cf;
   --info-glow: rgba(125, 166, 207, 0.22);
 
+  /* Semantic text inks (WCAG AA on the Cedar Night surfaces) */
+  --success-text: #99f3bb;
+  --error-text: #ffd6d4;
+  --warning-text: #ffdc90;
+  --info-text: #c7e3ff;
+  --on-accent: #2a2420;
+
+  /* Code syntax (on --bg-code) */
+  --code-text: #d4d4d4;
+  --syntax-comment: #6a9955;
+  --syntax-punctuation: #d4d4d4;
+  --syntax-number: #b5cea8;
+  --syntax-string: #ce9178;
+  --syntax-operator: #d4d4d4;
+  --syntax-keyword: #569cd6;
+  --syntax-function: #dcdcaa;
+  --syntax-variable: #9cdcfe;
+
   /* Personas */
   --persona-ferni: #4a6741;
   --persona-ferni-glow: rgba(74, 103, 65, 0.28);
+  --persona-ferni-text: #c7e9bd;
   --persona-jack: #9a7b5a;
   --persona-jack-glow: rgba(154, 123, 90, 0.28);
+  --persona-jack-text: #fcdab6;
   --persona-peter: #3a6b73;
   --persona-peter-glow: rgba(58, 107, 115, 0.28);
+  --persona-peter-text: #b4e9f1;
   --persona-alex: #5a6b8a;
   --persona-alex-glow: rgba(90, 107, 138, 0.28);
+  --persona-alex-text: #d0e1ff;
   --persona-maya: #a67a6a;
   --persona-maya-glow: rgba(166, 122, 106, 0.28);
+  --persona-maya-text: #ffd7c8;
   --persona-jordan: #c4856a;
   --persona-jordan-glow: rgba(196, 133, 106, 0.28);
+  --persona-jordan-text: #ffd7c7;
   --persona-nayan: #b8956a;
   --persona-nayan-glow: rgba(184, 149, 106, 0.28);
+  --persona-nayan-text: #ffdaac;
   --persona-joel: #9A0718;
   --persona-joel-glow: rgba(154, 7, 24, 0.28);
+  --persona-joel-text: #ffd6d2;
   --persona-eli: #6B5B95;
   --persona-eli-glow: rgba(107, 91, 149, 0.28);
+  --persona-eli-text: #e3dbff;
   --persona-marcus: #2D5A4A;
   --persona-marcus-glow: rgba(45, 90, 74, 0.28);
+  --persona-marcus-text: #b9ead6;
   --persona-kenji: #2C3E50;
   --persona-kenji-glow: rgba(44, 62, 80, 0.28);
+  --persona-kenji-text: #cce2f8;
   --persona-carmen: #D4A373;
   --persona-carmen-glow: rgba(212, 163, 115, 0.28);
+  --persona-carmen-text: #ffd9b4;
   --persona-amara: #7B6BA8;
   --persona-amara-glow: rgba(123, 107, 168, 0.28);
+  --persona-amara-text: #e2dbff;
   --persona-sasha: #E07B53;
   --persona-sasha-glow: rgba(224, 123, 83, 0.28);
+  --persona-sasha-text: #ffd7c7;
   --persona-ray: #4A5568;
   --persona-ray-glow: rgba(74, 85, 104, 0.28);
+  --persona-ray-text: #d3e1f7;
 
   /* ============================================
      SPACING
@@ -146,7 +183,7 @@
   --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
   --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05);
   --shadow-2xl: 0 24px 48px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0, 0, 0, 0.06);
-  --shadow-glow: 0 0 20px var(--color-accent-glow);
+  --shadow-glow: 0 0 20px var(--accent-glow);
   --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.04);
 
   /* ============================================
@@ -199,6 +236,16 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
   --font-weight-extrabold: 800;
+
+  /* ============================================
+     TYPOGRAPHY - Letter Spacing
+     ============================================ */
+  --tracking-tighter: -0.03em;
+  --tracking-tight: -0.015em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.015em;
+  --tracking-wider: 0.05em;
+  --tracking-widest: 0.1em;
 
   /* ============================================
      TYPOGRAPHY - Line Heights

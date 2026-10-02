@@ -6,10 +6,11 @@
   <title>Ferni Capabilities - Everything Your Best Friend Can't Do</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <!-- Design System: Single source of truth -->
-  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../ferni-design-tokens.css">
+  <link rel="stylesheet" href="../brand-base.css">
   <link rel="stylesheet" href="../brand-components.css">
   <style>
-    /* Page-specific overrides - base tokens from master-tokens.css */
+    /* Page-specific overrides - base tokens from ferni-design-tokens.css */
     :root {
       /* Capabilities-specific category colors - mapped to persona palette */
       --communication: var(--color-alex);
@@ -24,7 +25,7 @@
       --travel: var(--color-alex-light);
       --planning: var(--color-nayan);
 
-      /* Persona color aliases (referencing master-tokens.css) */
+      /* Persona color aliases (referencing ferni-design-tokens.css) */
       --glow-ferni: var(--color-ferni-glow);
       --ferni-light: var(--color-ferni-light);
       --ferni-dark: var(--color-ferni-dark);
@@ -36,8 +37,8 @@
       --nayan: var(--color-nayan);
     }
 
-    /* Cedar Night (Dark) - inherits from master-tokens.css [data-theme="dark"] */
-    /* Dark theme variables are provided by master-tokens.css - no page-specific overrides needed */
+    /* Cedar Night (Dark) - inherits from ferni-design-tokens.css [data-theme="dark"] */
+    /* Dark theme variables are provided by ferni-design-tokens.css - no page-specific overrides needed */
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -57,7 +58,7 @@
       left: 0;
       right: 0;
       z-index: 100;
-      background: var(--glass-bg-light);
+      background: var(--glass-thin-bg);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border-subtle);
@@ -128,7 +129,7 @@
       align-items: center;
       justify-content: center;
       box-shadow: var(--shadow-sm);
-      transition: all 0.3s var(--ease-spring);
+      transition: all 0.3s var(--ease-ease-out-back);
     }
 
     .theme-toggle:hover {
@@ -296,7 +297,7 @@
     .section-icon {
       width: 48px;
       height: 48px;
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -330,7 +331,7 @@
     .capability-card {
       background: var(--bg-elevated);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-md);
       padding: 24px;
       transition: all 0.3s var(--ease-out);
       position: relative;
@@ -361,7 +362,7 @@
     .capability-icon {
       width: 40px;
       height: 40px;
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius-xs);
       background: color-mix(in srgb, var(--card-accent, var(--ferni)) 12%, transparent);
       display: flex;
       align-items: center;
@@ -391,7 +392,7 @@
     /* Superhuman Section */
     .superhuman-section {
       background: linear-gradient(135deg, var(--color-ferni-subtle) 0%, var(--color-peter-subtle) 100%);
-      border-radius: var(--radius-xl);
+      border-radius: var(--radius-lg);
       padding: 60px;
       margin-bottom: 80px;
     }
@@ -436,7 +437,7 @@
 
     .superhuman-card {
       background: var(--bg-elevated);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-md);
       padding: 28px;
       border: 1px solid var(--border-subtle);
       transition: all 0.3s var(--ease-out);
@@ -457,7 +458,7 @@
     .superhuman-card-icon {
       width: 48px;
       height: 48px;
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-sm);
       background: linear-gradient(135deg, var(--ferni) 0%, var(--peter) 100%);
       display: flex;
       align-items: center;
@@ -503,7 +504,7 @@
 
     .persona-card {
       background: var(--bg-elevated);
-      border-radius: var(--radius-xl);
+      border-radius: var(--radius-lg);
       padding: 32px;
       border: 1px solid var(--border-subtle);
       display: flex;
@@ -564,7 +565,7 @@
     /* Verticals Section */
     .verticals-section {
       background: var(--bg-elevated);
-      border-radius: var(--radius-xl);
+      border-radius: var(--radius-lg);
       padding: 60px;
       margin-bottom: 80px;
       border: 1px solid var(--border-subtle);
@@ -599,7 +600,7 @@
       gap: 12px;
       padding: 16px 20px;
       background: var(--bg-primary);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-sm);
       border: 1px solid var(--border-subtle);
       transition: all 0.2s;
     }
@@ -612,7 +613,7 @@
     .vertical-icon {
       width: 32px;
       height: 32px;
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius-xs);
       background: color-mix(in srgb, var(--ferni) 12%, transparent);
       display: flex;
       align-items: center;
@@ -668,7 +669,7 @@
       font-size: 15px;
       font-weight: 600;
       text-decoration: none;
-      transition: all 0.3s var(--ease-spring);
+      transition: all 0.3s var(--ease-ease-out-back);
     }
 
     .cta-btn-primary {

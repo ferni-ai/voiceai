@@ -14,7 +14,7 @@ export function getInitials(name: string): string {
 export function getStrengthColor(score: number): string {
   if (score >= 70) return 'var(--persona-primary, var(--color-ferni))';
   if (score >= 40) return 'var(--nayan-primary, var(--color-nayan))';
-  return 'var(--color-semantic-error, var(--color-error))';
+  return 'var(--color-semantic-error)';
 }
 
 export function escapeHtml(text: string): string {

@@ -165,12 +165,12 @@ code {
 
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: var(--duration-slow);
+  animation-duration: var(--duration-slower);
   animation-timing-function: var(--ease-out);
 }
 
 ::view-transition-group(*) {
-  animation-duration: var(--duration-cinematic, 800ms);
+  animation-duration: var(--duration-cinematic);
   animation-timing-function: var(--ease-cinematic);
 }
 

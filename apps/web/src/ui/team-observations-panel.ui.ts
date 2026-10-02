@@ -110,13 +110,13 @@ const PERSONA_CONFIG: Record<string, PersonaDisplay> = {
   },
 };
 
-const DEFAULT_TYPE_STYLE = { bg: 'var(--color-text-muted, #8a7f75)', label: 'Insight' };
+const DEFAULT_TYPE_STYLE = { bg: 'var(--color-text-muted)', label: 'Insight' };
 
 const OBSERVATION_TYPE_STYLES: Record<string, typeof DEFAULT_TYPE_STYLE> = {
-  concern: { bg: 'var(--color-semantic-warning, #f59e0b)', label: 'Concern' },
-  opportunity: { bg: 'var(--color-semantic-success, #10b981)', label: 'Opportunity' },
-  pattern: { bg: 'var(--color-accent-primary, #4a6741)', label: 'Pattern' },
-  milestone: { bg: 'var(--color-semantic-info, #3b82f6)', label: 'Milestone' },
+  concern: { bg: 'var(--color-semantic-warning)', label: 'Concern' },
+  opportunity: { bg: 'var(--color-semantic-success)', label: 'Opportunity' },
+  pattern: { bg: 'var(--color-accent-primary)', label: 'Pattern' },
+  milestone: { bg: 'var(--color-semantic-info)', label: 'Milestone' },
   insight: DEFAULT_TYPE_STYLE,
 };
 
@@ -357,9 +357,9 @@ function injectStyles(): void {
       max-width: 600px;
       max-height: 85vh;
       overflow-y: auto;
-      background: var(--color-bg-elevated, #FFFDFB);
+      background: var(--color-bg-elevated, var(--color-white));
       border-radius: var(--radius-xl, 20px);
-      box-shadow: var(--shadow-2xl, 0 24px 48px rgba(0, 0, 0, 0.2));
+      box-shadow: var(--shadow-2xl, 0 24px 48px color-mix(in srgb, var(--color-black) 20%, transparent));
       transform: scale(0.95);
       transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING};
     }
@@ -373,7 +373,7 @@ function injectStyles(): void {
       align-items: center;
       justify-content: space-between;
       padding: var(--space-lg, 26px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .team-obs-panel__title {
@@ -383,7 +383,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-lg, 1.125rem);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
     }
 
     .team-obs-panel__title svg {
@@ -402,14 +402,14 @@ function injectStyles(): void {
       background: var(--color-bg-tertiary, #ebe6df);
       border: none;
       border-radius: var(--radius-full, 9999px);
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
     .team-obs-panel__close:hover {
       background: var(--color-bg-secondary, #f5f2ed);
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
     }
 
     .team-obs-panel__close svg {
@@ -430,14 +430,14 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-md, 16px);
       padding: var(--space-xl, 42px);
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
     }
 
     .team-obs-loading__spinner {
       width: 32px;
       height: 32px;
-      border: 3px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
-      border-top-color: var(--color-accent-primary, #4a6741);
+      border: 3px solid var(--color-border-subtle);
+      border-top-color: var(--color-accent-primary);
       border-radius: 50%;
       animation: team-obs-spin 1s linear infinite;
     }
@@ -461,7 +461,7 @@ function injectStyles(): void {
     .team-obs-empty svg {
       width: 48px;
       height: 48px;
-      color: var(--color-text-muted, #8a7f75);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-sm, 8px);
     }
 
@@ -469,13 +469,13 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-base, 1rem);
       font-weight: var(--font-weight-medium, 500);
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
     .team-obs-empty span {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
     }
 
     /* ========================================================================
@@ -494,7 +494,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-sm, 0.875rem);
       font-weight: var(--font-weight-medium, 500);
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -540,7 +540,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-sm, 0.875rem);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
     }
 
     .team-obs-card__persona-icon {
@@ -563,7 +563,7 @@ function injectStyles(): void {
       padding: var(--space-2xs, 2px) var(--space-sm, 8px);
       border-radius: var(--radius-full, 9999px);
       background: var(--type-bg, var(--color-text-muted));
-      color: white;
+      color: var(--color-white);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -571,7 +571,7 @@ function injectStyles(): void {
     .team-obs-card__content {
       font-size: var(--text-sm, 0.875rem);
       line-height: 1.5;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-sm, 8px) 0;
     }
 
@@ -580,7 +580,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-sm, 8px);
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #8a7f75);
+      color: var(--color-text-muted);
     }
 
     .team-obs-card__domain {
@@ -599,7 +599,7 @@ function injectStyles(): void {
       gap: var(--space-xs, 4px);
       margin-top: var(--space-sm, 8px);
       padding-top: var(--space-sm, 8px);
-      border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-top: 1px solid var(--color-border-subtle);
       font-size: var(--text-sm, 0.875rem);
       color: var(--color-accent-text);
       font-style: italic;
@@ -622,7 +622,7 @@ function injectStyles(): void {
       padding: var(--space-2xs, 2px) var(--space-xs, 4px);
       background: var(--color-bg-tertiary, #ebe6df);
       border-radius: var(--radius-sm, 4px);
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
     }
 
     /* ========================================================================
@@ -633,7 +633,7 @@ function injectStyles(): void {
       padding: var(--space-md, 16px);
       background: linear-gradient(135deg, var(--color-bg-secondary, #f5f2ed), var(--color-bg-tertiary, #ebe6df));
       border-radius: var(--radius-lg, 12px);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border: 1px solid var(--color-border-subtle);
     }
 
     .team-obs-synthesis__header {
@@ -655,13 +655,13 @@ function injectStyles(): void {
     .team-obs-synthesis__text {
       font-size: var(--text-sm, 0.875rem);
       line-height: 1.6;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-md, 16px) 0;
     }
 
     .team-obs-synthesis__state {
       padding: var(--space-sm, 8px);
-      background: var(--color-bg-elevated, #FFFDFB);
+      background: var(--color-bg-elevated, var(--color-white));
       border-radius: var(--radius-md, 8px);
       margin-bottom: var(--space-md, 16px);
     }
@@ -686,30 +686,30 @@ function injectStyles(): void {
     .team-obs-synthesis__wellbeing-bar {
       flex: 1;
       height: 6px;
-      background: var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+      background: var(--color-border-subtle);
       border-radius: var(--radius-full, 9999px);
       overflow: hidden;
     }
 
     .team-obs-synthesis__wellbeing-fill {
       height: 100%;
-      background: var(--color-accent-primary, #4a6741);
+      background: var(--color-accent-primary);
       border-radius: var(--radius-full, 9999px);
       transition: width ${DURATION.SLOW}ms ${EASING.EXPO_OUT};
     }
 
     .team-obs-synthesis__state--positive .team-obs-synthesis__wellbeing-fill {
-      background: var(--color-semantic-success, #10b981);
+      background: var(--color-semantic-success);
     }
 
     .team-obs-synthesis__state--negative .team-obs-synthesis__wellbeing-fill {
-      background: var(--color-semantic-warning, #f59e0b);
+      background: var(--color-semantic-warning);
     }
 
     .team-obs-synthesis__theme {
       margin-top: var(--space-sm, 8px);
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
     }
 
     .team-obs-synthesis__connections,
@@ -722,7 +722,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-sm, 0.875rem);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-sm, 8px) 0;
     }
 
@@ -732,7 +732,7 @@ function injectStyles(): void {
       gap: var(--space-sm, 8px);
       padding: var(--space-xs, 4px) 0;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
     }
 
     .team-obs-synthesis__connection-confidence {
@@ -745,17 +745,17 @@ function injectStyles(): void {
 
     .team-obs-synthesis__recommendation {
       padding: var(--space-sm, 8px);
-      background: var(--color-bg-elevated, #FFFDFB);
+      background: var(--color-bg-elevated, var(--color-white));
       border-radius: var(--radius-md, 8px);
       margin-bottom: var(--space-sm, 8px);
     }
 
     .team-obs-synthesis__recommendation--high {
-      border-left: 3px solid var(--color-semantic-warning, #f59e0b);
+      border-left: 3px solid var(--color-semantic-warning);
     }
 
     .team-obs-synthesis__recommendation--urgent {
-      border-left: 3px solid var(--color-semantic-error, #ef4444);
+      border-left: 3px solid var(--color-semantic-error);
     }
 
     .team-obs-synthesis__recommendation-header {
@@ -767,7 +767,7 @@ function injectStyles(): void {
     .team-obs-synthesis__recommendation-type {
       font-size: var(--text-xs, 0.75rem);
       font-weight: var(--font-weight-medium, 500);
-      color: var(--color-text-secondary, #5c544a);
+      color: var(--color-text-secondary);
       text-transform: capitalize;
     }
 
@@ -780,7 +780,7 @@ function injectStyles(): void {
     .team-obs-synthesis__recommendation p {
       margin: 0 0 var(--space-xs, 4px) 0;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
     }
 
     .team-obs-synthesis__recommendation-approach {

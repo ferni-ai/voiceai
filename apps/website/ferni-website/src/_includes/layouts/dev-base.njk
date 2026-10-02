@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="{{ locale or 'en' }}">
+<html lang="{{ locale or 'en' }}" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/_tokens.css">
   <title>{{ title }} | Ferni</title>
   <meta name="description" content="{{ description or 'Ferni Developer Platform' }}">
 
@@ -39,16 +40,16 @@
     }
 
     :root {
-      --dev-bg: #584840;
-      --dev-surface: #70605a;
-      --dev-surface-elevated: #7d6e67;
-      --dev-border: rgba(212, 168, 74, 0.2);
-      --dev-accent: #d4a84a;
-      --dev-accent-hover: #e5bc6a;
-      --dev-text: #faf8f5;
-      --dev-text-muted: rgba(250, 248, 245, 0.7);
-      --dev-code-bg: #4a3c35;
-      --dev-ferni-green: #4a6741;
+      --dev-bg: var(--color-cedar-dark);
+      --dev-surface: var(--color-cedar);
+      --dev-surface-elevated: var(--color-text-dimmed);
+      --dev-border: color-mix(in srgb, var(--color-accent-gold) 20%, transparent);
+      --dev-accent: var(--color-accent-gold);
+      --dev-accent-hover: var(--color-accent-gold-hover);
+      --dev-text: var(--color-paper);
+      --dev-text-muted: color-mix(in srgb, var(--color-paper) 70%, transparent);
+      --dev-code-bg: var(--color-dark-gradient-mid);
+      --dev-ferni-green: var(--color-ferni);
     }
 
     html, body {
@@ -60,7 +61,7 @@
     body {
       background: var(--dev-bg);
       color: var(--dev-text);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: var(--font-body);
       line-height: 1.6;
     }
 
@@ -74,7 +75,7 @@
     }
 
     code {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
     }
 
     /* Screen reader only */

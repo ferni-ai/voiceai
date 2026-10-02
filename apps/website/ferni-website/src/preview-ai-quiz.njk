@@ -28,7 +28,7 @@ permalink: /preview/ai-quiz/
   /* Quiz Header - Uses accent color for header branding */
   .ai-quiz__header {
     background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-pressed) 100%);
-    color: white;
+    color: var(--color-white);
     padding: var(--space-6);
     text-align: center;
   }
@@ -48,13 +48,13 @@ permalink: /preview/ai-quiz/
   /* Progress */
   .ai-quiz__progress {
     height: 4px;
-    background: rgba(255,255,255,0.2);
+    background: color-mix(in srgb, var(--color-white) 20%, transparent);
   }
 
   .ai-quiz__progress-bar {
     height: 100%;
-    background: white;
-    transition: width 0.4s ease;
+    background: var(--color-white);
+    transition: width var(--duration-slower) ease;
   }
 
   /* Quiz Body */
@@ -87,7 +87,7 @@ permalink: /preview/ai-quiz/
     border-radius: var(--radius-lg);
     background: var(--color-bg-primary);
     color: var(--color-text-primary);
-    transition: border-color 0.2s ease;
+    transition: border-color var(--duration-normal) ease;
     resize: none;
     min-height: 100px;
   }
@@ -117,12 +117,12 @@ permalink: /preview/ai-quiz/
     border-radius: var(--radius-full);
     color: var(--color-text-secondary);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) ease;
   }
 
   .ai-quiz__quick-option:hover {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     border-color: var(--color-accent);
   }
 
@@ -131,7 +131,7 @@ permalink: /preview/ai-quiz/
     width: 100%;
     padding: var(--space-4);
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     font-family: var(--font-body);
     font-size: var(--text-base);
     font-weight: var(--font-weight-medium);
@@ -188,7 +188,7 @@ permalink: /preview/ai-quiz/
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-white);
     font-size: var(--text-xs);
     font-weight: 600;
   }
@@ -223,7 +223,7 @@ permalink: /preview/ai-quiz/
     height: 8px;
     background: var(--color-ferni);
     border-radius: 50%;
-    animation: typingBounce 1.4s ease-in-out infinite;
+    animation: typingBounce var(--duration-glacial) ease-in-out infinite;
   }
 
   .typing-dot:nth-child(2) { animation-delay: 0.2s; }
@@ -249,7 +249,7 @@ permalink: /preview/ai-quiz/
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-white);
     font-size: 2.5rem;
     font-weight: var(--font-weight-bold);
     box-shadow: 0 10px 40px var(--color-ferni-glow);
@@ -299,7 +299,7 @@ permalink: /preview/ai-quiz/
   .ai-quiz__result-insight-title {
     font-weight: 600;
     font-size: var(--text-sm);
-    color: var(--color-ferni);
+    color: var(--color-ferni-text);
     margin-bottom: var(--space-2);
     display: flex;
     align-items: center;
@@ -318,16 +318,16 @@ permalink: /preview/ai-quiz/
     gap: var(--space-2);
     padding: var(--space-4) var(--space-8);
     background: var(--color-ferni);
-    color: white;
+    color: var(--color-white);
     font-weight: 500;
     border-radius: var(--radius-full);
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: all var(--duration-slow) ease;
   }
 
   .ai-quiz__cta:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 30px rgba(74, 103, 65, 0.4);
+    box-shadow: 0 6px 30px color-mix(in srgb, var(--color-ferni) 40%, transparent);
   }
 
   /* Preview Labels */
@@ -335,8 +335,8 @@ permalink: /preview/ai-quiz/
     position: fixed;
     top: var(--space-4);
     left: var(--space-4);
-    background: rgba(255, 193, 7, 0.9);
-    color: #333;
+    background: color-mix(in srgb, var(--color-google-yellow) 90%, transparent);
+    color: var(--color-gray-700);
     padding: var(--space-2) var(--space-4);
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
@@ -364,7 +364,7 @@ permalink: /preview/ai-quiz/
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) ease;
   }
 
   .preview-nav a:hover {
@@ -374,7 +374,7 @@ permalink: /preview/ai-quiz/
 
   .preview-nav a.active {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     border-color: var(--color-accent);
   }
 

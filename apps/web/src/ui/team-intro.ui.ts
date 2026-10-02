@@ -346,7 +346,7 @@ function injectTeamIntroStyles(): void {
     
     .team-intro__subtitle {
       font-size: 0.95rem;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
       max-width: clamp(350px, 90vw, 500px);
       margin: 0 auto var(--space-4, 16px);
       line-height: 1.5;
@@ -357,7 +357,7 @@ function injectTeamIntroStyles(): void {
     /* Progress */
     .team-intro__progress {
       padding: var(--space-4, 16px) var(--space-8, 32px);
-      background: var(--color-background-secondary, #f9f7f5);
+      background: var(--color-background-secondary);
     }
     
     .team-intro__progress-label {
@@ -366,7 +366,7 @@ function injectTeamIntroStyles(): void {
       align-items: center;
       margin-bottom: var(--space-2, 8px);
       font-size: 0.85rem;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
     }
     
     .team-intro__progress-count {
@@ -376,14 +376,14 @@ function injectTeamIntroStyles(): void {
     
     .team-intro__progress-bar {
       height: 6px;
-      background: var(--color-border-subtle, rgba(0, 0, 0, 0.08));
+      background: var(--color-border-subtle);
       border-radius: 3px;
       overflow: hidden;
     }
     
     .team-intro__progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+      background: linear-gradient(90deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
       border-radius: 3px;
       transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
     }
@@ -399,8 +399,8 @@ function injectTeamIntroStyles(): void {
     /* Member Card */
     .team-member-card {
       position: relative;
-      background: var(--color-background-primary, #ffffff);
-      border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.08));
+      background: var(--color-background-primary);
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 16px);
       padding: var(--space-4, 16px);
       transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
@@ -421,12 +421,12 @@ function injectTeamIntroStyles(): void {
     
     .team-member-card--ferni {
       border-color: var(--color-accent-text);
-      background: linear-gradient(135deg, rgba(74, 103, 65, 0.03) 0%, transparent 100%);
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 3%, transparent) 0%, transparent 100%);
     }
     
     .team-member-card--added {
       border-color: var(--color-accent-text);
-      background: rgba(74, 103, 65, 0.05);
+      background: color-mix(in srgb, var(--color-ferni) 5%, transparent);
     }
     
     /* Avatar */
@@ -467,17 +467,17 @@ function injectTeamIntroStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 2px solid var(--color-background-elevated, white);
+      border: 2px solid var(--color-background-elevated);
     }
     
     .team-member-card__lock {
-      background: var(--color-text-muted, #8a7f75);
-      color: white;
+      background: var(--color-text-muted);
+      color: var(--color-white);
     }
     
     .team-member-card__unlocked {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
     
     .team-member-card__lock svg,
@@ -491,7 +491,7 @@ function injectTeamIntroStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 4px);
     }
     
@@ -506,7 +506,7 @@ function injectTeamIntroStyles(): void {
     
     .team-member-card__desc {
       font-size: 0.85rem;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
       line-height: 1.4;
       margin: 0 0 var(--space-3, 12px);
     }
@@ -518,7 +518,7 @@ function injectTeamIntroStyles(): void {
     
     .team-member-card__progress-bar {
       height: 4px;
-      background: var(--color-border-subtle, rgba(0, 0, 0, 0.1));
+      background: var(--color-border-subtle);
       border-radius: 2px;
       overflow: hidden;
       margin-bottom: var(--space-2, 8px);
@@ -533,7 +533,7 @@ function injectTeamIntroStyles(): void {
     
     .team-member-card__hint {
       font-size: 0.75rem;
-      color: var(--color-text-muted, #8a7f75);
+      color: var(--color-text-muted);
       font-style: italic;
     }
     
@@ -566,7 +566,7 @@ function injectTeamIntroStyles(): void {
       gap: var(--space-1, 4px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
       background: var(--member-color, var(--persona-primary));
-      color: white;
+      color: var(--color-white);
       border: none;
       border-radius: var(--radius-md, 8px);
       font-size: 0.8rem;
@@ -577,7 +577,7 @@ function injectTeamIntroStyles(): void {
     
     .team-member-card__action:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px var(--member-glow, rgba(74, 103, 65, 0.3));
+      box-shadow: 0 4px 12px var(--member-glow, color-mix(in srgb, var(--color-ferni) 30%, transparent));
     }
     
     .team-member-card__action:active {
@@ -590,20 +590,20 @@ function injectTeamIntroStyles(): void {
     }
     
     .team-member-card__action--added {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       pointer-events: none;
     }
     
     /* Footer */
     .team-intro__footer {
       padding: var(--space-4, 16px) var(--space-8, 32px);
-      border-top: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.06));
+      border-top: 1px solid var(--color-border-subtle);
       text-align: center;
     }
     
     .team-intro__footer-text {
       font-size: 0.85rem;
-      color: var(--color-text-muted, #8a7f75);
+      color: var(--color-text-muted);
       margin: 0;
     }
     

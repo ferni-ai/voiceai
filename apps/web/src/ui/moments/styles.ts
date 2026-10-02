@@ -85,26 +85,26 @@ const MOMENT_STYLES = `
 }
 
 .moment-whisper--info {
-  background: var(--persona-primary, #4a6741);
-  color: white;
-  border: 1px solid var(--persona-secondary, #3d5a35);
+  background: var(--persona-primary, var(--color-ferni));
+  color: var(--color-white);
+  border: 1px solid var(--persona-secondary, var(--color-ferni-secondary));
 }
 
 .moment-whisper--success {
-  background: var(--persona-primary, #4a6741);
-  color: white;
-  border: 1px solid var(--persona-secondary, #3d5a35);
+  background: var(--persona-primary, var(--color-ferni));
+  color: var(--color-white);
+  border: 1px solid var(--persona-secondary, var(--color-ferni-secondary));
 }
 
 .moment-whisper--warning {
-  background: var(--color-semantic-warning, #b8956a);
-  color: white;
-  border: 1px solid var(--color-semantic-warning-border, rgba(184, 149, 106, 0.8));
+  background: var(--color-semantic-warning);
+  color: var(--color-white);
+  border: 1px solid var(--color-semantic-warning-border, color-mix(in srgb, var(--color-nayan) 80%, transparent));
 }
 
 .moment-whisper--error {
-  background: var(--color-semantic-error, #a65a52);
-  color: white;
+  background: var(--color-semantic-error);
+  color: var(--color-white);
   border: 1px solid var(--color-semantic-error-border, rgba(166, 90, 82, 0.8));
 }
 
@@ -160,13 +160,13 @@ const MOMENT_STYLES = `
 }
 
 .moment-notice--seeds {
-  background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
-  color: white;
+  background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
+  color: var(--color-white);
 }
 
 .moment-notice--badge {
-  background: var(--color-semantic-success, #4a8741);
-  color: white;
+  background: var(--color-semantic-success);
+  color: var(--color-white);
 }
 
 .moment-notice--entering {
@@ -219,8 +219,8 @@ const MOMENT_STYLES = `
   align-items: center;
   margin-left: var(--space-2, 8px);
   padding: var(--space-1, 4px) var(--space-3, 12px);
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--color-white) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-white) 30%, transparent);
   border-radius: var(--radius-md, 8px);
   color: inherit;
   font-size: 0.9em;
@@ -230,7 +230,7 @@ const MOMENT_STYLES = `
 }
 
 .moment-notice__action:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--color-white) 30%, transparent);
   transform: scale(1.02);
 }
 
@@ -279,7 +279,7 @@ const MOMENT_STYLES = `
   transform: translate(-50%, -50%);
   z-index: ${MOMENT_Z_INDEX.celebration};
   padding: var(--space-6, 24px) var(--space-8, 32px);
-  background: var(--color-background-elevated, #FFFDFB);
+  background: var(--color-background-elevated);
   border-radius: var(--radius-2xl, 24px);
   box-shadow: 
     var(--shadow-2xl),
@@ -337,14 +337,14 @@ const MOMENT_STYLES = `
   font-family: var(--font-display, 'Plus Jakarta Sans');
   font-size: clamp(20px, 5vw, 24px);
   font-weight: 600;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   margin: 0 0 var(--space-2, 8px) 0;
 }
 
 .moment-celebration__subtitle {
   font-family: var(--font-body, 'Inter');
   font-size: clamp(14px, 3.5vw, 16px);
-  color: var(--color-text-secondary, #70605a);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -380,11 +380,11 @@ const MOMENT_STYLES = `
 
 .moment-milestone__card {
   position: relative;
-  background: var(--color-background-elevated, #FFFDFB);
+  background: var(--color-background-elevated);
   border-radius: var(--radius-2xl, 24px);
   box-shadow:
     var(--shadow-2xl),
-    0 0 0 1px var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    0 0 0 1px var(--color-border-subtle);
   max-width: clamp(294px, 90vw, 420px);
   width: 100%;
   padding: var(--space-8, 32px);
@@ -431,20 +431,20 @@ const MOMENT_STYLES = `
   width: 36px;
   height: 36px;
   border: none;
-  background: var(--color-background-secondary, #f5f3f0);
+  background: var(--color-background-secondary);
   border-radius: var(--radius-full, 9999px);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted, #7a6f63);
+  color: var(--color-text-muted);
   transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
   z-index: 1;
 }
 
 .moment-milestone__close:hover {
-  background: var(--color-background-tertiary, #ebe8e3);
-  color: var(--color-text-primary, #2C2520);
+  background: var(--color-background-tertiary);
+  color: var(--color-text-primary);
 }
 
 .moment-milestone__close svg {
@@ -467,7 +467,7 @@ const MOMENT_STYLES = `
   font-family: var(--font-display, 'Plus Jakarta Sans');
   font-size: clamp(1.5rem, 5vw, 1.75rem);
   font-weight: 700;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   margin: 0 0 var(--space-3, 12px) 0;
   line-height: 1.2;
   opacity: 0;
@@ -477,7 +477,7 @@ const MOMENT_STYLES = `
   font-family: var(--font-body, 'Inter');
   font-size: clamp(0.9rem, 3.5vw, 0.95rem);
   line-height: 1.6;
-  color: var(--color-text-secondary, #5a5048);
+  color: var(--color-text-secondary);
   margin: 0 0 var(--space-6, 24px) 0;
   opacity: 0;
 }
@@ -498,12 +498,12 @@ const MOMENT_STYLES = `
   font-family: var(--font-display, 'Plus Jakarta Sans');
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
 }
 
 .moment-milestone__stat-label {
   font-size: 0.75rem;
-  color: var(--color-text-muted, #7a6f63);
+  color: var(--color-text-muted);
 }
 
 .moment-milestone__actions {
@@ -528,24 +528,24 @@ const MOMENT_STYLES = `
 }
 
 .moment-milestone__button--primary {
-  background: var(--persona-primary, #4a6741);
-  color: white;
+  background: var(--persona-primary, var(--color-ferni));
+  color: var(--color-white);
   border: none;
 }
 
 .moment-milestone__button--primary:hover {
-  background: var(--persona-secondary, #3d5a35);
+  background: var(--persona-secondary, var(--color-ferni-secondary));
   transform: translateY(-1px);
 }
 
 .moment-milestone__button--secondary {
   background: transparent;
-  color: var(--color-text-secondary, #5a5048);
+  color: var(--color-text-secondary);
   border: 2px solid var(--color-border, #d4d0c8);
 }
 
 .moment-milestone__button--secondary:hover {
-  background: var(--color-background-secondary, #faf8f5);
+  background: var(--color-background-secondary);
   border-color: var(--color-border-hover, #c4c0b8);
 }
 
@@ -595,7 +595,7 @@ const MOMENT_STYLES = `
   position: absolute;
   width: 4px;
   height: 4px;
-  background: white;
+  background: var(--color-white);
   border-radius: 50%;
   pointer-events: none;
   opacity: 0;
@@ -632,10 +632,10 @@ const MOMENT_STYLES = `
   align-items: center;
   gap: var(--space-1, 4px);
   padding: var(--space-1, 4px) var(--space-2, 8px);
-  background: var(--glass-background, rgba(255, 255, 255, 0.1));
+  background: var(--glass-background, color-mix(in srgb, var(--color-white) 10%, transparent));
   backdrop-filter: blur(var(--glass-blur-subtle, 8px));
   -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--glass-border, color-mix(in srgb, var(--color-white) 10%, transparent));
   border-radius: var(--radius-full, 9999px);
   cursor: pointer;
   transition: transform ${DURATION.FAST}ms ${EASING.SPRING},
@@ -643,7 +643,7 @@ const MOMENT_STYLES = `
 }
 
 .moments-badge:hover {
-  background: var(--color-bg-elevated, rgba(255, 255, 255, 0.15));
+  background: var(--color-bg-elevated, color-mix(in srgb, var(--color-white) 15%, transparent));
   transform: scale(1.05);
 }
 
@@ -656,7 +656,7 @@ const MOMENT_STYLES = `
   font-family: var(--font-display, 'Plus Jakarta Sans');
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
-  color: var(--color-text-primary, white);
+  color: var(--color-text-primary);
 }
 
 .moments-badge--streak .moments-badge__icon {
@@ -679,7 +679,7 @@ const MOMENT_STYLES = `
   right: -2px;
   width: 8px;
   height: 8px;
-  background: var(--color-semantic-error, #ef4444);
+  background: var(--color-semantic-error);
   border-radius: var(--radius-full, 9999px);
   animation: badge-pulse 2s ease-in-out infinite;
 }
@@ -754,7 +754,7 @@ const MOMENT_STYLES = `
 
 @media (prefers-color-scheme: dark) {
   .moment-celebration {
-    background: var(--color-background-elevated, #3a3330);
+    background: var(--color-background-elevated);
   }
 
   .moment-milestone__backdrop {
@@ -762,15 +762,15 @@ const MOMENT_STYLES = `
   }
 
   .moment-milestone__card {
-    background: var(--color-background-elevated, #3a3330);
+    background: var(--color-background-elevated);
   }
 
   .moment-milestone__close {
-    background: var(--color-background-tertiary, #4a4540);
+    background: var(--color-background-tertiary);
   }
 
   .moment-milestone__close:hover {
-    background: var(--color-background-secondary, #5a5550);
+    background: var(--color-background-secondary);
   }
 
   .moment-milestone__button--secondary {
@@ -778,7 +778,7 @@ const MOMENT_STYLES = `
   }
 
   .moment-milestone__button--secondary:hover {
-    background: var(--color-background-tertiary, #4a4540);
+    background: var(--color-background-tertiary);
   }
 }
 

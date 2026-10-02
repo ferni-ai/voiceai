@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/_tokens.css">
   <title>Ferni Animation Guide — Motion Design System</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
@@ -11,50 +12,26 @@
        ======================================== */
     :root {
       /* Brand Colors */
-      --ferni-green: #4a6741;
-      --ferni-green-light: #5a7751;
-      --ferni-green-dark: #3d5a35;
-      --ferni-iris: #5a8060;
-      --cream: #f5f1e8;
-      --paper: #FFFDFB;
-      --ink: #2c2520;
-      --ink-soft: #70605a;
-      --ink-muted: #a09080;
+      --ferni-green: var(--color-ferni);
+      --ferni-green-light: var(--color-ferni-light);
+      --ferni-green-dark: var(--color-ferni-dark);
+      --ferni-iris: var(--color-success-dark);
+      --cream: var(--color-sand-light);
+      --paper: var(--color-paper-sand);
+      --ink: var(--color-ink);
+      --ink-soft: var(--color-cedar);
+      --ink-muted: var(--color-stone-light);
       
       /* Spacing */
-      --space-1: 4px;
-      --space-2: 8px;
-      --space-3: 12px;
-      --space-4: 16px;
-      --space-5: 20px;
-      --space-6: 24px;
-      --space-8: 32px;
-      --space-12: 48px;
-      --space-16: 64px;
       
       /* Typography */
-      --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
-      --font-body: 'Inter', system-ui, sans-serif;
       
       /* Shadows */
-      --shadow-sm: 0 1px 2px rgba(44, 37, 32, 0.05);
-      --shadow-md: 0 4px 12px rgba(44, 37, 32, 0.08);
-      --shadow-lg: 0 12px 32px rgba(44, 37, 32, 0.12);
       
       /* Border Radius */
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 16px;
-      --radius-xl: 24px;
-      --radius-full: 9999px;
       
       /* Easings */
-      --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-      --ease-anticipate: cubic-bezier(0.38, -0.4, 0.88, 0.65);
       --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
-      --ease-gentle: cubic-bezier(0.25, 0.1, 0.25, 1);
-      --ease-organic: cubic-bezier(0.4, 0.2, 0.2, 1.1);
     }
     
     /* ========================================
@@ -74,7 +51,7 @@
        ======================================== */
     header {
       background: var(--ferni-green);
-      color: white;
+      color: var(--color-white);
       padding: var(--space-16) var(--space-6);
       text-align: center;
     }
@@ -108,7 +85,7 @@
        ======================================== */
     nav {
       background: var(--paper);
-      border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+      border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
       padding: var(--space-4) var(--space-6);
       position: sticky;
       top: 0;
@@ -130,12 +107,12 @@
       font-weight: 500;
       padding: var(--space-2) var(--space-4);
       border-radius: var(--radius-full);
-      transition: all 150ms var(--ease-standard);
+      transition: all var(--duration-fast) var(--ease-standard);
     }
     
     nav a:hover {
       background: var(--ferni-green);
-      color: white;
+      color: var(--color-white);
     }
     
     /* ========================================
@@ -200,7 +177,7 @@
     
     /* Eye components */
     .ferni-avatar .eye-white {
-      fill: white;
+      fill: var(--color-white);
       transform-origin: center;
     }
     
@@ -215,12 +192,12 @@
     }
     
     .ferni-avatar .highlight {
-      fill: white;
+      fill: var(--color-white);
       opacity: 0.9;
     }
     
     .ferni-avatar .smile {
-      stroke: white;
+      stroke: var(--color-white);
       stroke-linecap: round;
       fill: none;
     }
@@ -240,7 +217,7 @@
     .animate-blink .iris,
     .animate-blink .pupil,
     .animate-blink .highlight {
-      animation: cyclops-blink 150ms var(--ease-standard);
+      animation: cyclops-blink var(--duration-fast) var(--ease-standard);
     }
     
     /* Double blink */
@@ -253,7 +230,7 @@
     .animate-double-blink .iris,
     .animate-double-blink .pupil,
     .animate-double-blink .highlight {
-      animation: cyclops-double-blink 400ms var(--ease-standard);
+      animation: cyclops-double-blink var(--duration-slower) var(--ease-standard);
     }
     
     /* Slow blink (content/sleepy) */
@@ -275,9 +252,9 @@
       20%, 80% { transform: scale(1.2); }
     }
     
-    .animate-wide .eye-white { animation: cyclops-wide 500ms var(--ease-spring); }
-    .animate-wide .iris { animation: cyclops-wide 500ms var(--ease-spring) 20ms; }
-    .animate-wide .pupil { animation: cyclops-wide 500ms var(--ease-spring) 40ms; }
+    .animate-wide .eye-white { animation: cyclops-wide var(--duration-slowest) var(--ease-spring); }
+    .animate-wide .iris { animation: cyclops-wide var(--duration-slowest) var(--ease-spring) 20ms; }
+    .animate-wide .pupil { animation: cyclops-wide var(--duration-slowest) var(--ease-spring) var(--duration-subliminal); }
     
     /* Squint (thinking/skeptical) - eye gets smaller */
     @keyframes cyclops-squint {
@@ -300,7 +277,7 @@
     .animate-look-left .iris,
     .animate-look-left .pupil,
     .animate-look-left .highlight {
-      animation: look-left 800ms var(--ease-organic);
+      animation: look-left var(--duration-cinematic) var(--ease-organic);
     }
     
     /* Look right */
@@ -312,7 +289,7 @@
     .animate-look-right .iris,
     .animate-look-right .pupil,
     .animate-look-right .highlight {
-      animation: look-right 800ms var(--ease-organic);
+      animation: look-right var(--duration-cinematic) var(--ease-organic);
     }
     
     /* Look up */
@@ -324,7 +301,7 @@
     .animate-look-up .iris,
     .animate-look-up .pupil,
     .animate-look-up .highlight {
-      animation: look-up 800ms var(--ease-organic);
+      animation: look-up var(--duration-cinematic) var(--ease-organic);
     }
     
     /* Look around (curious) */
@@ -359,7 +336,7 @@
     }
     
     .animate-smile-grow .smile {
-      animation: smile-grow 500ms var(--ease-spring);
+      animation: smile-grow var(--duration-slowest) var(--ease-spring);
     }
     
     /* Thinking mouth (smaller, uncertain) */
@@ -373,7 +350,7 @@
     }
     
     .animate-thinking-mouth .smile {
-      animation: thinking-mouth 800ms var(--ease-gentle);
+      animation: thinking-mouth var(--duration-cinematic) var(--ease-gentle);
     }
     
     /* ========================================
@@ -388,61 +365,61 @@
     .animate-nod .iris,
     .animate-nod .pupil,
     .animate-nod .highlight {
-      animation: cyclops-blink 150ms var(--ease-standard) 200ms;
+      animation: cyclops-blink var(--duration-fast) var(--ease-standard) var(--duration-normal);
     }
     
     /* Shake with squint */
     .animate-shake .face {
-      animation: avatar-shake 500ms var(--ease-spring);
+      animation: avatar-shake var(--duration-slowest) var(--ease-spring);
     }
     .animate-shake .eye-white,
     .animate-shake .iris,
     .animate-shake .pupil {
-      animation: cyclops-squint 500ms var(--ease-gentle);
+      animation: cyclops-squint var(--duration-slowest) var(--ease-gentle);
     }
     
     /* Bounce with wide eye */
     .animate-bounce .face {
-      animation: avatar-bounce 700ms var(--ease-spring);
+      animation: avatar-bounce var(--duration-deliberate) var(--ease-spring);
     }
-    .animate-bounce .eye-white { animation: cyclops-wide 500ms var(--ease-spring) 100ms; }
-    .animate-bounce .iris { animation: cyclops-wide 500ms var(--ease-spring) 120ms; }
-    .animate-bounce .pupil { animation: cyclops-wide 500ms var(--ease-spring) 140ms; }
+    .animate-bounce .eye-white { animation: cyclops-wide var(--duration-slowest) var(--ease-spring) var(--duration-faster); }
+    .animate-bounce .iris { animation: cyclops-wide var(--duration-slowest) var(--ease-spring) 120ms; }
+    .animate-bounce .pupil { animation: cyclops-wide var(--duration-slowest) var(--ease-spring) var(--duration-fast); }
     
     /* Curious with look around */
     .animate-curious .face {
-      animation: avatar-curious 800ms var(--ease-organic);
+      animation: avatar-curious var(--duration-cinematic) var(--ease-organic);
     }
     .animate-curious .iris,
     .animate-curious .pupil,
     .animate-curious .highlight {
-      animation: look-around 1000ms var(--ease-organic);
+      animation: look-around var(--duration-dramatic) var(--ease-organic);
     }
     
     /* Thinking with squint and look up */
     .animate-thinking .face {
-      animation: avatar-thinking 1000ms var(--ease-gentle);
+      animation: avatar-thinking var(--duration-dramatic) var(--ease-gentle);
     }
     .animate-thinking .eye-white,
     .animate-thinking .iris,
     .animate-thinking .pupil {
-      animation: cyclops-squint 800ms var(--ease-gentle);
+      animation: cyclops-squint var(--duration-cinematic) var(--ease-gentle);
     }
     .animate-thinking .iris,
     .animate-thinking .pupil,
     .animate-thinking .highlight {
-      animation: look-up 1000ms var(--ease-organic);
+      animation: look-up var(--duration-dramatic) var(--ease-organic);
     }
     
     /* Celebrate with wide eye and smile grow */
     .animate-celebrate .face {
-      animation: avatar-celebrate 1000ms var(--ease-spring);
+      animation: avatar-celebrate var(--duration-dramatic) var(--ease-spring);
     }
-    .animate-celebrate .eye-white { animation: cyclops-wide 400ms var(--ease-spring); }
-    .animate-celebrate .iris { animation: cyclops-wide 400ms var(--ease-spring) 20ms; }
-    .animate-celebrate .pupil { animation: cyclops-wide 400ms var(--ease-spring) 40ms; }
+    .animate-celebrate .eye-white { animation: cyclops-wide var(--duration-slower) var(--ease-spring); }
+    .animate-celebrate .iris { animation: cyclops-wide var(--duration-slower) var(--ease-spring) 20ms; }
+    .animate-celebrate .pupil { animation: cyclops-wide var(--duration-slower) var(--ease-spring) var(--duration-subliminal); }
     .animate-celebrate .smile {
-      animation: smile-grow 600ms var(--ease-spring) 200ms;
+      animation: smile-grow 600ms var(--ease-spring) var(--duration-normal);
     }
     
     /* Breathing (ambient) */
@@ -554,17 +531,17 @@
       font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 150ms var(--ease-spring);
+      transition: all var(--duration-fast) var(--ease-spring);
     }
     
     .btn-primary {
       background: var(--ferni-green);
-      color: white;
+      color: var(--color-white);
     }
     
     .btn-primary:hover {
       transform: scale(1.05);
-      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 30%, transparent);
     }
     
     .btn-primary:active {
@@ -587,12 +564,12 @@
     th, td {
       padding: var(--space-4);
       text-align: left;
-      border-bottom: 1px solid rgba(44, 37, 32, 0.05);
+      border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent);
     }
     
     th {
       background: var(--ferni-green);
-      color: white;
+      color: var(--color-white);
       font-family: var(--font-display);
       font-weight: 600;
       font-size: 0.875rem;
@@ -603,15 +580,15 @@
     }
     
     tr:hover td {
-      background: rgba(74, 103, 65, 0.03);
+      background: color-mix(in srgb, var(--color-ferni) 3%, transparent);
     }
     
     code {
-      background: rgba(44, 37, 32, 0.06);
+      background: color-mix(in srgb, var(--color-ink) 6%, transparent);
       padding: 2px 6px;
-      border-radius: 4px;
+      border-radius: var(--radius-xs);
       font-size: 0.8em;
-      font-family: 'SF Mono', Monaco, monospace;
+      font-family: var(--font-mono);
     }
     
     /* ========================================
@@ -633,7 +610,7 @@
       width: 40px;
       height: 40px;
       background: var(--ferni-green);
-      color: white;
+      color: var(--color-white);
       border-radius: var(--radius-full);
       display: flex;
       align-items: center;
@@ -694,7 +671,7 @@
     }
     
     .easing-demo:hover .easing-ball {
-      animation: easingDemo 1s infinite;
+      animation: easingDemo var(--duration-dramatic) infinite;
     }
     
     .easing-demo.spring:hover .easing-ball { animation-timing-function: var(--ease-spring); }
@@ -720,7 +697,7 @@
     .easing-value {
       font-size: 0.65rem;
       color: var(--ink-muted);
-      font-family: 'SF Mono', Monaco, monospace;
+      font-family: var(--font-mono);
     }
     
     /* ========================================
@@ -728,13 +705,13 @@
        ======================================== */
     pre {
       background: var(--ink);
-      color: #e8e2da;
+      color: var(--color-dark-text-muted);
       padding: var(--space-6);
       border-radius: var(--radius-lg);
       overflow-x: auto;
       font-size: 0.8rem;
       line-height: 1.7;
-      font-family: 'SF Mono', Monaco, monospace;
+      font-family: var(--font-mono);
     }
     
     pre code {
@@ -743,11 +720,11 @@
       color: inherit;
     }
     
-    .code-comment { color: #7a9a70; }
-    .code-keyword { color: #7ab0cf; }
-    .code-string { color: #c9a07a; }
-    .code-number { color: #a5c48a; }
-    .code-function { color: #d4c9a0; }
+    .code-comment { color: var(--color-bamboo-light); }
+    .code-keyword { color: var(--color-info-light); }
+    .code-string { color: var(--color-tea); }
+    .code-number { color: var(--color-bamboo-light); }
+    .code-function { color: var(--color-tea-light); }
   </style>
 </head>
 <body>

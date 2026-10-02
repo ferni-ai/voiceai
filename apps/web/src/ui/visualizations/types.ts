@@ -451,13 +451,13 @@ export const DEFAULT_COLORS: VisualizationColors = {
  */
 export const CSS_COLOR_VARS = {
   accent: 'var(--color-accent, #3D5A45)',
-  accentGlow: 'var(--color-accent-glow, rgba(61, 90, 69, 0.15))',
+  accentGlow: 'var(--color-accent-glow)',
   background: 'var(--color-bg-primary, #faf8f5)',
   backgroundElevated: 'var(--color-bg-elevated, #FFFDFB)',
-  textPrimary: 'var(--color-text-primary, #2C2520)',
-  textSecondary: 'var(--color-text-secondary, #5c544a)',
-  textMuted: 'var(--color-text-muted, #756a5e)',
-  borderSubtle: 'var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+  textPrimary: 'var(--color-text-primary)',
+  textSecondary: 'var(--color-text-secondary)',
+  textMuted: 'var(--color-text-muted)',
+  borderSubtle: 'var(--color-border-subtle)',
 
   // Energy
   energyEmotional: 'var(--viz-energy-emotional, #a67a6a)',
@@ -465,14 +465,14 @@ export const CSS_COLOR_VARS = {
   energyPhysical: 'var(--viz-energy-physical, #4a6741)',
 
   // Status
-  statusThriving: 'var(--viz-status-thriving, #3d7a52)',
-  statusBalanced: 'var(--viz-status-balanced, #3D5A45)',
-  statusStretched: 'var(--viz-status-stretched, #a67c35)',
-  statusDepleted: 'var(--viz-status-depleted, #c67840)',
-  statusCritical: 'var(--viz-status-critical, #b5453a)',
+  statusThriving: 'var(--viz-status-thriving)',
+  statusBalanced: 'var(--viz-status-balanced)',
+  statusStretched: 'var(--viz-status-stretched)',
+  statusDepleted: 'var(--viz-status-depleted)',
+  statusCritical: 'var(--viz-status-critical)',
 
   // Priority
-  priorityHigh: 'var(--viz-priority-high, #b5453a)',
-  priorityMedium: 'var(--viz-priority-medium, #a67c35)',
-  priorityLow: 'var(--viz-priority-low, #756a5e)',
+  priorityHigh: 'var(--viz-priority-high)',
+  priorityMedium: 'var(--viz-priority-medium)',
+  priorityLow: 'var(--viz-priority-low)',
 } as const;

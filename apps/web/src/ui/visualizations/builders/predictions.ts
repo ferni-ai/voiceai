@@ -362,7 +362,7 @@ function buildTablet(
     alignItems: 'flex-start',
     marginBottom: '1.3125rem',
     paddingBottom: '0.8125rem',
-    borderBottom: '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+    borderBottom: '1px solid var(--color-border-subtle)',
   });
 
   const headerText = createElement('div');
@@ -373,7 +373,7 @@ function buildTablet(
     fontWeight: '600',
     lineHeight: '1.3',
     letterSpacing: '-0.01em',
-    color: 'var(--color-text-primary, #2C2520)',
+    color: 'var(--color-text-primary)',
     margin: '0 0 0.25rem',
   });
   title.textContent = "Where You're Headed";
@@ -383,7 +383,7 @@ function buildTablet(
     fontFamily: 'var(--font-body, Inter, sans-serif)',
     fontSize: '0.75rem',
     fontWeight: '500',
-    color: 'var(--color-text-muted, #8a8279)',
+    color: 'var(--color-text-muted)',
     margin: '0',
     letterSpacing: '0.01em',
   });
@@ -401,13 +401,13 @@ function buildTablet(
     gap: '0.375rem',
     padding: '0.375rem 0.75rem',
     background: accuracyPercent >= 80 
-      ? 'var(--color-semantic-success-tint, rgba(61, 122, 82, 0.08))'
-      : 'var(--color-accent-subtle, rgba(61, 90, 69, 0.08))',
+      ? 'var(--color-semantic-success-tint)'
+      : 'var(--color-accent-subtle)',
     borderRadius: 'var(--radius-full, 9999px)',
     fontSize: '0.6875rem',
     fontWeight: '600',
     color: accuracyPercent >= 80 
-      ? 'var(--color-semantic-success, #3d7a52)'
+      ? 'var(--color-semantic-success)'
       : 'var(--color-accent, #3D5A45)',
     letterSpacing: '0.02em',
   });
@@ -439,7 +439,7 @@ function buildTablet(
     padding: '1.25rem',
     background: 'var(--color-bg-elevated, #FFFDFB)',
     borderRadius: 'var(--radius-xl, 1.25rem)',
-    border: '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+    border: '1px solid var(--color-border-subtle)',
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
   });
 
@@ -449,7 +449,7 @@ function buildTablet(
     fontFamily: 'var(--font-body, Inter, sans-serif)',
     fontSize: '0.625rem',
     fontWeight: '700',
-    color: 'var(--color-text-muted, #8a8279)',
+    color: 'var(--color-text-muted)',
     marginBottom: '0.75rem',
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
@@ -471,7 +471,7 @@ function buildTablet(
     fontFamily: 'var(--font-display, "Plus Jakarta Sans", sans-serif)',
     fontSize: '1.5rem',
     fontWeight: '500',
-    color: 'var(--color-text-muted, #8a8279)',
+    color: 'var(--color-text-muted)',
   });
   currentValSpan.textContent = formatValue(primary.currentValue);
   valueRow.appendChild(currentValSpan);
@@ -479,7 +479,7 @@ function buildTablet(
   const arrowSpan = createElement('span');
   setStyles(arrowSpan, {
     fontSize: '1.25rem',
-    color: 'var(--color-text-dimmed, #a89d90)',
+    color: 'var(--color-text-dimmed)',
   });
   arrowSpan.textContent = '→';
   valueRow.appendChild(arrowSpan);
@@ -503,8 +503,8 @@ function buildTablet(
       fontSize: '0.875rem',
       fontWeight: '600',
       color: isPositiveChange 
-        ? 'var(--color-semantic-success, #3d7a52)' 
-        : 'var(--color-semantic-error, #b5453a)',
+        ? 'var(--color-semantic-success)' 
+        : 'var(--color-semantic-error)',
       marginLeft: '0.25rem',
     });
     changeSpan.textContent = `${isPositiveChange ? '+' : ''}${changePercent}%`;
@@ -529,7 +529,7 @@ function buildTablet(
   setStyles(confLabel, {
     fontFamily: 'var(--font-body, Inter, sans-serif)',
     fontSize: '0.75rem',
-    color: 'var(--color-text-secondary, #5c544a)',
+    color: 'var(--color-text-secondary)',
   });
   confLabel.textContent = 'Confidence';
   confHeader.appendChild(confLabel);
@@ -576,7 +576,7 @@ function buildTablet(
     background: 'var(--tonal-surface1, rgba(44, 37, 32, 0.02))',
     borderRadius: 'var(--radius-lg, 1rem)',
     fontSize: '0.8125rem',
-    color: 'var(--color-text-secondary, #5c544a)',
+    color: 'var(--color-text-secondary)',
   });
   timeContext.innerHTML = `<span style="opacity: 0.6">📅</span> Timeframe: <strong>${primary.timeframe}</strong>`;
   heroCard.appendChild(timeContext);
@@ -596,7 +596,7 @@ function buildTablet(
     fontFamily: 'var(--font-body, Inter, sans-serif)',
     fontSize: '0.6875rem',
     fontWeight: '700',
-    color: 'var(--color-text-muted, #8a8279)',
+    color: 'var(--color-text-muted)',
     marginBottom: '0.75rem',
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
@@ -619,7 +619,7 @@ function buildTablet(
     left: '0',
     right: '0',
     height: '4px',
-    background: 'var(--color-border-subtle, rgba(44, 37, 32, 0.08))',
+    background: 'var(--color-border-subtle)',
     borderRadius: '2px',
     transform: 'translateY(-50%)',
   });
@@ -638,7 +638,7 @@ function buildTablet(
     left: `${conservativePos}%`,
     width: `${optimisticPos - conservativePos}%`,
     height: '4px',
-    background: `linear-gradient(90deg, var(--color-text-muted) 0%, ${primaryColor} 50%, var(--color-semantic-success, #3d7a52) 100%)`,
+    background: `linear-gradient(90deg, var(--color-text-muted) 0%, ${primaryColor} 50%, var(--color-semantic-success) 100%)`,
     borderRadius: '2px',
     transform: 'translateY(-50%)',
     opacity: '0.6',
@@ -674,7 +674,7 @@ function buildTablet(
   const scenarios = [
     { label: 'Conservative', value: primary.scenarios.conservative, color: 'var(--color-text-muted)' },
     { label: 'Expected', value: primary.scenarios.expected, color: primaryColor },
-    { label: 'Optimistic', value: primary.scenarios.optimistic, color: 'var(--color-semantic-success, #3d7a52)' },
+    { label: 'Optimistic', value: primary.scenarios.optimistic, color: 'var(--color-semantic-success)' },
   ];
 
   scenarios.forEach(s => {
@@ -705,7 +705,7 @@ function buildTablet(
       padding: '1rem 1.125rem',
       background: 'var(--color-bg-elevated, #FFFDFB)',
       borderRadius: 'var(--radius-lg, 1rem)',
-      border: '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+      border: '1px solid var(--color-border-subtle)',
     });
 
     const othersTitle = createElement('div');
@@ -713,7 +713,7 @@ function buildTablet(
       fontFamily: 'var(--font-body, Inter, sans-serif)',
       fontSize: '0.625rem',
       fontWeight: '700',
-      color: 'var(--color-text-muted, #8a8279)',
+      color: 'var(--color-text-muted)',
       marginBottom: '0.875rem',
       textTransform: 'uppercase',
       letterSpacing: '0.08em',
@@ -732,14 +732,14 @@ function buildTablet(
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '0.625rem 0',
-        borderTop: index > 0 ? '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04))' : 'none',
+        borderTop: index > 0 ? '1px solid var(--color-border-subtle)' : 'none',
       });
 
       const predLabel = createElement('div');
       setStyles(predLabel, {
         fontSize: '0.8125rem',
         fontWeight: '500',
-        color: 'var(--color-text-primary, #2C2520)',
+        color: 'var(--color-text-primary)',
       });
       predLabel.textContent = pred.metric;
 
@@ -778,8 +778,8 @@ function buildTablet(
           fontSize: '0.6875rem',
           fontWeight: '600',
           color: predPositive 
-            ? 'var(--color-semantic-success, #3d7a52)' 
-            : 'var(--color-semantic-error, #b5453a)',
+            ? 'var(--color-semantic-success)' 
+            : 'var(--color-semantic-error)',
           marginLeft: '0.25rem',
         });
         predChangeBadge.textContent = `${predPositive ? '+' : ''}${predChangePercent}%`;
@@ -805,7 +805,7 @@ function buildTablet(
   const insightCard = createElement('div');
   setStyles(insightCard, {
     padding: '1rem 1.125rem',
-    background: 'var(--color-accent-subtle, rgba(61, 90, 69, 0.04))',
+    background: 'var(--color-accent-subtle)',
     borderRadius: 'var(--radius-lg, 1rem)',
     borderLeft: `3px solid ${primaryColor}`,
   });
@@ -815,7 +815,7 @@ function buildTablet(
     fontFamily: 'var(--font-display, "Plus Jakarta Sans", sans-serif)',
     fontSize: '0.8125rem',
     fontWeight: '600',
-    color: 'var(--color-text-primary, #2C2520)',
+    color: 'var(--color-text-primary)',
     marginBottom: '0.5rem',
   });
   insightTitle.textContent = 'What this means';
@@ -826,7 +826,7 @@ function buildTablet(
     fontFamily: 'var(--font-body, Inter, sans-serif)',
     fontSize: '0.8125rem',
     lineHeight: '1.5',
-    color: 'var(--color-text-secondary, #5c544a)',
+    color: 'var(--color-text-secondary)',
     margin: '0',
   });
   

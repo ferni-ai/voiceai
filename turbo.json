@@ -45,7 +45,8 @@
       "outputs": [
         "design-system/dist/**",
         "apps/web/src/config/animation-constants.generated.ts",
-        "promo/**/design-tokens.css"
+        "apps/website/*/src/css/*tokens.css",
+        "brand/ferni-design-tokens.css"
       ],
       "cache": true
     }

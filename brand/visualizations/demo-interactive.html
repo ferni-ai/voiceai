@@ -6,7 +6,8 @@
   <title>Ferni Visualization System Demo</title>
 
   <!-- Design Tokens -->
-  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../ferni-design-tokens.css">
+  <link rel="stylesheet" href="../brand-base.css">
   <link rel="stylesheet" href="components.css">
   <link rel="stylesheet" href="animations.css">
 
@@ -40,7 +41,7 @@
 
     .demo-nav {
       background: var(--color-bg-elevated, #fff);
-      border-bottom: 1px solid var(--color-border-default, rgba(0,0,0,0.1));
+      border-bottom: 1px solid var(--color-border-medium, rgba(0,0,0,0.1));
       padding: var(--space-4, 1rem);
       position: sticky;
       top: 0;
@@ -94,8 +95,8 @@
 
     .demo-card {
       background: var(--color-bg-elevated, #fff);
-      border: 1px solid var(--color-border-default, rgba(0,0,0,0.1));
-      border-radius: var(--radius-xl, 16px);
+      border: 1px solid var(--color-border-medium, rgba(0,0,0,0.1));
+      border-radius: var(--radius-lg, 16px);
       padding: var(--space-6, 1.5rem);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
@@ -119,8 +120,8 @@
     /* Validation status */
     .validation-status {
       background: var(--color-bg-elevated, #fff);
-      border: 1px solid var(--color-border-default);
-      border-radius: var(--radius-lg, 12px);
+      border: 1px solid var(--color-border-medium);
+      border-radius: var(--radius-md, 12px);
       padding: var(--space-4, 1rem);
       margin-bottom: var(--space-8, 2rem);
     }
@@ -177,12 +178,12 @@
       height: 150px;
       padding: var(--space-4, 1rem);
       background: var(--color-bg-subtle, #f5f5f5);
-      border-radius: var(--radius-md, 8px);
+      border-radius: var(--radius-sm, 8px);
     }
 
     .animation-demo-bar {
       flex: 1;
-      border-radius: var(--radius-sm, 4px) var(--radius-sm, 4px) 0 0;
+      border-radius: var(--radius-xs, 4px) var(--radius-xs, 4px) 0 0;
     }
 
     .animation-demo-bar.viz-bar {
@@ -193,7 +194,7 @@
     .disclosure-demo-content {
       padding: var(--space-4, 1rem);
       background: var(--color-bg-subtle, #f5f5f5);
-      border-radius: var(--radius-md, 8px);
+      border-radius: var(--radius-sm, 8px);
     }
 
     [data-expandable] {
@@ -218,7 +219,7 @@
       align-items: center;
       gap: var(--space-2, 0.5rem);
       padding: var(--space-3, 0.75rem);
-      border-radius: var(--radius-md, 8px);
+      border-radius: var(--radius-sm, 8px);
       transition: background 0.15s ease;
     }
 
@@ -240,7 +241,7 @@
 
     .comparison-demo-box {
       padding: var(--space-6, 1.5rem);
-      border-radius: var(--radius-lg, 12px);
+      border-radius: var(--radius-md, 12px);
       text-align: center;
     }
 
@@ -255,7 +256,7 @@
     }
 
     .sync-hover {
-      outline: 3px solid var(--kintsugi-gold, #C9A227);
+      outline: 3px solid var(--kintsugi-primary, #C9A227);
       outline-offset: 2px;
     }
 
@@ -413,7 +414,7 @@
             <p>Habit completion</p>
           </div>
         </div>
-        <p style="text-align: center; margin-top: var(--space-4); color: var(--kintsugi-gold);">
+        <p style="text-align: center; margin-top: var(--space-4); color: var(--kintsugi-primary);">
           ↑ 13% improvement
         </p>
       </div>
@@ -441,16 +442,16 @@
         <h3>Your Weekly Progress</h3>
         <p>A summary of your achievements this week.</p>
         <div style="display: flex; gap: var(--space-4); margin: var(--space-4) 0;">
-          <div style="flex: 1; text-align: center; padding: var(--space-4); background: var(--color-bg-subtle); border-radius: var(--radius-md);">
-            <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-ferni);">7</div>
+          <div style="flex: 1; text-align: center; padding: var(--space-4); background: var(--color-bg-subtle); border-radius: var(--radius-sm);">
+            <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-ferni-text);">7</div>
             <div style="font-size: var(--font-size-sm); color: var(--color-text-muted);">Days streak</div>
           </div>
-          <div style="flex: 1; text-align: center; padding: var(--space-4); background: var(--color-bg-subtle); border-radius: var(--radius-md);">
-            <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-maya);">12</div>
+          <div style="flex: 1; text-align: center; padding: var(--space-4); background: var(--color-bg-subtle); border-radius: var(--radius-sm);">
+            <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-maya-text);">12</div>
             <div style="font-size: var(--font-size-sm); color: var(--color-text-muted);">Habits completed</div>
           </div>
-          <div style="flex: 1; text-align: center; padding: var(--space-4); background: var(--color-bg-subtle); border-radius: var(--radius-md);">
-            <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-jordan);">3</div>
+          <div style="flex: 1; text-align: center; padding: var(--space-4); background: var(--color-bg-subtle); border-radius: var(--radius-sm);">
+            <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-jordan-text);">3</div>
             <div style="font-size: var(--font-size-sm); color: var(--color-text-muted);">Milestones reached</div>
           </div>
         </div>

@@ -9,7 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="master-tokens.css">
+  <link rel="stylesheet" href="ferni-design-tokens.css">
+  <link rel="stylesheet" href="brand-base.css">
   <link rel="stylesheet" href="brand-components.css">
 
   <style>
@@ -22,14 +23,14 @@
       line-height: 1.6;
     }
 
-    /* Navigation - uses .nav from master-tokens.css */
+    /* Navigation - uses .nav from ferni-design-tokens.css */
     .logo-text {
       font-family: var(--font-display);
       font-weight: 700;
       font-size: 20px;
     }
 
-    /* Navigation links - uses .nav-links from master-tokens.css */
+    /* Navigation links - uses .nav-links from ferni-design-tokens.css */
 
     /* Hero */
     .hero {
@@ -136,7 +137,7 @@
     }
 
     .asset-preview.dark-bg {
-      background: var(--color-natural-ink);
+      background: var(--color-text-primary);
     }
 
     .asset-preview.gradient-bg {
@@ -291,7 +292,7 @@
     }
 
     .color-value.hex:hover {
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
     }
 
     /* Typography Section */
@@ -325,7 +326,7 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
       text-decoration: none;
       font-size: 13px;
       font-weight: 500;
@@ -368,7 +369,7 @@
     .guideline-icon svg {
       width: 24px;
       height: 24px;
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
     }
 
     .guideline-card h3 {
@@ -387,7 +388,7 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
       text-decoration: none;
       font-size: 14px;
       font-weight: 500;
@@ -403,7 +404,7 @@
     }
 
     .footer a {
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
       text-decoration: none;
     }
 
@@ -924,7 +925,7 @@
           <div class="guideline-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><circle cx="17.5" cy="12" r="2.5"/><circle cx="12" cy="18.5" r="2.5"/></svg></div>
           <h3>Design Tokens</h3>
           <p>CSS custom properties file with all colors, spacing, typography, and animation values.</p>
-          <a href="master-tokens.css" class="guideline-link" download>
+          <a href="ferni-design-tokens.css" class="guideline-link" download>
             Download CSS
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>

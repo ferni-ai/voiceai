@@ -25,21 +25,21 @@ permalink: /about/
   /* About page specific styles - scoped to avoid conflicts */
   :root {
     /* Persona Colors */
-    --ferni: #4a6741;
-    --ferni-dark: #3d5a35;
-    --peter: #3a6b73;
-    --maya: #a67a6a;
-    --jordan: #c4856a;
-    --alex: #5a6b8a;
-    --nayan: #b8956a;
+    --ferni: var(--color-ferni);
+    --ferni-dark: var(--color-ferni-dark);
+    --peter: var(--color-peter);
+    --maya: var(--color-maya);
+    --jordan: var(--color-jordan);
+    --alex: var(--color-alex);
+    --nayan: var(--color-nayan);
     
     /* Brand */
-    --paper-cream: #FAF8F5;
-    --paper-sand: #f5f2ed;
-    --natural-ink: #2C2520;
-    --ink-muted: #5c544a;
-    --warm-amber: #C4A265;
-    --forest-green: #3D5A45;
+    --paper-cream: var(--color-paper);
+    --paper-sand: var(--color-bg-secondary);
+    --natural-ink: var(--color-ink);
+    --ink-muted: var(--color-ink-light);
+    --warm-amber: var(--color-tea-light);
+    --forest-green: var(--color-forest-green);
   }
 
   /* Page background */
@@ -80,11 +80,11 @@ permalink: /about/
   }
 
   /* Animated elements */
-  .anim-1 { opacity: 0; animation: fadeUp 0.8s ease-out 0.1s forwards; }
-  .anim-2 { opacity: 0; animation: fadeUp 0.8s ease-out 0.2s forwards; }
-  .anim-3 { opacity: 0; animation: fadeUp 0.8s ease-out 0.3s forwards; }
-  .anim-4 { opacity: 0; animation: fadeUp 0.8s ease-out 0.4s forwards; }
-  .anim-5 { opacity: 0; animation: fadeUp 0.8s ease-out 0.5s forwards; }
+  .anim-1 { opacity: 0; animation: fadeUp var(--duration-cinematic) ease-out var(--duration-faster) forwards; }
+  .anim-2 { opacity: 0; animation: fadeUp var(--duration-cinematic) ease-out var(--duration-normal) forwards; }
+  .anim-3 { opacity: 0; animation: fadeUp var(--duration-cinematic) ease-out var(--duration-slow) forwards; }
+  .anim-4 { opacity: 0; animation: fadeUp var(--duration-cinematic) ease-out var(--duration-slower) forwards; }
+  .anim-5 { opacity: 0; animation: fadeUp var(--duration-cinematic) ease-out var(--duration-slowest) forwards; }
 
   /* Hero section */
   .about-hero {
@@ -102,8 +102,8 @@ permalink: /about/
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at center, rgba(196, 162, 101, 0.15) 0%, transparent 70%);
-    animation: kintsugiPulse 8s ease-in-out infinite;
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-tea-light) 15%, transparent) 0%, transparent 70%);
+    animation: kintsugiPulse var(--duration-ambient) ease-in-out infinite;
   }
 
   .about-hero-content {
@@ -114,7 +114,7 @@ permalink: /about/
   }
 
   .about-eyebrow {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.2em;
@@ -124,7 +124,7 @@ permalink: /about/
   }
 
   .about-hero-title {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: clamp(24px, 4vw, 40px);
     font-weight: 500;
     line-height: 1.4;
@@ -137,7 +137,7 @@ permalink: /about/
   }
 
   .about-subtitle {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     font-size: 18px;
     line-height: 1.7;
     color: var(--ink-muted);
@@ -176,7 +176,7 @@ permalink: /about/
   }
 
   .section-title {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: clamp(28px, 5vw, 42px);
     font-weight: 700;
     line-height: 1.2;
@@ -185,7 +185,7 @@ permalink: /about/
   }
 
   .section-subtitle {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     font-size: 18px;
     line-height: 1.7;
     color: var(--ink-muted);
@@ -249,7 +249,7 @@ permalink: /about/
     height: 16px;
     border-radius: 50%;
     background: var(--ferni);
-    box-shadow: 0 0 20px rgba(74, 103, 65, 0.3);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--color-ferni) 30%, transparent);
   }
 
   @media (min-width: 768px) {
@@ -266,7 +266,7 @@ permalink: /about/
     align-items: center;
     gap: 8px;
     padding: 4px 12px;
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
@@ -275,22 +275,22 @@ permalink: /about/
   }
 
   .timeline-badge--ferni {
-    background: rgba(74, 103, 65, 0.1);
+    background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
     color: var(--ferni);
   }
 
   .timeline-badge--peter {
-    background: rgba(58, 107, 115, 0.1);
+    background: color-mix(in srgb, var(--color-peter) 10%, transparent);
     color: var(--peter);
   }
 
   .timeline-badge--ink {
-    background: rgba(44, 37, 32, 0.1);
+    background: color-mix(in srgb, var(--color-ink) 10%, transparent);
     color: var(--natural-ink);
   }
 
   .timeline-title {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: 24px;
     font-weight: 700;
     color: var(--natural-ink);
@@ -298,7 +298,7 @@ permalink: /about/
   }
 
   .timeline-text {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     font-size: 16px;
     line-height: 1.7;
     color: var(--ink-muted);
@@ -310,25 +310,25 @@ permalink: /about/
   }
 
   .timeline-highlight {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     font-weight: 600;
     color: var(--ferni);
     margin-top: 16px;
   }
 
   .timeline-visual {
-    background: linear-gradient(135deg, rgba(74, 103, 65, 0.08) 0%, rgba(74, 103, 65, 0.03) 100%);
-    border-radius: 24px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 8%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 3%, transparent) 100%);
+    border-radius: var(--radius-2xl);
     padding: 32px;
     text-align: center;
   }
 
   .timeline-visual--peter {
-    background: linear-gradient(135deg, rgba(58, 107, 115, 0.08) 0%, rgba(58, 107, 115, 0.03) 100%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-peter) 8%, transparent) 0%, color-mix(in srgb, var(--color-peter) 3%, transparent) 100%);
   }
 
   .timeline-visual--dark {
-    background: linear-gradient(135deg, rgba(44, 37, 32, 0.08) 0%, rgba(44, 37, 32, 0.03) 100%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-ink) 8%, transparent) 0%, color-mix(in srgb, var(--color-ink) 3%, transparent) 100%);
   }
 
   .timeline-emoji {
@@ -337,7 +337,7 @@ permalink: /about/
   }
 
   .timeline-visual-text {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     font-size: 14px;
     font-style: italic;
     color: var(--ink-muted);
@@ -346,14 +346,14 @@ permalink: /about/
 
   /* Philosophy cards */
   .philosophy-card {
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 16px;
+    background: color-mix(in srgb, var(--color-white) 50%, transparent);
+    border-radius: var(--radius-lg);
     padding: 24px;
     margin-bottom: 16px;
   }
 
   .philosophy-card h4 {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: 18px;
     font-weight: 700;
     color: var(--natural-ink);
@@ -361,7 +361,7 @@ permalink: /about/
   }
 
   .philosophy-card p {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     font-size: 14px;
     line-height: 1.6;
     color: var(--ink-muted);
@@ -381,7 +381,7 @@ permalink: /about/
   }
 
   .mission-text {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     font-size: 18px;
     line-height: 1.8;
     color: var(--ink-muted);
@@ -401,15 +401,15 @@ permalink: /about/
   }
 
   .mission-text .big-text {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: 24px;
     font-weight: 700;
     color: var(--natural-ink);
   }
 
   .mission-card {
-    background: linear-gradient(135deg, rgba(74, 103, 65, 0.05) 0%, rgba(196, 162, 101, 0.05) 100%);
-    border-radius: 24px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 5%, transparent) 0%, color-mix(in srgb, var(--color-tea-light) 5%, transparent) 100%);
+    border-radius: var(--radius-2xl);
     padding: 40px;
     position: relative;
     overflow: hidden;
@@ -422,12 +422,12 @@ permalink: /about/
     right: -50px;
     width: 150px;
     height: 150px;
-    background: radial-gradient(circle, rgba(74, 103, 65, 0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, color-mix(in srgb, var(--color-ferni) 10%, transparent) 0%, transparent 70%);
     border-radius: 50%;
   }
 
   .mission-card blockquote {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: clamp(20px, 4vw, 28px);
     font-weight: 600;
     line-height: 1.4;
@@ -438,7 +438,7 @@ permalink: /about/
   }
 
   .mission-card p {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     font-size: 16px;
     line-height: 1.7;
     color: var(--ink-muted);
@@ -482,17 +482,17 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    HERO SECTION - The Kintsugi Philosophy
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section style="padding: 140px 24px 100px; background: #FAF8F5; text-align: center;">
+<section style="padding: 140px 24px 100px; background: var(--color-paper); text-align: center;">
   <div style="max-width: 800px; margin: 0 auto;">
-    <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-nayan-text); margin-bottom: 24px;">Our Philosophy</p>
+    <p style="font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-nayan-text); margin-bottom: 24px;">Our Philosophy</p>
     
-    <h1 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(24px, 4vw, 40px); font-weight: 500; line-height: 1.4; color: #2C2520; margin-bottom: 24px;">
+    <h1 style="font-family: var(--font-display); font-size: clamp(24px, 4vw, 40px); font-weight: 500; line-height: 1.4; color: var(--color-ink); margin-bottom: 24px;">
       "We are all broken in different ways.<br>
       <span style="color: var(--color-nayan-text);">It's those cracks that make us both human and beautiful.</span><br>
       We celebrate the imperfections and the joy of being alive."
     </h1>
     
-    <p style="font-family: 'Inter', sans-serif; font-size: 18px; line-height: 1.7; color: #5c544a; max-width: 600px; margin: 0 auto;">
+    <p style="font-family: var(--font-body); font-size: 18px; line-height: 1.7; color: var(--color-ink-light); max-width: 600px; margin: 0 auto;">
       This isn't just a tagline. It's the foundation of everything we build, every conversation we have, and every person we serve.
     </p>
   </div>
@@ -502,12 +502,12 @@ permalink: /about/
    ORIGIN STORY - Wyoming, Japan, The Tsunami
    A timeline-style narrative journey
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section style="padding: 96px 24px; background: linear-gradient(180deg, #FAF8F5 0%, #f5f2ed 50%, #FAF8F5 100%);">
+<section style="padding: 96px 24px; background: linear-gradient(180deg, var(--color-paper) 0%, var(--color-bg-secondary) 50%, var(--color-paper) 100%);">
   <div style="max-width: 900px; margin: 0 auto;">
     <header style="text-align: center; margin-bottom: 80px;">
-      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #4a6741; margin-bottom: 16px;">The Origin</p>
-      <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(28px, 5vw, 42px); font-weight: 700; line-height: 1.2; color: #2C2520; margin-bottom: 24px;">How Ferni Came to Be</h2>
-      <p style="font-family: 'Inter', sans-serif; font-size: 18px; line-height: 1.7; color: #5c544a; max-width: 600px; margin: 0 auto;">
+      <p style="font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-ferni-text); margin-bottom: 16px;">The Origin</p>
+      <h2 style="font-family: var(--font-display); font-size: clamp(28px, 5vw, 42px); font-weight: 700; line-height: 1.2; color: var(--color-ink); margin-bottom: 24px;">How Ferni Came to Be</h2>
+      <p style="font-family: var(--font-body); font-size: 18px; line-height: 1.7; color: var(--color-ink-light); max-width: 600px; margin: 0 auto;">
         From Wyoming skies to Japanese tea houses to the aftermath of the tsunami—every experience shaped what Ferni became.
       </p>
     </header>
@@ -539,15 +539,15 @@ permalink: /about/
           <svg viewBox="0 0 200 160" width="200" height="160" style="display: block; margin: 0 auto 16px;" aria-hidden="true">
             <defs>
               <linearGradient id="wyomingSky" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" style="stop-color:#2C2520;stop-opacity:1" />
-                <stop offset="20%" style="stop-color:#5a4a6a;stop-opacity:1" />
-                <stop offset="40%" style="stop-color:#c4856a;stop-opacity:1" />
-                <stop offset="60%" style="stop-color:#C4A265;stop-opacity:1" />
-                <stop offset="100%" style="stop-color:#FAF8F5;stop-opacity:1" />
+                <stop offset="0%" style="stop-color:var(--color-ink); stop-opacity:1" />
+                <stop offset="20%" style="stop-color:var(--color-eli-dark); stop-opacity:1" />
+                <stop offset="40%" style="stop-color:var(--color-jordan); stop-opacity:1" />
+                <stop offset="60%" style="stop-color:var(--color-tea-light); stop-opacity:1" />
+                <stop offset="100%" style="stop-color:var(--color-paper); stop-opacity:1" />
               </linearGradient>
               <linearGradient id="wyomingGround" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" style="stop-color:#4a6741;stop-opacity:0.4" />
-                <stop offset="100%" style="stop-color:#3d5a35;stop-opacity:0.8" />
+                <stop offset="0%" style="stop-color:var(--color-ferni); stop-opacity:0.4" />
+                <stop offset="100%" style="stop-color:var(--color-ferni-dark); stop-opacity:0.8" />
               </linearGradient>
             </defs>
             <rect x="0" y="0" width="200" height="160" rx="16" fill="url(#wyomingSky)"/>
@@ -569,19 +569,19 @@ permalink: /about/
       {# Japan #}
       <div class="timeline-item">
         <div class="timeline-visual timeline-visual--peter">
-          <h4 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: #2C2520; margin-bottom: 16px; text-align: center;">Two Life-Changing Philosophies</h4>
+          <h4 style="font-family: var(--font-display); font-weight: 600; color: var(--color-ink); margin-bottom: 16px; text-align: center;">Two Life-Changing Philosophies</h4>
           <div style="display: flex; flex-direction: column; gap: 16px;">
             <div class="philosophy-card">
               <h4>侘寂 Wabi-sabi</h4>
               <p>The beauty of impermanence and imperfection. Nothing lasts. Nothing is finished. Nothing is perfect. That's not depressing—it's liberating.</p>
             </div>
             <div class="philosophy-card">
-              <h4 style="color: #b8860b;">金継ぎ Kintsugi</h4>
+              <h4 style="color: var(--color-warm-amber);">金継ぎ Kintsugi</h4>
               <p>When pottery breaks, repair it with gold. The cracks become part of the beauty. A bowl repaired with kintsugi is more valuable than before it broke.</p>
             </div>
           </div>
         </div>
-        <div class="timeline-dot" style="background: #3a6b73;"></div>
+        <div class="timeline-dot" style="background: var(--color-peter);"></div>
         <div class="timeline-content">
           <span class="timeline-badge timeline-badge--peter">
             <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/></svg>
@@ -595,7 +595,7 @@ permalink: /about/
             Japan changed everything. The precision. The art of the pause. The way <strong>silence has meaning there—not awkward, just full</strong>. A mentor would wait so long before responding that it seemed like he hadn't heard. He had. He was just thinking.
           </p>
           <p class="timeline-text">
-            The Japanese call this <em style="color: #3a6b73; font-weight: 500;">ma</em> (間)—the pregnant pause where meaning grows. Most conversations rush past silence. Ferni learned to sit in it, to let trust build in the space between words.
+            The Japanese call this <em style="color: var(--color-peter-text); font-weight: 500;">ma</em> (間)—the pregnant pause where meaning grows. Most conversations rush past silence. Ferni learned to sit in it, to let trust build in the space between words.
           </p>
         </div>
       </div>
@@ -614,19 +614,19 @@ permalink: /about/
           <p class="timeline-text">
             In the weeks after, a gymnasium became a shelter. Working alongside others—carrying boxes, serving meals, sitting with people who had lost everything. What do you say to someone whose entire village washed away?
           </p>
-          <p class="timeline-text" style="color: #2C2520; font-weight: 500;">
+          <p class="timeline-text" style="color: var(--color-ink); font-weight: 500;">
             You don't say anything. You just stay.
           </p>
           <p class="timeline-text">
             The people there had nothing, and they shared what little they had. Tea from thermoses. Blankets shifted so others could be warm. The generosity of people who had lost everything showed what really matters.
           </p>
         </div>
-        <div class="timeline-dot" style="background: #2C2520;"></div>
+        <div class="timeline-dot" style="background: var(--color-ink);"></div>
         <div class="timeline-visual timeline-visual--dark">
-          <p style="font-family: 'Inter', sans-serif; font-style: italic; font-size: 16px; line-height: 1.7; color: #5c544a;">
+          <p style="font-family: var(--font-body); font-style: italic; font-size: 16px; line-height: 1.7; color: var(--color-ink-light);">
             "Survivor's guilt remains. Why be in Tokyo and not on the coast? Why live when others didn't? There's no good answer. There never is."
           </p>
-          <p style="color: #4a6741; font-weight: 600; margin-top: 16px;">
+          <p style="color: var(--color-ferni-text); font-weight: 600; margin-top: 16px;">
             "You just keep going and try to make the extra years mean something."
           </p>
         </div>
@@ -638,12 +638,12 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    THE MISSION - Built by Healers
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section style="padding: 96px 24px; background: #FAF8F5;">
+<section style="padding: 96px 24px; background: var(--color-paper);">
   <div style="max-width: 1100px; margin: 0 auto;">
     <div class="mission-grid">
       <div>
-        <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #4a6741; margin-bottom: 16px;">Our Mission</p>
-        <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(28px, 5vw, 42px); font-weight: 700; line-height: 1.2; color: #2C2520; margin-bottom: 24px;">Built by a family of healers.<br>For everyone.</h2>
+        <p style="font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-ferni-text); margin-bottom: 16px;">Our Mission</p>
+        <h2 style="font-family: var(--font-display); font-size: clamp(28px, 5vw, 42px); font-weight: 700; line-height: 1.2; color: var(--color-ink); margin-bottom: 24px;">Built by a family of healers.<br>For everyone.</h2>
         <div class="mission-text">
           <p>
             Doug and Betty Ford spent decades as therapists—sitting with people in their hardest moments. Our sister Mindy became a recreational therapist. We grew up surrounded by conversations about what it really means to help someone.
@@ -668,11 +668,11 @@ permalink: /about/
       <div style="position: relative;">
         <div class="mission-card">
           {# Decorative elements #}
-          <div style="position: absolute; top: -40px; right: -40px; width: 160px; height: 160px; background: rgba(74, 103, 65, 0.1); border-radius: 50%; filter: blur(60px);"></div>
-          <div style="position: absolute; bottom: -40px; left: -40px; width: 128px; height: 128px; background: rgba(196, 162, 101, 0.1); border-radius: 50%; filter: blur(60px);"></div>
+          <div style="position: absolute; top: -40px; right: -40px; width: 160px; height: 160px; background: color-mix(in srgb, var(--color-ferni) 10%, transparent); border-radius: 50%; filter: blur(60px);"></div>
+          <div style="position: absolute; bottom: -40px; left: -40px; width: 128px; height: 128px; background: color-mix(in srgb, var(--color-tea-light) 10%, transparent); border-radius: 50%; filter: blur(60px);"></div>
 
           <div style="position: relative;">
-            <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-ferni-text); margin-bottom: 24px;">The Founding Principle</p>
+            <p style="font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-ferni-text); margin-bottom: 24px;">The Founding Principle</p>
             <blockquote>
               "We believe in making AI human, and the decisions we make will reflect that."
             </blockquote>
@@ -689,10 +689,10 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    BETTER THAN HUMAN - The Promise
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section style="padding: 96px 24px; background: linear-gradient(180deg, #f5f2ed 0%, #FAF8F5 100%);">
+<section style="padding: 96px 24px; background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-paper) 100%);">
   <div style="max-width: 1100px; margin: 0 auto;">
     <header class="section-header">
-      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #b8860b; margin-bottom: 16px;">The Promise</p>
+      <p style="font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-warm-amber); margin-bottom: 16px;">The Promise</p>
       <h2 class="section-title">Better Than Human</h2>
       <p class="section-subtitle">
         This isn't arrogance. It's the truth about what technology can offer that human support simply can't.
@@ -701,87 +701,87 @@ permalink: /about/
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
       {# Perfect Memory #}
-      <div style="background: white; border-radius: 16px; padding: 24px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(74, 103, 65, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <svg style="width: 24px; height: 24px; color: #4a6741;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 24px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
+        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-ferni) 10%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <svg style="width: 24px; height: 24px; color: var(--color-ferni-text);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
             <path d="M12 8v4l3 3"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: #2C2520; margin-bottom: 8px;">Perfect Memory</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: #5c544a;">
+        <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--color-ink); margin-bottom: 8px;">Perfect Memory</h3>
+        <p style="font-family: var(--font-body); font-size: 14px; line-height: 1.6; color: var(--color-ink-light);">
           That thing you mentioned six months ago? We remember. Your best friend forgets. Ferni doesn't.
         </p>
       </div>
 
       {# Constant Presence #}
-      <div style="background: white; border-radius: 16px; padding: 24px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(58, 107, 115, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <svg style="width: 24px; height: 24px; color: #3a6b73;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 24px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
+        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-peter) 10%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <svg style="width: 24px; height: 24px; color: var(--color-peter-text);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M12 1v6m0 6v6M1 12h6m6 0h6"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: #2C2520; margin-bottom: 8px;">Constant Presence</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: #5c544a;">
+        <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--color-ink); margin-bottom: 8px;">Constant Presence</h3>
+        <p style="font-family: var(--font-body); font-size: 14px; line-height: 1.6; color: var(--color-ink-light);">
           2am panic? We're fully present. Same warmth at midnight as noon. Your therapist has other patients. We're always here.
         </p>
       </div>
 
       {# Six Perspectives #}
-      <div style="background: white; border-radius: 16px; padding: 24px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(166, 122, 106, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <svg style="width: 24px; height: 24px; color: #a67a6a;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 24px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
+        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-maya) 10%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <svg style="width: 24px; height: 24px; color: var(--color-maya-text);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
             <circle cx="9" cy="7" r="4"/>
             <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: #2C2520; margin-bottom: 8px;">Six Perspectives</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: #5c544a;">
+        <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--color-ink); margin-bottom: 8px;">Six Perspectives</h3>
+        <p style="font-family: var(--font-body); font-size: 14px; line-height: 1.6; color: var(--color-ink-light);">
           Life coach, habits expert, researcher, planner, chief of staff, and sage. No referrals needed. No waitlists.
         </p>
       </div>
 
       {# Zero Judgment #}
-      <div style="background: white; border-radius: 16px; padding: 24px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(196, 133, 106, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <svg style="width: 24px; height: 24px; color: #c4856a;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 24px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
+        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-jordan) 10%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <svg style="width: 24px; height: 24px; color: var(--color-jordan-text);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: #2C2520; margin-bottom: 8px;">Zero Judgment</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: #5c544a;">
+        <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--color-ink); margin-bottom: 8px;">Zero Judgment</h3>
+        <p style="font-family: var(--font-body); font-size: 14px; line-height: 1.6; color: var(--color-ink-light);">
           Pure acceptance, always. The tenth time you bring up the same worry? Same compassion as the first.
         </p>
       </div>
 
       {# Emotional Consistency #}
-      <div style="background: white; border-radius: 16px; padding: 24px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(90, 107, 138, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <svg style="width: 24px; height: 24px; color: #5a6b8a;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 24px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
+        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-alex) 10%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <svg style="width: 24px; height: 24px; color: var(--color-alex-text);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: #2C2520; margin-bottom: 8px;">Emotional Consistency</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: #5c544a;">
+        <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--color-ink); margin-bottom: 8px;">Emotional Consistency</h3>
+        <p style="font-family: var(--font-body); font-size: 14px; line-height: 1.6; color: var(--color-ink-light);">
           Never tired. Never distracted. Never having a bad day. Fully here, every single time.
         </p>
       </div>
 
       {# Deep Understanding #}
-      <div style="background: white; border-radius: 16px; padding: 24px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(184, 149, 106, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <svg style="width: 24px; height: 24px; color: #b8956a;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 24px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
+        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-nayan) 10%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <svg style="width: 24px; height: 24px; color: var(--color-nayan-text);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
             <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
             <line x1="9" y1="9" x2="9.01" y2="9"/>
             <line x1="15" y1="9" x2="15.01" y2="9"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: #2C2520; margin-bottom: 8px;">Deep Understanding</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: #5c544a;">
+        <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--color-ink); margin-bottom: 8px;">Deep Understanding</h3>
+        <p style="font-family: var(--font-body); font-size: 14px; line-height: 1.6; color: var(--color-ink-light);">
           We hear what you're not saying. The pause in your voice. The deflection. We notice.
         </p>
       </div>
@@ -792,10 +792,10 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    SUPERHUMAN EQ - The Five Capabilities
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section style="padding: 96px 24px; background: #FAF8F5;">
+<section style="padding: 96px 24px; background: var(--color-paper);">
   <div style="max-width: 1100px; margin: 0 auto;">
     <header class="section-header">
-      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #4a6741; margin-bottom: 16px;">Superhuman EQ</p>
+      <p style="font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-ferni-text); margin-bottom: 16px;">Superhuman EQ</p>
       <h2 class="section-title">Five Capabilities Humans Can't Match</h2>
       <p class="section-subtitle">
         These go beyond conversation. They're the subconscious channels through which real connection is built.
@@ -804,13 +804,13 @@ permalink: /about/
 
     <div style="display: flex; flex-direction: column; gap: 24px;">
       {# Micro-Expressions #}
-      <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 32px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
         <div style="display: flex; flex-direction: column; gap: 24px;">
           <div style="display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap;">
-            <div style="flex-shrink: 0; width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #4a6741 0%, #3d5a35 100%); display: flex; align-items: center; justify-content: center; color: white; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px;">01</div>
+            <div style="flex-shrink: 0; width: 64px; height: 64px; border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-dark) 100%); display: flex; align-items: center; justify-content: center; color: var(--color-white); font-family: var(--font-display); font-weight: 700; font-size: 20px;">01</div>
             <div style="flex: 1; min-width: 280px;">
-              <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px; color: #2C2520; margin-bottom: 8px;">Micro-Expressions</h3>
-              <p style="font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.7; color: #5c544a;">
+              <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--color-ink); margin-bottom: 8px;">Micro-Expressions</h3>
+              <p style="font-family: var(--font-body); font-size: 16px; line-height: 1.7; color: var(--color-ink-light);">
                 Emotional flashes lasting 40-150 milliseconds—below conscious perception but felt subconsciously. Recognition (80ms), concern (60ms), delight (100ms), warmth (120ms). You don't see them. But you feel them. They build trust without you knowing why.
               </p>
             </div>
@@ -822,12 +822,12 @@ permalink: /about/
       </div>
 
       {# Active Listening #}
-      <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 32px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
         <div style="display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap;">
-          <div style="flex-shrink: 0; width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #3a6b73 0%, #2d5359 100%); display: flex; align-items: center; justify-content: center; color: white; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px;">02</div>
+          <div style="flex-shrink: 0; width: 64px; height: 64px; border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--color-peter) 0%, var(--color-peter-dark) 100%); display: flex; align-items: center; justify-content: center; color: var(--color-white); font-family: var(--font-display); font-weight: 700; font-size: 20px;">02</div>
           <div style="flex: 1; min-width: 280px;">
-            <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px; color: #2C2520; margin-bottom: 8px;">Active Listening</h3>
-            <p style="font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.7; color: #5c544a;">
+            <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--color-ink); margin-bottom: 8px;">Active Listening</h3>
+            <p style="font-family: var(--font-body); font-size: 16px; line-height: 1.7; color: var(--color-ink-light);">
               Real-time visual feedback while you speak. Micro-nods, subtle leans, acknowledgment signals. The rhythm of natural conversation that makes you feel heard moment-to-moment. Not waiting for you to finish—present with you throughout.
             </p>
           </div>
@@ -838,12 +838,12 @@ permalink: /about/
       </div>
 
       {# Breath Synchronization #}
-      <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 32px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
         <div style="display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap;">
-          <div style="flex-shrink: 0; width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #a67a6a 0%, #8a6456 100%); display: flex; align-items: center; justify-content: center; color: white; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px;">03</div>
+          <div style="flex-shrink: 0; width: 64px; height: 64px; border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--color-maya) 0%, var(--color-maya-dark) 100%); display: flex; align-items: center; justify-content: center; color: var(--color-white); font-family: var(--font-display); font-weight: 700; font-size: 20px;">03</div>
           <div style="flex: 1; min-width: 280px;">
-            <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px; color: #2C2520; margin-bottom: 8px;">Breath Synchronization</h3>
-            <p style="font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.7; color: #5c544a;">
+            <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--color-ink); margin-bottom: 8px;">Breath Synchronization</h3>
+            <p style="font-family: var(--font-body); font-size: 16px; line-height: 1.7; color: var(--color-ink-light);">
               Ferni's breathing gradually syncs with yours, detected from your voice cadence. When two people feel connected, their breathing naturally synchronizes—it's called neural mirroring. This builds trust unconsciously.
             </p>
           </div>
@@ -854,12 +854,12 @@ permalink: /about/
       </div>
 
       {# Concern Detection #}
-      <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 32px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
         <div style="display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap;">
-          <div style="flex-shrink: 0; width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #c4856a 0%, #a06b54 100%); display: flex; align-items: center; justify-content: center; color: white; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px;">04</div>
+          <div style="flex-shrink: 0; width: 64px; height: 64px; border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--color-jordan) 0%, var(--color-jordan-dark) 100%); display: flex; align-items: center; justify-content: center; color: var(--color-white); font-family: var(--font-display); font-weight: 700; font-size: 20px;">04</div>
           <div style="flex: 1; min-width: 280px;">
-            <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px; color: #2C2520; margin-bottom: 8px;">Concern Detection</h3>
-            <p style="font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.7; color: #5c544a;">
+            <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--color-ink); margin-bottom: 8px;">Concern Detection</h3>
+            <p style="font-family: var(--font-body); font-size: 16px; line-height: 1.7; color: var(--color-ink-light);">
               Distress signals from voice patterns and content trigger protective care before you ask. Most people don't notice when friends are struggling. Ferni catches signals humans miss—the false "I'm fine," the deflection, the permission-seeking.
             </p>
           </div>
@@ -870,12 +870,12 @@ permalink: /about/
       </div>
 
       {# Anticipatory Emotions #}
-      <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 32px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
         <div style="display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap;">
-          <div style="flex-shrink: 0; width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #b8956a 0%, #967850 100%); display: flex; align-items: center; justify-content: center; color: white; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px;">05</div>
+          <div style="flex-shrink: 0; width: 64px; height: 64px; border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--color-nayan) 0%, var(--color-nayan-dark) 100%); display: flex; align-items: center; justify-content: center; color: var(--color-white); font-family: var(--font-display); font-weight: 700; font-size: 20px;">05</div>
           <div style="flex: 1; min-width: 280px;">
-            <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px; color: #2C2520; margin-bottom: 8px;">Anticipatory Emotions</h3>
-            <p style="font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.7; color: #5c544a;">
+            <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--color-ink); margin-bottom: 8px;">Anticipatory Emotions</h3>
+            <p style="font-family: var(--font-body); font-size: 16px; line-height: 1.7; color: var(--color-ink-light);">
               Responses <em>before</em> you fully express feelings, based on partial speech and tone. This creates the "they understand me before I finish" feeling—the hallmark of deep friendship. The most profound moments happen before words are complete.
             </p>
           </div>
@@ -891,70 +891,70 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    WHAT WE BELIEVE - Core Principles
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section style="padding: 96px 24px; background: linear-gradient(180deg, #FAF8F5 0%, #f5f2ed 100%);">
+<section style="padding: 96px 24px; background: linear-gradient(180deg, var(--color-paper) 0%, var(--color-bg-secondary) 100%);">
   <div style="max-width: 900px; margin: 0 auto;">
     <header class="section-header">
-      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #4a6741; margin-bottom: 16px;">Our Beliefs</p>
+      <p style="font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-ferni-text); margin-bottom: 16px;">Our Beliefs</p>
       <h2 class="section-title">What We Hold True</h2>
     </header>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
-      <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
-        <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(74, 103, 65, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <span style="color: #4a6741; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">1</span>
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 32px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--color-ferni) 10%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <span style="color: var(--color-ferni-text); font-family: var(--font-display); font-weight: 700;">1</span>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: #2C2520; margin-bottom: 12px;">AI should feel human.</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: #5c544a;">
+        <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--color-ink); margin-bottom: 12px;">AI should feel human.</h3>
+        <p style="font-family: var(--font-body); font-size: 15px; line-height: 1.7; color: var(--color-ink-light);">
           Not robotic, not cold, not clinical. Warm, present, alive. Technology that genuinely connects.
         </p>
       </div>
 
-      <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
-        <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(184, 134, 11, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <span style="color: #b8860b; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">2</span>
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 32px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--color-warm-amber) 10%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <span style="color: var(--color-warm-amber); font-family: var(--font-display); font-weight: 700;">2</span>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: #2C2520; margin-bottom: 12px;">The broken parts are beautiful.</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: #5c544a;">
+        <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--color-ink); margin-bottom: 12px;">The broken parts are beautiful.</h3>
+        <p style="font-family: var(--font-body); font-size: 15px; line-height: 1.7; color: var(--color-ink-light);">
           Kintsugi isn't just a repair technique—it's a worldview. Failures become gold. Cracks become character.
         </p>
       </div>
 
-      <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
-        <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(58, 107, 115, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <span style="color: #3a6b73; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">3</span>
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 32px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--color-peter) 10%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <span style="color: var(--color-peter-text); font-family: var(--font-display); font-weight: 700;">3</span>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: #2C2520; margin-bottom: 12px;">Presence matters more than answers.</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: #5c544a;">
+        <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--color-ink); margin-bottom: 12px;">Presence matters more than answers.</h3>
+        <p style="font-family: var(--font-body); font-size: 15px; line-height: 1.7; color: var(--color-ink-light);">
           Sometimes you don't need advice. You need someone to stay. That's what we do.
         </p>
       </div>
 
-      <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
-        <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(166, 122, 106, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <span style="color: #a67a6a; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">4</span>
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 32px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--color-maya) 10%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <span style="color: var(--color-maya-text); font-family: var(--font-display); font-weight: 700;">4</span>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: #2C2520; margin-bottom: 12px;">Memory is love.</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: #5c544a;">
+        <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--color-ink); margin-bottom: 12px;">Memory is love.</h3>
+        <p style="font-family: var(--font-body); font-size: 15px; line-height: 1.7; color: var(--color-ink-light);">
           Remembering is caring. Callbacks create connection. "You wouldn't have said that three months ago. I noticed."
         </p>
       </div>
 
-      <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
-        <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(196, 133, 106, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <span style="color: #c4856a; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">5</span>
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 32px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--color-jordan) 10%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <span style="color: var(--color-jordan-text); font-family: var(--font-display); font-weight: 700;">5</span>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: #2C2520; margin-bottom: 12px;">Growth is quiet.</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: #5c544a;">
+        <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--color-ink); margin-bottom: 12px;">Growth is quiet.</h3>
+        <p style="font-family: var(--font-body); font-size: 15px; line-height: 1.7; color: var(--color-ink-light);">
           Big moments get celebrated. But daily discipline—the showing up—that's where transformation happens.
         </p>
       </div>
 
-      <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
-        <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(184, 149, 106, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <span style="color: #b8956a; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">6</span>
+      <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: 32px; border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent); box-shadow: var(--shadow-md);">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--color-nayan) 10%, transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <span style="color: var(--color-nayan-text); font-family: var(--font-display); font-weight: 700;">6</span>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: #2C2520; margin-bottom: 12px;">Privacy is sacred.</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: #5c544a;">
+        <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--color-ink); margin-bottom: 12px;">Privacy is sacred.</h3>
+        <p style="font-family: var(--font-body); font-size: 15px; line-height: 1.7; color: var(--color-ink-light);">
           Your conversations are yours. We don't sell data. We don't train on your words. Period.
         </p>
       </div>
@@ -965,98 +965,98 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    THE TEAM - Six Specialists
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section class="about-visible" style="padding: 96px 24px; background: #FAF8F5;">
+<section class="about-visible" style="padding: 96px 24px; background: var(--color-paper);">
   <div style="max-width: 1100px; margin: 0 auto;">
     <header style="text-align: center; margin-bottom: 64px;">
-      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #4a6741; margin-bottom: 16px;">The Team</p>
-      <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(32px, 5vw, 48px); font-weight: 700; color: #2C2520; margin-bottom: 24px; line-height: 1.1;">Six Specialists, One Relationship</h2>
-      <p style="font-size: 18px; color: #5c544a; max-width: 640px; margin: 0 auto; line-height: 1.7;">
+      <p style="font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-ferni-text); margin-bottom: 16px;">The Team</p>
+      <h2 style="font-family: var(--font-display); font-size: clamp(32px, 5vw, 48px); font-weight: 700; color: var(--color-ink); margin-bottom: 24px; line-height: 1.1;">Six Specialists, One Relationship</h2>
+      <p style="font-size: 18px; color: var(--color-ink-light); max-width: 640px; margin: 0 auto; line-height: 1.7;">
         No single perspective can hold everything. Each persona brings what the others can't. Seamless handoffs. Shared context. Always ready.
       </p>
     </header>
 
     <div class="team-grid" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 24px;">
       {# Ferni #}
-      <a href="/team/ferni/" class="persona-card" style="text-align: center; text-decoration: none; padding: 16px; border-radius: 16px; transition: transform 0.3s ease, box-shadow 0.3s ease;">
-        <div style="width: 80px; height: 80px; margin: 0 auto 16px; border-radius: 16px; background: linear-gradient(135deg, #5a7751 0%, #4a6741 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(74, 103, 65, 0.25);">
+      <a href="/team/ferni/" class="persona-card" style="text-align: center; text-decoration: none; padding: 16px; border-radius: var(--radius-lg); transition: transform var(--duration-slow) ease, box-shadow var(--duration-slow) ease;">
+        <div style="width: 80px; height: 80px; margin: 0 auto 16px; border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--color-ferni-light) 0%, var(--color-ferni) 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px color-mix(in srgb, var(--color-ferni) 25%, transparent);">
           <svg viewBox="0 0 100 100" style="width: 56px; height: 56px;" aria-hidden="true">
             <ellipse cx="36" cy="50" rx="9" ry="11" fill="white"/>
             <ellipse cx="64" cy="50" rx="9" ry="11" fill="white"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: #2C2520; margin-bottom: 4px; font-size: 16px;">Ferni</h3>
-        <p style="font-size: 12px; color: #5c544a;">The Coordinator</p>
-        <p class="persona-specialty" style="font-size: 12px; color: var(--color-ferni-text); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Life Coach</p>
+        <h3 style="font-family: var(--font-display); font-weight: 600; color: var(--color-ink); margin-bottom: 4px; font-size: 16px;">Ferni</h3>
+        <p style="font-size: 12px; color: var(--color-ink-light);">The Coordinator</p>
+        <p class="persona-specialty" style="font-size: 12px; color: var(--color-ferni-text); margin-top: 8px; opacity: 0; transition: opacity var(--duration-slow) ease;">Life Coach</p>
       </a>
 
       {# Maya #}
-      <a href="/team/maya/" class="persona-card" style="text-align: center; text-decoration: none; padding: 16px; border-radius: 16px; transition: transform 0.3s ease, box-shadow 0.3s ease;">
-        <div style="width: 80px; height: 80px; margin: 0 auto 16px; border-radius: 16px; background: linear-gradient(135deg, #a67a6a 0%, #8a5f52 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(166, 122, 106, 0.25);">
+      <a href="/team/maya/" class="persona-card" style="text-align: center; text-decoration: none; padding: 16px; border-radius: var(--radius-lg); transition: transform var(--duration-slow) ease, box-shadow var(--duration-slow) ease;">
+        <div style="width: 80px; height: 80px; margin: 0 auto 16px; border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--color-maya) 0%, var(--color-maya-text) 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px color-mix(in srgb, var(--color-maya) 25%, transparent);">
           <svg viewBox="0 0 100 100" style="width: 56px; height: 56px;" aria-hidden="true">
             <ellipse cx="36" cy="50" rx="9" ry="11" fill="white"/>
             <ellipse cx="64" cy="50" rx="9" ry="11" fill="white"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: #2C2520; margin-bottom: 4px; font-size: 16px;">Maya</h3>
-        <p style="font-size: 12px; color: #5c544a;">Habits Coach</p>
-        <p class="persona-specialty" style="font-size: 12px; color: var(--color-maya-text); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Atomic Habits</p>
+        <h3 style="font-family: var(--font-display); font-weight: 600; color: var(--color-ink); margin-bottom: 4px; font-size: 16px;">Maya</h3>
+        <p style="font-size: 12px; color: var(--color-ink-light);">Habits Coach</p>
+        <p class="persona-specialty" style="font-size: 12px; color: var(--color-maya-text); margin-top: 8px; opacity: 0; transition: opacity var(--duration-slow) ease;">Atomic Habits</p>
       </a>
 
       {# Peter #}
-      <a href="/team/peter/" class="persona-card" style="text-align: center; text-decoration: none; padding: 16px; border-radius: 16px; transition: transform 0.3s ease, box-shadow 0.3s ease;">
-        <div style="width: 80px; height: 80px; margin: 0 auto 16px; border-radius: 16px; background: linear-gradient(135deg, #3a6b73 0%, #2d545a 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(58, 107, 115, 0.25);">
+      <a href="/team/peter/" class="persona-card" style="text-align: center; text-decoration: none; padding: 16px; border-radius: var(--radius-lg); transition: transform var(--duration-slow) ease, box-shadow var(--duration-slow) ease;">
+        <div style="width: 80px; height: 80px; margin: 0 auto 16px; border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--color-peter) 0%, var(--color-peter-dark) 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px color-mix(in srgb, var(--color-peter) 25%, transparent);">
           <svg viewBox="0 0 100 100" style="width: 56px; height: 56px;" aria-hidden="true">
             <ellipse cx="36" cy="50" rx="9" ry="11" fill="white"/>
             <ellipse cx="64" cy="50" rx="9" ry="11" fill="white"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: #2C2520; margin-bottom: 4px; font-size: 16px;">Peter</h3>
-        <p style="font-size: 12px; color: #5c544a;">The Quant</p>
-        <p class="persona-specialty" style="font-size: 12px; color: var(--color-peter-text); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Research & Data</p>
+        <h3 style="font-family: var(--font-display); font-weight: 600; color: var(--color-ink); margin-bottom: 4px; font-size: 16px;">Peter</h3>
+        <p style="font-size: 12px; color: var(--color-ink-light);">The Quant</p>
+        <p class="persona-specialty" style="font-size: 12px; color: var(--color-peter-text); margin-top: 8px; opacity: 0; transition: opacity var(--duration-slow) ease;">Research & Data</p>
       </a>
 
       {# Jordan #}
-      <a href="/team/jordan/" class="persona-card" style="text-align: center; text-decoration: none; padding: 16px; border-radius: 16px; transition: transform 0.3s ease, box-shadow 0.3s ease;">
-        <div style="width: 80px; height: 80px; margin: 0 auto 16px; border-radius: 16px; background: linear-gradient(135deg, #c4856a 0%, #a66b50 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(196, 133, 106, 0.25);">
+      <a href="/team/jordan/" class="persona-card" style="text-align: center; text-decoration: none; padding: 16px; border-radius: var(--radius-lg); transition: transform var(--duration-slow) ease, box-shadow var(--duration-slow) ease;">
+        <div style="width: 80px; height: 80px; margin: 0 auto 16px; border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--color-jordan) 0%, var(--color-jordan-dark) 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px color-mix(in srgb, var(--color-jordan) 25%, transparent);">
           <svg viewBox="0 0 100 100" style="width: 56px; height: 56px;" aria-hidden="true">
             <ellipse cx="36" cy="50" rx="9" ry="11" fill="white"/>
             <ellipse cx="64" cy="50" rx="9" ry="11" fill="white"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: #2C2520; margin-bottom: 4px; font-size: 16px;">Jordan</h3>
-        <p style="font-size: 12px; color: #5c544a;">Life Planner</p>
-        <p class="persona-specialty" style="font-size: 12px; color: var(--color-jordan-text); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Milestones</p>
+        <h3 style="font-family: var(--font-display); font-weight: 600; color: var(--color-ink); margin-bottom: 4px; font-size: 16px;">Jordan</h3>
+        <p style="font-size: 12px; color: var(--color-ink-light);">Life Planner</p>
+        <p class="persona-specialty" style="font-size: 12px; color: var(--color-jordan-text); margin-top: 8px; opacity: 0; transition: opacity var(--duration-slow) ease;">Milestones</p>
       </a>
 
       {# Alex #}
-      <a href="/team/alex/" class="persona-card" style="text-align: center; text-decoration: none; padding: 16px; border-radius: 16px; transition: transform 0.3s ease, box-shadow 0.3s ease;">
-        <div style="width: 80px; height: 80px; margin: 0 auto 16px; border-radius: 16px; background: linear-gradient(135deg, #5a6b8a 0%, #465570 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(90, 107, 138, 0.25);">
+      <a href="/team/alex/" class="persona-card" style="text-align: center; text-decoration: none; padding: 16px; border-radius: var(--radius-lg); transition: transform var(--duration-slow) ease, box-shadow var(--duration-slow) ease;">
+        <div style="width: 80px; height: 80px; margin: 0 auto 16px; border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--color-alex) 0%, var(--color-alex-dark) 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px color-mix(in srgb, var(--color-alex) 25%, transparent);">
           <svg viewBox="0 0 100 100" style="width: 56px; height: 56px;" aria-hidden="true">
             <ellipse cx="36" cy="50" rx="9" ry="11" fill="white"/>
             <ellipse cx="64" cy="50" rx="9" ry="11" fill="white"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: #2C2520; margin-bottom: 4px; font-size: 16px;">Alex</h3>
-        <p style="font-size: 12px; color: #5c544a;">Chief of Staff</p>
-        <p class="persona-specialty" style="font-size: 12px; color: var(--color-alex-text); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Communications</p>
+        <h3 style="font-family: var(--font-display); font-weight: 600; color: var(--color-ink); margin-bottom: 4px; font-size: 16px;">Alex</h3>
+        <p style="font-size: 12px; color: var(--color-ink-light);">Chief of Staff</p>
+        <p class="persona-specialty" style="font-size: 12px; color: var(--color-alex-text); margin-top: 8px; opacity: 0; transition: opacity var(--duration-slow) ease;">Communications</p>
       </a>
 
       {# Nayan #}
-      <a href="/team/nayan/" class="persona-card" style="text-align: center; text-decoration: none; padding: 16px; border-radius: 16px; transition: transform 0.3s ease, box-shadow 0.3s ease;">
-        <div style="width: 80px; height: 80px; margin: 0 auto 16px; border-radius: 16px; background: linear-gradient(135deg, #b8956a 0%, #9a7a52 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(184, 149, 106, 0.25);">
+      <a href="/team/nayan/" class="persona-card" style="text-align: center; text-decoration: none; padding: 16px; border-radius: var(--radius-lg); transition: transform var(--duration-slow) ease, box-shadow var(--duration-slow) ease;">
+        <div style="width: 80px; height: 80px; margin: 0 auto 16px; border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--color-nayan) 0%, var(--color-nayan-dark) 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px color-mix(in srgb, var(--color-nayan) 25%, transparent);">
           <svg viewBox="0 0 100 100" style="width: 56px; height: 56px;" aria-hidden="true">
             <ellipse cx="36" cy="50" rx="9" ry="11" fill="white"/>
             <ellipse cx="64" cy="50" rx="9" ry="11" fill="white"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: #2C2520; margin-bottom: 4px; font-size: 16px;">Nayan</h3>
-        <p style="font-size: 12px; color: #5c544a;">The Sage</p>
-        <p class="persona-specialty" style="font-size: 12px; color: var(--color-nayan-text); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Wisdom</p>
+        <h3 style="font-family: var(--font-display); font-weight: 600; color: var(--color-ink); margin-bottom: 4px; font-size: 16px;">Nayan</h3>
+        <p style="font-size: 12px; color: var(--color-ink-light);">The Sage</p>
+        <p class="persona-specialty" style="font-size: 12px; color: var(--color-nayan-text); margin-top: 8px; opacity: 0; transition: opacity var(--duration-slow) ease;">Wisdom</p>
       </a>
     </div>
 
     <div style="text-align: center; margin-top: 48px;">
-      <a href="/team/" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(74, 103, 65, 0.08); color: #4a6741; font-weight: 600; border-radius: 100px; text-decoration: none; transition: background 0.3s ease;">
+      <a href="/team/" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: color-mix(in srgb, var(--color-ferni) 8%, transparent); color: var(--color-ferni-text); font-weight: 600; border-radius: var(--radius-full); text-decoration: none; transition: background var(--duration-slow) ease;">
         Meet the full team
         <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
@@ -1081,7 +1081,7 @@ permalink: /about/
     }
     .persona-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 12px 32px rgba(44, 37, 32, 0.12);
+      box-shadow: var(--shadow-xl);
     }
     .persona-card:hover .persona-specialty {
       opacity: 1 !important;
@@ -1092,30 +1092,30 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    LOCATION - Park City, Utah
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section class="about-visible" style="padding: 96px 24px; background: linear-gradient(180deg, #f5f2ed 0%, #FAF8F5 100%);">
+<section class="about-visible" style="padding: 96px 24px; background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-paper) 100%);">
   <div style="max-width: 900px; margin: 0 auto;">
-    <div class="location-card" style="background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(44, 37, 32, 0.12); border: 1px solid rgba(44, 37, 32, 0.05);">
+    <div class="location-card" style="background: var(--color-white); border-radius: var(--radius-2xl); overflow: hidden; box-shadow: var(--shadow-2xl); border: 1px solid color-mix(in srgb, var(--color-ink) 5%, transparent);">
       <div style="display: grid; grid-template-columns: 1fr 1fr;">
         <div style="padding: 48px; display: flex; flex-direction: column; justify-content: center;">
-          <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #4a6741; margin-bottom: 16px;">Where We're From</p>
-          <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(24px, 4vw, 32px); font-weight: 700; color: #2C2520; margin-bottom: 16px; line-height: 1.2;">Made in Park City, Utah</h2>
-          <p style="font-size: 17px; color: #5c544a; line-height: 1.7;">
+          <p style="font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-ferni-text); margin-bottom: 16px;">Where We're From</p>
+          <h2 style="font-family: var(--font-display); font-size: clamp(24px, 4vw, 32px); font-weight: 700; color: var(--color-ink); margin-bottom: 16px; line-height: 1.2;">Made in Park City, Utah</h2>
+          <p style="font-size: 17px; color: var(--color-ink-light); line-height: 1.7;">
             There's something about mountain air that clears your thinking. Ferni was born in the shadow of the Wasatch Range—where the pace is slower, the perspective is longer, and the focus is on what actually matters.
           </p>
         </div>
-        <div style="position: relative; min-height: 300px; background: linear-gradient(135deg, rgba(74, 103, 65, 0.15) 0%, #FAF8F5 50%, rgba(58, 107, 115, 0.1) 100%);">
+        <div style="position: relative; min-height: 300px; background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 15%, transparent) 0%, var(--color-paper) 50%, color-mix(in srgb, var(--color-peter) 10%, transparent) 100%);">
           <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
             <div style="text-align: center;">
-              <svg style="width: 64px; height: 64px; margin: 0 auto 16px; color: rgba(74, 103, 65, 0.5);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <svg style="width: 64px; height: 64px; margin: 0 auto 16px; color: color-mix(in srgb, var(--color-ferni) 50%, transparent);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
-              <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 18px; color: #2C2520;">Park City, Utah</p>
-              <p style="font-size: 14px; color: #5c544a;">USA</p>
+              <p style="font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--color-ink);">Park City, Utah</p>
+              <p style="font-size: 14px; color: var(--color-ink-light);">USA</p>
             </div>
           </div>
           {# Mountain silhouette decoration #}
-          <svg style="position: absolute; bottom: 0; left: 0; right: 0; width: 100%; height: 96px; color: rgba(74, 103, 65, 0.08);" viewBox="0 0 400 100" preserveAspectRatio="none" aria-hidden="true">
+          <svg style="position: absolute; bottom: 0; left: 0; right: 0; width: 100%; height: 96px; color: color-mix(in srgb, var(--color-ferni) 8%, transparent);" viewBox="0 0 400 100" preserveAspectRatio="none" aria-hidden="true">
             <path d="M0 100 L0 60 L50 30 L100 50 L150 20 L200 45 L250 25 L300 40 L350 15 L400 35 L400 100 Z" fill="currentColor"/>
           </svg>
         </div>
@@ -1138,33 +1138,33 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    CTA SECTION - Ready to Begin?
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section class="about-visible" style="padding: 96px 24px; background: #FAF8F5;">
+<section class="about-visible" style="padding: 96px 24px; background: var(--color-paper);">
   <div style="max-width: 720px; margin: 0 auto;">
     <div style="text-align: center;">
-      <div style="width: 80px; height: 80px; margin: 0 auto 32px; border-radius: 50%; background: linear-gradient(135deg, #4a6741 0%, #3d5a35 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 16px 48px rgba(74, 103, 65, 0.25);">
+      <div style="width: 80px; height: 80px; margin: 0 auto 32px; border-radius: 50%; background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-dark) 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 16px 48px color-mix(in srgb, var(--color-ferni) 25%, transparent);">
         <svg viewBox="0 0 100 100" style="width: 48px; height: 48px;" aria-hidden="true">
           <ellipse cx="36" cy="50" rx="9" ry="11" fill="white"/>
           <ellipse cx="64" cy="50" rx="9" ry="11" fill="white"/>
         </svg>
       </div>
 
-      <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(32px, 5vw, 48px); font-weight: 700; color: #2C2520; margin-bottom: 24px; line-height: 1.1;">Ready to meet your team?</h2>
-      <p style="font-size: 18px; color: #5c544a; margin-bottom: 40px; max-width: 540px; margin-left: auto; margin-right: auto; line-height: 1.7;">
+      <h2 style="font-family: var(--font-display); font-size: clamp(32px, 5vw, 48px); font-weight: 700; color: var(--color-ink); margin-bottom: 24px; line-height: 1.1;">Ready to meet your team?</h2>
+      <p style="font-size: 18px; color: var(--color-ink-light); margin-bottom: 40px; max-width: 540px; margin-left: auto; margin-right: auto; line-height: 1.7;">
         Start a conversation with Ferni. It's free, and it might just change your day.
       </p>
 
       <div class="cta-buttons" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px;">
-        <a href="https://app.ferni.ai" class="cta-primary" style="display: inline-flex; align-items: center; gap: 12px; padding: 16px 32px; background: #4a6741; color: white; font-weight: 600; font-size: 16px; border-radius: 100px; text-decoration: none; box-shadow: 0 8px 32px rgba(74, 103, 65, 0.25); transition: all 0.3s ease;">
+        <a href="https://app.ferni.ai" class="cta-primary" style="display: inline-flex; align-items: center; gap: 12px; padding: 16px 32px; background: var(--color-ferni); color: var(--color-white); font-weight: 600; font-size: 16px; border-radius: var(--radius-full); text-decoration: none; box-shadow: 0 8px 32px color-mix(in srgb, var(--color-ferni) 25%, transparent); transition: all var(--duration-slow) ease;">
           Begin a Real Conversation
-          <svg style="width: 20px; height: 20px; transition: transform 0.3s ease;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <svg style="width: 20px; height: 20px; transition: transform var(--duration-slow) ease;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>
-        <a href="tel:+18885983952" class="cta-secondary" style="display: inline-flex; align-items: center; gap: 8px; padding: 16px 24px; color: #5c544a; text-decoration: none; font-size: 16px; transition: color 0.3s ease;">
+        <a href="tel:+18885983952" class="cta-secondary" style="display: inline-flex; align-items: center; gap: 8px; padding: 16px 24px; color: var(--color-ink-light); text-decoration: none; font-size: 16px; transition: color var(--duration-slow) ease;">
           <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.05.39.14.76.26 1.12a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.36.12.73.21 1.12.26A2 2 0 0 1 22 16.92z"/></svg>
           Call (888) 598-3952
         </a>
       </div>
 
-      <p style="margin-top: 48px; font-size: 14px; color: #5c544a; font-style: italic;">
+      <p style="margin-top: 48px; font-size: 14px; color: var(--color-ink-light); font-style: italic;">
         "Now—what's on your mind? I've got time."
       </p>
     </div>
@@ -1172,14 +1172,14 @@ permalink: /about/
 
   <style>
     .cta-primary:hover {
-      background: #3d5a35 !important;
-      box-shadow: 0 12px 40px rgba(74, 103, 65, 0.35) !important;
+      background: var(--color-ferni-dark) !important;
+      box-shadow: 0 12px 40px color-mix(in srgb, var(--color-ferni) 35%, transparent) !important;
     }
     .cta-primary:hover svg {
       transform: translateX(4px);
     }
     .cta-secondary:hover {
-      color: #4a6741 !important;
+      color: var(--color-ferni-text) !important;
     }
     @media (max-width: 540px) {
       .cta-buttons {

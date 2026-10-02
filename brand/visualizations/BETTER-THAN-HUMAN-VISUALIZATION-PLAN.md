@@ -13,7 +13,7 @@
 - **12 storytelling visualizations** (Life Seasons, Conversation River, Relationship Constellation, etc.)
 - **4 data dashboard visualizations** (Activity Rings, Financial Fan Chart, KPI Dashboard, Year Calendar)
 - **1 cultural metaphor visualization** (Kintsugi Map - wounds → wisdom)
-- **Consistent design token system** via `master-tokens.css`
+- **Consistent design token system** via `ferni-design-tokens.css`
 - **6 persona colors** that create visual identity
 
 **Gap Analysis vs. Information is Beautiful:**
@@ -129,7 +129,7 @@ Every visualization must complete this loop:
 | Nayan (Wisdom) | `--color-nayan` | #B8956A | Growth, Gold | ✓ OK |
 | Kintsugi Gold | `--kintsugi-gold` | #C9A227 | Wisdom, Repair | ⚠️ NOT IN TOKENS |
 
-**Color Issue:** Kintsugi Map introduces `--kintsugi-gold` which isn't in master-tokens.css
+**Color Issue:** Kintsugi Map introduces `--kintsugi-gold` which isn't in ferni-design-tokens.css
 
 ### Icon Consistency
 

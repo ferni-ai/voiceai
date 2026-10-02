@@ -19,12 +19,12 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(74, 103, 65, 0.1) 50%,
+    color-mix(in srgb, var(--color-ferni) 10%, transparent) 50%,
     transparent 100%
   );
   border-radius: var(--radius-xs);
   opacity: 0;
-  animation: ai-shimmer 2s ease-out 0.5s forwards;
+  animation: ai-shimmer 2s ease-out var(--duration-slowest) forwards;
   pointer-events: none;
 }
 
@@ -43,7 +43,7 @@
 }
 
 .ai-returning-visitor {
-  animation: returning-warmth 1s ease-out;
+  animation: returning-warmth var(--duration-dramatic) ease-out;
 }
 
 @keyframes returning-warmth {
@@ -82,7 +82,7 @@
 .hero-ferni__glow {
   opacity: var(--hero-glow-opacity);
   filter: blur(var(--hero-glow-spread));
-  transition: opacity 1s ease, filter 1s ease;
+  transition: opacity var(--duration-dramatic) ease, filter var(--duration-dramatic) ease;
 }
 
 /* ============================================================================
@@ -98,8 +98,8 @@
   /* Warmer, more intimate */
   background: linear-gradient(
     180deg,
-    hsl(35, 30%, 94%) 0%,
-    hsl(35, 25%, 91%) 100%
+    var(--color-bg-secondary) 0%,
+    var(--color-dark-text-secondary) 100%
   );
 }
 
@@ -113,8 +113,8 @@
   /* Warmer, more inviting glow */
   background: radial-gradient(
     circle,
-    rgba(74, 103, 65, 0.4) 0%,
-    rgba(74, 103, 65, 0.1) 50%,
+    color-mix(in srgb, var(--color-ferni) 40%, transparent) 0%,
+    color-mix(in srgb, var(--color-ferni) 10%, transparent) 50%,
     transparent 70%
   );
   animation: late-night-pulse 4s ease-in-out infinite;
@@ -142,7 +142,7 @@
   inset: 0;
   background: radial-gradient(
     ellipse at center,
-    rgba(74, 103, 65, 0.05) 0%,
+    color-mix(in srgb, var(--color-ferni) 5%, transparent) 0%,
     transparent 70%
   );
   pointer-events: none;
@@ -174,7 +174,7 @@
   background: linear-gradient(
     180deg,
     var(--color-paper-cream) 0%,
-    hsl(35, 35%, 90%) 100%
+    var(--color-bg-tertiary) 100%
   );
 }
 
@@ -186,8 +186,8 @@
 /* Intimate late-night - Extra warm presence */
 .mood-intimate .hero-ferni__orb {
   box-shadow: 
-    0 0 40px rgba(74, 103, 65, 0.3),
-    inset 0 0 20px rgba(255, 255, 255, 0.1);
+    0 0 40px color-mix(in srgb, var(--color-ferni) 30%, transparent),
+    inset 0 0 20px color-mix(in srgb, var(--color-white) 10%, transparent);
 }
 
 /* ============================================================================
@@ -202,10 +202,10 @@
 /* Engaged - read the content */
 .btn--primary-emphasized {
   background: var(--color-ferni);
-  color: white;
+  color: var(--color-white);
   box-shadow: 
-    0 4px 12px rgba(74, 103, 65, 0.3),
-    0 0 0 2px rgba(74, 103, 65, 0.1);
+    0 4px 12px color-mix(in srgb, var(--color-ferni) 30%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--color-ferni) 10%, transparent);
   transform: scale(1.02);
 }
 
@@ -216,7 +216,7 @@
     var(--color-ferni) 0%,
     var(--color-ferni-secondary) 100%
   );
-  color: white;
+  color: var(--color-white);
 }
 
 /* ============================================================================
@@ -231,7 +231,7 @@
 /* Returning visitor - subtle recognition */
 .visitor-returning .hero__tagline {
   opacity: 0;
-  animation: tagline-reveal 0.8s ease-out 0.3s forwards;
+  animation: tagline-reveal var(--duration-cinematic) ease-out var(--duration-slow) forwards;
 }
 
 @keyframes tagline-reveal {
@@ -273,7 +273,7 @@
 /* Loyal visitor (10+ visits) - special warmth */
 .visitor-loyal .hero-ferni__glow {
   opacity: 0.6;
-  animation: loyal-glow 3s ease-in-out infinite;
+  animation: loyal-glow var(--duration-meditative) ease-in-out infinite;
 }
 
 @keyframes loyal-glow {
@@ -327,10 +327,10 @@
 
 @keyframes subtle-attention {
   0%, 100% {
-    box-shadow: 0 2px 8px rgba(74, 103, 65, 0.1);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-ferni) 10%, transparent);
   }
   50% {
-    box-shadow: 0 4px 16px rgba(74, 103, 65, 0.2);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--color-ferni) 20%, transparent);
   }
 }
 
@@ -340,17 +340,16 @@
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%) translateY(4px);
-  background: var(--color-background-elevated, white);
+  background: var(--color-background-elevated);
   padding: 8px 16px;
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   white-space: nowrap;
   box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
+    var(--shadow-lg);
   opacity: 0;
-  animation: nudge-appear 0.4s ease-out forwards;
+  animation: nudge-appear var(--duration-slower) ease-out forwards;
 }
 
 .helpful-nudge::after {
@@ -360,7 +359,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
-  border-top-color: var(--color-background-elevated, white);
+  border-top-color: var(--color-background-elevated);
 }
 
 @keyframes nudge-appear {
@@ -375,7 +374,7 @@
 }
 
 .helpful-nudge--fading {
-  animation: nudge-fade 0.5s ease-out forwards;
+  animation: nudge-fade var(--duration-slowest) ease-out forwards;
 }
 
 @keyframes nudge-fade {
@@ -384,21 +383,21 @@
     transform: translateX(-50%) translateY(-4px);
   }
   box-shadow: 
-    0 6px 20px rgba(74, 103, 65, 0.4),
-    0 0 0 3px rgba(74, 103, 65, 0.15);
+    0 6px 20px color-mix(in srgb, var(--color-ferni) 40%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--color-ferni) 15%, transparent);
   animation: cta-pulse 2s ease-in-out infinite;
 }
 
 @keyframes cta-pulse {
   0%, 100% {
     box-shadow: 
-      0 6px 20px rgba(74, 103, 65, 0.4),
-      0 0 0 3px rgba(74, 103, 65, 0.15);
+      0 6px 20px color-mix(in srgb, var(--color-ferni) 40%, transparent),
+      0 0 0 3px color-mix(in srgb, var(--color-ferni) 15%, transparent);
   }
   50% {
     box-shadow: 
-      0 8px 28px rgba(74, 103, 65, 0.5),
-      0 0 0 6px rgba(74, 103, 65, 0.1);
+      0 8px 28px color-mix(in srgb, var(--color-ferni) 50%, transparent),
+      0 0 0 6px color-mix(in srgb, var(--color-ferni) 10%, transparent);
   }
 }
 
@@ -414,13 +413,13 @@
   inset: -3px;
   background: linear-gradient(
     135deg,
-    rgba(74, 103, 65, 0.2) 0%,
-    rgba(74, 103, 65, 0.4) 50%,
-    rgba(74, 103, 65, 0.2) 100%
+    color-mix(in srgb, var(--color-ferni) 20%, transparent) 0%,
+    color-mix(in srgb, var(--color-ferni) 40%, transparent) 50%,
+    color-mix(in srgb, var(--color-ferni) 20%, transparent) 100%
   );
   border-radius: inherit;
   z-index: -1;
-  animation: engaged-glow 1.5s ease-out forwards;
+  animation: engaged-glow var(--duration-glacial) ease-out forwards;
 }
 
 @keyframes engaged-glow {
@@ -440,17 +439,17 @@
 
 /* Highlighted for high-intent users */
 .btn--highlighted {
-  animation: highlighted-attention 3s ease-in-out infinite;
+  animation: highlighted-attention var(--duration-meditative) ease-in-out infinite;
 }
 
 @keyframes highlighted-attention {
   0%, 100% {
     transform: translateY(0);
-    box-shadow: 0 4px 12px rgba(74, 103, 65, 0.25);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 25%, transparent);
   }
   50% {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(74, 103, 65, 0.35);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--color-ferni) 35%, transparent);
   }
 }
 
@@ -470,7 +469,7 @@
   }
   50% {
     opacity: 0.85;
-    box-shadow: 0 0 0 4px rgba(74, 103, 65, 0.1);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-ferni) 10%, transparent);
   }
 }
 
@@ -484,7 +483,7 @@
   position: absolute;
   inset: -6px;
   border: 2px solid var(--color-ferni);
-  border-radius: calc(var(--radius-lg, 8px) + 6px);
+  border-radius: calc(var(--radius-lg) + var(--radius-sm));
   opacity: 0;
   animation: attention-ring 2s ease-out forwards;
 }
@@ -510,14 +509,14 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 8px 16px;
-  background: var(--color-text-primary, var(--color-text-primary));
-  color: var(--color-paper-cream, var(--color-bg-elevated));
+  background: var(--color-text-primary);
+  color: var(--color-paper-cream);
   font-size: var(--text-sm);
   font-weight: 500;
   border-radius: var(--radius-sm);
   white-space: nowrap;
-  box-shadow: 0 4px 16px rgba(44, 37, 32, 0.2);
-  animation: nudge-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  box-shadow: var(--shadow-lg);
+  animation: nudge-appear var(--duration-slower) var(--ease-ease-out-back) forwards;
   z-index: 100;
 }
 
@@ -528,7 +527,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
-  border-top-color: var(--color-text-primary, var(--color-text-primary));
+  border-top-color: var(--color-text-primary);
 }
 
 @keyframes nudge-appear {
@@ -543,7 +542,7 @@
 }
 
 .helpful-nudge--fading {
-  animation: nudge-fade 0.5s ease-out forwards;
+  animation: nudge-fade var(--duration-slowest) ease-out forwards;
 }
 
 @keyframes nudge-fade {
@@ -567,7 +566,7 @@
   inset: -20px;
   background: radial-gradient(
     ellipse at center,
-    rgba(74, 103, 65, 0.03) 0%,
+    color-mix(in srgb, var(--color-ferni) 3%, transparent) 0%,
     transparent 60%
   );
   pointer-events: none;
@@ -595,7 +594,7 @@
   background: var(--color-ferni);
   width: 0%;
   z-index: 9999;
-  transition: width 0.1s ease-out;
+  transition: width var(--duration-faster) ease-out;
   opacity: 0;
 }
 
@@ -613,7 +612,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(74, 103, 65, 0.4)
+    color-mix(in srgb, var(--color-ferni) 40%, transparent)
   );
 }
 

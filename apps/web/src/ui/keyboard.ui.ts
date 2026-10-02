@@ -198,17 +198,17 @@ function addHintStyles(): void {
       position: fixed;
       bottom: 1.5rem;
       right: 1.5rem;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: 12px;
       padding: 1rem;
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       opacity: 0;
       transform: translateY(10px);
       transition: opacity 0.3s ease, transform 0.3s ease;
       z-index: var(--z-dropdown);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
     }
 
     .keyboard-hint.visible {
@@ -222,10 +222,10 @@ function addHintStyles(): void {
 
     .keyboard-hint__header {
       font-weight: 600;
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
       margin-bottom: 0.75rem;
       padding-bottom: 0.5rem;
-      border-bottom: 1px solid var(--color-border-primary, rgba(255, 255, 255, 0.1));
+      border-bottom: 1px solid var(--color-border-primary, color-mix(in srgb, var(--color-white) 10%, transparent));
     }
 
     .key-combo {
@@ -242,23 +242,23 @@ function addHintStyles(): void {
       min-width: 1.5rem;
       height: 1.5rem;
       padding: 0 0.375rem;
-      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.1));
-      border: 1px solid var(--color-border-secondary, rgba(255, 255, 255, 0.2));
+      background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 10%, transparent));
+      border: 1px solid var(--color-border-secondary, color-mix(in srgb, var(--color-white) 20%, transparent));
       border-radius: 4px;
       font-family: var(--font-mono, monospace);
       font-size: 0.75rem;
       font-weight: 500;
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
       transition: background 0.15s ease, transform 0.1s ease;
     }
 
     .key.active {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       transform: scale(0.95);
     }
 
     .key-label {
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+      color: var(--color-text-secondary);
     }
   `;
 

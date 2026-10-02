@@ -159,7 +159,7 @@ export function getCardStyles(): string {
       font-family: var(--font-display);
       font-size: 1.4rem;
       font-weight: 700;
-      color: white;
+      color: var(--color-white);
       letter-spacing: 0.02em;
       box-shadow: var(--shadow-lg);
       animation: avatar-breathe 5s var(--ease-smooth) infinite;
@@ -245,7 +245,7 @@ export function getCardStyles(): string {
       font-family: var(--font-display);
       font-size: 1.1rem;
       font-weight: 700;
-      color: white;
+      color: var(--color-white);
       flex-shrink: 0;
       box-shadow: var(--shadow-md);
       animation: avatar-breathe 5s var(--ease-smooth) infinite;
@@ -432,7 +432,7 @@ export function getCardStyles(): string {
     .agent-action.install {
       background: var(--persona-primary, var(--color-accent-primary));
       border-color: var(--persona-primary, var(--color-accent-primary));
-      color: white;
+      color: var(--color-white);
     }
 
     .agent-action.install:hover {

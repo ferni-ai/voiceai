@@ -193,7 +193,7 @@ class CognitiveInsightsUI {
     if (!this.panel) return;
     const content = this.panel.querySelector('#cognitive-content');
     if (content) {
-      content.innerHTML = '<div class="cognitive-insights__loading" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Loading...</div>';
+      content.innerHTML = '<div class="cognitive-insights__loading" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted);">Loading...</div>';
     }
     this.panel.classList.add('cognitive-insights--visible');
     this.isVisible = true;
@@ -204,7 +204,7 @@ class CognitiveInsightsUI {
     if (!this.panel) return;
     const content = this.panel.querySelector('#cognitive-content');
     if (content) {
-      content.innerHTML = '<div class="cognitive-insights__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn\'t load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>';
+      content.innerHTML = '<div class="cognitive-insights__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted);">Couldn\'t load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>';
       const retryBtn = content.querySelector('button');
       if (retryBtn && onRetry) {
         retryBtn.addEventListener('click', onRetry);
@@ -687,10 +687,10 @@ class CognitiveInsightsUI {
         width: 100%;
         max-width: clamp(308px, 90vw, 440px);
         max-height: 80vh;
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -925,9 +925,9 @@ class CognitiveInsightsUI {
       
       .cognitive-insights__superhuman {
         padding: var(--space-4, 16px);
-        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.1)), var(--color-background-secondary));
+        background: linear-gradient(135deg, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent)), var(--color-background-secondary));
         border-radius: var(--radius-xl, 1.25rem);
-        border: 1px solid var(--persona-primary, #4a6741);
+        border: 1px solid var(--persona-primary, var(--color-ferni));
         margin-bottom: var(--space-4, 16px);
       }
 
@@ -961,8 +961,8 @@ class CognitiveInsightsUI {
         font-size: var(--text-xs);
         font-weight: 500;
         padding: var(--space-1, 4px) var(--space-2, 8px);
-        background: var(--persona-primary, #4a6741);
-        color: white;
+        background: var(--persona-primary, var(--color-ferni));
+        color: var(--color-white);
         border-radius: var(--radius-full, 9999px);
       }
 
@@ -993,7 +993,7 @@ class CognitiveInsightsUI {
       }
 
       .cognitive-insights__superhuman-insight--high {
-        border-left: 3px solid var(--persona-primary, #4a6741);
+        border-left: 3px solid var(--persona-primary, var(--color-ferni));
         background: linear-gradient(90deg, var(--persona-tint), var(--color-background-elevated));
       }
 
@@ -1054,7 +1054,7 @@ class CognitiveInsightsUI {
 
       /* Dark theme for superhuman section */
       [data-theme="midnight"] .cognitive-insights__superhuman {
-        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.2)), var(--color-background-tertiary));
+        background: linear-gradient(135deg, var(--persona-tint, color-mix(in srgb, var(--color-ferni) 20%, transparent)), var(--color-background-tertiary));
       }
 
       [data-theme="midnight"] .cognitive-insights__superhuman-insight {
@@ -1128,7 +1128,7 @@ class CognitiveInsightsUI {
       }
 
       .cognitive-insights__pattern--medium {
-        border-left-color: var(--color-semantic-warning, #c49a6c);
+        border-left-color: var(--color-semantic-warning);
       }
 
       .cognitive-insights__pattern--low {
@@ -1296,12 +1296,12 @@ class CognitiveInsightsUI {
       }
 
       [data-theme="midnight"] .cognitive-insights__pattern-text {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .cognitive-insights__patterns-intro,
       [data-theme="midnight"] .cognitive-insights__patterns-empty p {
-        color: var(--color-text-secondary, #f0ebe4);
+        color: var(--color-text-secondary);
       }
 
       [data-theme="midnight"] .cognitive-insights__pattern-confidence {

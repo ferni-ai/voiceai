@@ -319,7 +319,7 @@ permalink: /components/tooltip/
   position: absolute;
   z-index: 1000;
   padding: var(--space-2) var(--space-3);
-  background: var(--bg-inverse);
+  background: var(--text-primary);
   color: var(--text-inverse);
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
@@ -566,7 +566,7 @@ permalink: /components/tooltip/
 
 .demo-btn:hover {
   border-color: var(--accent-primary);
-  color: var(--accent-primary);
+  color: var(--accent-text);
 }
 
 .icon-btn {
@@ -586,23 +586,23 @@ permalink: /components/tooltip/
 
 .icon-btn:hover {
   border-color: var(--accent-primary);
-  color: var(--accent-primary);
+  color: var(--accent-text);
 }
 
 /* Persona buttons */
 .persona-btn-ferni {
   border-color: var(--persona-ferni);
-  color: var(--persona-ferni);
+  color: var(--persona-ferni-text);
 }
 
 .persona-btn-maya {
   border-color: var(--persona-maya);
-  color: var(--persona-maya);
+  color: var(--persona-maya-text);
 }
 
 .persona-btn-jordan {
   border-color: var(--persona-jordan);
-  color: var(--persona-jordan);
+  color: var(--persona-jordan-text);
 }
 
 /* Tooltip Styles */
@@ -615,7 +615,7 @@ permalink: /components/tooltip/
   position: absolute;
   z-index: 1000;
   padding: var(--space-2) var(--space-3);
-  background: var(--bg-inverse);
+  background: var(--text-primary);
   color: var(--text-inverse);
   font-family: var(--font-body);
   font-size: var(--text-sm);
@@ -742,7 +742,7 @@ permalink: /components/tooltip/
   min-width: 20px;
   height: 20px;
   padding: 0 var(--space-1);
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--color-white) 20%, transparent);
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
   font-size: var(--text-xs);
@@ -850,8 +850,8 @@ permalink: /components/tooltip/
   margin-bottom: var(--space-4);
 }
 
-.guideline.do h4 { color: var(--success); }
-.guideline.dont h4 { color: var(--error); }
+.guideline.do h4 { color: var(--success-text); }
+.guideline.dont h4 { color: var(--error-text); }
 
 .guideline ul {
   list-style: none;

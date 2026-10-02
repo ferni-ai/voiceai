@@ -303,7 +303,7 @@ export function render(): string {
 
       .metric-card.highlight {
         background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
-        color: white;
+        color: var(--color-white);
       }
 
       .metric-icon {
@@ -324,7 +324,7 @@ export function render(): string {
       }
 
       .metric-card.highlight .metric-label {
-        color: rgba(255,255,255,0.8);
+        color: color-mix(in srgb, var(--color-white) 80%, transparent);
       }
 
       .metric-subtext {
@@ -334,7 +334,7 @@ export function render(): string {
       }
 
       .metric-card.highlight .metric-subtext {
-        color: rgba(255,255,255,0.6);
+        color: color-mix(in srgb, var(--color-white) 60%, transparent);
       }
 
       .subsection {
@@ -474,12 +474,12 @@ export function render(): string {
 
       .ab-test-status.running {
         background: var(--color-semantic-success);
-        color: white;
+        color: var(--color-white);
       }
 
       .ab-test-status.paused {
         background: var(--color-semantic-warning);
-        color: white;
+        color: var(--color-white);
       }
 
       .corrections-list {
@@ -617,22 +617,22 @@ export function render(): string {
 
       .severity-badge.low {
         background: var(--color-semantic-success);
-        color: white;
+        color: var(--color-white);
       }
 
       .severity-badge.medium {
         background: var(--color-semantic-warning);
-        color: white;
+        color: var(--color-white);
       }
 
       .severity-badge.high {
         background: var(--color-semantic-error);
-        color: white;
+        color: var(--color-white);
       }
 
       .severity-badge.critical {
         background: #7f1d1d;
-        color: white;
+        color: var(--color-white);
       }
 
       /* Accessibility */

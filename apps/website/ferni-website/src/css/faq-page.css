@@ -46,7 +46,7 @@
   font-family: var(--font-display);
   font-size: var(--text-lg);
   font-weight: 600;
-  line-height: var(--leading-snug, 1.35);
+  line-height: var(--leading-snug);
   color: var(--color-text-primary);
   cursor: pointer;
   list-style: none;
@@ -78,7 +78,7 @@
   margin: 0;
   padding: 0 var(--space-6) var(--space-6);
   font-size: var(--text-base);
-  line-height: var(--leading-relaxed, 1.7);
+  line-height: var(--leading-relaxed);
   color: var(--color-text-secondary);
   animation: faq-reveal var(--duration-normal) var(--ease-out);
 }

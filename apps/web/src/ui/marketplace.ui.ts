@@ -1367,7 +1367,7 @@ function renderEmployeeCard(
   const progressRing =
     isLocked && status.progress > 0
       ? `<svg class="employee-progress-ring" viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--color-border-subtle, rgba(255,255,255,0.1))" stroke-width="2"/>
+          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--color-border-subtle)" stroke-width="2"/>
           <circle cx="18" cy="18" r="15" fill="none" stroke="var(--persona-primary, #4a6741)" stroke-width="2"
             stroke-dasharray="${status.progress * 94}, 94"
             stroke-linecap="round"

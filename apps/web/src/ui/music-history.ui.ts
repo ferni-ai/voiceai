@@ -76,7 +76,7 @@ function injectStyles(): void {
     .music-history-backdrop {
       position: fixed;
       inset: 0;
-      background: var(--backdrop-subtle, rgba(0, 0, 0, 0.4));
+      background: var(--backdrop-subtle, color-mix(in srgb, var(--color-black) 40%, transparent));
       opacity: 0;
       pointer-events: none;
       z-index: var(--z-modal-backdrop, 2000);
@@ -95,10 +95,10 @@ function injectStyles(): void {
       bottom: 0;
       width: min(320px, 85vw);
       transform: translateX(100%);
-      background: var(--glass-background, rgba(255, 255, 255, 0.1));
+      background: var(--glass-background, color-mix(in srgb, var(--color-white) 10%, transparent));
       backdrop-filter: blur(var(--glass-blur-heavy, 24px));
       -webkit-backdrop-filter: blur(var(--glass-blur-heavy, 24px));
-      border-left: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+      border-left: 1px solid var(--glass-border, color-mix(in srgb, var(--color-white) 10%, transparent));
       z-index: var(--z-modal, 2100);
       display: flex;
       flex-direction: column;
@@ -114,14 +114,14 @@ function injectStyles(): void {
       align-items: center;
       justify-content: space-between;
       padding: var(--space-md, 16px);
-      border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+      border-bottom: 1px solid var(--glass-border, color-mix(in srgb, var(--color-white) 10%, transparent));
     }
 
     .music-history__title {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-lg, 1.125rem);
       font-weight: 600;
-      color: var(--color-text-primary, #ffffff);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
@@ -135,18 +135,18 @@ function injectStyles(): void {
       border: none;
       border-radius: 50%;
       background: transparent;
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: background var(--duration-fast, 150ms);
     }
 
     .music-history__close:hover,
     .music-history__close:focus-visible {
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.1));
+      background: var(--color-bg-elevated, color-mix(in srgb, var(--color-white) 10%, transparent));
     }
 
     .music-history__close:focus-visible {
-      outline: 2px solid var(--color-accent-primary, #4a6741);
+      outline: 2px solid var(--color-accent-primary);
       outline-offset: 2px;
     }
 
@@ -162,7 +162,7 @@ function injectStyles(): void {
       align-items: center;
       justify-content: center;
       height: 200px;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
       text-align: center;
       gap: var(--space-sm, 8px);
     }
@@ -185,7 +185,7 @@ function injectStyles(): void {
     }
 
     .music-history__track:hover {
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-elevated, color-mix(in srgb, var(--color-white) 5%, transparent));
     }
 
     .music-history__artwork {
@@ -193,14 +193,14 @@ function injectStyles(): void {
       height: 48px;
       border-radius: var(--radius-sm, 4px);
       object-fit: cover;
-      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 5%, transparent));
     }
 
     .music-history__artwork--placeholder {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.3));
+      color: var(--color-text-muted);
     }
 
     .music-history__info {
@@ -211,7 +211,7 @@ function injectStyles(): void {
     .music-history__name {
       font-size: var(--font-size-sm, 0.875rem);
       font-weight: 500;
-      color: var(--color-text-primary, #ffffff);
+      color: var(--color-text-primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -220,7 +220,7 @@ function injectStyles(): void {
 
     .music-history__artist {
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      color: var(--color-text-secondary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -229,7 +229,7 @@ function injectStyles(): void {
 
     .music-history__time {
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
       white-space: nowrap;
     }
     
@@ -241,8 +241,8 @@ function injectStyles(): void {
       letter-spacing: 0.05em;
       padding: 2px 4px;
       border-radius: 3px;
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.1));
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      background: var(--color-bg-elevated, color-mix(in srgb, var(--color-white) 10%, transparent));
+      color: var(--color-text-muted);
       vertical-align: middle;
       margin-left: var(--space-1, 4px);
     }
@@ -256,7 +256,7 @@ function injectStyles(): void {
       border-radius: 50%;
       background: transparent;
       border: none;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
       cursor: pointer;
       transition: color var(--duration-fast, 150ms), background var(--duration-fast, 150ms);
     }

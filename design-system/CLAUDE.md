@@ -40,7 +40,8 @@ ferni tokens version patch "Fixed X"
 | `tokens/personas.json` | Full persona profiles |
 | `build.js` | Main token compiler |
 | `generate-animation-constants.js` | Generates `animation-constants.generated.ts` |
-| `sync-promo-tokens.js` | Syncs tokens to landing page |
+| `sync-promo-tokens.js` | Generates the website portal and brand token CSS |
+| `checks/website-css-tokens.js` | Check 8 of `brand:check`: portal stylesheets use generated tokens |
 | `generate-native-tokens.js` | Swift + Kotlin/XML color tokens for the native apps |
 | `utils/theme-inks.js` | Contrast-verified text inks (persona, accent, semantic, on-fill) shared by build.js, native and promo generators |
 | `content/` | Copy/rule data for generators (not visual tokens) |
@@ -59,7 +60,9 @@ ferni tokens version patch "Fixed X"
 | `dist/tokens.css` | Design system | Frontend app |
 | `animation-constants.generated.ts` | `apps/web/src/config/` | Frontend animations |
 | `tailwind.config.generated.js` | Website root | Landing page |
-| `design-tokens.css` | Promo website | Marketing site |
+| `src/css/_tokens.css` | `apps/website/ferni-website/` | ferni.ai |
+| `src/css/tokens.css` | developers, design-system, marketplace portals | Portals (Check 8 of `brand:check` gates their CSS) |
+| `ferni-design-tokens.css` | `brand/` | Brand library + `apps/marketing/site` (with `brand/brand-base.css`) |
 | `FerniTokens.generated.swift` | `apps/shared/Sources/FerniShared/Design/` | iOS, widgets, macOS (via FerniShared) |
 | `FerniTokens.kt`, `ferni_tokens.xml` | `apps/android-native/app/src/main/` | Android |
 

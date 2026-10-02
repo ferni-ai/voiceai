@@ -229,12 +229,12 @@ permalink: /voice/
 }
 
 .example.good {
-  background: rgba(107, 196, 143, 0.1);
+  background: color-mix(in srgb, var(--success) 10%, transparent);
   border-left: 3px solid var(--success);
 }
 
 .example.bad {
-  background: rgba(224, 117, 117, 0.1);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
   border-left: 3px solid var(--error);
 }
 
@@ -296,13 +296,13 @@ permalink: /voice/
 }
 
 .rules-table .wrong {
-  color: var(--error);
+  color: var(--error-text);
   text-decoration: line-through;
   opacity: 0.7;
 }
 
 .rules-table .right {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .persona-voices {

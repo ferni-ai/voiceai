@@ -262,19 +262,19 @@ class EngagementTriggerUI {
         width: 44px;
         height: 44px;
         padding: 0;
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-medium, rgba(44, 37, 32, 0.10));
+        background: var(--color-background-elevated);
+        border: 1px solid var(--color-border-medium);
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: var(--transition-all-fast, all 150ms ease);
         box-shadow: var(--shadow-sm);
       }
 
       .engagement-trigger-btn:hover {
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-primary, #2c2520);
-        border-color: var(--color-border-strong, rgba(44, 37, 32, 0.18));
+        background: var(--color-background-tertiary);
+        color: var(--color-text-primary);
+        border-color: var(--color-border-strong);
         transform: translateY(-2px);
         box-shadow: var(--shadow-md);
       }
@@ -302,7 +302,7 @@ class EngagementTriggerUI {
         line-height: 16px;
         text-align: center;
         color: var(--color-text-on-accent);
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         border-radius: var(--radius-full, 9999px);
         opacity: 0;
         transform: scale(0);
@@ -315,7 +315,7 @@ class EngagementTriggerUI {
       }
 
       .engagement-trigger-btn__badge--urgent {
-        background: var(--color-semantic-warning, #b8860b);
+        background: var(--color-semantic-warning);
         animation: badgePulse 1.5s ease-in-out infinite;
       }
 
@@ -330,7 +330,7 @@ class EngagementTriggerUI {
       }
 
       @keyframes triggerPulse {
-        0% { box-shadow: 0 0 0 0 var(--color-accent-glow, rgba(45, 90, 61, 0.3)); }
+        0% { box-shadow: 0 0 0 0 var(--color-accent-glow); }
         70% { box-shadow: 0 0 0 12px transparent; }
         100% { box-shadow: 0 0 0 0 transparent; }
       }
@@ -361,17 +361,17 @@ class EngagementTriggerUI {
 
       /* Dark theme (Cedar Night) */
       [data-theme="midnight"] .engagement-trigger-btn {
-        background: var(--color-background-tertiary, #685852);
-        border-color: var(--color-border-medium, rgba(215, 185, 145, 0.20));
-        color: var(--color-text-secondary, #f0ebe4);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        background: var(--color-background-tertiary);
+        border-color: var(--color-border-medium);
+        color: var(--color-text-secondary);
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--color-black) 20%, transparent);
       }
 
       [data-theme="midnight"] .engagement-trigger-btn:hover {
-        background: var(--color-background-elevated, #70605a);
-        color: var(--color-text-primary, #faf6f0);
-        border-color: var(--color-border-strong, rgba(215, 185, 145, 0.30));
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        background: var(--color-background-elevated);
+        color: var(--color-text-primary);
+        border-color: var(--color-border-strong);
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--color-black) 25%, transparent);
       }
 
       /* Reduced motion */

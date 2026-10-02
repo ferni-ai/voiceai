@@ -55,8 +55,8 @@ const styles = `
     width: 95%;
     max-width: 580px;
     max-height: 85vh;
-    background: var(--color-bg-elevated, #FFFDFB);
-    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    background: var(--color-bg-elevated, var(--color-white));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-xl, 20px);
     box-shadow: var(--shadow-xl);
     overflow: hidden;
@@ -72,7 +72,7 @@ const styles = `
   
   .routine-builder__header {
     padding: var(--space-5, 20px) var(--space-6, 24px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    border-bottom: 1px solid var(--color-border-subtle);
     flex-shrink: 0;
     display: flex;
     justify-content: space-between;
@@ -127,9 +127,9 @@ const styles = `
   .rb-input {
     width: 100%;
     padding: var(--space-3, 12px);
-    border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.15));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-md, 8px);
-    background: var(--color-bg-elevated, white);
+    background: var(--color-bg-elevated, var(--color-white));
     font-size: 15px;
     color: var(--color-text-primary);
     transition: all var(--duration-fast, 100ms) ease;
@@ -141,7 +141,7 @@ const styles = `
   
   .rb-input:focus {
     outline: none;
-    border-color: var(--color-ferni, #4a6741);
+    border-color: var(--color-ferni);
     box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
   }
   
@@ -160,7 +160,7 @@ const styles = `
   
   .rb-trigger {
     padding: var(--space-3, 12px);
-    border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.15));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-md, 8px);
     background: transparent;
     cursor: pointer;
@@ -169,13 +169,13 @@ const styles = `
   }
   
   .rb-trigger:hover {
-    border-color: var(--color-ferni, #4a6741);
-    background: rgba(74, 103, 65, 0.02);
+    border-color: var(--color-ferni);
+    background: color-mix(in srgb, var(--color-ferni) 2%, transparent);
   }
   
   .rb-trigger.selected {
-    border-color: var(--color-ferni, #4a6741);
-    background: rgba(74, 103, 65, 0.05);
+    border-color: var(--color-ferni);
+    background: color-mix(in srgb, var(--color-ferni) 5%, transparent);
   }
   
   .rb-trigger__icon {
@@ -216,7 +216,7 @@ const styles = `
     padding: var(--space-4, 16px);
     background: var(--color-background-subtle, rgba(112, 96, 90, 0.03));
     border-radius: var(--radius-md, 8px);
-    border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.08));
+    border: 1px solid var(--color-border-subtle);
   }
   
   .rb-field {
@@ -247,7 +247,7 @@ const styles = `
     gap: var(--space-3, 12px);
     padding: var(--space-3, 12px);
     background: var(--color-background-subtle, rgba(112, 96, 90, 0.03));
-    border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.08));
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-md, 8px);
   }
   
@@ -304,7 +304,7 @@ const styles = `
   .rb-add-action {
     width: 100%;
     padding: var(--space-3, 12px);
-    border: 2px dashed var(--color-border-medium, rgba(112, 96, 90, 0.2));
+    border: 2px dashed var(--color-border-medium);
     background: transparent;
     border-radius: var(--radius-md, 8px);
     font-size: 13px;
@@ -319,16 +319,16 @@ const styles = `
   }
   
   .rb-add-action:hover {
-    border-color: var(--color-ferni, #4a6741);
+    border-color: var(--color-ferni);
     color: var(--color-ferni-ink);
-    background: rgba(74, 103, 65, 0.02);
+    background: color-mix(in srgb, var(--color-ferni) 2%, transparent);
   }
   
   /* Action Picker Overlay */
   .rb-action-picker {
     position: absolute;
     inset: 0;
-    background: var(--color-bg-elevated, #FFFDFB);
+    background: var(--color-bg-elevated, var(--color-white));
     z-index: 10;
     display: none;
     flex-direction: column;
@@ -372,8 +372,8 @@ const styles = `
   }
   
   .rb-action-picker__item:hover {
-    border-color: var(--color-ferni, #4a6741);
-    background: rgba(74, 103, 65, 0.05);
+    border-color: var(--color-ferni);
+    background: color-mix(in srgb, var(--color-ferni) 5%, transparent);
   }
   
   .rb-action-picker__item-icon {
@@ -410,7 +410,7 @@ const styles = `
   /* Footer */
   .routine-builder__footer {
     padding: var(--space-4, 16px) var(--space-6, 24px);
-    border-top: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
+    border-top: 1px solid var(--color-border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -437,8 +437,8 @@ const styles = `
   }
   
   .rb-btn--primary {
-    background: var(--color-ferni, #4a6741);
-    color: white;
+    background: var(--color-ferni);
+    color: var(--color-white);
   }
   
   .rb-btn--primary:hover {

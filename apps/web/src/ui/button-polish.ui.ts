@@ -106,7 +106,7 @@ function injectStyles(): void {
 
     /* Focus ring */
     .btn-polished:focus-visible {
-      outline: 2px solid var(--color-accent-primary, var(--persona-primary, #4a6741));
+      outline: 2px solid var(--color-accent-primary);
       outline-offset: 2px;
     }
 
@@ -124,7 +124,7 @@ function injectStyles(): void {
     .btn-ripple {
       position: absolute;
       border-radius: 50%;
-      background: var(--btn-ripple-color, rgba(255, 255, 255, 0.3));
+      background: var(--btn-ripple-color, color-mix(in srgb, var(--color-white) 30%, transparent));
       transform: scale(0);
       animation: ripple-expand ${DURATION.SLOW}ms ${EASING.EXPO_OUT} forwards;
       pointer-events: none;
@@ -139,7 +139,7 @@ function injectStyles(): void {
 
     /* Dark variant ripple */
     .btn-polished--dark .btn-ripple {
-      background: rgba(0, 0, 0, 0.15);
+      background: color-mix(in srgb, var(--color-black) 15%, transparent);
     }
 
     /* ============================================
@@ -165,18 +165,18 @@ function injectStyles(): void {
     }
 
     .btn-polished--ghost:hover:not(:disabled) {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 5%, transparent));
     }
 
     /* Icon buttons - circular ripple */
     .btn-polished--icon {
       --btn-press-scale: 0.92;
       --btn-hover-lift: 0px;
-      --btn-ripple-color: var(--persona-tint, rgba(74, 103, 65, 0.2));
+      --btn-ripple-color: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 20%, transparent));
     }
 
     .btn-polished--icon:hover:not(:disabled) {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 5%, transparent));
     }
 
     /* Danger buttons */

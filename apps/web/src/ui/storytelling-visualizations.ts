@@ -140,10 +140,10 @@ export function createLifeSeasonsElement(seasons: SeasonData[]): HTMLElement {
   wheel.className = 'life-seasons__wheel';
 
   const SEASON_COLORS: Record<string, string> = {
-    spring: 'var(--color-maya, #a67a6a)',
-    summer: 'var(--color-nayan, #b8956a)',
-    autumn: 'var(--color-peter, #3a6b73)',
-    winter: 'var(--color-alex, #5a6b8a)',
+    spring: 'var(--color-maya)',
+    summer: 'var(--color-nayan)',
+    autumn: 'var(--color-peter)',
+    winter: 'var(--color-alex)',
   };
 
   seasonsArray.forEach((season, index) => {
@@ -938,9 +938,9 @@ export function injectStorytellingVisualizationStyles(): void {
     .unfinished-stories,
     .ripple-effects {
       padding: var(--space-4, 1rem);
-      background: var(--glass-thin-bg, rgba(255, 255, 255, 0.08));
+      background: var(--glass-thin-bg, color-mix(in srgb, var(--color-white) 8%, transparent));
       border-radius: var(--radius-xl, 1.25rem);
-      border: 1px solid var(--glass-thin-border, rgba(255, 255, 255, 0.1));
+      border: 1px solid var(--glass-thin-border, color-mix(in srgb, var(--color-white) 10%, transparent));
     }
 
     .life-seasons__title,
@@ -955,7 +955,7 @@ export function injectStorytellingVisualizationStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-lg, 1.125rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-2, 0.5rem);
     }
 
@@ -967,7 +967,7 @@ export function injectStorytellingVisualizationStyles(): void {
     .values-alignment__subtitle,
     .unfinished-stories__subtitle {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin: 0 0 var(--space-4, 1rem);
     }
 
@@ -1003,8 +1003,8 @@ export function injectStorytellingVisualizationStyles(): void {
     .life-seasons__label {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
-      color: white;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      color: var(--color-white);
+      text-shadow: 0 1px 2px color-mix(in srgb, var(--color-black) 30%, transparent);
     }
 
     .life-seasons__energy {
@@ -1012,7 +1012,7 @@ export function injectStorytellingVisualizationStyles(): void {
       bottom: 0;
       left: 0;
       right: 0;
-      background: rgba(255,255,255,0.3);
+      background: color-mix(in srgb, var(--color-white) 30%, transparent);
       border-radius: 0 0 var(--radius-lg, 1rem) var(--radius-lg, 1rem);
     }
 
@@ -1054,12 +1054,12 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .conversation-river__label {
       font-size: 10px;
-      fill: var(--color-text-secondary, #5a4a42);
+      fill: var(--color-text-secondary);
     }
 
     .conversation-river__legend {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       text-align: center;
     }
 
@@ -1087,7 +1087,7 @@ export function injectStorytellingVisualizationStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-2, 0.5rem);
     }
 
@@ -1095,7 +1095,7 @@ export function injectStorytellingVisualizationStyles(): void {
       font-size: var(--text-sm, 0.875rem);
       line-height: 1.5;
       margin: 0;
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .the-mirror__text--insight {
@@ -1108,21 +1108,21 @@ export function injectStorytellingVisualizationStyles(): void {
       background: linear-gradient(
         to bottom,
         transparent,
-        var(--color-border-medium, rgba(44, 37, 32, 0.15)),
+        var(--color-border-medium),
         transparent
       );
     }
 
     .the-mirror__pattern {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin: var(--space-2, 0.5rem) 0 0;
     }
 
     .the-mirror__invitation {
       font-size: var(--text-xs, 0.75rem);
       font-style: italic;
-      color: var(--color-maya, #a67a6a);
+      color: var(--color-maya);
       margin: var(--space-2, 0.5rem) 0 0;
     }
 
@@ -1136,31 +1136,31 @@ export function injectStorytellingVisualizationStyles(): void {
     }
 
     .energy-flow__node {
-      fill: var(--color-bg-elevated, #FFFDFB);
-      stroke: var(--color-border-medium, rgba(44, 37, 32, 0.15));
+      fill: var(--color-bg-elevated, var(--color-white));
+      stroke: var(--color-border-medium);
       stroke-width: 1;
     }
 
     .energy-flow__node--source {
-      fill: var(--color-maya, #a67a6a);
+      fill: var(--color-maya);
     }
 
     .energy-flow__node--transform {
-      fill: var(--persona-primary, #4a6741);
+      fill: var(--persona-primary, var(--color-ferni));
     }
 
     .energy-flow__node--sink {
-      fill: var(--color-peter, #3a6b73);
+      fill: var(--color-peter);
     }
 
     .energy-flow__label {
       font-size: 10px;
-      fill: white;
+      fill: var(--color-white);
     }
 
     .energy-flow__path {
       fill: none;
-      stroke: var(--color-border-medium, rgba(44, 37, 32, 0.2));
+      stroke: var(--color-border-medium);
       opacity: 0.5;
     }
 
@@ -1170,7 +1170,7 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .the-unsaid__empty {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       font-style: italic;
       text-align: center;
       padding: var(--space-6, 1.5rem);
@@ -1194,17 +1194,17 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .the-unsaid__topic {
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .the-unsaid__confidence {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .the-unsaid__signals {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin: 0 0 var(--space-2, 0.5rem);
       padding-left: var(--space-4, 1rem);
     }
@@ -1238,7 +1238,7 @@ export function injectStorytellingVisualizationStyles(): void {
     }
 
     .growth-rings__center {
-      fill: var(--persona-primary, #4a6741);
+      fill: var(--persona-primary, var(--color-ferni));
     }
 
     .growth-rings__legend {
@@ -1252,7 +1252,7 @@ export function injectStorytellingVisualizationStyles(): void {
       align-items: center;
       gap: var(--space-2, 0.5rem);
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .growth-rings__legend-dot {
@@ -1276,31 +1276,31 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .values-alignment__grid {
       fill: none;
-      stroke: var(--color-border-subtle, rgba(44, 37, 32, 0.06));
+      stroke: var(--color-border-subtle);
       stroke-width: 1;
     }
 
     .values-alignment__axis {
-      stroke: var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      stroke: var(--color-border-subtle);
       stroke-width: 1;
     }
 
     .values-alignment__label {
       font-size: 10px;
-      fill: var(--color-text-muted, #70605a);
+      fill: var(--color-text-muted);
     }
 
     .values-alignment__stated {
-      fill: var(--color-maya, #a67a6a);
+      fill: var(--color-maya);
       fill-opacity: 0.3;
-      stroke: var(--color-maya, #a67a6a);
+      stroke: var(--color-maya);
       stroke-width: 2;
     }
 
     .values-alignment__lived {
-      fill: var(--persona-primary, #4a6741);
+      fill: var(--persona-primary, var(--color-ferni));
       fill-opacity: 0.3;
-      stroke: var(--persona-primary, #4a6741);
+      stroke: var(--persona-primary, var(--color-ferni));
       stroke-width: 2;
     }
 
@@ -1322,7 +1322,7 @@ export function injectStorytellingVisualizationStyles(): void {
       content: '';
       width: 12px;
       height: 12px;
-      background: var(--color-maya, #a67a6a);
+      background: var(--color-maya);
       border-radius: 2px;
     }
 
@@ -1330,12 +1330,12 @@ export function injectStorytellingVisualizationStyles(): void {
       content: '';
       width: 12px;
       height: 12px;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: 2px;
     }
 
     .values-alignment__insights {
-      border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06));
+      border-top: 1px solid var(--color-border-subtle);
       padding-top: var(--space-3, 0.75rem);
     }
 
@@ -1352,7 +1352,7 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .unfinished-stories__empty {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       font-style: italic;
       text-align: center;
       padding: var(--space-6, 1.5rem);
@@ -1388,7 +1388,7 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .unfinished-stories__ring-progress {
       fill: none;
-      stroke: var(--persona-primary, #4a6741);
+      stroke: var(--persona-primary, var(--color-ferni));
       stroke-width: 3;
       stroke-linecap: round;
     }
@@ -1400,7 +1400,7 @@ export function injectStorytellingVisualizationStyles(): void {
       transform: translate(-50%, -50%);
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .unfinished-stories__content {
@@ -1410,13 +1410,13 @@ export function injectStorytellingVisualizationStyles(): void {
     .unfinished-stories__story-title {
       font-size: var(--text-base, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 0.25rem);
     }
 
     .unfinished-stories__time-ago {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       display: block;
       margin-bottom: var(--space-2, 0.5rem);
     }
@@ -1439,8 +1439,8 @@ export function injectStorytellingVisualizationStyles(): void {
     .ripple-effects__trigger {
       display: inline-block;
       padding: var(--space-3, 0.75rem) var(--space-5, 1.25rem);
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       border-radius: var(--radius-full, 9999px);
       font-weight: 600;
       margin-bottom: var(--space-4, 1rem);
@@ -1472,33 +1472,33 @@ export function injectStorytellingVisualizationStyles(): void {
     }
 
     .ripple-effects__effect--positive {
-      border-left: 3px solid var(--color-semantic-success, #7dad7a);
+      border-left: 3px solid var(--color-semantic-success);
     }
 
     .ripple-effects__effect--negative {
-      border-left: 3px solid var(--color-semantic-error, #c97b7b);
+      border-left: 3px solid var(--color-semantic-error);
     }
 
     .ripple-effects__effect--neutral {
-      border-left: 3px solid var(--color-border-medium, rgba(44, 37, 32, 0.15));
+      border-left: 3px solid var(--color-border-medium);
     }
 
     .ripple-effects__area {
       display: block;
       font-weight: 600;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
     .ripple-effects__desc {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .ripple-effects__timeframe {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin: var(--space-4, 1rem) 0 0;
     }
 

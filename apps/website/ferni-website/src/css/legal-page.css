@@ -26,7 +26,7 @@
   color: var(--color-text-muted);
   text-decoration: none;
   margin-bottom: var(--space-8);
-  transition: color var(--transition-fast);
+  transition: color var(--duration-fast) var(--ease-ease-out);
 }
 
 .back-link:hover {
@@ -34,7 +34,7 @@
 }
 
 .back-link svg {
-  transition: transform var(--transition-fast);
+  transition: transform var(--duration-fast) var(--ease-ease-out);
 }
 
 .back-link:hover svg {
@@ -117,7 +117,7 @@
 .legal-content a {
   color: var(--color-accent);
   text-decoration: none;
-  transition: color var(--transition-fast);
+  transition: color var(--duration-fast) var(--ease-ease-out);
 }
 
 .legal-content a:hover {

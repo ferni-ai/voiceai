@@ -92,10 +92,10 @@ function injectStyles(): void {
       width: 94%;
       max-width: clamp(336px, 90vw, 480px);
       max-height: 85vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -145,14 +145,14 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
       line-height: 1.2;
     }
 
     .cs-subtitle {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-1, 0.25rem);
     }
 
@@ -166,14 +166,14 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
 
     .cs-close:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     /* =========================================================================
@@ -215,7 +215,7 @@ function injectStyles(): void {
 
     .cs-loading-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     /* =========================================================================
@@ -232,7 +232,7 @@ function injectStyles(): void {
       height: 56px;
       margin: 0 auto var(--space-4, 1rem);
       border-radius: var(--radius-full, 50%);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       color: var(--persona-ink);
       display: flex;
       align-items: center;
@@ -247,13 +247,13 @@ function injectStyles(): void {
     .cs-initial-title {
       font-size: var(--text-base, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-2, 0.5rem);
     }
 
     .cs-initial-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       line-height: 1.5;
       margin-bottom: var(--space-4, 1rem);
     }
@@ -266,16 +266,16 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      background: var(--persona-primary, #4a6741);
-      border: 1px solid var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      border: 1px solid var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .cs-generate-btn:hover {
-      background: var(--persona-secondary, #3d5a35);
-      border-color: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
+      border-color: var(--persona-secondary, var(--color-ferni-secondary));
     }
 
     /* =========================================================================
@@ -289,7 +289,7 @@ function injectStyles(): void {
     }
 
     .cs-starter {
-      background: var(--color-bg-secondary, rgba(250, 248, 245, 0.5));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 50%, transparent));
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-lg, 1rem);
       padding: var(--space-4, 1rem);
@@ -298,14 +298,14 @@ function injectStyles(): void {
     }
 
     .cs-starter:hover {
-      border-color: var(--persona-primary, #4a6741);
-      background: var(--color-background-elevated, #FFFDFB);
+      border-color: var(--persona-primary, var(--color-ferni));
+      background: var(--color-background-elevated);
     }
 
     .cs-starter.selected {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       border-width: 2px;
-      background: var(--persona-tint, rgba(74, 103, 65, 0.05));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent));
     }
 
     .cs-starter-header {
@@ -321,7 +321,7 @@ function injectStyles(): void {
       gap: var(--space-2, 0.5rem);
       font-weight: 600;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .cs-tone-badge {
@@ -332,7 +332,7 @@ function injectStyles(): void {
       font-weight: 500;
       color: var(--persona-ink);
       padding: var(--space-0-5, 0.125rem) var(--space-2, 0.5rem);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-full, 9999px);
     }
 
@@ -343,7 +343,7 @@ function injectStyles(): void {
 
     .cs-starter-opener {
       font-size: var(--text-base, 1rem);
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       font-style: italic;
       line-height: 1.5;
       margin-bottom: var(--space-2, 0.5rem);
@@ -353,7 +353,7 @@ function injectStyles(): void {
 
     .cs-starter-context {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     /* =========================================================================
@@ -381,13 +381,13 @@ function injectStyles(): void {
       font-weight: 500;
       background: transparent;
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.15));
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .cs-retry-btn:hover {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted);
     }
 
     /* =========================================================================
@@ -418,7 +418,7 @@ function injectStyles(): void {
     .cs-footer-btn-secondary {
       background: var(--tonal-surface-2);
       border: none;
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
     }
 
     .cs-footer-btn-secondary:hover {
@@ -430,13 +430,13 @@ function injectStyles(): void {
     }
 
     .cs-footer-btn-primary {
-      background: var(--persona-primary, #4a6741);
-      border: 1px solid var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      border: 1px solid var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
 
     .cs-footer-btn-primary:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
     }
 
     .cs-footer-btn-primary:disabled {

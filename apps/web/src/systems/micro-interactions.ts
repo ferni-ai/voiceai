@@ -243,7 +243,7 @@ export function inputFocus(
   if (focused) {
     // Glow appears
     element.style.transition = `box-shadow ${DURATION.FAST}ms ease-out, border-color ${DURATION.FAST}ms ease-out`;
-    element.style.boxShadow = `0 0 0 ${3 * intensity}px var(--color-accent-glow, rgba(61, 90, 69, 0.2))`;
+    element.style.boxShadow = `0 0 0 ${3 * intensity}px var(--color-accent-glow)`;
     element.style.borderColor = 'var(--color-accent, #3D5A45)';
 
     // Subtle scale

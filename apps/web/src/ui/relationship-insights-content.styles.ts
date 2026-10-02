@@ -18,7 +18,7 @@ export const relationshipInsightsContentStyles = `    /* =======================
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -37,7 +37,7 @@ export const relationshipInsightsContentStyles = `    /* =======================
     .ri-chart-bar-label {
       width: 60px;
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .ri-chart-bar-track {
@@ -58,7 +58,7 @@ export const relationshipInsightsContentStyles = `    /* =======================
       width: 30px;
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
-      color: var(--color-text-secondary, #5a4a42);
+      color: var(--color-text-secondary);
       text-align: right;
     }
 
@@ -76,14 +76,14 @@ export const relationshipInsightsContentStyles = `    /* =======================
       display: flex;
       gap: var(--space-3, 0.75rem);
       padding: var(--space-3, 0.75rem);
-      background: var(--color-bg-secondary, rgba(250, 248, 245, 0.5));
+      background: var(--color-bg-secondary, color-mix(in srgb, var(--color-white) 50%, transparent));
       border-radius: var(--radius-lg, 1rem);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .ri-insight:hover {
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       box-shadow: var(--shadow-sm);
     }
 
@@ -101,13 +101,13 @@ export const relationshipInsightsContentStyles = `    /* =======================
     .ri-insight-title {
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-0-5, 0.125rem);
     }
 
     .ri-insight-desc {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       line-height: 1.4;
     }
 
@@ -119,14 +119,14 @@ export const relationshipInsightsContentStyles = `    /* =======================
     }
 
     .ri-insight-arrow {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       align-self: center;
     }
 
     .ri-empty {
       text-align: center;
       padding: var(--space-8, 2rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .ri-empty-icon {
@@ -147,7 +147,7 @@ export const relationshipInsightsContentStyles = `    /* =======================
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -164,19 +164,19 @@ export const relationshipInsightsContentStyles = `    /* =======================
     }
 
     .ri-activity-cell.level-1 {
-      background: rgba(74, 103, 65, 0.2);
+      background: color-mix(in srgb, var(--color-ferni) 20%, transparent);
     }
 
     .ri-activity-cell.level-2 {
-      background: rgba(74, 103, 65, 0.4);
+      background: color-mix(in srgb, var(--color-ferni) 40%, transparent);
     }
 
     .ri-activity-cell.level-3 {
-      background: rgba(74, 103, 65, 0.6);
+      background: color-mix(in srgb, var(--color-ferni) 60%, transparent);
     }
 
     .ri-activity-cell.level-4 {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
     }
 
     .ri-activity-legend {
@@ -186,7 +186,7 @@ export const relationshipInsightsContentStyles = `    /* =======================
       gap: var(--space-1, 0.25rem);
       margin-top: var(--space-2, 0.5rem);
       font-size: var(--text-xxs, 0.625rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .ri-activity-legend-cell {

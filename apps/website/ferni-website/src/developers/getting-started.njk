@@ -7,22 +7,22 @@ permalink: /developers/getting-started/
 
 <style>
   :root {
-    --dev-bg: #584840;
-    --dev-surface: #70605a;
-    --dev-surface-elevated: #7d6e67;
-    --dev-border: rgba(212, 168, 74, 0.2);
-    --dev-accent: #d4a84a;
-    --dev-accent-hover: #e5bc6a;
-    --dev-text: #faf8f5;
-    --dev-text-muted: rgba(250, 248, 245, 0.7);
-    --dev-code-bg: #4a3c35;
-    --dev-ferni-green: #4a6741;
+    --dev-bg: var(--color-cedar-dark);
+    --dev-surface: var(--color-cedar);
+    --dev-surface-elevated: var(--color-text-dimmed);
+    --dev-border: color-mix(in srgb, var(--color-accent-gold) 20%, transparent);
+    --dev-accent: var(--color-accent-gold);
+    --dev-accent-hover: var(--color-accent-gold-hover);
+    --dev-text: var(--color-paper);
+    --dev-text-muted: color-mix(in srgb, var(--color-paper) 70%, transparent);
+    --dev-code-bg: var(--color-dark-gradient-mid);
+    --dev-ferni-green: var(--color-ferni);
   }
 
   body.dev-portal {
     background: var(--dev-bg);
     color: var(--dev-text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-body);
     margin: 0;
     padding: 0;
     line-height: 1.7;
@@ -68,7 +68,7 @@ permalink: /developers/getting-started/
     text-decoration: none;
     font-size: 0.9rem;
     font-weight: 500;
-    transition: color 0.2s;
+    transition: color var(--duration-normal);
   }
 
   .dev-nav-links a:hover,
@@ -150,15 +150,15 @@ permalink: /developers/getting-started/
   .doc-content code {
     background: var(--dev-code-bg);
     padding: 0.125rem 0.375rem;
-    border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    border-radius: var(--radius-xs);
+    font-family: var(--font-mono);
     font-size: 0.9em;
   }
 
   .doc-content pre {
     background: var(--dev-code-bg);
     border: 1px solid var(--dev-border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: 1rem 1.5rem;
     overflow-x: auto;
     margin: 1rem 0 1.5rem;
@@ -175,7 +175,7 @@ permalink: /developers/getting-started/
     width: 100%;
     border-collapse: collapse;
     background: var(--dev-surface);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
     border: 1px solid var(--dev-border);
     margin: 1rem 0 1.5rem;
@@ -188,7 +188,7 @@ permalink: /developers/getting-started/
   }
 
   .doc-content th {
-    background: rgba(0,0,0,0.15);
+    background: color-mix(in srgb, var(--color-black) 15%, transparent);
     font-weight: 600;
     font-size: 0.85rem;
     color: var(--dev-text-muted);
@@ -201,20 +201,20 @@ permalink: /developers/getting-started/
   }
 
   .doc-content tr:hover td {
-    background: rgba(212, 168, 74, 0.05);
+    background: color-mix(in srgb, var(--color-accent-gold) 5%, transparent);
   }
 
   .callout {
-    background: rgba(212, 168, 74, 0.1);
-    border: 1px solid rgba(212, 168, 74, 0.3);
-    border-radius: 8px;
+    background: color-mix(in srgb, var(--color-accent-gold) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-accent-gold) 30%, transparent);
+    border-radius: var(--radius-sm);
     padding: 1rem 1.5rem;
     margin: 1.5rem 0;
   }
 
   .callout-warning {
-    background: rgba(248, 113, 113, 0.1);
-    border-color: rgba(248, 113, 113, 0.3);
+    background: color-mix(in srgb, var(--effect-chromatic-red) 10%, transparent);
+    border-color: color-mix(in srgb, var(--effect-chromatic-red) 30%, transparent);
   }
 
   .callout strong {
@@ -224,7 +224,7 @@ permalink: /developers/getting-started/
   .path-card {
     background: var(--dev-surface);
     border: 1px solid var(--dev-border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: 1.5rem;
     margin: 1rem 0;
   }

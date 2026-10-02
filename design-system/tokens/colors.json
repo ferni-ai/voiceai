@@ -2,6 +2,12 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "description": "VoiceAI Color Design Tokens",
 
+  "base": {
+    "_description": "Pure white and black. Not theme colors: use them for overlays, highlights, scrims and shadows, mixed with color-mix() for translucency (e.g. color-mix(in srgb, var(--color-black) 20%, transparent)).",
+    "white": "#ffffff",
+    "black": "#000000"
+  },
+
   "themes": {
     "midnight": {
       "meta": {
@@ -121,6 +127,18 @@
         "info": "#7da6cf",
         "infoGlow": "rgba(125, 166, 207, 0.22)",
         "infoTint": "rgba(125, 166, 207, 0.12)"
+      },
+      "syntax": {
+        "_description": "Code syntax highlighting on the dark code surface (#2a2420); every color is WCAG AA (4.5:1+) there",
+        "text": "#d4d4d4",
+        "comment": "#6a9955",
+        "punctuation": "#d4d4d4",
+        "number": "#b5cea8",
+        "string": "#ce9178",
+        "operator": "#d4d4d4",
+        "keyword": "#569cd6",
+        "function": "#dcdcaa",
+        "variable": "#9cdcfe"
       },
       "utility": {
         "_description": "Utility colors for common UI patterns - focus rings, backdrops, overlays",

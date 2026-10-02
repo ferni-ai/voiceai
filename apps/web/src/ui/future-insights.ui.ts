@@ -617,7 +617,7 @@ function injectStyles(): void {
       width: 100%;
       max-width: 520px;
       max-height: 85vh;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl);
       overflow-y: auto;
@@ -632,7 +632,7 @@ function injectStyles(): void {
       padding: var(--space-6) var(--space-6) var(--space-4);
       position: sticky;
       top: 0;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       z-index: 10;
     }
 
@@ -650,7 +650,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1.5rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
       line-height: 1.2;
     }
@@ -659,7 +659,7 @@ function injectStyles(): void {
       width: 32px;
       height: 32px;
       border: none;
-      background: var(--color-background-subtle, rgba(0,0,0,0.05));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 5%, transparent));
       border-radius: var(--radius-full, 9999px);
       cursor: pointer;
       display: flex;
@@ -672,11 +672,11 @@ function injectStyles(): void {
     .future-insights-close svg {
       width: 16px;
       height: 16px;
-      color: var(--color-text-secondary, #5a4a3a);
+      color: var(--color-text-secondary);
     }
 
     .future-insights-close:hover {
-      background: var(--color-background-hover, rgba(0,0,0,0.1));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 10%, transparent));
     }
 
     /* Intro */
@@ -690,7 +690,7 @@ function injectStyles(): void {
     .future-insights-intro__text {
       flex: 1;
       font-size: 0.9rem;
-      color: var(--color-text-secondary, #5a4a3a);
+      color: var(--color-text-secondary);
       line-height: 1.5;
       margin: 0;
     }
@@ -700,7 +700,7 @@ function injectStyles(): void {
       flex-direction: column;
       align-items: center;
       padding: var(--space-3) var(--space-4);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-lg, 12px);
     }
 
@@ -716,7 +716,7 @@ function injectStyles(): void {
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--color-text-muted, #7a6a5a);
+      color: var(--color-text-muted);
       margin-top: var(--space-1);
     }
 
@@ -765,8 +765,8 @@ function injectStyles(): void {
       width: 40px;
       height: 40px;
       border-radius: var(--radius-full, 9999px);
-      background: var(--color-background-elevated, #FFFDFB);
-      border: 2px solid var(--color-border, rgba(0,0,0,0.1));
+      background: var(--color-background-elevated);
+      border: 2px solid var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -776,23 +776,23 @@ function injectStyles(): void {
     .future-insights-timeline__icon svg {
       width: 18px;
       height: 18px;
-      color: var(--color-text-muted, #7a6a5a);
+      color: var(--color-text-muted);
       transition: color var(--duration-fast, 100ms);
     }
 
     .future-insights-timeline__node.active .future-insights-timeline__icon {
-      background: var(--persona-primary, #4a6741);
-      border-color: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
+      border-color: var(--persona-primary, var(--color-ferni));
       transform: scale(1.1);
-      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 30%, transparent);
     }
 
     .future-insights-timeline__node.active .future-insights-timeline__icon svg {
-      color: white;
+      color: var(--color-white);
     }
 
     .future-insights-timeline__node.unlocked .future-insights-timeline__icon {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
     }
 
     .future-insights-timeline__node.unlocked .future-insights-timeline__icon svg {
@@ -802,7 +802,7 @@ function injectStyles(): void {
     .future-insights-timeline__label {
       font-size: 0.7rem;
       font-weight: 500;
-      color: var(--color-text-muted, #7a6a5a);
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -831,13 +831,13 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1.25rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1);
     }
 
     .future-insights-horizon__tagline {
       font-size: 0.9rem;
-      color: var(--color-text-secondary, #5a4a3a);
+      color: var(--color-text-secondary);
       margin: 0 0 var(--space-2);
     }
 
@@ -848,13 +848,13 @@ function injectStyles(): void {
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      background: var(--color-background-subtle, rgba(0,0,0,0.05));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 5%, transparent));
       border-radius: var(--radius-full, 9999px);
-      color: var(--color-text-muted, #7a6a5a);
+      color: var(--color-text-muted);
     }
 
     .future-insights-horizon__badge--unlocked {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       color: var(--persona-ink);
     }
 
@@ -869,9 +869,9 @@ function injectStyles(): void {
       display: flex;
       gap: var(--space-3);
       padding: var(--space-4);
-      background: var(--color-background-subtle, rgba(0,0,0,0.02));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
       border-radius: var(--radius-lg, 12px);
-      border: 1px solid var(--color-border, rgba(0,0,0,0.05));
+      border: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 5%, transparent));
       opacity: 0;
       animation: futureInsightCardIn var(--duration-slow, 300ms) var(--ease-spring) forwards;
     }
@@ -888,15 +888,15 @@ function injectStyles(): void {
     }
 
     .future-insights-card--unlocked {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.05));
-      border-color: var(--persona-primary, rgba(74, 103, 65, 0.2));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 5%, transparent));
+      border-color: var(--persona-primary, color-mix(in srgb, var(--color-ferni) 20%, transparent));
     }
 
     .future-insights-card__icon {
       width: 36px;
       height: 36px;
       border-radius: var(--radius-md, 8px);
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -919,7 +919,7 @@ function injectStyles(): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--color-text-muted, #7a6a5a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-1);
       display: block;
     }
@@ -927,17 +927,17 @@ function injectStyles(): void {
     .future-insights-card__preview {
       font-size: 0.9rem;
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-2);
     }
 
     .future-insights-card__example {
       font-size: 0.8rem;
       font-style: italic;
-      color: var(--color-text-secondary, #5a4a3a);
+      color: var(--color-text-secondary);
       margin: 0;
       padding-left: var(--space-3);
-      border-left: 2px solid var(--persona-primary, rgba(74, 103, 65, 0.3));
+      border-left: 2px solid var(--persona-primary, color-mix(in srgb, var(--color-ferni) 30%, transparent));
     }
 
     /* Navigation */
@@ -953,7 +953,7 @@ function injectStyles(): void {
       width: 36px;
       height: 36px;
       border: none;
-      background: var(--color-background-subtle, rgba(0,0,0,0.05));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 5%, transparent));
       border-radius: var(--radius-full, 9999px);
       cursor: pointer;
       display: flex;
@@ -963,13 +963,13 @@ function injectStyles(): void {
     }
 
     .future-insights-nav__btn:hover {
-      background: var(--color-background-hover, rgba(0,0,0,0.1));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 10%, transparent));
     }
 
     .future-insights-nav__btn svg {
       width: 18px;
       height: 18px;
-      color: var(--color-text-secondary, #5a4a3a);
+      color: var(--color-text-secondary);
     }
 
     .future-insights-nav__dots {
@@ -982,31 +982,31 @@ function injectStyles(): void {
       height: 8px;
       border: none;
       border-radius: var(--radius-full, 9999px);
-      background: var(--color-border, rgba(0,0,0,0.15));
+      background: var(--color-border, color-mix(in srgb, var(--color-black) 15%, transparent));
       cursor: pointer;
       padding: 0;
       transition: all var(--duration-fast, 100ms);
     }
 
     .future-insights-nav__dot:hover {
-      background: var(--color-text-muted, #7a6a5a);
+      background: var(--color-text-muted);
     }
 
     .future-insights-nav__dot.active {
       width: 20px;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
     }
 
     /* Footer */
     .future-insights-footer {
       padding: var(--space-4) var(--space-6) var(--space-6);
       text-align: center;
-      border-top: 1px solid var(--color-border, rgba(0,0,0,0.05));
+      border-top: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 5%, transparent));
     }
 
     .future-insights-footer__cta {
       font-size: 0.85rem;
-      color: var(--color-text-secondary, #5a4a3a);
+      color: var(--color-text-secondary);
       margin: 0;
     }
 

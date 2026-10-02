@@ -92,7 +92,7 @@ const SIGNAL_CONFIG: Record<
 > = {
   growth: {
     icon: ICONS.leaf,
-    color: 'var(--color-semantic-success, #4a8560)',
+    color: 'var(--color-semantic-success)',
     prefix: 'Ferni noticed',
   },
   boundary: {
@@ -107,7 +107,7 @@ const SIGNAL_CONFIG: Record<
   },
   small_win: {
     icon: ICONS.trophy,
-    color: 'var(--color-semantic-warning, #c49a6c)',
+    color: 'var(--color-semantic-warning)',
     prefix: 'You did it',
   },
   thinking_of_you: {
@@ -522,7 +522,7 @@ function injectStyles(): void {
       align-items: flex-start;
       gap: var(--space-3, 12px);
       padding: var(--space-4, 16px);
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-xl, 16px);
       box-shadow: 
         0 8px 24px rgba(44, 37, 32, 0.15),
@@ -541,7 +541,7 @@ function injectStyles(): void {
       width: 40px;
       height: 40px;
       border-radius: var(--radius-full, 9999px);
-      color: white;
+      color: var(--color-white);
       flex-shrink: 0;
     }
     
@@ -563,7 +563,7 @@ function injectStyles(): void {
       font-weight: var(--font-weight-bold, 700);
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-1, 4px);
     }
     
@@ -571,7 +571,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-base, 16px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 4px);
       line-height: var(--leading-tight, 1.3);
     }
@@ -579,7 +579,7 @@ function injectStyles(): void {
     .trust-signal-message {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-sm, 14px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       margin: 0;
       line-height: var(--leading-relaxed, 1.5);
     }
@@ -595,7 +595,7 @@ function injectStyles(): void {
       background: transparent;
       border: none;
       border-radius: var(--radius-full, 9999px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       cursor: pointer;
       flex-shrink: 0;
       opacity: 0.5;
@@ -603,8 +603,8 @@ function injectStyles(): void {
     }
     
     .trust-signal-close:hover {
-      background: var(--color-background-secondary, #F5F1E8);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
       opacity: 1;
     }
     
@@ -615,34 +615,34 @@ function injectStyles(): void {
     
     /* Type-specific accents */
     .trust-signal--growth {
-      border-left: 3px solid var(--color-semantic-success, #4a8560);
+      border-left: 3px solid var(--color-semantic-success);
     }
     
     .trust-signal--boundary {
-      border-left: 3px solid var(--persona-primary, #4a6741);
+      border-left: 3px solid var(--persona-primary, var(--color-ferni));
     }
     
     .trust-signal--callback {
-      border-left: 3px solid var(--persona-peter-primary, #3a6b73);
+      border-left: 3px solid var(--persona-peter-primary, var(--color-peter));
     }
     
     .trust-signal--small_win {
-      border-left: 3px solid var(--color-semantic-warning, #c49a6c);
+      border-left: 3px solid var(--color-semantic-warning);
     }
     
     .trust-signal--thinking_of_you {
-      border-left: 3px solid var(--persona-maya-primary, #a67a6a);
+      border-left: 3px solid var(--persona-maya-primary, var(--color-maya));
     }
     
     .trust-signal--reading_lines {
-      border-left: 3px solid var(--persona-alex-primary, #5a6b8a);
+      border-left: 3px solid var(--persona-alex-primary, var(--color-alex));
     }
     
     /* ========================================================================
        DARK THEME
        ======================================================================== */
     [data-theme="midnight"] .trust-signal {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated);
       box-shadow: 
         0 8px 24px rgba(0, 0, 0, 0.3),
         0 2px 8px rgba(0, 0, 0, 0.2),
@@ -650,15 +650,15 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .trust-signal-title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
     
     [data-theme="midnight"] .trust-signal-message {
-      color: var(--color-text-secondary, #f0ebe4);
+      color: var(--color-text-secondary);
     }
     
     [data-theme="midnight"] .trust-signal-close:hover {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
     
     /* ========================================================================

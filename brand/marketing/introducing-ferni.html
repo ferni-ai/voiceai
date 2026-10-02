@@ -8,13 +8,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&family=Inter:wght@300;400;500;600&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Design System: Single source of truth -->
-    <link rel="stylesheet" href="../master-tokens.css">
+    <link rel="stylesheet" href="../ferni-design-tokens.css">
+    <link rel="stylesheet" href="../brand-base.css">
     <style>
-        /* Page-specific overrides - base tokens from master-tokens.css */
+        /* Page-specific overrides - base tokens from ferni-design-tokens.css */
         :root {
             /* Legacy aliases */
             --cream: var(--bg-primary);
-            --cream-dark: var(--color-warm-white);
+            --cream-dark: var(--color-bg-primary);
             --ink: var(--text-primary);
             --ink-light: var(--text-secondary);
             --text-inverted: var(--bg-elevated);
@@ -67,7 +68,7 @@
             position: relative;
             width: var(--size);
             height: var(--size);
-            transition: transform 0.25s var(--ease-spring);
+            transition: transform 0.25s var(--ease-ease-out-back);
         }
 
         .ferni-avatar.large {
@@ -101,20 +102,20 @@
 
         /* Avatar body gradient */
         .avatar-body {
-            transition: transform 0.2s var(--ease-spring);
+            transition: transform 0.2s var(--ease-ease-out-back);
             transform-origin: center center;
         }
 
         /* Eyes - LUXO STYLE: opaque white, no pupils */
         .eye-main {
-            transition: transform 0.15s var(--ease-spring);
+            transition: transform 0.15s var(--ease-ease-out-back);
             transform-origin: center center;
         }
 
         /* Lids for expressions */
         .lid-top, .lid-bottom {
             fill: var(--cream);
-            transition: d 0.25s var(--ease-spring);
+            transition: d 0.25s var(--ease-ease-out-back);
         }
 
         /* Breathing animation for body */
@@ -362,10 +363,10 @@
 
         .problem-card {
             background: var(--bg-primary);
-            border-radius: var(--radius-xl);
+            border-radius: var(--radius-lg);
             padding: 32px;
             position: relative;
-            transition: transform 0.3s var(--ease-spring);
+            transition: transform 0.3s var(--ease-ease-out-back);
         }
 
         .problem-card:hover {
@@ -376,7 +377,7 @@
             width: 48px;
             height: 48px;
             background: var(--overlay-soft);
-            border-radius: var(--radius-lg);
+            border-radius: var(--radius-md);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -411,7 +412,7 @@
            THE SOLUTION SECTION
            ============================================ */
         .solution-section {
-            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--color-warm-white) 100%);
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--color-bg-primary) 100%);
         }
 
         .solution-content {
@@ -495,7 +496,7 @@
             width: 44px;
             height: 44px;
             background: var(--color-ferni-subtle);
-            border-radius: var(--radius-lg);
+            border-radius: var(--radius-md);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -552,11 +553,11 @@
 
         .persona-card {
             background: var(--bg-primary);
-            border-radius: var(--radius-xl);
+            border-radius: var(--radius-lg);
             padding: 28px 20px;
             text-align: center;
-            transition: transform var(--duration-normal) var(--ease-spring),
-                        box-shadow var(--duration-normal) var(--ease-spring);
+            transition: transform var(--duration-normal) var(--ease-ease-out-back),
+                        box-shadow var(--duration-normal) var(--ease-ease-out-back);
         }
 
         .persona-card:hover {
@@ -627,16 +628,16 @@
         }
 
         .capability-item {
-            background: var(--glass-bg);
+            background: var(--glass-thick-bg);
             backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius-xl);
+            border: 1px solid color-mix(in srgb, var(--color-white) 20%, transparent);
+            border-radius: var(--radius-lg);
             padding: 32px;
             display: grid;
             grid-template-columns: auto 1fr;
             gap: 24px;
             align-items: start;
-            transition: transform 0.3s var(--ease-spring);
+            transition: transform 0.3s var(--ease-ease-out-back);
         }
 
         .capability-item:hover {
@@ -730,7 +731,7 @@
             cursor: pointer;
             background: rgba(44, 37, 32, 0.06);
             color: var(--ink);
-            transition: all 0.2s var(--ease-spring);
+            transition: all 0.2s var(--ease-ease-out-back);
         }
 
         .emotion-btn:hover, .emotion-btn.active {
@@ -803,8 +804,8 @@
             font-size: 0.95rem;
             font-weight: 500;
             text-decoration: none;
-            transition: transform var(--duration-fast) var(--ease-spring),
-                        box-shadow var(--duration-fast) var(--ease-spring);
+            transition: transform var(--duration-fast) var(--ease-ease-out-back),
+                        box-shadow var(--duration-fast) var(--ease-ease-out-back);
         }
 
         .cta-button:hover {

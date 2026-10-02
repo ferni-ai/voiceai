@@ -134,25 +134,25 @@ const WHISPER_TYPE_STYLES: Record<string, { color: string; bgColor: string; bord
   {
     success: {
       // White text on green tinted glass - works in both themes
-      color: 'var(--color-text-primary, #faf6f0)',
+      color: 'var(--color-text-primary)',
       bgColor: 'var(--persona-primary, #4a6741)',
       borderColor: 'var(--persona-secondary, #3d5a35)',
     },
     error: {
       // White text on warm error color
-      color: 'var(--color-text-primary, #faf6f0)',
-      bgColor: 'var(--color-semantic-error, #a65a52)',
+      color: 'var(--color-text-primary)',
+      bgColor: 'var(--color-semantic-error)',
       borderColor: 'rgba(166, 90, 82, 0.8)',
     },
     warning: {
       // White text on amber warning color
-      color: 'var(--color-text-primary, #faf6f0)',
-      bgColor: 'var(--color-semantic-warning, #a6854a)',
+      color: 'var(--color-text-primary)',
+      bgColor: 'var(--color-semantic-warning)',
       borderColor: 'rgba(166, 133, 74, 0.8)',
     },
     info: {
       // White text on persona green - matches the avatar
-      color: 'var(--color-text-primary, #faf6f0)',
+      color: 'var(--color-text-primary)',
       bgColor: 'var(--persona-primary, #4a6741)',
       borderColor: 'var(--persona-secondary, #3d5a35)',
     },
@@ -185,19 +185,19 @@ function createStatusWhisperElement(): void {
     left: 50%;
     transform: translateX(-50%) translateY(8px) scale(0.95);
     padding: var(--space-xs, 4px) var(--space-sm, 8px);
-    background: var(--persona-primary, #4a6741);
-    border: 1px solid var(--persona-secondary, #3d5a35);
+    background: var(--persona-primary, var(--color-ferni));
+    border: 1px solid var(--persona-secondary, var(--color-ferni-secondary));
     border-radius: var(--radius-full, 9999px);
     font-family: var(--font-body, 'Inter', -apple-system, sans-serif);
     font-size: 11px;
     font-weight: 500;
     letter-spacing: 0.01em;
-    color: var(--color-text-primary, #faf6f0);
+    color: var(--color-text-primary);
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
     z-index: var(--z-docked);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--color-black) 8%, transparent);
     transition:
       opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
       transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);

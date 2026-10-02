@@ -659,10 +659,10 @@ function injectStyles(): void {
     /* Card with Pixar-inspired entry */
     .support-ferni-card {
       position: relative;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       max-width: clamp(364px, 90vw, 520px);
       width: 100%;
       max-height: 90vh;
@@ -697,13 +697,13 @@ function injectStyles(): void {
       width: 44px;
       height: 44px;
       border: none;
-      background: var(--color-background-secondary, #f5f3f0);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-full, 9999px);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-secondary, #5a5048);
+      color: var(--color-text-secondary);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
@@ -819,7 +819,7 @@ function injectStyles(): void {
 
     .support-ferni-tier-badge--active {
       background: linear-gradient(135deg, var(--persona-primary), var(--persona-secondary));
-      color: white;
+      color: var(--color-white);
       border-color: transparent;
     }
 
@@ -860,7 +860,7 @@ function injectStyles(): void {
       border-color: var(--persona-primary);
       background: var(--color-background-elevated);
       transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(74, 103, 65, 0.1);
+      box-shadow: 0 4px 16px color-mix(in srgb, var(--color-ferni) 10%, transparent);
     }
 
     .support-ferni-tier-card:active {
@@ -874,13 +874,13 @@ function injectStyles(): void {
 
     /* Highlighted tier - subtle emphasis without badge */
     .support-ferni-tier-card--highlighted {
-      background: linear-gradient(135deg, var(--persona-tint), rgba(74, 103, 65, 0.03));
-      border-color: rgba(74, 103, 65, 0.15);
+      background: linear-gradient(135deg, var(--persona-tint), color-mix(in srgb, var(--color-ferni) 3%, transparent));
+      border-color: color-mix(in srgb, var(--color-ferni) 15%, transparent);
     }
 
     .support-ferni-tier-card--highlighted:hover {
       border-color: var(--persona-primary);
-      background: linear-gradient(135deg, var(--persona-tint), rgba(74, 103, 65, 0.08));
+      background: linear-gradient(135deg, var(--persona-tint), color-mix(in srgb, var(--color-ferni) 8%, transparent));
     }
 
     .support-ferni-tier-header {
@@ -943,7 +943,7 @@ function injectStyles(): void {
       padding: var(--space-3, 12px);
       background: var(--persona-primary);
       border-radius: var(--radius-full);
-      color: white;
+      color: var(--color-white);
     }
 
     .support-ferni-manage-icon svg {
@@ -1021,7 +1021,7 @@ function injectStyles(): void {
     }
 
     .support-ferni-cost-total {
-      background: linear-gradient(135deg, var(--persona-tint), rgba(74, 103, 65, 0.05));
+      background: linear-gradient(135deg, var(--persona-tint), color-mix(in srgb, var(--color-ferni) 5%, transparent));
       margin-top: var(--space-2, 8px);
     }
 
@@ -1139,7 +1139,7 @@ function injectStyles(): void {
       width: 100%;
       padding: var(--space-4, 16px);
       background: var(--persona-primary);
-      color: white;
+      color: var(--color-white);
       border: none;
       border-radius: var(--radius-full, 100px);
       font-size: 1rem;
@@ -1151,12 +1151,12 @@ function injectStyles(): void {
     .support-ferni-plant-btn:hover:not(:disabled) {
       background: var(--persona-secondary);
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(74, 103, 65, 0.25);
+      box-shadow: 0 6px 20px color-mix(in srgb, var(--color-ferni) 25%, transparent);
     }
 
     .support-ferni-plant-btn:active:not(:disabled) {
       transform: scale(0.97) translateY(0);
-      box-shadow: 0 2px 8px rgba(74, 103, 65, 0.2);
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--color-ferni) 20%, transparent);
     }
 
     .support-ferni-plant-btn:focus {
@@ -1228,8 +1228,8 @@ function injectStyles(): void {
       width: 100%;
       padding: var(--space-4, 16px);
       margin-bottom: var(--space-6, 24px);
-      background: linear-gradient(135deg, rgba(74, 103, 65, 0.06), transparent);
-      border: 1.5px solid rgba(74, 103, 65, 0.2);
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 6%, transparent), transparent);
+      border: 1.5px solid color-mix(in srgb, var(--color-ferni) 20%, transparent);
       border-radius: var(--radius-xl, 16px);
       font-size: 0.9375rem;
       font-weight: 500;
@@ -1242,7 +1242,7 @@ function injectStyles(): void {
       background: var(--persona-tint);
       border-color: var(--persona-primary);
       transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(74, 103, 65, 0.12);
+      box-shadow: 0 4px 16px color-mix(in srgb, var(--color-ferni) 12%, transparent);
     }
 
     .support-ferni-journey-btn:active {

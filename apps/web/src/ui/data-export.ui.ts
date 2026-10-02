@@ -205,10 +205,10 @@ class DataExportUI {
       .data-export__wrapper {
         width: 100%;
         max-width: clamp(336px, 90vw, 480px);
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        background: var(--color-bg-elevated, var(--color-white));
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         overflow: hidden;
       }
 
@@ -217,14 +217,14 @@ class DataExportUI {
         align-items: center;
         justify-content: space-between;
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
       }
 
       .data-export__header h2 {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-lg, 1.0625rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
@@ -235,15 +235,15 @@ class DataExportUI {
         width: 34px;
         height: 34px;
         padding: 0;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border: none;
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
-      .data-export__close:hover { background: var(--color-background-secondary, #f5f2ed); color: var(--color-text-primary, #2c2520); }
+      .data-export__close:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
       .data-export__close svg { width: 16px; height: 16px; }
 
       .data-export__intro {
@@ -253,7 +253,7 @@ class DataExportUI {
       .data-export__intro p {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         margin: 0;
       }
 
@@ -268,7 +268,7 @@ class DataExportUI {
         align-items: center;
         gap: var(--space-3, 12px);
         padding: var(--ma-breath, 13px) 0;
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
         cursor: pointer;
       }
 
@@ -277,7 +277,7 @@ class DataExportUI {
       .data-export__category-checkbox {
         width: 20px;
         height: 20px;
-        accent-color: var(--color-accent-primary, #2d5a3d);
+        accent-color: var(--color-accent-primary);
       }
 
       .data-export__category-info { flex: 1; }
@@ -287,27 +287,27 @@ class DataExportUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .data-export__category-desc {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .data-export__category-count {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
-        background: var(--color-background-tertiary, #ebe6df);
+        color: var(--color-text-muted);
+        background: var(--color-background-tertiary);
         padding: 4px 10px;
         border-radius: var(--radius-full, 9999px);
       }
 
       .data-export__format {
         padding: var(--ma-breath, 13px) var(--ma-silence, 34px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       .data-export__format label {
@@ -315,7 +315,7 @@ class DataExportUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin-bottom: var(--space-2, 8px);
       }
 
@@ -326,27 +326,27 @@ class DataExportUI {
         padding: var(--space-2, 8px);
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #5c544a);
-        background: var(--color-background-secondary, #f5f2ed);
+        color: var(--color-text-secondary);
+        background: var(--color-background-secondary);
         border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-md, 0.5rem);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
-      .data-export__format-btn:hover { background: var(--color-background-tertiary, #ebe6df); }
+      .data-export__format-btn:hover { background: var(--color-background-tertiary); }
 
       .data-export__format-btn--active {
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
-        border-color: var(--color-accent-primary, #2d5a3d);
+        border-color: var(--color-accent-primary);
       }
 
       .data-export__actions {
         display: flex;
         justify-content: space-between;
         padding: var(--ma-breath, 13px) var(--ma-silence, 34px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-top: 1px solid var(--color-border-subtle);
       }
 
       .data-export__btn {
@@ -361,11 +361,11 @@ class DataExportUI {
       }
 
       .data-export__btn--primary {
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
       }
 
-      .data-export__btn--primary:hover { background: var(--color-accent-hover, #3a7050); }
+      .data-export__btn--primary:hover { background: var(--color-accent-hover); }
 
       .data-export__btn--danger {
         background: transparent;
@@ -373,33 +373,33 @@ class DataExportUI {
       }
 
       .data-export__btn--danger:hover {
-        background: var(--color-semantic-error-tint, rgba(181, 69, 58, 0.1));
+        background: var(--color-semantic-error-tint);
       }
 
       .data-export__footer {
         padding: var(--ma-breath, 13px) var(--ma-silence, 34px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         text-align: center;
       }
 
       .data-export__footer p {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0;
       }
 
       /* Dark theme - WCAG AA Compliant */
       [data-theme="midnight"] .data-export { background: var(--backdrop-page); }
-      [data-theme="midnight"] .data-export__wrapper { background: var(--color-background-elevated, #70605a); }
+      [data-theme="midnight"] .data-export__wrapper { background: var(--color-background-elevated); }
       [data-theme="midnight"] .data-export__header h2,
       [data-theme="midnight"] .data-export__category-name,
-      [data-theme="midnight"] .data-export__format label { color: var(--color-text-primary, #faf6f0); }
-      [data-theme="midnight"] .data-export__format-btn { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .data-export__footer { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .data-export__close { background: var(--color-background-tertiary, #685852); color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .data-export__format label { color: var(--color-text-primary); }
+      [data-theme="midnight"] .data-export__format-btn { background: var(--color-background-secondary); }
+      [data-theme="midnight"] .data-export__footer { background: var(--color-background-secondary); }
+      [data-theme="midnight"] .data-export__close { background: var(--color-background-tertiary); color: var(--color-text-secondary); }
       [data-theme="midnight"] .data-export__category-description,
-      [data-theme="midnight"] .data-export__hint { color: var(--color-text-muted, #e8e2da); }
+      [data-theme="midnight"] .data-export__hint { color: var(--color-text-muted); }
 
       @media (prefers-reduced-motion: reduce) {
         .data-export { transition: opacity ${DURATION.FAST}ms linear; }

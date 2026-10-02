@@ -2,7 +2,7 @@
  * FERNI BLOG - Article Styles
  * ============================
  * Extends the brand library for blog-specific layouts.
- * Uses design tokens from master-tokens.css exclusively.
+ * Uses design tokens from ferni-design-tokens.css exclusively.
  */
 
 /* ============================================
@@ -49,8 +49,8 @@ body {
   gap: var(--space-3);
   text-decoration: none;
   font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
 
@@ -64,7 +64,7 @@ body {
   text-decoration: none;
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  font-weight: var(--font-weight-medium);
   transition: color var(--duration-fast) var(--ease-out);
 }
 
@@ -102,8 +102,8 @@ body {
 
 .article-title {
   font-family: var(--font-display);
-  font-size: clamp(var(--text-3xl), 6vw, var(--text-5xl));
-  font-weight: var(--font-extrabold);
+  font-size: clamp(var(--text-4xl), 6vw, var(--text-6xl));
+  font-weight: var(--font-weight-extrabold);
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-tight);
   color: var(--color-text-primary);
@@ -111,7 +111,7 @@ body {
 }
 
 .article-subtitle {
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
   color: var(--color-text-secondary);
   max-width: 540px;
   margin: 0 auto var(--space-8);
@@ -149,7 +149,7 @@ body {
 }
 
 .author-name {
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
@@ -173,12 +173,12 @@ body {
 }
 
 .article-content p {
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   margin-bottom: var(--space-6);
 }
 
 .article-content .lede {
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
   color: var(--color-text-secondary);
   line-height: var(--leading-relaxed);
   margin-bottom: var(--space-8);
@@ -186,8 +186,8 @@ body {
 
 .article-content h2 {
   font-family: var(--font-display);
-  font-size: var(--text-2xl);
-  font-weight: var(--font-bold);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   margin-top: var(--space-12);
   margin-bottom: var(--space-6);
@@ -195,15 +195,15 @@ body {
 
 .article-content h3 {
   font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: var(--font-semibold);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin-top: var(--space-8);
   margin-bottom: var(--space-4);
 }
 
 .article-content a {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -213,7 +213,7 @@ body {
 }
 
 .article-content strong {
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
@@ -237,7 +237,7 @@ body {
 }
 
 .pull-quote p {
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
   font-style: italic;
   color: var(--color-text-secondary);
   margin-bottom: 0;
@@ -251,7 +251,7 @@ body {
 }
 
 .article-content li {
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   margin-bottom: var(--space-4);
 }
 
@@ -298,7 +298,7 @@ body {
 .persona-aside .persona-name {
   display: block;
   font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-weight-semibold);
   color: var(--persona-color);
   margin-bottom: var(--space-2);
 }
@@ -323,15 +323,15 @@ body {
 .insight-card {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   padding: var(--space-6);
   margin-bottom: var(--space-4);
 }
 
 .insight-card h4 {
   font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin-bottom: var(--space-2);
 }
@@ -372,10 +372,10 @@ body {
   justify-content: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-5);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   font-family: var(--font-body);
   font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-weight-semibold);
   text-decoration: none;
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
@@ -384,7 +384,7 @@ body {
 
 .btn-primary {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-text-inverse);
 }
 
 .btn-primary:hover {
@@ -410,14 +410,14 @@ body {
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .badge-accent {
   background: var(--color-accent-subtle);
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 /* ============================================
@@ -431,8 +431,8 @@ body {
 
 .series-nav h3 {
   font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: var(--font-semibold);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-semibold);
   margin-bottom: var(--space-6);
 }
 
@@ -447,7 +447,7 @@ body {
 }
 
 .series-list li.current {
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
@@ -457,7 +457,7 @@ body {
 }
 
 .series-list a:hover {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 /* ============================================
@@ -521,11 +521,11 @@ body {
   }
 
   .article-title {
-    font-size: var(--text-3xl);
+    font-size: var(--text-4xl);
   }
 
   .article-subtitle {
-    font-size: var(--text-lg);
+    font-size: var(--text-xl);
   }
 
   .article-content p,
@@ -534,7 +534,7 @@ body {
   }
 
   .article-content .lede {
-    font-size: var(--text-lg);
+    font-size: var(--text-xl);
   }
 
   .persona-aside {

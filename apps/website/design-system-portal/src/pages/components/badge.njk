@@ -316,7 +316,7 @@ permalink: /components/badge/
 /* Status Colors */
 .badge-success {
   background: var(--success-subtle);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .badge-warning {
@@ -326,12 +326,12 @@ permalink: /components/badge/
 
 .badge-error {
   background: var(--error-subtle);
-  color: var(--error);
+  color: var(--error-text);
 }
 
 .badge-info {
   background: var(--accent-subtle);
-  color: var(--accent-primary);
+  color: var(--accent-text);
 }
 
 .badge-neutral {
@@ -340,12 +340,12 @@ permalink: /components/badge/
 }
 
 /* Persona Colors */
-.badge-persona-ferni { background: var(--persona-ferni-subtle); color: var(--persona-ferni); }
-.badge-persona-maya { background: var(--persona-maya-subtle); color: var(--persona-maya); }
-.badge-persona-alex { background: var(--persona-alex-subtle); color: var(--persona-alex); }
-.badge-persona-jordan { background: var(--persona-jordan-subtle); color: var(--persona-jordan); }
-.badge-persona-peter { background: var(--persona-peter-subtle); color: var(--persona-peter); }
-.badge-persona-nayan { background: var(--persona-nayan-subtle); color: var(--persona-nayan); }
+.badge-persona-ferni { background: var(--persona-ferni-subtle); color: var(--persona-ferni-text); }
+.badge-persona-maya { background: var(--persona-maya-subtle); color: var(--persona-maya-text); }
+.badge-persona-alex { background: var(--persona-alex-subtle); color: var(--persona-alex-text); }
+.badge-persona-jordan { background: var(--persona-jordan-subtle); color: var(--persona-jordan-text); }
+.badge-persona-peter { background: var(--persona-peter-subtle); color: var(--persona-peter-text); }
+.badge-persona-nayan { background: var(--persona-nayan-subtle); color: var(--persona-nayan-text); }
 
 /* Sizes */
 .badge-sm {
@@ -422,7 +422,7 @@ permalink: /components/badge/
 }
 
 .badge-remove:hover {
-  color: var(--error);
+  color: var(--error-text);
   background: var(--error-subtle);
 }</code></pre>
     </div>
@@ -537,22 +537,22 @@ permalink: /components/badge/
 
 .badge-success {
   background: color-mix(in srgb, var(--success) 15%, transparent);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .badge-warning {
   background: color-mix(in srgb, var(--warning) 20%, transparent);
-  color: #92400e;
+  color: var(--accent-pressed);
 }
 
 .badge-error {
   background: color-mix(in srgb, var(--error) 15%, transparent);
-  color: var(--error);
+  color: var(--error-text);
 }
 
 .badge-info {
   background: var(--accent-subtle);
-  color: var(--accent-primary);
+  color: var(--accent-text);
 }
 
 .badge-neutral {
@@ -563,32 +563,32 @@ permalink: /components/badge/
 /* Persona Badges */
 .badge-persona-ferni {
   background: color-mix(in srgb, var(--persona-ferni) 15%, transparent);
-  color: var(--persona-ferni);
+  color: var(--persona-ferni-text);
 }
 
 .badge-persona-maya {
   background: color-mix(in srgb, var(--persona-maya) 15%, transparent);
-  color: var(--persona-maya);
+  color: var(--persona-maya-text);
 }
 
 .badge-persona-alex {
   background: color-mix(in srgb, var(--persona-alex) 15%, transparent);
-  color: var(--persona-alex);
+  color: var(--persona-alex-text);
 }
 
 .badge-persona-jordan {
   background: color-mix(in srgb, var(--persona-jordan) 15%, transparent);
-  color: var(--persona-jordan);
+  color: var(--persona-jordan-text);
 }
 
 .badge-persona-peter {
   background: color-mix(in srgb, var(--persona-peter) 15%, transparent);
-  color: var(--persona-peter);
+  color: var(--persona-peter-text);
 }
 
 .badge-persona-nayan {
   background: color-mix(in srgb, var(--persona-nayan) 15%, transparent);
-  color: var(--persona-nayan);
+  color: var(--persona-nayan-text);
 }
 
 /* Sizes */
@@ -658,7 +658,7 @@ permalink: /components/badge/
 
 .demo-icon-btn:hover {
   border-color: var(--accent-primary);
-  color: var(--accent-primary);
+  color: var(--accent-text);
 }
 
 /* Notification Dot */
@@ -685,7 +685,7 @@ permalink: /components/badge/
   height: 18px;
   padding: 0 5px;
   background: var(--error);
-  color: white;
+  color: var(--color-white);
   font-family: var(--font-body);
   font-size: 10px;
   font-weight: var(--font-weight-semibold);
@@ -717,7 +717,7 @@ permalink: /components/badge/
 }
 
 .badge-remove:hover {
-  color: var(--error);
+  color: var(--error-text);
   background: color-mix(in srgb, var(--error) 15%, transparent);
 }
 
@@ -764,8 +764,8 @@ permalink: /components/badge/
   margin-bottom: var(--space-4);
 }
 
-.guideline.do h4 { color: var(--success); }
-.guideline.dont h4 { color: var(--error); }
+.guideline.do h4 { color: var(--success-text); }
+.guideline.dont h4 { color: var(--error-text); }
 
 .guideline ul {
   list-style: none;

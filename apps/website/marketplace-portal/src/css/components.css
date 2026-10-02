@@ -1,3 +1,83 @@
+/* ========================================
+   GLOBAL STYLES
+   ======================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Links */
+a {
+  color: var(--accent-text);
+  text-decoration: none;
+  transition: color var(--duration-faster) var(--ease-in-out);
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+/* Headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+}
+
+h1 {
+  font-size: var(--text-5xl);
+}
+h2 {
+  font-size: var(--text-4xl);
+}
+h3 {
+  font-size: var(--text-2xl);
+}
+h4 {
+  font-size: var(--text-xl);
+}
+h5 {
+  font-size: var(--text-lg);
+}
+h6 {
+  font-size: var(--text-base);
+}
+
 /**
  * Marketplace Portal - Components
  */
@@ -67,7 +147,7 @@ p {
 a {
   color: var(--accent-text);
   text-decoration: none;
-  transition: color var(--duration-fast);
+  transition: color var(--duration-faster);
 }
 
 a:hover {
@@ -80,7 +160,7 @@ code, pre, kbd, samp {
 
 code {
   font-size: 0.9em;
-  background: var(--bg-code-inline);
+  background: var(--bg-tertiary);
   padding: 0.15em 0.4em;
   border-radius: var(--radius-xs);
 }
@@ -152,7 +232,7 @@ code {
   color: var(--accent-primary);
   background: var(--accent-subtle);
   padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
 }
 
 .nav-search {
@@ -170,7 +250,7 @@ code {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full);
   color: var(--text-primary);
-  transition: all var(--duration-fast);
+  transition: all var(--duration-faster);
 }
 
 .search-input:focus {
@@ -194,7 +274,7 @@ code {
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--text-secondary);
-  transition: color var(--duration-fast);
+  transition: color var(--duration-faster);
 }
 
 .nav-links a:hover,
@@ -218,7 +298,7 @@ code {
   border-radius: var(--radius-full);
   border: none;
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-gentle);
+  transition: all var(--duration-faster) var(--ease-in-out);
 }
 
 .btn-primary {
@@ -303,14 +383,14 @@ code {
   background: var(--bg-elevated);
   border-radius: var(--radius-2xl);
   overflow: hidden;
-  box-shadow: var(--shadow-card);
-  transition: all var(--duration-slow) var(--ease-out);
+  box-shadow: var(--shadow-lg);
+  transition: all var(--duration-slow) var(--ease-cinematic);
   cursor: pointer;
 }
 
 .persona-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: var(--shadow-xl);
 }
 
 .persona-header {
@@ -327,14 +407,14 @@ code {
   width: 80px;
   height: 80px;
   border-radius: var(--radius-2xl);
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--color-white) 20%, transparent);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: var(--text-3xl);
   margin-bottom: var(--space-4);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .persona-avatar img {
@@ -348,20 +428,20 @@ code {
   font-family: var(--font-display);
   font-size: var(--text-3xl);
   font-weight: 800;
-  color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  color: var(--color-white);
+  text-shadow: 0 2px 4px color-mix(in srgb, var(--color-black) 20%, transparent);
 }
 
 .persona-name {
   font-size: var(--text-xl);
   font-weight: 700;
-  color: white;
+  color: var(--color-white);
   margin-bottom: var(--space-1);
 }
 
 .persona-tagline {
   font-size: var(--text-sm);
-  color: rgba(255, 255, 255, 0.85);
+  color: color-mix(in srgb, var(--color-white) 85%, transparent);
 }
 
 .persona-body {
@@ -453,7 +533,7 @@ code {
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--duration-fast);
+  transition: all var(--duration-faster);
 }
 
 .category-chip:hover {
@@ -464,7 +544,7 @@ code {
 .category-chip.active {
   background: var(--accent-primary);
   border-color: var(--accent-primary);
-  color: white;
+  color: var(--color-white);
 }
 
 .category-chip-icon {
@@ -503,7 +583,7 @@ code {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   cursor: pointer;
-  transition: all var(--duration-fast);
+  transition: all var(--duration-faster);
 }
 
 .featured-nav button:hover {
@@ -538,7 +618,7 @@ code {
   position: relative;
   padding: calc(var(--header-height) + var(--space-12)) 0 var(--space-16);
   background: linear-gradient(135deg, var(--persona-color) 0%, var(--persona-secondary) 100%);
-  color: white;
+  color: var(--color-white);
 }
 
 .persona-detail-content {
@@ -552,19 +632,19 @@ code {
   width: 120px;
   height: 120px;
   border-radius: var(--radius-3xl);
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--color-white) 20%, transparent);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 3.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-xl);
 }
 
 .persona-detail-info h1 {
   font-size: var(--text-4xl);
   margin-bottom: var(--space-2);
-  color: white;
+  color: var(--color-white);
 }
 
 .persona-detail-tagline {
@@ -588,23 +668,23 @@ code {
 }
 
 .btn-add-team {
-  background: white;
+  background: var(--color-white);
   color: var(--persona-color, var(--accent-primary));
   font-weight: 700;
 }
 
 .btn-add-team:hover {
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--color-white) 90%, transparent);
 }
 
 .btn-preview-voice {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: color-mix(in srgb, var(--color-white) 20%, transparent);
+  color: var(--color-white);
   backdrop-filter: blur(10px);
 }
 
 .btn-preview-voice:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--color-white) 30%, transparent);
 }
 
 /* ========================================
@@ -617,8 +697,8 @@ code {
   gap: var(--space-4);
   padding: var(--space-4);
   background: var(--bg-elevated);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 .voice-play-btn {
@@ -626,13 +706,13 @@ code {
   height: 48px;
   border-radius: var(--radius-full);
   background: var(--accent-primary);
-  color: white;
+  color: var(--color-white);
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--duration-fast);
+  transition: all var(--duration-faster);
 }
 
 .voice-play-btn:hover {
@@ -644,7 +724,7 @@ code {
   flex: 1;
   height: 40px;
   background: var(--bg-secondary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -662,7 +742,7 @@ code {
   background: var(--bg-elevated);
   border-radius: var(--radius-2xl);
   padding: var(--space-6);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-lg);
 }
 
 .trait-radar-title {
@@ -753,7 +833,7 @@ code {
 
 .review-card {
   background: var(--bg-elevated);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   padding: var(--space-5);
   margin-bottom: var(--space-4);
   box-shadow: var(--shadow-sm);

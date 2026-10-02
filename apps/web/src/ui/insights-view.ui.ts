@@ -633,7 +633,7 @@ export class InsightsView {
         width: 100%;
         max-width: clamp(320px, 90vw, 440px);
         max-height: 85vh;
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-2xl, 1.5rem);
         box-shadow: var(--shadow-2xl);
         border: 1px solid var(--color-border-subtle);
@@ -1148,7 +1148,7 @@ export class InsightsView {
         background: linear-gradient(
           135deg,
           var(--persona-tint, rgba(74, 103, 65, 0.12)),
-          var(--color-background-secondary, rgba(44, 37, 32, 0.03))
+          var(--color-background-secondary)
         );
         display: flex;
         align-items: center;
@@ -1173,7 +1173,7 @@ export class InsightsView {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
+        color: var(--color-white);
         box-shadow: 
           0 4px 20px var(--persona-tint, rgba(74, 103, 65, 0.25)),
           inset 0 1px 0 rgba(255, 255, 255, 0.15);
@@ -1216,7 +1216,7 @@ export class InsightsView {
         align-items: flex-start;
         gap: var(--space-3, 12px);
         padding: var(--space-3, 12px);
-        background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 1rem);
         border: 1px solid var(--color-border-subtle);
         opacity: 0;
@@ -1253,22 +1253,22 @@ export class InsightsView {
       }
 
       .insights-empty__cap-icon--memory {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(74, 103, 65, 0.05));
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 15%, transparent), color-mix(in srgb, var(--color-ferni) 5%, transparent));
         color: var(--persona-ink);
       }
 
       .insights-empty__cap-icon--pattern {
-        background: linear-gradient(135deg, rgba(58, 107, 115, 0.15), rgba(58, 107, 115, 0.05));
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-peter) 15%, transparent), color-mix(in srgb, var(--color-peter) 5%, transparent));
         color: var(--persona-peter-ink);
       }
 
       .insights-empty__cap-icon--growth {
-        background: linear-gradient(135deg, rgba(166, 122, 106, 0.15), rgba(166, 122, 106, 0.05));
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-maya) 15%, transparent), color-mix(in srgb, var(--color-maya) 5%, transparent));
         color: var(--persona-maya-ink);
       }
 
       .insights-empty__cap-icon--concern {
-        background: linear-gradient(135deg, rgba(196, 133, 106, 0.15), rgba(196, 133, 106, 0.05));
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-jordan) 15%, transparent), color-mix(in srgb, var(--color-jordan) 5%, transparent));
         color: var(--persona-jordan-ink);
       }
 
@@ -1312,7 +1312,7 @@ export class InsightsView {
       .insights-empty__sample-dot {
         width: 6px;
         height: 6px;
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary, var(--color-ferni));
         border-radius: var(--radius-full);
         animation: insightsDotPulse 2s ease-in-out infinite;
       }
@@ -1329,10 +1329,10 @@ export class InsightsView {
         background: linear-gradient(
           135deg,
           var(--persona-tint, rgba(74, 103, 65, 0.08)),
-          var(--color-background-secondary, rgba(44, 37, 32, 0.03))
+          var(--color-background-secondary)
         );
         border-radius: var(--radius-xl, 1.25rem);
-        border: 1px solid var(--persona-tint, rgba(74, 103, 65, 0.15));
+        border: 1px solid var(--persona-tint, color-mix(in srgb, var(--color-ferni) 15%, transparent));
         position: relative;
         overflow: hidden;
       }
@@ -1392,7 +1392,7 @@ export class InsightsView {
       .insights-empty__invitation {
         text-align: center;
         padding: var(--space-4, 16px);
-        background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+        background: var(--color-background-secondary);
         border-radius: var(--radius-xl, 1.25rem);
         border: 1px solid var(--color-border-subtle);
       }
@@ -1457,23 +1457,23 @@ export class InsightsView {
       }
 
       [data-theme="midnight"] .insights-empty__capability {
-        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.03));
+        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .insights-empty__cap-icon--memory {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.25), rgba(74, 103, 65, 0.1));
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 25%, transparent), color-mix(in srgb, var(--color-ferni) 10%, transparent));
       }
 
       [data-theme="midnight"] .insights-empty__cap-icon--pattern {
-        background: linear-gradient(135deg, rgba(58, 107, 115, 0.25), rgba(58, 107, 115, 0.1));
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-peter) 25%, transparent), color-mix(in srgb, var(--color-peter) 10%, transparent));
       }
 
       [data-theme="midnight"] .insights-empty__cap-icon--growth {
-        background: linear-gradient(135deg, rgba(166, 122, 106, 0.25), rgba(166, 122, 106, 0.1));
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-maya) 25%, transparent), color-mix(in srgb, var(--color-maya) 10%, transparent));
       }
 
       [data-theme="midnight"] .insights-empty__cap-icon--concern {
-        background: linear-gradient(135deg, rgba(196, 133, 106, 0.25), rgba(196, 133, 106, 0.1));
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-jordan) 25%, transparent), color-mix(in srgb, var(--color-jordan) 10%, transparent));
       }
 
       [data-theme="midnight"] .insights-empty__sample-card {
@@ -1482,11 +1482,11 @@ export class InsightsView {
           rgba(74, 103, 65, 0.12),
           rgba(255, 255, 255, 0.02)
         );
-        border-color: rgba(74, 103, 65, 0.2);
+        border-color: color-mix(in srgb, var(--color-ferni) 20%, transparent);
       }
 
       [data-theme="midnight"] .insights-empty__invitation {
-        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.03));
+        background: var(--color-background-tertiary);
       }
 
       /* ========================================

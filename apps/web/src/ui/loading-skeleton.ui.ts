@@ -247,7 +247,7 @@ export class SkeletonUI {
     card.className = 'ferni-skeleton-card';
     card.style.cssText = `
       padding: var(--space-4, 16px);
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-lg, 12px);
       border: 1px solid var(--color-border, #d4cfc7);
     `;
@@ -337,7 +337,7 @@ export class SkeletonUI {
     
     const assistantBubble = document.createElement('div');
     assistantBubble.style.cssText = `
-      background: var(--color-background-secondary, #f5f1e8);
+      background: var(--color-background-secondary);
       border-radius: 16px 16px 16px 4px;
       padding: 12px;
       max-width: 70%;
@@ -353,7 +353,7 @@ export class SkeletonUI {
     
     const userBubble = document.createElement('div');
     userBubble.style.cssText = `
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: 16px 16px 4px 16px;
       padding: 12px;
       max-width: 60%;
@@ -391,7 +391,7 @@ export class SkeletonUI {
       const stat = document.createElement('div');
       stat.style.cssText = `
         padding: var(--space-4, 16px);
-        background: var(--color-background-elevated, #FFFDFB);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-lg, 12px);
         border: 1px solid var(--color-border, #d4cfc7);
         text-align: center;

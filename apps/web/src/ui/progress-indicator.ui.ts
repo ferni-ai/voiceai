@@ -387,7 +387,7 @@ function injectStyles(): void {
       bottom: var(--space-4, 16px);
       left: var(--space-4, 16px);
       z-index: var(--z-sticky, 6000);
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-xl, 16px);
       box-shadow: 
         0 4px 16px rgba(44, 37, 32, 0.1),
@@ -447,13 +447,13 @@ function injectStyles(): void {
     
     .progress-ring-bg {
       fill: none;
-      stroke: var(--color-background-tertiary, #E8E0D5);
+      stroke: var(--color-background-tertiary);
       stroke-width: 3.5;
     }
     
     .progress-ring-fill {
       fill: none;
-      stroke: var(--persona-primary, #4a6741);
+      stroke: var(--persona-primary, var(--color-ferni));
       stroke-width: 3.5;
       stroke-linecap: round;
       transition: stroke-dashoffset ${DURATION.CELEBRATION}ms ${EASING.EXPO_OUT};
@@ -482,14 +482,14 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 15px;
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       line-height: 1.2;
     }
     
     .progress-percent {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
     }
 
     .progress-narrative {
@@ -501,7 +501,7 @@ function injectStyles(): void {
     }
 
     .progress-expand-icon {
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       opacity: 0.5;
       transition: opacity ${DURATION.FAST}ms;
       flex-shrink: 0;
@@ -544,10 +544,10 @@ function injectStyles(): void {
       width: 28px;
       height: 28px;
       padding: 0;
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border: none;
       border-radius: var(--radius-full, 9999px);
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -556,8 +556,8 @@ function injectStyles(): void {
     }
     
     .progress-collapse-btn:hover {
-      background: var(--color-background-tertiary, #E8E0D5);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
     }
     
     .progress-collapse-btn svg {
@@ -598,13 +598,13 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-lg, 20px);
       font-weight: var(--font-weight-bold, 700);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       line-height: 1;
     }
     
     .progress-ring-label {
       font-size: 10px;
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       margin-top: 2px;
     }
     
@@ -627,13 +627,13 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-base, 16px);
       font-weight: var(--font-weight-bold, 700);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 4px);
     }
     
     .progress-stage-desc {
       font-size: var(--text-sm, 14px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       margin: 0;
     }
     
@@ -643,7 +643,7 @@ function injectStyles(): void {
       grid-template-columns: repeat(3, 1fr);
       gap: var(--space-2, 8px);
       padding: var(--space-3, 12px) var(--space-2, 8px);
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg, 12px);
       margin-bottom: var(--space-3, 12px);
     }
@@ -656,7 +656,7 @@ function injectStyles(): void {
     }
     
     .metric-icon {
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       margin-bottom: 2px;
     }
     
@@ -669,13 +669,13 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-base, 16px);
       font-weight: var(--font-weight-bold, 700);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       line-height: 1;
     }
     
     .metric-label {
       font-size: 10px;
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
       text-align: center;
       line-height: 1.3;
     }
@@ -684,7 +684,7 @@ function injectStyles(): void {
     .progress-next {
       text-align: center;
       padding: var(--space-3, 12px) var(--space-4, 16px);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       border-radius: var(--radius-lg, 12px);
     }
     
@@ -699,7 +699,7 @@ function injectStyles(): void {
     
     .progress-next-requirement {
       font-size: var(--text-xs, 12px);
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       margin: 0;
       line-height: 1.4;
     }
@@ -712,7 +712,7 @@ function injectStyles(): void {
     .progress-complete p {
       font-size: var(--text-sm, 14px);
       font-style: italic;
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       margin: 0;
     }
     
@@ -720,7 +720,7 @@ function injectStyles(): void {
        DARK THEME
        ======================================================================== */
     [data-theme="midnight"] .progress-indicator {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated);
       box-shadow: 
         0 4px 16px rgba(0, 0, 0, 0.2),
         0 0 0 1px rgba(255, 255, 255, 0.1);
@@ -730,45 +730,45 @@ function injectStyles(): void {
     [data-theme="midnight"] .progress-stage-title,
     [data-theme="midnight"] .progress-ring-value,
     [data-theme="midnight"] .metric-value {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
     
     [data-theme="midnight"] .progress-stage-desc,
     [data-theme="midnight"] .progress-next-requirement,
     [data-theme="midnight"] .progress-complete p {
-      color: var(--color-text-secondary, #f0ebe4);
+      color: var(--color-text-secondary);
     }
     
     [data-theme="midnight"] .progress-ring-bg {
-      stroke: var(--color-background-secondary, #60504a);
+      stroke: var(--color-background-secondary);
     }
     
     [data-theme="midnight"] .progress-metrics {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
     
     [data-theme="midnight"] .progress-collapse-btn {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary);
     }
     
     [data-theme="midnight"] .progress-collapse-btn:hover {
-      background: var(--color-background-tertiary, #504540);
+      background: var(--color-background-tertiary);
     }
     
     /* Fix persona-primary text colors for dark theme readability */
     /* Use !important to override base styles with persona-primary fallbacks */
     [data-theme="midnight"] .progress-eyebrow,
     [data-theme="midnight"] .progress-next-label {
-      color: var(--color-accent-text, #e8c870) !important;
+      color: var(--color-accent-text) !important;
     }
     
     [data-theme="midnight"] .progress-ring-icon,
     [data-theme="midnight"] .progress-ring-icon-large {
-      color: var(--color-accent-text, #e8c870) !important;
+      color: var(--color-accent-text) !important;
     }
     
     [data-theme="midnight"] .progress-ring-fill {
-      stroke: var(--color-accent-text, #e8c870) !important;
+      stroke: var(--color-accent-text) !important;
     }
     
     [data-theme="midnight"] .progress-percent,

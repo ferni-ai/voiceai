@@ -211,18 +211,18 @@ export async function render(): Promise<string> {
       }
 
       .health-status--healthy .health-indicator {
-        background: var(--color-semantic-success, #4a6741);
-        box-shadow: 0 0 8px var(--color-semantic-success, #4a6741);
+        background: var(--color-semantic-success);
+        box-shadow: 0 0 8px var(--color-semantic-success);
       }
 
       .health-status--degraded .health-indicator {
-        background: var(--color-semantic-warning, #d4a84b);
-        box-shadow: 0 0 8px var(--color-semantic-warning, #d4a84b);
+        background: var(--color-semantic-warning);
+        box-shadow: 0 0 8px var(--color-semantic-warning);
       }
 
       .health-status--down .health-indicator {
-        background: var(--color-semantic-error, #c44536);
-        box-shadow: 0 0 8px var(--color-semantic-error, #c44536);
+        background: var(--color-semantic-error);
+        box-shadow: 0 0 8px var(--color-semantic-error);
       }
 
       @keyframes dashboard-pulse {
@@ -285,9 +285,9 @@ export async function render(): Promise<string> {
         border-radius: 50%;
       }
 
-      .service-dot--healthy { background: var(--color-semantic-success, #4a6741); }
-      .service-dot--degraded { background: var(--color-semantic-warning, #d4a84b); }
-      .service-dot--down { background: var(--color-semantic-error, #c44536); }
+      .service-dot--healthy { background: var(--color-semantic-success); }
+      .service-dot--degraded { background: var(--color-semantic-warning); }
+      .service-dot--down { background: var(--color-semantic-error); }
 
       .service-name {
         flex: 1;
@@ -323,7 +323,7 @@ export async function render(): Promise<string> {
         align-items: center;
         justify-content: center;
         margin-bottom: var(--space-2, 0.5rem);
-        color: var(--admin-accent, #4a6741);
+        color: var(--admin-accent, var(--color-ferni));
       }
 
       .stat-icon svg {
@@ -357,7 +357,7 @@ export async function render(): Promise<string> {
 
       .stat-change--up { color: var(--color-semantic-success-text); }
       .stat-change--down { color: var(--color-semantic-error-text); }
-      .stat-change--neutral { color: var(--color-text-secondary, #a89a8c); }
+      .stat-change--neutral { color: var(--color-text-secondary); }
 
       .stat-change svg {
         width: 12px;
@@ -392,7 +392,7 @@ export async function render(): Promise<string> {
       }
 
       .quick-action:focus-visible {
-        outline: 2px solid var(--admin-accent, #4a6741);
+        outline: 2px solid var(--admin-accent, var(--color-ferni));
         outline-offset: 2px;
       }
 
@@ -409,7 +409,7 @@ export async function render(): Promise<string> {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--admin-accent, #4a6741);
+        color: var(--admin-accent, var(--color-ferni));
       }
 
       .quick-action-icon svg {
@@ -427,8 +427,8 @@ export async function render(): Promise<string> {
         font-size: 0.75rem;
         font-weight: 600;
         padding: 0.125rem 0.5rem;
-        background: var(--admin-accent, #4a6741);
-        color: white;
+        background: var(--admin-accent, var(--color-ferni));
+        color: var(--color-white);
         border-radius: var(--radius-full, 9999px);
         margin-left: auto;
       }
@@ -452,7 +452,7 @@ export async function render(): Promise<string> {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--admin-accent, #4a6741);
+        color: var(--admin-accent, var(--color-ferni));
       }
 
       .activity-icon svg {

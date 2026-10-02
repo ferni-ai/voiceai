@@ -31,11 +31,11 @@ const SPLASH_ID = 'ferni-splash-screen';
 // which may render before the design system is fully loaded.
 // The values should match tokens.css: --color-background-primary, etc.
 const COLORS = {
-  background: 'var(--color-background-primary, #F5F1E8)',
+  background: 'var(--color-background-primary)',
   sage: 'var(--persona-primary, #4a6741)',
   sageLight: 'var(--persona-secondary, #5a8060)',
-  ink: 'var(--color-text-primary, #2c2520)',
-  white: 'var(--color-background-elevated, #ffffff)',
+  ink: 'var(--color-text-primary)',
+  white: 'var(--color-background-elevated)',
 };
 
 // ============================================================================

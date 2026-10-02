@@ -325,7 +325,7 @@ export class CreativeYouDashboard {
     const body = this.container?.querySelector('.creative-dashboard-body');
     if (!body) return;
     body.innerHTML = `
-      <div class="creative-dashboard-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
+      <div class="creative-dashboard-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted);">
         Couldn't load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
       </div>
     `;
@@ -1511,7 +1511,7 @@ export class CreativeYouDashboard {
         color: var(--persona-text);
         margin: 0 0 var(--space-2) 0;
         padding: var(--space-1-5) var(--space-2);
-        background: var(--persona-primary-subtle, rgba(74, 103, 65, 0.08));
+        background: var(--persona-primary-subtle, color-mix(in srgb, var(--color-ferni) 8%, transparent));
         border-radius: var(--radius-sm);
         font-weight: var(--font-weight-medium);
       }

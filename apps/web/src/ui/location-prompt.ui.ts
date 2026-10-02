@@ -233,10 +233,10 @@ function addStyles(): void {
       position: relative;
       max-width: 400px;
       width: 100%;
-      background: var(--color-background-elevated, #fffdfb);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 1.5rem);
       padding: var(--space-8, 2rem);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25));
+      box-shadow: var(--shadow-2xl, 0 25px 50px -12px color-mix(in srgb, var(--color-black) 25%, transparent));
       text-align: center;
       transform: scale(0.95) translateY(10px);
       transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
@@ -256,7 +256,7 @@ function addStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 1.5rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-3, 0.75rem);
     }
 
@@ -264,14 +264,14 @@ function addStyles(): void {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 1rem;
       line-height: 1.6;
-      color: var(--color-text-secondary, #5a524c);
+      color: var(--color-text-secondary);
       margin: 0 0 var(--space-4, 1rem);
     }
 
     .ferni-location-prompt-note {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 0.875rem;
-      color: var(--color-text-muted, #8a7f75);
+      color: var(--color-text-muted);
       margin: 0 0 var(--space-6, 1.5rem);
     }
 
@@ -299,12 +299,12 @@ function addStyles(): void {
     }
 
     .ferni-location-prompt-btn--secondary {
-      background: var(--color-background-tertiary, #f5f1e8);
-      color: var(--color-text-secondary, #5a524c);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-secondary);
     }
 
     .ferni-location-prompt-btn--secondary:hover {
-      background: var(--color-background-secondary, #eae5dc);
+      background: var(--color-background-secondary);
     }
 
     .ferni-location-prompt-btn--primary {
@@ -313,7 +313,7 @@ function addStyles(): void {
     }
 
     .ferni-location-prompt-btn--primary:hover {
-      background: var(--color-accent-hover, #2d4a35);
+      background: var(--color-accent-hover);
       transform: translateY(-1px);
     }
 
@@ -332,28 +332,28 @@ function addStyles(): void {
 
     /* Dark theme */
     [data-theme="dark"] .ferni-location-prompt-card {
-      background: var(--color-background-elevated, #2c2520);
+      background: var(--color-background-elevated);
     }
 
     [data-theme="dark"] .ferni-location-prompt-title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="dark"] .ferni-location-prompt-message {
-      color: var(--color-text-secondary, #e0dcd6);
+      color: var(--color-text-secondary);
     }
 
     [data-theme="dark"] .ferni-location-prompt-note {
-      color: var(--color-text-muted, #a09890);
+      color: var(--color-text-muted);
     }
 
     [data-theme="dark"] .ferni-location-prompt-btn--secondary {
-      background: var(--color-background-tertiary, #3d3530);
-      color: var(--color-text-secondary, #e0dcd6);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-secondary);
     }
 
     [data-theme="dark"] .ferni-location-prompt-btn--secondary:hover {
-      background: var(--color-background-secondary, #4d4540);
+      background: var(--color-background-secondary);
     }
   `;
   document.head.appendChild(style);

@@ -224,7 +224,7 @@ Use CSS animations triggered by Intersection Observer:
 
 Source files from brand library:
 - `brand/characters/*/expressions.html` - All persona expressions
-- `brand/master-tokens.css` - Colors, animations, easing
+- `brand/ferni-design-tokens.css` - Colors, animations, easing
 - `brand/motion/motion.html` - Animation references
 
 ### 2. Animation Export

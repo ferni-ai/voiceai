@@ -17,35 +17,35 @@ permalink: /help/
 .help-hero {
   text-align: center;
   padding: 60px 24px 80px;
-  background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary, #f5f1e8) 100%);
+  background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
 }
 
 .help-hero__badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--color-ferni, #4a6741);
-  color: white;
+  background: var(--color-ferni);
+  color: var(--color-white);
   padding: 8px 16px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 24px;
 }
 
 .help-hero__title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(36px, 6vw, 56px);
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.1;
   margin-bottom: 16px;
-  color: var(--color-text-primary, #2c2520);
+  color: var(--color-text-primary);
 }
 
 .help-hero__subtitle {
   font-size: clamp(18px, 2.5vw, 20px);
-  color: var(--color-text-secondary, #5c544a);
+  color: var(--color-text-secondary);
   max-width: 500px;
   margin: 0 auto;
 }
@@ -53,7 +53,7 @@ permalink: /help/
 /* Quick Actions */
 .help-quick {
   padding: 60px 24px;
-  background: white;
+  background: var(--color-white);
 }
 
 .help-quick__grid {
@@ -65,28 +65,28 @@ permalink: /help/
 }
 
 .help-quick__card {
-  background: var(--color-bg-primary, #faf8f5);
-  border: 1px solid rgba(44, 37, 32, 0.08);
-  border-radius: 20px;
+  background: var(--color-bg-primary);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  border-radius: var(--radius-xl);
   padding: 32px;
   text-align: center;
   text-decoration: none;
   color: inherit;
-  transition: all 0.3s ease;
+  transition: all var(--duration-slow) ease;
 }
 
 .help-quick__card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(44, 37, 32, 0.12);
-  border-color: var(--color-ferni, #4a6741);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--color-ferni);
 }
 
 .help-quick__icon {
   width: 56px;
   height: 56px;
   margin: 0 auto 20px;
-  background: linear-gradient(135deg, rgba(74, 103, 65, 0.15) 0%, rgba(74, 103, 65, 0.05) 100%);
-  border-radius: 16px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 15%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 5%, transparent) 100%);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -95,27 +95,27 @@ permalink: /help/
 .help-quick__icon svg {
   width: 28px;
   height: 28px;
-  color: var(--color-ferni, #4a6741);
+  color: var(--color-ferni-text);
 }
 
 .help-quick__title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-display);
   font-size: 18px;
   font-weight: 700;
   margin-bottom: 8px;
-  color: var(--color-text-primary, #2c2520);
+  color: var(--color-text-primary);
 }
 
 .help-quick__desc {
   font-size: 14px;
-  color: var(--color-text-secondary, #5c544a);
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
 /* FAQ Section */
 .help-faq {
   padding: 80px 24px;
-  background: var(--color-bg-secondary, #f5f1e8);
+  background: var(--color-bg-secondary);
 }
 
 .help-faq__container {
@@ -129,33 +129,33 @@ permalink: /help/
 }
 
 .help-faq__title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(28px, 4vw, 36px);
   font-weight: 800;
-  color: var(--color-text-primary, #2c2520);
+  color: var(--color-text-primary);
   margin-bottom: 12px;
 }
 
 .help-faq__subtitle {
   font-size: 16px;
-  color: var(--color-text-secondary, #5c544a);
+  color: var(--color-text-secondary);
 }
 
 .help-faq__item {
-  background: white;
-  border-radius: 16px;
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
   margin-bottom: 12px;
   overflow: hidden;
-  border: 1px solid rgba(44, 37, 32, 0.06);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
 }
 
 .help-faq__item summary {
   padding: 20px 24px;
   cursor: pointer;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 16px;
-  color: var(--color-text-primary, #2c2520);
+  color: var(--color-text-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -169,7 +169,7 @@ permalink: /help/
 .help-faq__item summary::after {
   content: '+';
   font-size: 20px;
-  color: var(--color-ferni, #4a6741);
+  color: var(--color-ferni-text);
   font-weight: 400;
 }
 
@@ -180,14 +180,14 @@ permalink: /help/
 .help-faq__answer {
   padding: 0 24px 20px;
   font-size: 15px;
-  color: var(--color-text-secondary, #5c544a);
+  color: var(--color-text-secondary);
   line-height: 1.7;
 }
 
 /* Gift Forward Banner */
 .help-gift {
   padding: 40px 24px;
-  background: linear-gradient(135deg, rgba(74, 103, 65, 0.08) 0%, rgba(74, 103, 65, 0.03) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 8%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 3%, transparent) 100%);
 }
 
 .help-gift__container {
@@ -200,28 +200,28 @@ permalink: /help/
   align-items: center;
   gap: 24px;
   padding: 32px;
-  background: white;
-  border-radius: 20px;
-  border: 1px solid rgba(74, 103, 65, 0.15);
-  box-shadow: 0 4px 20px rgba(74, 103, 65, 0.08);
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in srgb, var(--color-ferni) 15%, transparent);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--color-ferni) 8%, transparent);
 }
 
 .help-gift__icon {
   flex-shrink: 0;
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, var(--color-ferni, #4a6741) 0%, #3d5a35 100%);
-  border-radius: 16px;
+  background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-dark) 100%);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 30%, transparent);
 }
 
 .help-gift__icon svg {
   width: 28px;
   height: 28px;
-  color: white;
+  color: var(--color-white);
 }
 
 .help-gift__text {
@@ -229,16 +229,16 @@ permalink: /help/
 }
 
 .help-gift__title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-display);
   font-size: 18px;
   font-weight: 700;
-  color: var(--color-text-primary, #2c2520);
+  color: var(--color-text-primary);
   margin-bottom: 6px;
 }
 
 .help-gift__desc {
   font-size: 14px;
-  color: var(--color-text-secondary, #5c544a);
+  color: var(--color-text-secondary);
   line-height: 1.5;
   margin: 0;
 }
@@ -249,25 +249,25 @@ permalink: /help/
   align-items: center;
   gap: 8px;
   padding: 14px 24px;
-  background: var(--color-ferni, #4a6741);
-  color: white;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--color-ferni);
+  color: var(--color-white);
+  font-family: var(--font-display);
   font-size: 15px;
   font-weight: 600;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   text-decoration: none;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(74, 103, 65, 0.25);
+  transition: all var(--duration-slow) ease;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 25%, transparent);
 }
 
 .help-gift__cta:hover {
-  background: #3d5a35;
+  background: var(--color-ferni-dark);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(74, 103, 65, 0.35);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--color-ferni) 35%, transparent);
 }
 
 .help-gift__cta svg {
-  transition: transform 0.3s ease;
+  transition: transform var(--duration-slow) ease;
 }
 
 .help-gift__cta:hover svg {
@@ -290,7 +290,7 @@ permalink: /help/
 /* Contact Section */
 .help-contact {
   padding: 80px 24px;
-  background: white;
+  background: var(--color-white);
 }
 
 .help-contact__container {
@@ -300,16 +300,16 @@ permalink: /help/
 }
 
 .help-contact__title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(28px, 4vw, 36px);
   font-weight: 800;
-  color: var(--color-text-primary, #2c2520);
+  color: var(--color-text-primary);
   margin-bottom: 12px;
 }
 
 .help-contact__subtitle {
   font-size: 16px;
-  color: var(--color-text-secondary, #5c544a);
+  color: var(--color-text-secondary);
   margin-bottom: 40px;
 }
 
@@ -327,38 +327,38 @@ permalink: /help/
   align-items: center;
   gap: 12px;
   padding: 24px;
-  background: var(--color-bg-primary, #faf8f5);
-  border-radius: 16px;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
   text-decoration: none;
   color: inherit;
-  transition: all 0.3s ease;
+  transition: all var(--duration-slow) ease;
 }
 
 .help-contact__option:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(44, 37, 32, 0.1);
+  box-shadow: var(--shadow-xl);
 }
 
 .help-contact__option svg {
   width: 32px;
   height: 32px;
-  color: var(--color-ferni, #4a6741);
+  color: var(--color-ferni-text);
 }
 
 .help-contact__option-label {
   font-weight: 600;
-  color: var(--color-text-primary, #2c2520);
+  color: var(--color-text-primary);
 }
 
 .help-contact__option-value {
   font-size: 14px;
-  color: var(--color-ferni, #4a6741);
+  color: var(--color-ferni-text);
 }
 
 /* Accessibility Section */
 .help-accessibility {
   padding: 60px 24px;
-  background: var(--color-bg-secondary, #f5f1e8);
+  background: var(--color-bg-secondary);
 }
 
 .help-accessibility__container {
@@ -368,16 +368,16 @@ permalink: /help/
 }
 
 .help-accessibility__title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-display);
   font-size: 24px;
   font-weight: 700;
-  color: var(--color-text-primary, #2c2520);
+  color: var(--color-text-primary);
   margin-bottom: 16px;
 }
 
 .help-accessibility__text {
   font-size: 15px;
-  color: var(--color-text-secondary, #5c544a);
+  color: var(--color-text-secondary);
   line-height: 1.7;
   margin-bottom: 24px;
 }
@@ -386,7 +386,7 @@ permalink: /help/
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--color-ferni, #4a6741);
+  color: var(--color-ferni-text);
   font-weight: 600;
   text-decoration: none;
 }

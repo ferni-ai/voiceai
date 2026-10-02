@@ -451,10 +451,10 @@ const styles = `
 
 .connected-life-modal {
   position: relative;
-  background: var(--color-bg-elevated, #FFFDFB);
-  border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  background: var(--color-bg-elevated, var(--color-white));
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xl, 20px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
   width: calc(100% - var(--space-8, 32px));
   max-width: 560px;
   max-height: calc(100vh - var(--space-16, 64px));
@@ -475,7 +475,7 @@ const styles = `
   align-items: flex-start;
   justify-content: space-between;
   padding: var(--space-6, 24px);
-  border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .connected-life-eyebrow {
@@ -492,13 +492,13 @@ const styles = `
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .connected-life-subtitle {
   font-size: 0.9rem;
-  color: var(--color-text-muted, #9a8f85);
+  color: var(--color-text-muted);
   margin: var(--space-1, 4px) 0 0;
 }
 
@@ -511,14 +511,14 @@ const styles = `
   background: transparent;
   border: none;
   border-radius: var(--radius-full, 9999px);
-  color: var(--color-text-muted, #9a8f85);
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
 }
 
 .connected-life-close:hover {
   background: var(--color-background-subtle, rgba(44, 37, 32, 0.04));
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
 }
 
 .connected-life-close svg {
@@ -531,7 +531,7 @@ const styles = `
   display: flex;
   gap: var(--space-2, 8px);
   padding: var(--space-4, 16px) var(--space-6, 24px);
-  border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .connected-life-tab {
@@ -544,7 +544,7 @@ const styles = `
   background: var(--color-background-subtle, rgba(44, 37, 32, 0.02));
   border: 1px solid transparent;
   border-radius: var(--radius-lg, 12px);
-  color: var(--color-text-muted, #9a8f85);
+  color: var(--color-text-muted);
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
@@ -553,7 +553,7 @@ const styles = `
 
 .connected-life-tab:hover {
   background: var(--color-background-subtle, rgba(44, 37, 32, 0.04));
-  color: var(--color-text-secondary, #5c544a);
+  color: var(--color-text-secondary);
 }
 
 .connected-life-tab.active {
@@ -605,9 +605,9 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-background-elevated, #fffdfb);
+  background: var(--color-background-elevated);
   border-radius: var(--radius-lg, 12px);
-  color: var(--color-text-secondary, #5c544a);
+  color: var(--color-text-secondary);
 }
 
 .connected-life-integration-icon svg {
@@ -623,13 +623,13 @@ const styles = `
 .connected-life-integration-info h4 {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   margin: 0 0 var(--space-1, 4px);
 }
 
 .connected-life-integration-info p {
   font-size: 0.8rem;
-  color: var(--color-text-muted, #9a8f85);
+  color: var(--color-text-muted);
   margin: 0;
   line-height: 1.4;
 }
@@ -651,7 +651,7 @@ const styles = `
 }
 
 .connected-life-connect-btn:hover {
-  background: var(--color-accent-hover, #2d4835);
+  background: var(--color-accent-hover);
   transform: translateY(-1px);
 }
 
@@ -678,20 +678,20 @@ const styles = `
 
 /* Dark theme */
 [data-theme="midnight"] .connected-life-backdrop {
-  background: rgba(10, 10, 12, 0.7);
+  background: color-mix(in srgb, var(--color-black) 70%, transparent);
 }
 
 [data-theme="midnight"] .connected-life-modal {
-  background: var(--color-background-elevated, #1a1a1e);
+  background: var(--color-background-elevated);
 }
 
 [data-theme="midnight"] .connected-life-header,
 [data-theme="midnight"] .connected-life-tabs {
-  border-bottom-color: rgba(255, 255, 255, 0.06);
+  border-bottom-color: color-mix(in srgb, var(--color-white) 6%, transparent);
 }
 
 [data-theme="midnight"] .connected-life-integration-icon {
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--color-white) 5%, transparent);
 }
 `;
 

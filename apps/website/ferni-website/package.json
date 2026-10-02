@@ -12,7 +12,7 @@
     "minify": "node scripts/minify.js",
     "clean": "rm -rf _site",
     "preview": "npm run build && cd _site && python3 -m http.server 8080",
-    "sync:tokens": "node ../../../design-system/sync-promo-tokens.js && cp css/design-tokens.css src/css/_tokens.css",
+    "sync:tokens": "node ../../../design-system/sync-promo-tokens.js",
     "deploy": "npm run build:prod && firebase deploy --only hosting:ferni-landing",
     "deploy:prod": "npm run build:prod && firebase deploy --only hosting:ferni-prod",
     "deploy:all": "npm run build:prod && firebase deploy --only hosting",

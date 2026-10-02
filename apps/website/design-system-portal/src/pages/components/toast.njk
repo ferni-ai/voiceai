@@ -344,7 +344,7 @@ toast.error("Lost connection. Retry?");</code></pre>
 }
 
 .toast-success .toast-icon {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .toast-info {
@@ -352,7 +352,7 @@ toast.error("Lost connection. Retry?");</code></pre>
 }
 
 .toast-info .toast-icon {
-  color: var(--info);
+  color: var(--info-text);
 }
 
 .toast-warning {
@@ -360,7 +360,7 @@ toast.error("Lost connection. Retry?");</code></pre>
 }
 
 .toast-warning .toast-icon {
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .toast-error {
@@ -368,7 +368,7 @@ toast.error("Lost connection. Retry?");</code></pre>
 }
 
 .toast-error .toast-icon {
-  color: var(--error);
+  color: var(--error-text);
 }
 
 /* Toast Container */
@@ -478,11 +478,11 @@ toast.error("Lost connection. Retry?");</code></pre>
 }
 
 .philosophy-card.do h4 {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .philosophy-card.dont h4 {
-  color: var(--error);
+  color: var(--error-text);
 }
 
 .philosophy-card ul {
@@ -554,7 +554,7 @@ toast.error("Lost connection. Retry?");</code></pre>
 }
 
 .toast-success .toast-icon {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .toast-info {
@@ -562,7 +562,7 @@ toast.error("Lost connection. Retry?");</code></pre>
 }
 
 .toast-info .toast-icon {
-  color: var(--info);
+  color: var(--info-text);
 }
 
 .toast-warning {
@@ -570,7 +570,7 @@ toast.error("Lost connection. Retry?");</code></pre>
 }
 
 .toast-warning .toast-icon {
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .toast-error {
@@ -578,7 +578,7 @@ toast.error("Lost connection. Retry?");</code></pre>
 }
 
 .toast-error .toast-icon {
-  color: var(--error);
+  color: var(--error-text);
 }
 
 .code-block {
@@ -633,13 +633,13 @@ toast.error("Lost connection. Retry?");</code></pre>
 }
 
 .examples-table .wrong {
-  color: var(--error);
+  color: var(--error-text);
   text-decoration: line-through;
   opacity: 0.8;
 }
 
 .examples-table .right {
-  color: var(--success);
+  color: var(--success-text);
   font-weight: var(--font-weight-medium);
 }
 
@@ -764,23 +764,23 @@ toast.error("Lost connection. Retry?");</code></pre>
 }
 
 .type-badge.success {
-  background: rgba(var(--success-rgb), 0.15);
-  color: var(--success);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success-text);
 }
 
 .type-badge.info {
-  background: rgba(var(--info-rgb), 0.15);
-  color: var(--info);
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+  color: var(--info-text);
 }
 
 .type-badge.warning {
-  background: rgba(var(--warning-rgb), 0.15);
-  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning-text);
 }
 
 .type-badge.error {
-  background: rgba(var(--error-rgb), 0.15);
-  color: var(--error);
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error-text);
 }
 
 .a11y-guidelines {

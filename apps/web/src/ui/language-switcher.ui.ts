@@ -77,7 +77,7 @@ function injectStyles(): void {
       justify-content: center;
       width: 44px;
       height: 44px;
-      border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.15));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-full, 50%);
       background: var(--color-bg-elevated, rgba(30, 30, 30, 0.9));
       backdrop-filter: blur(var(--blur-glass, 12px));
@@ -86,13 +86,13 @@ function injectStyles(): void {
       font-size: 1.25rem;
       line-height: 1;
       cursor: pointer;
-      box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15));
+      box-shadow: var(--shadow-md, 0 4px 12px color-mix(in srgb, var(--color-black) 15%, transparent));
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
     .lang-switcher__trigger:hover {
       transform: scale(1.08);
-      box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.2));
+      box-shadow: var(--shadow-lg, 0 8px 24px color-mix(in srgb, var(--color-black) 20%, transparent));
     }
 
     .lang-switcher__trigger:focus-visible {
@@ -108,8 +108,8 @@ function injectStyles(): void {
       max-height: 340px;
       overflow-y: auto;
       padding: var(--space-2, 0.5rem) 0;
-      background: var(--color-bg-elevated, #fffdfb);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 16px);
       box-shadow: var(--shadow-xl);
       list-style: none;
@@ -141,7 +141,7 @@ function injectStyles(): void {
       padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
       border: none;
       background: none;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       font-size: 0.875rem;
       text-align: start;
       cursor: pointer;
@@ -149,11 +149,11 @@ function injectStyles(): void {
     }
 
     .lang-switcher__option:hover {
-      background: var(--color-background-secondary, rgba(44, 37, 32, 0.04));
+      background: var(--color-background-secondary);
     }
 
     .lang-switcher__option:focus-visible {
-      background: var(--color-background-secondary, rgba(44, 37, 32, 0.04));
+      background: var(--color-background-secondary);
       outline: none;
       box-shadow: inset 0 0 0 2px var(--color-accent, #3D5A45);
     }
@@ -193,7 +193,7 @@ function injectStyles(): void {
     }
 
     .lang-switcher__popover::-webkit-scrollbar-thumb {
-      background: var(--color-border-subtle, rgba(44, 37, 32, 0.15));
+      background: var(--color-border-subtle);
       border-radius: 3px;
     }
 

@@ -9,7 +9,7 @@ permalink: /use-cases/career/
   <div class="container container-narrow">
     <a href="/use-cases/" class="use-case-hero__back">← All Use Cases</a>
     <span class="eyebrow">Use Case</span>
-    <h1 class="headline-xl">Career<br><span class="text-gradient" style="--gradient-start: var(--color-peter); --gradient-end: var(--color-peter-dark, #2d5359)">Decisions</span></h1>
+    <h1 class="headline-xl">Career<br><span class="text-gradient" style="--gradient-start: var(--color-peter); --gradient-end: var(--color-peter-dark, var(--color-peter-dark))">Decisions</span></h1>
     <p class="body-lg">Should you take that job? Ask for a raise? Change fields entirely? Think through big decisions with a coach who remembers your goals.</p>
   </div>
 </section>
@@ -160,7 +160,7 @@ permalink: /use-cases/career/
   /* Use Case Capabilities - Design Token Compliant (Peter/Career) */
   .use-case-capabilities {
     padding: 60px 24px;
-    background: linear-gradient(135deg, rgba(58, 107, 115, 0.06), var(--color-accent-subtle));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-peter) 6%, transparent), var(--color-accent-subtle));
   }
   
   .use-case-capabilities h2 {
@@ -177,7 +177,7 @@ permalink: /use-cases/career/
   }
   
   .use-case-capabilities a {
-    color: var(--color-peter);
+    color: var(--color-peter-text);
     font-weight: 600;
   }
   
@@ -188,7 +188,7 @@ permalink: /use-cases/career/
   
   .capability-item {
     background: var(--color-elevated);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     padding: 20px 24px;
     border: 1px solid var(--color-border-subtle);
   }
@@ -197,7 +197,7 @@ permalink: /use-cases/career/
     display: block;
     font-size: 16px;
     font-weight: 600;
-    color: var(--color-peter);
+    color: var(--color-peter-text);
     margin-bottom: 4px;
   }
   

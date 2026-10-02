@@ -234,7 +234,7 @@ class LinkedInSettingsUI {
         align-items: center;
         justify-content: center;
         background: #0077B5;
-        color: white;
+        color: var(--color-white);
         border-radius: var(--radius-lg);
       }
 
@@ -381,12 +381,12 @@ class LinkedInSettingsUI {
 
       .linkedin-settings__status-badge--connected {
         background: var(--color-success);
-        color: white;
+        color: var(--color-white);
       }
 
       .linkedin-settings__status-badge--disconnected {
         background: var(--color-text-muted);
-        color: white;
+        color: var(--color-white);
       }
 
       .linkedin-settings__status-badge svg {
@@ -531,7 +531,7 @@ class LinkedInSettingsUI {
 
       .linkedin-settings__btn--primary {
         background: #0077B5;
-        color: white;
+        color: var(--color-white);
       }
 
       .linkedin-settings__btn--primary:hover {
@@ -556,7 +556,7 @@ class LinkedInSettingsUI {
 
       .linkedin-settings__btn--danger:hover {
         background: var(--color-error);
-        color: white;
+        color: var(--color-white);
       }
 
       .linkedin-settings__btn:disabled {

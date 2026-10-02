@@ -361,7 +361,7 @@ function injectStyles(): void {
 
     /* Focus state for keyboard users */
     #coachAvatar:focus-visible {
-      outline: 2px solid var(--color-accent-primary, #4a6741);
+      outline: 2px solid var(--color-accent-primary);
       outline-offset: 4px;
     }
 

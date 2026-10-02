@@ -519,7 +519,7 @@ function injectStyles(): void {
     }
     
     .awakens-cta:hover {
-      background: #3d5a35;
+      background: var(--color-ferni-secondary);
       transform: translateY(-1px);
     }
     

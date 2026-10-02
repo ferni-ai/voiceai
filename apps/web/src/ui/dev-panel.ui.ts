@@ -1367,7 +1367,7 @@ function createPanel(): HTMLElement {
             <button aria-label="New Team Member" class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="team" title="Meet new team member">
               ${ICONS.handshake} New Team Member
             </button>
-            <button aria-label="Winter Solstice" class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="winter-solstice" title="Winter Solstice - Full cinematic experience" style="background: var(--gradient-surface, linear-gradient(135deg, #0d1b2a, #2c3e50)); border: 1px solid var(--color-ferni, #4a6741);">
+            <button aria-label="Winter Solstice" class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="winter-solstice" title="Winter Solstice - Full cinematic experience" style="background: var(--gradient-surface, linear-gradient(135deg, #0d1b2a, #2c3e50)); border: 1px solid var(--color-ferni);">
               ${ICONS.sunset} Winter Solstice
             </button>
           </div>
@@ -5134,7 +5134,7 @@ function createRipple(x: number, y: number, count = 1, delay = 0): void {
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        border: 2px solid var(--persona-primary, #4a6741);
+        border: 2px solid var(--persona-primary, var(--color-ferni));
         background: transparent;
         transform: translate(-50%, -50%);
         pointer-events: none;
@@ -6255,7 +6255,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--dev-btn-gap);
       padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
-      background: linear-gradient(135deg, #3d5a35 0%, #4a6741 100%);
+      background: linear-gradient(135deg, var(--color-ferni-secondary) 0%, var(--color-ferni) 100%);
       color: #e8f5e3;
       font-family: 'Plus Jakarta Sans', var(--font-body, system-ui), sans-serif;
       font-size: 0.75rem;
@@ -6281,7 +6281,7 @@ function injectStyles(): void {
 
     .dev-indicator:hover {
       transform: scale(1.08) translateY(-2px);
-      background: linear-gradient(135deg, #4a6741 0%, #5a8050 100%);
+      background: linear-gradient(135deg, var(--color-ferni) 0%, #5a8050 100%);
       box-shadow: 
         0 8px 20px rgba(74, 103, 65, 0.5),
         0 0 40px rgba(124, 181, 113, 0.4),
@@ -6336,7 +6336,7 @@ function injectStyles(): void {
       align-items: center;
       justify-content: space-between;
       padding: var(--space-4, 16px);
-      background: linear-gradient(135deg, #3d5a35 0%, #4a6741 100%);
+      background: linear-gradient(135deg, var(--color-ferni-secondary) 0%, var(--color-ferni) 100%);
       border-bottom: 1px solid rgba(124, 181, 113, 0.3);
     }
     
@@ -6362,9 +6362,9 @@ function injectStyles(): void {
       width: var(--dev-btn-icon-only);
       height: var(--dev-btn-icon-only);
       border: none;
-      background: rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
       border-radius: var(--radius-md, 8px);
-      color: rgba(255, 255, 255, 0.7);
+      color: color-mix(in srgb, var(--color-white) 70%, transparent);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -6373,8 +6373,8 @@ function injectStyles(): void {
     }
     
     .dev-panel__close:hover {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
+      background: color-mix(in srgb, var(--color-white) 20%, transparent);
+      color: var(--color-white);
       transform: rotate(90deg);
     }
     
@@ -6432,7 +6432,7 @@ function injectStyles(): void {
     }
     
     .dev-info {
-      background: rgba(255, 255, 255, 0.03);
+      background: color-mix(in srgb, var(--color-white) 3%, transparent);
       border-radius: var(--radius-md, 8px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
     }
@@ -6440,7 +6440,7 @@ function injectStyles(): void {
     .dev-info__label {
       display: block;
       font-size: 0.65rem;
-      color: rgba(255, 255, 255, 0.4);
+      color: color-mix(in srgb, var(--color-white) 40%, transparent);
       margin-bottom: 2px;
     }
     
@@ -6461,10 +6461,10 @@ function injectStyles(): void {
     .dev-tier-btn {
       flex: 1;
       padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
       border-radius: var(--radius-md, 8px);
-      color: rgba(255, 255, 255, 0.7);
+      color: color-mix(in srgb, var(--color-white) 70%, transparent);
       font-size: 0.75rem;
       font-weight: 500;
       cursor: pointer;
@@ -6472,8 +6472,8 @@ function injectStyles(): void {
     }
     
     .dev-tier-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
+      border-color: color-mix(in srgb, var(--color-white) 20%, transparent);
     }
     
     .dev-tier-btn--active {
@@ -6491,10 +6491,10 @@ function injectStyles(): void {
     
     .dev-stage-btn {
       padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
       border-radius: var(--radius-md, 8px);
-      color: rgba(255, 255, 255, 0.7);
+      color: color-mix(in srgb, var(--color-white) 70%, transparent);
       font-size: 0.75rem;
       font-weight: 500;
       cursor: pointer;
@@ -6502,7 +6502,7 @@ function injectStyles(): void {
     }
     
     .dev-stage-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
     }
     
     .dev-stage-btn--active {
@@ -6523,9 +6523,9 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--dev-btn-gap);
       padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
-      background: rgba(255, 255, 255, 0.03);
+      background: color-mix(in srgb, var(--color-white) 3%, transparent);
       border-radius: var(--radius-md, 8px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid color-mix(in srgb, var(--color-white) 5%, transparent);
     }
     
     .dev-team-member--unlocked {
@@ -6541,13 +6541,13 @@ function injectStyles(): void {
       display: block;
       font-size: 0.85rem;
       font-weight: 600;
-      color: white;
+      color: var(--color-white);
     }
     
     .dev-team-member__role {
       display: block;
       font-size: 0.7rem;
-      color: rgba(255, 255, 255, 0.4);
+      color: color-mix(in srgb, var(--color-white) 40%, transparent);
     }
     
     .dev-team-member__status {
@@ -6569,16 +6569,16 @@ function injectStyles(): void {
     }
     
     .dev-team-member:not(.dev-team-member--unlocked) .dev-team-member__status {
-      color: rgba(255, 255, 255, 0.3);
+      color: color-mix(in srgb, var(--color-white) 30%, transparent);
     }
     
     .dev-team-member__celebrate {
       width: var(--dev-btn-icon-only-sm);
       height: var(--dev-btn-icon-only-sm);
       border: none;
-      background: rgba(255, 255, 255, 0.05);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
       border-radius: var(--radius-md, 8px);
-      color: rgba(255, 255, 255, 0.4);
+      color: color-mix(in srgb, var(--color-white) 40%, transparent);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -6609,18 +6609,18 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--dev-btn-gap);
       padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
       border-radius: var(--radius-md, 8px);
-      color: rgba(255, 255, 255, 0.8);
+      color: color-mix(in srgb, var(--color-white) 80%, transparent);
       font-size: 0.75rem;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
     .dev-action-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
+      border-color: color-mix(in srgb, var(--color-white) 20%, transparent);
     }
     
     .dev-action-btn svg {
@@ -6682,7 +6682,7 @@ function injectStyles(): void {
       position: absolute;
       cursor: pointer;
       inset: 0;
-      background: rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
       border-radius: 11px;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
@@ -6694,7 +6694,7 @@ function injectStyles(): void {
       width: 16px;
       left: 3px;
       bottom: 3px;
-      background: rgba(255, 255, 255, 0.6);
+      background: color-mix(in srgb, var(--color-white) 60%, transparent);
       border-radius: 50%;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
@@ -6705,11 +6705,11 @@ function injectStyles(): void {
     
     .dev-toggle input:checked + .dev-toggle__slider::before {
       transform: translateX(18px);
-      background: white;
+      background: var(--color-white);
     }
     
     .dev-toggle__label {
-      color: rgba(255, 255, 255, 0.7);
+      color: color-mix(in srgb, var(--color-white) 70%, transparent);
       font-size: 0.8rem;
     }
     
@@ -6722,16 +6722,16 @@ function injectStyles(): void {
     }
     
     .dev-input__label {
-      color: rgba(255, 255, 255, 0.6);
+      color: color-mix(in srgb, var(--color-white) 60%, transparent);
       font-size: 0.75rem;
     }
     
     .dev-input {
       padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, var(--color-black) 20%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
       border-radius: var(--radius-md, 8px);
-      color: rgba(255, 255, 255, 0.9);
+      color: color-mix(in srgb, var(--color-white) 90%, transparent);
       font-size: 0.8rem;
       font-family: var(--font-mono, monospace);
     }
@@ -6742,7 +6742,7 @@ function injectStyles(): void {
     }
     
     .dev-input::placeholder {
-      color: rgba(255, 255, 255, 0.3);
+      color: color-mix(in srgb, var(--color-white) 30%, transparent);
     }
     
     /* Status Row */
@@ -6751,13 +6751,13 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px);
-      background: rgba(0, 0, 0, 0.15);
+      background: color-mix(in srgb, var(--color-black) 15%, transparent);
       border-radius: var(--radius-sm, 4px);
       margin-top: var(--space-2, 8px);
     }
     
     .dev-status__label {
-      color: rgba(255, 255, 255, 0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
       font-size: 0.75rem;
     }
     
@@ -6807,7 +6807,7 @@ function injectStyles(): void {
     
     /* Soul & Delight Buttons */
     .dev-section--soul {
-      background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(196, 162, 101, 0.1));
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 10%, transparent), rgba(196, 162, 101, 0.1));
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-3, 12px);
       margin: 0 calc(var(--space-4, 16px) * -1);
@@ -6825,8 +6825,8 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--dev-btn-gap);
       padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
-      background: rgba(74, 103, 65, 0.25);
-      border: 1px solid rgba(74, 103, 65, 0.4);
+      background: color-mix(in srgb, var(--color-ferni) 25%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-ferni) 40%, transparent);
       border-radius: var(--radius-md, 8px);
       color: #90c090;
       font-size: 0.75rem;
@@ -6842,10 +6842,10 @@ function injectStyles(): void {
     }
     
     .dev-soul-btn:hover {
-      background: rgba(74, 103, 65, 0.4);
-      border-color: #4a6741;
+      background: color-mix(in srgb, var(--color-ferni) 40%, transparent);
+      border-color: var(--color-ferni);
       transform: scale(1.02);
-      box-shadow: 0 0 12px rgba(74, 103, 65, 0.3);
+      box-shadow: 0 0 12px color-mix(in srgb, var(--color-ferni) 30%, transparent);
     }
     
     .dev-soul-btn:active {
@@ -6853,15 +6853,15 @@ function injectStyles(): void {
     }
     
     .dev-soul-btn--primary {
-      background: linear-gradient(135deg, rgba(74, 103, 65, 0.4), rgba(90, 128, 96, 0.4));
-      border-color: #4a6741;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 40%, transparent), rgba(90, 128, 96, 0.4));
+      border-color: var(--color-ferni);
       color: #b0e0b0;
       font-weight: 600;
     }
     
     .dev-soul-btn--primary:hover {
-      background: linear-gradient(135deg, rgba(74, 103, 65, 0.6), rgba(90, 128, 96, 0.6));
-      box-shadow: 0 0 20px rgba(74, 103, 65, 0.5);
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 60%, transparent), rgba(90, 128, 96, 0.6));
+      box-shadow: 0 0 20px color-mix(in srgb, var(--color-ferni) 50%, transparent);
     }
     
     .dev-soul-ideas {
@@ -6872,10 +6872,10 @@ function injectStyles(): void {
     
     .dev-soul-ideas span {
       padding: 4px 8px;
-      background: rgba(255, 255, 255, 0.05);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
       border-radius: var(--radius-sm, 4px);
       font-size: 0.65rem;
-      color: rgba(255, 255, 255, 0.4);
+      color: color-mix(in srgb, var(--color-white) 40%, transparent);
       font-style: italic;
     }
     
@@ -6950,8 +6950,8 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--dev-btn-gap);
       padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
-      background: rgba(74, 103, 65, 0.2);
-      border: 1px solid rgba(74, 103, 65, 0.3);
+      background: color-mix(in srgb, var(--color-ferni) 20%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-ferni) 30%, transparent);
       border-radius: var(--radius-md, 8px);
       color: var(--dev-success-sage);
       font-size: 0.75rem;
@@ -6967,21 +6967,21 @@ function injectStyles(): void {
     }
     
     .dev-handoff-btn:hover {
-      background: rgba(74, 103, 65, 0.3);
-      border-color: #4a6741;
+      background: color-mix(in srgb, var(--color-ferni) 30%, transparent);
+      border-color: var(--color-ferni);
     }
     
     /* Section Description */
     .dev-section__desc {
       font-size: 0.7rem;
-      color: rgba(255, 255, 255, 0.4);
+      color: color-mix(in srgb, var(--color-white) 40%, transparent);
       margin: -8px 0 12px;
     }
     
     /* FTUE (First-Time User Experience) */
     .dev-ftue-info {
-      background: rgba(74, 103, 65, 0.15);
-      border: 1px solid rgba(74, 103, 65, 0.3);
+      background: color-mix(in srgb, var(--color-ferni) 15%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-ferni) 30%, transparent);
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-3, 12px);
       margin-bottom: var(--space-3, 12px);
@@ -6998,13 +6998,13 @@ function injectStyles(): void {
     .dev-ftue-count__number {
       font-size: 2rem;
       font-weight: 700;
-      color: #4a6741;
+      color: var(--color-ferni);
       font-family: 'Plus Jakarta Sans', var(--font-body, system-ui), sans-serif;
     }
     
     .dev-ftue-count__label {
       font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
     }
     
     .dev-ftue-badges {
@@ -7030,19 +7030,19 @@ function injectStyles(): void {
     }
     
     .dev-ftue-badge--unlocked {
-      background: rgba(74, 103, 65, 0.3);
+      background: color-mix(in srgb, var(--color-ferni) 30%, transparent);
       color: #90d080;
     }
     
     .dev-ftue-badge--locked {
       background: rgba(255, 100, 100, 0.2);
-      color: rgba(255, 255, 255, 0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
     }
     
     .dev-ftue-legend {
       margin-top: var(--space-3, 12px);
       padding: var(--space-3, 12px);
-      background: rgba(0, 0, 0, 0.2);
+      background: color-mix(in srgb, var(--color-black) 20%, transparent);
       border-radius: var(--radius-md, 8px);
       font-size: 0.7rem;
     }
@@ -7050,13 +7050,13 @@ function injectStyles(): void {
     .dev-ftue-legend h4 {
       margin: 0 0 var(--space-2, 8px);
       font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.6);
+      color: color-mix(in srgb, var(--color-white) 60%, transparent);
     }
     
     .dev-ftue-legend ul {
       margin: 0;
       padding-left: var(--space-4, 16px);
-      color: rgba(255, 255, 255, 0.4);
+      color: color-mix(in srgb, var(--color-white) 40%, transparent);
     }
     
     .dev-ftue-legend li {
@@ -7064,7 +7064,7 @@ function injectStyles(): void {
     }
     
     .dev-ftue-legend strong {
-      color: rgba(255, 255, 255, 0.7);
+      color: color-mix(in srgb, var(--color-white) 70%, transparent);
     }
     
     .dev-action-btn--warning {
@@ -7172,13 +7172,13 @@ function injectStyles(): void {
     
     /* Wrap-up Buttons (warm golden) */
     .dev-expression-btn--wrap-up {
-      background: rgba(184, 149, 106, 0.15);
-      border-color: rgba(184, 149, 106, 0.25);
-      color: #b8956a;
+      background: color-mix(in srgb, var(--color-nayan) 15%, transparent);
+      border-color: color-mix(in srgb, var(--color-nayan) 25%, transparent);
+      color: var(--color-nayan);
     }
     .dev-expression-btn--wrap-up:hover {
-      background: rgba(184, 149, 106, 0.25);
-      border-color: rgba(184, 149, 106, 0.4);
+      background: color-mix(in srgb, var(--color-nayan) 25%, transparent);
+      border-color: color-mix(in srgb, var(--color-nayan) 40%, transparent);
     }
     .dev-expression-btn--wrap-up.dev-expression-btn--reset {
       background: rgba(128, 128, 128, 0.15);
@@ -7229,10 +7229,10 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--dev-btn-gap);
       padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
-      background: rgba(74, 103, 65, 0.1);
-      border: 1px solid rgba(74, 103, 65, 0.2);
+      background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-ferni) 20%, transparent);
       border-radius: var(--radius-md, 8px);
-      color: var(--color-text-secondary, #a0a0a0);
+      color: var(--color-text-secondary);
       text-decoration: none;
       font-size: 0.75rem;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -7245,9 +7245,9 @@ function injectStyles(): void {
     }
     
     .dev-dashboard-link:hover {
-      background: rgba(74, 103, 65, 0.2);
-      border-color: rgba(74, 103, 65, 0.4);
-      color: var(--color-text-primary, #e0e0e0);
+      background: color-mix(in srgb, var(--color-ferni) 20%, transparent);
+      border-color: color-mix(in srgb, var(--color-ferni) 40%, transparent);
+      color: var(--color-text-primary);
       transform: translateY(-1px);
     }
     
@@ -7301,7 +7301,7 @@ function injectStyles(): void {
       gap: var(--dev-btn-gap);
       font-size: 0.7rem;
       font-weight: 600;
-      color: rgba(255, 255, 255, 0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: var(--dev-btn-padding-y);
@@ -7362,8 +7362,8 @@ function injectStyles(): void {
     }
     
     .dev-music-status__item {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
       border-radius: var(--radius-sm, 6px);
       padding: 8px 10px;
       display: flex;
@@ -7376,8 +7376,8 @@ function injectStyles(): void {
     }
     
     .dev-music-status__item--success {
-      border-color: rgba(74, 103, 65, 0.5);
-      background: rgba(74, 103, 65, 0.15);
+      border-color: color-mix(in srgb, var(--color-ferni) 50%, transparent);
+      background: color-mix(in srgb, var(--color-ferni) 15%, transparent);
     }
     
     .dev-music-status__item--warning {
@@ -7392,19 +7392,19 @@ function injectStyles(): void {
     
     .dev-music-status__label {
       font-size: 0.65rem;
-      color: rgba(255, 255, 255, 0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     
     .dev-music-status__value {
       font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.9);
+      color: color-mix(in srgb, var(--color-white) 90%, transparent);
       font-weight: 500;
     }
     
     .dev-music-status__loading {
-      color: rgba(255, 255, 255, 0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
       font-size: 0.75rem;
       text-align: center;
       padding: 12px;
@@ -7422,8 +7422,8 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--dev-btn-gap);
       padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
-      background: rgba(74, 103, 65, 0.2);
-      border: 1px solid rgba(74, 103, 65, 0.3);
+      background: color-mix(in srgb, var(--color-ferni) 20%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-ferni) 30%, transparent);
       border-radius: var(--radius-md, 8px);
       color: #7cb571;
       font-size: 0.75rem;
@@ -7439,8 +7439,8 @@ function injectStyles(): void {
     }
     
     .dev-emotion-btn:hover {
-      background: rgba(74, 103, 65, 0.35);
-      border-color: rgba(74, 103, 65, 0.5);
+      background: color-mix(in srgb, var(--color-ferni) 35%, transparent);
+      border-color: color-mix(in srgb, var(--color-ferni) 50%, transparent);
       transform: scale(1.02);
     }
     
@@ -7453,8 +7453,8 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--dev-btn-gap);
       padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
-      background: rgba(196, 133, 106, 0.2);
-      border: 1px solid rgba(196, 133, 106, 0.3);
+      background: color-mix(in srgb, var(--color-jordan) 20%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-jordan) 30%, transparent);
       border-radius: var(--radius-md, 8px);
       color: #e0a090;
       font-size: 0.75rem;
@@ -7470,8 +7470,8 @@ function injectStyles(): void {
     }
     
     .dev-reaction-btn:hover {
-      background: rgba(196, 133, 106, 0.35);
-      border-color: rgba(196, 133, 106, 0.5);
+      background: color-mix(in srgb, var(--color-jordan) 35%, transparent);
+      border-color: color-mix(in srgb, var(--color-jordan) 50%, transparent);
       transform: scale(1.02);
     }
     
@@ -7511,7 +7511,7 @@ function injectStyles(): void {
     }
     
     .waveform-shape {
-      background: rgba(255, 255, 255, 0.03);
+      background: color-mix(in srgb, var(--color-white) 3%, transparent);
       border-radius: var(--radius-md, 8px);
       padding: var(--space-2, 8px);
       text-align: center;
@@ -7520,7 +7520,7 @@ function injectStyles(): void {
     .waveform-shape span {
       display: block;
       font-size: 0.65rem;
-      color: rgba(255, 255, 255, 0.5);
+      color: color-mix(in srgb, var(--color-white) 50%, transparent);
       margin-bottom: 6px;
     }
     
@@ -7534,7 +7534,7 @@ function injectStyles(): void {
     
     .waveform-bars span {
       width: 4px;
-      background: linear-gradient(to top, var(--persona-glow, rgba(74, 103, 65, 0.6)), var(--persona-primary, #4a6741));
+      background: linear-gradient(to top, var(--persona-glow, color-mix(in srgb, var(--color-ferni) 60%, transparent)), var(--persona-primary, var(--color-ferni)));
       border-radius: 2px;
       margin: 0;
     }
@@ -7544,11 +7544,11 @@ function injectStyles(): void {
     }
     
     .waveform-bars--sad span {
-      background: linear-gradient(to top, rgba(58, 107, 115, 0.4), #3a6b73);
+      background: linear-gradient(to top, color-mix(in srgb, var(--color-peter) 40%, transparent), var(--color-peter));
     }
     
     .waveform-bars--excited span {
-      background: linear-gradient(to top, rgba(196, 133, 106, 0.6), #c4856a);
+      background: linear-gradient(to top, color-mix(in srgb, var(--color-jordan) 60%, transparent), var(--color-jordan));
       animation: waveformBounce 0.4s ease-in-out infinite alternate;
     }
     
@@ -7575,12 +7575,12 @@ function injectStyles(): void {
     }
     
     .dev-panel__content::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
       border-radius: 3px;
     }
     
     .dev-panel__content::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: color-mix(in srgb, var(--color-white) 20%, transparent);
     }
     
     /* State Inspector */
@@ -7590,7 +7590,7 @@ function injectStyles(): void {
       gap: var(--space-2, 8px);
       margin-bottom: var(--space-3, 12px);
       padding: var(--space-2, 8px);
-      background: rgba(0, 0, 0, 0.2);
+      background: color-mix(in srgb, var(--color-black) 20%, transparent);
       border-radius: var(--radius-md, 8px);
     }
     
@@ -7621,7 +7621,7 @@ function injectStyles(): void {
       gap: var(--space-2, 8px);
       margin-bottom: var(--space-3, 12px);
       padding: var(--space-2, 8px);
-      background: rgba(0, 0, 0, 0.2);
+      background: color-mix(in srgb, var(--color-black) 20%, transparent);
       border-radius: var(--radius-md, 8px);
     }
     
@@ -7647,7 +7647,7 @@ function injectStyles(): void {
     .dev-spinner-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: color-mix(in srgb, var(--color-black) 50%, transparent);
       display: flex;
       align-items: center;
       justify-content: center;

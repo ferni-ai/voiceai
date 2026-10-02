@@ -6,10 +6,11 @@
   <title>Peter John - Expression Gallery</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Design System: Single source of truth -->
-  <link rel="stylesheet" href="../../master-tokens.css">
+  <link rel="stylesheet" href="../../ferni-design-tokens.css">
+  <link rel="stylesheet" href="../../brand-base.css">
   <link rel="stylesheet" href="../../brand-components.css">
   <style>
-    /* Peter-specific overrides - base tokens from master-tokens.css */
+    /* Peter-specific overrides - base tokens from ferni-design-tokens.css */
     :root {
       /* Peter's Colors - Teal/Research */
       --persona-start: var(--color-peter-light);
@@ -101,7 +102,7 @@
       background: var(--glow-teal);
       filter: blur(30px);
       opacity: 0.6;
-      transition: all 0.32s var(--ease-spring);
+      transition: all 0.32s var(--ease-ease-out-back);
     }
 
     .main-avatar { width: 200px; height: 200px; position: relative; }
@@ -136,7 +137,7 @@
     }
 
     .avatar-body.anticipating {
-      animation: anticipation 0.32s var(--ease-spring) forwards;
+      animation: anticipation 0.32s var(--ease-ease-out-back) forwards;
     }
 
     .eyes-group {
@@ -154,7 +155,7 @@
       pointer-events: none;
     }
 
-    .data-particle.active { animation: dataSpark 0.48s var(--ease-spring) forwards; }
+    .data-particle.active { animation: dataSpark 0.48s var(--ease-ease-out-back) forwards; }
     .data-particle:nth-child(2) { animation-delay: 0.06s; }
     .data-particle:nth-child(3) { animation-delay: 0.12s; }
     .data-particle:nth-child(4) { animation-delay: 0.18s; }
@@ -167,7 +168,7 @@
       border-radius: 50%;
       border: 2px solid transparent;
       opacity: 0;
-      transition: all 0.32s var(--ease-spring);
+      transition: all 0.32s var(--ease-ease-out-back);
     }
 
     .presence-ring.active {
@@ -238,7 +239,7 @@
       background: rgba(61, 136, 136, 0.05);
       border-radius: 12px;
       cursor: pointer;
-      transition: all 0.24s var(--ease-spring);
+      transition: all 0.24s var(--ease-ease-out-back);
       border: 2px solid transparent;
     }
 
@@ -292,7 +293,7 @@
       font-weight: 500;
       color: var(--text-primary);
       cursor: pointer;
-      transition: all 0.16s var(--ease-spring);
+      transition: all 0.16s var(--ease-ease-out-back);
       text-align: left;
     }
 
@@ -326,7 +327,7 @@
       border-radius: 12px;
       text-align: center;
       cursor: pointer;
-      transition: all 0.24s var(--ease-spring);
+      transition: all 0.24s var(--ease-ease-out-back);
       border: 2px solid transparent;
     }
 
@@ -428,7 +429,7 @@
       font-weight: 500;
       color: var(--text-primary);
       cursor: pointer;
-      transition: all 0.2s var(--ease-spring);
+      transition: all 0.2s var(--ease-ease-out-back);
     }
 
     .expression-btn:hover { border-color: var(--persona-start); transform: translateY(-2px); }

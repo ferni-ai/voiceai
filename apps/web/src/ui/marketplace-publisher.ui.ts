@@ -366,7 +366,7 @@ function renderPortal(): void {
 
   if (state.loadError) {
     content.innerHTML = `
-      <div class="publisher-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
+      <div class="publisher-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted);">
         Couldn't load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
       </div>
     `;
@@ -852,8 +852,8 @@ function injectStyles(): void {
       width: 100%;
       max-width: min(900px, 100%);
       margin: 0 auto;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -863,7 +863,7 @@ function injectStyles(): void {
       .publisher-panel {
         margin: var(--space-8, 32px) auto;
         border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
         max-height: calc(100vh - 64px);
       }
     }
@@ -1079,7 +1079,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-1, 4px);
       padding: var(--space-1, 4px) var(--space-2, 8px);
-      background: rgba(0, 0, 0, 0.05);
+      background: color-mix(in srgb, var(--color-black) 5%, transparent);
       border-radius: var(--radius-full);
       font-size: 0.75rem;
       font-weight: 500;
@@ -1163,7 +1163,7 @@ function injectStyles(): void {
 
     .publisher-button--primary {
       background: var(--persona-primary);
-      color: white;
+      color: var(--color-white);
       border: none;
     }
 
@@ -1431,11 +1431,11 @@ function injectStyles(): void {
     /* Dark theme */
     @media (prefers-color-scheme: dark) {
       .publisher-panel {
-        background: var(--color-background-elevated, #3a3330);
+        background: var(--color-background-elevated);
       }
 
       .publisher-tabs {
-        background: var(--color-background-secondary, #4a4540);
+        background: var(--color-background-secondary);
       }
 
       .publisher-title,
@@ -1443,12 +1443,12 @@ function injectStyles(): void {
       .analytics-title,
       .stat-value,
       .analytics-card-value {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       .publisher-subtitle,
       .item-meta {
-        color: var(--color-text-secondary, #e8e2da);
+        color: var(--color-text-secondary);
       }
     }
 

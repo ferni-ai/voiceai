@@ -258,7 +258,7 @@ export async function render(): Promise<string> {
 
       .listening-stat-icon {
         margin-bottom: var(--space-2, 0.5rem);
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
       }
 
       .listening-stat-icon--warning {
@@ -281,7 +281,7 @@ export async function render(): Promise<string> {
 
       .listening-stat-label {
         font-size: 0.875rem;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
         margin-top: var(--space-1, 0.25rem);
       }
 
@@ -302,7 +302,7 @@ export async function render(): Promise<string> {
         padding: var(--space-4, 1rem);
         background: var(--color-background-subtle, #f5f5f5);
         border-radius: var(--radius-md, 0.5rem);
-        border-left: 3px solid var(--persona-primary, #4a6741);
+        border-left: 3px solid var(--persona-primary, var(--color-ferni));
       }
 
       .detection-card--soothing {
@@ -334,7 +334,7 @@ export async function render(): Promise<string> {
 
       .detection-card-desc {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
         margin-top: var(--space-2, 0.5rem);
       }
 
@@ -362,12 +362,12 @@ export async function render(): Promise<string> {
       .live-session-id {
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.75rem;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
       }
 
       .live-session-duration {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
       }
 
       .live-session-metrics {
@@ -383,7 +383,7 @@ export async function render(): Promise<string> {
       .live-metric-label {
         font-size: 0.625rem;
         text-transform: uppercase;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
         letter-spacing: 0.05em;
       }
 
@@ -494,19 +494,19 @@ export async function render(): Promise<string> {
 
       .feature-desc {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
       }
 
       .no-sessions {
         text-align: center;
         padding: var(--space-8, 2rem);
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
       }
 
       /* Avatar Soul Response Section */
       .listening-soul-response {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(154, 123, 90, 0.05));
-        border: 1px solid rgba(74, 103, 65, 0.2);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 10%, transparent), color-mix(in srgb, var(--color-jack) 5%, transparent));
+        border: 1px solid color-mix(in srgb, var(--color-ferni) 20%, transparent);
       }
 
       .listening-soul-response .admin-section-title {
@@ -516,8 +516,8 @@ export async function render(): Promise<string> {
       }
 
       .badge--new {
-        background: var(--persona-primary, #4a6741);
-        color: white;
+        background: var(--persona-primary, var(--color-ferni));
+        color: var(--color-white);
         padding: 0.125rem 0.5rem;
         border-radius: var(--radius-full, 9999px);
         font-size: 0.625rem;
@@ -527,7 +527,7 @@ export async function render(): Promise<string> {
       }
 
       .section-desc {
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
         font-size: 0.875rem;
         margin-bottom: var(--space-4, 1rem);
       }
@@ -547,9 +547,9 @@ export async function render(): Promise<string> {
 
       .soul-response-item {
         padding: var(--space-3, 0.75rem);
-        background: rgba(0, 0, 0, 0.2);
+        background: color-mix(in srgb, var(--color-black) 20%, transparent);
         border-radius: var(--radius-md, 0.5rem);
-        border-left: 3px solid var(--persona-primary, #4a6741);
+        border-left: 3px solid var(--persona-primary, var(--color-ferni));
       }
 
       .soul-response-header {
@@ -563,7 +563,7 @@ export async function render(): Promise<string> {
       .soul-response-trigger {
         font-weight: 600;
         font-size: 0.8rem;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
       }
 
       .soul-response-arrow {
@@ -578,7 +578,7 @@ export async function render(): Promise<string> {
 
       .soul-response-desc {
         font-size: 0.75rem;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
         margin-bottom: var(--space-2, 0.5rem);
       }
 
@@ -593,7 +593,7 @@ export async function render(): Promise<string> {
         display: flex;
         gap: var(--space-4, 1rem);
         padding: var(--space-4, 1rem);
-        background: rgba(0, 0, 0, 0.15);
+        background: color-mix(in srgb, var(--color-black) 15%, transparent);
         border-radius: var(--radius-md, 0.5rem);
         margin-bottom: var(--space-3, 0.75rem);
       }
@@ -611,20 +611,20 @@ export async function render(): Promise<string> {
       }
 
       .soul-stat-value--pending {
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         opacity: 0.5;
       }
 
       .soul-stat-label {
         font-size: 0.7rem;
-        color: var(--color-text-muted, #888);
+        color: var(--color-text-muted);
       }
 
       .soul-stats-note {
         grid-column: 1 / -1;
         text-align: center;
         font-size: 0.75rem;
-        color: var(--color-text-muted, #756A5E);
+        color: var(--color-text-muted);
         margin-top: var(--space-2, 0.5rem);
         font-style: italic;
       }

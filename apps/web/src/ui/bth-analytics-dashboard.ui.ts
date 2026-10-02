@@ -445,7 +445,7 @@ function injectStyles(): void {
       position: fixed;
       inset: 0;
       z-index: var(--z-modal, 2100);
-      background: var(--backdrop-heavy, rgba(0, 0, 0, 0.7));
+      background: var(--backdrop-heavy, color-mix(in srgb, var(--color-black) 70%, transparent));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -464,26 +464,26 @@ function injectStyles(): void {
       max-height: 90vh;
       display: flex;
       flex-direction: column;
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.5));
-      border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      box-shadow: var(--shadow-2xl, 0 25px 50px -12px color-mix(in srgb, var(--color-black) 50%, transparent));
+      border: 1px solid var(--color-border-subtle);
     }
 
     .bth-dashboard__header {
       padding: var(--space-lg, 1.5rem);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
       position: relative;
     }
 
     .bth-dashboard__header h2 {
       margin: 0;
       font-size: 1.25rem;
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
     }
 
     .bth-dashboard__subtitle {
       margin: var(--space-xs, 0.25rem) 0 0;
       font-size: 0.875rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
     }
 
     .bth-dashboard__close {
@@ -493,14 +493,14 @@ function injectStyles(): void {
       background: none;
       border: none;
       font-size: 1.5rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
       cursor: pointer;
       padding: var(--space-xs, 0.25rem);
       line-height: 1;
     }
 
     .bth-dashboard__close:hover {
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
     }
 
     .bth-dashboard__content {
@@ -511,7 +511,7 @@ function injectStyles(): void {
 
     .bth-dashboard__footer {
       padding: var(--space-md, 1rem) var(--space-lg, 1.5rem);
-      border-top: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      border-top: 1px solid var(--color-border-subtle);
       display: flex;
       justify-content: flex-end;
       gap: var(--space-sm, 0.5rem);
@@ -528,22 +528,22 @@ function injectStyles(): void {
     }
 
     .bth-btn--primary {
-      background: var(--color-accent-primary, #3D5A45);
-      color: var(--color-text-primary, #fff);
+      background: var(--color-accent-primary);
+      color: var(--color-text-primary);
     }
 
     .bth-btn--primary:hover {
-      background: var(--color-accent-hover, #4a6a52);
+      background: var(--color-accent-hover);
     }
 
     .bth-btn--secondary {
       background: transparent;
-      border-color: var(--color-border-medium, rgba(255, 255, 255, 0.2));
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
+      border-color: var(--color-border-medium);
+      color: var(--color-text-secondary);
     }
 
     .bth-btn--secondary:hover {
-      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 5%, transparent));
     }
 
     .bth-loading {
@@ -552,14 +552,14 @@ function injectStyles(): void {
       align-items: center;
       justify-content: center;
       padding: var(--space-xl, 3rem);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
     }
 
     .bth-loading__spinner {
       width: 32px;
       height: 32px;
-      border: 3px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-      border-top-color: var(--color-accent-primary, #3D5A45);
+      border: 3px solid var(--color-border-subtle);
+      border-top-color: var(--color-accent-primary);
       border-radius: 50%;
       animation: bth-spin 1s linear infinite;
     }
@@ -576,14 +576,14 @@ function injectStyles(): void {
 
     .bth-error__detail {
       font-size: 0.875rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
       margin-bottom: var(--space-md, 1rem);
     }
 
     .bth-empty {
       text-align: center;
       padding: var(--space-xl, 3rem);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
     }
 
     .bth-empty__hint {
@@ -597,7 +597,7 @@ function injectStyles(): void {
 
     .bth-section__title {
       font-size: 1rem;
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
+      color: var(--color-text-secondary);
       margin: 0 0 var(--space-md, 1rem);
     }
 
@@ -608,27 +608,27 @@ function injectStyles(): void {
     }
 
     .bth-top-card {
-      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
+      background: var(--color-bg-tertiary, color-mix(in srgb, var(--color-white) 5%, transparent));
       border-radius: var(--radius-md, 8px);
       padding: var(--space-md, 1rem);
       display: flex;
       flex-direction: column;
       gap: var(--space-xs, 0.25rem);
-      border-left: 3px solid var(--color-accent-primary, #3D5A45);
+      border-left: 3px solid var(--color-accent-primary);
     }
 
-    .bth-top-card--rank-1 { border-left-color: var(--color-semantic-success, #22c55e); }
-    .bth-top-card--rank-2 { border-left-color: var(--color-accent-primary, #3D5A45); }
-    .bth-top-card--rank-3 { border-left-color: var(--color-text-muted, rgba(255, 255, 255, 0.5)); }
+    .bth-top-card--rank-1 { border-left-color: var(--color-semantic-success); }
+    .bth-top-card--rank-2 { border-left-color: var(--color-accent-primary); }
+    .bth-top-card--rank-3 { border-left-color: var(--color-text-muted); }
 
     .bth-top-card__rank {
       font-size: 0.75rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
     }
 
     .bth-top-card__name {
       font-size: 0.875rem;
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
       font-weight: 500;
     }
 
@@ -652,11 +652,11 @@ function injectStyles(): void {
     .bth-table td {
       padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
       text-align: left;
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.05));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .bth-table th {
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
       font-weight: 500;
       font-size: 0.75rem;
       text-transform: uppercase;
@@ -664,16 +664,16 @@ function injectStyles(): void {
     }
 
     .bth-table td {
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
+      color: var(--color-text-secondary);
     }
 
     .bth-capability-name {
-      color: var(--color-text-primary, #fff);
+      color: var(--color-text-primary);
       font-weight: 500;
     }
 
     .bth-positive { color: var(--color-semantic-success-text); }
-    .bth-neutral { color: var(--color-text-muted, rgba(255, 255, 255, 0.5)); }
+    .bth-neutral { color: var(--color-text-muted); }
     .bth-negative { color: var(--color-semantic-error-text); }
 
     .bth-effectiveness {
@@ -686,7 +686,7 @@ function injectStyles(): void {
       height: 6px;
       min-width: 60px;
       max-width: 100px;
-      background: var(--color-semantic-success, #22c55e);
+      background: var(--color-semantic-success);
       border-radius: 3px;
     }
 
@@ -712,14 +712,14 @@ function injectStyles(): void {
       width: 100%;
       max-width: 40px;
       height: var(--height, 50%);
-      background: linear-gradient(to top, var(--color-accent-primary, #3D5A45), var(--color-semantic-success, #22c55e));
+      background: linear-gradient(to top, var(--color-accent-primary), var(--color-semantic-success));
       border-radius: 4px 4px 0 0;
       transition: height var(--duration-normal, 200ms) ease;
     }
 
     .bth-trend__label {
       font-size: 0.625rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
       margin-top: var(--space-xs, 0.25rem);
     }
   `;

@@ -116,7 +116,7 @@ permalink: /preview/live-chat/
 
   .chat-widget__header {
     background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-secondary) 100%);
-    color: white;
+    color: var(--color-white);
     padding: var(--space-4) var(--space-5);
     display: flex;
     align-items: center;
@@ -127,7 +127,7 @@ permalink: /preview/live-chat/
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.2);
+    background: color-mix(in srgb, var(--color-white) 20%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -182,7 +182,7 @@ permalink: /preview/live-chat/
   .chat-message {
     display: flex;
     gap: var(--space-2);
-    animation: messageIn 0.3s ease;
+    animation: messageIn var(--duration-slow) ease;
   }
 
   @keyframes messageIn {
@@ -212,12 +212,12 @@ permalink: /preview/live-chat/
 
   .chat-message--ferni .chat-message__avatar {
     background: var(--color-ferni);
-    color: white;
+    color: var(--color-white);
   }
 
   .chat-message--user .chat-message__avatar {
     background: var(--color-text-muted);
-    color: white;
+    color: var(--color-white);
   }
 
   .chat-message__bubble {
@@ -237,7 +237,7 @@ permalink: /preview/live-chat/
 
   .chat-message--user .chat-message__bubble {
     background: var(--color-ferni);
-    color: white;
+    color: var(--color-white);
     border-bottom-right-radius: var(--radius-sm);
   }
 
@@ -254,7 +254,7 @@ permalink: /preview/live-chat/
     height: 6px;
     background: var(--color-text-muted);
     border-radius: 50%;
-    animation: typingBounce 1.4s ease-in-out infinite;
+    animation: typingBounce var(--duration-glacial) ease-in-out infinite;
   }
 
   .typing-dot:nth-child(2) { animation-delay: 0.2s; }
@@ -283,7 +283,7 @@ permalink: /preview/live-chat/
     font-size: var(--text-sm);
     color: var(--color-text-primary);
     outline: none;
-    transition: border-color 0.2s ease;
+    transition: border-color var(--duration-normal) ease;
   }
 
   .chat-widget__input input:focus {
@@ -299,13 +299,13 @@ permalink: /preview/live-chat/
     height: 44px;
     border-radius: 50%;
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) ease;
   }
 
   .chat-widget__input button:hover {
@@ -342,12 +342,12 @@ permalink: /preview/live-chat/
     color: var(--color-text-secondary);
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) ease;
   }
 
   .quick-prompt:hover {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     border-color: var(--color-accent);
   }
 
@@ -356,8 +356,8 @@ permalink: /preview/live-chat/
     position: fixed;
     top: var(--space-4);
     left: var(--space-4);
-    background: rgba(255, 193, 7, 0.9);
-    color: #333;
+    background: color-mix(in srgb, var(--color-google-yellow) 90%, transparent);
+    color: var(--color-gray-700);
     padding: var(--space-2) var(--space-4);
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
@@ -385,7 +385,7 @@ permalink: /preview/live-chat/
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) ease;
   }
 
   .preview-nav a:hover {
@@ -395,7 +395,7 @@ permalink: /preview/live-chat/
 
   .preview-nav a.active {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     border-color: var(--color-accent);
   }
 
@@ -417,11 +417,11 @@ permalink: /preview/live-chat/
     gap: var(--space-2);
     padding: var(--space-3) var(--space-6);
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     font-weight: 500;
     border-radius: var(--radius-full);
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: all var(--duration-slow) ease;
   }
 
   .chat-cta__btn:hover {

@@ -541,20 +541,20 @@ function injectStyles(): void {
       position: relative;
       padding: var(--space-lg, 26px) var(--space-lg, 26px) var(--space-md, 16px);
       text-align: center;
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .knowledge-quiz-title {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-lg, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #F5F1E8);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
     .knowledge-quiz-subtitle {
       font-size: var(--font-size-sm, 0.875rem);
-      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
+      color: var(--color-text-muted);
       margin: var(--space-xs, 4px) 0 0;
     }
 
@@ -570,19 +570,19 @@ function injectStyles(): void {
       background: transparent;
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
+      color: var(--color-text-muted);
       font-size: 24px;
       cursor: pointer;
       transition: color ${DURATION.FAST}ms, background ${DURATION.FAST}ms;
     }
 
     .knowledge-quiz-close:hover {
-      color: var(--color-text-primary, #F5F1E8);
+      color: var(--color-text-primary);
       background: var(--color-bg-elevated, rgba(245, 241, 232, 0.1));
     }
 
     .knowledge-quiz-close:focus-visible {
-      outline: 2px solid var(--color-accent-primary, #4a6741);
+      outline: 2px solid var(--color-accent-primary);
       outline-offset: 2px;
     }
 
@@ -599,7 +599,7 @@ function injectStyles(): void {
     .knowledge-quiz-progress-text {
       display: block;
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
+      color: var(--color-text-muted);
       margin-bottom: var(--space-xs, 4px);
     }
 
@@ -612,7 +612,7 @@ function injectStyles(): void {
 
     .knowledge-quiz-progress-fill {
       height: 100%;
-      background: var(--color-accent-primary, #4a6741);
+      background: var(--color-accent-primary);
       border-radius: 2px;
       transition: width ${DURATION.SLOW}ms ${EASING.EXPO_OUT};
     }
@@ -626,7 +626,7 @@ function injectStyles(): void {
       background: var(--color-bg-elevated, rgba(245, 241, 232, 0.08));
       border-radius: var(--radius-full, 999px);
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-secondary, rgba(245, 241, 232, 0.8));
+      color: var(--color-text-secondary);
       margin-bottom: var(--space-md, 16px);
     }
 
@@ -646,7 +646,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-md, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #F5F1E8);
+      color: var(--color-text-primary);
       line-height: 1.5;
       margin: 0 0 var(--space-lg, 26px);
     }
@@ -662,9 +662,9 @@ function injectStyles(): void {
       width: 100%;
       padding: var(--space-md, 16px);
       background: var(--color-bg-elevated, rgba(245, 241, 232, 0.08));
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-md, 8px);
-      color: var(--color-text-primary, #F5F1E8);
+      color: var(--color-text-primary);
       font-size: var(--font-size-sm, 0.875rem);
       text-align: left;
       cursor: pointer;
@@ -680,7 +680,7 @@ function injectStyles(): void {
     }
 
     .knowledge-quiz-option:focus-visible {
-      outline: 2px solid var(--color-accent-primary, #4a6741);
+      outline: 2px solid var(--color-accent-primary);
       outline-offset: 2px;
     }
 
@@ -690,18 +690,18 @@ function injectStyles(): void {
 
     .knowledge-quiz-option--selected {
       background: var(--color-bg-tertiary, rgba(245, 241, 232, 0.12));
-      border-color: var(--color-text-muted, rgba(245, 241, 232, 0.3));
+      border-color: var(--color-text-muted);
     }
 
     .knowledge-quiz-option--correct {
-      background: rgba(74, 103, 65, 0.2);
-      border-color: var(--color-accent-primary, #4a6741);
+      background: color-mix(in srgb, var(--color-ferni) 20%, transparent);
+      border-color: var(--color-accent-primary);
     }
 
     /* Hint */
     .knowledge-quiz-hint {
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
+      color: var(--color-text-muted);
       font-style: italic;
       margin-top: var(--space-md, 16px);
       text-align: center;
@@ -743,7 +743,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
       font-size: var(--font-size-lg, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #F5F1E8);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
@@ -764,12 +764,12 @@ function injectStyles(): void {
 
     .knowledge-quiz-score-label {
       font-size: var(--font-size-sm, 0.875rem);
-      color: var(--color-text-muted, rgba(245, 241, 232, 0.6));
+      color: var(--color-text-muted);
     }
 
     .knowledge-quiz-warm-message {
       font-size: var(--font-size-sm, 0.875rem);
-      color: var(--color-text-secondary, rgba(245, 241, 232, 0.8));
+      color: var(--color-text-secondary);
       line-height: 1.5;
       margin: 0 0 var(--space-lg, 26px);
       padding: 0 var(--space-md, 16px);
@@ -777,7 +777,7 @@ function injectStyles(): void {
 
     .knowledge-quiz-done-btn {
       padding: var(--space-sm, 8px) var(--space-lg, 26px);
-      background: var(--color-accent-primary, #4a6741);
+      background: var(--color-accent-primary);
       border: none;
       border-radius: var(--radius-full, 999px);
       color: var(--color-text-on-accent);
@@ -793,7 +793,7 @@ function injectStyles(): void {
     }
 
     .knowledge-quiz-done-btn:focus-visible {
-      outline: 2px solid var(--color-accent-primary, #4a6741);
+      outline: 2px solid var(--color-accent-primary);
       outline-offset: 2px;
     }
 

@@ -524,8 +524,8 @@ class CalendarConflictsUI {
         max-width: clamp(392px, 90vw, 560px);
         max-height: 80vh;
         overflow-y: auto;
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        background: var(--color-background-elevated);
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-xl, 1.5rem);
         box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
         transform: ${prefersReducedMotion() ? 'none' : 'scale(0.95)'};
@@ -541,10 +541,10 @@ class CalendarConflictsUI {
         align-items: center;
         gap: var(--space-3, 12px);
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-bottom: 1px solid var(--color-border-subtle);
         position: sticky;
         top: 0;
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         z-index: var(--z-docked);
       }
 
@@ -564,7 +564,7 @@ class CalendarConflictsUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-lg, 1.125rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
       }
 
@@ -575,17 +575,17 @@ class CalendarConflictsUI {
         width: 32px;
         height: 32px;
         padding: 0;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
         border: none;
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .calendar-conflicts__close:hover {
-        background: var(--color-background-secondary, #f5f2ed);
-        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-secondary);
+        color: var(--color-text-primary);
       }
 
       .calendar-conflicts__close svg {
@@ -607,8 +607,8 @@ class CalendarConflictsUI {
       .calendar-conflicts__spinner {
         width: 32px;
         height: 32px;
-        border: 3px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
-        border-top-color: var(--color-accent-primary, #2d5a3d);
+        border: 3px solid var(--color-border-subtle);
+        border-top-color: var(--color-accent-primary);
         border-radius: 50%;
         animation: conflicts-spin 0.8s linear infinite;
         margin-bottom: var(--ma-breath, 13px);
@@ -621,7 +621,7 @@ class CalendarConflictsUI {
       .calendar-conflicts__loading p {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0;
       }
 
@@ -646,14 +646,14 @@ class CalendarConflictsUI {
         font-family: var(--font-display);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-1, 4px) 0;
       }
 
       .calendar-conflicts__empty-desc {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .calendar-conflicts__list {
@@ -664,7 +664,7 @@ class CalendarConflictsUI {
       }
 
       .calendar-conflicts__card {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 12px);
         padding: var(--space-4, 16px);
         transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD};
@@ -694,7 +694,7 @@ class CalendarConflictsUI {
       .calendar-conflicts__detected {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
       }
 
       .calendar-conflicts__comparison {
@@ -707,7 +707,7 @@ class CalendarConflictsUI {
 
       .calendar-conflicts__version {
         padding: var(--space-3, 12px);
-        background: var(--color-background-elevated, #fffdfb);
+        background: var(--color-background-elevated);
         border-radius: var(--radius-md, 8px);
       }
 
@@ -716,7 +716,7 @@ class CalendarConflictsUI {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin-bottom: var(--space-2, 8px);
       }
 
@@ -728,7 +728,7 @@ class CalendarConflictsUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin-bottom: var(--space-1, 4px);
       }
 
@@ -736,13 +736,13 @@ class CalendarConflictsUI {
       .calendar-conflicts__event-location {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
       }
 
       .calendar-conflicts__vs {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         padding-top: var(--space-6, 24px);
       }
 
@@ -759,7 +759,7 @@ class CalendarConflictsUI {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
-        background: var(--color-accent-primary, #2d5a3d);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-md, 8px);
@@ -773,18 +773,18 @@ class CalendarConflictsUI {
 
       .calendar-conflicts__resolve-btn--dismiss {
         background: transparent;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         flex: 0;
       }
 
       .calendar-conflicts__resolve-btn--dismiss:hover {
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-secondary, #5c544a);
+        background: var(--color-background-tertiary);
+        color: var(--color-text-secondary);
       }
 
       .calendar-conflicts__settings {
         padding: var(--space-4, 16px);
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 12px);
         margin-bottom: var(--ma-breath, 13px);
       }
@@ -793,14 +793,14 @@ class CalendarConflictsUI {
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0 0 var(--space-1, 4px) 0;
       }
 
       .calendar-conflicts__settings p {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         margin: 0 0 var(--space-3, 12px) 0;
       }
 
@@ -809,16 +809,16 @@ class CalendarConflictsUI {
         padding: var(--space-2, 8px) var(--space-3, 12px);
         font-family: var(--font-body);
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-primary, #2c2520);
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+        color: var(--color-text-primary);
+        background: var(--color-background-elevated);
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-md, 8px);
         cursor: pointer;
       }
 
       .calendar-conflicts__select:focus {
         outline: none;
-        border-color: var(--color-accent-primary, #2d5a3d);
+        border-color: var(--color-accent-primary);
       }
 
       .calendar-conflicts__actions {
@@ -847,7 +847,7 @@ class CalendarConflictsUI {
 
       .calendar-conflicts__btn--secondary {
         background: var(--tonal-surface-2);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .calendar-conflicts__btn--secondary:hover {
@@ -865,33 +865,33 @@ class CalendarConflictsUI {
 
       /* Dark theme */
       [data-theme="midnight"] .calendar-conflicts__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated);
       }
 
       [data-theme="midnight"] .calendar-conflicts__header {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated);
       }
 
       [data-theme="midnight"] .calendar-conflicts__title,
       [data-theme="midnight"] .calendar-conflicts__empty p,
       [data-theme="midnight"] .calendar-conflicts__event-title,
       [data-theme="midnight"] .calendar-conflicts__settings h3 {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
       [data-theme="midnight"] .calendar-conflicts__card,
       [data-theme="midnight"] .calendar-conflicts__settings {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .calendar-conflicts__version {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary);
       }
 
       [data-theme="midnight"] .calendar-conflicts__select {
-        background: var(--color-background-secondary, #60504a);
-        border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-        color: var(--color-text-primary, #faf6f0);
+        background: var(--color-background-secondary);
+        border-color: var(--color-border-subtle);
+        color: var(--color-text-primary);
       }
 
       @media (max-width: clamp(336px, 90vw, 480px)) {

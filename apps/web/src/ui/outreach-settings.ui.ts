@@ -514,10 +514,10 @@ function getStyles(): string {
       width: 90%;
       max-width: clamp(350px, 90vw, 500px);
       max-height: 85vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       transform: scale(0.95);
@@ -666,7 +666,7 @@ function getStyles(): string {
       width: 20px;
       left: 2px;
       top: 2px;
-      background: white;
+      background: var(--color-white);
       border-radius: 50%;
       transition: all var(--duration-fast) var(--ease-spring);
       box-shadow: var(--shadow-sm);
@@ -871,7 +871,7 @@ function getStyles(): string {
       width: 100%;
       padding: var(--space-3) var(--space-6);
       background: var(--persona-primary);
-      color: white;
+      color: var(--color-white);
       border: none;
       border-radius: var(--radius-lg);
       font-weight: 600;

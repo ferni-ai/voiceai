@@ -100,19 +100,19 @@ const REACTIONS: ReactionConfig[] = [
     id: 'helpful',
     icon: REACTION_ICONS.helpful ?? '',
     label: 'Helpful',
-    color: 'var(--color-semantic-success, #4a6741)',
+    color: 'var(--color-semantic-success)',
   },
   {
     id: 'too_much',
     icon: REACTION_ICONS.too_much ?? '',
     label: 'Too much',
-    color: 'var(--color-semantic-warning, #a6854a)',
+    color: 'var(--color-semantic-warning)',
   },
   {
     id: 'off_track',
     icon: REACTION_ICONS.off_track ?? '',
     label: 'Off track',
-    color: 'var(--color-text-muted, #8a7a6a)',
+    color: 'var(--color-text-muted)',
   },
 ];
 
@@ -192,12 +192,12 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-xs, 4px);
       padding: var(--space-xs, 4px) var(--space-sm, 8px);
-      background: var(--glass-background-elevated, rgba(255, 255, 255, 0.15));
+      background: var(--glass-background-elevated, color-mix(in srgb, var(--color-white) 15%, transparent));
       backdrop-filter: blur(var(--glass-blur-heavy, 20px));
       -webkit-backdrop-filter: blur(var(--glass-blur-heavy, 20px));
-      border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+      border: 1px solid var(--glass-border, color-mix(in srgb, var(--color-white) 10%, transparent));
       border-radius: var(--radius-full, 9999px);
-      box-shadow: var(--shadow-lg, 0 8px 30px rgba(0, 0, 0, 0.12));
+      box-shadow: var(--shadow-lg, 0 8px 30px color-mix(in srgb, var(--color-black) 12%, transparent));
     }
 
     .contextual-feedback__reactions {
@@ -215,7 +215,7 @@ function injectStyles(): void {
       border: none;
       border-radius: var(--radius-full, 9999px);
       background: transparent;
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition:
         background var(--duration-fast, 150ms) var(--ease-out-expo),
@@ -225,13 +225,13 @@ function injectStyles(): void {
 
     .contextual-feedback__btn:hover,
     .contextual-feedback__btn:focus-visible {
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.15));
-      color: var(--color-text-primary, #ffffff);
+      background: var(--color-bg-elevated, color-mix(in srgb, var(--color-white) 15%, transparent));
+      color: var(--color-text-primary);
       transform: scale(1.1);
     }
 
     .contextual-feedback__btn:focus-visible {
-      outline: 2px solid var(--color-accent-primary, #4a6741);
+      outline: 2px solid var(--color-accent-primary);
       outline-offset: 2px;
     }
 
@@ -241,8 +241,8 @@ function injectStyles(): void {
 
     /* Selected state */
     .contextual-feedback__btn--selected {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       transform: scale(1.15);
     }
 
@@ -250,7 +250,7 @@ function injectStyles(): void {
     .contextual-feedback__divider {
       width: 1px;
       height: 20px;
-      background: var(--glass-border, rgba(255, 255, 255, 0.15));
+      background: var(--glass-border, color-mix(in srgb, var(--color-white) 15%, transparent));
       margin: 0 var(--space-2xs, 2px);
     }
 
@@ -258,7 +258,7 @@ function injectStyles(): void {
     .contextual-feedback__skip {
       font-size: 10px;
       font-weight: 600;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
       padding: var(--space-xs, 4px) var(--space-sm, 8px);
@@ -272,8 +272,8 @@ function injectStyles(): void {
     }
 
     .contextual-feedback__skip:hover {
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.1));
+      color: var(--color-text-secondary);
+      background: var(--color-bg-elevated, color-mix(in srgb, var(--color-white) 10%, transparent));
     }
 
     /* Feedback sent confirmation */

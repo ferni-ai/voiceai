@@ -237,7 +237,7 @@ function addStyles(): void {
       gap: 0.5rem;
       padding: 0.5rem 0.75rem;
       background: transparent;
-      border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.15));
+      border: 1px solid var(--border-subtle, color-mix(in srgb, var(--color-white) 15%, transparent));
       border-radius: 0.5rem;
       color: inherit;
       font-size: 0.875rem;
@@ -246,12 +246,12 @@ function addStyles(): void {
     }
 
     .lang-selector-trigger:hover {
-      background: var(--bg-hover, rgba(255, 255, 255, 0.05));
-      border-color: var(--border-hover, rgba(255, 255, 255, 0.25));
+      background: var(--bg-hover, color-mix(in srgb, var(--color-white) 5%, transparent));
+      border-color: var(--border-hover, color-mix(in srgb, var(--color-white) 25%, transparent));
     }
 
     .lang-selector-trigger:focus-visible {
-      outline: 2px solid var(--focus-ring, rgba(74, 103, 65, 0.5));
+      outline: 2px solid var(--focus-ring, color-mix(in srgb, var(--color-ferni) 50%, transparent));
       outline-offset: 2px;
     }
 
@@ -323,39 +323,39 @@ function addStyles(): void {
     }
 
     .lang-option:hover {
-      background: var(--bg-hover, rgba(255, 255, 255, 0.05));
+      background: var(--bg-hover, color-mix(in srgb, var(--color-white) 5%, transparent));
     }
 
     .lang-option:focus-visible {
-      background: var(--bg-hover, rgba(255, 255, 255, 0.05));
+      background: var(--bg-hover, color-mix(in srgb, var(--color-white) 5%, transparent));
       outline: none;
     }
 
     .lang-option.active {
-      background: var(--ferni-bg, rgba(74, 103, 65, 0.15));
+      background: var(--ferni-bg, color-mix(in srgb, var(--color-ferni) 15%, transparent));
       color: var(--color-ferni-ink);
     }
 
     /* Light theme adjustments */
     @media (prefers-color-scheme: light) {
       .lang-selector-trigger {
-        border-color: rgba(0, 0, 0, 0.1);
+        border-color: color-mix(in srgb, var(--color-black) 10%, transparent);
       }
 
       .lang-selector-trigger:hover {
-        background: rgba(0, 0, 0, 0.03);
-        border-color: rgba(0, 0, 0, 0.15);
+        background: color-mix(in srgb, var(--color-black) 3%, transparent);
+        border-color: color-mix(in srgb, var(--color-black) 15%, transparent);
       }
 
       .lang-dropdown {
-        background: white;
-        border-color: rgba(0, 0, 0, 0.08);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        background: var(--color-white);
+        border-color: color-mix(in srgb, var(--color-black) 8%, transparent);
+        box-shadow: 0 4px 20px color-mix(in srgb, var(--color-black) 10%, transparent);
       }
 
       .lang-option:hover,
       .lang-option:focus-visible {
-        background: rgba(0, 0, 0, 0.03);
+        background: color-mix(in srgb, var(--color-black) 3%, transparent);
       }
     }
   `;

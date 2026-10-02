@@ -12,19 +12,19 @@
   align-items: center;
   gap: 10px;
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--color-white) 80%, transparent);
   backdrop-filter: blur(10px);
   border-radius: var(--radius-full);
   box-shadow: 
-    0 2px 12px rgba(0, 0, 0, 0.06),
-    0 0 0 1px rgba(74, 103, 65, 0.08);
+    0 2px 12px color-mix(in srgb, var(--color-black) 6%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-ferni) 8%, transparent);
   font-size: var(--text-sm);
-  color: var(--color-text-secondary, var(--color-text-secondary));
+  color: var(--color-text-secondary);
   opacity: 0;
   transform: translateY(10px);
   transition: 
-    opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity var(--duration-slowest) var(--ease-cinematic),
+    transform var(--duration-slowest) var(--ease-cinematic);
 }
 
 .presence-indicator.is-visible {
@@ -52,12 +52,12 @@
 
 /* Inner dot - always visible */
 .presence-indicator__pulse::before {
-  background: var(--color-ferni, var(--color-ferni));
+  background: var(--color-ferni);
 }
 
 /* Outer pulse - animates */
 .presence-indicator__pulse::after {
-  background: var(--color-ferni, var(--color-ferni));
+  background: var(--color-ferni);
   animation: presence-pulse 2s ease-in-out infinite;
 }
 
@@ -79,14 +79,14 @@
 .presence-indicator__count {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--color-ferni, var(--color-ferni));
+  color: var(--color-ferni-text);
   min-width: 24px;
   text-align: center;
-  transition: transform 0.2s ease;
+  transition: transform var(--duration-normal) ease;
 }
 
 .presence-indicator__count.is-changing {
-  animation: count-pop 0.2s ease-out;
+  animation: count-pop var(--duration-normal) ease-out;
 }
 
 @keyframes count-pop {
@@ -120,18 +120,18 @@
 @keyframes indicator-pulse {
   0% {
     box-shadow: 
-      0 2px 12px rgba(0, 0, 0, 0.06),
-      0 0 0 1px rgba(74, 103, 65, 0.08);
+      0 2px 12px color-mix(in srgb, var(--color-black) 6%, transparent),
+      0 0 0 1px color-mix(in srgb, var(--color-ferni) 8%, transparent);
   }
   50% {
     box-shadow: 
-      0 2px 20px rgba(74, 103, 65, 0.15),
-      0 0 0 2px rgba(74, 103, 65, 0.15);
+      0 2px 20px color-mix(in srgb, var(--color-ferni) 15%, transparent),
+      0 0 0 2px color-mix(in srgb, var(--color-ferni) 15%, transparent);
   }
   100% {
     box-shadow: 
-      0 2px 12px rgba(0, 0, 0, 0.06),
-      0 0 0 1px rgba(74, 103, 65, 0.08);
+      0 2px 12px color-mix(in srgb, var(--color-black) 6%, transparent),
+      0 0 0 1px color-mix(in srgb, var(--color-ferni) 8%, transparent);
   }
 }
 
@@ -185,8 +185,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .presence-indicator {
-    background: rgba(44, 37, 32, 0.8);
-    color: rgba(255, 255, 255, 0.8);
+    background: color-mix(in srgb, var(--color-ink) 80%, transparent);
+    color: color-mix(in srgb, var(--color-white) 80%, transparent);
   }
 }
 

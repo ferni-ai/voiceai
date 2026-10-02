@@ -37,15 +37,15 @@ export const ferniFundStyles = `
 
 .ferni-fund-card {
   position: relative;
-  background: var(--color-bg-elevated, #FFFDFB);
-  border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  background: var(--color-bg-elevated, var(--color-white));
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-2xl, 24px);
   padding: var(--space-8, 32px);
   max-width: clamp(308px, 90vw, 440px);
   width: calc(100% - 32px);
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
   transform: scale(0.9);
   transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING};
 }
@@ -80,7 +80,7 @@ export const ferniFundStyles = `
   width: 64px;
   height: 64px;
   margin: 0 auto var(--space-4, 16px);
-  background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+  background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -90,7 +90,7 @@ export const ferniFundStyles = `
 .ferni-fund-icon svg {
   width: 32px;
   height: 32px;
-  color: white;
+  color: var(--color-white);
 }
 
 .ferni-fund-title {
@@ -236,14 +236,14 @@ export const ferniFundStyles = `
 }
 
 .ferni-fund-amount-btn:hover {
-  border-color: var(--persona-primary, #4a6741);
+  border-color: var(--persona-primary, var(--color-ferni));
   background: var(--color-bg-tertiary);
 }
 
 .ferni-fund-amount-btn.selected {
-  border-color: var(--persona-primary, #4a6741);
-  background: var(--persona-primary, #4a6741);
-  color: white;
+  border-color: var(--persona-primary, var(--color-ferni));
+  background: var(--persona-primary, var(--color-ferni));
+  color: var(--color-white);
 }
 
 .ferni-fund-amount-btn .tier-info {
@@ -299,14 +299,14 @@ export const ferniFundStyles = `
 }
 
 .ferni-fund-monthly-btn:hover {
-  border-color: var(--persona-primary, #4a6741);
+  border-color: var(--persona-primary, var(--color-ferni));
   background: var(--color-bg-tertiary);
 }
 
 .ferni-fund-monthly-btn.selected {
-  border-color: var(--persona-primary, #4a6741);
-  background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
-  color: white;
+  border-color: var(--persona-primary, var(--color-ferni));
+  background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
+  color: var(--color-white);
 }
 
 .ferni-fund-monthly-btn .tier-info {
@@ -338,8 +338,8 @@ export const ferniFundStyles = `
 }
 
 .ferni-fund-monthly-btn.selected .tier-badge {
-  background: rgba(255,255,255,0.2);
-  color: white;
+  background: color-mix(in srgb, var(--color-white) 20%, transparent);
+  color: var(--color-white);
 }
 
 .ferni-fund-monthly-btn.selected .tier-desc {
@@ -358,7 +358,7 @@ export const ferniFundStyles = `
 
 .ferni-fund-custom-input:focus {
   outline: none;
-  border-color: var(--persona-primary, #4a6741);
+  border-color: var(--persona-primary, var(--color-ferni));
 }
 
 /* Message Input */
@@ -409,7 +409,7 @@ export const ferniFundStyles = `
 }
 
 .ferni-fund-recurring-toggle.active {
-  background: var(--persona-primary, #4a6741);
+  background: var(--persona-primary, var(--color-ferni));
 }
 
 .ferni-fund-recurring-toggle::after {
@@ -417,7 +417,7 @@ export const ferniFundStyles = `
   position: absolute;
   width: 20px;
   height: 20px;
-  background: white;
+  background: var(--color-white);
   border-radius: 50%;
   top: 2px;
   left: 2px;
@@ -447,8 +447,8 @@ export const ferniFundStyles = `
 .ferni-fund-submit-btn {
   width: 100%;
   padding: var(--space-4, 16px);
-  background: var(--persona-primary, #4a6741);
-  color: white;
+  background: var(--persona-primary, var(--color-ferni));
+  color: var(--color-white);
   border: none;
   border-radius: var(--radius-lg, 12px);
   font-size: 1rem;
@@ -458,7 +458,7 @@ export const ferniFundStyles = `
 }
 
 .ferni-fund-submit-btn:hover:not(:disabled) {
-  background: var(--persona-secondary, #3d5a35);
+  background: var(--persona-secondary, var(--color-ferni-secondary));
   transform: translateY(-1px);
 }
 
@@ -504,7 +504,7 @@ export const ferniFundStyles = `
   width: 80px;
   height: 80px;
   margin: 0 auto var(--space-4, 16px);
-  background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+  background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -521,7 +521,7 @@ export const ferniFundStyles = `
 .ferni-fund-thank-you-icon svg {
   width: 40px;
   height: 40px;
-  color: white;
+  color: var(--color-white);
 }
 
 .ferni-fund-thank-you-title {
@@ -571,7 +571,7 @@ export const ferniFundStyles = `
   width: 48px;
   height: 48px;
   border: 3px solid var(--color-border);
-  border-top-color: var(--persona-primary, #4a6741);
+  border-top-color: var(--persona-primary, var(--color-ferni));
   border-radius: 50%;
   animation: fund-spin 1s linear infinite;
   margin-bottom: var(--space-4, 16px);
@@ -606,8 +606,8 @@ export const ferniFundStyles = `
 }
 
 .ferni-fund-stat--primary {
-  background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
-  color: white;
+  background: linear-gradient(135deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-secondary)));
+  color: var(--color-white);
 }
 
 .ferni-fund-stat-value {
@@ -622,7 +622,7 @@ export const ferniFundStyles = `
 }
 
 .ferni-fund-stat--primary .ferni-fund-stat-value {
-  color: white;
+  color: var(--color-white);
 }
 
 .ferni-fund-stat-label {
@@ -667,7 +667,7 @@ export const ferniFundStyles = `
 
 .ferni-fund-progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--persona-primary, #4a6741), var(--persona-secondary, #5d7a55));
+  background: linear-gradient(90deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, #5d7a55));
   border-radius: 4px;
   transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
 }
@@ -702,12 +702,12 @@ export const ferniFundStyles = `
 }
 
 .ferni-fund-action-btn--primary {
-  background: var(--persona-primary, #4a6741);
-  color: white;
+  background: var(--persona-primary, var(--color-ferni));
+  color: var(--color-white);
 }
 
 .ferni-fund-action-btn--primary:hover {
-  background: var(--persona-secondary, #3d5a35);
+  background: var(--persona-secondary, var(--color-ferni-secondary));
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }

@@ -326,8 +326,8 @@ export function injectPanelStyles(): void {
       height: 100%;
       display: flex;
       flex-direction: column;
-      background: var(--color-background-elevated, #FFFDFB);
-      box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1));
+      background: var(--color-background-elevated);
+      box-shadow: var(--shadow-xl, 0 20px 25px -5px color-mix(in srgb, var(--color-black) 10%, transparent));
     }
 
     .ferni-panel--full-height .ferni-panel__container {
@@ -339,7 +339,7 @@ export function injectPanelStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-4, 16px) var(--space-6, 24px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .ferni-panel__back,
@@ -353,14 +353,14 @@ export function injectPanelStyles(): void {
       border: none;
       border-radius: var(--radius-full, 9999px);
       cursor: pointer;
-      color: var(--color-text-muted, rgba(44, 37, 32, 0.5));
+      color: var(--color-text-muted);
       transition: all 0.15s ease;
     }
 
     .ferni-panel__back:hover,
     .ferni-panel__close:hover {
       background: var(--color-background-hover, rgba(44, 37, 32, 0.05));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .ferni-panel__back:focus-visible,
@@ -374,7 +374,7 @@ export function injectPanelStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: 18px;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 

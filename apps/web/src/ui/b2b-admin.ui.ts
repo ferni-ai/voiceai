@@ -119,10 +119,10 @@ const styles = `
 
 .b2b-admin-card {
   position: relative;
-  background: var(--color-bg-elevated, #FFFDFB);
-  border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  background: var(--color-bg-elevated, var(--color-white));
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xl, 20px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
   width: calc(100% - 48px);
   max-width: min(900px, 100%);
   max-height: 85vh;
@@ -144,7 +144,7 @@ const styles = `
   justify-content: space-between;
   padding: var(--space-5, 20px) var(--space-6, 24px);
   border-bottom: 1px solid var(--color-border);
-  background: linear-gradient(135deg, rgba(74, 103, 65, 0.05), transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 5%, transparent), transparent);
 }
 
 .b2b-admin-header-left {
@@ -161,7 +161,7 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-white);
   font-weight: 700;
   font-size: 1.1rem;
 }
@@ -191,7 +191,7 @@ const styles = `
 }
 
 .b2b-admin-close:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: color-mix(in srgb, var(--color-black) 5%, transparent);
 }
 
 /* Navigation Tabs */
@@ -200,7 +200,7 @@ const styles = `
   gap: var(--space-1, 4px);
   padding: var(--space-3, 12px) var(--space-6, 24px);
   border-bottom: 1px solid var(--color-border);
-  background: rgba(0, 0, 0, 0.02);
+  background: color-mix(in srgb, var(--color-black) 2%, transparent);
 }
 
 .b2b-admin-nav-btn {
@@ -219,13 +219,13 @@ const styles = `
 }
 
 .b2b-admin-nav-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: color-mix(in srgb, var(--color-black) 5%, transparent);
   color: var(--color-text-primary);
 }
 
 .b2b-admin-nav-btn.active {
   background: var(--persona-primary);
-  color: white;
+  color: var(--color-white);
 }
 
 .b2b-admin-nav-btn svg {
@@ -249,7 +249,7 @@ const styles = `
 }
 
 .b2b-admin-stat-card {
-  background: white;
+  background: var(--color-white);
   border-radius: var(--radius-lg, 12px);
   padding: var(--space-4, 16px);
   border: 1px solid var(--color-border);
@@ -281,7 +281,7 @@ const styles = `
 
 /* Section Cards */
 .b2b-admin-section {
-  background: white;
+  background: var(--color-white);
   border-radius: var(--radius-lg, 12px);
   border: 1px solid var(--color-border);
   margin-bottom: var(--space-5, 20px);
@@ -377,7 +377,7 @@ const styles = `
 
 .b2b-admin-checklist-icon.completed {
   background: var(--persona-primary);
-  color: white;
+  color: var(--color-white);
 }
 
 .b2b-admin-checklist-icon.pending {
@@ -419,7 +419,7 @@ const styles = `
 }
 
 .b2b-admin-team-member:hover {
-  background: rgba(0, 0, 0, 0.02);
+  background: color-mix(in srgb, var(--color-black) 2%, transparent);
 }
 
 .b2b-admin-team-avatar {
@@ -460,12 +460,12 @@ const styles = `
 }
 
 .b2b-admin-team-badge.admin {
-  background: rgba(74, 103, 65, 0.1);
+  background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
   color: var(--persona-text);
 }
 
 .b2b-admin-team-badge.member {
-  background: rgba(0, 0, 0, 0.05);
+  background: color-mix(in srgb, var(--color-black) 5%, transparent);
   color: var(--color-text-muted);
 }
 
@@ -520,14 +520,14 @@ const styles = `
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 8px);
   font-size: 0.9rem;
-  background: white;
+  background: var(--color-white);
   min-width: min(100px, 100%);
 }
 
 .b2b-admin-invite-btn {
   padding: var(--space-3, 12px) var(--space-5, 20px);
   background: var(--persona-primary);
-  color: white;
+  color: var(--color-white);
   border: none;
   border-radius: var(--radius-md, 8px);
   font-size: 0.9rem;
@@ -587,7 +587,7 @@ const styles = `
 .b2b-admin-save-btn {
   padding: var(--space-3, 12px) var(--space-6, 24px);
   background: var(--persona-primary);
-  color: white;
+  color: var(--color-white);
   border: none;
   border-radius: var(--radius-md, 8px);
   font-size: 0.9rem;
@@ -609,7 +609,7 @@ const styles = `
 
 .b2b-admin-topic-tag {
   padding: var(--space-1, 4px) var(--space-3, 12px);
-  background: rgba(74, 103, 65, 0.1);
+  background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
   color: var(--persona-text);
   border-radius: var(--radius-full, 9999px);
   font-size: 0.85rem;
@@ -625,7 +625,7 @@ const styles = `
 
 .b2b-admin-billing-card {
   padding: var(--space-4, 16px);
-  background: rgba(74, 103, 65, 0.05);
+  background: color-mix(in srgb, var(--color-ferni) 5%, transparent);
   border-radius: var(--radius-lg, 12px);
 }
 

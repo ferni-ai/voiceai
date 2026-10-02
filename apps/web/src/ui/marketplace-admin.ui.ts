@@ -298,7 +298,7 @@ function renderPanel(): void {
 
   if (state.loadError) {
     content.innerHTML = `
-      <div class="admin-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
+      <div class="admin-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted);">
         Couldn't load data. <button type="button" style="color: var(--color-ferni-ink); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
       </div>
     `;
@@ -748,7 +748,7 @@ function injectStyles(): void {
 
     .admin-tab--active .tab-badge {
       background: var(--persona-primary);
-      color: white;
+      color: var(--color-white);
     }
 
     .admin-content {
@@ -948,7 +948,7 @@ function injectStyles(): void {
 
     .action-btn--approve {
       background: var(--color-semantic-success);
-      color: white;
+      color: var(--color-white);
       border: none;
     }
 

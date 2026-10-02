@@ -122,10 +122,10 @@ const STYLES = `
   width: 90%;
   max-width: clamp(392px, 90vw, 560px);
   max-height: 80vh;
-  background: var(--color-bg-elevated, #FFFDFB);
-  border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  background: var(--color-bg-elevated, var(--color-white));
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xl, 20px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
   display: flex;
   flex-direction: column;
   transform: scale(0.95);
@@ -138,7 +138,7 @@ const STYLES = `
 
 .outreach-schedule-header {
   padding: 24px 24px 16px;
-  border-bottom: 1px solid rgba(0,0,0,0.06);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-black) 6%, transparent);
 }
 
 .outreach-schedule-header-top {
@@ -159,7 +159,7 @@ const STYLES = `
 .outreach-schedule-title {
   font-size: 24px;
   font-weight: 600;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   margin: 0;
   display: flex;
   align-items: center;
@@ -171,14 +171,14 @@ const STYLES = `
   border: none;
   padding: 8px;
   cursor: pointer;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-muted);
   border-radius: var(--radius-md, 8px);
   transition: background var(--duration-fast, 100ms), color var(--duration-fast, 100ms);
 }
 
 .outreach-schedule-close:hover {
-  background: rgba(0,0,0,0.05);
-  color: var(--color-text-primary, #2C2520);
+  background: color-mix(in srgb, var(--color-black) 5%, transparent);
+  color: var(--color-text-primary);
 }
 
 .outreach-schedule-tabs {
@@ -195,7 +195,7 @@ const STYLES = `
   border-radius: var(--radius-md, 8px);
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-text-secondary, #666);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--duration-fast, 100ms);
   display: flex;
@@ -205,12 +205,12 @@ const STYLES = `
 }
 
 .outreach-schedule-tab:hover {
-  background: rgba(0,0,0,0.04);
+  background: color-mix(in srgb, var(--color-black) 4%, transparent);
 }
 
 .outreach-schedule-tab.active {
-  background: var(--persona-primary, #4a6741);
-  color: white;
+  background: var(--persona-primary, var(--color-ferni));
+  color: var(--color-white);
 }
 
 .outreach-schedule-tab svg {
@@ -227,7 +227,7 @@ const STYLES = `
 .outreach-schedule-empty {
   text-align: center;
   padding: 48px 24px;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-muted);
 }
 
 .outreach-schedule-empty-icon {
@@ -257,7 +257,7 @@ const STYLES = `
 
 .outreach-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-black) 8%, transparent);
 }
 
 .outreach-item:last-child {
@@ -280,7 +280,7 @@ const STYLES = `
   justify-content: center;
   font-size: 14px;
   font-weight: 600;
-  color: var(--persona-text, white);
+  color: var(--persona-text, var(--color-white));
   background: var(--persona-primary, var(--color-accent-primary));
 }
 
@@ -292,13 +292,13 @@ const STYLES = `
 .outreach-item-persona-name {
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text-primary, #2C2520);
+  color: var(--color-text-primary);
   margin: 0 0 2px;
 }
 
 .outreach-item-meta {
   font-size: 12px;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -335,23 +335,23 @@ const STYLES = `
 }
 
 .outreach-item-priority.high {
-  background: var(--color-semantic-error-glow, rgba(239, 68, 68, 0.1));
+  background: var(--color-semantic-error-glow);
   color: var(--color-semantic-error-text);
 }
 
 .outreach-item-priority.medium {
-  background: var(--color-semantic-warning-glow, rgba(245, 158, 11, 0.1));
+  background: var(--color-semantic-warning-glow);
   color: var(--color-semantic-warning-text);
 }
 
 .outreach-item-priority.low {
-  background: var(--color-semantic-success-glow, rgba(34, 197, 94, 0.1));
+  background: var(--color-semantic-success-glow);
   color: var(--color-semantic-success-text);
 }
 
 .outreach-item-preview {
   font-size: 14px;
-  color: var(--color-text-secondary, #666);
+  color: var(--color-text-secondary);
   line-height: 1.5;
   margin: 0 0 12px;
   display: -webkit-box;
@@ -362,7 +362,7 @@ const STYLES = `
 
 .outreach-item-reason {
   font-size: 12px;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-muted);
   font-style: italic;
   margin: 0 0 12px;
 }
@@ -393,17 +393,17 @@ const STYLES = `
 }
 
 .outreach-item-btn--preview {
-  background: rgba(0,0,0,0.04);
-  color: var(--color-text-secondary, #666);
+  background: color-mix(in srgb, var(--color-black) 4%, transparent);
+  color: var(--color-text-secondary);
 }
 
 .outreach-item-btn--preview:hover {
-  background: rgba(0,0,0,0.08);
+  background: color-mix(in srgb, var(--color-black) 8%, transparent);
 }
 
 .outreach-item-btn--reschedule {
-  background: var(--persona-primary, #4a6741);
-  color: white;
+  background: var(--persona-primary, var(--color-ferni));
+  color: var(--color-white);
 }
 
 .outreach-item-btn--reschedule:hover {
@@ -411,12 +411,12 @@ const STYLES = `
 }
 
 .outreach-item-btn--cancel {
-  background: var(--color-semantic-error-glow, rgba(239, 68, 68, 0.1));
+  background: var(--color-semantic-error-glow);
   color: var(--color-semantic-error-text);
 }
 
 .outreach-item-btn--cancel:hover {
-  background: var(--color-semantic-error-glow, rgba(239, 68, 68, 0.2));
+  background: var(--color-semantic-error-glow);
 }
 
 .outreach-item-status {
@@ -430,32 +430,32 @@ const STYLES = `
 }
 
 .outreach-item-status.delivered {
-  background: var(--color-semantic-success-glow, rgba(34, 197, 94, 0.1));
+  background: var(--color-semantic-success-glow);
   color: var(--color-semantic-success-text);
 }
 
 .outreach-item-status.opened {
-  background: var(--color-semantic-info-glow, rgba(59, 130, 246, 0.1));
+  background: var(--color-semantic-info-glow);
   color: var(--color-semantic-info-text);
 }
 
 .outreach-item-status.responded {
-  background: var(--persona-glow, rgba(74, 103, 65, 0.1));
+  background: var(--persona-glow, color-mix(in srgb, var(--color-ferni) 10%, transparent));
   color: var(--persona-ink);
 }
 
 .outreach-item-status.failed {
-  background: var(--color-semantic-error-glow, rgba(239, 68, 68, 0.1));
+  background: var(--color-semantic-error-glow);
   color: var(--color-semantic-error-text);
 }
 
 @media (prefers-color-scheme: dark) {
   .outreach-schedule-modal {
-    background: var(--color-background-elevated, #3d3530);
+    background: var(--color-background-elevated);
   }
   
   .outreach-item {
-    background: rgba(0,0,0,0.2);
+    background: color-mix(in srgb, var(--color-black) 20%, transparent);
   }
 }
 `;
@@ -901,10 +901,10 @@ function addPreviewStyles(): void {
       position: relative;
       width: 90%;
       max-width: clamp(294px, 90vw, 420px);
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       transform: scale(0.95);
       transition: transform 200ms ease;
     }
@@ -914,7 +914,7 @@ function addPreviewStyles(): void {
       align-items: center;
       gap: 12px;
       padding: 16px;
-      border-bottom: 1px solid rgba(0,0,0,0.06);
+      border-bottom: 1px solid color-mix(in srgb, var(--color-black) 6%, transparent);
     }
     .outreach-preview-persona {
       width: 40px;
@@ -923,7 +923,7 @@ function addPreviewStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--persona-text, white);
+      color: var(--persona-text, var(--color-white));
       font-weight: 600;
       background: var(--persona-primary, var(--color-accent-primary));
     }
@@ -934,7 +934,7 @@ function addPreviewStyles(): void {
     }
     .outreach-preview-channel {
       font-size: 12px;
-      color: var(--color-text-muted, #888);
+      color: var(--color-text-muted);
       text-transform: capitalize;
     }
     .outreach-preview-close {
@@ -943,7 +943,7 @@ function addPreviewStyles(): void {
       border: none;
       cursor: pointer;
       padding: 8px;
-      color: var(--color-text-muted, #888);
+      color: var(--color-text-muted);
     }
     .outreach-preview-content {
       padding: 20px;
@@ -959,9 +959,9 @@ function addPreviewStyles(): void {
     }
     .outreach-preview-footer {
       padding: 12px 16px;
-      border-top: 1px solid rgba(0,0,0,0.06);
+      border-top: 1px solid color-mix(in srgb, var(--color-black) 6%, transparent);
       font-size: 13px;
-      color: var(--color-text-muted, #888);
+      color: var(--color-text-muted);
       display: flex;
       align-items: center;
       gap: 6px;
@@ -983,10 +983,10 @@ function addPreviewStyles(): void {
       position: relative;
       width: 90%;
       max-width: min(360px, 100%);
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: 16px;
       padding: 24px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      box-shadow: 0 20px 40px color-mix(in srgb, var(--color-black) 20%, transparent);
       transform: scale(0.95);
       transition: transform 200ms ease;
     }
@@ -1018,7 +1018,7 @@ function addPreviewStyles(): void {
       padding: 10px;
       background: none;
       border: none;
-      color: var(--color-text-muted, #888);
+      color: var(--color-text-muted);
       cursor: pointer;
       width: 100%;
     }

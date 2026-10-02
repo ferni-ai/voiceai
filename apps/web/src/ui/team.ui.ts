@@ -960,7 +960,7 @@ function createMarketplaceAgentElement(agent: marketplaceService.InstalledAgent)
   // Fallback uses CSS variables for muted earthy tones from design system
   const gradient =
     colors?.gradient ||
-    'linear-gradient(135deg, var(--color-natural-stone, #7a6f63), var(--color-natural-wood, #9a8f82))';
+    'linear-gradient(135deg, var(--color-natural-stone), var(--color-natural-wood, #9a8f82))';
 
   element.innerHTML = `
     <div class="team-avatar-container">
@@ -1022,12 +1022,12 @@ function attachMarketplaceAgentListeners(
         width: 48px;
         height: 48px;
         border-radius: 50%;
-        background: ${avatarEl.style.getPropertyValue('--persona-gradient') || 'linear-gradient(135deg, var(--color-natural-stone, #7a6f63), var(--color-natural-wood, #9a8f82))'};
+        background: ${avatarEl.style.getPropertyValue('--persona-gradient') || 'linear-gradient(135deg, var(--color-natural-stone), var(--color-natural-wood, #9a8f82))'};
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 600;
-        color: var(--persona-text, white);
+        color: var(--persona-text, var(--color-white));
         font-size: var(--text-sm, 14px);
       `;
       document.body.appendChild(clone);
@@ -1124,7 +1124,7 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
     isLocked && memberStatus.progress > 0
       ? `
     <svg class="team-progress-ring" viewBox="0 0 36 36">
-      <circle cx="18" cy="18" r="16" fill="none" stroke="var(--color-border-subtle, rgba(255,255,255,0.1))" stroke-width="2"/>
+      <circle cx="18" cy="18" r="16" fill="none" stroke="var(--color-border-subtle)" stroke-width="2"/>
       <circle cx="18" cy="18" r="16" fill="none" stroke="var(--persona-primary, #4a6741)" stroke-width="2"
         stroke-dasharray="${memberStatus.progress * 100}, 100"
         stroke-linecap="round"
@@ -1268,7 +1268,7 @@ function attachEventListenersToElement(
           align-items: center;
           justify-content: center;
           font-weight: 600;
-          color: var(--persona-text, white);
+          color: var(--persona-text, var(--color-white));
           font-size: var(--text-sm, 14px);
         `;
         document.body.appendChild(clone);
@@ -1674,11 +1674,11 @@ function celebrateMemberUnlock(personaId: PersonaId): void {
     background: rgba(30, 30, 35, 0.75);
     backdrop-filter: blur(var(--glass-blur-medium, 16px));
     -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: var(--color-text-primary, #faf6f0);
+    border: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent);
+    color: var(--color-text-primary);
     padding: 6px 14px;
     border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(74, 103, 65, 0.2), 0 2px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--color-ferni) 20%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 20%, transparent);
     font-size: 12px;
     font-weight: 500;
     z-index: var(--z-toast, 1700);

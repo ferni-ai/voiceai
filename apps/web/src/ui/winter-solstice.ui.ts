@@ -893,15 +893,15 @@ class WinterSolsticeMomentUI {
         /* Night sky */
         --solstice-sky-top: #0d1b2a;
         --solstice-sky-mid: #1b263b;
-        --solstice-horizon: #2c3e50;
+        --solstice-horizon: var(--color-kenji);
 
         /* Dawn transformation */
         --solstice-dawn-top: #1a2a3a;
         --solstice-dawn-mid: #2d4a5a;
-        --solstice-dawn-horizon: #d4a574;
+        --solstice-dawn-horizon: var(--color-carmen);
 
         /* Mountains */
-        --solstice-mountain-far: #1e2832;
+        --solstice-mountain-far: var(--color-kenji-secondary);
         --solstice-mountain-mid: #2c3e4a;
         --solstice-mountain-near: #3d4f5f;
 
@@ -917,7 +917,7 @@ class WinterSolsticeMomentUI {
 
         /* Effects */
         --solstice-fog: #c4b8a8;
-        --solstice-snow: #ffffff;
+        --solstice-snow: var(--color-white);
       }
 
       /* Dawn state overrides */
@@ -981,7 +981,7 @@ class WinterSolsticeMomentUI {
         font-weight: 300;
         letter-spacing: 0.05em;
         margin: 0 0 var(--space-4);
-        text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+        text-shadow: 0 2px 20px color-mix(in srgb, var(--color-black) 50%, transparent);
       }
 
       .solstice-subtitle {
@@ -1013,7 +1013,7 @@ class WinterSolsticeMomentUI {
         width: 48px;
         height: 48px;
         border: none;
-        background: rgba(255, 255, 255, 0.2);
+        background: color-mix(in srgb, var(--color-white) 20%, transparent);
         border-radius: var(--radius-full);
         color: var(--solstice-star);
         cursor: pointer;
@@ -1022,7 +1022,7 @@ class WinterSolsticeMomentUI {
       }
 
       .solstice-close:hover {
-        background: rgba(255, 255, 255, 0.2);
+        background: color-mix(in srgb, var(--color-white) 20%, transparent);
         transform: scale(1.05);
       }
 
@@ -1059,20 +1059,20 @@ class WinterSolsticeMomentUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-white) 20%, transparent), transparent);
       }
 
       .team-orb-initial {
         font-family: var(--font-display);
         font-size: 1.25rem;
         font-weight: 600;
-        color: white;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        color: var(--color-white);
+        text-shadow: 0 1px 2px color-mix(in srgb, var(--color-black) 30%, transparent);
       }
 
       /* Static version for reduced motion */
       .solstice-static {
-        background: linear-gradient(180deg, #0d1b2a 0%, #2c3e50 100%);
+        background: linear-gradient(180deg, #0d1b2a 0%, var(--color-kenji) 100%);
       }
 
       .solstice-static-content {
@@ -1106,16 +1106,16 @@ class WinterSolsticeMomentUI {
 
       .solstice-close-static {
         padding: var(--space-3) var(--space-6);
-        background: rgba(255, 255, 255, 0.15);
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        background: color-mix(in srgb, var(--color-white) 15%, transparent);
+        border: 1px solid color-mix(in srgb, var(--color-white) 30%, transparent);
         border-radius: var(--radius-lg);
-        color: white;
+        color: var(--color-white);
         cursor: pointer;
         transition: all var(--duration-fast) ease;
       }
 
       .solstice-close-static:hover {
-        background: rgba(255, 255, 255, 0.25);
+        background: color-mix(in srgb, var(--color-white) 25%, transparent);
       }
 
       /* Responsive */

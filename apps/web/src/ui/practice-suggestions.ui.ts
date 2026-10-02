@@ -129,7 +129,7 @@ function injectSuggestionStyles(): void {
       font-size: 10px;
       font-weight: var(--font-weight-medium, 500);
       color: var(--persona-ink);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       padding: 2px 6px;
       border-radius: var(--radius-sm);
       text-transform: uppercase;
@@ -215,7 +215,7 @@ function injectSuggestionStyles(): void {
     .practice-suggestions__card-btn--primary {
       background: var(--persona-primary, var(--color-accent-primary));
       border: none;
-      color: white;
+      color: var(--color-white);
     }
 
     .practice-suggestions__card-btn--primary:hover {

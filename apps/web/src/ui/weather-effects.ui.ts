@@ -245,10 +245,10 @@ function startSnow(weatherContainer: HTMLElement): void {
       left: ${startX}%;
       width: ${size}px;
       height: ${size}px;
-      background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.3) 70%, transparent 100%);
+      background: radial-gradient(circle, color-mix(in srgb, var(--color-white) 90%, transparent) 0%, color-mix(in srgb, var(--color-white) 30%, transparent) 70%, transparent 100%);
       border-radius: 50%;
       opacity: 0.8;
-      filter: drop-shadow(0 0 2px rgba(255,255,255,0.5));
+      filter: drop-shadow(0 0 2px color-mix(in srgb, var(--color-white) 50%, transparent));
     `;
     
     weatherContainer.appendChild(flake);

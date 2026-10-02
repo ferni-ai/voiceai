@@ -45,10 +45,10 @@ function getJourneyStyles(): string {
 
     .journey-content {
       position: relative;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       max-width: clamp(420px, 90vw, 600px);
       width: 100%;
       max-height: 85vh;
@@ -65,7 +65,7 @@ function getJourneyStyles(): string {
       align-items: flex-start;
       justify-content: space-between;
       padding: var(--space-6, 24px);
-      border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+      border-bottom: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 8%, transparent));
     }
 
     .journey-header__text {
@@ -85,14 +85,14 @@ function getJourneyStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-2xl, 1.5rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0;
       line-height: 1.2;
     }
 
     .journey-subtitle {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin: var(--space-2, 8px) 0 0;
     }
 
@@ -102,18 +102,18 @@ function getJourneyStyles(): string {
       padding: var(--space-2, 8px);
       margin: calc(var(--space-2, 8px) * -1);
       cursor: pointer;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       border-radius: var(--radius-full, 9999px);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
     .journey-close:hover {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
-      color: var(--color-text-primary, #2c2520);
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 5%, transparent));
+      color: var(--color-text-primary);
     }
     
     .journey-close:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
 
@@ -129,7 +129,7 @@ function getJourneyStyles(): string {
        =================================================================== */
     .journey-map-section {
       padding: 0 var(--space-4, 16px) var(--space-4, 16px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .journey-map {
@@ -165,7 +165,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-map__stage:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 4px;
       border-radius: var(--radius-sm, 4px);
     }
@@ -176,8 +176,8 @@ function getJourneyStyles(): string {
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      background: var(--color-background-elevated, #fffdfb);
-      border: 2px solid var(--color-border, rgba(0, 0, 0, 0.15));
+      background: var(--color-background-elevated);
+      border: 2px solid var(--color-border, color-mix(in srgb, var(--color-black) 15%, transparent));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -188,36 +188,36 @@ function getJourneyStyles(): string {
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      background: var(--color-border-subtle, rgba(0, 0, 0, 0.1));
+      background: var(--color-border-subtle);
       transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
 
     /* Past stages - completed and filled */
     .journey-map__stage--past .journey-map__node {
-      border-color: var(--persona-primary, #4a6741);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      border-color: var(--persona-primary, var(--color-ferni));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
     }
 
     .journey-map__stage--past .journey-map__node-inner {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
     }
 
     /* Current stage - active with pulsing glow */
     .journey-map__stage--current .journey-map__node {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       border-width: 3px;
-      background: var(--color-background-elevated, #fffdfb);
-      box-shadow: 0 0 0 4px var(--persona-tint, rgba(74, 103, 65, 0.15));
+      background: var(--color-background-elevated);
+      box-shadow: 0 0 0 4px var(--persona-tint, color-mix(in srgb, var(--color-ferni) 15%, transparent));
     }
 
     .journey-map__stage--current .journey-map__node-inner {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       animation: journeyNodePulse 2s ease-in-out infinite;
     }
 
     /* Future stages - muted and waiting */
     .journey-map__stage--future .journey-map__node {
-      border-color: var(--color-border-subtle, rgba(0, 0, 0, 0.1));
+      border-color: var(--color-border-subtle);
       opacity: 0.6;
     }
 
@@ -230,7 +230,7 @@ function getJourneyStyles(): string {
       position: absolute;
       inset: -6px;
       border-radius: 50%;
-      background: var(--persona-tint, rgba(74, 103, 65, 0.2));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 20%, transparent));
       animation: journeyPulse 2s ease-in-out infinite;
     }
 
@@ -258,7 +258,7 @@ function getJourneyStyles(): string {
     .journey-map__label {
       font-size: var(--text-2xs, 9px);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-2, 8px);
       text-align: center;
       max-width: 60px;
@@ -267,7 +267,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-map__stage--current .journey-map__label {
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       font-weight: 600;
     }
 
@@ -287,7 +287,7 @@ function getJourneyStyles(): string {
     .journey-map__connector {
       flex: 1;
       height: 2px;
-      background: var(--color-border, rgba(0, 0, 0, 0.1));
+      background: var(--color-border, color-mix(in srgb, var(--color-black) 10%, transparent));
       margin-top: 13px;
       position: relative;
       min-width: 20px;
@@ -300,7 +300,7 @@ function getJourneyStyles(): string {
       left: 0;
       height: 100%;
       width: var(--fill-progress, 0%);
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       transition: width ${DURATION.DRAMATIC}ms ${EASING.SPRING};
     }
 
@@ -311,7 +311,7 @@ function getJourneyStyles(): string {
     /* Hint text */
     .journey-map__hint {
       font-size: var(--text-xs, 11px);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       text-align: center;
       margin: var(--space-3, 12px) 0 0;
       font-style: italic;
@@ -352,7 +352,7 @@ function getJourneyStyles(): string {
       text-align: center;
       padding-bottom: var(--space-4, 16px);
       margin-bottom: var(--space-4, 16px);
-      border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+      border-bottom: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 8%, transparent));
     }
 
     .journey-progress-ring-container {
@@ -370,13 +370,13 @@ function getJourneyStyles(): string {
 
     .journey-progress-ring__bg {
       fill: none;
-      stroke: var(--color-background-subtle, rgba(0, 0, 0, 0.08));
+      stroke: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 8%, transparent));
       stroke-width: 7;
     }
 
     .journey-progress-ring__fill {
       fill: none;
-      stroke: var(--persona-primary, #4a6741);
+      stroke: var(--persona-primary, var(--color-ferni));
       stroke-width: 7;
       stroke-linecap: round;
       transition: stroke-dashoffset ${DURATION.DRAMATIC}ms ${EASING.SPRING};
@@ -395,13 +395,13 @@ function getJourneyStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       line-height: 1;
     }
 
     .journey-progress-ring__label {
       font-size: 11px;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: 2px;
     }
 
@@ -409,19 +409,19 @@ function getJourneyStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-lg, 1.125rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-1, 4px);
     }
 
     .journey-stage-tagline {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4d47);
+      color: var(--color-text-secondary);
       margin: 0 0 var(--space-1, 4px);
     }
 
     .journey-stage-description {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin: 0 0 var(--space-4, 16px);
       font-style: italic;
       line-height: 1.5;
@@ -433,7 +433,7 @@ function getJourneyStyles(): string {
       gap: var(--space-5, 20px);
       margin-bottom: var(--space-3, 12px);
       padding: var(--space-3, 12px) var(--space-4, 16px);
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       border-radius: var(--radius-lg, 12px);
     }
 
@@ -445,7 +445,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-stat__icon {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: 2px;
     }
 
@@ -458,13 +458,13 @@ function getJourneyStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-base, 1rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       line-height: 1;
     }
 
     .journey-stat__label {
       font-size: 11px;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       text-align: center;
     }
     
@@ -474,7 +474,7 @@ function getJourneyStyles(): string {
     }
     
     .journey-stat__value--loading {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       font-size: var(--text-sm, 0.875rem);
     }
     
@@ -483,7 +483,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-next-stage {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
       border-radius: var(--radius-lg, 12px);
       padding: var(--space-3, 12px) var(--space-4, 16px);
       text-align: center;
@@ -499,7 +499,7 @@ function getJourneyStyles(): string {
     .journey-next-stage__req {
       display: block;
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-1, 4px);
       line-height: 1.4;
     }
@@ -527,7 +527,7 @@ function getJourneyStyles(): string {
 
     @supports not (background: color-mix(in srgb, red 50%, blue)) {
       .journey-next-stage--max {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.1) 0%, rgba(74, 103, 65, 0.04) 100%);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 10%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 4%, transparent) 100%);
       }
     }
 
@@ -550,11 +550,11 @@ function getJourneyStyles(): string {
     }
 
     .journey-milestones-header:hover {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.03));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 3%, transparent));
     }
 
     .journey-milestones-header:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
 
@@ -562,20 +562,20 @@ function getJourneyStyles(): string {
       flex: 1;
       font-size: var(--text-base, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
     .journey-milestones-count {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.05));
+      color: var(--color-text-muted);
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 5%, transparent));
       padding: var(--space-1, 4px) var(--space-2, 8px);
       border-radius: var(--radius-full, 9999px);
     }
 
     .journey-milestones-toggle {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: transform ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
@@ -619,15 +619,15 @@ function getJourneyStyles(): string {
     .journey-category__title {
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0;
       flex: 1;
     }
 
     .journey-category__count {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.05));
+      color: var(--color-text-muted);
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 5%, transparent));
       padding: var(--space-1, 4px) var(--space-2, 8px);
       border-radius: var(--radius-full, 9999px);
     }
@@ -646,7 +646,7 @@ function getJourneyStyles(): string {
       align-items: flex-start;
       gap: var(--space-3, 12px);
       padding: var(--space-3, 12px);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.02));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 2%, transparent));
       border-radius: var(--radius-lg, 12px);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
@@ -656,13 +656,13 @@ function getJourneyStyles(): string {
         color-mix(in srgb, var(--persona-primary, #4a6741) 8%, transparent) 0%,
         color-mix(in srgb, var(--persona-primary, #4a6741) 2%, transparent) 100%
       ));
-      border: 1px solid var(--milestone-border-celebrated, color-mix(in srgb, var(--persona-primary, #4a6741) 15%, transparent));
+      border: 1px solid var(--milestone-border-celebrated, color-mix(in srgb, var(--persona-primary, var(--color-ferni)) 15%, transparent));
     }
     
     @supports not (background: color-mix(in srgb, red 50%, blue)) {
       .journey-milestone--celebrated {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.08) 0%, rgba(74, 103, 65, 0.02) 100%);
-        border-color: rgba(74, 103, 65, 0.15);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 8%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 2%, transparent) 100%);
+        border-color: color-mix(in srgb, var(--color-ferni) 15%, transparent);
       }
     }
 
@@ -678,14 +678,14 @@ function getJourneyStyles(): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-background-elevated, #fff);
+      background: var(--color-background-elevated);
       border: 2px solid var(--milestone-color, var(--persona-primary));
       color: var(--milestone-color, var(--persona-primary));
     }
 
     .journey-milestone--locked .journey-milestone__status {
-      border-color: var(--color-text-muted, #70605a);
-      color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted);
+      color: var(--color-text-muted);
       opacity: 0.5;
     }
 
@@ -697,30 +697,30 @@ function getJourneyStyles(): string {
     .journey-milestone__name {
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
     .journey-milestone--locked .journey-milestone__name {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .journey-milestone__message {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4d47);
+      color: var(--color-text-secondary);
       margin: var(--space-1, 4px) 0 0;
       line-height: 1.4;
     }
 
     .journey-milestone--locked .journey-milestone__message {
       font-style: italic;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .journey-milestone__progress {
       position: relative;
       height: 4px;
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.1));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 10%, transparent));
       border-radius: var(--radius-full, 9999px);
       margin-top: var(--space-2, 8px);
       overflow: hidden;
@@ -741,13 +741,13 @@ function getJourneyStyles(): string {
       right: 0;
       top: calc(100% + 4px);
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .journey-milestone__date {
       display: block;
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     /* ===================================================================
@@ -762,10 +762,10 @@ function getJourneyStyles(): string {
     }
 
     .journey-polaroid {
-      background: var(--color-background-elevated, #fffdfb);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-md, 8px);
       padding: var(--space-2, 8px);
-      box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+      box-shadow: var(--shadow-sm, 0 2px 8px color-mix(in srgb, var(--color-black) 8%, transparent));
       transform: rotate(var(--rotate, 0deg));
       transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
       cursor: pointer;
@@ -773,12 +773,12 @@ function getJourneyStyles(): string {
 
     .journey-polaroid:hover {
       transform: rotate(0deg) scale(1.05);
-      box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.12));
+      box-shadow: var(--shadow-md, 0 4px 16px color-mix(in srgb, var(--color-black) 12%, transparent));
       z-index: 1;
     }
 
     .journey-polaroid:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
 
@@ -799,14 +799,14 @@ function getJourneyStyles(): string {
 
     @supports not (background: color-mix(in srgb, red 50%, blue)) {
       .journey-polaroid__image {
-        background: linear-gradient(135deg, var(--milestone-color, #4a6741) 0%, #3d5a35 100%);
+        background: linear-gradient(135deg, var(--milestone-color, var(--color-ferni)) 0%, var(--color-ferni-secondary) 100%);
       }
     }
 
     /* Mystery image for locked milestones */
     .journey-polaroid__image--mystery {
       background: linear-gradient(135deg, 
-        var(--color-text-muted, #70605a) 0%,
+        var(--color-text-muted) 0%,
         var(--color-background-subtle, rgba(0, 0, 0, 0.2)) 100%
       );
     }
@@ -815,20 +815,20 @@ function getJourneyStyles(): string {
     .journey-polaroid__glow {
       position: absolute;
       inset: -20%;
-      background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 60%);
+      background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--color-white) 40%, transparent) 0%, transparent 60%);
       opacity: 0.6;
     }
 
     .journey-polaroid__emoji {
       font-size: 28px;
       line-height: 1;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+      filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--color-black) 20%, transparent));
     }
 
     .journey-polaroid__mystery-icon {
       font-size: 24px;
       font-weight: 700;
-      color: var(--color-text-muted, #a89d90);
+      color: var(--color-text-muted);
       opacity: 0.6;
     }
 
@@ -841,7 +841,7 @@ function getJourneyStyles(): string {
       display: block;
       font-size: var(--text-xs, 11px);
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       line-height: 1.2;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -850,7 +850,7 @@ function getJourneyStyles(): string {
 
     .journey-polaroid__message {
       font-size: var(--text-2xs, 9px);
-      color: var(--color-text-secondary, #5a4d47);
+      color: var(--color-text-secondary);
       margin: var(--space-1, 4px) 0 0;
       line-height: 1.3;
       display: -webkit-box;
@@ -869,7 +869,7 @@ function getJourneyStyles(): string {
 
     .journey-polaroid__date {
       font-size: var(--text-2xs, 8px);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .journey-polaroid__persona {
@@ -880,14 +880,14 @@ function getJourneyStyles(): string {
     .journey-polaroid__hint {
       display: block;
       font-size: var(--text-2xs, 9px);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       font-style: italic;
       margin-top: var(--space-1, 4px);
     }
 
     .journey-polaroid__progress {
       height: 3px;
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.1));
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-black) 10%, transparent));
       border-radius: var(--radius-full, 9999px);
       overflow: hidden;
       margin-top: var(--space-1, 4px);
@@ -895,7 +895,7 @@ function getJourneyStyles(): string {
 
     .journey-polaroid__progress-fill {
       height: 100%;
-      background: var(--milestone-color, var(--persona-primary, #4a6741));
+      background: var(--milestone-color, var(--persona-primary, var(--color-ferni)));
       border-radius: inherit;
       transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
     }
@@ -910,7 +910,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-polaroid--locked .journey-polaroid__title {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     /* Celebrated polaroid - warm glow effect */
@@ -972,7 +972,7 @@ function getJourneyStyles(): string {
        =================================================================== */
     .journey-footer {
       padding: var(--space-4, 16px) var(--space-6, 24px);
-      border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+      border-top: 1px solid var(--color-border, color-mix(in srgb, var(--color-black) 8%, transparent));
       text-align: center;
       display: flex;
       flex-direction: column;
@@ -982,7 +982,7 @@ function getJourneyStyles(): string {
 
     .journey-footer p {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin: 0;
     }
 
@@ -991,8 +991,8 @@ function getJourneyStyles(): string {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-4, 16px);
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       border: none;
       border-radius: var(--radius-full, 9999px);
       font-size: var(--text-sm, 0.875rem);
@@ -1002,7 +1002,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-share:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
       transform: scale(1.02);
     }
 
@@ -1011,7 +1011,7 @@ function getJourneyStyles(): string {
     }
     
     .journey-share:focus-visible {
-      outline: 2px solid var(--color-background-elevated, #fff);
+      outline: 2px solid var(--color-background-elevated);
       outline-offset: 2px;
     }
 
@@ -1062,12 +1062,12 @@ function getJourneyStyles(): string {
     .journey-connection__text {
       font-size: var(--text-base, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
     }
 
     .journey-connection__subtext {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4d47);
+      color: var(--color-text-secondary);
       margin: var(--space-1, 4px) 0 0;
     }
 
@@ -1077,13 +1077,13 @@ function getJourneyStyles(): string {
         color-mix(in srgb, var(--persona-primary, #4a6741) 12%, transparent) 0%,
         color-mix(in srgb, var(--persona-primary, #4a6741) 4%, transparent) 100%
       ));
-      border: 1px solid var(--connection-border-connected, color-mix(in srgb, var(--persona-primary, #4a6741) 25%, transparent));
+      border: 1px solid var(--connection-border-connected, color-mix(in srgb, var(--persona-primary, var(--color-ferni)) 25%, transparent));
     }
     
     @supports not (background: color-mix(in srgb, red 50%, blue)) {
       .journey-connection--connected {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.12) 0%, rgba(74, 103, 65, 0.04) 100%);
-        border-color: rgba(74, 103, 65, 0.25);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-ferni) 12%, transparent) 0%, color-mix(in srgb, var(--color-ferni) 4%, transparent) 100%);
+        border-color: color-mix(in srgb, var(--color-ferni) 25%, transparent);
       }
     }
 
@@ -1101,18 +1101,18 @@ function getJourneyStyles(): string {
         color-mix(in srgb, var(--color-warning, #d4a574) 12%, transparent) 0%,
         color-mix(in srgb, var(--color-warning, #d4a574) 4%, transparent) 100%
       ));
-      border: 1px solid var(--connection-border-connecting, color-mix(in srgb, var(--color-warning, #d4a574) 25%, transparent));
+      border: 1px solid var(--connection-border-connecting, color-mix(in srgb, var(--color-warning, var(--color-carmen)) 25%, transparent));
     }
     
     @supports not (background: color-mix(in srgb, red 50%, blue)) {
       .journey-connection--connecting {
-        background: linear-gradient(135deg, rgba(212, 165, 116, 0.12) 0%, rgba(212, 165, 116, 0.04) 100%);
-        border-color: rgba(212, 165, 116, 0.25);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-carmen) 12%, transparent) 0%, color-mix(in srgb, var(--color-carmen) 4%, transparent) 100%);
+        border-color: color-mix(in srgb, var(--color-carmen) 25%, transparent);
       }
     }
 
     .journey-connection--connecting .journey-connection__icon {
-      color: var(--color-warning, #d4a574);
+      color: var(--color-warning, var(--color-carmen));
     }
 
     .journey-connection--connecting .journey-connection__text {
@@ -1122,8 +1122,8 @@ function getJourneyStyles(): string {
     /* Disconnected state - muted gray */
     .journey-connection--disconnected {
       background: var(--connection-bg-disconnected, linear-gradient(135deg,
-        color-mix(in srgb, var(--color-text-muted, #70605a) 8%, transparent) 0%,
-        color-mix(in srgb, var(--color-text-muted, #70605a) 2%, transparent) 100%
+        color-mix(in srgb, var(--color-text-muted) 8%, transparent) 0%,
+        color-mix(in srgb, var(--color-text-muted) 2%, transparent) 100%
       ));
       border: 1px solid var(--connection-border-disconnected, color-mix(in srgb, var(--color-text-muted, #70605a) 15%, transparent));
     }
@@ -1136,7 +1136,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-connection--disconnected .journey-connection__icon {
-      color: var(--color-text-muted, #9a8a82);
+      color: var(--color-text-muted);
     }
 
     /* Error state - red, but not alarming */
@@ -1169,8 +1169,8 @@ function getJourneyStyles(): string {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-3, 12px) var(--space-5, 20px);
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       border: none;
       border-radius: var(--radius-full, 9999px);
       font-size: var(--text-sm, 0.875rem);
@@ -1181,7 +1181,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-connect-btn:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
       transform: scale(1.03);
     }
 
@@ -1190,7 +1190,7 @@ function getJourneyStyles(): string {
     }
     
     .journey-connect-btn:focus-visible {
-      outline: 2px solid var(--color-background-elevated, #fff);
+      outline: 2px solid var(--color-background-elevated);
       outline-offset: 2px;
     }
 
@@ -1220,18 +1220,18 @@ function getJourneyStyles(): string {
       align-items: center;
       gap: var(--space-3, 12px);
       padding: var(--space-3, 12px) var(--space-4, 16px);
-      background: var(--color-background-elevated, rgba(255, 255, 255, 0.5));
+      background: var(--color-background-elevated);
       border-radius: var(--radius-lg, 12px);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
     .journey-insights-header:hover {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.03));
+      background: var(--color-background-hover, color-mix(in srgb, var(--color-black) 3%, transparent));
     }
 
     .journey-insights-header:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
+      outline: 2px solid var(--persona-primary, var(--color-ferni));
       outline-offset: 2px;
     }
 
@@ -1243,7 +1243,7 @@ function getJourneyStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-base, 1rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0;
     }
 
@@ -1252,7 +1252,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-insights-toggle {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: transform ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
 
@@ -1300,7 +1300,7 @@ function getJourneyStyles(): string {
 
     .journey-insights-loading-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-3, 12px);
     }
 
@@ -1317,14 +1317,14 @@ function getJourneyStyles(): string {
       width: 48px;
       height: 48px;
       border-radius: var(--radius-full, 9999px);
-      background: color-mix(in srgb, var(--persona-primary, #4a6741) 12%, transparent);
+      background: color-mix(in srgb, var(--persona-primary, var(--color-ferni)) 12%, transparent);
       color: var(--persona-ink);
       margin-bottom: var(--space-3, 12px);
     }
 
     @supports not (background: color-mix(in srgb, red 50%, blue)) {
       .journey-insights-empty__icon {
-        background: rgba(74, 103, 65, 0.12);
+        background: color-mix(in srgb, var(--color-ferni) 12%, transparent);
       }
     }
 
@@ -1332,13 +1332,13 @@ function getJourneyStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-lg, 1.125rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       margin: 0 0 var(--space-2, 8px);
     }
 
     .journey-insights-empty__text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       line-height: 1.5;
       max-width: min(280px, 100%);
       margin: 0 auto;
@@ -1357,7 +1357,7 @@ function getJourneyStyles(): string {
       flex-direction: column;
       align-items: center;
       padding: var(--space-3, 12px);
-      background: var(--color-background-elevated, rgba(255, 255, 255, 0.5));
+      background: var(--color-background-elevated);
       border-radius: var(--radius-lg, 12px);
       text-align: center;
     }
@@ -1376,13 +1376,13 @@ function getJourneyStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       line-height: 1;
     }
 
     .journey-trust-stat__label {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-1, 4px);
     }
 
@@ -1395,7 +1395,7 @@ function getJourneyStyles(): string {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      color: var(--color-text-secondary, #5a4d47);
+      color: var(--color-text-secondary);
       margin: 0 0 var(--space-3, 12px);
     }
 
@@ -1411,7 +1411,7 @@ function getJourneyStyles(): string {
       align-items: center;
       gap: var(--space-1, 4px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: color-mix(in srgb, var(--persona-primary, #4a6741) 10%, transparent);
+      background: color-mix(in srgb, var(--persona-primary, var(--color-ferni)) 10%, transparent);
       color: var(--persona-ink);
       border-radius: var(--radius-full, 9999px);
       font-size: var(--text-sm, 0.875rem);
@@ -1420,7 +1420,7 @@ function getJourneyStyles(): string {
 
     @supports not (background: color-mix(in srgb, red 50%, blue)) {
       .journey-growth-tag {
-        background: rgba(74, 103, 65, 0.1);
+        background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
       }
     }
 
@@ -1441,12 +1441,12 @@ function getJourneyStyles(): string {
       align-items: flex-start;
       gap: var(--space-3, 12px);
       padding: var(--space-3, 12px);
-      background: var(--color-background-elevated, rgba(255, 255, 255, 0.5));
+      background: var(--color-background-elevated);
       border-radius: var(--radius-lg, 12px);
     }
 
     .journey-win-item__icon {
-      color: var(--color-warning, #d4a574);
+      color: var(--color-warning, var(--color-carmen));
       flex-shrink: 0;
     }
 
@@ -1459,12 +1459,12 @@ function getJourneyStyles(): string {
       display: block;
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
     }
 
     .journey-win-item__desc {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin: var(--space-1, 4px) 0 0;
       line-height: 1.4;
     }
@@ -1481,26 +1481,26 @@ function getJourneyStyles(): string {
       align-items: center;
       gap: var(--space-3, 12px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: var(--color-background-elevated, rgba(255, 255, 255, 0.3));
+      background: var(--color-background-elevated);
       border-radius: var(--radius-md, 8px);
-      border-left: 3px solid var(--persona-primary, #4a6741);
+      border-left: 3px solid var(--persona-primary, var(--color-ferni));
     }
 
     .journey-timeline-item--win { border-left-color: var(--color-warning, #d4a574); }
     .journey-timeline-item--boundary { border-left-color: var(--color-info, #3a6b73); }
-    .journey-timeline-item--callback { border-left-color: var(--color-maya, #a67a6a); }
-    .journey-timeline-item--outreach { border-left-color: var(--color-nayan, #b8956a); }
+    .journey-timeline-item--callback { border-left-color: var(--color-maya); }
+    .journey-timeline-item--outreach { border-left-color: var(--color-nayan); }
 
     .journey-timeline-item__date {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       white-space: nowrap;
       min-width: 80px;
     }
 
     .journey-timeline-item__title {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2c2520);
+      color: var(--color-text-primary);
       font-weight: 500;
       flex: 1;
       overflow: hidden;
@@ -1512,15 +1512,15 @@ function getJourneyStyles(): string {
        DARK THEME
        =================================================================== */
     [data-theme="midnight"] .journey-backdrop {
-      background: var(--backdrop-heavy-dark, rgba(8, 8, 12, 0.8));
+      background: var(--backdrop-heavy-dark, color-mix(in srgb, var(--color-black) 80%, transparent));
     }
 
     [data-theme="midnight"] .journey-content {
-      background: var(--color-background-elevated, #1a1a1f);
+      background: var(--color-background-elevated);
     }
 
     [data-theme="midnight"] .journey-title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .journey-milestone--celebrated {
@@ -1549,11 +1549,11 @@ function getJourneyStyles(): string {
     }
 
     [data-theme="midnight"] .journey-connection__text {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .journey-connection__subtext {
-      color: var(--color-text-secondary, #c0b8b0);
+      color: var(--color-text-secondary);
     }
 
     [data-theme="midnight"] .journey-connect-btn {
@@ -1566,7 +1566,7 @@ function getJourneyStyles(): string {
 
     /* Dark theme - Progress Overview */
     [data-theme="midnight"] .journey-progress-ring__bg {
-      stroke: rgba(255, 255, 255, 0.1);
+      stroke: color-mix(in srgb, var(--color-white) 10%, transparent);
     }
 
     [data-theme="midnight"] .journey-progress-ring__fill {
@@ -1576,7 +1576,7 @@ function getJourneyStyles(): string {
     [data-theme="midnight"] .journey-progress-ring__percent,
     [data-theme="midnight"] .journey-stage-name,
     [data-theme="midnight"] .journey-stat__value {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .journey-progress-ring__label,
@@ -1584,11 +1584,11 @@ function getJourneyStyles(): string {
     [data-theme="midnight"] .journey-stat__label,
     [data-theme="midnight"] .journey-stat__icon,
     [data-theme="midnight"] .journey-next-stage__req {
-      color: var(--color-text-muted, #a09890);
+      color: var(--color-text-muted);
     }
 
     [data-theme="midnight"] .journey-next-stage {
-      background: rgba(255, 255, 255, 0.05);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
     }
 
     [data-theme="midnight"] .journey-next-stage--max {
@@ -1596,32 +1596,32 @@ function getJourneyStyles(): string {
     }
 
     [data-theme="midnight"] .journey-milestones-title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .journey-milestones-header:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
     }
 
     [data-theme="midnight"] .journey-progress-overview {
-      border-bottom-color: rgba(255, 255, 255, 0.1);
+      border-bottom-color: color-mix(in srgb, var(--color-white) 10%, transparent);
     }
 
     [data-theme="midnight"] .journey-stats-row {
-      background: rgba(255, 255, 255, 0.05);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
     }
 
     /* Dark theme - Trust Insights */
     [data-theme="midnight"] .journey-insights-header {
-      background: rgba(255, 255, 255, 0.05);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
     }
 
     [data-theme="midnight"] .journey-insights-header:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: color-mix(in srgb, var(--color-white) 8%, transparent);
     }
 
     [data-theme="midnight"] .journey-insights-title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .journey-insights-empty__icon {
@@ -1629,19 +1629,19 @@ function getJourneyStyles(): string {
     }
 
     [data-theme="midnight"] .journey-insights-empty__title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .journey-trust-stat {
-      background: rgba(255, 255, 255, 0.05);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
     }
 
     [data-theme="midnight"] .journey-trust-stat__value {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .journey-trust-section__title {
-      color: var(--color-text-secondary, #c0b8b0);
+      color: var(--color-text-secondary);
     }
 
     [data-theme="midnight"] .journey-growth-tag {
@@ -1650,37 +1650,37 @@ function getJourneyStyles(): string {
     }
 
     [data-theme="midnight"] .journey-win-item {
-      background: rgba(255, 255, 255, 0.05);
+      background: color-mix(in srgb, var(--color-white) 5%, transparent);
     }
 
     [data-theme="midnight"] .journey-win-item__type {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .journey-timeline-item {
-      background: rgba(255, 255, 255, 0.03);
+      background: color-mix(in srgb, var(--color-white) 3%, transparent);
     }
 
     [data-theme="midnight"] .journey-timeline-item__title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     /* Dark theme - Polaroid Scrapbook */
     [data-theme="midnight"] .journey-polaroid {
-      background: var(--color-background-subtle, rgba(255, 255, 255, 0.05));
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-white) 5%, transparent));
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--color-black) 20%, transparent);
     }
 
     [data-theme="midnight"] .journey-polaroid:hover {
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 16px color-mix(in srgb, var(--color-black) 30%, transparent);
     }
 
     [data-theme="midnight"] .journey-polaroid__title {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .journey-polaroid__message {
-      color: var(--color-text-secondary, #c0b8b0);
+      color: var(--color-text-secondary);
     }
 
     [data-theme="midnight"] .journey-polaroid--celebrated {
@@ -1697,16 +1697,16 @@ function getJourneyStyles(): string {
 
     /* Dark theme - Journey Map */
     [data-theme="midnight"] .journey-map-section {
-      border-bottom-color: rgba(255, 255, 255, 0.08);
+      border-bottom-color: color-mix(in srgb, var(--color-white) 8%, transparent);
     }
 
     [data-theme="midnight"] .journey-map__node {
-      background: var(--color-background-subtle, rgba(255, 255, 255, 0.1));
-      border-color: rgba(255, 255, 255, 0.2);
+      background: var(--color-background-subtle, color-mix(in srgb, var(--color-white) 10%, transparent));
+      border-color: color-mix(in srgb, var(--color-white) 20%, transparent);
     }
 
     [data-theme="midnight"] .journey-map__node-inner {
-      background: rgba(255, 255, 255, 0.15);
+      background: color-mix(in srgb, var(--color-white) 15%, transparent);
     }
 
     [data-theme="midnight"] .journey-map__stage--past .journey-map__node {
@@ -1724,15 +1724,15 @@ function getJourneyStyles(): string {
     }
 
     [data-theme="midnight"] .journey-map__label {
-      color: var(--color-text-muted, #a09890);
+      color: var(--color-text-muted);
     }
 
     [data-theme="midnight"] .journey-map__stage--current .journey-map__label {
-      color: var(--color-text-primary, #faf6f0);
+      color: var(--color-text-primary);
     }
 
     [data-theme="midnight"] .journey-map__connector {
-      background: rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, var(--color-white) 10%, transparent);
     }
 
     [data-theme="midnight"] .journey-map__connector-fill {
@@ -1740,7 +1740,7 @@ function getJourneyStyles(): string {
     }
 
     [data-theme="midnight"] .journey-map__hint {
-      color: var(--color-text-muted, #a09890);
+      color: var(--color-text-muted);
     }
 
     /* ===================================================================

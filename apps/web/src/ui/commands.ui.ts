@@ -587,7 +587,7 @@ class CommandsPanelUI {
       .ferni-commands__item--active .ferni-commands__item-desc,
       .ferni-commands__item--active .ferni-commands__item-icon,
       .ferni-commands__item--active .ferni-commands__item-arrow {
-        color: white;
+        color: var(--color-white);
       }
 
       .ferni-commands__item-icon {

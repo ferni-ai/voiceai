@@ -59,7 +59,7 @@ export function getCreationsStyles(): string {
       border-radius: 9999px;
       background: var(--persona-primary, var(--color-accent-primary));
       border: none;
-      color: white;
+      color: var(--color-white);
       font-family: var(--font-body);
       font-size: 0.875rem;
       font-weight: 600;
@@ -133,7 +133,7 @@ export function getCreationsStyles(): string {
       border-radius: 9999px;
       background: var(--persona-primary, var(--color-accent-primary));
       border: none;
-      color: white;
+      color: var(--color-white);
       font-family: var(--font-body);
       font-size: 0.9rem;
       font-weight: 600;
@@ -297,7 +297,7 @@ export function getCreationsStyles(): string {
       font-family: var(--font-display);
       font-size: 1.1rem;
       font-weight: 700;
-      color: white;
+      color: var(--color-white);
       flex-shrink: 0;
       /* Ring and shadow using design system tokens */
       box-shadow: 
@@ -428,7 +428,7 @@ export function getCreationsStyles(): string {
     .custom-agent-action--talk {
       background: var(--persona-primary, var(--color-accent-primary));
       border-color: var(--persona-primary, var(--color-accent-primary));
-      color: white;
+      color: var(--color-white);
       box-shadow: 0 2px 6px var(--persona-glow, var(--color-accent-glow));
     }
 

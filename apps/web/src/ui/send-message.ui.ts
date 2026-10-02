@@ -118,10 +118,10 @@ function injectStyles(): void {
       width: 94%;
       max-width: clamp(294px, 90vw, 420px);
       max-height: 85vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -161,7 +161,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 1.25rem);
       font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin: 0;
       line-height: 1.2;
     }
@@ -176,14 +176,14 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
 
     .sm-close:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
 
     /* =========================================================================
@@ -221,12 +221,12 @@ function injectStyles(): void {
     }
 
     .sm-channel:hover:not(:disabled) {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted);
     }
 
     .sm-channel.selected {
-      border-color: var(--persona-primary, #4a6741);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      border-color: var(--persona-primary, var(--color-ferni));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 8%, transparent));
     }
 
     .sm-channel:disabled {
@@ -235,7 +235,7 @@ function injectStyles(): void {
     }
 
     .sm-channel-icon {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .sm-channel.selected .sm-channel-icon {
@@ -245,7 +245,7 @@ function injectStyles(): void {
     .sm-channel-label {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .sm-channel.selected .sm-channel-label {
@@ -255,7 +255,7 @@ function injectStyles(): void {
 
     .sm-no-info {
       font-size: var(--text-xxs, 0.625rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-1, 0.25rem);
     }
 
@@ -270,7 +270,7 @@ function injectStyles(): void {
     .sm-label {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-bottom: var(--space-2, 0.5rem);
       display: block;
     }
@@ -281,14 +281,14 @@ function injectStyles(): void {
       border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
-      background: var(--color-background-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
       outline: none;
       transition: border-color ${DURATION.FAST}ms, box-shadow ${DURATION.FAST}ms;
     }
 
     .sm-input:focus {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
@@ -300,8 +300,8 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
       font-family: inherit;
-      background: var(--color-background-elevated, #FFFDFB);
-      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
       outline: none;
       resize: vertical;
       line-height: 1.5;
@@ -309,23 +309,23 @@ function injectStyles(): void {
     }
 
     .sm-textarea:focus {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, var(--color-ferni));
       box-shadow: 0 0 0 3px var(--color-utility-focus-ring-subtle);
     }
 
     .sm-textarea::placeholder {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     .sm-char-count {
       text-align: right;
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
       margin-top: var(--space-1, 0.25rem);
     }
 
     .sm-char-count.warning {
-      color: var(--nayan-primary, #b8956a);
+      color: var(--nayan-primary, var(--color-nayan));
     }
 
     .sm-char-count.over {
@@ -346,7 +346,7 @@ function injectStyles(): void {
       height: 64px;
       margin: 0 auto var(--space-4, 1rem);
       border-radius: var(--radius-full, 50%);
-      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 10%, transparent));
       color: var(--persona-ink);
       display: flex;
       align-items: center;
@@ -361,13 +361,13 @@ function injectStyles(): void {
     .sm-call-number {
       font-size: var(--text-lg, 1.125rem);
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
       margin-bottom: var(--space-2, 0.5rem);
     }
 
     .sm-call-hint {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted);
     }
 
     /* =========================================================================
@@ -389,16 +389,16 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 600;
-      background: var(--persona-primary, #4a6741);
-      border: 1px solid var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      border: 1px solid var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .sm-send-btn:hover:not(:disabled) {
-      background: var(--persona-secondary, #3d5a35);
-      border-color: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
+      border-color: var(--persona-secondary, var(--color-ferni-secondary));
     }
 
     .sm-send-btn:disabled {

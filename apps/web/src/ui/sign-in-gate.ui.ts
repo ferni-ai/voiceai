@@ -102,14 +102,14 @@ const STYLES = `
 .sign-in-gate-title {
   font-size: 1.75rem;
   font-weight: 600;
-  color: var(--color-text-primary, #f4f4f5);
+  color: var(--color-text-primary);
   margin: 0 0 var(--space-sm, 0.5rem);
   font-family: var(--font-display, inherit);
 }
 
 .sign-in-gate-subtitle {
   font-size: 1rem;
-  color: var(--color-text-secondary, #a1a1aa);
+  color: var(--color-text-secondary);
   margin: 0 0 var(--space-xl, 2.618rem);
   line-height: 1.5;
 }
@@ -185,11 +185,11 @@ const STYLES = `
 .sign-in-gate-footer {
   margin-top: var(--space-xl, 2.618rem);
   font-size: 0.75rem;
-  color: var(--color-text-muted, #71717a);
+  color: var(--color-text-muted);
 }
 
 .sign-in-gate-footer a {
-  color: var(--color-text-secondary, #a1a1aa);
+  color: var(--color-text-secondary);
   text-decoration: underline;
 }
 
@@ -212,36 +212,36 @@ const STYLES = `
 .sign-in-gate-waitlist-title {
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--color-text-primary, #f4f4f5);
+  color: var(--color-text-primary);
   margin: 0 0 var(--space-sm, 0.5rem);
 }
 
 .sign-in-gate-waitlist-message {
   font-size: 1rem;
-  color: var(--color-text-secondary, #a1a1aa);
+  color: var(--color-text-secondary);
   margin: 0 0 var(--space-lg, 1.618rem);
   line-height: 1.6;
 }
 
 .sign-in-gate-waitlist-email {
   font-size: 0.875rem;
-  color: var(--color-text-muted, #71717a);
+  color: var(--color-text-muted);
   margin: 0 0 var(--space-xl, 2.618rem);
 }
 
 .sign-in-gate-waitlist-email strong {
-  color: var(--color-text-secondary, #a1a1aa);
+  color: var(--color-text-secondary);
 }
 
 .sign-in-gate-btn--secondary {
   background: transparent;
-  color: var(--color-text-secondary, #a1a1aa);
-  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-subtle);
 }
 
 .sign-in-gate-btn--secondary:hover {
   background: var(--color-bg-secondary, #1a1a2e);
-  border-color: var(--color-border-medium, rgba(255, 255, 255, 0.2));
+  border-color: var(--color-border-medium);
 }
 
 .sign-in-gate-checking {
@@ -255,7 +255,7 @@ const STYLES = `
   width: 32px;
   height: 32px;
   border: 3px solid var(--color-bg-tertiary, #2a2a3e);
-  border-top-color: var(--color-accent-primary, #3D5A45);
+  border-top-color: var(--color-accent-primary);
   border-radius: 50%;
   animation: sign-in-gate-spin 0.8s linear infinite;
 }
@@ -266,7 +266,7 @@ const STYLES = `
 
 .sign-in-gate-checking-text {
   font-size: 0.875rem;
-  color: var(--color-text-secondary, #a1a1aa);
+  color: var(--color-text-secondary);
 }
 
 @media (prefers-reduced-motion: reduce) {

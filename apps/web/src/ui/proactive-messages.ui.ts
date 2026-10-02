@@ -100,27 +100,27 @@ export function initProactiveMessages(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-3, 12px) var(--space-4, 16px);
-      background: var(--color-background-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-background-elevated);
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-full, 9999px);
-      box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0,0,0,0.1));
+      box-shadow: var(--shadow-lg, 0 10px 15px -3px color-mix(in srgb, var(--color-black) 10%, transparent));
       cursor: pointer;
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 14px;
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       transition: all var(--duration-fast, 100ms) ease;
     }
     
     .indicator-btn:hover {
       transform: translateY(-2px);
-      box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0,0,0,0.1));
+      box-shadow: var(--shadow-xl, 0 20px 25px -5px color-mix(in srgb, var(--color-black) 10%, transparent));
       color: var(--persona-ink);
     }
     
     .indicator-dot {
       width: 10px;
       height: 10px;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       border-radius: 50%;
       animation: pulse-gentle 2s infinite;
     }
@@ -156,10 +156,10 @@ export function initProactiveMessages(): void {
     }
     
     .message-card {
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 24px);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25));
+      border: 1px solid var(--color-border-subtle);
+      box-shadow: var(--shadow-2xl, 0 25px 50px -12px color-mix(in srgb, var(--color-black) 25%, transparent));
       overflow: hidden;
     }
     
@@ -168,7 +168,7 @@ export function initProactiveMessages(): void {
       align-items: center;
       justify-content: space-between;
       padding: var(--space-4, 16px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      border-bottom: 1px solid var(--color-border-subtle);
     }
     
     .message-sender {
@@ -181,7 +181,7 @@ export function initProactiveMessages(): void {
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -190,7 +190,7 @@ export function initProactiveMessages(): void {
     .sender-avatar svg {
       width: 20px;
       height: 20px;
-      fill: white;
+      fill: var(--color-white);
     }
     
     .sender-info {
@@ -203,12 +203,12 @@ export function initProactiveMessages(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-weight: 600;
       font-size: 14px;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .sender-reason {
       font-size: 12px;
-      color: var(--color-text-muted, #756A5E);
+      color: var(--color-text-muted);
     }
     
     .close-btn {
@@ -216,7 +216,7 @@ export function initProactiveMessages(): void {
       height: 32px;
       border-radius: 50%;
       border: none;
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -225,13 +225,13 @@ export function initProactiveMessages(): void {
     }
     
     .close-btn:hover {
-      background: var(--color-border-medium, rgba(44, 37, 32, 0.1));
+      background: var(--color-border-medium);
     }
     
     .close-btn svg {
       width: 16px;
       height: 16px;
-      stroke: var(--color-text-muted, #756A5E);
+      stroke: var(--color-text-muted);
     }
     
     .message-body {
@@ -242,7 +242,7 @@ export function initProactiveMessages(): void {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 15px;
       line-height: 1.6;
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       white-space: pre-wrap;
     }
     
@@ -257,29 +257,29 @@ export function initProactiveMessages(): void {
       flex: 1;
       padding: var(--space-3, 12px);
       border-radius: var(--radius-lg, 12px);
-      border: 1px solid var(--color-border-medium, rgba(44, 37, 32, 0.1));
+      border: 1px solid var(--color-border-medium);
       background: transparent;
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: 14px;
       font-weight: 500;
-      color: var(--color-text-secondary, #5C544A);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: all var(--duration-fast, 100ms) ease;
     }
     
     .action-btn:hover {
-      background: var(--color-background-secondary, #F5F1E8);
+      background: var(--color-background-secondary);
     }
     
     .action-btn.primary {
-      background: var(--persona-primary, #4a6741);
-      border-color: var(--persona-primary, #4a6741);
-      color: white;
+      background: var(--persona-primary, var(--color-ferni));
+      border-color: var(--persona-primary, var(--color-ferni));
+      color: var(--color-white);
     }
     
     .action-btn.primary:hover {
-      background: var(--persona-secondary, #3d5a35);
-      border-color: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary, var(--color-ferni-secondary));
+      border-color: var(--persona-secondary, var(--color-ferni-secondary));
     }
     
     .message-pagination {
@@ -293,14 +293,14 @@ export function initProactiveMessages(): void {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: var(--color-border-medium, rgba(44, 37, 32, 0.15));
+      background: var(--color-border-medium);
       transition: all var(--duration-fast, 100ms) ease;
     }
     
     .pagination-dot.active {
       width: 20px;
       border-radius: 3px;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary, var(--color-ferni));
     }
     
     @media (max-width: 480px) {

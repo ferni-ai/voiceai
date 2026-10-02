@@ -213,7 +213,7 @@ const STYLES = `
     align-items: center;
     justify-content: space-between;
     padding: var(--space-4, 16px) var(--space-5, 20px);
-    border-bottom: 1px solid var(--color-border-subtle, rgba(255,255,255,0.1));
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
   .vcr-header-content {
@@ -597,7 +597,7 @@ const STYLES = `
   }
 
   .vcr-sample-delete:hover {
-    background: color-mix(in srgb, var(--color-semantic-error, #ef4444) 10%, transparent);
+    background: color-mix(in srgb, var(--color-semantic-error) 10%, transparent);
     color: var(--color-semantic-error-text);
   }
 

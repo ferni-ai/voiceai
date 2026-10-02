@@ -901,10 +901,10 @@ function getEditorStyles(): string {
       width: 90vw;
       max-width: clamp(448px, 90vw, 640px);
       max-height: 85vh;
-      background: var(--color-bg-elevated, #FFFDFB);
-      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      background: var(--color-bg-elevated, var(--color-white));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-black) 6%, transparent);
       transform: scale(0.95);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
       display: flex;
@@ -940,7 +940,7 @@ function getEditorStyles(): string {
       justify-content: center;
       font-size: 1.1rem;
       font-weight: 600;
-      color: white;
+      color: var(--color-white);
     }
     
     .editor-title {
@@ -975,7 +975,7 @@ function getEditorStyles(): string {
     }
     
     .editor-status.status--active {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.2));
+      background: var(--persona-tint, color-mix(in srgb, var(--color-ferni) 20%, transparent));
       color: var(--color-ferni-ink);
     }
     
@@ -1035,7 +1035,7 @@ function getEditorStyles(): string {
       left: 0;
       right: 0;
       height: 2px;
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       border-radius: 1px;
     }
     
@@ -1152,7 +1152,7 @@ function getEditorStyles(): string {
     }
     
     .status-dot--draft { background: var(--color-text-muted); }
-    .status-dot--active { background: var(--color-ferni, #4a6741); }
+    .status-dot--active { background: var(--color-ferni); }
     .status-dot--paused { background: var(--color-warning, #f59e0b); }
     
     /* Sliders */
@@ -1191,7 +1191,7 @@ function getEditorStyles(): string {
       border: none;
       appearance: none;
       cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 2px 4px color-mix(in srgb, var(--color-black) 20%, transparent);
     }
     
     .editor-slider-labels {
@@ -1294,7 +1294,7 @@ function getEditorStyles(): string {
       border-radius: 50%;
     }
     
-    .voice-status--ready .voice-status-dot { background: var(--color-ferni, #4a6741); }
+    .voice-status--ready .voice-status-dot { background: var(--color-ferni); }
     .voice-status--processing .voice-status-dot { background: var(--color-warning, #f59e0b); }
     .voice-status--failed .voice-status-dot { background: var(--color-error, #ef4444); }
     .voice-status--pending .voice-status-dot { background: var(--color-text-muted); }
@@ -1414,9 +1414,9 @@ function getEditorStyles(): string {
     }
     
     .memory-type-badge--stories { background: var(--persona-tint, rgba(74, 103, 65, 0.2)); color: var(--color-ferni-ink); }
-    .memory-type-badge--wisdom { background: var(--color-nayan-tint, rgba(138, 122, 106, 0.2)); color: var(--color-nayan, #8a7a6a); }
-    .memory-type-badge--sharedMoments { background: var(--color-maya-tint, rgba(166, 122, 106, 0.2)); color: var(--color-maya, #a67a6a); }
-    .memory-type-badge--journalEntries { background: var(--color-alex-tint, rgba(90, 107, 138, 0.2)); color: var(--color-alex, #5a6b8a); }
+    .memory-type-badge--wisdom { background: var(--color-nayan-tint, rgba(138, 122, 106, 0.2)); color: var(--color-nayan); }
+    .memory-type-badge--sharedMoments { background: var(--color-maya-tint, rgba(166, 122, 106, 0.2)); color: var(--color-maya); }
+    .memory-type-badge--journalEntries { background: var(--color-alex-tint, rgba(90, 107, 138, 0.2)); color: var(--color-alex); }
     
     .memory-content {
       flex: 1;
@@ -1495,7 +1495,7 @@ function getEditorStyles(): string {
     }
     
     .editor-btn--primary {
-      background: var(--color-accent, #4a6741);
+      background: var(--color-accent, var(--color-ferni));
       color: var(--color-text-on-accent);
     }
     
@@ -1521,8 +1521,8 @@ function getEditorStyles(): string {
     .spinner {
       width: 14px;
       height: 14px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-top-color: white;
+      border: 2px solid color-mix(in srgb, var(--color-white) 30%, transparent);
+      border-top-color: var(--color-white);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }

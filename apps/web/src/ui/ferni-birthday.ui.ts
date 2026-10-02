@@ -274,7 +274,7 @@ function injectStyles(): void {
       z-index: var(--z-notification, 3000);
       color: var(--color-semantic-warning-text);
       animation: cakeFloat 2s ${EASING.EXPO_OUT} forwards;
-      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+      filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--color-black) 30%, transparent));
     }
 
     @keyframes cakeFloat {

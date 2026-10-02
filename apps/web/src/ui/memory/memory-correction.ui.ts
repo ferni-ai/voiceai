@@ -201,7 +201,7 @@ function createModalElement(): void {
     display: none;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.5);
+    background: color-mix(in srgb, var(--color-black) 50%, transparent);
     backdrop-filter: blur(var(--blur-sm, 4px));
     z-index: var(--z-modal, 2000);
     opacity: 0;
@@ -364,7 +364,7 @@ function renderModalContent(): void {
     border: none;
     border-radius: var(--radius-md);
     background: var(--color-accent);
-    color: white;
+    color: var(--color-white);
     cursor: pointer;
     font-weight: 500;
   `;

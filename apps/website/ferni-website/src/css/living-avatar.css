@@ -80,30 +80,30 @@
   /* Multi-layer shadows for realistic depth */
   box-shadow: 
     /* Inner shadow - depth */
-    inset 0 -12px 30px rgba(0, 0, 0, 0.2),
-    /* Inner highlight - glass refraction */
-    inset 0 12px 25px rgba(255, 255, 255, 0.15),
-    /* Inner side shadows */
-    inset 8px 0 20px rgba(0, 0, 0, 0.08),
-    inset -8px 0 20px rgba(0, 0, 0, 0.08),
-    /* Outer shadow for lift */
-    0 8px 32px rgba(0, 0, 0, 0.12),
-    0 4px 12px rgba(0, 0, 0, 0.08),
-    0 2px 4px rgba(0, 0, 0, 0.04);
+    inset 0 -12px 30px color-mix(in srgb, var(--color-black) 20%, transparent),
+    
+    inset 0 12px 25px color-mix(in srgb, var(--color-white) 15%, transparent),
+    
+    inset 8px 0 20px color-mix(in srgb, var(--color-black) 8%, transparent),
+    inset -8px 0 20px color-mix(in srgb, var(--color-black) 8%, transparent),
+    
+    0 8px 32px color-mix(in srgb, var(--color-black) 12%, transparent),
+    0 4px 12px color-mix(in srgb, var(--color-black) 8%, transparent),
+    0 2px 4px color-mix(in srgb, var(--color-black) 4%, transparent);
   
   /* Subtle gradient overlay for glass effect */
   background: 
     radial-gradient(
       ellipse 60% 40% at 30% 25%,
-      rgba(255, 255, 255, 0.25) 0%,
+      color-mix(in srgb, var(--color-white) 25%, transparent) 0%,
       transparent 50%
     ),
     radial-gradient(
       ellipse 50% 30% at 70% 80%,
-      rgba(0, 0, 0, 0.1) 0%,
+      color-mix(in srgb, var(--color-black) 10%, transparent) 0%,
       transparent 50%
     ),
-    var(--color-ferni, var(--color-ferni));
+    var(--color-ferni);
   
   position: relative;
   overflow: hidden;
@@ -119,15 +119,15 @@
   height: 25%;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.35) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
+    color-mix(in srgb, var(--color-white) 35%, transparent) 0%,
+    color-mix(in srgb, var(--color-white) 10%, transparent) 50%,
     transparent 100%
   );
   border-radius: 50%;
   filter: blur(4px);
   pointer-events: none;
   opacity: 0.8;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--duration-slow) ease;
 }
 
 /* Secondary smaller highlight */
@@ -138,7 +138,7 @@
   right: 18%;
   width: 12%;
   height: 8%;
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--color-white) 15%, transparent);
   border-radius: 50%;
   filter: blur(3px);
   pointer-events: none;
@@ -149,8 +149,8 @@
   /* Rings get progressively more translucent */
   opacity: 0.25;
   box-shadow: 
-    0 0 30px rgba(74, 103, 65, 0.2),
-    inset 0 0 15px rgba(255, 255, 255, 0.05);
+    0 0 30px color-mix(in srgb, var(--color-ferni) 20%, transparent),
+    inset 0 0 15px color-mix(in srgb, var(--color-white) 5%, transparent);
 }
 
 .hero-ferni--living .hero-ferni__ring:nth-child(1) { 
@@ -170,9 +170,9 @@
 .hero-ferni--living .hero-ferni__glow {
   background: radial-gradient(
     ellipse at center,
-    rgba(74, 103, 65, 0.5) 0%,
-    rgba(74, 103, 65, 0.3) 30%,
-    rgba(74, 103, 65, 0.1) 60%,
+    color-mix(in srgb, var(--color-ferni) 50%, transparent) 0%,
+    color-mix(in srgb, var(--color-ferni) 30%, transparent) 30%,
+    color-mix(in srgb, var(--color-ferni) 10%, transparent) 60%,
     transparent 80%
   );
 }
@@ -182,7 +182,7 @@
    ============================================================================ */
 
 .hero-ferni__text--blink {
-  animation: ferni-blink 150ms ease-in-out;
+  animation: ferni-blink var(--duration-fast) ease-in-out;
 }
 
 @keyframes ferni-blink {
@@ -226,7 +226,7 @@
 /* Curious - Slight tilt and eye widening */
 .hero-ferni--curious {
   transform: rotate(var(--scroll-tilt, 3deg));
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform var(--duration-slow) var(--ease-ease-out-back);
 }
 
 .hero-ferni--curious .hero-ferni__orb {
@@ -234,7 +234,7 @@
 }
 
 .hero-ferni--curious .hero-ferni__ring--inner {
-  animation: curious-ring 800ms ease-out;
+  animation: curious-ring var(--duration-cinematic) ease-out;
 }
 
 @keyframes curious-ring {
@@ -254,7 +254,7 @@
 }
 
 .hero-ferni--delighted .hero-ferni__orb {
-  animation: delight-bounce 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: delight-bounce 600ms var(--ease-ease-out-back);
 }
 
 @keyframes delight-glow {
@@ -316,11 +316,11 @@
 
 /* Recognition - Quick warm flash (returning visitor) */
 .hero-ferni--recognition .hero-ferni__glow {
-  animation: recognition-flash 400ms ease-out;
+  animation: recognition-flash var(--duration-slower) ease-out;
 }
 
 .hero-ferni--recognition .hero-ferni__orb {
-  animation: recognition-nod 400ms ease-out;
+  animation: recognition-nod var(--duration-slower) ease-out;
 }
 
 @keyframes recognition-flash {
@@ -357,11 +357,11 @@
 
 /* Warmth - Gentle glow increase with subtle expansion */
 .hero-ferni--warmth .hero-ferni__glow {
-  animation: warmth-glow 800ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: warmth-glow var(--duration-cinematic) var(--ease-in-out);
 }
 
 .hero-ferni--warmth .hero-ferni__orb {
-  animation: warmth-expand 800ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: warmth-expand var(--duration-cinematic) var(--ease-in-out);
 }
 
 @keyframes warmth-glow {
@@ -415,7 +415,7 @@
 
 /* Interest - Quick eye widen (pupil dilation simulation) */
 .hero-ferni--interest .hero-ferni__orb {
-  animation: interest-widen 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: interest-widen var(--duration-slow) var(--ease-ease-out-back);
 }
 
 @keyframes interest-widen {
@@ -429,11 +429,11 @@
 
 /* Deep breath - settling/calming ambient behavior */
 .hero-ferni--deep-breath .hero-ferni__orb {
-  animation: deep-breath-orb 3000ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: deep-breath-orb var(--duration-meditative) var(--ease-in-out);
 }
 
 .hero-ferni--deep-breath .hero-ferni__glow {
-  animation: deep-breath-glow 3000ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: deep-breath-glow var(--duration-meditative) var(--ease-in-out);
 }
 
 @keyframes deep-breath-orb {
@@ -479,7 +479,7 @@
 
 /* Anticipation - Lean forward */
 .hero-ferni--anticipation {
-  animation: anticipation-lean 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: anticipation-lean var(--duration-slowest) var(--ease-in-out);
 }
 
 @keyframes anticipation-lean {
@@ -535,7 +535,7 @@
 }
 
 .hero-ferni--idle .hero-ferni__glow {
-  animation: idle-glow 8000ms ease-in-out infinite;
+  animation: idle-glow var(--duration-ambient) ease-in-out infinite;
 }
 
 /* Primary drift - smooth figure-8 pattern */
@@ -602,7 +602,7 @@
 
 /* "Noticing" state - when something catches Ferni's attention */
 .hero-ferni--noticing {
-  animation: notice-perk 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: notice-perk var(--duration-slower) var(--ease-ease-out-back) forwards;
 }
 
 @keyframes notice-perk {
@@ -638,11 +638,11 @@
 
 /* "Processing" state - thinking with intention */
 .hero-ferni--processing .hero-ferni__orb {
-  animation: process-think 1500ms ease-in-out infinite;
+  animation: process-think var(--duration-glacial) ease-in-out infinite;
 }
 
 .hero-ferni--processing .hero-ferni__ring {
-  animation: process-ring 1500ms ease-in-out infinite;
+  animation: process-ring var(--duration-glacial) ease-in-out infinite;
 }
 
 @keyframes process-think {
@@ -673,7 +673,7 @@
 
 .hero-ferni--living {
   transform: rotate(var(--scroll-tilt, 0deg));
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform var(--duration-slow) var(--ease-in-out);
 }
 
 /* ============================================================================
@@ -701,17 +701,17 @@
   .hero-ferni--living:hover .hero-ferni__glow {
     opacity: 0.6;
     transform: scale(1.2);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all var(--duration-slower) var(--ease-in-out);
   }
   
   .hero-ferni--living:hover .hero-ferni__ring {
     opacity: 0.4;
-    transition: opacity 0.3s ease-out;
+    transition: opacity var(--duration-slow) ease-out;
   }
   
   .hero-ferni--living:hover .hero-ferni__orb {
     filter: brightness(1.05);
-    transition: filter 0.3s ease-out;
+    transition: filter var(--duration-slow) ease-out;
   }
 }
 
@@ -720,7 +720,7 @@
    ============================================================================ */
 
 .hero-ferni--living:focus-visible {
-  outline: 2px solid var(--color-accent, var(--color-accent));
+  outline: 2px solid var(--color-accent);
   outline-offset: 8px;
   border-radius: 50%;
 }
@@ -764,8 +764,8 @@
 .hero-ferni--living .hero-ferni__text {
   /* Subtle text shadow for depth */
   text-shadow: 
-    0 1px 2px rgba(0, 0, 0, 0.2),
-    0 -1px 1px rgba(255, 255, 255, 0.1);
+    0 1px 2px color-mix(in srgb, var(--color-black) 20%, transparent),
+    0 -1px 1px color-mix(in srgb, var(--color-white) 10%, transparent);
   
   /* Smooth font rendering */
   -webkit-font-smoothing: antialiased;
@@ -786,7 +786,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1px solid rgba(74, 103, 65, 0.2);
+  border: 1px solid color-mix(in srgb, var(--color-ferni) 20%, transparent);
   animation: ambient-pulse 4000ms ease-out infinite;
   pointer-events: none;
 }
@@ -812,7 +812,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1px solid rgba(74, 103, 65, 0.15);
+  border: 1px solid color-mix(in srgb, var(--color-ferni) 15%, transparent);
   animation: ambient-pulse 4000ms ease-out infinite;
   animation-delay: 2000ms;
 }
