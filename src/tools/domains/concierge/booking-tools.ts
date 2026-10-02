@@ -3,6 +3,7 @@
  * appointment scheduling. Extracted from concierge/index.ts.
  */
 
+import { dietaryRequestsFor, getDietaryConstraints } from '../../../services/user-preferences/food.js';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
@@ -135,7 +136,11 @@ export const makeRestaurantReservationDef: ToolDefinition = {
             date: new Date(params.date),
             timePreference: parseTimePreference(params.time),
             partySize: params.partySize,
-            dietaryRestrictions: params.dietaryRestrictions,
+            // Always pass along the user's known allergies / diet, plus anything said now
+            dietaryRestrictions: dietaryRequestsFor(
+              await getDietaryConstraints(ctx.userId),
+              params.dietaryRestrictions ?? []
+            ),
             occasion: params.occasion,
           };
 

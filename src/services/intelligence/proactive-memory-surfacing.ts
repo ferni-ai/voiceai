@@ -227,6 +227,19 @@ export class ProactiveMemorySurfacingService {
         };
       }
 
+      // 2b. Boundaries are hard limits: never volunteer a topic they asked us to leave alone
+      const { isTopicAllowedProactively } = await import('../user-preferences/boundaries.js');
+      if (!(await isTopicAllowedProactively(context.userId, bestMemory.item.content))) {
+        return {
+          decision: {
+            shouldSurface: false,
+            reason: 'Topic is outside the user\'s proactive boundaries',
+            confidence: 0,
+            decisionFactors: { timingScore: 0, relevanceScore: 0, emotionalFit: 0, learningModifier: 0 },
+          },
+        };
+      }
+
       // 3. Get related memories via graph
       const relatedMemoryIds = await this.getRelatedMemoryIds(context.userId, bestMemory.item.id);
 

@@ -19,53 +19,16 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { clearPreferenceCache } from '../../../services/user-preferences/index.js';
+import { getPreferencesDef, setPreferenceDef } from './preference-tools.js';
 
 const log = getLogger();
 
 // ============================================================================
-// USER PREFERENCES STORAGE (Firestore-backed with in-memory cache)
-// ============================================================================
-
-interface UserPreferences {
-  temperatureUnit?: 'fahrenheit' | 'celsius';
-  distanceUnit?: 'miles' | 'kilometers';
-  timeFormat?: '12h' | '24h';
-  nickname?: string;
-  timezone?: string;
-  language?: string;
-  voiceSpeed?: 'slow' | 'normal' | 'fast';
-  customPreferences?: Record<string, string>;
-}
-
-// In-memory cache for fast reads (backed by Firestore)
-const userPreferencesCache = new Map<string, UserPreferences>();
-
-// ============================================================================
 // SESSION DATA MANAGER REGISTRATION
+// Preferences live in the user preference profile (services/user-preferences);
+// its cache is cleared through the same lifecycle hooks as before.
 // ============================================================================
-
-/**
- * Clear cached data for a user
- */
-function clearUserCache(userId: string): void {
-  userPreferencesCache.delete(userId);
-  log.debug({ userId }, '🧹 Preferences cache cleared for user');
-}
-
-/**
- * Clear all cached data
- */
-function clearAllCache(): void {
-  userPreferencesCache.clear();
-  log.debug('🧹 Preferences cache cleared');
-}
-
-/**
- * Get cache statistics
- */
-function getPreferencesCacheStats(): { users: number; entries: number } {
-  return { users: userPreferencesCache.size, entries: userPreferencesCache.size };
-}
 
 /**
  * Register with SessionDataManager for proper lifecycle cleanup
@@ -75,68 +38,13 @@ export async function registerEssentialsWithSessionManager(): Promise<void> {
     const { getSessionDataManager } = await import('../../../services/session-data-manager.js');
     getSessionDataManager().registerService({
       name: 'Essentials',
-      clearUserData: clearUserCache,
-      clearAllData: clearAllCache,
-      getStats: getPreferencesCacheStats,
+      clearUserData: (userId: string) => clearPreferenceCache(userId),
+      clearAllData: () => clearPreferenceCache(),
+      getStats: () => ({ users: 0, entries: 0 }),
     });
   } catch {
     // SessionDataManager may not be initialized yet
     log.debug('SessionDataManager not available for Essentials registration');
-  }
-}
-
-// Load preferences from Firestore (with cache)
-async function loadPreferences(userId: string): Promise<UserPreferences> {
-  // Check cache first
-  if (userPreferencesCache.has(userId)) {
-    return userPreferencesCache.get(userId)!;
-  }
-
-  try {
-    const { getFirestoreStore } = await import('../../../memory/firestore-store.js');
-    const store = getFirestoreStore();
-    const db = await store.getDatabase();
-
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('preferences')
-      .doc('settings')
-      .get();
-    if (doc.exists) {
-      const prefs = doc.data() as UserPreferences;
-      userPreferencesCache.set(userId, prefs);
-      return prefs;
-    }
-  } catch (error) {
-    log.debug(
-      { error: String(error), userId },
-      'Firestore not available for preferences, using cache'
-    );
-  }
-
-  return {};
-}
-
-// Save preferences to Firestore (with cache)
-async function savePreferences(userId: string, prefs: UserPreferences): Promise<void> {
-  // Update cache immediately
-  userPreferencesCache.set(userId, prefs);
-
-  try {
-    const { getFirestoreStore } = await import('../../../memory/firestore-store.js');
-    const store = getFirestoreStore();
-    const db = await store.getDatabase();
-
-    await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('preferences')
-      .doc('settings')
-      .set(cleanForFirestore(prefs), { merge: true });
-    log.info({ userId }, 'Saved preferences to Firestore');
-  } catch (error) {
-    log.debug({ error: String(error), userId }, 'Could not persist preferences to Firestore');
   }
 }
 
@@ -663,183 +571,6 @@ const recentContextDef: ToolDefinition = {
             response += `• Things you ask me to remember\n`;
             response += `• Patterns I've noticed\n\n`;
             response += `What would you like to recall?`;
-          }
-        }
-
-        return response;
-      },
-    });
-  },
-};
-
-// ============================================================================
-// SET PREFERENCE - User Preferences
-// ============================================================================
-
-const setPreferenceDef: ToolDefinition = {
-  id: 'setPreference',
-  name: 'Set Preference',
-  description: 'Remember user preferences - temperature units, nickname, etc.',
-  domain: 'simple-utilities',
-  tags: ['preferences', 'settings', 'personalization', 'essentials', 'better-than-human'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description: getToolDescription('setPreference'),
-      parameters: z.object({
-        // Accept both 'type' and 'preferenceType' for flexibility
-        preferenceType: z
-          .enum([
-            'temperature',
-            'distance',
-            'time-format',
-            'nickname',
-            'timezone',
-            'language',
-            'voice-speed',
-            'custom',
-          ])
-          .optional()
-          .describe('Type of preference'),
-        type: z
-          .enum([
-            'temperature',
-            'distance',
-            'time-format',
-            'nickname',
-            'timezone',
-            'language',
-            'voice-speed',
-            'custom',
-          ])
-          .optional()
-          .describe('Type of preference (alias for preferenceType)'),
-        value: z.string().describe('The preference value'),
-        customKey: z.string().optional().describe('Key for custom preferences'),
-      }),
-      execute: async ({ preferenceType, type, value, customKey }) => {
-        // Support both parameter names for better LLM compatibility
-        const prefType = preferenceType || type;
-        log.info({ userId: ctx.userId, preferenceType: prefType, value }, 'Setting preference');
-
-        // Validate that we have a preference type
-        if (!prefType) {
-          return "I need to know what preference you're setting. Try: 'Use celsius' or 'Call me Alex'";
-        }
-
-        // Load existing preferences
-        const prefs = ctx.userId ? await loadPreferences(ctx.userId) : {};
-        let confirmation: string;
-
-        switch (prefType) {
-          case 'temperature':
-            const tempUnit = value.toLowerCase().includes('c') ? 'celsius' : 'fahrenheit';
-            prefs.temperatureUnit = tempUnit;
-            confirmation = `I'll show temperatures in ${tempUnit === 'celsius' ? 'Celsius (°C)' : 'Fahrenheit (°F)'} from now on.`;
-            break;
-
-          case 'distance':
-            const distUnit =
-              value.toLowerCase().includes('k') || value.toLowerCase().includes('metric')
-                ? 'kilometers'
-                : 'miles';
-            prefs.distanceUnit = distUnit;
-            confirmation = `I'll use ${distUnit} for distances.`;
-            break;
-
-          case 'time-format':
-            const timeFormat =
-              value.includes('24') || value.toLowerCase().includes('military') ? '24h' : '12h';
-            prefs.timeFormat = timeFormat;
-            confirmation = `I'll show times in ${timeFormat === '24h' ? '24-hour' : '12-hour'} format.`;
-            break;
-
-          case 'nickname':
-            prefs.nickname = value;
-            confirmation = `Got it! I'll call you ${value}.`;
-            break;
-
-          case 'timezone':
-            prefs.timezone = value;
-            confirmation = `Your timezone is set to ${value}.`;
-            break;
-
-          case 'language':
-            prefs.language = value;
-            confirmation = `Language preference set to ${value}.`;
-            break;
-
-          case 'voice-speed':
-            const speed = value.toLowerCase().includes('slow')
-              ? 'slow'
-              : value.toLowerCase().includes('fast')
-                ? 'fast'
-                : 'normal';
-            prefs.voiceSpeed = speed;
-            confirmation = `I'll speak at ${speed} speed.`;
-            break;
-
-          case 'custom':
-            if (!customKey) {
-              return "I need to know what preference you're setting. Try: 'Remember that I prefer X'";
-            }
-            prefs.customPreferences = prefs.customPreferences || {};
-            prefs.customPreferences[customKey] = value;
-            confirmation = `Noted! I'll remember that ${customKey}: ${value}`;
-            break;
-
-          default:
-            return "I'm not sure what preference that is. I can set: temperature units, distance units, time format, nickname, timezone, language, or voice speed.";
-        }
-
-        // Save to Firestore
-        if (ctx.userId) {
-          await savePreferences(ctx.userId, prefs);
-        }
-
-        return `✓ **Preference saved**\n\n${confirmation}\n\nI won't forget this.`;
-      },
-    });
-  },
-};
-
-// ============================================================================
-// GET PREFERENCES - View saved preferences
-// ============================================================================
-
-const getPreferencesDef: ToolDefinition = {
-  id: 'getPreferences',
-  name: 'Get Preferences',
-  description: 'View saved user preferences',
-  domain: 'simple-utilities',
-  tags: ['preferences', 'settings', 'essentials'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description: getToolDescription('getPreferences'),
-      parameters: z.object({}),
-      execute: async () => {
-        // Load from Firestore
-        const prefs = ctx.userId ? await loadPreferences(ctx.userId) : {};
-
-        if (!prefs || Object.keys(prefs).length === 0) {
-          return `**Your Preferences**\n\nNo preferences set yet.\n\nYou can tell me things like:\n• "Call me [nickname]"\n• "I prefer Celsius"\n• "Use 24-hour time"\n• "My timezone is Eastern"`;
-        }
-
-        let response = `**Your Preferences**\n\n`;
-
-        if (prefs.nickname) response += `• **Name:** ${prefs.nickname}\n`;
-        if (prefs.temperatureUnit) response += `• **Temperature:** ${prefs.temperatureUnit}\n`;
-        if (prefs.distanceUnit) response += `• **Distance:** ${prefs.distanceUnit}\n`;
-        if (prefs.timeFormat) response += `• **Time format:** ${prefs.timeFormat}\n`;
-        if (prefs.timezone) response += `• **Timezone:** ${prefs.timezone}\n`;
-        if (prefs.language) response += `• **Language:** ${prefs.language}\n`;
-        if (prefs.voiceSpeed) response += `• **Voice speed:** ${prefs.voiceSpeed}\n`;
-
-        if (prefs.customPreferences && Object.keys(prefs.customPreferences).length > 0) {
-          response += `\n**Custom:**\n`;
-          for (const [key, val] of Object.entries(prefs.customPreferences)) {
-            response += `• ${key}: ${val}\n`;
           }
         }
 

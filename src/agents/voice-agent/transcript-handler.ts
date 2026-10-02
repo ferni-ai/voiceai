@@ -1515,6 +1515,15 @@ async function processFinalTranscript(
     }
   }
 
+  // 🎛️ User preference profile: explicit statements ("call me Sam", "keep it short",
+  // "don't bring up my dad") + music/lifestyle likes, one store (services/user-preferences)
+  if (userId) {
+    fireAndForget(async () => {
+      const { recordUserTurnPreferences } = await import('../../services/user-preferences/inference.js');
+      await recordUserTurnPreferences(userId, event.transcript, sessionId);
+    }, 'user-preference-profile');
+  }
+
   // Extract memorable moments
   const newMoments = extractMemorableMoments(event.transcript);
   if (newMoments.length > 0) {

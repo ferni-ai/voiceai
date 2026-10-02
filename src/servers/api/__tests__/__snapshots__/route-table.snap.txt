@@ -1749,6 +1749,31 @@ pred api/apple-iap-routes#isAppleRoute("/api/semantic-intelligence") -> false
 static ./static#handleStaticRoutes(req, res, "/api/semantic-intelligence")
 => (no response written)
 
+### GET /api/memory/me/preferences?q=1&r=two
+mw ddos-protection#addRequestId(req, res)
+mw security-headers#setSecurityHeaders(res)
+mw cors#setCorsHeaders(req, res)
+mw identity-guard#enforceVerifiedIdentity(req)
+mw ddos-protection#handleHealthEndpoint(req, res, "/api/memory/me/preferences", "bogle-ui")
+mw ddos-protection#handleSecurityMonitoring(req, res, "/api/memory/me/preferences")
+mw auth-middleware#rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })
+route routes/index#handleHealthRoutes(req, res, "/api/memory/me/preferences")
+route routes/index#handleTokenRoutes(req, res, "/api/memory/me/preferences", URL(/api/memory/me/preferences?q=1&r=two))
+route routes/health-sync#handleHealthSyncRoutes(req, res, "/api/memory/me/preferences")
+route api/practice-routes#handlePracticeRoutes(req, res, "/api/memory/me/preferences")
+route api/group-call-webhooks#handleGroupCallWebhooks(req, res, "/api/memory/me/preferences")
+route api/engagement-routes#handleEngagementRoutes(req, res, "/api/memory/me/preferences", URL(/api/memory/me/preferences?q=1&r=two))
+route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/preferences", URL(/api/memory/me/preferences?q=1&r=two))
+route api/user-preferences-routes#handleUserPreferenceRoutes(req, res, "/api/memory/me/preferences")
+pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/preferences") -> false
+route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me/preferences")
+pred api/feedback-routes#isFeedbackRoute("/api/memory/me/preferences") -> false
+pred api/subscription-routes#isSubscriptionRoute("/api/memory/me/preferences") -> false
+pred api/monetization-routes#isMonetizationRoute("/api/memory/me/preferences") -> false
+pred api/apple-iap-routes#isAppleRoute("/api/memory/me/preferences") -> false
+static ./static#handleStaticRoutes(req, res, "/api/memory/me/preferences")
+=> (no response written)
+
 ### GET /api/memory/me/dates?q=1&r=two
 mw ddos-protection#addRequestId(req, res)
 mw security-headers#setSecurityHeaders(res)
@@ -5665,6 +5690,48 @@ log.error[APIServer] { error: "Error: probe failure in routes/semantic-intellige
 => writeHead 500 {"Content-Type":"application/json"}
 => end {"error":"Internal server error"}
 
+### GET /api/memory/me/preferences?q=1&r=two  [throw=api/user-preferences-routes#handleUserPreferenceRoutes]
+mw ddos-protection#addRequestId(req, res)
+mw security-headers#setSecurityHeaders(res)
+mw cors#setCorsHeaders(req, res)
+mw identity-guard#enforceVerifiedIdentity(req)
+mw ddos-protection#handleHealthEndpoint(req, res, "/api/memory/me/preferences", "bogle-ui")
+mw ddos-protection#handleSecurityMonitoring(req, res, "/api/memory/me/preferences")
+mw auth-middleware#rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })
+route routes/index#handleHealthRoutes(req, res, "/api/memory/me/preferences")
+route routes/index#handleTokenRoutes(req, res, "/api/memory/me/preferences", URL(/api/memory/me/preferences?q=1&r=two))
+route routes/health-sync#handleHealthSyncRoutes(req, res, "/api/memory/me/preferences")
+route api/practice-routes#handlePracticeRoutes(req, res, "/api/memory/me/preferences")
+route api/group-call-webhooks#handleGroupCallWebhooks(req, res, "/api/memory/me/preferences")
+route api/engagement-routes#handleEngagementRoutes(req, res, "/api/memory/me/preferences", URL(/api/memory/me/preferences?q=1&r=two))
+route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/preferences", URL(/api/memory/me/preferences?q=1&r=two))
+route api/user-preferences-routes#handleUserPreferenceRoutes(req, res, "/api/memory/me/preferences")
+log.error[APIServer] { error: "Error: probe failure in api/user-preferences-routes#handleUserPreferenceRoutes" } "API route error"
+=> writeHead 500 {"Content-Type":"application/json"}
+=> end {"error":"Internal server error"}
+
+### GET /api/memory/me/preferences?q=1&r=two  [throw=api/memory-routes#handleMemoryRoutes]
+mw ddos-protection#addRequestId(req, res)
+mw security-headers#setSecurityHeaders(res)
+mw cors#setCorsHeaders(req, res)
+mw identity-guard#enforceVerifiedIdentity(req)
+mw ddos-protection#handleHealthEndpoint(req, res, "/api/memory/me/preferences", "bogle-ui")
+mw ddos-protection#handleSecurityMonitoring(req, res, "/api/memory/me/preferences")
+mw auth-middleware#rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })
+route routes/index#handleHealthRoutes(req, res, "/api/memory/me/preferences")
+route routes/index#handleTokenRoutes(req, res, "/api/memory/me/preferences", URL(/api/memory/me/preferences?q=1&r=two))
+route routes/health-sync#handleHealthSyncRoutes(req, res, "/api/memory/me/preferences")
+route api/practice-routes#handlePracticeRoutes(req, res, "/api/memory/me/preferences")
+route api/group-call-webhooks#handleGroupCallWebhooks(req, res, "/api/memory/me/preferences")
+route api/engagement-routes#handleEngagementRoutes(req, res, "/api/memory/me/preferences", URL(/api/memory/me/preferences?q=1&r=two))
+route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/preferences", URL(/api/memory/me/preferences?q=1&r=two))
+route api/user-preferences-routes#handleUserPreferenceRoutes(req, res, "/api/memory/me/preferences")
+pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/preferences") -> false
+route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me/preferences")
+log.error[APIServer] { error: "Error: probe failure in api/memory-routes#handleMemoryRoutes" } "API route error"
+=> writeHead 500 {"Content-Type":"application/json"}
+=> end {"error":"Internal server error"}
+
 ### GET /api/memory/me/dates?q=1&r=two  [throw=api/important-dates-routes#handleImportantDatesRoutes]
 mw ddos-protection#addRequestId(req, res)
 mw security-headers#setSecurityHeaders(res)
@@ -5683,28 +5750,6 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/
 pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/dates") -> true
 route api/important-dates-routes#handleImportantDatesRoutes(req, res, "/api/memory/me/dates")
 log.error[APIServer] { error: "Error: probe failure in api/important-dates-routes#handleImportantDatesRoutes" } "API route error"
-=> writeHead 500 {"Content-Type":"application/json"}
-=> end {"error":"Internal server error"}
-
-### GET /api/memory/me/dates?q=1&r=two  [throw=api/memory-routes#handleMemoryRoutes]
-mw ddos-protection#addRequestId(req, res)
-mw security-headers#setSecurityHeaders(res)
-mw cors#setCorsHeaders(req, res)
-mw identity-guard#enforceVerifiedIdentity(req)
-mw ddos-protection#handleHealthEndpoint(req, res, "/api/memory/me/dates", "bogle-ui")
-mw ddos-protection#handleSecurityMonitoring(req, res, "/api/memory/me/dates")
-mw auth-middleware#rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })
-route routes/index#handleHealthRoutes(req, res, "/api/memory/me/dates")
-route routes/index#handleTokenRoutes(req, res, "/api/memory/me/dates", URL(/api/memory/me/dates?q=1&r=two))
-route routes/health-sync#handleHealthSyncRoutes(req, res, "/api/memory/me/dates")
-route api/practice-routes#handlePracticeRoutes(req, res, "/api/memory/me/dates")
-route api/group-call-webhooks#handleGroupCallWebhooks(req, res, "/api/memory/me/dates")
-route api/engagement-routes#handleEngagementRoutes(req, res, "/api/memory/me/dates", URL(/api/memory/me/dates?q=1&r=two))
-route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/dates", URL(/api/memory/me/dates?q=1&r=two))
-pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/dates") -> true
-route api/important-dates-routes#handleImportantDatesRoutes(req, res, "/api/memory/me/dates")
-route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me/dates")
-log.error[APIServer] { error: "Error: probe failure in api/memory-routes#handleMemoryRoutes" } "API route error"
 => writeHead 500 {"Content-Type":"application/json"}
 => end {"error":"Internal server error"}
 

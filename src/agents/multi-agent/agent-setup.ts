@@ -132,6 +132,7 @@ import {
   type VoiceHumanizationIntegration,
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
+import { loadPreferenceBlock } from '../../services/user-preferences/context-block.js';
 
 const log = getLogger();
 
@@ -300,6 +301,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
   let systemPrompt: string;
   let modelBaseInstructions: string;
+  // User preference profile: fetched alongside the prompts (bounded, never throws)
+  const preferenceBlockPromise = userId ? loadPreferenceBlock(userId) : Promise.resolve('');
   try {
     mark('load_prompts_start');
     // Personal insights (people, likely topics, openers): read in parallel, never blocks
@@ -333,6 +336,17 @@ If someone asks what day it is, what time it is, or what the date is, you know t
 
     // Append date/time to model base instructions (session-specific, not cached)
     modelBaseInstructions = baseInstructions + dateTimeContext;
+
+    // HOW THEY LIKE TO BE TALKED TO - name, style, boundaries (persona-agnostic,
+    // char-budgeted; see services/user-preferences/context-block.ts)
+    const preferenceBlock = await preferenceBlockPromise;
+    if (preferenceBlock) {
+      modelBaseInstructions += preferenceBlock;
+      log.info(
+        { personaId: persona.id, chars: preferenceBlock.length },
+        '🎛️ User preference profile injected'
+      );
+    }
 
     // =========================================================================
     // USER AWARENESS - Enhance model instructions with user context

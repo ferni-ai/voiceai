@@ -14,6 +14,10 @@ import { getDefaultStore } from '../memory/index.js';
 import { deleteFirebaseUser, getFirebaseUser } from '../services/identity/firebase-auth.js';
 import { recordSecurityEvent } from '../services/security-events.js';
 import { createUserProfile } from '../types/user-profile.js';
+import {
+  applyPreferencesToAccountView,
+  syncAccountPreferences,
+} from '../services/user-preferences/index.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
@@ -292,12 +296,19 @@ async function handleUpdateProfile(
 
     await store.saveProfile(profile);
 
+    // The preference profile is the single store for conversation preferences:
+    // write these settings into it, then report back what it holds.
+    if (preferences) {
+      await syncAccountPreferences(userId, preferences);
+    }
+    const effectivePreferences = await applyPreferencesToAccountView(userId, profile.preferences);
+
     sendJson(res, {
       success: true,
       profile: {
         name: profile.name,
         email: profile.contactInfo?.email,
-        preferences: profile.preferences,
+        preferences: effectivePreferences,
         updatedAt: profile.lastContact,
       },
     });

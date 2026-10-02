@@ -33,6 +33,7 @@ import { telephonyExecutor } from './telephony-executor.js';
 // Missing executors (January 2026 audit fix)
 import { communicationExecutor } from './communication-executor.js';
 import { settingsExecutor } from './settings-executor.js';
+import { preferencesExecutor } from './preferences-executor.js';
 // FTIS V3 domain executors (January 2026)
 import ceoExecutor from './ceo-executor.js';
 import { dynamicDomainExecutor } from './dynamic-domain-executor.js';
@@ -71,6 +72,8 @@ const DOMAIN_EXECUTORS: DomainExecutor[] = [
   // Missing executors (January 2026 audit fix)
   communicationExecutor,
   settingsExecutor,
+  // User preference profile (setPreference / getPreferences)
+  preferencesExecutor,
   // FTIS V3 domain executors (January 2026)
   healthExecutor,
   financeExecutor,
@@ -200,6 +203,7 @@ export { telephonyExecutor } from './telephony-executor.js';
 // Missing executors (January 2026 audit fix)
 export { communicationExecutor } from './communication-executor.js';
 export { settingsExecutor } from './settings-executor.js';
+export { preferencesExecutor } from './preferences-executor.js';
 // FTIS V3 domain executors (January 2026)
 export { default as ceoExecutor } from './ceo-executor.js';
 export {

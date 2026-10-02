@@ -13,6 +13,7 @@
  * @module services/stores/meal-store
  */
 
+import { filterSafe, getDietaryConstraints, violationOf } from '../user-preferences/food.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   getLifeAutomationData,
@@ -473,8 +474,11 @@ export async function getRecipesByCuisine(userId: string, cuisine: CuisineType):
 export async function getRecipesForDiet(userId: string): Promise<Recipe[]> {
   const data = await getMealData(userId);
   const { restrictions, allergies, dislikedIngredients } = data.preferences;
+  // The preference profile's dietary needs (allergies always) are hard filters too.
+  const constraints = await getDietaryConstraints(userId);
 
   return data.recipes.filter((r) => {
+    if (violationOf(r, constraints)) return false;
     // Check dietary restrictions
     for (const restriction of restrictions) {
       if (!r.dietaryTags.includes(restriction)) {
@@ -514,8 +518,9 @@ export async function suggestRecipesByIngredients(
 ): Promise<Array<{ recipe: Recipe; matchPercentage: number; missingIngredients: string[] }>> {
   const data = await getMealData(userId);
   const lowerIngredients = availableIngredients.map((i) => i.toLowerCase());
+  const constraints = await getDietaryConstraints(userId);
 
-  const suggestions = data.recipes.map((recipe) => {
+  const suggestions = filterSafe(data.recipes, constraints).map((recipe) => {
     const requiredIngredients = recipe.ingredients.filter((i) => !i.optional);
     const matchedCount = requiredIngredients.filter((i) =>
       lowerIngredients.some((available) => i.name.toLowerCase().includes(available))
