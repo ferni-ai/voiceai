@@ -12,12 +12,23 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import {
+  formatConversationHits,
+  formatFactHits,
+  searchUserConversations,
+  searchUserFacts,
+} from '../../../memory/recall/user-memory-search.js';
 import { getUnifiedMemoryService } from '../../../services/unified-memory-service.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 
 const log = getLogger();
+
+/** The caller's id; tool contexts built before a session use the placeholder 'default'. */
+export function resolveUserId(...candidates: Array<string | undefined>): string | undefined {
+  return candidates.find((id) => typeof id === 'string' && id !== '' && id !== 'default');
+}
 
 // ============================================================================
 // TYPES
@@ -57,13 +68,25 @@ export const recallFromMemoryUnifiedDef: ToolDefinition = {
         log.info({ agentId: ctx.agentId, topic }, '🧠 [UNIFIED] Recall from memory');
 
         const userData = toolCtx.userData as UserData;
-        const userId = userData.userId || ctx.userId;
+        const userId = resolveUserId(userData.userId, ctx.userId);
 
         if (!userId) {
           return `I don't have specific memories about that yet. What's on your mind?`;
         }
 
-        // Use unified memory service for search
+        // This user's own remembered facts and people, ranked for the topic.
+        const hits = await searchUserFacts(userId, topic, { maxItems: 6 });
+        if (hits.length > 0) {
+          memoryService.recordFeedback({
+            memoryId: `recall_${Date.now()}`,
+            userId,
+            action: 'surfaced',
+            context: { personaId: ctx.agentId },
+          });
+          return `What you remember about the user (use naturally; never read it out as a list):\n${formatFactHits(hits)}`;
+        }
+
+        // Then the user's other indexed memories.
         const result = await memoryService.search({
           query: topic,
           userId,
@@ -72,7 +95,6 @@ export const recallFromMemoryUnifiedDef: ToolDefinition = {
         });
 
         if (result) {
-          // Record feedback that we surfaced this memory
           memoryService.recordFeedback({
             memoryId: `recall_${Date.now()}`,
             userId,
@@ -121,29 +143,22 @@ export const recallPreviousConversationUnifiedDef: ToolDefinition = {
         log.info({ agentId: ctx.agentId, query }, '🧠 [UNIFIED] Semantic recall');
 
         const userData = toolCtx.userData as UserData;
-        const userId = userData.userId || ctx.userId;
+        const userId = resolveUserId(userData.userId, ctx.userId);
 
         if (!userId) {
           return `I don't have specific memories about "${query}" yet. Would you like to tell me more?`;
         }
 
-        // Use unified memory service
-        const result = await memoryService.search({
-          query,
-          userId,
-          limit: 5,
-          minScore: 0.35,
-        });
-
-        if (result) {
+        // Search THIS user's past conversations (summaries + turns), not persona content.
+        const hits = await searchUserConversations(userId, query, { maxResults: 4 });
+        if (hits.length > 0) {
           memoryService.recordFeedback({
             memoryId: `semantic_${Date.now()}`,
             userId,
             action: 'surfaced',
             context: { personaId: ctx.agentId },
           });
-
-          return `I found something relevant in my memory: ${result}`;
+          return `From your past conversations with the user (dated; refer to them naturally, e.g. "last week you mentioned..."):\n${formatConversationHits(hits)}`;
         }
 
         return `I don't have specific memories about "${query}" from our past conversations. Would you like to tell me more about it?`;

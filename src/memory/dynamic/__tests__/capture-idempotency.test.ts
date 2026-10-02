@@ -52,6 +52,12 @@ describe('fastCapture idempotency', () => {
     expect(payload).toMatchObject({ conversationId: 'conv-1', sessionId: 's1' });
   });
 
+  it('treats the same words in two numbered turns as two turns', async () => {
+    await fastCapture({ ...input, turnNumber: 3 });
+    await fastCapture({ ...input, turnNumber: 4 });
+    expect(asyncEvents.safeEmitEvent).toHaveBeenCalledTimes(2);
+  });
+
   it('treats a different session or utterance as a new turn', async () => {
     await fastCapture(input);
     await fastCapture({ ...input, sessionId: 's2' });

@@ -3,9 +3,10 @@
  *
  * Several paths can capture the same user utterance: the transcript handler
  * always does, and the turn handler does too when TURN_INTELLIGENCE=on. Their
- * turn numbers do not agree (the transcript handler has none), so the key is
- * the conversation (or session) plus the normalised utterance, within a short
- * window. The first capture wins; later ones get its result back and queue
+ * turn numbers do not agree (the transcript handler passes 0), so the key is
+ * the session plus the normalised utterance, within a short window; fastCapture
+ * treats two captures as one turn unless both carry different positive turn
+ * numbers. The first capture wins; later ones get its result back and queue
  * nothing, and recordTurn() is skipped for them.
  *
  * Saying the exact same sentence again after the window counts as a new turn.

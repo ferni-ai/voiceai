@@ -50,6 +50,7 @@ Example: `{"fn":"executeTool","args":{"toolName":"handoffToMaya","args":{"reason
 | ----------------- | ------------- | ------------------------------ |
 | rememberAboutUser | fact: string  | "remember I like jazz"         |
 | recallFromMemory  | query: string | "what do you know about my..." |
+| recallPreviousConversation | query: string | "what did we talk about last week", "remember when I told you..." |
 
 ### Productivity
 
