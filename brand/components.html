@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Component Library | Ferni Brand</title>
-  <link rel="stylesheet" href="master-tokens.css">
+  <link rel="stylesheet" href="ferni-design-tokens.css">
+  <link rel="stylesheet" href="brand-base.css">
   <link rel="stylesheet" href="brand-components.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -65,7 +66,7 @@
     }
 
     .nav a {
-      color: var(--color-natural-ink);
+      color: var(--color-text-primary);
       text-decoration: none;
       font-weight: 500;
       opacity: 0.7;
@@ -129,7 +130,7 @@
 
     .component-tag {
       background: rgba(74, 103, 65, 0.1);
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
       padding: 0.25rem 0.75rem;
       border-radius: 999px;
       font-size: 0.75rem;
@@ -138,7 +139,7 @@
 
     .component-preview {
       padding: 3rem 2rem;
-      background: var(--color-warm-white);
+      background: var(--color-bg-primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -148,7 +149,7 @@
 
     .component-code {
       padding: 1.5rem 2rem;
-      background: var(--color-natural-ink);
+      background: var(--color-text-primary);
       overflow-x: auto;
       position: relative;
     }
@@ -351,7 +352,7 @@
     }
 
     .input-error:focus {
-      outline-color: var(--color-error-border);
+      outline-color: color-mix(in srgb, var(--color-error) 30%, transparent);
     }
 
     .input-helper {
@@ -426,46 +427,46 @@
 
     .badge-ferni {
       background: var(--color-ferni-subtle);
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
     }
 
     .badge-maya {
       background: var(--color-maya-subtle);
-      color: var(--color-maya);
+      color: var(--color-maya-text);
     }
 
     .badge-peter {
       background: var(--color-peter-subtle);
-      color: var(--color-peter);
+      color: var(--color-peter-text);
     }
 
     .badge-jordan {
       background: var(--color-jordan-subtle);
-      color: var(--color-jordan);
+      color: var(--color-jordan-text);
     }
 
     .badge-alex {
       background: var(--color-alex-subtle);
-      color: var(--color-alex);
+      color: var(--color-alex-text);
     }
 
     .badge-nayan {
       background: var(--color-nayan-subtle);
-      color: var(--color-nayan);
+      color: var(--color-nayan-text);
     }
 
     .badge-success {
-      background: var(--color-success-subtle);
+      background: color-mix(in srgb, var(--color-success) 10%, transparent);
       color: var(--color-success);
     }
 
     .badge-warning {
-      background: var(--color-warning-subtle);
+      background: color-mix(in srgb, var(--color-warning) 10%, transparent);
       color: var(--color-warning);
     }
 
     .badge-error {
-      background: var(--color-error-subtle);
+      background: color-mix(in srgb, var(--color-error) 10%, transparent);
       color: var(--color-error);
     }
 
@@ -495,9 +496,9 @@
     .avatar-ferni { background: var(--color-ferni); }
     .avatar-maya { background: var(--color-maya); }
     .avatar-peter { background: var(--color-peter); }
-    .avatar-jordan { background: var(--color-jordan); color: var(--color-natural-ink); }
+    .avatar-jordan { background: var(--color-jordan); color: var(--color-text-primary); }
     .avatar-alex { background: var(--color-alex); }
-    .avatar-nayan { background: var(--color-nayan); color: var(--color-natural-ink); }
+    .avatar-nayan { background: var(--color-nayan); color: var(--color-text-primary); }
 
     /* Toast */
     .toast-demo {
@@ -544,7 +545,7 @@
     }
 
     .toast-error {
-      background: var(--color-error-subtle);
+      background: color-mix(in srgb, var(--color-error) 10%, transparent);
       border-left: 4px solid var(--color-error);
     }
 
@@ -640,7 +641,7 @@
 
     .modal-footer {
       padding: 1rem 1.5rem;
-      background: var(--color-warm-white);
+      background: var(--color-bg-primary);
       border-radius: 0 0 16px 16px;
       display: flex;
       justify-content: flex-end;
@@ -670,12 +671,12 @@
     }
 
     .tab:hover {
-      color: var(--color-natural-ink);
+      color: var(--color-text-primary);
     }
 
     .tab.active {
       background: var(--color-bg-elevated);
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
       box-shadow: 0 2px 4px rgba(44, 37, 32, 0.1);
     }
 
@@ -935,7 +936,7 @@
 
     /* Footer */
     .footer {
-      background: var(--color-natural-ink);
+      background: var(--color-text-primary);
       color: white;
       padding: 3rem 2rem;
       text-align: center;
@@ -964,7 +965,7 @@
     .mobile-menu-btn svg {
       width: 24px;
       height: 24px;
-      stroke: var(--color-natural-ink);
+      stroke: var(--color-text-primary);
     }
 
     .mobile-nav-overlay {
@@ -1030,7 +1031,7 @@
     .mobile-nav-close svg {
       width: 20px;
       height: 20px;
-      stroke: var(--color-natural-ink);
+      stroke: var(--color-text-primary);
     }
 
     .mobile-nav-links {
@@ -1043,7 +1044,7 @@
       padding: 0.875rem 1rem;
       border-radius: 8px;
       text-decoration: none;
-      color: var(--color-natural-ink);
+      color: var(--color-text-primary);
       font-weight: 500;
       transition: background 0.2s;
     }
@@ -1054,7 +1055,7 @@
 
     .mobile-nav-links a.active {
       background: rgba(74, 103, 65, 0.1);
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
     }
 
     @media (max-width: 768px) {

@@ -2,7 +2,7 @@
  * Visualization Tokens Utility
  *
  * Single source of truth for colors in JavaScript visualizations.
- * Reads design tokens from CSS custom properties (master-tokens.css).
+ * Reads design tokens from CSS custom properties (ferni-design-tokens.css).
  *
  * Usage:
  *   import { COLORS, rgba, gradient } from './visualization-tokens.js';
@@ -12,7 +12,7 @@
  *   path.setAttribute('stroke', COLORS.accent);
  *
  * @version 1.0.0
- * @see ../master-tokens.css
+ * @see ../ferni-design-tokens.css
  */
 
 // Get computed styles from document root

@@ -97,7 +97,7 @@ pnpm tokens:version    # Display current token version
 |-----------------|-------------|
 | `brand/logos/` | `design-system/assets/logos/` |
 | `brand/favicons/` | `design-system/assets/favicons/` |
-| `brand/master-tokens.css` | `design-system/dist/tokens.css` |
+| `brand/master-tokens.css` (retired 2026-10) | `brand/ferni-design-tokens.css` (generated) + `brand/brand-base.css` |
 | `design-system/docs/brand/*.md` | `design-system/docs/brand/*.md` |
 
 ## Integration Guide

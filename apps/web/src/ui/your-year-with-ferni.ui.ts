@@ -565,7 +565,7 @@ export class YourYearWithFerni {
     style.textContent = `
       /* ============================================
          YOUR YEAR WITH FERNI - Brand Compliant Styles
-         Per brand-book.html and master-tokens.css
+         Per brand-book.html and the generated brand tokens (brand/ferni-design-tokens.css)
          ============================================ */
 
       .your-year-overlay {

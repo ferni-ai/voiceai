@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ferni Quote Cards Gallery</title>
     <!-- Design System (single source of truth) -->
-    <link rel="stylesheet" href="../../../brand/master-tokens.css">
+    <link rel="stylesheet" href="../../../brand/ferni-design-tokens.css">
+    <link rel="stylesheet" href="../../../brand/brand-base.css">
     <link rel="stylesheet" href="../../../brand/brand-components.css">
     <style>
         * {
@@ -27,9 +28,9 @@
             align-items: center;
             justify-content: space-between;
             padding: var(--space-4) var(--space-8);
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--glass-blur));
-            -webkit-backdrop-filter: blur(var(--glass-blur));
+            background: var(--glass-thick-bg);
+            backdrop-filter: blur(var(--blur-glass));
+            -webkit-backdrop-filter: blur(var(--blur-glass));
             border-bottom: 1px solid var(--color-border-subtle);
             position: sticky;
             top: 0;
@@ -51,8 +52,8 @@
 
         .nav-logo span {
             font-family: var(--font-display);
-            font-weight: var(--font-semibold);
-            font-size: var(--text-lg);
+            font-weight: var(--font-weight-semibold);
+            font-size: var(--text-xl);
         }
 
         .nav-links {
@@ -64,16 +65,16 @@
             text-decoration: none;
             color: var(--color-text-secondary);
             font-size: var(--text-sm);
-            font-weight: var(--font-medium);
+            font-weight: var(--font-weight-medium);
             transition: color var(--duration-fast) var(--ease-out);
         }
 
         .nav-links a:hover {
-            color: var(--color-ferni);
+            color: var(--color-ferni-text);
         }
 
         .nav-links a.active {
-            color: var(--color-ferni);
+            color: var(--color-ferni-text);
         }
 
         /* Main Content */
@@ -90,7 +91,7 @@
 
         .header h1 {
             font-family: var(--font-display);
-            font-size: clamp(var(--text-3xl), 6vw, var(--text-5xl));
+            font-size: clamp(var(--text-4xl), 6vw, var(--text-6xl));
             font-weight: var(--font-light);
             margin-bottom: var(--space-3);
             background: linear-gradient(135deg, var(--color-ferni), var(--color-jordan));
@@ -100,7 +101,7 @@
         }
 
         .header p {
-            font-size: var(--text-lg);
+            font-size: var(--text-xl);
             color: var(--color-text-secondary);
         }
 
@@ -119,7 +120,7 @@
             cursor: pointer;
             font-family: var(--font-body);
             font-size: var(--text-sm);
-            font-weight: var(--font-medium);
+            font-weight: var(--font-weight-medium);
             transition: all var(--duration-normal) var(--ease-out);
             background: var(--color-bg-elevated);
             color: var(--color-text-secondary);
@@ -160,7 +161,7 @@
             text-align: center;
             position: relative;
             cursor: pointer;
-            transition: all var(--duration-slow) var(--ease-spring);
+            transition: all var(--duration-slower) var(--ease-ease-out-back);
             overflow: hidden;
             color: white;
             box-shadow: var(--shadow-lg);
@@ -197,7 +198,7 @@
 
         .quote-text {
             font-family: var(--font-display);
-            font-size: var(--text-xl);
+            font-size: var(--text-2xl);
             font-weight: var(--font-light);
             line-height: var(--leading-relaxed);
             margin-bottom: var(--space-8);
@@ -219,7 +220,7 @@
             font-family: var(--font-body);
             font-size: var(--text-base);
             opacity: 0.8;
-            font-weight: var(--font-medium);
+            font-weight: var(--font-weight-medium);
             position: relative;
             z-index: 1;
         }
@@ -300,11 +301,11 @@
             }
 
             .header h1 {
-                font-size: var(--text-3xl);
+                font-size: var(--text-4xl);
             }
 
             .quote-text {
-                font-size: var(--text-lg);
+                font-size: var(--text-xl);
             }
 
             .cards-grid {

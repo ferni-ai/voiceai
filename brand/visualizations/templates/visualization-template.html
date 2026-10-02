@@ -12,7 +12,8 @@
   <meta property="og:type" content="website">
 
   <!-- Design System Tokens (REQUIRED) -->
-  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../../ferni-design-tokens.css">
+  <link rel="stylesheet" href="../../brand-base.css">
 
   <!-- Visualization System Styles -->
   <link rel="stylesheet" href="../components.css">
@@ -22,7 +23,7 @@
   <style>
     /* ==========================================================================
        VISUALIZATION-SPECIFIC STYLES
-       Always use CSS custom properties from master-tokens.css
+       Always use CSS custom properties from ferni-design-tokens.css
        ========================================================================== */
 
     .viz-page {
@@ -45,14 +46,14 @@
 
     .viz-title {
       font-family: var(--font-display, 'Fraunces', serif);
-      font-size: var(--text-4xl, 2.5rem);
+      font-size: var(--text-5xl, 2.5rem);
       font-weight: 600;
       color: var(--color-text, #2c2520);
       margin-bottom: var(--space-sm, 0.5rem);
     }
 
     .viz-subtitle {
-      font-size: var(--text-lg, 1.125rem);
+      font-size: var(--text-xl, 1.125rem);
       color: var(--color-text-muted, #6b6560);
     }
 
@@ -65,7 +66,7 @@
     /* Chart Container */
     .viz-chart-container {
       background: var(--color-surface-elevated, #ffffff);
-      border-radius: var(--radius-lg, 1rem);
+      border-radius: var(--radius-md, 1rem);
       padding: var(--space-xl, 3rem);
       box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.08));
     }
@@ -79,12 +80,12 @@
         var(--color-surface-elevated, #ffffff) 100%
       );
       border: 2px dashed var(--color-border, #e0dcd8);
-      border-radius: var(--radius-md, 0.5rem);
+      border-radius: var(--radius-sm, 0.5rem);
       display: flex;
       align-items: center;
       justify-content: center;
       color: var(--color-text-muted, #6b6560);
-      font-size: var(--text-lg, 1.125rem);
+      font-size: var(--text-xl, 1.125rem);
     }
 
     /* Insight Card */
@@ -95,13 +96,13 @@
         var(--color-surface-elevated, #ffffff) 100%
       );
       border-left: 4px solid var(--color-ferni, #4a6741);
-      border-radius: var(--radius-md, 0.5rem);
+      border-radius: var(--radius-sm, 0.5rem);
       padding: var(--space-lg, 2rem);
     }
 
     .viz-insight-card h3 {
       font-family: var(--font-display, 'Fraunces', serif);
-      font-size: var(--text-xl, 1.25rem);
+      font-size: var(--text-2xl, 1.25rem);
       color: var(--color-ferni, #4a6741);
       margin-bottom: var(--space-sm, 0.5rem);
       display: flex;
@@ -119,14 +120,14 @@
     .viz-prompt-card {
       background: var(--color-surface-elevated, #ffffff);
       border: 1px solid var(--color-border, #e0dcd8);
-      border-radius: var(--radius-md, 0.5rem);
+      border-radius: var(--radius-sm, 0.5rem);
       padding: var(--space-lg, 2rem);
       text-align: center;
     }
 
     .viz-prompt-card p {
       font-family: var(--font-display, 'Fraunces', serif);
-      font-size: var(--text-xl, 1.25rem);
+      font-size: var(--text-2xl, 1.25rem);
       font-style: italic;
       color: var(--color-text, #2c2520);
     }
@@ -176,7 +177,7 @@
 
     /* Kintsugi Highlight (for breakthrough moments) */
     .kintsugi-highlight {
-      border-color: var(--kintsugi-gold, #c9a227);
+      border-color: var(--kintsugi-primary, #c9a227);
       box-shadow: 0 0 20px var(--kintsugi-glow, rgba(201, 162, 39, 0.3));
     }
 
@@ -187,7 +188,7 @@
       }
 
       .viz-title {
-        font-size: var(--text-2xl, 1.75rem);
+        font-size: var(--text-3xl, 1.75rem);
       }
 
       .viz-chart-container {

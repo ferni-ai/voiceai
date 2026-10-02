@@ -33,7 +33,7 @@ The Better Than Human visualization system has been fully implemented, validated
 ### Verified as Correct
 | Check | Status | Notes |
 |-------|--------|-------|
-| Kintsugi tokens | Present | In `master-tokens.css` lines 129-135 |
+| Kintsugi tokens | Present | In `ferni-design-tokens.css` lines 129-135 |
 | Animation tokens | Present | In `design-system/tokens/animation.json` |
 | Dark mode support | Complete | Supports dark, midnight, cedar themes |
 | Print styles | Complete | Hides action panels, share menus |

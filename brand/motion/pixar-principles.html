@@ -8,7 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&family=Inter:wght@300;400;500;600&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Design System: Single source of truth -->
-    <link rel="stylesheet" href="../master-tokens.css">
+    <link rel="stylesheet" href="../ferni-design-tokens.css">
+    <link rel="stylesheet" href="../brand-base.css">
     <link rel="stylesheet" href="../brand-components.css">
     <style>
         /* Page-specific overrides */
@@ -182,7 +183,7 @@
 
         .comparison-column {
             padding: 24px;
-            border-radius: var(--radius-xl);
+            border-radius: var(--radius-lg);
         }
 
         .comparison-column.classic {
@@ -228,7 +229,7 @@
             width: 200px;
             height: 200px;
             background: var(--bg-primary);
-            border-radius: var(--radius-xl);
+            border-radius: var(--radius-lg);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -283,7 +284,7 @@
             cursor: pointer;
             background: rgba(44, 37, 32, 0.08);
             color: var(--text-primary);
-            transition: all 0.2s var(--ease-spring);
+            transition: all 0.2s var(--ease-ease-out-back);
         }
 
         .demo-btn:hover, .demo-btn.active {
@@ -295,7 +296,7 @@
 
         /* 1. Squash & Stretch */
         .squash-stretch.joy .demo-orb {
-            animation: squashStretchJoy 0.8s var(--ease-spring) infinite;
+            animation: squashStretchJoy 0.8s var(--ease-ease-out-back) infinite;
         }
 
         @keyframes squashStretchJoy {
@@ -329,7 +330,7 @@
 
         /* 3. Follow Through */
         .follow-through.settle .demo-orb {
-            animation: followThrough 2.5s var(--ease-spring) infinite;
+            animation: followThrough 2.5s var(--ease-ease-out-back) infinite;
         }
 
         @keyframes followThrough {
@@ -377,7 +378,7 @@
 
         /* 6. Timing */
         .timing.peter .demo-orb {
-            animation: peterBounce 1s var(--ease-spring) infinite;
+            animation: peterBounce 1s var(--ease-ease-out-back) infinite;
         }
 
         @keyframes peterBounce {

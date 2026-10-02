@@ -6,9 +6,10 @@
   <title>Expression Library - 100 Luxo-Style Expressions</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <!-- Design System: Single source of truth -->
-  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../ferni-design-tokens.css">
+  <link rel="stylesheet" href="../brand-base.css">
   <style>
-    /* Page-specific overrides - base tokens from master-tokens.css */
+    /* Page-specific overrides - base tokens from ferni-design-tokens.css */
     :root {
       /* Persona Gradients for expressions */
       --ferni-start: #5a7a51;
@@ -62,7 +63,7 @@
                   color var(--duration-normal) var(--ease-gentle);
     }
 
-    /* Navigation styles inherited from master-tokens.css (.nav, .nav-back, .nav-links, .nav-link) */
+    /* Navigation styles inherited from ferni-design-tokens.css (.nav, .nav-back, .nav-links, .nav-link) */
 
     .theme-toggle {
       width: 36px;
@@ -74,7 +75,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all var(--duration-fast) var(--ease-spring);
+      transition: all var(--duration-fast) var(--ease-ease-out-back);
     }
 
     .theme-toggle:hover {
@@ -166,7 +167,7 @@
       font-weight: 500;
       color: var(--text-secondary);
       cursor: pointer;
-      transition: all var(--duration-normal) var(--ease-spring);
+      transition: all var(--duration-normal) var(--ease-ease-out-back);
     }
 
     .persona-btn:hover {
@@ -221,7 +222,7 @@
       background: var(--glow-sage);
       filter: blur(30px);
       opacity: 0.6;
-      transition: all var(--duration-slow) var(--ease-gentle);
+      transition: all var(--duration-slower) var(--ease-gentle);
     }
 
     .main-avatar {
@@ -231,7 +232,7 @@
 
     /* Luxo-style Expression States via CSS transforms */
     .eye-white {
-      transition: transform var(--duration-normal) var(--ease-spring);
+      transition: transform var(--duration-normal) var(--ease-ease-out-back);
       transform-origin: center center;
     }
 
@@ -346,7 +347,7 @@
       font-weight: 500;
       color: var(--text-secondary);
       cursor: pointer;
-      transition: all var(--duration-fast) var(--ease-spring);
+      transition: all var(--duration-fast) var(--ease-ease-out-back);
     }
 
     .micro-btn:hover {
@@ -385,7 +386,7 @@
       font-weight: 500;
       color: var(--text-secondary);
       cursor: pointer;
-      transition: all var(--duration-normal) var(--ease-spring);
+      transition: all var(--duration-normal) var(--ease-ease-out-back);
     }
 
     .category-btn:hover {
@@ -441,7 +442,7 @@
       border-radius: 20px;
       padding: 24px;
       border: 1px solid rgba(44, 37, 32, 0.08);
-      transition: all var(--duration-slow) var(--ease-spring);
+      transition: all var(--duration-slower) var(--ease-ease-out-back);
       cursor: pointer;
       position: relative;
       overflow: hidden;
@@ -482,7 +483,7 @@
       background: var(--glow-color, var(--glow-sage));
       filter: blur(15px);
       opacity: 0;
-      transition: opacity var(--duration-slow);
+      transition: opacity var(--duration-slower);
     }
 
     .expression-card:hover .card-avatar-glow {

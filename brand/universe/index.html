@@ -7,7 +7,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Design System (single source of truth) -->
-  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../ferni-design-tokens.css">
+  <link rel="stylesheet" href="../brand-base.css">
 
   <!-- GSAP -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -18,7 +19,7 @@
     :root {
       /* ============================================
          PAGE-SPECIFIC: Cinematic dark theme overrides
-         Base tokens from master-tokens.css
+         Base tokens from ferni-design-tokens.css
          ============================================ */
       --color-gold: #d4a954;
       --color-gold-light: #f5d78e;
@@ -35,7 +36,7 @@
 
     body {
       font-family: var(--font-body);
-      background: var(--color-showcase-bg);
+      background: var(--color-cinematic-black);
       color: var(--color-text-inverse);
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
@@ -123,7 +124,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: var(--color-showcase-bg);
+      background: var(--color-cinematic-black);
       z-index: 9999;
       display: flex;
       align-items: center;
@@ -172,7 +173,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: radial-gradient(ellipse at center, var(--color-showcase-surface) 0%, var(--color-showcase-bg) 100%);
+      background: radial-gradient(ellipse at center, var(--color-cinematic-surface) 0%, var(--color-cinematic-black) 100%);
     }
 
     /* Floating particles */
@@ -542,7 +543,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-showcase-surface);
+      background: var(--color-cinematic-surface);
       position: relative;
       overflow: hidden;
     }
@@ -608,7 +609,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(180deg, var(--color-showcase-surface) 0%, #0d0a08 100%);
+      background: linear-gradient(180deg, var(--color-cinematic-surface) 0%, #0d0a08 100%);
       position: relative;
     }
 
@@ -662,7 +663,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(ellipse at 70% 50%, #1a1508 0%, var(--color-showcase-surface) 60%);
+      background: radial-gradient(ellipse at 70% 50%, #1a1508 0%, var(--color-cinematic-surface) 60%);
       position: relative;
       overflow: hidden;
     }
@@ -730,7 +731,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-showcase-bg);
+      background: var(--color-cinematic-black);
       position: relative;
       padding: 120px 0;
     }
@@ -789,7 +790,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(180deg, var(--color-showcase-bg) 0%, #0a0d0a 100%);
+      background: linear-gradient(180deg, var(--color-cinematic-black) 0%, #0a0d0a 100%);
       padding: 120px 0;
     }
 
@@ -807,7 +808,7 @@
     }
 
     .philosophy-title span {
-      color: var(--color-ferni);
+      color: var(--color-ferni-text);
     }
 
     .philosophy-intro {
@@ -877,7 +878,7 @@
        ============================================ */
     .team-section {
       min-height: 100vh;
-      background: var(--color-showcase-bg);
+      background: var(--color-cinematic-black);
       padding: 120px 0;
     }
 
@@ -1005,7 +1006,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(180deg, var(--color-showcase-bg) 0%, #0a120a 50%, var(--color-ferni) 100%);
+      background: linear-gradient(180deg, var(--color-cinematic-black) 0%, #0a120a 50%, var(--color-ferni) 100%);
       padding: 120px 0;
     }
 
@@ -1389,8 +1390,8 @@
                 </linearGradient>
               </defs>
               <circle cx="50" cy="50" r="45" fill="url(#ferniG)"/>
-              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
-              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-bg-primary)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-bg-primary)"/>
             </svg>
           </div>
         </div>
@@ -1420,8 +1421,8 @@
                 </linearGradient>
               </defs>
               <circle cx="50" cy="50" r="45" fill="url(#mayaG)"/>
-              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
-              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-bg-primary)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-bg-primary)"/>
             </svg>
           </div>
         </div>
@@ -1451,8 +1452,8 @@
                 </linearGradient>
               </defs>
               <circle cx="50" cy="50" r="45" fill="url(#peterG)"/>
-              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
-              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-bg-primary)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-bg-primary)"/>
             </svg>
           </div>
         </div>
@@ -1482,8 +1483,8 @@
                 </linearGradient>
               </defs>
               <circle cx="50" cy="50" r="45" fill="url(#jordanG)"/>
-              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
-              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-bg-primary)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-bg-primary)"/>
             </svg>
           </div>
         </div>
@@ -1513,8 +1514,8 @@
                 </linearGradient>
               </defs>
               <circle cx="50" cy="50" r="45" fill="url(#alexG)"/>
-              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
-              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-bg-primary)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-bg-primary)"/>
             </svg>
           </div>
         </div>
@@ -1544,8 +1545,8 @@
                 </linearGradient>
               </defs>
               <circle cx="50" cy="50" r="45" fill="url(#nayanG)"/>
-              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
-              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-bg-primary)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-bg-primary)"/>
             </svg>
           </div>
         </div>

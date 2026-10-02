@@ -8,10 +8,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Design System: Single source of truth -->
-    <link rel="stylesheet" href="../../master-tokens.css">
+    <link rel="stylesheet" href="../../ferni-design-tokens.css">
+    <link rel="stylesheet" href="../../brand-base.css">
     <link rel="stylesheet" href="../../brand-components.css">
     <style>
-        /* Page-specific overrides - base tokens from master-tokens.css */
+        /* Page-specific overrides - base tokens from ferni-design-tokens.css */
         :root {
             /* Legacy aliases for backward compatibility */
             --cream: var(--bg-primary);
@@ -47,7 +48,7 @@
             line-height: 1.6;
         }
 
-        /* Navigation - uses .nav from master-tokens.css */
+        /* Navigation - uses .nav from ferni-design-tokens.css */
 
         /* ============================================
            PAGE LAYOUT
@@ -115,7 +116,7 @@
             position: relative;
             width: var(--size);
             height: var(--size);
-            transition: transform 0.4s var(--ease-spring);
+            transition: transform 0.4s var(--ease-ease-out-back);
         }
 
         .avatar-svg {
@@ -172,7 +173,7 @@
         /* LID TRANSITIONS with anticipation */
         .lid-top, .lid-bottom {
             fill: var(--cream);
-            transition: d 0.35s var(--ease-spring);
+            transition: d 0.35s var(--ease-ease-out-back);
         }
 
         .ferni-avatar.anticipation .lid-top,
@@ -199,12 +200,12 @@
         /* Smile Creases & Sparkles */
         .smile-crease {
             opacity: 0;
-            transition: opacity 0.3s var(--ease-gentle), stroke-width 0.2s var(--ease-spring);
+            transition: opacity 0.3s var(--ease-gentle), stroke-width 0.2s var(--ease-ease-out-back);
         }
 
         .sparkle-group {
             opacity: 0;
-            transition: all 0.2s var(--ease-spring);
+            transition: all 0.2s var(--ease-ease-out-back);
         }
 
         @keyframes sparkleRotate {
@@ -256,7 +257,7 @@
         .ferni-avatar[data-mood="joyful"] .presence-ring { opacity: 0.5; stroke-width: 2; transform: scale(1.02); }
 
         /* DELIGHTED */
-        .ferni-avatar[data-mood="delighted"] { transform: translateY(-6px) scale(1.05) rotate(-2deg); animation: delightedBounce 0.5s var(--ease-spring); }
+        .ferni-avatar[data-mood="delighted"] { transform: translateY(-6px) scale(1.05) rotate(-2deg); animation: delightedBounce 0.5s var(--ease-ease-out-back); }
         .ferni-avatar[data-mood="delighted"] .eye-white { transform: scaleY(0.6) scaleX(1.15); }
         .ferni-avatar[data-mood="delighted"] .lid-top { d: path("M 0,0 Q 50,42 100,0 L 100,0 L 0,0 Z"); }
         .ferni-avatar[data-mood="delighted"] .lid-bottom { d: path("M 0,100 Q 50,72 100,100 L 100,100 L 0,100 Z"); }
@@ -272,7 +273,7 @@
         }
 
         /* EXCITED */
-        .ferni-avatar[data-mood="excited"] { transform: scale(1.06); animation: excitedBounce 0.35s var(--ease-bounce) infinite; }
+        .ferni-avatar[data-mood="excited"] { transform: scale(1.06); animation: excitedBounce 0.35s var(--ease-spring-bouncy) infinite; }
         .ferni-avatar[data-mood="excited"] .eye-white { transform: scaleY(1.15) scaleX(1.08); }
         .ferni-avatar[data-mood="excited"] .lid-top { d: path("M 0,0 Q 50,-12 100,0 L 100,0 L 0,0 Z"); }
         .ferni-avatar[data-mood="excited"] .sparkle-group { opacity: 1; }
@@ -309,7 +310,7 @@
         .ferni-avatar[data-mood="surprised"] .lid-bottom { d: path("M 0,100 Q 50,115 100,100 L 100,100 L 0,100 Z"); }
 
         /* SHOCKED */
-        .ferni-avatar[data-mood="shocked"] { transform: scaleY(1.08) scaleX(0.94) translateY(-8px); animation: shockPop 0.3s var(--ease-spring); }
+        .ferni-avatar[data-mood="shocked"] { transform: scaleY(1.08) scaleX(0.94) translateY(-8px); animation: shockPop 0.3s var(--ease-ease-out-back); }
         .ferni-avatar[data-mood="shocked"] .eye-white { transform: scaleY(1.35) scaleX(1.15); }
         .ferni-avatar[data-mood="shocked"] .lid-top { d: path("M 0,0 Q 50,-35 100,0 L 100,0 L 0,0 Z"); }
 
@@ -557,7 +558,7 @@
             padding: 20px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s var(--ease-spring);
+            transition: all 0.2s var(--ease-ease-out-back);
             border: 2px solid transparent;
         }
 
@@ -639,7 +640,7 @@
             font-weight: 600;
             color: var(--text-secondary);
             cursor: pointer;
-            transition: all 0.2s var(--ease-spring);
+            transition: all 0.2s var(--ease-ease-out-back);
             text-align: center;
         }
 
@@ -795,7 +796,7 @@
             padding: 20px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s var(--ease-spring);
+            transition: all 0.2s var(--ease-ease-out-back);
         }
 
         .layer-card:hover {

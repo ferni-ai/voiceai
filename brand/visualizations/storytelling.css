@@ -1,7 +1,7 @@
 /**
  * FERNI STORYTELLING VISUALIZATIONS
  * ==================================
- * Premium visualization styles using master-tokens.css
+ * Premium visualization styles using ferni-design-tokens.css
  * Apple/Google-level precision and consistency.
  *
  * Version: 2.0.0
@@ -12,19 +12,19 @@
    Uses design system colors with dark mode
    ============================================ */
 :root {
-  /* Dark backgrounds - matches master-tokens Cedar Night */
+  /* Dark backgrounds - matches the generated Cedar Night tokens */
   --story-bg-void: #0a0908;
   --story-bg-primary: #141311;
   --story-bg-secondary: #1C1A18;
   --story-bg-elevated: #242220;
   --story-bg-glass: rgba(28, 26, 24, 0.85);
 
-  /* Text - matches master-tokens dark mode */
+  /* Text - matches the generated dark tokens */
   --story-text-primary: #F5F2ED;
   --story-text-secondary: #B5AFA6;
   --story-text-muted: #6B665F;
 
-  /* Borders - matches master-tokens dark mode */
+  /* Borders - matches the generated dark tokens */
   --story-border-subtle: rgba(245, 242, 237, 0.06);
   --story-border-default: rgba(245, 242, 237, 0.10);
   --story-border-strong: rgba(245, 242, 237, 0.16);
@@ -68,7 +68,7 @@
   display: inline-block;
   font-family: var(--font-body, 'Inter', sans-serif);
   font-size: var(--text-xs, 0.75rem);
-  font-weight: var(--font-semibold, 600);
+  font-weight: var(--font-weight-semibold, 600);
   text-transform: uppercase;
   letter-spacing: var(--tracking-widest, 0.1em);
   color: var(--warm-accent);
@@ -148,7 +148,7 @@
 
 .story-card-title {
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: var(--text-lg, 1.25rem);
+  font-size: var(--text-xl, 1.25rem);
   font-style: italic;
   font-weight: 400;
   color: var(--story-text-primary);
@@ -173,7 +173,7 @@
     rgba(184, 149, 106, 0.06));
   border: 1px solid var(--story-border-subtle);
   border-left: 3px solid var(--color-ferni, #4A6741);
-  border-radius: 0 var(--radius-lg, 12px) var(--radius-lg, 12px) 0;
+  border-radius: 0 var(--radius-md, 12px) var(--radius-md, 12px) 0;
   margin-bottom: var(--space-8, 2rem);
 }
 
@@ -189,7 +189,7 @@
   color: white;
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
   font-size: var(--text-xs, 0.75rem);
-  font-weight: var(--font-bold, 700);
+  font-weight: var(--font-weight-bold, 700);
 }
 
 .bth-callout-content {
@@ -200,7 +200,7 @@
 .bth-callout-title {
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
   font-size: var(--text-sm, 0.875rem);
-  font-weight: var(--font-semibold, 600);
+  font-weight: var(--font-weight-semibold, 600);
   color: var(--color-ferni, #4A6741);
   margin-bottom: var(--space-1, 0.25rem);
 }
@@ -260,7 +260,7 @@
 
 .seasons-current {
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: var(--text-xl, 1.5rem);
+  font-size: var(--text-2xl, 1.5rem);
   font-style: italic;
   color: var(--story-text-primary);
 }
@@ -282,7 +282,7 @@
   align-items: center;
   gap: var(--space-3, 0.75rem);
   padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-sm, 8px);
   transition: background var(--duration-fast, 150ms) var(--ease-out);
   cursor: pointer;
 }
@@ -306,7 +306,7 @@
 
 .season-name {
   font-size: var(--text-sm, 0.875rem);
-  font-weight: var(--font-medium, 500);
+  font-weight: var(--font-weight-medium, 500);
   color: var(--story-text-primary);
 }
 
@@ -370,7 +370,7 @@
   background: radial-gradient(ellipse at center,
     rgba(28, 26, 24, 0.6) 0%,
     transparent 70%);
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--radius-lg, 16px);
   overflow: hidden;
 }
 
@@ -381,7 +381,7 @@
 
 .constellation-star {
   cursor: pointer;
-  transition: transform var(--duration-fast, 150ms) var(--ease-spring);
+  transition: transform var(--duration-fast, 150ms) var(--ease-ease-out-back);
 }
 
 .constellation-star:hover {
@@ -439,12 +439,12 @@
   padding: var(--space-6, 1.5rem);
   background: var(--story-bg-elevated);
   border: 1px solid var(--story-border-subtle);
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--radius-lg, 16px);
 }
 
 .mirror-side-title {
   font-size: var(--text-xs, 0.75rem);
-  font-weight: var(--font-semibold, 600);
+  font-weight: var(--font-weight-semibold, 600);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wider, 0.05em);
   color: var(--story-text-muted);
@@ -461,7 +461,7 @@
 .mirror-item {
   padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
   background: rgba(245, 242, 237, 0.02);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-sm, 8px);
   font-size: var(--text-sm, 0.875rem);
   color: var(--story-text-secondary);
   line-height: var(--leading-normal, 1.5);
@@ -533,7 +533,7 @@
   background: var(--story-bg-elevated);
   border: 1px solid var(--story-border-subtle);
   border-left: 3px solid var(--warm-accent);
-  border-radius: 0 var(--radius-lg, 12px) var(--radius-lg, 12px) 0;
+  border-radius: 0 var(--radius-md, 12px) var(--radius-md, 12px) 0;
   transition: background var(--duration-fast, 150ms) var(--ease-out),
               transform var(--duration-fast, 150ms) var(--ease-out);
 }
@@ -608,8 +608,8 @@
 
 .growth-year {
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-  font-size: var(--text-2xl, 2rem);
-  font-weight: var(--font-semibold, 600);
+  font-size: var(--text-3xl, 2rem);
+  font-weight: var(--font-weight-semibold, 600);
   color: var(--story-text-primary);
 }
 
@@ -632,7 +632,7 @@
   gap: var(--space-3, 0.75rem);
   padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
   background: rgba(245, 242, 237, 0.02);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-sm, 8px);
   transition: background var(--duration-fast, 150ms) var(--ease-out);
 }
 
@@ -654,7 +654,7 @@
 
 .growth-legend-year {
   font-size: var(--text-sm, 0.875rem);
-  font-weight: var(--font-medium, 500);
+  font-weight: var(--font-weight-medium, 500);
   color: var(--story-text-primary);
 }
 
@@ -714,7 +714,7 @@
 .radar-insight {
   padding: var(--space-4, 1rem);
   background: rgba(184, 149, 106, 0.08);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-sm, 8px);
   margin-top: var(--space-2, 0.5rem);
 }
 
@@ -777,7 +777,7 @@
   padding: var(--space-5, 1.25rem);
   background: var(--story-bg-elevated);
   border: 1px solid var(--story-border-subtle);
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--radius-lg, 16px);
   transition: border-color var(--duration-fast, 150ms) var(--ease-out),
               transform var(--duration-fast, 150ms) var(--ease-out);
 }
@@ -816,7 +816,7 @@
 
 .timeline-date {
   font-size: var(--text-xs, 0.75rem);
-  font-weight: var(--font-semibold, 600);
+  font-weight: var(--font-weight-semibold, 600);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wider, 0.05em);
   color: var(--warm-accent);
@@ -825,7 +825,7 @@
 
 .timeline-title {
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: var(--text-md, 1.125rem);
+  font-size: var(--text-lg, 1.125rem);
   font-style: italic;
   color: var(--story-text-primary);
   margin-bottom: var(--space-2, 0.5rem);
@@ -850,7 +850,7 @@
   padding: var(--space-5, 1.25rem);
   background: var(--story-bg-elevated);
   border: 1px solid var(--story-border-subtle);
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--radius-lg, 16px);
   transition: border-color var(--duration-fast, 150ms) var(--ease-out),
               transform var(--duration-fast, 150ms) var(--ease-out);
 }
@@ -879,7 +879,7 @@
 
 .anticipation-confidence {
   font-size: var(--text-xs, 0.75rem);
-  font-weight: var(--font-bold, 700);
+  font-weight: var(--font-weight-bold, 700);
   color: var(--warm-accent);
   flex-shrink: 0;
 }
@@ -907,7 +907,7 @@
 
 .anticipation-basis strong {
   color: var(--story-text-secondary);
-  font-weight: var(--font-medium, 500);
+  font-weight: var(--font-weight-medium, 500);
 }
 
 /* ============================================
@@ -943,7 +943,7 @@
 
 .ripple-origin {
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: var(--text-md, 1.125rem);
+  font-size: var(--text-lg, 1.125rem);
   font-style: italic;
   color: var(--story-text-primary);
   margin-bottom: var(--space-1, 0.25rem);
@@ -968,7 +968,7 @@
   padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
   background: var(--story-bg-secondary);
   border: 1px solid var(--story-border-subtle);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-sm, 8px);
   font-size: var(--text-xs, 0.75rem);
   color: var(--story-text-secondary);
   white-space: nowrap;
@@ -996,7 +996,7 @@
   padding: var(--space-5, 1.25rem);
   background: var(--story-bg-elevated);
   border: 1px solid var(--story-border-subtle);
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--radius-lg, 16px);
   transition: border-color var(--duration-fast, 150ms) var(--ease-out),
               transform var(--duration-fast, 150ms) var(--ease-out);
 }
@@ -1043,7 +1043,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 10px;
-  font-weight: var(--font-semibold, 600);
+  font-weight: var(--font-weight-semibold, 600);
   color: var(--story-text-primary);
 }
 

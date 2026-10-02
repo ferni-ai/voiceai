@@ -52,6 +52,8 @@ const CONFIG = {
 // GENERATORS
 // ============================================================================
 
+const kebab = (k) => k.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+
 function loadJson(filepath) {
   return JSON.parse(fs.readFileSync(filepath, 'utf-8'));
 }
@@ -119,6 +121,7 @@ function generateColorVars(colors) {
   lines.push('  --color-text-secondary-light: var(--color-text-secondary);');
   // Generated error ink (utils/theme-inks.js), WCAG AA on zen surfaces
   lines.push(`  --color-text-error: ${themeTextInks(zen).semanticText.errorText};`);
+  lines.push(`  --color-accent-text: ${themeTextInks(zen).accentText};`);
   lines.push(`  --color-natural-ink: ${zen.natural.ink};`);
   lines.push('');
 
@@ -236,6 +239,35 @@ function generateColorVars(colors) {
   lines.push(`  --color-bg-dark-surface: ${midnight.background.secondary};`);
   lines.push(`  --color-bg-darker: #2a2420;`);
   lines.push('');
+
+  // Visualization palettes (kintsugi gold, river, seasons…) from colors.json
+  if (colors.visualization) {
+    lines.push('  /* ============================================');
+    lines.push('     COLORS - Visualization');
+    lines.push('     ============================================ */');
+    for (const [group, values] of Object.entries(colors.visualization)) {
+      if (group.startsWith('_') || typeof values !== 'object') continue;
+      const prefix = group === 'kintsugi' ? '--kintsugi' : `--viz-${kebab(group)}`;
+      for (const [key, value] of Object.entries(values)) {
+        if (key.startsWith('_') || typeof value !== 'string') continue;
+        lines.push(`  ${prefix}-${kebab(key)}: ${value};`);
+      }
+    }
+    lines.push('');
+  }
+
+  // Glass surfaces (zen)
+  if (zen.glass) {
+    lines.push('  /* ============================================');
+    lines.push('     GLASS - Zen surfaces (pair with --blur-*)');
+    lines.push('     ============================================ */');
+    for (const [key, value] of Object.entries(zen.glass)) {
+      if (key.startsWith('_') || typeof value !== 'object') continue;
+      lines.push(`  --glass-${kebab(key)}-bg: ${value.background};`);
+      lines.push(`  --glass-${kebab(key)}-border: ${value.border};`);
+    }
+    lines.push('');
+  }
 
   // Persona colors (with theme-aware text variants)
   lines.push('  /* ============================================');
@@ -435,6 +467,7 @@ function generateDarkThemeVars(colors) {
   lines.push(`    --color-text-dimmed: ${midnight.text.dimmed};`);
   lines.push(`    --color-text-inverse: ${midnight.text.inverse};`);
   lines.push(`    --color-text-error: ${themeTextInks(midnight).semanticText.errorText};`);
+  lines.push(`    --color-accent-text: ${themeTextInks(midnight).accentText};`);
   lines.push('');
 
   // Accent colors
@@ -470,13 +503,21 @@ function generateDarkThemeVars(colors) {
     const shortId = personaId.split('-')[0];
     lines.push(`    --color-${shortId}-text: ${personaInks[personaId].midnight};`);
   }
+  // Glass surfaces (midnight)
+  for (const [key, value] of Object.entries(midnight.glass || {})) {
+    if (key.startsWith('_') || typeof value !== 'object') continue;
+    lines.push(`    --glass-${kebab(key)}-bg: ${value.background};`);
+    lines.push(`    --glass-${kebab(key)}-border: ${value.border};`);
+  }
 
   lines.push('  }');
   lines.push('}');
   lines.push('');
 
-  // Also add [data-theme="dark"] selector for manual toggle
-  lines.push('[data-theme="dark"] {');
+  // Same overrides for manual toggles (brand library uses dark/cedar/midnight)
+  lines.push('[data-theme="dark"],');
+  lines.push('[data-theme="cedar"],');
+  lines.push('[data-theme="midnight"] {');
 
   // Background colors
   lines.push('  /* Background */');
@@ -495,6 +536,7 @@ function generateDarkThemeVars(colors) {
   lines.push(`  --color-text-dimmed: ${midnight.text.dimmed};`);
   lines.push(`  --color-text-inverse: ${midnight.text.inverse};`);
   lines.push(`  --color-text-error: ${themeTextInks(midnight).semanticText.errorText};`);
+  lines.push(`  --color-accent-text: ${themeTextInks(midnight).accentText};`);
   lines.push('');
 
   // Accent colors
@@ -529,6 +571,12 @@ function generateDarkThemeVars(colors) {
     if (personaId.startsWith('_')) continue;
     const shortId = personaId.split('-')[0];
     lines.push(`  --color-${shortId}-text: ${personaInks[personaId].midnight};`);
+  }
+  // Glass surfaces (midnight)
+  for (const [key, value] of Object.entries(midnight.glass || {})) {
+    if (key.startsWith('_') || typeof value !== 'object') continue;
+    lines.push(`  --glass-${kebab(key)}-bg: ${value.background};`);
+    lines.push(`  --glass-${kebab(key)}-border: ${value.border};`);
   }
 
   lines.push('}');
@@ -613,6 +661,16 @@ function generateTypographyVars(typography) {
   lines.push('     ============================================ */');
   for (const [key, value] of Object.entries(typography.fontWeights)) {
     lines.push(`  --font-weight-${key}: ${value};`);
+  }
+  lines.push('');
+
+  // Letter spacing
+  lines.push('  /* ============================================');
+  lines.push('     TYPOGRAPHY - Letter Spacing');
+  lines.push('     ============================================ */');
+  for (const [key, value] of Object.entries(typography.letterSpacing || {})) {
+    if (key.startsWith('_')) continue;
+    lines.push(`  --tracking-${key}: ${value};`);
   }
   lines.push('');
 

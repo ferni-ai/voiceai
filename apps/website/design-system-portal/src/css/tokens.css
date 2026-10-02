@@ -216,6 +216,16 @@
   --font-weight-extrabold: 800;
 
   /* ============================================
+     TYPOGRAPHY - Letter Spacing
+     ============================================ */
+  --tracking-tighter: -0.03em;
+  --tracking-tight: -0.015em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.015em;
+  --tracking-wider: 0.05em;
+  --tracking-widest: 0.1em;
+
+  /* ============================================
      TYPOGRAPHY - Line Heights
      ============================================ */
   --leading-none: 1;
