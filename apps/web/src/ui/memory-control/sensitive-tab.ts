@@ -34,6 +34,7 @@ import {
   renderMood,
 } from './sensitive-render.js';
 import { injectSensitiveStyles } from './sensitive.styles.js';
+import { BeliefsSection } from './beliefs-section.js';
 import { renderError, renderLoading } from './states.js';
 
 export class SensitiveTab {
@@ -44,9 +45,11 @@ export class SensitiveTab {
   private saving = false;
   private busy = false;
   private loadFailed = false;
+  private readonly beliefs: BeliefsSection;
 
   constructor(private readonly host: HTMLElement) {
     injectSensitiveStyles();
+    this.beliefs = new BeliefsSection(host, () => this.render());
     host.addEventListener('click', (e) => void this.onClick(e));
     host.addEventListener('keydown', (e) => this.onKeydown(e));
   }
@@ -54,7 +57,12 @@ export class SensitiveTab {
   async load(): Promise<void> {
     this.loadFailed = false;
     this.host.innerHTML = renderLoading(t('memoryControl.sensitive.loading', 'One moment...'));
-    const [consent, health, mood] = await Promise.all([getConsent(), getHealth(), getMood()]);
+    const [consent, health, mood] = await Promise.all([
+      getConsent(),
+      getHealth(),
+      getMood(),
+      this.beliefs.load(),
+    ]);
     if (!consent.ok) {
       this.loadFailed = true;
       this.host.innerHTML = renderError(
@@ -74,7 +82,12 @@ export class SensitiveTab {
       renderConsentCard(this.consent, this.health),
       this.health ? renderHealth(this.health, this.editingId, this.saving) : '',
       this.mood ? renderMood(this.mood) : '',
+      this.beliefs.html(this.beliefsOn()),
     ].join('');
+  }
+
+  private beliefsOn(): boolean {
+    return this.consent?.consent.categories.beliefs.enabled === true;
   }
 
   private focus(selector: string): void {
@@ -214,7 +227,7 @@ export class SensitiveTab {
   }
 
   private async refreshLists(): Promise<void> {
-    const [health, mood] = await Promise.all([getHealth(), getMood()]);
+    const [health, mood] = await Promise.all([getHealth(), getMood(), this.beliefs.load()]);
     if (health.ok) this.health = health.value;
     if (mood.ok) this.mood = mood.value;
     this.render();

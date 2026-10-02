@@ -73,10 +73,12 @@ export function wireNavigationEvents(host: AppHost): void {
     void showConversationHistory();
   });
   addTrackedListener(window, 'ferni:open-memories', (e) => {
-    // Optional detail.tab ('goals', 'conversations', 'data') opens that tab.
+    // Optional detail.tab ('goals', 'story', 'conversations', 'data') opens that tab.
     const tab = (e as CustomEvent<{ tab?: string } | undefined>).detail?.tab;
     void openMemoryPanel(
-      tab === 'goals' || tab === 'conversations' || tab === 'data' ? tab : 'memories'
+      tab === 'goals' || tab === 'story' || tab === 'conversations' || tab === 'data'
+        ? tab
+        : 'memories'
     );
   });
   addTrackedListener(window, 'ferni:open-patterns', () => {

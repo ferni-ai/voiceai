@@ -46,7 +46,7 @@ const log = createLogger('PanelMethods');
  * stays out of the startup bundle.
  */
 export async function openMemoryPanel(
-  tab: 'memories' | 'goals' | 'life' | 'conversations' | 'sensitive' | 'data' = 'memories'
+  tab: 'memories' | 'goals' | 'life' | 'story' | 'conversations' | 'sensitive' | 'data' = 'memories'
 ): Promise<void> {
   void trackScreen('journal');
   try {

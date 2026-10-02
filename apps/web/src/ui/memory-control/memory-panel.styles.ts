@@ -72,8 +72,12 @@ const CSS = `
   display: flex;
   gap: var(--space-1);
   border-bottom: 1px solid var(--color-border-subtle);
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 .memory-tab {
+  flex-shrink: 0;
+  white-space: nowrap;
   min-height: 44px;
   padding: var(--space-2) var(--space-4);
   background: transparent;

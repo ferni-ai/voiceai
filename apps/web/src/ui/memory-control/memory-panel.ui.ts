@@ -8,8 +8,10 @@
  * - Goals & habits: dreams, goals and habits (linked), editable, habits
  *   can be marked done
  * - Work & places: jobs (with history), projects, trips, home, favourite spots
+ * - Your story: where you come from, stories told, turning points, values
  * - Conversations: past conversations with full transcripts, deletable
- * - Sensitive: consent for health, money and beliefs; health notes; mood
+ * - Sensitive: consent for health, money and beliefs; health notes; mood;
+ *   faith & beliefs (only while Beliefs is on)
  * - Your data: JSON/CSV export and "delete everything"
  *
  * Opened from the settings menu ("What I remember", and the older memory
@@ -29,6 +31,7 @@ import { ConversationsTab } from './conversations-tab.js';
 import { DataTab } from './data-tab.js';
 import { esc } from './format.js';
 import { GoalsTab } from './goals-tab.js';
+import { LifeStoryTab } from './life-story-tab.js';
 import { MemoriesTab } from './memories-tab.js';
 import { injectMemoryPanelStyles } from './memory-panel.styles.js';
 import { SensitiveTab } from './sensitive-tab.js';
@@ -36,12 +39,20 @@ import { WorkPlacesTab } from './work-places-tab.js';
 
 const log = createLogger('MemoryPanel');
 
-export type MemoryPanelTab = 'memories' | 'goals' | 'life' | 'conversations' | 'sensitive' | 'data';
+export type MemoryPanelTab =
+  | 'memories'
+  | 'goals'
+  | 'life'
+  | 'story'
+  | 'conversations'
+  | 'sensitive'
+  | 'data';
 
 const TABS: ReadonlyArray<{ id: MemoryPanelTab; label: () => string }> = [
   { id: 'memories', label: () => t('memoryControl.memoriesTab', 'Memories') },
   { id: 'goals', label: () => t('memoryControl.goals.tab', 'Goals & habits') },
   { id: 'life', label: () => t('memoryControl.lifeTab', 'Work & places') },
+  { id: 'story', label: () => t('lifeStory.tab', 'Your story') },
   { id: 'conversations', label: () => t('memoryControl.conversationsTab', 'Conversations') },
   { id: 'sensitive', label: () => t('memoryControl.sensitiveTab', 'Sensitive') },
   { id: 'data', label: () => t('memoryControl.dataTab', 'Your data') },
@@ -59,6 +70,7 @@ class MemoryPanel extends Modal {
   private memories: MemoriesTab | null = null;
   private goals: GoalsTab | null = null;
   private life: WorkPlacesTab | null = null;
+  private story: LifeStoryTab | null = null;
   private conversations: ConversationsTab | null = null;
   private data: DataTab | null = null;
   private sensitive: SensitiveTab | null = null;
@@ -127,6 +139,7 @@ class MemoryPanel extends Modal {
     this.memories = new MemoriesTab(panel('memories'));
     this.goals = new GoalsTab(panel('goals'));
     this.life = new WorkPlacesTab(panel('life'));
+    this.story = new LifeStoryTab(panel('story'));
     this.conversations = new ConversationsTab(panel('conversations'));
     this.data = new DataTab(panel('data'));
     this.sensitive = new SensitiveTab(panel('sensitive'));
@@ -137,6 +150,7 @@ class MemoryPanel extends Modal {
       this.loaded.delete('memories');
       this.loaded.delete('goals');
       this.loaded.delete('life');
+      this.loaded.delete('story');
       this.loaded.delete('conversations');
       this.loaded.delete('sensitive');
     };
@@ -173,6 +187,7 @@ class MemoryPanel extends Modal {
     this.loaded.delete('goals');
     this.loaded.delete('sensitive');
     this.loaded.delete('life');
+    this.loaded.delete('story');
   }
 
   private renderSignInPrompt(): void {
@@ -238,6 +253,8 @@ class MemoryPanel extends Modal {
       if (fresh) void this.goals?.load();
     } else if (tab === 'life') {
       if (fresh) void this.life?.load();
+    } else if (tab === 'story') {
+      if (fresh) void this.story?.load();
     } else if (tab === 'conversations') {
       void this.conversations?.load(fresh);
     } else if (tab === 'sensitive') {
