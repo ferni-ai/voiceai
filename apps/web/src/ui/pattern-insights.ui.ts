@@ -24,27 +24,16 @@ import { apiGet } from '../utils/api.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
 import { getPatternInsightIcon } from './icons/shared-icons.js';
 import { createEmptyState } from './components/empty-state.js';
+import {
+  type PatternInsight,
+  type PatternInsightsResponse,
+  STORAGE_KEY,
+  CACHE_DURATION_MS,
+  cacheInsights,
+  getDefaultInsights,
+} from './pattern-insights-data.js';
 
 const log = createLogger('PatternInsights');
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface PatternInsight {
-  id: string;
-  type: 'timing' | 'mood' | 'frequency' | 'topic' | 'growth';
-  title: string;
-  description: string;
-  icon: string;
-  trend?: 'up' | 'down' | 'stable';
-  value?: string;
-}
-
-interface PatternInsightsResponse {
-  insights: PatternInsight[];
-  lastUpdated: string;
-}
 
 // ============================================================================
 // STATE
@@ -55,13 +44,6 @@ let styleElement: HTMLStyleElement | null = null;
 let insightsCard: HTMLElement | null = null;
 let insights: PatternInsight[] = [];
 let isExpanded = false;
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-const STORAGE_KEY = 'ferni_pattern_insights_cache';
-const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
 
 // ============================================================================
 // INITIALIZATION
@@ -166,33 +148,6 @@ function loadCachedInsights(): void {
   } catch {
     // Ignore cache errors
   }
-}
-
-function cacheInsights(data: PatternInsightsResponse): void {
-  try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        insights: data.insights,
-        timestamp: Date.now(),
-      })
-    );
-  } catch {
-    // Ignore cache errors
-  }
-}
-
-function getDefaultInsights(): PatternInsight[] {
-  return [
-    {
-      id: 'welcome',
-      type: 'growth',
-      title: "I'm learning your rhythms",
-      description:
-        "After a few more conversations, I'll show you patterns that might surprise you.",
-      icon: '', // Will use SVG icon from getPatternInsightIcon
-    },
-  ];
 }
 
 // ============================================================================
