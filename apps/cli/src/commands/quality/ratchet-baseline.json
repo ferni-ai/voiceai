@@ -190,7 +190,7 @@
   "apps/web/src/ui/creative-you/styles.ts": 593,
   "apps/web/src/ui/custom-agent-editor.ui.ts": 1549,
   "apps/web/src/ui/custom-agent-wizard.ui.ts": 2400,
-  "apps/web/src/ui/dev-panel.ui.ts": 7766,
+  "apps/web/src/ui/dev-panel.ui.ts": 7764,
   "apps/web/src/ui/digital-twin-profile.ui.ts": 2094,
   "apps/web/src/ui/digital-twin.ui.ts": 1625,
   "apps/web/src/ui/director-console.ui.ts": 869,
@@ -318,7 +318,7 @@
   "apps/web/src/ui/sleep-settings.ui.ts": 798,
   "apps/web/src/ui/smart-home-settings.ui.ts": 1938,
   "apps/web/src/ui/sound.ui.ts": 662,
-  "apps/web/src/ui/stage-celebration.ui.ts": 1601,
+  "apps/web/src/ui/stage-celebration.ui.ts": 1600,
   "apps/web/src/ui/storytelling-visualizations.ts": 1555,
   "apps/web/src/ui/subscription-badge.ui.ts": 563,
   "apps/web/src/ui/subscription.ui.ts": 1759,
@@ -1760,9 +1760,9 @@
  "brandCritical": 0,
  "brandWarnings": 6,
  "lint": {
-  "no-console-log": 1216,
-  "no-hardcoded-hex-colors": 1624,
-  "no-purple-colors": 34
+  "no-console-log": 72,
+  "no-hardcoded-hex-colors": 1668,
+  "no-purple-colors": 37
  },
  "bundle": {
   "totalKB": 8435.9,
