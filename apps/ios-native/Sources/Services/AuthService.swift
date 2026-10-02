@@ -271,9 +271,14 @@ final class AuthService: NSObject, ObservableObject {
             fullName: appleIDCredential.fullName
         )
 
+        // Voice sessions before sign-in ran as an anonymous Firebase user; note
+        // its token now, because signing in replaces that user.
+        let anonymousIdToken = await anonymousIdTokenIfAny()
+
         do {
             let authResult = try await Auth.auth().signIn(with: credential)
             logger.info("Firebase auth successful for user: \(authResult.user.uid)")
+            await linkPriorIdentity(anonymousIdToken: anonymousIdToken, account: authResult.user)
         } catch {
             logger.error("Firebase auth failed: \(error.localizedDescription)")
             throw AuthError.signInFailed(error)
@@ -281,6 +286,46 @@ final class AuthService: NSObject, ObservableObject {
 
         isSignedIn = true
         logger.info("User signed in successfully")
+    }
+
+    // MARK: - Identity Linking
+
+    /// The ID token of the anonymous Firebase user, if that's who is signed in.
+    private func anonymousIdTokenIfAny() async -> String? {
+        guard let user = Auth.auth().currentUser, user.isAnonymous else { return nil }
+        do {
+            return try await user.getIDToken()
+        } catch {
+            logger.warning("Could not read the anonymous session token: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    /// Ask the server to carry the anonymous user's memory into the account
+    /// (POST /api/identity/link, same as the web app). Best-effort: a failure
+    /// never blocks sign-in, and the server makes repeats harmless.
+    private func linkPriorIdentity(anonymousIdToken: String?, account: FirebaseAuth.User) async {
+        guard let anonymousIdToken, !account.isAnonymous else { return }
+        guard let url = URL(string: "https://app.ferni.ai/api/identity/link") else { return }
+        do {
+            let accountToken = try await account.getIDToken()
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("Bearer \(accountToken)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(
+                withJSONObject: ["anonymousIdToken": anonymousIdToken]
+            )
+            let (_, response) = try await URLSession.shared.data(for: request)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            if (200..<300).contains(status) || status == 409 {
+                logger.info("Earlier conversations linked to this account (\(status))")
+            } else {
+                logger.warning("Identity link request failed with status: \(status)")
+            }
+        } catch {
+            logger.warning("Identity link request errored: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - Nonce Generation

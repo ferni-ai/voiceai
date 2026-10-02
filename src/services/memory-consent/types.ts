@@ -45,6 +45,18 @@ export interface ConsentError {
   readonly message: string;
 }
 
+/**
+ * Should the upfront question be asked (again)? True when it was never
+ * answered, or answered under older wording (`version < CONSENT_VERSION`).
+ * For prompting only: the switches keep their values either way, and asking
+ * again never turns anything on by itself.
+ */
+export function needsConsentAnswer(
+  consent: Pick<MemoryConsent, 'answeredAt' | 'version'>
+): boolean {
+  return consent.answeredAt === null || consent.version < CONSENT_VERSION;
+}
+
 export function isSensitiveCategory(value: unknown): value is SensitiveCategory {
   return typeof value === 'string' && (SENSITIVE_CATEGORIES as readonly string[]).includes(value);
 }

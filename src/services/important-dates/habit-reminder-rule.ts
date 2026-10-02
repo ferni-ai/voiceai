@@ -14,7 +14,8 @@
  *   - keyed `{habitId}_{YYYY-MM-DD}` so a day's nudge fires at most once.
  *
  * Callers (services/aspirations) store the result as `habit.nextNudgeAt`;
- * session start surfaces due habits in conversation.
+ * the reminder job delivers it (habit-nudge-delivery.ts) and session start
+ * surfaces due habits in conversation.
  *
  * @module services/important-dates/habit-reminder-rule
  */

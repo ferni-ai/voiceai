@@ -670,6 +670,13 @@ One record on the user document, `bogle_users/{uid}.memoryConsent`:
   your health, your money, and what you believe. I only remember those if you
   say yes, and you can switch each one off anytime." Yes turns all three on; no
   records the answer with all three off. Then each category has its own switch.
+- **Asked again when the wording changes.** Bumping `CONSENT_VERSION` makes
+  `needsConsentAnswer(consent)` true for anyone who answered an older version.
+  That only affects prompting: the switches keep their values and nothing is
+  turned on. The memory page shows the question once more with "Yes, remember
+  these" and "Keep my choices" (`PUT /api/memory/me/consent { keepChoices: true }`,
+  `confirmConsentChoices`), and the persona gets a one-line re-ask hint. Any
+  deliberate answer records the current version.
 - **Off means off at once.** Switching off is written immediately and capture
   checks consent on every write (5 s read cache; the process that made the
   change updates its cache and drops in-memory buffers at once).
@@ -691,6 +698,8 @@ isCategoryEnabled(userId, 'health' | 'finances' | 'beliefs')   // gate every wri
 getConsent(userId, { fresh? })                                  // Result<MemoryConsent, ConsentError>
 setCategoryConsent(userId, category, enabled, source)           // Result<MemoryConsent, ConsentError>
 answerUpfrontConsent(userId, agree, source)                     // the one upfront question
+needsConsentAnswer(consent)                                     // ask (again)? unanswered or older wording
+confirmConsentChoices(userId, source)                           // re-asked: answer, keep every switch
 updateConsent(userId, { categories, source, answered? })        // several switches at once
 onConsentChange((userId, category, enabled) => void)            // drop buffers when switched off
 registerCategoryStore({ category, name, count, deleteAll })     // what "delete them too" removes

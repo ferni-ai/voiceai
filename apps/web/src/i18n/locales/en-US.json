@@ -3165,6 +3165,9 @@
       "intro": "Some things are more personal: your health, your money, and what you believe. I only remember those if you say yes, and you can switch each one off anytime.",
       "agree": "Yes, remember these",
       "decline": "Not now",
+      "reask": "I've updated how I explain this. Your switches below stay as they are.",
+      "keep": "Keep my choices",
+      "kept": "Got it. Nothing changed.",
       "kind": {
         "condition": "Conditions",
         "medication": "Medications",
@@ -3197,10 +3200,16 @@
       "deleteBody": "I still have {count} things about {label}. Delete them too?",
       "deleteKeepsAllergies": "Your allergies stay, so I never suggest something unsafe.",
       "deleteConfirm": "Delete",
-      "forgetMoodBody": "I'll forget how you seemed in that conversation."
+      "forgetMoodBody": "I'll forget how you seemed in that conversation.",
+      "inline": {
+        "health": "your health & mood",
+        "finances": "your money",
+        "beliefs": "your faith & beliefs"
+      }
     },
     "sensitiveTab": "Sensitive",
-    "lifeTab": "Work & places"
+    "lifeTab": "Work & places",
+    "deleteConfirmWord": "DELETE"
   },
   "lifeMemory": {
     "workNow": "Your work now",
@@ -3214,7 +3223,7 @@
     "home": "Home",
     "tripsNext": "Trips coming up",
     "tripsDone": "Trips you've taken",
-    "favorites": "Favourite spots",
+    "favorites": "Favorite spots",
     "meaningful": "Places that matter",
     "someday": "Someday",
     "lived": "Places you've lived",
@@ -3225,7 +3234,7 @@
     "kindEvent": "An interview or review",
     "kindHome": "Where you live",
     "kindTrip": "A trip",
-    "kindFavorite": "A favourite spot",
+    "kindFavorite": "A favorite spot",
     "kindMeaningful": "A place that matters",
     "kindBucket": "A place you dream of",
     "statusCurrentJob": "Current",

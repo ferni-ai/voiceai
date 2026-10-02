@@ -65,7 +65,12 @@ export interface CatchUpDeps {
     timestamp: Date,
     turnCount: number
   ) => Promise<void>;
-  indexSummary: (userId: string, summary: CatchUpSummary, timestamp: Date) => Promise<void>;
+  indexSummary: (
+    userId: string,
+    summary: CatchUpSummary,
+    timestamp: Date,
+    conversationId?: string
+  ) => Promise<void>;
   markSummarized: (userId: string, conversationId: string, text: string) => Promise<boolean>;
   /** Learn from the summarized conversation (insights, preferences). Optional; must not throw. */
   onSummarized?: (
@@ -115,7 +120,7 @@ async function summarizeOne(
 
   const summary = await deps.summarize(conversationId, turns);
   await deps.saveSummary(userId, conversationId, summary, endedAt, turns.length);
-  await deps.indexSummary(userId, summary, endedAt);
+  await deps.indexSummary(userId, summary, endedAt, conversationId);
   // Last, so a failure above leaves it unsummarized for the next run.
   const marked = await deps.markSummarized(userId, conversationId, summary.shortText);
   if (!marked) throw new Error('markSummarized failed');
@@ -282,7 +287,7 @@ export async function createDefaultCatchUpDeps(): Promise<CatchUpDeps> {
         );
     },
 
-    indexSummary: async (userId, summary, timestamp) => {
+    indexSummary: async (userId, summary, timestamp, conversationId) => {
       const { indexConversationSummary } = await import('../../memory/retrieval/semantic-rag.js');
       await indexConversationSummary(userId, {
         id: summary.id,
@@ -290,6 +295,7 @@ export async function createDefaultCatchUpDeps(): Promise<CatchUpDeps> {
         topics: summary.mainTopics,
         timestamp,
         embedding: summary.embedding,
+        ...(conversationId ? { conversationId } : {}),
       });
     },
 

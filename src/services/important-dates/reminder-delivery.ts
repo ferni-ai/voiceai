@@ -68,7 +68,7 @@ const isEmail = (v?: string): boolean => !!v && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.tes
 
 /** Channels the date may use: its own override, else the user's settings. */
 export function enabledChannels(
-  record: ImportantDateRecord,
+  record: Pick<ImportantDateRecord, 'channels'>,
   settings: ReminderSettings
 ): ReminderChannel[] {
   const fromSettings = (['conversation', 'push', 'sms', 'email'] as const).filter(
@@ -87,7 +87,7 @@ export function enabledChannels(
  * is how many texts/emails this user already got from reminders today.
  */
 export function channelPlan(
-  record: ImportantDateRecord,
+  record: Pick<ImportantDateRecord, 'channels'>,
   settings: ReminderSettings,
   reach: UserReach,
   server: ServerChannels,

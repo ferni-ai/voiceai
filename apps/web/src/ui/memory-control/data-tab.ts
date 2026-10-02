@@ -105,7 +105,8 @@ export class DataTab {
         'Every memory, person and conversation will be permanently deleted. Your account stays.'
       ),
       confirmLabel: t('memoryControl.deleteEverything', 'Delete everything'),
-      typedConfirmation: 'DELETE',
+      // The word to type is localized; the API request always sends 'DELETE'.
+      typedConfirmation: t('memoryControl.deleteConfirmWord', 'DELETE'),
     });
     if (!confirmed) return;
 

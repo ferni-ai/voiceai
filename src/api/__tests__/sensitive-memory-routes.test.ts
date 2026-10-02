@@ -111,6 +111,36 @@ describe('sensitive memory routes', () => {
     ).toBe(400);
   });
 
+  it('consent: asks again after the wording changed; "keep my choices" changes no switch', async () => {
+    const first = await call('GET', '/api/memory/me/consent');
+    expect(first.body.needsAnswer).toBe(true);
+    await consent.setCategoryConsent('user-1', 'health', true, 'page');
+    // Pretend the record was answered under older wording.
+    const stored = await consent.getConsent('user-1', { fresh: true });
+    if (!stored.success) throw new Error('no consent');
+    const userDoc = fake.store.get('bogle_users/user-1') ?? {};
+    fake.store.set('bogle_users/user-1', {
+      ...userDoc,
+      memoryConsent: { ...stored.data, version: consent.CONSENT_VERSION - 1 },
+    });
+    consent.clearConsentCache();
+
+    const reask = await call('GET', '/api/memory/me/consent');
+    expect(reask.body).toMatchObject({
+      needsAnswer: true,
+      consent: { categories: { health: { enabled: true }, finances: { enabled: false } } },
+    });
+    const kept = await call('PUT', '/api/memory/me/consent', { ...U, body: { keepChoices: true } });
+    expect(kept.status).toBe(200);
+    expect(kept.body).toMatchObject({
+      needsAnswer: false,
+      consent: { categories: { health: { enabled: true }, finances: { enabled: false } } },
+    });
+    expect(
+      (await call('PUT', '/api/memory/me/consent', { ...U, body: { keepChoices: false } })).status
+    ).toBe(400);
+  });
+
   it("health: lists, edits and deletes only the caller's items; shows the allergy exception", async () => {
     await consent.setCategoryConsent('user-1', 'health', true, 'page');
     const { item } = await health.upsertHealthItem('user-1', {

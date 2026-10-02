@@ -96,6 +96,33 @@ describe('getConversation', () => {
   });
 });
 
+describe('deleteConversation and session-end summaries', () => {
+  it('finds a summary saved under the voice session id by its conversationId', async () => {
+    // c2 is a realtime conversation: its doc has no sessionId, and the
+    // session-end summary is keyed by the voice room, not by c2.
+    const u = base();
+    db.seed(`${u}/summaries/sum-live`, {
+      id: 'sum-live',
+      sessionId: 'room-xyz',
+      conversationId: 'c2',
+      timestamp: new Date('2026-09-10T10:21:00Z'),
+    });
+    vectors.add({
+      id: 'conversation_sum-live',
+      text: 'morning run',
+      metadata: { source: 'conversation', userId: UID, conversationId: 'c2' },
+    });
+    // A summary of another session is left alone.
+    db.seed(`${u}/summaries/sum-other`, { id: 'sum-other', sessionId: 'room-other' });
+
+    const result = await deleteConversation(UID, 'c2');
+    expect(result.ok).toBe(true);
+    expect(db.get(`${u}/summaries/sum-live`)).toBeUndefined();
+    expect(vectors.docs.has('conversation_sum-live')).toBe(false);
+    expect(db.get(`${u}/summaries/sum-other`)).toBeDefined();
+  });
+});
+
 describe('deleteConversation cascade', () => {
   it('deletes turns, summary + embedding, history, thread and applies provenance rules', async () => {
     const result = await deleteConversation(UID, 'c1');
