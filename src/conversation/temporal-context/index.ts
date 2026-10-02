@@ -32,24 +32,14 @@ export { TemporalContextEngine, default } from './engine.js';
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-  USER_KEYED_REGISTRY_MAX_INSTANCES,
-} from '../../utils/session-registry.js';
+import { createUserKeyedRegistry } from '../../utils/session-registry.js';
 import { TemporalContextEngine } from './engine.js';
 
-const temporalContextRegistry = createSessionRegistry(
-  (userId: string) => new TemporalContextEngine(),
-  {
-    name: 'TemporalContext',
-    cleanup: (engine) => engine.reset(),
-    verbose: false,
-    maxInstances: USER_KEYED_REGISTRY_MAX_INSTANCES,
-  }
+const temporalContextRegistry = createUserKeyedRegistry(
+  'TemporalContext',
+  () => new TemporalContextEngine(),
+  (engine) => engine.reset()
 );
-
-registerGlobalRegistry(temporalContextRegistry);
 
 export function getTemporalContextEngine(userId: string): TemporalContextEngine {
   return temporalContextRegistry.get(userId);

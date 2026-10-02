@@ -7,6 +7,8 @@
  * @module agents/gce/warmup
  */
 
+import { startDynamicDomainWarmup } from './dynamic-domain-warmup.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -22,36 +24,10 @@ export interface WarmupResult {
 
 export type LogFn = (msg: string, data?: Record<string, unknown>) => void;
 
+
 // ============================================================================
 // WARMUP FUNCTION
 // ============================================================================
-
-/**
- * Load the dynamic domain executor's tool map in the background.
- *
- * Every tool call that no specialized executor claims goes through the dynamic
- * executor first, so without this the first such call in a worker pays the cold
- * import of every domain module (1.5-4s measured) inside a live voice turn.
- * Never rejects; callers fire and forget. A tool call that lands first shares
- * the same in-flight load.
- */
-export async function startDynamicDomainWarmup(log: LogFn): Promise<void> {
-  const start = Date.now();
-  try {
-    const { getDynamicDomainLoadReport } =
-      await import('../shared/tool-executors/dynamic-domain-executor.js');
-    const report = await getDynamicDomainLoadReport();
-    log('✅ Dynamic domain executor warmed', {
-      loaded: report.loaded.length,
-      failed: Object.keys(report.failed),
-      durationMs: Date.now() - start,
-    });
-  } catch (e) {
-    log('⚠️ Dynamic domain executor warmup failed (will load on first call)', {
-      error: String(e),
-    });
-  }
-}
 
 /**
  * Warm up resources for faster session starts.
@@ -550,18 +526,11 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
 
     const durationMs = Date.now() - warmupStart;
 
-    // =========================================================================
-    // STARTUP SLA CHECK (added after Dec 2024 startup hang incident)
-    // =========================================================================
-    // Warmup should complete in <12 seconds. If it takes longer, something is
-    // blocking that needs investigation. This catches issues like:
-    // - Database queries iterating over large datasets
-    // - Network calls without timeouts
-    // - Synchronous operations that scale with data volume
-    //
-    // NOTE: Conversational audio prewarm (~200-300 TTS calls) takes ~5-8 seconds.
-    // For faster local dev, set SKIP_CONVERSATIONAL_PREWARM=true
-    // =========================================================================
+    // Startup SLA (added after the Dec 2024 startup hang): over 12 s means
+    // something blocks, e.g. queries over large datasets, network calls without
+    // timeouts, synchronous work that scales with data. The conversational audio
+    // prewarm (~200-300 TTS calls) alone takes ~5-8 s; for faster local dev set
+    // SKIP_CONVERSATIONAL_PREWARM=true.
     const WARMUP_SLA_MS = 12000; // 12 second budget (conversational TTS takes ~5-8s)
     const WARMUP_WARNING_MS = 7000; // Warn at 7 seconds
 
