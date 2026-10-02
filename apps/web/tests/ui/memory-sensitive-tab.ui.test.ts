@@ -56,6 +56,11 @@ function view() {
   };
 }
 
+vi.mock('../../src/services/life-story.service.js', () => ({
+  getBeliefs: async () => ({ ok: true, value: { enabled: false, items: [] } }),
+  editBelief: vi.fn(),
+  deleteBelief: vi.fn(),
+}));
 vi.mock('../../src/services/sensitive-memory.service.js', () => ({
   SENSITIVE_CATEGORIES: ['health', 'finances', 'beliefs'],
   getConsent: vi.fn(async () => ({ ok: true, value: view() })),

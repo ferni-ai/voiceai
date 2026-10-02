@@ -225,6 +225,10 @@ Also built in:
   each), conversation and fact provenance removal, delete-all, voice forget
   ("forget my Lisbon trip", "forget that I work at Acme"). See
   [Work & places](#work--places).
+- **lifeStory** and **beliefs** (`services/life-story`): life story, values
+  and (with consent) beliefs: export, conversation and fact provenance
+  removal, delete-all, voice forget. See
+  [Life story, values & beliefs](#life-story-values--beliefs).
 
 `GET /api/memory/me` people keep their `dynamic_entities` IDs (what delete
 uses) and gain `kind` (`person`/`pet`), `memorial`, and profile notes from
@@ -894,6 +898,120 @@ Registered as two memory domains, `work` and `places`: export
 an automated item left with no conversation or fact is deleted and
 tombstoned, user items stay), fact delete/correction (same rule for
 `sourceFactIds`), delete-all and account erasure, voice forget.
+
+## Life story, values & beliefs
+
+Ferni keeps the user's story (where they grew up, the family they grew up
+in, school years, stories they've told, formative moments, turning points,
+life chapters, recurring themes, how they make decisions), what matters most
+to them, and, only with consent, their faith and beliefs.
+`services/life-story/`.
+
+### Storage
+
+| Path                                       | What                                                                                                                        |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `bogle_users/{uid}/life_story/{id}`        | `origin`, `family`, `school`, `story`, `moment`, `turning_point`, `chapter` (with `period`), `theme`, `decision`            |
+| `bogle_users/{uid}/values/{id}`            | Values: the Values Alignment store (`UserValue` shape), now with `label`, `source`, `userEdited` and provenance             |
+| `bogle_users/{uid}/beliefs_memory/{id}`    | `faith`, `practice`, `belief` (philosophical/spiritual), `questioning`. **Only with Beliefs consent**                       |
+| `bogle_users/{uid}/memory_tombstones/{id}` | `{ reason, kind: 'story' \| 'value' \| 'belief', key }`; plus `story_forgotten_wordings` (forgotten stories, by wording)    |
+| `life_chapters/{id}`, `meta/identity`      | Legacy Life Narrative stores: chapters now carry `sourceConversationIds`; exported, cascaded when they carry the id, erased |
+
+`id = story_|belief_` + hash of a normalised key (`origin:ohio`,
+`story:brother build treehouse`); values use `value_` + hash of the label
+(older values with random ids are matched by category). Every item carries
+`sourceConversationIds`, `sourceFactIds`, `source` (`stated` / `inferred` /
+`user`), `userEdited`, `mentions`. Story items also have `period` ("age 9",
+"college", "2012-2016"), `date` (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`), `people`
+(`{ name, personId? }`, linked to personal insights' people model), `place`
+(`{ name, placeId? }`, linked to the work & places item, which keeps the
+place itself) and `dateId`.
+
+Rules:
+
+- **One story, many tellings.** A story retold in other words ("building a
+  treehouse with my brother" / "the treehouse my brother and I built") is
+  matched loosely (shared content words) and becomes one entry with both
+  conversations in its sources, so Ferni can say "you told me about the
+  treehouse" and never asks the same question twice.
+- **The user's word wins**, **deleted stays deleted** (a forgotten story is
+  also blocked when retold in new words), **history is kept**, as for work &
+  places.
+- **Values are not gated; beliefs are.** "Family matters most to me" is a
+  value. "I go to mass on Sundays", "I'm Buddhist", "I've been questioning my
+  faith" are beliefs: the shared classifier (`memory-consent/classifier.ts`,
+  extended for practice, traditions, afterlife/karma, conversion) decides, and
+  anything it calls `beliefs` is never stored as a value. Beliefs are written
+  only while `isCategoryEnabled(uid, 'beliefs')`; a story or value whose words
+  touch a switched-off sensitive category (a childhood story about church, a
+  diagnosis at 12) is held back too.
+- **Off means off.** Switching Beliefs off drops the in-memory per-session
+  buffer (`onConsentChange`) and the Sensitive tab offers deleting what's
+  stored (category store `beliefsMemory`).
+- **Dates.** A story pinned to a specific day ("the day I got sober,
+  2015-03-14") becomes a recurring important date (`kind: 'other'`,
+  `subtype: 'life_story'`); deleting the story deletes the date.
+
+### Capture
+
+- Per user turn: `recordUserTurnLifeStory` (voice transcript handler, next to
+  the preference and work/places capture). High-precision first-person
+  patterns (`detect.ts`); negations and other people's stories are skipped.
+- After each summarized conversation (`conversation-summarized-hooks.ts`):
+  user turns, the summary (third person, `inferred`), and the conversation's
+  `dynamic_facts` about the user with story keys (`grew_up_in`,
+  `family_of_origin`, `school`, `childhood_memory`, `told_story`,
+  `formative_moment`, `turning_point`, `life_chapter`, `life_theme`,
+  `decision_style` → category `story`), `core_value` (→ `values`) and belief
+  facts (`religion`, `spiritual_practice`, `belief`, `faith_questioning`, always
+  factType `belief`, so the extraction gate drops them while Beliefs is off).
+- Live value detection (Values Alignment, `recordValueMention`) writes the
+  same documents with deterministic ids, conversation provenance, tombstone
+  check and no faith; Life Narrative chapters record the session id.
+
+### How Ferni uses it
+
+- **Session start:** "Their Story & Values" (`loadLifeStoryBlock`, 700 chars,
+  400 ms) in `agent-setup.ts`: roots, stories they've told (most retold
+  first), turning points and chapters, recurring themes, values and how they
+  decide, and, only with Beliefs consent, faith with "Honour this; never raise
+  faith first, never judge or preach." Anything matching the user's avoided
+  topics or sensitivities (`user-preferences/boundaries.ts`) is left out; if
+  boundaries can't be read the block is held back.
+- **Nayan:** the wisdom briefing's life narrative uses their real chapters,
+  turning points, themes and values over inferred ones.
+
+### API
+
+| Method | Path                         | Body                                                                      | Response                                    |
+| ------ | ---------------------------- | ------------------------------------------------------------------------- | ------------------------------------------- |
+| GET    | `/api/memory/me/story`       | –                                                                         | `{ items, values, updatedAt }`              |
+| POST   | `/api/memory/me/story`       | `{ kind, title, detail?, period?, date? }` (`kind: 'value'` adds a value) | `201 { item }`                              |
+| PATCH  | `/api/memory/me/story/:id`   | any of `{ title, detail, period, date }` (`null` clears)                  | `{ item }` (`userEdited: true`)             |
+| DELETE | `/api/memory/me/story/:id`   | –                                                                         | `{ deleted: true }` (tombstoned, date gone) |
+| GET    | `/api/memory/me/beliefs`     | –                                                                         | `{ enabled, items, updatedAt }`             |
+| POST   | `/api/memory/me/beliefs`     | `{ kind, title, detail? }`                                                | `201 { item }`; `409` while Beliefs is off  |
+| PATCH  | `/api/memory/me/beliefs/:id` | any of `{ title, detail }`                                                | `{ item }`                                  |
+| DELETE | `/api/memory/me/beliefs/:id` | –                                                                         | `{ deleted: true }` (tombstoned)            |
+
+`/story` ids are `story_…` or `value_…`; `/beliefs` ids are `belief_…`.
+Identity from `requestUserId(req)`; another user's id is a 404.
+
+The memory page has a **Your story** tab (`life-story-tab.ts`: where you come
+from, stories you've told me, turning points & chapters, themes, what matters
+to you and how you decide; add, correct, forget) and a **Faith & beliefs**
+section in the Sensitive tab, shown only while Beliefs is on
+(`beliefs-section.ts`: correct, forget).
+
+### Export and cascades
+
+Two memory domains: `lifeStory` (story + values + legacy chapters/identity)
+and `beliefs`. Export (`{ story, values, lifeChapters, identity }` /
+`{ items }`), conversation delete (provenance removed; automated items left
+with none are deleted and tombstoned; user items stay), fact
+delete/correction (one pass over story, values and beliefs), delete-all and
+account erasure, voice forget ("forget the treehouse story", "forget that I'm
+Catholic").
 
 ## Known limits
 

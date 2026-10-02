@@ -235,6 +235,38 @@ export function registerWorkAndPlacesDomains(): void {
   }
 }
 
+/** Life story + values (not gated) and beliefs (consent-gated) — services/life-story. */
+export function registerLifeStoryDomains(): void {
+  registerMemoryDomain({
+    name: 'lifeStory',
+    exportFn: async (userId) => (await import('../life-story/index.js')).exportLifeStory(userId),
+    deleteForConversation: async (userId, conversationId) =>
+      (await import('../life-story/index.js')).deleteLifeStoryFor(userId, conversationId),
+    deleteAll: async (userId) =>
+      (await import('../life-story/index.js')).deleteAllLifeStory(userId),
+    // Facts feed story, values and beliefs: one pass covers all three.
+    deleteForFacts: async (userId, factIds) =>
+      (await import('../life-story/index.js')).deleteLifeStoryForFacts(userId, factIds),
+    find: async (userId, query) =>
+      (await import('../life-story/index.js')).findLifeStory(userId, query),
+    forget: async (userId, id) =>
+      (await (await import('../life-story/index.js')).forgetItem(userId, id, 'voice_forget'))
+        .success,
+  });
+  registerMemoryDomain({
+    name: 'beliefs',
+    exportFn: async (userId) => (await import('../life-story/index.js')).exportBeliefs(userId),
+    deleteForConversation: async (userId, conversationId) =>
+      (await import('../life-story/index.js')).deleteBeliefsFor(userId, conversationId),
+    deleteAll: async (userId) => (await import('../life-story/index.js')).deleteAllBeliefs(userId),
+    find: async (userId, query) =>
+      (await import('../life-story/index.js')).findBeliefs(userId, query),
+    forget: async (userId, id) =>
+      (await (await import('../life-story/index.js')).forgetItem(userId, id, 'voice_forget'))
+        .success,
+  });
+}
+
 export function registerBuiltInMemoryDomains(): void {
   registerImportantDatesDomain();
   registerAspirationsDomain();
@@ -242,4 +274,5 @@ export function registerBuiltInMemoryDomains(): void {
   registerUserPreferencesDomain();
   registerHealthMemoryDomain();
   registerWorkAndPlacesDomains();
+  registerLifeStoryDomains();
 }

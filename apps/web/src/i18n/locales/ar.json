@@ -3280,5 +3280,55 @@
     "with": "مع {people}",
     "forgetBody": "سأتوقف عن تذكّر «{text}» ولن أتعلّمه مجدداً من المحادثات السابقة.",
     "until": "حتى {date}"
+  },
+  "lifeStory": {
+    "tab": "Your story",
+    "title": "Your story",
+    "intro": "The story you've shared with me, so I can remember it with you and never ask twice.",
+    "loading": "Gathering your story...",
+    "loadError": "I couldn't reach that just now.",
+    "empty": "Tell me where you grew up, or a story you love. It'll show up here.",
+    "roots": "Where you come from",
+    "stories": "Stories you've told me",
+    "turns": "Turning points & chapters",
+    "themes": "Threads that keep coming up",
+    "values": "What matters to you",
+    "decide": "How you decide",
+    "with": "with {people}",
+    "add": "Add",
+    "addWhat": "What is it?",
+    "addTitle": "In a few words",
+    "addSave": "Add",
+    "addEmpty": "Add a few words first",
+    "addError": "Couldn't add that. Try again?",
+    "added": "Added! I'll remember it.",
+    "youAdded": "You added this",
+    "valueLabel": "What matters",
+    "whatLabel": "What I remember",
+    "whenLabel": "When (optional)",
+    "detailLabel": "In your words (optional)",
+    "forgetBody": "I'll stop remembering \"{text}\" and won't learn it again from past conversations.",
+    "kind": {
+      "story": "A story or memory",
+      "origin": "Where you grew up",
+      "family": "Family growing up",
+      "school": "School years",
+      "turningPoint": "A turning point",
+      "chapter": "A chapter of your life",
+      "theme": "Something that keeps coming up",
+      "value": "Something that matters to you",
+      "decision": "How you make decisions"
+    },
+    "beliefs": {
+      "title": "Faith & beliefs",
+      "note": "Only what you've shared. I never bring faith up first, and I'll never judge it.",
+      "empty": "Nothing yet. If you share what you believe, it'll show up here.",
+      "kind": {
+        "faith": "Faith",
+        "practice": "Practice",
+        "belief": "Beliefs",
+        "questioning": "Questions you carry"
+      }
+    }
   }
 }

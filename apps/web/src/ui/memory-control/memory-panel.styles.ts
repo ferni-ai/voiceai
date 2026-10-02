@@ -72,6 +72,7 @@ const CSS = `
   display: flex;
   gap: var(--space-1);
   border-bottom: 1px solid var(--color-border-subtle);
+  flex-wrap: wrap;
 }
 .memory-tab {
   min-height: 44px;

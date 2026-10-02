@@ -76,11 +76,18 @@ const WORK_KEYS = new Set(['employer', 'job_title', 'team', 'previous_employer',
 const PLACE_KEY_RE =
   /^(lives_in|hometown|lived_in|grew_up_in|moved_to|trip_planned|trip_taken|bucket_list|engaged_in|married_in|met_in|favorite_(restaurant|cafe|place|bar|park|city))$/;
 
-/** Map an extracted fact type (and, for work/places, its key) onto the user-facing category. */
+const STORY_KEY_RE =
+  /^(family_of_origin|school|childhood_memory|told_story|formative_moment|turning_point|life_chapter|life_theme|decision_style)$/;
+const SENSITIVE_FACT_TYPES = new Set(['health', 'finance', 'finances', 'belief', 'beliefs']);
+
+/** Map an extracted fact type (and, for work/places/story, its key) onto the user-facing category. */
 export function categoryForFactType(factType: string, key?: string): string {
   const k = (key ?? '').toLowerCase();
   if (WORK_KEYS.has(k)) return 'work';
   if (PLACE_KEY_RE.test(k)) return 'places';
+  // Sensitive labels win over story/value keys (they stay behind consent).
+  if (!SENSITIVE_FACT_TYPES.has(factType) && STORY_KEY_RE.test(k)) return 'story';
+  if (!SENSITIVE_FACT_TYPES.has(factType) && k === 'core_value') return 'values';
   switch (factType) {
     case 'preference':
       return 'preference';

@@ -12,6 +12,9 @@
  * memory store gates those separately when it records them as health data.
  *
  * Agents for money and beliefs: extend FINANCES / BELIEFS here (one place).
+ * Beliefs means faith, spiritual practice and philosophical beliefs ("I go to
+ * mass on Sundays", "I'm Buddhist", "questioning my faith"); values ("family
+ * matters most to me", "I believe in hard work") are not beliefs and stay ungated.
  *
  * @module services/memory-consent/classifier
  */
@@ -42,6 +45,13 @@ const BELIEFS: readonly RegExp[] = [
   /\b(church|mosque|synagogue|temple|gurdwara|sabbath|ramadan|passover|diwali)\b/i,
   /\b(pray(?:s|ed|ing|ers?)?|believe in god|god'?s plan|allah|jesus|buddha|bible|quran|koran|torah|scripture)\b/i,
   /\b(christian|catholic|protestant|muslim|islam(?:ic)?|jewish|judaism|hindu(?:ism)?|buddhis[mt]|sikh|mormon|evangelical)\b/i,
+  // Practice and observance ("I go to mass on Sundays", "my parish", "keep the sabbath")
+  /\b((?:go(?:es|ing)?|went) to (?:mass|confession)|sunday mass|(?:at|after|before) mass|rosary|parish|congregation|worship(?:ping)?|sermon|bapti[sz](?:ed|m)|bar mitzvah|bat mitzvah|first communion|pilgrimage|hajj|(?:for|during) lent|yom kippur|vesak|shabbat)\b/i,
+  /\b(pastor|priest|rabbi|imam|minister at (?:my|our) church|monk|nun)\b/i,
+  // Traditions and philosophies not named above
+  /\b(quaker|pagan|wiccan|jain(?:ism)?|taois[mt]|shinto|baha'?i|jehovah'?s witness|orthodox church|episcopalian|presbyterian|methodist|baptist|lutheran|anglican|stoicism|secular humanis[mt]|humanist)\b/i,
+  // Beliefs about the sacred, doubt and conversion ("questioning my faith" is covered by "faith")
+  /\b(believe in (?:heaven|hell|an afterlife|the afterlife|reincarnation|karma|a higher power)|higher power|afterlife|reincarnation|the divine|holy spirit|converted to|lost my religion|not religious)\b/i,
 ];
 
 const RULES: ReadonlyArray<[SensitiveCategory, readonly RegExp[]]> = [

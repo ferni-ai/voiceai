@@ -41,6 +41,12 @@ For the user's work and places, use these keys so history can be kept:
 - places: "lives_in", "hometown", "lived_in", "trip_planned", "trip_taken",
   "favorite_restaurant", "favorite_cafe", "favorite_place", "bucket_list", "engaged_in", "married_in", "met_in"
   (put trip dates in temporalContext).
+For the user's life story and values, use these keys (rough time in temporalContext, e.g. "age 9", "college", "2012-2016"):
+- story: "grew_up_in", "family_of_origin", "school", "childhood_memory", "told_story",
+  "formative_moment", "turning_point", "life_chapter", "life_theme", "decision_style"
+- values: "core_value" (what matters most to them, e.g. "family", "honesty")
+- beliefs (factType belief): "religion", "spiritual_practice", "belief", "faith_questioning".
+  Faith, religious practice and spiritual or philosophical beliefs are ALWAYS factType belief, never core_value.
 
 Return JSON array with: entityName, factType, key, value, confidence, temporalContext.`;
 
