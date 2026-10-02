@@ -256,4 +256,90 @@ test.describe('What I remember', () => {
     await expect(panel(page).getByText('these memories live only on this device')).toBeVisible();
     await expect(panel(page).getByRole('button', { name: 'Sign in' })).toBeVisible();
   });
+
+  test.describe('Goals & habits', () => {
+    async function openGoals(page: Page) {
+      await gotoApp(page);
+      await page.evaluate(() =>
+        window.dispatchEvent(new CustomEvent('ferni:open-memories', { detail: { tab: 'goals' } }))
+      );
+      const dialog = panel(page);
+      await expect(dialog.getByRole('tab', { name: 'Goals & habits' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      return dialog;
+    }
+
+    test('shows habits, goals and dreams with their links', async ({ page }) => {
+      const dialog = await openGoals(page);
+      await expect(dialog.getByRole('heading', { name: 'Habits' })).toBeVisible();
+      await expect(dialog.getByRole('heading', { name: 'Goals' })).toBeVisible();
+      await expect(dialog.getByRole('heading', { name: 'Dreams' })).toBeVisible();
+
+      const meditate = dialog.locator('[data-asp-id="a-meditate"]');
+      await expect(meditate).toContainText('Part of Feel calmer');
+      await expect(meditate).toContainText('Every day');
+      await expect(meditate).toContainText('2 in a row');
+      await expect(meditate).toContainText('Due today');
+      await expect(dialog.locator('[data-asp-id="a-calm"]')).toContainText(
+        'Part of Live by the sea'
+      );
+
+      const race = dialog.locator('[data-asp-id="a-race"]');
+      await expect(race).toContainText('40% there');
+      await expect(race).toContainText('By October 4, 2026');
+      await expect(race.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '40');
+
+      const cello = dialog.locator('[data-asp-id="a-cello"]');
+      await expect(cello).toContainText('Resting');
+      await expect(cello).toContainText('Still getting a sense of this');
+    });
+
+    test('marks a habit done for today', async ({ page }) => {
+      const dialog = await openGoals(page);
+      await dialog.getByRole('button', { name: 'Mark Meditate done for today' }).click();
+      const meditate = dialog.locator('[data-asp-id="a-meditate"]');
+      await expect(meditate).toContainText('3 in a row');
+      await expect(meditate).not.toContainText('Due today');
+      await expect(
+        meditate.getByRole('button', { name: 'Mark Meditate done for today' })
+      ).toHaveCount(0);
+      expect(state.requests).toContainEqual(
+        expect.objectContaining({
+          method: 'POST',
+          path: '/aspirations/a-meditate/check-ins',
+          body: expect.objectContaining({ status: 'done' }),
+        })
+      );
+    });
+
+    test('edits status and link, and removes an item', async ({ page }) => {
+      const dialog = await openGoals(page);
+      await dialog.getByRole('button', { name: 'Edit Run a half marathon' }).click();
+      await expect(dialog.getByRole('textbox', { name: 'Title' })).toBeFocused();
+      await dialog.getByRole('combobox', { name: 'Status' }).selectOption('paused');
+      await dialog
+        .getByRole('combobox', { name: 'Part of' })
+        .selectOption({ label: 'Live by the sea' });
+      await dialog.getByRole('button', { name: 'Save' }).click();
+      const race = dialog.locator('[data-asp-id="a-race"]');
+      await expect(race).toContainText('Paused');
+      await expect(race).toContainText('Part of Live by the sea');
+      expect(state.requests).toContainEqual(
+        expect.objectContaining({
+          method: 'PATCH',
+          path: '/aspirations/a-race',
+          body: expect.objectContaining({ status: 'paused', parentId: 'a-sea' }),
+        })
+      );
+
+      await dialog.getByRole('button', { name: 'Remove Feel calmer' }).click();
+      const confirm = page.getByRole('alertdialog');
+      await confirm.getByRole('button', { name: 'Remove' }).click();
+      await expect(dialog.locator('[data-asp-id="a-calm"]')).toHaveCount(0);
+      await expect(dialog.locator('[data-asp-id="a-meditate"]')).not.toContainText('Part of');
+      expect(state.aspirations.map((a) => a.id)).not.toContain('a-calm');
+    });
+  });
 });

@@ -66,6 +66,18 @@ Example: `{"fn":"setPreference","args":{"type":"avoid-topic","value":"my dad"}}`
 | getTasks    | filter?: today/all/pending            | "what are my tasks"        |
 | createHabit | name: string, frequency: daily/weekly | "create a habit"           |
 
+### Goals, Habits & Dreams
+
+| Tool               | Args                                                        | When                                                   |
+| ------------------ | ----------------------------------------------------------- | ------------------------------------------------------ |
+| addGoal            | title: string, targetDate?: string, description?: string    | "my goal is to run a half marathon by June"            |
+| updateGoal         | title: string, progress?: 0-100, status?: achieved/paused/let-go | "I'm halfway there", "I hit my goal"              |
+| getGoals           | category?: string                                           | "what are my goals?"                                   |
+| logHabitCompletion | habitName: string, notes?: string                           | "I did my run today", "meditated this morning"         |
+| getHabits          | -                                                           | "how are my habits going?"                             |
+| recordDream        | statement: string, why?: string                             | "someday I want to live by the sea" (when they ask you to remember it) |
+| checkDreams        | -                                                           | "what dreams have I told you about?"                   |
+
 ### Important Dates (birthdays, anniversaries, deadlines)
 
 | Tool                | Args                                                                                                                    | When                                                                     |

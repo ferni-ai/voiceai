@@ -23,6 +23,7 @@ import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { syncHabitToCalendar } from '../../../services/calendar/calendar-bridge.js';
+import { aspirationIdFor } from '../../../services/aspirations/identity.js';
 // Bridge functions for persistence
 function habitDataToHabit(data: HabitData & { userId?: string }, userId: string): Habit {
   return {
@@ -310,7 +311,8 @@ export async function createHabit(params: {
   reminderTime?: string;
 }): Promise<Habit> {
   const habit: Habit = {
-    id: generateId('habit'),
+    // Same id as the canonical aspirations store, so logs resolve directly.
+    id: aspirationIdFor('habit', params.name),
     userId: params.userId,
     name: sanitizePlainText(params.name, 100),
     description: params.description ? sanitizePlainText(params.description, 500) : undefined,

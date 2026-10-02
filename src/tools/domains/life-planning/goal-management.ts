@@ -21,6 +21,7 @@ import { sanitizePlainText, parseAmount, isValidAmount } from '../../validation.
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { upsertAspiration } from '../../../services/aspirations/index.js';
 import {
   syncGoalToCalendar,
   removeCalendarSyncedItem,
@@ -349,6 +350,27 @@ function calculateOverallProgress(userGoals: Goal[]): number {
   return Math.round(totalProgress / userGoals.length);
 }
 
+/** Mirror a life-planning goal into the canonical aspirations store (fire-and-forget). */
+function mirrorLifeGoal(goal: Goal): void {
+  const status =
+    goal.status === 'completed' ? 'achieved' : goal.status === 'abandoned' ? 'let-go' : 'active';
+  void upsertAspiration(goal.userId, {
+    level: 'goal',
+    title: goal.title,
+    ...(goal.description ? { why: goal.description } : {}),
+    category: goal.category,
+    status,
+    ...(goal.targetDate ? { targetDate: new Date(goal.targetDate).toISOString().slice(0, 10) } : {}),
+    progress: Math.max(0, Math.min(100, Math.round(goal.progressPercent))),
+    milestones: goal.milestones.map((m) => m.title),
+    source: 'explicit',
+    confidence: 1,
+    legacyId: goal.id,
+  }).then((out) => {
+    if (!out.success) getLogger().warn({ error: out.error.message }, 'Goal not mirrored');
+  });
+}
+
 // ============================================================================
 // CORE FUNCTIONS
 // ============================================================================
@@ -413,6 +435,7 @@ export async function createGoal(
   try {
     const store = getLifeDataStore();
     await store.saveGoal(userId, goal as unknown as StoredGoal);
+    mirrorLifeGoal(goal);
   } catch (error) {
     getLogger().warn({ error, goalId: id }, 'Failed to persist goal to store');
   }
@@ -466,6 +489,7 @@ export function updateGoalProgress(
 
   goal.updatedAt = new Date();
   goals.set(goalId, goal);
+  mirrorLifeGoal(goal);
 
   return goal;
 }
@@ -488,6 +512,7 @@ export function addGoalMilestone(
   goal.milestones.push(milestone);
   goal.updatedAt = new Date();
   goals.set(goalId, goal);
+  mirrorLifeGoal(goal);
 
   return milestone;
 }

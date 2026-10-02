@@ -47,6 +47,44 @@ export function registerImportantDatesDomain(): void {
   });
 }
 
+/** Dreams, goals and habits — services/aspirations. */
+export function registerAspirationsDomain(): void {
+  registerMemoryDomain({
+    name: 'aspirations',
+    exportFn: async (userId) => {
+      const { exportAspirations } = await import('../aspirations/index.js');
+      return unwrap(await exportAspirations(userId), 'export aspirations');
+    },
+    deleteForConversation: async (userId, conversationId) => {
+      const { deleteAspirationsFor } = await import('../aspirations/index.js');
+      const r = unwrap(
+        await deleteAspirationsFor(userId, conversationId),
+        'delete aspirations for conversation'
+      );
+      return r.updated + r.deleted;
+    },
+    deleteAll: async (userId) => {
+      const { deleteAllAspirations } = await import('../aspirations/index.js');
+      return unwrap(await deleteAllAspirations(userId), 'delete all aspirations').deleted;
+    },
+    find: async (userId, query) => {
+      const { findAspirations } = await import('../aspirations/index.js');
+      const found = await findAspirations(userId, query);
+      if (!found.success) return [];
+      return found.data.map((a) => ({
+        id: a.id,
+        label: `your ${a.level} "${a.title}"`,
+        score: 0.85,
+      }));
+    },
+    forget: async (userId, id) => {
+      const { deleteAspiration } = await import('../aspirations/index.js');
+      return unwrap(await deleteAspiration(userId, id, 'voice_forget'), 'forget aspiration')
+        .deleted;
+    },
+  });
+}
+
 const sum = (counts: Record<string, number>): number =>
   Object.values(counts).reduce((total, n) => total + n, 0);
 
@@ -165,6 +203,7 @@ export function registerWorkAndPlacesDomains(): void {
 
 export function registerBuiltInMemoryDomains(): void {
   registerImportantDatesDomain();
+  registerAspirationsDomain();
   registerPersonalInsightsDomain();
   registerUserPreferencesDomain();
   registerWorkAndPlacesDomains();

@@ -73,6 +73,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/health", URL(/hea
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/health", URL(/health?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/health") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/health") -> false
+pred api/aspirations-routes#isAspirationsRoute("/health") -> false
 pred api/feedback-routes#isFeedbackRoute("/health") -> false
 pred api/subscription-routes#isSubscriptionRoute("/health") -> false
 pred api/monetization-routes#isMonetizationRoute("/health") -> false
@@ -96,6 +97,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/health", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/health", URL(/api/health?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/health") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/health") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/health") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/health") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/health") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/health") -> false
@@ -120,6 +122,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/plaid", URL(/plai
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/plaid", URL(/plaid?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/plaid") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/plaid") -> false
+pred api/aspirations-routes#isAspirationsRoute("/plaid") -> false
 pred api/feedback-routes#isFeedbackRoute("/plaid") -> false
 pred api/subscription-routes#isSubscriptionRoute("/plaid") -> false
 pred api/monetization-routes#isMonetizationRoute("/plaid") -> false
@@ -144,6 +147,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/spotify", URL(/sp
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/spotify", URL(/spotify?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/spotify") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/spotify") -> false
+pred api/aspirations-routes#isAspirationsRoute("/spotify") -> false
 pred api/feedback-routes#isFeedbackRoute("/spotify") -> false
 pred api/subscription-routes#isSubscriptionRoute("/spotify") -> false
 pred api/monetization-routes#isMonetizationRoute("/spotify") -> false
@@ -168,6 +172,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/wearables", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/wearables", URL(/wearables?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/wearables") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/wearables") -> false
+pred api/aspirations-routes#isAspirationsRoute("/wearables") -> false
 pred api/feedback-routes#isFeedbackRoute("/wearables") -> false
 pred api/subscription-routes#isSubscriptionRoute("/wearables") -> false
 pred api/monetization-routes#isMonetizationRoute("/wearables") -> false
@@ -192,6 +197,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/auth/google", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/auth/google", URL(/auth/google?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/auth/google") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/auth/google") -> false
+pred api/aspirations-routes#isAspirationsRoute("/auth/google") -> false
 pred api/feedback-routes#isFeedbackRoute("/auth/google") -> false
 pred api/subscription-routes#isSubscriptionRoute("/auth/google") -> false
 pred api/monetization-routes#isMonetizationRoute("/auth/google") -> false
@@ -216,6 +222,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/auth/apple", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/auth/apple", URL(/auth/apple?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/auth/apple") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/auth/apple") -> false
+pred api/aspirations-routes#isAspirationsRoute("/auth/apple") -> false
 pred api/feedback-routes#isFeedbackRoute("/auth/apple") -> false
 pred api/subscription-routes#isSubscriptionRoute("/auth/apple") -> false
 pred api/monetization-routes#isMonetizationRoute("/auth/apple") -> false
@@ -240,6 +247,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/auth/microsoft", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/auth/microsoft", URL(/auth/microsoft?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/auth/microsoft") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/auth/microsoft") -> false
+pred api/aspirations-routes#isAspirationsRoute("/auth/microsoft") -> false
 pred api/feedback-routes#isFeedbackRoute("/auth/microsoft") -> false
 pred api/subscription-routes#isSubscriptionRoute("/auth/microsoft") -> false
 pred api/monetization-routes#isMonetizationRoute("/auth/microsoft") -> false
@@ -265,6 +273,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/music", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/music", URL(/api/music?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/music") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/music") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/music") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/music") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/music") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/music") -> false
@@ -290,6 +299,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/agents", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/agents", URL(/api/agents?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/agents") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/agents") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/agents") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/agents") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/agents") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/agents") -> false
@@ -315,6 +325,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/team/order", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/team/order", URL(/api/team/order?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/team/order") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/team/order") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/team/order") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/team/order") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/team/order") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/team/order") -> false
@@ -340,6 +351,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/push", URL(/a
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/push", URL(/api/push?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/push") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/push") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/push") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/push") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/push") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/push") -> false
@@ -365,6 +377,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/eight-sleep",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/eight-sleep", URL(/api/eight-sleep?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/eight-sleep") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/eight-sleep") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/eight-sleep") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/eight-sleep") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/eight-sleep") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/eight-sleep") -> false
@@ -390,6 +403,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/oura", URL(/a
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/oura", URL(/api/oura?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/oura") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/oura") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/oura") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/oura") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/oura") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/oura") -> false
@@ -415,6 +429,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/apple-health"
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/apple-health", URL(/api/apple-health?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/apple-health") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/apple-health") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/apple-health") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/apple-health") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/apple-health") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/apple-health") -> false
@@ -454,6 +469,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/webhooks", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/webhooks", URL(/api/webhooks?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/webhooks") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/webhooks") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/webhooks") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/webhooks") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/webhooks") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/webhooks") -> false
@@ -480,6 +496,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/spotify/rooms
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/spotify/rooms", URL(/api/spotify/rooms?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/spotify/rooms") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/spotify/rooms") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/spotify/rooms") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/spotify/rooms") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/spotify/rooms") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/spotify/rooms") -> false
@@ -506,6 +523,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/spotify/devic
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/spotify/devices", URL(/api/spotify/devices?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/spotify/devices") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/spotify/devices") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/spotify/devices") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/spotify/devices") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/spotify/devices") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/spotify/devices") -> false
@@ -531,6 +549,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/spotify/probe
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/spotify/probe", URL(/api/spotify/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/spotify/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/spotify/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/spotify/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/spotify/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/spotify/probe") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/spotify/probe") -> false
@@ -556,6 +575,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/ecobee", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/ecobee", URL(/api/ecobee?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/ecobee") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/ecobee") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/ecobee") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/ecobee") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/ecobee") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/ecobee") -> false
@@ -581,6 +601,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/smart-home", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/smart-home", URL(/api/smart-home?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/smart-home") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/smart-home") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/smart-home") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/smart-home") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/smart-home") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/smart-home") -> false
@@ -606,6 +627,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/vibe", URL(/a
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/vibe", URL(/api/vibe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/vibe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/vibe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/vibe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/vibe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/vibe") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/vibe") -> false
@@ -631,6 +653,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/intelligent-r
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/intelligent-routing", URL(/api/intelligent-routing?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/intelligent-routing") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/intelligent-routing") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/intelligent-routing") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/intelligent-routing") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/intelligent-routing") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/intelligent-routing") -> false
@@ -656,6 +679,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/visual-memory
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/visual-memory", URL(/api/visual-memory?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/visual-memory") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/visual-memory") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/visual-memory") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/visual-memory") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/visual-memory") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/visual-memory") -> false
@@ -681,6 +705,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/ambient-mode"
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/ambient-mode", URL(/api/ambient-mode?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/ambient-mode") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/ambient-mode") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/ambient-mode") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/ambient-mode") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/ambient-mode") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/ambient-mode") -> false
@@ -706,6 +731,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/bth", URL(/ap
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/bth", URL(/api/bth?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/bth") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/bth") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/bth") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/bth") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/bth") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/bth") -> false
@@ -732,6 +758,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/family/probe"
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/family/probe", URL(/api/family/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/family/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/family/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/family/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/family/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/family/probe") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/family/probe") -> false
@@ -757,6 +784,7 @@ route api/insights-routes#handleInsightsRoutes(req, res, "/api/insights/probe", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/insights/probe", URL(/api/insights/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/insights/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/insights/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/insights/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/insights/probe") -> false
 route api/predictive-insights-routes#handlePredictiveInsightsRequest(req, res, URL(/api/insights/probe?q=1&r=two), "anonymous")
 pred api/subscription-routes#isSubscriptionRoute("/api/insights/probe") -> false
@@ -783,6 +811,7 @@ route api/superhuman-metrics-routes#handleSuperhumanMetricsRoutes(req, res, "/ap
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/superhuman/probe", URL(/api/superhuman/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/superhuman/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/superhuman/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/superhuman/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/superhuman/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/superhuman/probe") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/superhuman/probe") -> false
@@ -808,6 +837,7 @@ route api/visual-storytelling-routes#handleVisualStorytellingRoutes(req, res, "/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/visual-storytelling/probe", URL(/api/visual-storytelling/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/visual-storytelling/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/visual-storytelling/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/visual-storytelling/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/visual-storytelling/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/visual-storytelling/probe") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/visual-storytelling/probe") -> false
@@ -833,6 +863,7 @@ route routes/share-routes#handleShareRoutes(req, res, "/api/share/probe")
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/share/probe", URL(/api/share/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/share/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/share/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/share/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/share/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/share/probe") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/share/probe") -> false
@@ -857,6 +888,7 @@ route routes/share-routes#handleShareRoutes(req, res, "/share/probe")
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/share/probe", URL(/share/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/share/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/share/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/share/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/share/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/share/probe") -> false
 pred api/monetization-routes#isMonetizationRoute("/share/probe") -> false
@@ -882,6 +914,7 @@ route routes/challenge-routes#handleChallengeRoutes(req, res, "/api/challenges",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/challenges", URL(/api/challenges?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/challenges") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/challenges") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/challenges") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/challenges") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/challenges") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/challenges") -> false
@@ -907,6 +940,7 @@ route routes/creative-you-routes#handleCreativeYouRoutes(req, res, "/api/creativ
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/creative", URL(/api/creative?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/creative") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/creative") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/creative") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/creative") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/creative") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/creative") -> false
@@ -933,6 +967,7 @@ route routes/musical-you-routes#handleMusicalYouRoutes(req, res, "/api/musical",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/musical", URL(/api/musical?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/musical") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/musical") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/musical") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/musical") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/musical") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/musical") -> false
@@ -958,6 +993,7 @@ route routes/games#handleGamesRoutes(req, res, "/api/games", URL(/api/games?q=1&
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/games", URL(/api/games?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/games") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/games") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/games") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/games") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/games") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/games") -> false
@@ -983,6 +1019,7 @@ route routes/social-routes#handleSocialRoutes(req, res, "/api/social", Query(q=1
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/social", URL(/api/social?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/social") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/social") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/social") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/social") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/social") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/social") -> false
@@ -1009,6 +1046,7 @@ route routes/premium-routes#handlePremiumRoutes(req, res, "/api/premium/probe", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/premium/probe", URL(/api/premium/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/premium/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/premium/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/premium/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/premium/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/premium/probe") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/premium/probe") -> false
@@ -1035,6 +1073,7 @@ route express#app(req, res)
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/group/probe", URL(/api/group/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/group/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/group/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/group/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/group/probe") -> false
 route routes/group-coaching#handleGroupCoachingRoutes(req, res, "/api/group/probe", URL(/api/group/probe?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/group/probe") -> false
@@ -1061,6 +1100,7 @@ route api/marketplace-routes#handleMarketplaceRoutes(req, res, "/api/marketplace
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/marketplace/probe", URL(/api/marketplace/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/marketplace/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/marketplace/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/marketplace/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/marketplace/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/marketplace/probe") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/marketplace/probe") -> false
@@ -1086,6 +1126,7 @@ route custom-agent/index#handleCustomAgentRoutes(req, res, "/api/custom-agents",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/custom-agents", URL(/api/custom-agents?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/custom-agents") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/custom-agents") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/custom-agents") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/custom-agents") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/custom-agents") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/custom-agents") -> false
@@ -1111,6 +1152,7 @@ route marketplace-admin#handleMarketplaceAdminRoutes(req, res, "/api/admin/marke
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/admin/marketplace", URL(/api/admin/marketplace?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/admin/marketplace") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/admin/marketplace") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/admin/marketplace") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/admin/marketplace") -> false
 route api/admin-routes#handleAdminRoutes(req, res, "/api/admin/marketplace")
 pred api/subscription-routes#isSubscriptionRoute("/api/admin/marketplace") -> false
@@ -1137,6 +1179,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/v1/probe",
 route v1/index#handleV1Routes(req, res, "/api/v1/probe", URL(/api/v1/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/v1/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/v1/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/v1/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/v1/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/v1/probe") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/v1/probe") -> false
@@ -1162,6 +1205,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/v2/probe",
 route v2/index#handleV2Routes(req, res, "/api/v2/probe")
 pred api/work-places-routes#isWorkPlacesRoute("/api/v2/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/v2/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/v2/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/v2/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/v2/probe") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/v2/probe") -> false
@@ -1188,6 +1232,7 @@ route api/migration-routes#default(req, res, "/api/auth/migrat")
 route api/auth-monitoring-routes#default(req, res, "/api/auth/migrat")
 pred api/work-places-routes#isWorkPlacesRoute("/api/auth/migrat") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/auth/migrat") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/auth/migrat") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/auth/migrat") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/auth/migrat") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/auth/migrat") -> false
@@ -1213,6 +1258,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/identity/p
 route api/identity-link-routes#default(req, res, "/api/identity/probe")
 pred api/work-places-routes#isWorkPlacesRoute("/api/identity/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/identity/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/identity/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/identity/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/identity/probe") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/identity/probe") -> false
@@ -1238,6 +1284,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/account", 
 route api/account-routes#default(req, res, "/api/account")
 pred api/work-places-routes#isWorkPlacesRoute("/api/account") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/account") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/account") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/account") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/account") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/account") -> false
@@ -1263,6 +1310,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/session/ac
 route api/session-accent-routes#default(req, res, "/api/session/accent")
 pred api/work-places-routes#isWorkPlacesRoute("/api/session/accent") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/session/accent") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/session/accent") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/session/accent") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/session/accent") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/session/accent") -> false
@@ -1288,6 +1336,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/auth/probe
 route api/auth-monitoring-routes#default(req, res, "/api/auth/probe")
 pred api/work-places-routes#isWorkPlacesRoute("/api/auth/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/auth/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/auth/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/auth/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/auth/probe") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/auth/probe") -> false
@@ -1313,6 +1362,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/dora", URL
 route api/dora-routes#handleDORARoutes(req, res)
 pred api/work-places-routes#isWorkPlacesRoute("/api/dora") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/dora") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/dora") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/dora") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/dora") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/dora") -> false
@@ -1338,6 +1388,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/voice-pres
 route api/voice-presence-routes#handleVoicePresenceRoutes(req, res, "/api/voice-presence")
 pred api/work-places-routes#isWorkPlacesRoute("/api/voice-presence") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/voice-presence") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/voice-presence") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/voice-presence") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/voice-presence") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/voice-presence") -> false
@@ -1363,6 +1414,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/observabil
 route api/observability-routes#handleObservabilityRoutes(req, res, "/api/observability")
 pred api/work-places-routes#isWorkPlacesRoute("/api/observability") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/observability") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/observability") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/observability") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/observability") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/observability") -> false
@@ -1388,6 +1440,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/ftis", URL
 route observability/routing-metrics#handleFTISRoutes(req, res, "/api/ftis")
 pred api/work-places-routes#isWorkPlacesRoute("/api/ftis") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/ftis") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/ftis") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/ftis") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/ftis") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/ftis") -> false
@@ -1413,6 +1466,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/finops", U
 route api/finops-routes#handleFinOpsRoutes(req, res, "/api/finops", URL(/api/finops?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/finops") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/finops") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/finops") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/finops") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/finops") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/finops") -> false
@@ -1438,6 +1492,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/conversati
 route api/conversation-cost-routes#handleConversationCostRoutes(req, res, "/api/conversation/cost", URL(/api/conversation/cost?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/conversation/cost") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/conversation/cost") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/conversation/cost") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/conversation/cost") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/conversation/cost") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/conversation/cost") -> false
@@ -1463,6 +1518,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/chat", URL
 route api/chat-routes#handleChatRoutes(req, res, "/api/chat")
 pred api/work-places-routes#isWorkPlacesRoute("/api/chat") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/chat") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/chat") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/chat") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/chat") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/chat") -> false
@@ -1488,6 +1544,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/tools", UR
 route api/tools-analytics-routes#handleToolsAnalyticsRoutes(req, res, "/api/tools")
 pred api/work-places-routes#isWorkPlacesRoute("/api/tools") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/tools") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/tools") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/tools") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/tools") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/tools") -> false
@@ -1513,6 +1570,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/metrics", 
 route api/dashboard-metrics-routes#handleDashboardMetricsRoutes(req, res, "/api/metrics")
 pred api/work-places-routes#isWorkPlacesRoute("/api/metrics") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/metrics") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/metrics") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/metrics") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/metrics") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/metrics") -> false
@@ -1538,6 +1596,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/cognitive"
 route api/dashboard-metrics-routes#handleDashboardMetricsRoutes(req, res, "/api/cognitive")
 pred api/work-places-routes#isWorkPlacesRoute("/api/cognitive") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/cognitive") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/cognitive") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/cognitive") -> false
 route routes/memories#handleMemoriesRoutes(req, res, "/api/cognitive", URL(/api/cognitive?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/cognitive") -> false
@@ -1564,6 +1623,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/gdpr", URL
 route api/gdpr-routes#handleGDPRRoutes(req, res, "/api/gdpr")
 pred api/work-places-routes#isWorkPlacesRoute("/api/gdpr") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/gdpr") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/gdpr") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/gdpr") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/gdpr") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/gdpr") -> false
@@ -1589,6 +1649,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/trust-jour
 route api/trust-journey-routes#handleTrustJourneyRoutes(req, res, "/api/trust-journey", URL(/api/trust-journey?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/trust-journey") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/trust-journey") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/trust-journey") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/trust-journey") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/trust-journey") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/trust-journey") -> false
@@ -1614,6 +1675,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/relationsh
 route api/relationship-arc-routes#handleRelationshipArcRoutes(req, res, "/api/relationship", URL(/api/relationship?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/relationship") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/relationship") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/relationship") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/relationship") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/relationship") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/relationship") -> false
@@ -1639,6 +1701,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/trust-expo
 route api/trust-export-routes#handleTrustExportRoutes(req, res, "/api/trust-export", URL(/api/trust-export?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/trust-export") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/trust-export") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/trust-export") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/trust-export") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/trust-export") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/trust-export") -> false
@@ -1664,6 +1727,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/calendar",
 route api/calendar-routes#handleCalendarRoutes(req, res, "/api/calendar", URL(/api/calendar?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/calendar") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/calendar") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/calendar") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/calendar") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/calendar") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/calendar") -> false
@@ -1688,6 +1752,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/calendar", URL
 route api/calendar-routes#handleCalendarRoutes(req, res, "/calendar", URL(/calendar?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/calendar") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/calendar") -> false
+pred api/aspirations-routes#isAspirationsRoute("/calendar") -> false
 pred api/feedback-routes#isFeedbackRoute("/calendar") -> false
 pred api/subscription-routes#isSubscriptionRoute("/calendar") -> false
 pred api/monetization-routes#isMonetizationRoute("/calendar") -> false
@@ -1712,6 +1777,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/webhooks/calen
 route api/calendar-webhook-routes#handleCalendarWebhookRoutes(req, res, "/webhooks/calendar")
 pred api/work-places-routes#isWorkPlacesRoute("/webhooks/calendar") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/webhooks/calendar") -> false
+pred api/aspirations-routes#isAspirationsRoute("/webhooks/calendar") -> false
 pred api/feedback-routes#isFeedbackRoute("/webhooks/calendar") -> false
 pred api/subscription-routes#isSubscriptionRoute("/webhooks/calendar") -> false
 pred api/monetization-routes#isMonetizationRoute("/webhooks/calendar") -> false
@@ -1737,6 +1803,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/practices"
 route routes/practice-calendar#handlePracticeCalendarRoutes(req, res, "/api/practices", URL(/api/practices?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/practices") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/practices") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/practices") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/practices") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/practices") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/practices") -> false
@@ -1762,6 +1829,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/practice-v
 route routes/practice-view#handlePracticeViewRoutes(req, res, "/api/practice-view", URL(/api/practice-view?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/practice-view") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/practice-view") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/practice-view") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/practice-view") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/practice-view") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/practice-view") -> false
@@ -1787,6 +1855,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/trust/prob
 route api/trust-systems-routes#handleTrustSystemsRoutes(req, res, "/api/trust/probe", URL(/api/trust/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/trust/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/trust/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/trust/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/trust/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/trust/probe") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/trust/probe") -> false
@@ -1812,6 +1881,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/semantic-i
 route routes/semantic-intelligence#handleSemanticIntelligenceRoutes(req, res, "/api/semantic-intelligence")
 pred api/work-places-routes#isWorkPlacesRoute("/api/semantic-intelligence") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/semantic-intelligence") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/semantic-intelligence") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/semantic-intelligence") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/semantic-intelligence") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/semantic-intelligence") -> false
@@ -1837,6 +1907,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/
 route api/user-preferences-routes#handleUserPreferenceRoutes(req, res, "/api/memory/me/preferences")
 pred api/work-places-routes#isWorkPlacesRoute("/api/memory/me/preferences") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/preferences") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/memory/me/preferences") -> false
 route api/memory-control-routes#handleMemoryControlRoutes(req, res, "/api/memory/me/preferences", URL(/api/memory/me/preferences?q=1&r=two))
 route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me/preferences")
 pred api/feedback-routes#isFeedbackRoute("/api/memory/me/preferences") -> false
@@ -1864,6 +1935,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/
 pred api/work-places-routes#isWorkPlacesRoute("/api/memory/me/work") -> true
 route api/work-places-routes#handleWorkPlacesRoutes(req, res, "/api/memory/me/work")
 pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/work") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/memory/me/work") -> false
 route api/memory-control-routes#handleMemoryControlRoutes(req, res, "/api/memory/me/work", URL(/api/memory/me/work?q=1&r=two))
 route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me/work")
 pred api/feedback-routes#isFeedbackRoute("/api/memory/me/work") -> false
@@ -1891,6 +1963,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/
 pred api/work-places-routes#isWorkPlacesRoute("/api/memory/me/places/probe") -> true
 route api/work-places-routes#handleWorkPlacesRoutes(req, res, "/api/memory/me/places/probe")
 pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/places/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/memory/me/places/probe") -> false
 route api/memory-control-routes#handleMemoryControlRoutes(req, res, "/api/memory/me/places/probe", URL(/api/memory/me/places/probe?q=1&r=two))
 route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me/places/probe")
 pred api/feedback-routes#isFeedbackRoute("/api/memory/me/places/probe") -> false
@@ -1918,6 +1991,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/
 pred api/work-places-routes#isWorkPlacesRoute("/api/memory/me/dates") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/dates") -> true
 route api/important-dates-routes#handleImportantDatesRoutes(req, res, "/api/memory/me/dates")
+pred api/aspirations-routes#isAspirationsRoute("/api/memory/me/dates") -> false
 route api/memory-control-routes#handleMemoryControlRoutes(req, res, "/api/memory/me/dates", URL(/api/memory/me/dates?q=1&r=two))
 route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me/dates")
 pred api/feedback-routes#isFeedbackRoute("/api/memory/me/dates") -> false
@@ -1945,6 +2019,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/
 pred api/work-places-routes#isWorkPlacesRoute("/api/memory/me/dates/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/dates/probe") -> true
 route api/important-dates-routes#handleImportantDatesRoutes(req, res, "/api/memory/me/dates/probe")
+pred api/aspirations-routes#isAspirationsRoute("/api/memory/me/dates/probe") -> false
 route api/memory-control-routes#handleMemoryControlRoutes(req, res, "/api/memory/me/dates/probe", URL(/api/memory/me/dates/probe?q=1&r=two))
 route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me/dates/probe")
 pred api/feedback-routes#isFeedbackRoute("/api/memory/me/dates/probe") -> false
@@ -1972,6 +2047,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/
 pred api/work-places-routes#isWorkPlacesRoute("/api/memory/me/reminder-settings") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/reminder-settings") -> true
 route api/important-dates-routes#handleImportantDatesRoutes(req, res, "/api/memory/me/reminder-settings")
+pred api/aspirations-routes#isAspirationsRoute("/api/memory/me/reminder-settings") -> false
 route api/memory-control-routes#handleMemoryControlRoutes(req, res, "/api/memory/me/reminder-settings", URL(/api/memory/me/reminder-settings?q=1&r=two))
 route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me/reminder-settings")
 pred api/feedback-routes#isFeedbackRoute("/api/memory/me/reminder-settings") -> false
@@ -1979,6 +2055,62 @@ pred api/subscription-routes#isSubscriptionRoute("/api/memory/me/reminder-settin
 pred api/monetization-routes#isMonetizationRoute("/api/memory/me/reminder-settings") -> false
 pred api/apple-iap-routes#isAppleRoute("/api/memory/me/reminder-settings") -> false
 static ./static#handleStaticRoutes(req, res, "/api/memory/me/reminder-settings")
+=> (no response written)
+
+### GET /api/memory/me/aspirations?q=1&r=two
+mw ddos-protection#addRequestId(req, res)
+mw security-headers#setSecurityHeaders(res)
+mw cors#setCorsHeaders(req, res)
+mw identity-guard#enforceVerifiedIdentity(req)
+mw ddos-protection#handleHealthEndpoint(req, res, "/api/memory/me/aspirations", "bogle-ui")
+mw ddos-protection#handleSecurityMonitoring(req, res, "/api/memory/me/aspirations")
+mw auth-middleware#rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })
+route routes/index#handleHealthRoutes(req, res, "/api/memory/me/aspirations")
+route routes/index#handleTokenRoutes(req, res, "/api/memory/me/aspirations", URL(/api/memory/me/aspirations?q=1&r=two))
+route routes/health-sync#handleHealthSyncRoutes(req, res, "/api/memory/me/aspirations")
+route api/practice-routes#handlePracticeRoutes(req, res, "/api/memory/me/aspirations")
+route api/group-call-webhooks#handleGroupCallWebhooks(req, res, "/api/memory/me/aspirations")
+route api/engagement-routes#handleEngagementRoutes(req, res, "/api/memory/me/aspirations", URL(/api/memory/me/aspirations?q=1&r=two))
+route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/aspirations", URL(/api/memory/me/aspirations?q=1&r=two))
+pred api/work-places-routes#isWorkPlacesRoute("/api/memory/me/aspirations") -> false
+pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/aspirations") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/memory/me/aspirations") -> true
+route api/aspirations-routes#handleAspirationsRoutes(req, res, "/api/memory/me/aspirations")
+route api/memory-control-routes#handleMemoryControlRoutes(req, res, "/api/memory/me/aspirations", URL(/api/memory/me/aspirations?q=1&r=two))
+route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me/aspirations")
+pred api/feedback-routes#isFeedbackRoute("/api/memory/me/aspirations") -> false
+pred api/subscription-routes#isSubscriptionRoute("/api/memory/me/aspirations") -> false
+pred api/monetization-routes#isMonetizationRoute("/api/memory/me/aspirations") -> false
+pred api/apple-iap-routes#isAppleRoute("/api/memory/me/aspirations") -> false
+static ./static#handleStaticRoutes(req, res, "/api/memory/me/aspirations")
+=> (no response written)
+
+### GET /api/memory/me/aspirations/probe?q=1&r=two
+mw ddos-protection#addRequestId(req, res)
+mw security-headers#setSecurityHeaders(res)
+mw cors#setCorsHeaders(req, res)
+mw identity-guard#enforceVerifiedIdentity(req)
+mw ddos-protection#handleHealthEndpoint(req, res, "/api/memory/me/aspirations/probe", "bogle-ui")
+mw ddos-protection#handleSecurityMonitoring(req, res, "/api/memory/me/aspirations/probe")
+mw auth-middleware#rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })
+route routes/index#handleHealthRoutes(req, res, "/api/memory/me/aspirations/probe")
+route routes/index#handleTokenRoutes(req, res, "/api/memory/me/aspirations/probe", URL(/api/memory/me/aspirations/probe?q=1&r=two))
+route routes/health-sync#handleHealthSyncRoutes(req, res, "/api/memory/me/aspirations/probe")
+route api/practice-routes#handlePracticeRoutes(req, res, "/api/memory/me/aspirations/probe")
+route api/group-call-webhooks#handleGroupCallWebhooks(req, res, "/api/memory/me/aspirations/probe")
+route api/engagement-routes#handleEngagementRoutes(req, res, "/api/memory/me/aspirations/probe", URL(/api/memory/me/aspirations/probe?q=1&r=two))
+route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/aspirations/probe", URL(/api/memory/me/aspirations/probe?q=1&r=two))
+pred api/work-places-routes#isWorkPlacesRoute("/api/memory/me/aspirations/probe") -> false
+pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/aspirations/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/memory/me/aspirations/probe") -> true
+route api/aspirations-routes#handleAspirationsRoutes(req, res, "/api/memory/me/aspirations/probe")
+route api/memory-control-routes#handleMemoryControlRoutes(req, res, "/api/memory/me/aspirations/probe", URL(/api/memory/me/aspirations/probe?q=1&r=two))
+route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me/aspirations/probe")
+pred api/feedback-routes#isFeedbackRoute("/api/memory/me/aspirations/probe") -> false
+pred api/subscription-routes#isSubscriptionRoute("/api/memory/me/aspirations/probe") -> false
+pred api/monetization-routes#isMonetizationRoute("/api/memory/me/aspirations/probe") -> false
+pred api/apple-iap-routes#isAppleRoute("/api/memory/me/aspirations/probe") -> false
+static ./static#handleStaticRoutes(req, res, "/api/memory/me/aspirations/probe")
 => (no response written)
 
 ### GET /api/memory/me?q=1&r=two
@@ -1998,6 +2130,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/memory/me", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me", URL(/api/memory/me?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/memory/me") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/memory/me") -> false
 route api/memory-control-routes#handleMemoryControlRoutes(req, res, "/api/memory/me", URL(/api/memory/me?q=1&r=two))
 route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me")
 pred api/feedback-routes#isFeedbackRoute("/api/memory/me") -> false
@@ -2024,6 +2157,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/memory/me/pro
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/probe", URL(/api/memory/me/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/memory/me/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/memory/me/probe") -> false
 route api/memory-control-routes#handleMemoryControlRoutes(req, res, "/api/memory/me/probe", URL(/api/memory/me/probe?q=1&r=two))
 route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me/probe")
 pred api/feedback-routes#isFeedbackRoute("/api/memory/me/probe") -> false
@@ -2050,6 +2184,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/memory", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory", URL(/api/memory?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/memory") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/memory") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/memory") -> false
 route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory")
 pred api/feedback-routes#isFeedbackRoute("/api/memory") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/memory") -> false
@@ -2075,6 +2210,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/actions", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/actions", URL(/api/actions?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/actions") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/actions") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/actions") -> false
 route api/action-routes#handleActionRoutes(req, res, "/api/actions")
 pred api/feedback-routes#isFeedbackRoute("/api/actions") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/actions") -> false
@@ -2101,6 +2237,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/relationsh
 route api/relationship-arc-routes#handleRelationshipArcRoutes(req, res, "/api/relationship/progress", URL(/api/relationship/progress?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/relationship/progress") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/relationship/progress") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/relationship/progress") -> false
 route routes/relationship#handleRelationshipRoutes(req, res, "/api/relationship/progress", URL(/api/relationship/progress?q=1&r=two))
 route routes/relationship-health-routes#relationshipHealthRoutes(req, res)
 pred api/feedback-routes#isFeedbackRoute("/api/relationship/progress") -> false
@@ -2128,6 +2265,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/relationsh
 route api/relationship-arc-routes#handleRelationshipArcRoutes(req, res, "/api/relationship/team-unlocks", URL(/api/relationship/team-unlocks?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/relationship/team-unlocks") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/relationship/team-unlocks") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/relationship/team-unlocks") -> false
 route routes/relationship#handleRelationshipRoutes(req, res, "/api/relationship/team-unlocks", URL(/api/relationship/team-unlocks?q=1&r=two))
 route routes/relationship-health-routes#relationshipHealthRoutes(req, res)
 pred api/feedback-routes#isFeedbackRoute("/api/relationship/team-unlocks") -> false
@@ -2155,6 +2293,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/relationsh
 route api/relationship-arc-routes#handleRelationshipArcRoutes(req, res, "/api/relationship/probe", URL(/api/relationship/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/relationship/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/relationship/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/relationship/probe") -> false
 route routes/relationship-health-routes#relationshipHealthRoutes(req, res)
 pred api/feedback-routes#isFeedbackRoute("/api/relationship/probe") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/relationship/probe") -> false
@@ -2180,6 +2319,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/outreach", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/outreach", URL(/api/outreach?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/outreach") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/outreach") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/outreach") -> false
 route api/outreach.routes#handleOutreachRoutes(req, res, "/api/outreach", URL(/api/outreach?q=1&r=two))
 pred api/feedback-routes#isFeedbackRoute("/api/outreach") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/outreach") -> false
@@ -2205,6 +2345,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/background-re
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/background-results", URL(/api/background-results?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/background-results") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/background-results") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/background-results") -> false
 route api/background-results-routes#handleBackgroundResultsRoutes(req, res, "/api/background-results", URL(/api/background-results?q=1&r=two))
 pred api/feedback-routes#isFeedbackRoute("/api/background-results") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/background-results") -> false
@@ -2230,6 +2371,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/flags", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/flags", URL(/api/flags?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/flags") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/flags") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/flags") -> false
 route api/feature-flags-routes#handleFeatureFlagsRoutes(req, res, "/api/flags", URL(/api/flags?q=1&r=two))
 pred api/feedback-routes#isFeedbackRoute("/api/flags") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/flags") -> false
@@ -2255,6 +2397,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/feedback", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/feedback", URL(/api/feedback?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/feedback") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/feedback") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/feedback") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/feedback") -> true
 route api/feedback-routes#handleFeedbackRoutes(req, res)
 pred api/subscription-routes#isSubscriptionRoute("/api/feedback") -> false
@@ -2280,6 +2423,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/brand", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/brand", URL(/api/brand?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/brand") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/brand") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/brand") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/brand") -> false
 route api/brand-routes#handleBrandRoutes(req, res, "/api/brand")
 pred api/subscription-routes#isSubscriptionRoute("/api/brand") -> false
@@ -2305,6 +2449,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/design-tokens
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/design-tokens", URL(/api/design-tokens?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/design-tokens") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/design-tokens") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/design-tokens") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/design-tokens") -> false
 route api/design-tokens-routes#handleDesignTokensRoutes(req, res, "/api/design-tokens")
 pred api/subscription-routes#isSubscriptionRoute("/api/design-tokens") -> false
@@ -2330,6 +2475,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/landing", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/landing", URL(/api/landing?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/landing") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/landing") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/landing") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/landing") -> false
 route api/landing-intelligence.routes#handleLandingIntelligenceRoutes(req, res, "/api/landing")
 pred api/subscription-routes#isSubscriptionRoute("/api/landing") -> false
@@ -2355,6 +2501,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/landing/optim
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/landing/optimization", URL(/api/landing/optimization?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/landing/optimization") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/landing/optimization") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/landing/optimization") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/landing/optimization") -> false
 route api/landing-optimization.routes#handleLandingOptimizationRoutes(req, res, "/api/landing/optimization")
 route api/landing-intelligence.routes#handleLandingIntelligenceRoutes(req, res, "/api/landing/optimization")
@@ -2381,6 +2528,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/commands", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/commands", URL(/api/commands?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/commands") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/commands") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/commands") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/commands") -> false
 route api/commands-routes#handleCommandsRoutes(req, res, "/api/commands")
 pred api/subscription-routes#isSubscriptionRoute("/api/commands") -> false
@@ -2406,6 +2554,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/widget", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/widget", URL(/api/widget?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/widget") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/widget") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/widget") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/widget") -> false
 route api/widget-routes#handleWidgetRoutes(req, res, "/api/widget")
 pred api/subscription-routes#isSubscriptionRoute("/api/widget") -> false
@@ -2431,6 +2580,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/monitoring", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/monitoring", URL(/api/monitoring?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/monitoring") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/monitoring") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/monitoring") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/monitoring") -> false
 route api/monitoring-routes#handleMonitoringRoutes(req, res, "/api/monitoring", URL(/api/monitoring?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/monitoring") -> false
@@ -2456,6 +2606,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/workers", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/workers", URL(/api/workers?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/workers") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/workers") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/workers") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/workers") -> false
 route api/worker-routes#handleWorkerRoutes(req, res, "/api/workers")
 pred api/subscription-routes#isSubscriptionRoute("/api/workers") -> false
@@ -2481,6 +2632,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/performance",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/performance", URL(/api/performance?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/performance") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/performance") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/performance") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/performance") -> false
 route api/performance-routes#handlePerformanceRoutes(req, res, "/api/performance", URL(/api/performance?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/performance") -> false
@@ -2506,6 +2658,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/concierge", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/concierge", URL(/api/concierge?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/concierge") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/concierge") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/concierge") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/concierge") -> false
 route api/concierge-routes#handleConciergeRoutes(req, res, "/api/concierge")
 pred api/subscription-routes#isSubscriptionRoute("/api/concierge") -> false
@@ -2531,6 +2684,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/twilio", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/twilio", URL(/api/twilio?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/twilio") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/twilio") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/twilio") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/twilio") -> false
 route api/twilio-routes#handleTwilioRoutes(req, res, "/api/twilio")
 pred api/subscription-routes#isSubscriptionRoute("/api/twilio") -> false
@@ -2556,6 +2710,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/family-checki
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/family-checkin/probe", URL(/api/family-checkin/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/family-checkin/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/family-checkin/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/family-checkin/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/family-checkin/probe") -> false
 route api/family-checkin-webhook-routes#handleFamilyCheckinWebhookRoutes(req, res, "/api/family-checkin/probe")
 pred api/subscription-routes#isSubscriptionRoute("/api/family-checkin/probe") -> false
@@ -2581,6 +2736,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/outbound-call
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/outbound-call", URL(/api/outbound-call?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/outbound-call") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/outbound-call") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/outbound-call") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/outbound-call") -> false
 route api/outbound-call-handler#handleOutboundCallRoutes(req, res, "/api/outbound-call")
 pred api/subscription-routes#isSubscriptionRoute("/api/outbound-call") -> false
@@ -2606,6 +2762,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/proactive", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/proactive", URL(/api/proactive?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/proactive") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/proactive") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/proactive") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/proactive") -> false
 route api/proactive-routes#handleProactiveRoutes(req, res, "/api/proactive")
 pred api/subscription-routes#isSubscriptionRoute("/api/proactive") -> false
@@ -2631,6 +2788,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/predictions",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/predictions", URL(/api/predictions?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/predictions") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/predictions") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/predictions") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/predictions") -> false
 route routes/predictions#handlePredictionsRoutes(req, res, "/api/predictions", URL(/api/predictions?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/predictions") -> false
@@ -2656,6 +2814,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/year-in-revie
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/year-in-review", URL(/api/year-in-review?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/year-in-review") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/year-in-review") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/year-in-review") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/year-in-review") -> false
 route api/year-in-review-routes#handleYearInReviewRoutes(req, res, { pathname: "/api/year-in-review", query: { q: "1", r: "two" } })
 pred api/subscription-routes#isSubscriptionRoute("/api/year-in-review") -> false
@@ -2681,6 +2840,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/llm-content",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/llm-content", URL(/api/llm-content?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/llm-content") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/llm-content") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/llm-content") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/llm-content") -> false
 route api/llm-content-routes#handleLLMContentRoutes(req, res, "/api/llm-content")
 pred api/subscription-routes#isSubscriptionRoute("/api/llm-content") -> false
@@ -2706,6 +2866,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/voice-humaniz
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/voice-humanization", URL(/api/voice-humanization?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/voice-humanization") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/voice-humanization") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/voice-humanization") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/voice-humanization") -> false
 route api/voice-humanization-routes#handleVoiceHumanizationRoutes(req, res, "/api/voice-humanization")
 pred api/subscription-routes#isSubscriptionRoute("/api/voice-humanization") -> false
@@ -2731,6 +2892,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/life-context"
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/life-context", URL(/api/life-context?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/life-context") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/life-context") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/life-context") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/life-context") -> false
 route api/life-context-routes#handleLifeContextRoutes(req, res, "/api/life-context")
 pred api/subscription-routes#isSubscriptionRoute("/api/life-context") -> false
@@ -2756,6 +2918,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/speech-metric
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/speech-metrics", URL(/api/speech-metrics?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/speech-metrics") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/speech-metrics") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/speech-metrics") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/speech-metrics") -> false
 route api/speech-metrics-routes#handleSpeechMetricsRoutes(req, res, "/api/speech-metrics")
 pred api/subscription-routes#isSubscriptionRoute("/api/speech-metrics") -> false
@@ -2781,6 +2944,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/voice/probe",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/voice/probe", URL(/api/voice/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/voice/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/voice/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/voice/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/voice/probe") -> false
 route api/voice-auth.routes#handleVoiceAuthRoutes(req, res, "/api/voice/probe")
 pred api/subscription-routes#isSubscriptionRoute("/api/voice/probe") -> false
@@ -2806,6 +2970,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/sponsored-ide
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/sponsored-identities", URL(/api/sponsored-identities?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/sponsored-identities") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/sponsored-identities") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/sponsored-identities") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/sponsored-identities") -> false
 route api/sponsored-identity-routes#handleSponsoredIdentityRoutes(req, res, "/api/sponsored-identities")
 pred api/subscription-routes#isSubscriptionRoute("/api/sponsored-identities") -> false
@@ -2831,6 +2996,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/user", URL(/a
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/user", URL(/api/user?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/user") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/user") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/user") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/user") -> false
 route api/user-routes#handleUserRoutes(req, res, "/api/user", URL(/api/user?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/user") -> false
@@ -2856,6 +3022,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/waitlist", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/waitlist", URL(/api/waitlist?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/waitlist") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/waitlist") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/waitlist") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/waitlist") -> false
 route api/waitlist-routes#handleWaitlistRoutes(req, res)
 pred api/subscription-routes#isSubscriptionRoute("/api/waitlist") -> false
@@ -2881,6 +3048,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/habits", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/habits", URL(/api/habits?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/habits") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/habits") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/habits") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/habits") -> false
 route api/habit-routes#handleHabitRoutes(req, res, "/api/habits", URL(/api/habits?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/habits") -> false
@@ -2906,6 +3074,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/garden", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/garden", URL(/api/garden?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/garden") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/garden") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/garden") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/garden") -> false
 route api/garden-routes#handleGardenRoutes(req, res, "/api/garden", URL(/api/garden?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/garden") -> false
@@ -2931,6 +3100,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/roadmap", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/roadmap", URL(/api/roadmap?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/roadmap") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/roadmap") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/roadmap") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/roadmap") -> false
 route api/roadmap-routes#handleRoadmapRoutes(req, res, "/api/roadmap", URL(/api/roadmap?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/roadmap") -> false
@@ -2956,6 +3126,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/crash-report"
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/crash-report", URL(/api/crash-report?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/crash-report") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/crash-report") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/crash-report") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/crash-report") -> false
 route api/crash-report-routes#handleCrashReportRoutes(req, res)
 pred api/subscription-routes#isSubscriptionRoute("/api/crash-report") -> false
@@ -2981,6 +3152,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/disconnect-di
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/disconnect-diagnostic", URL(/api/disconnect-diagnostic?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/disconnect-diagnostic") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/disconnect-diagnostic") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/disconnect-diagnostic") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/disconnect-diagnostic") -> false
 route api/crash-report-routes#handleCrashReportRoutes(req, res)
 pred api/subscription-routes#isSubscriptionRoute("/api/disconnect-diagnostic") -> false
@@ -3006,6 +3178,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/journal", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/journal", URL(/api/journal?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/journal") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/journal") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/journal") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/journal") -> false
 route api/journal-routes#handleJournalRoutes(req, res, "/api/journal")
 pred api/subscription-routes#isSubscriptionRoute("/api/journal") -> false
@@ -3031,6 +3204,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/custom-agent-
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/custom-agent-features", URL(/api/custom-agent-features?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/custom-agent-features") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/custom-agent-features") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/custom-agent-features") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/custom-agent-features") -> false
 route api/custom-agent-features.routes#handleCustomAgentFeaturesRoutes(req, res, "/api/custom-agent-features", URL(/api/custom-agent-features?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/custom-agent-features") -> false
@@ -3056,6 +3230,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/debug/cache",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/debug/cache", URL(/api/debug/cache?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/debug/cache") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/debug/cache") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/debug/cache") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/debug/cache") -> false
 route api/cache-routes#handleCacheRoutes(req, res, "/api/debug/cache")
 route api/debug-routes#handleDebugRoutes(req, res, "/api/debug/cache")
@@ -3082,6 +3257,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/debug", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/debug", URL(/api/debug?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/debug") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/debug") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/debug") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/debug") -> false
 route api/debug-routes#handleDebugRoutes(req, res, "/api/debug")
 pred api/subscription-routes#isSubscriptionRoute("/api/debug") -> false
@@ -3107,6 +3283,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/marketing", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/marketing", URL(/api/marketing?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/marketing") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/marketing") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/marketing") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/marketing") -> false
 route api/marketing-routes#handleMarketingRoutes(req, res, "/api/marketing", URL(/api/marketing?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/marketing") -> false
@@ -3132,6 +3309,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/linkedin", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/linkedin", URL(/api/linkedin?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/linkedin") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/linkedin") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/linkedin") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/linkedin") -> false
 route api/linkedin-routes#handleLinkedInRoutes(req, res, "/api/linkedin", URL(/api/linkedin?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/linkedin") -> false
@@ -3157,6 +3335,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/seeds", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/seeds", URL(/api/seeds?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/seeds") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/seeds") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/seeds") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/seeds") -> false
 route api/seeds-routes#handleSeedsRoutes(req, res, "/api/seeds")
 pred api/subscription-routes#isSubscriptionRoute("/api/seeds") -> false
@@ -3182,6 +3361,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/sites", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/sites", URL(/api/sites?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/sites") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/sites") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/sites") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/sites") -> false
 route api/sites-routes#handleSitesRoutes(req, res, "/api/sites", URL(/api/sites?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/sites") -> false
@@ -3206,6 +3386,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/sites/probe", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/sites/probe", URL(/sites/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/sites/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/sites/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/sites/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/sites/probe") -> false
 route api/sites-routes#handleSitesRoutes(req, res, "/sites/probe", URL(/sites/probe?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/sites/probe") -> false
@@ -3231,6 +3412,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/cameo", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/cameo", URL(/api/cameo?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/cameo") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/cameo") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/cameo") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/cameo") -> false
 route api/cameo-analytics-routes#handleCameoAnalyticsRoutes(req, res, "/api/cameo")
 pred api/subscription-routes#isSubscriptionRoute("/api/cameo") -> false
@@ -3256,6 +3438,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/wellbeing", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/wellbeing", URL(/api/wellbeing?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/wellbeing") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/wellbeing") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/wellbeing") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/wellbeing") -> false
 route api/wellbeing.routes#handleWellbeingRoutes(req, res, "/api/wellbeing", URL(/api/wellbeing?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/wellbeing") -> false
@@ -3281,6 +3464,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/rituals", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/rituals", URL(/api/rituals?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/rituals") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/rituals") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/rituals") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/rituals") -> false
 route routes/rituals#handleRitualsRoutes(req, res, "/api/rituals", URL(/api/rituals?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/rituals") -> false
@@ -3306,6 +3490,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/sky-check", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/sky-check", URL(/api/sky-check?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/sky-check") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/sky-check") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/sky-check") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/sky-check") -> false
 route routes/sky-check#handleSkyCheckRoutes(req, res, "/api/sky-check", URL(/api/sky-check?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/sky-check") -> false
@@ -3331,6 +3516,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/twin", URL(/a
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/twin", URL(/api/twin?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/twin") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/twin") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/twin") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/twin") -> false
 route routes/twin-profile#handleTwinProfileRoutes(req, res, "/api/twin")
 pred api/subscription-routes#isSubscriptionRoute("/api/twin") -> false
@@ -3356,6 +3542,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/your-story", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/your-story", URL(/api/your-story?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/your-story") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/your-story") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/your-story") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/your-story") -> false
 route api/your-story-routes#handleYourStoryRoutes(req, res, "/api/your-story", URL(/api/your-story?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/your-story") -> false
@@ -3381,6 +3568,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/insights", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/insights", URL(/api/insights?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/insights") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/insights") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/insights") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/insights") -> false
 route api/predictive-insights-routes#handlePredictiveInsightsRequest(req, res, URL(/api/insights?q=1&r=two), "anonymous")
 pred api/subscription-routes#isSubscriptionRoute("/api/insights") -> false
@@ -3406,6 +3594,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/intelligence"
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/intelligence", URL(/api/intelligence?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/intelligence") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/intelligence") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/intelligence") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/intelligence") -> false
 route routes/intelligence-routes#handleIntelligenceRoutes(req, res, "/api/intelligence", URL(/api/intelligence?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/intelligence") -> false
@@ -3431,6 +3620,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/team-insights
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/team-insights", URL(/api/team-insights?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/team-insights") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/team-insights") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/team-insights") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/team-insights") -> false
 route routes/team-insights#handleTeamInsightsRoutes(req, res, "/api/team-insights", URL(/api/team-insights?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/team-insights") -> false
@@ -3456,6 +3646,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/commitments",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/commitments", URL(/api/commitments?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/commitments") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/commitments") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/commitments") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/commitments") -> false
 route routes/commitments#handleCommitmentsRoutes(req, res, "/api/commitments", URL(/api/commitments?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/commitments") -> false
@@ -3481,6 +3672,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/conversations
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/conversations/threads", URL(/api/conversations/threads?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/conversations/threads") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/conversations/threads") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/conversations/threads") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/conversations/threads") -> false
 route routes/conversation-threads#handleConversationThreadsRoutes(req, res, "/api/conversations/threads", URL(/api/conversations/threads?q=1&r=two))
 route routes/conversations#handleConversationsRoutes(req, res, "/api/conversations/threads", URL(/api/conversations/threads?q=1&r=two))
@@ -3507,6 +3699,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/conversations
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/conversations", URL(/api/conversations?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/conversations") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/conversations") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/conversations") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/conversations") -> false
 route routes/conversations#handleConversationsRoutes(req, res, "/api/conversations", URL(/api/conversations?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/conversations") -> false
@@ -3532,6 +3725,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/group", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/group", URL(/api/group?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/group") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/group") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/group") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/group") -> false
 route routes/group-coaching#handleGroupCoachingRoutes(req, res, "/api/group", URL(/api/group?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/group") -> false
@@ -3557,6 +3751,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/growth", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/growth", URL(/api/growth?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/growth") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/growth") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/growth") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/growth") -> false
 route routes/growth#handleGrowthRoutes(req, res, "/api/growth", URL(/api/growth?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/growth") -> false
@@ -3582,6 +3777,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/video", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/video", URL(/api/video?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/video") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/video") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/video") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/video") -> false
 route routes/video-sessions#handleVideoSessionRoutes(req, res, "/api/video", URL(/api/video?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/video") -> false
@@ -3607,6 +3803,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/wearable", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/wearable", URL(/api/wearable?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/wearable") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/wearable") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/wearable") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/wearable") -> false
 route routes/wearable#handleWearableRoutes(req, res, "/api/wearable", URL(/api/wearable?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/wearable") -> false
@@ -3633,6 +3830,7 @@ route api/marketplace-routes#handleMarketplaceRoutes(req, res, "/api/marketplace
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/marketplace/reviews", URL(/api/marketplace/reviews?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/marketplace/reviews") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/marketplace/reviews") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/marketplace/reviews") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/marketplace/reviews") -> false
 route routes/marketplace-reviews#handleReviewsRoutes(req, res, "/api/marketplace/reviews")
 pred api/subscription-routes#isSubscriptionRoute("/api/marketplace/reviews") -> false
@@ -3658,6 +3856,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/landing/ai", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/landing/ai", URL(/api/landing/ai?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/landing/ai") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/landing/ai") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/landing/ai") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/landing/ai") -> false
 route api/landing-intelligence.routes#handleLandingIntelligenceRoutes(req, res, "/api/landing/ai")
 route routes/landing-ai#handleLandingAIRoutes(req, res, "/api/landing/ai", URL(/api/landing/ai?q=1&r=two))
@@ -3684,6 +3883,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/sanctuary", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/sanctuary", URL(/api/sanctuary?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/sanctuary") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/sanctuary") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/sanctuary") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/sanctuary") -> false
 route api/sanctuary-routes#handleSanctuaryRoutes(req, res, "/api/sanctuary")
 pred api/subscription-routes#isSubscriptionRoute("/api/sanctuary") -> false
@@ -3709,6 +3909,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/context", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/context", URL(/api/context?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/context") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/context") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/context") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/context") -> false
 route session-context#handleSessionContextRoute(req, res, undefined)
 pred api/subscription-routes#isSubscriptionRoute("/api/context") -> false
@@ -3734,6 +3935,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/jobs", URL(/a
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/jobs", URL(/api/jobs?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/jobs") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/jobs") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/jobs") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/jobs") -> false
 route api/scheduled-jobs.routes#handleScheduledJobsRoutes(req, res, "/api/jobs")
 pred api/subscription-routes#isSubscriptionRoute("/api/jobs") -> false
@@ -3759,6 +3961,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/life-automati
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/life-automation", URL(/api/life-automation?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/life-automation") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/life-automation") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/life-automation") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/life-automation") -> false
 route api/life-automation-routes#handleLifeAutomationRoutes(req, res, "/api/life-automation", URL(/api/life-automation?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/life-automation") -> false
@@ -3784,6 +3987,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/automation", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/automation", URL(/api/automation?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/automation") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/automation") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/automation") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/automation") -> false
 route api/automation-routes#handleAutomationRoutes(req, res, "/api/automation")
 pred api/subscription-routes#isSubscriptionRoute("/api/automation") -> false
@@ -3809,6 +4013,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/evalops", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/evalops", URL(/api/evalops?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/evalops") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/evalops") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/evalops") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/evalops") -> false
 route api/evalops.routes#handleEvalOpsRoutes(req, res, "/api/evalops", URL(/api/evalops?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/evalops") -> false
@@ -3834,6 +4039,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/household", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/household", URL(/api/household?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/household") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/household") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/household") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/household") -> false
 route api/household-routes#handleHouseholdRoutes(req, res, "/api/household")
 pred api/subscription-routes#isSubscriptionRoute("/api/household") -> false
@@ -3859,6 +4065,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/contacts", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/contacts", URL(/api/contacts?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/contacts") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/contacts") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/contacts") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/contacts") -> false
 route api/contacts-routes#handleContactsRoutes(req, res, "/api/contacts", URL(/api/contacts?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/contacts") -> false
@@ -3884,6 +4091,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/gifts", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/gifts", URL(/api/gifts?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/gifts") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/gifts") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/gifts") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/gifts") -> false
 route api/gift-routes#handleGiftRoutes(req, res, "/api/gifts", URL(/api/gifts?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/gifts") -> false
@@ -3909,6 +4117,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/story-journey
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/story-journey", URL(/api/story-journey?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/story-journey") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/story-journey") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/story-journey") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/story-journey") -> false
 route api/story-journey-routes#handleStoryJourneyRoutes(req, res, "/api/story-journey")
 route api/story-routes#handleStoryRoutes(req, res, "/api/story-journey")
@@ -3935,6 +4144,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/story", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/story", URL(/api/story?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/story") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/story") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/story") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/story") -> false
 route api/story-routes#handleStoryRoutes(req, res, "/api/story")
 pred api/subscription-routes#isSubscriptionRoute("/api/story") -> false
@@ -3960,6 +4170,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/user-events",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/user-events", URL(/api/user-events?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/user-events") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/user-events") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/user-events") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/user-events") -> false
 route api/user-routes#handleUserRoutes(req, res, "/api/user-events", URL(/api/user-events?q=1&r=two))
 route api/user-events-routes#handleUserEventsRoutes(req, res, "/api/user-events")
@@ -3986,6 +4197,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/analytics", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/analytics", URL(/api/analytics?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/analytics") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/analytics") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/analytics") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/analytics") -> false
 route api/user-analytics-routes#handleAnalyticsRoutes(req, res, "/api/analytics")
 pred api/subscription-routes#isSubscriptionRoute("/api/analytics") -> false
@@ -4011,6 +4223,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/admin/builder
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/admin/builder-metrics", URL(/api/admin/builder-metrics?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/admin/builder-metrics") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/admin/builder-metrics") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/admin/builder-metrics") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/admin/builder-metrics") -> false
 route routes/builder-metrics#handleBuilderMetricsRoutes(req, res, "/api/admin/builder-metrics")
 route api/admin-routes#handleAdminRoutes(req, res, "/api/admin/builder-metrics")
@@ -4037,6 +4250,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/admin/analyti
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/admin/analytics", URL(/api/admin/analytics?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/admin/analytics") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/admin/analytics") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/admin/analytics") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/admin/analytics") -> false
 route api/session-analytics-routes#handleSessionAnalyticsRoutes(req, res, "/api/admin/analytics")
 route api/admin-routes#handleAdminRoutes(req, res, "/api/admin/analytics")
@@ -4063,6 +4277,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/admin/batch",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/admin/batch", URL(/api/admin/batch?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/admin/batch") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/admin/batch") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/admin/batch") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/admin/batch") -> false
 route api/batch-operations-routes#handleBatchOperationsRoutes(req, res, "/api/admin/batch")
 route api/admin-routes#handleAdminRoutes(req, res, "/api/admin/batch")
@@ -4089,6 +4304,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/admin/webhook
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/admin/webhooks", URL(/api/admin/webhooks?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/admin/webhooks") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/admin/webhooks") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/admin/webhooks") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/admin/webhooks") -> false
 route api/webhook-management-routes#handleWebhookManagementRoutes(req, res, "/api/admin/webhooks")
 route api/admin-routes#handleAdminRoutes(req, res, "/api/admin/webhooks")
@@ -4115,6 +4331,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/admin/music-a
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/admin/music-analytics", URL(/api/admin/music-analytics?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/admin/music-analytics") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/admin/music-analytics") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/admin/music-analytics") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/admin/music-analytics") -> false
 route api/music-analytics-routes#handleMusicAnalyticsRoutes(req, res, "/api/admin/music-analytics", URL(/api/admin/music-analytics?q=1&r=two))
 route api/admin-routes#handleAdminRoutes(req, res, "/api/admin/music-analytics")
@@ -4141,6 +4358,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/admin/probe",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/admin/probe", URL(/api/admin/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/admin/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/admin/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/admin/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/admin/probe") -> false
 route api/admin-routes#handleAdminRoutes(req, res, "/api/admin/probe")
 pred api/subscription-routes#isSubscriptionRoute("/api/admin/probe") -> false
@@ -4166,6 +4384,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/ceo", URL(/ap
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/ceo", URL(/api/ceo?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/ceo") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/ceo") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/ceo") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/ceo") -> false
 route ceo/index#handleCEORoutes(req, res, "/api/ceo", URL(/api/ceo?q=1&r=two))
 pred api/subscription-routes#isSubscriptionRoute("/api/ceo") -> false
@@ -4191,6 +4410,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/subscription/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/subscription/status", URL(/api/subscription/status?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/subscription/status") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/subscription/status") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/subscription/status") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/subscription/status") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/subscription/status") -> true
 mw auth-middleware#optionalAuthAsync(req)
@@ -4215,6 +4435,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/subscription/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/subscription/webhook", URL(/api/subscription/webhook?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/subscription/webhook") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/subscription/webhook") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/subscription/webhook") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/subscription/webhook") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/subscription/webhook") -> true
 route api/subscription-routes#handleSubscriptionRequest({ method: "GET", pathname: "/api/subscription/webhook", query: { q: "1", r: "two" }, body: undefined, rawBody: undefined, headers: req.headers, authUserId: undefined, isAdmin: false })
@@ -4238,6 +4459,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/monetization/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/monetization/tiers", URL(/api/monetization/tiers?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/monetization/tiers") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/monetization/tiers") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/monetization/tiers") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/monetization/tiers") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/monetization/tiers") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/monetization/tiers") -> true
@@ -4263,6 +4485,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/apple/iap/ver
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/apple/iap/verify", URL(/api/apple/iap/verify?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/apple/iap/verify") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/apple/iap/verify") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/apple/iap/verify") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/apple/iap/verify") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/apple/iap/verify") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/apple/iap/verify") -> false
@@ -4288,6 +4511,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/not-a-route",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/not-a-route", URL(/api/not-a-route?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/not-a-route") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/not-a-route") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/not-a-route") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/not-a-route") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/not-a-route") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/not-a-route") -> false
@@ -4311,6 +4535,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/", URL(/?q=1&r=tw
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/", URL(/?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/") -> false
+pred api/aspirations-routes#isAspirationsRoute("/") -> false
 pred api/feedback-routes#isFeedbackRoute("/") -> false
 pred api/subscription-routes#isSubscriptionRoute("/") -> false
 pred api/monetization-routes#isMonetizationRoute("/") -> false
@@ -4334,6 +4559,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/assets/app.js", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/assets/app.js", URL(/assets/app.js?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/assets/app.js") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/assets/app.js") -> false
+pred api/aspirations-routes#isAspirationsRoute("/assets/app.js") -> false
 pred api/feedback-routes#isFeedbackRoute("/assets/app.js") -> false
 pred api/subscription-routes#isSubscriptionRoute("/assets/app.js") -> false
 pred api/monetization-routes#isMonetizationRoute("/assets/app.js") -> false
@@ -4358,6 +4584,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/context", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/context", URL(/api/context))
 pred api/work-places-routes#isWorkPlacesRoute("/api/context") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/context") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/context") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/context") -> false
 route session-context#handleSessionContextRoute(req, res, { probe: 1 })
 pred api/subscription-routes#isSubscriptionRoute("/api/context") -> false
@@ -4383,6 +4610,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/subscription/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/subscription/status", URL(/api/subscription/status))
 pred api/work-places-routes#isWorkPlacesRoute("/api/subscription/status") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/subscription/status") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/subscription/status") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/subscription/status") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/subscription/status") -> true
 mw auth-middleware#optionalAuthAsync(req)
@@ -4408,6 +4636,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/subscription/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/subscription/status", URL(/api/subscription/status))
 pred api/work-places-routes#isWorkPlacesRoute("/api/subscription/status") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/subscription/status") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/subscription/status") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/subscription/status") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/subscription/status") -> true
 mw auth-middleware#optionalAuthAsync(req)
@@ -4433,6 +4662,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/subscription/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/subscription/webhook", URL(/api/subscription/webhook))
 pred api/work-places-routes#isWorkPlacesRoute("/api/subscription/webhook") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/subscription/webhook") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/subscription/webhook") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/subscription/webhook") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/subscription/webhook") -> true
 mw helpers#parseRawBody(req, { timeoutMs: 30000, maxBytes: 1048576 })
@@ -4457,6 +4687,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/monetization/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/monetization/tiers", URL(/api/monetization/tiers))
 pred api/work-places-routes#isWorkPlacesRoute("/api/monetization/tiers") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/monetization/tiers") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/monetization/tiers") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/monetization/tiers") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/monetization/tiers") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/monetization/tiers") -> true
@@ -4483,6 +4714,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/monetization/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/monetization/tiers", URL(/api/monetization/tiers))
 pred api/work-places-routes#isWorkPlacesRoute("/api/monetization/tiers") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/monetization/tiers") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/monetization/tiers") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/monetization/tiers") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/monetization/tiers") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/monetization/tiers") -> true
@@ -4517,6 +4749,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/sites/joel-dickso
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/sites/joel-dickson", URL(/))
 pred api/work-places-routes#isWorkPlacesRoute("/sites/joel-dickson") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/sites/joel-dickson") -> false
+pred api/aspirations-routes#isAspirationsRoute("/sites/joel-dickson") -> false
 pred api/feedback-routes#isFeedbackRoute("/sites/joel-dickson") -> false
 route api/sites-routes#handleSitesRoutes(req, res, "/sites/joel-dickson", URL(/))
 pred api/subscription-routes#isSubscriptionRoute("/sites/joel-dickson") -> false
@@ -4542,6 +4775,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/sites/joel-dickso
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/sites/joel-dickson/about", URL(/about))
 pred api/work-places-routes#isWorkPlacesRoute("/sites/joel-dickson/about") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/sites/joel-dickson/about") -> false
+pred api/aspirations-routes#isAspirationsRoute("/sites/joel-dickson/about") -> false
 pred api/feedback-routes#isFeedbackRoute("/sites/joel-dickson/about") -> false
 route api/sites-routes#handleSitesRoutes(req, res, "/sites/joel-dickson/about", URL(/about))
 pred api/subscription-routes#isSubscriptionRoute("/sites/joel-dickson/about") -> false
@@ -4567,6 +4801,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/sites/joel-dickso
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/sites/joel-dickson/api/agents", URL(/api/agents))
 pred api/work-places-routes#isWorkPlacesRoute("/sites/joel-dickson/api/agents") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/sites/joel-dickson/api/agents") -> false
+pred api/aspirations-routes#isAspirationsRoute("/sites/joel-dickson/api/agents") -> false
 pred api/feedback-routes#isFeedbackRoute("/sites/joel-dickson/api/agents") -> false
 route api/sites-routes#handleSitesRoutes(req, res, "/sites/joel-dickson/api/agents", URL(/api/agents))
 pred api/subscription-routes#isSubscriptionRoute("/sites/joel-dickson/api/agents") -> false
@@ -4591,6 +4826,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/", URL(/))
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/", URL(/))
 pred api/work-places-routes#isWorkPlacesRoute("/") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/") -> false
+pred api/aspirations-routes#isAspirationsRoute("/") -> false
 pred api/feedback-routes#isFeedbackRoute("/") -> false
 pred api/subscription-routes#isSubscriptionRoute("/") -> false
 pred api/monetization-routes#isMonetizationRoute("/") -> false
@@ -4614,6 +4850,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/", URL(/))
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/", URL(/))
 pred api/work-places-routes#isWorkPlacesRoute("/") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/") -> false
+pred api/aspirations-routes#isAspirationsRoute("/") -> false
 pred api/feedback-routes#isFeedbackRoute("/") -> false
 pred api/subscription-routes#isSubscriptionRoute("/") -> false
 pred api/monetization-routes#isMonetizationRoute("/") -> false
@@ -5152,6 +5389,7 @@ route api/insights-routes#handleInsightsRoutes(req, res, "/api/insights/probe", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/insights/probe", URL(/api/insights/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/insights/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/insights/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/insights/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/insights/probe") -> false
 route api/predictive-insights-routes#handlePredictiveInsightsRequest(req, res, URL(/api/insights/probe?q=1&r=two), "anonymous")
 log.error[APIServer] { error: "Error: probe failure in api/predictive-insights-routes#handlePredictiveInsightsRequest" } "API route error"
@@ -5350,6 +5588,7 @@ route express#app(req, res)
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/group/probe", URL(/api/group/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/group/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/group/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/group/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/group/probe") -> false
 route routes/group-coaching#handleGroupCoachingRoutes(req, res, "/api/group/probe", URL(/api/group/probe?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in routes/group-coaching#handleGroupCoachingRoutes" } "API route error"
@@ -5431,6 +5670,7 @@ route marketplace-admin#handleMarketplaceAdminRoutes(req, res, "/api/admin/marke
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/admin/marketplace", URL(/api/admin/marketplace?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/admin/marketplace") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/admin/marketplace") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/admin/marketplace") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/admin/marketplace") -> false
 route api/admin-routes#handleAdminRoutes(req, res, "/api/admin/marketplace")
 log.error[APIServer] { error: "Error: probe failure in api/admin-routes#handleAdminRoutes" } "API route error"
@@ -5776,6 +6016,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/cognitive"
 route api/dashboard-metrics-routes#handleDashboardMetricsRoutes(req, res, "/api/cognitive")
 pred api/work-places-routes#isWorkPlacesRoute("/api/cognitive") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/cognitive") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/cognitive") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/cognitive") -> false
 route routes/memories#handleMemoriesRoutes(req, res, "/api/cognitive", URL(/api/cognitive?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in routes/memories#handleMemoriesRoutes" } "API route error"
@@ -6019,6 +6260,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/
 route api/user-preferences-routes#handleUserPreferenceRoutes(req, res, "/api/memory/me/preferences")
 pred api/work-places-routes#isWorkPlacesRoute("/api/memory/me/preferences") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/preferences") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/memory/me/preferences") -> false
 route api/memory-control-routes#handleMemoryControlRoutes(req, res, "/api/memory/me/preferences", URL(/api/memory/me/preferences?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/memory-control-routes#handleMemoryControlRoutes" } "API route error"
 => writeHead 500 {"Content-Type":"application/json"}
@@ -6042,6 +6284,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/
 route api/user-preferences-routes#handleUserPreferenceRoutes(req, res, "/api/memory/me/preferences")
 pred api/work-places-routes#isWorkPlacesRoute("/api/memory/me/preferences") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/preferences") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/memory/me/preferences") -> false
 route api/memory-control-routes#handleMemoryControlRoutes(req, res, "/api/memory/me/preferences", URL(/api/memory/me/preferences?q=1&r=two))
 route api/memory-routes#handleMemoryRoutes(req, res, "/api/memory/me/preferences")
 log.error[APIServer] { error: "Error: probe failure in api/memory-routes#handleMemoryRoutes" } "API route error"
@@ -6091,6 +6334,29 @@ log.error[APIServer] { error: "Error: probe failure in api/important-dates-route
 => writeHead 500 {"Content-Type":"application/json"}
 => end {"error":"Internal server error"}
 
+### GET /api/memory/me/aspirations?q=1&r=two  [throw=api/aspirations-routes#handleAspirationsRoutes]
+mw ddos-protection#addRequestId(req, res)
+mw security-headers#setSecurityHeaders(res)
+mw cors#setCorsHeaders(req, res)
+mw identity-guard#enforceVerifiedIdentity(req)
+mw ddos-protection#handleHealthEndpoint(req, res, "/api/memory/me/aspirations", "bogle-ui")
+mw ddos-protection#handleSecurityMonitoring(req, res, "/api/memory/me/aspirations")
+mw auth-middleware#rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })
+route routes/index#handleHealthRoutes(req, res, "/api/memory/me/aspirations")
+route routes/index#handleTokenRoutes(req, res, "/api/memory/me/aspirations", URL(/api/memory/me/aspirations?q=1&r=two))
+route routes/health-sync#handleHealthSyncRoutes(req, res, "/api/memory/me/aspirations")
+route api/practice-routes#handlePracticeRoutes(req, res, "/api/memory/me/aspirations")
+route api/group-call-webhooks#handleGroupCallWebhooks(req, res, "/api/memory/me/aspirations")
+route api/engagement-routes#handleEngagementRoutes(req, res, "/api/memory/me/aspirations", URL(/api/memory/me/aspirations?q=1&r=two))
+route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/memory/me/aspirations", URL(/api/memory/me/aspirations?q=1&r=two))
+pred api/work-places-routes#isWorkPlacesRoute("/api/memory/me/aspirations") -> false
+pred api/important-dates-routes#isImportantDatesRoute("/api/memory/me/aspirations") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/memory/me/aspirations") -> true
+route api/aspirations-routes#handleAspirationsRoutes(req, res, "/api/memory/me/aspirations")
+log.error[APIServer] { error: "Error: probe failure in api/aspirations-routes#handleAspirationsRoutes" } "API route error"
+=> writeHead 500 {"Content-Type":"application/json"}
+=> end {"error":"Internal server error"}
+
 ### GET /api/actions?q=1&r=two  [throw=api/action-routes#handleActionRoutes]
 mw ddos-protection#addRequestId(req, res)
 mw security-headers#setSecurityHeaders(res)
@@ -6108,6 +6374,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/actions", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/actions", URL(/api/actions?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/actions") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/actions") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/actions") -> false
 route api/action-routes#handleActionRoutes(req, res, "/api/actions")
 log.error[APIServer] { error: "Error: probe failure in api/action-routes#handleActionRoutes" } "API route error"
 => writeHead 500 {"Content-Type":"application/json"}
@@ -6131,6 +6398,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/relationsh
 route api/relationship-arc-routes#handleRelationshipArcRoutes(req, res, "/api/relationship/progress", URL(/api/relationship/progress?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/relationship/progress") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/relationship/progress") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/relationship/progress") -> false
 route routes/relationship#handleRelationshipRoutes(req, res, "/api/relationship/progress", URL(/api/relationship/progress?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in routes/relationship#handleRelationshipRoutes" } "API route error"
 => writeHead 500 {"Content-Type":"application/json"}
@@ -6154,6 +6422,7 @@ route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/relationsh
 route api/relationship-arc-routes#handleRelationshipArcRoutes(req, res, "/api/relationship/progress", URL(/api/relationship/progress?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/relationship/progress") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/relationship/progress") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/relationship/progress") -> false
 route routes/relationship#handleRelationshipRoutes(req, res, "/api/relationship/progress", URL(/api/relationship/progress?q=1&r=two))
 route routes/relationship-health-routes#relationshipHealthRoutes(req, res)
 log.error[APIServer] { error: "Error: probe failure in routes/relationship-health-routes#relationshipHealthRoutes" } "API route error"
@@ -6177,6 +6446,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/outreach", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/outreach", URL(/api/outreach?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/outreach") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/outreach") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/outreach") -> false
 route api/outreach.routes#handleOutreachRoutes(req, res, "/api/outreach", URL(/api/outreach?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/outreach.routes#handleOutreachRoutes" } "API route error"
 => writeHead 500 {"Content-Type":"application/json"}
@@ -6199,6 +6469,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/background-re
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/background-results", URL(/api/background-results?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/background-results") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/background-results") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/background-results") -> false
 route api/background-results-routes#handleBackgroundResultsRoutes(req, res, "/api/background-results", URL(/api/background-results?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/background-results-routes#handleBackgroundResultsRoutes" } "API route error"
 => writeHead 500 {"Content-Type":"application/json"}
@@ -6221,6 +6492,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/flags", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/flags", URL(/api/flags?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/flags") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/flags") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/flags") -> false
 route api/feature-flags-routes#handleFeatureFlagsRoutes(req, res, "/api/flags", URL(/api/flags?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/feature-flags-routes#handleFeatureFlagsRoutes" } "API route error"
 => writeHead 500 {"Content-Type":"application/json"}
@@ -6243,6 +6515,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/feedback", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/feedback", URL(/api/feedback?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/feedback") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/feedback") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/feedback") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/feedback") -> true
 route api/feedback-routes#handleFeedbackRoutes(req, res)
 log.error[APIServer] { error: "Error: probe failure in api/feedback-routes#handleFeedbackRoutes" } "API route error"
@@ -6266,6 +6539,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/brand", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/brand", URL(/api/brand?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/brand") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/brand") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/brand") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/brand") -> false
 route api/brand-routes#handleBrandRoutes(req, res, "/api/brand")
 log.error[APIServer] { error: "Error: probe failure in api/brand-routes#handleBrandRoutes" } "API route error"
@@ -6289,6 +6563,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/design-tokens
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/design-tokens", URL(/api/design-tokens?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/design-tokens") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/design-tokens") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/design-tokens") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/design-tokens") -> false
 route api/design-tokens-routes#handleDesignTokensRoutes(req, res, "/api/design-tokens")
 log.error[APIServer] { error: "Error: probe failure in api/design-tokens-routes#handleDesignTokensRoutes" } "API route error"
@@ -6312,6 +6587,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/landing", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/landing", URL(/api/landing?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/landing") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/landing") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/landing") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/landing") -> false
 route api/landing-intelligence.routes#handleLandingIntelligenceRoutes(req, res, "/api/landing")
 log.error[APIServer] { error: "Error: probe failure in api/landing-intelligence.routes#handleLandingIntelligenceRoutes" } "API route error"
@@ -6335,6 +6611,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/landing/optim
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/landing/optimization", URL(/api/landing/optimization?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/landing/optimization") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/landing/optimization") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/landing/optimization") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/landing/optimization") -> false
 route api/landing-optimization.routes#handleLandingOptimizationRoutes(req, res, "/api/landing/optimization")
 log.error[APIServer] { error: "Error: probe failure in api/landing-optimization.routes#handleLandingOptimizationRoutes" } "API route error"
@@ -6358,6 +6635,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/commands", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/commands", URL(/api/commands?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/commands") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/commands") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/commands") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/commands") -> false
 route api/commands-routes#handleCommandsRoutes(req, res, "/api/commands")
 log.error[APIServer] { error: "Error: probe failure in api/commands-routes#handleCommandsRoutes" } "API route error"
@@ -6381,6 +6659,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/widget", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/widget", URL(/api/widget?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/widget") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/widget") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/widget") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/widget") -> false
 route api/widget-routes#handleWidgetRoutes(req, res, "/api/widget")
 log.error[APIServer] { error: "Error: probe failure in api/widget-routes#handleWidgetRoutes" } "API route error"
@@ -6404,6 +6683,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/monitoring", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/monitoring", URL(/api/monitoring?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/monitoring") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/monitoring") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/monitoring") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/monitoring") -> false
 route api/monitoring-routes#handleMonitoringRoutes(req, res, "/api/monitoring", URL(/api/monitoring?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/monitoring-routes#handleMonitoringRoutes" } "API route error"
@@ -6427,6 +6707,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/workers", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/workers", URL(/api/workers?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/workers") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/workers") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/workers") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/workers") -> false
 route api/worker-routes#handleWorkerRoutes(req, res, "/api/workers")
 log.error[APIServer] { error: "Error: probe failure in api/worker-routes#handleWorkerRoutes" } "API route error"
@@ -6450,6 +6731,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/performance",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/performance", URL(/api/performance?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/performance") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/performance") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/performance") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/performance") -> false
 route api/performance-routes#handlePerformanceRoutes(req, res, "/api/performance", URL(/api/performance?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/performance-routes#handlePerformanceRoutes" } "API route error"
@@ -6473,6 +6755,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/concierge", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/concierge", URL(/api/concierge?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/concierge") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/concierge") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/concierge") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/concierge") -> false
 route api/concierge-routes#handleConciergeRoutes(req, res, "/api/concierge")
 log.error[APIServer] { error: "Error: probe failure in api/concierge-routes#handleConciergeRoutes" } "API route error"
@@ -6496,6 +6779,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/twilio", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/twilio", URL(/api/twilio?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/twilio") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/twilio") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/twilio") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/twilio") -> false
 route api/twilio-routes#handleTwilioRoutes(req, res, "/api/twilio")
 log.error[APIServer] { error: "Error: probe failure in api/twilio-routes#handleTwilioRoutes" } "API route error"
@@ -6519,6 +6803,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/family-checki
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/family-checkin/probe", URL(/api/family-checkin/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/family-checkin/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/family-checkin/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/family-checkin/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/family-checkin/probe") -> false
 route api/family-checkin-webhook-routes#handleFamilyCheckinWebhookRoutes(req, res, "/api/family-checkin/probe")
 log.error[APIServer] { error: "Error: probe failure in api/family-checkin-webhook-routes#handleFamilyCheckinWebhookRoutes" } "API route error"
@@ -6542,6 +6827,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/outbound-call
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/outbound-call", URL(/api/outbound-call?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/outbound-call") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/outbound-call") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/outbound-call") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/outbound-call") -> false
 route api/outbound-call-handler#handleOutboundCallRoutes(req, res, "/api/outbound-call")
 log.error[APIServer] { error: "Error: probe failure in api/outbound-call-handler#handleOutboundCallRoutes" } "API route error"
@@ -6565,6 +6851,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/proactive", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/proactive", URL(/api/proactive?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/proactive") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/proactive") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/proactive") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/proactive") -> false
 route api/proactive-routes#handleProactiveRoutes(req, res, "/api/proactive")
 log.error[APIServer] { error: "Error: probe failure in api/proactive-routes#handleProactiveRoutes" } "API route error"
@@ -6588,6 +6875,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/predictions",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/predictions", URL(/api/predictions?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/predictions") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/predictions") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/predictions") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/predictions") -> false
 route routes/predictions#handlePredictionsRoutes(req, res, "/api/predictions", URL(/api/predictions?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in routes/predictions#handlePredictionsRoutes" } "API route error"
@@ -6611,6 +6899,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/year-in-revie
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/year-in-review", URL(/api/year-in-review?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/year-in-review") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/year-in-review") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/year-in-review") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/year-in-review") -> false
 route api/year-in-review-routes#handleYearInReviewRoutes(req, res, { pathname: "/api/year-in-review", query: { q: "1", r: "two" } })
 log.error[APIServer] { error: "Error: probe failure in api/year-in-review-routes#handleYearInReviewRoutes" } "API route error"
@@ -6634,6 +6923,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/llm-content",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/llm-content", URL(/api/llm-content?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/llm-content") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/llm-content") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/llm-content") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/llm-content") -> false
 route api/llm-content-routes#handleLLMContentRoutes(req, res, "/api/llm-content")
 log.error[APIServer] { error: "Error: probe failure in api/llm-content-routes#handleLLMContentRoutes" } "API route error"
@@ -6657,6 +6947,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/voice-humaniz
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/voice-humanization", URL(/api/voice-humanization?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/voice-humanization") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/voice-humanization") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/voice-humanization") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/voice-humanization") -> false
 route api/voice-humanization-routes#handleVoiceHumanizationRoutes(req, res, "/api/voice-humanization")
 log.error[APIServer] { error: "Error: probe failure in api/voice-humanization-routes#handleVoiceHumanizationRoutes" } "API route error"
@@ -6680,6 +6971,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/life-context"
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/life-context", URL(/api/life-context?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/life-context") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/life-context") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/life-context") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/life-context") -> false
 route api/life-context-routes#handleLifeContextRoutes(req, res, "/api/life-context")
 log.error[APIServer] { error: "Error: probe failure in api/life-context-routes#handleLifeContextRoutes" } "API route error"
@@ -6703,6 +6995,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/speech-metric
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/speech-metrics", URL(/api/speech-metrics?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/speech-metrics") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/speech-metrics") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/speech-metrics") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/speech-metrics") -> false
 route api/speech-metrics-routes#handleSpeechMetricsRoutes(req, res, "/api/speech-metrics")
 log.error[APIServer] { error: "Error: probe failure in api/speech-metrics-routes#handleSpeechMetricsRoutes" } "API route error"
@@ -6726,6 +7019,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/voice/probe",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/voice/probe", URL(/api/voice/probe?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/voice/probe") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/voice/probe") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/voice/probe") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/voice/probe") -> false
 route api/voice-auth.routes#handleVoiceAuthRoutes(req, res, "/api/voice/probe")
 log.error[APIServer] { error: "Error: probe failure in api/voice-auth.routes#handleVoiceAuthRoutes" } "API route error"
@@ -6749,6 +7043,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/sponsored-ide
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/sponsored-identities", URL(/api/sponsored-identities?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/sponsored-identities") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/sponsored-identities") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/sponsored-identities") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/sponsored-identities") -> false
 route api/sponsored-identity-routes#handleSponsoredIdentityRoutes(req, res, "/api/sponsored-identities")
 log.error[APIServer] { error: "Error: probe failure in api/sponsored-identity-routes#handleSponsoredIdentityRoutes" } "API route error"
@@ -6772,6 +7067,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/user", URL(/a
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/user", URL(/api/user?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/user") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/user") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/user") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/user") -> false
 route api/user-routes#handleUserRoutes(req, res, "/api/user", URL(/api/user?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/user-routes#handleUserRoutes" } "API route error"
@@ -6795,6 +7091,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/waitlist", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/waitlist", URL(/api/waitlist?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/waitlist") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/waitlist") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/waitlist") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/waitlist") -> false
 route api/waitlist-routes#handleWaitlistRoutes(req, res)
 log.error[APIServer] { error: "Error: probe failure in api/waitlist-routes#handleWaitlistRoutes" } "API route error"
@@ -6818,6 +7115,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/habits", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/habits", URL(/api/habits?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/habits") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/habits") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/habits") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/habits") -> false
 route api/habit-routes#handleHabitRoutes(req, res, "/api/habits", URL(/api/habits?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/habit-routes#handleHabitRoutes" } "API route error"
@@ -6841,6 +7139,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/garden", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/garden", URL(/api/garden?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/garden") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/garden") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/garden") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/garden") -> false
 route api/garden-routes#handleGardenRoutes(req, res, "/api/garden", URL(/api/garden?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/garden-routes#handleGardenRoutes" } "API route error"
@@ -6864,6 +7163,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/roadmap", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/roadmap", URL(/api/roadmap?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/roadmap") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/roadmap") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/roadmap") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/roadmap") -> false
 route api/roadmap-routes#handleRoadmapRoutes(req, res, "/api/roadmap", URL(/api/roadmap?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/roadmap-routes#handleRoadmapRoutes" } "API route error"
@@ -6887,6 +7187,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/crash-report"
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/crash-report", URL(/api/crash-report?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/crash-report") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/crash-report") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/crash-report") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/crash-report") -> false
 route api/crash-report-routes#handleCrashReportRoutes(req, res)
 log.error[APIServer] { error: "Error: probe failure in api/crash-report-routes#handleCrashReportRoutes" } "API route error"
@@ -6910,6 +7211,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/journal", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/journal", URL(/api/journal?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/journal") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/journal") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/journal") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/journal") -> false
 route api/journal-routes#handleJournalRoutes(req, res, "/api/journal")
 log.error[APIServer] { error: "Error: probe failure in api/journal-routes#handleJournalRoutes" } "API route error"
@@ -6933,6 +7235,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/custom-agent-
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/custom-agent-features", URL(/api/custom-agent-features?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/custom-agent-features") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/custom-agent-features") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/custom-agent-features") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/custom-agent-features") -> false
 route api/custom-agent-features.routes#handleCustomAgentFeaturesRoutes(req, res, "/api/custom-agent-features", URL(/api/custom-agent-features?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/custom-agent-features.routes#handleCustomAgentFeaturesRoutes" } "API route error"
@@ -6956,6 +7259,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/debug/cache",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/debug/cache", URL(/api/debug/cache?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/debug/cache") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/debug/cache") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/debug/cache") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/debug/cache") -> false
 route api/cache-routes#handleCacheRoutes(req, res, "/api/debug/cache")
 log.error[APIServer] { error: "Error: probe failure in api/cache-routes#handleCacheRoutes" } "API route error"
@@ -6979,6 +7283,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/debug/cache",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/debug/cache", URL(/api/debug/cache?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/debug/cache") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/debug/cache") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/debug/cache") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/debug/cache") -> false
 route api/cache-routes#handleCacheRoutes(req, res, "/api/debug/cache")
 route api/debug-routes#handleDebugRoutes(req, res, "/api/debug/cache")
@@ -7003,6 +7308,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/marketing", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/marketing", URL(/api/marketing?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/marketing") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/marketing") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/marketing") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/marketing") -> false
 route api/marketing-routes#handleMarketingRoutes(req, res, "/api/marketing", URL(/api/marketing?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/marketing-routes#handleMarketingRoutes" } "API route error"
@@ -7026,6 +7332,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/linkedin", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/linkedin", URL(/api/linkedin?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/linkedin") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/linkedin") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/linkedin") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/linkedin") -> false
 route api/linkedin-routes#handleLinkedInRoutes(req, res, "/api/linkedin", URL(/api/linkedin?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/linkedin-routes#handleLinkedInRoutes" } "API route error"
@@ -7049,6 +7356,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/seeds", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/seeds", URL(/api/seeds?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/seeds") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/seeds") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/seeds") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/seeds") -> false
 route api/seeds-routes#handleSeedsRoutes(req, res, "/api/seeds")
 log.error[APIServer] { error: "Error: probe failure in api/seeds-routes#handleSeedsRoutes" } "API route error"
@@ -7072,6 +7380,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/sites", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/sites", URL(/api/sites?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/sites") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/sites") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/sites") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/sites") -> false
 route api/sites-routes#handleSitesRoutes(req, res, "/api/sites", URL(/api/sites?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/sites-routes#handleSitesRoutes" } "API route error"
@@ -7095,6 +7404,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/cameo", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/cameo", URL(/api/cameo?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/cameo") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/cameo") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/cameo") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/cameo") -> false
 route api/cameo-analytics-routes#handleCameoAnalyticsRoutes(req, res, "/api/cameo")
 log.error[APIServer] { error: "Error: probe failure in api/cameo-analytics-routes#handleCameoAnalyticsRoutes" } "API route error"
@@ -7118,6 +7428,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/wellbeing", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/wellbeing", URL(/api/wellbeing?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/wellbeing") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/wellbeing") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/wellbeing") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/wellbeing") -> false
 route api/wellbeing.routes#handleWellbeingRoutes(req, res, "/api/wellbeing", URL(/api/wellbeing?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/wellbeing.routes#handleWellbeingRoutes" } "API route error"
@@ -7141,6 +7452,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/rituals", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/rituals", URL(/api/rituals?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/rituals") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/rituals") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/rituals") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/rituals") -> false
 route routes/rituals#handleRitualsRoutes(req, res, "/api/rituals", URL(/api/rituals?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in routes/rituals#handleRitualsRoutes" } "API route error"
@@ -7164,6 +7476,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/sky-check", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/sky-check", URL(/api/sky-check?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/sky-check") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/sky-check") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/sky-check") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/sky-check") -> false
 route routes/sky-check#handleSkyCheckRoutes(req, res, "/api/sky-check", URL(/api/sky-check?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in routes/sky-check#handleSkyCheckRoutes" } "API route error"
@@ -7187,6 +7500,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/twin", URL(/a
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/twin", URL(/api/twin?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/twin") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/twin") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/twin") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/twin") -> false
 route routes/twin-profile#handleTwinProfileRoutes(req, res, "/api/twin")
 log.error[APIServer] { error: "Error: probe failure in routes/twin-profile#handleTwinProfileRoutes" } "API route error"
@@ -7210,6 +7524,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/your-story", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/your-story", URL(/api/your-story?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/your-story") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/your-story") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/your-story") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/your-story") -> false
 route api/your-story-routes#handleYourStoryRoutes(req, res, "/api/your-story", URL(/api/your-story?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/your-story-routes#handleYourStoryRoutes" } "API route error"
@@ -7233,6 +7548,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/intelligence"
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/intelligence", URL(/api/intelligence?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/intelligence") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/intelligence") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/intelligence") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/intelligence") -> false
 route routes/intelligence-routes#handleIntelligenceRoutes(req, res, "/api/intelligence", URL(/api/intelligence?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in routes/intelligence-routes#handleIntelligenceRoutes" } "API route error"
@@ -7256,6 +7572,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/team-insights
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/team-insights", URL(/api/team-insights?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/team-insights") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/team-insights") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/team-insights") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/team-insights") -> false
 route routes/team-insights#handleTeamInsightsRoutes(req, res, "/api/team-insights", URL(/api/team-insights?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in routes/team-insights#handleTeamInsightsRoutes" } "API route error"
@@ -7279,6 +7596,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/commitments",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/commitments", URL(/api/commitments?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/commitments") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/commitments") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/commitments") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/commitments") -> false
 route routes/commitments#handleCommitmentsRoutes(req, res, "/api/commitments", URL(/api/commitments?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in routes/commitments#handleCommitmentsRoutes" } "API route error"
@@ -7302,6 +7620,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/conversations
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/conversations/threads", URL(/api/conversations/threads?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/conversations/threads") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/conversations/threads") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/conversations/threads") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/conversations/threads") -> false
 route routes/conversation-threads#handleConversationThreadsRoutes(req, res, "/api/conversations/threads", URL(/api/conversations/threads?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in routes/conversation-threads#handleConversationThreadsRoutes" } "API route error"
@@ -7325,6 +7644,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/conversations
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/conversations/threads", URL(/api/conversations/threads?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/conversations/threads") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/conversations/threads") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/conversations/threads") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/conversations/threads") -> false
 route routes/conversation-threads#handleConversationThreadsRoutes(req, res, "/api/conversations/threads", URL(/api/conversations/threads?q=1&r=two))
 route routes/conversations#handleConversationsRoutes(req, res, "/api/conversations/threads", URL(/api/conversations/threads?q=1&r=two))
@@ -7349,6 +7669,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/growth", URL(
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/growth", URL(/api/growth?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/growth") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/growth") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/growth") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/growth") -> false
 route routes/growth#handleGrowthRoutes(req, res, "/api/growth", URL(/api/growth?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in routes/growth#handleGrowthRoutes" } "API route error"
@@ -7372,6 +7693,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/video", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/video", URL(/api/video?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/video") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/video") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/video") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/video") -> false
 route routes/video-sessions#handleVideoSessionRoutes(req, res, "/api/video", URL(/api/video?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in routes/video-sessions#handleVideoSessionRoutes" } "API route error"
@@ -7395,6 +7717,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/wearable", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/wearable", URL(/api/wearable?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/wearable") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/wearable") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/wearable") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/wearable") -> false
 route routes/wearable#handleWearableRoutes(req, res, "/api/wearable", URL(/api/wearable?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in routes/wearable#handleWearableRoutes" } "API route error"
@@ -7419,6 +7742,7 @@ route api/marketplace-routes#handleMarketplaceRoutes(req, res, "/api/marketplace
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/marketplace/reviews", URL(/api/marketplace/reviews?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/marketplace/reviews") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/marketplace/reviews") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/marketplace/reviews") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/marketplace/reviews") -> false
 route routes/marketplace-reviews#handleReviewsRoutes(req, res, "/api/marketplace/reviews")
 log.error[APIServer] { error: "Error: probe failure in routes/marketplace-reviews#handleReviewsRoutes" } "API route error"
@@ -7442,6 +7766,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/landing/ai", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/landing/ai", URL(/api/landing/ai?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/landing/ai") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/landing/ai") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/landing/ai") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/landing/ai") -> false
 route api/landing-intelligence.routes#handleLandingIntelligenceRoutes(req, res, "/api/landing/ai")
 route routes/landing-ai#handleLandingAIRoutes(req, res, "/api/landing/ai", URL(/api/landing/ai?q=1&r=two))
@@ -7466,6 +7791,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/sanctuary", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/sanctuary", URL(/api/sanctuary?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/sanctuary") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/sanctuary") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/sanctuary") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/sanctuary") -> false
 route api/sanctuary-routes#handleSanctuaryRoutes(req, res, "/api/sanctuary")
 log.error[APIServer] { error: "Error: probe failure in api/sanctuary-routes#handleSanctuaryRoutes" } "API route error"
@@ -7489,6 +7815,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/context", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/context", URL(/api/context?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/context") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/context") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/context") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/context") -> false
 route session-context#handleSessionContextRoute(req, res, undefined)
 log.error[APIServer] { error: "Error: probe failure in session-context#handleSessionContextRoute" } "API route error"
@@ -7512,6 +7839,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/jobs", URL(/a
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/jobs", URL(/api/jobs?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/jobs") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/jobs") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/jobs") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/jobs") -> false
 route api/scheduled-jobs.routes#handleScheduledJobsRoutes(req, res, "/api/jobs")
 log.error[APIServer] { error: "Error: probe failure in api/scheduled-jobs.routes#handleScheduledJobsRoutes" } "API route error"
@@ -7535,6 +7863,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/life-automati
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/life-automation", URL(/api/life-automation?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/life-automation") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/life-automation") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/life-automation") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/life-automation") -> false
 route api/life-automation-routes#handleLifeAutomationRoutes(req, res, "/api/life-automation", URL(/api/life-automation?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/life-automation-routes#handleLifeAutomationRoutes" } "API route error"
@@ -7558,6 +7887,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/automation", 
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/automation", URL(/api/automation?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/automation") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/automation") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/automation") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/automation") -> false
 route api/automation-routes#handleAutomationRoutes(req, res, "/api/automation")
 log.error[APIServer] { error: "Error: probe failure in api/automation-routes#handleAutomationRoutes" } "API route error"
@@ -7581,6 +7911,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/evalops", URL
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/evalops", URL(/api/evalops?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/evalops") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/evalops") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/evalops") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/evalops") -> false
 route api/evalops.routes#handleEvalOpsRoutes(req, res, "/api/evalops", URL(/api/evalops?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/evalops.routes#handleEvalOpsRoutes" } "API route error"
@@ -7604,6 +7935,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/household", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/household", URL(/api/household?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/household") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/household") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/household") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/household") -> false
 route api/household-routes#handleHouseholdRoutes(req, res, "/api/household")
 log.error[APIServer] { error: "Error: probe failure in api/household-routes#handleHouseholdRoutes" } "API route error"
@@ -7627,6 +7959,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/contacts", UR
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/contacts", URL(/api/contacts?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/contacts") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/contacts") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/contacts") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/contacts") -> false
 route api/contacts-routes#handleContactsRoutes(req, res, "/api/contacts", URL(/api/contacts?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/contacts-routes#handleContactsRoutes" } "API route error"
@@ -7650,6 +7983,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/gifts", URL(/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/gifts", URL(/api/gifts?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/gifts") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/gifts") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/gifts") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/gifts") -> false
 route api/gift-routes#handleGiftRoutes(req, res, "/api/gifts", URL(/api/gifts?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/gift-routes#handleGiftRoutes" } "API route error"
@@ -7673,6 +8007,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/story-journey
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/story-journey", URL(/api/story-journey?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/story-journey") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/story-journey") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/story-journey") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/story-journey") -> false
 route api/story-journey-routes#handleStoryJourneyRoutes(req, res, "/api/story-journey")
 log.error[APIServer] { error: "Error: probe failure in api/story-journey-routes#handleStoryJourneyRoutes" } "API route error"
@@ -7696,6 +8031,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/story-journey
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/story-journey", URL(/api/story-journey?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/story-journey") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/story-journey") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/story-journey") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/story-journey") -> false
 route api/story-journey-routes#handleStoryJourneyRoutes(req, res, "/api/story-journey")
 route api/story-routes#handleStoryRoutes(req, res, "/api/story-journey")
@@ -7720,6 +8056,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/user-events",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/user-events", URL(/api/user-events?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/user-events") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/user-events") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/user-events") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/user-events") -> false
 route api/user-routes#handleUserRoutes(req, res, "/api/user-events", URL(/api/user-events?q=1&r=two))
 route api/user-events-routes#handleUserEventsRoutes(req, res, "/api/user-events")
@@ -7744,6 +8081,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/analytics", U
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/analytics", URL(/api/analytics?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/analytics") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/analytics") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/analytics") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/analytics") -> false
 route api/user-analytics-routes#handleAnalyticsRoutes(req, res, "/api/analytics")
 log.error[APIServer] { error: "Error: probe failure in api/user-analytics-routes#handleAnalyticsRoutes" } "API route error"
@@ -7767,6 +8105,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/admin/builder
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/admin/builder-metrics", URL(/api/admin/builder-metrics?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/admin/builder-metrics") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/admin/builder-metrics") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/admin/builder-metrics") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/admin/builder-metrics") -> false
 route routes/builder-metrics#handleBuilderMetricsRoutes(req, res, "/api/admin/builder-metrics")
 log.error[APIServer] { error: "Error: probe failure in routes/builder-metrics#handleBuilderMetricsRoutes" } "API route error"
@@ -7790,6 +8129,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/admin/analyti
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/admin/analytics", URL(/api/admin/analytics?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/admin/analytics") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/admin/analytics") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/admin/analytics") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/admin/analytics") -> false
 route api/session-analytics-routes#handleSessionAnalyticsRoutes(req, res, "/api/admin/analytics")
 log.error[APIServer] { error: "Error: probe failure in api/session-analytics-routes#handleSessionAnalyticsRoutes" } "API route error"
@@ -7813,6 +8153,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/admin/batch",
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/admin/batch", URL(/api/admin/batch?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/admin/batch") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/admin/batch") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/admin/batch") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/admin/batch") -> false
 route api/batch-operations-routes#handleBatchOperationsRoutes(req, res, "/api/admin/batch")
 log.error[APIServer] { error: "Error: probe failure in api/batch-operations-routes#handleBatchOperationsRoutes" } "API route error"
@@ -7836,6 +8177,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/admin/webhook
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/admin/webhooks", URL(/api/admin/webhooks?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/admin/webhooks") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/admin/webhooks") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/admin/webhooks") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/admin/webhooks") -> false
 route api/webhook-management-routes#handleWebhookManagementRoutes(req, res, "/api/admin/webhooks")
 log.error[APIServer] { error: "Error: probe failure in api/webhook-management-routes#handleWebhookManagementRoutes" } "API route error"
@@ -7859,6 +8201,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/admin/music-a
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/admin/music-analytics", URL(/api/admin/music-analytics?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/admin/music-analytics") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/admin/music-analytics") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/admin/music-analytics") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/admin/music-analytics") -> false
 route api/music-analytics-routes#handleMusicAnalyticsRoutes(req, res, "/api/admin/music-analytics", URL(/api/admin/music-analytics?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in api/music-analytics-routes#handleMusicAnalyticsRoutes" } "API route error"
@@ -7882,6 +8225,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/ceo", URL(/ap
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/ceo", URL(/api/ceo?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/ceo") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/ceo") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/ceo") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/ceo") -> false
 route ceo/index#handleCEORoutes(req, res, "/api/ceo", URL(/api/ceo?q=1&r=two))
 log.error[APIServer] { error: "Error: probe failure in ceo/index#handleCEORoutes" } "API route error"
@@ -7905,6 +8249,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/subscription/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/subscription/status", URL(/api/subscription/status?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/subscription/status") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/subscription/status") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/subscription/status") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/subscription/status") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/subscription/status") -> true
 mw auth-middleware#optionalAuthAsync(req)
@@ -7930,6 +8275,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/monetization/
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/monetization/tiers", URL(/api/monetization/tiers?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/monetization/tiers") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/monetization/tiers") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/monetization/tiers") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/monetization/tiers") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/monetization/tiers") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/monetization/tiers") -> true
@@ -7956,6 +8302,7 @@ route api/engagement-routes#handleEngagementRoutes(req, res, "/api/apple/iap/ver
 route api/handoff-diagnostics#handleDiagnosticsRoutes(req, res, "/api/apple/iap/verify", URL(/api/apple/iap/verify?q=1&r=two))
 pred api/work-places-routes#isWorkPlacesRoute("/api/apple/iap/verify") -> false
 pred api/important-dates-routes#isImportantDatesRoute("/api/apple/iap/verify") -> false
+pred api/aspirations-routes#isAspirationsRoute("/api/apple/iap/verify") -> false
 pred api/feedback-routes#isFeedbackRoute("/api/apple/iap/verify") -> false
 pred api/subscription-routes#isSubscriptionRoute("/api/apple/iap/verify") -> false
 pred api/monetization-routes#isMonetizationRoute("/api/apple/iap/verify") -> false

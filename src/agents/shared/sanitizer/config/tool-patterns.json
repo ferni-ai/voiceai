@@ -181,6 +181,11 @@
       "patterns": ["saveNote", "getNotes", "journal"]
     },
 
+    "aspirations": {
+      "description": "Dreams and aspirations (goals and habits are listed under their own groups)",
+      "patterns": ["recordDream", "checkDreams"]
+    },
+
     "importantDates": {
       "description": "Important dates and date reminders",
       "patterns": ["rememberSpecialDate", "listSpecialDates", "stopDateReminders", "trackImportantDate"]

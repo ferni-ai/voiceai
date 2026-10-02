@@ -298,6 +298,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'family-messages-context', // Pending messages from family phone callers
     'family-awareness-context', // Mutual awareness between family members and sponsors
     'special-dates-awareness', // Important dates coming up / reminders due (in-conversation channel)
+    'goals-habits-awareness', // Active goals, habits due today, one quiet dream (aspirations store)
     'session-gap-awareness', // E2E: Days since last session with reconnection guidance
     'tool-failure-awareness', // E2E: Recent tool failures for honest acknowledgment
     'routine-awareness', // E2E: "What I Do For You" automated routines awareness

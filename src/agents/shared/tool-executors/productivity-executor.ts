@@ -332,104 +332,53 @@ async function completeTask(
 // GOAL MANAGEMENT
 // ============================================================================
 
-interface Goal {
-  id: string;
-  title: string;
-  description?: string;
-  category?: string;
-  targetDate?: Date;
-  progress: number; // 0-100
-  milestones?: string[];
-  createdAt: Date;
-  updatedAt: Date;
+// Goals live in the canonical aspirations store (services/aspirations), with
+// target dates scheduled as important-date deadlines.
+
+function goalCtx(ctx: ToolExecutionContext) {
+  return {
+    userId: ctx.userId ?? '',
+    ...(ctx.sessionId ? { conversationId: ctx.sessionId } : {}),
+    ...(ctx.personaId ? { personaId: ctx.personaId } : {}),
+  };
 }
 
 async function addGoal(args: Record<string, unknown>, ctx: ToolExecutionContext): Promise<string> {
-  const title = args.title as string;
-  const description = args.description as string | undefined;
-  const category = (args.category as string) || 'personal';
-  const targetDate = args.targetDate as string | undefined;
-
-  if (!title) {
-    return 'What goal are you working toward?';
-  }
-
-  log.info({ title, category, userId: ctx.userId }, '🎯 Adding goal');
-
-  if (!ctx.userId) {
-    return `Great goal! "${title}" - I'll keep that in mind.`;
-  }
-
-  try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
-
-    const goalId = `goal_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const goal: Goal = {
-      id: goalId,
-      title,
-      description,
-      category,
-      targetDate: targetDate ? new Date(targetDate) : undefined,
-      progress: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    await db
-      .collection('bogle_users')
-      .doc(ctx.userId)
-      .collection('goals')
-      .doc(goalId)
-      .set(cleanForFirestore(goal));
-
-    log.info({ goalId, userId: ctx.userId }, '✅ Goal added');
-
-    return `🎯 Goal set: "${title}". I'll help you track progress. What's the first small step?`;
-  } catch (err) {
-    log.warn({ error: String(err) }, 'Goal storage failed');
-    return `Great goal! "${title}" - I'll keep that in mind.`;
-  }
+  const title = typeof args.title === 'string' ? args.title.trim() : '';
+  if (!title) return 'What goal are you working toward?';
+  log.info({ userId: ctx.userId }, '🎯 Adding goal');
+  if (!ctx.userId) return `Great goal! "${title}" - I'll keep that in mind.`;
+  const { voiceAddGoal } = await import('../../../services/aspirations/voice.js');
+  return voiceAddGoal(goalCtx(ctx), {
+    title,
+    ...(typeof args.description === 'string' ? { why: args.description } : {}),
+    ...(typeof args.category === 'string' ? { category: args.category } : {}),
+    ...(typeof args.targetDate === 'string' ? { targetDate: args.targetDate } : {}),
+    ...(typeof args.dream === 'string' ? { dream: args.dream } : {}),
+  });
 }
 
 async function getGoals(args: Record<string, unknown>, ctx: ToolExecutionContext): Promise<string> {
-  const category = args.category as string | undefined;
+  if (!ctx.userId) return "I don't have your goals stored yet. What are you working toward?";
+  const { voiceListGoals } = await import('../../../services/aspirations/voice.js');
+  return voiceListGoals(goalCtx(ctx), typeof args.category === 'string' ? args.category : undefined);
+}
 
-  log.info({ category, userId: ctx.userId }, '🎯 Getting goals');
+const GOAL_STATUSES = ['active', 'paused', 'achieved', 'let-go'] as const;
 
-  if (!ctx.userId) {
-    return "I don't have your goals stored yet. What are you working toward?";
-  }
-
-  try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
-
-    let query = db.collection('bogle_users').doc(ctx.userId).collection('goals');
-
-    if (category) {
-      query = query.where('category', '==', category) as typeof query;
-    }
-
-    const snapshot = await query.orderBy('createdAt', 'desc').limit(10).get();
-
-    if (snapshot.empty) {
-      return "You haven't set any goals yet. What would you like to work toward?";
-    }
-
-    const goals = snapshot.docs.map((doc) => {
-      const data = doc.data() as Goal;
-      const progressBar =
-        '█'.repeat(Math.floor(data.progress / 10)) +
-        '░'.repeat(10 - Math.floor(data.progress / 10));
-      return `🎯 ${data.title} [${progressBar}] ${data.progress}%`;
-    });
-
-    return `Your goals:\n${goals.join('\n')}`;
-  } catch (err) {
-    log.warn({ error: String(err) }, 'Goal retrieval failed');
-    return "I couldn't fetch your goals right now. What are you working toward?";
-  }
+async function updateGoal(args: Record<string, unknown>, ctx: ToolExecutionContext): Promise<string> {
+  const name = String(args.title ?? args.goal ?? args.name ?? '').trim();
+  if (!name) return 'Which goal should I update?';
+  if (!ctx.userId) return 'Keep working toward it!';
+  const { voiceUpdateGoal } = await import('../../../services/aspirations/voice.js');
+  const progress = Number(args.progress);
+  const status = GOAL_STATUSES.find((s) => s === args.status);
+  return voiceUpdateGoal(goalCtx(ctx), {
+    name,
+    ...(Number.isFinite(progress) ? { progress } : {}),
+    ...(status ? { status } : {}),
+    ...(typeof args.milestone === 'string' ? { milestone: args.milestone } : {}),
+  });
 }
 
 // ============================================================================
@@ -717,10 +666,7 @@ async function execute(
   // Goals
   if (fnLower === 'addgoal') return addGoal(args, ctx);
   if (fnLower === 'getgoals') return getGoals(args, ctx);
-  if (fnLower === 'updategoal') {
-    log.info({ args }, '🎯 Goal update requested');
-    return 'Goal progress tracking is being implemented. Keep working toward your goal!';
-  }
+  if (fnLower === 'updategoal') return updateGoal(args, ctx);
 
   // Timers & Reminders
   if (fnLower === 'settimer') return setTimer(args, ctx);

@@ -87,6 +87,7 @@ const SUBCOLLECTIONS: ReadonlyArray<readonly [string, (targetRef: DocumentRefere
     ['dynamic_relationships', () => ({ resolve: preferTarget })],
     ['moments', () => ({ resolve: preferTarget })],
     ['goals', () => ({ resolve: preferTarget })],
+    ['aspirations', () => ({ resolve: preferTarget })], // dreams/goals/habits (services/aspirations)
     // Collections the older device→account migration already carried.
     ...[
       'memories',

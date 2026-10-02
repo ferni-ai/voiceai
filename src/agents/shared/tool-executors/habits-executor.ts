@@ -1,13 +1,13 @@
 /**
  * Habits Domain Tool Executor
  *
- * Handles habit-related tools: createHabit, logHabit, getHabitProgress,
- * getHabitStreak, suggestHabitStack
+ * Handles habit-related tools: createHabit, logHabit / logHabitCompletion,
+ * getHabits, getHabitProgress, getHabitStreak, suggestHabitStack, pause/resume/delete.
+ * Data lives in the canonical aspirations store (services/aspirations).
  *
  * @module agents/shared/tool-executors/habits-executor
  */
 
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
@@ -22,6 +22,7 @@ const HANDLED_TOOLS = [
   'gethabitstreak',
   'suggesthabitstack',
   'gethabits',
+  'loghabitcompletion',
   'deletehabit',
   'pausehabit',
   'resumehabit',
@@ -103,232 +104,50 @@ async function execute(
     fnLower = TOOL_ALIASES[fnLower];
   }
 
-  // ========================================
-  // CREATE HABIT
-  // ========================================
+  // Every habit op reads/writes the canonical aspirations store.
+  const voice = await import('../../../services/aspirations/voice.js');
+  const userId = ctx.userId;
+  const name = ((args.name as string) || (args.habitName as string) || '').trim();
+  const vctx = {
+    userId: userId ?? '',
+    ...(ctx.sessionId ? { conversationId: ctx.sessionId } : {}),
+    ...(ctx.personaId ? { personaId: ctx.personaId } : {}),
+  };
+
   if (fnLower === 'createhabit') {
-    const name = args.name as string;
-    const domain = (args.domain as string) || 'selfCare';
-    const cue = args.cue as string;
-
-    if (!name) {
-      return 'What habit would you like to develop?';
-    }
-
-    log.info({ name, domain, userId: ctx.userId }, '✅ Creating habit');
-
-    if (ctx.userId) {
-      try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
-
-        const habitId = `habit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        await db
-          .collection('bogle_users')
-          .doc(ctx.userId)
-          .collection('habits')
-          .doc(habitId)
-          .set(
-            cleanForFirestore({
-              id: habitId,
-              name,
-              domain,
-              cue: cue || null,
-              glidepathLevel: 1, // Start at tiny version
-              streak: 0,
-              completions: 0,
-              createdAt: new Date(),
-              status: 'active',
-            })
-          );
-
-        log.info({ habitId, userId: ctx.userId }, '✅ Habit created');
-
-        return cue
-          ? `Perfect! I've set up your "${name}" habit. Your cue will be: "${cue}". Start tiny - even 2 minutes counts!`
-          : `Great! "${name}" is now tracking. Want to set a trigger cue to make it stick?`;
-      } catch (err) {
-        log.warn({ error: String(err) }, 'Habit creation failed');
-      }
-    }
-
-    return `I've noted your goal to build a "${name}" habit. Let's make it stick!`;
+    if (!name) return 'What habit would you like to build?';
+    if (!userId) return `"${name}" is a great one. Let's make it tiny enough to stick.`;
+    log.info({ userId }, 'Creating habit');
+    const frequency = (args.frequency as string) === 'weekly' ? 'weekly' : 'daily';
+    return voice.voiceCreateHabit(vctx, {
+      name,
+      frequency,
+      ...(typeof args.cue === 'string' ? { cue: args.cue } : {}),
+      ...(typeof args.reminderTime === 'string' ? { reminderTime: args.reminderTime } : {}),
+      ...(typeof args.goal === 'string' ? { goal: args.goal } : {}),
+    });
   }
 
-  // ========================================
-  // LOG HABIT
-  // ========================================
-  if (fnLower === 'loghabit') {
-    const name = args.name as string;
-    const habitId = args.habitId as string;
-    const notes = args.notes as string;
-
-    if (!name && !habitId) {
-      return 'Which habit did you complete?';
-    }
-
-    log.info({ name, habitId, userId: ctx.userId }, '📝 Logging habit');
-
-    if (ctx.userId) {
-      try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
-
-        // Find the habit
-        let habitRef;
-        if (habitId) {
-          habitRef = db.collection('bogle_users').doc(ctx.userId).collection('habits').doc(habitId);
-        } else {
-          const snapshot = await db
-            .collection('bogle_users')
-            .doc(ctx.userId)
-            .collection('habits')
-            .where('name', '==', name)
-            .limit(1)
-            .get();
-
-          if (!snapshot.empty) {
-            habitRef = snapshot.docs[0].ref;
-          }
-        }
-
-        if (habitRef) {
-          const habitDoc = await habitRef.get();
-          const habitData = habitDoc.data();
-
-          // Update streak and completions
-          const now = new Date();
-          const lastCompletion = habitData?.lastCompletedAt?.toDate?.() as Date | undefined;
-          const isConsecutiveDay =
-            lastCompletion && now.getTime() - lastCompletion.getTime() < 48 * 60 * 60 * 1000; // Within 48 hours
-
-          await habitRef.update(
-            cleanForFirestore({
-              completions: (habitData?.completions || 0) + 1,
-              streak: isConsecutiveDay ? (habitData?.streak || 0) + 1 : 1,
-              lastCompletedAt: now,
-            })
-          );
-
-          // Log the completion
-          await habitRef.collection('logs').add(
-            cleanForFirestore({
-              completedAt: now,
-              notes: notes || null,
-            })
-          );
-
-          const newStreak = isConsecutiveDay ? (habitData?.streak || 0) + 1 : 1;
-
-          return newStreak > 1
-            ? `🔥 ${newStreak} day streak! "${habitData?.name || name}" logged. Keep it going!`
-            : `✅ "${habitData?.name || name}" logged! You're building momentum.`;
-        }
-
-        return `I logged "${name}" for you. Keep it up!`;
-      } catch (err) {
-        log.warn({ error: String(err) }, 'Habit logging failed');
-      }
-    }
-
-    return `Got it! "${name}" completed. Every rep counts.`;
+  if (fnLower === 'loghabit' || fnLower === 'loghabitcompletion') {
+    if (!name) return 'Which habit did you do?';
+    if (!userId) return `Nice work on "${name}"!`;
+    log.info({ userId }, 'Logging habit');
+    return voice.voiceLogHabit(vctx, {
+      name,
+      ...(typeof args.notes === 'string' ? { note: args.notes } : {}),
+      ...(args.missed === true || args.status === 'missed' ? { missed: true } : {}),
+    });
   }
 
-  // ========================================
-  // GET HABIT PROGRESS
-  // ========================================
-  if (fnLower === 'gethabitprogress') {
-    const name = args.name as string;
-
-    log.info({ name, userId: ctx.userId }, '📊 Getting habit progress');
-
-    if (ctx.userId) {
-      try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
-
-        const snapshot = await db
-          .collection('bogle_users')
-          .doc(ctx.userId)
-          .collection('habits')
-          .where('status', '==', 'active')
-          .get();
-
-        if (snapshot.empty) {
-          return "You don't have any active habits yet. Want to start one?";
-        }
-
-        if (name) {
-          // Specific habit
-          const habit = snapshot.docs.find(
-            (d) => (d.data().name as string).toLowerCase() === name.toLowerCase()
-          );
-          if (habit) {
-            const data = habit.data();
-            return `"${data.name}": ${data.streak || 0} day streak, ${data.completions || 0} total completions.`;
-          }
-          return `I couldn't find a habit called "${name}".`;
-        }
-
-        // All habits summary
-        const habits = snapshot.docs.map((d) => {
-          const data = d.data();
-          return `${data.name}: ${data.streak || 0} day streak`;
-        });
-
-        return `Your habits: ${habits.join('; ')}`;
-      } catch (err) {
-        log.warn({ error: String(err) }, 'Habit progress fetch failed');
-      }
-    }
-
-    return "Tell me about your habits and I'll help you track them.";
+  if (fnLower === 'gethabitprogress' || fnLower === 'gethabits') {
+    if (!userId) return "Tell me about your habits and I'll help you track them.";
+    if (name && fnLower === 'gethabitprogress') return voice.voiceHabitStreak(vctx, name);
+    return voice.voiceListHabits(vctx);
   }
 
-  // ========================================
-  // GET HABIT STREAK
-  // ========================================
   if (fnLower === 'gethabitstreak') {
-    const name = args.name as string;
-
-    log.info({ name, userId: ctx.userId }, '🔥 Getting habit streak');
-
-    if (ctx.userId && name) {
-      try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
-
-        const snapshot = await db
-          .collection('bogle_users')
-          .doc(ctx.userId)
-          .collection('habits')
-          .where('name', '==', name)
-          .limit(1)
-          .get();
-
-        if (!snapshot.empty) {
-          const data = snapshot.docs[0].data();
-          const streak = data.streak || 0;
-
-          if (streak === 0) {
-            return `No current streak for "${name}". Today's a great day to start!`;
-          }
-          if (streak < 7) {
-            return `🔥 ${streak} day streak on "${name}"! Building momentum.`;
-          }
-          if (streak < 30) {
-            return `🔥🔥 ${streak} day streak on "${name}"! You're on fire!`;
-          }
-          return `🔥🔥🔥 ${streak} day streak on "${name}"! Incredible consistency!`;
-        }
-      } catch {
-        // Fall through
-      }
-    }
-
-    return name
-      ? `I don't have streak data for "${name}" yet.`
-      : 'Which habit streak would you like to check?';
+    if (!userId || !name) return 'Which habit streak would you like to check?';
+    return voice.voiceHabitStreak(vctx, name);
   }
 
   // ========================================
@@ -355,93 +174,12 @@ async function execute(
     return 'Habit stacking works by linking a new habit to an existing one. What habits are you thinking about?';
   }
 
-  // ========================================
-  // GET HABITS (List all)
-  // ========================================
-  if (fnLower === 'gethabits') {
-    log.info({ userId: ctx.userId }, '📋 Getting all habits');
-
-    if (ctx.userId) {
-      try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
-
-        const snapshot = await db
-          .collection('bogle_users')
-          .doc(ctx.userId)
-          .collection('habits')
-          .orderBy('createdAt', 'desc')
-          .get();
-
-        if (snapshot.empty) {
-          return "You don't have any habits tracked yet. Want to start one?";
-        }
-
-        const active = snapshot.docs.filter((d) => d.data().status === 'active');
-        const paused = snapshot.docs.filter((d) => d.data().status === 'paused');
-
-        let response = `Active habits: ${active.map((d) => d.data().name).join(', ') || 'None'}`;
-        if (paused.length > 0) {
-          response += `. Paused: ${paused.map((d) => d.data().name).join(', ')}`;
-        }
-
-        return response;
-      } catch {
-        // Fall through
-      }
-    }
-
-    return 'Tell me about the habits you want to build.';
-  }
-
-  // ========================================
-  // DELETE/PAUSE/RESUME HABIT
-  // ========================================
   if (fnLower === 'deletehabit' || fnLower === 'pausehabit' || fnLower === 'resumehabit') {
-    const name = args.name as string;
     const action = fnLower.replace('habit', '');
-
-    if (!name) {
-      return `Which habit would you like to ${action}?`;
-    }
-
-    log.info({ name, action, userId: ctx.userId }, `🔧 ${action} habit`);
-
-    if (ctx.userId) {
-      try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
-
-        const snapshot = await db
-          .collection('bogle_users')
-          .doc(ctx.userId)
-          .collection('habits')
-          .where('name', '==', name)
-          .limit(1)
-          .get();
-
-        if (!snapshot.empty) {
-          const habitRef = snapshot.docs[0].ref;
-
-          if (action === 'delete') {
-            await habitRef.delete();
-            return `"${name}" has been removed. You can always start fresh later.`;
-          } else {
-            const newStatus = action === 'pause' ? 'paused' : 'active';
-            await habitRef.update(cleanForFirestore({ status: newStatus }));
-            return action === 'pause'
-              ? `"${name}" is paused. Ready when you are.`
-              : `"${name}" is back on! Let's keep building.`;
-          }
-        }
-
-        return `I couldn't find a habit called "${name}".`;
-      } catch {
-        // Fall through
-      }
-    }
-
-    return `I've noted your request to ${action} "${name}".`;
+    if (!name) return `Which habit would you like to ${action}?`;
+    if (!userId) return `I've noted that.`;
+    const status = action === 'pause' ? 'paused' : action === 'resume' ? 'active' : 'let-go';
+    return voice.voiceSetStatus(vctx, { name, status, level: 'habit' });
   }
 
   return null;

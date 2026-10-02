@@ -14,6 +14,17 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
+type HabitSyncModule = typeof import('../aspirations/legacy-habit-sync.js');
+let habitSyncModule: Promise<HabitSyncModule | null> | null = null;
+/** Lazily load the canonical-habits bridge (keeps Firestore out of cold paths). */
+function habitSync(): Promise<HabitSyncModule | null> {
+  habitSyncModule ??= import('../aspirations/legacy-habit-sync.js').catch((error: unknown) => {
+    getLogger().warn({ error: String(error) }, 'Canonical habits bridge unavailable');
+    return null;
+  });
+  return habitSyncModule;
+}
+
 // ============================================================================
 // TYPES - Productivity Data
 // ============================================================================
@@ -475,6 +486,7 @@ class ProductivityStore {
           if (productivityData) {
             // Hydrate into memory maps
             this.hydrateMemoryMaps(userId, productivityData);
+            await this.hydrateCanonicalHabits(userId, productivityData);
             this.cache.set(userId, productivityData);
             getLogger().debug(
               { userId, tasks: productivityData.tasks?.length || 0 },
@@ -490,6 +502,7 @@ class ProductivityStore {
 
     // Return empty data
     const emptyData = this.createEmptyData(userId);
+    await this.hydrateCanonicalHabits(userId, emptyData);
     this.cache.set(userId, emptyData);
     return emptyData;
   }
@@ -623,6 +636,7 @@ class ProductivityStore {
   setHabit(userId: string, habit: HabitData): void {
     this.habitMemory.set(habit.id, { ...habit, userId } as HabitData & { userId: string });
     this.markDirty(userId);
+    void habitSync().then((m) => m?.syncLegacyHabit(userId, habit));
   }
 
   getHabit(habitId: string): HabitData | undefined {
@@ -640,6 +654,7 @@ class ProductivityStore {
       userId: string;
     });
     this.markDirty(userId);
+    void habitSync().then((m) => m?.syncLegacyHabitLog(userId, logEntry));
   }
 
   getUserHabitLogs(userId: string): HabitLogData[] {
@@ -915,6 +930,33 @@ class ProductivityStore {
   // PRIVATE HELPERS
   // ============================================================================
 
+  /**
+   * Habits live in the canonical aspirations store
+   * (`bogle_users/{uid}/aspirations`, level 'habit'); the profile copy is a
+   * legacy mirror. Replace this user's habit maps with the canonical view.
+   * Falls back to the profile copy when the store is unavailable.
+   */
+  private async hydrateCanonicalHabits(userId: string, data: ProductivityData): Promise<void> {
+    const views = await (await habitSync())?.habitsForProductivityStore(userId).catch(() => null);
+    if (!views) return;
+    const mine = (v: { userId?: string }) => v.userId === userId;
+    for (const [id, h] of this.habitMemory) if (mine(h as { userId?: string })) this.habitMemory.delete(id);
+    for (const [id, l] of this.habitLogMemory) if (mine(l as { userId?: string })) this.habitLogMemory.delete(id);
+    for (const [id, h] of this.enhancedHabitMemory) {
+      if (mine(h as { userId?: string })) this.enhancedHabitMemory.delete(id);
+    }
+    for (const h of views.habits) this.habitMemory.set(h.id, { ...h, userId } as HabitData & { userId: string });
+    for (const l of views.logs) {
+      this.habitLogMemory.set(l.id, { ...l, userId } as HabitLogData & { userId: string });
+    }
+    for (const h of views.enhanced) {
+      this.enhancedHabitMemory.set(h.id, { ...h, userId } as EnhancedHabitData & { userId: string });
+    }
+    data.habits = views.habits;
+    data.habitLogs = views.logs;
+    data.enhancedHabits = views.enhanced;
+  }
+
   private createEmptyData(userId: string): ProductivityData {
     return {
       userId,
@@ -1089,6 +1131,7 @@ class ProductivityStore {
       userId: string;
     });
     this.markDirty(userId);
+    void habitSync().then((m) => m?.syncEnhancedHabit(userId, habit));
   }
 
   getEnhancedHabit(habitId: string): EnhancedHabitData | undefined {
@@ -1106,7 +1149,12 @@ class ProductivityStore {
     if (habit) {
       const { userId } = habit as EnhancedHabitData & { userId?: string };
       this.enhancedHabitMemory.delete(habitId);
-      if (userId) this.markDirty(userId);
+      if (userId) {
+        this.markDirty(userId);
+        void habitSync().then((m) =>
+          m?.syncEnhancedHabit(userId, { ...habit, isActive: false, isPaused: false })
+        );
+      }
       return true;
     }
     return false;
