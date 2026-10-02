@@ -230,9 +230,13 @@ jobs:
           
           echo "url=$URL" >> $GITHUB_OUTPUT
           echo "Staging deployed to: $URL"
+          echo "🚀 Staging deployed to: $URL" >> $GITHUB_STEP_SUMMARY
 
       - name: Comment on PR
         if: needs.context.outputs.is_pr == 'true'
+        # The URL is in the job summary; a token without write access
+        # must not fail the deploy
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
