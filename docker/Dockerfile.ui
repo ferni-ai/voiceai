@@ -68,9 +68,11 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --prefer-offline --no-frozen-lockfile
 
 # Copy build script (now in apps/cli/) and source. build-fast.ts imports
-# esbuild-target.ts; without it the esbuild step failed and the tsc fallback
-# cannot type the stubbed native packages, so every UI deploy failed.
+# esbuild-target.ts and utils/project-root.ts; without either the esbuild step
+# fails and the tsc fallback cannot type the stubbed native packages, so every
+# UI deploy fails. Copy any file build-fast.ts starts importing here too.
 COPY apps/cli/src/commands/build/build-fast.ts apps/cli/src/commands/build/esbuild-target.ts ./apps/cli/src/commands/build/
+COPY apps/cli/src/utils/project-root.ts ./apps/cli/src/utils/
 COPY src/ ./src/
 
 # Build with esbuild (falls back to tsc)
