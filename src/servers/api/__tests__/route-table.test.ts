@@ -68,6 +68,8 @@ const h = vi.hoisted(() => {
       p === '/api/memory/me/reminder-settings',
     isAspirationsRoute: (p) =>
       p === '/api/memory/me/aspirations' || p.startsWith('/api/memory/me/aspirations/'),
+    isFinanceMemoryRoute: (p) =>
+      p === '/api/memory/me/finances' || p.startsWith('/api/memory/me/finances/'),
   };
 
   function shape(value: unknown, depth = 0): string {
@@ -725,6 +727,10 @@ vi.mock('../../../api/sensitive-memory-routes.js', () => ({
   isSensitiveMemoryRoute: h.auto('api/sensitive-memory-routes#isSensitiveMemoryRoute'),
   handleSensitiveMemoryRoutes: h.auto('api/sensitive-memory-routes#handleSensitiveMemoryRoutes'),
 }));
+vi.mock('../../../api/finance-memory-routes.js', () => ({
+  isFinanceMemoryRoute: h.auto('api/finance-memory-routes#isFinanceMemoryRoute'),
+  handleFinanceMemoryRoutes: h.auto('api/finance-memory-routes#handleFinanceMemoryRoutes'),
+}));
 vi.mock('../../../api/memory-control-routes.js', () => ({
   handleMemoryControlRoutes: h.auto('api/memory-control-routes#handleMemoryControlRoutes'),
 }));
@@ -916,6 +922,8 @@ const ROUTE_PREFIXES = [
   '/api/memory/me/health',
   '/api/memory/me/health/',
   '/api/memory/me/mood',
+  '/api/memory/me/finances',
+  '/api/memory/me/finances/',
   '/api/memory/me',
   '/api/memory/me/',
   '/api/memory',
