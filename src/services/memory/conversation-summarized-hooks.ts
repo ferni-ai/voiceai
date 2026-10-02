@@ -1,7 +1,8 @@
 /**
  * Runs everything that learns from a finished, summarized conversation:
  * personal insights (people, threads, predictions), preferences,
- * aspirations (dreams, goals, habits), and health & mood (with consent).
+ * aspirations (dreams, goals, habits), health & mood (with consent), and
+ * work & places.
  *
  * Called from session end and from the catch-up job (dropped calls), so a
  * conversation is mined the same way however it ended. Never throws; each
@@ -56,6 +57,13 @@ export async function runConversationSummarizedHooks(
       'health-memory',
       async () => {
         const { onConversationSummarized } = await import('../health-memory/index.js');
+        return onConversationSummarized(userId, conversationId, summary, simple);
+      },
+    ],
+    [
+      'work-and-places',
+      async () => {
+        const { onConversationSummarized } = await import('../work-and-places/index.js');
         return onConversationSummarized(userId, conversationId, summary, simple);
       },
     ],

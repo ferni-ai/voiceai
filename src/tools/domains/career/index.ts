@@ -28,6 +28,7 @@ import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js'
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { recordLifeItem } from '../../../services/work-and-places/index.js';
 // ============================================================================
 // CAREER WISDOM DATABASES
 // ============================================================================
@@ -429,6 +430,30 @@ const trackJobApplicationDef: ToolDefinition = {
               importance:
                 status === 'offer' || status === 'interview-scheduled' ? 'high' : 'medium',
             });
+          }
+
+          // Remember the application in the user's work history (memory page, follow-ups)
+          const appUser = (toolCtx as { userData?: { userId?: string; sessionId?: string } })
+            ?.userData;
+          if ((action === 'add' || action === 'update') && company && appUser?.userId) {
+            const finished = ['interviewed', 'offer', 'rejected', 'withdrawn'].includes(
+              status ?? ''
+            );
+            void recordLifeItem(appUser.userId, {
+              area: 'work',
+              kind: 'application',
+              subject: company,
+              employer: company,
+              role,
+              title: role ? `${role} at ${company}` : `Application at ${company}`,
+              status: finished ? 'done' : 'planned',
+              notes: `Status: ${status || 'applied'}${notes ? `. ${notes}` : ''}`,
+              source: 'stated',
+              confidence: 0.95,
+              ...(appUser.sessionId ? { conversationId: appUser.sessionId } : {}),
+            }).catch((error: unknown) =>
+              getLogger().warn({ error: String(error) }, 'Could not remember application')
+            );
           }
 
           // Persist key moments for significant events

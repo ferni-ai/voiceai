@@ -134,6 +134,7 @@ import {
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
 import { loadPreferenceBlock } from '../../services/user-preferences/context-block.js';
 import { loadHealthMoodBlock } from '../../services/health-memory/context-block.js';
+import { loadWorkAndPlacesBlock } from '../../services/work-and-places/context-block.js';
 
 const log = getLogger();
 
@@ -306,6 +307,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   const preferenceBlockPromise = userId ? loadPreferenceBlock(userId) : Promise.resolve('');
   // Health & mood (only with Health consent; otherwise at most a one-line consent hint)
   const healthBlockPromise = userId ? loadHealthMoodBlock(userId) : Promise.resolve('');
+  // Work & places (current job, upcoming trips, follow-ups): bounded, never throws
+  const workPlacesBlockPromise = loadWorkAndPlacesBlock(userId);
   try {
     mark('load_prompts_start');
     // Personal insights (people, likely topics, openers): read in parallel, never blocks
@@ -356,6 +359,17 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       log.info(
         { personaId: persona.id, chars: healthBlock.length },
         'Health & mood memory injected'
+      );
+    }
+
+    // THEIR WORK & PLACES - job (with history), projects, trips, home; char-budgeted
+    // (see services/work-and-places/context-block.ts)
+    const workPlacesBlock = await workPlacesBlockPromise;
+    if (workPlacesBlock) {
+      modelBaseInstructions += workPlacesBlock;
+      log.info(
+        { personaId: persona.id, chars: workPlacesBlock.length },
+        '💼 Work & places context injected'
       );
     }
 

@@ -72,8 +72,15 @@ export interface UpsertSummary {
   writtenIds: string[];
 }
 
-/** Map an extracted fact type onto the user-facing category. */
-export function categoryForFactType(factType: string): string {
+const WORK_KEYS = new Set(['employer', 'job_title', 'team', 'previous_employer', 'occupation']);
+const PLACE_KEY_RE =
+  /^(lives_in|hometown|lived_in|grew_up_in|moved_to|trip_planned|trip_taken|bucket_list|engaged_in|married_in|met_in|favorite_(restaurant|cafe|place|bar|park|city))$/;
+
+/** Map an extracted fact type (and, for work/places, its key) onto the user-facing category. */
+export function categoryForFactType(factType: string, key?: string): string {
+  const k = (key ?? '').toLowerCase();
+  if (WORK_KEYS.has(k)) return 'work';
+  if (PLACE_KEY_RE.test(k)) return 'places';
   switch (factType) {
     case 'preference':
       return 'preference';
@@ -215,7 +222,7 @@ export async function upsertFacts(
           : confidence;
         return {
           text: factText(fact),
-          category: categoryForFactType(fact.factType),
+          category: categoryForFactType(fact.factType, fact.key),
           confidence: nextConfidence,
           entityName: fact.entityName,
           factType: fact.factType,

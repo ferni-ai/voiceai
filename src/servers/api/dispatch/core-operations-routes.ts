@@ -31,6 +31,7 @@ import { handleFinOpsRoutes } from '../../../api/finops-routes.js';
 import { handleConversationCostRoutes } from '../../../api/conversation-cost-routes.js';
 import { handleMemoryRoutes } from '../../../api/memory-routes.js';
 import { handleUserPreferenceRoutes } from '../../../api/user-preferences-routes.js';
+import { handleWorkPlacesRoutes, isWorkPlacesRoute } from '../../../api/work-places-routes.js';
 import { handleMemoryControlRoutes } from '../../../api/memory-control-routes.js';
 import {
   handleSensitiveMemoryRoutes,
@@ -168,6 +169,12 @@ export async function dispatchOperationsRoutes(ctx: RouteContext): Promise<boole
   // User preference profile (memory control: /api/memory/me/preferences)
   if (pathname.startsWith('/api/memory/me/preferences')) {
     const handled = await handleUserPreferenceRoutes(req, res, pathname);
+    if (handled) return true;
+  }
+
+  // Work & career, travel & places (user memory page)
+  if (isWorkPlacesRoute(pathname)) {
+    const handled = await handleWorkPlacesRoutes(req, res, pathname);
     if (handled) return true;
   }
 

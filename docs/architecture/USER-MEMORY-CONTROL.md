@@ -221,6 +221,10 @@ Also built in:
   consent record in the export; conversation delete removes both (by doc ID or
   session ID); fact deletes remove items inferred from them; delete-all; voice
   forget ("forget that I have asthma").
+- **work** and **places** (`services/work-and-places`): export (one section
+  each), conversation and fact provenance removal, delete-all, voice forget
+  ("forget my Lisbon trip", "forget that I work at Acme"). See
+  [Work & places](#work--places).
 
 `GET /api/memory/me` people keep their `dynamic_entities` IDs (what delete
 uses) and gain `kind` (`person`/`pet`), `memorial`, and profile notes from
@@ -405,7 +409,7 @@ a goal can serve a dream). Items are kept until the user deletes them.
 | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `bogle_users/{uid}/aspirations/{id}`                  | One dream, goal or habit. `id = asp_` + hash of `level` + normalised title ("someday I want to live by the sea" and "live by the sea" are the same dream). |
 | `bogle_users/{uid}/aspirations_meta/legacy_migration` | Marker: older stores were copied in (never re-run).                                                                                                        |
-| `bogle_users/{uid}/memory_tombstones/{id}`            | Written on delete (`kind: 'aspiration'`), so inferred capture can't add it back.                                                                          |
+| `bogle_users/{uid}/memory_tombstones/{id}`            | Written on delete (`kind: 'aspiration'`), so inferred capture can't add it back.                                                                           |
 
 Fields: `level` (`dream` / `goal` / `habit`), `title`, `why`, `status`
 (`active` / `paused` / `achieved` / `let-go` / `dormant`), `parentId`,
@@ -479,13 +483,13 @@ deleteAllAspirations(userId)                                           // "delet
 Verified caller only (`requestUserId(req)`); another user's id is 404, no
 identity is 401.
 
-| Method | Path                                       | Body                                                                                                                                                                 | Response                                  |
-| ------ | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| GET    | `/api/memory/me/aspirations`               | –                                                                                                                                                                    | `{ aspirations: AspirationView[], timeZone }` |
-| POST   | `/api/memory/me/aspirations`               | `{ level, title, why?, parentId?, targetDate?, category?, milestones?: [{ title }], schedule?: { frequency, days?, timesPerDay?, reminderTime? }, glidepathLevel?, loop?, stackAnchor? }` | `201 { aspiration }`                       |
-| PATCH  | `/api/memory/me/aspirations/:id`           | any of the above plus `status`, `progress`, `milestones: [{ id?, title, done? }]` (`null` clears optional fields)                                                    | `{ aspiration }`                           |
-| DELETE | `/api/memory/me/aspirations/:id`           | –                                                                                                                                                                    | `{ deleted: true }`                        |
-| POST   | `/api/memory/me/aspirations/:id/check-ins` | `{ status: 'done' \| 'missed', date?: 'YYYY-MM-DD', note? }`                                                                                                        | `{ aspiration }`                           |
+| Method | Path                                       | Body                                                                                                                                                                                      | Response                                      |
+| ------ | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| GET    | `/api/memory/me/aspirations`               | –                                                                                                                                                                                         | `{ aspirations: AspirationView[], timeZone }` |
+| POST   | `/api/memory/me/aspirations`               | `{ level, title, why?, parentId?, targetDate?, category?, milestones?: [{ title }], schedule?: { frequency, days?, timesPerDay?, reminderTime? }, glidepathLevel?, loop?, stackAnchor? }` | `201 { aspiration }`                          |
+| PATCH  | `/api/memory/me/aspirations/:id`           | any of the above plus `status`, `progress`, `milestones: [{ id?, title, done? }]` (`null` clears optional fields)                                                                         | `{ aspiration }`                              |
+| DELETE | `/api/memory/me/aspirations/:id`           | –                                                                                                                                                                                         | `{ deleted: true }`                           |
+| POST   | `/api/memory/me/aspirations/:id/check-ins` | `{ status: 'done' \| 'missed', date?: 'YYYY-MM-DD', note? }`                                                                                                                              | `{ aspiration }`                              |
 
 `AspirationView` mirrors the stored fields plus `confirmed` (inferred items
 not yet treated as commitments show `false`) and, for habits, `dueToday` and
@@ -510,16 +514,14 @@ the last 14 check-ins. A parent must sit higher on the spectrum (habit → goal
 
 ### Voice
 
-| Say                                                    | What happens                                     |
-| ------------------------------------------------------ | ------------------------------------------------ |
-| "Someday I want to live by the sea"                    | dream captured (explicit)                        |
-| "My goal is to run a half marathon by June"            | goal captured / `addGoal` (deadline scheduled)   |
-| "I'm trying to meditate every morning"                 | daily habit captured / `createHabit`             |
-| "I did my run today" / "I skipped my run"              | check-in on the matching habit / `logHabitCompletion` |
-| "I'm letting go of that dream"                         | status `let-go` (only when it's clear which one) |
-| "What are my goals?" / "How are my habits going?"      | `getGoals` / `getHabits`                         |
-
-
+| Say                                               | What happens                                          |
+| ------------------------------------------------- | ----------------------------------------------------- |
+| "Someday I want to live by the sea"               | dream captured (explicit)                             |
+| "My goal is to run a half marathon by June"       | goal captured / `addGoal` (deadline scheduled)        |
+| "I'm trying to meditate every morning"            | daily habit captured / `createHabit`                  |
+| "I did my run today" / "I skipped my run"         | check-in on the matching habit / `logHabitCompletion` |
+| "I'm letting go of that dream"                    | status `let-go` (only when it's clear which one)      |
+| "What are my goals?" / "How are my habits going?" | `getGoals` / `getHabits`                              |
 
 ## Preferences
 
@@ -787,6 +789,102 @@ diagnose or give medical advice."
 
 The memory page has a **Sensitive** tab: the consent question and switches,
 the allergy note, health notes (correct / forget) and the mood timeline.
+
+## Work & places
+
+Ferni keeps the story of the user's work and career and the places in their
+life, including history ("you used to be at Acme", "before Denver you lived
+in Berlin").
+
+### Storage
+
+| Path                                       | What                                                                                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bogle_users/{uid}/work_memory/{id}`       | `job` (current/past, role, team, earlier roles), `project`, `win`, `stress`, `goal`, `event` (interview, review, presentation, deadline), `application` |
+| `bogle_users/{uid}/place_memory/{id}`      | `home` (current/past = places lived), `trip` (planned/done, companions), `favorite`, `meaningful` ("where you got engaged"), `bucket_list`              |
+| `bogle_users/{uid}/memory_tombstones/{id}` | `{ reason, kind: 'work' \| 'place', key }`, written on delete                                                                                           |
+
+`id = work_|place_` + hash of the area and a normalised key (`job:acme`,
+`home:denver`, `trip:lisbon:2026`), so re-learning updates one document.
+Every item carries `sourceConversationIds`, `sourceFactIds` (when derived from
+a fact), `source` (`stated` = the user's words, `inferred` = summary/fact,
+`user` = page/tool), `userEdited`, dates as `YYYY-MM` or `YYYY-MM-DD`.
+
+Rules:
+
+- **History, not overwrite.** News of a new current job (or home) moves the
+  previous current one to `past` with an end month. A second job ("I also
+  work at...") does not. A role known before the employer is folded into the
+  job once the employer is known. A promotion keeps the old role in
+  `previousRoles`.
+- **The user's word wins.** Capture never changes a user-edited item (it only
+  adds provenance) and never moves a user-edited current job to the past.
+  `stated` beats `inferred`; inferred input only fills gaps.
+- **Deleted stays deleted.** Deletes tombstone the id; capture skips it. The
+  user adding it again on the page clears the tombstone.
+- **Consent.** If a memory-consent service (`services/memory-consent`) exists
+  and the user turned the `work` or `places` category off, capture stores
+  nothing there (a failing check counts as off).
+
+### Capture
+
+- Per user turn: `recordUserTurnWorkAndPlaces` (voice transcript handler,
+  next to the preference capture). Conservative patterns: proper names must be
+  capitalised; errands ("going to Target") are not trips; negations are skipped.
+- After each summarized conversation (`conversation-summarized-hooks.ts`):
+  user turns, the summary (third person, `inferred`), the conversation's
+  `dynamic_facts` about the user with work/place keys (extraction is asked for
+  `employer`, `job_title`, `team`, `previous_employer`, `lives_in`, `hometown`,
+  `lived_in`, `trip_planned`, `trip_taken`, `favorite_*`, `bucket_list`,
+  `engaged_in`, `married_in`, `met_in`; those facts get the `work` / `places`
+  categories on the page) and `dynamic_entities` places whose attributes say
+  how the user relates to them (their entity id is stored as `entityId`).
+- Tools: `planTrip` records a planned trip (and `getSavedTrips` lists
+  remembered trips across sessions); `trackJobApplication` records applications.
+
+### How Ferni uses it
+
+- **Session start:** a "Their Work & Places" block (650 chars max,
+  `loadWorkAndPlacesBlock`, 400 ms timeout) in `agent-setup.ts`: what's coming
+  up (trips, interviews), what just happened ("just back from Rome - ask how it
+  went"), active projects, recent stress and wins, current job (with "used to
+  be at"), home, places that matter, dream destinations. The persona brings one
+  up when it fits and never lists them.
+- **Reminders and prediction:** a planned trip or work event pinned to a day
+  becomes an important date (`kind: 'event'`/`'deadline'`, `subtype: 'trip'` /
+  `'career'`), so it is reminded like any date and shows up in personal
+  insights' upcoming dates and topic prediction. Deleting the item deletes the
+  date; a changed day replaces it. Month-only trips ("in March") are not reminded.
+- **People:** colleagues are not duplicated. The work view lists people from
+  the people model with `group: 'work'`, and trip companions are linked to
+  people by name (`withPeople[].personId`).
+
+### API
+
+All routes use `requestUserId(req)`; ids are looked up in the caller's own
+subcollection, so another user's id is a 404. No identity: 401.
+
+| Method | Path                              | Body                                                                                                                    | Response                                                          |
+| ------ | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| GET    | `/api/memory/me/work`             | –                                                                                                                       | `{ items, colleagues: { id, name, relationship? }[], updatedAt }` |
+| GET    | `/api/memory/me/places`           | –                                                                                                                       | `{ items, updatedAt }`                                            |
+| POST   | `/api/memory/me/work\|places`     | `{ kind, title, status?, employer?, role?, team?, place?, category?, meaning?, startDate?, endDate?, notes? }`          | `201 { item }` (the user's; never ends the current job)           |
+| PATCH  | `/api/memory/me/work\|places/:id` | any of `{ title, status, employer, role, team, place, meaning, startDate, endDate, notes }` (`null` clears dates/notes) | `{ item }` (`userEdited: true`)                                   |
+| DELETE | `/api/memory/me/work\|places/:id` | –                                                                                                                       | `{ deleted: true }` (tombstoned, reminder removed)                |
+
+Items come back with their status as of today (a planned trip whose dates
+passed reads `done`). Errors: 400 invalid body / kind for the area / date,
+401, 404, 405, 503 storage.
+
+The memory page has a **Work & places** tab (`apps/web/src/ui/memory-control/work-places-tab.ts`).
+
+### Export and cascades
+
+Registered as two memory domains, `work` and `places`: export
+(`{ items, exportedAt }` each), conversation delete (drop the conversation;
+an automated item left with no conversation or fact is deleted and
+tombstoned, user items stay), fact delete/correction (same rule for
+`sourceFactIds`), delete-all and account erasure, voice forget.
 
 ## Known limits
 

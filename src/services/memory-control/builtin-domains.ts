@@ -196,10 +196,50 @@ export function registerHealthMemoryDomain(): void {
   });
 }
 
+/** Work & career, travel & places — services/work-and-places (one domain per area). */
+export function registerWorkAndPlacesDomains(): void {
+  for (const area of ['work', 'places'] as const) {
+    registerMemoryDomain({
+      name: area,
+      exportFn: async (userId) => {
+        const { exportLifeArea } = await import('../work-and-places/index.js');
+        return exportLifeArea(userId, area);
+      },
+      // Both areas cascade in one pass, so only 'work' runs the shared hooks.
+      deleteForConversation: async (userId, conversationId) => {
+        if (area !== 'work') return 0;
+        const { deleteWorkAndPlacesFor } = await import('../work-and-places/index.js');
+        return deleteWorkAndPlacesFor(userId, conversationId);
+      },
+      deleteAll: async (userId) => {
+        const { deleteAllWorkAndPlaces } = await import('../work-and-places/index.js');
+        return deleteAllWorkAndPlaces(userId, area);
+      },
+      deleteForFacts: async (userId, factIds) => {
+        if (area !== 'work') return 0;
+        const { deleteWorkAndPlacesForFacts } = await import('../work-and-places/index.js');
+        return deleteWorkAndPlacesForFacts(userId, factIds);
+      },
+      find: async (userId, query) => {
+        const { findLifeItems } = await import('../work-and-places/index.js');
+        const { matchScore, tokenize } = await import('./find.js');
+        const tokens = tokenize(query);
+        if (tokens.length === 0) return [];
+        return findLifeItems(userId, area, (text) => matchScore(tokens, text));
+      },
+      forget: async (userId, id) => {
+        const { forgetLifeItem } = await import('../work-and-places/index.js');
+        return (await forgetLifeItem(userId, area, id, 'voice_forget')).success;
+      },
+    });
+  }
+}
+
 export function registerBuiltInMemoryDomains(): void {
   registerImportantDatesDomain();
   registerAspirationsDomain();
   registerPersonalInsightsDomain();
   registerUserPreferencesDomain();
   registerHealthMemoryDomain();
+  registerWorkAndPlacesDomains();
 }

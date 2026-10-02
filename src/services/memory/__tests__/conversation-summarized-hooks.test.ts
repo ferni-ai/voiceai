@@ -1,6 +1,6 @@
 /**
- * Every summarized conversation feeds personal insights, preferences and
- * aspirations, and one failing never stops the others.
+ * Every summarized conversation feeds personal insights, preferences,
+ * aspirations and work & places, and one failing never stops the others.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,11 +9,13 @@ const h = vi.hoisted(() => ({
   insights: vi.fn(),
   prefs: vi.fn(),
   aspirations: vi.fn(),
+  workPlaces: vi.fn(),
 }));
 
 vi.mock('../../personal-insights/index.js', () => ({ onConversationSummarized: h.insights }));
 vi.mock('../../user-preferences/index.js', () => ({ onConversationSummarized: h.prefs }));
 vi.mock('../../aspirations/capture.js', () => ({ onConversationSummarized: h.aspirations }));
+vi.mock('../../work-and-places/index.js', () => ({ onConversationSummarized: h.workPlaces }));
 
 import { runConversationSummarizedHooks } from '../conversation-summarized-hooks.js';
 
@@ -21,6 +23,7 @@ beforeEach(() => {
   h.insights.mockReset().mockResolvedValue(null);
   h.prefs.mockReset().mockResolvedValue({ applied: 0, skipped: 0 });
   h.aspirations.mockReset().mockResolvedValue({ upserted: [], checkIns: [], statusChanges: [] });
+  h.workPlaces.mockReset().mockResolvedValue({ applied: 0, skipped: 0 });
 });
 
 describe('runConversationSummarizedHooks', () => {
@@ -36,6 +39,7 @@ describe('runConversationSummarizedHooks', () => {
     expect(h.insights).toHaveBeenCalledWith('u1', 'c1', 'Moving to Denver', turns);
     expect(h.prefs).toHaveBeenCalledWith('u1', 'c1', 'Moving to Denver', turns);
     expect(h.aspirations).toHaveBeenCalledWith('u1', 'c1', 'Moving to Denver', turns);
+    expect(h.workPlaces).toHaveBeenCalledWith('u1', 'c1', 'Moving to Denver', turns);
   });
 
   it('keeps going when one hook fails, and never throws', async () => {
@@ -43,6 +47,7 @@ describe('runConversationSummarizedHooks', () => {
     await expect(runConversationSummarizedHooks('u1', 'c1', 's', [])).resolves.toBeUndefined();
     expect(h.prefs).toHaveBeenCalled();
     expect(h.aspirations).toHaveBeenCalled();
+    expect(h.workPlaces).toHaveBeenCalled();
   });
 
   it('skips anonymous users and missing conversation ids', async () => {
@@ -50,5 +55,6 @@ describe('runConversationSummarizedHooks', () => {
     await runConversationSummarizedHooks('u1', '', 's', []);
     expect(h.insights).not.toHaveBeenCalled();
     expect(h.prefs).not.toHaveBeenCalled();
+    expect(h.workPlaces).not.toHaveBeenCalled();
   });
 });
