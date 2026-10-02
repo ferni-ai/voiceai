@@ -324,7 +324,9 @@ export async function createTranscriptHandlerAsync(
 ): Promise<{ handler: (event: any) => void }> {
   const { createTranscriptHandler } = await import('./voice-agent/transcript-handler.js');
   const { autoOptimizer } = await import('../tools/optimization/auto-optimizer.js');
-  const { dynamicToolLoader } = await import('../tools/dynamic-loader.js');
+  // One loader per session: a shared one built tools bound to another caller.
+  const { createSessionToolLoader } = await import('../tools/dynamic-loader/index.js');
+  const dynamicToolLoader = createSessionToolLoader({ enableAutoUnload: false });
 
   await dynamicToolLoader.initialize({
     userId: config.userId || 'anonymous',

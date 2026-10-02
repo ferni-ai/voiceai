@@ -166,8 +166,7 @@ export {
   stopWarmthPulse,
 } from './loading-states.ui.js';
 
-// 🔧 Admin Dashboard
-export { initAdminDashboard, injectAdminStyles } from './admin.ui.js';
+// 🔧 Admin Dashboard (lazy-loaded)
 
 // Daily Engagement UI
 export { EngagementUI, getEngagementUI, initializeEngagementUI } from './engagement.ui.js';
@@ -414,14 +413,7 @@ export {
   showTrustDashboard,
 } from './trust-dashboard.ui.js';
 
-// Notification Settings UI
-export {
-  getNotificationSettingsUI,
-  hideNotificationSettings,
-  initNotificationSettingsUI,
-  showNotificationSettings,
-} from './notification-settings.ui.js';
-export type { NotificationSettingsUICallbacks } from './notification-settings.ui.js';
+// Notification Settings UI (lazy-loaded)
 
 // Voice Enrollment UI - Learn user's voice
 export {
@@ -540,34 +532,9 @@ export {
   progressIndicator,
 } from './progress-indicator.ui.js';
 
-// Calendar View UI - Visual calendar component for Alex
-export {
-  calendarViewUI,
-  hideCalendarView,
-  setCalendarViewCallbacks,
-  showCalendarView,
-  toggleCalendarView,
-} from './calendar-view.ui.js';
-export type {
-  CalendarEvent as CalendarViewEvent,
-  CalendarViewCallbacks,
-  DayOverview as CalendarDayOverview,
-  WeekOverview as CalendarWeekOverview,
-} from './calendar-view.ui.js';
+// Calendar View UI - Visual calendar component for Alex (lazy-loaded)
 
-// Calendar Settings UI - Provider integration management
-export {
-  getCalendarSettingsUI,
-  showCalendarSettings,
-  openCalendarSettings,
-  hideCalendarSettings,
-} from './calendar-settings.ui.js';
-export type {
-  CalendarStatus,
-  ProviderStatus,
-  CalendarProvidersStatus,
-  CalendarSettingsCallbacks,
-} from './calendar-settings.ui.js';
+// Calendar Settings UI - Provider integration management (lazy-loaded)
 
 // Calendar Conflicts UI - Sync conflict resolution
 export {

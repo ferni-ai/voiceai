@@ -34,17 +34,16 @@ import { openKnowledgeQuiz } from '../ui/knowledge-quiz.ui.js';
 import { memoryLaneUI } from '../ui/memory-lane.ui.js';
 import { openPatternInsights } from '../ui/pattern-insights-modal.ui.js';
 import { getOnboardingUI } from '../ui/onboarding.ui.js';
-import { showGamePicker } from '../ui/game-picker.ui.js';
-import { musicDashboard } from '../ui/music-dashboard.ui.js';
 import { initPushNotifications } from '../services/push-notifications.service.js';
 import {
-  initNotificationSettingsUI,
-  showNotificationSettings,
-} from '../ui/notification-settings.ui.js';
+  openCalendarSettings,
+  openCalendarView,
+  openGamePicker,
+  openMusicDashboard,
+  openNotificationSettings,
+} from '../ui/lazy-screens.js';
 import { openOutreachSchedule } from '../ui/outreach-schedule.ui.js';
 import { openContactSettings } from '../ui/contact-settings.ui.js';
-import { openCalendarSettings } from '../ui/calendar-settings.ui.js';
-import { setCalendarViewCallbacks, showCalendarView } from '../ui/calendar-view.ui.js';
 import { showWearableSettings } from '../ui/wearable-settings.ui.js';
 import { showVideoSettings } from '../ui/video-settings.ui.js';
 import { initLinkedInSettings, showLinkedInSettings } from '../ui/linkedin-settings.ui.js';
@@ -97,7 +96,7 @@ export function initSettingsMenu(): void {
       onExportDataClick: () => void showDataExport(),
       onOnboardingClick: () => getOnboardingUI().start(),
       onThemeToggle: () => showThemeLanguageSettings(),
-      onNotificationSettingsClick: () => showNotificationSettings(),
+      onNotificationSettingsClick: () => void openNotificationSettings(),
       onSleepSettingsClick: () => void import('../ui/sleep-settings.ui.js').then((m) => m.show()),
       onSpotifyClick: () => void triggerSpotifyLinkToggle(),
       onTeamHuddleClick: () => showTeamHuddle(),
@@ -105,21 +104,12 @@ export function initSettingsMenu(): void {
         void import('../ui/team-observations-panel.ui.js').then((m) => m.show()),
       // Trust Journey is now integrated into the unified Journey modal
       onTrustJourneyClick: () => journeyUI.open(),
-      onMusicDashboardClick: () => void musicDashboard.show(),
-      onPlayGamesClick: () => showGamePicker(),
+      onMusicDashboardClick: () => void openMusicDashboard(),
+      onPlayGamesClick: () => void openGamePicker(),
       onOutreachScheduleClick: () => void openOutreachSchedule(),
       onContactSettingsClick: () => void openContactSettings(),
-      onCalendarSettingsClick: () => {
-        // Show calendar view (has connect button for disconnected users)
-        setCalendarViewCallbacks({
-          onConnectCalendar: () => {
-            // Redirect to Google OAuth flow
-            const userId = appState.get('deviceId') || 'anonymous';
-            void startGoogleCalendarLink(userId);
-          },
-        });
-        void showCalendarView();
-      },
+      // The calendar view has the connect button for disconnected users
+      onCalendarSettingsClick: () => void openCalendarView(),
       onVoiceEnrollmentClick: () => void showVoiceEnrollmentModal(),
       onSubscriptionClick: () => void supportFerniUI.open(),
       onBillingPortalClick: () => void openBillingPortal(),
@@ -247,7 +237,10 @@ export function initSettingsMenu(): void {
   });
 
   // 🔔 Push Notifications
-  safeInit('NotificationSettingsUI', () => initNotificationSettingsUI());
+  safeInit('NotificationSettingsUI', async () => {
+    const { initNotificationSettingsUI } = await import('../ui/notification-settings.ui.js');
+    await initNotificationSettingsUI();
+  });
   safeInit('PushNotifications', () => void initPushNotifications());
 
   // 🔗 Integrations Settings - "Better than Human" connections (LinkedIn, Calendar, Health)

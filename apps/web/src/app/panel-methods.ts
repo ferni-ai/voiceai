@@ -8,21 +8,13 @@
 
 import type { ScreenName } from '../services/app-context-tracking.service.js';
 import { getDemoTeamHuddle, isDemoDataEnabled } from '../services/engagement-demo-data.js';
-import { fetchYourStory } from '../services/your-story.service.js';
 import { getAnalyticsDashboardUI } from '../ui/analytics-dashboard.ui.js';
 import { getCognitiveInsightsUI } from '../ui/cognitive-insights.ui.js';
 import { getDataExportUI } from '../ui/data-export.ui.js';
 import { getPredictionTrackerUI } from '../ui/prediction-tracker.ui.js';
 import { showTeamHuddle as showTeamHuddleUI } from '../ui/team-huddle.ui.js';
-import {
-  createDemoStoryData,
-  fetchVisualizationData,
-  hasAnyVisualizationData,
-  type YourStoryData,
-} from '../ui/visualizations/index.js';
-import { getYourStoryUI } from '../ui/your-story-dashboard.ui.js';
-// TODO: Re-enable when /api/huddles/start backend is implemented
-// import { getApiHeadersAsync } from '../utils/api.js';
+import type { fetchVisualizationData, YourStoryData } from '../ui/visualizations/index.js';
+import { loadYourStory } from '../ui/lazy-screens.js';
 import { createLogger } from '../utils/logger.js';
 
 // 🧠 Better Than Human: Track screen view for Voice ↔ App Sync
@@ -666,6 +658,9 @@ export async function showTeamHuddle(_topic?: string): Promise<void> {
  */
 export async function showYourStoryDashboard(): Promise<void> {
   void trackScreen('your-story');
+  const modules = await loadYourStory();
+  if (!modules) return;
+  const [{ getYourStoryUI }, { fetchYourStory }, viz] = modules;
   const dashboard = getYourStoryUI();
   dashboard.showLoading();
 
@@ -691,9 +686,9 @@ export async function showYourStoryDashboard(): Promise<void> {
   // Priority 2: Fallback to direct Firestore fetch
   try {
     if (userId) {
-      const visualizationData = await fetchVisualizationData(userId);
+      const visualizationData = await viz.fetchVisualizationData(userId);
 
-      if (hasAnyVisualizationData(visualizationData)) {
+      if (viz.hasAnyVisualizationData(visualizationData)) {
         // Aggregate with analytics and milestone data
         const storyData = await aggregateStoryData(userId, visualizationData);
         dashboard.show(storyData);
@@ -706,7 +701,7 @@ export async function showYourStoryDashboard(): Promise<void> {
   }
 
   // Priority 3: Demo data for new users or when all else fails
-  const demoData = createDemoStoryData(userId || 'demo-user');
+  const demoData = viz.createDemoStoryData(userId || 'demo-user');
   dashboard.show(demoData, { showDemoBanner: true });
   log.info('Your Story shown with demo data (new user or demo mode)');
 }

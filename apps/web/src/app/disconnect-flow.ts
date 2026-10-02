@@ -24,7 +24,6 @@ import { statsUI } from '../ui/stats.ui.js';
 import { connectionQualityUI } from '../ui/connection-quality.ui.js';
 import { transcriptUI } from '../ui/transcript.ui.js';
 import { engagementTriggerUI } from '../ui/engagement-trigger.ui.js';
-import { destroyGameBoard } from '../ui/game-board.ui.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { appRuntime } from './app-runtime-state.js';
@@ -148,7 +147,9 @@ async function performStandardDisconnect(skipSound = false): Promise<void> {
   engagementTriggerUI.hide();
 
   // Clean up game board UI
-  destroyGameBoard();
+  void import('../ui/game-board.ui.js')
+    .then((m) => m.destroyGameBoard())
+    .catch((e: unknown) => log.debug('Game board cleanup skipped', e));
 
   // End session stats - get duration before ending
   const sessionStats = statsUI.getStats();

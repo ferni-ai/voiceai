@@ -16,7 +16,7 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
-import { showNotificationSettings } from './notification-settings.ui.js';
+import { openNotificationSettings } from './lazy-screens.js';
 
 const log = createLogger('NextCheckin');
 
@@ -360,12 +360,12 @@ class NextCheckinWidget {
     // Bind click handler - opens the consolidated Notifications panel with Upcoming tab
     const widget = this.element.querySelector('.next-checkin-widget');
     widget?.addEventListener('click', () => {
-      showNotificationSettings({ tab: 'upcoming' });
+      void openNotificationSettings({ tab: 'upcoming' });
     });
     widget?.addEventListener('keydown', (e) => {
       if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
         e.preventDefault();
-        showNotificationSettings({ tab: 'upcoming' });
+        void openNotificationSettings({ tab: 'upcoming' });
       }
     });
   }

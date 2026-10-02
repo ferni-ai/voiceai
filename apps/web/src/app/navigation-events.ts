@@ -17,17 +17,18 @@ import { getInsightsView } from '../ui/insights-view.ui.js';
 import { getPredictionsUI } from '../ui/predictions.ui.js';
 import { showStreakMilestone } from '../ui/notifications.ui.js';
 import { celebrateStreak } from '../ui/streak-celebrations.ui.js';
-import { startGoogleCalendarLink } from '../services/calendar-providers.service.js';
+import {
+  openCalendarView,
+  openMusicDashboard,
+  openNotificationSettings,
+} from '../ui/lazy-screens.js';
 import { getSanctuaryUI } from '../ui/sanctuary.ui.js';
 import { getSettingsMenuUI } from '../ui/settings-menu.ui.js';
 import { openKnowledgeQuiz } from '../ui/knowledge-quiz.ui.js';
 import { memoryLaneUI } from '../ui/memory-lane.ui.js';
 import { openPatternInsights } from '../ui/pattern-insights-modal.ui.js';
 import { getOnboardingUI } from '../ui/onboarding.ui.js';
-import { musicDashboard } from '../ui/music-dashboard.ui.js';
 import { showTeamIntro } from '../ui/team-intro.ui.js';
-import { showNotificationSettings } from '../ui/notification-settings.ui.js';
-import { setCalendarViewCallbacks, showCalendarView } from '../ui/calendar-view.ui.js';
 import { showVoiceEnrollmentModal } from '../ui/voice-enrollment.ui.js';
 import { showHouseholdManager } from '../ui/household-manager.ui.js';
 import { ferniFundUI } from '../ui/ferni-fund.ui.js';
@@ -87,18 +88,8 @@ export function wireNavigationEvents(host: AppHost): void {
   addTrackedListener(window, 'ferni:open-quiz', () => {
     void openKnowledgeQuiz();
   });
-  addTrackedListener(window, 'ferni:open-music', () => {
-    void musicDashboard.show();
-  });
-  addTrackedListener(window, 'ferni:open-calendar', () => {
-    setCalendarViewCallbacks({
-      onConnectCalendar: () => {
-        const userId = appState.get('deviceId') || 'anonymous';
-        void startGoogleCalendarLink(userId);
-      },
-    });
-    void showCalendarView();
-  });
+  addTrackedListener(window, 'ferni:open-music', () => void openMusicDashboard());
+  addTrackedListener(window, 'ferni:open-calendar', () => void openCalendarView());
   addTrackedListener(window, 'ferni:open-contacts', () => {
     void openYourPeople();
   });
@@ -128,7 +119,7 @@ export function wireNavigationEvents(host: AppHost): void {
     void showVoiceEnrollmentModal();
   });
   addTrackedListener(window, 'ferni:open-notifications', () => {
-    showNotificationSettings();
+    void openNotificationSettings();
   });
   addTrackedListener(window, 'ferni:close-panel', () => {
     // Close any open modal by dispatching escape key event
@@ -242,12 +233,8 @@ export function wireQuickActionEvents(): void {
   addTrackedListener(window, 'ferni:open-team', () => {
     void showTeamIntro();
   });
-  addTrackedListener(window, 'ferni:open-music', () => {
-    void musicDashboard.show();
-  });
-  addTrackedListener(window, 'ferni:open-calendar', () => {
-    void showCalendarView();
-  });
+  addTrackedListener(window, 'ferni:open-music', () => void openMusicDashboard());
+  addTrackedListener(window, 'ferni:open-calendar', () => void openCalendarView());
   addTrackedListener(window, 'ferni:open-people', () => {
     openYourPeople();
   });

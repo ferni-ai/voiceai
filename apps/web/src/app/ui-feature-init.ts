@@ -23,7 +23,6 @@ import { initCognitiveInsightsUI } from '../ui/cognitive-insights.ui.js';
 import { getCommandsPanelUI } from '../ui/commands.ui.js';
 import { initConversationHistoryUI } from '../ui/conversation-history.ui.js';
 import { getDataExportUI, initDataExportUI } from '../ui/data-export.ui.js';
-import { initGameBoard } from '../ui/game-board.ui.js';
 import { initPredictionTrackerUI } from '../ui/prediction-tracker.ui.js';
 import { getRitualBuilderUI, initRitualBuilderUI } from '../ui/ritual-builder.ui.js';
 import { initConversationTracker } from '../services/conversation-tracker.service.js';
@@ -228,7 +227,10 @@ export function initFeatureUI(): void {
   // 🎙️ Group Conversations - Team Roundtables and Conference Calls with external people
   safeInit('GroupConversationUI', () => initGroupConversationUI());
   // 🎮 Game Board - Visual game state display for voice games
-  safeInit('GameBoardUI', () => initGameBoard());
+  safeInit('GameBoardUI', async () => {
+    const { initGameBoard } = await import('../ui/game-board.ui.js');
+    await initGameBoard();
+  });
   // Proactive Messages - In-app messages from intelligent outreach
   deferredInit('ProactiveMessagesUI', 500, async () => {
     initProactiveMessages();

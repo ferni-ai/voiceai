@@ -76,7 +76,7 @@
   "apps/web/src/admin/sections/TrustSection.ts": 829,
   "apps/web/src/animation/ferni-orchestrator.ts": 992,
   "apps/web/src/app/data-message-handlers.ts": 3057,
-  "apps/web/src/app/panel-methods.ts": 843,
+  "apps/web/src/app/panel-methods.ts": 838,
   "apps/web/src/config/micro-expressions.ts": 682,
   "apps/web/src/data/mock-contacts.ts": 573,
   "apps/web/src/emotion/emotion-state.ts": 1009,
@@ -229,7 +229,7 @@
   "apps/web/src/ui/household-manager.ui.ts": 1404,
   "apps/web/src/ui/import-contacts.ui.ts": 969,
   "apps/web/src/ui/important-dates.ui.ts": 957,
-  "apps/web/src/ui/index.ts": 611,
+  "apps/web/src/ui/index.ts": 578,
   "apps/web/src/ui/insight-cards.ui.ts": 878,
   "apps/web/src/ui/insights-debug-panel.ui.ts": 688,
   "apps/web/src/ui/insights-hub.ui.ts": 1936,
@@ -438,7 +438,7 @@
   "src/agents/voice-agent/cleanup-handler.ts": 1977,
   "src/agents/voice-agent/critical-function-monitor.ts": 633,
   "src/agents/voice-agent/daily-checkin-handler.ts": 721,
-  "src/agents/voice-agent/data-channel-handler.ts": 1648,
+  "src/agents/voice-agent/data-channel-handler.ts": 1538,
   "src/agents/voice-agent/greeting-handler.ts": 938,
   "src/agents/voice-agent/human-turn-intelligence.ts": 662,
   "src/agents/voice-agent/music-handler.ts": 635,
@@ -1109,7 +1109,6 @@
   "src/services/memory/voice-memory.ts": 663,
   "src/services/message-validation/message-validation-service.ts": 804,
   "src/services/milestones/milestone-calendar-sync.ts": 790,
-  "src/services/monetization/team-unlocks.ts": 875,
   "src/services/multimodal/photo-understanding.ts": 602,
   "src/services/music/dj-service.ts": 867,
   "src/services/musical-you/apple-music.ts": 593,
@@ -1735,7 +1734,7 @@
  },
  "bundle": {
   "totalKB": 8435.9,
-  "initialKB": 3982.3,
-  "maxChunkKB": 2751.8
+  "initialKB": 3309.1,
+  "maxChunkKB": 2061.9
  }
 }
