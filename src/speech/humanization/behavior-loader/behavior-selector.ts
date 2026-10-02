@@ -1,9 +1,9 @@
 /**
  * Behavior Selection Functions
  *
- * All select*() functions for choosing speech behaviors
- * (imperfections, thinking sounds, backchannels, breath sounds,
- * laughter responses) based on persona and context.
+ * Synchronous select*() functions for choosing speech behaviors
+ * (imperfections, thinking sounds, breath sounds, laughter responses)
+ * from cached profiles, based on persona and context.
  *
  * @module speech/humanization/behavior-loader/behavior-selector
  */
@@ -11,7 +11,6 @@
 import type {
   SpeechImperfectionsSchema,
   ThinkingSoundsSchema,
-  BackchannelsSchema,
   BreathSoundsSchema,
   ImperfectionCategory,
   BehaviorSelectionContext,
@@ -19,7 +18,6 @@ import type {
 } from '../types.js';
 
 import {
-  loadSpeechProfile,
   getSpeechProfileSync,
   getRandomPhrase,
   matchesContext,
@@ -28,50 +26,6 @@ import {
 // =============================================================================
 // IMPERFECTION SELECTION
 // =============================================================================
-
-/**
- * Select an imperfection phrase based on context
- */
-export async function selectImperfection(
-  personaId: string,
-  category: ImperfectionCategory,
-  context: BehaviorSelectionContext
-): Promise<SelectedBehavior | null> {
-  const profile = await loadSpeechProfile(personaId);
-
-  if (!profile.imperfections) {
-    return null;
-  }
-
-  // Get phrases for the category
-  const phrases = profile.imperfections[category as keyof SpeechImperfectionsSchema];
-  if (!Array.isArray(phrases)) {
-    return null;
-  }
-
-  // Check context match
-  const { matches, boost } = matchesContext(profile.imperfections.usage_rules, context);
-  if (!matches) {
-    return null;
-  }
-
-  const phrase = getRandomPhrase(phrases, context.randomSeed);
-  if (!phrase) {
-    return null;
-  }
-
-  return {
-    phrase,
-    category,
-    position: getPositionForCategory(category),
-    confidence: 0.7 + boost,
-    metadata: {
-      source: 'speech-imperfections',
-      personaId,
-      contextMatch: [],
-    },
-  };
-}
 
 /**
  * Select an imperfection synchronously (uses cached profile)
@@ -117,67 +71,6 @@ export function selectImperfectionSync(
 // =============================================================================
 // THINKING SOUND SELECTION
 // =============================================================================
-
-/**
- * Select a thinking sound based on context
- */
-export async function selectThinkingSound(
-  personaId: string,
-  context: BehaviorSelectionContext
-): Promise<SelectedBehavior | null> {
-  const profile = await loadSpeechProfile(personaId);
-
-  if (!profile.thinkingSounds) {
-    return null;
-  }
-
-  let category: keyof ThinkingSoundsSchema;
-  if (context.emotional.isVulnerable || context.content.isComforting) {
-    category = 'empathy';
-  } else if (context.content.isQuestion) {
-    category = 'considering';
-  } else if (context.emotional.agentTone === 'curious') {
-    category = 'uncertainty';
-  } else {
-    category = 'processing';
-  }
-
-  const phrases = profile.thinkingSounds[category];
-  if (!Array.isArray(phrases)) {
-    const fallback = profile.thinkingSounds.thinking;
-    if (!Array.isArray(fallback)) return null;
-
-    const phrase = getRandomPhrase(fallback, context.randomSeed);
-    if (!phrase) return null;
-
-    return {
-      phrase,
-      category: 'thinking',
-      position: 'prefix',
-      confidence: 0.6,
-      metadata: {
-        source: 'thinking-sounds',
-        personaId,
-        contextMatch: ['fallback'],
-      },
-    };
-  }
-
-  const phrase = getRandomPhrase(phrases, context.randomSeed);
-  if (!phrase) return null;
-
-  return {
-    phrase,
-    category,
-    position: 'prefix',
-    confidence: 0.75,
-    metadata: {
-      source: 'thinking-sounds',
-      personaId,
-      contextMatch: [category],
-    },
-  };
-}
 
 /**
  * Select a thinking sound synchronously (uses cached profile)
@@ -243,51 +136,6 @@ export function selectThinkingSoundSync(
 // BACKCHANNEL SELECTION
 // =============================================================================
 
-/**
- * Select a backchannel based on context
- */
-export async function selectBackchannel(
-  personaId: string,
-  context: BehaviorSelectionContext
-): Promise<SelectedBehavior | null> {
-  const profile = await loadSpeechProfile(personaId);
-
-  if (!profile.backchannels) {
-    return null;
-  }
-
-  let category: keyof BackchannelsSchema;
-  if (context.emotional.isVulnerable || context.content.isComforting) {
-    category = 'empathetic';
-  } else if (context.content.isCelebration) {
-    category = 'encouraging';
-  } else if (context.content.isQuestion) {
-    category = 'curious';
-  } else {
-    category = 'short';
-  }
-
-  const phrases = profile.backchannels[category];
-  if (!Array.isArray(phrases)) {
-    return null;
-  }
-
-  const phrase = getRandomPhrase(phrases, context.randomSeed);
-  if (!phrase) return null;
-
-  return {
-    phrase,
-    category,
-    position: 'prefix',
-    confidence: 0.7,
-    metadata: {
-      source: 'backchannels',
-      personaId,
-      contextMatch: [category],
-    },
-  };
-}
-
 // =============================================================================
 // BREATH SOUND SELECTION
 // =============================================================================
@@ -310,46 +158,6 @@ type BreathCategory =
   | 'overwhelm_support'
   | 'wisdom_breath'
   | 'before_important_point';
-
-/**
- * Select a breath sound based on context (async)
- */
-export async function selectBreathSound(
-  personaId: string,
-  context: BehaviorSelectionContext
-): Promise<SelectedBehavior | null> {
-  const profile = await loadSpeechProfile(personaId);
-
-  if (!profile.breathSounds) {
-    return null;
-  }
-
-  const { matches, boost } = matchesContext(profile.breathSounds.usage_rules, context);
-  if (!matches) {
-    return null;
-  }
-
-  const category = selectBreathCategory(personaId, context);
-  const phrases = profile.breathSounds[category as keyof BreathSoundsSchema];
-  if (!Array.isArray(phrases)) {
-    return null;
-  }
-
-  const phrase = getRandomPhrase(phrases, context.randomSeed);
-  if (!phrase) return null;
-
-  return {
-    phrase,
-    category,
-    position: 'prefix',
-    confidence: 0.65 + boost,
-    metadata: {
-      source: 'breath-sounds',
-      personaId,
-      contextMatch: [category],
-    },
-  };
-}
 
 /**
  * Select a breath sound synchronously (uses cached profile)
@@ -393,66 +201,6 @@ export function selectBreathSoundSync(
 // =============================================================================
 // LAUGHTER CONTAGION SELECTION
 // =============================================================================
-
-/**
- * Select a laughter response when user laughs
- */
-export async function selectLaughterResponse(
-  personaId: string,
-  context: BehaviorSelectionContext & { userLaughed?: boolean }
-): Promise<SelectedBehavior | null> {
-  const profile = await loadSpeechProfile(personaId);
-
-  if (!profile.laughterContagion) {
-    return null;
-  }
-
-  const { contagious_laughter, laugh_with_phrases } = profile.laughterContagion;
-
-  if (context.userLaughed) {
-    const shouldLaugh = Math.random() < contagious_laughter.when_user_laughs.probability;
-    if (!shouldLaugh) return null;
-
-    const isHighEnergy = context.emotional.energyLevel === 'high' || context.content.isCelebration;
-    const laughOptions = isHighEnergy
-      ? contagious_laughter.when_user_laughs.full_join
-      : contagious_laughter.when_user_laughs.soft_join;
-
-    const phrase = getRandomPhrase(laughOptions, context.randomSeed);
-    if (!phrase) return null;
-
-    return {
-      phrase,
-      category: 'contagious_laughter',
-      position: 'prefix',
-      confidence: 0.8,
-      metadata: {
-        source: 'backchannels',
-        personaId,
-        contextMatch: ['user_laughed'],
-      },
-    };
-  }
-
-  if (context.content.isCelebration && Math.random() < 0.3) {
-    const phrase = getRandomPhrase(laugh_with_phrases, context.randomSeed);
-    if (!phrase) return null;
-
-    return {
-      phrase,
-      category: 'laugh_with',
-      position: 'prefix',
-      confidence: 0.7,
-      metadata: {
-        source: 'backchannels',
-        personaId,
-        contextMatch: ['celebration'],
-      },
-    };
-  }
-
-  return null;
-}
 
 /**
  * Select a laughter response synchronously

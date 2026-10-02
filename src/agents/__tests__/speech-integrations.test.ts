@@ -3,7 +3,6 @@
  *
  * Tests for the new speech feature integrations:
  * - Speech metrics integration
- * - Dynamic speed integration
  * - Context manager speech insights
  *
  * @module speech-integrations.test
@@ -23,13 +22,6 @@ import {
   trackSpeechLatency,
   trackTurnPrediction,
 } from '../integrations/speech-metrics-integration.js';
-
-import {
-  applyDynamicSpeed,
-  cleanupDynamicSpeed,
-  getPersonaBaseSpeed,
-  getSessionSpeedTrend,
-} from '../integrations/dynamic-speed-integration.js';
 
 // Context manager
 import { getContextManager, removeContextManager } from '../../context/index.js';
@@ -216,118 +208,6 @@ describe('Speech Metrics Integration', () => {
   });
 });
 
-describe('Dynamic Speed Integration', () => {
-  const sessionId = 'test-speed-session';
-
-  afterEach(() => {
-    cleanupDynamicSpeed(sessionId);
-  });
-
-  describe('Speed Calculation', () => {
-    it('should apply dynamic speed to text', () => {
-      const result = applyDynamicSpeed('Hello, how are you today?', {
-        sessionId,
-        personaId: 'ferni',
-        topicWeight: 'light',
-        turnNumber: 1,
-      });
-
-      expect(result.originalText).toBe('Hello, how are you today?');
-      expect(result.ssmlText).toBeTruthy();
-      expect(result.speedResult).toBeDefined();
-      expect(result.speedResult.speedMultiplier).toBeGreaterThan(0);
-      expect(result.speedResult.speedMultiplier).toBeLessThan(2);
-    });
-
-    it('should slow down for heavy topics', () => {
-      const lightResult = applyDynamicSpeed('That sounds fun!', {
-        sessionId,
-        personaId: 'ferni',
-        topicWeight: 'light',
-        turnNumber: 5,
-      });
-
-      cleanupDynamicSpeed(sessionId);
-
-      const heavyResult = applyDynamicSpeed('I understand this is difficult.', {
-        sessionId,
-        personaId: 'ferni',
-        topicWeight: 'heavy',
-        turnNumber: 5,
-      });
-
-      // Heavy topic should result in slower or equal speed
-      expect(heavyResult.speedResult.speedMultiplier).toBeLessThanOrEqual(
-        lightResult.speedResult.speedMultiplier + 0.1
-      );
-    });
-
-    it('should slow down for high emotional intensity', () => {
-      const mockArc = {
-        currentEmotion: 'sad',
-        currentValence: -0.5,
-        currentArousal: 0.8,
-        needsEmotionalSupport: true,
-        turnsSinceDistress: 1,
-        trajectory: 'declining' as const,
-        trajectoryConfidence: 0.7,
-        valenceMomentum: -0.1,
-        arousalMomentum: 0,
-        conversationTemperature: 0.6,
-        smoothedValence: -0.4,
-        smoothedArousal: 0.7,
-        turnsSinceEmotionalPeak: 2,
-        emotionStabilizing: false,
-        suddenShiftDetected: false,
-      };
-
-      const result = applyDynamicSpeed('I hear you.', {
-        sessionId,
-        personaId: 'ferni',
-        emotionalArc: mockArc,
-        topicWeight: 'heavy',
-        turnNumber: 5,
-      });
-
-      // Should suggest adding pauses for emotional content
-      expect(result.speedResult.addExtraPauses).toBe(true);
-    });
-  });
-
-  describe('Speed Trends', () => {
-    it('should track speed trends over turns', () => {
-      // Apply several speed decisions
-      for (let i = 1; i <= 5; i++) {
-        applyDynamicSpeed(`Turn ${i} message`, {
-          sessionId,
-          personaId: 'ferni',
-          topicWeight: 'medium',
-          turnNumber: i,
-        });
-      }
-
-      const trend = getSessionSpeedTrend(sessionId);
-
-      expect(trend.turnCount).toBe(5);
-      expect(trend.avgSpeed).toBeGreaterThan(0);
-      expect(['speeding_up', 'slowing_down', 'stable']).toContain(trend.trend);
-    });
-  });
-
-  describe('Persona Base Speeds', () => {
-    it('should return appropriate base speeds for personas', () => {
-      expect(getPersonaBaseSpeed('ferni')).toBe(0.85); // Slower, more deliberate
-      expect(getPersonaBaseSpeed('peter')).toBe(0.95);
-      expect(getPersonaBaseSpeed('alex')).toBe(1.05);
-      expect(getPersonaBaseSpeed('nayan')).toBe(0.9);
-    });
-
-    it('should return default for unknown persona', () => {
-      expect(getPersonaBaseSpeed('unknown')).toBe(1.0);
-    });
-  });
-});
-
 describe('Context Manager Speech Insights', () => {
   const sessionId = 'test-context-session';
 
@@ -507,58 +387,6 @@ describe('Enhanced Tracking Features', () => {
   });
 });
 
-describe('Persona Speed Profiles', () => {
-  it('should return persona-specific speed profiles', async () => {
-    const { getPersonaSpeedProfile } = await import('../integrations/dynamic-speed-integration.js');
-
-    const ferniProfile = getPersonaSpeedProfile('ferni');
-    const nayanProfile = getPersonaSpeedProfile('nayan');
-
-    expect(ferniProfile.baseSpeed).toBe(0.85); // Slower, more deliberate
-    expect(nayanProfile.baseSpeed).toBe(0.9);
-    expect(nayanProfile.traits.reflective).toBeGreaterThan(ferniProfile.traits.reflective);
-  });
-
-  it('should calculate persona-adjusted speed based on context', async () => {
-    const { calculatePersonaAdjustedSpeed } =
-      await import('../integrations/dynamic-speed-integration.js');
-
-    // Nayan with emotional content should be quite slow
-    const nayanEmotional = calculatePersonaAdjustedSpeed('nayan', {
-      emotionalIntensity: 0.8,
-      contentComplexity: 0.3,
-      topicWeight: 'heavy',
-    });
-
-    // Alex with light content should be fast
-    const alexLight = calculatePersonaAdjustedSpeed('alex', {
-      emotionalIntensity: 0.2,
-      contentComplexity: 0.2,
-      topicWeight: 'light',
-    });
-
-    expect(nayanEmotional.speed).toBeLessThan(alexLight.speed);
-    expect(nayanEmotional.reason).toContain('emotional');
-  });
-
-  it('should respect persona speed bounds', async () => {
-    const { calculatePersonaAdjustedSpeed, getPersonaSpeedProfile } =
-      await import('../integrations/dynamic-speed-integration.js');
-
-    const profile = getPersonaSpeedProfile('nayan');
-
-    // Even with extreme values, should stay within bounds
-    const extreme = calculatePersonaAdjustedSpeed('nayan', {
-      emotionalIntensity: 1.0,
-      contentComplexity: 1.0,
-      topicWeight: 'heavy',
-    });
-
-    expect(extreme.speed).toBeGreaterThanOrEqual(profile.minSpeed);
-    expect(extreme.speed).toBeLessThanOrEqual(profile.maxSpeed);
-  });
-});
-
 describe('Quality Alerts System', () => {
   it('should return current quality thresholds', async () => {
     const { getQualityThresholds } = await import('../integrations/speech-metrics-integration.js');
@@ -624,7 +452,6 @@ describe('End-to-End Integration Flow', () => {
 
   afterEach(() => {
     finalizeSpeechMetrics(sessionId, true);
-    cleanupDynamicSpeed(sessionId);
     removeContextManager(sessionId);
   });
 
@@ -644,22 +471,12 @@ describe('End-to-End Integration Flow', () => {
       emotionalMomentum: createMockEmotionalMomentum(),
     });
 
-    // 5. Generate response with dynamic speed
-    const responseText = 'I understand what you mean. Let me help you with that.';
-    const speedAdjusted = applyDynamicSpeed(responseText, {
-      sessionId,
-      personaId: 'ferni',
-      topicWeight: 'medium',
-      turnNumber: 3,
-    });
-
-    // 6. Track metrics
+    // 5. Track metrics
     trackConversationTurn(sessionId);
     trackEmotionDetection(sessionId, 0.75);
 
     // Verify full flow worked
     expect(speechInsights.estimatedCognitiveLoad).toBeGreaterThanOrEqual(0);
-    expect(speedAdjusted.ssmlText).toBeTruthy();
 
     const metricsContext = getSessionMetricsContext(sessionId);
     expect(metricsContext?.turnCount).toBe(1);

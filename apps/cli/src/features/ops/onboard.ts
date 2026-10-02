@@ -7,6 +7,7 @@
  * @module @ferni/cli/onboard
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync, spawnSync } from 'child_process';
 import { existsSync, readFileSync, writeFileSync, copyFileSync } from 'fs';
 import { dirname, join } from 'path';
@@ -14,7 +15,7 @@ import { fileURLToPath } from 'url';
 import * as readline from 'readline';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = dirname(dirname(__dirname));
+const PROJECT_ROOT = findProjectRoot();
 
 // =============================================================================
 // COLORS

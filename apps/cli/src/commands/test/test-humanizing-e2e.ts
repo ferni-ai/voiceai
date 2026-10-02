@@ -21,8 +21,6 @@ import {
   ActiveListeningEngine,
   ConversationalMemoryEngine,
   QuestionPatternEngine,
-  ConversationHumanizer,
-  resetAllConversationState,
 } from '../../../../../src/conversation/index.js';
 
 import {
@@ -254,41 +252,6 @@ async function testQuestionPatterns(): Promise<boolean> {
   return allPassed;
 }
 
-async function testConversationHumanizer(): Promise<boolean> {
-  section('Conversation Humanizer (Orchestration)');
-  
-  const humanizer = new ConversationHumanizer('ferni');
-  let allPassed = true;
-
-  allPassed = await test('Should process user messages', () => {
-    const preActions = humanizer.processUserMessage({
-      personaId: 'ferni',
-      turnNumber: 3,
-      userMessage: 'I\'ve been feeling stressed about my finances lately',
-      userEmotion: 'anxious',
-      topic: 'financial-stress',
-      wasPersonalSharing: true,
-    });
-    // PreResponseActions may have backchannel, silenceAction, or acknowledgment
-    return preActions !== undefined;
-  }) && allPassed;
-
-  allPassed = await test('Should humanize responses', () => {
-    const humanized = humanizer.humanizeResponse(
-      'I understand how stressful financial concerns can be. Let\'s work through this together.',
-      {
-        userMessage: 'What should I do about it?',
-        userEmotion: 'anxious',
-        topic: 'financial-stress',
-      }
-    );
-    return humanized.text.length > 0 && humanized.ssml.length > 0;
-  }) && allPassed;
-
-  humanizer.reset();
-  return allPassed;
-}
-
 async function testPerPersonaConfig(): Promise<boolean> {
   section('Per-Persona Configuration');
   
@@ -444,85 +407,6 @@ async function testAnalytics(): Promise<boolean> {
   return allPassed;
 }
 
-async function testFullPipeline(): Promise<boolean> {
-  section('Full Pipeline Integration');
-  
-  // Reset all state
-  resetAllConversationState();
-  resetHumanizingConfig();
-  clearPersonaConfigs();
-  resetHumanizationAnalytics();
-  
-  const analytics = getHumanizationAnalytics();
-  await analytics.initialize();
-  
-  let allPassed = true;
-
-  allPassed = await test('Should run complete conversation flow', () => {
-    const sessionId = 'e2e-test-session';
-    const personaId = 'ferni';
-    
-    // Start session
-    analytics.startSession(sessionId, personaId);
-    
-    // Simulate conversation turns
-    const humanizer = new ConversationHumanizer(personaId);
-    
-    // Turn 1: User greeting
-    humanizer.processUserMessage({
-      personaId,
-      turnNumber: 1,
-      userMessage: 'Hi, I need help with my finances',
-      userEmotion: 'neutral',
-      topic: 'general',
-      wasPersonalSharing: false,
-    });
-    
-    const response1 = humanizer.humanizeResponse(
-      'Hello! I\'d love to help you with your finances. What\'s on your mind?',
-      {
-        userMessage: 'Hi, I need help with my finances',
-        userEmotion: 'neutral',
-        topic: 'general',
-      }
-    );
-    
-    analytics.recordEngagementSignal(sessionId, personaId, 1, 'response_length', 40);
-    analytics.recordFeatureUsage(sessionId, personaId, 1, 'disfluency', {});
-    
-    // Turn 2: User shares concern
-    humanizer.processUserMessage({
-      personaId,
-      turnNumber: 2,
-      userMessage: 'I\'m really stressed about saving for retirement',
-      userEmotion: 'anxious',
-      topic: 'retirement',
-      wasPersonalSharing: true,
-    });
-    
-    const response2 = humanizer.humanizeResponse(
-      'I hear that stress. Retirement planning can feel overwhelming. Let\'s break it down together.',
-      {
-        userMessage: 'I\'m really stressed about saving for retirement',
-        userEmotion: 'anxious',
-        topic: 'retirement',
-      }
-    );
-    
-    analytics.recordEngagementSignal(sessionId, personaId, 2, 'sentiment_shift', -0.1);
-    analytics.recordEngagementSignal(sessionId, personaId, 2, 'personal_sharing', 1);
-    
-    // End session
-    const summary = analytics.endSession(sessionId);
-    
-    return response1.text.length > 0 &&
-           response2.text.length > 0 &&
-           summary !== undefined;
-  }) && allPassed;
-
-  return allPassed;
-}
-
 // ============================================================================
 // MAIN
 // ============================================================================
@@ -537,11 +421,9 @@ async function main(): Promise<void> {
   results.push(await testActiveListening());
   results.push(await testConversationalMemory());
   results.push(await testQuestionPatterns());
-  results.push(await testConversationHumanizer());
   results.push(await testPerPersonaConfig());
   results.push(await testSSMLIntegration());
   results.push(await testAnalytics());
-  results.push(await testFullPipeline());
 
   // Summary
   section('RESULTS');

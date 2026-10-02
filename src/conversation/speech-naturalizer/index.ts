@@ -43,25 +43,3 @@ export {
 
 // Engine
 export { SpeechNaturalizer, default } from './engine.js';
-
-// ============================================================================
-// SINGLETON
-// ============================================================================
-
-import { SpeechNaturalizer } from './engine.js';
-
-let naturalizer: SpeechNaturalizer | null = null;
-
-export function getSpeechNaturalizer(): SpeechNaturalizer {
-  if (!naturalizer) {
-    naturalizer = new SpeechNaturalizer();
-  }
-  return naturalizer;
-}
-
-export function resetSpeechNaturalizer(): void {
-  if (naturalizer) {
-    naturalizer.reset();
-  }
-  naturalizer = null;
-}

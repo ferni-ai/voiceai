@@ -22,7 +22,6 @@ import {
   injectCallback,
   preloadAllSpeechProfiles,
   quickHumanizeSync,
-  humanizeSpeech,
   detectCelebrationIntensity,
   selectCelebration,
   selectCatchphrase,
@@ -483,88 +482,6 @@ describe('Humanization Quality - Synthetic', { timeout: LLM_TIMEOUT }, () => {
       expect(tagged).not.toContain('>>');
     }
   });
-
-  it('should use LLM to validate humanized output sounds natural', async () => {
-    if (!USE_LLM) {
-      console.log('Skipping LLM validation - no GOOGLE_API_KEY');
-      return;
-    }
-
-    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-
-    // Generate humanized responses for evaluation
-    const humanizedSamples: Array<{ personaId: string; original: string; humanized: string }> = [];
-
-    for (const personaId of PERSONAS.slice(0, 3)) {
-      const context: BehaviorSelectionContext = {
-        personaId,
-        emotional: { userEmotion: 'stressed' },
-        content: { isComforting: true },
-        turnNumber: 5,
-        userText: 'I am struggling with my goals',
-        conversationCount: 5,
-      };
-
-      const result = await humanizeSpeech(TEST_RESPONSE, context);
-      humanizedSamples.push({
-        personaId,
-        original: TEST_RESPONSE,
-        humanized: result.text,
-      });
-    }
-
-    // Ask LLM to evaluate naturalness
-    const evaluationPrompt = `You are evaluating AI voice assistant responses for naturalness.
-
-Rate each response on a scale of 1-5 for:
-1. Natural speech patterns (does it sound like a real person?)
-2. Appropriate use of fillers/pauses
-3. Emotional authenticity
-4. Coherence (does it still make sense?)
-
-Responses to evaluate:
-${humanizedSamples
-  .map(
-    (s, i) => `
-Response ${i + 1} (${s.personaId}):
-Original: "${s.original}"
-Humanized: "${s.humanized}"
-`
-  )
-  .join('\n')}
-
-Output ONLY JSON:
-{
-  "ratings": [
-    {
-      "personaId": "name",
-      "naturalness": 1-5,
-      "fillers": 1-5,
-      "emotion": 1-5,
-      "coherence": 1-5,
-      "notes": "brief explanation"
-    }
-  ],
-  "overallQuality": 1-5
-}`;
-
-    const result = await model.generateContent(evaluationPrompt);
-    const text = result.response.text();
-
-    // Extract JSON
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.warn('Could not parse LLM evaluation');
-      return;
-    }
-
-    const evaluation = JSON.parse(jsonMatch[0]);
-    console.log('LLM Humanization Evaluation:', JSON.stringify(evaluation, null, 2));
-
-    // Expect overall quality of at least 2.5/5 (LLM evaluation has variance)
-    expect(evaluation.overallQuality).toBeGreaterThanOrEqual(2.5);
-  });
 });
 
 // =============================================================================
@@ -597,46 +514,6 @@ describe('Callback Injection E2E', () => {
       // Original response should still be present
       expect(injectedResponse).toContain('frustrating');
     }
-  });
-
-  it('should integrate callbacks with full humanization pipeline', async () => {
-    const userText = 'I have no willpower, I keep failing at my habits';
-    const agentResponse =
-      "Building habits is a journey, not a destination. Let's look at what systems might help you succeed.";
-
-    const context: BehaviorSelectionContext = {
-      personaId: 'maya-santos',
-      emotional: { userEmotion: 'frustrated' },
-      content: {},
-      turnNumber: 5,
-      userText,
-      conversationCount: 5,
-    };
-
-    // Run multiple times to catch probabilistic callback injection
-    let foundCallback = false;
-    for (let i = 0; i < 10; i++) {
-      const result = await humanizeSpeech(agentResponse, {
-        ...context,
-        randomSeed: `e2e-test-${i}`,
-      });
-
-      if (result.features.some((f) => f.includes('callback'))) {
-        foundCallback = true;
-        console.log('Found callback in features:', result.features);
-        // Verify Maya's "systems beat willpower" callback was used
-        expect(
-          result.text.toLowerCase().includes('system') ||
-            result.text.toLowerCase().includes('willpower')
-        ).toBe(true);
-        break;
-      }
-    }
-
-    // Note: It's OK if no callback found - it's probabilistic
-    console.log(
-      `Callback integration: ${foundCallback ? 'triggered' : 'not triggered (probabilistic)'}`
-    );
   });
 });
 

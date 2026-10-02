@@ -565,7 +565,6 @@ bogle_users/{userId}/
 | ------------------- | ----------------------- | ------------------------------------- |
 | Voice Agent Startup | `voice-agent-entry.ts`  | Loads/creates thread, injects context |
 | Transcript Handler  | `transcript-handler.ts` | Records user messages                 |
-| Response Processor  | `response-processor.ts` | Records agent messages                |
 | SMS Webhook         | `twilio-webhooks.ts`    | Routes inbound SMS to thread          |
 
 ---

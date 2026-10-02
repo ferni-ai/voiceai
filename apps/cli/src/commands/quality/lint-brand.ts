@@ -7,6 +7,7 @@
  * @module @ferni/lint-brand
  */
 
+import { pathToFileURL } from 'url';
 import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
@@ -15,7 +16,7 @@ import { glob } from 'glob';
 // TYPES
 // ============================================================================
 
-interface LintError {
+export interface LintError {
   file: string;
   line?: number;
   column?: number;
@@ -36,7 +37,7 @@ interface LintRule {
   exclude?: string[];
 }
 
-interface LintResults {
+export interface LintResults {
   errors: LintError[];
   warnings: LintError[];
   filesChecked: number;
@@ -403,7 +404,7 @@ function lintFile(filePath: string, content: string): LintError[] {
   return errors;
 }
 
-async function runLinter(): Promise<LintResults> {
+export async function runLinter(): Promise<LintResults> {
   const files = await getFilesToLint();
   const allErrors: LintError[] = [];
   
@@ -483,8 +484,11 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch(e => {
-  console.error('Linter error:', e);
-  process.exit(1);
-});
+// Run only from the command line, so the quality ratchet can import the linter.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(e => {
+    console.error('Linter error:', e);
+    process.exit(1);
+  });
+}
 

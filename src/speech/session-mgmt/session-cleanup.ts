@@ -51,7 +51,6 @@ import { resetSessionWPMTracker } from '../speech-context.js';
 import { getTtsContextService } from '../tts-context.js';
 
 // Human listening & analysis services
-import { resetEmotionalContagion } from '../emotional-contagion.js';
 import { resetEnhancedTurnPredictor } from '../enhanced-turn-prediction.js';
 import { resetHumanListeningPipeline } from '../human-listening-pipeline.js';
 import { resetVoiceHumanization } from '../voice-humanization.js';
@@ -101,7 +100,6 @@ import { resetSelfAwarenessTracker } from '../../conversation/self-awareness-loo
 import {
   resetAnticipatorySession,
   resetConversationState,
-  resetDisfluencySession,
   resetMicroReactionSession,
   resetSesamePipeline,
 } from '../sesame-inspired/index.js';
@@ -282,7 +280,6 @@ export function cleanupSpeechSession(
   safeCleanup('humanListening', () => resetHumanListeningPipeline(sessionId));
   safeCleanup('voiceHumanization', () => resetVoiceHumanization(sessionId));
   safeCleanup('turnPrediction', () => resetEnhancedTurnPredictor(sessionId));
-  safeCleanup('emotionalContagion', () => resetEmotionalContagion(sessionId));
 
   // ============================================================================
   // AUDIO ANALYSIS SERVICES
@@ -359,7 +356,6 @@ export function cleanupSpeechSession(
   safeCleanup('anticipatoryProsody', () => resetAnticipatorySession(sessionId));
   safeCleanup('microReactions', () => resetMicroReactionSession(sessionId));
   safeCleanup('conversationProsody', () => resetConversationState(sessionId));
-  safeCleanup('richDisfluencies', () => resetDisfluencySession(sessionId));
   safeCleanup('sesamePipeline', () => resetSesamePipeline(sessionId));
 
   // ============================================================================
@@ -495,11 +491,6 @@ export async function emergencySpeechCleanup(): Promise<void> {
     safeClearAll('voiceHumanization', async () => {
       const m = await import('../voice-humanization.js');
       m.resetAllVoiceHumanization();
-    }),
-
-    safeClearAll('emotionalContagion', async () => {
-      const m = await import('../emotional-contagion.js');
-      m.resetAllEmotionalContagion();
     }),
 
     safeClearAll('voiceTremor', async () => {

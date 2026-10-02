@@ -9,19 +9,12 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import {
-  getConversationHumanizer,
-  resetConversationHumanizer,
-} from '../conversation/humanizer/index.js';
+import { resetConversationHumanizer } from '../conversation/humanizer/index.js';
 import {
   getInterruptionHandler,
   resetInterruptionHandler,
   type InterruptionHandler,
 } from '../conversation/interruption-handler.js';
-import {
-  getSpeechNaturalizer,
-  resetSpeechNaturalizer,
-} from '../conversation/speech-naturalizer/index.js';
 import {
   getActiveListeningEngine,
   resetActiveListeningEngine,
@@ -251,147 +244,14 @@ describe('InterruptionHandler', () => {
 describe('Humanization Pipeline E2E', () => {
   beforeEach(() => {
     resetConversationHumanizer();
-    resetSpeechNaturalizer();
     resetActiveListeningEngine();
     resetInterruptionHandler();
   });
 
   afterEach(() => {
     resetConversationHumanizer();
-    resetSpeechNaturalizer();
     resetActiveListeningEngine();
     resetInterruptionHandler();
-  });
-
-  describe('Voice Agent Integration Flow', () => {
-    it('should process a complete turn through the humanization pipeline', () => {
-      // This simulates what happens in voice-agent.ts transcriptionNode()
-      const personaId = 'ferni';
-      const humanizer = getConversationHumanizer(personaId);
-
-      // Simulate user message processing
-      const userMessage = 'I am really stressed about my debt situation';
-      const turnNumber = 3;
-
-      // Process user message (pre-response)
-      const preActions = humanizer.processUserMessage({
-        personaId,
-        turnNumber,
-        userMessage,
-        userEmotion: 'stressed',
-        topic: 'debt',
-        wasPersonalSharing: true,
-      });
-
-      // Expect some form of acknowledgment for emotional content
-      expect(preActions.acknowledgment || preActions.backchannel).toBeTruthy();
-
-      // Simulate LLM response
-      const llmResponse =
-        'I understand that debt can feel overwhelming. Let me help you think through some options.';
-
-      // Humanize the response
-      const humanized = humanizer.humanizeResponse(llmResponse, {
-        personaId,
-        turnNumber,
-        userMessage,
-        userEmotion: 'stressed',
-        topic: 'debt',
-        isSeriousContext: true,
-        wasPersonalSharing: true,
-      });
-
-      // Verify humanization occurred
-      expect(humanized.text).toBeTruthy();
-      expect(humanized.appliedFeatures.length).toBeGreaterThanOrEqual(0);
-
-      // Text should have some form of modification for empathetic contexts
-      expect(humanized.emotionalGuidance).toBeDefined();
-    });
-
-    it('should maintain context across multiple turns', () => {
-      const humanizer = getConversationHumanizer('ferni');
-
-      // Turn 1: User introduces topic
-      humanizer.processUserMessage({
-        personaId: 'ferni',
-        turnNumber: 1,
-        userMessage: 'I want to talk about planning for a house',
-        topic: 'house_planning',
-      });
-
-      humanizer.humanizeResponse(
-        'Great! Buying a house is a big decision. What is your timeline?',
-        {
-          personaId: 'ferni',
-          turnNumber: 1,
-          userMessage: 'I want to talk about planning for a house',
-          topic: 'house_planning',
-        }
-      );
-
-      // Turn 2: User continues
-      humanizer.processUserMessage({
-        personaId: 'ferni',
-        turnNumber: 2,
-        userMessage: 'Probably in the next two years',
-        topic: 'house_planning',
-      });
-
-      // Check that the thread is being tracked
-      const threads = humanizer.getUnresolvedThreads();
-      expect(threads.length).toBeGreaterThan(0);
-    });
-
-    it('should handle different personas with appropriate styles', () => {
-      // Test that each persona produces different output
-      const personas = ['ferni', 'nayan-patel', 'peter-john', 'maya-santos'];
-      const results: Record<string, string> = {};
-
-      for (const personaId of personas) {
-        resetConversationHumanizer();
-        const humanizer = getConversationHumanizer(personaId);
-
-        const response = humanizer.humanizeResponse(
-          'You should consider diversifying your investments.',
-          {
-            personaId,
-            turnNumber: 5,
-            userMessage: 'What should I do with my savings?',
-            topic: 'investing',
-          }
-        );
-
-        results[personaId] = response.text;
-      }
-
-      // All should have produced output
-      for (const personaId of personas) {
-        expect(results[personaId]).toBeTruthy();
-      }
-    });
-
-    it('should not add humor in serious emotional contexts', () => {
-      const humanizer = getConversationHumanizer('ferni');
-
-      // Process a serious emotional message
-      const response = humanizer.humanizeResponse(
-        'I am sorry to hear about your loss. That must be very difficult.',
-        {
-          personaId: 'ferni',
-          turnNumber: 2,
-          userMessage: 'My mom just passed away and I need to handle her estate',
-          userEmotion: 'grief',
-          topic: 'estate',
-          isSeriousContext: true,
-          wasPersonalSharing: true,
-        }
-      );
-
-      // Should not include playful or humorous features
-      expect(response.appliedFeatures).not.toContain('humor');
-      expect(response.appliedFeatures).not.toContain('joke');
-    });
   });
 
   describe('Config Integration', () => {
@@ -416,77 +276,3 @@ describe('Humanization Pipeline E2E', () => {
 // ============================================================================
 // REGRESSION TESTS
 // ============================================================================
-
-describe('Humanization Regression Tests', () => {
-  beforeEach(() => {
-    resetConversationHumanizer();
-    resetSpeechNaturalizer();
-  });
-
-  afterEach(() => {
-    resetConversationHumanizer();
-    resetSpeechNaturalizer();
-  });
-
-  it('should not crash on empty input', () => {
-    const humanizer = getConversationHumanizer('ferni');
-
-    expect(() => {
-      humanizer.humanizeResponse('', {
-        personaId: 'ferni',
-        turnNumber: 1,
-        userMessage: '',
-      });
-    }).not.toThrow();
-  });
-
-  it('should not crash on very long input', () => {
-    const humanizer = getConversationHumanizer('ferni');
-    const longText = 'This is a sentence. '.repeat(1000);
-
-    expect(() => {
-      humanizer.humanizeResponse(longText, {
-        personaId: 'ferni',
-        turnNumber: 1,
-        userMessage: 'Tell me everything',
-      });
-    }).not.toThrow();
-  });
-
-  it('should handle special characters without crashing', () => {
-    const humanizer = getConversationHumanizer('ferni');
-
-    expect(() => {
-      humanizer.humanizeResponse('Here are some symbols: <>&"\'!@#$%^&*()', {
-        personaId: 'ferni',
-        turnNumber: 1,
-        userMessage: 'Test with symbols',
-      });
-    }).not.toThrow();
-  });
-
-  it('should handle unicode characters', () => {
-    const humanizer = getConversationHumanizer('ferni');
-
-    const result = humanizer.humanizeResponse('Here are some unicode: Hello World', {
-      personaId: 'ferni',
-      turnNumber: 1,
-      userMessage: 'Test with unicode',
-    });
-
-    expect(result.text).toBeTruthy();
-  });
-
-  it('should handle missing optional context fields', () => {
-    const humanizer = getConversationHumanizer('ferni');
-
-    expect(() => {
-      humanizer.humanizeResponse('This is a test', {
-        personaId: 'ferni',
-        turnNumber: 1,
-        userMessage: 'Test',
-        // All optional fields omitted
-      });
-    }).not.toThrow();
-  });
-});

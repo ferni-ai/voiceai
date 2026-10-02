@@ -41,11 +41,6 @@ conversation/
 │   ├── comfort-progression.ts        # Trust building over time
 │   └── voice-pattern-learning.ts     # Learn user preferences
 │
-├── deep-humanization/                # 🧠 Advanced behaviors (15 files)
-│   ├── mood-tracker.ts               # Track emotional state
-│   ├── behavior-loader.ts            # Load behavior configs
-│   └── generators/                   # Dynamic content generation
-│
 ├── superhuman/                       # ⭐ "Better than Human" features (40 files)
 │   ├── orchestrator/                 # Refactored orchestrator (5 files)
 │   ├── quote-memory.ts               # Remember user quotes
@@ -53,11 +48,7 @@ conversation/
 │   ├── emotional-forecasting.ts      # Anticipate difficult days
 │   └── (see superhuman/CLAUDE.md)    # Full documentation
 │
-├── effects/                          # ✨ Audio/visual effects (18 files)
-│
-├── humanizer/                        # Main humanization orchestrator (6 files)
-│
-├── orchestrator/                     # Conversation orchestration (10 files)
+├── humanizer/                        # Pre-LLM humanization guidance (5 files)
 │
 ├── active-listening/                 # 👂 Listening behaviors (6 files)
 │
@@ -100,12 +91,12 @@ The module also has many standalone root-level `.ts` files for specific conversa
 | **Cognitive** | `cognitive-questions.ts`, `self-awareness-loop.ts` |
 | **Emotional** | `emotional-aftercare.ts`, `emotional-journey-orchestrator.ts`, `hope-injection.ts` |
 | **Speech Flow** | `turn-taking.ts`, `turn-prediction.ts`, `interruption-handler.ts`, `silence-presence.ts` |
-| **Content** | `content-delivery-pacing.ts`, `narrative-arc.ts`, `story-timing.ts`, `mid-response-tangents.ts` |
-| **Humanization** | `vocal-humanization.ts`, `advanced-humanization.ts`, `humanization-tuning.ts`, `micro-affirmations.ts` |
+| **Content** | `narrative-arc.ts`, `story-timing.ts`, `mid-response-tangents.ts` |
+| **Humanization** | `advanced-humanization.ts`, `micro-affirmations.ts` |
 | **Engagement** | `engagement-scoring.ts`, `curiosity-engine.ts`, `momentum-tracker.ts`, `proactive-starters.ts` |
 | **Analysis** | `subtext-detection.ts`, `response-dynamics.ts`, `energy-regulation.ts`, `awareness-metrics.ts` |
 | **Repair** | `conversational-repair.ts`, `paradoxical-intervention.ts`, `thinking-phrase-coordinator.ts` |
-| **Other** | `conversation-rhythm.ts`, `adaptive-endpointing.ts`, `session-intelligence.ts`, `relationship-events.ts` |
+| **Other** | `conversation-rhythm.ts`, `adaptive-endpointing.ts`, `relationship-events.ts` |
 
 ---
 
@@ -115,8 +106,7 @@ The module also has many standalone root-level `.ts` files for specific conversa
 |-----------|------|---------|
 | **Unified Integration** | `unified-integration.ts` | Session-based API (recommended) |
 | **Voice Agent Integration** | `humanization/voice-agent-integration/` | Connect to voice agent (10 files) |
-| **Humanizer** | `humanizer/` | Main humanization orchestrator (6 files) |
-| **Mood Tracker** | `deep-humanization/mood-tracker.ts` | Emotional state tracking |
+| **Humanizer** | `humanizer/` | Pre-LLM humanization guidance (5 files) |
 | **Config** | `humanizing-config.ts` | All tunable parameters |
 | **Superhuman Orchestrator** | `superhuman/orchestrator/` | "Better than Human" features (5 files) |
 
@@ -128,7 +118,7 @@ Large monolithic files have been split into focused, testable modules:
 
 | Original File | New Module | Files |
 |--------------|------------|-------|
-| `humanizer.ts` | `humanizer/` | 6 files |
+| `humanizer.ts` | `humanizer/` | 5 files |
 | `concern-detection.ts` | `concern-detection/` | 5 files |
 | `question-patterns.ts` | `question-patterns/` | 5 files |
 | `temporal-context.ts` | `temporal-context/` | 4 files |
@@ -167,7 +157,6 @@ module-name/
 // ✅ CORRECT - Use unified session API
 import {
   initConversationSession,
-  humanizeAgentResponse,
   cleanupConversationSession,
 } from './agents/integrations/conversation-session-integration.js';
 
@@ -179,11 +168,8 @@ await initConversationSession({
   voiceId,
 });
 
-// For each response
-const humanized = await humanizeAgentResponse(sessionId, rawResponse, {
-  emotionalContext,
-  turnCount,
-});
+// Nothing rewrites the reply after the LLM on live calls; the TTS path
+// decides how it sounds.
 
 // At session end
 await cleanupConversationSession(sessionId);
@@ -242,9 +228,6 @@ pnpm vitest run src/conversation/__tests__/
 
 # Run humanization tests
 pnpm vitest run src/conversation/humanization/__tests__/
-
-# Run deep-humanization tests
-pnpm vitest run src/conversation/deep-humanization/__tests__/
 
 # Run superhuman tests
 pnpm vitest run src/conversation/superhuman/__tests__/
