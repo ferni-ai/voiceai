@@ -203,7 +203,6 @@ export {
   resetConversationHumanizer,
   type ContextGuidance,
   type HumanizationContext,
-  type HumanizedResponse,
   type PreResponseActions,
 } from './humanizer/index.js';
 

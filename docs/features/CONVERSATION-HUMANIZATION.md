@@ -6,8 +6,10 @@ This document describes Ferni's conversation humanization architecture - the sys
 
 > **Removed (2026-09):** The post-LLM `ConversationOrchestrator`
 > (`src/conversation/orchestrator/`), `ConversationSession.processTurn`, `quickHumanize`,
-> `OrchestratedHumanizer`, and the composable effects system (`src/conversation/effects/`)
-> never ran on live calls and have been deleted. `createConversationSession` now only
+> `OrchestratedHumanizer`, the composable effects system (`src/conversation/effects/`), and
+> `ConversationHumanizer.humanizeResponse`/`humanizeResponseAsync` (`humanizer/post-llm.ts`)
+> never ran on live calls and have been deleted. `ConversationHumanizer` now does pre-LLM
+> guidance only. `createConversationSession` now only
 > starts and ends the per-session humanization state that the pre-LLM turn reads. The
 > orchestrator phases and APIs described below are historical.
 

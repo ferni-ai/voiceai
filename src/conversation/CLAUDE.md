@@ -53,7 +53,7 @@ conversation/
 │   ├── emotional-forecasting.ts      # Anticipate difficult days
 │   └── (see superhuman/CLAUDE.md)    # Full documentation
 │
-├── humanizer/                        # Main humanization orchestrator (6 files)
+├── humanizer/                        # Pre-LLM humanization guidance (5 files)
 │
 ├── active-listening/                 # 👂 Listening behaviors (6 files)
 │
@@ -111,7 +111,7 @@ The module also has many standalone root-level `.ts` files for specific conversa
 |-----------|------|---------|
 | **Unified Integration** | `unified-integration.ts` | Session-based API (recommended) |
 | **Voice Agent Integration** | `humanization/voice-agent-integration/` | Connect to voice agent (10 files) |
-| **Humanizer** | `humanizer/` | Main humanization orchestrator (6 files) |
+| **Humanizer** | `humanizer/` | Pre-LLM humanization guidance (5 files) |
 | **Mood Tracker** | `deep-humanization/mood-tracker.ts` | Emotional state tracking |
 | **Config** | `humanizing-config.ts` | All tunable parameters |
 | **Superhuman Orchestrator** | `superhuman/orchestrator/` | "Better than Human" features (5 files) |
@@ -124,7 +124,7 @@ Large monolithic files have been split into focused, testable modules:
 
 | Original File | New Module | Files |
 |--------------|------------|-------|
-| `humanizer.ts` | `humanizer/` | 6 files |
+| `humanizer.ts` | `humanizer/` | 5 files |
 | `concern-detection.ts` | `concern-detection/` | 5 files |
 | `question-patterns.ts` | `question-patterns/` | 5 files |
 | `temporal-context.ts` | `temporal-context/` | 4 files |

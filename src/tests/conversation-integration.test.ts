@@ -333,21 +333,6 @@ describe('Conversation Integration Tests', () => {
       expect(actions).toBeDefined();
       expect(typeof actions).toBe('object');
     });
-
-    it('should humanize responses', () => {
-      const humanizer = getConversationHumanizer('test-persona');
-
-      const result = humanizer.humanizeResponse('Let me explain how compound interest works.', {
-        personaId: 'test-persona',
-        userMessage: "I don't understand compound interest",
-        turnNumber: 5,
-        userEmotion: 'confused',
-      });
-
-      expect(result).toBeDefined();
-      expect(result.ssml).toBeTruthy();
-      expect(result.appliedFeatures).toBeDefined();
-    });
   });
 
   describe('Humanizing Config', () => {
