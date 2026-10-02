@@ -56,4 +56,32 @@ describe('filterSensitive', () => {
     ]);
     expect(r.entities.map((e) => e.name)).toContain('diabetes');
   });
+
+  it('never keeps a secret: redacts values and drops secret-only facts', async () => {
+    enabled.finances = true;
+    const r = await filterSensitive(
+      'u1',
+      [
+        {
+          entityName: 'user',
+          key: 'card_number',
+          value: '4111 1111 1111 1111',
+          factType: 'finance',
+        },
+        { entityName: 'user', key: 'bank_pin', value: '4821', factType: 'finance' },
+        {
+          entityName: 'user',
+          key: 'debt',
+          value: 'card 4111111111111111 has a big balance',
+          factType: 'finance',
+        },
+        { entityName: 'user', key: 'note', value: 'my pin is 4821', factType: 'attribute' },
+        { entityName: 'Mom', key: 'phone', value: '555 123 4567', factType: 'attribute' },
+      ],
+      []
+    );
+    expect(r.facts.map((f) => f.key)).toEqual(['debt', 'phone']);
+    expect(JSON.stringify(r.facts)).not.toMatch(/4111|4821/);
+    expect(r.facts[1]!.value).toBe('555 123 4567');
+  });
 });

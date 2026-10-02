@@ -39,6 +39,10 @@ import {
   isSensitiveMemoryRoute,
 } from '../../../api/sensitive-memory-routes.js';
 import {
+  handleFinanceMemoryRoutes,
+  isFinanceMemoryRoute,
+} from '../../../api/finance-memory-routes.js';
+import {
   handleImportantDatesRoutes,
   isImportantDatesRoute,
 } from '../../../api/important-dates-routes.js';
@@ -200,6 +204,12 @@ export async function dispatchOperationsRoutes(ctx: RouteContext): Promise<boole
   // Sensitive memory: consent switches, health memory, mood timeline
   if (isSensitiveMemoryRoute(pathname)) {
     const handled = await handleSensitiveMemoryRoutes(req, res, pathname);
+    if (handled) return true;
+  }
+
+  // Money memory (Money consent): list / correct / forget
+  if (isFinanceMemoryRoute(pathname)) {
+    const handled = await handleFinanceMemoryRoutes(req, res, pathname);
     if (handled) return true;
   }
 

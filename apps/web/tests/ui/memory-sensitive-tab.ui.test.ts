@@ -118,6 +118,17 @@ vi.mock('../../src/services/sensitive-memory.service.js', () => ({
   }),
 }));
 
+// Money notes have their own spec (memory-money-section.ui.test.ts).
+vi.mock('../../src/services/finance-memory.service.js', () => ({
+  FINANCE_KINDS: [],
+  getFinances: vi.fn(async () => ({
+    ok: true,
+    value: { enabled: false, items: [], updatedAt: null },
+  })),
+  editFinanceItem: vi.fn(),
+  deleteFinanceItem: vi.fn(),
+}));
+
 const { SensitiveTab } = await import('../../src/ui/memory-control/sensitive-tab.js');
 
 const flush = () => new Promise((r) => setTimeout(r, 0));

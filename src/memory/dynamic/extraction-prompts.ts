@@ -47,6 +47,10 @@ For the user's life story and values, use these keys (rough time in temporalCont
 - values: "core_value" (what matters most to them, e.g. "family", "honesty")
 - beliefs (factType belief): "religion", "spiritual_practice", "belief", "faith_questioning".
   Faith, religious practice and spiritual or philosophical beliefs are ALWAYS factType belief, never core_value.
+For the user's money (factType "finance"), use these keys: "income", "income_change",
+  "budget_habit", "savings_goal", "debt", "debt_paid_off", "planned_purchase", "big_purchase",
+  "bill_due", "money_worry", "money_win", "money_feeling", "financial_decision".
+NEVER record card, account or routing numbers, SSNs, passwords, PINs or security answers.
 
 Return JSON array with: entityName, factType, key, value, confidence, temporalContext.`;
 

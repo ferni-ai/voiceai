@@ -461,6 +461,33 @@ describe('UserLearningEngine', () => {
       expect(updatedProfile.keyMoments[0].type).toBe('shared_vulnerability');
     });
 
+    it('keeps money worries only with Money consent', () => {
+      const concern = {
+        type: 'concern' as const,
+        key: 'worry',
+        value: 'Worried about debt',
+        confidence: 0.8,
+        source: 'explicit' as const,
+        capturedAt: new Date(),
+      };
+      const off = createMockProfile({ financialAnxietyTriggers: [] });
+      const offData = engine.finalizeSession(off);
+      offData.insights.push(concern);
+      expect(
+        UserLearningEngine.applyLearningToProfile(off, offData).financialAnxietyTriggers ?? []
+      ).toEqual([]);
+
+      const on = {
+        ...createMockProfile({ financialAnxietyTriggers: [] }),
+        memoryConsent: { categories: { finances: { enabled: true } } },
+      } as UserProfile;
+      const onData = engine.finalizeSession(on);
+      onData.insights.push(concern);
+      expect(
+        UserLearningEngine.applyLearningToProfile(on, onData).financialAnxietyTriggers
+      ).toEqual(['debt']);
+    });
+
     it('should apply preference updates to profile', () => {
       const profile = createMockProfile({
         preferences: {

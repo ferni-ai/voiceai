@@ -3216,7 +3216,33 @@
       },
       "reask": "이 부분을 설명하는 방식을 바꿨어요. 아래 스위치는 그대로예요.",
       "keep": "내 선택 유지하기",
-      "kept": "알겠어요. 바뀐 건 없어요."
+      "kept": "알겠어요. 바뀐 건 없어요.",
+      "money": {
+        "title": "Money",
+        "off": "Money is off, so I'm not keeping money notes.",
+        "empty": "Nothing yet. When you talk about money, it'll show up here.",
+        "privacy": "I never keep card or account numbers, passwords or PINs.",
+        "kind": {
+          "debt": "Debts",
+          "savings": "Saving for",
+          "bill": "Bills",
+          "purchase": "Big purchases",
+          "decision": "Decisions",
+          "income": "Income",
+          "budget": "Budget",
+          "worry": "Worries",
+          "win": "Wins",
+          "feeling": "How money feels"
+        },
+        "perWeek": "a week",
+        "perTwoWeeks": "every two weeks",
+        "perMonth": "a month",
+        "perYear": "a year",
+        "dueDay": "Due on day {day}",
+        "done": "Done",
+        "linkedGoal": "In your goals",
+        "forgetAmount": "Forget the amount"
+      }
     },
     "sensitiveTab": "민감한 정보",
     "deleteConfirmWord": "삭제"

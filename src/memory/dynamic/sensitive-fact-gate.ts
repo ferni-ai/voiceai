@@ -8,9 +8,19 @@
  *
  * Fails closed: if consent can't be read, sensitive facts are dropped.
  *
+ * Secrets never become facts: card, account and routing numbers, SSNs,
+ * passwords, PINs and security answers are redacted from every kept fact
+ * (strictly for money facts), and a fact whose key can only hold a secret
+ * ("card_number") or that is nothing but a secret is dropped.
+ *
  * @module memory/dynamic/sensitive-fact-gate
  */
 
+import {
+  isOnlyRedacted,
+  isSecretFactKey,
+  redactFinancialSecrets,
+} from '../../utils/financial-redaction.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SensitiveFactGate' });
@@ -40,6 +50,15 @@ export interface GateResult<F, E> {
   facts: F[];
   entities: E[];
   dropped: number;
+}
+
+/** The fact with secrets redacted from its value, or null when nothing safe is left. */
+export function withoutSecrets<F extends GateableFact>(fact: F, strict: boolean): F | null {
+  if (isSecretFactKey(fact.key)) return null;
+  if (typeof fact.value !== 'string') return fact;
+  const { text, kinds } = redactFinancialSecrets(fact.value, { strict });
+  if (kinds.length === 0) return fact;
+  return isOnlyRedacted(text) ? null : { ...fact, value: text };
 }
 
 /** Keep only facts/entities the user has consented to us remembering. Never throws. */
@@ -76,7 +95,9 @@ export async function filterSensitive<F extends GateableFact, E extends Gateable
       consent.sensitiveCategoriesOf(`${f.key.replace(/_/g, ' ')} ${String(f.value)}`)
     );
     if (typed) cats.add(typed);
-    if (await isAllowed([...cats])) keptFacts.push(f);
+    if (!(await isAllowed([...cats]))) continue;
+    const clean = withoutSecrets(f, cats.has('finances'));
+    if (clean) keptFacts.push(clean);
   }
   const keptEntities: E[] = [];
   for (const e of entities) {

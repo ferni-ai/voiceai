@@ -3,7 +3,8 @@
  * Bundle Size Check
  *
  * The same check CI runs (.github/workflows/performance-budget.yml): gzipped
- * JavaScript in dist/, total and largest file, against the budgets set in that
+ * JavaScript in dist/, total (counting en-US plus one other locale, since
+ * locale chunks load on demand) and largest file, against the budgets set in that
  * workflow's env (MAX_BUNDLE_SIZE_KB, MAX_CHUNK_SIZE_KB), which stay the single
  * source of truth. Run after build: node scripts/bundle-size-check.js
  *
@@ -51,15 +52,28 @@ function main() {
     .map((path) => ({ file: relative(DIST_DIR, path), bytes: gzipSync(readFileSync(path)).length }))
     .sort((a, b) => b.bytes - a.bytes);
 
+  // Locale chunks (assets/<locale>-<hash>.js) load on demand: a user gets en-US
+  // (the fallback) plus at most one other locale, so count those two, not all.
+  const LOCALE_CHUNK = /(?:^|\/)(en-US|en-GB|de|fr|es|ar|he|ja|ko|zh-Hans|zh-Hant)-[\w-]{8}\.js$/;
+  let codeBytes = 0;
+  let enUsBytes = 0;
+  let largestLocaleBytes = 0;
+  for (const { file, bytes } of sizes) {
+    const locale = LOCALE_CHUNK.exec(file)?.[1];
+    if (!locale) codeBytes += bytes;
+    else if (locale === 'en-US') enUsBytes = bytes;
+    else largestLocaleBytes = Math.max(largestLocaleBytes, bytes);
+  }
+
   // Same rounding as CI: floor of KB
-  const totalKb = Math.floor(sizes.reduce((sum, s) => sum + s.bytes, 0) / 1024);
+  const totalKb = Math.floor((codeBytes + enUsBytes + largestLocaleBytes) / 1024);
   const largestKb = Math.floor((sizes[0]?.bytes ?? 0) / 1024);
 
   console.log('Largest gzipped JS files:');
   for (const { file, bytes } of sizes.slice(0, 10)) {
     console.log(`  ${String(Math.floor(bytes / 1024)).padStart(5)} KB  ${file}`);
   }
-  console.log(`\nTotal: ${totalKb} KB across ${sizes.length} files\n`);
+  console.log(`\nTotal: ${totalKb} KB (code + en-US + the largest other locale; ${sizes.length} files)\n`);
 
   let failed = false;
   const report = (label, value, max) => {

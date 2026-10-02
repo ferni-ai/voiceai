@@ -136,6 +136,7 @@ import { loadPreferenceBlock } from '../../services/user-preferences/context-blo
 import { loadHealthMoodBlock } from '../../services/health-memory/context-block.js';
 import { loadWorkAndPlacesBlock } from '../../services/work-and-places/context-block.js';
 import { loadLifeStoryBlock } from '../../services/life-story/context-block.js';
+import { loadFinanceBlock } from '../../services/finance-memory/context-block.js';
 
 const log = getLogger();
 
@@ -312,6 +313,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   const workPlacesBlockPromise = loadWorkAndPlacesBlock(userId);
   // Life story & values (faith only with consent): bounded, never throws
   const lifeStoryBlockPromise = loadLifeStoryBlock(userId);
+  // Money (only with Money consent; respects "don't bring up" boundaries): bounded, never throws
+  const financeBlockPromise = userId ? loadFinanceBlock(userId) : Promise.resolve('');
   try {
     mark('load_prompts_start');
     // Personal insights (people, likely topics, openers): read in parallel, never blocks
@@ -385,6 +388,14 @@ If someone asks what day it is, what time it is, or what the date is, you know t
         { personaId: persona.id, chars: lifeStoryBlock.length },
         '📖 Life story & values context injected'
       );
+    }
+
+    // THEIR MONEY - debts, savings, bills, worries and wins; rounded amounts, kind
+    // follow-ups (see services/finance-memory/context-block.ts)
+    const financeBlock = await financeBlockPromise;
+    if (financeBlock) {
+      modelBaseInstructions += financeBlock;
+      log.info({ personaId: persona.id, chars: financeBlock.length }, 'Money memory injected');
     }
 
     // =========================================================================

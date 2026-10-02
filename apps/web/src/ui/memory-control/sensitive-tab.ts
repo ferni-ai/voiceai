@@ -1,7 +1,8 @@
 /**
  * "Sensitive" tab: the consent switches for health, money and beliefs (one
  * upfront yes/no plus a switch each), the allergy safety exception, health
- * notes (correct / forget) and the mood timeline (forget per conversation).
+ * notes (correct / forget), the mood timeline (forget per conversation) and
+ * money notes (money-section.ts).
  *
  * Switching a category off stops Ferni remembering it at once; if anything is
  * stored, the user is offered (never forced) deleting it.
@@ -36,6 +37,7 @@ import {
 } from './sensitive-render.js';
 import { injectSensitiveStyles } from './sensitive.styles.js';
 import { BeliefsSection } from './beliefs-section.js';
+import { MoneySection } from './money-section.js';
 import { renderError, renderLoading } from './states.js';
 
 export class SensitiveTab {
@@ -47,10 +49,12 @@ export class SensitiveTab {
   private busy = false;
   private loadFailed = false;
   private readonly beliefs: BeliefsSection;
+  private readonly money: MoneySection;
 
   constructor(private readonly host: HTMLElement) {
     injectSensitiveStyles();
     this.beliefs = new BeliefsSection(host, () => this.render());
+    this.money = new MoneySection(host, () => this.render());
     host.addEventListener('click', (e) => void this.onClick(e));
     host.addEventListener('keydown', (e) => this.onKeydown(e));
   }
@@ -63,6 +67,7 @@ export class SensitiveTab {
       getHealth(),
       getMood(),
       this.beliefs.load(),
+      this.money.load(),
     ]);
     if (!consent.ok) {
       this.loadFailed = true;
@@ -84,6 +89,7 @@ export class SensitiveTab {
       this.health ? renderHealth(this.health, this.editingId, this.saving) : '',
       this.mood ? renderMood(this.mood) : '',
       this.beliefs.html(this.beliefsOn()),
+      this.money.html(this.consent.consent.categories.finances.enabled),
     ].join('');
   }
 
@@ -245,7 +251,12 @@ export class SensitiveTab {
   }
 
   private async refreshLists(): Promise<void> {
-    const [health, mood] = await Promise.all([getHealth(), getMood(), this.beliefs.load()]);
+    const [health, mood] = await Promise.all([
+      getHealth(),
+      getMood(),
+      this.beliefs.load(),
+      this.money.load(),
+    ]);
     if (health.ok) this.health = health.value;
     if (mood.ok) this.mood = mood.value;
     this.render();

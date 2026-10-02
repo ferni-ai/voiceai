@@ -1534,6 +1534,11 @@ async function processFinalTranscript(
       const { recordUserTurnLifeStory } = await import('../../services/life-story/capture.js');
       await recordUserTurnLifeStory(userId, event.transcript, sessionId);
     }, 'life-story');
+    // 💰 Money (only with Money consent; secrets are redacted before anything is kept)
+    fireAndForget(async () => {
+      const { recordUserTurnFinances } = await import('../../services/finance-memory/capture.js');
+      await recordUserTurnFinances(userId, event.transcript, sessionId);
+    }, 'finance-memory');
   }
 
   // Extract memorable moments

@@ -229,6 +229,9 @@ Also built in:
   and (with consent) beliefs: export, conversation and fact provenance
   removal, delete-all, voice forget. See
   [Life story, values & beliefs](#life-story-values--beliefs).
+- **finances** (`services/finance-memory`): money notes; export, conversation
+  and fact provenance removal, delete-all, voice forget ("forget what I told
+  you about my debt"). See [Money](#money).
 
 `GET /api/memory/me` people keep their `dynamic_entities` IDs (what delete
 uses) and gain `kind` (`person`/`pet`), `memorial`, and profile notes from
@@ -711,8 +714,10 @@ handleConsentVoice(userId, { category, enabled?, deleteExisting? })
 Built-in category stores (`builtin-category-stores.ts`): for every category,
 extracted facts labelled with it or matching the classifier (deleted through
 memory control, so tombstones and cascades apply); for health, also health
-memory, the mood timeline and medical food restrictions. Money and beliefs add
-their own stores to that file.
+memory, the mood timeline and medical food restrictions; for finances, money
+memory (with its bill reminders and the savings goals it created) and the
+legacy `financialAnxietyTriggers` profile field. Beliefs adds its own stores to
+that file.
 
 ### Where it is enforced
 
@@ -722,6 +727,8 @@ their own stores to that file.
 | Health memory, mood timeline                              | Every write checks Health.                                                                                                       |
 | Preference profile (`user-preferences/food.ts`)           | `isHealthCategoryEnabled` asks the consent service; allergies exempt.                                                            |
 | Session-start prompt                                      | Health block only with Health on; otherwise, while unanswered, one line letting the persona ask once.                            |
+| Money memory (`finance-memory`)                           | Every write and every per-turn buffer checks Money; switching off drops buffers at once.                                         |
+| Legacy profile money worries (`user-learning-engine`)     | `financialAnxietyTriggers` only grows with Money on (read from the consent record on the same user document).                    |
 
 ### Voice
 
@@ -1012,6 +1019,92 @@ with none are deleted and tombstoned; user items stay), fact
 delete/correction (one pass over story, values and beliefs), delete-all and
 account erasure, voice forget ("forget the treehouse story", "forget that I'm
 Catholic").
+
+## Money
+
+Only with Money consent. `services/finance-memory/`. Ferni remembers how the
+user's money life is going so it can follow up kindly ("how's the credit card
+payoff going?"), never to judge or advise.
+
+### Storage
+
+`bogle_users/{uid}/finance_memory/{financeId}`; `financeId = fin_` + hash of
+kind + subject, so hearing the same thing again updates it.
+
+| Field                                                | Meaning                                                                                                   |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `kind`                                               | `income`, `budget`, `savings`, `debt`, `purchase`, `bill`, `worry`, `win`, `feeling`, `decision`          |
+| `subject`, `text`, `status`                          | "credit card" / "Paying off their credit card"; `active` / `planned` / `done` (paid off, bought, decided) |
+| `amount`                                             | `{ value, currency, period?, said }`, only when the user said it (never from summaries or facts)          |
+| `dueDay`, `dateId`                                   | Bills: day of month, and the important date that reminds it                                               |
+| `aspirationId`, `aspirationCreated`                  | Savings: the linked aspirations goal (category `financial`), and whether money memory created it          |
+| `source`, `confidence`                               | `explicit` (the user's words), `inferred` (finance facts), `user` (page edit)                             |
+| `sourceConversationIds`, `sourceFactIds`, `mentions` | Provenance; `mentions` counts conversations                                                               |
+| `userEdited`, `editedAt`, `firstMentionedAt`, …      | The user's edit wins; capture only adds provenance afterwards                                             |
+
+Deletes tombstone the id (`memory_tombstones/{financeId}`, `kind: 'finance'`).
+
+### Never stored
+
+`utils/financial-redaction.ts` removes card numbers (Luhn), bank account,
+routing/sort codes, IBANs, SSNs/national insurance numbers, passwords, PINs,
+CVVs and security answers. It runs (strict: also any long digit run) on every
+money-memory write and edit, on detected mentions, and (default level, so a
+phone number in an ordinary fact survives) on every extracted fact in
+`sensitive-fact-gate.ts`, which also drops facts whose key can only hold a
+secret (`card_number`, `pin`, …). Transcripts are not changed.
+
+### Capture and connections
+
+- Per user turn: `recordUserTurnFinances` (transcript handler, next to the
+  preference capture) detects first-person money talk (`detect*.ts`: "I'm
+  paying off my credit card", "we're saving for a house", "my rent is due on
+  the 1st", "money is tight", "I'm trying to decide whether to refinance";
+  not negations, other people or questions) and buffers it in memory, written
+  at most once a minute and when the conversation is summarized.
+- After each summarized conversation: buffered and turn mentions, plus that
+  conversation's `dynamic_facts` labelled `finance` about the user
+  (extraction is asked for keys like `debt`, `savings_goal`, `bill_due`,
+  `money_worry`), stored as `inferred` with amounts stripped.
+- Savings goals are aspirations, not a second goal list: an existing goal with
+  an overlapping title is linked, otherwise a `financial` goal is created.
+  Legacy `profile.goals` financial goals were already migrated there.
+- Bills with a due day get their next due date in important dates
+  (`kind: 'deadline'`, `subtype: 'bill'`, stable key per bill) and move to the
+  next month after each summarized conversation.
+
+### How Ferni uses it
+
+`loadFinanceBlock(userId)` (agent-setup, 400 ms bound, 520-char budget): Money
+on only; at most six lines, what's live first (decisions, debts, savings,
+bills, purchases, recent worries and wins); amounts rounded ("about $2k a
+month"); ends with "Follow up gently … Never shame, lecture, or give
+investment advice; let them lead." Each line is checked with
+`isTopicAllowedProactively`, and a boundary on "money" itself empties the block.
+
+### API
+
+| Method | Path                          | Body                                                                                   | Response                                                           |
+| ------ | ----------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| GET    | `/api/memory/me/finances`     | –                                                                                      | `{ enabled, items, updatedAt }` (items listed even with Money off) |
+| PATCH  | `/api/memory/me/finances/:id` | any of `{ text, status, amount: {value, period?, currency?} \| null, dueDay \| null }` | `{ item }` (`userEdited: true`, text redacted)                     |
+| DELETE | `/api/memory/me/finances/:id` | –                                                                                      | `{ deleted: true }` (tombstoned, bill reminder removed)            |
+
+The Sensitive tab shows a **Money** section next to health notes while Money is
+on (correct, forget, forget just the amount); otherwise one short line.
+
+### Export and cascades
+
+Memory domain `finances`: export (`{ enabled, items, exportedAt }`),
+conversation delete and fact delete/correction (an automated item left with no
+source is deleted and tombstoned; user items stay), delete-all and account
+erasure, voice forget. Consent category store `financeMemory` ("switch off
+money, delete those too") also removes bill reminders and the goals money
+memory created (unless the user edited them).
+
+Not moved here: tool-managed money data the user set up explicitly (budgets and
+savings trackers in `mayaFinancialData`, bill-pay reminders, Plaid links) stays
+in those tools.
 
 ## Known limits
 
