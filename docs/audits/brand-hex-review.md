@@ -107,3 +107,22 @@ Each needs a decision: map to the nearest token, add a token, or keep (for examp
 
 Several hits are the word "purple" in content (smart-home light colors, a joke in humor-tools, weather types), not brand colors: the rule matches the word anywhere, and should match color values only. Real purple values to review: `src/services/gtm/brand-voice.ts` (`#8b5cf6`, `#a855f7`) and `apps/web/src/styles/inline-styles.css` lines 1090, 13329, 13333.
 
+
+## Color variables apps/web uses that nothing defines
+
+Measured in the running app (Vite dev server, all three themes) by resolving every `var(--color-*)` that `apps/web/src` uses without a fallback.
+
+| | Undefined names | Uses that render as nothing |
+|---|---|---|
+| Before this branch | 60 | 2,806 |
+| After this branch | 39 | 319 |
+
+What fixed most of it:
+
+- `apps/web/src/styles/inline-styles.css` declared eight tokens as themselves on `:root` (`--color-text-primary: var(--color-text-primary)`, and the same for `-secondary`, `-muted`, `-dimmed`, `--color-border-subtle`, `-medium`, `--color-accent-hover`, `-glow`). A custom property that refers to itself is invalid, so it erased the design-system value in every theme. Visible symptom: on the sign-in page, "Welcome to Ferni" rendered in its fallback `#f4f4f5` on a cream background, almost invisible. Introduced 2025-12-15 in `59fe48ea9`.
+- Persona colors (`--color-ferni`, `--color-maya`, `--color-ferni-dark`, ...) were only defined for the website. The design-system build now emits them globally.
+- The service worker served `/design-system/*.css` cache-first under a cache name unchanged since 2025-12-25, so returning users kept old tokens. It now revalidates fixed-URL files in the background, and the cache version moves to v4.
+
+Still undefined (each needs a mapping decision: alias to an existing token, add a token, or change the call site):
+
+`--color-border` (111), `--color-background-subtle` (56), `--color-background-hover` (37), `--color-accent-secondary` (26), `--color-accent-light` (22), `--color-background` (11), `--color-bg-subtle` (9), `--color-text-on-accent` (4), `--color-bg` (4), `--color-semantic-success-bg` (3), `--color-background-muted` (3), and 28 names used once or twice (`--color-success-subtle`, `--color-error-bg`, `--color-border-default`, `--color-accent-warm`, `--color-semantic-error-rgb`, `--color-destructive`, `--color-coral`, `--color-accent-primary-alpha-10`/`-20`, ...).

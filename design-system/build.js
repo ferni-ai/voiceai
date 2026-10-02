@@ -98,9 +98,32 @@ ${generateCSSVariables(flattened)}
 `.trim();
 }
 
-function generatePersonaCSS(personas) {
-  const lines = [];
+/**
+ * Each persona's palette as global custom properties (--color-ferni,
+ * --color-maya-text, ...). App code names a specific persona's color with these;
+ * --persona-* below holds whichever persona is active.
+ */
+function generatePersonaGlobalsCSS(personas) {
+  const suffixes = ['', 'secondary', 'text', 'textOnDark', 'glow', 'tint', 'light', 'dark'];
+  const lines = [':root {'];
   for (const [personaId, personaColors] of Object.entries(personas)) {
+    if (personaId.startsWith('_') || typeof personaColors !== 'object') continue;
+    const kebabId = camelToKebab(personaId);
+    for (const suffix of suffixes) {
+      const value = personaColors[suffix || 'primary'];
+      if (!value) continue;
+      const name = suffix ? `--color-${kebabId}-${camelToKebab(suffix)}` : `--color-${kebabId}`;
+      lines.push(`  ${name}: ${value};`);
+    }
+  }
+  lines.push('}');
+  return lines.join('\n');
+}
+
+function generatePersonaCSS(personas) {
+  const lines = [generatePersonaGlobalsCSS(personas)];
+  for (const [personaId, personaColors] of Object.entries(personas)) {
+    if (personaId.startsWith('_') || typeof personaColors !== 'object') continue;
     const kebabId = camelToKebab(personaId);
     lines.push(`
 /* Persona: ${personaId} */
