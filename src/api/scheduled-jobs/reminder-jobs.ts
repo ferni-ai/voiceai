@@ -3,7 +3,7 @@
  *
  * POST /api/jobs/deliver-reminders            — deliver due reminders
  * POST /api/jobs/deliver-reminders?dryRun=true — report what would happen
- * POST /api/jobs/deliver-date-reminders       — important-date reminders
+ * POST /api/jobs/deliver-date-reminders       — important-date reminders and habit nudges
  *                                               (every 15 minutes; ?dryRun=true)
  *
  * @module api/scheduled-jobs/reminder-jobs

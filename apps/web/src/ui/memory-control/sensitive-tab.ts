@@ -20,6 +20,7 @@ import {
   getConsent,
   getHealth,
   getMood,
+  keepConsentChoices,
   setCategory,
   type ConsentView,
   type HealthSnapshot,
@@ -29,7 +30,7 @@ import {
 import { toast } from '../whisper.ui.js';
 import { confirmAction } from './confirm-dialog.js';
 import {
-  categoryLabelFor,
+  categoryInlineLabelFor,
   renderConsentCard,
   renderHealth,
   renderMood,
@@ -121,6 +122,9 @@ export class SensitiveTab {
       case 'decline-all':
         await this.answer(false);
         break;
+      case 'keep-choices':
+        await this.keepChoices();
+        break;
       case 'toggle-category':
         if (category) await this.toggle(category);
         break;
@@ -165,6 +169,21 @@ export class SensitiveTab {
     this.focus('[data-action="toggle-category"]');
   }
 
+  private async keepChoices(): Promise<void> {
+    if (this.busy) return;
+    this.busy = true;
+    const result = await keepConsentChoices();
+    this.busy = false;
+    if (!result.ok) {
+      toast.error(t('memoryControl.saveError', "Couldn't save that. Try again?"));
+      return;
+    }
+    this.consent = result.value;
+    this.render();
+    toast.success(t('memoryControl.sensitive.kept', 'Got it. Nothing changed.'));
+    this.focus('[data-action="toggle-category"]');
+  }
+
   private async toggle(category: SensitiveCategory): Promise<void> {
     if (this.busy || !this.consent) return;
     const next = !this.consent.consent.categories[category].enabled;
@@ -190,7 +209,6 @@ export class SensitiveTab {
   private async offerDelete(category: SensitiveCategory, asked: boolean): Promise<void> {
     const count = this.consent?.stored[category] ?? 0;
     if (count <= 0) return;
-    const label = categoryLabelFor(category);
     const confirmed = await confirmAction({
       title: t('memoryControl.sensitive.deleteTitle', 'Delete what I have?'),
       message:
@@ -199,7 +217,7 @@ export class SensitiveTab {
           'I still have {count} things about {label}. Delete them too?',
           {
             count,
-            label: label.toLowerCase(),
+            label: categoryInlineLabelFor(category),
           }
         ) +
         (category === 'health'

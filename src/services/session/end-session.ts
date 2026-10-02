@@ -22,6 +22,7 @@ import {
   createFallbackSummary,
   generateSummary,
   indexSummaryForRetrieval,
+  withConversationId,
   type ConversationSummary,
 } from './summarization.js';
 import { runConversationSummarizedHooks } from '../memory/conversation-summarized-hooks.js';
@@ -324,6 +325,7 @@ async function finalizeUserSession(options: FinalizeUserSessionOptions): Promise
     let summary: ConversationSummary | null = null;
     if (turns.length > 0) {
       summary = await generateSummary(sessionId, turns);
+      if (summary) summary = withConversationId(summary, realtimeConversationId);
 
       if (summary) {
         await global.store.saveSummary(validatedUserId, summary);

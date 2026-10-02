@@ -174,6 +174,13 @@ describe('runConversationCatchUp', () => {
       'conv_dropped',
       'Planning the move to Denver; worried about the dog'
     );
+    // The index entry names the conversation, so recall can cite it and delete can find it.
+    expect(deps.indexSummary).toHaveBeenCalledWith(
+      'u1',
+      expect.objectContaining({ shortText: expect.any(String) }),
+      expect.any(Date),
+      'conv_dropped'
+    );
     expect(getMemoryCaptureMetrics().catchUp).toMatchObject({ runs: 1, summarized: 1 });
   });
 

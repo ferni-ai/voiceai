@@ -76,7 +76,7 @@ export const PLACE_GROUPS: readonly Group[] = [
   },
   {
     id: 'favorites',
-    label: () => t('lifeMemory.favorites', 'Favourite spots'),
+    label: () => t('lifeMemory.favorites', 'Favorite spots'),
     match: (i) => i.kind === 'favorite',
   },
   {
@@ -107,7 +107,7 @@ export const ADD_KINDS: Readonly<Record<LifeArea, ReadonlyArray<[LifeKind, () =>
   places: [
     ['home', () => t('lifeMemory.kindHome', 'Where you live')],
     ['trip', () => t('lifeMemory.kindTrip', 'A trip')],
-    ['favorite', () => t('lifeMemory.kindFavorite', 'A favourite spot')],
+    ['favorite', () => t('lifeMemory.kindFavorite', 'A favorite spot')],
     ['meaningful', () => t('lifeMemory.kindMeaningful', 'A place that matters')],
     ['bucket_list', () => t('lifeMemory.kindBucket', 'A place you dream of')],
   ],

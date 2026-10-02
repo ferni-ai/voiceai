@@ -7,6 +7,8 @@
  *   getConsent(userId)                             // Result<MemoryConsent>
  *   setCategoryConsent(userId, 'beliefs', false, 'page' | 'voice' | 'onboarding')
  *   answerUpfrontConsent(userId, true, 'page')     // the one upfront question
+ *   needsConsentAnswer(consent)                    // ask (again)? never asked, or older wording
+ *   confirmConsentChoices(userId, 'page')          // re-asked: keep the switches as they are
  *   onConsentChange((uid, category, enabled) => …) // drop in-memory buffers on "off"
  *   registerCategoryStore({ category, name, count, deleteAll }) // offer deletion on "off"
  *   sensitiveCategoriesOf(text)                    // classify free text before storing it
@@ -20,6 +22,7 @@ export * from './types.js';
 export {
   answerUpfrontConsent,
   clearConsentCache,
+  confirmConsentChoices,
   getConsent,
   isCategoryEnabled,
   onConsentChange,

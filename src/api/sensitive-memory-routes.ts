@@ -23,9 +23,11 @@ import { z } from 'zod';
 import {
   CONSENT_COPY,
   SENSITIVE_CATEGORIES,
+  confirmConsentChoices,
   deleteCategoryData,
   getConsent,
   isSensitiveCategory,
+  needsConsentAnswer,
   summarizeCategoryData,
   updateConsent,
   type MemoryConsent,
@@ -61,6 +63,8 @@ const LIMITS = {
 const ConsentBody = z
   .object({
     agreeAll: z.boolean().optional(),
+    /** Re-asked after the wording changed: answer it, keep every switch as it is. */
+    keepChoices: z.literal(true).optional(),
     categories: z
       .object({
         health: z.boolean().optional(),
@@ -72,7 +76,10 @@ const ConsentBody = z
   })
   .strip()
   .refine(
-    (b) => b.agreeAll !== undefined || (b.categories && Object.keys(b.categories).length > 0)
+    (b) =>
+      b.agreeAll !== undefined ||
+      b.keepChoices === true ||
+      (b.categories && Object.keys(b.categories).length > 0)
   );
 
 const HealthEdit = z
@@ -116,6 +123,8 @@ async function consentView(userId: string, consent: MemoryConsent) {
   for (const c of SENSITIVE_CATEGORIES) stored[c] = (await summarizeCategoryData(userId, c)).total;
   return {
     consent,
+    // Ask the upfront question (again): never answered, or answered older wording.
+    needsAnswer: needsConsentAnswer(consent),
     stored,
     safetyExceptions: [
       { category: 'health' as const, kind: 'allergies', description: CONSENT_COPY.safetyException },
@@ -140,8 +149,15 @@ async function handleConsent(
     if (method === 'PUT' || method === 'PATCH') {
       if (limited(req, res, userId, 'edit')) return;
       const parsed = ConsentBody.safeParse(await readJson(req));
-      if (!parsed.success) return sendError(res, 'Send { agreeAll } or { categories }', 400);
+      if (!parsed.success) {
+        return sendError(res, 'Send { agreeAll }, { categories } or { keepChoices }', 400);
+      }
       const all = parsed.data.agreeAll;
+      if (all === undefined && !parsed.data.categories && parsed.data.keepChoices) {
+        const kept = await confirmConsentChoices(userId, 'page');
+        if (!kept.success) return sendError(res, "Couldn't save that", 503);
+        return sendJSON(res, await consentView(userId, kept.data));
+      }
       const categories =
         all === undefined
           ? (parsed.data.categories ?? {})

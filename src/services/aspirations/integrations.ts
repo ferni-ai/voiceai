@@ -18,6 +18,7 @@ import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { importantDateIdFor, importantDateKey } from '../important-dates/identity.js';
 import {
+  DELIVERIES_COLLECTION,
   deleteImportantDate,
   scheduleContextFor,
   upsertImportantDate,
@@ -106,12 +107,26 @@ export async function planNudge(userId: string, r: AspirationRecord): Promise<vo
   await ref.update({ habit: { ...(stored as Record<string, unknown>), nextNudgeAt: next } });
 }
 
+/** Delivery records of a deleted habit's nudges (reminder job, important-dates). */
+async function deleteHabitNudgeRecords(userId: string, habitId: string): Promise<void> {
+  const db = getFirestoreDb();
+  if (!db) return;
+  const snap = await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection(DELIVERIES_COLLECTION)
+    .where('habitId', '==', habitId)
+    .get();
+  await Promise.all(snap.docs.map((d) => d.ref.delete()));
+}
+
 onAspirationWritten(async (userId, r) => {
   await syncGoalDeadline(userId, r);
   await planNudge(userId, r);
 });
 
 onAspirationDeleted(async (userId, r) => {
+  if (r.level === 'habit') await deleteHabitNudgeRecords(userId, r.id);
   if (!r.deadlineDateId) return;
   const removed = await deleteImportantDate(userId, r.deadlineDateId, 'user_deleted');
   if (!removed.success && removed.error.code !== 'not_found') {
