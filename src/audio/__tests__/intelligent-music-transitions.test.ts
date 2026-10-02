@@ -282,20 +282,30 @@ describe('Intelligent Music Transitions', () => {
         relationshipStage: 'stranger',
       };
 
-      // Strangers should get more silence
-      let silenceCount = 0;
-      for (let i = 0; i < 100; i++) {
-        const result = getIntelligentMusicTransition({
-          musicContext: context,
-          personaId: 'ferni',
-          relationshipStage: 'stranger',
-        });
-        if (!result.shouldSpeak) silenceCount++;
-      }
+      // Walk the dice evenly over [0, 1) so the count is exact, not sampled:
+      // a random 100-roll sample dips below any fixed threshold now and then.
+      const countSilence = (relationshipStage: 'stranger' | 'friend'): number => {
+        const random = vi.spyOn(Math, 'random');
+        let silenceCount = 0;
+        try {
+          for (let i = 0; i < 100; i++) {
+            random.mockReturnValue(i / 100);
+            const result = getIntelligentMusicTransition({
+              musicContext: { ...context, relationshipStage },
+              personaId: 'ferni',
+              relationshipStage,
+            });
+            if (!result.shouldSpeak) silenceCount++;
+          }
+        } finally {
+          random.mockRestore();
+        }
+        return silenceCount;
+      };
 
-      // Strangers should get more silence than non-strangers (~60-90% of the time)
-      // Using a lower threshold to account for random variance in tests
-      expect(silenceCount).toBeGreaterThanOrEqual(55);
+      // Strangers keep quiet where a friend would get a gentle check-in
+      expect(countSilence('stranger')).toBe(70);
+      expect(countSilence('friend')).toBe(60);
     });
   });
 
