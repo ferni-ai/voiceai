@@ -481,9 +481,9 @@ export function t(
     }
   }
 
-  // Return fallback text or key if nothing found
+  // Return fallback text (with its placeholders filled) or key if nothing found
   if (fallback) {
-    return fallback;
+    return interpolate(fallback, params);
   }
   log.warn(`Missing translation: ${key}`);
   return key;

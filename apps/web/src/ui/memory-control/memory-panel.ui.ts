@@ -6,6 +6,7 @@
  * - Memories: learned facts by category plus people, with search, inline
  *   correction and forgetting
  * - Conversations: past conversations with full transcripts, deletable
+ * - Sensitive: consent for health, money and beliefs; health notes; mood
  * - Your data: JSON/CSV export and "delete everything"
  *
  * Opened from the settings menu ("What I remember", and the older memory
@@ -26,14 +27,16 @@ import { DataTab } from './data-tab.js';
 import { esc } from './format.js';
 import { MemoriesTab } from './memories-tab.js';
 import { injectMemoryPanelStyles } from './memory-panel.styles.js';
+import { SensitiveTab } from './sensitive-tab.js';
 
 const log = createLogger('MemoryPanel');
 
-export type MemoryPanelTab = 'memories' | 'conversations' | 'data';
+export type MemoryPanelTab = 'memories' | 'conversations' | 'sensitive' | 'data';
 
 const TABS: ReadonlyArray<{ id: MemoryPanelTab; label: () => string }> = [
   { id: 'memories', label: () => t('memoryControl.memoriesTab', 'Memories') },
   { id: 'conversations', label: () => t('memoryControl.conversationsTab', 'Conversations') },
+  { id: 'sensitive', label: () => t('memoryControl.sensitiveTab', 'Sensitive') },
   { id: 'data', label: () => t('memoryControl.dataTab', 'Your data') },
 ];
 
@@ -49,6 +52,7 @@ class MemoryPanel extends Modal {
   private memories: MemoriesTab | null = null;
   private conversations: ConversationsTab | null = null;
   private data: DataTab | null = null;
+  private sensitive: SensitiveTab | null = null;
 
   constructor() {
     super(
@@ -114,12 +118,14 @@ class MemoryPanel extends Modal {
     this.memories = new MemoriesTab(panel('memories'));
     this.conversations = new ConversationsTab(panel('conversations'));
     this.data = new DataTab(panel('data'));
+    this.sensitive = new SensitiveTab(panel('sensitive'));
 
     // Deleting a conversation can remove what was learned from it
     this.conversations.onDeleted = () => this.markMemoriesStale();
     this.data.onWiped = () => {
       this.loaded.delete('memories');
       this.loaded.delete('conversations');
+      this.loaded.delete('sensitive');
     };
 
     const tablist = this.querySelector<HTMLElement>('.memory-tabs');
@@ -151,6 +157,7 @@ class MemoryPanel extends Modal {
 
   private markMemoriesStale(): void {
     this.loaded.delete('memories');
+    this.loaded.delete('sensitive');
   }
 
   private renderSignInPrompt(): void {
@@ -214,6 +221,8 @@ class MemoryPanel extends Modal {
       if (fresh) void this.memories?.load();
     } else if (tab === 'conversations') {
       void this.conversations?.load(fresh);
+    } else if (tab === 'sensitive') {
+      if (fresh) void this.sensitive?.load();
     } else {
       this.data?.render();
     }
