@@ -426,8 +426,17 @@ export async function getTTLStatistics(): Promise<{
   };
 }
 
+/**
+ * The report without per-collection error text, for API responses. The text
+ * stays in the server logs.
+ */
+export function toPublicCleanupReport(report: CleanupReport): CleanupReport {
+  return { ...report, results: report.results.map(({ error: _error, ...rest }) => rest) };
+}
+
 export default {
   runTTLCleanup,
+  toPublicCleanupReport,
   runUserDataCleanup,
   scheduleTTLCleanup,
   scheduledTTLCleanup,

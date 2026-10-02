@@ -453,7 +453,7 @@ export async function handleHealthRoutes(
     }
 
     try {
-      const { runTTLCleanup } = await import('../../../services/data-layer/ttl-cleanup.js');
+      const ttl = await import('../../../services/data-layer/ttl-cleanup.js');
 
       // Parse request body for options
       let body = '';
@@ -470,18 +470,13 @@ export async function handleHealthRoutes(
       }
 
       log.info({ dryRun: options.dryRun }, 'Starting TTL cleanup via API');
-      const result = await runTTLCleanup({
+      const result = await ttl.runTTLCleanup({
         dryRun: options.dryRun,
         collections: options.collections,
       });
 
-      // Per-collection error text stays in the server logs, not the response.
-      const publicResult = {
-        ...result,
-        results: result.results.map(({ error: _error, ...rest }) => rest),
-      };
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(publicResult, null, 2));
+      res.end(JSON.stringify(ttl.toPublicCleanupReport(result), null, 2));
     } catch (err) {
       log.error({ error: (err as Error).message }, 'TTL cleanup error');
       res.writeHead(500, { 'Content-Type': 'application/json' });
