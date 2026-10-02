@@ -41,7 +41,7 @@ interface StoryRecord {
 // HELPERS
 // ============================================================================
 
-function detectResponseType(
+export function detectResponseType(
   content: string
 ): 'story' | 'advice' | 'question' | 'empathy' | 'humor' | 'explanation' {
   const lower = content.toLowerCase();
@@ -72,14 +72,14 @@ function detectResponseType(
   return 'explanation';
 }
 
-function getResponseLength(content: string): 'brief' | 'moderate' | 'lengthy' {
+export function getResponseLength(content: string): 'brief' | 'moderate' | 'lengthy' {
   const wordCount = content.split(/\s+/).length;
   if (wordCount < 30) return 'brief';
   if (wordCount > 100) return 'lengthy';
   return 'moderate';
 }
 
-function getTimeOfDay(): string {
+export function getTimeOfDay(): string {
   const hour = new Date().getHours();
   if (hour < 6) return 'night';
   if (hour < 12) return 'morning';
@@ -88,7 +88,7 @@ function getTimeOfDay(): string {
   return 'night';
 }
 
-function detectStoryReaction(
+export function detectStoryReaction(
   userResponse: string
 ): 'moved' | 'inspired' | 'connected' | 'curious' | 'indifferent' {
   const lower = userResponse.toLowerCase();

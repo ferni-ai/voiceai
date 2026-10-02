@@ -14,6 +14,12 @@ import { inferUserPreferences, getPreferenceGuidance } from '../human-behaviors.
 import { getCommunityInsights } from '../community-insights.js';
 import { getAgentEvolution } from '../agent-evolution.js';
 import {
+  detectResponseType,
+  detectStoryReaction,
+  getResponseLength,
+  getTimeOfDay,
+} from './community-learning.js';
+import {
   extractSmallDetails,
   type SmallDetail,
   type FarewellSummary,
@@ -1180,7 +1186,7 @@ export class UserLearningEngine {
           const topic = this.topicsDiscussed[0] || 'general';
 
           // Analyze response type
-          const responseType = this.detectResponseType(assistantMsg.content);
+          const responseType = detectResponseType(assistantMsg.content);
 
           communityInsights.recordResponseSignal({
             context: {
@@ -1188,7 +1194,7 @@ export class UserLearningEngine {
               topic,
               relationshipStage: 'acquaintance', // Would come from profile
               personaId,
-              timeOfDay: this.getTimeOfDay(),
+              timeOfDay: getTimeOfDay(),
               turnInConversation: i,
             },
             strategy: {
@@ -1198,7 +1204,7 @@ export class UserLearningEngine {
               ),
               hadQuirk: false, // Would need more context
               hadTeamReference: /\b(Maya|Jordan|Alex|Peter|Ferni)\b/.test(assistantMsg.content),
-              responseLength: this.getResponseLength(assistantMsg.content),
+              responseLength: getResponseLength(assistantMsg.content),
             },
             outcome: {
               engagementScore: sessionData.engagementScores[Math.floor(i / 2)] || avgEngagement,
@@ -1252,7 +1258,7 @@ export class UserLearningEngine {
 
         if (storyIndex >= 0 && storyIndex + 1 < this.conversationHistory.length) {
           const userResponse = this.conversationHistory[storyIndex + 1].content;
-          const reaction = this.detectStoryReaction(userResponse);
+          const reaction = detectStoryReaction(userResponse);
 
           communityInsights.recordStoryUsage(
             story.storyId,
@@ -1342,71 +1348,6 @@ export class UserLearningEngine {
     }
 
     return result;
-  }
-
-  // ==========================================================================
-  // HELPERS FOR COMMUNITY CONTRIBUTION
-  // ==========================================================================
-
-  private detectResponseType(
-    content: string
-  ): 'story' | 'advice' | 'question' | 'empathy' | 'humor' | 'explanation' {
-    const lower = content.toLowerCase();
-
-    if (
-      /\b(i remember|when i|back in|years ago|let me tell you|there was a time)\b/.test(lower) &&
-      content.length > 150
-    ) {
-      return 'story';
-    }
-
-    if (/\b(understand|hear you|that must|feel|sorry to hear)\b/.test(lower)) {
-      return 'empathy';
-    }
-
-    if (/\b(should|recommend|suggest|consider|try|important|make sure)\b/.test(lower)) {
-      return 'advice';
-    }
-
-    if (content.includes('?') && content.length < 100) {
-      return 'question';
-    }
-
-    if (/\b(haha|joke|kidding|😄|😂|!.*!)\b/.test(lower)) {
-      return 'humor';
-    }
-
-    return 'explanation';
-  }
-
-  private getResponseLength(content: string): 'brief' | 'moderate' | 'lengthy' {
-    const wordCount = content.split(/\s+/).length;
-    if (wordCount < 30) return 'brief';
-    if (wordCount > 100) return 'lengthy';
-    return 'moderate';
-  }
-
-  private getTimeOfDay(): string {
-    const hour = new Date().getHours();
-    if (hour < 6) return 'night';
-    if (hour < 12) return 'morning';
-    if (hour < 17) return 'afternoon';
-    if (hour < 21) return 'evening';
-    return 'night';
-  }
-
-  private detectStoryReaction(
-    userResponse: string
-  ): 'moved' | 'inspired' | 'connected' | 'curious' | 'indifferent' {
-    const lower = userResponse.toLowerCase();
-
-    if (/\b(wow|amazing|incredible|beautiful|touching)\b/.test(lower)) return 'moved';
-    if (/\b(inspired|motivat|encourage|excit)\b/.test(lower)) return 'inspired';
-    if (/\b(me too|same|i also|i remember when|my|mine)\b/.test(lower)) return 'connected';
-    if (/\b(tell me more|what happened|then what|how did)\b/.test(lower) || lower.includes('?'))
-      return 'curious';
-
-    return 'indifferent';
   }
 
   /**
