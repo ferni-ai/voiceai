@@ -113,6 +113,10 @@ jobs:
   codeql:
     name: CodeQL Analysis
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # The analyze action reads this workflow run; the default token is read-only.
+    permissions:
+      actions: read
+      contents: read
 
     steps:
       - name: Checkout
@@ -131,6 +135,34 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:javascript-typescript"
+          # Code scanning (GitHub Advanced Security) is disabled for this private
+          # repo, so uploading results fails. Keep them as a run artifact instead.
+          upload: never
+          output: codeql-results
+
+      - name: Summarize CodeQL results
+        if: always()
+        run: |
+          shopt -s nullglob
+          files=(codeql-results/*.sarif)
+          if [ ${#files[@]} -eq 0 ]; then echo "No SARIF produced." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          node -e '
+            const fs = require("fs");
+            const results = process.argv.slice(1).flatMap((f) => JSON.parse(fs.readFileSync(f, "utf8")).runs.flatMap((r) => r.results ?? []));
+            const by = {};
+            for (const r of results) by[r.level ?? "warning"] = (by[r.level ?? "warning"] ?? 0) + 1;
+            const line = `CodeQL: ${results.length} results (` + Object.entries(by).map(([k, v]) => `${k}: ${v}`).join(", ") + `). Full SARIF is in the codeql-results artifact.`;
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, line + "\n");
+            console.log(line);
+          ' "${files[@]}"
+
+      - name: Upload CodeQL results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-results
+          path: codeql-results/
+          if-no-files-found: ignore
 
   # Secret scanning (check for accidentally committed secrets)
   secret-scan:
