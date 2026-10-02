@@ -212,6 +212,10 @@ Also built in:
   profiles, threads and predictions; `deleteForFacts` recomputes once.
 - **preferences** (`services/user-preferences`): export, conversation and fact
   provenance removal, delete-all, and voice forget ("forget that I hate cilantro").
+- **work** and **places** (`services/work-and-places`): export (one section
+  each), conversation and fact provenance removal, delete-all, voice forget
+  ("forget my Lisbon trip", "forget that I work at Acme"). See
+  [Work & places](#work--places).
 
 `GET /api/memory/me` people keep their `dynamic_entities` IDs (what delete
 uses) and gain `kind` (`person`/`pet`), `memorial`, and profile notes from
@@ -495,6 +499,102 @@ Errors: 400 invalid body/details, 401 no identity, 404 not found / not yours, 40
   conversation provenance and are unaffected.
 - `deletePreferencesDerivedFromFact(userId, factId)` — same rule for fact provenance.
 - `deleteAllPreferences(userId)` — wipes the profile (account-level delete-all).
+
+## Work & places
+
+Ferni keeps the story of the user's work and career and the places in their
+life, including history ("you used to be at Acme", "before Denver you lived
+in Berlin").
+
+### Storage
+
+| Path                                       | What                                                                                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bogle_users/{uid}/work_memory/{id}`       | `job` (current/past, role, team, earlier roles), `project`, `win`, `stress`, `goal`, `event` (interview, review, presentation, deadline), `application` |
+| `bogle_users/{uid}/place_memory/{id}`      | `home` (current/past = places lived), `trip` (planned/done, companions), `favorite`, `meaningful` ("where you got engaged"), `bucket_list`              |
+| `bogle_users/{uid}/memory_tombstones/{id}` | `{ reason, kind: 'work' \| 'place', key }`, written on delete                                                                                           |
+
+`id = work_|place_` + hash of the area and a normalised key (`job:acme`,
+`home:denver`, `trip:lisbon:2026`), so re-learning updates one document.
+Every item carries `sourceConversationIds`, `sourceFactIds` (when derived from
+a fact), `source` (`stated` = the user's words, `inferred` = summary/fact,
+`user` = page/tool), `userEdited`, dates as `YYYY-MM` or `YYYY-MM-DD`.
+
+Rules:
+
+- **History, not overwrite.** News of a new current job (or home) moves the
+  previous current one to `past` with an end month. A second job ("I also
+  work at...") does not. A role known before the employer is folded into the
+  job once the employer is known. A promotion keeps the old role in
+  `previousRoles`.
+- **The user's word wins.** Capture never changes a user-edited item (it only
+  adds provenance) and never moves a user-edited current job to the past.
+  `stated` beats `inferred`; inferred input only fills gaps.
+- **Deleted stays deleted.** Deletes tombstone the id; capture skips it. The
+  user adding it again on the page clears the tombstone.
+- **Consent.** If a memory-consent service (`services/memory-consent`) exists
+  and the user turned the `work` or `places` category off, capture stores
+  nothing there (a failing check counts as off).
+
+### Capture
+
+- Per user turn: `recordUserTurnWorkAndPlaces` (voice transcript handler,
+  next to the preference capture). Conservative patterns: proper names must be
+  capitalised; errands ("going to Target") are not trips; negations are skipped.
+- After each summarized conversation (`conversation-summarized-hooks.ts`):
+  user turns, the summary (third person, `inferred`), the conversation's
+  `dynamic_facts` about the user with work/place keys (extraction is asked for
+  `employer`, `job_title`, `team`, `previous_employer`, `lives_in`, `hometown`,
+  `lived_in`, `trip_planned`, `trip_taken`, `favorite_*`, `bucket_list`,
+  `engaged_in`, `married_in`, `met_in`; those facts get the `work` / `places`
+  categories on the page) and `dynamic_entities` places whose attributes say
+  how the user relates to them (their entity id is stored as `entityId`).
+- Tools: `planTrip` records a planned trip (and `getSavedTrips` lists
+  remembered trips across sessions); `trackJobApplication` records applications.
+
+### How Ferni uses it
+
+- **Session start:** a "Their Work & Places" block (650 chars max,
+  `loadWorkAndPlacesBlock`, 400 ms timeout) in `agent-setup.ts`: what's coming
+  up (trips, interviews), what just happened ("just back from Rome - ask how it
+  went"), active projects, recent stress and wins, current job (with "used to
+  be at"), home, places that matter, dream destinations. The persona brings one
+  up when it fits and never lists them.
+- **Reminders and prediction:** a planned trip or work event pinned to a day
+  becomes an important date (`kind: 'event'`/`'deadline'`, `subtype: 'trip'` /
+  `'career'`), so it is reminded like any date and shows up in personal
+  insights' upcoming dates and topic prediction. Deleting the item deletes the
+  date; a changed day replaces it. Month-only trips ("in March") are not reminded.
+- **People:** colleagues are not duplicated. The work view lists people from
+  the people model with `group: 'work'`, and trip companions are linked to
+  people by name (`withPeople[].personId`).
+
+### API
+
+All routes use `requestUserId(req)`; ids are looked up in the caller's own
+subcollection, so another user's id is a 404. No identity: 401.
+
+| Method | Path                              | Body                                                                                                                    | Response                                                          |
+| ------ | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| GET    | `/api/memory/me/work`             | –                                                                                                                       | `{ items, colleagues: { id, name, relationship? }[], updatedAt }` |
+| GET    | `/api/memory/me/places`           | –                                                                                                                       | `{ items, updatedAt }`                                            |
+| POST   | `/api/memory/me/work\|places`     | `{ kind, title, status?, employer?, role?, team?, place?, category?, meaning?, startDate?, endDate?, notes? }`          | `201 { item }` (the user's; never ends the current job)           |
+| PATCH  | `/api/memory/me/work\|places/:id` | any of `{ title, status, employer, role, team, place, meaning, startDate, endDate, notes }` (`null` clears dates/notes) | `{ item }` (`userEdited: true`)                                   |
+| DELETE | `/api/memory/me/work\|places/:id` | –                                                                                                                       | `{ deleted: true }` (tombstoned, reminder removed)                |
+
+Items come back with their status as of today (a planned trip whose dates
+passed reads `done`). Errors: 400 invalid body / kind for the area / date,
+401, 404, 405, 503 storage.
+
+The memory page has a **Work & places** tab (`apps/web/src/ui/memory-control/work-places-tab.ts`).
+
+### Export and cascades
+
+Registered as two memory domains, `work` and `places`: export
+(`{ items, exportedAt }` each), conversation delete (drop the conversation;
+an automated item left with no conversation or fact is deleted and
+tombstoned, user items stay), fact delete/correction (same rule for
+`sourceFactIds`), delete-all and account erasure, voice forget.
 
 ## Known limits
 
