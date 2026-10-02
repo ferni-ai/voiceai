@@ -14,8 +14,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 
 // Session types
 import type { ConversationTurn } from '../../memory/index.js';
-import type { HumanizingStateUpdate } from '../humanizing-state.js';
-import type { GlobalServices, SessionServices } from '../types.js';
+import type { SessionServices } from '../types.js';
+import type { EndSessionOptions, FinalizeUserSessionOptions } from './end-session.types.js';
 
 // Summarization module
 import {
@@ -68,39 +68,8 @@ import { analyzeConversationForPatterns } from '../automation/pattern-reinforcem
 
 const log = getLogger();
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-/**
- * Options for ending a session
- */
-export interface EndSessionOptions {
-  sessionId: string;
-  userId: string | undefined;
-  validatedUserId: string | undefined;
-  personaId: string | undefined;
-  realtimeConversationId: string | undefined;
-  sessionStartTime: number;
-  services: SessionServices;
-  global: GlobalServices;
-  humanizingStateUpdates: HumanizingStateUpdate[];
-  activeSessions: Map<string, SessionServices>;
-}
-
-/**
- * Options for finalizing a user session
- */
-interface FinalizeUserSessionOptions {
-  sessionId: string;
-  validatedUserId: string;
-  personaId: string | undefined;
-  sessionStartTime: number;
-  services: SessionServices;
-  global: GlobalServices;
-  humanizingStateUpdates: HumanizingStateUpdate[];
-  realtimeConversationId: string | undefined;
-}
+// Types live in end-session.types.ts; re-exported for existing importers.
+export type { EndSessionOptions };
 
 // ============================================================================
 // MAIN ENTRY POINT
