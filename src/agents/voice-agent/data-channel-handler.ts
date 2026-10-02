@@ -1279,7 +1279,16 @@ async function handleActionResponse(
  *   timestamp: number
  * }
  */
-async function handleDevModeSync(
+/**
+ * Whether this deployment trusts the browser's dev_mode_sync. Off unless
+ * ALLOW_CLIENT_DEV_MODE=true: NODE_ENV can't tell dev from prod here, both
+ * agents run the production image.
+ */
+export function clientDevModeAllowed(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env['ALLOW_CLIENT_DEV_MODE'] === 'true';
+}
+
+export async function handleDevModeSync(
   message: {
     enabled: boolean;
     bypassUnlocks?: boolean;
@@ -1289,6 +1298,14 @@ async function handleDevModeSync(
   ctx: DataChannelContext
 ): Promise<void> {
   const { services, sessionId, room } = ctx;
+
+  // The caller's browser writes this message, so anyone could send it from
+  // devtools and unlock every team member they haven't paid for. Honour it
+  // only on a deployment that opts in (the dev agent).
+  if (!clientDevModeAllowed()) {
+    getLogger().warn({ sessionId }, 'Ignored dev_mode_sync: ALLOW_CLIENT_DEV_MODE is not set');
+    return;
+  }
 
   getLogger().info(
     {
