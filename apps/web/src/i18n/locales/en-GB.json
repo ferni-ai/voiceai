@@ -639,7 +639,7 @@
     "howMetLabel": "How did you meet?",
     "howMetPlaceholder": "e.g., College roommate, Met at work",
     "nameLabel": "Their name",
-    "namePlaceholder": "e.g., Mom, Sarah Chen, Dr. Rivera",
+    "namePlaceholder": "e.g., Mum, Sarah Chen, Dr. Rivera",
     "notesLabel": "Notes",
     "notesPlaceholder": "Anything else to remember...",
     "phoneLabel": "Phone",
@@ -868,7 +868,7 @@
     },
     "noGoals": {
       "action": "Set a goal",
-      "message": "Setting goals isn't about pressure—it's about pointing toward what you care about.",
+      "message": "Setting goals isn't about pressure—it's about pointing towards what you care about.",
       "title": "What matters to you?"
     },
     "noHistory": {
@@ -1398,7 +1398,7 @@
         "title": "Partners for life"
       },
       "established": {
-        "message": "I'm honored to be your guide. Through thick and thin, I'm here.",
+        "message": "I'm honoured to be your guide. Through thick and thin, I'm here.",
         "title": "You have a Life Coach now"
       },
       "gettingStarted": {
@@ -1424,7 +1424,7 @@
     "gardeners": "{count} gardeners",
     "howSeedsWork": {
       "earn": "Earn seeds by chatting daily and hitting streak milestones",
-      "grow": "Features with more seeds get prioritized",
+      "grow": "Features with more seeds get prioritised",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
       "title": "How Seeds Work"
@@ -3110,7 +3110,7 @@
       "loading": "Gathering your goals and habits...",
       "loadError": "I couldn't reach your goals just now.",
       "emptyTitle": "No goals or habits yet",
-      "emptyBody": "Tell me what you're working toward, a habit you're building or a someday dream, and it'll show up here.",
+      "emptyBody": "Tell me what you're working towards, a habit you're building or a someday dream, and it'll show up here.",
       "habits": "Habits",
       "goalsHeading": "Goals",
       "dreams": "Dreams",
@@ -3168,7 +3168,7 @@
       "safety": "I always keep your allergies and food intolerances, even with Health off, so I never suggest something unsafe.",
       "keptNow": "Kept now: {items}",
       "title": "Sensitive things",
-      "intro": "Some things are more personal: your health, your money, and what you believe. I only remember those if you say yes, and you can switch each one off anytime.",
+      "intro": "Some things are more personal: your health, your money, and what you believe. I only remember those if you say yes, and you can switch each one off any time.",
       "agree": "Yes, remember these",
       "decline": "Not now",
       "kind": {
