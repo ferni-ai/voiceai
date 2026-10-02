@@ -2554,7 +2554,9 @@
       "subtitle": "Appels, messages et engagements tenus",
       "recent": "Récent",
       "empty": "Demande-moi d'appeler quelqu'un ou d'envoyer un message !"
-    }
+    },
+    "i": "[NEEDS_TRANSLATION] I\\",
+    "noOpenLoopsDetected": "[NEEDS_TRANSLATION] No open loops detected. You\\"
   },
   "sleepSettings": {
     "title": "Horaires de sommeil",
@@ -3209,7 +3211,10 @@
         "health": "ta santé et ton humeur",
         "finances": "ton argent",
         "beliefs": "ta foi et tes croyances"
-      }
+      },
+      "reask": "I've updated how I explain this. Your switches below stay as they are.",
+      "keep": "Keep my choices",
+      "kept": "Got it. Nothing changed."
     },
     "sensitiveTab": "Sensible",
     "deleteConfirmWord": "SUPPRIMER"

@@ -3211,7 +3211,10 @@
         "health": "건강과 기분",
         "finances": "돈",
         "beliefs": "신앙과 신념"
-      }
+      },
+      "reask": "I've updated how I explain this. Your switches below stay as they are.",
+      "keep": "Keep my choices",
+      "kept": "Got it. Nothing changed."
     },
     "sensitiveTab": "민감한 정보",
     "deleteConfirmWord": "삭제"

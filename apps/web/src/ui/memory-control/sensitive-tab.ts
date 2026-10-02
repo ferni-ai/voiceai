@@ -19,6 +19,7 @@ import {
   getConsent,
   getHealth,
   getMood,
+  keepConsentChoices,
   setCategory,
   type ConsentView,
   type HealthSnapshot,
@@ -111,6 +112,9 @@ export class SensitiveTab {
       case 'decline-all':
         await this.answer(false);
         break;
+      case 'keep-choices':
+        await this.keepChoices();
+        break;
       case 'toggle-category':
         if (category) await this.toggle(category);
         break;
@@ -152,6 +156,21 @@ export class SensitiveTab {
         ? t('memoryControl.sensitive.agreed', 'Thank you. I’ll keep these close.')
         : t('memoryControl.sensitive.declined', "Okay. I won't remember those.")
     );
+    this.focus('[data-action="toggle-category"]');
+  }
+
+  private async keepChoices(): Promise<void> {
+    if (this.busy) return;
+    this.busy = true;
+    const result = await keepConsentChoices();
+    this.busy = false;
+    if (!result.ok) {
+      toast.error(t('memoryControl.saveError', "Couldn't save that. Try again?"));
+      return;
+    }
+    this.consent = result.value;
+    this.render();
+    toast.success(t('memoryControl.sensitive.kept', 'Got it. Nothing changed.'));
     this.focus('[data-action="toggle-category"]');
   }
 

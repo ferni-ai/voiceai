@@ -3211,7 +3211,10 @@
         "health": "健康与情绪",
         "finances": "金钱",
         "beliefs": "信仰与信念"
-      }
+      },
+      "reask": "I've updated how I explain this. Your switches below stay as they are.",
+      "keep": "Keep my choices",
+      "kept": "Got it. Nothing changed."
     },
     "sensitiveTab": "敏感信息",
     "deleteConfirmWord": "删除"

@@ -2554,7 +2554,9 @@
       "subtitle": "مكالمات ورسائل والتزامات وفيت بها",
       "recent": "الأحدث",
       "empty": "اطلب مني الاتصال بشخص ما أو إرسال رسالة!"
-    }
+    },
+    "i": "[NEEDS_TRANSLATION] I\\",
+    "noOpenLoopsDetected": "[NEEDS_TRANSLATION] No open loops detected. You\\"
   },
   "sleepSettings": {
     "title": "جدول النوم",
@@ -3209,7 +3211,10 @@
         "health": "الصحة والمزاج",
         "finances": "المال",
         "beliefs": "الإيمان والمعتقدات"
-      }
+      },
+      "reask": "I've updated how I explain this. Your switches below stay as they are.",
+      "keep": "Keep my choices",
+      "kept": "Got it. Nothing changed."
     },
     "sensitiveTab": "حساس",
     "deleteConfirmWord": "حذف"

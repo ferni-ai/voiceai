@@ -3211,7 +3211,10 @@
         "health": "健康與情緒",
         "finances": "金錢",
         "beliefs": "信仰與信念"
-      }
+      },
+      "reask": "I've updated how I explain this. Your switches below stay as they are.",
+      "keep": "Keep my choices",
+      "kept": "Got it. Nothing changed."
     },
     "sensitiveTab": "敏感資訊",
     "deleteConfirmWord": "刪除"

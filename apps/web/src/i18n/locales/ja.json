@@ -3211,7 +3211,10 @@
         "health": "健康と気分",
         "finances": "お金",
         "beliefs": "信仰と信念"
-      }
+      },
+      "reask": "I've updated how I explain this. Your switches below stay as they are.",
+      "keep": "Keep my choices",
+      "kept": "Got it. Nothing changed."
     },
     "sensitiveTab": "センシティブ",
     "deleteConfirmWord": "削除"

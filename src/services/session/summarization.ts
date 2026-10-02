@@ -24,6 +24,18 @@ const log = getLogger();
 
 export type ConversationSummary = Awaited<ReturnType<typeof summarizeConversation>>;
 
+/**
+ * Tie a session-end summary to its realtime conversation, so conversation
+ * delete finds it and recall can cite it (the voice sessionId differs from
+ * the conversation id). Unchanged when there's no conversation id.
+ */
+export function withConversationId<T extends { conversationId?: string }>(
+  summary: T,
+  conversationId: string | undefined
+): T {
+  return conversationId ? { ...summary, conversationId } : summary;
+}
+
 // ============================================================================
 // SUMMARIZATION
 // ============================================================================
@@ -146,6 +158,7 @@ export async function indexSummaryForRetrieval(
       topics: summary.mainTopics,
       timestamp: summary.timestamp,
       embedding: summary.embedding,
+      ...(summary.conversationId ? { conversationId: summary.conversationId } : {}),
     });
 
     log.info('Indexed conversation for future retrieval');

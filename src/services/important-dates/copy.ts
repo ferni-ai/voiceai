@@ -96,3 +96,13 @@ export function sessionLine(
   const gentle = isMemorial(record) ? ' — sensitive; go gently, follow their lead' : '';
   return `${capitalize(record.title)}${years}: ${when}${gentle}`;
 }
+
+/**
+ * A habit check-in nudge, like "Evening walk? You're on a 4-day streak."
+ * Short and warm; never guilt-trippy.
+ */
+export function habitNudgeMessage(title: string, streak = 0): string {
+  const t = capitalize(title.trim());
+  if (streak >= 2) return `${t}? You're on a ${streak}-day streak. Keep it going?`;
+  return `Gentle nudge: ${t}. Got a few minutes for it today?`;
+}
