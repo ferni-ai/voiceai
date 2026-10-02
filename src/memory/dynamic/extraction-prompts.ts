@@ -33,6 +33,11 @@ Only extract facts explicitly stated or strongly implied by the USER. Be conserv
 Never record something only the assistant said as a fact about the user.
 Use "user" as entityName for facts about the speaker themself.
 Use short, stable snake_case keys (e.g. "breed", "lives_in", "job_title", "likes").
+For the user's work and places, use these keys so history can be kept:
+- work: "employer", "job_title", "team", "previous_employer"
+- places: "lives_in", "hometown", "lived_in", "trip_planned", "trip_taken",
+  "favorite_restaurant", "favorite_cafe", "favorite_place", "bucket_list", "engaged_in", "married_in", "met_in"
+  (put trip dates in temporalContext).
 
 Return JSON array with: entityName, factType, key, value, confidence, temporalContext.`;
 
