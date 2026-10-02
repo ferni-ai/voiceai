@@ -483,11 +483,8 @@ export async function identifyFromMetadata(
 // ============================================================================
 
 /**
- * Link a phone number to an existing user profile
- * Allows Jack to recognize you whether you call or use web
- *
- * Every later call from this number lands in this profile, so only call this
- * after the user has proven they can receive texts or calls at the number.
+ * Link a phone number to a profile: later calls from it land in this profile,
+ * so call only after the user proves they can receive texts or calls there.
  */
 export async function linkPhoneToProfile(userId: string, phoneNumber: string): Promise<boolean> {
   const normalized = normalizePhoneNumber(phoneNumber);
@@ -698,12 +695,8 @@ export async function findProfileByLinkedPhone(
 }
 
 /**
- * Merge a phone user into an existing web account.
- * Transfers conversation history and memories.
- *
- * Afterwards calls from the phone reach the web account's memory, so only
- * call this after the caller has proven they own webAccountId (for example a
- * verified sign-in), never on a match by name, email or phone alone.
+ * Merge a phone user (history, memories) into a web account. Call only after
+ * the caller proves they own webAccountId, never on a name/email/phone match.
  */
 export async function mergePhoneToWebAccount(
   phoneUserId: string,
