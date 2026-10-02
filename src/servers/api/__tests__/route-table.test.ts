@@ -695,6 +695,9 @@ vi.mock('../../../api/visual-storytelling-routes.js', () => ({
     'api/visual-storytelling-routes#handleVisualStorytellingRoutes'
   ),
 }));
+vi.mock('../../../api/memory-control-routes.js', () => ({
+  handleMemoryControlRoutes: h.auto('api/memory-control-routes#handleMemoryControlRoutes'),
+}));
 vi.mock('../../../api/memory-routes.js', () => ({
   handleMemoryRoutes: h.auto('api/memory-routes#handleMemoryRoutes'),
 }));
@@ -863,6 +866,8 @@ const ROUTE_PREFIXES = [
   '/api/practice-view',
   '/api/trust/',
   '/api/semantic-intelligence',
+  '/api/memory/me',
+  '/api/memory/me/',
   '/api/memory',
   '/api/actions',
   '/api/relationship/progress',
