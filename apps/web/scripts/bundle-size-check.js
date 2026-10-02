@@ -2,15 +2,15 @@
 /**
  * Bundle Size Check
  *
- * The same check CI runs (.github/workflows/performance-budget.yml): gzipped
- * JavaScript in dist/, total (counting en-US plus one other locale, since
- * locale chunks load on demand) and largest file, against the budgets set in that
- * workflow's env (MAX_BUNDLE_SIZE_KB, MAX_CHUNK_SIZE_KB), which stay the single
- * source of truth. Run after build: node scripts/bundle-size-check.js
+ * Gzipped JavaScript in dist/, against absolute budgets: the total a visitor
+ * can download (code plus en-US and at most one other locale, since locale
+ * chunks load on demand) and the largest single file. CI's bundle job is the
+ * no-growth ratchet (apps/cli/src/commands/quality/ratchet.ts --bundle); this
+ * is the local absolute check. Run after build: node scripts/bundle-size-check.js
  *
  * Exit codes:
  *   0 - Within budget
- *   1 - Over budget, or dist/ or the budgets are missing
+ *   1 - Over budget, or dist/ is missing
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
@@ -20,15 +20,11 @@ import { gzipSync } from 'zlib';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = join(__dirname, '..', 'dist');
-const WORKFLOW = join(__dirname, '..', '..', '..', '.github', 'workflows', 'performance-budget.yml');
+/** Budgets in gzipped KB; MAX_BUNDLE_SIZE_KB / MAX_CHUNK_SIZE_KB override. */
+const BUDGETS = { MAX_BUNDLE_SIZE_KB: 1780, MAX_CHUNK_SIZE_KB: 540 };
 
-/** Read `NAME: <number>` from the workflow's env block. */
 function readBudget(name) {
-  const fromEnv = process.env[name];
-  if (fromEnv) return Number(fromEnv);
-  const match = readFileSync(WORKFLOW, 'utf8').match(new RegExp(`^\\s*${name}:\\s*(\\d+)\\s*$`, 'm'));
-  if (!match) throw new Error(`${name} not found in ${relative(process.cwd(), WORKFLOW)}`);
-  return Number(match[1]);
+  return Number(process.env[name] ?? BUDGETS[name]);
 }
 
 function* jsFiles(dir) {

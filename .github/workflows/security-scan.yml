@@ -18,12 +18,15 @@ on:
 permissions:
   contents: read
   security-events: write
+  # CodeQL reads its own workflow run when uploading results; without this the
+  # upload failed with "Resource not accessible by integration".
+  actions: read
 
 jobs:
   # Dependency vulnerability scan
   dependency-audit:
     name: Dependency Audit
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
 
     steps:
       - name: Checkout
@@ -109,7 +112,7 @@ jobs:
   # CodeQL static analysis
   codeql:
     name: CodeQL Analysis
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     # Job-level permissions replace the workflow's, so repeat them.
     # actions: read lets the analyze step look up this workflow run (required
     # on private repos; without it the upload fails with "Resource not
@@ -140,7 +143,7 @@ jobs:
   # Secret scanning (check for accidentally committed secrets)
   secret-scan:
     name: Secret Scan
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
 
     steps:
       - name: Checkout

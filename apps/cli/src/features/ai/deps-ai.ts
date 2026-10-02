@@ -7,15 +7,15 @@
  * @module @ferni/cli/deps-ai
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync, spawnSync } from 'child_process';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import * as readline from 'readline';
-import { resolveProjectRoot } from '../../services/project-root.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = resolveProjectRoot(import.meta.url);
+const PROJECT_ROOT = findProjectRoot();
 
 // Colors
 const colors = {

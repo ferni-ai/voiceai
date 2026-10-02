@@ -7,14 +7,14 @@
  * @module @ferni/cli/ai-review
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { resolveProjectRoot } from '../../services/project-root.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = resolveProjectRoot(import.meta.url);
+const PROJECT_ROOT = findProjectRoot();
 
 // =============================================================================
 // COLORS

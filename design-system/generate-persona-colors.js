@@ -11,6 +11,7 @@
  */
 
 import fs from 'fs';
+import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildStamp } from './build/build-stamp.js';
@@ -142,7 +143,7 @@ function build() {
   const tsContent = generatePersonaColorsTS(personas, agentBrandPresets);
 
   // Write output
-  fs.writeFileSync(CONFIG.outputFile, tsContent);
+  writeIfChanged(CONFIG.outputFile, tsContent);
   console.log(`  ✅ Generated: ${CONFIG.outputFile}`);
 
   console.log('\n✅ Persona colors generation complete!\n');

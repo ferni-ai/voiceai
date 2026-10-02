@@ -19,16 +19,16 @@
  *   Type a message to send as text instead of voice
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { config as dotenvConfig } from 'dotenv';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import * as readline from 'readline';
 import { spawn, execSync, ChildProcess } from 'child_process';
 import { existsSync, mkdirSync, writeFileSync, readFileSync, unlinkSync } from 'fs';
-import { resolveProjectRoot } from '../../services/project-root.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = resolveProjectRoot(import.meta.url);
+const PROJECT_ROOT = findProjectRoot();
 
 // Load environment
 dotenvConfig({ path: join(PROJECT_ROOT, '.env') });

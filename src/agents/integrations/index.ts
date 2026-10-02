@@ -42,19 +42,6 @@ export {
   type TurnPredictionEvent,
 } from './speech-metrics-integration.js';
 
-// Dynamic Speed Integration
-export {
-  applyDynamicSpeed,
-  calculatePersonaAdjustedSpeed,
-  cleanupDynamicSpeed,
-  getPersonaBaseSpeed,
-  getPersonaSpeedProfile,
-  getSessionSpeedTrend,
-  type DynamicSpeedOptions,
-  type PersonaSpeedProfile,
-  type SpeedAdjustedText,
-} from './dynamic-speed-integration.js';
-
 // Re-export voice humanization integration
 export {
   quickSetupVoiceHumanization,

@@ -11,6 +11,7 @@
  */
 
 import fs from 'fs';
+import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildStamp } from './build/build-stamp.js';
@@ -813,7 +814,7 @@ function build() {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(outputFile, content);
+    writeIfChanged(outputFile, content);
     console.log(`  ✅ Generated: ${outputFile}`);
   }
 

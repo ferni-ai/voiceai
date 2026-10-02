@@ -11,6 +11,7 @@
  */
 
 import fs from 'fs';
+import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildStamp } from './build/build-stamp.js';
@@ -5497,7 +5498,7 @@ function build() {
   }
 
   const outputPath = path.join(outputDir, 'tokens.css');
-  fs.writeFileSync(outputPath, output.join('\n'));
+  writeIfChanged(outputPath, output.join('\n'));
   console.log(`✅ Generated: ${outputPath}`);
 
   // Also generate TypeScript types
@@ -6486,7 +6487,7 @@ export function getPersonalization(
 `;
 
   const tsPath = path.join(__dirname, 'dist/tokens.ts');
-  fs.writeFileSync(tsPath, ts);
+  writeIfChanged(tsPath, ts);
   console.log(`✅ Generated: ${tsPath}`);
 
   // Also generate adaptive theming module
@@ -6980,7 +6981,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     fs.mkdirSync(webConfigDir, { recursive: true });
   }
   const adaptivePath = path.join(webConfigDir, 'adaptive-theming.generated.ts');
-  fs.writeFileSync(adaptivePath, adaptiveTs);
+  writeIfChanged(adaptivePath, adaptiveTs);
   console.log('✅ Generated: ' + adaptivePath);
 }
 
@@ -7112,7 +7113,7 @@ export default ${JSON.stringify(config, null, 2)};
 `;
 
   const configPath = path.join(__dirname, 'dist/tailwind.config.js');
-  fs.writeFileSync(configPath, configStr);
+  writeIfChanged(configPath, configStr);
   console.log(`✅ Generated: ${configPath}`);
 }
 
@@ -7343,7 +7344,7 @@ function validateAccessibility(strict = false) {
 
   // Write report to file
   const reportPath = path.join(__dirname, 'dist/accessibility-report.json');
-  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+  writeIfChanged(reportPath, JSON.stringify(report, null, 2));
   console.log(`\n📄 Full report saved to: ${reportPath}`);
 
   if (errors.length === 0) {
@@ -7437,7 +7438,7 @@ export const PROHIBITED_TEXT_COLORS = [
 `;
 
   const rulesPath = path.join(__dirname, 'dist/a11y-lint-rules.ts');
-  fs.writeFileSync(rulesPath, rules);
+  writeIfChanged(rulesPath, rules);
   console.log(`✅ Generated: ${rulesPath}`);
 }
 

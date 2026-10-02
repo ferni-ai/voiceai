@@ -1,15 +1,14 @@
 /**
  * Crisis Guard - Hard Safety Rails
  *
- * This module provides HARD safety rails that CANNOT be bypassed.
- * It runs BEFORE and AFTER LLM responses to ensure:
+ * Runs on the caller's words BEFORE the LLM (see turn-processor/process-turn.ts):
  *
- * 1. Crisis indicators always trigger appropriate response
- * 2. Dismissive language is blocked during distress
- * 3. Resources are always provided when needed
- * 4. User safety is never compromised
+ * 1. detectCrisis scores explicit and implicit crisis indicators, plus voice distress
+ * 2. guardPreResponse replaces the reply with a pre-written one that includes
+ *    988 resources when severity >= 0.85
  *
- * These guards are NOT suggestions - they are enforced.
+ * Below that threshold the crisis result reaches the LLM as injected context;
+ * nothing inspects or rewrites the reply after it is generated.
  *
  * @module CrisisGuard
  */
@@ -28,21 +27,11 @@ export interface VoiceEmotionContext {
   confidence?: number;
 }
 
-export interface CrisisGuardContext {
-  crisisDetected: boolean;
-  crisisSeverity: number;
-  emotionalMismatch: boolean;
-  voiceEmotion?: VoiceEmotionContext;
-  isHighDistress: boolean;
-}
-
 export interface CrisisGuardResult {
   /** If true, block the response entirely and use replacement */
   shouldBlock: boolean;
   /** Reason for blocking (for logging) */
   reason?: string;
-  /** Additions that MUST be appended to response */
-  requiredAdditions?: string[];
   /** Complete replacement response (if shouldBlock is true) */
   replacementResponse?: string;
   /** Detected crisis severity (0-1) */
@@ -107,25 +96,6 @@ const IMPLICIT_DISTRESS_PATTERNS = [
   /there's no (hope|point)/i,
   /what's (even )?the point/i,
   /\bwant (it|this|everything|the pain) to (stop|end) (for good|forever)\b/i,
-];
-
-/** Dismissive response patterns - NEVER use during distress */
-const DISMISSIVE_PATTERNS = [
-  /just (relax|calm down|breathe|chill)/i,
-  /don't (worry|stress|overthink)/i,
-  /you('ll| will) be (fine|okay|alright)/i,
-  /it's (not|no) (that )?big (of a )?deal/i,
-  /everyone (feels|goes through|experiences) (this|that)/i,
-  /things (will|could) be worse/i,
-  /look on the bright side/i,
-  /at least (you have|you're|it's)/i,
-  /have you tried (not|just)/i,
-  /you (just )?need to (be more )?positive/i,
-  /cheer up/i,
-  /snap out of it/i,
-  /it('s| is) (all )?in your head/i,
-  /you're (over)?reacting/i,
-  /that's (not|nothing) (to|worth) (worry|stress)/i,
 ];
 
 /** Patterns that indicate high distress from voice */
@@ -268,139 +238,10 @@ export function guardPreResponse(
 }
 
 // ============================================================================
-// POST-RESPONSE GUARD
-// ============================================================================
-
-/**
- * Guard that runs AFTER LLM generates response
- *
- * Ensures response doesn't contain dismissive language during distress.
- * Ensures crisis resources are included when needed.
- */
-export function guardPostResponse(
-  response: string,
-  context: CrisisGuardContext
-): CrisisGuardResult {
-  const result: CrisisGuardResult = {
-    shouldBlock: false,
-    crisisSeverity: context.crisisSeverity,
-    isCrisis: context.crisisDetected,
-  };
-
-  const lowerResponse = response.toLowerCase();
-
-  // 1. If crisis detected, ensure resources are mentioned
-  if (context.crisisDetected) {
-    const hasResources = lowerResponse.includes('988') || lowerResponse.includes('crisis line');
-
-    if (!hasResources) {
-      result.requiredAdditions = result.requiredAdditions || [];
-      result.requiredAdditions.push(
-        "\n\nIf you're in crisis, please reach out to the 988 Suicide & Crisis Lifeline (call or text 988) - they're available 24/7."
-      );
-
-      log.info('Adding crisis resources to response');
-    }
-  }
-
-  // 2. Block dismissive patterns during high distress
-  if (context.isHighDistress || context.emotionalMismatch) {
-    for (const pattern of DISMISSIVE_PATTERNS) {
-      if (pattern.test(lowerResponse)) {
-        result.shouldBlock = true;
-        result.reason = `Response contains dismissive pattern during distress: ${pattern.source}`;
-
-        log.warn({ pattern: pattern.source }, '🚫 Blocking dismissive response');
-
-        return result;
-      }
-    }
-  }
-
-  // 3. If emotional mismatch detected, ensure response acknowledges
-  if (context.emotionalMismatch) {
-    const acknowledgmentPatterns = [/hear|notice|sense|feel|seem/i, /what.*(really|actually)/i];
-
-    const hasAcknowledgment = acknowledgmentPatterns.some((p) => p.test(lowerResponse));
-
-    if (!hasAcknowledgment) {
-      // Don't block, but add acknowledgment
-      result.requiredAdditions = result.requiredAdditions || [];
-      result.requiredAdditions.unshift(
-        "I notice something in your voice that doesn't quite match your words. "
-      );
-
-      log.debug('Adding emotional mismatch acknowledgment');
-    }
-  }
-
-  return result;
-}
-
-// ============================================================================
-// HELPER: Build Context
-// ============================================================================
-
-/**
- * Build crisis guard context from available data
- */
-export function buildCrisisGuardContext(
-  crisisResult: CrisisDetectionResult,
-  voiceEmotion?: VoiceEmotionContext,
-  emotionalMismatch?: boolean
-): CrisisGuardContext {
-  const isHighDistress =
-    crisisResult.isCrisis ||
-    (voiceEmotion &&
-      HIGH_DISTRESS_VOICE_EMOTIONS.includes(voiceEmotion.primary) &&
-      voiceEmotion.intensity > 0.7);
-
-  return {
-    crisisDetected: crisisResult.isCrisis,
-    crisisSeverity: crisisResult.severity,
-    emotionalMismatch: emotionalMismatch ?? false,
-    voiceEmotion,
-    isHighDistress: isHighDistress ?? false,
-  };
-}
-
-// ============================================================================
-// HELPER: Apply Guard Results
-// ============================================================================
-
-/**
- * Apply guard results to a response
- */
-export function applyGuardResult(originalResponse: string, guardResult: CrisisGuardResult): string {
-  if (guardResult.shouldBlock && guardResult.replacementResponse) {
-    return guardResult.replacementResponse;
-  }
-
-  let response = originalResponse;
-
-  if (guardResult.requiredAdditions && guardResult.requiredAdditions.length > 0) {
-    for (const addition of guardResult.requiredAdditions) {
-      // Add at beginning if it's an acknowledgment
-      if (addition.includes('notice')) {
-        response = addition + response;
-      } else {
-        // Add at end if it's resources
-        response = response + addition;
-      }
-    }
-  }
-
-  return response;
-}
-
-// ============================================================================
 // EXPORTS
 // ============================================================================
 
 export default {
   detectCrisis,
   guardPreResponse,
-  guardPostResponse,
-  buildCrisisGuardContext,
-  applyGuardResult,
 };

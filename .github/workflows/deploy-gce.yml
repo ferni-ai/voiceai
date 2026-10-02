@@ -10,6 +10,10 @@ name: Deploy Voice Agent to GCE (Blue-Green)
 #
 # This workflow is for CI/CD automation only.
 #
+# Runs on GitHub-hosted runners, never the self-hosted CI runner: PR jobs run
+# there with docker (root) access, and this workflow handles GCP_SA_KEY and
+# production secrets.
+#
 # Why GCE instead of Cloud Run?
 # - WebRTC requires UDP for real-time voice (Cloud Run only supports TCP)
 # - LiveKit workers need persistent connections
@@ -59,7 +63,7 @@ jobs:
   # ============================================================================
   prepare:
     name: Prepare
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.vars.outputs.image_tag }}
       should_deploy: ${{ steps.check.outputs.should_deploy }}
@@ -87,7 +91,7 @@ jobs:
   # ============================================================================
   build:
     name: Build Docker Image
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     needs: prepare
     if: needs.prepare.outputs.should_deploy == 'true'
     steps:
@@ -125,7 +129,7 @@ jobs:
   # ============================================================================
   deploy:
     name: Deploy to GCE
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     needs: [prepare, build]
     if: needs.prepare.outputs.should_deploy == 'true'
     steps:
@@ -321,7 +325,7 @@ jobs:
   # ============================================================================
   rollback:
     name: Rollback
-    runs-on: [self-hosted, Linux, X64, gce]
+    runs-on: ubuntu-latest
     if: github.event.inputs.rollback == 'true'
     steps:
       - name: Authenticate to Google Cloud

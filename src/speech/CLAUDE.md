@@ -517,7 +517,7 @@ export function resetMyNewService(sessionId: string): void {
 | Category                  | Services                                                                                                                    |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | **Core Speech**           | audioProsody, wpmTracker, backchanneling, cognitiveSpeech, ttsContext, pronunciationMemory, cartesiaContext                 |
-| **Listening & Analysis**  | humanListening, voiceHumanization, turnPrediction, emotionalContagion                                                       |
+| **Listening & Analysis**  | humanListening, voiceHumanization, turnPrediction                                                                           |
 | **Audio Analysis**        | voiceTremor, volumeDynamics, energyDynamics, fluencyAnalyzer, fillerAnalyzer, fftAnalyzer, laughterDetector, breathDetector |
 | **Timing & Rhythm**       | wordTiming, responseAnticipation                                                                                            |
 | **Context & Environment** | ambientAwareness, realtimePreemptive                                                                                        |
@@ -758,31 +758,14 @@ if (prosody) {
 }
 ```
 
-### 3. ✅ Dynamic Speed Control
+### 3. Removed: post-LLM speed and prosody rewriting
 
-Real-time speech speed adjustment based on context:
-
-```typescript
-import {
-  calculateDynamicSpeed,
-  applyDynamicSpeedSsml,
-} from './adaptive-ssml/dynamic-speed-control.js';
-
-const speedResult = calculateDynamicSpeed({
-  userEngagement: 0.8, // High engagement → slightly faster
-  contentComplexity: 0.3, // Low complexity → no slowdown needed
-  emotionalIntensity: 0.4, // Moderate → slight adjustment
-  baseSpeed: 1.0,
-  userWPM: 140, // Mirror user's pace
-  topicWeight: 'medium',
-});
-
-// speedResult.speedMultiplier might be 1.05 (slightly faster)
-// speedResult.addExtraPauses = false
-// speedResult.reason = "high engagement, mirroring fast pace"
-
-const ssml = applyDynamicSpeedSsml(text, speedResult);
-```
+Per-reply speed/volume/pause rewriting (dynamic speed control, emotion prosody
+wrapping, emotional contagion, Sesame reply enhancement and disfluency
+injection, phase personality) ran only in a response processor that the live
+cascade never called, and was removed. `SpeedControlResult` and the emotional
+contagion types remain as shapes for the context manager's speech insights.
+A live reply's delivery is decided once per reply on the TTS path.
 
 ### 4. ✅ Real-Time Audio Analyzer
 

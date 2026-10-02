@@ -12,13 +12,14 @@
  * @module cli/commands/deploy/deploy-intelligence
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync, spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, '..', '..', '..', '..', '..');
+const PROJECT_ROOT = findProjectRoot();
 
 // ============================================================================
 // CONFIGURATION

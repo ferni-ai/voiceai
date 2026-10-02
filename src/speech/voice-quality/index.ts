@@ -7,5 +7,5 @@
 
 export * from './emotion-profiles.js';
 export * from './emotion-matching.js';
-export * from './emotional-contagion.js';
+export type * from './emotional-contagion.js';
 export * from './music-reactions.js';

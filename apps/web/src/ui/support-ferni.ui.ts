@@ -102,7 +102,7 @@ const DEFAULT_TIER: TierInfo = {
   tagline: 'Ferni is free. Really free.',
   price: 'Free forever',
   features: [
-    'Unlimited conversations with Ferni',
+    'Talk with Ferni whenever you need',
     '7-minute heart-to-hearts',
     'Full memory — I remember everything',
   ],

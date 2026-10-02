@@ -7,15 +7,15 @@
  * @module @ferni/cli/refactor
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync } from 'child_process';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { dirname, join, basename } from 'path';
 import { fileURLToPath } from 'url';
 import * as readline from 'readline';
-import { resolveProjectRoot } from '../../services/project-root.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = resolveProjectRoot(import.meta.url);
+const PROJECT_ROOT = findProjectRoot();
 
 // Colors
 const colors = {

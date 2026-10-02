@@ -7,15 +7,17 @@
  * @module @ferni/cli/perf
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync, spawnSync } from 'child_process';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { gzipSync } from 'zlib';
-import { resolveProjectRoot } from '../../services/project-root.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = resolveProjectRoot(import.meta.url);
+// apps/cli/src/features/ops → the repo root. Two levels up (apps/cli/src) made the
+// bundle check look for apps/cli/src/apps/web/dist and never measure anything.
+const PROJECT_ROOT = findProjectRoot();
 
 // =============================================================================
 // COLORS
@@ -72,7 +74,7 @@ async function analyzeBundleSize(): Promise<void> {
 
   if (!existsSync(distDir)) {
     log.warn('No dist folder found. Building frontend...');
-    execSync('pnpm --dir apps/web build', { cwd: PROJECT_ROOT, stdio: 'inherit' });
+    execSync('pnpm build:frontend', { cwd: PROJECT_ROOT, stdio: 'inherit' });
   }
 
   // zlib reads ~0.3% larger than GNU gzip (used by performance-budget.yml)

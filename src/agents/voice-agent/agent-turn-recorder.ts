@@ -6,10 +6,8 @@
  * 2. On-behalf call transcript capture (superhuman analysis)
  * 3. Memory attribution tracking (recall quality metrics)
  *
- * This ensures consistent turn recording across all agent speech paths:
- * - Response processor (main responses)
- * - Greeting handler (initial greetings)
- * - Transcript handler (cached responses)
+ * Called today for cached responses (transcript handler). Normal LLM replies
+ * are not yet recorded here.
  *
  * @module voice-agent/agent-turn-recorder
  */

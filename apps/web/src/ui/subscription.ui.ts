@@ -347,7 +347,7 @@ function showUpgradeSuccessCelebration(tier: string): void {
 
   // Announce to screen readers
   announceToScreenReader(
-    `Congratulations! You've upgraded to ${tierName}. You now have unlimited conversations.`
+    `You've upgraded to ${tierName}. Thank you for supporting Ferni.`
   );
 
   // Animate in (respecting reduced motion)

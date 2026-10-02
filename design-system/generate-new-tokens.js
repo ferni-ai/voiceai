@@ -13,6 +13,7 @@
  */
 
 import fs from 'fs';
+import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildStamp } from './build/build-stamp.js';
@@ -91,7 +92,7 @@ export default ${exportName};
 `;
 
   // Write output
-  fs.writeFileSync(outputPath, ts);
+  writeIfChanged(outputPath, ts);
   console.log(`✅ Generated ${output}`);
 }
 
@@ -246,7 +247,7 @@ export default {
 };
 `;
 
-  fs.writeFileSync(outputPath, ts);
+  writeIfChanged(outputPath, ts);
   console.log('✅ Generated dist/content-utils.ts');
 }
 
@@ -368,7 +369,7 @@ export default {
 };
 `;
 
-  fs.writeFileSync(outputPath, ts);
+  writeIfChanged(outputPath, ts);
   console.log('✅ Generated dist/persona-utils.ts');
 }
 
@@ -493,7 +494,7 @@ export default {
 };
 `;
 
-  fs.writeFileSync(outputPath, ts);
+  writeIfChanged(outputPath, ts);
   console.log('✅ Generated dist/sequence-utils.ts');
 }
 
@@ -621,7 +622,7 @@ export default {
 };
 `;
 
-  fs.writeFileSync(outputPath, ts);
+  writeIfChanged(outputPath, ts);
   console.log('✅ Generated dist/responsive-utils.ts');
 }
 

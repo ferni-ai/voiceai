@@ -626,7 +626,7 @@ export async function showCalendarProviderSettings(
   container.className = 'calendar-provider-overlay';
   container.setAttribute('role', 'dialog');
   container.setAttribute('aria-modal', 'true');
-  container.setAttribute('aria-label', t('calendar.providers.title', 'Calendar Settings'));
+  container.setAttribute('aria-label', t('calendar.providers.title', 'Calendar Connections'));
   
   container.innerHTML = `
     <div class="calendar-provider-backdrop"></div>

@@ -35,7 +35,7 @@ permissions:
 jobs:
   lighthouse:
     name: Lighthouse Audit
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
 
     steps:
       - name: Checkout
@@ -54,9 +54,18 @@ jobs:
       - name: Install Lighthouse CI
         run: pnpm add -g @lhci/cli@0.13.x
 
+      - name: Setup Chrome
+        # Hosted images ship Chrome; the self-hosted runner does not (and has no sudo).
+        if: runner.environment == 'self-hosted'
+        id: chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          no-sudo: true
+
       - name: Run Lighthouse
         env:
           LOCAL: ${{ github.event_name == 'pull_request' }}
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: |
           node -e '
             const local = process.env.LOCAL === "true";
@@ -160,7 +169,7 @@ jobs:
     # Production monitoring. On PRs, Lighthouse's accessibility category (which
     # runs axe-core's rules) audits the PR's own build.
     if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
 
     steps:
       - name: Checkout

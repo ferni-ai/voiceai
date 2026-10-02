@@ -6,6 +6,7 @@
  */
 
 import { appState } from '../state/app.state.js';
+import { devPanelMayEnable } from '../ui/dev-panel-gate.js';
 import { connectionService } from '../services/index.js';
 import { messageUI } from '../ui/message.ui.js';
 import { initSoundUI, soundUI } from '../ui/sound.ui.js';
@@ -373,7 +374,9 @@ export function initDeferredUI(host: AppHost): void {
   });
 
   // 🛠️ Dev Panel - load after 1 second
+  // Only where it can turn on: production visitors skip its large chunk
   deferredInit('DevPanel', 1000, async () => {
+    if (!devPanelMayEnable()) return;
     const { initDevPanel } = await import('../ui/dev-panel.ui.js');
     initDevPanel();
   });

@@ -31,7 +31,7 @@ jobs:
   offline:
     name: Playwright (offline suite)
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -45,7 +45,8 @@ jobs:
         uses: ./.github/actions/setup-node-pnpm
 
       - name: Install Playwright Chromium
-        run: pnpm --dir apps/web exec playwright install --with-deps chromium
+        # System deps need sudo; the self-hosted runner has them preinstalled.
+        run: pnpm --dir apps/web exec playwright install ${{ runner.environment == 'github-hosted' && '--with-deps' || '' }} chromium
 
       - name: Run offline E2E suite
         run: pnpm --dir apps/web exec playwright test --project=chromium --reporter=github,html
@@ -79,7 +80,7 @@ jobs:
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success')
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     env:
       TEST_URL: ${{ inputs.url || 'https://ferni-prod.web.app' }}
@@ -92,7 +93,8 @@ jobs:
         uses: ./.github/actions/setup-node-pnpm
 
       - name: Install Playwright Chromium
-        run: pnpm --dir apps/web exec playwright install --with-deps chromium
+        # System deps need sudo; the self-hosted runner has them preinstalled.
+        run: pnpm --dir apps/web exec playwright install ${{ runner.environment == 'github-hosted' && '--with-deps' || '' }} chromium
 
       - name: Run smoke tests
         run: pnpm --dir apps/web exec playwright test --config playwright.smoke.config.ts

@@ -11,6 +11,7 @@
  */
 
 import fs from 'fs';
+import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildStamp } from './build/build-stamp.js';
@@ -458,7 +459,7 @@ function generateManifest() {
   }
 
   // Write manifest
-  fs.writeFileSync(
+  writeIfChanged(
     path.join(CONFIG.targetDir, 'manifest.json'),
     JSON.stringify(manifest, null, 2)
   );

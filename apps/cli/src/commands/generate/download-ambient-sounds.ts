@@ -14,7 +14,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SOUNDS_DIR = path.join(__dirname, '../apps/web/public/sounds/ambient');
+const SOUNDS_DIR = path.join(__dirname, '../../../../../apps/web/public/sounds/ambient');
 
 // Ensure output directory exists
 if (!fs.existsSync(SOUNDS_DIR)) {

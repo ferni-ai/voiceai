@@ -9,7 +9,6 @@
  * - Anticipatory emotional cues (react before user finishes)
  * - Conversation context-aware prosody
  * - Mid-utterance micro-reactions
- * - Rich disfluency patterns
  * - Emotional trajectory tracking
  *
  * @module speech/sesame-inspired
@@ -18,6 +17,5 @@
 export * from './anticipatory-prosody.js';
 export * from './micro-reactions.js';
 export * from './conversation-prosody.js';
-export * from './rich-disfluencies.js';
 export * from './pipeline-integration.js';
 export type * from './types.js';

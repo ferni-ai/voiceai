@@ -6,7 +6,6 @@
  * - persona-phrases.ts (THINKING_FILLERS)
  * - natural-tool-calling.ts (PRE_CALL_PHRASES)
  * - meaningful-silence.ts (THINKING_OUT_LOUD)
- * - rich-disfluencies.ts (thinking_aloud)
  * - conversation-quality.ts (retry phrases)
  *
  * The key insight: Processing phrases should be COMPOSED based on context,

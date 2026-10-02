@@ -619,12 +619,17 @@ export class CuriosityEngine {
 // SINGLETON
 // ============================================================================
 
-import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
+import {
+  createSessionRegistry,
+  registerGlobalRegistry,
+  USER_KEYED_REGISTRY_MAX_INSTANCES,
+} from '../utils/session-registry.js';
 
 const curiosityEngineRegistry = createSessionRegistry((userId: string) => new CuriosityEngine(), {
   name: 'CuriosityEngine',
   cleanup: (engine) => engine.reset(),
   verbose: false,
+  maxInstances: USER_KEYED_REGISTRY_MAX_INSTANCES,
 });
 
 registerGlobalRegistry(curiosityEngineRegistry);
