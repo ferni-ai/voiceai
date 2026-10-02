@@ -14,6 +14,7 @@
  * @module cli/commands/ops/memory-scheduler
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { readFileSync, existsSync } from 'fs';
@@ -24,7 +25,7 @@ import * as yaml from 'yaml';
 const execAsync = promisify(exec);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, '..', '..', '..', '..', '..', '..');
+const PROJECT_ROOT = findProjectRoot();
 
 // ============================================================================
 // CONFIGURATION

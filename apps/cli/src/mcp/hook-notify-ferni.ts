@@ -15,13 +15,14 @@
  *   npx tsx hook-notify-ferni.ts completion "Ready for next request"
  */
 
+import { findProjectRoot } from '../utils/project-root.js';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Hook script is at apps/cli/src/mcp/, so go up 4 levels to project root
-const PROJECT_ROOT = join(__dirname, '..', '..', '..', '..');
+const PROJECT_ROOT = findProjectRoot();
 
 const MCP_STATE_DIR = join(PROJECT_ROOT, '.ferni-mcp');
 const NARRATION_FILE = join(MCP_STATE_DIR, 'narration.json');

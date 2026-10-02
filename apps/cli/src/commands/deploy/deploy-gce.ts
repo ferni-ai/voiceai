@@ -44,12 +44,13 @@
  * 7. If unhealthy: rollback, keep blue running
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync } from 'child_process';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, '..', '..', '..', '..', '..');
+const PROJECT_ROOT = findProjectRoot();
 
 // ============================================================================
 // CONFIGURATION

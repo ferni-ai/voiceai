@@ -2,7 +2,8 @@
  * Advanced Humanization & Cross-Persona Injection Builders
  *
  * Coordinates all 10 deep humanization capabilities and cross-persona insights.
- * Also manages advanced humanization session lifecycle.
+ * The advanced humanization session itself is started and ended by the
+ * conversation session (conversation/unified-integration.ts).
  *
  * Priority: 25-55 (varies by detection urgency)
  */
@@ -190,64 +191,4 @@ export async function buildAdvancedHumanizationInjections(
   }
 
   return result;
-}
-
-/**
- * Initialize advanced humanization for a session
- * Should be called when session starts
- */
-export async function initAdvancedHumanizationSession(
-  sessionId: string,
-  userId: string,
-  options?: {
-    relationshipDepth?: 'new' | 'developing' | 'established' | 'deep';
-    prosodyHints?: {
-      speechRate?: number;
-      volume?: number;
-      pitchVariance?: number;
-    };
-  }
-): Promise<{
-  greeting: string | null;
-  eventFollowUp: string | null;
-  milestoneAcknowledgment: string | null;
-} | null> {
-  try {
-    const { initAdvancedHumanization } =
-      await import('../../../conversation/advanced-humanization-integration.js');
-
-    const result = initAdvancedHumanization({
-      sessionId,
-      userId,
-      relationshipDepth: options?.relationshipDepth,
-      prosodyHints: options?.prosodyHints,
-    });
-
-    diag.info('🌟 Advanced humanization session initialized', {
-      sessionId,
-      hasGreeting: !!result.greeting,
-      hasMilestone: !!result.milestoneAcknowledgment,
-    });
-
-    return result;
-  } catch (error) {
-    diag.warn('Failed to initialize advanced humanization (non-fatal)', { error: String(error) });
-    return null;
-  }
-}
-
-/**
- * Clean up advanced humanization session
- * Should be called when session ends
- */
-export async function cleanupAdvancedHumanizationSession(sessionId: string): Promise<void> {
-  try {
-    const { cleanupAdvancedHumanization } =
-      await import('../../../conversation/advanced-humanization-integration.js');
-
-    cleanupAdvancedHumanization(sessionId);
-    diag.debug('🧹 Advanced humanization session cleaned up', { sessionId });
-  } catch (error) {
-    diag.debug('Failed to cleanup advanced humanization (non-fatal)', { error: String(error) });
-  }
 }

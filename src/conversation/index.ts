@@ -34,43 +34,20 @@
  * cleanupConversationSession(sessionId);
  * ```
  *
- * For direct orchestrator access, use:
- * ```typescript
- * import { createConversationSession } from '../conversation/unified-integration.js';
- * ```
- *
- * @see unified-integration.ts for the main session API
- * @see orchestrator/ for the underlying ConversationOrchestrator
+ * @see unified-integration.ts for the session lifecycle
  */
 
 // Import reset functions for local use
 import { resetActiveListeningEngine as _resetActiveListening } from './active-listening.js';
-import { resetAdvancedHumanization as _resetAdvancedHumanization } from './advanced-humanization.js';
-import { resetConcernDetectionEngine as _resetConcernDetection } from './concern-detection.js';
 import { resetConversationRhythmTracker as _resetConversationRhythm } from './conversation-rhythm.js';
 import { resetConversationalMemory as _resetConversationalMemory } from './conversational-memory/index.js';
-import { resetConversationalRepairEngine as _resetConversationalRepair } from './conversational-repair.js';
-import { resetCuriosityEngine as _resetCuriosity } from './curiosity-engine.js';
-import { resetDeepHumanization as _resetDeepHumanization } from './deep-humanization/index.js';
-import { resetEmotionalAftercareEngine as _resetEmotionalAftercare } from './emotional-aftercare.js';
 import { resetEmotionalArcTracker as _resetEmotionalArc } from './emotional-arc.js';
-import { resetEnergyRegulationEngine as _resetEnergyRegulation } from './energy-regulation.js';
-import { resetHopeInjectionEngine as _resetHopeInjection } from './hope-injection.js';
 import { resetConversationHumanizer as _resetHumanizer } from './humanizer/index.js';
 import { resetInterruptionHandler as _resetInterruption } from './interruption-handler.js';
-import { resetMicroAffirmationEngine as _resetMicroAffirmation } from './micro-affirmations.js';
-import { resetParadoxicalInterventionEngine as _resetParadoxicalIntervention } from './paradoxical-intervention.js';
-import { resetPredictiveAnticipationEngine as _resetPredictiveAnticipation } from './predictive-anticipation/index.js';
-import { resetProactiveMemoryEngine as _resetProactiveMemory } from './proactive-memory.js';
 import { resetQuestionPatternEngine as _resetQuestionPatterns } from './question-patterns/index.js';
-import { resetRelationshipEventsEngine as _resetRelationshipEvents } from './relationship-events.js';
 import { resetResponseDynamicsEngine as _resetResponseDynamics } from './response-dynamics.js';
-import { resetSessionIntelligence as _resetSessionIntelligence } from './session-intelligence.js';
 import { resetSilencePresenceEngine as _resetSilencePresence } from './silence-presence.js';
-import { resetSpeechNaturalizer as _resetSpeechNaturalizer } from './speech-naturalizer/index.js';
 import { resetStoryTimingEngine as _resetStoryTiming } from './story-timing.js';
-import { resetSubtextDetectionEngine as _resetSubtextDetection } from './subtext-detection.js';
-import { resetTemporalContextEngine as _resetTemporalContext } from './temporal-context/index.js';
 import { resetThinkingPhraseCoordinator as _resetThinkingPhraseCoordinator } from './thinking-phrase-coordinator.js';
 import { resetTurnTakingMonitor as _resetTurnTaking } from './turn-taking.js';
 
@@ -155,10 +132,8 @@ export {
   generateGracefulUncertainty,
   generateSelfInterruption,
   generateThinkingOutLoud,
-  getSpeechNaturalizer,
   GRACEFUL_UNCERTAINTY,
   MID_THOUGHT_CORRECTIONS,
-  resetSpeechNaturalizer,
   SELF_INTERRUPTIONS,
   shouldApplyImperfection,
   SpeechNaturalizer,
@@ -209,7 +184,6 @@ export {
   resetConversationHumanizer,
   type ContextGuidance,
   type HumanizationContext,
-  type HumanizedResponse,
   type PreResponseActions,
 } from './humanizer/index.js';
 
@@ -237,82 +211,8 @@ export {
   type HumanizingConfig,
 } from './humanizing-config.js';
 
-// ============================================================================
-// NEW: CENTRALIZED HUMANIZATION TUNING
-// ============================================================================
-
-// Single source of truth for all humanization probabilities and cooldowns
-export {
-  DEFAULT_TUNING,
-  getEffectiveProbability,
-  getPersonaTuning,
-  getTuningValue,
-  shouldFireFeature,
-  TUNING_PRESETS,
-  type HumanizationTuning,
-} from './humanization-tuning.js';
-
-// ============================================================================
-// NEW: COMPOSABLE EFFECTS SYSTEM
-// ============================================================================
-
-// Clean architecture replacement for procedural humanization
-export {
-  // Core components
-  getEffectCoordinator,
-  getEffectTracker,
-  resetEffectCoordinator,
-  resetEffectTracker,
-  resetAllEffectCoordinators,
-  resetAllEffectTrackers,
-  // Effect factories
-  createBreathSoundEffect,
-  createFirstTurnNoticingEffect,
-  createExcitementInterruptionEffect,
-  createSpeechFillerEffect,
-  // Registration helpers
-  registerDefaultEffects,
-  createCoordinatorWithEffects,
-  buildEffectContext,
-  // Types
-  type AppliedEffect,
-  type EffectApplicationResult,
-  type EffectConfig,
-  type EffectContext,
-  type EffectCoordinator,
-  type EffectResult,
-  type EffectTracker,
-  type HumanizationCapability,
-  type HumanizationEffect,
-  type SkippedEffect as EffectSkipped,
-  type DetectedSignals as EffectDetectedSignals,
-  type SessionData as EffectSessionData,
-  type EffectPlacement,
-} from './effects/index.js';
-
-// Deep Humanization - Clean architecture module
-export {
-  applyDeepHumanization,
-  getMoodTracker,
-  resetDeepHumanization,
-  resetMoodTracker,
-  resetAllDeepHumanization,
-  type ConversationMood,
-  type HumanizationContext as DeepHumanizationContext,
-  type HumanizationInjection,
-  type HumanizationType,
-  type SessionMemory,
-} from './deep-humanization/index.js';
-
-// Detection utilities - exported from deep humanization for backward compatibility
-export {
-  classifyTopicWeight,
-  detectAdviceGiving,
-  detectBreakthrough,
-  detectEvidence,
-} from './utils/detection.js';
-
-// Note: Humanization tuning already exported above
+// Detection utilities
+export { classifyTopicWeight, detectAdviceGiving } from './utils/detection.js';
 
 // Silence as Presence - Intentional meaningful silences
 export {
@@ -418,75 +318,19 @@ export {
   type VoiceStatePrediction,
 } from './predictive-anticipation/index.js';
 
-// Session Intelligence Orchestrator - Real-time within-session intelligence
-// (For cross-session relationship features, see superhuman/ module)
-export {
-  clearSessionIntelligence,
-  getSessionIntelligence,
-  resetSessionIntelligence,
-  SessionIntelligenceOrchestrator,
-  type ResponseGuidance,
-  type ResponseModification,
-  type SessionIntelligenceContext,
-  type SessionIntelligenceInsight,
-} from './session-intelligence.js';
-
-// ============================================================================
-// CONTENT DELIVERY PACING - Human-like reading of long content
-// ============================================================================
-
-export {
-  addSignposting,
-  analyzeContent,
-  applyDeliveryPacing,
-  detectContentType,
-  getSummaryIntro,
-  shouldApplyDeliveryPacing,
-  type ContentAnalysis,
-  type ContentSegment,
-  type ContentType,
-  type DeliveryOptions,
-  type SegmentPacing,
-} from './content-delivery-pacing.js';
-
-// ============================================================================
-// VOCAL HUMANIZATION - "Better Than Human" voice processing
-// ============================================================================
-
-export {
-  addIntakeBreath,
-  addMidSentenceReactions,
-  addPitchVariation,
-  applyEmotionBleeding,
-  detectEmotionalContent,
-  detectHeavyContent,
-  detectUserEnergy,
-  enforceContractions,
-  generateVocalProfile,
-  humanizeVocals,
-  type EnergyLevel,
-  type HumanizedVocals,
-  type VocalContext,
-  type VocalProfile,
-} from './vocal-humanization.js';
-
 // ============================================================================
 // SHARED DETECTION UTILITIES (additional exports not already available above)
 // ============================================================================
 
 export {
-  // Composite analysis (new)
-  analyzeMessage,
   // Engagement detection (new)
   detectDisengagement,
   detectEngagementLevel,
-  detectHesitation,
   detectHighEngagement,
   // Detailed energy detection (new)
   detectUserEnergyDetailed,
   type EngagementLevel as DetectedEngagementLevel,
   type DetectionResult,
-  type MessageAnalysis,
   // Types (new - renamed to avoid conflict with engagement-scoring.ts)
   type TopicWeight,
 } from './utils/index.js';
@@ -682,11 +526,8 @@ export {
   endConversationSession,
   getActiveSessions,
   getConversationSession,
-  quickHumanize,
   type ConversationSession,
   type ConversationSessionConfig,
-  type TurnInput,
-  type TurnResult,
 } from './unified-integration.js';
 
 // ============================================================================
@@ -695,145 +536,23 @@ export {
 
 /**
  * Reset all conversation tracking for a new session
+ *
+ * Only process-wide singletons are reset here. Session- and user-keyed engines
+ * register with the global session registry, which the voice agent's cleanup
+ * handler clears per session when the call ends.
  */
-export function resetAllConversationState(
-  personaId?: string,
-  sessionId?: string,
-  userId?: string
-): void {
+export function resetAllConversationState(): void {
   _resetEmotionalArc();
   _resetResponseDynamics();
   _resetInterruption();
   _resetTurnTaking();
   _resetStoryTiming();
-  _resetSpeechNaturalizer();
   _resetActiveListening();
   _resetConversationalMemory();
   _resetQuestionPatterns();
   _resetHumanizer();
   _resetSilencePresence();
   _resetConversationRhythm();
-  if (personaId) {
-    _resetDeepHumanization(personaId);
-  }
-  // Superhuman capabilities (session-scoped)
-  if (sessionId) {
-    _resetConcernDetection(sessionId);
-    _resetProactiveMemory(sessionId);
-    _resetPredictiveAnticipation(sessionId);
-    _resetSessionIntelligence(sessionId);
-    // Advanced humanization (session-scoped)
-    _resetSubtextDetection(sessionId);
-    _resetEmotionalAftercare(sessionId);
-    _resetConversationalRepair(sessionId);
-    _resetHopeInjection(sessionId);
-    _resetEnergyRegulation(sessionId);
-    _resetMicroAffirmation(sessionId);
-    _resetParadoxicalIntervention(sessionId);
-  }
-  // User-scoped engines (persist across sessions)
-  if (userId) {
-    _resetCuriosity(userId);
-    _resetTemporalContext(userId);
-    _resetRelationshipEvents(userId);
-  }
-
-  // Advanced humanization orchestrator
-  if (sessionId && userId) {
-    _resetAdvancedHumanization(sessionId, userId);
-  }
-
   // Reset thinking phrase coordinator (global singleton)
   _resetThinkingPhraseCoordinator();
 }
-
-// ============================================================================
-// UNIFIED ORCHESTRATOR
-// ============================================================================
-
-export {
-  // Performance optimizations
-  CircuitBreaker,
-  // Debug & Monitoring
-  clearABTests,
-  clearDetectionCache,
-  clearSessionRecords,
-  // Orchestrator
-  ConversationOrchestrator,
-  createABTest,
-  // Humanizer integration (drop-in replacement)
-  createHumanizer,
-  createOrchestratedHumanizer,
-  createProfiler,
-  DEFAULT_ORCHESTRATOR_CONFIG,
-  endABTest,
-  exportSession,
-  getABTestStats,
-  getABTestVariant,
-  // Metrics
-  getAggregatedMetrics,
-  getCircuitBreaker,
-  getCircuitBreakerStatus,
-  // Config adapter (unified feature toggles)
-  getConfigAdapter,
-  getConversationOrchestrator,
-  getDebugSnapshot,
-  getHealthStatus,
-  getMetricsCollector,
-  getOrchestratedHumanizer,
-  getOrComputeDetection,
-  getPerformanceStats,
-  getSessionRecords,
-  getSystemHealth,
-  logDebugSummary,
-  logFeatureStats,
-  logMetricsSummary,
-  logSlowOrchestration,
-  LRUCache,
-  orchestratorConfig,
-  orchestratorDebug,
-  profileOrchestration,
-  recordOrchestration,
-  resetAllCircuitBreakers,
-  resetAllMetrics,
-  resetAllOrchestratedHumanizers,
-  resetAllOrchestrators,
-  resetConfigAdapter,
-  resetConversationOrchestrator,
-  resetMetrics,
-  resetOrchestratedHumanizer,
-  resetPerformanceOptimizations,
-  withTimeout,
-  // Types
-  type ABTestConfig,
-  type AnalysisContext,
-  type AnalysisPhaseResult,
-  type AppliedFeature,
-  type CircuitBreakerConfig,
-  type CircuitState,
-  type DebugSnapshot,
-  type DetectedSignals,
-  type ExtendedHumanizationContext,
-  type ExtendedHumanizedResponse,
-  type FeatureMetrics,
-  type HealthIndicators,
-  type HumanizationPhaseResult,
-  type IntelligenceGuidance,
-  type IntelligencePhaseResult,
-  type MetricsCollector,
-  type MetricsSnapshot,
-  type OrchestratedHumanizer,
-  type OrchestrationRecord,
-  type OrchestratorConfig,
-  type OrchestratorConfigAdapter,
-  type OrchestratorInput,
-  type OrchestratorMetrics,
-  type OrchestratorOutput,
-  type OutputMetadata,
-  type PhaseMetrics,
-  type PriorityAction,
-  type ResponseAdditions,
-  type SkippedFeature,
-  type UnifiedFeatureState,
-  type UnifiedPreset,
-} from './orchestrator/index.js';

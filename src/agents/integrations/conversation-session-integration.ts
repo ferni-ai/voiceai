@@ -30,8 +30,6 @@ import {
   endConversationSession,
   getConversationSession,
   type ConversationSession,
-  type ConversationSessionConfig,
-  type TurnResult,
 } from '../../conversation/unified-integration.js';
 // NOTE: The old intelligence hooks have been deprecated and always return null.
 // The new intelligence system in src/intelligence/ should be used directly.
@@ -39,7 +37,7 @@ import {
 // See: src/services/superhuman/ for "Better Than Human" features
 
 // Also export types for voice agent use
-export type { ConversationSession, TurnResult };
+export type { ConversationSession };
 
 const log = createLogger({ module: 'ConversationSessionIntegration' });
 
