@@ -37,6 +37,14 @@ export interface IndexingOptions {
 const indexingStatus = new Map<string, { lastIndexed: Date; totalIndexed: number }>();
 
 /**
+ * Index id for a fact. Fact doc ids are deterministic (same fact → same id
+ * for every user), and vector ids are global, so the user id must be part of it.
+ */
+export function factIndexId(userId: string, factDocId: string): string {
+  return `fact_${userId}_${factDocId}`;
+}
+
+/**
  * Index user memories for semantic search.
  *
  * Indexes:
@@ -124,7 +132,7 @@ export async function indexUserMemories(
 
       try {
         await indexConversationSummary(userId, {
-          id: `fact_${doc.id}`,
+          id: factIndexId(userId, doc.id),
           text: searchableText,
           topics: fact.topics || [],
           timestamp: toSafeDate(fact.extractedAt),

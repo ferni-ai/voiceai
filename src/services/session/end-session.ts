@@ -24,6 +24,7 @@ import {
   indexSummaryForRetrieval,
   type ConversationSummary,
 } from './summarization.js';
+import { runConversationSummarizedHooks } from '../memory/conversation-summarized-hooks.js';
 
 // State persistence module
 import { applyHumanizingState, persistAllState } from './state-persistence.js';
@@ -97,6 +98,7 @@ interface FinalizeUserSessionOptions {
   services: SessionServices;
   global: GlobalServices;
   humanizingStateUpdates: HumanizingStateUpdate[];
+  realtimeConversationId: string | undefined;
 }
 
 // ============================================================================
@@ -143,6 +145,7 @@ export async function handleEndSession(options: EndSessionOptions): Promise<void
       services,
       global,
       humanizingStateUpdates,
+      realtimeConversationId,
     });
   }
 
@@ -287,6 +290,7 @@ async function finalizeUserSession(options: FinalizeUserSessionOptions): Promise
     services,
     global,
     humanizingStateUpdates,
+    realtimeConversationId,
   } = options;
 
   const userProfile = services.userProfile!;
@@ -324,6 +328,13 @@ async function finalizeUserSession(options: FinalizeUserSessionOptions): Promise
       if (summary) {
         await global.store.saveSummary(validatedUserId, summary);
         await indexSummaryForRetrieval(validatedUserId, summary);
+        // People, threads, predictions and preferences learn from this conversation.
+        await runConversationSummarizedHooks(
+          validatedUserId,
+          realtimeConversationId ?? sessionId,
+          [...summary.keyPoints, ...summary.mainTopics].join('. '),
+          turns
+        );
       }
     }
 

@@ -34,6 +34,8 @@ export interface MemoryFact {
 export interface MemoryPerson {
   id: string;
   name: string;
+  kind?: 'person' | 'pet';
+  memorial?: boolean;
   relationship?: string;
   notes?: string;
   updatedAt: string;

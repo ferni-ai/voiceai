@@ -22,7 +22,11 @@ vi.mock('../../observability/firestore-monitor.js', () => ({
 const MIN = 60_000;
 const noSleep = async (): Promise<void> => undefined;
 
-const turn = (role: 'user' | 'assistant', content: string, turnNumber: number): ConversationTurn => ({
+const turn = (
+  role: 'user' | 'assistant',
+  content: string,
+  turnNumber: number
+): ConversationTurn => ({
   role,
   content,
   timestamp: new Date(),
@@ -83,7 +87,10 @@ describe('summary recency', () => {
   });
 
   it('falls back to lastContact when only the profile saver wrote a summary', () => {
-    const doc = { lastConversationSummary: 'Talked about the move', lastContact: t('2026-10-02T09:00:00Z') };
+    const doc = {
+      lastConversationSummary: 'Talked about the move',
+      lastContact: t('2026-10-02T09:00:00Z'),
+    };
     expect(isSummaryNewer(t('2026-10-01T10:00:00Z'), doc)).toBe(false);
     expect(isSummaryNewer(t('2026-10-02T10:00:00Z'), doc)).toBe(true);
   });
@@ -131,21 +138,37 @@ describe('runConversationCatchUp', () => {
     return { deps, calls };
   }
 
-  const twoTurns = [turn('user', 'We are moving to Denver', 1), turn('assistant', 'Big change! How do you feel?', 2)];
+  const twoTurns = [
+    turn('user', 'We are moving to Denver', 1),
+    turn('assistant', 'Big change! How do you feel?', 2),
+  ];
 
   it('closes, summarizes, saves, indexes and marks a dropped call, in that order', async () => {
     const dropped: CandidateConversation = {
       userId: 'u1',
       conversationId: 'conv_dropped',
-      data: { startedAt: new Date(now.getTime() - 90 * MIN), lastActivityAt: new Date(now.getTime() - 60 * MIN), summarized: false },
+      data: {
+        startedAt: new Date(now.getTime() - 90 * MIN),
+        lastActivityAt: new Date(now.getTime() - 60 * MIN),
+        summarized: false,
+      },
     };
     const { deps, calls } = makeDeps([dropped], twoTurns);
 
     const result = await runConversationCatchUp(deps, { now, idleMs: 30 * MIN });
 
     expect(result).toMatchObject({ scanned: 1, summarized: 1, skippedActive: 0, failed: 0 });
-    expect(calls).toEqual(['close:conv_dropped', 'save:conv_dropped', 'index', 'mark:conv_dropped']);
-    expect(deps.closeConversation).toHaveBeenCalledWith('u1', 'conv_dropped', new Date(now.getTime() - 60 * MIN));
+    expect(calls).toEqual([
+      'close:conv_dropped',
+      'save:conv_dropped',
+      'index',
+      'mark:conv_dropped',
+    ]);
+    expect(deps.closeConversation).toHaveBeenCalledWith(
+      'u1',
+      'conv_dropped',
+      new Date(now.getTime() - 60 * MIN)
+    );
     expect(deps.markSummarized).toHaveBeenCalledWith(
       'u1',
       'conv_dropped',
@@ -154,11 +177,40 @@ describe('runConversationCatchUp', () => {
     expect(getMemoryCaptureMetrics().catchUp).toMatchObject({ runs: 1, summarized: 1 });
   });
 
+  it('lets insights and preferences learn from the summarized call, after it is marked', async () => {
+    const dropped: CandidateConversation = {
+      userId: 'u1',
+      conversationId: 'conv_dropped',
+      data: {
+        startedAt: new Date(now.getTime() - 90 * MIN),
+        endedAt: new Date(now.getTime() - 60 * MIN),
+        summarized: false,
+      },
+    };
+    const { deps, calls } = makeDeps([dropped], twoTurns);
+    deps.onSummarized = vi.fn(async (_u: string, c: string) => {
+      calls.push(`learn:${c}`);
+    });
+
+    await runConversationCatchUp(deps, { now });
+
+    expect(calls.slice(-2)).toEqual(['mark:conv_dropped', 'learn:conv_dropped']);
+    expect(deps.onSummarized).toHaveBeenCalledWith(
+      'u1',
+      'conv_dropped',
+      expect.objectContaining({ shortText: 'Planning the move to Denver; worried about the dog' }),
+      twoTurns
+    );
+  });
+
   it('leaves a still-active conversation alone', async () => {
     const live: CandidateConversation = {
       userId: 'u1',
       conversationId: 'conv_live',
-      data: { startedAt: new Date(now.getTime() - 50 * MIN), lastActivityAt: new Date(now.getTime() - 2 * MIN) },
+      data: {
+        startedAt: new Date(now.getTime() - 50 * MIN),
+        lastActivityAt: new Date(now.getTime() - 2 * MIN),
+      },
     };
     const { deps } = makeDeps([live], twoTurns);
     const result = await runConversationCatchUp(deps, { now, idleMs: 30 * MIN });
@@ -170,7 +222,10 @@ describe('runConversationCatchUp', () => {
     const ended: CandidateConversation = {
       userId: 'u2',
       conversationId: 'conv_short',
-      data: { startedAt: new Date(now.getTime() - 3 * 60 * MIN), endedAt: new Date(now.getTime() - 2 * 60 * MIN) },
+      data: {
+        startedAt: new Date(now.getTime() - 3 * 60 * MIN),
+        endedAt: new Date(now.getTime() - 2 * 60 * MIN),
+      },
     };
     const { deps } = makeDeps([ended], [turn('user', 'hi', 1)]);
     const result = await runConversationCatchUp(deps, { now });
@@ -210,7 +265,12 @@ describe('runConversationCatchUp', () => {
 
   it('queries the window between the lookback and the idle cutoff', async () => {
     const { deps } = makeDeps([], []);
-    await runConversationCatchUp(deps, { now, idleMs: 30 * MIN, lookbackMs: 24 * 60 * MIN, batchSize: 10 });
+    await runConversationCatchUp(deps, {
+      now,
+      idleMs: 30 * MIN,
+      lookbackMs: 24 * 60 * MIN,
+      batchSize: 10,
+    });
     expect(deps.queryCandidates).toHaveBeenCalledWith({
       startedAfter: new Date(now.getTime() - 24 * 60 * MIN),
       startedBefore: new Date(now.getTime() - 30 * MIN),

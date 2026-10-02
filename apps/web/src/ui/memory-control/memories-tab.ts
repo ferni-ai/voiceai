@@ -211,7 +211,14 @@ export class MemoriesTab {
   }
 
   private renderPerson(person: MemoryPerson): string {
-    const detail = [person.relationship, person.notes].filter(Boolean).join(' · ');
+    const detail = [
+      person.kind === 'pet' ? t('memoryControl.pet', 'Pet') : '',
+      person.memorial ? t('memoryControl.inMemory', 'In memory') : '',
+      person.relationship,
+      person.notes,
+    ]
+      .filter(Boolean)
+      .join(' · ');
     return `
       <li class="memory-item" data-person-id="${esc(person.id)}">
         <div class="memory-item__body">

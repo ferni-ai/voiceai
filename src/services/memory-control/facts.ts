@@ -18,8 +18,10 @@ import {
   writeDoc,
   type UndoJournal,
 } from './db.js';
+import { deleteDomainsForFacts } from './domains.js';
+import { enrichPeople } from './people-profiles.js';
 import {
-  factVectorId,
+  factVectorIds,
   reindexVector,
   removeGraphRecords,
   removeVectors,
@@ -212,7 +214,7 @@ export async function listMemories(userId: string): Promise<MemoryControlResult<
       .map((m) => m.updatedAt)
       .sort()
       .pop() ?? null;
-  return ok({ facts, people, updatedAt });
+  return ok({ facts, people: await enrichPeople(userId, people), updatedAt });
 }
 
 // ============================================================================
@@ -256,8 +258,10 @@ export async function editFact(
   };
   await ref.set(updated);
 
-  await reindexVector(factVectorId(factId), text);
+  for (const id of factVectorIds(userId, factId)) await reindexVector(id, text);
   await removeGraphRecords(userId, { factDocIds: [factId] });
+  // Anything inferred from the wrong version goes too; it is re-derived from the correction.
+  await deleteDomainsForFacts(userId, [factId]);
   return ok(toFact(factId, updated));
 }
 
@@ -278,7 +282,11 @@ export async function removeFacts(
   await writeTombstones(db, userId, tombstones, reason, journal);
   for (const d of docs) await removeDoc(d.ref, journal, d.data);
   const docIds = docs.map((d) => d.ref.id);
-  const embeddings = await removeVectors(userId, docIds.map(factVectorId), journal);
+  const embeddings = await removeVectors(
+    userId,
+    docIds.flatMap((id) => factVectorIds(userId, id)),
+    journal
+  );
   await removeGraphRecords(userId, { factDocIds: docIds });
   return { removed: docs.length, embeddings };
 }
@@ -292,15 +300,16 @@ export async function deleteFact(
   const db = getDb();
   if (!db) return err(unavailable);
   if (isExplicitId(factId)) {
-    return (await deleteExplicitFact(userId, factId, journal))
-      ? ok({ deleted: true })
-      : err(notFound);
+    if (!(await deleteExplicitFact(userId, factId, journal))) return err(notFound);
+    await deleteDomainsForFacts(userId, [factId]);
+    return ok({ deleted: true });
   }
   const ref = userCollection(db, userId, 'dynamic_facts').doc(factId);
   const snap = await ref.get();
   const data = snap.data();
   if (!snap.exists || !data) return err(notFound);
   await removeFacts(db, userId, [{ ref, data }], reason, journal);
+  await deleteDomainsForFacts(userId, [factId]);
   log.info({ factId }, 'Fact deleted by user');
   return ok({ deleted: true });
 }
@@ -348,6 +357,10 @@ export async function deletePerson(
       .filter((d) => normalizeName(asString(d.data().entityName) ?? '') === key)
       .map((d) => ({ ref: d.ref, data: d.data() }));
     await removeFacts(db, userId, factDocs, reason, journal);
+    await deleteDomainsForFacts(
+      userId,
+      factDocs.map((d) => d.ref.id)
+    );
   }
 
   await removeGraphRecords(userId, { entityDocIds: entityDocs.map((d) => d.ref.id) });

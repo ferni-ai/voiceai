@@ -181,6 +181,7 @@ registerMemoryDomain({
   exportFn: (uid) => ...,                          // JSON-safe data for the export
   deleteForConversation: (uid, convId) => count,   // conversation-delete cascade
   deleteAll: (uid) => count,                       // delete-all and account erasure
+  deleteForFacts: (uid, factIds) => count,         // optional: facts deleted or corrected
   find: (uid, query) => [{ id, label, score }],    // optional: voice forget search
   forget: (uid, id) => true,                       // optional: delete one found item
 });
@@ -192,6 +193,7 @@ registerMemoryDomain({
 | `DELETE /api/memory/me`                   | `deleteAll`. The response gains `domains`.                                                                                                                                           |
 | Account erasure                           | `deleteAll` runs first. A failing domain makes the report `complete: false`.                                                                                                         |
 | Export                                    | `exportFn` output goes under `domains.<name>` in JSON, and into one CSV section per domain (one JSON item per row). The `/api/export` "Memories" category spreads it in.             |
+| Fact delete / edit / person delete        | `deleteForFacts` with the affected fact IDs, so anything inferred from a wrong or deleted fact goes too.                                                                             |
 | Voice forget                              | `find` matches are offered with the others; a confirmed match calls `forget`. Undo does not restore domain items. When only domain items were deleted, the reply doesn't offer undo. |
 
 Hooks are isolated. A domain that throws (or returns a failed Result) is
@@ -202,6 +204,22 @@ Built in: **importantDates** (`services/important-dates`):
 `findImportantDates` + `deleteImportantDate(…, 'voice_forget')`. The dates
 routes (`/api/memory/me/dates…`, `/api/memory/me/reminder-settings`) are served
 by their own handler. The memory-control router never claims them.
+
+Also built in:
+
+- **personalInsights** (`services/personal-insights`): exports people/pet
+  profiles and life threads; conversation delete and delete-all remove derived
+  profiles, threads and predictions; `deleteForFacts` recomputes once.
+- **preferences** (`services/user-preferences`): export, conversation and fact
+  provenance removal, delete-all, and voice forget ("forget that I hate cilantro").
+
+`GET /api/memory/me` people keep their `dynamic_entities` IDs (what delete
+uses) and gain `kind` (`person`/`pet`), `memorial`, and profile notes from
+personal insights, matched by name.
+
+Both domains also learn from every summarized conversation:
+`services/memory/conversation-summarized-hooks.ts` runs after the session-end
+summary and after the catch-up job summarizes a dropped call.
 
 ## Voice forget
 
@@ -365,7 +383,6 @@ transaction, delivers with fallback and records the outcome.
 | "Remind me about Sam's birthday a week before"                       | `rememberSpecialDate` (no date: updates lead times) |
 | "What's coming up?"                                                  | `listSpecialDates`                                  |
 | "Stop reminding me about the tax deadline" / "Forget Sam's birthday" | `stopDateReminders` (`forget: true` deletes)        |
-
 
 ## Preferences
 

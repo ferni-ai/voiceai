@@ -62,6 +62,14 @@ export interface RankableFact {
   text?: string;
   userEdited?: boolean;
   updatedAtMs?: number;
+  /** 0.05-1 from the decay job; faded memories rank lower but are never dropped. */
+  recallWeight?: number;
+}
+
+/** Score multiplier for decay: 1 when fresh, 0.525 at the floor; user-edited facts never fade. */
+export function recallWeightFactor(fact: RankableFact): number {
+  if (fact.userEdited || typeof fact.recallWeight !== 'number') return 1;
+  return 0.5 + 0.5 * Math.max(0, Math.min(1, fact.recallWeight));
 }
 
 export interface RankOptions {
@@ -153,7 +161,8 @@ export function rankFacts<F extends RankableFact>(
   const scored: Array<Ranked<F>> = [];
   for (const fact of facts) {
     const s = scoreFact(fact, query, words, opts);
-    if (s) scored.push({ fact, score: s.score, similarity: s.similarity });
+    if (s)
+      scored.push({ fact, score: s.score * recallWeightFactor(fact), similarity: s.similarity });
   }
   scored.sort((a, b) => b.score - a.score);
 

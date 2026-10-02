@@ -3099,6 +3099,8 @@
       "finance": "Money",
       "location": "Places",
       "events": "Events"
-    }
+    },
+    "pet": "Pet",
+    "inMemory": "In memory"
   }
 }

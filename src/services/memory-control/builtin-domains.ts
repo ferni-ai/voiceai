@@ -47,6 +47,85 @@ export function registerImportantDatesDomain(): void {
   });
 }
 
+const sum = (counts: Record<string, number>): number =>
+  Object.values(counts).reduce((total, n) => total + n, 0);
+
+/** People/pet profiles, life threads, predictions — services/personal-insights (all derived). */
+export function registerPersonalInsightsDomain(): void {
+  registerMemoryDomain({
+    name: 'personalInsights',
+    exportFn: async (userId) => {
+      const { getPeopleForApi, getLifeThreads } = await import('../personal-insights/index.js');
+      const [people, lifeThreads] = await Promise.all([
+        getPeopleForApi(userId),
+        getLifeThreads(userId),
+      ]);
+      return { people, lifeThreads };
+    },
+    deleteForConversation: async (userId, conversationId) => {
+      const { deleteDerivedFor } = await import('../personal-insights/index.js');
+      return sum(await deleteDerivedFor(userId, conversationId));
+    },
+    deleteAll: async (userId) => {
+      const { deleteAllDerived } = await import('../personal-insights/index.js');
+      return sum(await deleteAllDerived(userId));
+    },
+    // One recompute covers any number of removed facts.
+    deleteForFacts: async (userId, factIds) => {
+      const { deleteDerivedForFact } = await import('../personal-insights/index.js');
+      if (factIds[0]) await deleteDerivedForFact(userId, factIds[0]);
+      return 0;
+    },
+  });
+}
+
+/** Style, boundaries, likes, interests, media, food — services/user-preferences. */
+export function registerUserPreferencesDomain(): void {
+  registerMemoryDomain({
+    name: 'preferences',
+    exportFn: async (userId) => {
+      const { exportPreferences } = await import('../user-preferences/index.js');
+      return exportPreferences(userId);
+    },
+    deleteForConversation: async (userId, conversationId) => {
+      const { deletePreferencesFor } = await import('../user-preferences/index.js');
+      return deletePreferencesFor(userId, conversationId);
+    },
+    deleteAll: async (userId) => {
+      const { deleteAllPreferences } = await import('../user-preferences/index.js');
+      return deleteAllPreferences(userId);
+    },
+    deleteForFacts: async (userId, factIds) => {
+      const { deletePreferencesDerivedFromFact } = await import('../user-preferences/index.js');
+      let changed = 0;
+      for (const id of factIds) changed += await deletePreferencesDerivedFromFact(userId, id);
+      return changed;
+    },
+    find: async (userId, query) => {
+      const { listPreferences } = await import('../user-preferences/index.js');
+      const { matchScore, tokenize } = await import('./find.js');
+      const tokens = tokenize(query);
+      if (tokens.length === 0) return [];
+      return (await listPreferences(userId))
+        .map((p) => ({
+          id: p.id,
+          label:
+            p.sentiment === 'dislike'
+              ? `that you don't like ${p.value}`
+              : `your preference "${p.value}"`,
+          score: matchScore(tokens, `${p.key} ${p.value}`),
+        }))
+        .filter((m) => m.score >= 0.5);
+    },
+    forget: async (userId, id) => {
+      const { deletePreference } = await import('../user-preferences/index.js');
+      return deletePreference(userId, id, 'voice_forget');
+    },
+  });
+}
+
 export function registerBuiltInMemoryDomains(): void {
   registerImportantDatesDomain();
+  registerPersonalInsightsDomain();
+  registerUserPreferencesDomain();
 }
