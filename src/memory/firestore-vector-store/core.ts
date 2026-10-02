@@ -9,7 +9,6 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { removeUndefined } from '../../utils/firestore-utils.js';
-import { getRequestCoalescer, hashContent } from '../../utils/request-coalescer.js';
 import { embed, embedBatch } from '../embeddings.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import { topKSimilar } from '../rust-accelerator.js';
@@ -19,95 +18,25 @@ import type {
   VectorFilter,
   VectorSearchResult,
 } from '../vector-store-interface.js';
-import type {
-  FirestoreVectorConfig,
-  FirestoreInstance,
-  CollectionReference,
-  Query,
-  VectorStoreHealth,
+import {
+  DEFAULT_COLLECTION_NAME,
+  DEFAULT_EMBEDDING_DIMENSION,
+  type FirestoreVectorConfig,
+  type FirestoreInstance,
+  type CollectionReference,
+  type Query,
+  type VectorStoreHealth,
 } from './types.js';
-import { DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_DIMENSION } from './types.js';
 import { extractEmbedding, matchesFilter } from './helpers.js';
 import { FallbackCache } from './fallback-cache.js';
 import { RecoveryManager, migrateCacheToFirestore } from './recovery.js';
 import { getVectorSearchCache, type VectorSearchCache } from './search-cache.js';
+import { getVectorSearchCoalesceKey, vectorSearchCoalescer } from './search-coalescing.js';
 
 const log = getLogger();
 
-// ============================================================================
-// REQUEST COALESCER FOR VECTOR SEARCH
-// ============================================================================
-
-/**
- * Request coalescer for vector search queries.
- * Coalesces identical search queries to prevent duplicate work when
- * multiple concurrent requests have the same query and options.
- *
- * Key: SHA256 hash of query text + options (topK, minScore, filter)
- *
- * Benefits:
- * - Reduces redundant embedding generation and search work
- * - TTL-based cleanup (60s) prevents memory leaks
- * - Built-in stats tracking for observability
- */
-const vectorSearchCoalescer = getRequestCoalescer<VectorSearchResult[]>('firestore-vector-search', {
-  pendingTtlMs: 60000,
-  maxPending: 5000,
-  // Clone results to prevent mutation bugs when multiple callers share the result.
-  // IMPORTANT: Use structuredClone for deep copy - metadata can have nested objects.
-  cloneResult: (results) => structuredClone(results),
-});
-
-/**
- * Generate a coalescing key for a vector search request.
- * Key is based on query + search options.
- */
-function getVectorSearchCoalesceKey(
-  query: string,
-  options?: {
-    topK?: number;
-    filter?: VectorFilter;
-    minScore?: number;
-  }
-): string {
-  const keyData = JSON.stringify({
-    query,
-    topK: options?.topK ?? 5,
-    minScore: options?.minScore ?? 0,
-    // Include ALL filter fields that affect results
-    filterSource: options?.filter?.source,
-    filterUserId: options?.filter?.userId,
-    filterCategory: options?.filter?.category,
-    filterMinTimestamp: options?.filter?.minTimestamp?.toISOString(),
-    filterMaxTimestamp: options?.filter?.maxTimestamp?.toISOString(),
-    // Include metadata filter - this is important for correct coalescing
-    // JSON.stringify handles nested objects correctly
-    filterMetadata: options?.filter?.metadata,
-  });
-  return hashContent(keyData);
-}
-
-/**
- * Get stats for the vector search coalescer (for observability)
- */
-export function getVectorSearchCoalescerStats(): {
-  totalRequests: number;
-  coalescedRequests: number;
-  actualExecutions: number;
-  coalesceRate: number;
-  errors: number;
-  currentPending: number;
-} {
-  return vectorSearchCoalescer.getStats();
-}
-
-/**
- * Check if vector search coalescing is enabled.
- * Always true - coalescing is always on for vector search.
- */
-export function isVectorCoalescingEnabled(): boolean {
-  return true;
-}
+// REQUEST COALESCER FOR VECTOR SEARCH (see search-coalescing.ts)
+export { getVectorSearchCoalescerStats, isVectorCoalescingEnabled } from './search-coalescing.js';
 
 // ============================================================================
 // FIRESTORE VECTOR STORE CLASS
@@ -150,7 +79,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
     this.fallbackCache = new FallbackCache();
     this.recoveryManager = new RecoveryManager({
       reinitialize: () => this.reinitialize(),
-      onRecoverySuccess: () => this.onRecoverySuccess(),
+      onRecoverySuccess: () => void this.onRecoverySuccess(),
       isInFallbackMode: () => this.useFallback,
     });
     this.searchCache = getVectorSearchCache();
