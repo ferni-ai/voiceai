@@ -591,7 +591,9 @@ function getAccessibleDescription(
     current: formatValue(current, data.unit),
     min: formatValue(min, data.unit),
     max: formatValue(max, data.unit),
-    trend: trendText ? `, trending ${trendText}` : '',
+    trend: trendText
+      ? t('visualizations.sparkline.trendingSuffix', ', trending {trend}', { trend: trendText })
+      : '',
   });
 }
 

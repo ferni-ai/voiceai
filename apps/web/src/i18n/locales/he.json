@@ -313,8 +313,8 @@
     "idle": "במנוחה",
     "importantDates": "תאריכים חשובים",
     "importSelected": "ייבוא הפריטים שנבחרו",
-    "in1Hour": "בעוד שעה ()})",
-    "in3Hours": "בעוד 3 שעות ()})",
+    "in1Hour": "בעוד שעה",
+    "in3Hours": "בעוד 3 שעות",
     "increase": "הגדלה",
     "info": "מידע",
     "insights": "תובנות",
@@ -2482,7 +2482,10 @@
       "trend": "מגמה",
       "compare": "השוואת תקופות",
       "compareSubtitle": "השוואת מצבי רוח זה לצד זה",
-      "comparisonInsight": "ב{period} היו {count} {unit} רגועים יותר."
+      "comparisonInsight": "ב{period} היו {count} {unit} רגועים יותר.",
+      "unitDay": "יום",
+      "unitDays": "ימים",
+      "calmDaysSummary": "{label}: {count} ימים רגועים"
     },
     "lifeTimeline": {
       "title": "פרקי החיים שלך",
@@ -2526,7 +2529,8 @@
     "sparkline": {
       "noData": "אין נתונים זמינים",
       "description": "{title}: כרגע {current}, טווח {min} עד {max}{trend}",
-      "trend": "מגמה"
+      "trend": "מגמה",
+      "trendingSuffix": ", מגמה: {trend}"
     },
     "energyWave": {
       "title": "אנרגיה",

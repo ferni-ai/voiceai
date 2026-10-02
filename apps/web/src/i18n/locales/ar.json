@@ -313,8 +313,8 @@
     "idle": "خامل",
     "importantDates": "تواريخ مهمة",
     "importSelected": "استيراد المحدد",
-    "in1Hour": "بعد ساعة واحدة ()})",
-    "in3Hours": "بعد 3 ساعات ()})",
+    "in1Hour": "بعد ساعة واحدة",
+    "in3Hours": "بعد 3 ساعات",
     "increase": "زيادة",
     "info": "معلومات",
     "insights": "رؤى",
@@ -2482,7 +2482,10 @@
       "trend": "الاتجاه",
       "compare": "مقارنة الفترات",
       "compareSubtitle": "مقارنة المزاج جنباً إلى جنب",
-      "comparisonInsight": "{period}: {count} {unit} هادئة أكثر."
+      "comparisonInsight": "{period}: {count} {unit} هادئة أكثر.",
+      "unitDay": "يوم",
+      "unitDays": "أيام",
+      "calmDaysSummary": "{label}: {count} أيام هادئة"
     },
     "lifeTimeline": {
       "title": "فصول حياتك",
@@ -2526,7 +2529,8 @@
     "sparkline": {
       "noData": "لا توجد بيانات",
       "description": "{title}: الحالي {current}، النطاق من {min} إلى {max}{trend}",
-      "trend": "الاتجاه"
+      "trend": "الاتجاه",
+      "trendingSuffix": "، والاتجاه {trend}"
     },
     "energyWave": {
       "title": "الطاقة",
@@ -2554,9 +2558,7 @@
       "subtitle": "مكالمات ورسائل والتزامات وفيت بها",
       "recent": "الأحدث",
       "empty": "اطلب مني الاتصال بشخص ما أو إرسال رسالة!"
-    },
-    "i": "[NEEDS_TRANSLATION] I\\",
-    "noOpenLoopsDetected": "[NEEDS_TRANSLATION] No open loops detected. You\\"
+    }
   },
   "sleepSettings": {
     "title": "جدول النوم",
@@ -3212,9 +3214,9 @@
         "finances": "المال",
         "beliefs": "الإيمان والمعتقدات"
       },
-      "reask": "I've updated how I explain this. Your switches below stay as they are.",
-      "keep": "Keep my choices",
-      "kept": "Got it. Nothing changed."
+      "reask": "حدّثتُ طريقة شرحي لهذا. مفاتيحك أدناه تبقى كما هي.",
+      "keep": "احتفظ باختياراتي",
+      "kept": "تمام. لم يتغيّر شيء."
     },
     "sensitiveTab": "حساس",
     "deleteConfirmWord": "حذف"

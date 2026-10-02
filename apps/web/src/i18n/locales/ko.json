@@ -313,8 +313,8 @@
     "idle": "대기 중",
     "importantDates": "중요한 날짜",
     "importSelected": "선택 항목 가져오기",
-    "in1Hour": "1시간 후 ()})",
-    "in3Hours": "3시간 후 ()})",
+    "in1Hour": "1시간 후",
+    "in3Hours": "3시간 후",
     "increase": "늘리기",
     "info": "정보",
     "insights": "인사이트",
@@ -2482,7 +2482,10 @@
       "trend": "추세",
       "compare": "기간 비교",
       "compareSubtitle": "기분을 나란히 비교",
-      "comparisonInsight": "{period}에는 평온한 {unit}이(가) {count} 더 많았어요."
+      "comparisonInsight": "{period}에는 평온한 {unit}이(가) {count} 더 많았어요.",
+      "unitDay": "일",
+      "unitDays": "일",
+      "calmDaysSummary": "{label}: 평온한 날 {count}일"
     },
     "lifeTimeline": {
       "title": "당신 삶의 챕터",
@@ -2526,7 +2529,8 @@
     "sparkline": {
       "noData": "데이터가 없어요",
       "description": "{title}: 현재 {current}, 범위 {min}~{max}{trend}",
-      "trend": "추세"
+      "trend": "추세",
+      "trendingSuffix": ", 추세: {trend}"
     },
     "energyWave": {
       "title": "에너지",

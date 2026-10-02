@@ -313,8 +313,8 @@
     "idle": "Inactivo",
     "importantDates": "Fechas importantes",
     "importSelected": "Importar selección",
-    "in1Hour": "En 1 hora ()})",
-    "in3Hours": "En 3 horas ()})",
+    "in1Hour": "En 1 hora",
+    "in3Hours": "En 3 horas",
     "increase": "Aumentar",
     "info": "Información",
     "insights": "Perspectivas",
@@ -2482,7 +2482,10 @@
       "trend": "Tendencia",
       "compare": "Comparar periodos",
       "compareSubtitle": "Comparación de ánimo lado a lado",
-      "comparisonInsight": "{period} tuvo {count} {unit} tranquilos más."
+      "comparisonInsight": "{period} tuvo {count} {unit} tranquilos más.",
+      "unitDay": "día",
+      "unitDays": "días",
+      "calmDaysSummary": "{label}: {count} días tranquilos"
     },
     "lifeTimeline": {
       "title": "Los capítulos de tu vida",
@@ -2526,7 +2529,8 @@
     "sparkline": {
       "noData": "No hay datos disponibles",
       "description": "{title}: actual {current}, rango de {min} a {max}{trend}",
-      "trend": "Tendencia"
+      "trend": "Tendencia",
+      "trendingSuffix": ", tendencia {trend}"
     },
     "energyWave": {
       "title": "Energía",
@@ -2554,9 +2558,7 @@
       "subtitle": "Llamadas, mensajes y compromisos cumplidos",
       "recent": "Reciente",
       "empty": "¡Pídeme que llame a alguien o envíe un mensaje!"
-    },
-    "i": "[NEEDS_TRANSLATION] I\\",
-    "noOpenLoopsDetected": "[NEEDS_TRANSLATION] No open loops detected. You\\"
+    }
   },
   "sleepSettings": {
     "title": "Horario de sueño",
@@ -3212,9 +3214,9 @@
         "finances": "tu dinero",
         "beliefs": "tu fe y creencias"
       },
-      "reask": "I've updated how I explain this. Your switches below stay as they are.",
-      "keep": "Keep my choices",
-      "kept": "Got it. Nothing changed."
+      "reask": "Actualicé cómo explico esto. Tus interruptores de abajo se quedan como están.",
+      "keep": "Mantener mis opciones",
+      "kept": "Listo. No cambió nada."
     },
     "sensitiveTab": "Sensible",
     "deleteConfirmWord": "ELIMINAR"

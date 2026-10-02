@@ -313,8 +313,8 @@
     "idle": "待機中",
     "importantDates": "大切な日",
     "importSelected": "選択項目をインポート",
-    "in1Hour": "1時間後 ()})",
-    "in3Hours": "3時間後 ()})",
+    "in1Hour": "1時間後",
+    "in3Hours": "3時間後",
     "increase": "増やす",
     "info": "情報",
     "insights": "インサイト",
@@ -2482,7 +2482,10 @@
       "trend": "傾向",
       "compare": "期間を比較",
       "compareSubtitle": "気分を並べて比較",
-      "comparisonInsight": "{period}は穏やかな{unit}が{count}多くありました。"
+      "comparisonInsight": "{period}は穏やかな{unit}が{count}多くありました。",
+      "unitDay": "日",
+      "unitDays": "日",
+      "calmDaysSummary": "{label}：穏やかな日 {count}日"
     },
     "lifeTimeline": {
       "title": "あなたの人生の章",
@@ -2526,7 +2529,8 @@
     "sparkline": {
       "noData": "データがありません",
       "description": "{title}: 現在 {current}、範囲 {min}〜{max}{trend}",
-      "trend": "傾向"
+      "trend": "傾向",
+      "trendingSuffix": "、傾向：{trend}"
     },
     "energyWave": {
       "title": "エネルギー",

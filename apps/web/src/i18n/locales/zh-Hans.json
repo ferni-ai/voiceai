@@ -313,8 +313,8 @@
     "idle": "空闲",
     "importantDates": "重要日期",
     "importSelected": "导入所选项",
-    "in1Hour": "1小时后 ()})",
-    "in3Hours": "3小时后 ()})",
+    "in1Hour": "1小时后",
+    "in3Hours": "3小时后",
     "increase": "增加",
     "info": "信息",
     "insights": "洞察",
@@ -2482,7 +2482,10 @@
       "trend": "趋势",
       "compare": "比较时段",
       "compareSubtitle": "心情并排对比",
-      "comparisonInsight": "{period}平静的{unit}多了 {count} 个。"
+      "comparisonInsight": "{period}平静的{unit}多了 {count} 个。",
+      "unitDay": "天",
+      "unitDays": "天",
+      "calmDaysSummary": "{label}：平静的日子 {count} 天"
     },
     "lifeTimeline": {
       "title": "你的人生篇章",
@@ -2526,7 +2529,8 @@
     "sparkline": {
       "noData": "暂无数据",
       "description": "{title}：当前 {current}，范围 {min} 至 {max}{trend}",
-      "trend": "趋势"
+      "trend": "趋势",
+      "trendingSuffix": "，趋势：{trend}"
     },
     "energyWave": {
       "title": "能量",

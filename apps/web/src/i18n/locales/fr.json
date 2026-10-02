@@ -313,8 +313,8 @@
     "idle": "Inactif",
     "importantDates": "Dates importantes",
     "importSelected": "Importer la sélection",
-    "in1Hour": "Dans 1 heure ()})",
-    "in3Hours": "Dans 3 heures ()})",
+    "in1Hour": "Dans 1 heure",
+    "in3Hours": "Dans 3 heures",
     "increase": "Augmenter",
     "info": "Infos",
     "insights": "Observations",
@@ -2482,7 +2482,10 @@
       "trend": "Tendance",
       "compare": "Comparer des périodes",
       "compareSubtitle": "Comparaison des humeurs côte à côte",
-      "comparisonInsight": "{period} : {count} {unit} calmes de plus."
+      "comparisonInsight": "{period} : {count} {unit} calmes de plus.",
+      "unitDay": "jour",
+      "unitDays": "jours",
+      "calmDaysSummary": "{label} : {count} jours calmes"
     },
     "lifeTimeline": {
       "title": "Les chapitres de ta vie",
@@ -2526,7 +2529,8 @@
     "sparkline": {
       "noData": "Aucune donnée disponible",
       "description": "{title} : actuel {current}, de {min} à {max}{trend}",
-      "trend": "Tendance"
+      "trend": "Tendance",
+      "trendingSuffix": ", tendance {trend}"
     },
     "energyWave": {
       "title": "Énergie",
@@ -2554,9 +2558,7 @@
       "subtitle": "Appels, messages et engagements tenus",
       "recent": "Récent",
       "empty": "Demande-moi d'appeler quelqu'un ou d'envoyer un message !"
-    },
-    "i": "[NEEDS_TRANSLATION] I\\",
-    "noOpenLoopsDetected": "[NEEDS_TRANSLATION] No open loops detected. You\\"
+    }
   },
   "sleepSettings": {
     "title": "Horaires de sommeil",
@@ -3212,9 +3214,9 @@
         "finances": "ton argent",
         "beliefs": "ta foi et tes croyances"
       },
-      "reask": "I've updated how I explain this. Your switches below stay as they are.",
-      "keep": "Keep my choices",
-      "kept": "Got it. Nothing changed."
+      "reask": "J'ai reformulé ma façon d'expliquer ça. Tes réglages ci-dessous restent tels quels.",
+      "keep": "Garder mes choix",
+      "kept": "C'est noté. Rien n'a changé."
     },
     "sensitiveTab": "Sensible",
     "deleteConfirmWord": "SUPPRIMER"

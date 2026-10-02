@@ -1272,8 +1272,8 @@
     "idle": "Idle",
     "importantDates": "Important dates",
     "importSelected": "Import Selected",
-    "in1Hour": "In 1 hour ()})",
-    "in3Hours": "In 3 hours ()})",
+    "in1Hour": "In 1 hour",
+    "in3Hours": "In 3 hours",
     "increase": "Increase",
     "info": "Info",
     "insights": "Insights",
@@ -2519,7 +2519,10 @@
       "trend": "Trend",
       "compare": "Compare Periods",
       "compareSubtitle": "Side-by-side mood comparison",
-      "comparisonInsight": "{period} had {count} more calm {unit}."
+      "comparisonInsight": "{period} had {count} more calm {unit}.",
+      "unitDay": "day",
+      "unitDays": "days",
+      "calmDaysSummary": "{label}: {count} calm days"
     },
     "lifeTimeline": {
       "title": "Your Life Chapters",
@@ -2563,14 +2566,15 @@
     "sparkline": {
       "noData": "No data available",
       "description": "{title}: current {current}, range {min} to {max}{trend}",
-      "trend": "Trend"
+      "trend": "Trend",
+      "trendingSuffix": ", trending {trend}"
     },
     "energyWave": {
       "title": "Energy",
       "watchSubtitle": "Current level",
       "subtitle": "Your daily rhythm",
       "currentEnergy": "Current Energy",
-      "insights": "Today\\'s Pattern",
+      "insights": "Today's Pattern",
       "weeklySubtitle": "Your weekly rhythm patterns",
       "weeklyHeatmap": "Weekly Pattern",
       "currentStatus": "Current",

@@ -575,14 +575,24 @@ function buildSmallMultiples(
       insight.textContent = t('visualizations.moodCalendar.comparisonInsight', {
         period: betterPeriod,
         count: Math.abs(diff),
-        unit: Math.abs(diff) === 1 ? 'day' : 'days',
+        unit:
+          Math.abs(diff) === 1
+            ? t('visualizations.moodCalendar.unitDay', 'day')
+            : t('visualizations.moodCalendar.unitDays', 'days'),
       });
       container.appendChild(insight);
     }
   }
 
   // Screen reader summary
-  const allCalmDays = datasets.map((d, i) => `${labels[i]}: ${d.summary.calmDays} calm days`).join(', ');
+  const allCalmDays = datasets
+    .map((d, i) =>
+      t('visualizations.moodCalendar.calmDaysSummary', '{label}: {count} calm days', {
+        label: labels[i] ?? '',
+        count: d.summary.calmDays,
+      })
+    )
+    .join(', ');
   container.appendChild(
     createScreenReaderLabel(`Mood comparison: ${allCalmDays}`)
   );

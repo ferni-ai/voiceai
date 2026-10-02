@@ -313,8 +313,8 @@
     "idle": "Inaktiv",
     "importantDates": "Wichtige Daten",
     "importSelected": "Auswahl importieren",
-    "in1Hour": "In 1 Stunde ()})",
-    "in3Hours": "In 3 Stunden ()})",
+    "in1Hour": "In 1 Stunde",
+    "in3Hours": "In 3 Stunden",
     "increase": "Erhöhen",
     "info": "Info",
     "insights": "Einblicke",
@@ -2482,7 +2482,10 @@
       "trend": "Trend",
       "compare": "Zeiträume vergleichen",
       "compareSubtitle": "Stimmungen im direkten Vergleich",
-      "comparisonInsight": "{period}: {count} ruhige {unit} mehr."
+      "comparisonInsight": "{period}: {count} ruhige {unit} mehr.",
+      "unitDay": "Tag",
+      "unitDays": "Tage",
+      "calmDaysSummary": "{label}: {count} ruhige Tage"
     },
     "lifeTimeline": {
       "title": "Deine Lebenskapitel",
@@ -2526,7 +2529,8 @@
     "sparkline": {
       "noData": "Keine Daten verfügbar",
       "description": "{title}: aktuell {current}, Bereich {min} bis {max}{trend}",
-      "trend": "Trend"
+      "trend": "Trend",
+      "trendingSuffix": ", Tendenz {trend}"
     },
     "energyWave": {
       "title": "Energie",
@@ -2554,9 +2558,7 @@
       "subtitle": "Anrufe, Nachrichten und gehaltene Versprechen",
       "recent": "Neueste",
       "empty": "Bitte mich, jemanden anzurufen oder eine Nachricht zu senden!"
-    },
-    "i": "[NEEDS_TRANSLATION] I\\",
-    "noOpenLoopsDetected": "[NEEDS_TRANSLATION] No open loops detected. You\\"
+    }
   },
   "sleepSettings": {
     "title": "Schlafplan",
@@ -3212,9 +3214,9 @@
         "finances": "Geld",
         "beliefs": "Glaube & Überzeugungen"
       },
-      "reask": "I've updated how I explain this. Your switches below stay as they are.",
-      "keep": "Keep my choices",
-      "kept": "Got it. Nothing changed."
+      "reask": "Ich habe neu formuliert, wie ich das erkläre. Deine Schalter unten bleiben, wie sie sind.",
+      "keep": "Meine Auswahl behalten",
+      "kept": "Alles klar. Nichts hat sich geändert."
     },
     "sensitiveTab": "Sensibel",
     "deleteConfirmWord": "LÖSCHEN"
