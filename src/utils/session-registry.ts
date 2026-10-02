@@ -240,6 +240,25 @@ export function registerGlobalRegistry<T>(registry: SessionRegistry<T>): void {
 }
 
 /**
+ * A registry keyed by user id on the long-lived worker: capped at
+ * USER_KEYED_REGISTRY_MAX_INSTANCES (it would otherwise grow with every caller
+ * the worker ever served) and registered for global cleanup.
+ */
+export function createUserKeyedRegistry<T>(
+  name: string,
+  factory: (userId: string) => T,
+  cleanup: (instance: T) => void
+): SessionRegistry<T> {
+  const registry = createSessionRegistry(factory, {
+    name,
+    cleanup,
+    maxInstances: USER_KEYED_REGISTRY_MAX_INSTANCES,
+  });
+  registerGlobalRegistry(registry);
+  return registry;
+}
+
+/**
  * Reset a specific session across ALL registered registries.
  * Useful for session cleanup where you want to ensure all state is cleared.
  */
