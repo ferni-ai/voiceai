@@ -28,8 +28,9 @@ const toolToDomainMap = new Map<string, string>();
 // Domains whose module import or definition load failed, with the error
 const failedDomains = new Map<string, string>();
 
-// Flag to track initialization
-let initialized = false;
+// The single import pass, shared by every caller (startup warmup and live tool
+// calls can race on a cold worker; a boolean would let both run the loop)
+let initPromise: Promise<void> | null = null;
 
 /**
  * Domain definitions with their tool exports.
@@ -114,11 +115,14 @@ interface ToolDefinition {
 
 /**
  * Initialize the dynamic executor by loading tool metadata from all domains.
- * Called lazily on first tool request.
+ * Called lazily on first tool request, and early by GCE warmup.
  */
 async function initializeDomainMap(): Promise<void> {
-  if (initialized) return;
+  initPromise ??= loadDomainMap();
+  return initPromise;
+}
 
+async function loadDomainMap(): Promise<void> {
   const startTime = Date.now();
   let totalTools = 0;
   let loadedDomains = 0;
@@ -158,7 +162,6 @@ async function initializeDomainMap(): Promise<void> {
     }
   }
 
-  initialized = true;
   log.info(
     { loadedDomains, totalTools, durationMs: Date.now() - startTime },
     '🔧 Dynamic domain executor initialized'
@@ -304,7 +307,7 @@ export async function getDynamicDomainLoadReport(): Promise<{
  * Force re-initialization (useful for testing or hot reload).
  */
 export function resetDynamicExecutor(): void {
-  initialized = false;
+  initPromise = null;
   domainCache.clear();
   toolToDomainMap.clear();
   failedDomains.clear();
