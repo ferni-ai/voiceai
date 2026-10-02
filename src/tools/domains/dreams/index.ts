@@ -25,27 +25,8 @@ import {
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import { upsertAspiration, type AspirationStatus } from '../../../services/aspirations/index.js';
+import { keepDream } from './keep-dream.js';
 
-/** Keep the dream in the canonical aspirations store (fire-and-forget). */
-function keepDream(
-  ctx: ToolContext,
-  title: string,
-  extra: { why?: string; note?: string; category?: string; status?: AspirationStatus } = {}
-): void {
-  if (!ctx.userId || !title.trim()) return;
-  void upsertAspiration(ctx.userId, {
-    level: 'dream',
-    title,
-    ...extra,
-    source: 'explicit',
-    confidence: 1,
-    ...(ctx.sessionId ? { sourceConversationIds: [ctx.sessionId] } : {}),
-    personaId: ctx.agentId,
-  }).then((out) => {
-    if (!out.success) getLogger().warn({ error: out.error.message }, 'Could not keep dream');
-  });
-}
 // ============================================================================
 // DREAM TOOLS
 // ============================================================================
