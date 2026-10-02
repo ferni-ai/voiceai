@@ -21,6 +21,7 @@ import {
   type SpeakerChangeEvent,
 } from '../../services/voice/voice-speaker-change.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { prefetchUserCommitments } from '../../services/superhuman/commitment-prefetch.js';
 
 // ============================================================================
 // TYPES
@@ -121,6 +122,10 @@ export async function identifyUser(
         source: identificationSource,
         metadataNameFiltered: metadataName && !isRealName(metadataName),
       });
+
+      // Not awaited. Turn 1's live-superhuman step reads these commitments under
+      // a 50ms budget, so start the Firestore read before the greeting.
+      void prefetchUserCommitments(userId);
 
       // ===============================================
       // HUMAN-FIRST 2FA: Start identity session
