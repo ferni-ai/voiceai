@@ -202,3 +202,42 @@ export async function handleMemoryHealthCheck(res: ServerResponse): Promise<void
     });
   }
 }
+
+/**
+ * Summarize conversations that ended without a summary (dropped calls).
+ * See services/memory/conversation-catchup.ts.
+ */
+export async function handleConversationCatchUp(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('Running conversation catch-up job (Cloud Scheduler)');
+
+    const { ConversationCatchUpJob } =
+      await import('../../tasks/scheduled/conversation-catchup-job.js');
+    const result = await new ConversationCatchUpJob().run({ dryRun: false });
+
+    const durationMs = Date.now() - startTime;
+    sendJson(res, 200, {
+      success: true,
+      job: 'conversation-catchup',
+      stats: {
+        scanned: result.scanned,
+        summarized: result.summarized,
+        skippedActive: result.skippedActive,
+        failed: result.failed,
+      },
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Conversation catch-up job failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'conversation-catchup',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}

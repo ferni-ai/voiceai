@@ -177,6 +177,14 @@
       ]
     },
     {
+      "collectionGroup": "conversations",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "summarized", "order": "ASCENDING" },
+        { "fieldPath": "startedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "outreach_feedback",
       "queryScope": "COLLECTION_GROUP",
       "fields": [

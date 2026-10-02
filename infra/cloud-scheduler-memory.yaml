@@ -77,6 +77,24 @@ jobs:
       minBackoffDuration: 30s
       maxBackoffDuration: 60s
 
+  # Conversation Catch-Up - every 30 minutes
+  # Summarizes conversations that ended without a summary (dropped calls,
+  # worker crashes): closes them, summarizes, indexes, marks summarized.
+  - name: conversation-catchup
+    description: Summarize conversations that ended without a summary
+    schedule: "7,37 * * * *"  # Every 30 minutes
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/conversation-catchup
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 1
+      minBackoffDuration: 60s
+      maxBackoffDuration: 120s
+
   # Superhuman Memory Maintenance - runs nightly at 3am PT
   # LLM link detection, pattern formation, protection cleanup
   - name: memory-nightly-maintenance
@@ -137,6 +155,15 @@ jobs:
 #   --headers="Content-Type=application/json,X-CloudScheduler=true" \
 #   --time-zone="America/Los_Angeles" \
 #   --description="Memory system health monitoring"
+#
+# gcloud scheduler jobs create http conversation-catchup \
+#   --location=us-central1 \
+#   --schedule="7,37 * * * *" \
+#   --uri="https://app.ferni.ai/api/jobs/conversation-catchup" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Summarize conversations that ended without a summary"
 #
 # gcloud scheduler jobs create http memory-nightly-maintenance \
 #   --location=us-central1 \

@@ -132,6 +132,18 @@ function getMemoryJobs(): SchedulerJob[] {
       maxBackoff: '120s',
       timeout: '120s',
     },
+    {
+      name: 'conversation-catchup',
+      description: 'Summarize conversations that ended without a summary - every 30 minutes',
+      schedule: '7,37 * * * *', // Every 30 minutes
+      timezone: 'America/Los_Angeles',
+      uri: `${CONFIG.uiServerUrl}/api/jobs/conversation-catchup`,
+      httpMethod: 'POST',
+      retryCount: 1,
+      minBackoff: '60s',
+      maxBackoff: '120s',
+      timeout: '600s',
+    },
     // Knowledge Graph Jobs
     {
       name: 'knowledge-graph-insights',

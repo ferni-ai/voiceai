@@ -44,6 +44,7 @@ export const JOB_PATHS: ReadonlySet<string> = new Set([
   '/api/jobs/memory-decay',
   '/api/jobs/memory-deduplication',
   '/api/jobs/memory-health-check',
+  '/api/jobs/conversation-catchup',
   '/api/jobs/deliver-reminders',
   '/api/jobs/deliver-scheduled-actions',
   '/api/jobs/execute-scheduled-outreach',
@@ -125,6 +126,7 @@ import {
   handleMemoryDecay,
   handleMemoryDeduplication,
   handleMemoryHealthCheck,
+  handleConversationCatchUp,
 } from './memory-maintenance-jobs.js';
 
 // Knowledge graph handlers
@@ -288,6 +290,10 @@ export async function handleScheduledJobsRoutes(
 
     case '/api/jobs/memory-health-check':
       await handleMemoryHealthCheck(res);
+      return true;
+
+    case '/api/jobs/conversation-catchup':
+      await handleConversationCatchUp(res);
       return true;
 
     case '/api/jobs/deliver-reminders':
