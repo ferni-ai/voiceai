@@ -40,8 +40,10 @@ jobs:
   # SETUP - Shared dependency installation and caching
   # ============================================================================
   # runs-on comes from the CI_RUNNER repo variable (a JSON label list), falling back
-  # to ubuntu-latest when it is unset. It is set to the self-hosted GCE runner
-  # (github-runner VM). If that VM is stopped, UNSET the variable: a job waiting
+  # to ubuntu-latest when it is unset (the default). Setting it to
+  # ["self-hosted","Linux","X64","gce"] moves CI to the github-runner VM, an
+  # emergency fallback for when hosted runners are unavailable. If that VM is
+  # stopped, UNSET the variable: a job waiting
   # for a runner is not covered by timeout-minutes, so with no runner online every
   # run sits in GitHub's 24h queue and is cancelled with no verdict (2026-07).
   # Deploys never run on it: deploy-gce.yml is GitHub-hosted, because PR code on

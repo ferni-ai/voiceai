@@ -481,8 +481,9 @@ ferni runner ssh
 Two runner processes run on the VM, both registered to this repo (not the org): `github-runner-gce`
 (user `runner`, `/home/runner`) and `github-runner-gce-2` (user `runner2`, `/home/runner2`), so two jobs run
 at once. Each has its own user so pnpm/npm/Playwright caches in `$HOME` are not shared between concurrent jobs. PR/push CI workflows pick their runner from the
-`CI_RUNNER` repo variable, currently `["self-hosted","Linux","X64","gce"]`; unset it and they fall back to
-`ubuntu-latest`.
+`CI_RUNNER` repo variable. It is **unset by default**, so CI runs on `ubuntu-latest`; setting it to
+`["self-hosted","Linux","X64","gce"]` moves CI to this VM (used 2026-09-30 when hosted runners were blocked by a
+failed Actions payment). Start the VM and check both runners are online before setting it.
 
 **Deploys never run on this VM.** PR code runs there, and the runner users are in the `docker` group
 (root-equivalent), so `deploy-gce.yml` (which uses `GCP_SA_KEY` and production secrets) is GitHub-hosted.
