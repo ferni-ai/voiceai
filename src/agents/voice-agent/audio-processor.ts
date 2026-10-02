@@ -15,7 +15,7 @@ declare global {
   var __ferniCurrentMood: string | undefined;
 }
 
-import { log, voice } from '@livekit/agents';
+import { log } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import type { ReadableStream } from 'node:stream/web';
 import { getDJController } from '../../audio/index.js';
@@ -59,6 +59,7 @@ import {
 import { getVoiceBiomarkerPipeline } from '../../speech/voice-biomarkers/index.js';
 import { mapProsodyToVoiceFeatures } from '../../speech/voice-biomarkers/prosody-mapper.js';
 import { trackEmotionDetection } from '../integrations/speech-metrics-integration.js';
+import { recordEmotionForIntelligence } from './voice-emotion-intelligence.js';
 import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 import type { UserData } from '../shared/types.js';
 // Better Than Human - Perfect Timing, Pattern Mirror, and Ambient Context integration
@@ -94,18 +95,8 @@ export interface AudioProcessorContext {
 // Re-export the VoiceEmotionResult for consumers
 export type { VoiceEmotionResult };
 
-/** utteranceEnds for a LiveKit AgentSession: fires each time the caller stops speaking. */
-export function utteranceEndsOf<T>(
-  session: voice.AgentSession<T>
-): AudioProcessorContext['utteranceEnds'] {
-  return (onEnd) => {
-    const handler = (ev: voice.UserStateChangedEvent) => {
-      if (ev.oldState === 'speaking' && ev.newState !== 'speaking') onEnd();
-    };
-    session.on(voice.AgentSessionEventTypes.UserStateChanged, handler);
-    return () => session.off(voice.AgentSessionEventTypes.UserStateChanged, handler);
-  };
-}
+// The LiveKit adapter for utteranceEnds lives in utterance-ends.ts
+export { utteranceEndsOf } from './utterance-ends.js';
 
 /**
  * Sessions whose voice is already being analyzed. The STT tap and the
@@ -1027,71 +1018,6 @@ async function sendEmotionUpdates(
 
   // Strong emotion music offers are now handled by the proactive music system
   // See: src/audio/music-humanization.ts → getEmotionalMirrorOffer()
-}
-
-// ============================================================================
-// BETTER THAN HUMAN: Intelligence Layer Integration
-// ============================================================================
-
-/**
- * Record emotion data for the unified intelligence layer
- *
- * This enables:
- * 1. Cross-session learning about user emotional patterns
- * 2. Emotion-aware tool selection in future sessions
- * 3. Proactive outreach based on emotional patterns
- */
-async function recordEmotionForIntelligence(
-  userId: string,
-  sessionId: string,
-  voiceEmotion: VoiceEmotionResult,
-  logger: ReturnType<typeof log>
-): Promise<void> {
-  try {
-    const { getUnifiedIntelligence } = await import('../../tools/intelligence/index.js');
-    const intelligence = getUnifiedIntelligence();
-
-    // Record the emotion as a learning event
-    await intelligence.recordLearning({
-      userId,
-      sessionId,
-      query: `emotion:${voiceEmotion.primary}`,
-      predictedTool: '', // No tool prediction for emotion events
-      actualTool: '', // No tool execution
-      confidence: voiceEmotion.confidence,
-      wasCorrection: false,
-      timestamp: new Date(),
-      context: {
-        timeOfDay:
-          new Date().getHours() < 12
-            ? 'morning'
-            : new Date().getHours() < 17
-              ? 'afternoon'
-              : 'evening',
-        personaId: 'voice-agent', // Will be overridden if actual persona is known
-        emotionalState: voiceEmotion.primary,
-        voiceEmotion: {
-          primary: voiceEmotion.primary,
-          valence: voiceEmotion.valence,
-          arousal: voiceEmotion.arousal,
-          stressLevel: voiceEmotion.stressLevel,
-          anxietyMarkers: voiceEmotion.anxietyMarkers,
-        },
-      },
-    });
-
-    logger.debug(
-      {
-        userId,
-        emotion: voiceEmotion.primary,
-        stressLevel: voiceEmotion.stressLevel,
-      },
-      '🧠 Emotion recorded for intelligence layer'
-    );
-  } catch (error) {
-    // Non-critical, don't fail the audio processing
-    logger.debug({ error: String(error) }, 'Could not record emotion for intelligence');
-  }
 }
 
 export default processAudioStream;

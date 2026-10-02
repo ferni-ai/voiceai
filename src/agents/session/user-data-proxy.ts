@@ -552,16 +552,5 @@ export function createUserDataProxy(
   return new Proxy({}, handler) as UserData;
 }
 
-/**
- * Check if a UserData object is a proxy
- */
-export function isUserDataProxy(userData: UserData): boolean {
-  return userData.__stateManager !== undefined;
-}
-
-/**
- * Get the underlying SessionStateManager from a UserData proxy
- */
-export function getStateManager(userData: UserData): SessionStateManager | undefined {
-  return userData.__stateManager;
-}
+// Proxy inspection helpers live in user-data-proxy-inspection.ts
+export { getStateManager, isUserDataProxy } from './user-data-proxy-inspection.js';

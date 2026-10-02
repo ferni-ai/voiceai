@@ -15,7 +15,6 @@
  */
 
 import type { JobContext } from '@livekit/agents';
-import type { RemoteParticipant } from '@livekit/rtc-node';
 
 // Event cleanup registry for proper memory management
 import {
@@ -73,6 +72,7 @@ import { buildSessionPersona } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
 import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
 import { resolveSessionPath } from './session-path.js';
+import { waitForParticipantWithTimeout } from './participant-wait.js';
 import { devStage, MULTI_AGENT_MODE } from './constants.js';
 import type { FinOpsTier, SessionPhase } from './types.js';
 import { timezoneFromMetadata } from '../../utils/local-clock.js';
@@ -116,13 +116,6 @@ if (MULTI_AGENT_MODE) {
 
 let cachedVoiceDeps: VoiceDeps | null = null;
 
-interface ParticipantWaitResult {
-  participant: RemoteParticipant | null;
-  startedAt: number;
-  endedAt: number;
-  source: 'existing' | 'wait' | 'timeout' | 'error';
-}
-
 async function loadVoiceDeps(): Promise<void> {
   if (cachedVoiceDeps) return;
   cachedVoiceDeps = await loadVoiceDepsPhase();
@@ -136,62 +129,6 @@ function getVoiceDeps(): VoiceDeps {
     }
   }
   return cachedVoiceDeps;
-}
-
-function getExistingRemoteParticipant(ctx: JobContext): RemoteParticipant | null {
-  const iterator = ctx.room?.remoteParticipants?.values().next();
-  return iterator && !iterator.done ? iterator.value : null;
-}
-
-function waitForParticipantWithTimeout(
-  ctx: JobContext,
-  timeoutMs: number
-): Promise<ParticipantWaitResult> {
-  const startedAt = Date.now();
-  const existingParticipant = getExistingRemoteParticipant(ctx);
-  if (existingParticipant) {
-    return Promise.resolve({
-      participant: existingParticipant,
-      startedAt,
-      endedAt: Date.now(),
-      source: 'existing',
-    });
-  }
-
-  return new Promise<ParticipantWaitResult>((resolve) => {
-    let settled = false;
-    const finish = (
-      participant: RemoteParticipant | null,
-      source: ParticipantWaitResult['source']
-    ): void => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeout);
-      resolve({
-        participant,
-        startedAt,
-        endedAt: Date.now(),
-        source,
-      });
-    };
-
-    const timeout = setTimeout(() => {
-      process.stderr.write(
-        `[voice-agent-entry] 👤 Participant wait timed out after ${timeoutMs}ms (early path)\n`
-      );
-      finish(null, 'timeout');
-    }, timeoutMs);
-
-    ctx
-      .waitForParticipant()
-      .then((participant) => finish(participant, 'wait'))
-      .catch((err: unknown) => {
-        process.stderr.write(
-          `[voice-agent-entry] 👤 Participant wait failed (early path): ${String(err)}\n`
-        );
-        finish(null, 'error');
-      });
-  });
 }
 
 async function markCallStageSafe(

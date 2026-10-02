@@ -36,11 +36,7 @@ import { processPersonality, type PersonalityContext } from './turn-personality.
 
 // Performance optimization imports
 import { speculateTTS } from '../../services/performance/speculative-tts.js';
-import {
-  completeTurnProfiling,
-  markTurnCheckpoint,
-  startTurnProfiling,
-} from '../../services/performance/turn-profiler.js';
+import { turnTiming } from './turn-timing.js';
 
 // "Better Than Human" emotion dispatch for frontend EQ system
 import {
@@ -94,11 +90,9 @@ import { summarizeAudioEmbedding, type AudioEmbeddingResult } from '../integrati
 import { getContinuousProsodyStream } from '../../intelligence/context-builders/continuous-prosody.js';
 // Adaptive timing for "Better than Human" response latency
 import {
-  completeTurnProfile,
   getAdaptiveTimeouts,
   recordFillerInjection,
   shouldInjectFiller,
-  startTurnProfile,
 } from '../shared/performance/adaptive-timing.js';
 // Emotion-aware filler timing and phrases
 import {
@@ -171,12 +165,6 @@ import {
   recordVoiceContext,
   type VoiceContext,
 } from '../integrations/voice-memory-integration.js';
-
-// Timing-aware injection tracking (Phase 3 BTH Communication Overhaul)
-import {
-  calculateAndRecordTurnGap,
-  recordTurnEndTime,
-} from '../../intelligence/context-builders/awareness/system-state-awareness.js';
 
 // Note: Live superhuman injections are handled by the turn-processor pipeline
 // via src/agents/processors/live-superhuman-injections.ts
@@ -440,34 +428,6 @@ function detectBreathPattern(
 // ============================================================================
 // MAIN HANDLER
 // ============================================================================
-
-/**
- * The turn's timing side effects (latency profilers, turn-pace clock). An
- * advisory run gets no-ops: it overlaps the agent's own reply.
- */
-function turnTiming(sessionId: string, turnNumber: number, advisory: boolean) {
-  if (advisory) {
-    return {
-      startProfiling: () => undefined,
-      startProfile: () => undefined,
-      mark: (_checkpoint: Parameters<typeof markTurnCheckpoint>[2]) => undefined,
-      completeProfile: () => undefined,
-      completeProfiling: () => null,
-      recordTurnGap: () => 0,
-      recordTurnEnd: () => undefined,
-    };
-  }
-  return {
-    startProfiling: () => startTurnProfiling(sessionId, turnNumber),
-    startProfile: () => startTurnProfile(sessionId, turnNumber),
-    mark: (checkpoint: Parameters<typeof markTurnCheckpoint>[2]) =>
-      markTurnCheckpoint(sessionId, turnNumber, checkpoint),
-    completeProfile: () => completeTurnProfile(sessionId, turnNumber),
-    completeProfiling: () => completeTurnProfiling(sessionId, turnNumber),
-    recordTurnGap: () => calculateAndRecordTurnGap(sessionId),
-    recordTurnEnd: () => recordTurnEndTime(sessionId),
-  };
-}
 
 /**
  * Process a completed user turn.

@@ -42,6 +42,7 @@ import {
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { checkInDelay, isRealSilence, silenceHold, type SessionStates } from './dead-air.js';
+import { buildEarlyAcknowledgmentContext } from './early-acknowledgment-context.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import {
@@ -1171,27 +1172,12 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
               const turnCount = userData.turnCount ?? 0;
 
               // Build STRUCTURED meta-commands that cannot be mistaken for speech
-              const contextParts = [
-                `[SITUATION: ${Math.round(timeSinceStop / 1000)}s silence]`,
-                hold > 1 ? '[TYPE: quiet_presence]' : '[TYPE: soft_acknowledgment]',
-                hold > 1 ? '[MAX: 6 words]' : '[MAX: 8 words]',
-                '[NO: questions]',
-              ];
-              if (hold > 1) contextParts.push('[TONE: gentle, no pressure to speak]');
-
-              // Add context reference if available
-              if (lastTranscript && lastTranscript.length > 10) {
-                contextParts.push(`[CONTEXT: "${lastTranscript.slice(0, 80)}..."]`);
-              }
-
-              // Tone based on conversation stage (a heavy moment already set it)
-              if (hold > 1) {
-                // keep the gentle tone
-              } else if (turnCount < 3) {
-                contextParts.push('[TONE: welcoming]');
-              } else if (turnCount > 10) {
-                contextParts.push('[TONE: casual]');
-              }
+              const contextParts = buildEarlyAcknowledgmentContext({
+                silenceMs: timeSinceStop,
+                hold,
+                lastTranscript,
+                turnCount,
+              });
 
               // PROMINENT LOG: Show dead air timing
               diag.state('🎭 [DEAD AIR] Early acknowledgment', {

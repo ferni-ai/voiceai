@@ -33,34 +33,10 @@ import { getToolGateway } from '../../tools/gateway/index.js';
 import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
 import { modelConfig } from '../../services/model-config.js';
 import { timezoneFromMetadata } from '../../utils/local-clock.js';
+import { getCachedVad, setCachedVad } from './vad-cache.js';
 
-// ============================================================================
-// VAD CACHING (Worker-Level Singleton)
-// ============================================================================
-
-/** Worker-level cached VAD instance — loaded once, reused across all sessions */
-type VadInstance = Awaited<ReturnType<typeof import('@livekit/agents-plugin-silero').VAD.load>>;
-let cachedVad: VadInstance | null = null;
-let vadLoadPromise: Promise<VadInstance> | null = null;
-
-/**
- * Pre-warm the Silero VAD at worker startup.
- * Call this once during worker initialization to avoid ~764ms per-session load.
- */
-export async function prewarmVAD(silero: typeof import('@livekit/agents-plugin-silero')): Promise<void> {
-  if (cachedVad) return;
-  if (vadLoadPromise) {
-    await vadLoadPromise;
-    return;
-  }
-  vadLoadPromise = (async () => {
-    const start = Date.now();
-    cachedVad = await silero.VAD.load();
-    process.stderr.write(`[session-creator] 🎙️ VAD pre-warmed at worker level in ${Date.now() - start}ms\n`);
-    return cachedVad;
-  })();
-  await vadLoadPromise;
-}
+// VAD pre-warming lives in vad-cache.ts (worker startup imports it from here)
+export { prewarmVAD } from './vad-cache.js';
 
 /** Inputs needed to create a session */
 export interface CreateSessionInput {
@@ -116,6 +92,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   if (!DISABLE_VAD) {
     try {
       const vadLoadStart = Date.now();
+      const cachedVad = getCachedVad();
       if (cachedVad) {
         // Reuse worker-level cached VAD (saves ~764ms per session)
         vad = cachedVad;
@@ -126,7 +103,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
         // Fallback: load per-session if not pre-warmed (first session or pre-warm failed)
         const { silero } = voiceDeps;
         vad = await silero.VAD.load();
-        cachedVad = vad; // Cache for next session
+        setCachedVad(vad); // Cache for next session
         process.stderr.write(
           `[voice-agent-entry] 🎙️ Silero VAD loaded (first session) in ${Date.now() - vadLoadStart}ms\n`
         );
