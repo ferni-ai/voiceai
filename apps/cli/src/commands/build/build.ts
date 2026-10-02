@@ -20,6 +20,7 @@
  *   npm run build:electron
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync, spawnSync } from 'child_process';
 import { existsSync, mkdirSync, cpSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
@@ -30,7 +31,7 @@ import { fileURLToPath } from 'url';
 // ============================================================================
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
+const PROJECT_ROOT = findProjectRoot();
 
 // ============================================================================
 // COLORS & LOGGING

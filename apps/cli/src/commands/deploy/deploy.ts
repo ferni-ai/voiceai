@@ -12,6 +12,7 @@
  * This script is called by the Ferni CLI - use `ferni deploy` for best experience.
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { ChildProcess, execSync, spawn } from 'child_process';
 import { createWriteStream, existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
@@ -22,7 +23,7 @@ import { fileURLToPath } from 'url';
 // ============================================================================
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
+const PROJECT_ROOT = findProjectRoot();
 
 const CONFIG = {
   // GCP Settings

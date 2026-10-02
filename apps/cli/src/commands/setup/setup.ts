@@ -23,6 +23,7 @@
  *   npm run setup icons
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync, spawnSync } from 'child_process';
 import { existsSync, mkdirSync, writeFileSync, readFileSync, copyFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -34,7 +35,7 @@ import * as readline from 'readline';
 // ============================================================================
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
+const PROJECT_ROOT = findProjectRoot();
 
 // ============================================================================
 // COLORS & LOGGING

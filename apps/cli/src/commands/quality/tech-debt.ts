@@ -11,13 +11,14 @@
  *   npx tsx scripts/tech-debt.ts --markdown     # Output as markdown
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync } from 'child_process';
 import { writeFileSync, existsSync, statSync } from 'fs';
 import { dirname, join, relative, basename } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
+const PROJECT_ROOT = findProjectRoot();
 
 // ============================================================================
 // CONFIGURATION
