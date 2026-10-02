@@ -3197,10 +3197,16 @@
       "deleteBody": "I still have {count} things about {label}. Delete them too?",
       "deleteKeepsAllergies": "Your allergies stay, so I never suggest something unsafe.",
       "deleteConfirm": "Delete",
-      "forgetMoodBody": "I'll forget how you seemed in that conversation."
+      "forgetMoodBody": "I'll forget how you seemed in that conversation.",
+      "inline": {
+        "health": "your health & mood",
+        "finances": "your money",
+        "beliefs": "your faith & beliefs"
+      }
     },
     "sensitiveTab": "Sensitive",
-    "lifeTab": "Work & places"
+    "lifeTab": "Work & places",
+    "deleteConfirmWord": "DELETE"
   },
   "lifeMemory": {
     "workNow": "Your work now",
@@ -3214,7 +3220,7 @@
     "home": "Home",
     "tripsNext": "Trips coming up",
     "tripsDone": "Trips you've taken",
-    "favorites": "Favourite spots",
+    "favorites": "Favorite spots",
     "meaningful": "Places that matter",
     "someday": "Someday",
     "lived": "Places you've lived",
@@ -3225,7 +3231,7 @@
     "kindEvent": "An interview or review",
     "kindHome": "Where you live",
     "kindTrip": "A trip",
-    "kindFavorite": "A favourite spot",
+    "kindFavorite": "A favorite spot",
     "kindMeaningful": "A place that matters",
     "kindBucket": "A place you dream of",
     "statusCurrentJob": "Current",

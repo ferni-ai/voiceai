@@ -43,6 +43,17 @@ export function categoryLabelFor(category: SensitiveCategory): string {
   return CATEGORY_COPY[category].label();
 }
 
+const INLINE_FALLBACK: Record<SensitiveCategory, string> = {
+  health: 'your health & mood',
+  finances: 'your money',
+  beliefs: 'your faith & beliefs',
+};
+
+/** The category as it reads mid-sentence; per locale, since casing and articles differ. */
+export function categoryInlineLabelFor(category: SensitiveCategory): string {
+  return t(`memoryControl.sensitive.inline.${category}`, INLINE_FALLBACK[category]);
+}
+
 function storedLine(view: ConsentView, category: SensitiveCategory): string {
   const n = view.stored[category] ?? 0;
   if (view.consent.categories[category].enabled || n <= 0) return '';

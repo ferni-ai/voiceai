@@ -3206,9 +3206,15 @@
       "deleteBody": "关于{label}，我还存着 {count} 条。也一起删除吗？",
       "deleteKeepsAllergies": "你的过敏信息会保留，以免我推荐不安全的东西。",
       "deleteConfirm": "删除",
-      "forgetMoodBody": "我会忘掉你在那次对话中的状态。"
+      "forgetMoodBody": "我会忘掉你在那次对话中的状态。",
+      "inline": {
+        "health": "健康与情绪",
+        "finances": "金钱",
+        "beliefs": "信仰与信念"
+      }
     },
-    "sensitiveTab": "敏感信息"
+    "sensitiveTab": "敏感信息",
+    "deleteConfirmWord": "删除"
   },
   "lifeMemory": {
     "loading": "正在整理你的工作和地点…",

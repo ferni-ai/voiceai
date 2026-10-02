@@ -3206,9 +3206,15 @@
       "deleteBody": "關於{label}，我還存著 {count} 筆。也一起刪除嗎？",
       "deleteKeepsAllergies": "你的過敏資訊會保留，以免我推薦不安全的東西。",
       "deleteConfirm": "刪除",
-      "forgetMoodBody": "我會忘掉你在那次對話中的狀態。"
+      "forgetMoodBody": "我會忘掉你在那次對話中的狀態。",
+      "inline": {
+        "health": "健康與情緒",
+        "finances": "金錢",
+        "beliefs": "信仰與信念"
+      }
     },
-    "sensitiveTab": "敏感資訊"
+    "sensitiveTab": "敏感資訊",
+    "deleteConfirmWord": "刪除"
   },
   "lifeMemory": {
     "loading": "正在整理你的工作和地點…",

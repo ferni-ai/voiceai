@@ -3206,9 +3206,15 @@
       "deleteBody": "{label}에 관한 내용이 아직 {count}개 있어요. 함께 삭제할까요?",
       "deleteKeepsAllergies": "알레르기 정보는 남겨 둬요. 안전하지 않은 걸 절대 권하지 않기 위해서예요.",
       "deleteConfirm": "삭제",
-      "forgetMoodBody": "그 대화에서 당신이 어때 보였는지 잊을게요."
+      "forgetMoodBody": "그 대화에서 당신이 어때 보였는지 잊을게요.",
+      "inline": {
+        "health": "건강과 기분",
+        "finances": "돈",
+        "beliefs": "신앙과 신념"
+      }
     },
-    "sensitiveTab": "민감한 정보"
+    "sensitiveTab": "민감한 정보",
+    "deleteConfirmWord": "삭제"
   },
   "lifeMemory": {
     "loading": "일과 장소를 모으는 중...",

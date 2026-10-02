@@ -3206,9 +3206,15 @@
       "deleteBody": "Ich habe noch {count} Einträge zu {label}. Auch löschen?",
       "deleteKeepsAllergies": "Deine Allergien bleiben, damit ich dir nie etwas Unsicheres vorschlage.",
       "deleteConfirm": "Löschen",
-      "forgetMoodBody": "Ich vergesse, wie du in diesem Gespräch gewirkt hast."
+      "forgetMoodBody": "Ich vergesse, wie du in diesem Gespräch gewirkt hast.",
+      "inline": {
+        "health": "Gesundheit & Stimmung",
+        "finances": "Geld",
+        "beliefs": "Glaube & Überzeugungen"
+      }
     },
-    "sensitiveTab": "Sensibel"
+    "sensitiveTab": "Sensibel",
+    "deleteConfirmWord": "LÖSCHEN"
   },
   "lifeMemory": {
     "loading": "Ich sammle deine Arbeit und Orte...",

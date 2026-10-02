@@ -28,7 +28,7 @@ import {
 import { toast } from '../whisper.ui.js';
 import { confirmAction } from './confirm-dialog.js';
 import {
-  categoryLabelFor,
+  categoryInlineLabelFor,
   renderConsentCard,
   renderHealth,
   renderMood,
@@ -180,7 +180,6 @@ export class SensitiveTab {
   private async offerDelete(category: SensitiveCategory, asked: boolean): Promise<void> {
     const count = this.consent?.stored[category] ?? 0;
     if (count <= 0) return;
-    const label = categoryLabelFor(category);
     const confirmed = await confirmAction({
       title: t('memoryControl.sensitive.deleteTitle', 'Delete what I have?'),
       message:
@@ -189,7 +188,7 @@ export class SensitiveTab {
           'I still have {count} things about {label}. Delete them too?',
           {
             count,
-            label: label.toLowerCase(),
+            label: categoryInlineLabelFor(category),
           }
         ) +
         (category === 'health'
