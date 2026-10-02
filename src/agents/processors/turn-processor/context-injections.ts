@@ -325,15 +325,15 @@ export async function buildContextInjections(
     name: string
   ): Promise<T> => {
     try {
-      const result = await Promise.race([
+      return await Promise.race([
         promise,
         new Promise<T>((_, reject) => {
           setTimeout(() => reject(new Error(`Timeout: ${name}`)), timeoutMs);
         }),
       ]);
-      return result;
     } catch (error) {
-      diag.debug(`⏱️ Context builder timeout: ${name}`, { timeoutMs });
+      const level = name === 'live-superhuman' ? 'info' : 'debug'; // info shows in production
+      diag[level](`⏱️ Context builder timeout: ${name}`, { timeoutMs, error: String(error) });
       return fallback;
     }
   };
