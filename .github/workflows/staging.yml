@@ -139,6 +139,12 @@ jobs:
   # ============================================================================
   deploy-staging:
     name: Deploy Staging
+    # Off until staging has its own (dev) LiveKit secrets: the UI server exits at
+    # startup without LIVEKIT_URL/API_KEY/API_SECRET, and the only ones in Secret
+    # Manager are production, which public PR previews must not get. Set the repo
+    # variable STAGING_DEPLOY=true once dev secrets are wired in. smoke-tests
+    # needs this job, so it skips too.
+    if: vars.STAGING_DEPLOY == 'true'
     # GitHub-hosted on purpose: this job holds GCP_SA_KEY, and the self-hosted CI
     # runner runs PR code with docker (root) access. See ci.yml.
     runs-on: ubuntu-latest
