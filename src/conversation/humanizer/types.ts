@@ -6,8 +6,6 @@
  * @module @ferni/conversation/humanizer/types
  */
 
-import type { SessionMemory } from '../deep-humanization/index.js';
-
 // ============================================================================
 // CONTEXT TYPES
 // ============================================================================
@@ -24,8 +22,6 @@ export interface HumanizationContext {
   isSeriousContext?: boolean;
   wasPersonalSharing?: boolean;
   silenceDurationMs?: number;
-  /** Session data for anticipation/running jokes */
-  sessionData?: SessionMemory;
   /** Relationship stage for deeper humanization */
   relationshipStage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
 }

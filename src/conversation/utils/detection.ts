@@ -155,23 +155,6 @@ export const EVIDENCE_PATTERNS = [
 ] as const;
 
 /**
- * Patterns indicating breakthrough/insight moment
- */
-export const BREAKTHROUGH_PATTERNS = [
-  /I (just )?realized/i,
-  /it hit me/i,
-  /I (just )?figured out/i,
-  /maybe what I need/i,
-  /finally/i,
-  /for the first time/i,
-  /I never thought of it/i,
-  /I'?ve never told anyone/i,
-  /this is hard to say/i,
-  /oh my god/i,
-  /wait\s*[,.!]/i,
-] as const;
-
-/**
  * Patterns indicating agent is giving advice
  */
 export const ADVICE_PATTERNS = [
@@ -257,35 +240,6 @@ export const DEEP_SHARING_PATTERNS = [
   /i realized/i,
   /the thing is/i,
   /what i really want/i,
-] as const;
-
-/**
- * Hesitation signals for first-turn detection
- */
-export const HESITATION_PATTERNS = [
-  // Deflection
-  /^(fine|okay|good|not bad|alright|ok)\.?$/i,
-  /^(i'?m? )?(doing )?(fine|okay|good|alright)/i,
-  /nothing (much|really|special)/i,
-  /just (wanted to|thought i'd|checking in)/i,
-  // Minimizing
-  /not that (big|important|bad)/i,
-  /no big deal/i,
-  /it'?s? (nothing|fine|whatever)/i,
-  /doesn'?t (matter|bother)/i,
-  // Hedging
-  /i guess/i,
-  /maybe i/i,
-  /i don'?t (really )?know/i,
-  /sort of/i,
-  /kind of/i,
-  /probably/i,
-  // Trailing off
-  /\.\.\./,
-  /anyway\s*\.?$/i,
-  // Vague responses
-  /^(um|uh|hmm)/i,
-  /^just.*$/i,
 ] as const;
 
 // ============================================================================
@@ -422,13 +376,6 @@ export function detectHeavyContentKeywords(text: string): string[] {
 }
 
 /**
- * Detect breakthrough/insight moment
- */
-export function detectBreakthrough(userMessage: string): boolean {
-  return BREAKTHROUGH_PATTERNS.some((p) => p.test(userMessage));
-}
-
-/**
  * Detect if agent response is giving advice
  */
 export function detectAdviceGiving(agentMessage: string): boolean {
@@ -489,14 +436,6 @@ export function detectHighEngagement(userMessage: string): boolean {
 }
 
 /**
- * Detect hesitation in user message (for first-turn "I notice" moments)
- */
-export function detectHesitation(userMessage: string): boolean {
-  const lower = userMessage.toLowerCase();
-  return HESITATION_PATTERNS.some((p) => p.test(lower));
-}
-
-/**
  * Get overall engagement level with confidence
  */
 export function detectEngagementLevel(userMessage: string): DetectionResult<EngagementLevel> {
@@ -546,13 +485,11 @@ export default {
   // Content detection
   detectEmotionalContent,
   detectHeavyContentKeywords,
-  detectBreakthrough,
   detectAdviceGiving,
 
   // Engagement
   detectDisengagement,
   detectHighEngagement,
-  detectHesitation,
   detectEngagementLevel,
 
   // Pattern constants (for testing/extension)
@@ -563,10 +500,8 @@ export default {
   HEAVY_CONTENT_KEYWORDS,
   LIGHT_CONTENT_PATTERNS,
   EVIDENCE_PATTERNS,
-  BREAKTHROUGH_PATTERNS,
   ADVICE_PATTERNS,
   DISENGAGEMENT_PATTERNS,
   HIGH_ENGAGEMENT_PATTERNS,
   DEEP_SHARING_PATTERNS,
-  HESITATION_PATTERNS,
 };

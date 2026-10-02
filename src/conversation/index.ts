@@ -39,30 +39,15 @@
 
 // Import reset functions for local use
 import { resetActiveListeningEngine as _resetActiveListening } from './active-listening.js';
-import { resetAdvancedHumanization as _resetAdvancedHumanization } from './advanced-humanization.js';
-import { resetConcernDetectionEngine as _resetConcernDetection } from './concern-detection.js';
 import { resetConversationRhythmTracker as _resetConversationRhythm } from './conversation-rhythm.js';
 import { resetConversationalMemory as _resetConversationalMemory } from './conversational-memory/index.js';
-import { resetConversationalRepairEngine as _resetConversationalRepair } from './conversational-repair.js';
-import { resetCuriosityEngine as _resetCuriosity } from './curiosity-engine.js';
-import { resetDeepHumanization as _resetDeepHumanization } from './deep-humanization/index.js';
-import { resetEmotionalAftercareEngine as _resetEmotionalAftercare } from './emotional-aftercare.js';
 import { resetEmotionalArcTracker as _resetEmotionalArc } from './emotional-arc.js';
-import { resetEnergyRegulationEngine as _resetEnergyRegulation } from './energy-regulation.js';
-import { resetHopeInjectionEngine as _resetHopeInjection } from './hope-injection.js';
 import { resetConversationHumanizer as _resetHumanizer } from './humanizer/index.js';
 import { resetInterruptionHandler as _resetInterruption } from './interruption-handler.js';
-import { resetMicroAffirmationEngine as _resetMicroAffirmation } from './micro-affirmations.js';
-import { resetParadoxicalInterventionEngine as _resetParadoxicalIntervention } from './paradoxical-intervention.js';
-import { resetPredictiveAnticipationEngine as _resetPredictiveAnticipation } from './predictive-anticipation/index.js';
-import { resetProactiveMemoryEngine as _resetProactiveMemory } from './proactive-memory.js';
 import { resetQuestionPatternEngine as _resetQuestionPatterns } from './question-patterns/index.js';
-import { resetRelationshipEventsEngine as _resetRelationshipEvents } from './relationship-events.js';
 import { resetResponseDynamicsEngine as _resetResponseDynamics } from './response-dynamics.js';
 import { resetSilencePresenceEngine as _resetSilencePresence } from './silence-presence.js';
 import { resetStoryTimingEngine as _resetStoryTiming } from './story-timing.js';
-import { resetSubtextDetectionEngine as _resetSubtextDetection } from './subtext-detection.js';
-import { resetTemporalContextEngine as _resetTemporalContext } from './temporal-context/index.js';
 import { resetThinkingPhraseCoordinator as _resetThinkingPhraseCoordinator } from './thinking-phrase-coordinator.js';
 import { resetTurnTakingMonitor as _resetTurnTaking } from './turn-taking.js';
 
@@ -226,34 +211,8 @@ export {
   type HumanizingConfig,
 } from './humanizing-config.js';
 
-// ============================================================================
-// NEW: CENTRALIZED HUMANIZATION TUNING
-// ============================================================================
-
-// Single source of truth for all humanization probabilities and cooldowns
-export {
-  DEFAULT_TUNING,
-  getTuningValue,
-  TUNING_PRESETS,
-  type HumanizationTuning,
-} from './humanization-tuning.js';
-
-// Deep Humanization - Clean architecture module
-export {
-  resetDeepHumanization,
-  resetMoodTracker,
-  resetAllDeepHumanization,
-  type ConversationMood,
-  type HumanizationContext as DeepHumanizationContext,
-  type HumanizationInjection,
-  type HumanizationType,
-  type SessionMemory,
-} from './deep-humanization/index.js';
-
-// Detection utilities - exported from deep humanization for backward compatibility
-export { classifyTopicWeight, detectAdviceGiving, detectBreakthrough } from './utils/detection.js';
-
-// Note: Humanization tuning already exported above
+// Detection utilities
+export { classifyTopicWeight, detectAdviceGiving } from './utils/detection.js';
 
 // Silence as Presence - Intentional meaningful silences
 export {
@@ -367,7 +326,6 @@ export {
   // Engagement detection (new)
   detectDisengagement,
   detectEngagementLevel,
-  detectHesitation,
   detectHighEngagement,
   // Detailed energy detection (new)
   detectUserEnergyDetailed,
@@ -578,12 +536,12 @@ export {
 
 /**
  * Reset all conversation tracking for a new session
+ *
+ * Only process-wide singletons are reset here. Session- and user-keyed engines
+ * register with the global session registry, which the voice agent's cleanup
+ * handler clears per session when the call ends.
  */
-export function resetAllConversationState(
-  personaId?: string,
-  sessionId?: string,
-  userId?: string
-): void {
+export function resetAllConversationState(): void {
   _resetEmotionalArc();
   _resetResponseDynamics();
   _resetInterruption();
@@ -595,35 +553,6 @@ export function resetAllConversationState(
   _resetHumanizer();
   _resetSilencePresence();
   _resetConversationRhythm();
-  if (personaId) {
-    _resetDeepHumanization(personaId);
-  }
-  // Superhuman capabilities (session-scoped)
-  if (sessionId) {
-    _resetConcernDetection(sessionId);
-    _resetProactiveMemory(sessionId);
-    _resetPredictiveAnticipation(sessionId);
-    // Advanced humanization (session-scoped)
-    _resetSubtextDetection(sessionId);
-    _resetEmotionalAftercare(sessionId);
-    _resetConversationalRepair(sessionId);
-    _resetHopeInjection(sessionId);
-    _resetEnergyRegulation(sessionId);
-    _resetMicroAffirmation(sessionId);
-    _resetParadoxicalIntervention(sessionId);
-  }
-  // User-scoped engines (persist across sessions)
-  if (userId) {
-    _resetCuriosity(userId);
-    _resetTemporalContext(userId);
-    _resetRelationshipEvents(userId);
-  }
-
-  // Advanced humanization orchestrator
-  if (sessionId && userId) {
-    _resetAdvancedHumanization(sessionId, userId);
-  }
-
   // Reset thinking phrase coordinator (global singleton)
   _resetThinkingPhraseCoordinator();
 }

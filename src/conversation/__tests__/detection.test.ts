@@ -15,13 +15,11 @@ import {
 
   // Content detection
   detectEmotionalContent,
-  detectBreakthrough,
   detectAdviceGiving,
 
   // Engagement detection
   detectDisengagement,
   detectHighEngagement,
-  detectHesitation,
   detectEngagementLevel,
 
   // Composite
@@ -139,29 +137,6 @@ describe('detectEmotionalContent', () => {
   });
 });
 
-describe('detectBreakthrough', () => {
-  it('should detect realization moments', () => {
-    expect(detectBreakthrough('I just realized something')).toBe(true);
-    expect(detectBreakthrough('It hit me that I need to change')).toBe(true);
-    expect(detectBreakthrough('I finally figured it out')).toBe(true);
-  });
-
-  it('should detect first-time sharing', () => {
-    expect(detectBreakthrough("I've never told anyone this")).toBe(true);
-    expect(detectBreakthrough('This is hard to say but...')).toBe(true);
-  });
-
-  it('should detect epiphany patterns', () => {
-    expect(detectBreakthrough('Oh my god, that explains everything')).toBe(true);
-    expect(detectBreakthrough('Wait, maybe what I need is...')).toBe(true);
-  });
-
-  it('should return false for normal statements', () => {
-    expect(detectBreakthrough('I think that could work')).toBe(false);
-    expect(detectBreakthrough('Let me consider that')).toBe(false);
-  });
-});
-
 describe('detectAdviceGiving', () => {
   it('should detect should-based advice', () => {
     expect(detectAdviceGiving('You should try meditation')).toBe(true);
@@ -248,36 +223,6 @@ describe('detectHighEngagement', () => {
   it('should return false for short neutral responses', () => {
     expect(detectHighEngagement('That sounds good')).toBe(false);
     expect(detectHighEngagement('Okay')).toBe(false);
-  });
-});
-
-describe('detectHesitation', () => {
-  it('should detect deflection patterns', () => {
-    expect(detectHesitation("I'm fine")).toBe(true);
-    expect(detectHesitation('Good')).toBe(true);
-    expect(detectHesitation('Not bad')).toBe(true);
-  });
-
-  it('should detect minimizing patterns', () => {
-    expect(detectHesitation("It's not that important")).toBe(true);
-    expect(detectHesitation('No big deal')).toBe(true);
-    expect(detectHesitation("It's nothing")).toBe(true);
-  });
-
-  it('should detect hedging patterns', () => {
-    expect(detectHesitation('I guess so')).toBe(true);
-    expect(detectHesitation('Maybe I should')).toBe(true);
-    expect(detectHesitation('Sort of')).toBe(true);
-  });
-
-  it('should detect trailing off', () => {
-    expect(detectHesitation('I was thinking...')).toBe(true);
-    expect(detectHesitation('Anyway.')).toBe(true);
-  });
-
-  it('should return false for direct responses', () => {
-    expect(detectHesitation("I'm having a hard time with my job")).toBe(false);
-    expect(detectHesitation('Let me tell you what happened')).toBe(false);
   });
 });
 
