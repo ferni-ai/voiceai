@@ -97,9 +97,11 @@ RUN --mount=type=cache,target=/root/.npm \
 # Copy source files (this layer invalidates on source changes)
 COPY src/ ./src/
 
-# Copy build scripts
-COPY apps/cli/src/commands/build/bundle-agent.ts ./apps/cli/src/commands/build/
-COPY apps/cli/src/commands/build/build-fast.ts ./apps/cli/src/commands/build/
+# Copy the CLI source the build scripts run from (as docker/Dockerfile.agent
+# does). Listing build-fast.ts and bundle-agent.ts alone missed their imports
+# (esbuild-target.ts, utils/project-root.ts), so this local-Docker build of
+# `ferni deploy gce` failed.
+COPY apps/cli/src/ ./apps/cli/src/
 
 # Build TypeScript + Bundle Agent (2441 modules → 1 file!)
 # The bundle eliminates the 30-120s module loading time in child processes

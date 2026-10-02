@@ -67,10 +67,12 @@ RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --prefer-offline --no-frozen-lockfile
 
-# Copy build script (now in apps/cli/) and source. build-fast.ts imports
-# esbuild-target.ts; without it the esbuild step failed and the tsc fallback
-# cannot type the stubbed native packages, so every UI deploy failed.
-COPY apps/cli/src/commands/build/build-fast.ts apps/cli/src/commands/build/esbuild-target.ts ./apps/cli/src/commands/build/
+# Copy the CLI source the build script runs from. Copy the whole tree, not
+# build-fast.ts and its imports one by one: each time it gained an import
+# (esbuild-target.ts, then utils/project-root.ts) the esbuild step failed, the
+# tsc fallback could not type the stubbed native packages, and every UI deploy
+# failed.
+COPY apps/cli/src/ ./apps/cli/src/
 COPY src/ ./src/
 
 # Build with esbuild (falls back to tsc)
