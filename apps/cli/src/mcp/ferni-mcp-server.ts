@@ -24,6 +24,7 @@
  *   }
  */
 
+import { findProjectRoot } from '../utils/project-root.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -38,7 +39,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // MCP server is at apps/cli/src/mcp/, so go up 4 levels to project root
-const PROJECT_ROOT = join(__dirname, '..', '..', '..', '..');
+const PROJECT_ROOT = findProjectRoot();
 
 // ============================================================================
 // STATE MANAGEMENT

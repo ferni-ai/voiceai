@@ -22,7 +22,6 @@ env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
   NODE_VERSION: '20'
-  LIVEKIT_AGENTS_VERSION: '1.0.31'
 
 jobs:
   # ============================================================================
@@ -93,15 +92,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-
-      - name: Fix local dependencies for CI
-        run: |
-          # Replace local file: dependencies with npm registry versions
-          # The local agents-js fork is not available in CI
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -181,15 +171,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Fix local dependencies for CI
-        run: |
-          # Replace local file: dependencies with npm registry versions
-          # The local agents-js fork is not available in CI
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
       - name: Build design-system (required for Docker)
         run: |
           pnpm install --no-frozen-lockfile
@@ -233,7 +214,11 @@ jobs:
             --concurrency 20 \
             --min-instances 0 \
             --max-instances 2 \
-            --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }}"
+            --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }},LIVEKIT_URL=wss://dev-8sm1ba0z.livekit.cloud" \
+            --set-secrets "LIVEKIT_API_KEY=livekit-dev-api-key:latest,LIVEKIT_API_SECRET=livekit-dev-api-secret:latest"
+          # Previews talk to the DEV LiveKit project, never production. Without
+          # LiveKit settings the server exits at startup ("Missing required
+          # environment variables"), so every preview deploy failed.
           
           URL=$(gcloud run services describe $SERVICE_NAME \
             --region=${{ env.GCP_REGION }} \
