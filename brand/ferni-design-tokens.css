@@ -9,6 +9,12 @@
 
 :root {
   /* ============================================
+     COLORS - Base (mix with color-mix() for translucency)
+     ============================================ */
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  /* ============================================
      COLORS - Background
      ============================================ */
   --color-bg-primary: #faf8f5;

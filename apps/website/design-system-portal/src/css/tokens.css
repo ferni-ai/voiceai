@@ -29,6 +29,10 @@
   --text-dimmed: #e0d8ce;
   --text-inverse: #2a2420;
 
+  /* Base (mix with color-mix() for translucency) */
+  --color-white: #ffffff;
+  --color-black: #000000;
+
   /* Accent - Gold */
   --accent-primary: #d4a84a;
   --accent-hover: #e0bc6a;
@@ -51,6 +55,17 @@
   --warning-glow: rgba(224, 184, 96, 0.22);
   --info: #7da6cf;
   --info-glow: rgba(125, 166, 207, 0.22);
+
+  /* Code syntax (on --bg-code) */
+  --code-text: #d4d4d4;
+  --syntax-comment: #6a9955;
+  --syntax-punctuation: #d4d4d4;
+  --syntax-number: #b5cea8;
+  --syntax-string: #ce9178;
+  --syntax-operator: #d4d4d4;
+  --syntax-keyword: #569cd6;
+  --syntax-function: #dcdcaa;
+  --syntax-variable: #9cdcfe;
 
   /* Personas */
   --persona-ferni: #4a6741;
@@ -146,7 +161,7 @@
   --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
   --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05);
   --shadow-2xl: 0 24px 48px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0, 0, 0, 0.06);
-  --shadow-glow: 0 0 20px var(--color-accent-glow);
+  --shadow-glow: 0 0 20px var(--accent-glow);
   --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.04);
 
   /* ============================================

@@ -5302,6 +5302,19 @@ function build() {
   output.push(generatePersonaCSS(colors.personas, personaInks));
   output.push('');
 
+  // Base colors: pure white/black for overlays, scrims and shadows
+  if (colors.base) {
+    output.push('/* ========================================');
+    output.push('   BASE COLORS (mix with color-mix() for translucency)');
+    output.push('   ======================================== */');
+    output.push(':root {');
+    for (const [key, value] of Object.entries(colors.base)) {
+      if (!key.startsWith('_')) output.push(`  --color-${key}: ${value};`);
+    }
+    output.push('}');
+    output.push('');
+  }
+
   // External brand colors (for marketplace)
   if (colors.external) {
     output.push('/* ========================================');
