@@ -1,11 +1,11 @@
 /**
  * E2E Tests for Semantic Data Layer with Firestore Emulator
  *
- * Run with: FIRESTORE_EMULATOR_HOST=localhost:8080 pnpm vitest run src/tests/data-layer/e2e-firestore.test.ts
+ * Run with: FIRESTORE_EMULATOR_HOST=localhost:8080 GCLOUD_PROJECT=demo-project pnpm vitest run src/tests/data-layer/e2e-firestore.test.ts
  *
  * Prerequisites:
  * 1. Install Firebase CLI: npm install -g firebase-tools
- * 2. Start emulator: firebase emulators:start --only firestore
+ * 2. Start emulator (needs Java 21+): firebase emulators:start --only firestore --project demo-project
  * 3. Set env: export FIRESTORE_EMULATOR_HOST=localhost:8080
  */
 
