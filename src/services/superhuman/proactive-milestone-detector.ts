@@ -93,7 +93,7 @@ export interface LifeStageSignal {
 
 export interface MilestoneDetectorProfile {
   userId: string;
-  /** Dates being tracked */
+  /** Legacy: tracked dates moved to the important-dates store (read-only, migrated) */
   trackedDates: TrackedDate[];
   /** Detected upcoming milestones */
   upcomingMilestones: DetectedMilestone[];
@@ -201,37 +201,13 @@ export async function trackDate(
     context?: string;
   }
 ): Promise<TrackedDate> {
-  const profile = (await loadMilestoneProfile(userId)) || createDefaultProfile(userId);
-
+  // Tracked dates live in the canonical important-dates store (shared with
+  // reminders, the web memory page and detection).
+  const { trackMilestoneDate } = await import('../important-dates/milestone-bridge.js');
   const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
-  const id = `${type}_${dateStr}_${Date.now()}`;
-
-  const trackedDate: TrackedDate = {
-    id,
-    label,
-    date: dateStr,
-    type,
-    recurring: options?.recurring ?? true,
-    associatedWith: options?.associatedWith,
-    context: options?.context,
-    createdAt: new Date().toISOString(),
-  };
-
-  // Avoid duplicates
-  const existingIdx = profile.trackedDates.findIndex(
-    (d) => d.label.toLowerCase() === label.toLowerCase() && d.type === type
-  );
-
-  if (existingIdx >= 0) {
-    profile.trackedDates[existingIdx] = trackedDate;
-  } else {
-    profile.trackedDates.push(trackedDate);
-  }
-
-  await saveMilestoneProfile(userId, profile);
+  const tracked = await trackMilestoneDate(userId, label, dateStr, type, options);
   log.info({ userId, label, type, date: dateStr }, 'Tracking new date for milestones');
-
-  return trackedDate;
+  return { ...tracked, type };
 }
 
 /**
@@ -341,15 +317,18 @@ export async function detectUpcomingMilestones(
   userId: string,
   lookaheadDays: number = 60
 ): Promise<DetectedMilestone[]> {
-  const profile = await loadMilestoneProfile(userId);
-  if (!profile) return [];
+  const profile = (await loadMilestoneProfile(userId)) ?? createDefaultProfile(userId);
+  const { loadMilestoneDates } = await import('../important-dates/milestone-bridge.js');
+  const trackedDates = (await loadMilestoneDates(userId)).map(
+    (d): TrackedDate => ({ ...d, type: d.type as MilestoneType })
+  );
 
   const milestones: DetectedMilestone[] = [];
   const now = new Date();
   const cutoff = new Date(now.getTime() + lookaheadDays * 24 * 60 * 60 * 1000);
 
-  // Check tracked dates
-  for (const tracked of profile.trackedDates) {
+  // Check tracked dates (canonical important-dates store)
+  for (const tracked of trackedDates) {
     const anniversaryMilestones = detectDateMilestones(tracked, now, cutoff);
     milestones.push(...anniversaryMilestones);
   }
