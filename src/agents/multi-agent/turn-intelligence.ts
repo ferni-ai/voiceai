@@ -24,6 +24,7 @@ import type { SessionServices } from '../../services/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { UserData } from '../shared/types.js';
 import type { TurnHandlerContext } from '../voice-agent/turn-handler.js';
+import { getUserResponseGapMs } from '../voice-agent/user-response-gap.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
 
@@ -78,10 +79,7 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
             user?: { totalConversations?: number; sharedVulnerabilities?: number };
           }
         | undefined;
-      const pauseBeforeMs =
-        userData.userSpeakingStartTime && userData.lastAgentResponseTime
-          ? Math.max(0, userData.userSpeakingStartTime - userData.lastAgentResponseTime)
-          : 0;
+      const pauseBeforeMs = getUserResponseGapMs(userData) ?? 0;
 
       await handle({
         turnCtx,

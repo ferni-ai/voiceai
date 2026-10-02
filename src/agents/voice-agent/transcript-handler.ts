@@ -134,6 +134,7 @@ import {
   processActiveListeningFinal,
   processActiveListeningPartial,
 } from './active-listening-handler.js';
+import { getUserResponseGapMs } from './user-response-gap.js';
 
 // ============================================================================
 // TYPES
@@ -1853,9 +1854,7 @@ function processHumanListeningPipeline(
         emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
         durationMs: userData.voiceEmotion?.prosody?.utteranceDuration,
         prosodyFeatures,
-        timeSinceAgentMessage: userData.lastAgentResponseTime
-          ? Date.now() - userData.lastAgentResponseTime
-          : undefined,
+        timeSinceAgentMessage: getUserResponseGapMs(userData),
       });
 
       // Store for context builder access

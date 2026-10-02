@@ -15,6 +15,7 @@ import type { UserData } from '../../shared/types.js';
 import { getHumanListeningPipeline } from '../../../speech/human-listening-pipeline.js';
 import { safeFireAndForget } from '../../../utils/safe-fire-and-forget.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { getUserResponseGapMs } from '../user-response-gap.js';
 
 const log = createLogger({ module: 'EmotionHandler' });
 
@@ -56,9 +57,7 @@ export function processHumanListeningPipeline(
         emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
         durationMs: userData.voiceEmotion?.prosody?.utteranceDuration,
         prosodyFeatures,
-        timeSinceAgentMessage: userData.lastAgentResponseTime
-          ? Date.now() - userData.lastAgentResponseTime
-          : undefined,
+        timeSinceAgentMessage: getUserResponseGapMs(userData),
       });
 
       // Store for context builder access
