@@ -167,22 +167,16 @@ export {
 // ============================================================================
 
 export {
-  // Phase-specific personality tagging
-  applyPhasePersonality,
   clearCognitiveSpeechState,
   getCognitiveSpeechStats,
   tagAdvice,
-  tagAdviceWithPersonality,
   tagGreeting,
-  tagGreetingWithPersonality,
   tagStory,
   tagSupportResponse,
-  tagSupportWithPersonality,
   // Cognitive-aware SSML
   tagTextWithCognitiveSsml,
   tagTextWithSsmlAdaptive,
   tagWrapUp,
-  tagWrapUpWithPersonality,
   type CognitiveSsmlOptions,
 } from './adaptive-ssml.js';
 
@@ -242,7 +236,6 @@ export {
   getRegisteredEmotions,
   isEmotionRegistered,
   registerEmotionResponse,
-  wrapWithEmotionProsody,
   type VoiceEmotionModulation,
 } from './emotion-matching.js';
 
@@ -603,23 +596,10 @@ export {
 } from './enhanced-backchanneling.js';
 
 // ============================================================================
-// DYNAMIC SPEED CONTROL (NEW)
-// Real-time speech speed adjustment based on context
+// DYNAMIC SPEED CONTROL (types)
 // ============================================================================
 
-export {
-  DEFAULT_SPEED_CONFIG,
-  applyDynamicSpeedSsml,
-  calculateDynamicSpeed,
-  getSpeedControlSession,
-  getSpeedTrend,
-  recordSpeedDecision,
-  resetAllSpeedControlSessions,
-  resetSpeedControlSession,
-  type SpeedControlConfig,
-  type SpeedControlContext,
-  type SpeedControlResult,
-} from './adaptive-ssml/dynamic-speed-control.js';
+export type { SpeedControlResult } from './adaptive-ssml/dynamic-speed-control.js';
 
 // ============================================================================
 // REAL-TIME AUDIO ANALYZER (NEW)
@@ -675,79 +655,53 @@ export {
 export {
   // Micro-Reactions - quick vocal reactions (<150ms)
   COMPOUND_REACTIONS,
-  // Rich Disfluencies - natural speech patterns
-  DISFLUENCY_PATTERNS,
   MICRO_REACTIONS,
-  // Conversation Prosody - context-aware across turns
-  addContextualPause,
-  addExcitedInterruption,
-  addRealizationMoment,
-  addThinkingStart,
-  addTrailingOff,
   // Anticipatory Prosody - react before user finishes speaking
   anticipateResponse,
-  applyProsodyRecommendation,
   calculateTrajectory,
   detectContext,
   detectContexts,
   detectTrajectory,
   detectTrajectoryType,
-  // Pipeline Integration - optimized emotion→SSML path
-  enhanceResponseWithSesame,
-  findInjectionPoints,
   getActiveAnticipatorySessionCount,
   getActiveConversationStateCount,
-  getActiveDisfluencySessionCount,
   getActiveMicroReactionSessionCount,
   getActiveSesamePipelineSessionCount,
   getAnticipatorySession,
   getCompoundReaction,
   getConversationState,
-  getDisfluenciesForEmotion,
-  getDisfluencySession,
   getImmediateMicroReaction,
   getLastAnticipation,
   getMicroReaction,
   getMicroReactionSession,
   getPreparedResponse,
   getProsodyRecommendation,
-  getRandomSsmlPattern,
   getReactionsForContext,
   getSesamePipelineMetrics,
   getSessionMicroReaction,
   getSessionProsodyRecommendation,
-  injectDisfluency,
   isHeavyTopic,
   processPartialTranscript,
-  quickEnhance,
   recordReaction,
   resetAnticipatorySession,
   resetConversationState,
-  resetDisfluencySession,
   resetMicroReactionSession,
   resetSesamePipeline,
   selectMicroReaction,
-  selectWeightedDisfluency,
   shouldAnticipate,
   shouldUseReaction,
-  smartInjectDisfluency,
   startNewTurn,
   updateAnticipation,
-  updateConversationState,
   // Types
   type AnticipatedResponse,
   type ConversationEmotionalState,
   type ConversationProsodyRecommendation,
-  type DisfluencyInjection,
-  type DisfluencyPattern, // Aliased to avoid conflict with fluency-analysis
   type EmotionalTrajectory as SesameEmotionalTrajectory,
   type MicroReaction,
   type MicroReactionContext,
   type MicroReactionType,
   type PartialTranscript,
   type PreparedResponse,
-  type DisfluencyType as SesameDisfluencyType,
-  type SesameEnhancedResult,
 } from './sesame-inspired/index.js';
 
 // ============================================================================
@@ -898,20 +852,12 @@ export {
 // ============================================================================
 
 export {
-  // Main humanization function (async)
-  humanizeSpeech,
-  quickHumanize,
-  getAvailableCategories,
   // Sync humanization (for persona-fingerprints sync pipeline)
   quickHumanizeSync,
   // Behavior loading (async)
   loadSpeechProfile,
   clearSpeechProfileCache,
   preloadAllSpeechProfiles,
-  selectImperfection,
-  selectThinkingSound,
-  selectBackchannel,
-  selectBreathSound,
   getInjectionConfig,
   // Sync accessors (for use after preloading)
   getSpeechProfileSync,
@@ -924,7 +870,6 @@ export {
   type EmotionalSelectionContext,
   type ContentSelectionContext,
   type SelectedBehavior,
-  type HumanizedSpeechResult,
   type SpeechImperfectionsSchema,
   type ThinkingSoundsSchema,
   type BackchannelsSchema,

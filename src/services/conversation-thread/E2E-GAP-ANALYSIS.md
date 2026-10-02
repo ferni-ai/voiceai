@@ -84,7 +84,7 @@ The wiring exists but should be manually validated:
 **Wired in:**
 - ✅ `voice-agent-entry.ts` - Calls `initializeThreadRecording()`
 - ✅ `transcript-handler.ts` - Calls `recordUserMessage()`
-- ✅ `response-processor.ts` - Calls `recordAgentMessage()`
+- ❌ Agent replies: `recordAgentMessage()` has no caller on voice calls (it was only called from a response processor that never ran)
 
 **Manual validation needed:**
 - [ ] Thread persists across server restarts

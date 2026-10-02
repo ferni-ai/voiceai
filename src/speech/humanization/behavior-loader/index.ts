@@ -26,18 +26,12 @@ export {
 
 export {
   // Imperfection selection
-  selectImperfection,
   selectImperfectionSync,
   // Thinking sound selection
-  selectThinkingSound,
   selectThinkingSoundSync,
-  // Backchannel selection
-  selectBackchannel,
   // Breath sound selection
-  selectBreathSound,
   selectBreathSoundSync,
   // Laughter contagion
-  selectLaughterResponse,
   selectLaughterResponseSync,
 } from './behavior-selector.js';
 

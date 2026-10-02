@@ -159,18 +159,6 @@ export {
 } from './automation.js';
 
 // ============================================================================
-// VOICE AGENT INTEGRATION
-// ============================================================================
-
-export {
-  evaluateAgentResponse,
-  recordUserMessage,
-  getLastEvaluation,
-  getSessionEvalStats,
-  onSessionEnd,
-} from './voice-agent-integration.js';
-
-// ============================================================================
 // CONVENIENCE FUNCTIONS
 // ============================================================================
 
@@ -198,27 +186,6 @@ export function quickHealthCheck(
   if (score < 50) status = 'critical';
 
   return { score, status, issues };
-}
-
-/**
- * Build minimal evaluation context for quick evaluations
- */
-export function buildMinimalContext(
-  personaId: string,
-  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [],
-  turnNumber = 1
-): EvaluationContext {
-  const fingerprint = getPersonaFingerprint(personaId);
-  if (!fingerprint) {
-    throw new Error(`No fingerprint found for persona: ${personaId}`);
-  }
-
-  return {
-    personaId,
-    fingerprint,
-    conversationHistory,
-    turnNumber,
-  };
 }
 
 /**

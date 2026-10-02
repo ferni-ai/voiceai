@@ -22,11 +22,6 @@ import {
 } from '../human-listening-pipeline.js';
 
 import {
-  calculateDynamicSpeed,
-  type SpeedControlContext,
-} from '../adaptive-ssml/dynamic-speed-control.js';
-
-import {
   RealTimeAudioAnalyzer,
   type RealTimeAnalyzerConfig,
 } from '../audio-prosody/real-time-analyzer.js';
@@ -60,9 +55,6 @@ const BENCHMARK_CONFIG = {
     // Human listening pipeline
     humanListeningFull: 100, // Full analysis should be < 100ms
     humanListeningQuick: 10, // Quick analysis should be < 10ms
-
-    // Dynamic speed calculation
-    dynamicSpeedCalc: 1, // Should be < 1ms
 
     // Phrase boundary detection
     phraseBoundary: 0.5, // Should be < 0.5ms
@@ -110,19 +102,6 @@ const createMockListeningContext = (
 ): HumanListeningContext => ({
   sessionId,
   text: 'I feel like things are getting better, but sometimes I still worry about the future.',
-  turnNumber: 5,
-  ...overrides,
-});
-
-const createMockSpeedContext = (
-  overrides: Partial<SpeedControlContext> = {}
-): SpeedControlContext => ({
-  userEngagement: 0.7,
-  contentComplexity: 0.4,
-  emotionalIntensity: 0.5,
-  baseSpeed: 1.0,
-  userWPM: 140,
-  topicWeight: 'medium',
   turnNumber: 5,
   ...overrides,
 });
@@ -296,28 +275,6 @@ describe('Performance Benchmarks', () => {
       logBenchmarkResult(result);
 
       expect(result.avgMs).toBeLessThan(BENCHMARK_CONFIG.targets.humanListeningFull);
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // DYNAMIC SPEED CONTROL
-  // -------------------------------------------------------------------------
-
-  describe('Dynamic Speed Control', () => {
-    it('should calculate speed within target', () => {
-      const context = createMockSpeedContext();
-
-      const result = runBenchmark(
-        'DynamicSpeed.calculate',
-        () => {
-          calculateDynamicSpeed(context);
-        },
-        BENCHMARK_CONFIG.targets.dynamicSpeedCalc
-      );
-
-      logBenchmarkResult(result);
-
-      expect(result.avgMs).toBeLessThan(BENCHMARK_CONFIG.targets.dynamicSpeedCalc);
     });
   });
 

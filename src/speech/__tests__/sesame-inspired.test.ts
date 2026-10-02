@@ -6,7 +6,6 @@
  * - Anticipatory emotional cues
  * - Mid-utterance micro-reactions
  * - Conversation context-aware prosody
- * - Rich disfluency patterns
  * - Pipeline integration
  */
 
@@ -31,20 +30,12 @@ import {
 // Conversation Prosody
 import {
   getSessionProsodyRecommendation,
-  updateConversationState,
   resetConversationState,
 } from '../sesame-inspired/conversation-prosody.js';
-
-// Rich Disfluencies
-import {
-  smartInjectDisfluency,
-  resetDisfluencySession,
-} from '../sesame-inspired/rich-disfluencies.js';
 
 // Pipeline Integration
 import {
   processPartialTranscript,
-  enhanceResponseWithSesame,
   getPreparedResponse,
   startNewTurn,
   resetSesamePipeline,
@@ -53,8 +44,6 @@ import {
 
 // Types
 import type { PartialTranscript } from '../sesame-inspired/types.js';
-import type { CartesiaEmotion } from '../cartesia-expressiveness.js';
-import { perfBudget } from '../../tests/perf-budget.js';
 
 // ============================================================================
 // TEST HELPERS
@@ -83,7 +72,6 @@ describe('Sesame-Inspired Prosody', () => {
     resetAnticipatorySession(testSessionId);
     resetMicroReactionSession(testSessionId);
     resetConversationState(testSessionId);
-    resetDisfluencySession(testSessionId);
     resetSesamePipeline(testSessionId);
   });
 
@@ -92,7 +80,6 @@ describe('Sesame-Inspired Prosody', () => {
     resetAnticipatorySession(testSessionId);
     resetMicroReactionSession(testSessionId);
     resetConversationState(testSessionId);
-    resetDisfluencySession(testSessionId);
     resetSesamePipeline(testSessionId);
   });
 
@@ -245,98 +232,10 @@ describe('Sesame-Inspired Prosody', () => {
       expect(prosody.pauseMultiplier).toBeGreaterThanOrEqual(1.0);
     });
 
-    it('should adjust prosody after emotional updates', () => {
-      // Simulate multiple sad turns with valid emotion 'sad'
-      updateConversationState(testSessionId, 'sad');
-      updateConversationState(testSessionId, 'sad');
-      updateConversationState(testSessionId, 'sad');
-
-      const prosody = getSessionProsodyRecommendation(testSessionId);
-
-      // Should be slower for sad content
-      expect(prosody.baseSpeed).toBeLessThanOrEqual(1.0);
-      // Should recommend softer delivery for sad emotions
-      expect(prosody.baseVolume).toBeLessThanOrEqual(1.0);
-    });
-
-    it('should track emotional trajectory', () => {
-      updateConversationState(testSessionId, 'calm');
-      updateConversationState(testSessionId, 'excited');
-      updateConversationState(testSessionId, 'excited');
-
-      const prosody = getSessionProsodyRecommendation(testSessionId);
-
-      // Should be slightly faster for excited content
-      expect(prosody.baseSpeed).toBeGreaterThanOrEqual(0.95);
-    });
-
     it('should recommend micro-reactions based on conversation state', () => {
       // First few turns should include micro-reactions
       const prosody = getSessionProsodyRecommendation(testSessionId);
       expect(prosody.includeMicroReactions).toBe(true);
-    });
-
-    it('should reset conversation state', () => {
-      updateConversationState(testSessionId, 'sad');
-      updateConversationState(testSessionId, 'sad');
-
-      resetConversationState(testSessionId);
-
-      const prosody = getSessionProsodyRecommendation(testSessionId);
-      expect(prosody.baseSpeed).toBeCloseTo(1.0, 1);
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // RICH DISFLUENCIES
-  // -------------------------------------------------------------------------
-
-  describe('Rich Disfluencies', () => {
-    it('should inject disfluencies probabilistically', () => {
-      // Run multiple times to catch probabilistic behavior
-      // With 25% probability, running 30 times gives <0.002% chance of all failing
-      let injected = false;
-      for (let i = 0; i < 30; i++) {
-        resetDisfluencySession(`${testSessionId}-${i}`);
-        const result = smartInjectDisfluency(
-          `${testSessionId}-${i}`,
-          'Well, I think this is really interesting.',
-          'neutral',
-          5 // Mid-conversation turn
-        );
-        if (result) {
-          injected = true;
-          break;
-        }
-      }
-
-      // At least one should have been injected
-      expect(injected).toBe(true);
-    });
-
-    it('should not inject on first turns', () => {
-      const result = smartInjectDisfluency(
-        testSessionId,
-        'Hello there!',
-        'neutral',
-        1 // First turn
-      );
-
-      // First turns should not have disfluencies
-      expect(result).toBeNull();
-    });
-
-    it('should respect rate limiting', () => {
-      let injectionCount = 0;
-
-      // Multiple rapid calls
-      for (let i = 0; i < 5; i++) {
-        const result = smartInjectDisfluency(testSessionId, `Statement number ${i}`, 'neutral', 5);
-        if (result) injectionCount++;
-      }
-
-      // Should be rate limited
-      expect(injectionCount).toBeLessThanOrEqual(2);
     });
   });
 
@@ -374,36 +273,6 @@ describe('Sesame-Inspired Prosody', () => {
 
       // Should return cached result
       expect(first).toEqual(second);
-    });
-
-    it('should enhance response with Sesame features', () => {
-      // First, process a partial to set up anticipation
-      processPartialTranscript(testSessionId, {
-        text: 'I am so happy about this news',
-        isSpeaking: true,
-      });
-
-      const result = enhanceResponseWithSesame(
-        testSessionId,
-        'That is wonderful to hear!',
-        'excitement' as CartesiaEmotion,
-        3
-      );
-
-      expect(result.enhanced).toContain('<emotion');
-      expect(result.features.length).toBeGreaterThan(0);
-      expect(result.processingMs).toBeLessThan(perfBudget(100)); // Should be fast
-    });
-
-    it('should add emotion tag if missing', () => {
-      const result = enhanceResponseWithSesame(
-        testSessionId,
-        'Hello there!',
-        'neutral' as CartesiaEmotion,
-        1
-      );
-
-      expect(result.enhanced).toContain('<emotion value="neutral"');
     });
 
     it('should track metrics', () => {
@@ -471,18 +340,7 @@ describe('Sesame-Inspired Prosody', () => {
       expect(prepared).toBeTruthy();
       expect(prepared!.anticipatedEmotion).toBe('excited');
 
-      // 3. User finishes, agent responds
-      const enhanced = enhanceResponseWithSesame(
-        testSessionId,
-        'Congratulations! That is fantastic news!',
-        'excited' as CartesiaEmotion,
-        2
-      );
-
-      expect(enhanced.enhanced).toContain('<emotion');
-      expect(enhanced.features.length).toBeGreaterThan(0);
-
-      // 4. Start new turn
+      // 3. Start new turn
       startNewTurn(testSessionId);
       expect(getPreparedResponse(testSessionId)).toBeNull();
     });
@@ -498,18 +356,6 @@ describe('Sesame-Inspired Prosody', () => {
 
       expect(prepared).toBeTruthy();
       expect(prepared!.anticipatedEmotion).toBe('sympathetic');
-
-      // Agent responds with empathy
-      const enhanced = enhanceResponseWithSesame(
-        testSessionId,
-        'I hear you. It sounds like you have been going through a difficult time.',
-        'sympathetic' as CartesiaEmotion,
-        3
-      );
-
-      expect(enhanced.enhanced).toContain('<emotion');
-      // Should have features applied
-      expect(enhanced.features.length).toBeGreaterThan(0);
     });
   });
 });

@@ -37,11 +37,7 @@ import {
   recordAgentResponse,
 } from '../conversation/advanced-humanization-integration.js';
 
-import {
-  buildAdvancedHumanizationInjections,
-  cleanupAdvancedHumanizationSession,
-  initAdvancedHumanizationSession,
-} from '../agents/processors/injection-builders/index.js';
+import { buildAdvancedHumanizationInjections } from '../agents/processors/injection-builders/index.js';
 
 // ============================================================================
 // INTEGRATION MODULE TESTS
@@ -411,14 +407,12 @@ describe('Advanced Humanization Injection Builder', () => {
   const sessionId = 'builder-test-session';
   const userId = 'builder-test-user';
 
-  beforeEach(async () => {
-    await initAdvancedHumanizationSession(sessionId, userId, {
-      relationshipDepth: 'established',
-    });
+  beforeEach(() => {
+    initAdvancedHumanization({ sessionId, userId, relationshipDepth: 'established' });
   });
 
-  afterEach(async () => {
-    await cleanupAdvancedHumanizationSession(sessionId);
+  afterEach(() => {
+    cleanupAdvancedHumanization(sessionId);
   });
 
   it('should build injections from advanced humanization', async () => {
@@ -677,14 +671,12 @@ describe('Full Pipeline Simulation', () => {
   const sessionId = 'pipeline-test';
   const userId = 'pipeline-user';
 
-  beforeEach(async () => {
-    await initAdvancedHumanizationSession(sessionId, userId, {
-      relationshipDepth: 'developing',
-    });
+  beforeEach(() => {
+    initAdvancedHumanization({ sessionId, userId, relationshipDepth: 'developing' });
   });
 
-  afterEach(async () => {
-    await cleanupAdvancedHumanizationSession(sessionId);
+  afterEach(() => {
+    cleanupAdvancedHumanization(sessionId);
   });
 
   it('should handle a complete conversation flow', async () => {
@@ -811,9 +803,7 @@ describe('Relationship Depth Behavior', () => {
       const sessionId = `depth-${depth}-session`;
       const userId = `depth-${depth}-user`;
 
-      await initAdvancedHumanizationSession(sessionId, userId, {
-        relationshipDepth: depth,
-      });
+      initAdvancedHumanization({ sessionId, userId, relationshipDepth: depth });
 
       results[depth] = await buildAdvancedHumanizationInjections({
         sessionId,
@@ -824,7 +814,7 @@ describe('Relationship Depth Behavior', () => {
         relationshipDepth: depth,
       });
 
-      await cleanupAdvancedHumanizationSession(sessionId);
+      cleanupAdvancedHumanization(sessionId);
     }
 
     // All should produce results

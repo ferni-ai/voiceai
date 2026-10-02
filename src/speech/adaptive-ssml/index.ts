@@ -13,7 +13,7 @@
 // TYPES
 // ============================================================================
 
-export type { CognitiveSsmlOptions, PersonalityTagOptions } from './types.js';
+export type { CognitiveSsmlOptions } from './types.js';
 
 // ============================================================================
 // CORE ADAPTATION
@@ -90,7 +90,6 @@ export {
 // ============================================================================
 
 export {
-  applyPersonaSpeechTraits,
   applyPersonaSpeechTraitsSync,
   clearTraitRegistry,
   getPersonaTraitsSync,
@@ -126,18 +125,6 @@ export {
 } from './specialized-taggers.js';
 
 // ============================================================================
-// PHASE-SPECIFIC PERSONALITY
-// ============================================================================
-
-export {
-  applyPhasePersonality,
-  tagAdviceWithPersonality,
-  tagGreetingWithPersonality,
-  tagSupportWithPersonality,
-  tagWrapUpWithPersonality,
-} from './phase-personality.js';
-
-// ============================================================================
 // COGNITIVE-AWARE SSML
 // ============================================================================
 
@@ -151,19 +138,7 @@ export {
 // DYNAMIC SPEED CONTROL
 // ============================================================================
 
-export {
-  DEFAULT_SPEED_CONFIG,
-  applyDynamicSpeedSsml,
-  calculateDynamicSpeed,
-  getSpeedControlSession,
-  getSpeedTrend,
-  recordSpeedDecision,
-  resetAllSpeedControlSessions,
-  resetSpeedControlSession,
-  type SpeedControlConfig,
-  type SpeedControlContext,
-  type SpeedControlResult,
-} from './dynamic-speed-control.js';
+export type { SpeedControlResult } from './dynamic-speed-control.js';
 
 // ============================================================================
 // SUPERHUMAN VOICE - "Better Than Human" Enhancements
@@ -230,9 +205,4 @@ export default {
   tagAdvice: (await import('./specialized-taggers.js')).tagAdvice,
   tagStory: (await import('./specialized-taggers.js')).tagStory,
   tagWrapUp: (await import('./specialized-taggers.js')).tagWrapUp,
-  applyPhasePersonality: (await import('./phase-personality.js')).applyPhasePersonality,
-  tagGreetingWithPersonality: (await import('./phase-personality.js')).tagGreetingWithPersonality,
-  tagSupportWithPersonality: (await import('./phase-personality.js')).tagSupportWithPersonality,
-  tagAdviceWithPersonality: (await import('./phase-personality.js')).tagAdviceWithPersonality,
-  tagWrapUpWithPersonality: (await import('./phase-personality.js')).tagWrapUpWithPersonality,
 };
