@@ -29,105 +29,16 @@ import {
 } from '../../types/subscription.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { finops } from '../observability/finops.js';
+import type {
+  StripeCheckoutSession,
+  StripeClient,
+  StripeEvent,
+  StripeFactory,
+  StripeInvoice,
+  StripeSubscription,
+} from './stripe-subscription.types.js';
 
 const log = createLogger({ module: 'StripeSubscription' });
-
-// ============================================================================
-// STRIPE TYPES (Minimal types for optional dependency)
-// ============================================================================
-
-/**
- * Minimal Stripe types for when the stripe package isn't installed.
- * These mirror the shapes we actually use from the Stripe SDK.
- */
-interface StripeCustomer {
-  id: string;
-  email?: string | null;
-  name?: string | null;
-  metadata: Record<string, string>;
-}
-
-interface StripeSubscription {
-  id: string;
-  status: string;
-  customer: string;
-  created: number;
-  current_period_end: number;
-  trial_end: number | null;
-  metadata: Record<string, string>;
-}
-
-interface StripeSubscriptionWithItems extends StripeSubscription {
-  items: {
-    data: Array<{
-      price: {
-        unit_amount: number | null;
-        recurring?: { interval: string };
-      };
-    }>;
-  };
-}
-
-interface StripeCheckoutSession {
-  id: string;
-  url: string | null;
-  subscription?: string;
-  metadata?: Record<string, string>;
-}
-
-interface StripeBillingPortalSession {
-  url: string;
-}
-
-interface StripeInvoice {
-  id: string;
-  customer: string;
-}
-
-interface StripeEvent {
-  id: string;
-  type: string;
-  data: {
-    object: StripeSubscription | StripeCheckoutSession | StripeInvoice;
-  };
-}
-
-interface StripeClient {
-  customers: {
-    create: (params: {
-      email?: string;
-      name?: string;
-      metadata?: Record<string, string>;
-    }) => Promise<StripeCustomer>;
-  };
-  checkout: {
-    sessions: {
-      create: (params: Record<string, unknown>) => Promise<StripeCheckoutSession>;
-    };
-  };
-  billingPortal: {
-    sessions: {
-      create: (params: {
-        customer: string;
-        return_url: string;
-      }) => Promise<StripeBillingPortalSession>;
-    };
-  };
-  subscriptions: {
-    retrieve: (id: string) => Promise<StripeSubscription>;
-    list: (params: {
-      status?: string;
-      limit?: number;
-      expand?: string[];
-    }) => AsyncIterable<StripeSubscriptionWithItems>;
-  };
-  webhooks: {
-    constructEvent: (payload: string | Buffer, signature: string, secret: string) => StripeEvent;
-  };
-}
-
-// Factory function type for dynamic loading
-type StripeFactory = (secretKey: string, options: Record<string, unknown>) => StripeClient;
 
 // ============================================================================
 // STRIPE CLIENT (Optional Dependency)

@@ -24,31 +24,12 @@ import {
 import { analyzeCheckinCall, generateUrgentNotification } from './family-checkin-summary.js';
 import { getSponsoredIdentity } from '../identity/sponsored-identity.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
+import type { FamilyCheckinJobResult, SingleCallResult } from './family-checkin-caller.types.js';
 
 const log = createLogger({ module: 'FamilyCheckinCaller' });
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface FamilyCheckinJobResult {
-  success: boolean;
-  totalDue: number;
-  schedulesProcessed: number;
-  callsInitiated: number;
-  callsSucceeded: number;
-  callsFailed: number;
-  callsSkipped: number;
-  errors: string[];
-  durationMs: number;
-}
-
-export interface SingleCallResult {
-  success: boolean;
-  callId?: string;
-  status?: CheckinCallStatus;
-  error?: string;
-}
+// Types live in family-checkin-caller.types.ts; re-exported for existing importers.
+export type { FamilyCheckinJobResult, SingleCallResult };
 
 // ============================================================================
 // MAIN JOB RUNNER
