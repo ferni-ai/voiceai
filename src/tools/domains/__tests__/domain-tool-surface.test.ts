@@ -250,4 +250,29 @@ describe('domain tool surface', () => {
       expect(fromDefinitions).toEqual(expected);
     }, 60_000);
   }
+
+  it('createSuperhumanPlanningTools keeps the same tools in order', async () => {
+    const { createSuperhumanPlanningTools } =
+      await import('../life-planning/superhuman-planning-tools.js');
+    expect(Object.keys(createSuperhumanPlanningTools())).toEqual([
+      'getEventPatternInsights',
+      'recordGuestConflict',
+      'updateGuestProfile',
+      'getGuestListDietary',
+      'predictAttendance',
+      'trackImportantDate',
+      'trackQuietWin',
+      'getUpcomingMilestones',
+      'recordCelebration',
+      'checkCelebrationBalance',
+      'checkPlanningReadiness',
+      'suggestOptimalTiming',
+      'checkDateConflicts',
+      'getEventWisdom',
+      'checkEventFollowUps',
+      'startEventStory',
+      'recallEventMeaning',
+      'getAnticipatedTransitions',
+    ]);
+  }, 60_000);
 });
