@@ -271,7 +271,7 @@ export async function startBackgroundIndexing(
       const { fileURLToPath } = await import('url');
 
       const __dirname = dirname(fileURLToPath(import.meta.url));
-      const bundlesPath = join(__dirname, '..', 'personas', 'bundles');
+      const bundlesPath = join(__dirname, '..', '..', 'personas', 'bundles');
 
       const bundles = await readdir(bundlesPath, { withFileTypes: true });
       let totalIndexed = 0;

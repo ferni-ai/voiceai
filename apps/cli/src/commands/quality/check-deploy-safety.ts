@@ -15,13 +15,14 @@
  *   npx tsx scripts/check-deploy-safety.ts --all    # Check entire codebase
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync } from 'child_process';
 import { readFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
+const PROJECT_ROOT = findProjectRoot();
 
 // ============================================================================
 // CONFIGURATION

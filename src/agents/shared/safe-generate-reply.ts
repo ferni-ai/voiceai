@@ -30,6 +30,7 @@ import { FailureTracker } from './lightweight-resilience.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
 // Centralized generateReply gateway - this module adds extra safeguards on top
 import { generateReply as gatewayGenerateReply } from './generate-reply-gateway.js';
+import { sayInOwnWords } from '../../speech/direction/index.js';
 
 const logger = getLogger();
 
@@ -132,7 +133,7 @@ function checkCircuitBreaker(
     try {
       // Use coordinated speech if sessionId available
       if (sessionId) {
-        coordinatedSay(sessionId, fallbackMessage, { allowInterruptions: true });
+        sayInOwnWords(sessionId, fallbackMessage, 'fallback', { allowInterruptions: true });
       } else {
         session.say(fallbackMessage, { allowInterruptions: true });
       }
@@ -397,7 +398,7 @@ function speakFallback(
   try {
     // Use coordinated speech if sessionId available
     if (sessionId) {
-      coordinatedSay(sessionId, fallbackMessage, { allowInterruptions: true });
+      sayInOwnWords(sessionId, fallbackMessage, 'fallback', { allowInterruptions: true });
     } else {
       session.say(fallbackMessage, { allowInterruptions: true });
     }

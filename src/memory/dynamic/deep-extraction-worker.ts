@@ -811,14 +811,11 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
 
   private async getGeminiModel(): Promise<unknown | null> {
     try {
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-      if (!apiKey) return null;
-
       const { getExtractionModel } = await import('../../config/gemini-config.js');
-      const genAI = new GoogleGenerativeAI(apiKey);
-      return genAI.getGenerativeModel({ model: getExtractionModel() });
-    } catch {
+      const { getGenerativeModel } = await import('../../config/generative-model.js');
+      return await getGenerativeModel({ model: getExtractionModel() });
+    } catch (error) {
+      this.log.warn({ error: String(error) }, 'Gemini unavailable for deep extraction');
       return null;
     }
   }

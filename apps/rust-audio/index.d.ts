@@ -526,6 +526,26 @@ export interface NativePostTtsConfig {
    * Reduces harsh vowel-initial sounds for more natural speech
    */
   enableOnsetSoftening?: boolean
+  enableJitter?: boolean
+  jitterAmount?: number
+  enableShimmer?: boolean
+  shimmerAmount?: number
+  enableHnrModulation?: boolean
+  hnrBreathiness?: number
+  enableSubglottalResonance?: boolean
+  subglottalStrength?: number
+  enableSmileFormants?: boolean
+  smileAmount?: number
+  enableGlottalization?: boolean
+  glottalizationStrength?: number
+  enableHesitationSounds?: boolean
+  hesitationProbability?: number
+  enableLombardEffect?: boolean
+  enableRegisterTransitions?: boolean
+  /** 0 = modal, 1 = falsetto, 2 = fry */
+  targetRegister?: number
+  enablePharyngealConstriction?: boolean
+  pharyngealAmount?: number
 }
 /** Statistics from processing a frame */
 export interface NativeProcessingStats {

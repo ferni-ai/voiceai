@@ -19,6 +19,8 @@
  * duplicate hardcoded persona definitions.
  */
 
+import { pathToFileURL } from 'url';
+import { findProjectRoot } from '../../utils/project-root.js';
 import { readdir, readFile, writeFile, stat } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -26,8 +28,7 @@ import { fileURLToPath } from 'url';
 // Get script directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-// apps/cli/src/commands/generate -> repo root
-const projectRoot = join(__dirname, '..', '..', '..', '..', '..');
+const projectRoot = findProjectRoot();
 
 // Types matching the persona manifest schema
 interface PersonaManifest {
@@ -36,9 +37,7 @@ interface PersonaManifest {
     id: string;
     name: string;
     display_name?: string;
-    /** Absent on legend bundles (john-bogle, peter-lynch), which have a tagline. */
-    description?: string;
-    tagline?: string;
+    description: string;
     aliases?: string[];
     initials?: string;
     self_reference?: string;
@@ -329,8 +328,6 @@ async function manifestToFrontendPersona(
   bundlePath: string
 ): Promise<FrontendPersona> {
   const roleId = manifest.team?.role_id || manifest.role?.id || manifest.identity.id;
-  // Legend bundles (john-bogle, peter-lynch) have a tagline but no description.
-  const description: string = manifest.identity.description ?? manifest.identity.tagline ?? '';
   const isCoordinator = manifest.team?.coordinator === true;
   
   // Load quotes and entrance from bundle content
@@ -340,6 +337,9 @@ async function manifestToFrontendPersona(
   // Derive transition config
   const transitionStyle = deriveTransitionStyle(manifest);
   
+  // Some bundles (john-bogle, peter-lynch) have a tagline but no description.
+  const description = manifest.identity.description ?? manifest.identity.tagline ?? '';
+
   return {
     id: manifest.identity.id,
     name: manifest.identity.display_name || manifest.identity.name,
@@ -372,6 +372,15 @@ async function manifestToFrontendPersona(
 /**
  * Discover and load all bundle manifests
  */
+/** The team the web app shows (persona.manifest.json team.membership). */
+const WEB_TEAM = 'ferni-team';
+
+/** On Ferni's team (or no team named, the old default). */
+export function isWebTeamMember(manifest: { team?: unknown }): boolean {
+  const membership = (manifest.team as { membership?: string } | undefined)?.membership;
+  return !membership || membership === WEB_TEAM;
+}
+
 async function loadAllBundles(): Promise<Map<string, { manifest: PersonaManifest; path: string }>> {
   const bundlesDir = join(projectRoot, 'src', 'personas', 'bundles');
   const bundles = new Map<string, { manifest: PersonaManifest; path: string }>();
@@ -388,6 +397,13 @@ async function loadAllBundles(): Promise<Map<string, { manifest: PersonaManifest
       await stat(manifestPath);
       const content = await readFile(manifestPath, 'utf-8');
       const manifest = JSON.parse(content) as PersonaManifest;
+      // The web app shows Ferni's team only. Other teams (financial-legends:
+      // john-bogle, peter-lynch, joel-dickson) are separate products; without
+      // this they were added to the web roster.
+      if (!isWebTeamMember(manifest)) {
+        console.log(`⏭️  Skipped: ${entry.name} (another team)`);
+        continue;
+      }
       bundles.set(entry.name, { manifest, path: bundlePath });
       console.log(`✅ Loaded: ${entry.name}`);
     } catch (err) {
@@ -443,9 +459,11 @@ async function generateFrontendConfig(): Promise<void> {
   console.log(`   Team order: ${teamOrder.join(', ')}`);
 }
 
-// Run
-generateFrontendConfig().catch((err) => {
-  console.error('❌ Generation failed:', err);
-  process.exit(1);
-});
+// Run only from the command line, so the team filter can be tested.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  generateFrontendConfig().catch((err) => {
+    console.error('❌ Generation failed:', err);
+    process.exit(1);
+  });
+}
 

@@ -7,6 +7,8 @@
  * @module agents/gce/warmup
  */
 
+import { startDynamicDomainWarmup } from './dynamic-domain-warmup.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -21,6 +23,7 @@ export interface WarmupResult {
 }
 
 export type LogFn = (msg: string, data?: Record<string, unknown>) => void;
+
 
 // ============================================================================
 // WARMUP FUNCTION
@@ -517,20 +520,17 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       log('⚠️ TTS cache install failed (non-fatal)', { error: String(e) });
     }
 
+    // Not awaited: readiness must not wait on ~47 domain imports. Started after
+    // the blocking tasks so it doesn't compete with them for the event loop.
+    void startDynamicDomainWarmup(log);
+
     const durationMs = Date.now() - warmupStart;
 
-    // =========================================================================
-    // STARTUP SLA CHECK (added after Dec 2024 startup hang incident)
-    // =========================================================================
-    // Warmup should complete in <12 seconds. If it takes longer, something is
-    // blocking that needs investigation. This catches issues like:
-    // - Database queries iterating over large datasets
-    // - Network calls without timeouts
-    // - Synchronous operations that scale with data volume
-    //
-    // NOTE: Conversational audio prewarm (~200-300 TTS calls) takes ~5-8 seconds.
-    // For faster local dev, set SKIP_CONVERSATIONAL_PREWARM=true
-    // =========================================================================
+    // Startup SLA (added after the Dec 2024 startup hang): over 12 s means
+    // something blocks, e.g. queries over large datasets, network calls without
+    // timeouts, synchronous work that scales with data. The conversational audio
+    // prewarm (~200-300 TTS calls) alone takes ~5-8 s; for faster local dev set
+    // SKIP_CONVERSATIONAL_PREWARM=true.
     const WARMUP_SLA_MS = 12000; // 12 second budget (conversational TTS takes ~5-8s)
     const WARMUP_WARNING_MS = 7000; // Warn at 7 seconds
 

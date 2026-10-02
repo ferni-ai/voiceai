@@ -22,7 +22,7 @@
 import type { ThemeCategory } from '../../../services/session-variety-tracker.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
-import { TEMP_CREATIVE, MAX_TOKENS_MEDIUM } from '../../../config/gemini-config.js';
+import { TEMP_CREATIVE, MAX_TOKENS_LONG } from '../../../config/gemini-config.js';
 
 // Pre-import these modules to avoid slow dynamic imports in hot path
 // Note: These must be imported AFTER the types to avoid circular dependencies
@@ -377,7 +377,7 @@ async function callGeminiForExpressions(
         contents: prompt,
         config: {
           temperature: TEMP_CREATIVE, // High creativity
-          maxOutputTokens: MAX_TOKENS_MEDIUM,
+          maxOutputTokens: MAX_TOKENS_LONG,
         },
       }),
       new Promise<never>((_, reject) => {

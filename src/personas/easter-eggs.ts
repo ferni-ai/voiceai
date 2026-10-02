@@ -64,12 +64,19 @@ export interface EasterEggResult {
 const KEYWORD_TRIGGERS: Record<string, { phrases: string[]; response: string }> = {
   // CELEBRATIONS
   birthday: {
-    phrases: ['my birthday', "it's my birthday", 'birthday today', 'turning'],
+    phrases: ['my birthday', "it's my birthday", 'birthday today'],
     response:
       '<emotion value="excited"/>Wait, <break time="200ms"/>is it your birthday?! <break time="300ms"/>Happy birthday! <break time="200ms"/>Financial gifts to yourself are totally valid!',
   },
   wedding: {
-    phrases: ['getting married', 'wedding', 'engaged', 'engagement'],
+    phrases: [
+      'getting married',
+      'wedding',
+      'got engaged',
+      "we're engaged",
+      'engagement ring',
+      'engagement party',
+    ],
     response:
       '<emotion value="happy"/>A wedding! <break time="300ms"/>That\'s wonderful! <break time="200ms"/>Congratulations!',
   },
@@ -79,12 +86,18 @@ const KEYWORD_TRIGGERS: Record<string, { phrases: string[]; response: string }> 
       '<emotion value="excited"/>A promotion! <break time="300ms"/>Well deserved, I\'m sure! <break time="200ms"/>Let\'s make the most of it!',
   },
   baby: {
-    phrases: ['having a baby', 'pregnant', 'expecting', 'baby on the way'],
+    phrases: [
+      'having a baby',
+      'pregnant',
+      "we're expecting",
+      "i'm expecting",
+      'baby on the way',
+    ],
     response:
       '<emotion value="happy"/><break time="300ms"/>A baby! <break time="200ms"/>That\'s amazing! <break time="300ms"/>Let\'s make sure you\'re set up for this new chapter!',
   },
   retired: {
-    phrases: ['just retired', 'retirement', 'i retired'],
+    phrases: ['just retired', 'i retired', 'my retirement party'],
     response:
       '<emotion value="happy"/><break time="300ms"/>Retired! <break time="200ms"/>You made it! <break time="300ms"/>How does it feel?',
   },
@@ -113,7 +126,7 @@ const KEYWORD_TRIGGERS: Record<string, { phrases: string[]; response: string }> 
 
   // DIFFICULT TIMES
   job_loss: {
-    phrases: ['lost my job', 'got fired', 'laid off', 'let go'],
+    phrases: ['lost my job', 'got fired', 'laid off', 'got let go', 'was let go', 'been let go'],
     response:
       '<volume ratio="0.75"><break time="400ms"/>I\'m sorry.</volume> <break time="300ms"/>That\'s really tough. <break time="200ms"/>Let\'s figure this out together.',
   },
@@ -129,12 +142,27 @@ const KEYWORD_TRIGGERS: Record<string, { phrases: string[]; response: string }> 
       '<volume ratio="0.75"><break time="400ms"/>I\'m here.</volume> <break time="300ms"/>That\'s one of the hardest things to go through. <break time="200ms"/>Take your time.',
   },
   grief: {
-    phrases: ['someone died', 'passed away', 'lost my', 'funeral', 'they died', 'death in'],
+    phrases: [
+      'someone died',
+      'passed away',
+      'funeral',
+      'they died',
+      'death in the family',
+      ...['mom', 'dad', 'mother', 'father', 'husband', 'wife', 'partner', 'son', 'daughter']
+        .concat(['brother', 'sister', 'grandma', 'grandpa', 'best friend', 'dog', 'cat'])
+        .map((who) => `lost my ${who}`),
+    ],
     response:
       '<volume ratio="0.75"><break time="500ms"/>I\'m so sorry.</volume> <break time="400ms"/>There are no right words for this. <break time="300ms"/>I\'m here.',
   },
   health_crisis: {
-    phrases: ['diagnosed with', 'health scare', 'found out i have', 'cancer', 'chronic illness'],
+    phrases: [
+      'diagnosed with',
+      'health scare',
+      'found out i have',
+      'have cancer',
+      'chronic illness',
+    ],
     response:
       '<volume ratio="0.75"><break time="400ms"/>That\'s a lot to take in.</volume> <break time="300ms"/>I\'m here with you. <break time="200ms"/>Whatever you\'re feeling is valid.',
   },
@@ -194,7 +222,14 @@ const KEYWORD_TRIGGERS: Record<string, { phrases: string[]; response: string }> 
       '<emotion value="excited"/><break time="300ms"/>You did it! <break time="200ms"/>That discipline? <break time="200ms"/>That\'s real. <break time="300ms"/>Let\'s celebrate this properly!',
   },
   net_worth_milestone: {
-    phrases: ['first 100k', 'hit 100k', 'crossed 100k', 'net worth milestone', 'millionaire'],
+    phrases: [
+      'first 100k',
+      'hit 100k',
+      'crossed 100k',
+      'net worth milestone',
+      'became a millionaire',
+      "i'm a millionaire",
+    ],
     response:
       '<emotion value="excited"/><break time="400ms"/>Wait. <break time="300ms"/>Stop. <break time="200ms"/>That is a MASSIVE milestone! <break time="300ms"/>The first one is always the hardest. <break time="200ms"/>Compound interest takes over from here!',
   },
@@ -209,18 +244,29 @@ const KEYWORD_TRIGGERS: Record<string, { phrases: string[]; response: string }> 
       '<emotion value="happy"/><break time="200ms"/>Nice! <break time="300ms"/>Remember though—<break time="200ms"/>it\'s not just about the wins. <break time="200ms"/>It\'s about staying the course. <break time="300ms"/>But yes. <break time="200ms"/>Celebrate this!',
   },
   fire_milestone: {
-    phrases: ['coast fire', 'hit my fire number', 'financial independence', 'could retire early'],
+    phrases: [
+      'reached coast fire',
+      'hit my fire number',
+      'reached financial independence',
+      'i could retire early',
+    ],
     response:
       '<emotion value="excited"/><break time="400ms"/>Financial independence! <break time="300ms"/>That\'s the dream, isn\'t it? <break time="200ms"/>Freedom to choose. <break time="300ms"/>You\'re building something incredible.',
   },
 };
 
+/** Whole-phrase match: "expecting" must not fire inside "i was expecting better". */
+function containsPhrase(textLower: string, phrase: string): boolean {
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`).test(textLower);
+}
+
 function checkKeywordTriggers(userText: string): EasterEggResult | null {
-  const textLower = userText.toLowerCase();
+  const textLower = userText.toLowerCase().replace(/[‘’]/g, "'");
 
   for (const [type, config] of Object.entries(KEYWORD_TRIGGERS)) {
     for (const phrase of config.phrases) {
-      if (textLower.includes(phrase)) {
+      if (containsPhrase(textLower, phrase)) {
         return {
           type: type as EasterEggResult['type'],
           response: config.response,

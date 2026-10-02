@@ -23,9 +23,9 @@ const log = createLogger({ module: 'VoiceIds' });
 
 /**
  * Cartesia model from environment variable.
- * sonic-3 is the latest with best quality.
+ * sonic-3.6 is the latest stable alias (snapshot 2026-08-27); a drop-in for sonic-3.
  */
-export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3-latest';
+export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3.6';
 
 /**
  * Cartesia API version for all TTS requests

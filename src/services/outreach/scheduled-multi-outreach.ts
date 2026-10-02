@@ -50,7 +50,8 @@ export interface ScheduledOutreach {
   personaId: string;
   target: ScheduledOutreachTarget;
   scheduledFor: Date;
-  status: 'pending' | 'executing' | 'completed' | 'failed' | 'cancelled';
+  /** 'missed' = found by the delivery job too late to send. */
+  status: 'pending' | 'executing' | 'completed' | 'failed' | 'cancelled' | 'missed';
   createdAt: Date;
   updatedAt: Date;
   batchId?: string;
@@ -150,6 +151,22 @@ export async function scheduleOutreach(
   return id;
 }
 
+type FirestoreDate = { toDate?: () => Date } | string | Date | undefined;
+const toDate = (v: FirestoreDate): Date =>
+  (v as { toDate?: () => Date })?.toDate?.() || new Date(v as string | Date);
+
+/** Rebuild a scheduled outreach from its Firestore document. */
+export function outreachFromDoc(id: string, data: Record<string, unknown>): ScheduledOutreach {
+  return {
+    ...data,
+    id,
+    scheduledFor: toDate(data.scheduledFor as FirestoreDate),
+    createdAt: toDate(data.createdAt as FirestoreDate),
+    updatedAt: toDate(data.updatedAt as FirestoreDate),
+    executedAt: data.executedAt ? toDate(data.executedAt as FirestoreDate) : undefined,
+  } as ScheduledOutreach;
+}
+
 /**
  * Get pending scheduled outreach for a user
  */
@@ -168,17 +185,7 @@ export async function getPendingOutreach(userId: string): Promise<ScheduledOutre
       .limit(50)
       .get();
 
-    return snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        ...data,
-        id: doc.id,
-        scheduledFor: data.scheduledFor?.toDate?.() || new Date(data.scheduledFor),
-        createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt),
-        updatedAt: data.updatedAt?.toDate?.() || new Date(data.updatedAt),
-        executedAt: data.executedAt?.toDate?.() || undefined,
-      } as ScheduledOutreach;
-    });
+    return snapshot.docs.map((doc) => outreachFromDoc(doc.id, doc.data()));
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get pending outreach');
     return [];
@@ -215,17 +222,7 @@ export async function getScheduledOutreach(
 
     const snapshot = await query.get();
 
-    return snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        ...data,
-        id: doc.id,
-        scheduledFor: data.scheduledFor?.toDate?.() || new Date(data.scheduledFor),
-        createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt),
-        updatedAt: data.updatedAt?.toDate?.() || new Date(data.updatedAt),
-        executedAt: data.executedAt?.toDate?.() || undefined,
-      } as ScheduledOutreach;
-    });
+    return snapshot.docs.map((doc) => outreachFromDoc(doc.id, doc.data()));
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get scheduled outreach');
     return [];

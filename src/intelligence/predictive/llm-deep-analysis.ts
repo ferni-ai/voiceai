@@ -237,17 +237,13 @@ export async function runDeepAnalysis(input: DeepAnalysisInput): Promise<DeepAna
 
   try {
     // Use Gemini for deep analysis (non-realtime, batch processing)
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-
-    const apiKey = process.env.GOOGLE_API_KEY;
-    if (!apiKey) {
-      throw new Error('GOOGLE_API_KEY not configured');
-    }
-
     const { getExtractionModel } = await import('../../config/gemini-config.js');
-    const genai = new GoogleGenerativeAI(apiKey);
+    const { getGenerativeModel } = await import('../../config/generative-model.js');
     // Use extraction model for cost-effective batch analysis
-    const model = genai.getGenerativeModel({ model: getExtractionModel() });
+    const model = await getGenerativeModel({ model: getExtractionModel() });
+    if (!model) {
+      throw new Error('Gemini not configured');
+    }
 
     const prompt = buildAnalysisPrompt(input);
 

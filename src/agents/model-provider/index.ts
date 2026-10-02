@@ -72,6 +72,18 @@ export { hasNativeFunctionCalling, needsJsonWorkaround } from './types.js';
 
 export { OpenAIRealtimeProvider } from './openai-realtime.js';
 export { GeminiLiveProvider } from './gemini-live.js';
+export {
+  CartesiaCascadeProvider,
+  buildCascadeLLMOptions,
+  buildCascadeSTTOptions,
+  buildCascadeKeyterms,
+  createProviderSTT,
+} from './cartesia-cascade.js';
+export {
+  GeminiNativeAudioProvider,
+  buildNativeAudioModelOptions,
+  toReplicatedVoiceConfig,
+} from './gemini-native-audio.js';
 export { Qwen3OmniProvider } from './qwen3-omni.js';
 export { LocalPipelineProvider, OllamaLLMAdapter } from './local-pipeline.js';
 export {

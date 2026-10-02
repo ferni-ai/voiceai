@@ -207,7 +207,8 @@ describe('Domain Bridge - Integration Scenarios', () => {
 
     it('handles info_news and info_search', () => {
       expect(getDomainToolId('info_news')).toBe('getNews');
-      expect(getDomainToolId('info_search')).toBe('webSearch');
+      // webSearch never existed; the real tool is searchWeb.
+      expect(getDomainToolId('info_search')).toBe('searchWeb');
     });
   });
 

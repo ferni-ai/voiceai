@@ -1,0 +1,74 @@
+diff --git a/dist/stt.cjs b/dist/stt.cjs
+index c571ee7effc7b57367e411d97fe80623def20372..2c83cf94cc36bc6f98274f76d9458d134a0e40d2 100644
+--- a/dist/stt.cjs
++++ b/dist/stt.cjs
+@@ -47,7 +47,9 @@ function mergeSTTOptions(base, override) {
+     model: override.model ?? base.model,
+     sampleRate: override.sampleRate ?? base.sampleRate,
+     audioChunkDurationMS: override.audioChunkDurationMS ?? base.audioChunkDurationMS,
+-    language: override.language !== void 0 ? (0, import_agents.normalizeLanguage)(override.language) : base.language
++    language: override.language !== void 0 ? (0, import_agents.normalizeLanguage)(override.language) : base.language,
++    // PATCHED(ferni): keyterms bias ink-2 toward names it would mishear
++    keyterms: override.keyterms ?? base.keyterms
+   };
+ }
+ function resolveSTTModel(language) {
+@@ -405,6 +407,8 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+       sample_rate: this.#opts.sampleRate.toString(),
+       encoding: import_models.AUDIO_ENCODING
+     });
++    // PATCHED(ferni): one repeated keyterm param per term (Cartesia caps 100 terms, 1200 chars)
++    for (const term of this.#opts.keyterms ?? []) params.append("keyterm", term);
+     const wsBase = this.#opts.baseUrl.replace(/^http/, "ws");
+     return `${wsBase}/stt/turns/websocket?${params.toString()}`;
+   }
+diff --git a/dist/stt.d.cts b/dist/stt.d.cts
+index 9fff59b2fa92f3875a830266aa7012963f01ab12..5104679cd4c69484bb2c89e82eec303c4b2fce17 100644
+--- a/dist/stt.d.cts
++++ b/dist/stt.d.cts
+@@ -7,6 +7,8 @@ export type STTOptions = {
+     baseUrl: string;
+     audioChunkDurationMS: number;
+     language: string;
++    /** PATCHED(ferni): words/phrases to bias transcription toward (repeated keyterm param). */
++    keyterms?: string[];
+ };
+ /**
+  * Cartesia speech to text.
+diff --git a/dist/stt.d.ts b/dist/stt.d.ts
+index 9fff59b2fa92f3875a830266aa7012963f01ab12..5104679cd4c69484bb2c89e82eec303c4b2fce17 100644
+--- a/dist/stt.d.ts
++++ b/dist/stt.d.ts
+@@ -7,6 +7,8 @@ export type STTOptions = {
+     baseUrl: string;
+     audioChunkDurationMS: number;
+     language: string;
++    /** PATCHED(ferni): words/phrases to bias transcription toward (repeated keyterm param). */
++    keyterms?: string[];
+ };
+ /**
+  * Cartesia speech to text.
+diff --git a/dist/stt.js b/dist/stt.js
+index af489c700e7d495d2358a4c11dee4e0c03fb94aa..e4a57183311730943e15237cdd79e711f5c6726d 100644
+--- a/dist/stt.js
++++ b/dist/stt.js
+@@ -33,7 +33,9 @@ function mergeSTTOptions(base, override) {
+     model: override.model ?? base.model,
+     sampleRate: override.sampleRate ?? base.sampleRate,
+     audioChunkDurationMS: override.audioChunkDurationMS ?? base.audioChunkDurationMS,
+-    language: override.language !== void 0 ? normalizeLanguage(override.language) : base.language
++    language: override.language !== void 0 ? normalizeLanguage(override.language) : base.language,
++    // PATCHED(ferni): keyterms bias ink-2 toward names it would mishear
++    keyterms: override.keyterms ?? base.keyterms
+   };
+ }
+ function resolveSTTModel(language) {
+@@ -391,6 +393,8 @@ class SpeechStream extends stt.SpeechStream {
+       sample_rate: this.#opts.sampleRate.toString(),
+       encoding: AUDIO_ENCODING
+     });
++    // PATCHED(ferni): one repeated keyterm param per term (Cartesia caps 100 terms, 1200 chars)
++    for (const term of this.#opts.keyterms ?? []) params.append("keyterm", term);
+     const wsBase = this.#opts.baseUrl.replace(/^http/, "ws");
+     return `${wsBase}/stt/turns/websocket?${params.toString()}`;
+   }

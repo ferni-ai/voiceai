@@ -15,13 +15,14 @@
  *   BUDGET_AMOUNT - Monthly budget in USD (default: 50)
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync } from 'child_process';
 import { writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, '..', '..', '..', '..', '..');
+const PROJECT_ROOT = findProjectRoot();
 
 // Configuration
 const CONFIG = {

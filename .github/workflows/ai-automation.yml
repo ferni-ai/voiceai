@@ -67,7 +67,7 @@ jobs:
   pr-ai-review:
     name: 🤖 AI Code Review
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       pull-requests: write
       contents: read
@@ -100,10 +100,14 @@ jobs:
 
       - name: Post Review Comment
         uses: actions/github-script@v7
+        # Untrusted text (PR-derived) goes through env, never into the script source.
+        env:
+          REVIEW: ${{ steps.review.outputs.review }}
+          HAS_CRITICAL: ${{ steps.review.outputs.has_critical }}
         with:
           script: |
-            const review = `${{ steps.review.outputs.review }}`;
-            const hasCritical = '${{ steps.review.outputs.has_critical }}' === 'true';
+            const review = process.env.REVIEW ?? '';
+            const hasCritical = process.env.HAS_CRITICAL === 'true';
 
             const body = `## 🤖 AI Code Review
 
@@ -124,7 +128,11 @@ jobs:
   pr-api-diff:
     name: 📡 API Contract Check
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # The repo's default token is read-only; this job's PR comment step needs write.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -155,23 +163,25 @@ jobs:
       - name: Comment on Breaking Changes
         if: steps.api_diff.outputs.has_breaking == 'true'
         uses: actions/github-script@v7
+        # Untrusted text (PR-derived) goes through env, never into the script source.
+        env:
+          API_DIFF: ${{ steps.api_diff.outputs.diff }}
         with:
           script: |
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## 🚨 Breaking API Changes Detected\n\n${{ steps.api_diff.outputs.diff }}\n\n**Please update API consumers before merging.**`
+              body: `## 🚨 Breaking API Changes Detected\n\n${process.env.API_DIFF}\n\n**Please update API consumers before merging.**`
             });
 
   pr-bundle-check:
     name: 📦 Bundle Size Check
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    # The report is posted as a PR comment; the default token is read-only.
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # Read-only: the ratchet reports to the job summary, not a PR comment.
     permissions:
       contents: read
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -180,44 +190,28 @@ jobs:
         with:
           frozen-lockfile: 'false'
 
+      # The build must succeed: it used to fail silently (continue-on-error),
+      # and the budget step then measured nothing (it looked in the wrong dir).
       - name: Build frontend
         run: pnpm build:frontend
-        continue-on-error: true
 
-      - name: Check Bundle Budget
-        id: bundle
+      # docs/DEFINITION-OF-CLEAN.md: the bundle may not grow past the committed
+      # baseline (it is already 3-5x over budget; this stops it getting worse).
+      # The report goes to the job summary: the workflow token can't comment.
+      # pipefail: without it the step takes tee's exit code and a regression
+      # passes. The summary is written before exiting so a failure is readable.
+      - name: Bundle ratchet
         run: |
-          RESULT=$(pnpm tsx apps/cli/src/index.ts perf budget 2>&1)
-          echo "result<<EOF" >> $GITHUB_OUTPUT
-          echo "$RESULT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-          if echo "$RESULT" | grep -q "exceeded"; then
-            echo "exceeded=true" >> $GITHUB_OUTPUT
-          else
-            echo "exceeded=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Comment Bundle Size
-        # Dependabot and fork PRs get a read-only token; the report must not fail the job.
-        continue-on-error: true
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const exceeded = '${{ steps.bundle.outputs.exceeded }}' === 'true';
-            const emoji = exceeded ? '⚠️' : '✅';
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## ${emoji} Bundle Size Report\n\n\`\`\`\n${{ steps.bundle.outputs.result }}\n\`\`\``
-            });
+          set -o pipefail
+          status=0
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --bundle | tee bundle.txt || status=$?
+          { echo '### Bundle size'; echo '```'; cat bundle.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
 
   pr-brand-check:
     name: ✍️ Brand Voice Check
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -237,7 +231,7 @@ jobs:
   release-notes:
     name: 📝 Generate Release Notes
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       contents: write
     steps:
@@ -263,6 +257,9 @@ jobs:
 
       - name: Create GitHub Release
         uses: actions/github-script@v7
+        # Untrusted text (PR-derived) goes through env, never into the script source.
+        env:
+          NOTES: ${{ steps.notes.outputs.notes }}
         with:
           script: |
             const tag = context.ref.replace('refs/tags/', '');
@@ -272,7 +269,7 @@ jobs:
               repo: context.repo.repo,
               tag_name: tag,
               name: `Release ${tag}`,
-              body: `${{ steps.notes.outputs.notes }}`,
+              body: process.env.NOTES ?? '',
               draft: false,
               prerelease: tag.includes('-')
             });
@@ -284,7 +281,11 @@ jobs:
   weekly-deps:
     name: 📦 Dependency Check
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'deps'))
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # The repo's default token is read-only; this job's issue step needs write.
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v4
 
@@ -303,9 +304,12 @@ jobs:
 
       - name: Create Issue for Updates
         uses: actions/github-script@v7
+        # Untrusted text (PR-derived) goes through env, never into the script source.
+        env:
+          DEPS_RESULT: ${{ steps.deps.outputs.result }}
         with:
           script: |
-            const result = `${{ steps.deps.outputs.result }}`;
+            const result = process.env.DEPS_RESULT ?? '';
 
             // Only create issue if there are updates
             if (result.includes('outdated') || result.includes('Major')) {
@@ -321,7 +325,7 @@ jobs:
   weekly-flags:
     name: 🚩 Stale Flag Check
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'flags'))
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -337,7 +341,7 @@ jobs:
   weekly-refactor:
     name: 🔄 Refactoring Suggestions
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'refactor'))
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -358,7 +362,7 @@ jobs:
   weekly-translate:
     name: 🌍 Translation Scan
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'translate'))
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -378,7 +382,7 @@ jobs:
   cost-forecast:
     name: 💰 Cost Forecast
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 

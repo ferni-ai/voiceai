@@ -196,11 +196,13 @@ describe('TTS Gateway E2E Validation', () => {
     });
 
     it('preserves text content with natural cleanup', () => {
-      // Note: Multiple periods are collapsed to single period (natural speech)
+      // An ellipsis is kept: Sonic reads it as trailing off. Collapsing it to
+      // "." turned "That is... that's" into two sentences on a live call.
       const testCases = [
         { input: 'Hello, how are you?', expected: 'Hello, how are you?' },
         { input: "I'm doing great!", expected: "I'm doing great!" },
-        { input: "Let's think about that...", expected: "Let's think about that." }, // Normalized
+        { input: "Let's think about that...", expected: "Let's think about that..." },
+        { input: 'Wait.... what?', expected: 'Wait... what?' },
         { input: 'Yes! Absolutely.', expected: 'Yes! Absolutely.' },
       ];
 

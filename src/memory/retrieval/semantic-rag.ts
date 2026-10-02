@@ -152,7 +152,7 @@ export async function indexAllPersonaContent(vectorStore?: AnyVectorStore): Prom
   const { fileURLToPath } = await import('url');
 
   const __dirname = dirname(fileURLToPath(import.meta.url));
-  const bundlesPath = join(__dirname, '..', 'personas', 'bundles');
+  const bundlesPath = join(__dirname, '..', '..', 'personas', 'bundles');
 
   try {
     const bundles = await readdir(bundlesPath, { withFileTypes: true });

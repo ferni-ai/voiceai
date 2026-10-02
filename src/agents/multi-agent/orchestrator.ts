@@ -246,8 +246,23 @@ export class AgentOrchestrator {
         relationshipStage: 'friend' as const, // Default for multi-agent
       };
 
-      // Generate context-aware, persona-specific greeting with SSML
-      const greeting = generateWarmGreeting(agent.personaId, ctx);
+      // The scripted greeting is the understudy; the director has the
+      // character say hello in their own words for this caller and hour.
+      const scripted = generateWarmGreeting(agent.personaId, ctx);
+      const { directedText } = await import('../../speech/direction/index.js');
+      const hour = ctx.hour;
+      const partOfDay = hour < 5 ? 'late night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 22 ? 'evening' : 'late evening';
+      const userName = (agent.userData as { userName?: string } | undefined)?.userName;
+      const directed = await directedText(this.sessionId, {
+        moment: 'greeting',
+        direction:
+          'They just connected for a voice call. Greet them like a friend picking up the phone: warm, short, and end with one easy opening. Do not list what you can do or introduce yourself at length.',
+        facts: { 'time of day': partOfDay, ...(userName ? { 'their name': userName } : {}) },
+        fallback: scripted,
+        urgency: 'now',
+        maxChars: 140,
+      });
+      const greeting = directed.text;
 
       // ================================================================
       // GREETING AWARENESS: Store greeting so LLM knows what it said

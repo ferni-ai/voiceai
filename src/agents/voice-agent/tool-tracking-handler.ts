@@ -287,22 +287,14 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
             if (resultToSpeak && resultToSpeak.length > 10) {
               // Check if using Gemini native FC - if so, skip safeGenerateReply
               // Gemini automatically responds after tool execution in native FC mode
-              const { getModelProvider, isUsingGemini } = await import(
-                '../model-provider/index.js'
-              );
+              const { getModelProvider } = await import('../model-provider/index.js');
+              const { needsExplicitToolResultReply } = await import('./tool-result-speech.js');
 
-              const provider = getModelProvider();
-              const isGeminiNativeFC = isUsingGemini() && provider.hasNativeFunctionCalling();
-
-              if (isGeminiNativeFC) {
+              if (!needsExplicitToolResultReply(getModelProvider().id)) {
                 logger.info(
-                  {
-                    toolName,
-                    sessionId,
-                  },
-                  '🔧 Gemini native FC - skipping safeGenerateReply (Gemini auto-responds)'
+                  { toolName, sessionId },
+                  '🔧 Model continues after tool results on its own - not asking for a reply'
                 );
-                // Gemini will automatically continue after tool result - no need to prompt
               } else {
                 // OpenAI Realtime with createResponse=false needs explicit speech trigger
                 logger.info(

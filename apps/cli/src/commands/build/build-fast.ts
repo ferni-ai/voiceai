@@ -17,14 +17,16 @@
  * the runtime doesn't need type declarations.
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync } from 'child_process';
 import * as esbuild from 'esbuild';
 import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { dirname, join, relative } from 'path';
 import { fileURLToPath } from 'url';
+import { ESBUILD_SUPPORTED, ESBUILD_TARGET } from './esbuild-target.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
+const PROJECT_ROOT = findProjectRoot();
 
 // ============================================================================
 // CONFIGURATION
@@ -33,7 +35,7 @@ const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
 const CONFIG = {
   srcDir: join(PROJECT_ROOT, 'src'),
   outDir: join(PROJECT_ROOT, 'dist'),
-  target: 'es2022' as const,
+  target: ESBUILD_TARGET,
   format: 'esm' as const,
   platform: 'node' as const,
 
@@ -220,6 +222,7 @@ async function buildWithEsbuild(watch = false): Promise<void> {
     outdir: CONFIG.outDir,
     outbase: CONFIG.srcDir,
     target: CONFIG.target,
+    supported: ESBUILD_SUPPORTED,
     format: CONFIG.format,
     platform: CONFIG.platform,
     sourcemap: true,

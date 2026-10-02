@@ -594,4 +594,19 @@ export function queueContextWarmup(userId: string, personaId: string): void {
   AsyncEvents.emit('context:warmup', { userId, personaId }, { userId, personaId });
 }
 
+/**
+ * The bus, shaped for the memory layer's dependency-injection hook
+ * (configureAsyncEvents). Memory listeners take the event's data; the bus
+ * hands handlers an envelope, so unwrap it here. Passing the envelope through
+ * crashed the deep extraction worker on every job.
+ */
+export const memoryAsyncEvents = {
+  emit: (event: string, data: unknown): void => {
+    AsyncEvents.emit(event as EventType, data as Record<string, unknown>);
+  },
+  on: (event: string, handler: (data: unknown) => void): void => {
+    AsyncEvents.on(event as EventType, (payload) => handler(payload.data));
+  },
+};
+
 export default AsyncEvents;

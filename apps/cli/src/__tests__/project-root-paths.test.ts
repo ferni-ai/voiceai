@@ -53,9 +53,15 @@ describe('repo-root paths derived from __dirname', () => {
 
   it('no CLI file derives the root by counting dirname() calls', () => {
     // dirname(dirname(__dirname)) is right in the single-file bundle and wrong
-    // from source; use findProjectRoot() from services/project-root.ts.
+    // from source; use findProjectRoot() from utils/project-root.ts.
+    // Comments are stripped first: utils/project-root.ts quotes the pattern
+    // to explain why it exists.
+    const code = (f: string) =>
+      readFileSync(f, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '');
     const offenders = tsFiles(join(repoRoot, 'apps/cli/src')).filter((f) =>
-      /dirname\(\s*dirname\(\s*__dirname\s*\)\s*\)/.test(readFileSync(f, 'utf8'))
+      /dirname\(\s*dirname\(\s*__dirname\s*\)\s*\)/.test(code(f))
     );
     expect(offenders.map((f) => relative(repoRoot, f))).toEqual([]);
   });

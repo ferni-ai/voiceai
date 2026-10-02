@@ -313,6 +313,13 @@ jobs:
           echo "Pulling private base image: gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-speaker:latest"
           docker pull gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-speaker:latest
 
+      - name: Free runner disk space
+        # The ui image build ran out of disk (ERR_PNPM_ENOSPC) on ubuntu-latest.
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker system prune -af || true
+          df -h /
+
       - name: Build and push image
         run: |
           # Native docker build (uses locally cached base image)
@@ -373,21 +380,19 @@ jobs:
       # GCE instance: voiceai-agent-gce (34.134.186.63)
       #
       # DO NOT re-add `gcloud run deploy voiceai-agent` here.
-      - name: ⛔ Skip Cloud Run deploy (voice agent runs on GCE only)
+      - name: ⛔ Skip Cloud Run deploy (the voice agent runs on LiveKit Cloud)
         id: skip
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "⛔ SKIPPING Cloud Run deployment for voice agent"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-          echo "Voice agent runs on GCE (voiceai-agent-gce), NOT Cloud Run."
-          echo "Cloud Run cannot handle WebRTC/UDP and would create a zombie"
-          echo "LiveKit worker that steals jobs from the GCE agent."
-          echo ""
-          echo "Deploy voice agent with: ferni deploy gce"
+          echo "The voice agent runs on LiveKit Cloud agents (livekit.prod-cloud.toml),"
+          echo "NOT Cloud Run: Cloud Run can't handle WebRTC/UDP and a worker there"
+          echo "would steal jobs from the real agent. Deploy it with lk agent deploy."
           echo ""
           echo "revision=skipped" >> $GITHUB_OUTPUT
-          echo "url=http://34.134.186.63:8080" >> $GITHUB_OUTPUT
+          echo "url=" >> $GITHUB_OUTPUT
 
   # ============================================================================
   # STAGE 4B: DEPLOY UI SERVER (Blue-Green)
@@ -455,7 +460,7 @@ jobs:
             --max-instances 10 \
             --vpc-connector ferni-redis-connector \
             --set-env-vars "^::^NODE_ENV=production::BUILD_SHA=${{ github.sha }}::ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app::ALLOW_LEGACY_X_USER_ID_AUTH=true" \
-            --set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,REDIS_URL=redis-url:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest"
+            --set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,REDIS_URL=redis-url:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SENDGRID_FROM_EMAIL=sendgrid-from-email:latest"
           
           REVISION=$(gcloud run revisions list --service=john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(REVISION)" --limit=1)
           URL=$(gcloud run services describe john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(status.url)")

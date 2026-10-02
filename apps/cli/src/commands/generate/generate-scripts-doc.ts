@@ -8,12 +8,13 @@
  *   npx tsx scripts/generate-scripts-doc.ts
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
+const PROJECT_ROOT = findProjectRoot();
 
 // ============================================================================
 // SCRIPT CATEGORIES

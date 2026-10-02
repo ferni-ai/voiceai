@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { applyThinkingDefaults } from './thinking-defaults.js';
 
 const log = createLogger({ module: 'GeminiConfig' });
 
@@ -97,16 +98,16 @@ export const OPENAI_FALLBACK_MODEL = process.env.LLM_OPENAI_FALLBACK_MODEL || 'g
 
 /**
  * Model for evaluation tasks (coherence, quality scoring)
- * Default: gemini-2.0-flash (balanced quality/speed)
+ * Default: gemini-2.5-flash (gemini-2.0-flash is retired: 404 on Vertex)
  */
-export const EVALUATION_MODEL = process.env.LLM_EVALUATION_MODEL || 'gemini-2.0-flash';
+export const EVALUATION_MODEL = process.env.LLM_EVALUATION_MODEL || 'gemini-2.5-flash';
 
 /**
  * Model for classification/routing tasks
  * Optimized for: Consistency, low latency
- * Default: gemini-1.5-flash (fast, deterministic with low temp)
+ * Default: gemini-2.5-flash-lite (gemini-1.5-flash is retired: 404 on Vertex)
  */
-export const CLASSIFICATION_MODEL = process.env.LLM_CLASSIFICATION_MODEL || 'gemini-1.5-flash';
+export const CLASSIFICATION_MODEL = process.env.LLM_CLASSIFICATION_MODEL || 'gemini-2.5-flash-lite';
 
 /**
  * Model for content generation (marketing, outreach)
@@ -119,9 +120,9 @@ export const CONTENT_GENERATION_MODEL =
 /**
  * Model for light/fast tasks (humanization, expressions)
  * Optimized for: Ultra-low latency, minimal cost
- * Default: gemini-2.0-flash-lite (fastest available)
+ * Default: gemini-2.5-flash-lite (gemini-2.0-flash-lite is retired: 404 on Vertex)
  */
-export const LIGHT_MODEL = process.env.LLM_LIGHT_MODEL || 'gemini-2.0-flash-lite';
+export const LIGHT_MODEL = process.env.LLM_LIGHT_MODEL || 'gemini-2.5-flash-lite';
 
 /**
  * Model for realtime/voice applications (Vertex AI Live API)
@@ -339,6 +340,7 @@ async function initializeGeminiClient(): Promise<unknown | null> {
       log.info('🔶 Gemini client initialized with API key');
     }
 
+    applyThinkingDefaults(cachedClient);
     return cachedClient;
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to initialize Gemini client');

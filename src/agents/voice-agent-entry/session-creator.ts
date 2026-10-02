@@ -8,12 +8,19 @@
  */
 
 import type { PersonaConfig } from '../../personas/types.js';
+import { routeSayThroughModel } from '../shared/native-speech.js';
 import type { VoiceDeps } from '../voice-agent/phases/index.js';
 import type { AudioRouter } from '../../integrations/qwen3-omni/director/audio-router.js';
 import type { UserLocation } from './types.js';
 import { USE_TOOL_GATEWAY } from './constants.js';
 import { createLightweightVoiceAgentRef } from './voice-agent-ref.js';
+import { attachTurnMetrics } from '../shared/turn-metrics.js';
+import { createLogger as createTurnMetricsLogger } from '../../utils/safe-logger.js';
+
+const turnMetricsLog = createTurnMetricsLogger({ module: 'TurnMetrics' });
 import {
+  buildCascadeKeyterms,
+  createProviderSTT,
   getModelProvider,
   isQwen3OmniCandleBackend,
   isUsingQwen3TTS,
@@ -212,12 +219,20 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
 
   // STT provider selection: Sonata or LLM-internal
   const useSonataStt = process.env.USE_SONATA_STT === 'true';
+  // The cascade has no realtime model, so it needs its own STT (Cartesia ink-2).
   const externalStt = useSonataStt
     ? new SonataSTT({
         hfRepo: process.env.SONATA_STT_HF_REPO,
         enableVad: process.env.SONATA_STT_ENABLE_VAD !== 'false',
       })
-    : undefined;
+    : (createProviderSTT(
+        modelProvider,
+        buildCascadeKeyterms({
+          userName: (services.userProfile?.preferredName ||
+            services.userProfile?.name ||
+            userData.userName) as string | undefined,
+        })
+      ) as InstanceType<typeof SonataSTT> | undefined);
 
   // =========================================================================
   // TOOL LOADING: Gateway (2026) or Legacy Orchestrator
@@ -555,7 +570,11 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
           ? 'qwen_realtime'
           : process.env.USE_OPENAI_REALTIME === 'true'
             ? 'openai_cartesia'
-            : 'gemini_cartesia';
+            : modelProvider.id === 'cartesia-cascade'
+              ? 'cartesia_cascade'
+              : modelProvider.id === 'gemini-native-audio'
+                ? 'gemini_native_audio'
+                : 'gemini_cartesia';
       process.stderr.write(
         `[voice-agent-entry] ${modelProvider.getLogPrefix()} Creating LLM model via ${modelProvider.displayName} (path=${pathLabel})...\n`
       );
@@ -565,6 +584,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
         model: geminiConfig.model,
         instructions: modelBaseInstructions,
         temperature: geminiConfig.temperature,
+        personaId: sessionPersona.id,
       });
 
       process.stderr.write(
@@ -590,9 +610,22 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     }
   }
 
+  // Gemini native audio speaks for itself: route scripted say() lines through the
+  // model so the call keeps one voice (see agents/shared/native-speech.ts).
+  if (session && modelProvider.speaksNatively?.()) {
+    routeSayThroughModel(session as unknown as Parameters<typeof routeSayThroughModel>[0]);
+  }
+
   // Add cleanup handler for retry counter WeakMap
   const { clearRetryCounter } = await import('../shared/sanitizer/index.js');
   if (session) {
+    // One TURN_METRICS log line per turn: response latency breakdown + cost inputs.
+    const detachTurnMetrics = attachTurnMetrics(
+      session as unknown as Parameters<typeof attachTurnMetrics>[0],
+      sessionId,
+      (record) => turnMetricsLog.info(record, 'TURN_METRICS')
+    );
+    cleanupHandlers.push(detachTurnMetrics);
     cleanupHandlers.push(() => {
       try { clearRetryCounter(session); } catch { /* ignore */ }
     });

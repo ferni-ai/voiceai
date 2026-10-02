@@ -29,10 +29,7 @@ import {
 } from '../shared/generate-reply-gateway.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
-import {
-  getPrewarmGreetingPolicy,
-  planFactoryPrewarm,
-} from './prewarm-greeting-overlap.js';
+import { getPrewarmGreetingPolicy, planFactoryPrewarm } from './prewarm-greeting-overlap.js';
 
 const log = getLogger();
 
@@ -277,9 +274,8 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
           }
           mark('prewarm_done');
           try {
-            const { markCallStage } = await import(
-              '../../services/analytics/call-quality-monitor.js'
-            );
+            const { markCallStage } =
+              await import('../../services/analytics/call-quality-monitor.js');
             markCallStage(sessionId, 'prewarm_done');
           } catch {
             /* non-fatal */
@@ -303,11 +299,9 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
 
         // Tools AFTER prewarm — realtimeLLMSession exists only then
         try {
-          const { registerInitialTools, hasNativeToolUpdates } =
+          const { registerInitialTools, hasNativeToolUpdates, getAgentToolCount } =
             await import('../shared/tool-updater.js');
-          const agentTools = (agentSetup.agent as unknown as { _tools?: Record<string, unknown> })
-            ?._tools;
-          const toolCount = agentTools ? Object.keys(agentTools).length : 0;
+          const toolCount = getAgentToolCount(agentSetup.agent);
 
           if (hasNativeToolUpdates() && toolCount > 0) {
             const registered = await registerInitialTools(agentSetup.agent);

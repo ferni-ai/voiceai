@@ -28,7 +28,8 @@
  * @module utils/safe-logger
  */
 
-import { log } from '@livekit/agents';
+import type { log } from '@livekit/agents';
+import pino from 'pino';
 
 /**
  * Console-based fallback logger that matches LiveKit's Logger interface
@@ -74,7 +75,19 @@ const MAX_LOG_DEPTH = 5;
  * Prevents "Maximum call stack size exceeded" from circular / deeply nested objects
  * (seen in production transcript-handler crashes via pino multistream).
  */
+/**
+ * Size caps for logged values. Each log is one JSON line, and one oversized
+ * line (the full essential-tool list) broke the LiveKit log stream
+ * ("bufio.Scanner: token too long"), dropping every line after it.
+ */
+const MAX_LOG_STRING = 1000;
+const MAX_LOG_ARRAY = 30;
+
 function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+  if (typeof value === 'string') {
+    if (value.length <= MAX_LOG_STRING || isFullLoggingEnabled()) return value;
+    return `${value.slice(0, MAX_LOG_STRING)}…[+${value.length - MAX_LOG_STRING} chars]`;
+  }
   if (value === null || typeof value !== 'object') {
     return value;
   }
@@ -93,7 +106,11 @@ function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<object>())
   seen.add(value);
 
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeForLog(item, depth + 1, seen));
+    const items = value
+      .slice(0, MAX_LOG_ARRAY)
+      .map((item) => sanitizeForLog(item, depth + 1, seen));
+    if (value.length > MAX_LOG_ARRAY) items.push(`[+${value.length - MAX_LOG_ARRAY} more]`);
+    return items;
   }
 
   const result: Record<string, unknown> = {};
@@ -131,47 +148,6 @@ function processBindings(bindings: Record<string, unknown>): Record<string, unkn
 }
 
 /**
- * Create a fallback logger that uses console methods
- */
-// Re-entry guard: prevents infinite recursion if console methods are hooked by Pino pretty-printing.
-// When Pino intercepts console.debug/info/warn/error, calling them from the fallback logger
-// can trigger console → Pino → fallback → console → ... stack overflow.
-let isLoggingFallback = false;
-
-function createFallbackLogger(bindings?: Record<string, unknown>): FallbackLogger {
-  const prefix = bindings ? `[${Object.values(bindings).join(':')}] ` : '';
-
-  // Helper to process first arg if it's a bindings object
-  const processFirstArg = (args: unknown[]): unknown[] => {
-    if (args.length > 0 && args[0] && typeof args[0] === 'object' && !Array.isArray(args[0])) {
-      return [processBindings(args[0] as Record<string, unknown>), ...args.slice(1)];
-    }
-    return args;
-  };
-
-  const safeFallback =
-    (method: 'debug' | 'info' | 'warn' | 'error') =>
-    (...args: unknown[]) => {
-      if (isLoggingFallback) return; // Break recursion
-      isLoggingFallback = true;
-      try {
-        console[method](prefix, ...processFirstArg(args));
-      } finally {
-        isLoggingFallback = false;
-      }
-    };
-
-  return {
-    debug: safeFallback('debug'),
-    info: safeFallback('info'),
-    warn: safeFallback('warn'),
-    error: safeFallback('error'),
-    child: (childBindings: Record<string, unknown>) =>
-      createFallbackLogger({ ...bindings, ...childBindings }),
-  };
-}
-
-/**
  * Safe logger that falls back to console if LiveKit logger isn't initialized.
  *
  * This is the recommended way to get a logger throughout the codebase.
@@ -190,14 +166,51 @@ function createFallbackLogger(bindings?: Record<string, unknown>): FallbackLogge
  * ```
  */
 export function safeLog(): FallbackLogger {
-  try {
-    const baseLogger = log();
-    // Wrap the logger to automatically serialize errors
-    return wrapLoggerWithErrorSerialization(baseLogger);
-  } catch {
-    // LiveKit logger not initialized - use console fallback
-    return createFallbackLogger();
-  }
+  return lazyLogger();
+}
+
+/**
+ * Application log sink: JSON lines on stderr.
+ *
+ * In a LiveKit job process only stderr reaches the agent log; LiveKit's own
+ * logger writes to the job's stdout, which is dropped. Module loggers that
+ * bound to it (or whose info went to console.info/stdout) were invisible in
+ * deployed calls: TURN_METRICS, tool counts, turn intelligence, and warnings
+ * once they bound. One stderr sink works in the worker and in every job.
+ */
+let appSink: pino.Logger | null = null;
+
+function appLogger(): pino.Logger {
+  appSink ??= pino(
+    {
+      level: process.env.LOG_LEVEL || 'info',
+      serializers: { error: pino.stdSerializers.err },
+    },
+    process.stderr
+  );
+  return appSink;
+}
+
+/** A logger whose output always goes to the stderr sink, whenever it was created. */
+function lazyLogger(bindings?: Record<string, unknown>): FallbackLogger {
+  let bound: FallbackLogger | null = null;
+  const current = (): FallbackLogger => {
+    if (bound) return bound;
+    const base = appLogger();
+    const target = bindings ? base.child(bindings) : base;
+    bound = wrapLoggerWithErrorSerialization(target as unknown as ReturnType<typeof log>);
+    return bound;
+  };
+  return {
+    debug: (...args: unknown[]) =>
+      current().debug(...(args as Parameters<FallbackLogger['debug']>)),
+    info: (...args: unknown[]) => current().info(...(args as Parameters<FallbackLogger['info']>)),
+    warn: (...args: unknown[]) => current().warn(...(args as Parameters<FallbackLogger['warn']>)),
+    error: (...args: unknown[]) =>
+      current().error(...(args as Parameters<FallbackLogger['error']>)),
+    child: (childBindings: Record<string, unknown>) =>
+      lazyLogger({ ...bindings, ...childBindings }),
+  };
 }
 
 /**
@@ -260,14 +273,7 @@ function wrapLoggerWithErrorSerialization(pinoLogger: ReturnType<typeof log>): F
  * ```
  */
 export function createLogger(bindings: Record<string, unknown>): FallbackLogger {
-  try {
-    const baseLogger = log();
-    const childLogger = baseLogger.child(bindings);
-    // Wrap the child logger to automatically serialize errors
-    return wrapLoggerWithErrorSerialization(childLogger as unknown as ReturnType<typeof log>);
-  } catch {
-    return createFallbackLogger(bindings);
-  }
+  return lazyLogger(bindings);
 }
 
 // ============================================================================

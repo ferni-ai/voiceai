@@ -7,14 +7,16 @@
  * @module @ferni/cli/perf
  */
 
+import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync, spawnSync } from 'child_process';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { findProjectRoot } from '../../services/project-root.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = findProjectRoot(__dirname);
+// apps/cli/src/features/ops → the repo root. Two levels up (apps/cli/src) made the
+// bundle check look for apps/cli/src/apps/web/dist and never measure anything.
+const PROJECT_ROOT = findProjectRoot();
 
 // =============================================================================
 // COLORS
@@ -67,7 +69,7 @@ async function analyzeBundleSize(): Promise<void> {
   
   if (!existsSync(distDir)) {
     log.warn('No dist folder found. Building frontend...');
-    execSync('npm run build:frontend', { cwd: PROJECT_ROOT, stdio: 'inherit' });
+    execSync('pnpm build:frontend', { cwd: PROJECT_ROOT, stdio: 'inherit' });
   }
 
   const files = readdirSync(distDir).filter(f => f.endsWith('.js') || f.endsWith('.css'));

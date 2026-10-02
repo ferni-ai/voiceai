@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { findProjectRoot } from '../services/project-root.js';
+import { findProjectRoot } from '../utils/project-root.js';
 
 describe('findProjectRoot', () => {
   it('finds the workspace root from a deeply nested source file', () => {

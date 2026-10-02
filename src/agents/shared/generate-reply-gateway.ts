@@ -17,8 +17,6 @@
 
 import { voice } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
-// Speech coordination for fallback TTS
-import { coordinatedSay } from '../../speech/coordination/index.js';
 // E2E Latency tracking - diagnose OpenAI vs TTS vs our code
 import {
   markLLMRequestSent,
@@ -102,6 +100,7 @@ setReconnectionCallbacks({
 // ============================================================================
 
 import type { GatewayOptions, GatewayResult } from './gateway/types.js';
+import { sayInOwnWords } from '../../speech/direction/index.js';
 export type { GatewayOptions, GatewayResult };
 
 /** Type alias for external consumers */
@@ -264,7 +263,7 @@ export async function generateReply(
         log.warn({ sessionId, context }, '❌ [GATEWAY] Session not ready after wait');
         if (fallbackMessage) {
           try {
-            coordinatedSay(sessionId, fallbackMessage, { allowInterruptions: true });
+            sayInOwnWords(sessionId, fallbackMessage, `fallback:${context}`, { allowInterruptions: true });
           } catch {
             /* ignore */
           }
@@ -330,7 +329,7 @@ export async function generateReply(
       );
       if (fallbackMessage) {
         try {
-          coordinatedSay(sessionId, fallbackMessage, { allowInterruptions: true });
+          sayInOwnWords(sessionId, fallbackMessage, `fallback:${context}`, { allowInterruptions: true });
         } catch {
           /* ignore */
         }
@@ -591,18 +590,19 @@ export async function generateReply(
     // The previous behavior silently returned when speechStarted was true, but that flag
     // could be set by ANOTHER concurrent generation (e.g., PREFIX text playing while
     // tool response is pending). This left the promise hanging forever.
-    const timeoutPromise = new Promise<never>((_, reject) => {
+    const timeoutPromise = new Promise<void>((resolve, reject) => {
       timeoutId = setTimeout(() => {
-        // Check if speech started - but this could be from another concurrent generation
-        // (e.g., PREFIX text was playing while we wait for the tool response LLM call)
+        // Speech started: the model answered and the reply is still playing.
+        // With waitForPlayout this promise settles only when speech ends, so a
+        // reply longer than the timeout used to be logged as a dead model,
+        // play the fallback over it, and count toward reconnect and graceful
+        // exit (which ends the call). Resolve instead: the turn succeeded.
         if (speechStarted) {
           log.debug(
             { sessionId, context, effectiveTimeoutMs },
-            '⏸️ [GATEWAY] Timeout reached but agent may be speaking - rejecting but NOT interrupting'
+            '⏸️ [GATEWAY] Timeout reached while the agent is speaking - treating as answered'
           );
-          // Don't interrupt (to avoid cutting off another speech), but DO reject
-          // so the caller's fallback mechanism can trigger
-          reject(new Error(`Gateway timeout (${effectiveTimeoutMs}ms) - speech may be active`));
+          resolve();
           return;
         }
 
@@ -942,7 +942,7 @@ export async function generateReply(
     // Use fallback TTS
     if (fallbackMessage) {
       try {
-        coordinatedSay(sessionId, fallbackMessage, { allowInterruptions: true });
+        sayInOwnWords(sessionId, fallbackMessage, `fallback:${context}`, { allowInterruptions: true });
         return {
           success: false,
           usedFallback: true,

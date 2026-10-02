@@ -1170,6 +1170,7 @@ impl NativePhraseBoundary {
 
 /// Configuration for the stateful post-TTS processor
 #[napi(object)]
+#[derive(Default)]
 pub struct NativePostTTSConfig {
     /// Sample rate in Hz (default: 24000)
     pub sample_rate: Option<u32>,
@@ -1323,6 +1324,29 @@ pub struct NativePostTTSConfig {
     /// Enable onset softening (micro-fades on hard glottal attacks)
     /// Reduces harsh vowel-initial sounds for more natural speech
     pub enable_onset_softening: Option<bool>,
+
+    // Voice-source humanization. Unmapped flags keep the Rust default, which is ON
+    // for jitter/shimmer/HNR/subglottal, so every one the TS sends must be mapped.
+    pub enable_jitter: Option<bool>,
+    pub jitter_amount: Option<f64>,
+    pub enable_shimmer: Option<bool>,
+    pub shimmer_amount: Option<f64>,
+    pub enable_hnr_modulation: Option<bool>,
+    pub hnr_breathiness: Option<f64>,
+    pub enable_subglottal_resonance: Option<bool>,
+    pub subglottal_strength: Option<f64>,
+    pub enable_smile_formants: Option<bool>,
+    pub smile_amount: Option<f64>,
+    pub enable_glottalization: Option<bool>,
+    pub glottalization_strength: Option<f64>,
+    pub enable_hesitation_sounds: Option<bool>,
+    pub hesitation_probability: Option<f64>,
+    pub enable_lombard_effect: Option<bool>,
+    pub enable_register_transitions: Option<bool>,
+    /// 0 = modal, 1 = falsetto, 2 = fry
+    pub target_register: Option<u32>,
+    pub enable_pharyngeal_constriction: Option<bool>,
+    pub pharyngeal_amount: Option<f64>,
 }
 
 impl NativePostTTSConfig {
@@ -1400,6 +1424,26 @@ impl NativePostTTSConfig {
         if let Some(v) = self.enable_tempo_variation { config.enable_tempo_variation = v; }
         if let Some(v) = self.tempo_variation_depth { config.tempo_variation_depth = v as f32; }
         if let Some(v) = self.enable_onset_softening { config.enable_onset_softening = v; }
+
+        if let Some(v) = self.enable_jitter { config.enable_jitter = v; }
+        if let Some(v) = self.jitter_amount { config.jitter_amount = v as f32; }
+        if let Some(v) = self.enable_shimmer { config.enable_shimmer = v; }
+        if let Some(v) = self.shimmer_amount { config.shimmer_amount = v as f32; }
+        if let Some(v) = self.enable_hnr_modulation { config.enable_hnr_modulation = v; }
+        if let Some(v) = self.hnr_breathiness { config.hnr_breathiness = v as f32; }
+        if let Some(v) = self.enable_subglottal_resonance { config.enable_subglottal_resonance = v; }
+        if let Some(v) = self.subglottal_strength { config.subglottal_strength = v as f32; }
+        if let Some(v) = self.enable_smile_formants { config.enable_smile_formants = v; }
+        if let Some(v) = self.smile_amount { config.smile_amount = v as f32; }
+        if let Some(v) = self.enable_glottalization { config.enable_glottalization = v; }
+        if let Some(v) = self.glottalization_strength { config.glottalization_strength = v as f32; }
+        if let Some(v) = self.enable_hesitation_sounds { config.enable_hesitation_sounds = v; }
+        if let Some(v) = self.hesitation_probability { config.hesitation_probability = v as f32; }
+        if let Some(v) = self.enable_lombard_effect { config.enable_lombard_effect = v; }
+        if let Some(v) = self.enable_register_transitions { config.enable_register_transitions = v; }
+        if let Some(v) = self.target_register { config.target_register = v.min(2) as u8; }
+        if let Some(v) = self.enable_pharyngeal_constriction { config.enable_pharyngeal_constriction = v; }
+        if let Some(v) = self.pharyngeal_amount { config.pharyngeal_amount = v as f32; }
 
         config
     }
@@ -1850,6 +1894,44 @@ pub fn remove_agc(session_id: String) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The TS glue sends every humanization flag; a flag the binding does not map
+    /// silently falls back to the Rust default (jitter/shimmer/HNR/subglottal were
+    /// on by default, so they ran on live calls the preset had switched off).
+    #[test]
+    fn js_config_humanization_flags_reach_the_processor() {
+        let off = NativePostTTSConfig {
+            enable_jitter: Some(false),
+            enable_shimmer: Some(false),
+            enable_hnr_modulation: Some(false),
+            enable_subglottal_resonance: Some(false),
+            enable_smile_formants: Some(false),
+            enable_glottalization: Some(false),
+            enable_hesitation_sounds: Some(false),
+            enable_lombard_effect: Some(false),
+            enable_register_transitions: Some(false),
+            enable_pharyngeal_constriction: Some(false),
+            ..Default::default()
+        }
+        .to_processor_config();
+        assert!(!off.enable_jitter);
+        assert!(!off.enable_shimmer);
+        assert!(!off.enable_hnr_modulation);
+        assert!(!off.enable_subglottal_resonance);
+
+        let on = NativePostTTSConfig {
+            enable_smile_formants: Some(true),
+            smile_amount: Some(0.4),
+            jitter_amount: Some(0.02),
+            target_register: Some(2),
+            ..Default::default()
+        }
+        .to_processor_config();
+        assert!(on.enable_smile_formants);
+        assert!((on.smile_amount - 0.4).abs() < 1e-6);
+        assert!((on.jitter_amount - 0.02).abs() < 1e-6);
+        assert_eq!(on.target_register, 2);
+    }
 
     #[test]
     fn test_library_info() {

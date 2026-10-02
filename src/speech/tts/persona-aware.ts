@@ -12,6 +12,8 @@
  * @module @ferni/speech/tts/persona-aware
  */
 
+import type { DeliveryStyle } from './delivery-style.js';
+import { CartesiaMarkupFilter, filterCartesiaMarkup } from './cartesia-markup-filter.js';
 import { tts } from '@livekit/agents';
 import { TTS as CartesiaTTS } from '@livekit/agents-plugin-cartesia';
 import { CARTESIA_MODEL, DEFAULT_VOICE_IDS } from '../../config/voice-ids.js';
@@ -103,6 +105,9 @@ export class PersonaAwareTTS extends tts.TTS {
   private pendingSwitch: { personaName: string; voiceId: string; accent?: EnglishAccent } | null =
     null;
   private activeStreamCount = 0;
+
+  // Adaptive delivery (emotion/speed) for the next reply; survives voice switches.
+  private deliveryStyle: DeliveryStyle | null = null;
 
   // Legacy property for backwards compatibility (no longer auto-subscribes to events)
   private voiceSwitchHandler: ((data: { newAgent: string; voiceId: string }) => void) | null = null;
@@ -265,6 +270,7 @@ export class PersonaAwareTTS extends tts.TTS {
     this.isLocalizedVoice = this.accent !== 'american';
 
     this.personaTTS = createCartesiaTTSInstance(newVoiceId);
+    this.applyDeliveryStyle();
 
     log(
       'info',
@@ -305,39 +311,7 @@ export class PersonaAwareTTS extends tts.TTS {
     }
   }
 
-  /**
-   * Strip SSML tags from text before sending to TTS.
-   * Cartesia doesn't support SSML and will speak tags literally (e.g., "break time 300ms").
-   */
-  private stripSsml(text: string): string {
-    // Remove <break> tags entirely
-    let result = text.replace(/<break[^>]*\/>/gi, ' ');
-    result = result.replace(/<break[^>]*>[^<]*<\/break>/gi, ' ');
 
-    // Remove <emotion> tags but keep content
-    result = result.replace(/<emotion[^>]*>(.*?)<\/emotion>/gi, '$1');
-
-    // Remove <prosody> tags but keep content
-    result = result.replace(/<prosody[^>]*>(.*?)<\/prosody>/gi, '$1');
-
-    // Remove <speed> and <volume> tags (self-closing)
-    result = result.replace(/<speed[^>]*\/?>/gi, '');
-    result = result.replace(/<volume[^>]*\/?>/gi, '');
-
-    // Remove <speak> wrapper if present
-    result = result.replace(/<\/?speak>/gi, '');
-
-    // Remove any other XML-like tags
-    result = result.replace(/<[^>]+>/g, ' ');
-
-    // Clean up colon-based speech patterns that TTS doesn't handle well
-    result = this.cleanColonPatterns(result);
-
-    // Clean up multiple spaces
-    result = result.replace(/\s+/g, ' ').trim();
-
-    return result;
-  }
 
   /**
    * Clean up colon-based patterns that sound unnatural in speech.
@@ -398,14 +372,32 @@ export class PersonaAwareTTS extends tts.TTS {
   }
 
   /**
-   * Synthesize text to speech.
-   *
-   * SSML tags are stripped before synthesis since Cartesia doesn't support them
-   * and will speak them literally (e.g., "break time 300ms").
+   * Synthesize text to speech. Supported Cartesia markup passes through;
+   * anything Cartesia would read aloud is dropped. See cartesia-markup-filter.ts.
    */
+  /**
+   * Set how the next replies should sound (Cartesia Sonic-3 emotion + speed),
+   * or null for default delivery. Applied to the current voice and re-applied
+   * after a persona voice switch.
+   */
+  setDeliveryStyle(style: DeliveryStyle | null): void {
+    this.deliveryStyle = style;
+    this.applyDeliveryStyle();
+  }
+
+  getDeliveryStyle(): DeliveryStyle | null {
+    return this.deliveryStyle;
+  }
+
+  private applyDeliveryStyle(): void {
+    this.personaTTS.updateOptions({
+      emotion: this.deliveryStyle ? [this.deliveryStyle.emotion] : undefined,
+      speed: this.deliveryStyle?.speed,
+    });
+  }
+
   synthesize(text: string): tts.ChunkedStream {
-    // Strip SSML tags - Cartesia speaks them literally if not removed
-    const cleanText = this.stripSsml(text);
+    const cleanText = filterCartesiaMarkup(text);
     log(
       'debug',
       { persona: this.personaName, voiceId: this.voiceId, hadSsml: cleanText !== text },
@@ -417,7 +409,7 @@ export class PersonaAwareTTS extends tts.TTS {
   /**
    * Start a streaming synthesis.
    *
-   * The returned stream wraps pushText() to strip SSML tags before synthesis.
+   * The returned stream wraps pushText() so every tag reaches Cartesia whole.
    */
   stream(): tts.SynthesizeStream {
     log('debug', { persona: this.personaName, voiceId: this.voiceId }, 'TTS stream');
@@ -425,11 +417,27 @@ export class PersonaAwareTTS extends tts.TTS {
       this.personaTTS.stream()
     ) as tts.SynthesizeStream;
 
-    // Wrap pushText to strip SSML before forwarding to underlying stream
+    // Assemble markup across chunk boundaries so Cartesia gets each tag whole: a
+    // tag split between two chunks ("<break ti" + "me=\"80ms\"/>") is read aloud.
+    // See cartesia-markup-filter.ts.
+    const markup = new CartesiaMarkupFilter();
     const originalPushText = underlyingStream.pushText.bind(underlyingStream);
+    const forward = (text: string): void => {
+      const cleaned = this.cleanColonPatterns(text);
+      if (cleaned) originalPushText(cleaned);
+    };
     underlyingStream.pushText = (text: string) => {
-      const cleanText = this.stripSsml(text);
-      return originalPushText(cleanText);
+      forward(markup.push(text));
+    };
+    const originalFlush = underlyingStream.flush.bind(underlyingStream);
+    underlyingStream.flush = () => {
+      forward(markup.flush());
+      originalFlush();
+    };
+    const originalEndInput = underlyingStream.endInput.bind(underlyingStream);
+    underlyingStream.endInput = () => {
+      forward(markup.flush());
+      originalEndInput();
     };
 
     return underlyingStream;

@@ -60,7 +60,7 @@ const EMBEDDING_TIMEOUT_MS = 10000; // 10s timeout per embedding
  */
 export async function queueEmbeddingForWorker(text: string): Promise<number[]> {
   // Feature flag check
-  if (!isFeatureEnabled('embeddingWorkerIntegration')) {
+  if (!isFeatureEnabled('experimental.embeddingWorkerIntegration')) {
     // Fall back to direct embedding
     const { embed } = await import('../../memory/embeddings.js');
     return embed(text);
@@ -189,7 +189,7 @@ function handleBatchComplete(data: {
  * @param texts - Texts to pre-embed (tool descriptions, triggers, etc.)
  */
 export function warmupEmbeddingsInBackground(texts: string[]): void {
-  if (!isFeatureEnabled('embeddingWorkerIntegration')) {
+  if (!isFeatureEnabled('experimental.embeddingWorkerIntegration')) {
     log.debug('Embedding worker integration disabled, skipping warmup');
     return;
   }
@@ -306,7 +306,7 @@ export function initializeWorkerIntegration(): void {
  * Check if integration is ready.
  */
 export function isWorkerIntegrationReady(): boolean {
-  return initialized && isFeatureEnabled('embeddingWorkerIntegration');
+  return initialized && isFeatureEnabled('experimental.embeddingWorkerIntegration');
 }
 
 // ============================================================================

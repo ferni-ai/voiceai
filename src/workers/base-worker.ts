@@ -152,6 +152,15 @@ export abstract class BaseWorker {
       return;
     }
 
+    // Events are only published to Pub/Sub once AsyncEvents.enablePubSub() is
+    // called, and nothing calls it: the voice agent runs its workers in-process
+    // (LocalWorker). Their subscriptions were never created, so listening only
+    // logged "Resource not found" for every worker at every start.
+    if (process.env.WORKER_PUBSUB !== 'on') {
+      this.log.debug('WORKER_PUBSUB is not on - using in-process events only');
+      return;
+    }
+
     try {
       // Dynamic import - may not be available in all environments
       // Uses standard dynamic import (safe - no Function constructor)

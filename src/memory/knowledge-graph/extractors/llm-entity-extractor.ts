@@ -197,16 +197,8 @@ async function getGeminiModel() {
   if (geminiModel) return geminiModel;
 
   try {
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      log.warn('No Gemini API key found, entity extraction disabled');
-      return null;
-    }
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    geminiModel = genAI.getGenerativeModel({
+    const { getGenerativeModel } = await import('../../../config/generative-model.js');
+    geminiModel = await getGenerativeModel({
       model: getExtractionModel(),
       generationConfig: {
         temperature: TEMP_CLASSIFICATION, // Low temperature for structured extraction

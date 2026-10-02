@@ -59,7 +59,7 @@ const activeUserIds = new Set<string>();
 /**
  * Execute a single scheduled outreach
  */
-async function executeScheduledOutreach(outreach: ScheduledOutreach): Promise<void> {
+export async function executeScheduledOutreach(outreach: ScheduledOutreach): Promise<void> {
   const { userId, personaId, target, id } = outreach;
   const outreachId = `sched_exec_${id}`;
 
@@ -218,6 +218,60 @@ async function processUserOutreach(userId: string): Promise<number> {
     log.error({ userId, error: String(error) }, 'Failed to process scheduled outreach');
     return 0;
   }
+}
+
+export interface ScheduledOutreachRunResult {
+  due: number;
+  executed: number;
+  missed: number;
+  skipped: number;
+  dryRun: boolean;
+}
+
+/**
+ * Execute due scheduled outreach straight from Firestore. Run by Cloud
+ * Scheduler (POST /api/jobs/execute-scheduled-outreach) every minute.
+ *
+ * The in-process poller only checked users registered in its own process's
+ * memory (by the tool, during the call that scheduled the outreach) and ran
+ * only inside voice-call processes, so outreach due after that call's process
+ * ended was never sent.
+ */
+export async function executeDueScheduledOutreach(
+  opts: { now?: Date; dryRun?: boolean; limit?: number } = {}
+): Promise<ScheduledOutreachRunResult> {
+  const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+  const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore not available');
+  const { claimDueItems } = await import('../scheduling/due-items.js');
+  const { outreachFromDoc } = await import('./scheduled-multi-outreach.js');
+  const claim = await claimDueItems(db, {
+    collection: 'scheduled_outreach',
+    dueField: 'scheduledFor',
+    dueType: 'timestamp',
+    claimStatus: 'executing',
+    lateStatus: 'missed',
+    lateAfterMs: 2 * 60 * 60 * 1000,
+    now: opts.now,
+    limit: opts.limit ?? config.batchSize,
+    dryRun: opts.dryRun,
+  });
+  const result: ScheduledOutreachRunResult = {
+    due: claim.due,
+    executed: 0,
+    missed: claim.late,
+    skipped: claim.skipped,
+    dryRun: opts.dryRun === true,
+  };
+  if (opts.dryRun) return result;
+  for (const item of claim.claimed) {
+    // executeScheduledOutreach records completed/failed itself.
+    // Owner from the document's path, not its userId field.
+    await executeScheduledOutreach({ ...outreachFromDoc(item.id, item.data), userId: item.userId });
+    result.executed++;
+  }
+  if (result.due > 0) log.info(result, 'Scheduled outreach run');
+  return result;
 }
 
 /**

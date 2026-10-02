@@ -273,8 +273,11 @@ const DEFAULT_FLAGS: FeatureFlags = {
     nativeEmbeddings: process.env.USE_NATIVE_EMBEDDINGS !== 'false', // Enabled by default, disable with USE_NATIVE_EMBEDDINGS=false
     /** Pre-warm context builders at session start for faster first turn */
     contextBuilderPrewarm: process.env.DISABLE_CONTEXT_PREWARM !== 'true', // Enabled by default
-    /** Use worker threads for embedding operations */
-    embeddingWorkerIntegration: process.env.DISABLE_EMBEDDING_WORKER !== 'true', // Enabled by default
+    /**
+     * Use worker threads for embedding operations. Opt-in: a mistyped flag path
+     * kept this off everywhere until 2026-09, so it has never run in production.
+     */
+    embeddingWorkerIntegration: process.env.ENABLE_EMBEDDING_WORKER === 'true',
     /** Batch summarization in SummarizationWorker */
     batchedSummarization: process.env.DISABLE_BATCHED_SUMMARIZATION !== 'true', // Enabled by default
     /** Pre-STT audio processing (Rust: AGC, noise suppression, bandwidth extension) */

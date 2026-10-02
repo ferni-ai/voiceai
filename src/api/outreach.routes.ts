@@ -26,11 +26,18 @@ import {
   type ThinkingOfYouTrigger,
 } from '../services/outreach/index.js';
 import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js';
+import {
+  channelsFromSettings,
+  readOutreachConsent,
+  settingsFromChannels,
+  writeOutreachConsent,
+} from '../services/outreach/outreach-consent.js';
 import type { OutreachType, OutreachChannel } from '../services/outreach/llm-content-generator.js';
 import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
-import { rateLimit, requireAuth } from './auth-middleware.js';
+import { rateLimit, requireAuth, type AuthContext } from './auth-middleware.js';
+import { verifySchedulerRequest } from './scheduled-jobs/scheduler-auth.js';
 import { handleCorsPreflightIfNeeded, parseRequestBody, sendJsonResponse } from './helpers.js';
 import { handleOutreachWebhookRoutes } from './outreach-webhook-routes.js';
 
@@ -99,8 +106,22 @@ export async function handleOutreachRoutes(
       return true;
     }
 
+    // Scheduler runs (/daily-job, /scheduler/daily) are allowed for Cloud
+    // Scheduler's signed OIDC token or an admin. The token isn't a user
+    // login, so check it before requireAuth. These routes used to trust
+    // headers any logged-in user could set (X-CloudScheduler, or anything
+    // containing "Cloud-Scheduler") and would run a real send for everyone.
+    let fromScheduler = false;
+    if (method === 'POST' && (route === '/daily-job' || route === '/scheduler/daily')) {
+      const caller = await verifySchedulerRequest(req, pathname);
+      fromScheduler = caller.ok;
+      if (!caller.ok) log.info({ route, reason: caller.reason }, 'not a scheduler token');
+    }
+
     // Require authentication for all non-webhook routes
-    const auth = await requireAuth(req, res, { allowDevMode: true });
+    const auth: AuthContext | null = fromScheduler
+      ? { userId: 'cloud-scheduler', isAdmin: false, isDevMode: false, authMethod: 'api_key' }
+      : await requireAuth(req, res, { allowDevMode: true });
     if (!auth) {
       return true; // 401 already sent
     }
@@ -118,12 +139,15 @@ export async function handleOutreachRoutes(
 
       const engine = getOutreachDecisionEngine();
       const state = engine.getUserState(userId);
+      // On/off and channels come from the stored consent the scheduler obeys,
+      // not the in-memory engine (which forgets on restart).
+      const consent = await readOutreachConsent(userId);
 
       sendJsonResponse(res, 200, {
         success: true,
         preferences: state.preferences,
-        allowedChannels: state.allowedChannels,
-        outreachEnabled: state.outreachEnabled,
+        allowedChannels: settingsFromChannels(consent.channels),
+        outreachEnabled: consent.enabled,
         relationshipStage: state.relationshipStage,
         counters: state.counters,
       });
@@ -135,6 +159,8 @@ export async function handleOutreachRoutes(
       const body = await parseRequestBody(req);
       const { preferences } = body as {
         preferences: {
+          enabled?: boolean;
+          allowedChannels?: Array<'sms' | 'email' | 'call'>;
           preferredChannel?: 'sms' | 'email' | 'call';
           disabledChannels?: Array<'sms' | 'email' | 'call'>;
           quietHours?: { start: number; end: number };
@@ -145,6 +171,12 @@ export async function handleOutreachRoutes(
       };
 
       // Use authenticated userId (ignore body.userId to prevent tampering)
+      await writeOutreachConsent(authenticatedUserId, {
+        enabled: preferences?.enabled,
+        channels: Array.isArray(preferences?.allowedChannels)
+          ? channelsFromSettings(preferences.allowedChannels)
+          : undefined,
+      });
       updateOutreachPreferences(authenticatedUserId, preferences);
       sendJsonResponse(res, 200, { success: true, message: 'Preferences updated' });
       return true;
@@ -158,6 +190,7 @@ export async function handleOutreachRoutes(
       // Use authenticated userId
       const userId = authenticatedUserId;
 
+      await writeOutreachConsent(userId, { enabled: false });
       const engine = getOutreachDecisionEngine();
       engine.updateUserState(userId, { outreachEnabled: false });
 
@@ -176,6 +209,7 @@ export async function handleOutreachRoutes(
       // Use authenticated userId
       const userId = authenticatedUserId;
 
+      await writeOutreachConsent(userId, { enabled: true });
       const engine = getOutreachDecisionEngine();
       engine.updateUserState(userId, { outreachEnabled: true });
 
@@ -1021,11 +1055,7 @@ Whenever you're ready.`,
 
     // POST /api/outreach/daily-job - Trigger daily outreach job (scheduler or admin)
     if (route === '/daily-job' && method === 'POST') {
-      // Validate Cloud Scheduler header OR admin auth
-      const schedulerHeader = req.headers['x-cloudscheduler'] || req.headers['x-appengine-cron'];
-      const isScheduler = schedulerHeader === 'true';
-
-      // If not from scheduler, require admin auth
+      const isScheduler = fromScheduler;
       if (!isScheduler && !auth.isAdmin) {
         sendJsonResponse(res, 403, {
           success: false,
@@ -1220,15 +1250,21 @@ Whenever you're ready.`,
 
     // POST /api/outreach/scheduler/daily - Cloud Scheduler trigger for daily outreach
     if (route === '/scheduler/daily' && method === 'POST') {
-      // This endpoint is called by Cloud Scheduler, not users
-      // Verify the request is from Cloud Scheduler via header or OIDC token
-      const authHeader = req.headers['authorization'] || req.headers['x-cloudscheduler-jobname'];
+      if (!fromScheduler && !auth.isAdmin) {
+        sendJsonResponse(res, 403, {
+          success: false,
+          error: 'Requires Cloud Scheduler or admin access',
+        });
+        return true;
+      }
 
       const { handleSchedulerTrigger } =
         await import('../services/outreach/automated-scheduler.js');
 
       try {
-        const result = await handleSchedulerTrigger(authHeader as string);
+        // {"dryRun": true} previews the run: who would get what, nothing sent.
+        const body = (await parseRequestBody(req).catch(() => ({}))) as { dryRun?: boolean };
+        const result = await handleSchedulerTrigger({ dryRun: body?.dryRun === true });
         sendJsonResponse(res, 200, { success: true, ...result });
       } catch (error) {
         log.error({ error: String(error) }, 'Scheduler trigger failed');
@@ -1239,8 +1275,9 @@ Whenever you're ready.`,
 
     // POST /api/outreach/scheduler/test - Test scheduler (admin only)
     if (route === '/scheduler/test' && method === 'POST') {
-      // Allow manual testing in dev mode
-      if (process.env.NODE_ENV !== 'development' && !req.headers['x-admin-key']) {
+      // Admins only (dev mode counts as admin in development). The x-admin-key
+      // header's value used to go unchecked: any value ran a real send.
+      if (!auth.isAdmin) {
         sendJsonResponse(res, 403, { success: false, error: 'Admin access required' });
         return true;
       }

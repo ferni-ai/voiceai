@@ -23,6 +23,7 @@ const log = getLogger();
 // ============================================================================
 
 import type { GatewayOptions, GatewayResult } from './types.js';
+import { sayInOwnWords } from '../../../speech/direction/index.js';
 
 // ============================================================================
 // SESSION REGISTRY & RECONNECTION TRACKING
@@ -86,7 +87,7 @@ export async function generateReplyBySessionId(
 
     if (options.fallbackMessage) {
       try {
-        coordinatedSay(sessionId, options.fallbackMessage, { allowInterruptions: true });
+        sayInOwnWords(sessionId, options.fallbackMessage, 'fallback:no-session', { allowInterruptions: true });
         return {
           success: false,
           usedFallback: true,
@@ -146,7 +147,7 @@ export async function handleGeminiDeath(sessionId: string): Promise<boolean> {
   }
 
   try {
-    coordinatedSay(sessionId, 'One moment...', { allowInterruptions: false });
+    sayInOwnWords(sessionId, 'One moment...', 'reconnecting', { allowInterruptions: false });
 
     await new Promise((resolve) => setTimeout(resolve, RECONNECT_DELAY_MS));
 
@@ -171,7 +172,7 @@ export async function handleGeminiDeath(sessionId: string): Promise<boolean> {
 
     log.info({ sessionId }, '✅ [GATEWAY] Gemini reconnection successful!');
 
-    coordinatedSay(sessionId, "I'm back! What were you saying?", { allowInterruptions: true });
+    sayInOwnWords(sessionId, "I'm back! What were you saying?", 'reconnected', { allowInterruptions: true });
 
     return true;
   } catch (err) {

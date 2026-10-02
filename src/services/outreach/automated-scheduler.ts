@@ -27,8 +27,25 @@ import {
 } from './llm-content-generator.js';
 import { getOnboardingState, getPendingCheckIns } from './intelligent-onboarding-arc.js';
 import { getOptimalOutreachTime, getPreferredChannel } from './engagement-tracking.js';
+import { allowedDeliveryChannels } from './outreach-consent.js';
+import {
+  cadenceHold,
+  engagementLevel as engagementLevelOf,
+  lastTalkedAt,
+  unansweredCount,
+} from './outreach-cadence.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
+
+const CANDIDATE_PAGE_SIZE = 200;
+/** Bound one run's reads; users past this are reached on later days. */
+const MAX_USERS_SCANNED = 5000;
+/**
+ * Accounts made by test harnesses (voice-eval callers, e2e runs, local
+ * devices). They share production Firestore and look active, so without this
+ * they'd be the main recipients of "thinking of you" messages.
+ */
+const SYNTHETIC_USER_ID = /^(voice-eval-|e2e-|device:(test|local-dev|debug))/;
 
 // ============================================================================
 // TYPES
@@ -52,6 +69,7 @@ export interface SchedulerResult {
     userId: string;
     status: 'sent' | 'skipped' | 'error';
     channel?: string;
+    outreachType?: string;
     reason?: string;
   }>;
 }
@@ -66,9 +84,12 @@ interface UserOutreachCandidate {
   lastOutreachDate?: Date;
   onboardingDay?: number;
   engagementLevel: 'high' | 'medium' | 'low' | 'silent';
+  /** Messages sent since their last conversation. */
+  unanswered: number;
   outreachPreferences?: {
-    enabled: boolean;
-    channels: DeliveryChannel[];
+    enabled?: boolean;
+    /** Channels the user opted into; unset means in-app only. */
+    channels?: DeliveryChannel[];
     quietHoursStart?: number;
     quietHoursEnd?: number;
     timezone?: string;
@@ -116,6 +137,7 @@ export async function runDailyOutreach(
             userId: candidate.userId,
             status: 'sent',
             channel: outreachResult.channel,
+            outreachType: outreachResult.outreachType,
           });
         } else {
           result.skipped++;
@@ -159,7 +181,7 @@ export async function runDailyOutreach(
 async function processCandidate(
   candidate: UserOutreachCandidate,
   config: { respectQuietHours: boolean; dryRun: boolean }
-): Promise<{ sent: boolean; channel?: string; reason?: string }> {
+): Promise<{ sent: boolean; channel?: string; outreachType?: string; reason?: string }> {
   const { userId, email, phone, name, daysSinceSignup, engagementLevel } = candidate;
 
   // Check if outreach is enabled for this user
@@ -205,7 +227,7 @@ async function processCandidate(
   // Dry run - don't actually send
   if (config.dryRun) {
     log.info({ userId, channel, outreachType }, 'Dry run - would send outreach');
-    return { sent: true, channel, reason: 'Dry run' };
+    return { sent: true, channel, outreachType, reason: 'Dry run' };
   }
 
   // Generate personalized content
@@ -223,8 +245,8 @@ async function processCandidate(
 
   if (deliveryResult.success) {
     // Record that we sent outreach
-    await recordOutreachSent(userId, channel, outreachType);
-    return { sent: true, channel };
+    await recordOutreachSent(userId, channel, outreachType, candidate.unanswered + 1);
+    return { sent: true, channel, outreachType };
   }
 
   return { sent: false, reason: deliveryResult.error };
@@ -246,50 +268,57 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
 
   const candidates: UserOutreachCandidate[] = [];
   const now = new Date();
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
   try {
-    // Query users who:
-    // 1. Have outreach enabled (or no preference set = default enabled)
-    // 2. Haven't received outreach in the last 24 hours
-    // 3. Are in the onboarding period or need re-engagement
+    // Everyone is a candidate unless they switched outreach off. A
+    // where('outreachPreferences.enabled', '!=', false) query can't express
+    // that: Firestore's != skips documents without the field, which made this
+    // opt-in only. So page through users and filter here.
+    let lastId: string | undefined;
+    let scanned = 0;
+    while (candidates.length < limit && scanned < MAX_USERS_SCANNED) {
+      let query = db.collection('bogle_users').orderBy('__name__').limit(CANDIDATE_PAGE_SIZE);
+      if (lastId) query = query.startAfter(lastId);
+      const page = await query.get();
+      if (page.empty) break;
+      scanned += page.size;
+      lastId = page.docs[page.docs.length - 1].id;
 
-    const usersSnapshot = await db
-      .collection('bogle_users')
-      .where('outreachPreferences.enabled', '!=', false)
-      .limit(limit * 2) // Get more to filter
-      .get();
+      for (const doc of page.docs) {
+        if (candidates.length >= limit) break;
 
-    for (const doc of usersSnapshot.docs) {
-      if (candidates.length >= limit) break;
+        const data = doc.data();
+        const userId = doc.id;
+        if (data.outreachPreferences?.enabled === false) continue;
+        if (SYNTHETIC_USER_ID.test(userId)) continue;
 
-      const data = doc.data();
-      const userId = doc.id;
+        const lastOutreach = data.lastOutreachDate?.toDate?.() || data.lastOutreachDate;
+        const engagementLevel = engagementLevelOf(data, now.getTime());
+        const talkedAt = lastTalkedAt(data);
+        // Quieter users wait longer between messages; unanswered ones stop.
+        if (cadenceHold(data, engagementLevel, now.getTime())) continue;
 
-      // Check last outreach date
-      const lastOutreach = data.lastOutreachDate?.toDate?.() || data.lastOutreachDate;
-      if (lastOutreach && new Date(lastOutreach) > oneDayAgo) {
-        continue; // Already contacted recently
+        // Build candidate
+        const createdAt = data.createdAt?.toDate?.() || data.createdAt || now;
+        const daysSinceSignup = Math.floor(
+          (now.getTime() - new Date(createdAt).getTime()) / (24 * 60 * 60 * 1000)
+        );
+
+        candidates.push({
+          userId,
+          email: data.email,
+          phone: data.phone || data.phoneNumber,
+          name: data.displayName || data.name,
+          daysSinceSignup,
+          lastConversationDate: talkedAt === undefined ? undefined : new Date(talkedAt),
+          lastOutreachDate: lastOutreach,
+          onboardingDay: data.onboardingDay,
+          engagementLevel,
+          unanswered: unansweredCount(data),
+          outreachPreferences: data.outreachPreferences,
+        });
       }
-
-      // Build candidate
-      const createdAt = data.createdAt?.toDate?.() || data.createdAt || now;
-      const daysSinceSignup = Math.floor(
-        (now.getTime() - new Date(createdAt).getTime()) / (24 * 60 * 60 * 1000)
-      );
-
-      candidates.push({
-        userId,
-        email: data.email,
-        phone: data.phone || data.phoneNumber,
-        name: data.displayName || data.name,
-        daysSinceSignup,
-        lastConversationDate: data.lastConversationDate?.toDate?.() || data.lastConversationDate,
-        lastOutreachDate: lastOutreach,
-        onboardingDay: data.onboardingDay,
-        engagementLevel: determineEngagementLevel(data),
-        outreachPreferences: data.outreachPreferences,
-      });
+      if (page.size < CANDIDATE_PAGE_SIZE) break;
     }
 
     return candidates;
@@ -297,25 +326,6 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
     log.error({ error: String(error) }, 'Failed to get outreach candidates');
     return [];
   }
-}
-
-/**
- * Determine user engagement level based on activity
- */
-function determineEngagementLevel(
-  userData: Record<string, unknown>
-): UserOutreachCandidate['engagementLevel'] {
-  const lastConversation = userData.lastConversationDate;
-  if (!lastConversation) return 'silent';
-
-  const daysSinceLastConversation = Math.floor(
-    (Date.now() - new Date(lastConversation as string).getTime()) / (24 * 60 * 60 * 1000)
-  );
-
-  if (daysSinceLastConversation <= 2) return 'high';
-  if (daysSinceLastConversation <= 7) return 'medium';
-  if (daysSinceLastConversation <= 14) return 'low';
-  return 'silent';
 }
 
 // ============================================================================
@@ -383,8 +393,8 @@ async function determineBestChannel(
 ): Promise<DeliveryChannel | null> {
   const { userId, email, phone, outreachPreferences } = candidate;
 
-  // Check user's preferred channels
-  const allowedChannels = outreachPreferences?.channels || ['email', 'sms', 'push', 'in_app'];
+  // In-app plus only the channels this user opted into (unset = in-app only)
+  const allowedChannels = allowedDeliveryChannels(outreachPreferences);
 
   // Check what channels are available
   const channelStatus = await getChannelStatus();
@@ -463,7 +473,8 @@ function isInQuietHours(candidate: UserOutreachCandidate): boolean {
 async function recordOutreachSent(
   userId: string,
   channel: DeliveryChannel,
-  outreachType: string
+  outreachType: string,
+  unanswered: number
 ): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
@@ -473,6 +484,7 @@ async function recordOutreachSent(
       lastOutreachDate: new Date().toISOString(),
       lastOutreachChannel: channel,
       lastOutreachType: outreachType,
+      outreachUnanswered: unanswered,
     });
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to record outreach');
@@ -488,21 +500,18 @@ async function recordOutreachSent(
  *
  * Called by: Cloud Scheduler job hitting /api/outreach/scheduler/daily
  */
-export async function handleSchedulerTrigger(authHeader?: string): Promise<SchedulerResult> {
-  // Verify the request is from Cloud Scheduler
-  // In production, check for OIDC token or specific headers
-
-  const isCloudScheduler =
-    authHeader?.includes('Cloud-Scheduler') || process.env.ALLOW_MANUAL_SCHEDULER === 'true';
-
-  if (!isCloudScheduler && process.env.NODE_ENV === 'production') {
-    throw new Error('Unauthorized: Only Cloud Scheduler can trigger this endpoint');
-  }
-
+/**
+ * The scheduled daily run. Callers must have authenticated the request
+ * (outreach.routes.ts accepts Cloud Scheduler's OIDC token or an admin); a
+ * header check here was spoofable.
+ */
+export async function handleSchedulerTrigger(
+  opts: { dryRun?: boolean } = {}
+): Promise<SchedulerResult> {
   return runDailyOutreach({
     batchSize: 100,
     respectQuietHours: true,
-    dryRun: false,
+    dryRun: opts.dryRun === true,
   });
 }
 
