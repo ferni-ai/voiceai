@@ -57,6 +57,8 @@ const h = vi.hoisted(() => {
       p === '/api/memory/me/dates' ||
       p.startsWith('/api/memory/me/dates/') ||
       p === '/api/memory/me/reminder-settings',
+    isAspirationsRoute: (p) =>
+      p === '/api/memory/me/aspirations' || p.startsWith('/api/memory/me/aspirations/'),
   };
 
   function shape(value: unknown, depth = 0): string {
@@ -703,6 +705,10 @@ vi.mock('../../../api/important-dates-routes.js', () => ({
   isImportantDatesRoute: h.auto('api/important-dates-routes#isImportantDatesRoute'),
   handleImportantDatesRoutes: h.auto('api/important-dates-routes#handleImportantDatesRoutes'),
 }));
+vi.mock('../../../api/aspirations-routes.js', () => ({
+  isAspirationsRoute: h.auto('api/aspirations-routes#isAspirationsRoute'),
+  handleAspirationsRoutes: h.auto('api/aspirations-routes#handleAspirationsRoutes'),
+}));
 vi.mock('../../../api/memory-routes.js', () => ({
   handleMemoryRoutes: h.auto('api/memory-routes#handleMemoryRoutes'),
 }));
@@ -874,6 +880,8 @@ const ROUTE_PREFIXES = [
   '/api/memory/me/dates',
   '/api/memory/me/dates/',
   '/api/memory/me/reminder-settings',
+  '/api/memory/me/aspirations',
+  '/api/memory/me/aspirations/',
   '/api/memory',
   '/api/actions',
   '/api/relationship/progress',

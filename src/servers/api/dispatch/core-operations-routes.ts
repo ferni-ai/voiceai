@@ -34,6 +34,7 @@ import {
   handleImportantDatesRoutes,
   isImportantDatesRoute,
 } from '../../../api/important-dates-routes.js';
+import { handleAspirationsRoutes, isAspirationsRoute } from '../../../api/aspirations-routes.js';
 import { handleActionRoutes } from '../../../api/action-routes.js';
 import { handleSemanticIntelligenceRoutes } from '../routes/semantic-intelligence.js';
 import type { RouteContext } from './route-context.js';
@@ -161,6 +162,12 @@ export async function dispatchOperationsRoutes(ctx: RouteContext): Promise<boole
   // Important dates & reminder settings (user memory page)
   if (isImportantDatesRoute(pathname)) {
     const handled = await handleImportantDatesRoutes(req, res, pathname);
+    if (handled) return true;
+  }
+
+  // Goals, habits & dreams (user memory page)
+  if (isAspirationsRoute(pathname)) {
+    const handled = await handleAspirationsRoutes(req, res, pathname);
     if (handled) return true;
   }
 
