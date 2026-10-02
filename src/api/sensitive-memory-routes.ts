@@ -219,7 +219,7 @@ async function handleMood(req: IncomingMessage, res: ServerResponse, userId: str
     return sendJSON(res, {
       enabled: consent.success && consent.data.categories.health.enabled,
       timeline,
-      insight: buildMoodInsight(timeline),
+      insight: buildMoodInsight(timeline, new Date(), 'user'),
     });
   }
   if (method !== 'DELETE') return sendError(res, 'Method not allowed', 405);

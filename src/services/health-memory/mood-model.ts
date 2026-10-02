@@ -62,14 +62,42 @@ export function summarizeSamples(samples: readonly MoodSample[]): MoodSummary {
 
 const DAY = 86_400_000;
 
+export type InsightAudience = 'persona' | 'user';
+
+const LINES: Readonly<Record<string, Readonly<Record<InsightAudience, string>>>> = {
+  lighter: {
+    persona: "They've seemed lighter this week than the weeks before.",
+    user: "You've seemed lighter this week than the weeks before.",
+  },
+  heavier: {
+    persona:
+      'The last few conversations have felt heavier than before. Be a little gentler; let them bring it up.',
+    user: 'The last few conversations have felt a bit heavier than before.',
+  },
+  goodSpirits: {
+    persona: "They've seemed in good spirits lately.",
+    user: "You've seemed in good spirits lately.",
+  },
+  heavyStretch: {
+    persona: "They've had a heavier stretch lately. Lead with warmth, not questions.",
+    user: "It's been a heavier stretch lately. I'm here whenever you want to talk.",
+  },
+  lifting: {
+    persona: 'Lately your talks have tended to leave them feeling lighter.',
+    user: 'Lately our talks have tended to leave you feeling lighter.',
+  },
+};
+
 /**
  * A gentle, non-clinical line about how the user has seemed lately, or null
  * when there isn't enough to say anything honest. Compares the last 7 days
- * with the 3 weeks before.
+ * with the 3 weeks before. `persona` lines guide the persona (session-start
+ * block); `user` lines are shown to the user on the memory page.
  */
 export function buildMoodInsight(
   timeline: readonly MoodConversation[],
-  now: Date = new Date()
+  now: Date = new Date(),
+  audience: InsightAudience = 'persona'
 ): string | null {
   const t = now.getTime();
   const age = (c: MoodConversation) => t - Date.parse(c.endedAt || c.startedAt);
@@ -79,18 +107,14 @@ export function buildMoodInsight(
   const avg = (xs: readonly MoodConversation[]) =>
     xs.reduce((sum, c) => sum + c.averageValence, 0) / xs.length;
   const now7 = avg(recent);
+  const say = (key: string) => LINES[key]?.[audience] ?? null;
   if (before.length >= 2) {
     const diff = now7 - avg(before);
-    if (diff >= 0.25) return "They've seemed lighter this week than the weeks before.";
-    if (diff <= -0.25) {
-      return 'The last few conversations have felt heavier than before. Be a little gentler; let them bring it up.';
-    }
+    if (diff >= 0.25) return say('lighter');
+    if (diff <= -0.25) return say('heavier');
   }
-  if (now7 >= 0.35) return "They've seemed in good spirits lately.";
-  if (now7 <= -0.35)
-    return "They've had a heavier stretch lately. Lead with warmth, not questions.";
-  if (recent.filter((c) => c.arc === 'lifting').length >= 2) {
-    return 'Lately your talks have tended to leave them feeling lighter.';
-  }
+  if (now7 >= 0.35) return say('goodSpirits');
+  if (now7 <= -0.35) return say('heavyStretch');
+  if (recent.filter((c) => c.arc === 'lifting').length >= 2) return say('lifting');
   return null;
 }

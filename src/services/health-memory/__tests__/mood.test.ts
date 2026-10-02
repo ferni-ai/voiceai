@@ -84,6 +84,13 @@ describe('mood model', () => {
     for (const line of [lighter, heavier]) {
       expect(line).not.toMatch(/depress|disorder|diagnos|symptom|anxiety/i);
     }
+    // The page speaks to the user, not about them
+    const forUser = health.buildMoodInsight(
+      [conv(1, 0.4), conv(3, 0.3), conv(10, -0.2), conv(14, -0.1)],
+      NOW,
+      'user'
+    );
+    expect(forUser).toBe("You've seemed lighter this week than the weeks before.");
   });
 });
 
