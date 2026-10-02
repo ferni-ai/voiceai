@@ -17,6 +17,7 @@ import {
 } from './theme/index.js';
 // Theme & Language Settings panel
 import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
+import { devPanelMayEnable } from './ui/dev-panel-gate.js';
 
 // State
 import {
@@ -419,9 +420,6 @@ if (import.meta.env.DEV) {
     },
   };
 }
-
-// 🛠️ Dev Panel - Lazy loaded for performance (17KB gzipped savings)
-// Dynamic import: const { initDevPanel } = await import('./ui/dev-panel.ui.js');
 
 // 🎚️ Music Audio Controller - Real-time ducking via Web Audio API
 import {
@@ -1715,8 +1713,9 @@ class VoiceAIApp {
       void getRitualEngine().initialize();
     });
 
-    // 🛠️ Dev Panel - load after 1 second
+    // 🛠️ Dev Panel - load after 1 second, only where it can turn on
     this.deferredInit('DevPanel', 1000, async () => {
+      if (!devPanelMayEnable()) return;
       const { initDevPanel } = await import('./ui/dev-panel.ui.js');
       initDevPanel();
     });
