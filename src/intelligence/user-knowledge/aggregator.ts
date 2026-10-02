@@ -64,9 +64,15 @@ export function clearKnowledgeCache(userId: string): void {
 // FIRESTORE ACCESS
 // ============================================================================
 
+// One shared import for all aggregators. getUserKnowledge runs them in
+// parallel, and Vitest hands the real module (not the vi.mock factory) to every
+// concurrent import() after the first, so tests could hit live Firestore.
+let firebaseAdminImport: Promise<typeof import('firebase-admin')> | null = null;
+
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
   try {
-    const admin = (await import('firebase-admin')).default;
+    firebaseAdminImport ??= import('firebase-admin').then((m) => m.default);
+    const admin = await firebaseAdminImport;
     if (admin.apps.length === 0) {
       admin.initializeApp();
     }
@@ -705,6 +711,23 @@ async function aggregateBoundaries(userId: string): Promise<BoundaryKnowledge> {
     ferniCommitments: [],
   };
 
+  // Get Ferni's commitments (things Ferni promised to avoid or remember).
+  // The commitments service has its own storage access and cache, so load it
+  // separately: a missing or failing profile db must not hide Ferni's promises.
+  try {
+    const { getPendingCommitments } =
+      await import('../../services/superhuman/semantic-intelligence/ferni-commitments.js');
+    const commitments = await getPendingCommitments(userId);
+
+    boundaries.ferniCommitments = commitments.map((c) => ({
+      description: c.commitment,
+      status: c.fulfilled ? ('completed' as const) : ('pending' as const),
+      createdAt: c.madeAt ? new Date(c.madeAt) : undefined,
+    }));
+  } catch (error) {
+    log.debug({ error: String(error), userId }, 'Failed to load Ferni commitments');
+  }
+
   try {
     const db = await getFirestoreDb();
     if (!db) return boundaries;
@@ -715,17 +738,6 @@ async function aggregateBoundaries(userId: string): Promise<BoundaryKnowledge> {
       const data = profileDoc.data();
       boundaries.avoidTopics = (data?.avoidTopics as string[]) || [];
     }
-
-    // Get Ferni's commitments (things Ferni promised to avoid or remember)
-    const { getPendingCommitments } =
-      await import('../../services/superhuman/semantic-intelligence/ferni-commitments.js');
-    const commitments = await getPendingCommitments(userId);
-
-    boundaries.ferniCommitments = commitments.map((c) => ({
-      description: c.commitment,
-      status: c.fulfilled ? ('completed' as const) : ('pending' as const),
-      createdAt: c.madeAt ? new Date(c.madeAt) : undefined,
-    }));
 
     // Get sensitivities from protective memory
     const protectiveDoc = await db
