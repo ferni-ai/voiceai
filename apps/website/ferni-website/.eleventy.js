@@ -117,9 +117,6 @@ module.exports = function (eleventyConfig) {
   // CSS - new modular architecture from src/css
   eleventyConfig.addPassthroughCopy({'src/css': 'css'});
   
-  // Legacy CSS (for backwards compatibility during migration)
-  eleventyConfig.addPassthroughCopy({'css': 'css-legacy'});
-  
   // JS - including new hero-demo.js
   eleventyConfig.addPassthroughCopy({'src/js': 'js'});
   
@@ -144,8 +141,6 @@ module.exports = function (eleventyConfig) {
   // Favicons, touch icon and logos live in src/images
   eleventyConfig.addPassthroughCopy({ 'src/images/*.{ico,svg,png}': 'images' });
 
-  // Developers directory
-  eleventyConfig.addPassthroughCopy('developers');
 
   // Downloads - DMG, installers, etc.
   eleventyConfig.addPassthroughCopy({'src/downloads': 'downloads'});
@@ -159,7 +154,6 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy('sw.js');
 
   // Watch for changes
-  eleventyConfig.addWatchTarget('css/');
   eleventyConfig.addWatchTarget('js/');
   eleventyConfig.addWatchTarget('src/');
 
