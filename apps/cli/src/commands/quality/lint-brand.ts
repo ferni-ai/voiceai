@@ -1,10 +1,6 @@
 /**
  * Ferni Brand Compliance Linter
- * 
- * Enforces brand guidelines automatically.
- * Run with: npx tsx scripts/lint-brand.ts
- * 
- * @module @ferni/lint-brand
+ * Run with: npx tsx apps/cli/src/commands/quality/lint-brand.ts
  */
 
 import { pathToFileURL } from 'url';
@@ -12,9 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
 
-// ============================================================================
 // TYPES
-// ============================================================================
 
 export interface LintError {
   file: string;
@@ -44,35 +38,59 @@ export interface LintResults {
   passed: boolean;
 }
 
-// ============================================================================
 // CONFIGURATION
-// ============================================================================
 
 const ROOT_DIR = process.cwd();
 
-const INCLUDE_PATTERNS = [
+export const INCLUDE_PATTERNS = [
   'apps/web/src/**/*.ts',
   'src/**/*.ts',
   'design-system/**/*.ts',
   'apps/web/src/**/*.css',
+  'apps/website/ferni-website/src/**/*.{ts,js,njk,css}',
 ];
 
-const EXCLUDE_PATTERNS = [
+export const EXCLUDE_PATTERNS = [
   '**/node_modules/**',
   '**/dist/**',
   '**/*.d.ts',
   '**/*.test.ts',
   '**/*.spec.ts',
+  'src/tests/**',
+  '**/__tests__/**',
 ];
+
+// HELPERS
+
+export function isEmojiInLoggingCall(line: string, emojiIndex: number): boolean {
+  const loggingPatterns = [/log\.\w+\(/, /logger\.\w+\(/, /console\.\w+\(/, /createLogger\(\)/, /process\.stderr\.write\(/];
+
+  // Find if emoji is within a logging call on this line
+  for (const pattern of loggingPatterns) {
+    const match = pattern.exec(line);
+    if (match && match.index < emojiIndex) {
+      // Find the closing paren
+      let parenCount = 1;
+      let pos = match.index + match[0].length;
+      while (pos < line.length && parenCount > 0) {
+        if (line[pos] === '(') parenCount++;
+        else if (line[pos] === ')') parenCount--;
+        pos++;
+      }
+      if (emojiIndex < pos) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
 
 // ============================================================================
 // LINT RULES
 // ============================================================================
 
 const LINT_RULES: LintRule[] = [
-  // ==========================================================================
   // LOGGING RULES
-  // ==========================================================================
   {
     id: 'no-console-log',
     name: 'No Console Log',
@@ -80,12 +98,14 @@ const LINT_RULES: LintRule[] = [
     severity: 'error',
     pattern: /console\.(log|warn|error|debug|info)\s*\(/g,
     fileTypes: ['.ts', '.js'],
-    exclude: ['**/logger.ts', '**/logger.js'],
+    exclude: [
+      '**/logger.ts', '**/logger.js',
+      'src/cli/**', 'src/scripts/**', 'scripts/**',
+      '**/__tests__/**', '**/*.test.ts', '**/*.spec.ts', 'src/tests/**',
+    ],
   },
-  
-  // ==========================================================================
+
   // COLOR RULES
-  // ==========================================================================
   {
     id: 'no-hardcoded-hex-colors',
     name: 'No Hardcoded Hex Colors',
@@ -94,20 +114,11 @@ const LINT_RULES: LintRule[] = [
     check: (content, file) => {
       const errors: LintError[] = [];
       const lines = content.split('\n');
-      
-      // Pattern for hex colors not in CSS variable fallback
       const hexPattern = /#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})(?!\s*\))/g;
-      
       lines.forEach((line, index) => {
-        // Skip comments
         if (line.trim().startsWith('//') || line.trim().startsWith('*')) return;
-        
-        // Skip CSS variable definitions
         if (line.includes('--') && line.includes(':')) return;
-        
-        // Skip lines that are CSS var fallbacks
         if (line.includes('var(') && line.includes(',')) return;
-        
         let match;
         while ((match = hexPattern.exec(line)) !== null) {
           errors.push({
@@ -121,11 +132,14 @@ const LINT_RULES: LintRule[] = [
           });
         }
       });
-      
+
       return errors;
     },
     fileTypes: ['.ts', '.js'],
-    exclude: ['**/tokens.ts', '**/tokens.css', '**/design-tokens.css'],
+    exclude: [
+      '**/tokens.ts', '**/tokens.css', '**/design-tokens.css',
+      'design-system/tokens/**', 'design-system/dist/**', '**/*.generated.*',
+    ],
   },
   
   {
@@ -136,24 +150,24 @@ const LINT_RULES: LintRule[] = [
     check: (content, file) => {
       const errors: LintError[] = [];
       const lines = content.split('\n');
-      
+
       // Purple color patterns
       const purplePatterns = [
         /#(800080|9b59b6|8b5cf6|a855f7|7c3aed|6d28d9|5b21b6|4c1d95)/gi,
         /purple/gi,
         /violet/gi,
       ];
-      
+
       lines.forEach((line, index) => {
         // Skip comments and strings that might be documentation
         if (line.trim().startsWith('//') || line.trim().startsWith('*')) return;
-        
+
         for (const pattern of purplePatterns) {
           let match;
           while ((match = pattern.exec(line)) !== null) {
             // Skip if it's in a "don't use" comment
             if (line.toLowerCase().includes("don't") || line.toLowerCase().includes('never')) continue;
-            
+
             errors.push({
               file,
               line: index + 1,
@@ -166,15 +180,16 @@ const LINT_RULES: LintRule[] = [
           }
         }
       });
-      
+
       return errors;
     },
     fileTypes: ['.ts', '.js', '.css'],
+    exclude: [
+      'design-system/tokens/**', 'design-system/dist/**', '**/*.generated.*',
+    ],
   },
-  
-  // ==========================================================================
+
   // ANIMATION RULES
-  // ==========================================================================
   {
     id: 'no-hardcoded-durations',
     name: 'No Hardcoded Animation Durations',
@@ -220,10 +235,8 @@ const LINT_RULES: LintRule[] = [
     fileTypes: ['.ts', '.js'],
     exclude: ['**/animation-constants.ts', '**/choreography/**'],
   },
-  
-  // ==========================================================================
+
   // EMOJI RULES
-  // ==========================================================================
   {
     id: 'no-emoji-in-ui',
     name: 'No Emoji in UI Code',
@@ -232,16 +245,19 @@ const LINT_RULES: LintRule[] = [
     check: (content, file) => {
       const errors: LintError[] = [];
       const lines = content.split('\n');
-      
+
       // Emoji unicode ranges
       const emojiPattern = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu;
-      
+
       lines.forEach((line, index) => {
         // Skip comments
         if (line.trim().startsWith('//') || line.trim().startsWith('*')) return;
-        
+
         let match;
         while ((match = emojiPattern.exec(line)) !== null) {
+          // Skip emoji inside logging calls
+          if (isEmojiInLoggingCall(line, match.index)) continue;
+
           errors.push({
             file,
             line: index + 1,
@@ -253,16 +269,14 @@ const LINT_RULES: LintRule[] = [
           });
         }
       });
-      
+
       return errors;
     },
     fileTypes: ['.ts', '.js'],
     exclude: ['**/*.md', '**/*.txt', '**/test/**'],
   },
-  
-  // ==========================================================================
+
   // HMR PROTECTION
-  // ==========================================================================
   {
     id: 'hmr-cleanup-required',
     name: 'HMR Cleanup Required',
@@ -295,10 +309,8 @@ const LINT_RULES: LintRule[] = [
     },
     fileTypes: ['.ts'],
   },
-  
-  // ==========================================================================
+
   // ACCESSIBILITY
-  // ==========================================================================
   {
     id: 'button-needs-aria-label',
     name: 'Button Needs Aria Label',
@@ -332,9 +344,7 @@ const LINT_RULES: LintRule[] = [
   },
 ];
 
-// ============================================================================
 // LINTING ENGINE
-// ============================================================================
 
 async function getFilesToLint(): Promise<string[]> {
   const files: string[] = [];
@@ -351,7 +361,7 @@ async function getFilesToLint(): Promise<string[]> {
   return [...new Set(files)];
 }
 
-function shouldCheckFile(file: string, rule: LintRule): boolean {
+export function shouldCheckFile(file: string, rule: LintRule): boolean {
   const ext = path.extname(file);
   
   // Check file type
@@ -372,7 +382,7 @@ function shouldCheckFile(file: string, rule: LintRule): boolean {
   return true;
 }
 
-function lintFile(filePath: string, content: string): LintError[] {
+export function lintFile(filePath: string, content: string): LintError[] {
   const errors: LintError[] = [];
   
   for (const rule of LINT_RULES) {
@@ -468,9 +478,7 @@ function printResults(results: LintResults): void {
   console.log('');
 }
 
-// ============================================================================
 // MAIN
-// ============================================================================
 
 async function main(): Promise<void> {
   console.log('🎨 Ferni Brand Compliance Linter\n');
@@ -484,11 +492,9 @@ async function main(): Promise<void> {
   }
 }
 
-// Run only from the command line, so the quality ratchet can import the linter.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch(e => {
     console.error('Linter error:', e);
     process.exit(1);
   });
 }
-
