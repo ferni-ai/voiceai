@@ -25,6 +25,18 @@ pnpm build:fast:watch # Watch mode for development
 pnpm build           # Traditional tsc build (slower, but full type checking)
 ```
 
+## ✅ Current Production Stack (verified 2026-10-01)
+
+Several sections below describe earlier setups. When they disagree with this
+one, this one is right:
+
+| Part | Today | Where it's defined |
+|---|---|---|
+| Voice agent hosting | **LiveKit Cloud agents** (`lk agent deploy`). Prod agent `CA_GeFvEpsNXLSF`, dev agent `CA_siTDMHEba4Fg`. The GCE VM `voiceai-agent-gce` is **terminated**. | `livekit.prod-cloud.toml`, `livekit.toml` |
+| Voice pipeline | **Cartesia cascade**: Ink-2 STT → Gemini 3.5 Flash (Vertex, minimal thinking) → Cartesia Sonic TTS via the TTS gateway, native function calling (no JSON workaround). OpenAI Realtime and Gemini Live are legacy opt-ins. | `src/agents/model-provider/factory.ts` (`VOICE_PIPELINE`, default `cartesia-cascade`), `cartesia-cascade.ts` |
+| UI server | Cloud Run `john-bogle-ui`, deployed by `deploy-production.yml` on push to main | `.github/workflows/deploy-production.yml` |
+| Quality standards | `docs/DEFINITION-OF-CLEAN.md`; enforced by the ratchet (`apps/cli/src/commands/quality/ratchet.ts`) | |
+
 ## 📦 Package Manager: pnpm (Preferred)
 
 We use **pnpm** for faster installs and better caching. npm still works but is slower.
@@ -54,7 +66,7 @@ Pre-commit hooks validate both backend and frontend code. CI enforces all qualit
 | ESLint errors            | 0          | `pnpm lint`                       |
 | `as any` assertions      | ≤30        | `pnpm quality:check`              |
 | `console.*` usage        | ≤100       | `pnpm quality:check`              |
-| File size                | ≤500 lines | `pnpm quality:check`              |
+| File size                | new files ≤500 lines; larger files may not grow | `ratchet.ts` (see `docs/DEFINITION-OF-CLEAN.md`) |
 | Layer violations         | 0          | `pnpm quality:arch`               |
 | Design tokens (frontend) | 0          | `cd apps/web && pnpm lint:tokens` |
 
@@ -141,7 +153,7 @@ With separate projects, your local dev is completely isolated from production.
 
 ## 🔐 Critical Environment Variables (MANDATORY)
 
-The GCE voice agent **requires** these environment variables. Missing any will cause immediate startup failure with clear error messages:
+The voice agent **requires** these environment variables (on LiveKit Cloud they are agent secrets: `lk agent update-secrets` replaces ALL of them, so always pass the full file). Missing any will cause immediate startup failure with clear error messages:
 
 | Variable               | Purpose                | Required In |
 | ---------------------- | ---------------------- | ----------- |
@@ -174,7 +186,7 @@ ferni deploy gce  # Redeploy with all env vars
 ```bash
 # Use the Ferni CLI for ALL deployments
 ferni deploy            # Interactive menu
-ferni deploy gce        # Voice agent to GCE (WebRTC/UDP) ← PREFERRED for voice
+ferni deploy gce        # LEGACY: GCE voice agent (the VM is terminated; the agent runs on LiveKit Cloud)
 ferni deploy ui         # UI backend to Cloud Run
 ferni deploy frontend   # Frontend to Firebase
 ferni deploy all        # Deploy everything
@@ -356,7 +368,7 @@ pnpm ops:setup-scheduler --dry-run
 
 This creates uptime checks that ping from OUTSIDE the container (catches container death).
 
-## 🖥️ GCE Voice Agent Deployment (PRIMARY)
+## 🖥️ GCE Voice Agent Deployment (LEGACY: the VM is terminated; the voice agent runs on LiveKit Cloud, see "Current Production Stack")
 
 **Why GCE instead of Cloud Run?**
 
@@ -1229,9 +1241,9 @@ pnpm vitest run context-injection-integration
 
 **Reference:** `docs/PERSONA-EXCELLENCE-PLAN.md` for the full implementation plan.
 
-## 🎙️ LLM Selection: OpenAI Realtime vs Gemini Live
+## 🎙️ LLM Selection: OpenAI Realtime vs Gemini Live (LEGACY)
 
-Ferni supports two real-time LLM backends. **OpenAI Realtime is recommended** for production due to reliable native function calling.
+**Production uses neither:** it runs the Cartesia cascade (see "Current Production Stack"). These realtime backends remain as opt-ins via `VOICE_PIPELINE`; the Gemini Live text-output model Ferni used is retired.
 
 ### Toggle Between LLMs
 
@@ -1295,9 +1307,9 @@ For **all other** gaps and priorities (memory, tools, tests, debt, Sonata pipeli
 
 For **making the platform SOTA and better than human** (technical excellence + BTH completeness in `src/`), see **`docs/FOCUS-SOTA-BETTER-THAN-HUMAN.md`**.
 
-## 🔧 Function Calling System (Gemini)
+## 🔧 Function Calling System (Gemini Live, LEGACY)
 
-**NOTE:** This section only applies when using Gemini Live (`USE_OPENAI_REALTIME=false`). OpenAI Realtime has native function calling that works reliably.
+**NOTE:** This section only applies to the legacy Gemini Live pipeline. The production Cartesia cascade uses native function calling, and none of the JSON-workaround steps below apply to it.
 
 ### Native Function Calling Configuration (NEW - Jan 2026)
 
