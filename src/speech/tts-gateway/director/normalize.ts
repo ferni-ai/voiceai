@@ -11,14 +11,17 @@
  *
  * What this pass does is put text INTO those conventional forms where the
  * LLM wrote something Sonic reads badly:
- * - clock times get the documented shape: "7pm" / "7 p.m." → "7:00 PM";
- * - markdown never reaches the voice: asterisks, paired underscores,
- *   backticks, heading marks, and [text](url) links (keeping the text);
- *   a "*sighs*" stage direction is dropped (Stage 2 renders the sigh);
- * - emoji are dropped;
- * - an ALL-CAPS word used for emphasis ("That is REALLY good") is lowercased,
- *   because Sonic reads all-caps letter by letter; known acronyms (NASA, FBI,
- *   OK) and short consonant clusters (BTW, NYC) are kept.
+ * - clock times get a spaced, capital AM/PM: "7pm" / "7 p.m." → "7 PM",
+ *   "3:30pm" → "3:30 PM", and a range "7-9pm" → "7 to 9 PM";
+ * - stage directions are not spoken: an *asterisk span* that starts with an
+ *   action verb (*smiles*, *takes a breath*) or opens a sentence in lowercase
+ *   is removed (Stage 2 renders sighs and breaths); paired emphasis asterisks
+ *   keep their words; "5*3", "2 * 4" and "f***" are left alone;
+ * - markdown: paired underscores, backticks, a leading heading mark, and
+ *   [text](url) links (keeping the text); emoji are dropped;
+ * - a shouted emphasis word ("That is REALLY good") is lowercased, because
+ *   Sonic reads all-caps letter by letter. Fail safe: only words on an explicit
+ *   emphasis list; every other caps token (FDIC, AAPL, HIIT, VIII) is kept.
  *
  * Nothing inside [...] or <...> markup is touched.
  *
@@ -56,14 +59,28 @@ const MERIDIEM = String.raw`\s?([ap])\.?\s?m(?![a-z])(\.)?`;
 const CLOCK_WITH_MINUTES = new RegExp(String.raw`\b(\d{1,2}):(\d{2})${MERIDIEM}`, 'gi');
 const CLOCK_ON_HOUR = new RegExp(String.raw`(?<![:\d])\b(\d{1,2})${MERIDIEM}`, 'gi');
 
-/** Keep the period a "p.m." swallowed when it also ended the sentence. */
+/**
+ * Keep the period a "p.m." swallowed only when it also ended the sentence:
+ * at the end of the text, or before a capitalised word that is not "I"
+ * ("after 7 p.m. I should be free" is one sentence; inserting a period there
+ * adds a full-stop pause).
+ */
 function keepSentenceEnd(dot: string | undefined, rest: string): string {
-  return dot && /^(\s+[A-Z]|\s*$)/.test(rest) ? '.' : '';
+  return dot && /^(\s*$|\s*\n|\s+(?!I\b)[A-Z][a-z])/.test(rest) ? '.' : '';
 }
 
 const EMOJI =
   /(?:(?:\p{Extended_Pictographic}|[\u{1F1E6}-\u{1F1FF}])(?:\p{Emoji_Modifier}|\uFE0F)*\u200D?)+/gu;
-const SIGH_ACTION = /\*(?:[a-z]+\s+)?sighs?\*/gi;
+/** A time range: "7-9pm", "7:30 - 9 p.m.", "11am-2pm". */
+const CLOCK_RANGE = new RegExp(
+  String.raw`\b(\d{1,2}(?::\d{2})?)(?:\s?([ap])\.?\s?m(?![a-z]))?\s?[-–]\s?(\d{1,2}(?::\d{2})?)${MERIDIEM}`,
+  'gi'
+);
+/** Verbs that make an *asterisk span* a stage direction wherever it sits. */
+const ACTION_VERB =
+  /^(?:sighs?|smiles?|laughs?|chuckles?|giggles?|grins?|nods?|shrugs?|winks?|pauses?|breathes?|takes|clears|leans|looks|beams?|exhales?|inhales?|whispers?|gasps?|snorts?|hums?)\b/i;
+/** An *asterisk-wrapped* span of up to 5 words. */
+const ASTERISK_SPAN = /(^|[^\w*])\*{1,3}([A-Za-z][A-Za-z' -]{0,60}?)\*{1,3}(?=$|[^\w*])/g;
 const MARKDOWN_LINK = /\[([^\]\n]+)\]\((?:https?:\/\/|www\.)[^)\s]*\)/g;
 
 /** Tidy the spaces a removal left behind ("good 😊." → "good."), keeping the original's edges. */
@@ -75,6 +92,27 @@ function tidy(text: string, original: string): string {
 }
 
 const RULES: readonly Rule[] = [
+  // Time ranges: "7-9pm" → "7 to 9 PM" (a bare dash can read as "minus").
+  (t, hit) =>
+    t.replace(
+      CLOCK_RANGE,
+      (
+        match,
+        from: string,
+        fromMer: string | undefined,
+        to: string,
+        mer: string,
+        dot: string | undefined,
+        at: number,
+        all: string
+      ) => {
+        hit();
+        const end = `${mer.toUpperCase()}M`;
+        const start =
+          fromMer && `${fromMer.toUpperCase()}M` !== end ? ` ${fromMer.toUpperCase()}M` : '';
+        return `${from}${start} to ${to} ${end}${keepSentenceEnd(dot, all.slice(at + match.length))}`;
+      }
+    ),
   // Clock times: "3:30 p.m." / "9:05am" → "3:30 PM" / "9:05 AM".
   (t, hit) =>
     t.replace(
@@ -94,24 +132,33 @@ const RULES: readonly Rule[] = [
         return out;
       }
     ),
-  // Clock times on the hour: "7pm" / "7 p.m." → "7:00 PM".
+  // Clock times on the hour: "7pm" / "7 p.m." → "7 PM".
   (t, hit) =>
     t.replace(
       CLOCK_ON_HOUR,
       (match, h: string, mer: string, dot: string | undefined, at: number, all: string) => {
         if (Number(h) < 1 || Number(h) > 12) return match;
         hit();
-        return `${h}:00 ${mer.toUpperCase()}M${keepSentenceEnd(dot, all.slice(at + match.length))}`;
+        return `${h} ${mer.toUpperCase()}M${keepSentenceEnd(dot, all.slice(at + match.length))}`;
       }
     ),
-  // Markdown and stage directions.
+  // Stage directions and markdown.
   (t, hit) => {
     const out = t
-      .replace(SIGH_ACTION, '')
-      .replace(/\*+/g, '')
+      .replace(ASTERISK_SPAN, (match, lead: string, inner: string, at: number, all: string) => {
+        const before = all.slice(0, at) + lead;
+        // Lowercase at a sentence start reads as a direction (*a long pause*);
+        // emphasis there would be capitalised (*Really*).
+        const startsSentence = /(?:^|[.!?])\s*$/.test(before) && /^[a-z]/.test(inner);
+        const words = inner.trim().split(/\s+/).length;
+        const direction = words <= 5 && (ACTION_VERB.test(inner) || startsSentence);
+        // A stage direction is not spoken at all; emphasis keeps its words.
+        return direction ? lead : `${lead}${inner}`;
+      })
+      .replace(/^\s*\*\s+(?=\S)/, '')
       .replace(/(^|\s)__?([^_\s][^_]*?)__?(?=$|[\s.,!?;:])/g, '$1$2')
       .replace(/`+/g, '')
-      .replace(/(^|\s)#{1,6}(?=\s)/g, '$1');
+      .replace(/^\s*#{1,6}\s+(?=\D)/, '');
     if (out === t) return t;
     hit();
     return tidy(out, t);

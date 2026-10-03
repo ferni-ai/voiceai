@@ -52,7 +52,7 @@ describe('Director failure', () => {
 
     // The held tail of the first push is not lost; BOOM and after are verbatim.
     const all = inner.pushes.join('');
-    expect(all).toContain('7:00 PM'); // directed before the failure
+    expect(all).toContain('at 7 PM and'); // directed before the failure
     expect(all).toContain('spending this week for');
     expect(inner.pushes).toContain('BOOM goes the reply. ');
     expect(inner.pushes.at(-1)).toBe('And this one is after it. ');

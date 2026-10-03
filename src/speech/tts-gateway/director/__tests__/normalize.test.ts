@@ -48,10 +48,28 @@ describe('normalizeForSpeech leaves conventional forms to Cartesia', () => {
 });
 
 describe('normalizeForSpeech: clock times in the documented form', () => {
-  it('gives an hour its minutes and a spaced, capital AM/PM', () => {
-    expect(say('See you at 7pm.')).toBe('See you at 7:00 PM.');
-    expect(say('at 7 p.m. sharp')).toBe('at 7:00 PM sharp');
-    expect(say('wake at 6am')).toBe('wake at 6:00 AM');
+  it('gives an hour a spaced, capital AM/PM', () => {
+    expect(say('See you at 7pm.')).toBe('See you at 7 PM.');
+    expect(say('at 7 p.m. sharp')).toBe('at 7 PM sharp');
+    expect(say('wake at 6am')).toBe('wake at 6 AM');
+  });
+
+  it('reads a time range as a range, not a minus (round 2 LOW)', () => {
+    expect(say('free 7-9pm tonight')).toBe('free 7 to 9 PM tonight');
+    expect(say('meet 7pm-9pm')).toBe('meet 7 to 9 PM');
+    expect(say('11am-2pm works')).toBe('11 AM to 2 PM works');
+    expect(say('from 7:30 - 9 p.m. Then home.')).toBe('from 7:30 to 9 PM. Then home.');
+    expect(say('I said 5 - 3')).toBe('I said 5 - 3');
+  });
+
+  it('never inserts a sentence break after "p.m." mid-sentence (round 2 LOW)', () => {
+    expect(say('call me after 7 p.m. I should be free')).toBe(
+      'call me after 7 PM I should be free'
+    );
+    expect(say('after 7 p.m. and before 9')).toBe('after 7 PM and before 9');
+    // A real sentence end keeps its period.
+    expect(say('Meet at 7 p.m. Bring water.')).toBe('Meet at 7 PM. Bring water.');
+    expect(say('Meet at 7 p.m.')).toBe('Meet at 7 PM.');
   });
 
   it('fixes the AM/PM on a time with minutes', () => {
@@ -74,6 +92,27 @@ describe('normalizeForSpeech: markdown and emoji never reach the voice', () => {
     expect(say('run `npm test` now')).toBe('run npm test now');
     expect(say('# Plan for today')).toBe('Plan for today');
     expect(say('read [the guide](https://example.com/guide) first')).toBe('read the guide first');
+  });
+
+  it('never speaks a stage direction (round 2 MED)', () => {
+    expect(say('*smiles* That is great. *laughs* Okay. *takes a breath* Now.')).toBe(
+      'That is great. Okay. Now.'
+    );
+    expect(say("that's funny *chuckles* anyway")).toBe("that's funny anyway");
+    expect(say('*a long pause* So.')).toBe('So.');
+    // Emphasis keeps its words, wherever it sits.
+    expect(say('That was *great*.')).toBe('That was great.');
+    expect(say('*Really* good')).toBe('Really good');
+  });
+
+  it('leaves arithmetic, censored words and a lone bullet star in the middle alone', () => {
+    expect(say('5*3 is 15, and 2 * 4 is 8.')).toBe('5*3 is 15, and 2 * 4 is 8.');
+    expect(say('f*** that')).toBe('f*** that');
+  });
+
+  it('leaves a spaced number sign alone; strips only a leading heading', () => {
+    expect(say('We are # 2 and #1')).toBe('We are # 2 and #1');
+    expect(say('# 2 is next')).toBe('# 2 is next');
   });
 
   it('drops a written-out sigh (Stage 2 renders it) and emoji', () => {
@@ -109,20 +148,6 @@ describe('normalizeForSpeech: shouted emphasis', () => {
     expect(say('BTW the NYC trip is ASAP')).toBe('BTW the NYC trip is ASAP');
     expect(say('an MP3 file')).toBe('an MP3 file');
   });
-});
-
-describe('normalizeForSpeech: accounting', () => {
-  it('counts what it changed and leaves plain text alone', () => {
-    expect(normalizeForSpeech('Nothing to change here.')).toEqual({
-      text: 'Nothing to change here.',
-      count: 0,
-    });
-    expect(normalizeForSpeech('**WOW** at 3pm').count).toBe(3);
-  });
-
-  it('never rewrites inside bracket or angle markup', () => {
-    expect(say('<emotion value="REALLY"/>REALLY')).toBe('<emotion value="REALLY"/>Really');
-  });
 
   it.each([
     'The FDIC insures it. SIPC covers brokerages. Check your FICO score.',
@@ -138,5 +163,19 @@ describe('normalizeForSpeech: accounting', () => {
     expect(say('WHO said IT is in the US, and AM radio too')).toBe(
       'WHO said IT is in the US, and AM radio too'
     );
+  });
+});
+
+describe('normalizeForSpeech: accounting', () => {
+  it('counts what it changed and leaves plain text alone', () => {
+    expect(normalizeForSpeech('Nothing to change here.')).toEqual({
+      text: 'Nothing to change here.',
+      count: 0,
+    });
+    expect(normalizeForSpeech('**WOW** at 3pm').count).toBe(3);
+  });
+
+  it('never rewrites inside bracket or angle markup', () => {
+    expect(say('<emotion value="REALLY"/>REALLY')).toBe('<emotion value="REALLY"/>Really');
   });
 });
