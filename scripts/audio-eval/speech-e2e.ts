@@ -242,6 +242,8 @@ async function runReply(
     voiceId,
     sessionId,
     personaId: 'ferni',
+    // Production passes tts-wrapper's session context; Stage 2 refuses a plan with no turn.
+    turnContext: { turnNumber: turn } as never,
     sampleRate: SAMPLE_RATE,
     frameDurationMs: 20,
     enableCache: true,
@@ -352,12 +354,19 @@ async function runReply(
     if (!check.ok(pushes.join(''))) flags.push(check.name);
   }
   const plan = t.logs.find((l) => l.msg === 'Speech director plan');
-  const plannedNonverbal = Number(plan?.breaths ?? 0) + Number(plan?.sighs ?? 0);
+  // `opening` is the director's Stage 2 decision for this reply. `breaths`/`sighs` count every
+  // planned event, including mid-reply ones Stage 2 does not render yet (needs word timings).
+  const opening = typeof plan?.opening === 'string' ? plan.opening : undefined;
   const rendered = stage2Native.renderNonverbal - stage2Before.renderNonverbal;
-  if (config === 'FULL' && plannedNonverbal > 0 && rendered === 0) {
-    flags.push(
-      `director planned ${plan?.sighs ?? 0} sigh/${plan?.breaths ?? 0} breath, Stage 2 rendered none`
-    );
+  if (config === 'FULL' && opening && rendered === 0) {
+    flags.push(`director planned an opening ${opening}, Stage 2 rendered none`);
+  }
+  const midReplyPlanned = Math.max(
+    0,
+    Number(plan?.breaths ?? 0) + Number(plan?.sighs ?? 0) - (opening ? 1 : 0)
+  );
+  if (config === 'FULL' && midReplyPlanned > 0) {
+    flags.push(`${midReplyPlanned} mid-reply breath/sigh planned, not rendered (known gap)`);
   }
   const first = t.sends.find((x) => x.model);
   return {

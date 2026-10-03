@@ -60,6 +60,17 @@ describe('judge', () => {
     expect(ruleOf(judge([base, result({ ttfsMs: 551 })]), 'R4').pass).toBe(false);
     expect(ruleOf(judge([base, result({ ttfsMs: 550 })]), 'R4').pass).toBe(true);
     expect(ruleOf(judge([base, result({ longestSilenceMs: 1300 })]), 'R5').pass).toBe(false);
+    const silentPlan = result({
+      flags: ['director planned an opening sigh, Stage 2 rendered none'],
+    });
+    expect(ruleOf(judge([base, silentPlan]), 'R6').pass).toBe(false);
+    expect(ruleOf(judge([base, result({ flags: ['10/3 misread'] })]), 'R6').pass).toBe(true);
+    const midOnly = result({ flags: ['1 mid-reply breath/sigh planned, not rendered (known gap)'] });
+    expect(ruleOf(judge([base, midOnly]), 'R6').pass).toBe(true);
+    // BASELINE is never held to R6: Stage 2 is off there by design.
+    expect(ruleOf(judge([{ ...silentPlan, config: 'BASELINE' }, result({})]), 'R6').pass).toBe(
+      true
+    );
   });
 
   it('holds BASELINE only to R1, and fails R4 without timings', () => {

@@ -21,6 +21,7 @@ export const RULE_TEXT = [
   `R3 WER <= ${RULES.maxWer} for every scenario in FULL (best of the scenario's acceptable readings)`,
   `R4 FULL median time-to-first-speech <= BASELINE median + ${RULES.maxTtfsRegressionMs} ms`,
   `R5 no internal silence > ${RULES.maxInternalSilenceMs} ms in FULL (silence = 10 ms windows under -45 dBFS between first and last sound)`,
+  'R6 every opening breath/sigh the director plans in FULL is rendered by Stage 2 (a plan that never makes a sound is a silent no-op)',
 ];
 
 export type ConfigName = 'BASELINE' | 'FULL';
@@ -63,7 +64,7 @@ export interface RuleResult {
   detail: string;
 }
 
-/** Apply R1-R5 to a run. `orphanErrors` are Cartesia errors seen outside any reply. */
+/** Apply R1-R6 to a run. `orphanErrors` are Cartesia errors seen outside any reply. */
 export function judge(
   results: readonly ReplyResult[],
   orphanErrors: readonly string[] = []
@@ -98,6 +99,7 @@ export function judge(
   const r5 = failsOf(full, (r) =>
     r.longestSilenceMs > RULES.maxInternalSilenceMs ? `${r.longestSilenceMs} ms silence` : null
   );
+  const r6 = failsOf(full, (r) => r.flags.find((f) => f.includes('Stage 2 rendered none')) ?? null);
   const delta = baseTtfs !== null && fullTtfs !== null ? fullTtfs - baseTtfs : null;
   const rules: RuleResult[] = [
     { rule: 'R1 no Cartesia errors', pass: r1.length === 0, detail: r1.join(' | ') || 'none' },
@@ -122,6 +124,11 @@ export function judge(
       rule: `R5 no silence > ${RULES.maxInternalSilenceMs} ms (FULL)`,
       pass: r5.length === 0,
       detail: r5.join(' | ') || 'none',
+    },
+    {
+      rule: 'R6 planned opening breath/sigh rendered by Stage 2 (FULL)',
+      pass: r6.length === 0,
+      detail: r6.join(' | ') || 'all rendered',
     },
   ];
   return { rules, pass: rules.every((r) => r.pass) };
