@@ -36,6 +36,7 @@ import {
   postTtsEnvOverrides,
   type PostTTSConfig,
 } from './performance/post-tts-transform.js';
+import { wrapWithTTSCheckpoints } from './performance/tts-checkpoints.js';
 import {
   createStreamingTTSTransform,
   getOptimizedStreamingConfig,
@@ -46,10 +47,7 @@ import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
 import { isFTISEnabled } from '../processors/tool-routing-integration.js';
 
 // TTS Gateway integration
-import {
-  createGatewayTTSNode,
-  isTTSGatewayEnabled,
-} from '../../speech/tts-gateway/index.js';
+import { createGatewayTTSNode, isTTSGatewayEnabled } from '../../speech/tts-gateway/index.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -1169,33 +1167,8 @@ export async function wrappedTtsNode(
     audioStream = await cacheAwareTTS(agent, trackedTextStream, modelSettings);
   }
 
-  // =========================================================================
-  // P1 UTO Fix (January 2026): Wrap audio stream with checkpoint markers
-  // This tracks ttsFirstByte and ttsComplete for latency measurement
-  // =========================================================================
-  function wrapWithTTSCheckpoints(
-    stream: NodeReadableStream<AudioFrame> | null
-  ): NodeReadableStream<AudioFrame> | null {
-    if (!stream || sessionId === 'unknown' || turnNumber === undefined) {
-      return stream;
-    }
-
-    let isFirstFrame = true;
-    const checkpointTransform = new NodeTransformStream<AudioFrame, AudioFrame>({
-      transform(frame, controller) {
-        if (isFirstFrame) {
-          isFirstFrame = false;
-          markTurnCheckpoint(sessionId, turnNumber!, 'ttsFirstByte');
-        }
-        controller.enqueue(frame);
-      },
-      flush() {
-        markTurnCheckpoint(sessionId, turnNumber!, 'ttsComplete');
-      },
-    });
-
-    return stream.pipeThrough(checkpointTransform);
-  }
+  // P1 UTO Fix (January 2026): ttsFirstByte / ttsFirstSpeech / ttsComplete checkpoints
+  // are added by wrapWithTTSCheckpoints (./performance/tts-checkpoints.ts).
 
   // 7. Apply "Better Than Human" post-TTS enhancement (Rust-accelerated audio processing)
   if (audioStream && enablePostTTSEnhancement) {
@@ -1212,11 +1185,15 @@ export async function wrappedTtsNode(
       '🦀 Applying post-TTS "Better Than Human" audio enhancement'
     );
 
-    const enhancedStream = await applyPostTTSEnhancement(audioStream, enhancementConfig);
-    return wrapWithTTSCheckpoints(enhancedStream);
+    const enhancedStream = await applyPostTTSEnhancement(
+      audioStream,
+      enhancementConfig,
+      turnNumber
+    );
+    return wrapWithTTSCheckpoints(enhancedStream, sessionId, turnNumber, markTurnCheckpoint);
   }
 
-  return wrapWithTTSCheckpoints(audioStream);
+  return wrapWithTTSCheckpoints(audioStream, sessionId, turnNumber, markTurnCheckpoint);
 }
 
 // ============================================================================
