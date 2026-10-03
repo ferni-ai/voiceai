@@ -13,7 +13,7 @@
 
 import { llm, stt, voice } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
-import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { processAudioStream } from '../voice-agent/audio-processor.js';
 import { z } from 'zod';
 
@@ -31,24 +31,9 @@ import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
-import {
-  TURN_STYLE_REMINDER,
-  turnStyleReminderEnabled,
-  withTurnStyleReminder,
-} from './turn-style.js';
-import { formatNotes, getDirector } from './director-notes.js';
-import { filterCaptionStream, type Caption } from './caption-filter.js';
-import { getBargeInFastPath } from '../multi-agent/barge-in-fastpath.js';
+import { filterCaptionStream } from './caption-filter.js';
 import { OpenerGate } from './opener-gate.js';
-import {
-  getTurnToolRetrieval,
-  latestUserText,
-  toolRetrievalMode,
-} from '../../tools/retrieval/turn-tool-retrieval.js';
-import { withoutLockedHandoffs, type UnlockView } from '../../tools/handoff/locked-handoffs.js';
-
-/** Live tool retrieval waits this long for the pick before falling back (see pickLive). */
-const LIVE_PICK_WAIT_MS = 150;
+import { tapSpokenText, toolsForTurn, withTurnReminder } from './turn-request.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -97,7 +82,6 @@ interface PersonaSessionData {
   [key: string]: unknown;
 }
 
-// Tool context type from LiveKit - properly typed for function tools
 type ToolSet = llm.ToolContext<PersonaSessionData>;
 
 // Backwards compatibility type aliases
@@ -694,6 +678,36 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     return voice.Agent.default.sttNode(this, audioForStt, modelSettings);
   }
 
+  /** Captions are what the app shows: drop speech markup the TTS consumes. See caption-filter.ts. */
+  async transcriptionNode(
+    text: Parameters<voice.Agent<PersonaSessionData>['transcriptionNode']>[0],
+    modelSettings: voice.ModelSettings
+  ): ReturnType<voice.Agent<PersonaSessionData>['transcriptionNode']> {
+    const captions = tapSpokenText(filterCaptionStream(text), this.session as object);
+    return super.transcriptionNode(captions, modelSettings);
+  }
+
+  /**
+   * Every LLM request (preemptive or not) goes through here: add the turn reminder and
+   * director's notes to a copy of the context, and send this turn's tools. See turn-request.ts.
+   */
+  async llmNode(
+    chatCtx: llm.ChatContext,
+    toolCtx: llm.ToolContext,
+    modelSettings: voice.ModelSettings
+  ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
+    const ctx = withTurnReminder(chatCtx, this.session as object);
+    const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
+    const stream = await super.llmNode(ctx, tools, modelSettings);
+    if (!stream || process.env.OPENER_GATE === 'off') return stream;
+    return this.openerGate.wrap(stream as never) as unknown as typeof stream;
+  }
+
+  private readonly turnTools = { loggedLockedHandoffs: false };
+
+  /** Limits stock reaction-word openers across this agent's replies. See opener-gate.ts. */
+  private readonly openerGate = new OpenerGate();
+
   /**
    * Override ttsNode to filter out JSON function calls BEFORE they reach TTS.
    *
@@ -712,126 +726,15 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
    *
    * @see ../shared/tts-wrapper.ts
    */
-  /** Captions are what the app shows: drop speech markup the TTS consumes. See caption-filter.ts. */
-  async transcriptionNode(
-    text: Parameters<voice.Agent<PersonaSessionData>['transcriptionNode']>[0],
-    modelSettings: voice.ModelSettings
-  ): ReturnType<voice.Agent<PersonaSessionData>['transcriptionNode']> {
-    const fastPath = getBargeInFastPath(this.session as object);
-    const captions = filterCaptionStream(text);
-    if (!fastPath) return super.transcriptionNode(captions, modelSettings);
-    // What Ferni is saying, for the barge-in echo guard (barge-in-fastpath.ts).
-    const spoken = captions.pipeThrough(
-      new TransformStream<Caption, Caption>({
-        transform(chunk, controller) {
-          fastPath.onSpokenText(typeof chunk === 'string' ? chunk : chunk.text);
-          controller.enqueue(chunk);
-        },
-      })
-    );
-    return super.transcriptionNode(spoken, modelSettings);
-  }
-
-  /**
-   * Every LLM request (preemptive or not) goes through here: add the
-   * turn-length reminder to a copy of the context. See turn-style.ts.
-   */
-  async llmNode(
-    chatCtx: llm.ChatContext,
-    toolCtx: llm.ToolContext,
-    modelSettings: voice.ModelSettings
-  ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
-    // The turn reminder, plus the director's notes for this reply if any.
-    const notes = formatNotes(getDirector(this.session as object)?.current() ?? []);
-    const reminder = [turnStyleReminderEnabled() ? TURN_STYLE_REMINDER : '', notes]
-      .filter(Boolean)
-      .join(' ');
-    const ctx = reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
-    const unlocked = await withoutLockedHandoffs(toolCtx, this.unlockView()).catch(
-      (error: unknown) => {
-        log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
-        return toolCtx;
-      }
-    );
-    if (unlocked !== toolCtx && !this.loggedLockedHandoffs) {
-      this.loggedLockedHandoffs = true;
-      log.info(
-        {
-          removed: Object.keys(toolCtx.functionTools).filter((n) => !(n in unlocked.functionTools)),
-        },
-        'Handoffs to locked teammates kept out of the request'
-      );
-    }
-    const tools = await this.toolsForTurn(chatCtx, unlocked);
-    const stream = await super.llmNode(ctx, tools, modelSettings);
-    if (!stream || process.env.OPENER_GATE === 'off') return stream;
-    return this.openerGate.wrap(stream as never) as unknown as typeof stream;
-  }
-
-  private loggedLockedHandoffs = false;
-
-  /** Who this user has unlocked, read the way the handoff tool's runtime check reads it. */
-  private unlockView(): UnlockView {
-    const userData = this.session.userData as PersonaSessionData | undefined;
-    const services = userData?.services as
-      | {
-          userProfile?: UserProfile | null;
-          devMode?: { enabled?: boolean; bypassUnlocks?: boolean };
-        }
-      | undefined;
-    const userProfile = services?.userProfile ?? userData?.userProfile ?? null;
-    const tier = (userProfile?.subscription?.tier as UnlockView['tier'] | undefined) ?? 'free';
-    return {
-      userProfile,
-      tier,
-      bypass: Boolean(services?.devMode?.enabled && services.devMode.bypassUnlocks),
-      currentAgentId: (userData?.personaId as string | undefined) ?? 'ferni',
-    };
-  }
-
-  /**
-   * The tools this turn's request carries. Shadow mode only logs what would be
-   * picked (nothing awaited); live mode sends core + recent + retrieved tools,
-   * waiting at most LIVE_PICK_WAIT_MS for the pick, then using a close pick
-   * from this turn, and otherwise sending them all. See
-   * tools/retrieval/turn-tool-retrieval.ts.
-   */
-  private async toolsForTurn(
-    chatCtx: llm.ChatContext,
-    toolCtx: llm.ToolContext
-  ): Promise<llm.ToolContext> {
-    const mode = toolRetrievalMode();
-    if (mode === 'off') return toolCtx;
-    const retrieval = getTurnToolRetrieval(this.session as object);
-    if (!retrieval) return toolCtx; // the full catalog is only loaded with retrieval
-    const text = latestUserText(chatCtx);
-    if (!text) {
-      // Greetings, check-ins, recovered turns: no words to retrieve for. In
-      // live mode the agent may hold the whole catalog; don't send all of it.
-      return mode === 'live' ? retrieval.withoutPick(toolCtx) : toolCtx;
-    }
-    if (mode === 'shadow') {
-      retrieval.observe(text, toolCtx);
-      return toolCtx;
-    }
-    return retrieval.selectLive(text, toolCtx, LIVE_PICK_WAIT_MS);
-  }
-
-  /** Limits stock reaction-word openers across this agent's replies. See opener-gate.ts. */
-  private readonly openerGate = new OpenerGate();
-
   async ttsNode(
     text: NodeReadableStream<string>,
     modelSettings: voice.ModelSettings
   ): Promise<NodeReadableStream<AudioFrame> | null> {
-    // Get persona ID and turn count from session
     const userData = this.session.userData as Record<string, unknown> | undefined;
     const personaId = (userData?.personaId as string) || 'ferni';
     const turnCount = (userData?.turnCount as number) || 0;
 
-    // Use the shared TTS wrapper with explicit agent reference
-    // Pass session so tool results can be spoken via safeGenerateReply
-    // isFirstTurn enables more aggressive streaming optimization for faster first-audio
+    // The session lets tool results be spoken via safeGenerateReply.
     return wrappedTtsNode(this, text, modelSettings, {
       tools: this.toolCtx as unknown as Record<string, unknown> | undefined,
       sessionContext: extractTtsSessionContext(this, personaId),
