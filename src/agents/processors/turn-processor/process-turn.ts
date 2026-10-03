@@ -694,7 +694,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // ============================================================================
   // PARALLEL PROCESSING: Tool routing
   // ============================================================================
-  const isFTISMode = isFTISEnabled();
+  const isFTISMode = !ctx.contextOnly && isFTISEnabled();
 
   let semanticRoutingPromise: Promise<TurnRouterResult> | null = null;
   let ftisRoutingPromise: ReturnType<typeof runFTISRouting> | null = null;
@@ -715,7 +715,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       lastAgentMessage,
     });
     diag.debug('🧠 FTIS routing started', { mode: 'ftis' });
-  } else if (isRoutingEnabled()) {
+  } else if (!ctx.contextOnly && isRoutingEnabled()) {
     const conversationHistory = (userData.recentTranscripts || []).map((text) => ({
       role: 'user' as const,
       content: text,
