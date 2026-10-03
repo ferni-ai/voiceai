@@ -34,6 +34,7 @@ function loadNative(): Native | null {
 
 const native = loadNative();
 const SID = 'stage2-native';
+const TURN = 1;
 
 function tone(n: number, sr: number, f0 = 150): Float32Array {
   const x = new Float32Array(n);
@@ -111,7 +112,7 @@ describe.skipIf(!native)('Stage 2 native (@ferni/audio)', () => {
     const saved = process.env.SPEECH_STAGE2_NONVERBAL;
     process.env.SPEECH_STAGE2_NONVERBAL = 'live';
     try {
-      setReplyAudioPlan(SID, { opening: { kind: 'sigh', intensity: 0.5 } });
+      setReplyAudioPlan(SID, TURN, { opening: { kind: 'sigh', intensity: 0.5 } });
       const frames = [new AudioFrame(new Int16Array(480), 24000, 1, 480)];
       const input = new NodeReadableStream<AudioFrame>({
         start(c) {
@@ -120,7 +121,7 @@ describe.skipIf(!native)('Stage 2 native (@ferni/audio)', () => {
         },
       });
       const out: AudioFrame[] = [];
-      for await (const f of await applyReplyAudioStage(input, SID)) out.push(f);
+      for await (const f of await applyReplyAudioStage(input, SID, TURN)) out.push(f);
       const total = out.reduce((s, f) => s + f.samplesPerChannel, 0);
       expect(total).toBe(Math.round(0.8 * 24000) + 480); // default 800 ms sigh, no gap
     } finally {
@@ -138,7 +139,7 @@ describe.skipIf(!native)('Stage 2 native (@ferni/audio)', () => {
       for (let j = 0; j < 480; j++) d[j] = Math.round(speech[i + j] * 32767);
       frames.push(new AudioFrame(d, sr, 1, 480));
     }
-    setReplyAudioPlan(SID, { tempo: 0.9, opening: { kind: 'breath', intensity: 0.8 } });
+    setReplyAudioPlan(SID, TURN, { tempo: 0.9, opening: { kind: 'breath', intensity: 0.8 } });
     const out: AudioFrame[] = [];
     const stream = new NodeReadableStream<AudioFrame>({
       start(c) {
@@ -146,7 +147,12 @@ describe.skipIf(!native)('Stage 2 native (@ferni/audio)', () => {
         c.close();
       },
     }).pipeThrough(
-      createReplyAudioStage({ sessionId: SID, native: n, gates: { nonverbal: true, tempo: true } })
+      createReplyAudioStage({
+        sessionId: SID,
+        turn: TURN,
+        native: n,
+        gates: { nonverbal: true, tempo: true },
+      })
     );
     for await (const f of stream) out.push(f);
     const total = out.reduce((s, f) => s + f.samplesPerChannel, 0);

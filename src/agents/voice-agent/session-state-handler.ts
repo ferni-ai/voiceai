@@ -106,6 +106,7 @@ import {
 // 5D: Continuous prosody stream for rolling window updates
 import { getContinuousProsodyStream } from '../../intelligence/context-builders/continuous-prosody.js';
 import { cueSay } from '../../speech/direction/index.js';
+import { clearReplyAudioPlan } from '../../speech/reply-audio-plan.js';
 
 // ============================================================================
 // TYPES
@@ -810,13 +811,12 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       // This ensures proactive systems can properly coordinate after interruptions
       onUserSpeaking(sessionId);
 
-      // GRACEFUL INTERRUPT: Track if user interrupted while agent was speaking
-      // This enables softer recovery when agent responds next
+      // GRACEFUL INTERRUPT: track a barge-in so the agent's next reply recovers softly
       if (conversationManager.isAgentSpeaking()) {
         userData.wasInterrupted = true;
-        // Determine interrupt type: 'hard' if user said explicit stop words, else 'soft'
-        // The transcript handler sets more precise type if available
+        // 'soft' unless the user said explicit stop words (the transcript handler refines it)
         userData.interruptType = 'soft';
+        clearReplyAudioPlan(sessionId); // a pending Stage 2 opening/tempo must not outlive barge-in
         // Track interrupt latency (time from agent speech start to user barge-in)
         const interruptLatencyMs = userData.lastAgentSpeechStartTime
           ? Date.now() - userData.lastAgentSpeechStartTime
