@@ -82,7 +82,7 @@ function isAbbreviationBoundary(text: string, matchStart: number, matchEnd: numb
  * @returns the index right after the first real sentence end in `text`
  * starting the search from `fromIndex`, or null if there isn't one yet.
  */
-function findSentenceEnd(text: string, fromIndex = 0): number | null {
+export function findSentenceEnd(text: string, fromIndex = 0): number | null {
   SENTENCE_END_CANDIDATE.lastIndex = fromIndex;
   let match: RegExpExecArray | null;
   while ((match = SENTENCE_END_CANDIDATE.exec(text)) !== null) {

@@ -8,10 +8,11 @@
  */
 
 import { ReadableStream } from 'node:stream/web';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ReplyStream } from '../../providers/cartesia-reply-stream.js';
 import type { ITTSProvider } from '../../types.js';
+import { directorSessions } from '../session-state.js';
 
 class RecordingReply implements ReplyStream {
   pushes: string[] = [];
@@ -65,7 +66,7 @@ const PIECES = [
   'and honestly that is a lot of money to find in a single month when you are already stretched ',
   'thin and trying to keep everything together for the kids. ',
   '[sighs] Here\'s the thing, you did the right thing. <break time="600ms"/>',
-  'Call at 3:30 p.m. if you can. [laughs] We\'ll figure it out.',
+  "Call at 3:30 p.m. if you can. [laughs] We'll figure it out.",
 ];
 
 /** Captured on the base commit; see the module comment. */
@@ -105,6 +106,9 @@ async function runGateway(): Promise<RecordingReply> {
 }
 
 describe('SPEECH_DIRECTOR on the live gateway path', () => {
+  beforeEach(() => {
+    directorSessions.clear('identity-session');
+  });
   afterEach(() => {
     delete process.env.SPEECH_DIRECTOR;
   });
@@ -122,5 +126,24 @@ describe('SPEECH_DIRECTOR on the live gateway path', () => {
   it('pushes the golden text with SPEECH_DIRECTOR=shadow (plans, never changes audio)', async () => {
     process.env.SPEECH_DIRECTOR = 'shadow';
     expect((await runGateway()).pushes).toEqual(GOLDEN);
+    // ...and the Director really ran on this path: it carried its plan forward.
+    expect(directorSessions.get('identity-session').emotion).toBe('sympathetic');
+  });
+
+  it('never runs the Director when off', async () => {
+    process.env.SPEECH_DIRECTOR = 'off';
+    await runGateway();
+    expect(directorSessions.get('identity-session')).toEqual({ speed: 1 });
+  });
+
+  it('changes what reaches Cartesia with SPEECH_DIRECTOR=live (the wiring is reached)', async () => {
+    process.env.SPEECH_DIRECTOR = 'live';
+    const { pushes } = await runGateway();
+    expect(pushes).not.toEqual(GOLDEN);
+    const all = pushes.join('');
+    expect(all).toContain('four thousand two hundred dollars on October third,');
+    expect(all).toContain('three thirty PM');
+    expect(pushes.some((p) => p.trim().endsWith('a lot of'))).toBe(false);
+    expect(pushes[0]).toContain('<emotion value="sympathetic"/>');
   });
 });
