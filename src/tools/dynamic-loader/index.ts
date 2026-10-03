@@ -25,7 +25,8 @@ import type {
   LoadedDomainState,
   TopicDetectionResult,
 } from './types.js';
-import { TOPIC_TO_DOMAINS, DOMAIN_PRIORITY, DEFAULT_ESSENTIAL_DOMAINS } from './topic-mappings.js';
+import { DOMAIN_PRIORITY, DEFAULT_ESSENTIAL_DOMAINS } from './topic-mappings.js';
+import { TOPIC_PATTERNS } from './topic-patterns.js';
 
 // Re-export types
 export type {
@@ -41,21 +42,6 @@ export { TOPIC_TO_DOMAINS, DOMAIN_PRIORITY, DEFAULT_ESSENTIAL_DOMAINS } from './
 // ============================================================================
 // DYNAMIC LOADER CLASS
 // ============================================================================
-
-/**
- * Topic keywords match whole words (with -s, -es, -ed or -ing). A plain substring test
- * fired on fragments: "start" loaded the play domain via "art", "recall"
- * telephony via "call", "moment" family via "mom", "funeral" games via "fun".
- * Each false hit swapped the agent's tools mid-turn, which also discards the
- * SDK's preemptive reply.
- */
-const TOPIC_PATTERNS: Array<[string, readonly ToolDomain[], RegExp]> = Object.entries(
-  TOPIC_TO_DOMAINS
-).map(([topic, domains]) => [
-  topic,
-  domains,
-  new RegExp(`(?<![a-z])${topic.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:s|es|ed|ing)?(?![a-z])`),
-]);
 
 export class DynamicToolLoader {
   private config: DynamicLoaderConfig;

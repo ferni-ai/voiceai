@@ -8,6 +8,7 @@
  */
 
 import { startDynamicDomainWarmup } from './dynamic-domain-warmup.js';
+import { startToolIndexWarmup } from './tool-index-warmup.js';
 
 // ============================================================================
 // TYPES
@@ -23,7 +24,6 @@ export interface WarmupResult {
 }
 
 export type LogFn = (msg: string, data?: Record<string, unknown>) => void;
-
 
 // ============================================================================
 // WARMUP FUNCTION
@@ -136,16 +136,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
-    // 1a. Tool retrieval index (TOOL_RETRIEVAL=shadow|live): load it from the
-    // machine's disk cache, or build it (~25 s on a machine's first boot) so
-    // the first call does not wait. Not awaited: warm-up keeps its time budget.
-    if (process.env.TOOL_RETRIEVAL === 'shadow' || process.env.TOOL_RETRIEVAL === 'live') {
-      void import('../../tools/retrieval/dense-index.js')
-        .then(({ createVertexEmbedder, getSharedToolIndex }) =>
-          getSharedToolIndex(createVertexEmbedder())
-        )
-        .catch((e: unknown) => log('⚠️ Tool index warm-up failed', { error: String(e) }));
-    }
+    startToolIndexWarmup(log); // 1a. Tool retrieval index, not awaited
 
     // 1b. ⚡ PRE-CACHE CONVERSATIONAL AUDIO - Biggest latency win!
     // Generate TTS audio for greetings, handoffs, banter, and backchannels.
@@ -441,14 +432,12 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
-    // 10. ⚡ LLM WARMUP - Pre-establish connections for faster first response
-    // Import LLM providers to trigger connection establishment
-    // This saves ~200-400ms on first session by having connections ready
+    // 10. ⚡ LLM WARMUP - importing the providers pre-establishes their connections,
+    // saving ~200-400ms on the first session
     tasks.push(
       (async () => {
         try {
           const llmWarmupStart = Date.now();
-          // Import providers to trigger any lazy initialization
           await Promise.all([
             import('@livekit/agents-plugin-google').then((mod) => {
               // Just importing establishes the SDK connection pool

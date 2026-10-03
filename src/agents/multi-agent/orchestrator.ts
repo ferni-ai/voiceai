@@ -24,6 +24,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
+import { calmGreeting, GREETING_DIRECTION, partOfDayFor } from './greeting-direction.js';
+export { calmGreeting } from './greeting-direction.js';
 
 // Predictive handoff - pre-briefings for specialist personas
 import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
@@ -129,11 +131,6 @@ export interface AgentCreationContext {
  *
  * Manages the lifecycle of multiple persona agents in a room.
  */
-/** A greeting without exclamation marks: they make the voice sound hyped. */
-export function calmGreeting(text: string): string {
-  return text.replace(/!+/g, '.').replace(/\.\s*\?/g, '?').replace(/\.{2,}/g, '.');
-}
-
 export class AgentOrchestrator {
   private readonly ctx: JobContext;
   private readonly room: Room;
@@ -255,16 +252,11 @@ export class AgentOrchestrator {
       // character say hello in their own words for this caller and hour.
       const scripted = generateWarmGreeting(agent.personaId, ctx);
       const { directedText } = await import('../../speech/direction/index.js');
-      const hour = ctx.hour;
-      const partOfDay = hour < 5 ? 'late night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 22 ? 'evening' : 'late evening';
+      const partOfDay = partOfDayFor(ctx.hour);
       const userName = (agent.userData as { userName?: string } | undefined)?.userName;
       const directed = await directedText(this.sessionId, {
         moment: 'greeting',
-        // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
-        // to hear your voice!" every call, and the exclamations made the voice
-        // sound hyped ("too happy to start the call", founder test, 2026-09-29).
-        direction:
-          'They just called you. Answer like you would a friend calling: relaxed and low-key, one short sentence, maybe a quick easy question. No exclamation marks, no "so good to hear your voice", no cheer, do not list what you can do or introduce yourself.',
+        direction: GREETING_DIRECTION,
         facts: { 'time of day': partOfDay, ...(userName ? { 'their name': userName } : {}) },
         fallback: scripted,
         urgency: 'now',

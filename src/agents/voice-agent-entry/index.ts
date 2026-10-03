@@ -33,10 +33,8 @@ import {
   type VoiceDeps,
 } from '../voice-agent/phases/index.js';
 
-// FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
 
-// Speech coordination
 import {
   cleanupSpeechCoordination,
   coordinatedSay,
@@ -46,7 +44,6 @@ import {
 // Action confirmation dispatcher
 import { clearActionDispatcher, initActionDispatcher } from '../realtime/action-event-dispatcher.js';
 
-// Generate reply gateway
 import {
   generateReply,
   prewarmSessionAsync,
@@ -62,7 +59,6 @@ import {
   setCurrentActiveSession,
 } from '../../tools/domains/information/location-preference.js';
 
-// Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
 
 // Inject model provider into personas layer (architecture violation fix)
