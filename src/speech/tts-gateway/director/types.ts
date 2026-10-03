@@ -14,8 +14,18 @@ import type { SSMLProsodyConfig } from '../types.js';
 /** The gate: off (untouched path), shadow (plan + log only), live (applied). */
 export type DirectorMode = 'off' | 'shadow' | 'live';
 
-/** Independently gated levers (spec §4.4: one gate per lever). */
-export type Lever = 'phrasing' | 'pauses' | 'normalize' | 'emotion' | 'pacing';
+/**
+ * Independently gated levers (spec §4.4: one gate per lever). `nonverbal`
+ * (opening breath/sigh) and `laughter` are opt-in: off unless set.
+ */
+export type Lever =
+  | 'phrasing'
+  | 'pauses'
+  | 'normalize'
+  | 'emotion'
+  | 'pacing'
+  | 'nonverbal'
+  | 'laughter';
 
 export type LeverModes = Readonly<Record<Lever, DirectorMode>>;
 

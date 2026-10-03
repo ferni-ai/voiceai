@@ -12,6 +12,13 @@
 import type { ReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { SSMLProsodyConfig } from '../types.js';
 import { decideEmotion, readValence, type EmotionDecision } from './emotion.js';
+import {
+  decideOpening,
+  nextNonverbalCarry,
+  stripSpokenSigh,
+  type NonverbalCarry,
+  type OpeningDecision,
+} from './nonverbal.js';
 import { normalizeForSpeech } from './normalize.js';
 import { decideSpeed } from './pacing.js';
 import { commaDensity, planPauses, removeMidSentenceEllipses } from './pauses.js';
@@ -50,8 +57,15 @@ export interface EngineContext {
   /** The session's emotion hint (gateway config). */
   sessionHint?: string;
   carry: CarryOver;
-  /** Raw-stream cues: the LLM's own emotion tag, and sigh cues not yet placed. */
-  cues: { authoredEmotion?: string; takeSighs: () => number };
+  /** Raw-stream cues: the LLM's own emotion tag, sigh cues, how the reply opens. */
+  cues: {
+    authoredEmotion?: string;
+    takeSighs: () => number;
+    opensWithSigh?: boolean;
+    opensWithSpokenSigh?: boolean;
+  };
+  /** The user's words this reply answers (nonverbal.ts). */
+  userText?: string;
   /** Renders opening controls; providers/cartesia.ts prosodyTags. */
   renderTags: (prosody: SSMLProsodyConfig) => string;
   /**
@@ -114,6 +128,8 @@ export class DirectorEngine {
   speed = 1;
   /** Stage 2 tempo for this reply, when the voice can't take a <speed> tag. */
   tempo: number | undefined;
+  /** The opening breath/sigh decision (decided unless the nonverbal lever is off). */
+  opening: OpeningDecision = { reason: 'none' };
 
   private readonly planPhrases = new PhraseAssembler();
   private readonly spokenPhrases: PhraseAssembler;
@@ -121,6 +137,9 @@ export class DirectorEngine {
   private replySpeed = 1;
   private pendingTags = '';
   private segmentsSinceBreath = Infinity;
+  private spokenSighChecked = false;
+  /** Tags of a first push whose only words were the spoken sigh: they lead the next. */
+  private stashedLead: { tags: string; prosody: SSMLProsodyConfig } | undefined;
 
   constructor(private readonly ctx: EngineContext) {
     // Live phrasing re-cuts; live pauses holds a trailing "..." to see what follows.
@@ -134,6 +153,11 @@ export class DirectorEngine {
     return this.ctx.modes[lever] === 'live';
   }
 
+  /** True once the reply's opening (emotion, pace, breath/sigh) is decided. */
+  get decided(): boolean {
+    return this.opened;
+  }
+
   /** True while phrasing holds text back from Cartesia. */
   get holding(): boolean {
     return this.spokenPhrases.holding;
@@ -143,7 +167,13 @@ export class DirectorEngine {
   take(push: string): string[] {
     return this.atomically(() => {
       this.stats.pushesIn++;
-      const { tags, body, prosody } = parseLead(push);
+      const parsed = parseLead(push);
+      const body = this.takeSpokenSigh(parsed.body);
+      const { tags, prosody } = this.withStashedLead(parsed);
+      if (!body && parsed.body && !this.opened) {
+        this.stashedLead = { tags, prosody }; // the push was only the sigh's "Ahh."
+        return [];
+      }
       const first = !this.opened;
       const normalized = normalizeForSpeech(body);
       this.stats.normalizations += normalized.count;
@@ -167,8 +197,31 @@ export class DirectorEngine {
     });
   }
 
+  /**
+   * With the nonverbal lever live, the behavior tool's sigh is rendered by
+   * Stage 2, so its spoken "Ahh." at the start of the reply is taken out.
+   */
+  private takeSpokenSigh(body: string): string {
+    if (this.spokenSighChecked) return body;
+    this.spokenSighChecked = true;
+    const strip = this.live('nonverbal') && this.ctx.cues.opensWithSpokenSigh === true;
+    return strip ? stripSpokenSigh(body) : body;
+  }
+
+  private withStashedLead(parsed: { tags: string; prosody: SSMLProsodyConfig }): {
+    tags: string;
+    prosody: SSMLProsodyConfig;
+  } {
+    const stash = this.stashedLead;
+    this.stashedLead = undefined;
+    if (!stash) return parsed;
+    return { tags: stash.tags + parsed.tags, prosody: { ...stash.prosody, ...parsed.prosody } };
+  }
+
   /** The reply is over: release held phrases. */
   finish(): string[] {
+    // A reply that was only the sigh still gets its opening decided.
+    if (!this.opened && this.stashedLead) this.open('', this.stashedLead.prosody.speed);
     return this.atomically(() => {
       this.planSegments(this.planPhrases.flush());
       return this.emit(this.spokenPhrases.flush());
@@ -207,7 +260,17 @@ export class DirectorEngine {
 
   /** What Stage 2 should do to this reply's audio, if anything. */
   audioPlan(): ReplyAudioPlan | undefined {
-    return this.tempo === undefined ? undefined : { tempo: this.tempo };
+    const plan: ReplyAudioPlan = {};
+    if (this.tempo !== undefined) plan.tempo = this.tempo;
+    if (this.live('nonverbal') && this.opening.opening) plan.opening = this.opening.opening;
+    return plan.tempo === undefined && plan.opening === undefined ? undefined : plan;
+  }
+
+  /** The session's nonverbal cooldown counters after this reply. */
+  nonverbalCarry(): NonverbalCarry {
+    const { sinceSigh, sinceBreath } = this.ctx.carry;
+    if (this.ctx.modes.nonverbal === 'off') return { sinceSigh, sinceBreath };
+    return nextNonverbalCarry({ sinceSigh, sinceBreath }, this.opening.opening);
   }
 
   /** One emotion and one speed for the whole reply, from its opening phrase. */
@@ -227,6 +290,15 @@ export class DirectorEngine {
     });
     this.speed = Math.abs(pace.speed - 1) < SPEED_EPSILON ? 1 : pace.speed;
     this.replySpeed = this.live('pacing') && pace.supported ? this.speed : 1;
+    if (this.ctx.modes.nonverbal !== 'off') {
+      this.opening = decideOpening({
+        openingText,
+        opensWithSigh: this.ctx.cues.opensWithSigh === true,
+        userText: this.ctx.userText,
+        voiceId: this.ctx.voiceId,
+        carry: this.ctx.carry,
+      });
+    }
     if (this.live('pacing') && !pace.supported) {
       // The voice ignores <speed>: the pace (with any soft start) goes to Stage 2.
       const tempo = composeSpeed(leadSpeed ?? 1, this.speed);

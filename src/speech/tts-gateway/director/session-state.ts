@@ -16,6 +16,9 @@
 export interface CarryOver {
   emotion?: string;
   speed: number;
+  /** Replies since the last opening sigh / breath (nonverbal.ts cooldowns). */
+  sinceSigh?: number;
+  sinceBreath?: number;
 }
 
 const DEFAULT: CarryOver = { speed: 1 };

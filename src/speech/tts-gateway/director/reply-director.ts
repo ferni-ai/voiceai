@@ -70,6 +70,9 @@ export interface PlanSummary {
   tempo?: number;
   /** Prosody tags were taken off every push (the voice ignores them). */
   tagsStripped: boolean;
+  /** The opening breath/sigh decided (nonverbal lever not off), and why. */
+  opening?: string;
+  openingReason: string;
   pauses: number;
   pauseMs: number;
   breaths: number;
@@ -139,6 +142,7 @@ class DirectedReply implements ReplyStream {
       cues,
       renderTags: prosodyTags,
       stripProsody: this.stripProsody,
+      userText: opts.turnContext?.userRequest,
     });
   }
 
@@ -148,7 +152,7 @@ class DirectedReply implements ReplyStream {
    * there before any of the reply's audio). Never throws.
    */
   private planStage2(): void {
-    if (this.planned || this.mode !== 'live' || this.failed) return;
+    if (this.planned || this.mode !== 'live' || this.failed || !this.engine.decided) return;
     this.planned = true;
     try {
       const plan = this.engine.audioPlan();
@@ -205,6 +209,7 @@ class DirectedReply implements ReplyStream {
     if (this.done) return;
     this.stopHoldTimer();
     const rest = this.direct(() => this.engine.finish()) ?? this.engine.releaseHeld();
+    this.planStage2();
     if (this.mode === 'live') for (const piece of rest) this.inner.push(piece);
     this.report(false);
     this.inner.end();
@@ -287,6 +292,8 @@ class DirectedReply implements ReplyStream {
       speed: engine.speed,
       tempo: engine.tempo,
       tagsStripped: this.stripProsody,
+      opening: engine.opening.opening?.kind,
+      openingReason: engine.opening.reason,
       ...summarize(engine),
       breaths: engine.stats.breaths,
       sighs: engine.stats.sighs,
@@ -298,6 +305,7 @@ class DirectedReply implements ReplyStream {
       (opts.sessions ?? directorSessions).update(opts.sessionId, opts.personaId, {
         emotion: engine.emotion.emotion,
         speed: engine.speed,
+        ...engine.nonverbalCarry(),
       });
     }
     if (opts.onPlan) opts.onPlan(summary, engine.plan);
