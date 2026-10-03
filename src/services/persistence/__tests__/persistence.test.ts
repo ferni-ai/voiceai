@@ -17,31 +17,74 @@ vi.mock('../../../utils/safe-logger.js', () => ({
   }),
 }));
 
-// Mock firestore-utils, but keep the REAL (deep/recursive) cleanForFirestore
-// implementation — tests below rely on it actually stripping `undefined`
-// nested inside arrays (e.g. `events[].estimatedValueCents`), not just a
-// shallow top-level stand-in.
-vi.mock('../../../utils/firestore-utils.js', async () => {
-  const actual = await vi.importActual<typeof import('../../../utils/firestore-utils.js')>(
-    '../../../utils/firestore-utils.js'
-  );
-  return {
-    getFirestoreDb: vi.fn(() => null),
-    cleanForFirestore: actual.cleanForFirestore,
-    removeUndefined: actual.removeUndefined,
-    deepRemoveUndefined: actual.deepRemoveUndefined,
-    recordDegradation: vi.fn(),
-    getFirestoreHealth: vi.fn(() => ({
-      dbAvailable: true,
-      initialized: true,
-      initializationError: null,
-      degradationCount: 0,
-      recentDegradations: [],
-      lastDegradationAt: null,
-    })),
-    resetFirestoreInstance: vi.fn(),
-  };
-});
+// Mock firestore-utils with a real (deep/recursive) cleanForFirestore —
+// tests below rely on it actually stripping `undefined` nested inside
+// arrays (e.g. `events[].estimatedValueCents`), not just a shallow
+// top-level stand-in. Mirrors utils/firestore-utils.ts's cleanForFirestore
+// (same approach src/tests/setup.ts's global mock uses) rather than
+// `vi.importActual`, which is async and this file has no need for it.
+//
+// Duck-typed only (no `instanceof FieldValue`): this file's own
+// `vi.mock('@google-cloud/firestore', ...)` below doesn't export
+// `FieldValue`, so importing the real class here would resolve to
+// `undefined` and make `instanceof` throw a TypeError on every call —
+// which is exactly what happened and made every test below silently fall
+// through to the catch-and-retry path instead of exercising the real
+// behavior (no FieldValue instances appear in this file's test data, so
+// duck-typing alone is never even exercised here — it's just structural
+// parity with the real isFirestoreFieldValue()).
+function isFirestoreFieldValueForMock(value: unknown): boolean {
+  if (value === null || typeof value !== 'object') return false;
+  const ctorName = (value as { constructor?: { name?: string } }).constructor?.name;
+  const looksLikeTransform =
+    typeof ctorName === 'string' && (ctorName === 'FieldValue' || ctorName.endsWith('Transform'));
+  const hasIsEqual = typeof (value as { isEqual?: unknown }).isEqual === 'function';
+  return looksLikeTransform && hasIsEqual;
+}
+
+function cleanForFirestoreForMock<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  if (obj instanceof Date) return obj.toISOString() as T;
+  if (isFirestoreFieldValueForMock(obj)) return obj;
+  if (Array.isArray(obj)) return obj.map((item) => cleanForFirestoreForMock(item)) as T;
+  if (typeof obj === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      if (value !== undefined) {
+        result[key] = cleanForFirestoreForMock(value);
+      }
+    }
+    return result as T;
+  }
+  return obj;
+}
+
+function removeUndefinedForMock<T extends object>(obj: T): T {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result as T;
+}
+
+vi.mock('../../../utils/firestore-utils.js', () => ({
+  getFirestoreDb: vi.fn(() => null),
+  cleanForFirestore: cleanForFirestoreForMock,
+  removeUndefined: removeUndefinedForMock,
+  deepRemoveUndefined: cleanForFirestoreForMock,
+  recordDegradation: vi.fn(),
+  getFirestoreHealth: vi.fn(() => ({
+    dbAvailable: true,
+    initialized: true,
+    initializationError: null,
+    degradationCount: 0,
+    recentDegradations: [],
+    lastDegradationAt: null,
+  })),
+  resetFirestoreInstance: vi.fn(),
+}));
 
 // Mock Firestore
 const mockBatch = {
@@ -360,7 +403,11 @@ describe('PersistenceLayer', () => {
     it('flushes a batch containing a record with undefined nested inside an array', async () => {
       const vcStore = createPersistenceStore<ValueCaptureLikeData>({
         collection: 'test_value_capture',
-        syncIntervalMs: 100,
+        // Long enough that the background sync interval never fires during
+        // this test, so only the explicit flush() call below exercises the
+        // batch write — a short interval here raced with real wall-clock
+        // timing and was flaky when run alongside other test files.
+        syncIntervalMs: 60_000,
         maxPendingChanges: 20,
       });
 
@@ -391,7 +438,9 @@ describe('PersistenceLayer', () => {
     it('isolates a single bad document so other users still persist after a batch failure', async () => {
       const isoStore = createPersistenceStore<TestData>({
         collection: 'test_isolation',
-        syncIntervalMs: 100,
+        // See comment in the previous test: avoid a real background flush
+        // racing with the explicit flush() this test asserts on.
+        syncIntervalMs: 60_000,
         maxPendingChanges: 20,
       });
 

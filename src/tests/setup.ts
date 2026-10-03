@@ -67,10 +67,36 @@ const createMockFirestore = () => {
 
 const mockFirestoreDb = createMockFirestore();
 
+// True for a Firestore FieldValue sentinel (serverTimestamp(), increment(),
+// arrayUnion(), arrayRemove(), delete()). Mirrors the guard in
+// utils/firestore-utils.ts - this mock must preserve sentinels by identity
+// too, or any test writing one through the mocked cleanForFirestore would
+// see it silently turned into a plain `{}` (see PR #175 critic review).
+//
+// Deliberately duck-typed only (no `instanceof FieldValue`, no top-level
+// import of the real @google-cloud/firestore package here): this file is a
+// global setupFile loaded before every test file, and several test files
+// locally `vi.mock('@google-cloud/firestore', ...)` with their own fake
+// Firestore class. An eager real import here raced with those per-file
+// mocks and won often enough to make `persistence/index.ts`'s own
+// `new Firestore(...)` resolve to the (non-functional, in this test env)
+// real client instead of the local mock - silently no-op'ing every flush
+// in any OTHER file that ran in the same vitest invocation. Confirmed by
+// removing the import: the flakiness disappeared.
+const isFirestoreFieldValueImpl = (value: unknown): boolean => {
+  if (value === null || typeof value !== 'object') return false;
+  const ctorName = (value as { constructor?: { name?: string } }).constructor?.name;
+  const looksLikeTransform =
+    typeof ctorName === 'string' && (ctorName === 'FieldValue' || ctorName.endsWith('Transform'));
+  const hasIsEqual = typeof (value as { isEqual?: unknown }).isEqual === 'function';
+  return looksLikeTransform && hasIsEqual;
+};
+
 // Helper function to clean undefined values (matches real implementation)
 const cleanForFirestoreImpl = <T>(obj: T): T => {
   if (obj === null || obj === undefined) return obj;
   if (obj instanceof Date) return obj.toISOString() as T;
+  if (isFirestoreFieldValueImpl(obj)) return obj;
   if (Array.isArray(obj)) return obj.map((item) => cleanForFirestoreImpl(item)) as T;
   if (typeof obj === 'object') {
     const result: Record<string, unknown> = {};

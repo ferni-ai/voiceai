@@ -29,7 +29,12 @@
  *          MemoryContext
  * ```
  *
- * Performance Budget: < 100ms total
+ * Performance Budget: < 350ms total (raised from 100ms 2026-10-03 - see
+ * DEFAULT_CONFIG.totalTimeoutMs below for why). retrieveForTurn() is started
+ * concurrently with the rest of turn processing by its caller
+ * (agents/voice-agent/turn-handler.ts), not awaited inline, so this budget
+ * mostly overlaps with - rather than adds to - the turn's critical path; see
+ * getHybridSearchTimeoutStats() for the data to confirm/tune this in prod.
  *
  * @module memory/retrieval/turn-memory-retrieval
  */
@@ -186,6 +191,46 @@ export function getTurnRetrievalConfig(): TurnRetrievalConfig {
 }
 
 // ============================================================================
+// HYBRID SEARCH TIMEOUT OBSERVABILITY
+// ============================================================================
+// `totalTimeoutMs` was raised 100ms -> 350ms on 2026-10-03 because the old
+// 70ms hybrid-search slice (100 * 0.7) was timing out on every single turn
+// in production (see PR #175). That bump was reasoned from this module's
+// documented sub-component latencies, not measured end-to-end in prod. Track
+// actual attempts/timeouts here so the budget can be tuned from real data
+// instead of re-guessed later.
+
+let hybridSearchAttempts = 0;
+let hybridSearchTimeouts = 0;
+
+/**
+ * Observability stats for the hybrid-search timeout budget. Call this from
+ * a health/metrics endpoint to see whether `totalTimeoutMs` is well-tuned:
+ * a near-zero `timeoutRate` means there's room to lower it back down for
+ * latency; a high rate means the budget (or the underlying search latency)
+ * still needs work.
+ */
+export function getHybridSearchTimeoutStats(): {
+  attempts: number;
+  timeouts: number;
+  timeoutRate: number;
+} {
+  return {
+    attempts: hybridSearchAttempts,
+    timeouts: hybridSearchTimeouts,
+    timeoutRate: hybridSearchAttempts > 0 ? hybridSearchTimeouts / hybridSearchAttempts : 0,
+  };
+}
+
+/**
+ * Reset hybrid-search timeout counters (for tests).
+ */
+export function resetHybridSearchTimeoutStats(): void {
+  hybridSearchAttempts = 0;
+  hybridSearchTimeouts = 0;
+}
+
+// ============================================================================
 // RECENT SURFACING TRACKING (prevents repetition)
 // ============================================================================
 
@@ -312,6 +357,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
   try {
     // 1. HYBRID SEARCH (BM25 + Vector + Entity Store)
     const hybridStart = Date.now();
+    hybridSearchAttempts++;
     const { results: hybridResults, metrics: hybridMetrics } = await Promise.race([
       hybridSearch(userId, transcript, {
         topK: 10,
@@ -478,12 +524,19 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
     };
   } catch (error) {
     metrics.totalTimeMs = Date.now() - startTime;
+
+    const isHybridTimeout = error instanceof Error && error.message === 'Hybrid search timeout';
+    if (isHybridTimeout) {
+      hybridSearchTimeouts++;
+    }
+
     log.warn(
       {
         userId,
         sessionId,
         error: String(error),
         elapsedMs: metrics.totalTimeMs,
+        ...(isHybridTimeout ? getHybridSearchTimeoutStats() : {}),
       },
       'Turn memory retrieval failed'
     );
