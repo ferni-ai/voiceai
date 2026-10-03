@@ -281,13 +281,12 @@ describe('Tool Structure Validation', () => {
   });
 
   it('handoff tools should return structured results', async () => {
-    const handoffFactoryPath = path.join(process.cwd(), 'src/tools/handoff/handoff-factory.ts');
-    const content = fs.readFileSync(handoffFactoryPath, 'utf-8');
-
-    // Should return handoff_complete flag
-    expect(content).toContain('handoff_complete:');
-
-    // Should indicate greeting was already spoken
-    expect(content).toContain('greetingAlreadySpoken');
+    // The response moved to handoff-tool-response.ts (#171); test what it returns.
+    const { handoffToolResponse } = await import('../../tools/handoff/handoff-tool-response.js');
+    const ok = handoffToolResponse(
+      { success: true, targetAgentName: 'Maya', greetingSpoken: true } as never,
+      'Maya'
+    );
+    expect(ok).toMatchObject({ handoff_complete: true, new_agent: 'Maya', greetingAlreadySpoken: true });
   });
 });
