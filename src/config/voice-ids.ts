@@ -46,8 +46,10 @@ export const CARTESIA_API_URL = process.env.CARTESIA_API_URL || 'https://api.car
  * Bundle manifests are the primary source of truth.
  */
 export const VOICE_IDS = {
-  // Ferni (life coach) - Dec 2024
-  FERNI: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+  // Ferni (life coach) - "Lester Nare (Pro) - V3" Cartesia Professional Voice
+  // Clone, switched 2026-10-03. Pro clones ignore <speed>/<emotion> tags — see
+  // config/voice-capabilities.ts before relying on prosody tags for this voice.
+  FERNI: 'ebaf7477-b6ae-417e-be54-19e6176777ea',
 
   // Peter John (insights quant) - Synced from .env Dec 2024
   PETER_JOHN: '3f04e815-3260-4f50-8fd9-af9c657be4c2',
@@ -74,6 +76,15 @@ export const VOICE_IDS = {
   // Generic advisor fallback
   GENERIC: '79a125e8-cd45-4c13-8a67-188112f4dd22',
 } as const;
+
+/**
+ * Ferni's previous voice (Cartesia instant clone, Dec 2024 → 2026-10-03). Not in
+ * VOICE_IDS: no persona speaks with it now. It stays the default for new template
+ * agents and the developer voice catalog (literals in .templates manifests,
+ * cli/agent-manager.ts, api/v1/developers/voice-routes.ts) so those never default
+ * to Lester's Professional Voice Clone.
+ */
+export const LEGACY_FERNI_IVC_VOICE_ID = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
 
 /**
  * Alias for backwards compatibility with cartesia-core.ts
