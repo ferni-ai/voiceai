@@ -121,6 +121,9 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
   };
 }
 
+/** Opens each pushed context note, so readers of the chat can tell it from the caller's words. */
+export const TURN_CONTEXT_HEADER = '[Context for your next reply, not something the user said]';
+
 /** Keeps a pushed context note from growing the session's context unboundedly. */
 const MAX_PUSHED_CONTEXT_CHARS = 2000;
 
@@ -158,7 +161,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
 
   const tryPush = async (): Promise<void> => {
     if (!pending || !agentListening || userSpeaking) return;
-    const content = `[Context for your next reply, not something the user said]\n${pending}`;
+    const content = `${TURN_CONTEXT_HEADER}\n${pending}`;
     pending = null;
     try {
       const chatCtx = agent.chatCtx.copy();
