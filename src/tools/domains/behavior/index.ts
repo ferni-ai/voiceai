@@ -125,10 +125,11 @@ const PRESENCE_SSML: Record<PresenceExpression, string> = {
   // matches the existing `nod` entry below, not a regression from this fix;
   // only a word-anchored entry (`sigh`, `hum`, `soft_sound`) survives being
   // prepended, because cleanupText has nothing to strip in front of it.
-  // KNOWN GAP: `breath` is therefore inaudible today. It is rendered as a
-  // real breath by the Rust post-TTS stage in the approved speech design
-  // (P3); until then it is a safe no-op, never spoken text.
-  breath: '<break time="700ms"/>',
+  // `breath` stays a safe no-op in text: a real breath is rendered by Stage 2
+  // (SPEECH_DIRECTOR_NONVERBAL + SPEECH_STAGE2_NONVERBAL), never by Cartesia.
+  // Keep it under the 400 ms native-break threshold (native-breaks.ts): at
+  // 700 ms it became a native break, i.e. dead air before every such reply.
+  breath: '<break time="300ms"/>',
   hum: '<break time="200ms"/>Mmm.<break time="400ms"/>',
   nod: '<break time="200ms"/>',
   sigh: '<break time="300ms"/><emotion value="gentle"/>Ahh.<break time="400ms"/>',
