@@ -57,6 +57,7 @@ vi.mock('../intelligence/processing-intelligence.js', () => ({
 // Import after mocks
 import type { ToolContext, ToolDefinition } from '../tools/registry/types.js';
 import { getToolDefinitions, behaviorToolDefinitions } from '../tools/domains/behavior/index.js';
+import { createSSMLProcessor } from '../speech/tts-gateway/ssml/processor.js';
 
 describe('Behavior Tools', () => {
   let mockContext: ToolContext;
@@ -277,6 +278,29 @@ describe('Behavior Tools', () => {
 
       expect(result.ssml).not.toMatch(/phoneme|\.\.\./);
       expect(result.ssml).toMatch(/<break time="\d+ms"\/>/);
+    });
+
+    it('breath SSML through the real SSMLProcessor: no spoken artifact, but also no audible pause', async () => {
+      // What Cartesia actually receives, verified against the live gateway's
+      // own SSMLProcessor (not asserted blind): BREAK_TAG_REGEX turns the
+      // break into ". "/", "/" " " by duration, but cleanupText()'s
+      // leading-punctuation strip then removes it because it's the first
+      // thing in the chunk — whether `breath`'s SSML is synthesized alone or
+      // prepended to the next line ("<break.../>Hello" -> "Hello"). No
+      // leaked words (the bug this PR fixes), but also no audible gap; the
+      // `nod` entry below has the identical shape and is pre-existing, not a
+      // regression from this change. A real pause needs a spoken anchor
+      // (see `sigh`: "Ahh." survives because cleanupText has nothing to
+      // strip in front of it).
+      const toolDef = tools.find((t) => t.id === 'expressPresence')!;
+      const tool = toolDef.create(mockContext);
+      const result = await tool.execute({ type: 'breath' });
+
+      const processor = createSSMLProcessor();
+      expect(processor.parse(result.ssml as string).cleanText).toBe('');
+      expect(processor.parse(`${result.ssml as string}Here is my response.`).cleanText).toBe(
+        'Here is my response.'
+      );
     });
 
     it('should return SSML for presence type', async () => {

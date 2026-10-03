@@ -110,9 +110,21 @@ const MODE_SSML: Record<BehaviorMode, string> = {
 
 const PRESENCE_SSML: Record<PresenceExpression, string> = {
   // No Cartesia tag renders an actual breath sound (only `[laughter]` is a
-  // documented nonverbal), and `<phoneme>` content survives the generic
-  // tag-stripping fallback in ssml/processor.ts — "..." was left over and
-  // spoken as literal ellipsis. A clean pause reads as a breath on its own.
+  // documented nonverbal), and the old `<phoneme alphabet="ipa" ph="hh">
+  // ...</phoneme>` survived the generic tag-stripping fallback in
+  // ssml/processor.ts with its "..." text content intact — spoken as a
+  // literal ellipsis. A break has no such leftover.
+  //
+  // What the gateway's SSMLProcessor actually does with a bare break tag
+  // (verified against `new SSMLProcessor().parse(...)`, see
+  // behavior-tools.test.ts): BREAK_TAG_REGEX turns it into ". "/", "/" " "
+  // by duration, but `cleanupText()`'s leading-punctuation strip then
+  // removes it — as the FIRST thing in a chunk, a break-only presence tag
+  // renders to "" (no audio call, no pause) whether it's the whole chunk or
+  // prepended to real text ("<break.../>Hello" -> "Hello", no gap). That
+  // matches the existing `nod` entry below, not a regression from this fix;
+  // only a word-anchored entry (`sigh`, `hum`, `soft_sound`) survives being
+  // prepended, because cleanupText has nothing to strip in front of it.
   breath: '<break time="700ms"/>',
   hum: '<break time="200ms"/>Mmm.<break time="400ms"/>',
   nod: '<break time="200ms"/>',
