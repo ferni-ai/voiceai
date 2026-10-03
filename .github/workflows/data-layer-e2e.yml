@@ -10,6 +10,7 @@ on:
       - 'src/memory/**'
       - 'src/intelligence/**'
       - 'src/tests/data-layer/**'
+      - '.github/workflows/data-layer-e2e.yml'
   push:
     branches: [main]
     paths:
@@ -36,24 +37,31 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
       - name: Start Firestore Emulator
         run: |
-          firebase emulators:start --only firestore --project demo-project &
-          echo "Waiting for emulator to start..."
-          sleep 10
-          # Verify emulator is running
-          curl -s http://localhost:8080/ || echo "Emulator may not be HTTP accessible, continuing..."
+          firebase emulators:start --only firestore --project demo-project > emulator.log 2>&1 &
+          # Fail here if it never comes up: running the tests without it (as when
+          # this job installed Java 17 and firebase-tools needed 21) hid the failure.
+          for i in $(seq 1 60); do
+            curl -s -o /dev/null http://localhost:8080/ && echo "Emulator up after ${i}s" && exit 0
+            sleep 1
+          done
+          cat emulator.log
+          echo "Firestore emulator did not start" && exit 1
 
       - name: Run Data Layer E2E Tests
         run: |
           pnpm vitest run src/tests/data-layer/e2e-firestore.test.ts --reporter=verbose
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
+          # The emulator's project; code that starts firebase-admin without a
+          # projectId (ttl-cleanup) otherwise fails with "Unable to detect a Project Id".
+          GCLOUD_PROJECT: demo-project
           NODE_ENV: test
           # Disable Google API for tests (no real embeddings)
           GOOGLE_API_KEY: ''
