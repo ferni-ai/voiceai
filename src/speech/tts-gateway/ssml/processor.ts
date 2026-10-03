@@ -7,7 +7,7 @@
  * Design decisions:
  * 1. **Buffer complete tags** - Ensure SSML tags aren't split across chunks
  * 2. **Extract prosody** - Convert SSML tags to API parameters where possible
- * 3. **Convert breaks to punctuation** - Since Cartesia streaming can't handle breaks reliably
+ * 3. **Breaks** - Short breaks become punctuation; real pauses stay native (native-breaks.ts)
  * 4. **Preserve intent** - Even when stripping, maintain the speech intent
  *
  * @module speech/tts-gateway/ssml/processor
@@ -16,6 +16,9 @@
 import { TransformStream } from 'node:stream/web';
 import type { ISSMLProcessor, SSMLParseResult, SSMLProsodyConfig } from '../types.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { holdBreak, isUnspeakable, restoreHeldBreaks, speakableText } from './native-breaks.js';
+
+export { speakableText };
 
 const log = createLogger({ module: 'SSMLProcessor' });
 
@@ -100,16 +103,6 @@ const EMOTION_TAG_REGEX =
 /** Match <break time="Xms"/> or <break time="Xs"/> tags */
 const BREAK_TAG_REGEX = /<break\s+time=["']?(\d+)(ms|s)?["']?\s*\/?>/gi;
 
-/** A kept break, between the break conversion and the catch-all tag strip. */
-const BREAK_HOLD = '\u2983BREAK';
-const BREAK_HOLD_END = '\u2984';
-const BREAK_HOLD_REGEX = /\u2983BREAK(\d+)\u2984/g;
-
-/** Text as spoken: without the native break tags Sonic consumes. */
-export function speakableText(text: string): string {
-  return text.replace(/<break time="\d+ms"\/>/g, '');
-}
-
 /** Match closing prosody tags */
 const PROSODY_CLOSE_REGEX = /<\/(?:speed|volume|emotion|prosody)>/gi;
 
@@ -175,9 +168,8 @@ export class SSMLProcessor implements ISSMLProcessor {
   /**
    * Parse SSML from text
    *
-   * Extracts prosody configuration and cleans the text.
-   * Break tags are converted to punctuation since they can't be reliably
-   * passed through streaming TTS.
+   * Extracts prosody configuration and cleans the text. Short breaks become
+   * punctuation; real pauses stay native break tags.
    *
    * @param text - Text potentially containing SSML tags
    * @returns Parse result with clean text and extracted config
@@ -264,8 +256,7 @@ export class SSMLProcessor implements ISSMLProcessor {
       }
     );
 
-    // Convert break tags to punctuation
-    // This preserves the intent (pause) while being streaming-safe
+    // Convert break tags to punctuation, keeping the pause's intent
     cleanText = cleanText.replace(BREAK_TAG_REGEX, (match, time: string, unit: string) => {
       hadSSML = true;
       originalTags.push(match);
@@ -275,13 +266,10 @@ export class SSMLProcessor implements ISSMLProcessor {
         durationMs *= 1000;
       }
 
-      // A deliberate pause stays a native Sonic break: as punctuation a 1 s
-      // break became ". ", a 270 ms gap, against 1.3 s for the tag (measured
-      // on Ferni's voice, sonic-3.6, 2026-09-29). Cartesia notes a break
-      // splits the generation, so only real pauses keep it.
+      // Real pauses stay native Sonic breaks (why: see native-breaks.ts),
+      // held as a placeholder past the catch-all tag strip below.
       if (durationMs >= 400) {
-        // Held as a placeholder past the catch-all tag strip below.
-        return `${BREAK_HOLD}${Math.min(durationMs, 3000)}${BREAK_HOLD_END}`;
+        return holdBreak(durationMs);
       } else if (durationMs >= 200) {
         return ', ';
       } else if (durationMs >= 50) {
@@ -390,9 +378,8 @@ export class SSMLProcessor implements ISSMLProcessor {
 
     // Clean up whitespace and punctuation artifacts
     cleanText = this.cleanupText(cleanText);
-    cleanText = cleanText.replace(BREAK_HOLD_REGEX, (_m, ms: string) => `<break time="${ms}ms"/>`);
-    // Only pauses and punctuation left: nothing to say.
-    if (!speakableText(cleanText).replace(/[\s.,!?…-]/g, '')) cleanText = '';
+    cleanText = restoreHeldBreaks(cleanText);
+    if (isUnspeakable(cleanText)) cleanText = '';
 
     return {
       cleanText,
@@ -472,11 +459,7 @@ export class SSMLProcessor implements ISSMLProcessor {
   /**
    * Normalize text for cache key generation
    *
-   * Creates a consistent key by:
-   * 1. Stripping all SSML tags
-   * 2. Lowercasing
-   * 3. Collapsing whitespace
-   * 4. Trimming
+   * Strips SSML, lowercases, collapses whitespace and trims.
    *
    * @param text - Text to normalize
    * @returns Normalized cache key string

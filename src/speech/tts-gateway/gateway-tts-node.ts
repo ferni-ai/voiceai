@@ -34,14 +34,13 @@ import {
 
 // ESM doesn't have global require, so we create one for dynamic imports
 const require = createRequire(import.meta.url);
-import { markCallStage, recordCallEvent } from '../../services/analytics/call-quality-monitor.js';
 import { getTTSCache } from '../../services/tts/index.js';
 import { getTTSProvider } from './providers/index.js';
 import { getSSMLProcessor } from './ssml/index.js';
 import { findChunkEnd } from './chunk-boundary.js';
 import { sessionSpeed } from '../output-control/pace-matching.js';
-import { noteReplyAudio } from '../output-control/reply-activity.js';
 import { createContinuationTTS } from './continuation-tts.js';
+import { createFirstAudioObserver, type FirstAudioObserver } from './first-audio-observer.js';
 import { prosodyTags } from './providers/cartesia.js';
 import type { SSMLProsodyConfig } from './types.js';
 
@@ -97,52 +96,6 @@ function isTTSGatewayEnabled(): boolean {
 }
 
 const log = createLogger({ module: 'GatewayTTSNode' });
-
-type FirstAudioObserver = (() => void) & {
-  /** Record when the first LLM text arrived and when the first text went to the provider. */
-  stage(stage: 'text' | 'push'): void;
-};
-
-interface FirstAudioObserverOptions {
-  sessionId?: string;
-  startTime: number;
-}
-
-function createFirstAudioObserver({
-  sessionId,
-  startTime,
-}: FirstAudioObserverOptions): FirstAudioObserver {
-  let hasMarkedFirstAudio = false;
-  const stages: { textMs?: number; pushMs?: number } = {};
-
-  const observe = (): void => {
-    if (hasMarkedFirstAudio) return;
-    hasMarkedFirstAudio = true;
-    const ttfbMs = Date.now() - startTime;
-    // Where the wait went: LLM text in (textMs), text sent (pushMs), audio back (ttfbMs).
-    log.info({ ttfbMs, ...stages, sessionId }, `🔊 Gateway TTS TTFB: ${ttfbMs}ms`);
-    if (sessionId) {
-      noteReplyAudio(sessionId);
-      try {
-        const firstAudioAtMs = Date.now();
-        markCallStage(sessionId, 'tts_first_frame', firstAudioAtMs);
-        recordCallEvent({
-          callId: sessionId,
-          timestamp: firstAudioAtMs,
-          type: 'first_response',
-        });
-      } catch {
-        // Non-fatal observability
-      }
-    }
-  };
-  return Object.assign(observe, {
-    stage(stage: 'text' | 'push'): void {
-      const key = stage === 'text' ? 'textMs' : 'pushMs';
-      stages[key] ??= Date.now() - startTime;
-    },
-  });
-}
 
 // ============================================================================
 // TYPES

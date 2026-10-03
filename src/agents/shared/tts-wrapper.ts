@@ -1219,12 +1219,8 @@ export async function wrappedTtsNode(
   return wrapWithTTSCheckpoints(audioStream);
 }
 
-// =============================================================================
-// HELPER FOR EXTRACTING SESSION CONTEXT FROM AGENT
-// =============================================================================
-
 // ============================================================================
-// BETTER THAN HUMAN: Context Helpers
+// BETTER THAN HUMAN: Context Helpers (session context from the agent)
 // ============================================================================
 
 /**
