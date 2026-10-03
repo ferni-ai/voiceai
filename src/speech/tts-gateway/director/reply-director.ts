@@ -22,6 +22,7 @@ import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
 import { DirectorEngine } from './engine.js';
 import { leverModes, speechDirectorMode } from './gate.js';
+import { RawCues } from './raw-cues.js';
 import { directorSessions, type DirectorSessions } from './session-state.js';
 import type { DirectorMode, LeverModes, SpeechPlan } from './types.js';
 
@@ -84,33 +85,6 @@ export interface DirectSpeechOptions {
   onPlan?: (summary: PlanSummary, plan: SpeechPlan) => void;
   /** Defaults to setTimeout; tests inject a manual timer. */
   holdTimer?: HoldTimer;
-}
-
-const AUTHORED_EMOTION = /<emotion\s+value=["']?([a-z_]+)/i;
-const SIGH_CUE = /\[(?:[a-z]+\s+)?sighs?\]|\*sighs?\*|\((?:[a-z]+\s+)?sighs?\)/gi;
-
-/** What the raw LLM text says before the SSML processor strips it. */
-class RawCues {
-  authoredEmotion?: string;
-  /** Time spent scanning the raw stream, counted in the reply's latency. */
-  elapsedNs = 0n;
-  private raw = '';
-  private seenSighs = 0;
-  private placedSighs = 0;
-
-  see(chunk: string): void {
-    const start = process.hrtime.bigint();
-    this.raw += chunk;
-    this.authoredEmotion ??= AUTHORED_EMOTION.exec(this.raw)?.[1]?.toLowerCase();
-    this.seenSighs = this.raw.match(SIGH_CUE)?.length ?? 0;
-    this.elapsedNs += process.hrtime.bigint() - start;
-  }
-
-  takeSighs(): number {
-    const n = this.seenSighs - this.placedSighs;
-    this.placedSighs = this.seenSighs;
-    return n;
-  }
 }
 
 const describeLevers = (modes: LeverModes): string =>
@@ -286,7 +260,7 @@ export function directSpeech(
   const textStream = opts.textStream.pipeThrough(
     new TransformStream<string, string>({
       transform(chunk, controller) {
-        cues.see(chunk);
+        cues.see(chunk); // never throws; see raw-cues.ts
         controller.enqueue(chunk);
       },
     })
