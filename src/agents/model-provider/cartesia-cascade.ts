@@ -20,10 +20,14 @@
  * @module agents/model-provider/cartesia-cascade
  */
 
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import { ThinkingLevel } from '@google/genai';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import * as google from '@livekit/agents-plugin-google';
 import { createLogger } from '../../utils/safe-logger.js';
+import { HedgedLLM } from './hedged-llm.js';
 import type {
   AgentSessionTurnDetection,
   LLMModelConfig,
@@ -42,7 +46,14 @@ export interface CascadeLLMOptions {
   project?: string;
   location: string;
   temperature?: number;
-  thinkingConfig: { thinkingLevel: ThinkingLevel };
+  thinkingConfig: { thinkingLevel: ThinkingLevel } | { thinkingBudget: number };
+}
+
+export interface InkTurnDetection {
+  startThreshold: number;
+  eagerEndThreshold: number;
+  endThreshold: number;
+  endTimeoutMs: number;
 }
 
 export interface CascadeSTTOptions {
@@ -50,6 +61,51 @@ export interface CascadeSTTOptions {
   language: string;
   baseUrl?: string;
   keyterms?: string[];
+  turnDetection?: InkTurnDetection;
+}
+
+/**
+ * ink-2 turn-detection profiles from Cartesia's turns guide. Balanced (the
+ * server default) waits up to 5.6 s to end a turn; Responsive ends turns
+ * sooner and is Cartesia's pick for fast conversational back-and-forth. About
+ * 2.4 s of a ~3.5 s reply delay was ink deciding the caller had finished.
+ */
+export const INK_TURN_PROFILES: Record<'balanced' | 'responsive' | 'patient', InkTurnDetection> = {
+  balanced: { startThreshold: 0.8, eagerEndThreshold: 0.6, endThreshold: 0.3, endTimeoutMs: 5600 },
+  responsive: {
+    startThreshold: 0.7,
+    eagerEndThreshold: 0.6,
+    endThreshold: 0.4,
+    endTimeoutMs: 4500,
+  },
+  patient: { startThreshold: 0.8, eagerEndThreshold: 0.3, endThreshold: 0.1, endTimeoutMs: 8000 },
+};
+
+/**
+ * CASCADE_TURN_PROFILE: responsive (default), balanced or patient.
+ * CASCADE_TURN_EAGER overrides the eager-end threshold alone: LiveKit starts
+ * its preemptive reply on ink-2's eager end, which at 0.6 came only ~170 ms
+ * before the turn ended (dev, 2026-09-30), so it saved little. Ink ends a turn
+ * when its speech probability falls below a threshold, so a HIGHER eager value
+ * fires earlier. It must stay strictly between the end and start thresholds:
+ * ink closes the socket on anything else (1008 "Invalid turn thresholds"),
+ * which left every dev call deaf when 0.35 was tried. Out-of-range values are
+ * ignored.
+ */
+export function inkTurnProfile(env: Env = process.env): InkTurnDetection {
+  const name = (env.CASCADE_TURN_PROFILE || 'responsive').toLowerCase();
+  const profile =
+    INK_TURN_PROFILES[name as keyof typeof INK_TURN_PROFILES] ?? INK_TURN_PROFILES.responsive;
+  if (env.CASCADE_TURN_EAGER === undefined || env.CASCADE_TURN_EAGER === '') return profile;
+  const eager = Number(env.CASCADE_TURN_EAGER);
+  if (eager > profile.endThreshold && eager < profile.startThreshold) {
+    return { ...profile, eagerEndThreshold: eager };
+  }
+  log.warn(
+    { eager: env.CASCADE_TURN_EAGER, end: profile.endThreshold, start: profile.startThreshold },
+    'CASCADE_TURN_EAGER ignored: must be between the end and start thresholds'
+  );
+  return profile;
 }
 
 /** First names of the team: made-up or uncommon names a general model has no prior for. */
@@ -96,10 +152,20 @@ export function buildCascadeLLMOptions(
     project: env.GOOGLE_CLOUD_PROJECT,
     location: env.CASCADE_LLM_LOCATION || 'global',
     temperature,
-    // Gemini 3.x thinks by default and the hidden tokens delay the first word.
-    // The plugin ignores thinkingBudget for Gemini 3; only the level applies.
-    thinkingConfig: { thinkingLevel: cascadeThinkingLevel(model, env) },
+    thinkingConfig: cascadeThinking(model, env),
   };
+}
+
+/**
+ * Gemini thinks by default and the hidden tokens delay the first word. Gemini 3
+ * takes a thinking level (the plugin ignores a budget); 2.5 and earlier take a
+ * budget and the plugin ignores a level, so a level alone left 2.5-flash
+ * thinking dynamically. Budget 0 turns thinking off on 2.x.
+ */
+export function cascadeThinking(model: string, env: Env = process.env): CascadeLLMOptions['thinkingConfig'] {
+  return /^gemini-[12]\./.test(model)
+    ? { thinkingBudget: 0 }
+    : { thinkingLevel: cascadeThinkingLevel(model, env) };
 }
 
 /**
@@ -114,12 +180,40 @@ function cascadeThinkingLevel(model: string, env: Env): ThinkingLevel {
   return /^gemini-3\.8/.test(model) ? ThinkingLevel.LOW : ThinkingLevel.MINIMAL;
 }
 
+/**
+ * Backup model for hedged replies (see hedged-llm.ts), or null when off.
+ * gemini-3-flash-preview kept humour and emotion tags in side-by-side replies
+ * and its first text took p50 1.5 s / p90 1.7 s on 2026-09-28, when the
+ * primary gemini-3.5-flash took p50 7.2 s. CASCADE_LLM_HEDGE_MS=off disables.
+ */
+export function buildCascadeHedge(
+  env: Env = process.env
+): { backup: CascadeLLMOptions; hedgeAfterMs: number } | null {
+  const raw = env.CASCADE_LLM_HEDGE_MS ?? '1300';
+  if (raw === 'off') return null;
+  const hedgeAfterMs = Number(raw);
+  if (!Number.isFinite(hedgeAfterMs) || hedgeAfterMs < 0) return null;
+  const model = env.CASCADE_LLM_BACKUP_MODEL || 'gemini-3-flash-preview';
+  const primary = buildCascadeLLMOptions(env);
+  if (model === primary.model) return null;
+  return {
+    hedgeAfterMs,
+    backup: {
+      ...primary,
+      model,
+      location: env.CASCADE_LLM_BACKUP_LOCATION || primary.location,
+      thinkingConfig: cascadeThinking(model, env),
+    },
+  };
+}
+
 /** STT options for the cascade. ink-2 is Cartesia's English streaming model. */
 export function buildCascadeSTTOptions(env: Env = process.env): CascadeSTTOptions {
   return {
     model: env.CASCADE_STT_MODEL || 'ink-2',
     language: env.CASCADE_STT_LANGUAGE || 'en',
     ...(env.CASCADE_STT_BASE_URL && { baseUrl: env.CASCADE_STT_BASE_URL }),
+    turnDetection: inkTurnProfile(env),
   };
 }
 
@@ -169,14 +263,33 @@ export class CartesiaCascadeProvider implements ModelProvider {
    */
   async createLLMModel(config: LLMModelConfig): Promise<unknown> {
     const opts = buildCascadeLLMOptions(process.env, config.temperature);
-    log.info({ model: opts.model, location: opts.location }, 'Creating cascade Gemini text LLM');
-    return new google.LLM(opts);
+    const hedge = buildCascadeHedge(process.env);
+    log.info(
+      {
+        model: opts.model,
+        location: opts.location,
+        backupModel: hedge?.backup.model ?? null,
+        hedgeAfterMs: hedge?.hedgeAfterMs ?? null,
+      },
+      'Creating cascade Gemini text LLM'
+    );
+    const primary = new google.LLM(opts);
+    if (!hedge) return primary;
+    const backup = new google.LLM({ ...hedge.backup, temperature: config.temperature });
+    return new HedgedLLM(primary, backup, hedge.hedgeAfterMs);
   }
 
   createSTT(keyterms: string[] = []): unknown {
     const opts = { ...buildCascadeSTTOptions(), keyterms };
     log.info(
-      { model: opts.model, language: opts.language, keyterms: keyterms.length },
+      {
+        model: opts.model,
+        language: opts.language,
+        keyterms: keyterms.length,
+        turnDetection: opts.turnDetection,
+        // Keyterms and turn thresholds only reach ink if our plugin patch applied.
+        pluginPatched: cartesiaPluginPatched(),
+      },
       'Creating cascade Cartesia STT'
     );
     return new cartesia.STT(opts);
@@ -209,4 +322,20 @@ export class CartesiaCascadeProvider implements ModelProvider {
  */
 export function createProviderSTT(provider: { id: string }, keyterms: string[] = []): unknown {
   return provider instanceof CartesiaCascadeProvider ? provider.createSTT(keyterms) : undefined;
+}
+
+let pluginPatchedCache: boolean | undefined;
+
+/** True when the installed Cartesia plugin carries our keyterm + turn-threshold patch. */
+export function cartesiaPluginPatched(): boolean {
+  if (pluginPatchedCache !== undefined) return pluginPatchedCache;
+  try {
+    const require = createRequire(import.meta.url);
+    const entry = require.resolve('@livekit/agents-plugin-cartesia');
+    const stt = readFileSync(join(dirname(entry), 'stt.js'), 'utf8');
+    pluginPatchedCache = stt.includes('turn_eager_end_threshold') && stt.includes('keyterm');
+  } catch {
+    pluginPatchedCache = false;
+  }
+  return pluginPatchedCache;
 }

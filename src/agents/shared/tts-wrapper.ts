@@ -33,6 +33,7 @@ import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
 import {
   applyPostTTSEnhancement,
   PostTTSPresets,
+  postTtsEnvOverrides,
   type PostTTSConfig,
 } from './performance/post-tts-transform.js';
 import { wrapWithTTSCheckpoints } from './performance/tts-checkpoints.js';
@@ -1173,6 +1174,7 @@ export async function wrappedTtsNode(
     const enhancementConfig = {
       ...PostTTSPresets.betterThanHuman,
       ...postTTSConfig,
+      ...postTtsEnvOverrides(),
       sessionId,
       personaId,
     };
@@ -1193,12 +1195,8 @@ export async function wrappedTtsNode(
   return wrapWithTTSCheckpoints(audioStream, sessionId, turnNumber, markTurnCheckpoint);
 }
 
-// =============================================================================
-// HELPER FOR EXTRACTING SESSION CONTEXT FROM AGENT
-// =============================================================================
-
 // ============================================================================
-// BETTER THAN HUMAN: Context Helpers
+// BETTER THAN HUMAN: Context Helpers (session context from the agent)
 // ============================================================================
 
 /**

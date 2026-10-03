@@ -21,7 +21,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { stripSpeechMarkupGuidance } from './strip-speech-markup.js';
+import { SELF_VOICED_NOTE, SPARSE_MARKUP_NOTE, adaptSpeechMarkup } from './speech-markup-notes.js';
 import { getModelProvider } from '../model-provider/index.js';
 // Use centralized FTIS mode check - single source of truth
 import { isFTISEnabled } from '../processors/tool-routing-integration.js';
@@ -499,60 +499,48 @@ async function loadAssemblyConfig(bundleDir: string): Promise<AssemblyConfig | n
 // ============================================================================
 
 /**
+ * PROMPT_MODE=character: a short character sheet (identity/character.md) in
+ * place of the ~57k-character assembled prompt, for personas that have one.
+ *
+ * The full prompt is full of example lines the model copies: "Ugh. That
+ * sounds exhausting.", "Wait wait wait. You did WHAT?! That's huge!", "Oh
+ * nice! What draws you to jazz?", and rules that contradict the per-turn
+ * reminder ("First word should be a reaction"). A founder test call came out
+ * hyped and therapist-like (2026-09-29). The character sheet says who Ferni
+ * is and how he talks, with no lines to repeat; per-turn nudges come from the
+ * director (see agents/personas/director-notes).
+ */
+export function promptMode(env: Record<string, string | undefined> = process.env): 'full' | 'character' {
+  return env.PROMPT_MODE === 'character' ? 'character' : 'full';
+}
+
+/**
  * Load and assemble a persona's system prompt from modular files.
  *
  * @param personaId - The persona ID (e.g., 'ferni', 'maya-santos', 'alex')
  * @param mode - 'voice_agent' for lean prompt, 'full_context' for rich prompt
  * @returns The assembled system prompt string
  */
-/** Appended when the model produces its own audio (no markup-aware TTS). */
-const SELF_VOICED_NOTE =
-  'You speak in your own voice. Never write tags, brackets, or stage directions; ' +
-  'express warmth, laughter, and pauses through your words and tone.';
-
-/**
- * Appended when Cartesia Sonic voices the text but should get sparse markup.
- * Sonic paces itself from punctuation and reads emotion from the words; the
- * persona tables of break/speed/volume tags made the LLM stack them (Cartesia
- * warns stacked breaks cause hallucinated audio) and open every reply with the
- * same templated "Ha!".
- */
-const SPARSE_MARKUP_NOTE = `## How long to talk
-
-This is a conversation, not a monologue: take your turn, then hand it back.
-- Most replies are one to three sentences, about 15 to 35 words. Say the one thing that matters most right now.
-- Ask at most one question, and not every time. Sometimes just react, or share something, and let them lead.
-- No paragraph breaks. If there's more to say, say the first part and let them answer.
-- Go longer only when they ask you to explain, plan or tell a story.
-- If you remember something relevant, bring up one detail briefly, the way a friend would. Never run through what you remember.
-
-## How your words become speech
-
-Cartesia Sonic voices your text. It takes its pitch, emphasis and pauses from your words and punctuation, so write the way people talk, not the way they write:
-- Always use contractions: it's, that's, I'm, you're, don't. "It is" and "that is" sound read aloud.
-- Join related thoughts with and, so, but or because instead of a full stop after every few words. Mix a longer sentence with a short one. A string of short sentences comes out as stop, pause, stop, pause.
-- A filler like "uh", "um", "I mean" or "you know" is fine when you'd genuinely pause to think, set off with commas, at most once in a reply.
-- Use "..." only at the very end of your turn, for a thought that trails off. Never inside a sentence: the voice turns it into a long, odd pause. No em-dashes.
-- Before: "Yeah. The ups and downs of it all. It is like one minute you see something that feels like magic, and the next, it is just frustrating."
-  After: "Yeah, the ups and downs, right? One minute it feels like magic, and the next it's just, uh, frustrating."
-- You may begin a reply with ONE emotion tag, like <emotion value="sympathetic"/>, only when the feeling is clear and your words carry it: calm, content, curious, affectionate, sympathetic or contemplative. Most replies need none.
-- Never write pause, speed or volume tags, brackets, asterisks or stage directions.
-- Don't open with a stock reaction ("Ha!", "Oh!", "Hmm.") out of habit, and vary how you begin.`;
-
-/** Fit a prompt's speech-markup guidance to what voices the provider's text. */
-function adaptSpeechMarkup(prompt: string): string {
-  const modules = getModelProvider().getPromptModules();
-  if (modules.includeSpeechMarkup === false || modules.sparseSpeechMarkup) {
-    return stripSpeechMarkupGuidance(prompt);
-  }
-  return prompt;
-}
-
 export async function loadSystemPrompt(
   personaId: string,
   mode: PromptMode = 'voice_agent'
 ): Promise<string> {
+  if (promptMode() === 'character' && mode === 'voice_agent') {
+    const character = await loadCharacterPrompt(personaId);
+    if (character) return adaptSpeechMarkup(character);
+  }
   return adaptSpeechMarkup(await loadSystemPromptForTTS(personaId, mode));
+}
+
+/** identity/character.md plus the persona's tool-usage guidance, or null if it has none. */
+async function loadCharacterPrompt(personaId: string): Promise<string | null> {
+  const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
+  const character = await loadFile(bundleDir, 'identity/character.md');
+  if (!character) return null;
+  const tools = await loadToolUsageGuidance(bundleDir);
+  const prompt = tools ? `${character}\n\n---\n\n${tools}` : character;
+  log.info({ personaId, length: prompt.length }, 'Loaded character prompt (PROMPT_MODE=character)');
+  return prompt;
 }
 
 async function loadSystemPromptForTTS(
@@ -832,8 +820,12 @@ export async function loadModelBaseInstructions(): Promise<string> {
 
     let baseContent: string;
 
-    // Check if provider uses minimal instructions (native function calling)
-    if (promptConfig.useMinimalInstructions) {
+    if (promptMode() === 'character') {
+      // Only what the call mechanics need; see promptMode().
+      baseContent = await fs.readFile(join(sharedDir, 'voice-base-character.md'), 'utf-8');
+      voiceOutputRules = '';
+      log.info({ length: baseContent.length }, 'Loaded character-mode base instructions');
+    } else if (promptConfig.useMinimalInstructions) {
       baseContent = provider.getMinimalInstructions();
       log.info(
         { providerId: provider.id, length: baseContent.length },

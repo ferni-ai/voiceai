@@ -135,7 +135,7 @@ export class SpannerAdapter {
 
   private async doInitialize(): Promise<void> {
     try {
-      const ready = await initializeSpanner();
+      const ready = process.env.SPANNER_ENABLED === 'true' && (await initializeSpanner()); // no instance unless opted in
       this.initialized = true;
 
       if (ready) {

@@ -596,14 +596,10 @@ function buildTransition(
         timing: 'when_natural',
         technique: 'Follow their thread with genuine curiosity - keep it moving',
         phrases: [
-          'Tell me more about that.',
-          'What happened next?',
-          'How does that feel?',
-          "What's the hardest part of that?",
-          "What's weighing on you most?",
+          'Wait, what happened next?',
           'How long has that been going on?',
-          'What do you think is really going on there?',
-          "What's that like for you?",
+          "What's the worst part?",
+          'Okay, and then what?',
         ],
         avoid: [
           'Why do you think that is?', // Can feel interrogative

@@ -19,17 +19,13 @@ import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
 import type { LaughterDetectionResult } from '../../speech/voice-humanization.js';
 
 export type { EnglishAccent, VoicePreference };
-
 export type { MoodState, PersonaMood };
 
 // ============================================================================
 // HANDOFF TOOL TYPES
 // ============================================================================
 
-/**
- * FIX BUG #39: Proper type for handoff tool results
- * This provides type safety instead of `as unknown as` casts
- */
+/** Handoff tool results, typed (FIX BUG #39: replaces `as unknown as` casts). */
 export interface HandoffToolResult {
   /** Instructions for the new persona */
   instructions?: string;
@@ -67,6 +63,8 @@ export interface UserData {
   name?: string;
   userId?: string;
   userName?: string;
+  /** The caller's IANA time zone from the web client (see time-context.ts). */
+  callerTimezone?: string;
   /** Active persona ID (e.g., 'ferni', 'peter-john') - used for TTS persona-specific traits */
   personaId?: string;
 

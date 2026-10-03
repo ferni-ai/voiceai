@@ -40,8 +40,19 @@ describe('gateway chunk boundaries', () => {
     expect(chunks.filter(hasSplitMarkup)).toEqual([]);
   });
 
-  it('still cuts long untagged text at a word boundary', () => {
-    const plain = 'word '.repeat(40);
+  it('keeps an ordinary long sentence whole until it ends', () => {
+    // Cut at 80 characters, sentences like this reached Cartesia in two halves.
+    const partial =
+      'Sometimes it helps to just pick one tiny, almost ridiculously easy thing first to get';
+    expect(partial.length).toBeGreaterThan(80);
+    expect(findChunkEnd(partial, 15)).toBeNull();
+    expect(findChunkEnd(`${partial} some momentum. And`, 15)).toBe(
+      `${partial} some momentum. `.length
+    );
+  });
+
+  it('still cuts runaway unpunctuated text at a word boundary', () => {
+    const plain = 'word '.repeat(60);
     expect(findChunkEnd(plain, 15)).toBeGreaterThan(0);
     expect(plain.slice(0, findChunkEnd(plain, 15)!)).toMatch(/ $/);
   });
@@ -119,5 +130,62 @@ describe('gateway chunk boundaries', () => {
       // Not a regression: the only real cut is the final period, not "etc."
       expect(end).toBe(text.length);
     });
+  });
+});
+
+describe('findFirstChunkEnd', () => {
+  it('starts on the first clause instead of waiting for the sentence', async () => {
+    const { findFirstChunkEnd } = await import('../chunk-boundary.js');
+    const text = "Oh man, that's a rough one, and on a Friday too";
+    const end = findFirstChunkEnd(text, 12)!;
+    expect(text.slice(0, end)).toBe("Oh man, that's a rough one, ");
+  });
+
+  it('takes a short first sentence', async () => {
+    const { findFirstChunkEnd } = await import('../chunk-boundary.js');
+    const text = "Friday? That's, what, two days";
+    expect(text.slice(0, findFirstChunkEnd(text, 12)!)).toBe('Friday? ');
+  });
+
+  it('waits when nothing is long enough yet', async () => {
+    const { findFirstChunkEnd } = await import('../chunk-boundary.js');
+    expect(findFirstChunkEnd('Oh, wow', 12)).toBeNull();
+    expect(findFirstChunkEnd('Oh, I see what you', 12)).toBeNull();
+  });
+
+  it('never cuts inside markup', async () => {
+    const { findFirstChunkEnd } = await import('../chunk-boundary.js');
+    const text = '<emotion value="calm"/>Take a breath, okay? We can sort it';
+    const cut = text.slice(0, findFirstChunkEnd(text, 12)!);
+    expect(cut).toBe('<emotion value="calm"/>Take a breath, ');
+  });
+
+  it('does not cut at a comma inside a number', async () => {
+    const { findFirstChunkEnd } = await import('../chunk-boundary.js');
+    const text = 'That is about 1,200 dollars a month, give or take';
+    expect(text.slice(0, findFirstChunkEnd(text, 12)!)).toBe(
+      'That is about 1,200 dollars a month, '
+    );
+  });
+});
+
+describe('findFirstWordEnd', () => {
+  it('cuts after the last complete word once enough will be spoken', async () => {
+    const { findFirstWordEnd } = await import('../chunk-boundary.js');
+    const text = 'Honestly I think that the keyb';
+    expect(text.slice(0, findFirstWordEnd(text, 12)!)).toBe('Honestly I think that the ');
+  });
+
+  it('waits when too little would be spoken, counting spoken text only', async () => {
+    const { findFirstWordEnd } = await import('../chunk-boundary.js');
+    expect(findFirstWordEnd('Oh no that ', 12)).toBeNull();
+    expect(findFirstWordEnd('<emotion value="sympathetic"/>Oh no that ', 12)).toBeNull();
+  });
+
+  it('never cuts inside markup', async () => {
+    const { findFirstWordEnd } = await import('../chunk-boundary.js');
+    const text = 'Well I guess that <speed ratio="0.9"/';
+    const cut = findFirstWordEnd(text, 12)!;
+    expect(text.slice(0, cut)).toBe('Well I guess that ');
   });
 });

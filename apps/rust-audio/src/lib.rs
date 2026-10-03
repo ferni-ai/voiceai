@@ -51,6 +51,7 @@ mod post_tts_processor;
 mod pre_stt;
 mod sola;
 mod tempo;
+#[cfg(feature = "whisper")]
 mod stt;
 mod yin;
 
@@ -58,6 +59,7 @@ mod yin;
 pub use yin::{estimate_pitch_yin, batch_estimate_pitch_yin, NativeYinResult};
 
 // Re-export Whisper STT (after pre-STT pipeline)
+#[cfg(feature = "whisper")]
 pub use stt::{NativeWhisperStt, WhisperSttConfig, transcribe_whisper};
 
 use napi::bindgen_prelude::*;

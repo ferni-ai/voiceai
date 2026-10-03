@@ -24,10 +24,12 @@ async function cascadePrompts(): Promise<[string, string]> {
 const MID_SENTENCE_ELLIPSIS = /(?:\.\.\.|…)\s*[a-z]/;
 
 describe('ellipsis guidance in the live Ferni prompts (Cartesia cascade)', () => {
-  it('keeps "..." to the end of a turn', async () => {
+  // Stricter than "only at the end of a turn": Cartesia paused ~320 ms on every
+  // "..." in the 2026-10-03 A/B (24/24 renders), so the notes ban them (#171).
+  it('bans "..." outright', async () => {
     const [base] = await cascadePrompts();
-    expect(base).toMatch(/"\.\.\."[^\n]*end of (?:your|a) turn/i);
-    expect(base).toMatch(/never (?:inside|in the middle of) a sentence/i);
+    expect(base).toMatch(/no ellipses/i);
+    expect(base).toMatch(/pauses on every "\.\.\."/i);
   }, 60_000);
 
   it('shows no example of a mid-sentence ellipsis', async () => {

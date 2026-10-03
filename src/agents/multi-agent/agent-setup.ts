@@ -20,8 +20,7 @@ import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-met
 import { voice, type JobContext, llm } from '@livekit/agents';
 import { routeSayThroughModel } from '../shared/native-speech.js';
 import type { Room } from '@livekit/rtc-node';
-import type { PersonaConfig } from '../../personas/types.js';
-import { getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
+import type { PersonaConfig, PersonaId } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { modelConfig } from '../../services/model-config.js';
@@ -70,8 +69,6 @@ import {
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
 // These were previously dynamic imports causing 500ms+ delays
 // ============================================================================
-import * as voiceManagerModule from '../../speech/voice-manager.js';
-import { resolveVoiceId } from '../../tools/handoff/voice-id-resolver.js';
 import { FerniAgent } from '../personas/ferni-agent.js';
 import {
   createTurnContextPusher,
@@ -88,6 +85,7 @@ import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-
 // Tool loading - hoisted for faster initial agent startup
 import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
 import { buildHandoffTools } from '../../tools/handoff/handoff-factory.js';
+import { interruptionOverrides } from './interruption-config.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
   getToolsForAgent,
@@ -108,12 +106,27 @@ import { composeAgentInstructions } from './agent-instructions.js';
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
+import { createFindToolsTool, FIND_TOOLS } from '../../tools/retrieval/find-tools-tool.js';
+import { toolRetrievalMode as retrievalModeNow } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { initializeFrontendPublisher } from '../realtime/index.js';
 import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
+import { createPersonaTTS, createQwen3TTS } from './persona-tts.js';
+import {
+  installLiveCallBehaviors,
+  logBargeInDecisions,
+  startTurnSounds,
+} from './live-call-behaviors.js';
+import {
+  installDirectorNotes,
+  installPaceMatching,
+  installToolRetrieval,
+  recordAssistantTurns,
+} from './turn-observers.js';
+import { timeContext } from '../shared/time-context.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
 // WAVE 2: Voice humanization (micro-interrupt/barge-in recovery) + live backchanneling
@@ -309,18 +322,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // This is injected into model-level instructions so the agent knows
     // the date/time from the VERY FIRST MOMENT (including greeting)
     // =========================================================================
-    const now = new Date();
-    const dateTimeContext = `
----
-
-## Current Date & Time
-
-Today is ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
-The current time is ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}.
-
-Use this awareness naturally - don't announce it unless asked, just BE present in the moment.
-If someone asks what day it is, what time it is, or what the date is, you know the answer.
-`;
+    // The caller's local time and part of day (time-context.ts); never the server's UTC clock.
+    const dateTimeContext = timeContext(new Date(), userData?.callerTimezone);
 
     // Append date/time to model base instructions (session-specific, not cached)
     modelBaseInstructions = baseInstructions + dateTimeContext;
@@ -332,7 +335,7 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     const { userProfile } = services;
     if (userProfile) {
       const userAwareness: string[] = [];
-      const sessionStartTime = now;
+      const sessionStartTime = new Date();
       const displayName = userProfile.preferredName || userProfile.name || userData?.userName;
 
       // User's name
@@ -1122,6 +1125,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
     }
   }
 
+  // Live tool retrieval sends each request only the tools its words point to;
+  // findTools lets the model reach one retrieval ranked too low.
+  if (retrievalModeNow() === 'live') {
+    finalTools = { ...finalTools, [FIND_TOOLS]: createFindToolsTool() } as typeof finalTools;
+  }
+
   // 🚨 CRITICAL WARNING: If tool count is suspiciously low, something is wrong!
   const finalToolNames = Object.keys(finalTools);
   const initialRegisteredToolCount = finalToolNames.length;
@@ -1198,7 +1207,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
     try {
       const vadLoadStart = Date.now();
       const { VAD } = await import('@livekit/agents-plugin-silero');
-      vad = await VAD.load();
+      // 350 ms of silence ends the caller's speech (Silero's default is 550).
+      // The barge-in fast path reads speech length from these state changes;
+      // with 550 ms a 0.45 s "uh-huh" looked like a second of talk-over.
+      vad = await VAD.load({ minSilenceDuration: Number(process.env.VAD_MIN_SILENCE_MS) || 350 });
       log.info(
         {
           personaId: persona.id,
@@ -1246,6 +1258,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
     llm: llmModel,
     tts, // Cartesia TTS for both (OpenAI text-only mode outputs text)
     userData,
+    // Barge-in vs "mm-hmm": see interruption-config.ts. Overrides voiceOptions.
+    turnHandling: { interruption: interruptionOverrides() },
     voiceOptions: {
       allowInterruptions: true,
       // UPDATED Jan 2026: Ultra-tight delays for natural conversation
@@ -1257,6 +1271,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
       preemptiveGeneration: true,
     },
   });
+
+  logBargeInDecisions(session, sessionId);
 
   // Gemini native audio speaks for itself: scripted say() lines must come from
   // the model too, or the call alternates between Gemini's and Cartesia's voice.
@@ -1548,6 +1564,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // Crisis guard in SHADOW + per-turn voice/delivery: same observers as the
     // single-agent path, so the live multi-agent path is not silently skipped.
     const crisisGuardMode = resolveCrisisGuardMode();
+    installLiveCallBehaviors({
+      session,
+      sessionWithEvents,
+      sessionEventHandlers,
+      cleanupFunctions,
+      sessionId,
+      userId,
+    });
+
     const userInputHandler = (event: unknown) => {
       const evt = event as { transcript?: string; isFinal?: boolean };
       process.stderr.write(
@@ -1929,7 +1954,31 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // detection and the prosody/audio processor.
         // =====================================================================
         let liveBackchannel: LiveBackchannelIntegration | null = null;
+        let lastUserFinalTranscript = '';
+        const pace = await installPaceMatching(session, sessionId, cleanupFunctions);
+        const toolRetrieval = await installToolRetrieval({
+          session,
+          sessionId,
+          agent,
+          dynamicToolLoader,
+          cleanupFunctions,
+        });
+        await installDirectorNotes({
+          session,
+          sessionId,
+          userName: userData?.userName,
+          agent,
+          cleanupFunctions,
+        });
         try {
+          const clips = await startTurnSounds({
+            room,
+            session,
+            sessionId,
+            personaId: () => persona.id,
+            lastUserFinalTranscript: () => lastUserFinalTranscript,
+            cleanupFunctions,
+          });
           liveBackchannel = initializeLiveBackchanneling(
             sessionId,
             persona.id,
@@ -1937,9 +1986,20 @@ Reference past context when relevant, but don't force it. Let the conversation f
             () => conversationManager?.isAgentSpeaking() ?? false,
             // A native-audio model would turn a scripted "mm-hmm" into a full
             // reply while the user is still talking.
-            { enabled: !getModelProvider().speaksNatively?.() }
+            { enabled: !getModelProvider().speaksNatively?.(), playClip: clips?.playClip }
           );
           cleanupFunctions.push(() => liveBackchannel?.cleanup());
+          // A user turn ends when the agent takes the floor. Ink finalizes a
+          // transcript segment at every pause, so counting finals as turns
+          // reset the "has been talking a while" clock at each pause, the very
+          // moment a backchannel belongs.
+          const turnEndHandler = (ev: unknown): void => {
+            if ((ev as { newState?: string }).newState === 'speaking') liveBackchannel?.onNewTurn();
+          };
+          session.on(voice.AgentSessionEventTypes.AgentStateChanged, turnEndHandler);
+          cleanupFunctions.push(() => {
+            session.off(voice.AgentSessionEventTypes.AgentStateChanged, turnEndHandler);
+          });
           log.info(
             { personaId: persona.id, sessionId },
             '🎤 Live backchanneling wired on multi-agent path'
@@ -1957,6 +2017,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
             audioProcessorStarted = true;
 
             const audioStream = new AudioStream(track, { sampleRate: 16000, numChannels: 1 });
+            // processAudioStream runs once per session and cancels a second
+            // stream (FerniAgent.sttNode may already be feeding it); the
+            // backchannel detector must keep getting frames either way.
+            let processorOpen = true;
             const processorStream = new ReadableStream<import('@livekit/rtc-node').AudioFrame>({
               async start(controller) {
                 try {
@@ -1965,12 +2029,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
                   >) {
                     if (audioProcessingCancelled) break;
                     liveBackchannel?.processAudioFrame(frame);
-                    controller.enqueue(frame);
+                    if (processorOpen) controller.enqueue(frame);
                   }
-                  controller.close();
+                  if (processorOpen) controller.close();
                 } catch (audioFrameError) {
-                  controller.error(audioFrameError);
+                  if (processorOpen) controller.error(audioFrameError);
                 }
+              },
+              cancel() {
+                processorOpen = false;
               },
             });
 
@@ -2039,9 +2106,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
         const transcriptEventHandler = (event: unknown) => {
           const evt = event as { transcript?: string; isFinal?: boolean };
 
+          if (evt.transcript) toolRetrieval?.onTranscript(evt.transcript, evt.isFinal === true);
+
           // Track turn/emotion state for live backchanneling cooldown + context
+          if (!evt.isFinal && evt.transcript) {
+            liveBackchannel?.updateState({ partialTranscript: evt.transcript });
+          }
           if (evt.isFinal) {
-            liveBackchannel?.onNewTurn();
+            lastUserFinalTranscript = evt.transcript ?? '';
+            pace.onFinalTranscript(evt.transcript ?? '');
             if (userData.lastEmotionAnalysis) {
               liveBackchannel?.updateState({ currentEmotion: userData.lastEmotionAnalysis });
             }
@@ -2088,6 +2161,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
         });
         handlersStatus.transcript = true;
         diag.entry(`🎭 [${persona.id}] Transcript handler wired`);
+
+        // Ferni's side of the conversation (user turns are recorded above).
+        recordAssistantTurns(session, sessionId, persona.id, userData, cleanupFunctions);
 
         // SESSION STATE HANDLERS
         const stateResult = setupSessionStateHandlers({
@@ -2416,129 +2492,6 @@ async function buildHandoffContext(config: AgentSetupConfig): Promise<string | n
   }
 
   return parts.join('\n');
-}
-
-/**
- * Create Qwen3-TTS adapter when USE_QWEN3_OMNI is set.
- * Used by AgentSession for TTS when provider is Qwen3-Omni.
- */
-async function createQwen3TTS(personaId: string) {
-  const { Qwen3TTSAdapter } =
-    await import('../../integrations/qwen3-omni/adapters/livekit-tts-adapter.js');
-  const serverUrl = process.env.QWEN3_TTS_URL || 'http://localhost:8001';
-  return new Qwen3TTSAdapter({
-    serverUrl,
-    personaId,
-    language: 'English',
-  });
-}
-
-/**
- * Create TTS engine with persona's voice.
- * Uses the same PersonaAwareTTS pattern as voice-agent-entry.ts
- *
- * VOICE ID FIX: Use resolveVoiceId for single source of truth
- */
-async function createPersonaTTS(personaId: string) {
-  // voiceManagerModule and resolveVoiceId now hoisted to module level
-  // VOICE ID FIX: Use resolver as single source of truth
-  const voiceIdResult = resolveVoiceId({ personaId }, { logLevel: 'info' });
-  let voiceId: string;
-
-  if (voiceIdResult.success) {
-    voiceId = voiceIdResult.voiceId;
-    log.info(
-      { personaId, voiceId, source: voiceIdResult.source },
-      '🎭 Voice ID resolved via single source of truth'
-    );
-  } else {
-    // Fallback when voice ID resolution fails
-    log.warn({ personaId }, '⚠️ Voice ID resolution failed - using fallback getVoiceId');
-    voiceId = getVoiceId(personaId); // Emergency fallback
-  }
-
-  const voiceName = getPersonaDisplayName(personaId);
-
-  // Log the voice ID we're using - this is critical for debugging
-  log.info({ personaId, voiceId, voiceName }, '🎭 Creating TTS with Cartesia voice');
-
-  // Use PersonaAwareTTS (supports voice switching)
-  const baseTTS = voiceManagerModule.createPersonaAwareTTS(voiceName, {
-    voiceId,
-    accent: 'american',
-    isLocalizedVoice: false,
-  });
-
-  log.info({ personaId, ttsVoiceId: baseTTS.getVoiceId?.() || 'N/A' }, '🎭 TTS created');
-
-  // 🔊 E2E TRACING: Wrap TTS to log all synthesis calls
-  // This shows exactly when and what text is sent to TTS
-  const debugTTS =
-    process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
-
-  if (debugTTS) {
-    // Create a proxy that logs all method calls
-    const ttsProxy = new Proxy(baseTTS, {
-      get(target, prop) {
-        const value = (target as unknown as Record<string | symbol, unknown>)[prop];
-
-        // Wrap synthesize method
-        if (prop === 'synthesize' && typeof value === 'function') {
-          return async function (...args: unknown[]) {
-            const text = String(args[0] || '');
-            const timestamp = new Date().toISOString();
-            process.stderr.write(`\n${'='.repeat(60)}\n`);
-            process.stderr.write(`🔊 [TTS SYNTHESIZE] ${timestamp}\n`);
-            process.stderr.write(
-              `  📝 Text: "${text.slice(0, 200)}${text.length > 200 ? '...' : ''}"\n`
-            );
-            process.stderr.write(`  🎙️ Voice: ${voiceId}\n`);
-            process.stderr.write(`  📏 Length: ${text.length} chars\n`);
-            process.stderr.write(`${'='.repeat(60)}\n`);
-
-            const startTime = Date.now();
-            try {
-              const result = await (value as Function).apply(target, args);
-              process.stderr.write(`  ✅ TTS synthesize completed: ${Date.now() - startTime}ms\n`);
-              return result;
-            } catch (err) {
-              process.stderr.write(`  ❌ TTS synthesize FAILED: ${String(err)}\n`);
-              throw err;
-            }
-          };
-        }
-
-        // Wrap stream method
-        if (prop === 'stream' && typeof value === 'function') {
-          return function (...args: unknown[]) {
-            const timestamp = new Date().toISOString();
-            process.stderr.write(`\n🔊 [TTS STREAM START] ${timestamp}\n`);
-            process.stderr.write(`  🎙️ Voice: ${voiceId}\n`);
-
-            try {
-              const result = (value as Function).apply(target, args);
-              process.stderr.write(`  ✅ TTS stream created\n`);
-              return result;
-            } catch (err) {
-              process.stderr.write(`  ❌ TTS stream FAILED: ${String(err)}\n`);
-              throw err;
-            }
-          };
-        }
-
-        // Return other properties as-is
-        if (typeof value === 'function') {
-          return value.bind(target);
-        }
-        return value;
-      },
-    });
-
-    log.info({ personaId }, '🔊 TTS wrapped with E2E tracing');
-    return ttsProxy;
-  }
-
-  return baseTTS;
 }
 
 /**

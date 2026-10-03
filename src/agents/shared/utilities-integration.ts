@@ -119,7 +119,7 @@ export async function initializeUtilitiesIntegration(
   // 1. Register voice callback handler (for timers, milestones, etc.)
   // Only if feature flag allows AND caller requested it
   if (enableVoiceCallbacks && featureConfig.voiceCallbacks) {
-    registerVoiceCallbackHandler(createVoiceCallbackHandler(session, sessionId));
+    registerVoiceCallbackHandler(userId, createVoiceCallbackHandler(session, sessionId), session);
     log.debug('Voice callback handler registered');
   }
 

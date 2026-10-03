@@ -52,6 +52,7 @@ import { promisify } from 'util';
 import { isDebugEnabled } from '../config/feature-flags.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { swapBackgroundPlayer } from './background-player-swap.js';
+import { checkMusicAvailability } from './music-availability.js';
 // AgentSession is the session object from voice pipeline - using any for compatibility
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AgentSession = any;
@@ -2343,13 +2344,31 @@ export function getMusicPlayer(): CallMusicPlayer {
  * Previously, dispose() was fire-and-forget which could cause issues if
  * getMusicPlayer() was called before dispose completed.
  */
-export async function resetMusicPlayer(): Promise<void> {
+export async function resetMusicPlayer(ownerSessionId?: string): Promise<void> {
+  // A worker process runs its calls one after another, and a call's cleanup
+  // can finish after the next call has set the player up: resetting then
+  // disposed the new call's player, so its music never played (dev evals,
+  // 2026-09-29). With an owner given, only that call's player is disposed.
+  if (musicPlayerInstance && !isMusicPlayerOwnedBy(ownerSessionId)) {
+    log.info(
+      { ownerSessionId, current: musicPlayerInstance.getSessionId() },
+      '🎵 Music player belongs to a newer session - not resetting'
+    );
+    return;
+  }
   if (musicPlayerInstance) {
     log.debug({ hadInstance: true }, '🎵 Resetting music player singleton');
     const instanceToDispose = musicPlayerInstance;
     musicPlayerInstance = null; // Clear first to prevent new calls from using it
     await instanceToDispose.dispose();
   }
+}
+
+/** True when there's no owner to check, or the player was set up for that session. */
+export function isMusicPlayerOwnedBy(sessionId?: string): boolean {
+  if (!sessionId || !musicPlayerInstance) return true;
+  const current = musicPlayerInstance.getSessionId();
+  return !current || current === sessionId;
 }
 
 /**
@@ -2379,65 +2398,5 @@ export async function initializeMusicPlayer(
  * @returns Object with availability status and reason
  */
 export function isMusicAvailable(): { available: boolean; reason: string } {
-  // 🔍 DIAGNOSTIC: Log at the very start to see if this function is being called
-  log.info(
-    {
-      timestamp: new Date().toISOString(),
-      hasSingleton: !!musicPlayerInstance,
-      singletonSessionId: musicPlayerInstance?.getSessionId() || null,
-    },
-    '🎵 [DIAG] isMusicAvailable called - checking music system state'
-  );
-
-  // Check if singleton exists and is initialized
-  if (!musicPlayerInstance) {
-    log.info('🎵 [DIAG] isMusicAvailable: NO singleton instance - music player never created');
-    return {
-      available: false,
-      reason: 'Music player not created - session may not support music playback',
-    };
-  }
-
-  if (!musicPlayerInstance.isInitialized()) {
-    log.info(
-      { sessionId: musicPlayerInstance.getSessionId() },
-      '🎵 [DIAG] isMusicAvailable: singleton exists but NOT initialized'
-    );
-    return {
-      available: false,
-      reason: 'Music player not initialized for this session - audio system not ready',
-    };
-  }
-
-  // Check if LiveKit room is still connected
-  const state = musicPlayerInstance.getState();
-  if (!state.isInitialized) {
-    log.info(
-      { sessionId: musicPlayerInstance.getSessionId(), state },
-      '🎵 [DIAG] isMusicAvailable: player was DISPOSED'
-    );
-    return {
-      available: false,
-      reason: 'Music player was disposed - session may have ended',
-    };
-  }
-
-  // 🐛 FIX: Check if the LiveKit room is still connected BEFORE attempting playback
-  // This prevents the race condition where music search completes but room disconnected
-  if (!musicPlayerInstance.isRoomConnected()) {
-    log.info(
-      { sessionId: musicPlayerInstance.getSessionId() },
-      '🎵 [DIAG] isMusicAvailable: LiveKit room DISCONNECTED'
-    );
-    return {
-      available: false,
-      reason: 'LiveKit room disconnected - reconnect to enable music playback',
-    };
-  }
-
-  log.info(
-    { sessionId: musicPlayerInstance.getSessionId() },
-    '🎵 [DIAG] isMusicAvailable: ALL CHECKS PASSED - music IS available'
-  );
-  return { available: true, reason: 'Music playback available' };
+  return checkMusicAvailability(musicPlayerInstance);
 }

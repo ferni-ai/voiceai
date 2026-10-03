@@ -1143,6 +1143,29 @@ pub fn get_library_info() -> LibraryInfo {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn ssml_tag_positions_are_js_string_indices() {
+        // "Café 😊 " is 9 bytes of UTF-8 before the tag... in JS it is 7 UTF-16 units.
+        let text = "Café 😊 <break time=\"300ms\"/>ok<speed ratio=\"0.9\"/>and <emotion value=\"calm\"/>done";
+        let js: Vec<u16> = text.encode_utf16().collect();
+        let slice = |a: u32, b: u32| String::from_utf16(&js[a as usize..b as usize]).unwrap();
+
+        let breaks = extract_breaks(text.to_string());
+        assert_eq!(breaks.len(), 1);
+        assert_eq!(breaks[0].duration_ms, 300);
+        assert_eq!(slice(breaks[0].start_pos, breaks[0].end_pos), "<break time=\"300ms\"/>");
+
+        let speeds = extract_speeds(text.to_string());
+        assert_eq!(speeds.len(), 1);
+        assert!((speeds[0].speed - 0.9).abs() < 1e-6);
+        assert_eq!(slice(speeds[0].start_pos, speeds[0].end_pos), "<speed ratio=\"0.9\"/>");
+
+        let emotions = extract_emotions(text.to_string());
+        assert_eq!(emotions.len(), 1);
+        assert_eq!(emotions[0].emotion, "calm");
+        assert_eq!(slice(emotions[0].start_pos, emotions[0].end_pos), "<emotion value=\"calm\"/>");
+    }
+
     use super::*;
 
     #[test]
@@ -1629,21 +1652,73 @@ pub fn batch_analyze_ssml(texts: Vec<String>) -> Vec<NativeSsmlAnalysis> {
         .collect()
 }
 
-/// Extract break tags and their durations
+/// Byte offset in `text` → JavaScript string index (UTF-16 code units).
+/// Regex positions are byte offsets; any non-ASCII character before a tag
+/// would make them point to the wrong place in the JS string.
+fn js_index(text: &str, byte_idx: usize) -> u32 {
+    text[..byte_idx].encode_utf16().count() as u32
+}
+
+/// A break tag and where it is in the text (JS string indices).
+#[napi(object)]
+pub struct SsmlBreakTag {
+    pub duration_ms: u32,
+    pub start_pos: u32,
+    pub end_pos: u32,
+}
+
+/// An emotion tag and where it is in the text (JS string indices).
+#[napi(object)]
+pub struct SsmlEmotionTag {
+    pub emotion: String,
+    pub start_pos: u32,
+    pub end_pos: u32,
+}
+
+/// A speed tag and where it is in the text (JS string indices).
+#[napi(object)]
+pub struct SsmlSpeedTag {
+    pub speed: f64,
+    pub start_pos: u32,
+    pub end_pos: u32,
+}
+
+/// Extract break tags with their durations and positions
 #[napi]
-pub fn extract_breaks(text: String) -> Vec<u32> {
+pub fn extract_breaks(text: String) -> Vec<SsmlBreakTag> {
     ssml_processor::extract_breaks(&text)
         .into_iter()
-        .map(|(duration, _, _)| duration)
+        .map(|(duration_ms, start, end)| SsmlBreakTag {
+            duration_ms,
+            start_pos: js_index(&text, start),
+            end_pos: js_index(&text, end),
+        })
         .collect()
 }
 
-/// Extract emotion tags
+/// Extract emotion tags with their positions
 #[napi]
-pub fn extract_emotions(text: String) -> Vec<String> {
+pub fn extract_emotions(text: String) -> Vec<SsmlEmotionTag> {
     ssml_processor::extract_emotions(&text)
         .into_iter()
-        .map(|(emotion, _, _)| emotion)
+        .map(|(emotion, start, end)| SsmlEmotionTag {
+            emotion,
+            start_pos: js_index(&text, start),
+            end_pos: js_index(&text, end),
+        })
+        .collect()
+}
+
+/// Extract speed tags with their ratios and positions
+#[napi]
+pub fn extract_speeds(text: String) -> Vec<SsmlSpeedTag> {
+    ssml_processor::extract_speeds(&text)
+        .into_iter()
+        .map(|(speed, start, end)| SsmlSpeedTag {
+            speed: speed as f64,
+            start_pos: js_index(&text, start),
+            end_pos: js_index(&text, end),
+        })
         .collect()
 }
 
