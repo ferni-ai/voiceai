@@ -194,9 +194,11 @@ describe('mid-sentence ellipses on the live gateway path', () => {
 /**
  * Deliberate change to the default path (stream D item 4): asterisk stage
  * directions used to reach Cartesia verbatim with the Director off, so the
- * voice said "smiles". Before this fix the pushes were exactly
- * BEFORE_FIX_PUSHES; now the directions are dropped on every setting, and
- * nothing else in the reply changes.
+ * voice said "smiles" and "laughs". Before this fix the pushes were exactly
+ * BEFORE_FIX_PUSHES; now a stand-alone direction ("*smiles*", at this push's
+ * own start) is dropped entirely, and a mid-sentence action word ("*laughs*",
+ * preceded by "Okay ") keeps the word, asterisks only (review H1) — it reads
+ * as the sentence's own verb, not an aside. Nothing else in the reply changes.
  */
 describe('asterisk stage directions on the live gateway path', () => {
   const REPLY = ['*smiles* That is great news. ', 'Okay *laughs* so 5*3 is 15, f*** yes.'];
@@ -210,11 +212,13 @@ describe('asterisk stage directions on the live gateway path', () => {
   });
 
   for (const mode of [undefined, 'off', 'shadow', 'live']) {
-    it(`are never spoken (SPEECH_DIRECTOR=${mode ?? 'unset'})`, async () => {
+    it(`a stand-alone direction is never spoken, a mid-sentence one keeps its word (SPEECH_DIRECTOR=${mode ?? 'unset'})`, async () => {
       if (mode) process.env.SPEECH_DIRECTOR = mode;
       const { pushes } = await runGateway(REPLY);
       const all = pushes.join('');
-      expect(all).not.toMatch(/smiles|laughs/);
+      expect(all).not.toMatch(/smiles/); // stand-alone: removed entirely
+      expect(all).toMatch(/\blaughs\b/); // mid-sentence: the word is kept
+      expect(all).not.toMatch(/\*laughs\*/); // but never with its asterisks
       expect(all).toContain('5*3 is 15, f*** yes.');
     });
   }
@@ -223,7 +227,7 @@ describe('asterisk stage directions on the live gateway path', () => {
     delete process.env.SPEECH_DIRECTOR;
     const { pushes } = await runGateway(REPLY);
     expect(pushes).toEqual(
-      BEFORE_FIX_PUSHES.map((p) => p.replace('*smiles* ', '').replace(' *laughs*', ''))
+      BEFORE_FIX_PUSHES.map((p) => p.replace('*smiles* ', '').replace('*laughs*', 'laughs'))
     );
   });
 });

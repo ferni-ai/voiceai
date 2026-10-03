@@ -98,7 +98,10 @@ describe('normalizeForSpeech: markdown and emoji never reach the voice', () => {
     expect(say('*smiles* That is great. *laughs* Okay. *takes a breath* Now.')).toBe(
       'That is great. Okay. Now.'
     );
-    expect(say("that's funny *chuckles* anyway")).toBe("that's funny anyway");
+    // Review H1: "chuckles" is the sentence's own verb here, not a
+    // stand-alone aside, so it keeps the word (asterisks still unwrapped,
+    // same as any other action word on the Director's path).
+    expect(say("that's funny *chuckles* anyway")).toBe("that's funny chuckles anyway");
     expect(say('*a long pause* So.')).toBe('So.');
     // Emphasis keeps its words, wherever it sits.
     expect(say('That was *great*.')).toBe('That was great.');
