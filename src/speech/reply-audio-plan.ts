@@ -186,6 +186,23 @@ function notify(sessionId: string, turn: number, at: number): void {
 }
 
 /**
+ * Update the plan for `turn`: `patch` is merged into a pending plan for the
+ * same turn (a later opening keeps the tempo planned before it), or stands
+ * alone when that plan was already taken or was for another turn. Waiting
+ * stages are woken as by setReplyAudioPlan.
+ */
+export function mergeReplyAudioPlan(
+  sessionId: string | undefined,
+  turn: number | undefined,
+  patch: ReplyAudioPlan
+): void {
+  if (!isPlannableSession(sessionId) || !isTurn(turn)) return;
+  const stored = plans.get(sessionId);
+  const pending = stored && stored.turn === turn && stored.expiresAt > now() ? stored.plan : {};
+  setReplyAudioPlan(sessionId, turn, { ...pending, ...patch });
+}
+
+/**
  * Call `fn` once when a plan for (sessionId, turn) is set. Returns the
  * unsubscribe. A no-op (and a no-op unsubscribe) without a real session id
  * and turn.

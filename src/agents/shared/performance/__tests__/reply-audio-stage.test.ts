@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   clearReplyAudioPlan,
+  mergeReplyAudioPlan,
   replyAudioPlanListenerCount,
   setReplyAudioPlan,
   takeReplyAudioPlan,
@@ -386,6 +387,74 @@ describe('reply-audio-stage', () => {
     void writer.close();
     const rest = await readAll(reader);
     expect(rest).toEqual([input[1], input[2]]);
+    expect(calls).toEqual([]);
+  });
+
+  // ---- One plan update per reply: the director's late long-sentence breath ----
+  it('a breath update that arrives before the first speech frame is rendered', async () => {
+    const calls: string[] = [];
+    const stage = createReplyAudioStage({
+      sessionId: SID,
+      turn: TURN,
+      native: fakeNative(calls),
+      gates: LIVE,
+    });
+    const reader = stage.readable.getReader();
+    const pending = reader.read();
+    setReplyAudioPlan(SID, TURN, { tempo: 1.1 }); // the first plan: tempo, no opening
+    expect(await readWithin(pending, 50)).toBe('timeout');
+    expect(replyAudioPlanListenerCount()).toBe(1); // still waiting for the one update
+    mergeReplyAudioPlan(SID, TURN, { opening: { kind: 'breath', intensity: 0.5 } });
+    const first = await readWithin(pending);
+    expect(first).not.toBe('timeout');
+    expect(isReplyAudioLeadFrame((first as { value: AudioFrame }).value)).toBe(true);
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    const writer = stage.writable.getWriter();
+    const input = toneFrames(20);
+    const writing = Promise.all([...input.map((f) => writer.write(f)), writer.close()]);
+    const rest = await readAll(reader);
+    await writing;
+    const speech = rest.filter((f) => !isReplyAudioLeadFrame(f));
+    // Merged, not replaced: the tempo still applies.
+    expect(calls).toEqual(['render breath 0 0.5 24000', 'stretch 24000 1.1']);
+    expect(samples(speech).length).toBe(20 * 480 - (20 * 480) / 10);
+  });
+
+  it('a breath update after the first speech frame is skipped and delays nothing', async () => {
+    const calls: string[] = [];
+    const stage = createReplyAudioStage({
+      sessionId: SID,
+      turn: TURN,
+      native: fakeNative(calls),
+      gates: LIVE,
+    });
+    const reader = stage.readable.getReader();
+    const writer = stage.writable.getWriter();
+    setReplyAudioPlan(SID, TURN, { tempo: 1 }); // a plan with nothing to do yet
+    await Promise.resolve();
+    const input = toneFrames(3);
+    void writer.write(input[0]);
+    const first = await readWithin(reader.read(), 50);
+    expect((first as { value: AudioFrame }).value).toBe(input[0]); // straight through
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    mergeReplyAudioPlan(SID, TURN, { opening: { kind: 'breath', intensity: 0.5 } });
+    void writer.write(input[1]);
+    void writer.write(input[2]);
+    void writer.close();
+    expect(await readAll(reader)).toEqual([input[1], input[2]]);
+    expect(calls).toEqual([]);
+  });
+
+  it('waits for at most one update: a third plan for the turn is not played', async () => {
+    const calls: string[] = [];
+    createReplyAudioStage({ sessionId: SID, turn: TURN, native: fakeNative(calls), gates: LIVE });
+    setReplyAudioPlan(SID, TURN, { tempo: 1 });
+    await Promise.resolve();
+    mergeReplyAudioPlan(SID, TURN, { tempo: 1.05 });
+    await Promise.resolve();
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    mergeReplyAudioPlan(SID, TURN, { opening: { kind: 'breath', intensity: 0.5 } });
+    await Promise.resolve();
     expect(calls).toEqual([]);
   });
 

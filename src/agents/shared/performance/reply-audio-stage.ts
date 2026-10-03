@@ -16,7 +16,9 @@
  *
  * Late plan: the director decides on the reply's first text, which is
  * usually after TTS start. With no plan at TTS start the stage waits for one
- * (`onReplyAudioPlan`) until the first speech frame. A plan that arrives
+ * (`onReplyAudioPlan`) until the first speech frame; a plan with no opening
+ * may be followed by ONE update (the director's late long-sentence breath,
+ * merged with the tempo), which is handled the same way. A plan that arrives
  * first has its opening enqueued at once (it plays during the rest of the
  * Cartesia wait) and speech queues after it. If the first speech frame
  * arrives first, the stage stops waiting: the opening is skipped (by then the
@@ -303,6 +305,24 @@ class TempoPath {
   }
 }
 
+/** The stretcher for this reply's speech, or null (no tempo, 1, or not mono). */
+function startTempo(
+  native: ReplyAudioNative,
+  ratio: number | undefined,
+  first: AudioFrame,
+  sessionId: string | undefined
+): TempoPath | null {
+  if (ratio === undefined || Math.abs(ratio - 1) <= 1e-3) return null;
+  if (first.channels !== 1) {
+    log.warn({ sessionId, channels: first.channels }, 'Stage 2 tempo needs mono; skipped');
+    return null;
+  }
+  const sr = first.sampleRate;
+  const size = first.samplesPerChannel || Math.round((sr * LEAD_FRAME_MS) / 1000);
+  log.debug({ sessionId, tempo: ratio, sr }, 'Stage 2 tempo engaged');
+  return new TempoPath(native, ratio, sr, size, sessionId);
+}
+
 /** One stream = one reply. */
 export function createReplyAudioStage(
   options: ReplyAudioStageOptions
@@ -326,16 +346,7 @@ export function createReplyAudioStage(
     if (leadRate && first.sampleRate !== leadRate) {
       log.warn({ sessionId, leadRate, speech: first.sampleRate }, 'Stage 2 opening rate mismatch');
     }
-    const ratio = plan?.tempo;
-    if (!gates.tempo || ratio === undefined || Math.abs(ratio - 1) <= 1e-3) return;
-    if (first.channels !== 1) {
-      log.warn({ sessionId, channels: first.channels }, 'Stage 2 tempo needs mono; skipped');
-      return;
-    }
-    const sr = first.sampleRate;
-    const size = first.samplesPerChannel || Math.round((sr * LEAD_FRAME_MS) / 1000);
-    tempo = new TempoPath(native, ratio, sr, size, sessionId);
-    log.debug({ sessionId, tempo: ratio, sr }, 'Stage 2 tempo engaged');
+    if (gates.tempo) tempo = startTempo(native, plan?.tempo, first, sessionId);
   };
 
   let stopWaiting: (() => void) | null = null;
@@ -356,16 +367,22 @@ export function createReplyAudioStage(
   };
 
   // `cancel` (Node 21+) ends the wait on playback stop; else TTL / first frame / end do.
+  /** Wait for the plan; a plan with no opening may get `updates` more (a late breath). */
+  const waitForPlan = (controller: Controller, updates: number): void => {
+    stopWaiting = onReplyAudioPlan(sessionId, turn, () => {
+      stopWaiting = null;
+      if (started) return;
+      plan = { ...plan, ...takeReplyAudioPlan(sessionId, turn) }; // an update keeps the tempo
+      playOpening(controller);
+      if (!plan?.opening && gates.nonverbal && updates > 0) waitForPlan(controller, updates - 1);
+    });
+  };
   const transformer: Transformer<AudioFrame, AudioFrame> & { cancel?: () => void } = {
     start(controller) {
       plan = takeReplyAudioPlan(sessionId, turn);
-      if (plan) return playOpening(controller);
-      stopWaiting = onReplyAudioPlan(sessionId, turn, () => {
-        stopWaiting = null;
-        if (started) return;
-        plan = takeReplyAudioPlan(sessionId, turn);
-        playOpening(controller);
-      });
+      if (!plan) return waitForPlan(controller, 1);
+      playOpening(controller);
+      if (!plan.opening && gates.nonverbal) waitForPlan(controller, 0);
     },
     transform(frame, controller) {
       if (!started) {

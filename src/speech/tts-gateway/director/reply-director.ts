@@ -19,7 +19,7 @@ import { TransformStream, type ReadableStream as NodeReadableStream } from 'node
 
 import { voiceHonorsProsodyTags } from '../../../config/voice-capabilities.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { setReplyAudioPlan } from '../../reply-audio-plan.js';
+import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
 import { DirectorEngine } from './engine.js';
@@ -127,6 +127,9 @@ class DirectedReply implements ReplyStream {
   private done = false;
   private holdHandle: unknown = undefined;
   private planned = false;
+  /** The engine's opening revision the plan last carried (one update per reply). */
+  private plannedRevision = 0;
+  private updated = false;
   private readonly stripProsody: boolean;
 
   constructor(
@@ -165,11 +168,32 @@ class DirectedReply implements ReplyStream {
   private planStage2(): void {
     if (this.planned || this.mode !== 'live' || this.failed || !this.engine.decided) return;
     this.planned = true;
+    this.plannedRevision = this.engine.openingRevision;
     try {
       const plan = this.engine.audioPlan();
       if (plan) setReplyAudioPlan(this.opts.sessionId, this.opts.turnContext?.turnNumber, plan);
     } catch (error) {
       log.warn({ err: String(error), sessionId: this.opts.sessionId }, 'Stage 2 plan failed');
+    }
+  }
+
+  /**
+   * The opening was decided after the plan went out (a long first sentence):
+   * update the plan once, merged with what it already carries (the tempo).
+   * Stage 2 plays it only if it arrives before the first speech frame.
+   */
+  private updateStage2(): void {
+    if (!this.planned || this.updated || this.mode !== 'live' || this.failed) return;
+    if (this.engine.openingRevision === this.plannedRevision) return;
+    this.updated = true;
+    try {
+      const plan = this.engine.audioPlan();
+      if (plan) mergeReplyAudioPlan(this.opts.sessionId, this.opts.turnContext?.turnNumber, plan);
+    } catch (error) {
+      log.warn(
+        { err: String(error), sessionId: this.opts.sessionId },
+        'Stage 2 plan update failed'
+      );
     }
   }
 
@@ -210,6 +234,7 @@ class DirectedReply implements ReplyStream {
       return;
     }
     this.planStage2();
+    this.updateStage2();
     for (const piece of out) this.inner.push(piece);
     // A new hold starts when nothing was held or this push released the last one.
     if (!this.engine.holding) this.stopHoldTimer();

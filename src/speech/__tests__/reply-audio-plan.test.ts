@@ -7,6 +7,7 @@ import {
   clearReplyAudioPlan,
   MAX_LISTENERS_PER_SESSION,
   getStage2Gates,
+  mergeReplyAudioPlan,
   normalizeReplyAudioPlan,
   onReplyAudioPlan,
   replyAudioPlanListenerCount,
@@ -201,5 +202,28 @@ describe('onReplyAudioPlan (a stage waiting for the director)', () => {
     onReplyAudioPlan('w', undefined, () => undefined);
     expect(replyAudioPlanListenerCount()).toBe(0);
     stop();
+  });
+});
+
+describe("mergeReplyAudioPlan (the director's one update per reply)", () => {
+  afterEach(() => clearReplyAudioPlan('m'));
+
+  it('merges into the pending plan for the same turn instead of dropping it', () => {
+    setReplyAudioPlan('m', 4, { tempo: 0.9 });
+    mergeReplyAudioPlan('m', 4, { opening: { kind: 'breath', intensity: 0.5 } });
+    expect(takeReplyAudioPlan('m', 4)).toEqual({
+      tempo: 0.9,
+      opening: { kind: 'breath', intensity: 0.5 },
+    });
+  });
+
+  it('stands alone when the first plan was already taken, or was for another turn', () => {
+    setReplyAudioPlan('m', 4, { tempo: 0.9 });
+    takeReplyAudioPlan('m', 4);
+    mergeReplyAudioPlan('m', 4, { opening: { kind: 'breath', intensity: 0.5 } });
+    expect(takeReplyAudioPlan('m', 4)).toEqual({ opening: { kind: 'breath', intensity: 0.5 } });
+    setReplyAudioPlan('m', 3, { tempo: 0.9 });
+    mergeReplyAudioPlan('m', 4, { opening: { kind: 'breath', intensity: 0.5 } });
+    expect(takeReplyAudioPlan('m', 4)).toEqual({ opening: { kind: 'breath', intensity: 0.5 } });
   });
 });

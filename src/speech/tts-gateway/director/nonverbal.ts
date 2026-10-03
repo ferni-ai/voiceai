@@ -24,6 +24,8 @@ import { readValence } from './emotion.js';
 
 export const LONG_SENTENCE_WORDS = 16;
 export const LONG_USER_TURN_WORDS = 25;
+/** The first sentence is read for a late breath for at most this many characters. */
+export const FIRST_SENTENCE_WATCH_CHARS = 200;
 /** At most one sigh in any 4 consecutive replies, one breath in any 3. */
 export const SIGH_EVERY = 4;
 export const BREATH_EVERY = 3;
@@ -87,6 +89,26 @@ export function decideOpening(input: OpeningInput): OpeningDecision {
     return { opening: { kind: 'breath', intensity: BREATH_INTENSITY }, reason: breathReason };
   }
   return { reason: sighReason || breathReason ? 'cooldown' : 'none' };
+}
+
+/** True once `text` contains the end of its first sentence. */
+export function firstSentenceEnded(text: string): boolean {
+  return /[.!?](?=\s|$)/.test(text);
+}
+
+/**
+ * A breath decided after the opening: the reply's first push is often only a
+ * few words (it goes out at once, review M3), so the first sentence is read
+ * as it streams. A breath once it reaches LONG_SENTENCE_WORDS, within the
+ * breath cooldown; the caller never asks after an opening was decided.
+ */
+export function decideLateBreath(
+  firstSentence: string,
+  carry: NonverbalCarry
+): Opening | undefined {
+  if (firstSentenceWords(firstSentence) < LONG_SENTENCE_WORDS) return undefined;
+  if (!cooled(carry.sinceBreath, BREATH_EVERY)) return undefined;
+  return { kind: 'breath', intensity: BREATH_INTENSITY };
 }
 
 /** The carry-over after this reply: reset what played, count the rest. */

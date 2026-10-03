@@ -14,7 +14,10 @@ import type { SSMLProsodyConfig } from '../types.js';
 import { decideEmotion, readValence, type EmotionDecision, type Valence } from './emotion.js';
 import { decideReplyLaughter, placeLaughter, type LaughPlacement } from './laughter.js';
 import {
+  FIRST_SENTENCE_WATCH_CHARS,
+  decideLateBreath,
   decideOpening,
+  firstSentenceEnded,
   nextNonverbalCarry,
   stripSpokenSigh,
   type NonverbalCarry,
@@ -140,6 +143,10 @@ export class DirectorEngine {
   tempo: number | undefined;
   /** The opening breath/sigh decision (decided unless the nonverbal lever is off). */
   opening: OpeningDecision = { reason: 'none' };
+  /** Bumped when a live opening is decided late (a long first sentence): at most once. */
+  openingRevision = 0;
+  /** The first sentence so far, while it is still being read for a late breath. */
+  private firstSentence: string | undefined;
   /** Where `[laughter]` went (or would go, in shadow), if anywhere. */
   laughter: LaughPlacement | undefined;
   private laughterAsked = false;
@@ -194,6 +201,7 @@ export class DirectorEngine {
 
       const planned = this.planPhrases.accept(normalized.text, first);
       if (first) this.open(planned[0] ?? normalized.text, prosody.speed);
+      this.readFirstSentence(normalized.text, first);
       this.planSegments(planned);
 
       let spokenBody = this.live('normalize') ? normalized.text : body;
@@ -285,6 +293,32 @@ export class DirectorEngine {
     const { sinceSigh, sinceBreath } = this.ctx.carry;
     if (this.ctx.modes.nonverbal === 'off') return { sinceSigh, sinceBreath };
     return nextNonverbalCarry({ sinceSigh, sinceBreath }, this.opening.opening);
+  }
+
+  /**
+   * Read the first sentence as it streams for a late long-sentence breath:
+   * only while no opening is decided, until the sentence ends or
+   * FIRST_SENTENCE_WATCH_CHARS have streamed, and at most once.
+   */
+  private readFirstSentence(text: string, first: boolean): void {
+    if (first) {
+      const watch = this.ctx.modes.nonverbal !== 'off' && !this.opening.opening;
+      const open = !firstSentenceEnded(text) && text.length < FIRST_SENTENCE_WATCH_CHARS;
+      this.firstSentence = watch && open ? text : undefined;
+      return;
+    }
+    if (this.firstSentence === undefined) return;
+    const soFar = `${this.firstSentence} ${text}`.trim();
+    const breath = decideLateBreath(soFar, this.ctx.carry);
+    if (breath) {
+      this.opening = { opening: breath, reason: 'long-sentence' };
+      if (this.live('nonverbal')) this.openingRevision++; // shadow only logs it
+    }
+    const done =
+      breath !== undefined ||
+      firstSentenceEnded(soFar) ||
+      soFar.length >= FIRST_SENTENCE_WATCH_CHARS;
+    this.firstSentence = done ? undefined : soFar;
   }
 
   /** One emotion and one speed for the whole reply, from its opening phrase. */
