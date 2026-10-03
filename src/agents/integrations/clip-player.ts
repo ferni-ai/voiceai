@@ -76,9 +76,24 @@ export class ClipPlayer {
     this.current?.stop();
   }
 
+  /**
+   * Never rejects: it runs from session cleanup, where a rejection reached the
+   * global unhandled-rejection handler. At hang-up the room often goes first:
+   * a disconnected room aborts the track unpublish ("This operation was
+   * aborted") or has already dropped the track ("track not found").
+   */
   async close(): Promise<void> {
     this.started = false;
-    await this.player.close();
+    try {
+      await this.player.close();
+    } catch (error) {
+      const roomGone =
+        (error as { name?: string })?.name === 'AbortError' ||
+        String(error).includes('track not found');
+      if (roomGone)
+        log.debug({ error: String(error) }, 'clip player closed after the room went away');
+      else log.warn({ error: String(error) }, 'clip player close failed');
+    }
   }
 }
 

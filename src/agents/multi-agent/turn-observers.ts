@@ -152,13 +152,19 @@ export interface DirectorNotesInput {
   cleanupFunctions: Cleanup;
 }
 
-/** The director (DIRECTOR_NOTES=on): after each reply, notes that nudge the next one. */
+/**
+ * The director: after each reply, the record of what Ferni has already told on
+ * the call (unless TOLD_THIS_CALL=off) and, with DIRECTOR_NOTES=on, a model's
+ * notes that nudge the next reply.
+ */
 export async function installDirectorNotes(input: DirectorNotesInput): Promise<void> {
   const { session, sessionId, userName, agent, cleanupFunctions } = input;
   const { directorNotesEnabled, Director, setDirector, linesFromChat } =
     await import('../personas/director-notes.js');
-  if (!directorNotesEnabled()) return;
-  const director = new Director({ sessionId, userName });
+  const { toldThisCallEnabled } = await import('../personas/told-this-call.js');
+  const writeNotes = directorNotesEnabled();
+  if (!writeNotes && !toldThisCallEnabled()) return;
+  const director = new Director({ sessionId, userName, writeNotes });
   setDirector(session, director);
   let spoke = false;
   const directorHandler = (ev: unknown): void => {
@@ -173,7 +179,7 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
     session.off(voice.AgentSessionEventTypes.AgentStateChanged, directorHandler);
     setDirector(session, null);
   });
-  log.info({ sessionId }, 'director notes on');
+  log.info({ sessionId, writeNotes, toldThisCall: toldThisCallEnabled() }, 'director notes on');
 }
 
 /** Record Ferni's side of the conversation to the thread (user turns are recorded elsewhere). */

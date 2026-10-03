@@ -10,14 +10,7 @@
  * - Cross-session resonance learning
  * - Dynamic expression composition
  *
- * Each persona has unique building blocks (passions, opinions, quirks, vulnerabilities)
- * that make their expressions authentic to their character.
- *
- * Responsibilities:
- * - Cross-turn personality state tracking
- * - Unified "Better Than Human" personality for ALL personas
- * - Personality injection building
- *
+ * Each persona has unique building blocks (passions, opinions, quirks, vulnerabilities).
  * @module voice-agent/turn-personality
  */
 
@@ -38,6 +31,7 @@ import {
   type SharedPersonalityTurnResult,
 } from '../../personas/shared/shared-personality-integration.js';
 import { hasPersonaBuildingBlocks } from '../../personas/shared/persona-building-blocks.js';
+import { scriptedPersonalityEnabled } from '../../personas/shared/scripted-personality-gate.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { ThemeCategory } from '../../services/session-variety-tracker.js';
 
@@ -347,26 +341,28 @@ export async function processFerniPersonality(
       // Previous expression for resonance learning
       previousExpression: getPreviousExpression(ctx.sessionId),
     });
+    // Only reached with PERSONALITY_EXPRESSIONS=on (see processPersonality).
+    const delivered = personalityResult;
 
     // Build injection content
     let injectionContent: string | null = null;
-    if (personalityResult.shouldInject) {
-      injectionContent = buildPersonalityInjection(personalityResult);
+    if (delivered.shouldInject) {
+      injectionContent = buildPersonalityInjection(delivered);
       if (injectionContent) {
         diag.info('🎭 Better Than Human personality injection', {
-          hasNoticing: !!personalityResult.noticing,
-          hasExpression: !!personalityResult.expression,
-          noticingType: personalityResult.noticing?.type,
-          expressionTheme: personalityResult.expression?.theme,
+          hasNoticing: !!delivered.noticing,
+          hasExpression: !!delivered.expression,
+          noticingType: delivered.noticing?.type,
+          expressionTheme: delivered.expression?.theme,
         });
       }
     }
 
-    // Store expression for next turn's resonance learning
-    if (personalityResult.expression) {
+    // Store the delivered expression for next turn's resonance learning
+    if (delivered.expression) {
       storePreviousExpression(ctx.sessionId, {
-        theme: personalityResult.expression.theme,
-        content: personalityResult.expression.content,
+        theme: delivered.expression.theme,
+        content: delivered.expression.content,
       });
     }
 
@@ -639,10 +635,14 @@ async function processBetterThanHumanPersonality(
  * 1. Ferni → processFerniPersonality (full Ferni stack)
  * 2. Personas with building blocks → processBetterThanHumanPersonality (shared system)
  * 3. Personas without building blocks → legacy shared personality
+ * Off unless PERSONALITY_EXPRESSIONS=on (see scripted-personality-gate.ts).
  */
 export async function processPersonality(
   ctx: PersonalityContext
 ): Promise<PersonalityProcessingResult> {
+  if (!scriptedPersonalityEnabled()) {
+    return { shouldInject: false, injectionContent: undefined, personalityResult: null };
+  }
   if (ctx.personaId === 'ferni') {
     return processFerniPersonality(ctx);
   }

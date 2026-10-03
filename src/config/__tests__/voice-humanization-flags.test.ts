@@ -51,6 +51,17 @@ describe('Voice Humanization Flags', () => {
     it('should have verbose logging disabled by default', () => {
       expect(DEFAULT_FLAGS.enableVerboseLogging).toBe(false);
     });
+
+    // Dev call 2026-10-03: the LLM "backchannel" re-answered the caller's
+    // previous turn over them, 4 s into their speech.
+    it('should not generate LLM backchannels unless asked to', () => {
+      initializeFlags();
+      expect(getSessionFlags('any-session').enableLLMBackchannels).toBe(false);
+      resetFlags();
+      vi.stubEnv('VOICE_HUMANIZATION_ENABLE_L_L_M_BACKCHANNELS', 'true');
+      initializeFlags();
+      expect(getSessionFlags('any-session').enableLLMBackchannels).toBe(true);
+    });
   });
 
   describe('STAGING_FLAGS', () => {

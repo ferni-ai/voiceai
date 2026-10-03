@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { softenAfterInterrupt } from './barge-in-judge.js';
 import { addCushioning, endRecovery, getInterruptState } from './index.js';
 
 const log = createLogger({ module: 'InterruptSpeechWrapper' });
@@ -261,7 +262,9 @@ export function wrapSpeechWithInterruptAwareness(
   text: string,
   context: InterruptContext
 ): WrappedSpeech {
-  const { wasInterrupted, interruptType, personaId, sessionId } = context;
+  const { interruptType, personaId, sessionId } = context;
+  // Only after a real barge-in, not any overlap (barge-in-judge.ts).
+  const wasInterrupted = softenAfterInterrupt(sessionId, context.wasInterrupted);
 
   let result = text;
   let recoveryApplied = false;
@@ -343,7 +346,8 @@ export function createInterruptAwareTransform(
   let isFirstChunk = true;
   let buffer = '';
 
-  const { wasInterrupted, interruptType, personaId, sessionId } = context;
+  const { interruptType, personaId, sessionId } = context;
+  const wasInterrupted = softenAfterInterrupt(sessionId, context.wasInterrupted);
   // The recovery opening slows and quiets the first sentence only. TTS keeps
   // inline tags until they change, so end the soft start explicitly.
   let softStartOpen = Boolean(wasInterrupted);
