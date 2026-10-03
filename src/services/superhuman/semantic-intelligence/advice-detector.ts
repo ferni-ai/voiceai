@@ -181,7 +181,7 @@ function extractAdviceSentence(text: string, matchIndex: number): string {
 /**
  * Analyze agent response for advice and record it if found.
  *
- * Call this from response-processor.ts after the response is finalized.
+ * Runs from SessionStateManager.setLastAgentResponse once the reply is final.
  *
  * @param responseText - The final response text
  * @param context - Context about the conversation

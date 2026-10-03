@@ -39,17 +39,19 @@ jobs:
   # ============================================================================
   # SETUP - Shared dependency installation and caching
   # ============================================================================
-  # runs-on: was [self-hosted, Linux, X64, gce] on all 13 jobs, but the repo has
-  # ZERO registered self-hosted runners (gh api .../actions/runners -> total_count 0).
-  # A job waiting for a runner is not covered by timeout-minutes (that starts when the
-  # job STARTS), so each run sat in GitHub's 24h queue timeout and was cancelled — the
-  # last three runs are all `cancelled` at 24h0m0s, going back to 2026-07-19. The
-  # pipeline produced no verdict at all, which reads the same as green.
-  # Moved to GitHub-hosted. deploy-gce.yml keeps self-hosted deliberately: it deploys
-  # TO gce, so running there is the point.
+  # runs-on comes from the CI_RUNNER repo variable (a JSON label list), falling back
+  # to ubuntu-latest when it is unset (the default). Setting it to
+  # ["self-hosted","Linux","X64","gce"] moves CI to the github-runner VM, an
+  # emergency fallback for when hosted runners are unavailable. If that VM is
+  # stopped, UNSET the variable: a job waiting
+  # for a runner is not covered by timeout-minutes, so with no runner online every
+  # run sits in GitHub's 24h queue and is cancelled with no verdict (2026-07).
+  # Deploys never run on it: deploy-gce.yml is GitHub-hosted, because PR code on
+  # that VM has docker (root) access and must not share a host with deploy
+  # credentials. The VM's identity is github-runner-ci (log/metric write only).
   setup:
     name: Setup & Cache Dependencies
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     outputs:
       cache-key: ${{ steps.cache-key.outputs.key }}
@@ -88,7 +90,7 @@ jobs:
   # ============================================================================
   lint:
     name: Lint & Type Check
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -134,7 +136,7 @@ jobs:
   # ============================================================================
   test-unit:
     name: Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     # 20 -> 35: the first run compiles the rust-perf binding from scratch on top of
     # an ~8 min test run. Cached cargo brings later runs back near the old budget.
     timeout-minutes: 35
@@ -230,10 +232,17 @@ jobs:
   # INTEGRATION TESTS (Slower - ~2-5 minutes)
   # ============================================================================
   test-integration:
-    name: Integration Tests
-    runs-on: ubuntu-latest
+    name: Integration Tests (${{ matrix.shard }}/3)
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
+    # Since the repo went private (2026-09-27) its runners are smaller: the
+    # suite ran at ~1 worker and passed 30 minutes, where it took ~11 before.
+    # Three shards in parallel cost about the same minutes and finish sooner.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -258,11 +267,37 @@ jobs:
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
+      # memory-persistence loads the native vector accelerator (loadRustPerf
+      # throws without it); see the same steps in Unit Tests for why.
+      - name: Setup Rust (for the @ferni/perf native binding)
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable @ 2026-09-25
+
+      - name: Cache cargo + native targets
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            apps/rust-perf/target/
+            apps/rust-audio/target/
+          key: ${{ runner.os }}-native-${{ hashFiles('apps/rust-perf/Cargo.lock', 'apps/rust-audio/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-native-
+
+      - name: Build @ferni/perf native binding
+        working-directory: apps/rust-perf
+        run: |
+          pnpm install
+          pnpm exec napi build --platform
+
       - name: Run integration tests
-        run: pnpm test:integration -- --reporter=verbose
+        # No `--`: pnpm would pass it through and vitest ignores every flag after it.
+        run: pnpm test:integration --shard=${{ matrix.shard }}/3 --reporter=verbose
         env:
           NODE_ENV: test
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          # No GOOGLE_API_KEY: the secret is invalid ("API key not valid"), so the
+          # LLM-backed tests failed their calls instead of taking their no-key skip.
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
@@ -288,7 +323,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
-          flags: integration
+          flags: integration-${{ matrix.shard }}
           fail_ci_if_error: false
 
   # ============================================================================
@@ -296,7 +331,7 @@ jobs:
   # ============================================================================
   test-agi-features:
     name: AGI Feature Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
     steps:
@@ -340,7 +375,7 @@ jobs:
   # ============================================================================
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: [setup, lint, test-unit, test-integration, test-agi-features]
     steps:
@@ -392,7 +427,7 @@ jobs:
   # ============================================================================
   security:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -451,7 +486,7 @@ jobs:
   # ============================================================================
   code-quality:
     name: Code Quality Metrics
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -489,7 +524,7 @@ jobs:
   # ============================================================================
   quality-gates:
     name: Quality Gates (Blocking)
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -527,7 +562,7 @@ jobs:
   # ============================================================================
   validation:
     name: Validation Checks
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -567,7 +602,7 @@ jobs:
   # ============================================================================
   e2e-validation:
     name: E2E Validation
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
     steps:
@@ -633,7 +668,7 @@ jobs:
   # ============================================================================
   frontend-quality:
     name: Frontend Quality
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
     steps:
@@ -697,7 +732,7 @@ jobs:
   # ============================================================================
   dependencies:
     name: Dependency Check
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 10
     needs: setup
     steps:

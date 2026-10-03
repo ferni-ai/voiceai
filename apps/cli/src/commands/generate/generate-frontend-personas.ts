@@ -19,6 +19,8 @@
  * duplicate hardcoded persona definitions.
  */
 
+import { pathToFileURL } from 'url';
+import { findProjectRoot } from '../../utils/project-root.js';
 import { readdir, readFile, writeFile, stat } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -26,7 +28,7 @@ import { fileURLToPath } from 'url';
 // Get script directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const projectRoot = join(__dirname, '..');
+const projectRoot = findProjectRoot();
 
 // Types matching the persona manifest schema
 interface PersonaManifest {
@@ -111,7 +113,7 @@ interface FrontendPersona {
   };
 }
 
-interface GeneratedConfig {
+export interface GeneratedConfig {
   _generated: {
     timestamp: string;
     source: string;
@@ -335,21 +337,24 @@ async function manifestToFrontendPersona(
   // Derive transition config
   const transitionStyle = deriveTransitionStyle(manifest);
   
+  // Some bundles (john-bogle, peter-lynch) have a tagline but no description.
+  const description = manifest.identity.description ?? manifest.identity.tagline ?? '';
+
   return {
     id: manifest.identity.id,
     name: manifest.identity.display_name || manifest.identity.name,
     initials: manifest.identity.initials || generateInitials(manifest.identity.name),
     subtitle: manifest.team?.role_description?.split(' - ')[0] || roleSubtitles[roleId] || 'Team Member',
     role: isCoordinator ? 'coach' : 'team',
-    description: manifest.identity.description,
-    helperText: manifest.team?.role_description?.split(' - ')[0] || manifest.identity.description.split('.')[0],
+    description,
+    helperText: manifest.team?.role_description?.split(' - ')[0] || description.split('.')[0],
     skills: roleSkills[roleId] || [{ icon: '', name: 'Support' }],
     entrancePhrase: entrancePhrase || 
       (manifest.team?.handoff_phrases?.receive?.[0]) ||
       (manifest.handoff?.entrance_phrases?.[0]) ||
       `${manifest.identity.name} here. How can I help?`,
     quotes: bundleQuotes.length > 0 ? bundleQuotes : [
-      `"${manifest.identity.description.split('.')[0]}."`,
+      `"${description.split('.')[0]}."`,
     ],
     traits: manifest.personality?.traits || [],
     domains: manifest.role?.domains || [],
@@ -367,6 +372,15 @@ async function manifestToFrontendPersona(
 /**
  * Discover and load all bundle manifests
  */
+/** The team the web app shows (persona.manifest.json team.membership). */
+const WEB_TEAM = 'ferni-team';
+
+/** On Ferni's team (or no team named, the old default). */
+export function isWebTeamMember(manifest: { team?: unknown }): boolean {
+  const membership = (manifest.team as { membership?: string } | undefined)?.membership;
+  return !membership || membership === WEB_TEAM;
+}
+
 async function loadAllBundles(): Promise<Map<string, { manifest: PersonaManifest; path: string }>> {
   const bundlesDir = join(projectRoot, 'src', 'personas', 'bundles');
   const bundles = new Map<string, { manifest: PersonaManifest; path: string }>();
@@ -383,6 +397,13 @@ async function loadAllBundles(): Promise<Map<string, { manifest: PersonaManifest
       await stat(manifestPath);
       const content = await readFile(manifestPath, 'utf-8');
       const manifest = JSON.parse(content) as PersonaManifest;
+      // The web app shows Ferni's team only. Other teams (financial-legends:
+      // john-bogle, peter-lynch, joel-dickson) are separate products; without
+      // this they were added to the web roster.
+      if (!isWebTeamMember(manifest)) {
+        console.log(`⏭️  Skipped: ${entry.name} (another team)`);
+        continue;
+      }
       bundles.set(entry.name, { manifest, path: bundlePath });
       console.log(`✅ Loaded: ${entry.name}`);
     } catch (err) {
@@ -430,7 +451,8 @@ async function generateFrontendConfig(): Promise<void> {
   
   // Write to frontend
   const outputPath = join(projectRoot, 'apps/web', 'src', 'config', 'personas.generated.json');
-  await writeFile(outputPath, JSON.stringify(config, null, 2), 'utf-8');
+  const previous = await readFile(outputPath, 'utf-8').catch(() => null);
+  await writeFile(outputPath, JSON.stringify(keepTimestampIfUnchanged(config, previous), null, 2), 'utf-8');
   
   console.log(`\n✨ Generated: ${outputPath}`);
   console.log(`   Personas: ${Object.keys(personas).length}`);
@@ -438,9 +460,26 @@ async function generateFrontendConfig(): Promise<void> {
   console.log(`   Team order: ${teamOrder.join(', ')}`);
 }
 
-// Run
-generateFrontendConfig().catch((err) => {
-  console.error('❌ Generation failed:', err);
-  process.exit(1);
-});
+/**
+ * The config with the previous file's timestamp when nothing else changed, so a
+ * build doesn't rewrite a tracked file just to restamp it.
+ */
+export function keepTimestampIfUnchanged(next: GeneratedConfig, previousJson: string | null): GeneratedConfig {
+  try {
+    const previous = JSON.parse(previousJson ?? '') as GeneratedConfig;
+    const body = (c: GeneratedConfig): string => JSON.stringify({ ...c, _generated: { ...c._generated, timestamp: '' } });
+    if (body(previous) === body(next)) return { ...next, _generated: { ...next._generated, timestamp: previous._generated.timestamp } };
+  } catch {
+    // no previous file, or not JSON: write the new one
+  }
+  return next;
+}
+
+// Run only from the command line, so the team filter can be tested.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  generateFrontendConfig().catch((err) => {
+    console.error('❌ Generation failed:', err);
+    process.exit(1);
+  });
+}
 

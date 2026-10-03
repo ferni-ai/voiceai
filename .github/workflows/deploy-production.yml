@@ -58,6 +58,15 @@ on:
         type: number
         default: 100
 
+# One deploy at a time. Merges minutes apart each start a deploy, and without
+# a group they ran in parallel, so whichever finished last decided what served
+# production, even an older commit (2026-10-02: four at once). A queued run
+# waits; GitHub keeps only the newest pending one, so main's head wins.
+# cancel-in-progress stays off so a rollout is never cut off midway.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
@@ -380,21 +389,19 @@ jobs:
       # GCE instance: voiceai-agent-gce (34.134.186.63)
       #
       # DO NOT re-add `gcloud run deploy voiceai-agent` here.
-      - name: ⛔ Skip Cloud Run deploy (voice agent runs on GCE only)
+      - name: ⛔ Skip Cloud Run deploy (the voice agent runs on LiveKit Cloud)
         id: skip
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "⛔ SKIPPING Cloud Run deployment for voice agent"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-          echo "Voice agent runs on GCE (voiceai-agent-gce), NOT Cloud Run."
-          echo "Cloud Run cannot handle WebRTC/UDP and would create a zombie"
-          echo "LiveKit worker that steals jobs from the GCE agent."
-          echo ""
-          echo "Deploy voice agent with: ferni deploy gce"
+          echo "The voice agent runs on LiveKit Cloud agents (livekit.prod-cloud.toml),"
+          echo "NOT Cloud Run: Cloud Run can't handle WebRTC/UDP and a worker there"
+          echo "would steal jobs from the real agent. Deploy it with lk agent deploy."
           echo ""
           echo "revision=skipped" >> $GITHUB_OUTPUT
-          echo "url=http://34.134.186.63:8080" >> $GITHUB_OUTPUT
+          echo "url=" >> $GITHUB_OUTPUT
 
   # ============================================================================
   # STAGE 4B: DEPLOY UI SERVER (Blue-Green)

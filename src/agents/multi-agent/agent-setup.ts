@@ -1937,14 +1937,11 @@ Reference past context when relevant, but don't force it. Let the conversation f
           lastUserMessage: undefined as string | undefined,
         };
 
-        // This session's own tool loader: a shared one built tools bound to
-        // whichever caller initialized it last (see createSessionToolLoader).
+        // This session's own tool loader (a shared one bound tools to the last
+        // caller), loaded with essential domains before the first user message.
         const dynamicToolLoader = createSessionToolLoader({ enableAutoUnload: false });
         cleanupFunctions.push(() => dynamicToolLoader.shutdown());
-        // Initialize dynamic loader with essential domains (telephony, communication, etc.)
-        // This MUST happen before first user message to prevent race conditions
-        // NOTE: Pass undefined for services to use EnvironmentServiceRegistry (checks env vars)
-        // SessionServices is NOT a ServiceRegistry and doesn't have .has() method
+        // services: undefined → EnvironmentServiceRegistry (SessionServices has no .has()).
         await dynamicToolLoader.initialize({
           userId: userId || 'anonymous',
           agentId: persona.id,

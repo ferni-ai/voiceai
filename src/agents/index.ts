@@ -138,24 +138,9 @@ export * from './handlers/index.js';
 export {
   detectCrisis,
   guardPreResponse,
-  guardPostResponse,
-  buildCrisisGuardContext,
-  applyGuardResult,
   type CrisisGuardResult,
-  type CrisisGuardContext,
   type CrisisDetectionResult,
 } from './safety/crisis-guard.js';
-
-// ============================================================================
-// TRUST (trust enforcement layer)
-// ============================================================================
-
-export {
-  enforceTrustContext,
-  buildRegenerationPrompt,
-  type TrustEnforcementResult,
-  type EnforcementContext,
-} from './trust/trust-enforcer.js';
 
 // ============================================================================
 // PERFORMANCE OPTIMIZATIONS

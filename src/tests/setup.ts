@@ -5,6 +5,13 @@ import { initializeLogger } from '@livekit/agents';
 // Load test environment variables
 dotenv.config({ path: '.env.test' });
 
+// Never look for a Google metadata server. Modules that load the real
+// firebase-admin (anything not mocked below) otherwise probe for one when
+// they find no credentials. On GitHub's runners that probe stalled the
+// integration job until its 30-minute timeout (2026-10-01); locally it fails
+// fast, so the suite looked fine here.
+process.env.METADATA_SERVER_DETECTION = 'none';
+
 // ============================================================================
 // GLOBAL FIRESTORE MOCKS
 // ============================================================================

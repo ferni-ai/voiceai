@@ -42,7 +42,6 @@ import {
 // import { cleanupConversationSession } from '../integrations/conversation-session-integration.js';
 // FIX AUDIT: Import from service layer instead of API routes (clean architecture)
 import { unregisterSessionTTS } from '../../services/session/index.js';
-import { cleanupDynamicSpeed } from '../integrations/dynamic-speed-integration.js';
 import {
   finalizeSpeechMetrics,
   logMetricsSummary,
@@ -1164,7 +1163,6 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       logMetricsSummary(sessionId);
       logGcPressureSummary(); // GC pressure baseline for Rust migration
       finalizeSpeechMetrics(sessionId, true);
-      cleanupDynamicSpeed(sessionId);
     })(),
 
     // World awareness

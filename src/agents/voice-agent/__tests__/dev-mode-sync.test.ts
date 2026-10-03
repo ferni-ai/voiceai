@@ -4,7 +4,7 @@ import {
   clientDevModeAllowed,
   handleDevModeSync,
   isDevModeBypassEnabled,
-} from '../data-channel-handler.js';
+} from '../dev-mode-sync.js';
 import type { SessionServices } from '../../../services/index.js';
 
 /** What any caller can send from the browser console with publishData. */

@@ -16,8 +16,8 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import {
+  clearAdvancedHumanization,
   getAdvancedHumanization,
-  resetAdvancedHumanization,
   type AdvancedHumanizationContext,
   type AdvancedHumanizationResult,
   type SessionStartResult,
@@ -182,7 +182,7 @@ export function cleanupAdvancedHumanization(sessionId: string): void {
   const state = sessions.get(sessionId);
   if (!state) return;
 
-  resetAdvancedHumanization(sessionId, state.config.userId);
+  clearAdvancedHumanization(sessionId, state.config.userId); // reset + drop: the worker is long-lived
   sessions.delete(sessionId);
 
   logger.info({ sessionId }, '🧹 Advanced humanization cleaned up');
