@@ -81,7 +81,7 @@ const GOLDEN = [
   "[laughter] We'll figure it out. ",
 ];
 
-async function runGateway(): Promise<RecordingReply> {
+async function runGateway(pieces: readonly string[] = PIECES): Promise<RecordingReply> {
   const { createGatewayTTSNode } = await import('../../gateway-tts-node.js');
   const node = createGatewayTTSNode({
     voiceId: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
@@ -91,7 +91,7 @@ async function runGateway(): Promise<RecordingReply> {
   });
   const text = new ReadableStream<string>({
     start(c) {
-      for (const p of PIECES) c.enqueue(p);
+      for (const p of pieces) c.enqueue(p);
       c.close();
     },
   });
@@ -145,5 +145,44 @@ describe('SPEECH_DIRECTOR on the live gateway path', () => {
     expect(all).toContain('three thirty PM');
     expect(pushes.some((p) => p.trim().endsWith('a lot of'))).toBe(false);
     expect(pushes[0]).toContain('<emotion value="sympathetic"/>');
+  });
+});
+
+/**
+ * The measured cause of mid-sentence breaks on dev (2026-10-03): the LLM's
+ * mid-sentence "...", which Cartesia voices as a 230-790 ms pause. These are
+ * the exact phrases from the measured calls.
+ */
+describe('mid-sentence ellipses on the live gateway path', () => {
+  const ELLIPSIS_REPLY = [
+    "Oh wow, that's just... huge news for you and the whole family. ",
+    'The light outside my window... reminds me of the lake back home.',
+  ];
+  const hasMidSentenceEllipsis = (text: string): boolean => /(?:\.\.\.|…)\s*[a-z]/.test(text);
+
+  afterEach(() => {
+    delete process.env.SPEECH_DIRECTOR;
+  });
+
+  it('reach Cartesia unchanged with the Director off', async () => {
+    delete process.env.SPEECH_DIRECTOR;
+    const all = (await runGateway(ELLIPSIS_REPLY)).pushes.join('');
+    expect(all).toContain("that's just...");
+    expect(all).toContain('window...');
+  });
+
+  it('are taken out with SPEECH_DIRECTOR=live, keeping every word', async () => {
+    process.env.SPEECH_DIRECTOR = 'live';
+    const { pushes } = await runGateway(ELLIPSIS_REPLY);
+    const all = pushes.join('');
+    expect(hasMidSentenceEllipsis(all)).toBe(false);
+    expect(all).toContain("that's just huge news");
+    expect(all).toContain('my window reminds me');
+  });
+
+  it('are counted but left in with SPEECH_DIRECTOR=shadow', async () => {
+    process.env.SPEECH_DIRECTOR = 'shadow';
+    const all = (await runGateway(ELLIPSIS_REPLY)).pushes.join('');
+    expect(hasMidSentenceEllipsis(all)).toBe(true);
   });
 });

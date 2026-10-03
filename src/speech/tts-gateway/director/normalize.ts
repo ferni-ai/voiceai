@@ -122,7 +122,7 @@ const RULES: readonly Rule[] = [
   // Money: $4,200 / $4.50 / $1.5M / $20k / $3 billion.
   (t, hit) =>
     t.replace(
-      /\$(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?(?:\s?(k|K|M|B|bn|thousand|million|billion|trillion)\b)?/g,
+      /\$(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?(?:\s?(k|K|m|M|b|B|bn|thousand|million|billion|trillion)\b)?/g,
       (_m, whole: string, fraction?: string, scale?: string) => {
         hit();
         return money(whole, fraction, scale);

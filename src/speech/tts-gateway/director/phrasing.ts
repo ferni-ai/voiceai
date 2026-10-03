@@ -40,8 +40,11 @@ export function endsSentence(text: string): boolean {
   return end !== null && findSentenceEnd(t, end.index) !== null;
 }
 
-function insideBrackets(text: string, index: number): boolean {
-  return text.lastIndexOf('[', index - 1) > text.lastIndexOf(']', index - 1);
+function insideMarkup(text: string, index: number): boolean {
+  return (
+    text.lastIndexOf('[', index - 1) > text.lastIndexOf(']', index - 1) ||
+    text.lastIndexOf('<', index - 1) > text.lastIndexOf('>', index - 1)
+  );
 }
 
 function usable(text: string, cut: number): boolean {
@@ -51,7 +54,7 @@ function usable(text: string, cut: number): boolean {
     head.length >= MIN_PHRASE_CHARS &&
     head.split(/\s+/).length >= MIN_PHRASE_WORDS &&
     tail.length >= MIN_TAIL_CHARS &&
-    !insideBrackets(text, cut)
+    !insideMarkup(text, cut)
   );
 }
 
@@ -78,14 +81,39 @@ export function lastPhraseBoundary(text: string): number | null {
   );
 }
 
+/** True when the text ends on "..." / "…" (a trailing-off, or a pause mid-sentence). */
+export function endsWithEllipsis(text: string): boolean {
+  return /(?:\.\.\.|…)["')\]]*\s*$/.test(text);
+}
+
+export interface PhraseOptions {
+  /** Re-cut a piece that ends mid-phrase at its last prosodic boundary. */
+  reCut: boolean;
+  /**
+   * Hold a piece ending in "..." until the next one shows whether the
+   * sentence goes on ("that's just..." + "huge news"): continuation-tts cuts
+   * at "... " as a sentence end, and an ellipsis left at a push boundary
+   * can't be told apart from a real trailing-off. Applies to the first piece
+   * too: the text usually arrives well before the first audio.
+   */
+  holdEllipsis: boolean;
+}
+
 export class PhraseAssembler {
   private held = '';
+
+  constructor(private readonly options: PhraseOptions = { reCut: true, holdEllipsis: true }) {}
 
   /** Take one cleaned piece; return the phrases to push now. */
   accept(piece: string, isFirst: boolean): string[] {
     const text = [this.held, piece.trim()].filter(Boolean).join(' ');
     this.held = '';
-    if (!text || endsSentence(text)) return text ? [text] : [];
+    if (!text) return [];
+    if (this.options.holdEllipsis && endsWithEllipsis(text) && text.length < MAX_HOLD_CHARS) {
+      this.held = text;
+      return [];
+    }
+    if (!this.options.reCut || endsSentence(text)) return [text];
 
     const cut = lastPhraseBoundary(text);
     if (cut !== null) {

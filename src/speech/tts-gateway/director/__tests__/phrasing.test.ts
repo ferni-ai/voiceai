@@ -37,6 +37,7 @@ describe('lastPhraseBoundary', () => {
   it('never cuts inside a number or bracket markup', () => {
     expect(lastPhraseBoundary('It came to 4,200 dollars for all of the')).toBeNull();
     expect(lastPhraseBoundary('[laughter, then more] that was something else for')).toBeNull();
+    expect(lastPhraseBoundary('<emotion value="a, b" that was something else for')).toBeNull();
   });
 });
 

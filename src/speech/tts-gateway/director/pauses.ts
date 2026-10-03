@@ -7,13 +7,14 @@
  * are not metronomic and tests are repeatable. These become `pause`
  * RustEvents: P1/P2 only log them; P3 can render them as PCM silence.
  *
- * Rendering: punctuation only. Native <break> is not sent until a measured
- * test on the one-context-per-reply path says it is safe (owner ruling;
- * stacked breaks made Sonic hallucinate, and a break splits the generation).
- * Three conservative upgrades, all words preserved:
- *   - a lead-in to the point ("here's the thing,") trails off: "here's the thing..."
- *   - an opening discourse marker gets its comma: "Well I think" → "Well, I think"
- *   - a contrast in a long unpunctuated run gets a comma: "... all of them, but ..."
+ * Rendering adds no pauses. Native <break> is not sent until a measured test
+ * on the one-context-per-reply path says it is safe (owner ruling; stacked
+ * breaks made Sonic hallucinate, and a break splits the generation), and
+ * extra punctuation would add pauses: Sonic pauses ~310 ms at a comma and
+ * 230-790 ms at a mid-sentence "..." (dev measurement 2026-10-03,
+ * ferni-breaks-measured.md). What rendering does is remove the one pause the
+ * listener hears as a break: the LLM's mid-sentence ellipsis. Removing it took
+ * the pause out in every offline render; a comma in its place did not.
  *
  * @module speech/tts-gateway/director/pauses
  */
@@ -83,39 +84,31 @@ export function planPauses(segment: string): RustEvent[] {
   return events;
 }
 
-const PRE_REVEAL =
-  /\b(here's the thing|the thing is|the truth is|guess what|you know what|turns out)\s*,\s+/gi;
-const OPENING_MARKER =
-  /(^|[.!?]\s+)(well|okay|oh|hmm|honestly|actually|yeah)\s+(?=(?:i|i'm|i've|i'd|i'll|you|you're|we|we're|it|it's|that|that's|this|there|there's|he|she|they|they're|let's)\b)/gi;
-const CONTRAST = /([A-Za-z']+)\s+(but|though|although)\s/gi;
-/** "nothing ... but sleep", "all but": "but" means "except" there, not a contrast. */
-const EXCEPT_SENSE = /\b(?:nothing|anything|everything|none|nobody|no one)\b/i;
-const EXCEPT_BEFORE = new Set(['all', 'cannot', 'last']);
-const LONG_RUN_CHARS = 40;
+/**
+ * An ellipsis with more of the sentence after it (a lowercase word, perhaps
+ * past a tag): "that's just... huge", "window...reminds", "drop... [laughter] just".
+ */
+const MID_SENTENCE_ELLIPSIS = /\s*(?:\.\.\.|…)((?:\s|<[^>]*>|\[[^\]]*\])*)(?=[a-z])/g;
 
-/** Punctuation-only pause upgrades. Never adds or removes a word. */
-export function renderPauses(segment: string): { text: string; inserted: number } {
-  let inserted = 0;
-  let text = segment.replace(PRE_REVEAL, (_m, lead: string) => {
-    inserted++;
-    return `${lead}... `;
+/**
+ * Drop mid-sentence ellipses; keep a trailing-off one at the end of a
+ * sentence or turn. Words and markup are kept, joined by single spaces.
+ */
+export function removeMidSentenceEllipses(text: string): { text: string; removed: number } {
+  let removed = 0;
+  const out = text.replace(MID_SENTENCE_ELLIPSIS, (_m, between: string, offset: number) => {
+    removed++;
+    const kept = between.trim();
+    if (offset === 0) return kept ? `${kept} ` : '';
+    return kept ? ` ${kept} ` : ' ';
   });
-  text = text.replace(OPENING_MARKER, (_m, before: string, marker: string) => {
-    inserted++;
-    return `${before}${marker}, `;
-  });
-  text = text.replace(
-    CONTRAST,
-    (match, prev: string, conj: string, offset: number, all: string) => {
-      const lastMark = Math.max(
-        ...[',', '.', ';', ':', '!', '?'].map((p) => all.lastIndexOf(p, offset))
-      );
-      const run = all.slice(lastMark + 1, offset + prev.length);
-      if (run.length < LONG_RUN_CHARS || EXCEPT_SENSE.test(run)) return match;
-      if (EXCEPT_BEFORE.has(prev.toLowerCase())) return match;
-      inserted++;
-      return `${prev}, ${conj} `;
-    }
-  );
-  return { text, inserted };
+  return { text: out, removed };
+}
+
+/** Commas per 100 words: Sonic pauses ~310 ms at each (logged for a later lever). */
+export function commaDensity(text: string): { commas: number; words: number } {
+  return {
+    commas: (text.match(/,/g) ?? []).length,
+    words: text.split(/\s+/).filter(Boolean).length,
+  };
 }
