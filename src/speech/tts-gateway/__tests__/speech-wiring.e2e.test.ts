@@ -114,13 +114,14 @@ const RAW = [
 ];
 
 /**
- * Pushes with every gate off on the base commit 9f53d3899 (before this
- * wiring), captured by running this scenario there: the opening soft start
- * and emotion as tags, "*sighs*" and "*smiles*" spoken, <spell> stripped.
+ * Pushes with every gate off before this wiring: the opening soft start and
+ * emotion as tags, "*sighs*" and "*smiles*" spoken, <spell> stripped. Captured
+ * on 9f53d3899, then rebased onto main 65aafa8fd, where #171 stopped sending
+ * the continuation reset tags (<speed ratio="1"/><volume ratio="1"/>).
  */
 const OFF_BASE_PUSHES = [
   '<speed ratio="0.9"/><emotion value="sympathetic"/>*sighs* Oh, I\'m so sorry you\'re going through this. ',
-  '<speed ratio="1"/><volume ratio="1"/>Your confirmation code is K7Q2, so keep it handy. ',
+  'Your confirmation code is K7Q2, so keep it handy. ',
   '*smiles* We will get through it together, one step at a time. ',
 ];
 

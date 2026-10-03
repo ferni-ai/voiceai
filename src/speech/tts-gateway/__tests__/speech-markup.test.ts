@@ -73,7 +73,10 @@ describe('consecutive breaks in the SSML processor', () => {
     expect(clean('Hmm.<break time="300ms"/><break time="300ms"/>Okay')).toBe(
       clean('Hmm.<break time="300ms"/>Okay')
     );
-    expect(clean('Well<break time="200ms"/><break time="600ms"/>okay')).toBe('Well. okay');
+    // The run becomes one 600 ms break, which #171 keeps native (>= 400 ms).
+    expect(clean('Well<break time="200ms"/><break time="600ms"/>okay')).toBe(
+      'Well<break time="600ms"/>okay'
+    );
   });
 });
 
