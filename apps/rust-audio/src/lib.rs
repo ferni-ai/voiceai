@@ -45,10 +45,12 @@ mod audio_processor;
 mod buffer_pool;
 mod feature_extraction;
 mod fft;
+mod nonverbal;
 mod post_tts;
 mod post_tts_processor;
 mod pre_stt;
 mod sola;
+mod tempo;
 mod stt;
 mod yin;
 

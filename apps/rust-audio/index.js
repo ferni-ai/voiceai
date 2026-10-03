@@ -310,8 +310,11 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { NativeWhisperStt, transcribeWhisper, estimatePitchYin, batchEstimatePitchYin, getLibraryInfo, NativeAudioProcessor, getOrCreateProcessor, processSessionFrame, getSessionFullFeatures, resetSessionProcessor, removeSessionProcessor, getActiveProcessorCount, clearAllProcessors, convertI16ToF32, resampleF32, computeEnergyDb, isSpeech, computeRms, computeZcr, computeVariance, computeMean, computeStdDev, estimatePitch, extractFrameFeatures, fftF32, applyHanningWindow, getMagnitudeSpectrum, getPowerSpectrumDb, analyzeSpectrum, clearFftCaches, getDefaultPostTtsConfig, enhanceTtsAudio, enhanceTtsAudioInplace, applySoftAttack, applySoftRelease, applyWarmth, applyPresence, applyCompression, injectBreathSounds, NativePostTtsProcessor, NativePreSttProcessor, applyAgc, resetAgc, removeAgc } = nativeBinding
+const { renderNonverbal, timeStretch, NativeTempoStretcher, NativeWhisperStt, transcribeWhisper, estimatePitchYin, batchEstimatePitchYin, getLibraryInfo, NativeAudioProcessor, getOrCreateProcessor, processSessionFrame, getSessionFullFeatures, resetSessionProcessor, removeSessionProcessor, getActiveProcessorCount, clearAllProcessors, convertI16ToF32, resampleF32, computeEnergyDb, isSpeech, computeRms, computeZcr, computeVariance, computeMean, computeStdDev, estimatePitch, extractFrameFeatures, fftF32, applyHanningWindow, getMagnitudeSpectrum, getPowerSpectrumDb, analyzeSpectrum, clearFftCaches, getDefaultPostTtsConfig, enhanceTtsAudio, enhanceTtsAudioInplace, applySoftAttack, applySoftRelease, applyWarmth, applyPresence, applyCompression, injectBreathSounds, NativePostTtsProcessor, NativePreSttProcessor, applyAgc, resetAgc, removeAgc } = nativeBinding
 
+module.exports.renderNonverbal = renderNonverbal
+module.exports.timeStretch = timeStretch
+module.exports.NativeTempoStretcher = NativeTempoStretcher
 module.exports.NativeWhisperStt = NativeWhisperStt
 module.exports.transcribeWhisper = transcribeWhisper
 module.exports.estimatePitchYin = estimatePitchYin
