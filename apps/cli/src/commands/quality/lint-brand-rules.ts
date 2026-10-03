@@ -150,11 +150,14 @@ export function buttonHasName(attrs: string, inner: string): boolean {
   if (/\baria-label(?:ledby)?\s*=|\btitle\s*=/i.test(attrs)) return true;
   if (/\$\{|\{\{|\{%/.test(inner)) return true;
   if (/<img\b[^>]*\balt\s*=\s*["'][^"']+["']/i.test(inner)) return true;
-  const text = inner
-    .replace(/<svg[\s\S]*?<\/svg>/gi, '')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;|&#\d+;|&\w+;/g, ' ');
-  return text.trim().length > 0;
+  // Strip until nothing changes: one pass can leave a tag behind (`<<b>svg>`).
+  let text = inner;
+  let previous: string;
+  do {
+    previous = text;
+    text = text.replace(/<svg[\s\S]*?<\/svg>/gi, ' ').replace(/<[^>]*>/g, ' ');
+  } while (text !== previous);
+  return text.replace(/&nbsp;|&#\d+;|&\w+;/g, ' ').trim().length > 0;
 }
 
 // ============================================================================

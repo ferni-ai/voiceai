@@ -21,6 +21,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { createLogger } from '../utils/logger.js';
 import { 
   relationshipStageService, 
   getTranslatedStageName,
@@ -1419,7 +1420,6 @@ function _updateProgressPanel(): void {
   if (stageName) stageName.textContent = getTranslatedStageName(stage);
   if (stageTagline) stageTagline.textContent = stageInfo?.tagline ?? 'Just getting started';
   if (stageDesc) stageDesc.textContent = `"${stageInfo?.description ?? 'Every great friendship starts somewhere.'}"`;
-  
   
   // Update progress
   const progressFill = progressPanel.querySelector('.progress-fill') as HTMLElement;
