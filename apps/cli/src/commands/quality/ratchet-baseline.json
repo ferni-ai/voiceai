@@ -811,7 +811,7 @@
   "src/memory/storage/firestore-store.ts": 786,
   "src/memory/storage/lifecycle-integration.ts": 514,
   "src/memory/storage/redis-cache/redis-cache.ts": 1264,
-  "src/memory/unified-store/adapters/firestore-adapter.ts": 508,
+  "src/memory/unified-store/adapters/firestore-adapter.ts": 504,
   "src/memory/unified-store/adapters/spanner-adapter.ts": 591,
   "src/memory/unified-store/facade.ts": 842,
   "src/memory/unified-store/types.ts": 780,

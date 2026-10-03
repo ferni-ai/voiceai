@@ -56,8 +56,8 @@
 
   "voice": {
     "provider": "cartesia",
-    "voice_id": "${env:FERNI_VOICE_ID|fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc}",
-    "model": "sonic-3-latest",
+    "voice_id": "${env:FERNI_VOICE_ID|ebaf7477-b6ae-417e-be54-19e6176777ea}",
+    "model": "sonic-3.6-2026-08-27",
     "default_emotion": "affectionate",
     "emotion_range": [
       "affectionate",
