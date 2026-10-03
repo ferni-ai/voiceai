@@ -39,7 +39,7 @@ describe('conversation rules in the live Ferni prompt', () => {
     expect(base).toContain('one to three sentences');
     expect(base).toContain('"Already said this call"');
     // #171's rules stay.
-    expect(base).toContain('keep it for the whole reply');
+    expect(base).toContain('It holds for the whole reply');
     expect(base).toContain('No ellipses');
   }, 60_000);
 
