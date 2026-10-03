@@ -8,7 +8,8 @@
  * 1. **Buffer complete tags** - Ensure SSML tags aren't split across chunks
  * 2. **Extract prosody** - Convert SSML tags to API parameters where possible
  * 3. **Convert breaks to punctuation** - Since Cartesia streaming can't handle breaks reliably
- * 4. **Preserve intent** - Even when stripping, maintain the speech intent
+ * 4. **Preserve intent** - Even when stripping, maintain the speech intent; stage directions
+ *    (*smiles*) are never spoken (stage-directions.ts)
  *
  * @module speech/tts-gateway/ssml/processor
  */
@@ -17,6 +18,7 @@ import { TransformStream } from 'node:stream/web';
 import type { ISSMLProcessor, SSMLParseResult, SSMLProsodyConfig } from '../types.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { BREATH_BRACKET_REGEX, LAUGHTER_BRACKET_REGEX } from './nonverbal-brackets.js';
+import { rewriteAsteriskSpans } from '../stage-directions.js';
 
 const log = createLogger({ module: 'SSMLProcessor' });
 
@@ -170,7 +172,7 @@ export class SSMLProcessor implements ISSMLProcessor {
     const warnings: string[] = [];
     const originalTags: string[] = [];
     const prosody: SSMLProsodyConfig = {};
-    let cleanText = text;
+    let cleanText = rewriteAsteriskSpans(text, false).text;
     let hadSSML = false;
 
     // Extract speed tags
@@ -248,8 +250,7 @@ export class SSMLProcessor implements ISSMLProcessor {
       }
     );
 
-    // Convert break tags to punctuation
-    // This preserves the intent (pause) while being streaming-safe
+    // Convert break tags to punctuation: keeps the pause, streaming-safe
     cleanText = cleanText.replace(BREAK_TAG_REGEX, (match, time: string, unit: string) => {
       hadSSML = true;
       originalTags.push(match);
@@ -360,7 +361,6 @@ export class SSMLProcessor implements ISSMLProcessor {
     }
 
     // Remove any remaining XML-like tags we might have missed
-    // Use inline regex with 'g' flag for matching/replacing all occurrences
     const remainingTags = cleanText.match(/<[^>]+>/g);
     if (remainingTags) {
       hadSSML = true;

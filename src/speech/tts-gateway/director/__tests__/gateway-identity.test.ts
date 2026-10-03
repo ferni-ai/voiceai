@@ -189,3 +189,40 @@ describe('mid-sentence ellipses on the live gateway path', () => {
     expect(hasMidSentenceEllipsis(all)).toBe(true);
   });
 });
+
+/**
+ * Deliberate change to the default path (stream D item 4): asterisk stage
+ * directions used to reach Cartesia verbatim with the Director off, so the
+ * voice said "smiles". Before this fix the pushes were exactly
+ * BEFORE_FIX_PUSHES; now the directions are dropped on every setting, and
+ * nothing else in the reply changes.
+ */
+describe('asterisk stage directions on the live gateway path', () => {
+  const REPLY = ['*smiles* That is great news. ', 'Okay *laughs* so 5*3 is 15, f*** yes.'];
+  const BEFORE_FIX_PUSHES = [
+    '*smiles* That is great news. ',
+    'Okay *laughs* so 5*3 is 15, f*** yes. ',
+  ];
+
+  afterEach(() => {
+    delete process.env.SPEECH_DIRECTOR;
+  });
+
+  for (const mode of [undefined, 'off', 'shadow', 'live']) {
+    it(`are never spoken (SPEECH_DIRECTOR=${mode ?? 'unset'})`, async () => {
+      if (mode) process.env.SPEECH_DIRECTOR = mode;
+      const { pushes } = await runGateway(REPLY);
+      const all = pushes.join('');
+      expect(all).not.toMatch(/smiles|laughs/);
+      expect(all).toContain('5*3 is 15, f*** yes.');
+    });
+  }
+
+  it('changes only the directions on the default path', async () => {
+    delete process.env.SPEECH_DIRECTOR;
+    const { pushes } = await runGateway(REPLY);
+    expect(pushes).toEqual(
+      BEFORE_FIX_PUSHES.map((p) => p.replace('*smiles* ', '').replace(' *laughs*', ''))
+    );
+  });
+});
