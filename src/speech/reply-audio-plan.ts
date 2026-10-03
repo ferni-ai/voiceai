@@ -8,21 +8,24 @@
  * post-TTS stage (`agents/shared/performance/reply-audio-stage.ts`) takes it
  * when that reply's TTS stream starts and renders it.
  *
- * A plan is keyed by (sessionId, turn): `turn` is the session's user-turn
- * counter (`userData.turnCount`, the `turnNumber` tts-wrapper profiles with).
- * A plan for turn N is consumed by the first reply of turn N and never
- * applies to turn N+1: taking turn N+1 discards a leftover turn-N plan. It
- * also expires after PLAN_TTL_MS, is cleared on barge-in and session end, and
- * the store is capped so abandoned sessions can't grow it. A missing, empty
- * or 'unknown' sessionId (tts-wrapper's fallback) is never stored or taken:
- * it would be a slot shared by every session without an id.
+ * A plan is keyed by (sessionId, replyId): `replyId` is the id the gateway
+ * TTS node generates once per call and tags onto the audio stream it returns
+ * (`tts-gateway/reply-audio-id.ts`) — never the user-turn counter. Two TTS
+ * streams in the same turn (a filler, `say()`, a pre-tool phrase, and the
+ * real reply) each get their own id, so one can never take or discard
+ * another's plan (review H2). A plan also expires after PLAN_TTL_MS, is
+ * cleared on barge-in and session end (by sessionId, every pending reply at
+ * once), and the store is capped so abandoned sessions can't grow it
+ * unbounded. A missing, empty or 'unknown' sessionId (tts-wrapper's
+ * fallback), or a missing/blank replyId, is never stored or taken.
  *
  * The director decides on the reply's first text, which is after the stage
  * was built, so the stage can wait for its plan: `onReplyAudioPlan` calls back
- * (once, in a microtask) when a plan for that (session, turn) is set. A
+ * (once, in a microtask) when a plan for that (session, replyId) is set. A
  * listener is dropped when it fires, when the caller unsubscribes, on
  * clearReplyAudioPlan, after PLAN_TTL_MS, or past MAX_LISTENERS_PER_SESSION,
- * so none can pile up.
+ * so none can pile up; reaching that cap drops the oldest waiter and logs it
+ * once (review L2).
  *
  * Gates (env, default off; each lever has its own so a regression is
  * attributable):
@@ -31,6 +34,10 @@
  *
  * @module speech/reply-audio-plan
  */
+
+import { createLogger } from '../utils/safe-logger.js';
+
+const log = createLogger({ module: 'ReplyAudioPlan' });
 
 export type NonverbalKind = 'breath' | 'sigh';
 
@@ -61,21 +68,24 @@ export const MAX_F0_HZ = 400;
 
 const NONVERBAL_KINDS: ReadonlySet<string> = new Set(['breath', 'sigh']);
 
+/** A plan, keyed by replyId; `sessionId` is kept so clearReplyAudioPlan can find it. */
 interface StoredPlan {
-  turn: number;
+  sessionId: string;
   plan: ReplyAudioPlan;
   expiresAt: number;
 }
 
+/** Keyed by replyId (globally unique), never by sessionId alone (review H2). */
 const plans = new Map<string, StoredPlan>();
 
 interface PlanListener {
-  turn: number;
+  replyId: string;
   fn: () => void;
   expiresAt: number;
 }
 
 export const MAX_LISTENERS_PER_SESSION = 8;
+/** Keyed by sessionId: a list of waiters, each for one reply id. */
 const listeners = new Map<string, PlanListener[]>();
 
 /** Clock seam for tests. */
@@ -135,27 +145,30 @@ export function isPlannableSession(sessionId: string | undefined): sessionId is 
   return typeof sessionId === 'string' && sessionId.trim() !== '' && sessionId !== 'unknown';
 }
 
-function isTurn(turn: number | undefined): turn is number {
-  return typeof turn === 'number' && Number.isInteger(turn) && turn >= 0;
+/** False for a missing or blank reply id: never a plan slot. */
+export function isReplyId(replyId: string | undefined): replyId is string {
+  return typeof replyId === 'string' && replyId.trim() !== '';
 }
 
 /**
- * Set the plan for the reply to `turn`, replacing any pending plan for the
- * session. No-op without a real session id and turn.
+ * Set the plan for `replyId`, replacing a pending plan already stored under
+ * that SAME id (a second call for the same reply). Never touches another
+ * reply's plan, even in the same session or turn (review H2). No-op without
+ * a real session id and reply id.
  */
 export function setReplyAudioPlan(
   sessionId: string | undefined,
-  turn: number | undefined,
+  replyId: string | undefined,
   plan: ReplyAudioPlan
 ): void {
-  if (!isPlannableSession(sessionId) || !isTurn(turn)) return;
+  if (!isPlannableSession(sessionId) || !isReplyId(replyId)) return;
   const normalized = normalizeReplyAudioPlan(plan);
-  plans.delete(sessionId);
+  plans.delete(replyId);
   if (!normalized) return;
   const at = now();
   evict(at);
-  plans.set(sessionId, { turn, plan: normalized, expiresAt: at + PLAN_TTL_MS });
-  notify(sessionId, turn, at);
+  plans.set(replyId, { sessionId, plan: normalized, expiresAt: at + PLAN_TTL_MS });
+  notify(sessionId, replyId, at);
 }
 
 /** Live listeners for a session, expired ones dropped. */
@@ -166,12 +179,12 @@ function liveListeners(sessionId: string, at: number): PlanListener[] {
   return list;
 }
 
-/** Wake this turn's listeners, each once, after the setter's own work. */
-function notify(sessionId: string, turn: number, at: number): void {
+/** Wake this reply's listeners, each once, after the setter's own work. */
+function notify(sessionId: string, replyId: string, at: number): void {
   const list = liveListeners(sessionId, at);
-  const due = list.filter((l) => l.turn === turn);
+  const due = list.filter((l) => l.replyId === replyId);
   if (due.length === 0) return;
-  const rest = list.filter((l) => l.turn !== turn);
+  const rest = list.filter((l) => l.replyId !== replyId);
   if (rest.length > 0) listeners.set(sessionId, rest);
   else listeners.delete(sessionId);
   void Promise.resolve().then(() => {
@@ -186,36 +199,41 @@ function notify(sessionId: string, turn: number, at: number): void {
 }
 
 /**
- * Update the plan for `turn`: `patch` is merged into a pending plan for the
- * same turn (a later opening keeps the tempo planned before it), or stands
- * alone when that plan was already taken or was for another turn. Waiting
- * stages are woken as by setReplyAudioPlan.
+ * Update the plan for `replyId`: `patch` is merged into a pending plan
+ * already stored under that id (a later opening keeps the tempo planned
+ * before it), or stands alone when that plan was already taken or expired.
+ * Waiting stages are woken as by setReplyAudioPlan.
  */
 export function mergeReplyAudioPlan(
   sessionId: string | undefined,
-  turn: number | undefined,
+  replyId: string | undefined,
   patch: ReplyAudioPlan
 ): void {
-  if (!isPlannableSession(sessionId) || !isTurn(turn)) return;
-  const stored = plans.get(sessionId);
-  const pending = stored && stored.turn === turn && stored.expiresAt > now() ? stored.plan : {};
-  setReplyAudioPlan(sessionId, turn, { ...pending, ...patch });
+  if (!isPlannableSession(sessionId) || !isReplyId(replyId)) return;
+  const stored = plans.get(replyId);
+  const pending = stored && stored.expiresAt > now() ? stored.plan : {};
+  setReplyAudioPlan(sessionId, replyId, { ...pending, ...patch });
 }
 
 /**
- * Call `fn` once when a plan for (sessionId, turn) is set. Returns the
+ * Call `fn` once when a plan for (sessionId, replyId) is set. Returns the
  * unsubscribe. A no-op (and a no-op unsubscribe) without a real session id
- * and turn.
+ * and reply id. Past MAX_LISTENERS_PER_SESSION the oldest waiter for this
+ * session is dropped and logged once (review L2).
  */
 export function onReplyAudioPlan(
   sessionId: string | undefined,
-  turn: number | undefined,
+  replyId: string | undefined,
   fn: () => void
 ): () => void {
-  if (!isPlannableSession(sessionId) || !isTurn(turn)) return () => undefined;
+  if (!isPlannableSession(sessionId) || !isReplyId(replyId)) return () => undefined;
   const at = now();
-  const entry: PlanListener = { turn, fn, expiresAt: at + PLAN_TTL_MS };
-  const list = [...liveListeners(sessionId, at), entry].slice(-MAX_LISTENERS_PER_SESSION);
+  const entry: PlanListener = { replyId, fn, expiresAt: at + PLAN_TTL_MS };
+  const before = [...liveListeners(sessionId, at), entry];
+  if (before.length > MAX_LISTENERS_PER_SESSION) {
+    log.warn({ sessionId }, 'Stage 2 plan listener cap reached; dropping the oldest waiter');
+  }
+  const list = before.slice(-MAX_LISTENERS_PER_SESSION);
   listeners.set(sessionId, list);
   return () => {
     const current = listeners.get(sessionId);
@@ -234,26 +252,30 @@ export function replyAudioPlanListenerCount(): number {
 }
 
 /**
- * Take (and remove) the plan for `turn`, if it hasn't expired. A pending plan
- * for an earlier turn is stale and is discarded; one for a later turn is left.
+ * Take (and remove) the plan for (sessionId, replyId), if it hasn't expired.
+ * A plan stored under a different session (a replyId collision, which a
+ * real UUID never produces) is never returned.
  */
 export function takeReplyAudioPlan(
   sessionId: string | undefined,
-  turn: number | undefined
+  replyId: string | undefined
 ): ReplyAudioPlan | undefined {
-  if (!isPlannableSession(sessionId) || !isTurn(turn)) return undefined;
-  const stored = plans.get(sessionId);
-  if (!stored || stored.turn > turn) return undefined;
-  plans.delete(sessionId);
-  return stored.turn === turn && stored.expiresAt > now() ? stored.plan : undefined;
+  if (!isPlannableSession(sessionId) || !isReplyId(replyId)) return undefined;
+  const stored = plans.get(replyId);
+  if (!stored || stored.sessionId !== sessionId) return undefined;
+  plans.delete(replyId);
+  return stored.expiresAt > now() ? stored.plan : undefined;
 }
 
 /**
- * Forget this session's pending plan and stop any stage waiting for one
- * (barge-in: the waiting reply is the one being interrupted; session end).
+ * Forget every pending plan for this session and stop any stage waiting for
+ * one (barge-in: the waiting reply is the one being interrupted; session
+ * end). Clears all of that session's replies at once, never just one.
  */
 export function clearReplyAudioPlan(sessionId: string): void {
-  plans.delete(sessionId);
+  for (const [replyId, stored] of plans) {
+    if (stored.sessionId === sessionId) plans.delete(replyId);
+  }
   listeners.delete(sessionId);
 }
 

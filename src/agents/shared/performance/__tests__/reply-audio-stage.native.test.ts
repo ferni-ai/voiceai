@@ -34,7 +34,7 @@ function loadNative(): Native | null {
 
 const native = loadNative();
 const SID = 'stage2-native';
-const TURN = 1;
+const TURN = 'reply-1';
 
 function tone(n: number, sr: number, f0 = 150): Float32Array {
   const x = new Float32Array(n);
@@ -166,7 +166,7 @@ describe.skipIf(!native)('Stage 2 native (@ferni/audio)', () => {
     }).pipeThrough(
       createReplyAudioStage({
         sessionId: SID,
-        turn: TURN,
+        replyId: TURN,
         native: n,
         gates: { nonverbal: true, tempo: true },
       })

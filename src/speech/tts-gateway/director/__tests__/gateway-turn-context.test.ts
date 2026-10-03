@@ -1,9 +1,12 @@
 /**
  * The turn reaches the Director through the real gateway node: tts-wrapper
- * passes its session context as `turnContext`, and the Stage 2 plan the
- * Director sets is keyed by exactly that (sessionId, turnNumber).
+ * passes its session context as `turnContext` (used for the user's words and
+ * laughter cooldowns), and the Stage 2 plan the Director sets is keyed by
+ * the reply id the gateway node generates and tags onto the returned audio
+ * stream (`reply-audio-id.ts`), never by turnNumber (review H2).
  */
-import { ReadableStream } from 'node:stream/web';
+import type { AudioFrame } from '@livekit/rtc-node';
+import { ReadableStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { VOICE_IDS } from '../../../../config/voice-ids.js';
@@ -52,7 +55,9 @@ afterEach(() => {
   pushes.length = 0;
 });
 
-async function speak(turnNumber: number | undefined): Promise<void> {
+async function speak(
+  turnNumber: number | undefined
+): Promise<NodeReadableStream<AudioFrame> | null> {
   const { createGatewayTTSNode } = await import('../../gateway-tts-node.js');
   const node = createGatewayTTSNode({
     voiceId: VOICE_IDS.FERNI,
@@ -72,23 +77,31 @@ async function speak(turnNumber: number | undefined): Promise<void> {
   for await (const _ of audio!) {
     /* drain */
   }
+  return audio;
 }
 
 describe('gateway → Director turn wiring', () => {
-  it('keys the Stage 2 plan by the turn tts-wrapper passed', async () => {
+  it('keys the Stage 2 plan by the reply id the gateway node generated', async () => {
     process.env.SPEECH_DIRECTOR = 'live';
-    await speak(9);
-    expect(takeReplyAudioPlan(SESSION, 9)?.tempo).toBeLessThan(1);
+    const { getReplyAudioId } = await import('../../gateway-tts-node.js');
+    const audio = await speak(9);
+    const replyId = getReplyAudioId(audio);
+    expect(replyId).toBeDefined();
+    expect(takeReplyAudioPlan(SESSION, replyId)?.tempo).toBeLessThan(1);
     expect(pushes.join('')).not.toMatch(/<\/?(?:speed|emotion|volume)\b/);
   });
 
-  it('sets no plan without a turn, and none with the Director off', async () => {
+  it('plans even without a turnNumber (the reply id never depends on it), and none with the Director off', async () => {
     process.env.SPEECH_DIRECTOR = 'live';
-    await speak(undefined);
-    expect(takeReplyAudioPlan(SESSION, 0)).toBeUndefined();
+    const { getReplyAudioId } = await import('../../gateway-tts-node.js');
+    const audio1 = await speak(undefined);
+    const replyId1 = getReplyAudioId(audio1);
+    expect(takeReplyAudioPlan(SESSION, replyId1)?.tempo).toBeLessThan(1);
+
     process.env.SPEECH_DIRECTOR = 'off';
-    await speak(3);
-    expect(takeReplyAudioPlan(SESSION, 3)).toBeUndefined();
+    const audio2 = await speak(3);
+    const replyId2 = getReplyAudioId(audio2);
+    expect(takeReplyAudioPlan(SESSION, replyId2)).toBeUndefined();
     expect(pushes.at(-1)).toBeDefined();
   });
 });

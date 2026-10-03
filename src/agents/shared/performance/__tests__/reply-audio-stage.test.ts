@@ -39,7 +39,7 @@ function hasNativeTempo(): boolean {
     return false;
   }
 }
-const TURN = 4;
+const TURN = 'reply-4';
 
 function toneFrames(count: number, sr = 24000, size = 480): AudioFrame[] {
   const frames: AudioFrame[] = [];
@@ -112,10 +112,10 @@ async function runStage(
   frames: AudioFrame[],
   native: ReplyAudioNative,
   gates = LIVE,
-  turn = TURN
+  replyId = TURN
 ): Promise<AudioFrame[]> {
   return collect(
-    streamOf(frames).pipeThrough(createReplyAudioStage({ sessionId: SID, turn, native, gates }))
+    streamOf(frames).pipeThrough(createReplyAudioStage({ sessionId: SID, replyId, native, gates }))
   );
 }
 
@@ -185,7 +185,7 @@ describe('reply-audio-stage', () => {
       streamOf(input).pipeThrough(
         createReplyAudioStage({
           sessionId: SID,
-          turn: TURN,
+          replyId: TURN,
           native: fakeNative(),
           gates: LIVE,
           outputSampleRate: 48000,
@@ -267,24 +267,41 @@ describe('reply-audio-stage', () => {
     expect(calls).toEqual([]);
   });
 
-  // ---- M1: plans are per (session, turn) ----
-  it('a plan for turn N never lands on turn N+1', async () => {
+  // ---- H2: plans are per (session, replyId), never cross-reply ----
+  it('a plan for one reply never lands on a different reply in the same session', async () => {
     const calls: string[] = [];
     setReplyAudioPlan(SID, TURN, { opening: { kind: 'sigh', intensity: 1 }, tempo: 1.2 });
     const input = toneFrames(5);
-    const out = await runStage(input, fakeNative(calls), LIVE, TURN + 1);
+    const out = await runStage(input, fakeNative(calls), LIVE, 'a-different-reply');
     expect(out).toHaveLength(input.length);
     out.forEach((f, i) => expect(f).toBe(input[i]));
     expect(calls).toEqual([]);
-    expect(takeReplyAudioPlan(SID, TURN)).toBeUndefined(); // the stale plan was discarded
-    // Control: the same plan on its own turn does apply.
-    setReplyAudioPlan(SID, TURN, { opening: { kind: 'sigh', intensity: 1 }, tempo: 1.2 });
+    // Control: untouched by the mismatched-id stage, the plan still applies
+    // to its own reply id (a destructive `take` here would consume it before
+    // this check, so the control run below is the proof it's still there).
     await runStage(toneFrames(5), fakeNative(calls), LIVE, TURN);
     expect(calls).toEqual(['render sigh 0 1 24000', 'stretch 24000 1.2']);
   });
 
+  it("two concurrent stage streams in the same session: only the stream carrying the plan's reply id gets it", async () => {
+    const calls: string[] = [];
+    const REPLY_A = 'concurrent-reply-a';
+    const REPLY_B = 'concurrent-reply-b';
+    setReplyAudioPlan(SID, REPLY_A, { opening: { kind: 'sigh', intensity: 1 }, tempo: 1.2 });
+    const framesA = toneFrames(5);
+    const framesB = toneFrames(5);
+    const [outA, outB] = await Promise.all([
+      runStage(framesA, fakeNative(calls), LIVE, REPLY_A),
+      runStage(framesB, fakeNative(calls), LIVE, REPLY_B),
+    ]);
+    // Byte-identical passthrough: no id match, no plan, nothing rendered for it.
+    expect(outB).toEqual(framesB);
+    expect(calls).toEqual(['render sigh 0 1 24000', 'stretch 24000 1.2']); // reply A only
+    expect(outA).not.toEqual(framesA); // the opening was prepended for reply A
+  });
+
   // ---- M2: no shared 'unknown' slot ----
-  it('no real session id or no turn: the stream comes back untouched', async () => {
+  it('no real session id or no reply id: the stream comes back untouched', async () => {
     process.env.SPEECH_STAGE2_NONVERBAL = 'live';
     process.env.SPEECH_STAGE2_TEMPO = 'live';
     setReplyAudioPlan('unknown', TURN, { tempo: 1.1 }); // rejected
@@ -306,7 +323,7 @@ describe('reply-audio-stage', () => {
     setReplyAudioPlan(SID, TURN, { opening: { kind: 'breath', intensity: 0.7 } });
     const stage = createReplyAudioStage({
       sessionId: SID,
-      turn: TURN,
+      replyId: TURN,
       native: fakeNative(),
       gates: LIVE,
     });
@@ -336,7 +353,7 @@ describe('reply-audio-stage', () => {
     const calls: string[] = [];
     const stage = createReplyAudioStage({
       sessionId: SID,
-      turn: TURN,
+      replyId: TURN,
       native: fakeNative(calls),
       gates: LIVE,
     });
@@ -371,7 +388,7 @@ describe('reply-audio-stage', () => {
     const calls: string[] = [];
     const stage = createReplyAudioStage({
       sessionId: SID,
-      turn: TURN,
+      replyId: TURN,
       native: fakeNative(calls),
       gates: LIVE,
     });
@@ -399,7 +416,7 @@ describe('reply-audio-stage', () => {
     const calls: string[] = [];
     const stage = createReplyAudioStage({
       sessionId: SID,
-      turn: TURN,
+      replyId: TURN,
       native: fakeNative(calls),
       gates: LIVE,
     });
@@ -428,7 +445,7 @@ describe('reply-audio-stage', () => {
     const calls: string[] = [];
     const stage = createReplyAudioStage({
       sessionId: SID,
-      turn: TURN,
+      replyId: TURN,
       native: fakeNative(calls),
       gates: LIVE,
     });
@@ -454,7 +471,7 @@ describe('reply-audio-stage', () => {
 
   it('waits for at most one update: a third plan for the turn is not played', async () => {
     const calls: string[] = [];
-    createReplyAudioStage({ sessionId: SID, turn: TURN, native: fakeNative(calls), gates: LIVE });
+    createReplyAudioStage({ sessionId: SID, replyId: TURN, native: fakeNative(calls), gates: LIVE });
     setReplyAudioPlan(SID, TURN, { tempo: 1 });
     await Promise.resolve();
     mergeReplyAudioPlan(SID, TURN, { tempo: 1.05 });
@@ -467,7 +484,7 @@ describe('reply-audio-stage', () => {
 
   it('stops waiting for a plan on cancel and at the end of the reply', async () => {
     const make = () =>
-      createReplyAudioStage({ sessionId: SID, turn: TURN, native: fakeNative(), gates: LIVE });
+      createReplyAudioStage({ sessionId: SID, replyId: TURN, native: fakeNative(), gates: LIVE });
     const cancelled = make();
     expect(replyAudioPlanListenerCount()).toBe(1);
     await cancelled.readable.cancel('barge-in');
@@ -567,11 +584,11 @@ describe('applyPostTTSEnhancement with Stage 2 off == Stage 2 module stubbed out
   }
 
   /** Bytes out of a freshly imported applyPostTTSEnhancement (seeded dither). */
-  async function run(config: object, turn?: number): Promise<Int16Array> {
+  async function run(config: object, replyId?: string): Promise<Int16Array> {
     const mod = await import('../post-tts-transform.js');
     seedRandom();
     const out = samples(
-      await collect(await mod.applyPostTTSEnhancement(streamOf(toneFrames(25)), config, turn))
+      await collect(await mod.applyPostTTSEnhancement(streamOf(toneFrames(25)), config, replyId))
     );
     vi.restoreAllMocks();
     return out;

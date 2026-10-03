@@ -47,6 +47,7 @@ import { isFTISEnabled } from '../processors/tool-routing-integration.js';
 
 // TTS Gateway integration
 import { createGatewayTTSNode, isTTSGatewayEnabled } from '../../speech/tts-gateway/index.js';
+import { getReplyAudioId } from '../../speech/tts-gateway/reply-audio-id.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -1127,8 +1128,10 @@ export async function wrappedTtsNode(
       '🚀 Using FULL TTS Gateway - bypassing LiveKit Cartesia'
     );
 
-    // Gateway TTS node: SSML → cache → Cartesia → frames. turnContext lets the
-    // Speech Director key this reply's Stage 2 plan by (sessionId, turnNumber).
+    // Gateway TTS node: SSML → cache → Cartesia → frames. turnContext gives
+    // the Speech Director the user's words and the turn for laughter
+    // cooldowns; the Stage 2 plan is keyed by the reply id the node
+    // generates itself and tags onto the stream it returns (review H2).
     const gatewayTTS = createGatewayTTSNode({
       voiceId: actualVoiceId,
       sessionId,
@@ -1182,7 +1185,7 @@ export async function wrappedTtsNode(
     const enhancedStream = await applyPostTTSEnhancement(
       audioStream,
       enhancementConfig,
-      turnNumber
+      getReplyAudioId(audioStream)
     );
     return wrapWithTTSCheckpoints(enhancedStream, sessionId, turnNumber, markTurnCheckpoint);
   }

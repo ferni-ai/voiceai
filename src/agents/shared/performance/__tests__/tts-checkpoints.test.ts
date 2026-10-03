@@ -68,10 +68,10 @@ describe('wrapWithTTSCheckpoints', () => {
   });
 
   it('with an opening breath: first byte is the breath, first speech is after it', async () => {
-    setReplyAudioPlan(SID, 3, { opening: { kind: 'breath', intensity: 0.5 } });
+    setReplyAudioPlan(SID, 'reply-3', { opening: { kind: 'breath', intensity: 0.5 } });
     const stage = createReplyAudioStage({
       sessionId: SID,
-      turn: 3,
+      replyId: 'reply-3',
       native: fakeNative,
       gates: { nonverbal: true, tempo: false },
     });

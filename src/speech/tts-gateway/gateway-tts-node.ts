@@ -17,6 +17,7 @@
  */
 
 import type { AudioFrame } from '@livekit/rtc-node';
+import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { ReadableStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 
@@ -38,6 +39,9 @@ import { findChunkEnd } from './chunk-boundary.js';
 import { createContinuationTTS } from './continuation-tts.js';
 import { directSpeech, type TurnContext } from './director/index.js';
 import { prosodyTags } from './providers/cartesia.js';
+import { tagReplyAudioId, getReplyAudioId } from './reply-audio-id.js';
+
+export { getReplyAudioId };
 import type { SSMLProsodyConfig } from './types.js';
 
 // ============================================================================
@@ -342,6 +346,8 @@ interface StreamingOverlapOptions {
   personaId?: string;
   emotion?: string;
   turnContext?: TurnContext;
+  /** Keys this reply's Stage 2 plan (review H2); see reply-audio-id.ts. */
+  replyId: string;
   sampleRate: number;
   frameDurationMs: number;
   enableCache: boolean;
@@ -735,6 +741,9 @@ export function createGatewayTTSNode(
     // STREAMING OVERLAP: Start TTS on first phrase (target -100–200ms E2E)
     // =========================================================================
     if (enableStreamingOverlap) {
+      // One id per reply (review H2): keys this reply's Stage 2 plan so no
+      // other TTS stream in the same turn can take or discard it.
+      const replyId = randomUUID();
       return createStreamingOverlapTTS({
         textStream,
         voiceId,
@@ -742,6 +751,7 @@ export function createGatewayTTSNode(
         personaId,
         emotion,
         turnContext,
+        replyId,
         sampleRate,
         frameDurationMs,
         enableCache,
@@ -750,6 +760,9 @@ export function createGatewayTTSNode(
         provider,
         ssmlProcessor,
         markFirstAudio,
+      }).then((result) => {
+        if (result) tagReplyAudioId(result, replyId);
+        return result;
       });
     }
 

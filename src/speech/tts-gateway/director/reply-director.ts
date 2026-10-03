@@ -91,8 +91,16 @@ export interface DirectSpeechOptions {
   personaId?: string;
   /** Session emotion hint. */
   emotion?: string;
-  /** The turn being answered: keys the Stage 2 plan; the user's words. */
+  /** The turn being answered: the user's words (laughter cooldowns, nonverbal). */
   turnContext?: TurnContext;
+  /**
+   * The id the gateway TTS node tagged this reply's audio stream with
+   * (`tts-gateway/reply-audio-id.ts`): keys the Stage 2 plan, never the turn
+   * number — two TTS streams in the same turn (a filler, `say()`, a
+   * pre-tool phrase, and the real reply) each get their own id, so one can
+   * never take or discard another's plan (review H2).
+   */
+  replyId?: string;
   /** Rapport 0-1 for the laughter rules (overrides turnContext.comfortLevel). */
   comfortLevel?: number;
   env?: Record<string, string | undefined>;
@@ -171,7 +179,7 @@ class DirectedReply implements ReplyStream {
     this.plannedRevision = this.engine.openingRevision;
     try {
       const plan = this.engine.audioPlan();
-      if (plan) setReplyAudioPlan(this.opts.sessionId, this.opts.turnContext?.turnNumber, plan);
+      if (plan) setReplyAudioPlan(this.opts.sessionId, this.opts.replyId, plan);
     } catch (error) {
       log.warn({ err: String(error), sessionId: this.opts.sessionId }, 'Stage 2 plan failed');
     }
@@ -188,7 +196,7 @@ class DirectedReply implements ReplyStream {
     this.updated = true;
     try {
       const plan = this.engine.audioPlan();
-      if (plan) mergeReplyAudioPlan(this.opts.sessionId, this.opts.turnContext?.turnNumber, plan);
+      if (plan) mergeReplyAudioPlan(this.opts.sessionId, this.opts.replyId, plan);
     } catch (error) {
       log.warn(
         { err: String(error), sessionId: this.opts.sessionId },

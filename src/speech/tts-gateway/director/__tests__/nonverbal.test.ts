@@ -159,6 +159,7 @@ async function reply(
     sessionId: SESSION,
     personaId: 'ferni',
     turnContext: { turnNumber: turn, userRequest },
+    replyId: String(turn),
     env,
     sessions,
     onPlan: (s) => (summary = s),
@@ -171,7 +172,11 @@ async function reply(
     if (piece.trim()) directed.reply.push(piece);
   }
   directed.reply.end();
-  return { pushes: inner.pushes, summary: summary!, plan: takeReplyAudioPlan(SESSION, turn) };
+  return {
+    pushes: inner.pushes,
+    summary: summary!,
+    plan: takeReplyAudioPlan(SESSION, String(turn)),
+  };
 }
 
 const LIVE = { SPEECH_DIRECTOR: 'live', SPEECH_DIRECTOR_NONVERBAL: 'live' };

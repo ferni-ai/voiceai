@@ -45,6 +45,7 @@ class Recorder implements ReplyStream {
 }
 
 const SESSION = 'late-breath';
+const REPLY_ID = 'late-breath-reply';
 const LIVE = { SPEECH_DIRECTOR: 'live', SPEECH_DIRECTOR_NONVERBAL: 'live' };
 /** A soft start (0.9) on Ferni's PVC: the first plan carries a tempo of 0.9. */
 const LONG_FIRST_SENTENCE = [
@@ -72,6 +73,7 @@ async function reply(
     sessionId: SESSION,
     personaId: 'ferni',
     turnContext: { turnNumber: 3, userRequest: 'hi' },
+    replyId: REPLY_ID,
     env,
     sessions,
     onPlan: (s) => (summary = s),
@@ -118,9 +120,9 @@ describe('late breath on the push path', () => {
     // The first plan (tempo) went out at the first push; the breath is the one update.
     expect(vi.mocked(setReplyAudioPlan).mock.calls[0][2]).toEqual({ tempo: 0.9 });
     expect(vi.mocked(mergeReplyAudioPlan)).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(mergeReplyAudioPlan).mock.calls[0].slice(0, 2)).toEqual([SESSION, 3]);
+    expect(vi.mocked(mergeReplyAudioPlan).mock.calls[0].slice(0, 2)).toEqual([SESSION, REPLY_ID]);
     expect(planCalls()).toBe(2);
-    expect(takeReplyAudioPlan(SESSION, 3)).toEqual({
+    expect(takeReplyAudioPlan(SESSION, REPLY_ID)).toEqual({
       tempo: 0.9,
       opening: { kind: 'breath', intensity: 0.5 },
     });
@@ -130,7 +132,9 @@ describe('late breath on the push path', () => {
     const plain = LONG_FIRST_SENTENCE.map((p) => p.replace('<speed ratio="0.9"/>', ''));
     await reply(plain);
     expect(vi.mocked(setReplyAudioPlan)).not.toHaveBeenCalled();
-    expect(takeReplyAudioPlan(SESSION, 3)).toEqual({ opening: { kind: 'breath', intensity: 0.5 } });
+    expect(takeReplyAudioPlan(SESSION, REPLY_ID)).toEqual({
+      opening: { kind: 'breath', intensity: 0.5 },
+    });
   });
 
   it('stops reading once the first sentence ends', async () => {

@@ -4,7 +4,7 @@
  *
  * One TTS stream is one reply (one Cartesia context per reply). When the
  * stream is built (the reply's TTS start, before Cartesia's first byte) this
- * takes the plan for (sessionId, turn) (`speech/reply-audio-plan.ts`) and:
+ * takes the plan for (sessionId, replyId) (`speech/reply-audio-plan.ts`) and:
  * - SPEECH_STAGE2_NONVERBAL=live + plan.opening: renders the breath/sigh in
  *   Rust at the configured output rate and enqueues it right away, so it
  *   plays while we wait for Cartesia instead of delaying the first word. It
@@ -29,9 +29,11 @@
  * Lead (opening) frames are marked; `isReplyAudioLeadFrame` lets latency
  * checkpoints tell them from speech.
  *
- * With both gates off, or without a real session id and turn,
- * `applyReplyAudioStage` returns the input stream itself; with a gate on but
- * no plan, frames pass through untouched (the same AudioFrame objects).
+ * With both gates off, or without a real session id and reply id (no id at
+ * all means no Director ran on this stream: a filler, `say()`, a pre-tool
+ * phrase, or a cached clip — review H2), `applyReplyAudioStage` returns the
+ * input stream itself; with a gate on but no plan, frames pass through
+ * untouched (the same AudioFrame objects).
  *
  * @module agents/shared/performance/reply-audio-stage
  */
@@ -47,6 +49,7 @@ import {
 import {
   getStage2Gates,
   isPlannableSession,
+  isReplyId,
   onReplyAudioPlan,
   takeReplyAudioPlan,
   type ReplyAudioPlan,
@@ -142,8 +145,12 @@ function frameSamples(frame: AudioFrame): Int16Array {
 
 export interface ReplyAudioStageOptions {
   sessionId: string | undefined;
-  /** The reply's turn (`turnNumber`); a plan for another turn never applies. */
-  turn: number | undefined;
+  /**
+   * The id the gateway TTS node tagged this stream with
+   * (`tts-gateway/reply-audio-id.ts`); a plan for a different reply never
+   * applies, even in the same session or turn (review H2).
+   */
+  replyId: string | undefined;
   native: ReplyAudioNative;
   /** Defaults to the env gates read when the stream starts. */
   gates?: Stage2Gates;
@@ -327,7 +334,7 @@ function startTempo(
 export function createReplyAudioStage(
   options: ReplyAudioStageOptions
 ): NodeTransformStream<AudioFrame, AudioFrame> {
-  const { sessionId, turn, native } = options;
+  const { sessionId, replyId, native } = options;
   const gates = options.gates ?? getStage2Gates();
   const outRate = options.outputSampleRate ?? DEFAULT_OUTPUT_SAMPLE_RATE;
   let plan: ReplyAudioPlan | undefined;
@@ -338,9 +345,12 @@ export function createReplyAudioStage(
   const begin = (first: AudioFrame): void => {
     started = true;
     if (!plan) {
-      plan = takeReplyAudioPlan(sessionId, turn);
+      plan = takeReplyAudioPlan(sessionId, replyId);
       if (plan?.opening && gates.nonverbal) {
-        log.debug({ sessionId, turn }, 'Stage 2 plan arrived after TTS start; opening skipped');
+        log.debug(
+          { sessionId, replyId },
+          'Stage 2 plan arrived after TTS start; opening skipped'
+        );
       }
     }
     if (leadRate && first.sampleRate !== leadRate) {
@@ -360,7 +370,7 @@ export function createReplyAudioStage(
     try {
       for (const f of renderLead(native, plan.opening, outRate)) controller.enqueue(f);
       leadRate = outRate;
-      log.debug({ sessionId, turn, kind: plan.opening.kind, sr: outRate }, 'Stage 2 opening');
+      log.debug({ sessionId, replyId, kind: plan.opening.kind, sr: outRate }, 'Stage 2 opening');
     } catch (error) {
       log.warn({ sessionId, error: String(error) }, 'Stage 2 opening failed; skipped');
     }
@@ -369,17 +379,17 @@ export function createReplyAudioStage(
   // `cancel` (Node 21+) ends the wait on playback stop; else TTL / first frame / end do.
   /** Wait for the plan; a plan with no opening may get `updates` more (a late breath). */
   const waitForPlan = (controller: Controller, updates: number): void => {
-    stopWaiting = onReplyAudioPlan(sessionId, turn, () => {
+    stopWaiting = onReplyAudioPlan(sessionId, replyId, () => {
       stopWaiting = null;
       if (started) return;
-      plan = { ...plan, ...takeReplyAudioPlan(sessionId, turn) }; // an update keeps the tempo
+      plan = { ...plan, ...takeReplyAudioPlan(sessionId, replyId) }; // an update keeps the tempo
       playOpening(controller);
       if (!plan?.opening && gates.nonverbal && updates > 0) waitForPlan(controller, updates - 1);
     });
   };
   const transformer: Transformer<AudioFrame, AudioFrame> & { cancel?: () => void } = {
     start(controller) {
-      plan = takeReplyAudioPlan(sessionId, turn);
+      plan = takeReplyAudioPlan(sessionId, replyId);
       if (!plan) return waitForPlan(controller, 1);
       playOpening(controller);
       if (!plan.opening && gates.nonverbal) waitForPlan(controller, 0);
@@ -391,12 +401,12 @@ export function createReplyAudioStage(
         // An opening that lands after speech started is skipped (it would delay speech);
         // consume and log it so a stale plan never lingers and misses are countable.
         if (awaitingUpdate && gates.nonverbal) {
-          stopWaiting = onReplyAudioPlan(sessionId, turn, () => {
+          stopWaiting = onReplyAudioPlan(sessionId, replyId, () => {
             stopWaiting = null;
-            const late = takeReplyAudioPlan(sessionId, turn);
+            const late = takeReplyAudioPlan(sessionId, replyId);
             if (late?.opening) {
               log.info(
-                { sessionId, turn, kind: late.opening.kind },
+                { sessionId, replyId, kind: late.opening.kind },
                 'Stage 2 opening arrived after speech started; skipped'
               );
             }
@@ -424,22 +434,23 @@ export function createReplyAudioStage(
 
 /**
  * Add Stage 2 after post-TTS enhancement. Returns `stream` itself when both
- * gates are off, without a real session id and turn (no plan can exist), or
- * when the native module can't load.
+ * gates are off, without a real session id and reply id (no reply id means
+ * no Director ran on this stream, so no plan could ever apply — review H2),
+ * or when the native module can't load.
  */
 export async function applyReplyAudioStage(
   stream: NodeReadableStream<AudioFrame>,
   sessionId: string | undefined,
-  turn: number | undefined,
+  replyId: string | undefined,
   outputSampleRate?: number
 ): Promise<NodeReadableStream<AudioFrame>> {
   const gates = getStage2Gates();
   if (!gates.nonverbal && !gates.tempo) return stream;
-  if (!isPlannableSession(sessionId) || turn === undefined) return stream;
+  if (!isPlannableSession(sessionId) || !isReplyId(replyId)) return stream;
   const native = await loadNative();
   if (!native) return stream;
   return stream.pipeThrough(
-    createReplyAudioStage({ sessionId, turn, native, gates, outputSampleRate })
+    createReplyAudioStage({ sessionId, replyId, native, gates, outputSampleRate })
   );
 }
 

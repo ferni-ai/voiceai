@@ -143,16 +143,24 @@ const ALL_LIVE: Record<(typeof ENV_KEYS)[number], string> = {
 interface Run {
   frames: AudioFrame[];
   gatewaySameAsOutput: boolean;
+  /** The id the gateway node actually tagged this reply's stream with. */
+  replyId: string | undefined;
 }
 
 /**
  * One reply as tts-wrapper runs it: the gateway node for this turn, then
- * post-TTS enhancement + Stage 2 for the same turn. The LLM's text starts
+ * post-TTS enhancement + Stage 2 for the same reply (keyed by the id the
+ * gateway node generated, not by turn — review H2). The LLM's text starts
  * only after the post-TTS chain exists, as on a call (TTS starts before the
- * model's first sentence).
+ * model's first sentence). `replyIdOverride` lets a test simulate Stage 2
+ * querying a DIFFERENT reply's id, the way a mismatched turn used to.
  */
-async function speak(sessionId: string, turn: number, stageTurn = turn): Promise<Run> {
-  const { createGatewayTTSNode } = await import('../gateway-tts-node.js');
+async function speak(
+  sessionId: string,
+  turn: number,
+  replyIdOverride?: string
+): Promise<Run> {
+  const { createGatewayTTSNode, getReplyAudioId } = await import('../gateway-tts-node.js');
   let go: () => void = () => undefined;
   const started = new Promise<void>((resolve) => {
     go = resolve;
@@ -179,15 +187,16 @@ async function speak(sessionId: string, turn: number, stageTurn = turn): Promise
     enableCache: false,
   });
   const gateway = (await node(text)) as NodeReadableStream<AudioFrame>;
+  const actualReplyId = getReplyAudioId(gateway);
   const out = await applyPostTTSEnhancement(
     gateway,
     { ...PostTTSPresets.betterThanHuman, sessionId, personaId: 'ferni' },
-    stageTurn
+    replyIdOverride ?? actualReplyId
   );
   go();
   const frames: AudioFrame[] = [];
   for await (const f of out) frames.push(f);
-  return { frames, gatewaySameAsOutput: out === gateway };
+  return { frames, gatewaySameAsOutput: out === gateway, replyId: actualReplyId };
 }
 
 const samplesOf = (frames: AudioFrame[]): number =>
@@ -222,11 +231,12 @@ describe.skipIf(!hasNative())(
       delete process.env.POST_TTS_ENHANCEMENT_ENABLED;
     });
 
-    it('all levers live on Ferni’s PVC: clean text, one plan for this turn, sigh then stretched speech', async () => {
+    it('all levers live on Ferni’s PVC: clean text, one plan for this reply, sigh then stretched speech', async () => {
       Object.assign(process.env, ALL_LIVE);
       const sid = `e2e-live-${++session}`;
       directorSessions.clear(sid);
-      const { frames } = await speak(sid, 7);
+      const { frames, replyId } = await speak(sid, 7);
+      expect(replyId).toBeDefined();
 
       // Stage 1: what reached Cartesia.
       const sent = pushes();
@@ -238,10 +248,10 @@ describe.skipIf(!hasNative())(
       expect(all).toContain("Oh, I'm so sorry you're going through this.");
       expect(all).toContain('We will get through it together, one step at a time.');
 
-      // The plan: once, for exactly (session, turn 7), tempo + the sigh at Lester's pitch.
+      // The plan: once, for exactly (session, replyId), tempo + the sigh at Lester's pitch.
       const { calls } = vi.mocked(setReplyAudioPlan).mock;
       expect(calls).toHaveLength(1);
-      expect(calls[0].slice(0, 2)).toEqual([sid, 7]);
+      expect(calls[0].slice(0, 2)).toEqual([sid, replyId]);
       const [, , plan] = calls[0];
       // Heavy reply 0.97, composed with the 0.9 soft start: 0.87 (inside 0.85-1.15).
       expect(plan).toEqual({ tempo: 0.87, opening: { kind: 'sigh', intensity: 0.6, f0Hz: 111 } });
@@ -260,11 +270,11 @@ describe.skipIf(!hasNative())(
       expect(samplesOf(speech) / cartesia).toBeLessThan((1 / 0.87) * 1.03);
     });
 
-    it('a stage for another turn never takes this turn’s plan', async () => {
+    it('a stage for another reply never takes this reply’s plan', async () => {
       Object.assign(process.env, ALL_LIVE);
       const sid = `e2e-turn-${++session}`;
-      const { frames } = await speak(sid, 7, 6);
-      expect(vi.mocked(setReplyAudioPlan).mock.calls[0].slice(0, 2)).toEqual([sid, 7]);
+      const { frames, replyId } = await speak(sid, 7, 'a-different-reply-id');
+      expect(vi.mocked(setReplyAudioPlan).mock.calls[0].slice(0, 2)).toEqual([sid, replyId]);
       expect(frames.some(isReplyAudioLeadFrame)).toBe(false);
       expect(samplesOf(frames)).toBe(net.pcm.reduce((n, p) => n + p.length, 0)); // not stretched
       clearReplyAudioPlan(sid);

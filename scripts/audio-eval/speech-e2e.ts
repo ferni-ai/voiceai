@@ -242,7 +242,9 @@ async function runReply(
     voiceId,
     sessionId,
     personaId: 'ferni',
-    // Production passes tts-wrapper's session context; Stage 2 refuses a plan with no turn.
+    // turnContext carries the user's words for the Director's nonverbal
+    // decisions; Stage 2's plan is keyed by the reply id the node generates
+    // itself and tags onto the returned stream (review H2), not by turn.
     turnContext: { turnNumber: turn, userRequest: s.userText } as never,
     sampleRate: SAMPLE_RATE,
     frameDurationMs: 20,
@@ -271,10 +273,13 @@ async function runReply(
   try {
     const audio = await node(textStream as never);
     if (!audio) throw new Error('gateway TTS node returned null');
+    // Pass the reply id the gateway node tagged `audio` with, the same way
+    // tts-wrapper does (review H2) — Stage 2 refuses a plan with no id.
+    const replyId = gateway.getReplyAudioId(audio);
     const out = await postTts.applyPostTTSEnhancement(
       audio,
       { ...postTts.PostTTSPresets.betterThanHuman, sessionId, personaId: 'ferni' },
-      turn
+      replyId
     );
     const reader = out.getReader();
     const deadline = Date.now() + REPLY_TIMEOUT_MS;
