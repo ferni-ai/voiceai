@@ -58,6 +58,11 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
 
     const start = Date.now();
     try {
+      // The turn handler records each turn's voice pattern; the engine must
+      // exist first (voice-pattern-session.ts, VOICE_PATTERN_ENGINE).
+      const { startVoicePatterns } =
+        await import('../../conversation/humanization/voice-pattern-session.js');
+      await startVoicePatterns(deps.services.sessionId, deps.services.userId);
       const handle = deps.handle ?? (await import('../voice-agent/turn-handler.js')).handleUserTurn;
       const { getStateManager } = await import('../session/user-data-proxy.js');
       const { getAverageSpeechRate } = await import('../voice-agent/human-turn-intelligence.js');
