@@ -26,6 +26,9 @@ import {
 
 const log = createLogger({ module: 'VoicePatternSession' });
 
+/** Sessions whose saved patterns failed to load: their save would overwrite real history. */
+const unsaveableSessions = new Set<string>();
+
 export function voicePatternEngineEnabled(
   env: Record<string, string | undefined> = process.env
 ): boolean {
@@ -50,7 +53,17 @@ export async function startVoicePatterns(
 ): Promise<void> {
   if (!voicePatternEngineEnabled() || getVoicePatterns(sessionId) !== null) return;
   if (isIdentifiedUser(userId)) {
-    await initializeVoicePatterns(sessionId, userId);
+    try {
+      await initializeVoicePatterns(sessionId, userId);
+    } catch (error) {
+      // Keep learning this session, but never save it over the record we could not read.
+      unsaveableSessions.add(sessionId);
+      getVoicePatternEngine(sessionId, userId);
+      log.warn(
+        { sessionId, error: String(error) },
+        'Voice patterns failed to load; this session will not save them'
+      );
+    }
   } else {
     getVoicePatternEngine(sessionId, userId || 'anonymous');
   }
@@ -58,6 +71,10 @@ export async function startVoicePatterns(
 
 /** Save what this session learned, for identified users only. */
 export async function persistSessionVoicePatterns(sessionId: string): Promise<boolean> {
+  if (unsaveableSessions.delete(sessionId)) {
+    log.warn({ sessionId }, 'Not saving voice patterns: they failed to load at session start');
+    return false;
+  }
   const patterns = getVoicePatterns(sessionId);
   if (!patterns || !isIdentifiedUser(patterns.userId)) {
     log.debug({ sessionId }, 'No voice patterns to save for this session');
