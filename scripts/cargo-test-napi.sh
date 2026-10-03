@@ -9,11 +9,13 @@
 # those symbols unresolved: dynamic_lookup on macOS (what napi-build already
 # does for the .node module), ignore-all plus lazy binding on Linux.
 #
-# On Linux that still wasn't enough: napi-rs's module-registration code takes
-# napi_* addresses, which the loader resolves at startup even with lazy
-# binding, and the binary died with "symbol lookup error: undefined symbol:
-# napi_is_exception_pending" before any test ran. napi-rs's noop feature
-# leaves that registration out (the tests never register a Node module).
+# On Linux that still wasn't enough: the binary died at load with "symbol
+# lookup error: undefined symbol: napi_is_exception_pending", even with lazy
+# binding and napi-rs's noop feature (which leaves out module registration).
+# napi's dyn-symbols feature (what Windows always uses) turns every napi_*
+# function into a pointer filled in at runtime, so the test binary has no
+# unresolved napi_* symbols left (nm -u shows 0) and nothing for the loader
+# to trip on.
 set -euo pipefail
 crate_dir=$1
 shift
@@ -23,4 +25,4 @@ case "$(uname -s)" in
   *) echo "unsupported OS: $(uname -s)" >&2; exit 2 ;;
 esac
 cd "$crate_dir"
-RUSTFLAGS="${RUSTFLAGS:-} $link" cargo test --release --lib --features napi/noop,napi-derive/noop "$@"
+RUSTFLAGS="${RUSTFLAGS:-} $link" cargo test --release --lib --features napi/noop,napi-derive/noop,napi/dyn-symbols "$@"
