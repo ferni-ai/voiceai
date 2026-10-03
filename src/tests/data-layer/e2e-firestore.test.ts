@@ -425,6 +425,7 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
 
       // Completes with a report even when nothing has expired
       const report = await runTTLCleanup({ dryRun: true });
+      expect(report.results.filter((r) => r.errors > 0)).toEqual([]);
       expect(report.totalErrors).toBe(0);
       expect(Array.isArray(report.results)).toBe(true);
     });
