@@ -1,0 +1,239 @@
+/**
+ * The Speech Director on the live gateway path.
+ *
+ * `directSpeech()` wraps the Cartesia reply stream (and observes the raw LLM
+ * text) for one spoken reply. With SPEECH_DIRECTOR off it returns the very
+ * same objects, so the path is untouched. In shadow every push is forwarded
+ * verbatim first and the plan is computed beside it; in live the pushes are
+ * the Director's. Either way one aggregate line is logged per reply: counts,
+ * the emotion and speed chosen, pause count and total, latency. Never text.
+ *
+ * Any Director error falls back to forwarding pushes verbatim for the rest
+ * of the reply.
+ *
+ * @module speech/tts-gateway/director/reply-director
+ */
+
+import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
+
+import { createLogger } from '../../../utils/safe-logger.js';
+import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
+import { prosodyTags } from '../providers/cartesia.js';
+import { DirectorEngine } from './engine.js';
+import { leverModes, speechDirectorMode } from './gate.js';
+import { directorSessions, type DirectorSessions } from './session-state.js';
+import type { DirectorMode, LeverModes, SpeechPlan } from './types.js';
+
+const log = createLogger({ module: 'SpeechDirector' });
+
+/** The one log line per reply. Counts and decisions only, never text. */
+export interface PlanSummary {
+  mode: DirectorMode;
+  levers: string;
+  sessionId?: string;
+  personaId?: string;
+  pushesIn: number;
+  pushesOut: number;
+  segments: number;
+  heldPhrases: number;
+  normalizations: number;
+  pauseUpgrades: number;
+  emotion?: string;
+  emotionSource: string;
+  speed: number;
+  pauses: number;
+  pauseMs: number;
+  breaths: number;
+  sighs: number;
+  latencyUs: number;
+  cancelled: boolean;
+  failed: boolean;
+}
+
+export interface DirectSpeechOptions {
+  textStream: NodeReadableStream<string>;
+  voiceId: string;
+  sessionId?: string;
+  personaId?: string;
+  /** Session emotion hint. */
+  emotion?: string;
+  env?: Record<string, string | undefined>;
+  sessions?: DirectorSessions;
+  onPlan?: (summary: PlanSummary, plan: SpeechPlan) => void;
+}
+
+const AUTHORED_EMOTION = /<emotion\s+value=["']?([a-z_]+)/i;
+const SIGH_CUE = /\[(?:[a-z]+\s+)?sighs?\]|\*sighs?\*|\((?:[a-z]+\s+)?sighs?\)/gi;
+
+/** What the raw LLM text says before the SSML processor strips it. */
+class RawCues {
+  authoredEmotion?: string;
+  /** Time spent scanning the raw stream, counted in the reply's latency. */
+  elapsedNs = 0n;
+  private raw = '';
+  private seenSighs = 0;
+  private placedSighs = 0;
+
+  see(chunk: string): void {
+    const start = process.hrtime.bigint();
+    this.raw += chunk;
+    this.authoredEmotion ??= AUTHORED_EMOTION.exec(this.raw)?.[1]?.toLowerCase();
+    this.seenSighs = this.raw.match(SIGH_CUE)?.length ?? 0;
+    this.elapsedNs += process.hrtime.bigint() - start;
+  }
+
+  takeSighs(): number {
+    const n = this.seenSighs - this.placedSighs;
+    this.placedSighs = this.seenSighs;
+    return n;
+  }
+}
+
+const describeLevers = (modes: LeverModes): string =>
+  Object.entries(modes)
+    .map(([lever, mode]) => `${lever}:${mode}`)
+    .join(',');
+
+function summarize(engine: DirectorEngine): Pick<PlanSummary, 'pauses' | 'pauseMs'> {
+  let pauses = 0;
+  let pauseMs = 0;
+  for (const segment of engine.plan.segments) {
+    for (const event of segment.rustEvents) {
+      if (event.type !== 'pause') continue;
+      pauses++;
+      pauseMs += Number(event.params.durationMs) || 0;
+    }
+  }
+  return { pauses, pauseMs };
+}
+
+class DirectedReply implements ReplyStream {
+  private readonly engine: DirectorEngine;
+  private elapsedNs = 0n;
+  private failed = false;
+  private done = false;
+
+  constructor(
+    private readonly inner: ReplyStream,
+    private readonly mode: 'shadow' | 'live',
+    private readonly modes: LeverModes,
+    private readonly opts: DirectSpeechOptions,
+    private readonly cues: RawCues
+  ) {
+    const sessions = opts.sessions ?? directorSessions;
+    this.engine = new DirectorEngine({
+      modes,
+      voiceId: opts.voiceId,
+      sessionHint: opts.emotion,
+      carry: opts.sessionId ? sessions.get(opts.sessionId) : { speed: 1 },
+      cues,
+      renderTags: prosodyTags,
+    });
+  }
+
+  /** Run Director work, timing it; on error stop directing this reply. */
+  private direct(work: () => string[]): string[] | null {
+    if (this.failed) return null;
+    const start = process.hrtime.bigint();
+    try {
+      return work();
+    } catch (error) {
+      this.failed = true;
+      log.warn({ err: String(error), sessionId: this.opts.sessionId }, 'Speech director failed');
+      return null;
+    } finally {
+      this.elapsedNs += process.hrtime.bigint() - start;
+    }
+  }
+
+  push(text: string): void {
+    if (this.done) return;
+    if (this.mode === 'shadow') {
+      this.inner.push(text);
+      this.direct(() => this.engine.take(text));
+      return;
+    }
+    const out = this.direct(() => this.engine.take(text));
+    if (out === null) {
+      for (const held of this.engine.releaseHeld()) this.inner.push(held);
+      this.inner.push(text);
+      return;
+    }
+    for (const piece of out) this.inner.push(piece);
+  }
+
+  end(): void {
+    if (this.done) return;
+    const rest = this.direct(() => this.engine.finish()) ?? this.engine.releaseHeld();
+    if (this.mode === 'live') for (const piece of rest) this.inner.push(piece);
+    this.report(false);
+    this.inner.end();
+  }
+
+  cancel(): void {
+    if (!this.done) this.report(true);
+    this.inner.cancel();
+  }
+
+  [Symbol.asyncIterator](): AsyncIterator<ArrayBuffer> {
+    return this.inner[Symbol.asyncIterator]();
+  }
+
+  private report(cancelled: boolean): void {
+    this.done = true;
+    const { engine, opts } = this;
+    const summary: PlanSummary = {
+      mode: this.mode,
+      levers: describeLevers(this.modes),
+      sessionId: opts.sessionId,
+      personaId: opts.personaId,
+      pushesIn: engine.stats.pushesIn,
+      pushesOut: engine.stats.pushesOut,
+      segments: engine.plan.segments.length,
+      heldPhrases: engine.stats.held,
+      normalizations: engine.stats.normalizations,
+      pauseUpgrades: engine.stats.pauseUpgrades,
+      emotion: engine.emotion.emotion,
+      emotionSource: engine.emotion.source,
+      speed: engine.speed,
+      ...summarize(engine),
+      breaths: engine.stats.breaths,
+      sighs: engine.stats.sighs,
+      latencyUs: Math.round(Number(this.elapsedNs + this.cues.elapsedNs) / 100) / 10,
+      cancelled,
+      failed: this.failed,
+    };
+    if (opts.sessionId && engine.stats.pushesIn > 0) {
+      (opts.sessions ?? directorSessions).update(opts.sessionId, {
+        emotion: engine.emotion.emotion,
+        speed: engine.speed,
+      });
+    }
+    if (opts.onPlan) opts.onPlan(summary, engine.plan);
+    else log.info(summary, 'Speech director plan');
+  }
+}
+
+/**
+ * Put the Director between continuation-tts and the Cartesia reply stream.
+ * Off: returns `reply` and `opts.textStream` unchanged (the same objects).
+ */
+export function directSpeech(
+  reply: ReplyStream,
+  opts: DirectSpeechOptions
+): { reply: ReplyStream; textStream: NodeReadableStream<string> } {
+  const mode = speechDirectorMode(opts.env);
+  if (mode === 'off') return { reply, textStream: opts.textStream };
+
+  const cues = new RawCues();
+  const textStream = opts.textStream.pipeThrough(
+    new TransformStream<string, string>({
+      transform(chunk, controller) {
+        cues.see(chunk);
+        controller.enqueue(chunk);
+      },
+    })
+  );
+  const directed = new DirectedReply(reply, mode, leverModes(opts.env), opts, cues);
+  return { reply: directed, textStream };
+}
