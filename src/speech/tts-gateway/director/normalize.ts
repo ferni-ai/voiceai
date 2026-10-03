@@ -13,6 +13,10 @@
  * LLM wrote something Sonic reads badly:
  * - clock times get a spaced, capital AM/PM: "7pm" / "7 p.m." → "7 PM",
  *   "3:30pm" → "3:30 PM", and a range "7-9pm" → "7 to 9 PM";
+ * - a bare date in date context, which Sonic reads as a fraction ("10
+ *   thirds"): "on 10/3" → "on October 3" (bare-dates.ts);
+ * - a markdown dash list after a colon or at the start of a piece becomes
+ *   plain comma-separated text: "Idea: - one - two" → "Idea: one, two";
  * - stage directions are not spoken: an *asterisk span* that starts with an
  *   action verb (*smiles*, *takes a breath*) or opens a sentence in lowercase
  *   is removed (Stage 2 renders sighs and breaths); paired emphasis asterisks
@@ -29,6 +33,7 @@
  */
 
 import { rewriteAsteriskSpans } from '../stage-directions.js';
+import { writeBareDates } from './bare-dates.js';
 
 export interface NormalizeResult {
   text: string;
@@ -78,6 +83,9 @@ const CLOCK_RANGE = new RegExp(
   String.raw`\b(\d{1,2}(?::\d{2})?)(?:\s?([ap])\.?\s?m(?![a-z]))?\s?[-–]\s?(\d{1,2}(?::\d{2})?)${MERIDIEM}`,
   'gi'
 );
+/** A dash list after a colon or at the start of a piece: "Idea: - one - two". */
+const DASH_LIST = /(^|:)[ \t]*[-•][ \t]+(?=\S)([^.!?\n]*)/g;
+const LIST_DASH = /[ \t]+[-•][ \t]+/;
 const MARKDOWN_LINK = /\[([^\]\n]+)\]\((?:https?:\/\/|www\.)[^)\s]*\)/g;
 
 /** Tidy the spaces a removal left behind ("good 😊." → "good."), keeping the original's edges. */
@@ -139,6 +147,16 @@ const RULES: readonly Rule[] = [
         return `${h} ${mer.toUpperCase()}M${keepSentenceEnd(dot, all.slice(at + match.length))}`;
       }
     ),
+  // Bare dates in date context: "on 10/3" → "on October 3".
+  (t, hit) => writeBareDates(t, hit),
+  // Dash lists: "Idea: - one - two" → "Idea: one, two".
+  (t, hit) =>
+    t.replace(DASH_LIST, (_m, lead: string, rest: string) => {
+      hit();
+      const items = rest.split(LIST_DASH).map((item) => item.trim());
+      const tail = /\s$/.test(rest) ? ' ' : '';
+      return `${lead}${lead ? ' ' : ''}${items.filter(Boolean).join(', ')}${tail}`;
+    }),
   // Stage directions and markdown.
   (t, hit) => {
     // Stage directions are dropped and emphasis unwrapped (shared with the

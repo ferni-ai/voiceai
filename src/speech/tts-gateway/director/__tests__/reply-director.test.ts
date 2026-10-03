@@ -127,11 +127,12 @@ describe('live mode', () => {
   it('re-phrases, leaves conventional forms to Cartesia, and sets one emotion and speed', async () => {
     const { inner } = await run({ SPEECH_DIRECTOR: 'live' });
     const all = inner.pushes.join('');
-    expect(all).toContain('Mrs. Johnson said the bill was $4,200 on 10/3,');
+    // A bare date in date context is written out (Sonic read "10/3" as "10 thirds").
+    expect(all).toContain('Mrs. Johnson said the bill was $4,200 on October 3,');
     expect(all).toContain("Here's the thing, you did the right thing.");
     // The 80-char fallback cut ("a lot of | money") is gone: no push ends mid-phrase.
     expect(inner.pushes.some((p) => p.trim().endsWith('a lot of'))).toBe(false);
-    expect(inner.pushes[1].trim().endsWith('on 10/3,')).toBe(true);
+    expect(inner.pushes[1].trim().endsWith('on October 3,')).toBe(true);
     // One emotion and one speed, on the opening only.
     expect(inner.pushes[0]).toMatch(
       /^<speed ratio="0\.97"\/><emotion value="sympathetic"\/>Oh, I hear you\. $/

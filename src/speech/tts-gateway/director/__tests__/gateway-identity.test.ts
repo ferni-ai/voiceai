@@ -142,7 +142,8 @@ describe('SPEECH_DIRECTOR on the live gateway path', () => {
     expect(pushes).not.toEqual(GOLDEN);
     const all = pushes.join('');
     // Conventional forms are Cartesia's to read; only the edge cases change.
-    expect(all).toContain('$4,200 on 10/3,');
+    // A bare date in date context is one (Sonic read "10/3" as "10 thirds").
+    expect(all).toContain('$4,200 on October 3,');
     expect(all).toContain('Call at 3:30 PM if you can.');
     expect(pushes.some((p) => p.trim().endsWith('a lot of'))).toBe(false);
     expect(pushes[0]).toContain('<emotion value="sympathetic"/>');
