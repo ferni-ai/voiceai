@@ -36,6 +36,8 @@ export interface TurnContext {
   turnCtx: llm.ChatContext;
   /** The user's message text */
   userText: string;
+  /** Background run: build context only, never route or execute tools. */
+  contextOnly?: boolean;
   /** Current persona configuration */
   persona: PersonaConfig;
   /** Bundle runtime for rich persona behaviors */
