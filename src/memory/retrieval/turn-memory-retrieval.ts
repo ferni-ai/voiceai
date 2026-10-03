@@ -29,12 +29,7 @@
  *          MemoryContext
  * ```
  *
- * Performance Budget: < 350ms total (raised from 100ms 2026-10-03 - see
- * DEFAULT_CONFIG.totalTimeoutMs below for why). retrieveForTurn() is started
- * concurrently with the rest of turn processing by its caller
- * (agents/voice-agent/turn-handler.ts), not awaited inline, so this budget
- * mostly overlaps with - rather than adds to - the turn's critical path; see
- * getHybridSearchTimeoutStats() for the data to confirm/tune this in prod.
+ * Performance Budget: < 350ms total (see ./hybrid-search-timeout-stats.js).
  *
  * @module memory/retrieval/turn-memory-retrieval
  */
@@ -46,6 +41,11 @@ import {
   type HybridSearchMetrics,
   type HybridSearchResult,
 } from './hybrid-search.js';
+import {
+  getHybridSearchTimeoutStats,
+  recordHybridSearchOutcome,
+  runHybridSearchWithTimeout,
+} from './hybrid-search-timeout-stats.js';
 
 const log = createLogger({ module: 'TurnMemoryRetrieval' });
 
@@ -160,16 +160,7 @@ const DEFAULT_CONFIG: TurnRetrievalConfig = {
   maxMemories: 5, // Increased from 3 - more context helps
   enableReranking: true,
   rerankTimeoutMs: 50,
-  // Was 100 (hybrid search got 100*0.7=70ms). This module's own docs
-  // (../CLAUDE.md "Performance") put vector search alone at 50-150ms, and
-  // hybridSearch() also calls embed() (an OpenAI network round trip) before
-  // it can even query Firestore/BM25/entity store. A 70ms budget was smaller
-  // than the documented latency of ONE of its three sub-searches, so on a
-  // live dev call (2026-10-03) every single turn hit "Hybrid search
-  // timeout" (TurnMemoryRetrieval) and fell back to zero memories. 350ms
-  // (245ms for hybrid search at the same 0.7 ratio) gives real headroom
-  // while still keeping retrieval well under human conversational latency.
-  totalTimeoutMs: 350,
+  totalTimeoutMs: 350, // Was 100 - timed out every turn in prod; see ./hybrid-search-timeout-stats.js
   enableGraphExpansion: true,
   graphExpansionDepth: 2,
 };
@@ -188,46 +179,6 @@ export function setTurnRetrievalConfig(newConfig: Partial<TurnRetrievalConfig>):
  */
 export function getTurnRetrievalConfig(): TurnRetrievalConfig {
   return { ...config };
-}
-
-// ============================================================================
-// HYBRID SEARCH TIMEOUT OBSERVABILITY
-// ============================================================================
-// `totalTimeoutMs` was raised 100ms -> 350ms on 2026-10-03 because the old
-// 70ms hybrid-search slice (100 * 0.7) was timing out on every single turn
-// in production (see PR #175). That bump was reasoned from this module's
-// documented sub-component latencies, not measured end-to-end in prod. Track
-// actual attempts/timeouts here so the budget can be tuned from real data
-// instead of re-guessed later.
-
-let hybridSearchAttempts = 0;
-let hybridSearchTimeouts = 0;
-
-/**
- * Observability stats for the hybrid-search timeout budget. Call this from
- * a health/metrics endpoint to see whether `totalTimeoutMs` is well-tuned:
- * a near-zero `timeoutRate` means there's room to lower it back down for
- * latency; a high rate means the budget (or the underlying search latency)
- * still needs work.
- */
-export function getHybridSearchTimeoutStats(): {
-  attempts: number;
-  timeouts: number;
-  timeoutRate: number;
-} {
-  return {
-    attempts: hybridSearchAttempts,
-    timeouts: hybridSearchTimeouts,
-    timeoutRate: hybridSearchAttempts > 0 ? hybridSearchTimeouts / hybridSearchAttempts : 0,
-  };
-}
-
-/**
- * Reset hybrid-search timeout counters (for tests).
- */
-export function resetHybridSearchTimeoutStats(): void {
-  hybridSearchAttempts = 0;
-  hybridSearchTimeouts = 0;
 }
 
 // ============================================================================
@@ -357,19 +308,11 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
   try {
     // 1. HYBRID SEARCH (BM25 + Vector + Entity Store)
     const hybridStart = Date.now();
-    hybridSearchAttempts++;
-    const { results: hybridResults, metrics: hybridMetrics } = await Promise.race([
-      hybridSearch(userId, transcript, {
-        topK: 10,
-        minScore: 0.3, // Lower threshold, we'll filter later
-        bm25Weight: 0.4,
-        vectorWeight: 0.6,
-        includeEntities: true,
-      }),
-      new Promise<{ results: HybridSearchResult[]; metrics: HybridSearchMetrics }>((_, reject) => {
-        setTimeout(() => reject(new Error('Hybrid search timeout')), config.totalTimeoutMs * 0.7);
-      }),
-    ]);
+    const { results: hybridResults, metrics: hybridMetrics } = await runHybridSearchWithTimeout(
+      userId,
+      transcript,
+      config.totalTimeoutMs
+    );
 
     metrics.hybridSearchMs = Date.now() - hybridStart;
     metrics.rawResultCount = hybridResults.length;
@@ -524,12 +467,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
     };
   } catch (error) {
     metrics.totalTimeMs = Date.now() - startTime;
-
-    const isHybridTimeout = error instanceof Error && error.message === 'Hybrid search timeout';
-    if (isHybridTimeout) {
-      hybridSearchTimeouts++;
-    }
-
+    const isHybridTimeout = recordHybridSearchOutcome(error);
     log.warn(
       {
         userId,
