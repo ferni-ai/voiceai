@@ -182,22 +182,26 @@ describe('live mode', () => {
     const { inner } = await run(
       { SPEECH_DIRECTOR: 'live' },
       {
-        raw: ["I'm so sorry. It has been a hard week."],
+        raw: ["I'm so sorry for your loss. It has been a hard week."],
         pushes: [
-          '<speed ratio="0.9"/><volume ratio="0.8"/>I\'m so sorry. ',
+          '<speed ratio="0.9"/><volume ratio="0.8"/>I\'m so sorry for your loss. ',
           '<speed ratio="1"/><volume ratio="1"/>It has been a hard week. ',
         ],
       }
     );
+    // The reply's 0.97 composes with the soft start's 0.9: 0.87, not either alone.
     expect(inner.pushes[0]).toMatch(
-      /^<speed ratio="0\.9"\/><volume ratio="0\.8"\/><emotion value="sympathetic"\/>/
+      /^<speed ratio="0\.87"\/><volume ratio="0\.8"\/><emotion value="sympathetic"\/>/
     );
     expect(inner.pushes[1]).toMatch(/^<speed ratio="0\.97"\/><volume ratio="1"\/>It has been/);
   });
 
   it('smooths speed per session and never across sessions', async () => {
     const sessions = new DirectorSessions();
-    const heavy = { raw: ["I'm so sorry."], pushes: ["I'm so sorry. "] };
+    const heavy = {
+      raw: ["I'm so sorry for your loss."],
+      pushes: ["I'm so sorry for your loss. "],
+    };
     const neutral = { raw: ['The meeting is Tuesday.'], pushes: ['The meeting is Tuesday. '] };
     const a1 = await run({ SPEECH_DIRECTOR: 'live' }, { sessionId: 'a', sessions, ...heavy });
     const a2 = await run({ SPEECH_DIRECTOR: 'live' }, { sessionId: 'a', sessions, ...heavy });

@@ -23,6 +23,11 @@ const LEAD_TAGS = /^((?:\s*<(?:speed|volume|emotion)\b[^>]*\/>)*)([\s\S]*)$/;
 const SPEED_TAG = /<speed\s+ratio="([\d.]+)"\s*\/>/;
 const VOLUME_TAG = /<volume\s+ratio="([\d.]+)"\s*\/>/;
 const EMOTION_TAG = /<emotion\s+value="([a-z_]+)"\s*\/>/;
+/** Any emotion tag, anywhere in a push: stripped after the opening when emotion is live. */
+const ANY_EMOTION_TAG = /<\/?emotion\b[^>]*>/gi;
+/** Cartesia's accepted speed range (providers/cartesia.ts prosodyTags). */
+const MIN_RATIO = 0.6;
+const MAX_RATIO = 1.5;
 
 /** A breath before a phrase this long, at most every other segment. */
 const BREATH_MIN_WORDS = 10;
@@ -67,6 +72,16 @@ function parseLead(push: string): { tags: string; body: string; prosody: SSMLPro
 }
 
 const wordCount = (text: string): number => text.split(/\s+/).filter(Boolean).length;
+
+/**
+ * The Director's reply speed applied ON TOP of whatever speed the push already
+ * asks for (a soft start, or per-sentence pace matching from continuation-tts):
+ * multiplied, never substituted, inside Cartesia's range.
+ */
+export function composeSpeed(incoming: number, reply: number): number {
+  const ratio = Math.min(MAX_RATIO, Math.max(MIN_RATIO, incoming * reply));
+  return Math.round(ratio * 100) / 100;
+}
 
 export class DirectorEngine {
   readonly plan: SpeechPlan = { segments: [] };
@@ -115,10 +130,11 @@ export class DirectorEngine {
     if (first) this.open(planned[0] ?? normalized.text);
     this.planSegments(planned);
 
-    const spokenBody = this.live('normalize') ? normalized.text : body;
+    let spokenBody = this.live('normalize') ? normalized.text : body;
+    if (this.live('emotion')) spokenBody = spokenBody.replace(ANY_EMOTION_TAG, '');
     const spoken = this.spokenPhrases.accept(spokenBody, first);
     if (spoken.length === 0) this.stats.held++;
-    this.pendingTags += first ? this.openingTags(tags, prosody) : this.paceTags(tags, prosody);
+    this.pendingTags += first ? this.openingTags(tags, prosody) : this.laterTags(tags, prosody);
     return this.emit(spoken);
   }
 
@@ -157,17 +173,29 @@ export class DirectorEngine {
   private openingTags(original: string, lead: SSMLProsodyConfig): string {
     if (!this.live('emotion') && !this.live('pacing')) return original;
     return this.ctx.renderTags({
-      // A soft start (interrupt recovery) keeps its own opening pace.
-      speed: lead.speed ?? this.replySpeed,
+      // A soft start (interrupt recovery) keeps its own pace, scaled by the reply's.
+      speed: this.live('pacing') ? composeSpeed(lead.speed ?? 1, this.replySpeed) : lead.speed,
       volume: lead.volume,
       emotion: this.live('emotion') ? this.emotion.emotion : lead.emotion,
     });
   }
 
-  /** continuation-tts resets pace after a soft start; reset to the reply's speed. */
-  private paceTags(original: string, lead: SSMLProsodyConfig): string {
-    if (!this.live('pacing') || lead.speed === undefined) return original;
-    return original.replace(SPEED_TAG, `<speed ratio="${this.replySpeed}"/>`);
+  /**
+   * Tags on a push after the opening. A speed there (continuation-tts's reset
+   * after a soft start, or per-sentence pace matching) is composed with the
+   * reply's speed, not replaced; with the emotion lever live, a later emotion
+   * is dropped so one emotion holds for the whole reply (review H1).
+   */
+  private laterTags(original: string, lead: SSMLProsodyConfig): string {
+    let tags = original;
+    if (this.live('pacing') && lead.speed !== undefined) {
+      tags = tags.replace(
+        SPEED_TAG,
+        `<speed ratio="${composeSpeed(lead.speed, this.replySpeed)}"/>`
+      );
+    }
+    if (this.live('emotion')) tags = tags.replace(ANY_EMOTION_TAG, '');
+    return tags;
   }
 
   private emit(texts: string[]): string[] {
