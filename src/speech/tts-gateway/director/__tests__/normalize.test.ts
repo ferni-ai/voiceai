@@ -98,6 +98,12 @@ describe('normalizeForSpeech: shouted emphasis', () => {
     expect(say('THIS IS HUGE. Okay.')).toBe('This is huge. Okay.');
   });
 
+  it('lowercases emphasis words of any length: a LOT, No WAY, I DID it', () => {
+    expect(say('That is a LOT of money.')).toBe('That is a lot of money.');
+    expect(say('No WAY.')).toBe('No way.');
+    expect(say('I DID it. You HAD to.')).toBe('I did it. You had to.');
+  });
+
   it('keeps acronyms and consonant clusters', () => {
     expect(say('NASA and the FBI said OK')).toBe('NASA and the FBI said OK');
     expect(say('BTW the NYC trip is ASAP')).toBe('BTW the NYC trip is ASAP');
@@ -116,5 +122,21 @@ describe('normalizeForSpeech: accounting', () => {
 
   it('never rewrites inside bracket or angle markup', () => {
     expect(say('<emotion value="REALLY"/>REALLY')).toBe('<emotion value="REALLY"/>Really');
+  });
+
+  it.each([
+    'The FDIC insures it. SIPC covers brokerages. Check your FICO score.',
+    'Buy AAPL or TSLA or NVDA or GOOG, or VTSAX, or SCHD.',
+    'Try HIIT for ADHD. HELOC vs EBITDA. AARP and FAFSA.',
+    'In World War II and Henry VIII and Super Bowl LVIII.',
+    'Max out your IRA and your 401K. My CPA said ROTH. The DOW and NASDAQ.',
+  ])('fails safe: leaves every caps token not on the emphasis list (%s)', (text) => {
+    expect(normalizeForSpeech(text)).toEqual({ text, count: 0 });
+  });
+
+  it('keeps ambiguous words that are also acronyms in caps', () => {
+    expect(say('WHO said IT is in the US, and AM radio too')).toBe(
+      'WHO said IT is in the US, and AM radio too'
+    );
   });
 });

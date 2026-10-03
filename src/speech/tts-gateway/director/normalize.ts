@@ -33,35 +33,24 @@ export interface NormalizeResult {
 
 type Rule = (text: string, count: () => void) => string;
 
-/** Acronyms Sonic should spell out; never lowercased. */
-const ACRONYMS = new Set(
+/**
+ * Words lowercased when shouted. Fail safe: ONLY these. Every other all-caps
+ * token (FDIC, AAPL, VTSAX, HIIT, EBITDA, VIII, 401K) is left exactly as
+ * written, because a wrongly lowercased acronym or ticker becomes an
+ * unpronounceable pseudo-word. Words that are also common acronyms (WHO, IT,
+ * AM, US) are deliberately absent.
+ */
+const EMPHASIS_WORDS = new Set(
   (
-    'AI AM PM OK US USA UK EU UN NASA NATO FBI CIA NSA IRS DMV DOJ NIH CDC FDA WHO ' +
-    'CEO CFO CTO COO HR PR IT TV DVD GPS ATM PDF FAQ FYI ASAP RSVP DIY VIP ID IQ ' +
-    'COVID HIV AIDS DNA RNA MRI ICU ER CPR EMT ADHD PTSD OCD IVF UTI ' +
-    'NFL NBA MLB NHL NCAA ESPN NPR BBC CNN HBO MIT NYU UCLA USC ' +
-    'API URL SQL HTML CSS USB AWS IBM UPS USPS SUV EV RV AC BBQ ' +
-    'SAT ACT GPA MBA PHD MD RN ETF IRA IPO LLC GOAT ' +
-    'LOL OMG BTW TBH IDK IMO NYC LA SF DC'
-  ).split(' ')
-);
-/** Short words that are almost always emphasis when shouted. */
-const SHORT_WORDS = new Set(
-  (
-    'SO IS AM NO DO GO WE BE MY TO OF IN ON OH HE ME YES NOT YOU ARE WAS CAN BIG ' +
-    'WOW TOO ALL NOW THE AND BUT FOR HOW WHY OUT GOT GET BAD SAD MAD FUN HOT ' +
-    'NEW OLD ONE TWO SHE HER HIM HIS ANY YET OFF'
+    'REALLY NEVER ALWAYS VERY SO NOT LOT WAY DID DO DOES DONE LOVE LOVED HATE HATED ' +
+    'ALL NO YES NOW HUGE TOTALLY ABSOLUTELY DEFINITELY EVER MUST MUCH SUCH TOO ' +
+    'GREAT AMAZING LITERALLY SERIOUSLY BIG TINY ONLY JUST STILL EVERY NOTHING ' +
+    "EVERYTHING HAD HAVE WAS WERE ARE IS CAN WILL DON'T DIDN'T CAN'T WON'T ISN'T " +
+    'BEST WORST GOOD BAD HAPPY PROUD TIRED SURE WOW YOU THIS THAT WHAT'
   ).split(' ')
 );
 
 const CAPS_WORD = /\b[A-Z]{2,}(?:'[A-Z]+)?\b/g;
-
-function isEmphasis(word: string): boolean {
-  const letters = word.replace("'", '');
-  if (ACRONYMS.has(letters)) return false;
-  if (letters.length >= 4 && /[AEIOUY]/.test(letters)) return true;
-  return SHORT_WORDS.has(letters);
-}
 
 const MERIDIEM = String.raw`\s?([ap])\.?\s?m(?![a-z])(\.)?`;
 const CLOCK_WITH_MINUTES = new RegExp(String.raw`\b(\d{1,2}):(\d{2})${MERIDIEM}`, 'gi');
@@ -137,7 +126,7 @@ const RULES: readonly Rule[] = [
   // Shouted emphasis: lowercase it so Sonic says the word, not its letters.
   (t, hit) =>
     t.replace(CAPS_WORD, (word: string, at: number, all: string) => {
-      if (!isEmphasis(word)) return word;
+      if (!EMPHASIS_WORDS.has(word)) return word;
       hit();
       const lower = word.toLowerCase();
       const startsSentence = /(?:^|[.!?]\s+)$/.test(all.slice(0, at));
