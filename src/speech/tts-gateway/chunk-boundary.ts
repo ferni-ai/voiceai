@@ -6,15 +6,68 @@
  * and the rest is read aloud ('<speed ratio="0.92"/>' became "ratio equals 0.92
  * slash"). Cuts therefore never land inside <...> or [...].
  *
+ * Sentence-end detection also has to avoid abbreviations ("Mrs. Johnson",
+ * "etc.", "vs.") and decimals/times ("3.50", "7 p.m.") — see
+ * `isAbbreviationBoundary` below.
+ *
  * @module speech/tts-gateway/chunk-boundary
  */
 
+import { SENTENCE_BOUNDARY_ABBREVIATIONS } from '../../ssml/constants/common-abbreviations.js';
+
+/** Lowercase lookup of title/abbreviation words that precede a non-ending period. */
+const ABBREVIATION_WORDS = new Set(SENTENCE_BOUNDARY_ABBREVIATIONS);
+
 /**
- * Sentence end: punctuation followed by whitespace, or at the end of the buffer.
- * Neither form fires after a digit, so "3.50" streamed as "3." + "50" is not
- * cut at its decimal point.
+ * Candidate sentence ends: a run of ./!/? followed by whitespace or the end
+ * of the buffer. Each candidate is then checked by `isAbbreviationBoundary`
+ * before it's accepted — a fixed-width lookbehind can't tell "Mrs." from a
+ * real sentence end, since the two characters before both periods are
+ * ordinary lowercase letters.
  */
-export const SENTENCE_END = /(?<![A-Z][a-z]|[A-Z]|[0-9])([.!?]+)\s|(?<![0-9])([.!?]+)$/;
+const SENTENCE_END_CANDIDATE = /([.!?]+)(\s|$)/g;
+
+/** The run of letters immediately before `index` in `text` (no trailing partial match). */
+function wordBefore(text: string, index: number): string {
+  let i = index;
+  while (i > 0 && /[A-Za-z]/.test(text[i - 1])) i--;
+  return text.slice(i, index);
+}
+
+/**
+ * True when the punctuation run starting at `index` is NOT a real sentence
+ * end: a decimal ("3.50"), a single initial ("U.S.", "J. Smith"), a time
+ * ("7 p.m."), or a known title/abbreviation ("Mrs.", "etc.", "vs.").
+ */
+function isAbbreviationBoundary(text: string, index: number): boolean {
+  if (index > 0 && /[0-9]/.test(text[index - 1])) return true; // decimal: "3.50"
+
+  const before = text.slice(0, index);
+  if (/[ap]\.m$/i.test(before)) return true; // "7 p.m." / "7 a.m."
+
+  const word = wordBefore(text, index);
+  if (!word) return false;
+  if (word.length === 1) return /[A-Z]/.test(word); // single initial: "U.S.", "J. Smith"
+  return ABBREVIATION_WORDS.has(word.toLowerCase());
+}
+
+/**
+ * @returns the index right after the first real sentence end in `text`
+ * starting the search from `fromIndex`, or null if there isn't one yet.
+ */
+function findSentenceEnd(text: string, fromIndex = 0): number | null {
+  SENTENCE_END_CANDIDATE.lastIndex = fromIndex;
+  let match: RegExpExecArray | null;
+  while ((match = SENTENCE_END_CANDIDATE.exec(text)) !== null) {
+    if (!isAbbreviationBoundary(text, match.index)) {
+      return match.index + match[0].length;
+    }
+    // Abbreviation: keep scanning right after this punctuation run so an
+    // infinite loop isn't possible on a zero-width continuation.
+    SENTENCE_END_CANDIDATE.lastIndex = match.index + match[1].length;
+  }
+  return null;
+}
 
 /** Longest a chunk may grow without a sentence end before cutting at a space. */
 const MAX_UNPUNCTUATED = 80;
@@ -49,9 +102,9 @@ function markupSafeCut(text: string, end: number): number | null {
 export function findChunkEnd(buffer: string, minLength: number): number | null {
   if (buffer.length < minLength) return null;
 
-  const match = buffer.match(SENTENCE_END);
-  if (match?.index !== undefined) {
-    const cut = markupSafeCut(buffer, match.index + match[0].length);
+  const sentenceEnd = findSentenceEnd(buffer);
+  if (sentenceEnd !== null) {
+    const cut = markupSafeCut(buffer, sentenceEnd);
     if (cut !== null && cut > 0) return cut;
   }
 

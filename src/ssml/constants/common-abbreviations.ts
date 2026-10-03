@@ -83,3 +83,78 @@ export const COMMON_ABBREVIATIONS: PronunciationEntry[] = [
   { pattern: /\bCOVID\b/gi, replacement: 'covid', description: 'COVID' },
   { pattern: /\bPCR\b/g, replacement: 'P C R', description: 'PCR test' },
 ];
+
+/**
+ * Title and other abbreviations that end in a period without ending a
+ * sentence: "Mrs. Johnson called" must not be chunked after "Mrs." even
+ * though the word before the period is all lowercase letters (unlike "Dr."
+ * or "U.S.", a capital+lowercase or single-capital lookbehind can't catch
+ * "Mrs.", "etc." or "approx." — the word itself has to be known).
+ *
+ * Lowercase, no trailing period. Consumed by
+ * `speech/tts-gateway/chunk-boundary.ts` to keep the gateway's sentence
+ * splitter from cutting mid-abbreviation; kept here next to
+ * `COMMON_ABBREVIATIONS` since both are "words that need special handling
+ * around a period" for Cartesia TTS.
+ */
+export const SENTENCE_BOUNDARY_ABBREVIATIONS: readonly string[] = [
+  // Personal titles
+  'mr',
+  'mrs',
+  'ms',
+  'mx',
+  'dr',
+  'prof',
+  'rev',
+  'fr',
+  'hon',
+  'msgr',
+  // Generational / name suffixes
+  'jr',
+  'sr',
+  // Military / government titles
+  'gen',
+  'col',
+  'capt',
+  'cmdr',
+  'lt',
+  'sgt',
+  'maj',
+  'adm',
+  'gov',
+  'sen',
+  'rep',
+  // Latin / general abbreviations
+  'etc',
+  'approx',
+  'misc',
+  'vs',
+  'al',
+  'cf',
+  'viz',
+  'eg',
+  'ie',
+  // Places
+  'st',
+  'mt',
+  'ave',
+  'blvd',
+  // Business / org
+  'inc',
+  'ltd',
+  'corp',
+  'co',
+  'dept',
+  'govt',
+  'intl',
+  'natl',
+  'assn',
+  // Publishing / reference
+  'vol',
+  'ed',
+  'eds',
+  'fig',
+  'p',
+  'pp',
+  'no',
+];

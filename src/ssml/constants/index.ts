@@ -27,7 +27,7 @@ export { PERSONA_PRONUNCIATIONS } from './personas.js';
 export { MENTAL_HEALTH_PRONUNCIATIONS } from './mental-health.js';
 export { WELLNESS_PRONUNCIATIONS } from './wellness.js';
 export { CALENDAR_PRONUNCIATIONS } from './calendar.js';
-export { COMMON_ABBREVIATIONS } from './common-abbreviations.js';
+export { COMMON_ABBREVIATIONS, SENTENCE_BOUNDARY_ABBREVIATIONS } from './common-abbreviations.js';
 export { TECH_PRONUNCIATIONS } from './tech.js';
 export { GEOGRAPHIC_PRONUNCIATIONS, NATIVE_AMERICAN_PRONUNCIATIONS } from './geographic.js';
 export {
