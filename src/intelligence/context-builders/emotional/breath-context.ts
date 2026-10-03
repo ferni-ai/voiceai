@@ -132,6 +132,22 @@ function detectBreathContext(input: ContextBuilderInput): BreathContext {
 // GUIDANCE GENERATION
 // ============================================================================
 
+/**
+ * breath-sounds.json examples pair a `<break>` tag (real, Cartesia-rendered)
+ * with a bracket cue like "[soft breath]" or "[gentle exhale]" (not a
+ * Cartesia nonverbal tag — only `[laughter]` is). Showing the model a
+ * copy-pasteable example line that includes the bracket risks it echoing
+ * "[soft breath]" into the reply verbatim, which Cartesia then speaks as the
+ * literal words "soft breath". Keep the real `<break>` timing, drop the
+ * bracket the model should never reproduce.
+ */
+export function describeExample(example: string): string {
+  return example
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function generateBreathGuidance(content: BreathSounds, context: BreathContext): string | null {
   const lines: string[] = ['[BREATH: GROUNDING PRESENCE]', ''];
 
@@ -141,7 +157,7 @@ function generateBreathGuidance(content: BreathSounds, context: BreathContext): 
       if (content.wyoming_stillness && content.wyoming_stillness.length > 0) {
         const example =
           content.wyoming_stillness[Math.floor(Math.random() * content.wyoming_stillness.length)];
-        lines.push(`Wyoming stillness energy. Can use: ${example}`);
+        lines.push(`Wyoming stillness energy. Can use: ${describeExample(example)}`);
       } else {
         lines.push('Slower pace, longer pauses. No rush.');
       }
@@ -152,7 +168,7 @@ function generateBreathGuidance(content: BreathSounds, context: BreathContext): 
       if (content.after_user_shares && content.after_user_shares.length > 0) {
         const example =
           content.after_user_shares[Math.floor(Math.random() * content.after_user_shares.length)];
-        lines.push(`Hold space with breath: ${example}`);
+        lines.push(`Hold space with breath: ${describeExample(example)}`);
       } else {
         lines.push('A breath before speaking shows you received it.');
       }
@@ -163,7 +179,7 @@ function generateBreathGuidance(content: BreathSounds, context: BreathContext): 
       lines.push('CONTEXT: User may need grounding.');
       if (content.grounding && content.grounding.length > 0) {
         const example = content.grounding[Math.floor(Math.random() * content.grounding.length)];
-        lines.push(`Grounding breath: ${example}`);
+        lines.push(`Grounding breath: ${describeExample(example)}`);
       }
       lines.push('Physical presence helps. Slower pace, deliberate pauses.');
       break;
@@ -175,7 +191,7 @@ function generateBreathGuidance(content: BreathSounds, context: BreathContext): 
           content.contemplative_breath[
             Math.floor(Math.random() * content.contemplative_breath.length)
           ];
-        lines.push(`Contemplative breath: ${example}`);
+        lines.push(`Contemplative breath: ${describeExample(example)}`);
       }
       break;
 
