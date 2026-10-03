@@ -43,7 +43,6 @@ import {
   buildPersonaSpecificContextInjections,
   buildSafetyInjections,
   buildScientificCoachingInjections,
-  buildSemanticIntelligenceInjection,
   buildServiceAvailabilityInjection,
   buildSessionDynamicsInjection,
   buildToolHistoryInjection,
@@ -51,7 +50,6 @@ import {
   buildUserHealthInjection,
   buildVisualMemoryInjections,
   type ConversationDynamicsResult as InjectionDynamicsResult,
-  type SemanticIntelligenceInjectionResult,
 } from '../injection-builders/index.js';
 
 import { buildLiveSuperhumanInjections } from '../live-superhuman-injections.js';
@@ -370,7 +368,6 @@ export async function buildContextInjections(
     },
     processingTimeMs: 0,
   };
-  const semanticIntelligenceFallback: SemanticIntelligenceInjectionResult = { injection: null };
 
   const [tier2Results, tier3Results] = await Promise.all([
     // TIER 2: IMPORTANT BUILDERS
@@ -446,19 +443,6 @@ export async function buildContextInjections(
             'live-superhuman'
           ),
         superhumanFallback
-      ),
-      withTimeout(
-        buildSemanticIntelligenceInjection({
-          userId: services.userId || 'unknown',
-          sessionId: services.sessionId || 'unknown',
-          personaId: persona.id,
-          userText,
-          recentTools: userData?.conversationState?.getToolExecutionData?.()?.recentlyUsedTools,
-          recentTopics: currentTopic ? [currentTopic] : undefined,
-        }),
-        IMPORTANT_TIMEOUT_MS,
-        semanticIntelligenceFallback,
-        'semantic-intelligence'
       ),
       withTimeout(
         buildPersonaSpecificContextInjections({
@@ -537,7 +521,6 @@ export async function buildContextInjections(
     trustSystemsResult,
     boundaryInjections,
     liveSuperhumanResult,
-    semanticIntelligenceResult,
     personaSpecificInjections,
     serviceAvailabilityInjection,
   ] = tier2Results;
@@ -637,17 +620,8 @@ export async function buildContextInjections(
     }
   }
 
-  // SEMANTIC INTELLIGENCE
-  if (semanticIntelligenceResult?.injection) {
-    injections.push(semanticIntelligenceResult.injection);
-    diag.debug('🧠 Semantic intelligence injection added (tool hints, patterns)');
-  }
-
-  if (semanticIntelligenceResult?.prediction) {
-    userData.semanticPrediction = semanticIntelligenceResult.prediction;
-  } else {
-    userData.semanticPrediction = undefined;
-  }
+  // No semantic-intelligence builder: its hints served the retired JSON
+  // function-call workaround and misread statements as tool requests.
 
   // "BETTER THAN HUMAN" INJECTIONS (Legacy)
   if (userHealthInjection) {
