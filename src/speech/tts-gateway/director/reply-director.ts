@@ -137,12 +137,19 @@ class DirectedReply implements ReplyStream {
     try {
       return work();
     } catch (error) {
-      this.failed = true;
-      log.warn({ err: String(error), sessionId: this.opts.sessionId }, 'Speech director failed');
+      this.fail(error);
       return null;
     } finally {
       this.elapsedNs += process.hrtime.bigint() - start;
     }
+  }
+
+  /** Stop directing this reply; logged once. */
+  private fail(error: unknown): void {
+    if (!this.failed) {
+      log.warn({ err: String(error), sessionId: this.opts.sessionId }, 'Speech director failed');
+    }
+    this.failed = true;
   }
 
   push(text: string): void {
@@ -195,12 +202,34 @@ class DirectedReply implements ReplyStream {
     this.holdHandle = undefined;
   }
 
-  /** No new piece within HOLD_RELEASE_MS: let Cartesia have the held text. */
+  /**
+   * No new piece within HOLD_RELEASE_MS: let Cartesia have the held text.
+   * Runs from a timer, so nothing may escape it: a throw here would be an
+   * uncaught exception, not an error the reply's caller handles. On a throw
+   * the reply stops being directed (later pushes go out verbatim) and the
+   * rest of what was released is still offered to Cartesia, once.
+   */
   private releaseHold(): void {
     this.holdHandle = undefined;
     if (this.done || this.failed || this.mode !== 'live') return;
-    const out = this.direct(() => this.engine.releaseHold()) ?? this.engine.releaseHeld();
-    for (const piece of out) this.inner.push(piece);
+    let pending: string[] = [];
+    try {
+      pending = this.direct(() => this.engine.releaseHold()) ?? this.engine.releaseHeld();
+      while (pending.length > 0) {
+        const piece = pending[0];
+        pending = pending.slice(1);
+        this.inner.push(piece);
+      }
+    } catch (error) {
+      this.fail(error);
+      for (const piece of [...pending, ...this.engine.releaseHeld()]) {
+        try {
+          this.inner.push(piece);
+        } catch {
+          // The reply stream itself is broken; end() or cancel() will report it.
+        }
+      }
+    }
   }
 
   [Symbol.asyncIterator](): AsyncIterator<ArrayBuffer> {

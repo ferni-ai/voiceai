@@ -129,3 +129,37 @@ describe('phrasing hold time limit (review M5)', () => {
     expect(inner.pushes).toHaveLength(after);
   });
 });
+
+describe('hold release that throws (round 2 LOW)', () => {
+  it('never lets a throw escape the timer and stops directing the reply', () => {
+    const timer = new ManualTimer();
+    const inner = new Recorder();
+    let failOnce = false;
+    const push = inner.push.bind(inner);
+    inner.push = (text: string): void => {
+      if (failOnce) {
+        failOnce = false;
+        throw new Error('socket closed');
+      }
+      push(text);
+    };
+    let failed: boolean | undefined;
+    const reply = directSpeech(inner, {
+      textStream: new ReadableStream<string>(),
+      voiceId: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+      env: { SPEECH_DIRECTOR: 'live' },
+      sessions: new DirectorSessions(),
+      onPlan: (s) => (failed = s.failed),
+      holdTimer: timer,
+    }).reply;
+    reply.push('Okay. ');
+    reply.push('so much of what you are carrying right now is ');
+    failOnce = true;
+    expect(() => timer.elapse()).not.toThrow();
+    // Directing has stopped: the next push goes out verbatim.
+    reply.push('<speed ratio="1"/>not yours to carry. ');
+    expect(inner.pushes.at(-1)).toBe('<speed ratio="1"/>not yours to carry. ');
+    reply.end();
+    expect(failed).toBe(true);
+  });
+});
