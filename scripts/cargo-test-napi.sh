@@ -7,13 +7,16 @@
 # provides, so it fails to link ("undefined napi_* symbols") and these tests
 # never ran. The tests never call into Node, so the test binary may leave
 # those symbols unresolved: dynamic_lookup on macOS (what napi-build already
-# does for the .node module), ignore-all on Linux.
+# does for the .node module), ignore-all on Linux. Linux also needs lazy
+# binding: Rust links executables with -z now, so the loader resolved every
+# napi_* symbol at startup and the binary died with "symbol lookup error:
+# undefined symbol: napi_is_exception_pending" before any test ran.
 set -euo pipefail
 crate_dir=$1
 shift
 case "$(uname -s)" in
   Darwin) link='-C link-arg=-undefined -C link-arg=dynamic_lookup' ;;
-  Linux) link='-C link-arg=-Wl,--unresolved-symbols=ignore-all' ;;
+  Linux) link='-C link-arg=-Wl,--unresolved-symbols=ignore-all -C link-arg=-Wl,-z,lazy' ;;
   *) echo "unsupported OS: $(uname -s)" >&2; exit 2 ;;
 esac
 cd "$crate_dir"

@@ -8,6 +8,7 @@ on:
       - 'apps/rust-audio/**'
       - 'apps/sonata/**'
       - '.github/workflows/rust-native.yml'
+      - 'scripts/cargo-test-napi.sh'
   pull_request:
     branches: [main, develop]
     paths:
@@ -15,6 +16,7 @@ on:
       - 'apps/rust-audio/**'
       - 'apps/sonata/**'
       - '.github/workflows/rust-native.yml'
+      - 'scripts/cargo-test-napi.sh'
 
 env:
   RUST_VERSION: 'stable'
