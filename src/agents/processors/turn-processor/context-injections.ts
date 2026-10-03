@@ -21,6 +21,7 @@ import type {
 import type { ContextInjectionsResult } from './types.js';
 
 import { diag } from '../../../services/diagnostic-logger.js';
+import { createBuilderBudget } from './builder-budget.js';
 import {
   getPredictiveIntelligenceContext,
 } from '../../../intelligence/predictive/index.js';
@@ -42,7 +43,6 @@ import {
   buildPersonaSpecificContextInjections,
   buildSafetyInjections,
   buildScientificCoachingInjections,
-  buildSemanticIntelligenceInjection,
   buildServiceAvailabilityInjection,
   buildSessionDynamicsInjection,
   buildToolHistoryInjection,
@@ -50,7 +50,6 @@ import {
   buildUserHealthInjection,
   buildVisualMemoryInjections,
   type ConversationDynamicsResult as InjectionDynamicsResult,
-  type SemanticIntelligenceInjectionResult,
 } from '../injection-builders/index.js';
 
 import { buildLiveSuperhumanInjections } from '../live-superhuman-injections.js';
@@ -318,25 +317,8 @@ export async function buildContextInjections(
     return builderFn();
   };
 
-  const withTimeout = async <T>(
-    promise: Promise<T>,
-    timeoutMs: number,
-    fallback: T,
-    name: string
-  ): Promise<T> => {
-    try {
-      const result = await Promise.race([
-        promise,
-        new Promise<T>((_, reject) => {
-          setTimeout(() => reject(new Error(`Timeout: ${name}`)), timeoutMs);
-        }),
-      ]);
-      return result;
-    } catch (error) {
-      diag.debug(`⏱️ Context builder timeout: ${name}`, { timeoutMs });
-      return fallback;
-    }
-  };
+  const budget = createBuilderBudget();
+  const { withTimeout } = budget;
 
   // ============================================================================
   // TIER 1: CRITICAL BUILDERS (with safety timeout)
@@ -386,7 +368,6 @@ export async function buildContextInjections(
     },
     processingTimeMs: 0,
   };
-  const semanticIntelligenceFallback: SemanticIntelligenceInjectionResult = { injection: null };
 
   const [tier2Results, tier3Results] = await Promise.all([
     // TIER 2: IMPORTANT BUILDERS
@@ -462,19 +443,6 @@ export async function buildContextInjections(
             'live-superhuman'
           ),
         superhumanFallback
-      ),
-      withTimeout(
-        buildSemanticIntelligenceInjection({
-          userId: services.userId || 'unknown',
-          sessionId: services.sessionId || 'unknown',
-          personaId: persona.id,
-          userText,
-          recentTools: userData?.conversationState?.getToolExecutionData?.()?.recentlyUsedTools,
-          recentTopics: currentTopic ? [currentTopic] : undefined,
-        }),
-        IMPORTANT_TIMEOUT_MS,
-        semanticIntelligenceFallback,
-        'semantic-intelligence'
       ),
       withTimeout(
         buildPersonaSpecificContextInjections({
@@ -553,7 +521,6 @@ export async function buildContextInjections(
     trustSystemsResult,
     boundaryInjections,
     liveSuperhumanResult,
-    semanticIntelligenceResult,
     personaSpecificInjections,
     serviceAvailabilityInjection,
   ] = tier2Results;
@@ -653,17 +620,8 @@ export async function buildContextInjections(
     }
   }
 
-  // SEMANTIC INTELLIGENCE
-  if (semanticIntelligenceResult?.injection) {
-    injections.push(semanticIntelligenceResult.injection);
-    diag.debug('🧠 Semantic intelligence injection added (tool hints, patterns)');
-  }
-
-  if (semanticIntelligenceResult?.prediction) {
-    userData.semanticPrediction = semanticIntelligenceResult.prediction;
-  } else {
-    userData.semanticPrediction = undefined;
-  }
+  // No semantic-intelligence builder: its hints served the retired JSON
+  // function-call workaround and misread statements as tool requests.
 
   // "BETTER THAN HUMAN" INJECTIONS (Legacy)
   if (userHealthInjection) {
@@ -1279,6 +1237,9 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
 
   // Sort by priority (highest first)
   injections.sort((a, b) => b.priority - a.priority);
+  if (budget.missed.length > 0) {
+    diag.info('⏱️ Context builders missed their budget', { builders: budget.missed });
+  }
 
   return {
     injections,

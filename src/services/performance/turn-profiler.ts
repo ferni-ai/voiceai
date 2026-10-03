@@ -47,8 +47,10 @@ export interface TurnTimings {
   llmComplete?: number;
   /** TTS started */
   ttsStart?: number;
-  /** TTS first audio byte */
+  /** TTS first audio byte (a Stage 2 opening breath/sigh counts) */
   ttsFirstByte?: number;
+  /** First speech frame: after any Stage 2 opening breath/sigh */
+  ttsFirstSpeech?: number;
   /** TTS complete */
   ttsComplete?: number;
   /** Audio playback started */

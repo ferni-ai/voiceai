@@ -4,8 +4,6 @@
  * Processes user audio for prosody analysis, emotion detection,
  * and various voice humanization features.
  *
- * Extracted from voice-agent.ts sttNode method.
- *
  * @module voice-agent/audio-processor
  */
 
@@ -31,7 +29,6 @@ import {
   resetSessionUnifiedAnalyzer,
   type UnifiedAudioAnalyzer,
 } from '../../speech/audio-prosody/native-analyzer.js';
-// Pre-STT audio analysis (Rust: AGC, noise suppression, bandwidth extension)
 import { getConversationManager } from '../../services/conversation-manager.js';
 import {
   clearSession as clearGeminiSession,
@@ -56,6 +53,7 @@ import { mapProsodyToVoiceFeatures } from '../../speech/voice-biomarkers/prosody
 import { trackEmotionDetection } from '../integrations/speech-metrics-integration.js';
 import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 import type { UserData } from '../shared/types.js';
+import { claimSessionAudio, releaseSessionAudio } from './session-audio-claim.js';
 // Better Than Human - Perfect Timing, Pattern Mirror, and Ambient Context integration
 import {
   processAmbientSignals,
@@ -96,7 +94,8 @@ export type { VoiceEmotionResult };
  *
  * This runs in the background while STT processes the same audio.
  * It extracts voice emotion, laughter, rhythm patterns, and other
- * voice characteristics for humanization.
+ * voice characteristics for humanization. Runs once per session: see
+ * session-audio-claim.ts.
  */
 export async function processAudioStream(
   audio: ReadableStream<AudioFrame>,
@@ -104,6 +103,8 @@ export async function processAudioStream(
 ): Promise<void> {
   const logger = log();
   const { sessionId, userId, userData, sendDataMessage } = ctx;
+
+  if (!(await claimSessionAudio(sessionId, audio))) return;
 
   const reader = audio.getReader();
 
@@ -423,8 +424,6 @@ export async function processAudioStream(
     if (voiceEmotion && userData) {
       userData.voiceEmotion = voiceEmotion;
 
-      // voice-session-store removed during DDD cleanup
-
       // 🧬 Voice biomarkers (Cartesia path): Map prosody → biomarker pipeline for stress, fatigue, anxiety
       if (voiceEmotion.prosody) {
         try {
@@ -454,6 +453,7 @@ export async function processAudioStream(
     logger.warn(`Audio processing error: ${error}`);
   } finally {
     reader.releaseLock();
+    releaseSessionAudio(sessionId);
   }
 }
 

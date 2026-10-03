@@ -8,6 +8,7 @@ on:
       - 'apps/rust-audio/**'
       - 'apps/sonata/**'
       - '.github/workflows/rust-native.yml'
+      - 'scripts/cargo-test-napi.sh'
   pull_request:
     branches: [main, develop]
     paths:
@@ -15,6 +16,7 @@ on:
       - 'apps/rust-audio/**'
       - 'apps/sonata/**'
       - '.github/workflows/rust-native.yml'
+      - 'scripts/cargo-test-napi.sh'
 
 env:
   RUST_VERSION: 'stable'
@@ -51,33 +53,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      # NAPI crates can't link test binaries (undefined napi_* symbols).
-      # Use `cargo check` for compile verification; integration tests run in Verify job via Node.js.
-      - name: Check rust-perf (compile)
-        working-directory: apps/rust-perf
-        run: cargo check --release --lib
-        continue-on-error: true
+      # Full unit tests, NAPI bindings included. The test binary is linked with
+      # napi_* symbols left unresolved (tests never call into Node); see the
+      # script. Before 2026-09-29 these only ran `cargo check` with
+      # continue-on-error, and two live-path bugs (AGC time constants, YIN
+      # on short frames) sat behind tests that had never run.
+      - name: Test rust-audio
+        run: scripts/cargo-test-napi.sh apps/rust-audio
+        timeout-minutes: 15
 
-      # Run pure Rust tests (Candle pipeline: Thinker, Talker, Code2Wav, MoE, Mel, full pipeline)
-      # --no-default-features disables NAPI so tests can build without Node.js bindings
-      - name: Test rust-perf (unit tests)
-        working-directory: apps/rust-perf
-        run: cargo test --no-default-features --lib -- --test-threads=1
-        timeout-minutes: 5
-        continue-on-error: true
+      - name: Test rust-perf
+        run: scripts/cargo-test-napi.sh apps/rust-perf -- --test-threads=1
+        timeout-minutes: 15
 
-      # Run Candle pipeline integration tests (Thinker → Talker → Code2Wav shape chain)
-      - name: Test rust-perf (integration tests)
-        working-directory: apps/rust-perf
-        run: cargo test --no-default-features --test pipeline_integration -- --test-threads=1
-        timeout-minutes: 5
-        continue-on-error: true
-
-      - name: Check rust-audio (compile)
-        working-directory: apps/rust-audio
-        run: cargo check --release --lib
-        continue-on-error: true
-
+      # Sonata needs pre-built pocket-voice cdylibs that this job does not
+      # build, so its tests cannot link here. Informational only.
       # Sonata: NAPI bindings for pocket-voice STT/TTS
       # --no-default-features disables NAPI so tests can build without Node.js bindings
       - name: Test sonata (unit tests)
@@ -153,7 +143,6 @@ jobs:
         run: |
           pnpm install
           napi build --platform --release --target ${{ matrix.target }}
-        continue-on-error: true
 
       # Build rust-audio
       - name: Build rust-audio
@@ -161,7 +150,6 @@ jobs:
         run: |
           pnpm install
           napi build --platform --release --target ${{ matrix.target }}
-        continue-on-error: true
 
       # Build sonata (pocket-voice STT/TTS NAPI bindings)
       # Note: pocket-voice cdylibs (STT/TTS) must be pre-built.
@@ -179,14 +167,14 @@ jobs:
         with:
           name: rust-perf-${{ matrix.node_arch }}
           path: apps/rust-perf/*.node
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Upload rust-audio artifact
         uses: actions/upload-artifact@v4
         with:
           name: rust-audio-${{ matrix.node_arch }}
           path: apps/rust-audio/*.node
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Upload sonata artifact
         uses: actions/upload-artifact@v4
@@ -222,14 +210,12 @@ jobs:
         with:
           name: rust-perf-linux-x64
           path: apps/rust-perf/
-        continue-on-error: true
 
       - name: Download rust-audio artifact
         uses: actions/download-artifact@v4
         with:
           name: rust-audio-linux-x64
           path: apps/rust-audio/
-        continue-on-error: true
 
       - name: Download sonata artifact
         uses: actions/download-artifact@v4
@@ -239,16 +225,13 @@ jobs:
         continue-on-error: true
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-        continue-on-error: true
+        run: pnpm install --frozen-lockfile
 
       - name: Verify rust-perf loads
-        run: node -e "const p = require('./apps/rust-perf'); console.log('rust-perf exports:', Object.keys(p));"
-        continue-on-error: true
+        run: node -e "const p = require('./apps/rust-perf'); console.log('rust-perf exports:', Object.keys(p).length);"
 
       - name: Verify rust-audio loads
-        run: node -e "try { const a = require('./apps/rust-audio'); console.log('rust-audio exports:', Object.keys(a)); } catch(e) { console.log('rust-audio not available'); }"
-        continue-on-error: true
+        run: node -e "const a = require('./apps/rust-audio'); console.log('rust-audio exports:', Object.keys(a).length);"
 
       - name: Verify sonata loads
         run: |
@@ -284,56 +267,41 @@ jobs:
 
             console.log('✅ @ferni/perf verified:', info.version, 'SIMD:', info.simdAvailable);
           "
-        continue-on-error: true
 
       - name: Verify rust-audio APIs
         run: |
           node -e "
-            try {
-              const audio = require('./apps/rust-audio');
-
-              // Verify @ferni/audio FFT functions
-              const expectedAudio = ['getLibraryInfo', 'fftF32', 'applyHanningWindow', 'analyzeSpectrum'];
-              for (const fn of expectedAudio) {
-                if (typeof audio[fn] !== 'function') {
-                  console.warn('@ferni/audio missing function: ' + fn);
-                }
-              }
-
-              // Test FFT with sample data
-              const samples = new Float32Array(256);
-              for (let i = 0; i < 256; i++) {
-                samples[i] = Math.sin(2 * Math.PI * 440 * i / 44100);
-              }
-
-              const result = audio.analyzeSpectrum(samples, 44100);
-
-              // Verify field names match TypeScript interface (critical fix verification)
-              if (result.centroid === undefined) throw new Error('Missing centroid field');
-              if (result.rolloff === undefined) throw new Error('Missing rolloff field');
-              if (result.dominantFrequency === undefined) throw new Error('Missing dominantFrequency field');
-              if (result.dominantMagnitude === undefined) throw new Error('Missing dominantMagnitude field');
-              if (result.bandEnergies === undefined) throw new Error('Missing bandEnergies field');
-
-              // Verify bandEnergies has 7 elements
-              if (result.bandEnergies.length !== 7) {
-                throw new Error('bandEnergies should have 7 elements, got: ' + result.bandEnergies.length);
-              }
-
-              console.log('✅ @ferni/audio verified - FFT field names correct');
-              console.log('   centroid:', result.centroid.toFixed(2), 'Hz');
-              console.log('   bandEnergies:', result.bandEnergies.length, 'bands');
-            } catch (e) {
-              console.log('⚠️ @ferni/audio verification skipped:', e.message);
+            const audio = require('./apps/rust-audio');
+            const need = ['getLibraryInfo', 'fftF32', 'applyHanningWindow', 'analyzeSpectrum', 'estimatePitchYin', 'NativePostTtsProcessor', 'NativePreSttProcessor'];
+            for (const fn of need) {
+              if (typeof audio[fn] !== 'function') throw new Error('@ferni/audio missing: ' + fn);
             }
+
+            // FFT field names match the TypeScript interface
+            const tone = (n, hz, rate) => Float32Array.from({ length: n }, (_, i) => Math.sin(2 * Math.PI * hz * i / rate));
+            const spec = audio.analyzeSpectrum(tone(256, 440, 44100), 44100);
+            for (const k of ['centroid', 'rolloff', 'dominantFrequency', 'dominantMagnitude', 'bandEnergies']) {
+              if (spec[k] === undefined) throw new Error('analyzeSpectrum missing field ' + k);
+            }
+            if (spec.bandEnergies.length !== 7) throw new Error('bandEnergies should have 7 bands');
+
+            // YIN finds pitch in the 512-sample windows the live analyzer uses
+            // (it returned no pitch for frames under 640 samples until 2026-09-29)
+            const yin = audio.estimatePitchYin(tone(512, 200, 16000), 16000, 50, 400);
+            if (Math.abs(yin.pitchHz - 200) > 10) throw new Error('YIN on 512 samples gave ' + yin.pitchHz);
+
+            // The post-TTS chain turns a speech-level frame into audio, not silence or NaN
+            const post = new audio.NativePostTtsProcessor({ sampleRate: 24000 });
+            const frame = tone(480, 180, 24000).map((x) => x * 0.3);
+            post.processFrame(frame, false);
+            post.processFrame(frame, false);
+            if (!frame.every(Number.isFinite)) throw new Error('post-TTS produced non-finite samples');
+            if (Math.max(...frame.map(Math.abs)) < 0.01) throw new Error('post-TTS produced silence');
+
+            console.log('✅ @ferni/audio verified: FFT fields, YIN at 512 samples =', yin.pitchHz.toFixed(1), 'Hz, post-TTS frame ok');
           "
-        continue-on-error: true
 
       - name: Run native FFT E2E tests
-        run: |
-          pnpm build:fast || true
-          pnpm vitest run src/speech/fft-analyzer/__tests__/native-fft-e2e.test.ts --reporter=verbose
+        run: pnpm vitest run src/speech/fft-analyzer/__tests__/native-fft-e2e.test.ts --reporter=verbose
         env:
           NODE_ENV: test
-        continue-on-error: true
-

@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { getProviderIdSync as configProviderId } from '../../../config/model-provider-config.js';
 import {
   CartesiaCascadeProvider,
+  buildCascadeHedge,
   buildCascadeLLMOptions,
   buildCascadeSTTOptions,
   buildCascadeKeyterms,
@@ -60,11 +61,48 @@ describe('cascade thinking level', () => {
     const opts = buildCascadeLLMOptions({ CASCADE_LLM_THINKING: 'medium' });
     expect(opts.thinkingConfig).toEqual({ thinkingLevel: 'MEDIUM' });
   });
+
+  it('turns thinking off with a zero budget on 2.x models, which ignore a level', () => {
+    for (const model of ['gemini-2.5-flash', 'gemini-2.5-flash-lite']) {
+      expect(buildCascadeLLMOptions({ CASCADE_LLM_MODEL: model }).thinkingConfig).toEqual({
+        thinkingBudget: 0,
+      });
+    }
+  });
+});
+
+describe('buildCascadeHedge', () => {
+  it('hedges gemini-3.5-flash with gemini-3-flash-preview after 1.3 s by default', () => {
+    const hedge = buildCascadeHedge({ GOOGLE_CLOUD_PROJECT: 'proj' });
+    expect(hedge?.hedgeAfterMs).toBe(1300);
+    expect(hedge?.backup).toMatchObject({
+      model: 'gemini-3-flash-preview',
+      location: 'global',
+      vertexai: true,
+    });
+  });
+
+  it('can be turned off, and never hedges a model with itself', () => {
+    expect(buildCascadeHedge({ CASCADE_LLM_HEDGE_MS: 'off' })).toBeNull();
+    expect(buildCascadeHedge({ CASCADE_LLM_BACKUP_MODEL: 'gemini-3.5-flash' })).toBeNull();
+  });
+
+  it('takes the delay, backup model and region from env', () => {
+    const hedge = buildCascadeHedge({
+      CASCADE_LLM_HEDGE_MS: '900',
+      CASCADE_LLM_BACKUP_MODEL: 'gemini-2.5-flash',
+      CASCADE_LLM_BACKUP_LOCATION: 'us-central1',
+    });
+    expect(hedge).toMatchObject({
+      hedgeAfterMs: 900,
+      backup: { model: 'gemini-2.5-flash', location: 'us-central1' },
+    });
+  });
 });
 
 describe('buildCascadeSTTOptions', () => {
   it('defaults to Cartesia ink-2 in English', () => {
-    expect(buildCascadeSTTOptions({})).toEqual({ model: 'ink-2', language: 'en' });
+    expect(buildCascadeSTTOptions({})).toMatchObject({ model: 'ink-2', language: 'en' });
   });
 
   it('honours CASCADE_STT_MODEL', () => {
@@ -156,5 +194,40 @@ describe('createProviderSTT', () => {
 
   it('returns undefined for realtime providers, which transcribe internally', () => {
     expect(createProviderSTT({ id: 'openai-realtime' })).toBeUndefined();
+  });
+});
+
+describe('ink-2 turn detection', () => {
+  it('defaults to the Responsive profile and honours CASCADE_TURN_PROFILE', async () => {
+    const { inkTurnProfile, INK_TURN_PROFILES, buildCascadeSTTOptions } =
+      await import('../cartesia-cascade.js');
+    expect(inkTurnProfile({})).toEqual(INK_TURN_PROFILES.responsive);
+    expect(inkTurnProfile({ CASCADE_TURN_PROFILE: 'Patient' })).toEqual(INK_TURN_PROFILES.patient);
+    expect(inkTurnProfile({ CASCADE_TURN_PROFILE: 'nonsense' })).toEqual(
+      INK_TURN_PROFILES.responsive
+    );
+    expect(buildCascadeSTTOptions({}).turnDetection).toEqual(INK_TURN_PROFILES.responsive);
+    // CASCADE_TURN_EAGER overrides only the eager-end threshold, strictly between
+    // end (0.4) and start (0.7): ink rejects anything else with 1008
+    expect(inkTurnProfile({ CASCADE_TURN_EAGER: '0.68' })).toEqual({
+      ...INK_TURN_PROFILES.responsive,
+      eagerEndThreshold: 0.68,
+    });
+    for (const bad of ['0.35', '0.4', '0.7', '2', 'abc']) {
+      expect(inkTurnProfile({ CASCADE_TURN_EAGER: bad })).toEqual(INK_TURN_PROFILES.responsive);
+    }
+  });
+
+  it('keeps each profile in the order ink requires (start > eager end > end)', async () => {
+    const { INK_TURN_PROFILES } = await import('../cartesia-cascade.js');
+    for (const p of Object.values(INK_TURN_PROFILES)) {
+      expect(p.startThreshold).toBeGreaterThan(p.eagerEndThreshold);
+      expect(p.eagerEndThreshold).toBeGreaterThan(p.endThreshold);
+    }
+  });
+
+  it('runs with the plugin patch applied, so keyterms and thresholds reach ink', async () => {
+    const { cartesiaPluginPatched } = await import('../cartesia-cascade.js');
+    expect(cartesiaPluginPatched()).toBe(true);
   });
 });

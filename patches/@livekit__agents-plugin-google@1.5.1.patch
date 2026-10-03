@@ -1,5 +1,33 @@
+diff --git a/dist/llm.cjs b/dist/llm.cjs
+index 1525ad998e855e4784d8145f9612bdc3bf2dfa15..e5c73e25199968ec6ffdcaffbd1fd6660257dd65 100644
+--- a/dist/llm.cjs
++++ b/dist/llm.cjs
+@@ -437,6 +437,9 @@ class LLMStream extends import_agents.llm.LLMStream {
+         }
+       }
+     } catch (error) {
++      if (this.abortController.signal.aborted) {
++        return;
++      }
+       if (error instanceof import_agents.APIStatusError || error instanceof import_agents.APIConnectionError) {
+         throw error;
+       }
+diff --git a/dist/llm.js b/dist/llm.js
+index fa5c06611101d1a1b58b7683dddd2af5f943d65c..261fa3741cba6961cce3a356e9729a1092ba3d70 100644
+--- a/dist/llm.js
++++ b/dist/llm.js
+@@ -424,6 +424,9 @@ class LLMStream extends llm.LLMStream {
+         }
+       }
+     } catch (error) {
++      if (this.abortController.signal.aborted) {
++        return;
++      }
+       if (error instanceof APIStatusError || error instanceof APIConnectionError) {
+         throw error;
+       }
 diff --git a/dist/realtime/realtime_api.cjs b/dist/realtime/realtime_api.cjs
-index 8336d2c..2567b7c 100644
+index 8336d2cc652c473b148a67042bbd4985dea56431..2567b7cfc04e0f182dec15dfefac8295956f6005 100644
 --- a/dist/realtime/realtime_api.cjs
 +++ b/dist/realtime/realtime_api.cjs
 @@ -101,6 +101,8 @@ class RealtimeModel extends import_agents.llm.RealtimeModel {
@@ -22,7 +50,7 @@ index 8336d2c..2567b7c 100644
              voiceName: opts.voice
            }
 diff --git a/dist/realtime/realtime_api.d.cts b/dist/realtime/realtime_api.d.cts
-index 9bf37b1..362ae5d 100644
+index 9bf37b14d7a58fc5d18edf4956359d7859651a00..362ae5d2580e2c1d5194ca9f747ca0f91ed341a0 100644
 --- a/dist/realtime/realtime_api.d.cts
 +++ b/dist/realtime/realtime_api.d.cts
 @@ -31,6 +31,7 @@ interface RealtimeOptions {
@@ -46,7 +74,7 @@ index 9bf37b1..362ae5d 100644
           * The language (BCP-47 Code) to use for the API
           * See https://ai.google.dev/gemini-api/docs/live#supported-languages
 diff --git a/dist/realtime/realtime_api.d.ts b/dist/realtime/realtime_api.d.ts
-index 9bf37b1..362ae5d 100644
+index 9bf37b14d7a58fc5d18edf4956359d7859651a00..362ae5d2580e2c1d5194ca9f747ca0f91ed341a0 100644
 --- a/dist/realtime/realtime_api.d.ts
 +++ b/dist/realtime/realtime_api.d.ts
 @@ -31,6 +31,7 @@ interface RealtimeOptions {
@@ -70,7 +98,7 @@ index 9bf37b1..362ae5d 100644
           * The language (BCP-47 Code) to use for the API
           * See https://ai.google.dev/gemini-api/docs/live#supported-languages
 diff --git a/dist/realtime/realtime_api.js b/dist/realtime/realtime_api.js
-index e7f92c1..655878c 100644
+index e7f92c13c4261cf15fd4a810e7cb51d2543b2c75..655878cc4ca7ef39693f95ef179e431f80f7b8fa 100644
 --- a/dist/realtime/realtime_api.js
 +++ b/dist/realtime/realtime_api.js
 @@ -86,6 +86,8 @@ class RealtimeModel extends llm.RealtimeModel {

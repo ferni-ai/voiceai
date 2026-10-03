@@ -40,7 +40,7 @@ export interface CleanupResult {
   deleted: number;
   errors: number;
   durationMs: number;
-  /** Why the collection failed, when errors > 0. */
+  /** What went wrong, when errors > 0 */
   error?: string;
 }
 
@@ -147,7 +147,7 @@ async function deleteExpiredDocuments(
 
   let deleted = 0;
   let errors = 0;
-  let errorMessage: string | undefined;
+  let failure: string | undefined;
   const batchSize = config.batchSize || 100;
 
   try {
@@ -195,9 +195,9 @@ async function deleteExpiredDocuments(
       '✅ TTL cleanup complete'
     );
   } catch (error) {
-    errorMessage = String(error);
-    log.error({ error: errorMessage, collection: config.path }, 'TTL cleanup failed');
+    log.error({ error: String(error), collection: config.path }, 'TTL cleanup failed');
     errors = 1;
+    failure = String(error);
   }
 
   return {
@@ -205,7 +205,7 @@ async function deleteExpiredDocuments(
     deleted,
     errors,
     durationMs: Date.now() - startTime,
-    ...(errorMessage && { error: errorMessage }),
+    error: failure,
   };
 }
 
@@ -380,6 +380,7 @@ export async function runUserDataCleanup(userId: string): Promise<CleanupReport>
           deleted: 0,
           errors: 1,
           durationMs: 0,
+          error: String(error),
         });
         totalErrors++;
       }
@@ -426,17 +427,8 @@ export async function getTTLStatistics(): Promise<{
   };
 }
 
-/**
- * The report without per-collection error text, for API responses. The text
- * stays in the server logs.
- */
-export function toPublicCleanupReport(report: CleanupReport): CleanupReport {
-  return { ...report, results: report.results.map(({ error: _error, ...rest }) => rest) };
-}
-
 export default {
   runTTLCleanup,
-  toPublicCleanupReport,
   runUserDataCleanup,
   scheduleTTLCleanup,
   scheduledTTLCleanup,

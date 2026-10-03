@@ -154,7 +154,7 @@ export interface PreSTTConfig {
 export const DEFAULT_CONFIG: Required<PreSTTConfig> = {
   sampleRate: 16000,
   enableAgc: true,
-  enableNoiseSuppression: true,
+  enableNoiseSuppression: false,  // hurt Ink-2 accuracy (clean 2.6% -> 36.2% word errors), see services/voice/twilio-audio-enhance.ts
   enableHighpass: true,
   highpassCutoffHz: 80, // Remove DC and low rumble below 80Hz
   enableBandwidthExtension: false, // Only for 8kHz input
@@ -167,10 +167,10 @@ export const DEFAULT_CONFIG: Required<PreSTTConfig> = {
 export const TWILIO_CONFIG: Required<PreSTTConfig> = {
   sampleRate: 8000, // Input rate before extension
   enableAgc: true,
-  enableNoiseSuppression: true,
+  enableNoiseSuppression: false,  // hurt Ink-2 accuracy (clean 2.6% -> 36.2% word errors), see services/voice/twilio-audio-enhance.ts
   enableHighpass: true,
   highpassCutoffHz: 80,
-  enableBandwidthExtension: true, // Extend to 16kHz
+  enableBandwidthExtension: false, // no gain for Ink-2 on phone audio (4.8% vs 2.2% raw)
   inputIs8Khz: true,
   sessionId: 'unknown',
   enableMetrics: true,
@@ -371,11 +371,11 @@ export class PreSTTProcessor {
           inputIs8Khz: this.config.inputIs8Khz,
         };
 
-        if (this.config.inputIs8Khz) {
-          this.rustProcessor = rust.NativePreSttProcessor.forTwilio();
-        } else {
-          this.rustProcessor = new rust.NativePreSttProcessor(rustConfig);
-        }
+        // One constructor for all inputs: forTwilio() ignored the per-feature
+        // flags in this config. The Rust side derives the processing rate from
+        // inputIs8Khz + bandwidth extension, so Twilio's config builds the same
+        // processor forTwilio() did (tested in pre_stt.rs).
+        this.rustProcessor = new rust.NativePreSttProcessor(rustConfig);
 
         log.info(
           {
@@ -562,7 +562,7 @@ export const PreSTTPresets = {
   standard: {
     sampleRate: 16000,
     enableAgc: true,
-    enableNoiseSuppression: true,
+    enableNoiseSuppression: false,  // hurt Ink-2 accuracy (clean 2.6% -> 36.2% word errors), see services/voice/twilio-audio-enhance.ts
     enableHighpass: true,
     highpassCutoffHz: 80,
     enableBandwidthExtension: false,
@@ -576,10 +576,10 @@ export const PreSTTPresets = {
   twilio: {
     sampleRate: 8000,
     enableAgc: true,
-    enableNoiseSuppression: true,
+    enableNoiseSuppression: false,  // hurt Ink-2 accuracy (clean 2.6% -> 36.2% word errors), see services/voice/twilio-audio-enhance.ts
     enableHighpass: true,
     highpassCutoffHz: 80,
-    enableBandwidthExtension: true,
+    enableBandwidthExtension: false, // no gain for Ink-2 on phone audio (4.8% vs 2.2% raw)
     inputIs8Khz: true,
   } satisfies Partial<PreSTTConfig>,
 

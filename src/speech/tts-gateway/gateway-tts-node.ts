@@ -34,12 +34,14 @@ import {
 
 // ESM doesn't have global require, so we create one for dynamic imports
 const require = createRequire(import.meta.url);
-import { markCallStage, recordCallEvent } from '../../services/analytics/call-quality-monitor.js';
 import { getTTSCache } from '../../services/tts/index.js';
 import { getTTSProvider } from './providers/index.js';
 import { getSSMLProcessor } from './ssml/index.js';
 import { findChunkEnd } from './chunk-boundary.js';
+import { sessionSpeed } from '../output-control/pace-matching.js';
 import { createContinuationTTS } from './continuation-tts.js';
+import { createFirstAudioObserver, type FirstAudioObserver } from './first-audio-observer.js';
+import { directSpeech, speechDirectorMode } from './director/index.js';
 import { prosodyTags } from './providers/cartesia.js';
 import type { SSMLProsodyConfig } from './types.js';
 
@@ -95,40 +97,6 @@ function isTTSGatewayEnabled(): boolean {
 }
 
 const log = createLogger({ module: 'GatewayTTSNode' });
-
-type FirstAudioObserver = () => void;
-
-interface FirstAudioObserverOptions {
-  sessionId?: string;
-  startTime: number;
-}
-
-function createFirstAudioObserver({
-  sessionId,
-  startTime,
-}: FirstAudioObserverOptions): FirstAudioObserver {
-  let hasMarkedFirstAudio = false;
-
-  return (): void => {
-    if (hasMarkedFirstAudio) return;
-    hasMarkedFirstAudio = true;
-    const ttfbMs = Date.now() - startTime;
-    log.info({ ttfbMs, sessionId }, `🔊 Gateway TTS TTFB: ${ttfbMs}ms`);
-    if (sessionId) {
-      try {
-        const firstAudioAtMs = Date.now();
-        markCallStage(sessionId, 'tts_first_frame', firstAudioAtMs);
-        recordCallEvent({
-          callId: sessionId,
-          timestamp: firstAudioAtMs,
-          type: 'first_response',
-        });
-      } catch {
-        // Non-fatal observability
-      }
-    }
-  };
-}
 
 // ============================================================================
 // TYPES
@@ -318,8 +286,6 @@ function createAudioFrameStream(
 // STREAMING OVERLAP: Start TTS on first phrase (target -100–200ms E2E)
 // ============================================================================
 
-// Sentence boundary: match sentence-ending punctuation followed by space or end-of-string.
-// Negative lookbehind avoids splitting on abbreviations (Dr. Mr. Ms. U.S. etc.) and decimals (3.5).
 const MIN_FIRST_CHUNK = 20;
 const MIN_CHUNK = 15;
 
@@ -405,18 +371,22 @@ async function createStreamingOverlapTTS(
     markFirstAudio,
   } = opts;
 
-  // One continuous generation per reply when the provider supports it: tone
-  // and pacing carry across sentences and there are no per-sentence gaps.
+  // One continuous generation per reply: tone and pacing carry across sentences.
   if (provider.openReplyStream && process.env.TTS_REPLY_CONTINUATIONS !== 'false') {
     metrics.gatewaySyntheses++;
+    const directed = directSpeech(provider.openReplyStream(voiceId), opts);
     return createContinuationTTS({
-      textStream,
-      reply: provider.openReplyStream(voiceId),
+      textStream: directed.textStream,
+      reply: directed.reply,
+      // New context per mid-reply emotion change; the director owns it when on (#176).
+      openReply: speechDirectorMode() === 'off' ? () => provider.openReplyStream!(voiceId) : undefined,
       sanitize: (chunk) => sanitizeChunkForTTS(chunk, ssmlProcessor),
       openingTags: prosodyTags,
       emotion,
+      baseSpeed: sessionSpeed(sessionId),
       toFrames: (pcm) => splitIntoFrames(pcm, sampleRate, frameDurationMs),
       onFirstAudio: markFirstAudio,
+      onStage: markFirstAudio.stage,
       onError: (err, phase) =>
         log.warn({ err: String(err), phase, sessionId, personaId }, 'Continuous reply TTS failed'),
     });

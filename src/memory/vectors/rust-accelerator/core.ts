@@ -232,7 +232,7 @@ export class NativeRustAcceleratorUnavailableError extends Error {
       `Native Rust accelerator module not available: ${reason}\n` +
         'Solutions:\n' +
         '  1. Run `pnpm run build` in apps/rust-perf\n' +
-        '  2. Ensure USE_NATIVE_EMBEDDINGS=true in environment\n' +
+        '  2. Unset DISABLE_RUST_ACCELERATOR (true forces the JavaScript fallbacks)\n' +
         '  3. Check that @ferni/perf is installed'
     );
     this.name = 'NativeRustAcceleratorUnavailableError';

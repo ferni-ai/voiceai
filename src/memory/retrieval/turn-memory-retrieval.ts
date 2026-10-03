@@ -29,7 +29,7 @@
  *          MemoryContext
  * ```
  *
- * Performance Budget: < 100ms total
+ * Performance Budget: < 350ms total (see ./hybrid-search-timeout-stats.js).
  *
  * @module memory/retrieval/turn-memory-retrieval
  */
@@ -41,6 +41,11 @@ import {
   type HybridSearchMetrics,
   type HybridSearchResult,
 } from './hybrid-search.js';
+import {
+  getHybridSearchTimeoutStats,
+  recordHybridSearchOutcome,
+  runHybridSearchWithTimeout,
+} from './hybrid-search-timeout-stats.js';
 
 const log = createLogger({ module: 'TurnMemoryRetrieval' });
 
@@ -142,7 +147,7 @@ export interface TurnRetrievalConfig {
   enableReranking: boolean;
   /** Reranking timeout in ms (default: 50) */
   rerankTimeoutMs: number;
-  /** Total timeout in ms (default: 100) */
+  /** Total timeout in ms (default: 350) */
   totalTimeoutMs: number;
   /** Enable graph expansion (default: true) */
   enableGraphExpansion: boolean;
@@ -155,7 +160,7 @@ const DEFAULT_CONFIG: TurnRetrievalConfig = {
   maxMemories: 5, // Increased from 3 - more context helps
   enableReranking: true,
   rerankTimeoutMs: 50,
-  totalTimeoutMs: 100,
+  totalTimeoutMs: 350, // Was 100 - timed out every turn in prod; see ./hybrid-search-timeout-stats.js
   enableGraphExpansion: true,
   graphExpansionDepth: 2,
 };
@@ -303,18 +308,11 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
   try {
     // 1. HYBRID SEARCH (BM25 + Vector + Entity Store)
     const hybridStart = Date.now();
-    const { results: hybridResults, metrics: hybridMetrics } = await Promise.race([
-      hybridSearch(userId, transcript, {
-        topK: 10,
-        minScore: 0.3, // Lower threshold, we'll filter later
-        bm25Weight: 0.4,
-        vectorWeight: 0.6,
-        includeEntities: true,
-      }),
-      new Promise<{ results: HybridSearchResult[]; metrics: HybridSearchMetrics }>((_, reject) => {
-        setTimeout(() => reject(new Error('Hybrid search timeout')), config.totalTimeoutMs * 0.7);
-      }),
-    ]);
+    const { results: hybridResults, metrics: hybridMetrics } = await runHybridSearchWithTimeout(
+      userId,
+      transcript,
+      config.totalTimeoutMs
+    );
 
     metrics.hybridSearchMs = Date.now() - hybridStart;
     metrics.rawResultCount = hybridResults.length;
@@ -353,7 +351,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
 
     // 2.5. ASSOCIATIVE MEMORY (find naturally associated memories)
     // When user mentions something, find what a friend would naturally think of
-    let associativeResults: HybridSearchResult[] = [];
+    const associativeResults: HybridSearchResult[] = [];
     if (rankedResults.length > 0) {
       try {
         const { getAssociativeMemory } = await import('../associative-memory.js');
@@ -469,12 +467,14 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
     };
   } catch (error) {
     metrics.totalTimeMs = Date.now() - startTime;
+    const isHybridTimeout = recordHybridSearchOutcome(error);
     log.warn(
       {
         userId,
         sessionId,
         error: String(error),
         elapsedMs: metrics.totalTimeMs,
+        ...(isHybridTimeout ? getHybridSearchTimeoutStats() : {}),
       },
       'Turn memory retrieval failed'
     );

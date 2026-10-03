@@ -247,23 +247,15 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
         : undefined
     );
 
-    // ALWAYS inject flow guidance - Ferni should always be asking questions!
-    // Previously only injected when direction !== 'maintain', but that meant
-    // no question-asking guidance was given during "normal" conversation flow
+    // Flow guidance only when the conversation should change direction. An
+    // always-on "[STAY CURIOUS] ... 'How does that feel?' ... end with a
+    // follow-up question" hint made every turn sound like therapy: a caller
+    // asked why Ferni kept asking how things felt (founder test, 2026-09-29).
     if (flow.state.recommendedDirection !== 'maintain') {
       injections.push(
         createStandardInjection('deep_flow', formatFlowForPrompt(flow), {
           category: 'guidance',
         })
-      );
-    } else {
-      // Even when "maintaining", remind to ask questions - this is core to Ferni's personality
-      injections.push(
-        createHintInjection(
-          'deep_flow_curiosity',
-          `[STAY CURIOUS] Conversation is flowing well. Keep asking questions to show genuine interest. Consider: "What's that like for you?" or "How does that feel?" or "What's underneath that?" - end your response with a follow-up question when natural.`,
-          { category: 'guidance' }
-        )
       );
     }
 

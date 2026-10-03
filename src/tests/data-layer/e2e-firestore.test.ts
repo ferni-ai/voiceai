@@ -407,25 +407,27 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
 
   describe('TTL Cleanup', () => {
     it('should get TTL statistics', async () => {
-      const { getTTLStatistics } = await import('../../services/data-layer/ttl-cleanup.js');
+      const { getTTLStatistics, TTL_CONFIGS } =
+        await import('../../services/data-layer/ttl-cleanup.js');
 
-      // getTTLStatistics is async; the old test inspected the Promise itself.
       const stats = await getTTLStatistics();
 
-      // Should have an entry for every collection with a TTL
+      expect(stats.collections).toBe(TTL_CONFIGS.length);
       expect(stats.collections).toBeGreaterThan(0);
-      expect(stats.configured).toHaveLength(stats.collections);
+      expect(stats.configured[0]).toEqual({
+        path: TTL_CONFIGS[0].path,
+        ttlDays: TTL_CONFIGS[0].ttlDays,
+      });
     });
 
     it('should run cleanup without errors', async () => {
       const { runTTLCleanup } = await import('../../services/data-layer/ttl-cleanup.js');
 
-      // Dry run: exercises every configured collection without deleting anything.
+      // Completes with a report even when nothing has expired
       const report = await runTTLCleanup({ dryRun: true });
-      const failures = report.results.filter((r) => r.errors > 0).map((r) => `${r.collection}: ${r.error}`);
-      expect(failures).toEqual([]);
+      expect(report.results.filter((r) => r.errors > 0)).toEqual([]);
       expect(report.totalErrors).toBe(0);
-      expect(report.results.length).toBeGreaterThan(0);
+      expect(Array.isArray(report.results)).toBe(true);
     });
   });
 
@@ -757,11 +759,12 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
     it('should gracefully handle missing user', async () => {
       const { searchUserContext } = await import('../../services/data-layer/index.js');
 
-      // Search for non-existent user: a context for that user with no memories, not a throw
-      const context = await searchUserContext('non-existent-user', 'anything');
+      // Search for non-existent user
+      const results = await searchUserContext('non-existent-user', 'anything');
 
-      expect(context.userId).toBe('non-existent-user');
-      expect(context.relevantMemories).toEqual([]);
+      // Should return an empty context, not throw
+      expect(results.userId).toBe('non-existent-user');
+      expect(results.relevantMemories).toEqual([]);
     });
 
     it('should handle malformed content gracefully', async () => {

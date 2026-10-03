@@ -42,7 +42,13 @@ function textStream(pieces: string[]) {
 }
 
 const processor = getSSMLProcessor();
-function run(pieces: string[], reply: FakeReply, emotion?: string) {
+function run(
+  pieces: string[],
+  reply: FakeReply,
+  emotion?: string,
+  openReply?: () => FakeReply,
+  baseSpeed?: number
+) {
   let firstAudio = 0;
   const errors: unknown[] = [];
   const stream = createContinuationTTS({
@@ -54,6 +60,8 @@ function run(pieces: string[], reply: FakeReply, emotion?: string) {
     },
     openingTags: prosodyTags,
     emotion,
+    openReply,
+    baseSpeed,
     toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
     onFirstAudio: () => firstAudio++,
     onError: (e) => errors.push(e),
@@ -90,6 +98,50 @@ describe('createContinuationTTS', () => {
     expect(spoken).toContain("Guilty as charged. I guess that is my default state, isn't it?");
   });
 
+  it('marks the first LLM text and the first push once each, text first', async () => {
+    const stages: string[] = [];
+    const reply = new FakeReply([4]);
+    const stream = createContinuationTTS({
+      textStream: textStream(['Oh', ' no, not the keyboard again. ', 'Is it still working?']),
+      reply,
+      sanitize: (chunk) => ({ text: chunk.trim(), prosody: {} }),
+      openingTags: () => '',
+      toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
+      onFirstAudio: () => undefined,
+      onStage: (stage) => stages.push(stage),
+      onError: () => undefined,
+    });
+    await drain(stream as unknown as ReadableStream<AudioFrame>);
+    expect(stages).toEqual(['text', 'push']);
+  });
+
+  it('sends the first words at a word boundary when no clause break comes soon', async () => {
+    const reply = new FakeReply([4]);
+    let pushedBeforeRest = '';
+    const slow = new ReadableStream<string>({
+      async start(c) {
+        c.enqueue('Honestly I think that the keyb');
+        await new Promise((r) => setTimeout(r, 120));
+        pushedBeforeRest = reply.pushes.join('');
+        c.enqueue('oard is gone for good. ');
+        c.close();
+      },
+    });
+    const stream = createContinuationTTS({
+      textStream: slow,
+      reply,
+      sanitize: (chunk) => ({ text: chunk.trim(), prosody: {} }),
+      openingTags: () => '',
+      toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
+      onFirstAudio: () => undefined,
+      onError: () => undefined,
+      firstChunkWaitMs: 20,
+    });
+    await drain(stream as unknown as ReadableStream<AudioFrame>);
+    expect(pushedBeforeRest).toBe('Honestly I think that the ');
+    expect(reply.pushes.join('')).toBe('Honestly I think that the keyboard is gone for good. ');
+  });
+
   it('falls back to the session emotion when the reply names none', async () => {
     const reply = new FakeReply([4]);
     const { stream } = run(['That sounds like a really long week.'], reply, 'sympathetic');
@@ -99,38 +151,98 @@ describe('createContinuationTTS', () => {
     );
   });
 
-  it('returns to normal speed and volume after an opening soft start', async () => {
-    // Interrupt recovery opens a reply softer and slower. On one continuous
-    // context those inline tags persist, so without a reset the whole reply
-    // came out 24% quieter and 12% slower.
+  it('keeps a reply softer and slower until the reply changes it', async () => {
+    // The humanization layer's pace and volume used to survive only the first
+    // sentence; now they hold, and a later tag (e.g. the end of an interrupt
+    // soft start) returns the voice to normal.
     const reply = new FakeReply([4]);
     const { stream } = run(
       [
-        '<break time="300ms"/><volume ratio="0.76"/><speed ratio="0.88"/>Oh, go ahead. ',
-        'I was just saying that it sounds like a lot.',
+        '<volume ratio="0.8"/><speed ratio="0.92"/>Oh, I hear you. ',
+        'That sounds like a lot. ',
+        '<speed ratio="1"/><volume ratio="1"/>Want to talk it through?',
       ],
       reply
     );
     await drain(stream as unknown as ReadableStream<AudioFrame>);
-    expect(reply.pushes[0]).toContain('<volume ratio="0.76"/>');
-    expect(reply.pushes[1].startsWith('<speed ratio="1"/><volume ratio="1"/>')).toBe(true);
+    expect(reply.pushes[0]).toContain('<volume ratio="0.8"/>');
+    expect(reply.pushes[1]).toBe('That sounds like a lot. ');
+    expect(reply.pushes[2].startsWith('<speed ratio="1"/><volume ratio="1"/>')).toBe(true);
   });
 
-  it('passes only calm emotions to the voice; big ones are left to the words', async () => {
-    // "excited" widened Ferni's pitch range to 10.9 semitones vs 8.7 untagged.
-    const calm = new FakeReply([4]);
+  it("drops big emotions (unstable pitch, #180) but passes a stable change mid-reply", async () => {
+    const reply = new FakeReply([4]);
     await drain(
-      run(['<emotion value="sympathetic"/>That sounds hard.'], calm)
-        .stream as unknown as ReadableStream<AudioFrame>
+      run(
+        [
+          '<emotion value="excited"/>Wait, a life coach?! That is so cool. ',
+          '<emotion value="sympathetic"/>But I know the timing is hard.',
+        ],
+        reply
+      ).stream as unknown as ReadableStream<AudioFrame>
     );
-    expect(calm.pushes[0]).toBe('<emotion value="sympathetic"/>That sounds hard. ');
+    expect(reply.pushes[0]).not.toContain('excited');
+    const later = reply.pushes.find((p) => p.includes('timing'));
+    expect(later).toBe('<emotion value="sympathetic"/>But I know the timing is hard. ');
+    expect(reply.pushes.filter((p) => p.includes('<emotion'))).toHaveLength(1);
+  });
 
-    const big = new FakeReply([4]);
-    await drain(
-      run(['<emotion value="excited"/>Wait, a life coach?! That is so cool.'], big)
-        .stream as unknown as ReadableStream<AudioFrame>
+  it('speaks at the session pace, with reply speed tags relative to it', async () => {
+    const reply = new FakeReply([10]);
+    const { stream } = run(
+      ['That deadline is a lot to absorb this week. ', '<speed ratio="0.9"/>Take a breath first. '],
+      reply,
+      undefined,
+      undefined,
+      1.06
     );
-    expect(big.pushes[0]).not.toContain('<emotion');
+    await drain(stream as unknown as ReadableStream<AudioFrame>);
+    expect(reply.pushes[0]).toContain('<speed ratio="1.06"/>');
+    expect(reply.pushes[1]).toContain('<speed ratio="0.95"/>');
+  });
+
+  it('continues on a fresh generation when the emotion shifts, playing audio in order', async () => {
+    // Cartesia: emotion shifts inside one generation are highly experimental;
+    // use a separate context per emotion.
+    const first = new FakeReply([3]);
+    const second = new FakeReply([5]);
+    const opened: FakeReply[] = [];
+    const { stream } = run(
+      [
+        '<emotion value="curious"/>You got the job? ',
+        'Tell me everything. ',
+        '<emotion value="sympathetic"/>I know the last month was hard, though.',
+      ],
+      first,
+      undefined,
+      () => {
+        opened.push(second);
+        return second;
+      }
+    );
+    const frames = (await drain(
+      stream as unknown as ReadableStream<AudioFrame>
+    )) as unknown as Array<{
+      bytes: number;
+    }>;
+    expect(opened).toHaveLength(1);
+    expect(first.ended).toBe(true);
+    expect(first.pushes.join('')).not.toContain('sympathetic');
+    expect(second.pushes[0].startsWith('<emotion value="sympathetic"/>I know')).toBe(true);
+    expect(second.ended).toBe(true);
+    expect(frames.map((f) => f.bytes)).toEqual([3, 5]);
+  });
+
+  it('keeps one generation when the emotion does not change', async () => {
+    const reply = new FakeReply([4]);
+    let opened = 0;
+    await drain(
+      run(['<emotion value="calm"/>Okay. ', 'Take your time.'], reply, undefined, () => {
+        opened++;
+        return new FakeReply();
+      }).stream as unknown as ReadableStream<AudioFrame>
+    );
+    expect(opened).toBe(0);
   });
 
   it('adds no reset when the reply opened at normal speed and volume', async () => {
