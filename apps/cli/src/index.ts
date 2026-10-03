@@ -4394,7 +4394,7 @@ async function handleVoices(args: string[]): Promise<void> {
 
     // Import the full persona platform
     // Note: Path is relative to apps/cli/src/
-    const { getVoiceIdForPersona } = await import('../../../src/config/voice-ids.js');
+    const { getVoiceIdForPersona, CARTESIA_MODEL } = await import('../../../src/config/voice-ids.js');
     const { humanizeText, addBreathGroupPauses } =
       await import('../../../src/speech/advanced-humanization/index.js');
 
@@ -4543,7 +4543,7 @@ async function handleVoices(args: string[]): Promise<void> {
 
         console.log(`    ${colors.dim}Humanized: +pauses at breath groups${colors.reset}`);
 
-        // Use Cartesia's sonic-english model with persona voice
+        // Use the pinned CARTESIA_MODEL (PVC voices need a model they were tuned on)
         const response = await fetch('https://api.cartesia.ai/tts/bytes', {
           method: 'POST',
           headers: {
@@ -4552,7 +4552,7 @@ async function handleVoices(args: string[]): Promise<void> {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model_id: 'sonic-english',
+            model_id: CARTESIA_MODEL,
             transcript: humanizedText,
             voice: {
               mode: 'id',

@@ -21,7 +21,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { CARTESIA_MODEL } from '../../config/voice-ids.js';
+import { CARTESIA_MODEL, VOICE_IDS } from '../../config/voice-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ResourceServer' });
@@ -450,9 +450,7 @@ function handleTTSRequest(reg: ResourceRegistry, request: ResourceRequest): Reso
         const persona = personaConfig as { voice?: { voiceId: string; provider: string } };
         // Voice IDs and model from env vars - must match config/cartesia-config.ts
         const defaultVoiceId =
-          process.env.FERNI_VOICE_ID ||
-          process.env.JACK_B_VOICE_ID ||
-          'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
+          process.env.FERNI_VOICE_ID || process.env.JACK_B_VOICE_ID || VOICE_IDS.FERNI;
         return {
           id: request.id,
           success: true,
