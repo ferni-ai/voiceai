@@ -113,6 +113,11 @@ jobs:
   codeql:
     name: CodeQL Analysis
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # The analyze action reads this workflow run (a 403 "Resource not accessible
+    # by integration" without it); the default token is read-only.
+    permissions:
+      actions: read
+      contents: read
 
     steps:
       - name: Checkout
