@@ -7,10 +7,13 @@
 # provides, so it fails to link ("undefined napi_* symbols") and these tests
 # never ran. The tests never call into Node, so the test binary may leave
 # those symbols unresolved: dynamic_lookup on macOS (what napi-build already
-# does for the .node module), ignore-all on Linux. Linux also needs lazy
-# binding: Rust links executables with -z now, so the loader resolved every
-# napi_* symbol at startup and the binary died with "symbol lookup error:
-# undefined symbol: napi_is_exception_pending" before any test ran.
+# does for the .node module), ignore-all plus lazy binding on Linux.
+#
+# On Linux that still wasn't enough: napi-rs's module-registration code takes
+# napi_* addresses, which the loader resolves at startup even with lazy
+# binding, and the binary died with "symbol lookup error: undefined symbol:
+# napi_is_exception_pending" before any test ran. napi-rs's noop feature
+# leaves that registration out (the tests never register a Node module).
 set -euo pipefail
 crate_dir=$1
 shift
@@ -20,4 +23,4 @@ case "$(uname -s)" in
   *) echo "unsupported OS: $(uname -s)" >&2; exit 2 ;;
 esac
 cd "$crate_dir"
-RUSTFLAGS="${RUSTFLAGS:-} $link" cargo test --release --lib "$@"
+RUSTFLAGS="${RUSTFLAGS:-} $link" cargo test --release --lib --features napi/noop,napi-derive/noop "$@"
