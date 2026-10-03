@@ -31,9 +31,12 @@ describe('speech markup in the live Ferni prompts', () => {
     // The persona files' tag tables and templated openers are gone...
     expect(system).not.toMatch(/<emotion|<speed/);
     expect(system).not.toContain('Natural reactions: "Ha!"');
-    // ...replaced by one contract: emotion where the feeling shifts, pace for
-    // tender or important moments (the voice sounded flat without them).
-    expect(base).toContain('where it genuinely shifts');
+    // ...replaced by one contract: one emotion per reply (the voice wavers when
+    // it changes mid-reply), pace for tender or important moments.
+    expect(base).toContain('keep it for the whole reply');
+    // Cartesia pauses ~320 ms on every "...", even mid-sentence.
+    expect(base).toContain('No ellipses');
+    expect(base).not.toContain('genuinely shifts');
     expect(base).toContain('<speed ratio="0.9"/>');
     expect(base).toContain('[laughter]');
     // Cartesia reads all-caps words as initialisms ("NUH-yun" came out as N-U-H).
