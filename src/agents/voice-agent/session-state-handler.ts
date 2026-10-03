@@ -1446,15 +1446,15 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         }
       }
 
-      // LONG SILENCE (10s+): ±20% randomized so the timing isn't predictable.
+      // LONG SILENCE (10s+) - Meaningful silence responses
+      // HUMANIZATION FIX: Add ±20% randomization to prevent predictable timing
       // Intervals are configurable via SILENCE_INTERVALS env var (e.g., "6,15,30" for faster)
       const baseIntervals = SILENCE_THRESHOLDS.intervals;
       const randomize = (base: number) => Math.round(base * (0.8 + Math.random() * 0.4));
       const intervals = baseIntervals.map(randomize);
       const targetInterval = intervals[silenceResponseCount];
 
-      const spoke = userData.userSpeakingStartTime !== undefined; // set on their first words
-      const blocked = silenceResponseBlocked(sessionId, room, silenceDurationSec, spoke);
+      const blocked = silenceResponseBlocked(sessionId, room, silenceDurationSec);
 
       if (
         !blocked &&

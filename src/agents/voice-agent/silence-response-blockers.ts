@@ -17,8 +17,7 @@ import { canTriggerProactive } from '../shared/response-orchestrator.js';
 export function silenceResponseBlocked(
   sessionId: string,
   room: { remoteParticipants?: Map<string, unknown> } | undefined,
-  silenceDurationSec: number,
-  callerHasSpoken = true
+  silenceDurationSec: number
 ): boolean {
   // FIX: Skip silence response if tools are actively executing (e.g., music search)
   // This prevents gateway timeouts when LLM is busy processing tool calls
@@ -37,18 +36,6 @@ export function silenceResponseBlocked(
   // that nobody can hear, causing "no response from Ferni" issues.
   const hasParticipants = room?.remoteParticipants?.size ? room.remoteParticipants.size > 0 : true;
   const noParticipants = room && !hasParticipants;
-
-  // One greeting per call: before the caller has said anything, a remark into
-  // the silence is a second greeting (the 2026-10-03 probe call got "Hey,
-  // what's up?" then "Mm? I'm here." with no caller speech in between).
-  // FERNI_SILENCE_BEFORE_FIRST_WORDS=on restores it.
-  const beforeFirstWords =
-    !callerHasSpoken && process.env.FERNI_SILENCE_BEFORE_FIRST_WORDS !== 'on';
-  if (beforeFirstWords) {
-    diag.state('🤫 [SILENCE] Skipped - caller has not spoken yet', {
-      silenceSec: Math.round(silenceDurationSec),
-    });
-  }
 
   if (toolsActive) {
     diag.state('🤫 [SILENCE] Skipped - tool execution in progress', {
@@ -80,7 +67,5 @@ export function silenceResponseBlocked(
     });
   }
 
-  return Boolean(
-    beforeFirstWords || toolsActive || handoffOrDraining || noParticipants || !sdkIdle
-  );
+  return Boolean(toolsActive || handoffOrDraining || noParticipants || !sdkIdle);
 }
