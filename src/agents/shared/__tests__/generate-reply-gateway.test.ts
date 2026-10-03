@@ -16,21 +16,23 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 // MOCKS
 // ============================================================================
 
-// Mock the logger
-vi.mock('../../../utils/safe-logger.js', () => ({
-  getLogger: () => ({
+// Mock the logger. `child` is required: the gateway TTS node now reaches
+// the Speech Director (speech/adaptive-ssml/contextual-laughter.ts calls
+// `getLogger().child(...)` at module load), so a logger stub missing it
+// throws at import time, before any test runs.
+vi.mock('../../../utils/safe-logger.js', () => {
+  const logger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-  createLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+    child: vi.fn(() => logger),
+  };
+  return {
+    getLogger: () => logger,
+    createLogger: () => logger,
+  };
+});
 
 // Fallback speech goes through the director, which rewrites the canned
 // line in the character's words; here it is captured with its canned text.
