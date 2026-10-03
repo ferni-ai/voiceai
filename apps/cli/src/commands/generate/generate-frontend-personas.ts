@@ -111,7 +111,7 @@ interface FrontendPersona {
   };
 }
 
-interface GeneratedConfig {
+export interface GeneratedConfig {
   _generated: {
     timestamp: string;
     source: string;
@@ -452,18 +452,28 @@ async function generateFrontendConfig(): Promise<void> {
   
   // Write to frontend, unless only the timestamp would change (keeps builds diff-free)
   const outputPath = join(projectRoot, 'apps/web', 'src', 'config', 'personas.generated.json');
-  const withoutTimestamp = (c: GeneratedConfig) => JSON.stringify({ ...c, _generated: { ...c._generated, timestamp: '' } });
-  const existing = await readFile(outputPath, 'utf-8').then((t) => JSON.parse(t) as GeneratedConfig).catch(() => null);
-  if (existing && withoutTimestamp(existing) === withoutTimestamp(config)) {
-    console.log(`\n✅ Up to date: ${outputPath}`);
-    return;
-  }
-  await writeFile(outputPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+  const previous = await readFile(outputPath, 'utf-8').catch(() => null);
+  await writeFile(outputPath, JSON.stringify(keepTimestampIfUnchanged(config, previous), null, 2) + '\n', 'utf-8');
   
   console.log(`\n✨ Generated: ${outputPath}`);
   console.log(`   Personas: ${Object.keys(personas).length}`);
   console.log(`   Coordinator: ${coordinatorId}`);
   console.log(`   Team order: ${teamOrder.join(', ')}`);
+}
+
+/**
+ * The config with the previous file's timestamp when nothing else changed, so a
+ * build doesn't rewrite a tracked file just to restamp it.
+ */
+export function keepTimestampIfUnchanged(next: GeneratedConfig, previousJson: string | null): GeneratedConfig {
+  try {
+    const previous = JSON.parse(previousJson ?? '') as GeneratedConfig;
+    const body = (c: GeneratedConfig): string => JSON.stringify({ ...c, _generated: { ...c._generated, timestamp: '' } });
+    if (body(previous) === body(next)) return { ...next, _generated: { ...next._generated, timestamp: previous._generated.timestamp } };
+  } catch {
+    // no previous file, or not JSON: write the new one
+  }
+  return next;
 }
 
 // Run only from the command line, so the team filter can be tested.
