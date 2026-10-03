@@ -24,6 +24,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
+import { calmGreeting, GREETING_DIRECTION, partOfDayFor } from './greeting-direction.js';
+export { calmGreeting } from './greeting-direction.js';
 
 // Predictive handoff - pre-briefings for specialist personas
 import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
@@ -250,19 +252,17 @@ export class AgentOrchestrator {
       // character say hello in their own words for this caller and hour.
       const scripted = generateWarmGreeting(agent.personaId, ctx);
       const { directedText } = await import('../../speech/direction/index.js');
-      const hour = ctx.hour;
-      const partOfDay = hour < 5 ? 'late night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 22 ? 'evening' : 'late evening';
+      const partOfDay = partOfDayFor(ctx.hour);
       const userName = (agent.userData as { userName?: string } | undefined)?.userName;
       const directed = await directedText(this.sessionId, {
         moment: 'greeting',
-        direction:
-          'They just connected for a voice call. Greet them like a friend picking up the phone: warm, short, and end with one easy opening. Do not list what you can do or introduce yourself at length.',
+        direction: GREETING_DIRECTION,
         facts: { 'time of day': partOfDay, ...(userName ? { 'their name': userName } : {}) },
         fallback: scripted,
         urgency: 'now',
         maxChars: 140,
       });
-      const greeting = directed.text;
+      const greeting = calmGreeting(directed.text);
 
       // ================================================================
       // GREETING AWARENESS: Store greeting so LLM knows what it said

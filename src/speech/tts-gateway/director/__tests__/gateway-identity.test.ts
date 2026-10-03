@@ -69,15 +69,16 @@ const PIECES = [
   "Call at 3:30 p.m. if you can. [laughs] We'll figure it out.",
 ];
 
-/** Captured on the base commit; see the module comment. */
+/**
+ * The base path's output, re-captured when PR #171 merged (2026-10-03): its
+ * 250-char unpunctuated limit no longer cuts "a lot of | money" mid-phrase,
+ * and the model's own <break> is passed through as a native break.
+ */
 const GOLDEN = [
   '<emotion value="sympathetic"/>Oh, I hear you. ',
-  // The 80-char fallback cut lands mid-phrase ("a lot of | money"): the gap
-  // the Director's phrasing closes in live mode.
-  'Mrs. Johnson said the bill was $4,200 on 10/3, and honestly that is a lot of ',
-  'money to find in a single month when you are already stretched thin and trying to keep everything together for the kids. ',
+  'Mrs. Johnson said the bill was $4,200 on 10/3, and honestly that is a lot of money to find in a single month when you are already stretched thin and trying to keep everything together for the kids. ',
   "Here's the thing, you did the right thing. ",
-  'Call at 3:30 p.m. if you can. ',
+  '<break time="600ms"/>Call at 3:30 p.m. if you can. ',
   "[laughter] We'll figure it out. ",
 ];
 

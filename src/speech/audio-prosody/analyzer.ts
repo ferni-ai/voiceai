@@ -6,6 +6,7 @@
  * to detect emotional state from the user's voice.
  */
 
+import { isExperimentalEnabled } from '../../config/feature-flags.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { AudioFrame } from '@livekit/rtc-node';
 import type { ProsodyFeatures, VoiceEmotionResult, AudioBuffer } from './types.js';
@@ -64,20 +65,29 @@ export class AudioProsodyAnalyzer {
 
   // Native Rust processor state
   private useNativeProcessor = false;
+  private nativeChecked = false;
   private lastFrameTimestamp = 0;
 
   constructor(sessionId?: string) {
     this.sessionId = sessionId ?? null;
+    log.debug({ sessionId }, 'AudioProsodyAnalyzer initialized');
+  }
 
-    // Initialize native Rust processor if available
-    if (sessionId && isNativeAudioAvailable()) {
-      this.useNativeProcessor = getOrCreateNativeProcessor(sessionId, 16000);
-      if (this.useNativeProcessor) {
-        log.debug({ sessionId }, '🦀 AudioProsodyAnalyzer using Rust acceleration');
-      }
+  /**
+   * The native processor is created on the first frame, at that frame's
+   * sample rate: it used to be created up front at a fixed 16 kHz, which is
+   * wrong for any other input rate. USE_NATIVE_AUDIO=false keeps it off (the
+   * streaming analyzer in audio-processor.ts already honoured that switch;
+   * this batch analyzer did not).
+   */
+  private ensureNativeProcessor(sampleRate: number): void {
+    if (this.nativeChecked || !this.sessionId) return;
+    this.nativeChecked = true;
+    if (!isExperimentalEnabled('nativeAudioProcessing') || !isNativeAudioAvailable()) return;
+    this.useNativeProcessor = getOrCreateNativeProcessor(this.sessionId, sampleRate);
+    if (this.useNativeProcessor) {
+      log.debug({ sessionId: this.sessionId, sampleRate }, '🦀 AudioProsodyAnalyzer using Rust acceleration');
     }
-
-    log.debug({ sessionId, native: this.useNativeProcessor }, 'AudioProsodyAnalyzer initialized');
   }
 
   /**
@@ -95,6 +105,7 @@ export class AudioProsodyAnalyzer {
 
     try {
       const now = Date.now();
+      this.ensureNativeProcessor(frame.sampleRate);
 
       // If using native Rust processor, feed it directly with Int16 (zero-copy)
       if (this.useNativeProcessor && this.sessionId) {
@@ -104,7 +115,7 @@ export class AudioProsodyAnalyzer {
 
       // Also maintain JS buffers for fallback and additional analysis
       // Convert to Float32Array - use native Rust when available (zero-allocation)
-      const samples = isNativeAudioAvailable()
+      const samples = this.useNativeProcessor
         ? convertI16ToF32(frame.data as unknown as Int16Array)
         : convertToFloat32(frame.data);
 

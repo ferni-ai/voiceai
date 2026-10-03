@@ -66,7 +66,7 @@ const setTimerDef: ToolDefinition = {
           activeTimers.delete(userId);
 
           // Trigger voice callback - actually speaks to user!
-          void onTimerComplete(userId, timerLabel, minutes + seconds / 60)
+          void onTimerComplete(userId, timerLabel, minutes + seconds / 60, toolCtx.session)
             .then(() => {
               // Get personalized follow-up message for logging
               const followUpMsg = getTimerFollowUp(userId);

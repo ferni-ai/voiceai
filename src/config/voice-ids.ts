@@ -22,15 +22,31 @@ const log = createLogger({ module: 'VoiceIds' });
 // =============================================================================
 
 /**
- * Default Cartesia model: a DATED snapshot, not the floating 'sonic-3.6' alias.
- * Ferni's voice is a Professional Voice Clone, and a PVC must be used with a model
- * it was fine-tuned on (see PVC_FINE_TUNED_MODELS in voice-capabilities.ts). An
- * alias can move to a snapshot the PVC has no fine-tune for.
+ * Cartesia model (CARTESIA_MODEL). A dated Sonic snapshot never changes; the bare 'sonic-3.6' alias moves to
+ * each new stable snapshot, which can change Ferni's sound without a deploy.
+ * Cartesia recommends a dated snapshot in production.
  */
-export const DEFAULT_CARTESIA_MODEL = 'sonic-3.6-2026-08-27';
+export const CARTESIA_SNAPSHOT = 'sonic-3.6-2026-08-27';
+/** The pinned snapshot under main's name (#179). */
+export const DEFAULT_CARTESIA_MODEL = CARTESIA_SNAPSHOT;
+export const CARTESIA_MODEL = pinCartesiaModel(process.env.CARTESIA_MODEL);
 
-/** Cartesia model; CARTESIA_MODEL env overrides the pinned default. */
-export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || DEFAULT_CARTESIA_MODEL;
+/**
+ * Cartesia pronunciation dictionary for names TTS gets wrong (e.g. Nayan,
+ * which sonic read as "NIGH-in"), built from COMMON_DIFFICULT_NAMES in
+ * speech/pronunciation-memory/constants.ts. Spread into every TTS request.
+ */
+export function cartesiaPronunciation(
+  env: Record<string, string | undefined> = process.env
+): { pronunciation_dict_id?: string } {
+  const id = env.CARTESIA_PRONUNCIATION_DICT_ID?.trim();
+  return id ? { pronunciation_dict_id: id } : {};
+}
+
+/** The bare sonic-3.6 alias (or nothing) becomes the dated snapshot; anything else is kept. */
+export function pinCartesiaModel(model: string | undefined): string {
+  return !model || model === 'sonic-3.6' ? CARTESIA_SNAPSHOT : model;
+}
 
 /**
  * Cartesia API version for all TTS requests

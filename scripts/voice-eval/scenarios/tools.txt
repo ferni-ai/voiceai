@@ -1,0 +1,7 @@
+# Everyday requests that need a tool, phrased the way people talk. Used to
+# check per-turn tool retrieval (TOOL_RETRIEVAL=shadow logs coverage).
+Ugh, the pasta needs ten minutes. Can you keep an eye on the time for me?
+Oh, and what's the weather supposed to be like tomorrow? I'm thinking of going for a hike.
+Can you remember that my sister's name is Ana? She's the one who just moved to Denver.
+Remind me to call my mom tomorrow at noon, I keep forgetting.
+Honestly, throw on some jazz while I cook.

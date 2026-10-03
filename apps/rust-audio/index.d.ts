@@ -14,16 +14,6 @@ export declare function renderNonverbal(kind: string, durationMs: number, intens
  * faster), clamped to 0.8-1.25.
  */
 export declare function timeStretch(samples: Float32Array, ratio: number, sampleRate: number): Float32Array
-/** NAPI: Optional STT config */
-export interface WhisperSttConfig {
-  /** Path to GGML model (e.g. ggml-base.en.bin) */
-  modelPath: string
-}
-/**
- * One-shot transcribe: load model, transcribe, return text.
- * Prefer NativeWhisperStt when transcribing multiple chunks.
- */
-export declare function transcribeWhisper(modelPath: string, pcm: Float32Array): string
 /** YIN pitch estimation result for NAPI */
 export interface NativeYinResult {
   /** Estimated pitch in Hz (0 if no voiced speech detected) */
@@ -623,15 +613,6 @@ export declare class NativeTempoStretcher {
   flush(): Float32Array
   /** The clamped speed ratio in effect. */
   get ratio(): number
-}
-/**
- * NAPI: Whisper STT engine for Node.js
- * Load once, then call transcribe() with Float32Array (16 kHz mono).
- */
-export declare class NativeWhisperStt {
-  constructor(config: WhisperSttConfig)
-  /** Transcribe Float32Array PCM (16 kHz, mono). Returns transcript text. */
-  transcribe(pcm: Float32Array): string
 }
 /**
  * Native audio processor for real-time voice analysis

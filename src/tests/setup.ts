@@ -110,6 +110,21 @@ const cleanForFirestoreImpl = <T>(obj: T): T => {
   return obj;
 };
 
+// Same as utils/firestore-utils.ts: walks plain objects and arrays only.
+const deepRemoveUndefinedImpl = <T>(obj: T): T => {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map((item) => deepRemoveUndefinedImpl(item)) as T;
+  const proto = typeof obj === 'object' ? (Object.getPrototypeOf(obj) as unknown) : undefined;
+  if (proto === Object.prototype || proto === null) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      if (value !== undefined) result[key] = deepRemoveUndefinedImpl(value);
+    }
+    return result as T;
+  }
+  return obj;
+};
+
 const removeUndefinedImpl = <T extends object>(obj: T): T => {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
@@ -152,7 +167,9 @@ vi.mock('../utils/firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => mockFirestoreDb),
   cleanForFirestore: vi.fn((obj: unknown) => cleanForFirestoreImpl(obj)),
   removeUndefined: vi.fn((obj: unknown) => removeUndefinedImpl(obj as object)),
-  deepRemoveUndefined: vi.fn((obj: unknown) => cleanForFirestoreImpl(obj)),
+  // Not cleanForFirestore: that turns Dates into strings, which the real
+  // deepRemoveUndefined doesn't do.
+  deepRemoveUndefined: vi.fn((obj: unknown) => deepRemoveUndefinedImpl(obj)),
   toSafeDate: vi.fn((value: unknown, fallback?: Date) => toSafeDateImpl(value, fallback)),
   toSafeDateOptional: vi.fn((value: unknown) => toSafeDateOptionalImpl(value)),
   recordDegradation: vi.fn(),

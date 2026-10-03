@@ -45,7 +45,8 @@ describe('PreSTTTransform', () => {
     it('should have all required fields', () => {
       expect(DEFAULT_CONFIG.sampleRate).toBe(16000);
       expect(DEFAULT_CONFIG.enableAgc).toBe(true);
-      expect(DEFAULT_CONFIG.enableNoiseSuppression).toBe(true);
+      // Noise suppression multiplied Ink-2 word errors (scripts/audio-eval/stt-accuracy.ts)
+      expect(DEFAULT_CONFIG.enableNoiseSuppression).toBe(false);
       expect(DEFAULT_CONFIG.enableHighpass).toBe(true);
       expect(DEFAULT_CONFIG.highpassCutoffHz).toBe(80);
     });
@@ -64,12 +65,13 @@ describe('PreSTTTransform', () => {
     it('should be configured for 8kHz telephony audio', () => {
       expect(TWILIO_CONFIG.sampleRate).toBe(8000);
       expect(TWILIO_CONFIG.inputIs8Khz).toBe(true);
-      expect(TWILIO_CONFIG.enableBandwidthExtension).toBe(true);
+      // No gain for Ink-2 on phone audio; the enhancer upsamples instead
+      expect(TWILIO_CONFIG.enableBandwidthExtension).toBe(false);
     });
 
-    it('should enable all enhancement features', () => {
+    it('should enable AGC and high-pass only (measured against Ink-2)', () => {
       expect(TWILIO_CONFIG.enableAgc).toBe(true);
-      expect(TWILIO_CONFIG.enableNoiseSuppression).toBe(true);
+      expect(TWILIO_CONFIG.enableNoiseSuppression).toBe(false);
       expect(TWILIO_CONFIG.enableHighpass).toBe(true);
     });
   });
@@ -83,20 +85,20 @@ describe('PreSTTTransform', () => {
       expect(PreSTTPresets).toHaveProperty('bypass');
     });
 
-    it('standard preset should enable full enhancement for 16kHz', () => {
+    it('standard preset should enable AGC and high-pass for 16kHz', () => {
       const preset = PreSTTPresets.standard;
       expect(preset.sampleRate).toBe(16000);
       expect(preset.enableAgc).toBe(true);
-      expect(preset.enableNoiseSuppression).toBe(true);
+      expect(preset.enableNoiseSuppression).toBe(false);
       expect(preset.enableHighpass).toBe(true);
       expect(preset.enableBandwidthExtension).toBe(false);
     });
 
-    it('twilio preset should enable bandwidth extension', () => {
+    it('twilio preset should describe 8kHz input without bandwidth extension', () => {
       const preset = PreSTTPresets.twilio;
       expect(preset.sampleRate).toBe(8000);
       expect(preset.inputIs8Khz).toBe(true);
-      expect(preset.enableBandwidthExtension).toBe(true);
+      expect(preset.enableBandwidthExtension).toBe(false);
     });
 
     it('quietRoom preset should disable noise suppression', () => {
