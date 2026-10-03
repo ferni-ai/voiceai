@@ -118,30 +118,62 @@ export class DirectorEngine {
     return this.ctx.modes[lever] === 'live';
   }
 
+  /** True while phrasing holds text back from Cartesia. */
+  get holding(): boolean {
+    return this.spokenPhrases.holding;
+  }
+
   /** One push from continuation-tts; returns what to push to Cartesia now. */
   take(push: string): string[] {
-    this.stats.pushesIn++;
-    const { tags, body, prosody } = parseLead(push);
-    const first = !this.opened;
-    const normalized = normalizeForSpeech(body);
-    this.stats.normalizations += normalized.count;
+    return this.atomically(() => {
+      this.stats.pushesIn++;
+      const { tags, body, prosody } = parseLead(push);
+      const first = !this.opened;
+      const normalized = normalizeForSpeech(body);
+      this.stats.normalizations += normalized.count;
 
-    const planned = this.planPhrases.accept(normalized.text, first);
-    if (first) this.open(planned[0] ?? normalized.text);
-    this.planSegments(planned);
+      const planned = this.planPhrases.accept(normalized.text, first);
+      if (first) this.open(planned[0] ?? normalized.text);
+      this.planSegments(planned);
 
-    let spokenBody = this.live('normalize') ? normalized.text : body;
-    if (this.live('emotion')) spokenBody = spokenBody.replace(ANY_EMOTION_TAG, '');
-    const spoken = this.spokenPhrases.accept(spokenBody, first);
-    if (spoken.length === 0) this.stats.held++;
-    this.pendingTags += first ? this.openingTags(tags, prosody) : this.laterTags(tags, prosody);
-    return this.emit(spoken);
+      let spokenBody = this.live('normalize') ? normalized.text : body;
+      if (this.live('emotion')) spokenBody = spokenBody.replace(ANY_EMOTION_TAG, '');
+      const spoken = this.spokenPhrases.accept(spokenBody, first);
+      if (spoken.length === 0) this.stats.held++;
+      this.pendingTags += first ? this.openingTags(tags, prosody) : this.laterTags(tags, prosody);
+      return this.emit(spoken);
+    });
   }
 
   /** The reply is over: release held phrases. */
   finish(): string[] {
-    this.planSegments(this.planPhrases.flush());
-    return this.emit(this.spokenPhrases.flush());
+    return this.atomically(() => {
+      this.planSegments(this.planPhrases.flush());
+      return this.emit(this.spokenPhrases.flush());
+    });
+  }
+
+  /** A hold ran out of time: release what phrasing is holding, directed. */
+  releaseHold(): string[] {
+    return this.atomically(() => this.emit(this.spokenPhrases.flush()));
+  }
+
+  /**
+   * Run a step so that a throw leaves the spoken state as it was before the
+   * step: the caller's fallback (releaseHeld, then the raw push) then speaks
+   * every word exactly once and in order (review M4). Plan state is a log and
+   * is not rolled back.
+   */
+  private atomically(step: () => string[]): string[] {
+    const held = this.spokenPhrases.snapshot();
+    const pendingTags = this.pendingTags;
+    try {
+      return step();
+    } catch (error) {
+      this.spokenPhrases.restore(held);
+      this.pendingTags = pendingTags;
+      throw error;
+    }
   }
 
   /** After a failure: whatever phrasing was holding, undirected, so no words are lost. */

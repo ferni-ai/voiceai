@@ -9,7 +9,8 @@
  * the emotion and speed chosen, pause count and total, latency. Never text.
  *
  * Any Director error falls back to forwarding pushes verbatim for the rest
- * of the reply.
+ * of the reply. A phrasing hold never lasts more than HOLD_RELEASE_MS: if no
+ * new piece arrives by then, the held text goes to Cartesia anyway.
  *
  * @module speech/tts-gateway/director/reply-director
  */
@@ -25,6 +26,24 @@ import { directorSessions, type DirectorSessions } from './session-state.js';
 import type { DirectorMode, LeverModes, SpeechPlan } from './types.js';
 
 const log = createLogger({ module: 'SpeechDirector' });
+
+/**
+ * Longest a phrasing hold may keep text from Cartesia (review M5). Cartesia
+ * runs with max_buffer_delay_ms=0, so a hold longer than the audio already
+ * queued would be heard as a gap.
+ */
+export const HOLD_RELEASE_MS = 250;
+
+/** Timer seam so tests can fire the hold release deterministically. */
+export interface HoldTimer {
+  set: (fn: () => void, ms: number) => unknown;
+  clear: (handle: unknown) => void;
+}
+
+const realTimer: HoldTimer = {
+  set: (fn, ms) => setTimeout(fn, ms),
+  clear: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
+};
 
 /** The one log line per reply. Counts and decisions only, never text. */
 export interface PlanSummary {
@@ -63,6 +82,8 @@ export interface DirectSpeechOptions {
   env?: Record<string, string | undefined>;
   sessions?: DirectorSessions;
   onPlan?: (summary: PlanSummary, plan: SpeechPlan) => void;
+  /** Defaults to setTimeout; tests inject a manual timer. */
+  holdTimer?: HoldTimer;
 }
 
 const AUTHORED_EMOTION = /<emotion\s+value=["']?([a-z_]+)/i;
@@ -115,6 +136,7 @@ class DirectedReply implements ReplyStream {
   private elapsedNs = 0n;
   private failed = false;
   private done = false;
+  private holdHandle: unknown = undefined;
 
   constructor(
     private readonly inner: ReplyStream,
@@ -158,15 +180,20 @@ class DirectedReply implements ReplyStream {
     }
     const out = this.direct(() => this.engine.take(text));
     if (out === null) {
+      this.stopHoldTimer();
       for (const held of this.engine.releaseHeld()) this.inner.push(held);
       this.inner.push(text);
       return;
     }
     for (const piece of out) this.inner.push(piece);
+    // A new hold starts when nothing was held or this push released the last one.
+    if (!this.engine.holding) this.stopHoldTimer();
+    else if (out.length > 0 || this.holdHandle === undefined) this.startHoldTimer();
   }
 
   end(): void {
     if (this.done) return;
+    this.stopHoldTimer();
     const rest = this.direct(() => this.engine.finish()) ?? this.engine.releaseHeld();
     if (this.mode === 'live') for (const piece of rest) this.inner.push(piece);
     this.report(false);
@@ -174,8 +201,32 @@ class DirectedReply implements ReplyStream {
   }
 
   cancel(): void {
+    this.stopHoldTimer();
     if (!this.done) this.report(true);
     this.inner.cancel();
+  }
+
+  private get timer(): HoldTimer {
+    return this.opts.holdTimer ?? realTimer;
+  }
+
+  private startHoldTimer(): void {
+    this.stopHoldTimer();
+    this.holdHandle = this.timer.set(() => this.releaseHold(), HOLD_RELEASE_MS);
+  }
+
+  private stopHoldTimer(): void {
+    if (this.holdHandle === undefined) return;
+    this.timer.clear(this.holdHandle);
+    this.holdHandle = undefined;
+  }
+
+  /** No new piece within HOLD_RELEASE_MS: let Cartesia have the held text. */
+  private releaseHold(): void {
+    this.holdHandle = undefined;
+    if (this.done || this.failed || this.mode !== 'live') return;
+    const out = this.direct(() => this.engine.releaseHold()) ?? this.engine.releaseHeld();
+    for (const piece of out) this.inner.push(piece);
   }
 
   [Symbol.asyncIterator](): AsyncIterator<ArrayBuffer> {
