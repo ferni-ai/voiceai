@@ -67,6 +67,8 @@ export interface TurnContext {
   /** The user's words this reply answers. */
   userRequest?: string;
   userEmotion?: { primary?: string };
+  /** Rapport 0-1, for the laughter rules; their default when absent. */
+  comfortLevel?: number;
 }
 
 /** The Director's only output: one per LLM reply. */

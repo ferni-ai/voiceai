@@ -73,6 +73,8 @@ export interface PlanSummary {
   /** The opening breath/sigh decided (nonverbal lever not off), and why. */
   opening?: string;
   openingReason: string;
+  /** Where [laughter] was added (or would be, in shadow). */
+  laughter?: string;
   pauses: number;
   pauseMs: number;
   breaths: number;
@@ -91,6 +93,8 @@ export interface DirectSpeechOptions {
   emotion?: string;
   /** The turn being answered: keys the Stage 2 plan; the user's words. */
   turnContext?: TurnContext;
+  /** Rapport 0-1 for the laughter rules (overrides turnContext.comfortLevel). */
+  comfortLevel?: number;
   env?: Record<string, string | undefined>;
   sessions?: DirectorSessions;
   onPlan?: (summary: PlanSummary, plan: SpeechPlan) => void;
@@ -143,6 +147,13 @@ class DirectedReply implements ReplyStream {
       renderTags: prosodyTags,
       stripProsody: this.stripProsody,
       userText: opts.turnContext?.userRequest,
+      laughter: {
+        sessionId: opts.sessionId,
+        personaId: opts.personaId,
+        turn: opts.turnContext?.turnNumber,
+        userEmotion: opts.turnContext?.userEmotion?.primary,
+        comfortLevel: opts.comfortLevel ?? opts.turnContext?.comfortLevel,
+      },
     });
   }
 
@@ -294,6 +305,7 @@ class DirectedReply implements ReplyStream {
       tagsStripped: this.stripProsody,
       opening: engine.opening.opening?.kind,
       openingReason: engine.opening.reason,
+      laughter: engine.laughter,
       ...summarize(engine),
       breaths: engine.stats.breaths,
       sighs: engine.stats.sighs,

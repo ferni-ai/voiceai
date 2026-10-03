@@ -11,7 +11,8 @@
 
 import type { ReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { SSMLProsodyConfig } from '../types.js';
-import { decideEmotion, readValence, type EmotionDecision } from './emotion.js';
+import { decideEmotion, readValence, type EmotionDecision, type Valence } from './emotion.js';
+import { decideReplyLaughter, placeLaughter, type LaughPlacement } from './laughter.js';
 import {
   decideOpening,
   nextNonverbalCarry,
@@ -63,6 +64,15 @@ export interface EngineContext {
     takeSighs: () => number;
     opensWithSigh?: boolean;
     opensWithSpokenSigh?: boolean;
+    sawLaughter?: boolean;
+  };
+  /** Who and which turn, for the laughter rules' cooldowns. */
+  laughter?: {
+    sessionId?: string;
+    personaId?: string;
+    turn?: number;
+    userEmotion?: string;
+    comfortLevel?: number;
   };
   /** The user's words this reply answers (nonverbal.ts). */
   userText?: string;
@@ -130,6 +140,10 @@ export class DirectorEngine {
   tempo: number | undefined;
   /** The opening breath/sigh decision (decided unless the nonverbal lever is off). */
   opening: OpeningDecision = { reason: 'none' };
+  /** Where `[laughter]` went (or would go, in shadow), if anywhere. */
+  laughter: LaughPlacement | undefined;
+  private laughterAsked = false;
+  private replyValence: Valence = 'neutral';
 
   private readonly planPhrases = new PhraseAssembler();
   private readonly spokenPhrases: PhraseAssembler;
@@ -276,6 +290,7 @@ export class DirectorEngine {
   /** One emotion and one speed for the whole reply, from its opening phrase. */
   private open(openingText: string, leadSpeed: number | undefined): void {
     this.opened = true;
+    this.replyValence = readValence(openingText);
     this.emotion = decideEmotion({
       authored: this.ctx.cues.authoredEmotion,
       sessionHint: this.ctx.sessionHint,
@@ -335,11 +350,26 @@ export class DirectorEngine {
     return tags;
   }
 
+  /** Ask the laughter rules once, on the reply's first phrase. */
+  private withLaughter(text: string): string {
+    if (this.laughterAsked || this.ctx.modes.laughter === 'off') return text;
+    this.laughterAsked = true;
+    this.laughter = decideReplyLaughter({
+      ...this.ctx.laughter,
+      phrase: text,
+      replyValence: this.replyValence,
+      alreadyLaughing: this.ctx.cues.sawLaughter === true,
+      userText: this.ctx.userText,
+    });
+    return this.laughter && this.live('laughter') ? placeLaughter(text, this.laughter) : text;
+  }
+
   private emit(texts: string[]): string[] {
     const out: string[] = [];
     for (const raw of texts) {
-      const text = this.live('pauses') ? removeMidSentenceEllipses(raw).text : raw;
-      if (!text) continue;
+      const paused = this.live('pauses') ? removeMidSentenceEllipses(raw).text : raw;
+      if (!paused) continue;
+      const text = this.withLaughter(paused);
       out.push(`${this.pendingTags}${text} `);
       this.pendingTags = '';
     }

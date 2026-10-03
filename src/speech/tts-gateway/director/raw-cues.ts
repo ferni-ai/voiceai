@@ -25,6 +25,8 @@ const OPENING_SPOKEN_SIGH = new RegExp(
   LEAD + String.raw`<emotion\s+value=["']gentle["']\s*\/>\s*ahh`,
   'i'
 );
+/** A laughter cue the LLM wrote (the SSML processor maps all of these to [laughter]). */
+const LAUGHTER_CUE = /\[(?:laughs?|laughter|laughing|chuckles?|chuckling|warm laugh|big laugh)\]/i;
 /** How much of the raw reply's start is kept to read its opening. */
 const HEAD = 160;
 /** Longest cue we expect to straddle a chunk boundary. */
@@ -41,6 +43,8 @@ export class RawCues {
   opensWithSigh = false;
   /** ...and that cue is the behavior tool's spoken "Ahh." (its text must go). */
   opensWithSpokenSigh = false;
+  /** The LLM already wrote a laughter cue in this reply. */
+  sawLaughter = false;
   private head = '';
   private tail = '';
   private seenSighs = 0;
@@ -53,6 +57,7 @@ export class RawCues {
       const text = this.tail + chunk;
       this.scannedChars += text.length;
       this.readOpening(chunk);
+      if (!this.sawLaughter) this.sawLaughter = LAUGHTER_CUE.test(text);
       if (this.authoredEmotion === undefined) {
         this.authoredEmotion = AUTHORED_EMOTION.exec(text)?.[1]?.toLowerCase();
       }
