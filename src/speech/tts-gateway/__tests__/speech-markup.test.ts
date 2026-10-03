@@ -73,7 +73,7 @@ describe('Cartesia bytes path keeps <spell>', () => {
   const fetchMock = vi.fn();
   beforeEach(() => {
     vi.stubEnv('CARTESIA_API_KEY', 'test-key');
-    fetchMock.mockResolvedValue(new Response(new ArrayBuffer(4)));
+    fetchMock.mockResolvedValue(new globalThis.Response(new ArrayBuffer(4)));
     vi.stubGlobal('fetch', fetchMock);
   });
   afterEach(() => {

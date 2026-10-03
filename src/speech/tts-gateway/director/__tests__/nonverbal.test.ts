@@ -220,7 +220,7 @@ describe('Director nonverbal lever on the push path', () => {
 
   it('a session gets at most one sigh in any 4 replies', async () => {
     const sessions = new DirectorSessions();
-    const kinds: (string | undefined)[] = [];
+    const kinds: Array<string | undefined> = [];
     for (let turn = 1; turn <= 8; turn++) {
       const { plan } = await reply(["*sighs* I'm so sorry. "], LIVE, sessions, turn);
       kinds.push(plan?.opening?.kind);

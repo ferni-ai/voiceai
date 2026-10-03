@@ -239,7 +239,7 @@ describe.skipIf(!hasNative())(
       expect(all).toContain('We will get through it together, one step at a time.');
 
       // The plan: once, for exactly (session, turn 7), tempo + the sigh at Lester's pitch.
-      const calls = vi.mocked(setReplyAudioPlan).mock.calls;
+      const { calls } = vi.mocked(setReplyAudioPlan).mock;
       expect(calls).toHaveLength(1);
       expect(calls[0].slice(0, 2)).toEqual([sid, 7]);
       const [, , plan] = calls[0];
