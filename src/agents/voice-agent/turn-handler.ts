@@ -194,6 +194,8 @@ export interface TurnHandlerContext {
   turnCtx: llm.ChatContext;
   /** User message text */
   userText: string;
+  /** Build context only: no tool routing, commands or action approvals (background run). */
+  contextOnly?: boolean;
   /** Current persona config */
   persona: PersonaConfig;
   /** Bundle runtime (optional) */
@@ -455,6 +457,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   const {
     turnCtx,
     userText,
+    contextOnly,
     persona,
     bundleRuntime,
     services,
@@ -523,7 +526,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   // EXTENSIBILITY: Slash command detection
   // ================================================================
   const trimmedText = userText.trim();
-  if (trimmedText.startsWith('/')) {
+  if (!contextOnly && trimmedText.startsWith('/')) {
     const slashResult = await handleSlashCommand({
       text: trimmedText,
       turnCtx,
@@ -540,7 +543,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   // If user is responding to a pending action ("yes", "do it", etc.),
   // handle it and skip normal turn processing
   // ================================================================
-  if (services.userId) {
+  if (services.userId && !contextOnly) {
     try {
       const approvalResult = await handleActionApprovalIntent(services.userId, userText);
       if (approvalResult.handled) {
@@ -566,6 +569,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     const turnContext = {
       turnCtx,
       userText,
+      contextOnly,
       persona,
       bundleRuntime,
       services,
@@ -1378,15 +1382,9 @@ You are their lifeline right now. Be fully present.`,
       });
     }
 
-    // ================================================================
-    // 🎯 SEMANTIC ROUTING / FTIS V2: Direct Tool Execution + Natural Response
-    // When router has high confidence, tools execute directly.
-    //
-    // CLEAN ARCHITECTURE (Jan 2026):
-    // Instead of injecting tool results into chat context (which can leak),
-    // we use generateReply with EPHEMERAL instructions that guide ONE response.
-    // The instructions are NOT stored in chat history, so they can't leak.
-    // ================================================================
+    // 🎯 Direct tool execution: a high-confidence router ran the tool, and one reply
+    // is generated with ephemeral instructions (never stored in chat history, so
+    // they can't leak). Never in a contextOnly run: routing is skipped there.
     if (result.semanticRouting?.bypassLLM && result.semanticRouting.toolResult) {
       const { toolResult, metrics, routingPath } = result.semanticRouting;
 

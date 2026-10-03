@@ -74,10 +74,9 @@ import * as voiceManagerModule from '../../speech/voice-manager.js';
 import { resolveVoiceId } from '../../tools/handoff/voice-id-resolver.js';
 import { FerniAgent } from '../personas/ferni-agent.js';
 import {
-  createRealtimeTurnContextPusher,
+  createTurnContextPusher,
   createTurnIntelligenceHook,
   resolveTurnIntelligenceMode,
-  usesServerTurnDetection,
 } from './turn-intelligence.js';
 import {
   addRecallNote,
@@ -1703,7 +1702,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // FerniAgent now hoisted to module level for faster startup
   // Per-turn intelligence (context builders, memory retrieval, emotional
   // guidance) - see turn-intelligence.ts for why this is gated.
-  const onUserTurn =
+  const turnContextHook =
     resolveTurnIntelligenceMode() === 'on'
       ? createTurnIntelligenceHook({ persona, services, userData, room })
       : undefined;
@@ -1716,7 +1715,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   const agent = new FerniAgent(agentInstructions, {
     tools: finalTools as unknown as llm.ToolContext<UserData>,
-    onUserTurn,
     // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
     // function-calling instructions. This can confuse the model and break tool calls.
     // The model will greet naturally based on its system prompt.
@@ -1747,31 +1745,30 @@ Reference past context when relevant, but don't force it. Let the conversation f
     });
   }
 
-  // Realtime models that detect turns server-side never call
-  // onUserTurnCompleted, so the same per-turn context is pushed into the
-  // session between turns instead (informs the next reply).
-  if (onUserTurn && usesServerTurnDetection(session) && sessionWithEvents.on) {
-    const pusher = createRealtimeTurnContextPusher(
-      onUserTurn,
-      agent as unknown as Parameters<typeof createRealtimeTurnContextPusher>[1]
+  // Built in the background on each final transcript and pushed between
+  // turns for the next reply: never in onUserTurnCompleted, where changing the
+  // chat context throws away the SDK's preemptive generation (turn-intelligence.ts).
+  if (turnContextHook && sessionWithEvents.on) {
+    const pusher = createTurnContextPusher(
+      turnContextHook,
+      agent as unknown as Parameters<typeof createTurnContextPusher>[1]
     );
+    const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');
     const onTranscript = (event: unknown) => {
       const evt = event as { transcript?: string; isFinal?: boolean };
-      if (!evt.isFinal || !evt.transcript) return;
-      pusher.onFinalTranscript(evt.transcript).catch((error: unknown) =>
-        log.warn({ error: String(error) }, 'Realtime turn context failed')
-      );
+      if (evt.isFinal && evt.transcript) pusher.onFinalTranscript(evt.transcript).catch(failed);
     };
-    const onAgentState = (event: unknown) => {
-      pusher
-        .onAgentState((event as { newState?: string }).newState)
-        .catch((error: unknown) => log.warn({ error: String(error) }, 'Realtime turn context push failed'));
-    };
+    const onAgentState = (event: unknown) =>
+      pusher.onAgentState((event as { newState?: string }).newState).catch(failed);
+    const onUserState = (event: unknown) =>
+      pusher.onUserState((event as { newState?: string }).newState).catch(failed);
     sessionWithEvents.on('user_input_transcribed', onTranscript);
     sessionWithEvents.on('agent_state_changed', onAgentState);
+    sessionWithEvents.on('user_state_changed', onUserState);
     cleanupFunctions.push(() => {
       sessionWithEvents.off?.('user_input_transcribed', onTranscript);
       sessionWithEvents.off?.('agent_state_changed', onAgentState);
+      sessionWithEvents.off?.('user_state_changed', onUserState);
     });
   }
 
