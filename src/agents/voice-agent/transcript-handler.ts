@@ -20,7 +20,6 @@
  */
 
 import { log, voice } from '@livekit/agents';
-import { applyAfterReplyStarts } from '../shared/tool-updater.js';
 import type { Room } from '@livekit/rtc-node';
 import { TextEncoder } from 'node:util';
 import {
@@ -123,11 +122,8 @@ import { coordinatedSay } from '../../speech/coordination/index.js';
 // Session closing tracker to prevent errors during shutdown
 // Tool updater for mid-session tool updates (OpenAI Realtime)
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  isMidSessionToolUpdateSafe,
-  supportsToolUpdates,
-  updateAgentTools,
-} from '../shared/tool-updater.js';
+import { isMidSessionToolUpdateSafe, supportsToolUpdates } from '../shared/tool-updater.js';
+import { updateToolsAfterReplyStarts } from './deferred-tool-update.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
 
 // Phase 17: Active Listening Memory Capture - "Better Than Human" real-time entity extraction
@@ -1702,35 +1698,13 @@ async function processFinalTranscript(
           // 🔧 MID-SESSION TOOL UPDATE: Register new tools with LLM
           // This is SAFE for OpenAI Realtime (isMidSessionToolUpdateSafe() returned true)
           if (supportsToolUpdates() && agent) {
-            const apply = async (): Promise<void> => {
-              try {
-                const newTools = dynamicToolLoader.getCurrentTools();
-                const updated = await updateAgentTools(agent, newTools, {
-                  domains: loadedDomains,
-                });
-                if (updated) {
-                  toolUpdaterLog.info(
-                    {
-                      loadedDomains,
-                      newToolCount: Object.keys(newTools).length,
-                    },
-                    '🔧 Agent tools updated mid-session'
-                  );
-                }
-              } catch (updateError) {
-                toolUpdaterLog.warn(
-                  { error: String(updateError) },
-                  'Failed to update agent tools mid-session'
-                );
-              }
-            };
-            // Changing the tool set as the turn ends voids LiveKit's preemptive
-            // reply (it's reused only if the tools are unchanged), so every
-            // reply waited the full LLM time after the caller stopped. Apply
-            // the new tools once this reply has started; they serve the next
-            // turn. DEFER_TOOL_UPDATES=off applies them at once.
-            if (process.env.DEFER_TOOL_UPDATES === 'off') await apply();
-            else applyAfterReplyStarts(session, apply);
+            await updateToolsAfterReplyStarts(
+              session,
+              agent,
+              dynamicToolLoader,
+              loadedDomains,
+              toolUpdaterLog
+            );
           }
         }
       })

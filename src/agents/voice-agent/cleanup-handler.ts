@@ -1689,14 +1689,12 @@ async function cleanupUtilities(utilitiesCleanup: () => Promise<void>): Promise<
 async function cleanupMusic(sessionId: string): Promise<void> {
   try {
     const { isMusicEnabled } = await import('../../config/environment.js');
-    const { isMusicPlayerOwnedBy } = await import('../../audio/index.js');
+    const { isMusicPlayerOwnedBy, resetMusicPlayer } = await import('../../audio/index.js');
     // The next call in this process may already own the shared music state.
     if (isMusicEnabled() && isMusicPlayerOwnedBy(sessionId)) {
       const { shutdownSpotify } = await import('../../tools/domains/entertainment/spotify.js');
       shutdownSpotify();
-      const { resetMusicPlayer } = await import('../../audio/index.js');
-      // 🐛 FIX: Await the async resetMusicPlayer to prevent race conditions
-      await resetMusicPlayer(sessionId);
+      await resetMusicPlayer(sessionId); // awaited so the next session can't race the reset
       diag.session('Spotify and music player reset');
     }
   } catch (e) {

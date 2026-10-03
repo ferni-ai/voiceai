@@ -4,8 +4,6 @@
  * Processes user audio for prosody analysis, emotion detection,
  * and various voice humanization features.
  *
- * Extracted from voice-agent.ts sttNode method.
- *
  * @module voice-agent/audio-processor
  */
 
@@ -31,7 +29,6 @@ import {
   resetSessionUnifiedAnalyzer,
   type UnifiedAudioAnalyzer,
 } from '../../speech/audio-prosody/native-analyzer.js';
-// Pre-STT audio analysis (Rust: AGC, noise suppression, bandwidth extension)
 import { getConversationManager } from '../../services/conversation-manager.js';
 import {
   clearSession as clearGeminiSession,
@@ -56,6 +53,7 @@ import { mapProsodyToVoiceFeatures } from '../../speech/voice-biomarkers/prosody
 import { trackEmotionDetection } from '../integrations/speech-metrics-integration.js';
 import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 import type { UserData } from '../shared/types.js';
+import { claimSessionAudio, releaseSessionAudio } from './session-audio-claim.js';
 // Better Than Human - Perfect Timing, Pattern Mirror, and Ambient Context integration
 import {
   processAmbientSignals,
@@ -91,22 +89,13 @@ export type { VoiceEmotionResult };
 // MAIN PROCESSOR
 // ============================================================================
 
-/** Sessions whose audio processAudioStream is currently reading. */
-const sessionsBeingProcessed = new Set<string>();
-
 /**
  * Process audio stream for prosody analysis and emotion detection.
  *
  * This runs in the background while STT processes the same audio.
  * It extracts voice emotion, laughter, rhythm patterns, and other
- * voice characteristics for humanization.
- *
- * Runs once per session. Two paths start it for the same call (the multi-agent
- * track subscription in agent-setup.ts and FerniAgent.sttNode's tee), which
- * fed every frame through the session's analyzers twice: prosody timing,
- * pause detection and voice emotion saw doubled audio, at twice the CPU. A
- * second stream for a session already being processed is cancelled (an unread
- * tee branch would buffer forever) and ignored.
+ * voice characteristics for humanization. Runs once per session: see
+ * session-audio-claim.ts.
  */
 export async function processAudioStream(
   audio: ReadableStream<AudioFrame>,
@@ -115,12 +104,7 @@ export async function processAudioStream(
   const logger = log();
   const { sessionId, userId, userData, sendDataMessage } = ctx;
 
-  if (sessionId && sessionsBeingProcessed.has(sessionId)) {
-    logger.debug({ sessionId }, 'Audio already being processed for this session; ignoring a second stream');
-    await audio.cancel().catch(() => undefined);
-    return;
-  }
-  if (sessionId) sessionsBeingProcessed.add(sessionId);
+  if (!(await claimSessionAudio(sessionId, audio))) return;
 
   const reader = audio.getReader();
 
@@ -440,8 +424,6 @@ export async function processAudioStream(
     if (voiceEmotion && userData) {
       userData.voiceEmotion = voiceEmotion;
 
-      // voice-session-store removed during DDD cleanup
-
       // 🧬 Voice biomarkers (Cartesia path): Map prosody → biomarker pipeline for stress, fatigue, anxiety
       if (voiceEmotion.prosody) {
         try {
@@ -471,7 +453,7 @@ export async function processAudioStream(
     logger.warn(`Audio processing error: ${error}`);
   } finally {
     reader.releaseLock();
-    if (sessionId) sessionsBeingProcessed.delete(sessionId);
+    releaseSessionAudio(sessionId);
   }
 }
 

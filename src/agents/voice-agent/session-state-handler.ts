@@ -29,7 +29,6 @@ import {
   type SilenceAnalysis,
 } from '../../intelligence/deep-understanding/silence.js';
 import {
-  getLLMSilenceInstructions,
   playAmbientMusicDuringSilence,
   stopAmbientMusic,
   type SilenceContext,
@@ -96,8 +95,6 @@ import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { processSilenceWithInterpreter } from '../integrations/better-than-human-integration.js';
 // Contextual Feedback System - collect feedback during natural conversation pauses
 import { feedbackTriggerEngine } from '../feedback/index.js';
-// Handoff state tracking - prevents operations during/after handoffs
-import { shouldSkipGenerateReply } from '../../handoff/unified-state.js';
 import {
   recordExperience,
   computeReward,
@@ -107,6 +104,8 @@ import {
 // 5D: Continuous prosody stream for rolling window updates
 import { getContinuousProsodyStream } from '../../intelligence/context-builders/continuous-prosody.js';
 import { cueSay } from '../../speech/direction/index.js';
+import { silenceResponseInstructions } from './character-silence.js';
+import { silenceResponseBlocked } from './silence-response-blockers.js';
 
 // ============================================================================
 // TYPES
@@ -160,13 +159,6 @@ const getLogger = () => log();
  *
  * Returns the silenceContext which is shared with the transcript handler.
  */
-/**
- * What Ferni is told when the caller has gone quiet (character mode). Plain,
- * in the character's terms, and it may come to nothing.
- */
-const CHARACTER_SILENCE_NOTE =
-  "[They've been quiet for a bit. If there's something small and natural to say, the way a friend on the phone would, say it in one short sentence. Don't ask how they feel, don't check they're still there, don't sum up.]";
-
 export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStateResult {
   const characterSilence = promptMode() === 'character';
   const turnKeeperOn = process.env.TURN_KEEPER !== 'off';
@@ -1462,61 +1454,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       const intervals = baseIntervals.map(randomize);
       const targetInterval = intervals[silenceResponseCount];
 
-      // FIX: Skip silence response if tools are actively executing (e.g., music search)
-      // This prevents gateway timeouts when LLM is busy processing tool calls
-      const silenceStateMetrics = getStateMetrics(sessionId);
-      const toolsActive = silenceStateMetrics && silenceStateMetrics.activeToolCount > 0;
-
-      // FIX: Skip silence response if a handoff is in progress or session is draining
-      // After handoff, the old agent's session is draining - trying to call generateReply
-      // causes "Cannot call waitForPlayout from inside function tool" errors
-      // shouldSkipGenerateReply checks both: (1) handoff in progress, (2) 3s draining window
-      const handoffOrDraining = shouldSkipGenerateReply(sessionId);
-
-      // FIX (Jan 2026): Skip silence response if no participant has joined yet
-      // This prevents speaking to an empty room when participant wait times out
-      // but session continues anyway. The silence handler would generate audio
-      // that nobody can hear, causing "no response from Ferni" issues.
-      const hasParticipants = room?.remoteParticipants?.size
-        ? room.remoteParticipants.size > 0
-        : true;
-      const noParticipants = room && !hasParticipants;
-
-      if (toolsActive) {
-        diag.state('🤫 [SILENCE] Skipped - tool execution in progress', {
-          activeToolCount: silenceStateMetrics?.activeToolCount,
-          silenceSec: Math.round(silenceDurationSec),
-        });
-      }
-
-      if (handoffOrDraining) {
-        diag.state('🤫 [SILENCE] Skipped - handoff in progress or session draining', {
-          silenceSec: Math.round(silenceDurationSec),
-        });
-      }
-
-      if (noParticipants) {
-        diag.state('🤫 [SILENCE] Skipped - no participant in room yet', {
-          silenceSec: Math.round(silenceDurationSec),
-          hasRoom: !!room,
-          participantCount: room?.remoteParticipants?.size ?? 'unknown',
-        });
-      }
-
-      // ResponseOrchestrator check: Only trigger if SDK is not currently handling a response
-      // This is the key integration point for the clean architecture
-      const sdkIdle = canTriggerProactive(sessionId);
-      if (!sdkIdle) {
-        diag.state('🤫 [SILENCE] Skipped - SDK is handling response (orchestrator)', {
-          silenceSec: Math.round(silenceDurationSec),
-        });
-      }
+      const blocked = silenceResponseBlocked(sessionId, room, silenceDurationSec);
 
       if (
-        !toolsActive &&
-        !handoffOrDraining &&
-        !noParticipants &&
-        sdkIdle &&
+        !blocked &&
         targetInterval &&
         silenceDurationSec >= targetInterval &&
         Date.now() - lastSilenceResponseAt > SILENCE_THRESHOLDS.MIN_RESPONSE_INTERVAL &&
@@ -1560,15 +1501,12 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           silenceContext.isMusicPlaying = false;
         }
 
-        // LLM-DRIVEN: Get instructions for natural, contextual silence response.
-        // In character mode: a plain note and no canned fallback. The fallback
-        // assembled template lines ("How did that feel?", "I noticed you paused
-        // there.") and was spoken whenever the model call failed; staying quiet
-        // is more human than a scripted line.
-        const templateInstructions = getLLMSilenceInstructions(sessionPersona, silenceContext);
-        const silenceInstructions = characterSilence
-          ? { ...templateInstructions, instructions: CHARACTER_SILENCE_NOTE, fallback: '' }
-          : templateInstructions;
+        // LLM-DRIVEN: Get instructions for natural, contextual silence response
+        const silenceInstructions = silenceResponseInstructions(
+          sessionPersona,
+          silenceContext,
+          characterSilence
+        );
 
         // PROMINENT LOG: Show silence response timing
         diag.state('🤫 [SILENCE] LLM response triggered', {
