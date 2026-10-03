@@ -16,6 +16,7 @@
 import { TransformStream } from 'node:stream/web';
 import type { ISSMLProcessor, SSMLParseResult, SSMLProsodyConfig } from '../types.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { BREATH_BRACKET_REGEX, LAUGHTER_BRACKET_REGEX } from './nonverbal-brackets.js';
 
 const log = createLogger({ module: 'SSMLProcessor' });
 
@@ -55,13 +56,6 @@ const VALID_EMOTIONS = [
 const MAX_BUFFER_SIZE = 4096;
 
 /**
- * Bracket expressions that map to Cartesia's native [laughter] tag.
- * LLMs often output variations; we normalize them all.
- */
-const LAUGHTER_BRACKET_REGEX =
-  /\[(laughs?|chuckles?|chuckling|warm laugh|big laugh|laughing|laughter)\]/gi;
-
-/**
  * Non-TTS bracket expressions that should be stripped entirely.
  * These are stage directions / emotes that can't be synthesized.
  */
@@ -74,18 +68,6 @@ const STRIP_BRACKET_REGEX =
  */
 const STRIP_PAREN_DIRECTION_REGEX =
   /\s*\((?:pauses?|beat|sighs?|smiles?|nods?|grins?|winks?|laughs?|laughing|chuckles?|chuckling|whispers?|shrugs?|breathes|breath|clears throat|leans in|softly|warmly|gently)\b[^)]{0,30}\)/gi;
-
-/**
- * Bracket expressions built around breath/sigh/exhale/inhale — none are
- * Cartesia-documented nonverbal tags (only `[laughter]` is), and content
- * files + prompt guidance commonly describe them with a leading adjective
- * ("[soft breath]", "[gentle exhale]", "[quiet sigh]"). STRIP_BRACKET_REGEX
- * only matches when the direction word is FIRST in the brackets, so those
- * adjective-led variants slipped through and were spoken literally. Match
- * the keyword anywhere in the brackets instead of only at the start.
- */
-const BREATH_BRACKET_REGEX =
-  /\[[^[\]]*\b(?:breath(?:e[sd]?|ing)?|sighs?|exhales?|inhales?)\b[^[\]]*\]/gi;
 
 /** Speed range (Cartesia limits) */
 const SPEED_MIN = 0.6;
