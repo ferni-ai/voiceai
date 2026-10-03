@@ -37,6 +37,7 @@ const SELF_STORY =
 // src/tasks/transitions.ts).
 const SCRIPTED =
   /weekend evenings feel different|that golden hour light|day winding down|the transition into evening|let's not skip over this|do you realize what you just said|stop\. let me acknowledge something|before we move on.{0,3}that's worth celebrating|can i share a lesson i picked up/i;
+let audibleFalseStarts = 0;
 let greeting = null;
 let greetingUtterances = 0;
 const delays = [];
@@ -72,6 +73,11 @@ for (const file of process.argv.slice(2)) {
 
   for (const [start, end] of run.userSpeech) {
     userSpeechMs += end - start;
+    for (const track of run.tracks.filter((t) => !/background/i.test(t.name))) {
+      for (const [vs, ve] of track.voice) {
+        if (vs > start && vs < end && ve - vs >= 150 && ve - vs <= BACKCHANNEL_MAX_MS) audibleFalseStarts++;
+      }
+    }
     for (const track of run.tracks) {
       for (const [vs, ve] of track.voice) {
         if (vs < start + 300 || vs > end) continue; // starts while the user is talking
@@ -148,9 +154,11 @@ const score = {
   // About the caller, not Ferni: replies that tell Ferni's own story.
   selfStoryRate: round(replies.filter((t) => SELF_STORY.test(t)).length / (replies.length || 1)),
   scriptedLineHits: replies.filter((t) => SCRIPTED.test(t)).length,
-  // A reply cut off after a word or two ("The", "So", "It's"): Ferni started
-  // talking in the caller's mid-thought pause and the caller kept going.
-  falseStarts: replies.filter((t) => t.trim().split(/\s+/).filter(Boolean).length <= 2).length,
+  // Replies cancelled after a word or two ("The", "So"). Captions appear as a
+  // reply starts, so this also counts ones cut within ~20 ms that nobody hears.
+  falseStartCaptions: replies.filter((t) => t.trim().split(/\s+/).filter(Boolean).length <= 2).length,
+  // The audible kind: 150 ms to 1.5 s of reply voice while the caller is talking.
+  audibleFalseStarts,
   repeatedPhraseCount: repeatedPhrases.length,
   repeatedPhrases: repeatedPhrases.slice(0, 10),
   greetingUtterances,
