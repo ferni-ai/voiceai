@@ -29,6 +29,10 @@ export interface Scenario {
   what: string;
   reply: string;
   spoken: string;
+  /** The user's words this reply answers (reaches the director as turnContext.userRequest). */
+  userText?: string;
+  /** FULL must render this opening (a decision the director can make before the reply starts). */
+  expectOpening?: 'breath' | 'sigh';
   checks?: ScenarioCheck[];
   /** Checks on the exact text pushed to Cartesia; `name` describes the problem, flagged when `ok` is false. */
   pushedChecks?: Array<{ name: string; ok: (pushed: string) => boolean }>;
@@ -127,6 +131,15 @@ export const SCENARIOS: Scenario[] = [
       "When you think about everything you've been juggling this week between work, your sister, and the move, it makes sense that you feel tired. Let's slow down.",
     spoken:
       'when you think about everything youve been juggling this week between work your sister and the move it makes sense that you feel tired lets slow down',
+  },
+  {
+    id: 'long-user-turn',
+    what: 'answers a long user turn (breath decided before the reply starts)',
+    userText:
+      "So I've been thinking about whether I should take the new job offer, because the pay is better but the commute is long and I'd have to leave a team I really like, and I just can't decide.",
+    reply: "That's a big one. Let's look at what matters most to you right now.",
+    spoken: 'thats a big one lets look at what matters most to you right now',
+    expectOpening: 'breath',
   },
   {
     id: 'hmm-opener',

@@ -65,6 +65,8 @@ describe('judge', () => {
     });
     expect(ruleOf(judge([base, silentPlan]), 'R6').pass).toBe(false);
     expect(ruleOf(judge([base, result({ flags: ['10/3 misread'] })]), 'R6').pass).toBe(true);
+    const late = result({ flags: ['opening breath decided after speech started; skipped by design'] });
+    expect(ruleOf(judge([base, late]), 'R6').pass).toBe(true);
     const midOnly = result({ flags: ['1 mid-reply breath/sigh planned, not rendered (known gap)'] });
     expect(ruleOf(judge([base, midOnly]), 'R6').pass).toBe(true);
     // BASELINE is never held to R6: Stage 2 is off there by design.

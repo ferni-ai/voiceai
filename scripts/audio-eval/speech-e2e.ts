@@ -243,7 +243,7 @@ async function runReply(
     sessionId,
     personaId: 'ferni',
     // Production passes tts-wrapper's session context; Stage 2 refuses a plan with no turn.
-    turnContext: { turnNumber: turn } as never,
+    turnContext: { turnNumber: turn, userRequest: s.userText } as never,
     sampleRate: SAMPLE_RATE,
     frameDurationMs: 20,
     enableCache: true,
@@ -358,8 +358,16 @@ async function runReply(
   // planned event, including mid-reply ones Stage 2 does not render yet (needs word timings).
   const opening = typeof plan?.opening === 'string' ? plan.opening : undefined;
   const rendered = stage2Native.renderNonverbal - stage2Before.renderNonverbal;
+  if (config === 'FULL' && s.expectOpening && opening !== s.expectOpening) {
+    flags.push(`expected an opening ${s.expectOpening}, director planned ${opening ?? 'none'}; Stage 2 rendered none`);
+  }
+  const lateSkip = t.logs.some((l) => l.msg === 'Stage 2 opening arrived after speech started; skipped');
   if (config === 'FULL' && opening && rendered === 0) {
-    flags.push(`director planned an opening ${opening}, Stage 2 rendered none`);
+    flags.push(
+      lateSkip
+        ? `opening ${opening} decided after speech started; skipped by design`
+        : `director planned an opening ${opening}, Stage 2 rendered none`
+    );
   }
   const midReplyPlanned = Math.max(
     0,
