@@ -202,7 +202,7 @@ export const ACKNOWLEDGMENT_PHRASES: Record<MicroMomentType, string[]> = {
     "That's a big thing to say out loud.",
   ],
   'small-win': [
-    "That's wonderful! How does that feel?",
+    'Nice. That counts.',
     'Yes! That matters.',
     "I see you. That's not small at all.",
     "That's real progress.",
@@ -252,7 +252,7 @@ export const ACKNOWLEDGMENT_SSML: Record<MicroMomentType, string[]> = {
     "<break time='400ms'/>I hear you.<break time='200ms'/> That took courage.",
   ],
   'small-win': [
-    "That's wonderful!<break time='200ms'/> How does that feel?",
+    "Nice.<break time='200ms'/> That counts.",
     "Yes!<break time='150ms'/> That matters.",
   ],
   'relationship-shift': ["<break time='200ms'/>I notice you're seeing them differently now."],

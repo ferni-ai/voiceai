@@ -1,0 +1,5 @@
+# Long user turns with natural pauses: a human listener backchannels here
+# ("mm-hm", "yeah") without taking the turn. Counts backchannels and interruptions.
+So I have to tell you about my weekend. [[slnc 500]] My sister drove up from Denver on Friday night, [[slnc 450]] and we hadn't seen each other in almost two years, [[slnc 500]] so it was kind of a big deal.
+And on Saturday we went hiking up by the reservoir, [[slnc 450]] and halfway up she just stops and tells me she's pregnant. [[slnc 500]] Like, right there on the trail.
+I honestly started crying. [[slnc 500]] I didn't even know they were trying.

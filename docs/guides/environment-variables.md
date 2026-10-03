@@ -409,7 +409,7 @@ TWILIO_PHONE_NUMBER=+1234567890
 # ============================================================================
 
 # Voice IDs (defaults in manifests)
-JACK_B_VOICE_ID=fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc
+# JACK_B_VOICE_ID / FERNI_VOICE_ID override Ferni's voice; leave unset to use VOICE_IDS.FERNI
 JACK_BOGLE_VOICE_ID=9c10dc48-8799-42f9-a72a-0c7dfe13a06d
 
 # Database

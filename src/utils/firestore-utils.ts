@@ -13,10 +13,53 @@
  * @module utils/firestore-utils
  */
 
-import { Firestore } from '@google-cloud/firestore';
+import { Firestore, FieldValue } from '@google-cloud/firestore';
 import { createLogger } from './safe-logger.js';
 
 const log = createLogger({ module: 'firestore-utils' });
+
+/**
+ * True if `value` is a Firestore `FieldValue` sentinel (serverTimestamp(),
+ * increment(), arrayUnion(), arrayRemove(), delete()).
+ *
+ * These are opaque transform markers, not plain data: the SDK replaces them
+ * with a server-side computation at write time. Rebuilding one via
+ * `Object.entries()` (as a naive deep-clean would) strips its internal
+ * `FieldTransform` identity and turns it into `{}`, silently losing the
+ * transform.
+ *
+ * Checks `instanceof FieldValue` first (true for every FieldValue this
+ * module's own `@google-cloud/firestore` import produces). Falls back to a
+ * duck-type check — constructor name ending in "Transform" (or exactly
+ * "FieldValue"), an `isEqual` method, and no own enumerable keys — for a
+ * FieldValue created by a *different* copy of the package (e.g. a second
+ * `@google-cloud/firestore` install hoisted elsewhere in the workspace),
+ * where `instanceof` against ours would otherwise fail.
+ */
+function isFirestoreFieldValue(value: unknown): boolean {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+
+  if (value instanceof FieldValue) {
+    return true;
+  }
+
+  // Duck-type fallback: a FieldValue minted by a *different* copy of
+  // @google-cloud/firestore (e.g. a second install hoisted elsewhere in the
+  // workspace) fails `instanceof` against our import of the class, but the
+  // SDK's internal transform classes (ServerTimestampTransform,
+  // NumericIncrementTransform, ArrayUnionTransform, ArrayRemoveTransform,
+  // DeleteTransform) all extend FieldTransform -> FieldValue and expose an
+  // `isEqual` method. Some carry their own data (e.g. increment's `operand`,
+  // arrayUnion's elements), so this does NOT require zero own keys.
+  const ctorName = (value as { constructor?: { name?: string } }).constructor?.name;
+  const looksLikeTransform =
+    typeof ctorName === 'string' && (ctorName === 'FieldValue' || ctorName.endsWith('Transform'));
+  const hasIsEqual = typeof (value as { isEqual?: unknown }).isEqual === 'function';
+
+  return looksLikeTransform && hasIsEqual;
+}
 
 // ============================================================================
 // FIRESTORE DB INSTANCE
@@ -177,7 +220,10 @@ export function deepRemoveUndefined<T>(obj: T): T {
     return obj.map((item) => deepRemoveUndefined(item)) as T;
   }
 
-  if (typeof obj === 'object') {
+  // Only plain objects are walked: Dates, Timestamps, FieldValues (vectors,
+  // serverTimestamp) and references pass through as they are. Walking them
+  // turned each into an empty plain object.
+  if (typeof obj === 'object' && isPlainObject(obj)) {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       if (value !== undefined) {
@@ -188,6 +234,11 @@ export function deepRemoveUndefined<T>(obj: T): T {
   }
 
   return obj;
+}
+
+function isPlainObject(value: object): boolean {
+  const proto = Object.getPrototypeOf(value) as unknown;
+  return proto === Object.prototype || proto === null;
 }
 
 /**
@@ -226,6 +277,13 @@ export function cleanForFirestore<T>(obj: T): T {
     'toDate' in obj &&
     typeof (obj as { toDate: unknown }).toDate === 'function'
   ) {
+    return obj;
+  }
+
+  // Preserve FieldValue sentinels (serverTimestamp(), increment(), etc.) by
+  // identity - rebuilding one via Object.entries() below would silently
+  // turn it into a plain `{}` and lose the server-side transform.
+  if (isFirestoreFieldValue(obj)) {
     return obj;
   }
 

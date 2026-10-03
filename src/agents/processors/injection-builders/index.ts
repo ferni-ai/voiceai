@@ -78,5 +78,5 @@ export {
   buildFunctionCallingReinforcement,
   buildPersonaSpecificContextInjections,
   buildToolHistoryInjection,
-  buildServiceAvailabilityInjection,
 } from './intelligence-builders.js';
+export { buildServiceAvailabilityInjection } from './service-availability.js';

@@ -31,18 +31,21 @@ pub struct AutoGainControl {
     current_gain: f32,
     /// Maximum allowed gain (prevents boosting noise)
     max_gain: f32,
-    /// Minimum gain (prevents crushing loud signals)
+    /// Minimum gain: 1.0, never turns a caller down (see new())
     min_gain: f32,
-    /// Attack coefficient (fast for loud signals)
-    attack_coeff: f32,
-    /// Release coefficient (slow for quiet signals)
-    release_coeff: f32,
+    /// Envelope attack time (ms): how fast a rise in level is tracked
+    attack_ms: f32,
+    /// Envelope release time (ms): how fast a fall in level is tracked
+    release_ms: f32,
     /// Envelope follower state
     envelope: f32,
     /// Sample rate for coefficient calculation
     sample_rate: u32,
     /// Gate threshold - don't boost below this (avoids amplifying noise floor)
     gate_threshold: f32,
+    /// Recent frame levels (rms, frame ms), for the noise floor.
+    recent: std::collections::VecDeque<(f32, f32)>,
+    recent_ms: f32,
 }
 
 impl AutoGainControl {
@@ -55,19 +58,50 @@ impl AutoGainControl {
             target_level: 0.1, // ~-20 dBFS
             current_gain: 1.0,
             max_gain: 10.0,   // +20 dB max boost
-            min_gain: 0.1,    // -20 dB max reduction
-            attack_coeff: Self::time_constant_to_coeff(attack_ms, sample_rate),
-            release_coeff: Self::time_constant_to_coeff(release_ms, sample_rate),
+            // Boost only. Turning an already-loud line down, e.g. a noisy
+            // phone call, cost Ink-2 40% more word errors (9.2% -> 13.1%,
+            // 60 utterances); boost-only brought it to 7.1% (2026-09-29).
+            min_gain: 1.0,
+            attack_ms,
+            release_ms,
             envelope: 0.0,
             sample_rate,
             gate_threshold: 0.001, // ~-60 dBFS noise gate
+            recent: std::collections::VecDeque::new(),
+            recent_ms: 0.0,
         }
     }
 
-    /// Convert time constant (ms) to exponential coefficient
-    fn time_constant_to_coeff(time_ms: f32, sample_rate: u32) -> f32 {
-        let samples = (time_ms * sample_rate as f32) / 1000.0;
-        (-2.2 / samples).exp() // -2.2 ≈ ln(0.1), reach 90% in time_ms
+    /// The noise floor is the quietest frame of the last this-many ms: speech
+    /// pauses at least that often, background noise doesn't.
+    const FLOOR_WINDOW_MS: f32 = 1500.0;
+    /// A frame is speech when it's this far above the noise floor (10 dB).
+    const SPEECH_OVER_FLOOR: f32 = 3.16;
+
+    /// Track the noise floor; true when this frame stands out from it as speech.
+    fn is_speech(&mut self, rms: f32, frame_ms: f32) -> bool {
+        self.recent.push_back((rms, frame_ms));
+        self.recent_ms += frame_ms;
+        while self.recent_ms > Self::FLOOR_WINDOW_MS && self.recent.len() > 1 {
+            let (_, ms) = self.recent.pop_front().unwrap();
+            self.recent_ms -= ms;
+        }
+        let floor = self.recent.iter().map(|&(r, _)| r).fold(f32::INFINITY, f32::min);
+        rms > floor * Self::SPEECH_OVER_FLOOR
+    }
+
+    /// Gain turns down this fast when the level jumps (ms to ~90%).
+    const GAIN_ATTACK_MS: f32 = 50.0;
+    /// Gain turns up this gently when the level drops, to avoid audible pumping.
+    const GAIN_RELEASE_MS: f32 = 400.0;
+
+    /// Per-update smoothing coefficient for a time constant, given how much
+    /// audio one update covers. The state is updated once per frame, so the
+    /// coefficient must use the frame's duration: computing it per sample
+    /// (as before) and applying it per 20 ms frame stretched a 100 ms release
+    /// to ~32 s and left a caller's speech turned down long after a loud moment.
+    fn time_constant_to_coeff(time_ms: f32, update_ms: f32) -> f32 {
+        (-2.2 * update_ms / time_ms).exp() // -2.2 ≈ ln(0.1): ~90% of the way in time_ms
     }
 
     /// Process a frame of audio in-place
@@ -79,21 +113,23 @@ impl AutoGainControl {
         // Calculate RMS of input
         let sum_sq: f32 = samples.iter().map(|&s| s * s).sum();
         let rms = (sum_sq / samples.len() as f32).sqrt();
+        let frame_ms = samples.len() as f32 * 1000.0 / self.sample_rate as f32;
 
-        // Noise gate: don't process very quiet signals
-        if rms < self.gate_threshold {
-            // Apply current gain (don't change it)
-            for sample in samples.iter_mut() {
-                *sample *= self.current_gain;
-            }
+        // Adapt only on speech; hold the gain through pauses and quiet
+        // frames. Adapting on the noise between words turned it up toward
+        // speech level and cost 40% more word errors on a noisy phone line
+        // (Ink-2, 10 dB SNR, 2026-09-29).
+        let speech = self.is_speech(rms, frame_ms);
+        if rms < self.gate_threshold || !speech {
+            self.apply_gain_simd(samples);
             return;
         }
 
         // Envelope follower with attack/release
         let coeff = if rms > self.envelope {
-            self.attack_coeff
+            Self::time_constant_to_coeff(self.attack_ms, frame_ms)
         } else {
-            self.release_coeff
+            Self::time_constant_to_coeff(self.release_ms, frame_ms)
         };
         self.envelope = self.envelope * coeff + rms * (1.0 - coeff);
 
@@ -104,8 +140,15 @@ impl AutoGainControl {
             1.0
         };
 
-        // Smoothly adjust gain (use release coefficient for smoothness)
-        self.current_gain = self.current_gain * 0.99 + target_gain * 0.01;
+        // Move the gain toward the target: quickly down, gently up. (A fixed
+        // 0.99/0.01 blend per frame was a ~2 s time constant both ways.)
+        let gain_ms = if target_gain < self.current_gain {
+            Self::GAIN_ATTACK_MS
+        } else {
+            Self::GAIN_RELEASE_MS
+        };
+        let g = Self::time_constant_to_coeff(gain_ms, frame_ms);
+        self.current_gain = self.current_gain * g + target_gain * (1.0 - g);
 
         // Apply gain with SIMD
         self.apply_gain_simd(samples);
@@ -154,6 +197,8 @@ impl AutoGainControl {
     pub fn reset(&mut self) {
         self.current_gain = 1.0;
         self.envelope = 0.0;
+        self.recent.clear();
+        self.recent_ms = 0.0;
     }
 }
 
@@ -673,15 +718,26 @@ pub struct PreSTTProcessor {
 }
 
 impl PreSTTProcessor {
+    /// The rate the filters, AGC and noise suppressor run at. Bandwidth
+    /// extension runs first, so for 8 kHz input with extension on they see
+    /// 16 kHz audio. Callers describe their input (TS sends sampleRate 8000
+    /// with inputIs8Khz for Twilio); building the filters at 8 kHz for 16 kHz
+    /// audio would double every cutoff and halve every time constant.
+    pub fn processing_rate(config: &PreSTTConfig) -> u32 {
+        if config.input_is_8khz {
+            if config.enable_bandwidth_extension { 16000 } else { 8000 }
+        } else {
+            config.sample_rate
+        }
+    }
+
     pub fn new(config: PreSTTConfig) -> Self {
-        // Note: sample_rate computed for potential 8kHz handling but components
-        // currently use config.sample_rate directly. Prefixed to suppress warning.
-        let _sample_rate = if config.input_is_8khz { 8000 } else { config.sample_rate };
+        let rate = Self::processing_rate(&config);
 
         Self {
-            agc: AutoGainControl::new(config.sample_rate),
-            noise_suppressor: NoiseSupressor::new(config.sample_rate),
-            highpass: HighPassFilter::new(config.highpass_cutoff_hz, config.sample_rate),
+            agc: AutoGainControl::new(rate),
+            noise_suppressor: NoiseSupressor::new(rate),
+            highpass: HighPassFilter::new(config.highpass_cutoff_hz, rate),
             bandwidth_extender: BandwidthExtender::new(),
             stats: PreSTTStats::default(),
             config,
@@ -788,39 +844,105 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_agc_boosts_quiet_signal() {
-        let mut agc = AutoGainControl::new(16000);
-
-        // Create quiet signal (-40 dBFS)
-        let mut samples: Vec<f32> = (0..320)
-            .map(|i| (2.0 * PI * 440.0 * i as f32 / 16000.0).sin() * 0.01)
-            .collect();
-
-        // Process multiple frames to let AGC adapt
-        for _ in 0..10 {
-            agc.process(&mut samples);
+    fn test_twilio_config_as_sent_by_ts_matches_for_twilio() {
+        // TS describes Twilio input as 8 kHz; for_twilio() says 16 kHz (the
+        // rate after bandwidth extension). Both must build the same processor.
+        let from_ts = PreSTTConfig {
+            sample_rate: 8000,
+            enable_agc: true,
+            enable_noise_suppression: true,
+            enable_highpass: true,
+            highpass_cutoff_hz: 80.0,
+            enable_bandwidth_extension: true,
+            input_is_8khz: true,
+        };
+        let mut a = PreSTTProcessor::new(from_ts);
+        let mut b = PreSTTProcessor::for_twilio();
+        for k in 0..20 {
+            let frame: Vec<f32> = (0..160)
+                .map(|i| ((2.0 * PI * 300.0 * (k * 160 + i) as f32 / 8000.0).sin() * 0.3))
+                .collect();
+            assert_eq!(a.process(&frame, true), b.process(&frame, true));
         }
+    }
 
-        // Gain should have increased
-        assert!(agc.current_gain() > 1.5, "AGC should boost quiet signal");
+    /// 20 ms frame `k` of speech-like sound at `amp`: ~200 ms syllables with
+    /// short pauses between them (1% of the level), over `noise` background.
+    fn speechlike(k: usize, amp: f32, noise: f32) -> Vec<f32> {
+        let voiced = k % 12 < 9; // 180 ms of syllables, 60 ms pause
+        let mut seed = (k as u32).wrapping_mul(2654435761);
+        (0..320)
+            .map(|i| {
+                seed = seed.wrapping_mul(1103515245).wrapping_add(12345);
+                let n = (seed >> 8) as f32 / (1u32 << 24) as f32 * 2.0 - 1.0;
+                let t = (k * 320 + i) as f32 / 16000.0;
+                let tone = (2.0 * PI * 220.0 * t).sin() * if voiced { amp } else { amp * 0.01 };
+                tone + n * noise
+            })
+            .collect()
     }
 
     #[test]
-    fn test_agc_reduces_loud_signal() {
+    fn test_agc_boosts_quiet_signal() {
         let mut agc = AutoGainControl::new(16000);
-
-        // Create loud signal (-3 dBFS)
-        let mut samples: Vec<f32> = (0..320)
-            .map(|i| (2.0 * PI * 440.0 * i as f32 / 16000.0).sin() * 0.7)
-            .collect();
-
-        // Process multiple frames
-        for _ in 0..10 {
-            agc.process(&mut samples);
+        // Quiet speech (-40 dBFS), one second
+        for k in 0..50 {
+            agc.process(&mut speechlike(k, 0.01, 0.0));
         }
+        assert!(agc.current_gain() > 1.5, "AGC should boost quiet speech");
+    }
 
-        // Gain should have decreased
-        assert!(agc.current_gain() < 0.5, "AGC should reduce loud signal");
+    #[test]
+    fn test_agc_never_turns_a_caller_down() {
+        let mut agc = AutoGainControl::new(16000);
+        // Loud speech (-3 dBFS), one second
+        for k in 0..50 {
+            agc.process(&mut speechlike(k, 0.7, 0.0));
+        }
+        assert_eq!(agc.current_gain(), 1.0, "loud speech passes at unity gain");
+    }
+
+    #[test]
+    fn test_agc_holds_gain_through_noise_between_words() {
+        // Quiet speech on a noisy line: the noise in the pauses must not
+        // pull the gain up toward speech level.
+        let mut agc = AutoGainControl::new(16000);
+        for k in 0..100 {
+            agc.process(&mut speechlike(k, 0.03, 0.006));
+        }
+        let settled = agc.current_gain();
+        for k in 100..130 {
+            // 600 ms of noise only (the other person paused)
+            let mut noise = speechlike(k, 0.0, 0.006);
+            agc.process(&mut noise);
+        }
+        assert!(
+            agc.current_gain() < settled * 1.1,
+            "gain held at {settled} through the pause, got {}",
+            agc.current_gain()
+        );
+    }
+
+    #[test]
+    fn test_agc_recovers_within_a_second_after_a_loud_moment() {
+        let mut agc = AutoGainControl::new(16000);
+        // A quiet caller, then a loud laugh, then quiet speech again.
+        for k in 0..50 {
+            agc.process(&mut speechlike(k, 0.02, 0.0));
+        }
+        let settled = agc.current_gain();
+        for k in 50..65 {
+            agc.process(&mut speechlike(k, 0.9, 0.0));
+        }
+        assert!(agc.current_gain() < settled * 0.5, "the loud moment turns the gain down");
+        for k in 65..115 {
+            agc.process(&mut speechlike(k, 0.02, 0.0)); // one second
+        }
+        assert!(
+            agc.current_gain() > settled * 0.8,
+            "gain back near {settled} within a second, got {}",
+            agc.current_gain()
+        );
     }
 
     #[test]

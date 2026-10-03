@@ -1,3 +1,9 @@
+// Exercises the Candle model pipeline, which is not built into the
+// production binary. Without the feature this file compiles to nothing, so a
+// plain `cargo test` works; a [[test]] entry in Cargo.toml instead broke the
+// Docker build, which copies src/ but not tests/.
+#![cfg(feature = "candle_models")]
+
 //! Integration tests for the Qwen3-Omni pipeline.
 //!
 //! These tests validate the full shape chain and streaming behavior

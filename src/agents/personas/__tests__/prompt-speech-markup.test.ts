@@ -20,20 +20,28 @@ async function promptsUnder(providerModule: string, className: string): Promise<
 }
 
 describe('speech markup in the live Ferni prompts', () => {
-  it('is reduced to one opening emotion tag under the Cartesia cascade', async () => {
+  it('gives one markup contract, in the model-level block, under the Cartesia cascade', async () => {
     const [base, system] = await promptsUnder(
       '../../model-provider/cartesia-cascade.js',
       'CartesiaCascadeProvider'
     );
     const both = `${base}\n${system}`;
     // Sonic paces itself from punctuation; stacked breaks make it hallucinate.
-    expect(both).not.toMatch(/<break|<speed|<volume/);
+    expect(both).not.toMatch(/<break|<volume/);
     // The persona files' tag tables and templated openers are gone...
-    expect(system).not.toMatch(/<emotion/);
+    expect(system).not.toMatch(/<emotion|<speed/);
     expect(system).not.toContain('Natural reactions: "Ha!"');
-    // ...replaced by one contract in the model-level block.
-    expect(base).toContain('ONE emotion tag');
-    expect(base.match(/<emotion value=/g)?.length).toBe(1);
+    // ...replaced by one contract: at most one emotion per reply (#176 ruling;
+    // the voice wavers when it changes mid-reply). Pace and nonverbals belong
+    // to the speech director and pace matching, not the model (#180).
+    expect(base).toContain('It holds for the whole reply');
+    // Cartesia pauses ~320 ms on every "...", even mid-sentence.
+    expect(base).toContain('No ellipses');
+    expect(base).not.toContain('genuinely shifts');
+    expect(base).toContain('Never write pause, speed or volume tags');
+    expect(base).not.toMatch(/<speed|\[laughter\]/);
+    // Cartesia reads all-caps words as initialisms ("NUH-yun" came out as N-U-H).
+    expect(base).toContain('Never write words in capitals for emphasis');
     expect(system.length).toBeGreaterThan(1000);
   }, 60_000);
 
@@ -46,8 +54,7 @@ describe('speech markup in the live Ferni prompts', () => {
     expect(base).toContain('contractions');
     expect(base).toMatch(/and.*so.*but/);
     expect(base).toContain("it's just, uh, frustrating");
-    // Big emotions swung Ferni's pitch range from 6.4 to 10.9 semitones between turns.
-    expect(base).not.toMatch(/excited|surprised|enthusiastic/);
+    expect(base).toContain('only when the feeling is clear and your words carry it');
     expect(`${base}\n${system}`).not.toContain('Short sentences — Creates natural pauses');
   }, 60_000);
 

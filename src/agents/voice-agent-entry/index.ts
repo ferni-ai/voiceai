@@ -14,6 +14,7 @@
  * @module agents/voice-agent-entry
  */
 
+import { isValidTimeZone } from '../shared/time-context.js';
 import type { JobContext } from '@livekit/agents';
 import type { RemoteParticipant } from '@livekit/rtc-node';
 
@@ -32,10 +33,8 @@ import {
   type VoiceDeps,
 } from '../voice-agent/phases/index.js';
 
-// FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
 
-// Speech coordination
 import {
   cleanupSpeechCoordination,
   coordinatedSay,
@@ -45,7 +44,6 @@ import {
 // Action confirmation dispatcher
 import { clearActionDispatcher, initActionDispatcher } from '../realtime/action-event-dispatcher.js';
 
-// Generate reply gateway
 import {
   generateReply,
   prewarmSessionAsync,
@@ -61,7 +59,6 @@ import {
   setCurrentActiveSession,
 } from '../../tools/domains/information/location-preference.js';
 
-// Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
 
 // Inject model provider into personas layer (architecture violation fix)
@@ -428,6 +425,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     services = initResult.services;
     isReturningUser = initResult.isReturningUser;
     userData = initResult.userData;
+    // The caller's time zone (web client → token → dispatch metadata).
+    if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
     stopPeriodicSync = initResult.stopPeriodicSync ?? undefined;
 
     if (stopPeriodicSync) {

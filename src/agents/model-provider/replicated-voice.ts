@@ -18,7 +18,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { getVoiceIdForPersona } from '../../config/voice-ids.js';
+import { CARTESIA_MODEL, getVoiceIdForPersona } from '../../config/voice-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ReplicatedVoice' });
@@ -217,7 +217,7 @@ async function renderWithCartesia(voiceId: string, apiKey: string): Promise<Buff
     method: 'POST',
     headers: { 'X-API-Key': apiKey, 'Cartesia-Version': '2025-04-16', 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model_id: 'sonic-3',
+      model_id: CARTESIA_MODEL,
       transcript: SAMPLE_TRANSCRIPT,
       voice: { mode: 'id', id: voiceId },
       output_format: { container: 'raw', encoding: 'pcm_s16le', sample_rate: SAMPLE_RATE },

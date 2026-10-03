@@ -17,7 +17,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from '../../services/persistence/index.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES
@@ -165,7 +165,7 @@ export class CommunicationMirroringEngine {
       if (data) {
         this.samples = data.samples.map((s) => ({
           ...s,
-          timestamp: new Date(s.timestamp),
+          timestamp: toSafeDate(s.timestamp), // Firestore gives back a Timestamp
         }));
         this.detectedPhrases = new Map(Object.entries(data.detectedPhrases));
         getLogger().debug({ userId: this.userId }, 'Loaded communication style from persistence');

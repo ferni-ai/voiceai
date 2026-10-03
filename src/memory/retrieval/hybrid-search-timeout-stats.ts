@@ -1,0 +1,94 @@
+/**
+ * Hybrid-search-with-timeout wrapper + observability for per-turn memory
+ * retrieval. `totalTimeoutMs` (turn-memory-retrieval.ts DEFAULT_CONFIG) was
+ * raised 100ms -> 350ms on 2026-10-03 (see PR #175): the old 70ms slice
+ * (100 * 0.7) was smaller than this module's own documented sub-component
+ * latencies (../CLAUDE.md "Performance": vector search alone 50-150ms, plus
+ * an embed() network round trip before Firestore/BM25/entity store even
+ * run), so every turn in a live dev call hit "Hybrid search timeout" and
+ * fell back to zero memories. That bump was reasoned from docs, not
+ * measured end-to-end in prod - track actual attempts/timeouts here so the
+ * budget can be tuned from real data instead of re-guessed later.
+ *
+ * Split out of turn-memory-retrieval.ts to keep that file under the quality
+ * ratchet's line-count limit. No external caller imports these names from
+ * turn-memory-retrieval.ts today (checked via grep), so nothing re-exports
+ * them from there; import directly from this module instead.
+ *
+ * @module memory/retrieval/hybrid-search-timeout-stats
+ */
+
+import { hybridSearch, type HybridSearchMetrics, type HybridSearchResult } from './hybrid-search.js';
+
+let hybridSearchAttempts = 0;
+let hybridSearchTimeouts = 0;
+
+/** Record one hybrid-search attempt (call before starting the search). */
+export function recordHybridSearchAttempt(): void {
+  hybridSearchAttempts++;
+}
+
+/**
+ * Run `hybridSearch()` racing against `totalTimeoutMs * 0.7`, recording the
+ * attempt for {@link getHybridSearchTimeoutStats}. Extracted from
+ * `retrieveForTurn()` so the timeout plumbing lives with its observability.
+ */
+export async function runHybridSearchWithTimeout(
+  userId: string,
+  transcript: string,
+  totalTimeoutMs: number
+): Promise<{ results: HybridSearchResult[]; metrics: HybridSearchMetrics }> {
+  recordHybridSearchAttempt();
+  return Promise.race([
+    hybridSearch(userId, transcript, {
+      topK: 10,
+      minScore: 0.3, // Lower threshold, we'll filter later
+      bm25Weight: 0.4,
+      vectorWeight: 0.6,
+      includeEntities: true,
+    }),
+    new Promise<{ results: HybridSearchResult[]; metrics: HybridSearchMetrics }>((_, reject) => {
+      setTimeout(() => reject(new Error('Hybrid search timeout')), totalTimeoutMs * 0.7);
+    }),
+  ]);
+}
+
+/**
+ * Record the outcome of a failed `retrieveForTurn` call against the
+ * timeout stats. Returns whether `error` was specifically a hybrid-search
+ * timeout, so the caller's log line can decide whether to attach stats.
+ */
+export function recordHybridSearchOutcome(error: unknown): boolean {
+  const isTimeout = error instanceof Error && error.message === 'Hybrid search timeout';
+  if (isTimeout) {
+    hybridSearchTimeouts++;
+  }
+  return isTimeout;
+}
+
+/**
+ * Observability stats for the hybrid-search timeout budget. Call this from
+ * a health/metrics endpoint to see whether `totalTimeoutMs` is well-tuned:
+ * a near-zero `timeoutRate` means there's room to lower it back down for
+ * latency; a high rate means the budget (or the underlying search latency)
+ * still needs work.
+ */
+export function getHybridSearchTimeoutStats(): {
+  attempts: number;
+  timeouts: number;
+  timeoutRate: number;
+} {
+  return {
+    attempts: hybridSearchAttempts,
+    timeouts: hybridSearchTimeouts,
+    timeoutRate: hybridSearchAttempts > 0 ? hybridSearchTimeouts / hybridSearchAttempts : 0,
+  };
+}
+
+/**
+ * Reset hybrid-search timeout counters (for tests).
+ */
+export function resetHybridSearchTimeoutStats(): void {
+  hybridSearchAttempts = 0;
+  hybridSearchTimeouts = 0;
+}

@@ -91,6 +91,9 @@ const ACKNOWLEDGMENT_PROBABILITY = { soft: 0.6, hard: 0.8 };
  * SSML to speak acknowledgment quickly and softly.
  * Quick speed (1.15x) + soft volume (0.72) so it doesn't compete with the main response.
  */
+/** Ends an interrupt-recovery soft start: back to normal speed and volume. */
+export const SOFT_START_END = '<speed ratio="1"/><volume ratio="1"/>';
+
 const ACKNOWLEDGMENT_SSML_WRAP = '<speed ratio="1.15"/><volume ratio="0.72"/>';
 
 // =============================================================================
@@ -341,6 +344,9 @@ export function createInterruptAwareTransform(
   let buffer = '';
 
   const { wasInterrupted, interruptType, personaId, sessionId } = context;
+  // The recovery opening slows and quiets the first sentence only. TTS keeps
+  // inline tags until they change, so end the soft start explicitly.
+  let softStartOpen = Boolean(wasInterrupted);
 
   return new TransformStream<string, string>({
     transform(chunk, controller) {
@@ -377,7 +383,11 @@ export function createInterruptAwareTransform(
         buffer = buffer.slice(pauseIndex);
 
         // Add a subtle micro-pause after sentence-ending punctuation
-        const withPause = toEmit.replace(/([.!?])\s*$/, '$1<break time="80ms"/> ');
+        let withPause = toEmit.replace(/([.!?])\s*$/, '$1<break time="80ms"/> ');
+        if (softStartOpen) {
+          withPause += SOFT_START_END;
+          softStartOpen = false;
+        }
         controller.enqueue(withPause);
       }
     },

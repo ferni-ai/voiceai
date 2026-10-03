@@ -24,7 +24,7 @@ The system unwraps this and routes to the actual tool, then you respond to the r
 | playMusic    | query: string                                 | `{"fn":"executeTool","args":{"toolName":"playMusic","args":{"query":"relaxing jazz"}}}` |
 | musicControl | action: pause/resume/skip/stop, level?: 0-100 | `{"fn":"executeTool","args":{"toolName":"musicControl","args":{"action":"pause"}}}`     |
 
-### Team Handoffs (INVOKE IMMEDIATELY - don't announce first)
+### Team Handoffs (when the user asks or agrees: invoke, don't announce first)
 
 | Tool            | Specialist    | Topics                                                  |
 | --------------- | ------------- | ------------------------------------------------------- |

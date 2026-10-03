@@ -17,6 +17,7 @@ import {
   CARTESIA_MODEL,
   CARTESIA_API_VERSION,
   CARTESIA_API_URL,
+  cartesiaPronunciation,
 } from '../../../config/voice-ids.js';
 import type { ITTSProvider, SSMLProsodyConfig } from '../types.js';
 import { CartesiaReplyStream, type ReplyStream } from './cartesia-reply-stream.js';
@@ -96,6 +97,7 @@ export class CartesiaTTSProvider implements ITTSProvider {
 
     const body = {
       model_id: CARTESIA_MODEL,
+      ...cartesiaPronunciation(),
       transcript: prosodyTags(prosody) + plainText,
       voice: { mode: 'id' as const, id: voiceId },
       output_format: {
@@ -167,6 +169,7 @@ export class CartesiaTTSProvider implements ITTSProvider {
         contextId,
         {
           model_id: CARTESIA_MODEL,
+          ...cartesiaPronunciation(),
           transcript: prosodyTags(prosody) + plainText,
           voice: { mode: 'id', id: voiceId },
           output_format: {
@@ -236,6 +239,7 @@ export class CartesiaTTSProvider implements ITTSProvider {
       this.socket,
       (transcript, more, contextId) => ({
         model_id: CARTESIA_MODEL,
+        ...cartesiaPronunciation(),
         transcript,
         voice: { mode: 'id', id: voiceId },
         output_format: { container: 'raw', encoding: 'pcm_s16le', sample_rate: 24000 },

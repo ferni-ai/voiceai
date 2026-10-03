@@ -43,6 +43,28 @@ describe('DynamicToolLoader', () => {
   });
 
   describe('Topic Detection', () => {
+    it('matches topic keywords as whole words, not inside other words', () => {
+      // Each of these loaded a wrong domain with a substring match.
+      expect(loader.detectTopics("I don't even know where to start").detectedTopics).not.toContain(
+        'art'
+      );
+      expect(loader.detectTopics("I can't recall what she said").detectedTopics).not.toContain(
+        'call'
+      );
+      expect(loader.detectTopics('Give me a moment to think').detectedTopics).not.toContain('mom');
+      expect(loader.detectTopics('We had the funeral on Sunday').detectedTopics).not.toContain(
+        'fun'
+      );
+    });
+
+    it('still matches the whole word, and its plural', () => {
+      expect(loader.detectTopics('Can you call my mom?').detectedTopics).toEqual(
+        expect.arrayContaining(['call', 'mom'])
+      );
+      expect(loader.detectTopics('Tell me some jokes').detectedTopics).toContain('joke');
+      expect(loader.detectTopics('I keep calling her').detectedTopics).toContain('call');
+    });
+
     it('should detect finance topics', () => {
       const result = loader.detectTopics('I want to check my budget');
 
