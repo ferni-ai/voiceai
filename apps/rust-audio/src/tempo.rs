@@ -180,21 +180,9 @@ impl TempoStretcher {
         let hi = nominal + self.tol;
         let t0 = self.prev_pos + hop - self.input_base;
         let template = &self.input[t0..t0 + hop];
-        let mut best = nominal.max(lo);
-        let mut best_score = f32::MIN;
-        for cand in lo..=hi {
-            let c0 = cand - self.input_base;
-            let score: f32 = template
-                .iter()
-                .zip(&self.input[c0..c0 + hop])
-                .map(|(a, b)| a * b)
-                .sum();
-            if score > best_score {
-                best_score = score;
-                best = cand;
-            }
-        }
-        best
+        let c0 = lo - self.input_base;
+        let region = &self.input[c0..hi - self.input_base + hop];
+        lo + best_offset(template, region)
     }
 
     /// Drop input no future frame can read.
@@ -207,6 +195,37 @@ impl TempoStretcher {
             self.input_base += drop;
         }
     }
+}
+
+/// Offset into `region` of the `template.len()`-long candidate that best
+/// matches `template`: normalized cross-correlation (dot / candidate RMS
+/// energy), so a loud candidate can't outscore one whose waveform matches.
+/// Candidate energy is a running sum, so this costs one MAC per sample more
+/// than raw correlation.
+fn best_offset(template: &[f32], region: &[f32]) -> usize {
+    let len = template.len();
+    // Floor ~ -120 dBFS RMS: silence scores 0 instead of dividing by zero.
+    let floor = 1e-12 * len as f64;
+    let mut energy: f64 = region[..len].iter().map(|&v| (v as f64) * (v as f64)).sum();
+    let mut best = 0;
+    let mut best_score = f64::MIN;
+    for off in 0..=region.len() - len {
+        if off > 0 {
+            let (out, inp) = (region[off - 1] as f64, region[off + len - 1] as f64);
+            energy = (energy - out * out + inp * inp).max(0.0);
+        }
+        let dot: f64 = template
+            .iter()
+            .zip(&region[off..off + len])
+            .map(|(&a, &b)| a as f64 * b as f64)
+            .sum();
+        let score = dot / (energy + floor).sqrt();
+        if score > best_score {
+            best_score = score;
+            best = off;
+        }
+    }
+    best
 }
 
 /// Stretch a whole buffer (stateless convenience over `TempoStretcher`).
@@ -303,6 +322,33 @@ impl NativeTempoStretcher {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn lcg_noise(n: usize, mut x: u32) -> Vec<f32> {
+        (0..n)
+            .map(|_| {
+                x = x.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+                (x >> 8) as f32 / (1u32 << 24) as f32 - 0.5
+            })
+            .collect()
+    }
+
+    #[test]
+    fn splice_search_prefers_the_matching_waveform_over_a_louder_one() {
+        // Candidate 0 is a quiet exact copy of the template; candidate `len`
+        // is a loud mix of the template and unrelated noise. Raw correlation
+        // scores the loud one higher (3*|t|^2 vs 0.1*|t|^2); a similarity
+        // search must pick the exact copy.
+        let len = 120;
+        let t = lcg_noise(len, 1);
+        let other = lcg_noise(len, 2);
+        let mut region: Vec<f32> = t.iter().map(|v| 0.1 * v).collect();
+        region.extend(t.iter().zip(&other).map(|(a, b)| 3.0 * a + 3.0 * b));
+        assert_eq!(best_offset(&t, &region), 0);
+        // Silence never wins over a matching candidate, and doesn't divide by zero.
+        let mut quiet = vec![0.0f32; len];
+        quiet.extend(t.iter().map(|v| 0.01 * v));
+        assert_eq!(best_offset(&t, &quiet), len);
+    }
 
     /// 150 Hz voice-like tone: 6 harmonics, slow amplitude movement.
     fn harmonic_tone(n: usize, sr: u32, f0: f64) -> Vec<f32> {
