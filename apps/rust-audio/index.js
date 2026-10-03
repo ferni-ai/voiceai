@@ -310,8 +310,11 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { estimatePitchYin, batchEstimatePitchYin, getLibraryInfo, NativeAudioProcessor, getOrCreateProcessor, processSessionFrame, getSessionFullFeatures, resetSessionProcessor, removeSessionProcessor, getActiveProcessorCount, clearAllProcessors, convertI16ToF32, resampleF32, computeEnergyDb, isSpeech, computeRms, computeZcr, computeVariance, computeMean, computeStdDev, estimatePitch, extractFrameFeatures, fftF32, applyHanningWindow, getMagnitudeSpectrum, getPowerSpectrumDb, analyzeSpectrum, clearFftCaches, getDefaultPostTtsConfig, enhanceTtsAudio, enhanceTtsAudioInplace, applySoftAttack, applySoftRelease, applyWarmth, applyPresence, applyCompression, injectBreathSounds, NativePostTtsProcessor, NativePreSttProcessor, applyAgc, resetAgc, removeAgc } = nativeBinding
+const { renderNonverbal, timeStretch, NativeTempoStretcher, estimatePitchYin, batchEstimatePitchYin, getLibraryInfo, NativeAudioProcessor, getOrCreateProcessor, processSessionFrame, getSessionFullFeatures, resetSessionProcessor, removeSessionProcessor, getActiveProcessorCount, clearAllProcessors, convertI16ToF32, resampleF32, computeEnergyDb, isSpeech, computeRms, computeZcr, computeVariance, computeMean, computeStdDev, estimatePitch, extractFrameFeatures, fftF32, applyHanningWindow, getMagnitudeSpectrum, getPowerSpectrumDb, analyzeSpectrum, clearFftCaches, getDefaultPostTtsConfig, enhanceTtsAudio, enhanceTtsAudioInplace, applySoftAttack, applySoftRelease, applyWarmth, applyPresence, applyCompression, injectBreathSounds, NativePostTtsProcessor, NativePreSttProcessor, applyAgc, resetAgc, removeAgc } = nativeBinding
 
+module.exports.renderNonverbal = renderNonverbal
+module.exports.timeStretch = timeStretch
+module.exports.NativeTempoStretcher = NativeTempoStretcher
 module.exports.estimatePitchYin = estimatePitchYin
 module.exports.batchEstimatePitchYin = batchEstimatePitchYin
 module.exports.getLibraryInfo = getLibraryInfo
