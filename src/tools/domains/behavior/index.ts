@@ -125,6 +125,9 @@ const PRESENCE_SSML: Record<PresenceExpression, string> = {
   // matches the existing `nod` entry below, not a regression from this fix;
   // only a word-anchored entry (`sigh`, `hum`, `soft_sound`) survives being
   // prepended, because cleanupText has nothing to strip in front of it.
+  // KNOWN GAP: `breath` is therefore inaudible today. It is rendered as a
+  // real breath by the Rust post-TTS stage in the approved speech design
+  // (P3); until then it is a safe no-op, never spoken text.
   breath: '<break time="700ms"/>',
   hum: '<break time="200ms"/>Mmm.<break time="400ms"/>',
   nod: '<break time="200ms"/>',

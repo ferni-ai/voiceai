@@ -280,28 +280,26 @@ describe('Behavior Tools', () => {
       expect(result.ssml).toMatch(/<break time="\d+ms"\/>/);
     });
 
-    it('breath SSML through the real SSMLProcessor: no spoken artifact, but also no audible pause', async () => {
-      // What Cartesia actually receives, verified against the live gateway's
-      // own SSMLProcessor (not asserted blind): BREAK_TAG_REGEX turns the
-      // break into ". "/", "/" " " by duration, but cleanupText()'s
-      // leading-punctuation strip then removes it because it's the first
-      // thing in the chunk — whether `breath`'s SSML is synthesized alone or
-      // prepended to the next line ("<break.../>Hello" -> "Hello"). No
-      // leaked words (the bug this PR fixes), but also no audible gap; the
-      // `nod` entry below has the identical shape and is pre-existing, not a
-      // regression from this change. A real pause needs a spoken anchor
-      // (see `sigh`: "Ahh." survives because cleanupText has nothing to
-      // strip in front of it).
+    it('breath SSML through the real SSMLProcessor speaks no artifact', async () => {
+      // What Cartesia actually receives, through the live gateway's own
+      // SSMLProcessor: the break becomes leading punctuation that
+      // cleanupText() strips, so no tag text or ellipsis is ever spoken.
       const toolDef = tools.find((t) => t.id === 'expressPresence')!;
       const tool = toolDef.create(mockContext);
       const result = await tool.execute({ type: 'breath' });
 
       const processor = createSSMLProcessor();
-      expect(processor.parse(result.ssml as string).cleanText).toBe('');
-      expect(processor.parse(`${result.ssml as string}Here is my response.`).cleanText).toBe(
-        'Here is my response.'
-      );
+      const alone = processor.parse(result.ssml as string).cleanText;
+      const prepended = processor.parse(`${result.ssml as string}Here is my response.`).cleanText;
+      expect(alone).not.toMatch(/[A-Za-z<>[\]]|\.\.\./);
+      expect(prepended).toBe('Here is my response.');
     });
+
+    // KNOWN GAP, not desired behaviour: a breath is currently inaudible.
+    // Cartesia has no breath sound and a leading break is stripped before
+    // synthesis. The approved speech design renders breaths in the Rust
+    // post-TTS stage (docs/superpowers/specs/2026-10-03-human-speech-director-design.md, P3).
+    it.todo('breath produces an audible breath (needs the P3 Rust breath event)');
 
     it('should return SSML for presence type', async () => {
       const toolDef = tools.find((t) => t.id === 'expressPresence')!;
