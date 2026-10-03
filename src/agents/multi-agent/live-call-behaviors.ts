@@ -1,6 +1,7 @@
 /**
  * Behaviors installed on every live call's AgentSession: an interrupt trace,
- * the barge-in fast path, in-call timer alerts and the turn keeper.
+ * the barge-in fast path, in-call timer alerts, the turn keeper and the hold
+ * on unfinished turns.
  *
  * @module agents/multi-agent/live-call-behaviors
  */
@@ -11,6 +12,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { createCallAlertSpeaker } from '../shared/call-alerts.js';
 import { createBargeInFastPath, setBargeInFastPath } from './barge-in-fastpath.js';
 import { createTurnKeeper } from './turn-keeper.js';
+import { installUnfinishedTurnHold } from './unfinished-turn.js';
 
 const log = getLogger();
 
@@ -29,7 +31,9 @@ export interface LiveCallBehaviorsInput {
 
 export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   const { session, sessionEventHandlers, cleanupFunctions, sessionId, userId } = input;
-  const sessionWithEvents = input.sessionWithEvents as { on: (event: string, handler: Handler) => void };
+  const sessionWithEvents = input.sessionWithEvents as {
+    on: (event: string, handler: Handler) => void;
+  };
   // Diagnostics (2026-09-30): every interrupt() our code makes also cancels
   // LiveKit's preemptive reply, so log who calls it; and confirm the
   // PREEMPTIVE_DECISION patch to @livekit/agents is in this build.
@@ -121,6 +125,9 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     );
     cleanupFunctions.push(() => keeper.stop());
   }
+
+  // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off).
+  installUnfinishedTurnHold(session);
 }
 
 /** What the barge-in model decided about each overlap (see interruption-config.ts). */
