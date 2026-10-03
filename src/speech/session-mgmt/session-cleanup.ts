@@ -48,6 +48,7 @@ import { clearCognitiveSpeechState } from '../cognitive-speech-integration.js';
 import { resetPronunciationMemory } from '../pronunciation-memory.js';
 import { resetSessionWPMTracker } from '../speech-context.js';
 import { getTtsContextService } from '../tts-context.js';
+import { directorSessions } from '../tts-gateway/director/session-state.js';
 
 // Human listening & analysis services
 import { resetEnhancedTurnPredictor } from '../enhanced-turn-prediction.js';
@@ -136,9 +137,7 @@ const log = getLogger().child({ module: 'SpeechSessionCleanup' });
 // SESSION REGISTRY
 // ============================================================================
 
-/**
- * Track active sessions for debugging and monitoring
- */
+/** Track active sessions for debugging and monitoring */
 const activeSessions = new Set<string>();
 
 /**
@@ -272,6 +271,7 @@ export function cleanupSpeechSession(
   safeCleanup('pronunciationMemory', () => resetPronunciationMemory(sessionId));
   safeCleanup('cartesiaContext', () => clearSessionContextId(sessionId));
   safeCleanup('replyAudioPlan', () => clearReplyAudioPlan(sessionId));
+  safeCleanup('speechDirector', () => directorSessions.clear(sessionId));
 
   // ============================================================================
   // HUMAN LISTENING & ANALYSIS SERVICES

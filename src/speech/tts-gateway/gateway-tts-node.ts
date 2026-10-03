@@ -40,6 +40,7 @@ import { getTTSProvider } from './providers/index.js';
 import { getSSMLProcessor } from './ssml/index.js';
 import { findChunkEnd } from './chunk-boundary.js';
 import { createContinuationTTS } from './continuation-tts.js';
+import { directSpeech } from './director/index.js';
 import { prosodyTags } from './providers/cartesia.js';
 import type { SSMLProsodyConfig } from './types.js';
 
@@ -318,8 +319,6 @@ function createAudioFrameStream(
 // STREAMING OVERLAP: Start TTS on first phrase (target -100–200ms E2E)
 // ============================================================================
 
-// Sentence boundary: match sentence-ending punctuation followed by space or end-of-string.
-// Negative lookbehind avoids splitting on abbreviations (Dr. Mr. Ms. U.S. etc.) and decimals (3.5).
 const MIN_FIRST_CHUNK = 20;
 const MIN_CHUNK = 15;
 
@@ -409,9 +408,10 @@ async function createStreamingOverlapTTS(
   // and pacing carry across sentences and there are no per-sentence gaps.
   if (provider.openReplyStream && process.env.TTS_REPLY_CONTINUATIONS !== 'false') {
     metrics.gatewaySyntheses++;
+    const directed = directSpeech(provider.openReplyStream(voiceId), opts);
     return createContinuationTTS({
-      textStream,
-      reply: provider.openReplyStream(voiceId),
+      textStream: directed.textStream,
+      reply: directed.reply,
       sanitize: (chunk) => sanitizeChunkForTTS(chunk, ssmlProcessor),
       openingTags: prosodyTags,
       emotion,
