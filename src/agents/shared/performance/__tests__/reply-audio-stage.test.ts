@@ -6,11 +6,15 @@
  */
 import { AudioFrame } from '@livekit/rtc-node';
 import { createRequire } from 'node:module';
-import { ReadableStream as NodeReadableStream } from 'node:stream/web';
+import {
+  ReadableStream as NodeReadableStream,
+  type ReadableStreamDefaultReader,
+} from 'node:stream/web';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   clearReplyAudioPlan,
+  replyAudioPlanListenerCount,
   setReplyAudioPlan,
   takeReplyAudioPlan,
 } from '../../../../speech/reply-audio-plan.js';
@@ -77,7 +81,7 @@ function samples(frames: AudioFrame[]): Int16Array {
 /** Fake native: clip of 0.25s; stretcher drops every 10th sample and holds 100 back. */
 function fakeNative(log: string[] = []): ReplyAudioNative {
   return {
-    renderNonverbal(kind, durationMs, intensity, seed, sampleRate, f0Hz) {
+    renderNonverbal(...[kind, durationMs, intensity, , sampleRate, f0Hz]) {
       const f0 = f0Hz === undefined ? '' : ` f0=${f0Hz}`;
       log.push(`render ${kind} ${durationMs} ${intensity} ${sampleRate}${f0}`);
       if (kind !== 'breath' && kind !== 'sigh') throw new Error('unknown kind');
@@ -112,6 +116,12 @@ async function runStage(
   return collect(
     streamOf(frames).pipeThrough(createReplyAudioStage({ sessionId: SID, turn, native, gates }))
   );
+}
+
+/** Read a reader to its end. */
+async function readAll(reader: ReadableStreamDefaultReader<AudioFrame>): Promise<AudioFrame[]> {
+  const r = await reader.read();
+  return r.done ? [] : [r.value, ...(await readAll(reader))];
 }
 
 /** Resolves with the value, or 'timeout' if the read doesn't settle in `ms`. */
@@ -320,7 +330,8 @@ describe('reply-audio-stage', () => {
     expect(out.slice(lead.length).some(isReplyAudioLeadFrame)).toBe(false);
   });
 
-  it('a plan that arrives after TTS start gets its tempo but no opening', async () => {
+  // ---- Timing: the director decides on the first text, after TTS start ----
+  it('a plan that arrives after TTS start, before any speech, plays its opening at once', async () => {
     const calls: string[] = [];
     const stage = createReplyAudioStage({
       sessionId: SID,
@@ -328,11 +339,70 @@ describe('reply-audio-stage', () => {
       native: fakeNative(calls),
       gates: LIVE,
     });
+    const reader = stage.readable.getReader();
+    const pending = reader.read();
+    // Nothing from Cartesia yet, and no plan: nothing to play.
+    expect(await readWithin(pending, 50)).toBe('timeout');
+    expect(replyAudioPlanListenerCount()).toBe(1);
+    // The director decides (its first push) while Cartesia is still working.
     setReplyAudioPlan(SID, TURN, { opening: { kind: 'sigh', intensity: 1 }, tempo: 1.1 });
+    const first = await readWithin(pending);
+    expect(first).not.toBe('timeout');
+    expect(isReplyAudioLeadFrame((first as { value: AudioFrame }).value)).toBe(true);
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    // Speech queues after the opening and is stretched.
+    const writer = stage.writable.getWriter();
     const input = toneFrames(20);
-    const out = await collect(streamOf(input).pipeThrough(stage));
-    expect(calls).toEqual(['stretch 24000 1.1']); // no render
-    expect(samples(out).length).toBe(20 * 480 - (20 * 480) / 10);
+    const writing = Promise.all([...input.map((f) => writer.write(f)), writer.close()]);
+    const rest = await readAll(reader);
+    await writing;
+    const lead = rest.filter(isReplyAudioLeadFrame);
+    const speech = rest.filter((f) => !isReplyAudioLeadFrame(f));
+    expect(rest.slice(0, lead.length).every(isReplyAudioLeadFrame)).toBe(true);
+    expect(samples([(first as { value: AudioFrame }).value, ...lead]).length).toBe(
+      Math.round(0.8 * 24000)
+    );
+    expect(samples(speech).length).toBe(20 * 480 - (20 * 480) / 10);
+    expect(calls).toEqual(['render sigh 0 1 24000', 'stretch 24000 1.1']);
+  });
+
+  it('a plan that arrives after the first speech frame is ignored: no opening, no tempo', async () => {
+    const calls: string[] = [];
+    const stage = createReplyAudioStage({
+      sessionId: SID,
+      turn: TURN,
+      native: fakeNative(calls),
+      gates: LIVE,
+    });
+    const reader = stage.readable.getReader();
+    const writer = stage.writable.getWriter();
+    const input = toneFrames(3);
+    void writer.write(input[0]);
+    expect((await reader.read()).value).toBe(input[0]);
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    setReplyAudioPlan(SID, TURN, { opening: { kind: 'sigh', intensity: 1 }, tempo: 1.1 });
+    void writer.write(input[1]);
+    void writer.write(input[2]);
+    void writer.close();
+    const rest = await readAll(reader);
+    expect(rest).toEqual([input[1], input[2]]);
+    expect(calls).toEqual([]);
+  });
+
+  it('stops waiting for a plan on cancel and at the end of the reply', async () => {
+    const make = () =>
+      createReplyAudioStage({ sessionId: SID, turn: TURN, native: fakeNative(), gates: LIVE });
+    const cancelled = make();
+    expect(replyAudioPlanListenerCount()).toBe(1);
+    await cancelled.readable.cancel('barge-in');
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    const ended = make();
+    expect(replyAudioPlanListenerCount()).toBe(1);
+    await Promise.all([ended.writable.getWriter().close(), collect(ended.readable)]);
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    // A plan set afterwards is left for its own turn's next take, not played into a dead stream.
+    setReplyAudioPlan(SID, TURN, { opening: { kind: 'breath', intensity: 1 } });
+    expect(takeReplyAudioPlan(SID, TURN)).toEqual({ opening: { kind: 'breath', intensity: 1 } });
   });
 
   it('the opening duration reaching the renderer is capped', async () => {

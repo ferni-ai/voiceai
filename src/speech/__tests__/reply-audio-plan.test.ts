@@ -5,8 +5,11 @@ import {
   MAX_PLANNED_SESSIONS,
   PLAN_TTL_MS,
   clearReplyAudioPlan,
+  MAX_LISTENERS_PER_SESSION,
   getStage2Gates,
   normalizeReplyAudioPlan,
+  onReplyAudioPlan,
+  replyAudioPlanListenerCount,
   pendingReplyAudioPlanCount,
   setReplyAudioPlan,
   setReplyAudioPlanClockForTests,
@@ -150,5 +153,53 @@ describe('reply-audio-plan', () => {
         opening: { kind: 'sigh', intensity: 0.6 },
       });
     }
+  });
+});
+
+describe('onReplyAudioPlan (a stage waiting for the director)', () => {
+  afterEach(() => {
+    setReplyAudioPlanClockForTests(null);
+    clearReplyAudioPlan('w');
+  });
+
+  it('calls back once, after the setter returns, for its own turn only', async () => {
+    const seen: string[] = [];
+    const stop = onReplyAudioPlan('w', 2, () => seen.push('t2'));
+    onReplyAudioPlan('w', 3, () => seen.push('t3'));
+    setReplyAudioPlan('w', 2, { tempo: 1.1 });
+    expect(seen).toEqual([]); // not inside the director's push
+    await Promise.resolve();
+    expect(seen).toEqual(['t2']);
+    setReplyAudioPlan('w', 2, { tempo: 1.1 });
+    await Promise.resolve();
+    expect(seen).toEqual(['t2']); // once
+    expect(replyAudioPlanListenerCount()).toBe(1); // turn 3 still waiting
+    stop(); // unsubscribing a fired listener is harmless
+    expect(replyAudioPlanListenerCount()).toBe(1);
+  });
+
+  it('unsubscribes, expires after the plan TTL, and is capped per session', async () => {
+    let t = 1000;
+    setReplyAudioPlanClockForTests(() => t);
+    const fired: number[] = [];
+    const stop = onReplyAudioPlan('w', 1, () => fired.push(1));
+    stop();
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    onReplyAudioPlan('w', 1, () => fired.push(2));
+    t += PLAN_TTL_MS + 1;
+    setReplyAudioPlan('w', 1, { tempo: 1.1 });
+    await Promise.resolve();
+    expect(fired).toEqual([]);
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    for (let i = 0; i < MAX_LISTENERS_PER_SESSION + 5; i++)
+      onReplyAudioPlan('w', 9, () => undefined);
+    expect(replyAudioPlanListenerCount()).toBe(MAX_LISTENERS_PER_SESSION);
+  });
+
+  it('ignores a session without a real id or turn', () => {
+    const stop = onReplyAudioPlan('unknown', 1, () => undefined);
+    onReplyAudioPlan('w', undefined, () => undefined);
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    stop();
   });
 });

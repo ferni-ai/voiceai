@@ -17,6 +17,13 @@
  * or 'unknown' sessionId (tts-wrapper's fallback) is never stored or taken:
  * it would be a slot shared by every session without an id.
  *
+ * The director decides on the reply's first text, which is after the stage
+ * was built, so the stage can wait for its plan: `onReplyAudioPlan` calls back
+ * (once, in a microtask) when a plan for that (session, turn) is set. A
+ * listener is dropped when it fires, when the caller unsubscribes, on
+ * clearReplyAudioPlan, after PLAN_TTL_MS, or past MAX_LISTENERS_PER_SESSION,
+ * so none can pile up.
+ *
  * Gates (env, default off; each lever has its own so a regression is
  * attributable):
  *   SPEECH_STAGE2_NONVERBAL=off|live   opening breath/sigh
@@ -62,6 +69,15 @@ interface StoredPlan {
 
 const plans = new Map<string, StoredPlan>();
 
+interface PlanListener {
+  turn: number;
+  fn: () => void;
+  expiresAt: number;
+}
+
+export const MAX_LISTENERS_PER_SESSION = 8;
+const listeners = new Map<string, PlanListener[]>();
+
 /** Clock seam for tests. */
 let now: () => number = () => Date.now();
 
@@ -81,22 +97,24 @@ export function getStage2Gates(env: NodeJS.ProcessEnv = process.env): Stage2Gate
   };
 }
 
+type Opening = NonNullable<ReplyAudioPlan['opening']>;
+
+const positive = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0;
+
+function normalizeOpening(o: Opening | undefined): Opening | undefined {
+  if (!o || !NONVERBAL_KINDS.has(o.kind) || !positive(o.intensity)) return undefined;
+  const out: Opening = { kind: o.kind, intensity: Math.min(1, o.intensity) };
+  if (positive(o.durationMs)) out.durationMs = Math.min(MAX_OPENING_MS[o.kind], o.durationMs);
+  if (positive(o.f0Hz) && o.f0Hz >= MIN_F0_HZ && o.f0Hz <= MAX_F0_HZ) out.f0Hz = o.f0Hz;
+  return out;
+}
+
 /** Drop invalid fields; clamp the rest. Returns undefined when nothing is left. */
 export function normalizeReplyAudioPlan(plan: ReplyAudioPlan): ReplyAudioPlan | undefined {
   const out: ReplyAudioPlan = {};
-  if (typeof plan.tempo === 'number' && Number.isFinite(plan.tempo) && plan.tempo > 0) {
-    out.tempo = Math.min(MAX_TEMPO, Math.max(MIN_TEMPO, plan.tempo));
-  }
-  const o = plan.opening;
-  if (o && NONVERBAL_KINDS.has(o.kind) && Number.isFinite(o.intensity) && o.intensity > 0) {
-    out.opening = { kind: o.kind, intensity: Math.min(1, o.intensity) };
-    if (typeof o.durationMs === 'number' && Number.isFinite(o.durationMs) && o.durationMs > 0) {
-      out.opening.durationMs = Math.min(MAX_OPENING_MS[o.kind], o.durationMs);
-    }
-    if (typeof o.f0Hz === 'number' && o.f0Hz >= MIN_F0_HZ && o.f0Hz <= MAX_F0_HZ) {
-      out.opening.f0Hz = o.f0Hz;
-    }
-  }
+  if (positive(plan.tempo)) out.tempo = Math.min(MAX_TEMPO, Math.max(MIN_TEMPO, plan.tempo));
+  const opening = normalizeOpening(plan.opening);
+  if (opening) out.opening = opening;
   return out.tempo === undefined && out.opening === undefined ? undefined : out;
 }
 
@@ -137,6 +155,65 @@ export function setReplyAudioPlan(
   const at = now();
   evict(at);
   plans.set(sessionId, { turn, plan: normalized, expiresAt: at + PLAN_TTL_MS });
+  notify(sessionId, turn, at);
+}
+
+/** Live listeners for a session, expired ones dropped. */
+function liveListeners(sessionId: string, at: number): PlanListener[] {
+  const list = (listeners.get(sessionId) ?? []).filter((l) => l.expiresAt > at);
+  if (list.length > 0) listeners.set(sessionId, list);
+  else listeners.delete(sessionId);
+  return list;
+}
+
+/** Wake this turn's listeners, each once, after the setter's own work. */
+function notify(sessionId: string, turn: number, at: number): void {
+  const list = liveListeners(sessionId, at);
+  const due = list.filter((l) => l.turn === turn);
+  if (due.length === 0) return;
+  const rest = list.filter((l) => l.turn !== turn);
+  if (rest.length > 0) listeners.set(sessionId, rest);
+  else listeners.delete(sessionId);
+  void Promise.resolve().then(() => {
+    for (const l of due) {
+      try {
+        l.fn();
+      } catch {
+        // A listener's failure is its own; the plan store is unaffected.
+      }
+    }
+  });
+}
+
+/**
+ * Call `fn` once when a plan for (sessionId, turn) is set. Returns the
+ * unsubscribe. A no-op (and a no-op unsubscribe) without a real session id
+ * and turn.
+ */
+export function onReplyAudioPlan(
+  sessionId: string | undefined,
+  turn: number | undefined,
+  fn: () => void
+): () => void {
+  if (!isPlannableSession(sessionId) || !isTurn(turn)) return () => undefined;
+  const at = now();
+  const entry: PlanListener = { turn, fn, expiresAt: at + PLAN_TTL_MS };
+  const list = [...liveListeners(sessionId, at), entry].slice(-MAX_LISTENERS_PER_SESSION);
+  listeners.set(sessionId, list);
+  return () => {
+    const current = listeners.get(sessionId);
+    if (!current) return;
+    const kept = current.filter((l) => l !== entry);
+    if (kept.length > 0) listeners.set(sessionId, kept);
+    else listeners.delete(sessionId);
+  };
+}
+
+/** Number of stages waiting for a plan (diagnostics/tests). */
+export function replyAudioPlanListenerCount(): number {
+  let n = 0;
+  for (const list of listeners.values()) n += list.length;
+  return n;
 }
 
 /**
@@ -154,9 +231,13 @@ export function takeReplyAudioPlan(
   return stored.turn === turn && stored.expiresAt > now() ? stored.plan : undefined;
 }
 
-/** Forget this session's pending plan (barge-in, session end). */
+/**
+ * Forget this session's pending plan and stop any stage waiting for one
+ * (barge-in: the waiting reply is the one being interrupted; session end).
+ */
 export function clearReplyAudioPlan(sessionId: string): void {
   plans.delete(sessionId);
+  listeners.delete(sessionId);
 }
 
 /** Number of pending plans (diagnostics/tests). */
