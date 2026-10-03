@@ -24,6 +24,7 @@
  */
 
 import { isCoach } from '../../personas/persona-ids.js';
+import { scriptedPersonalityEnabled } from '../../personas/shared/scripted-personality-gate.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   createConversationSession,
@@ -83,8 +84,9 @@ export async function initConversationSession(
       relationshipStage: config.relationshipStage,
     });
 
-    // Prewarm LLM expression cache (non-blocking) — Ferni only
-    if (isCoach(config.personaId)) {
+    // Prewarm LLM expression cache (non-blocking) — Ferni only. The cache only
+    // feeds the scripted personality lines, so skip it when they're off.
+    if (isCoach(config.personaId) && scriptedPersonalityEnabled()) {
       try {
         const { prewarmPersonalitySession } =
           await import('../../personas/bundles/ferni/personality-integration.js');

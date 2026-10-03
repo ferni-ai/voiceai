@@ -11,7 +11,6 @@
  * - Dynamic expression composition
  *
  * Each persona has unique building blocks (passions, opinions, quirks, vulnerabilities).
- *
  * @module voice-agent/turn-personality
  */
 
@@ -32,7 +31,7 @@ import {
   type SharedPersonalityTurnResult,
 } from '../../personas/shared/shared-personality-integration.js';
 import { hasPersonaBuildingBlocks } from '../../personas/shared/persona-building-blocks.js';
-import { scriptedSelfDisclosureEnabled } from '../../personas/shared/scripted-self-disclosure.js';
+import { scriptedPersonalityEnabled } from '../../personas/shared/scripted-personality-gate.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { ThemeCategory } from '../../services/session-variety-tracker.js';
 
@@ -342,11 +341,8 @@ export async function processFerniPersonality(
       // Previous expression for resonance learning
       previousExpression: getPreviousExpression(ctx.sessionId),
     });
-    // The scripted "share this about your life" line stays out unless
-    // PERSONALITY_EXPRESSIONS=on (see scripted-self-disclosure.ts).
-    const delivered = scriptedSelfDisclosureEnabled()
-      ? personalityResult
-      : { ...personalityResult, expression: null };
+    // Only reached with PERSONALITY_EXPRESSIONS=on (see processPersonality).
+    const delivered = personalityResult;
 
     // Build injection content
     let injectionContent: string | null = null;
@@ -639,10 +635,14 @@ async function processBetterThanHumanPersonality(
  * 1. Ferni → processFerniPersonality (full Ferni stack)
  * 2. Personas with building blocks → processBetterThanHumanPersonality (shared system)
  * 3. Personas without building blocks → legacy shared personality
+ * Off unless PERSONALITY_EXPRESSIONS=on (see scripted-personality-gate.ts).
  */
 export async function processPersonality(
   ctx: PersonalityContext
 ): Promise<PersonalityProcessingResult> {
+  if (!scriptedPersonalityEnabled()) {
+    return { shouldInject: false, injectionContent: undefined, personalityResult: null };
+  }
   if (ctx.personaId === 'ferni') {
     return processFerniPersonality(ctx);
   }

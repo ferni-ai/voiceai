@@ -19,6 +19,7 @@ import type {
   TurnContext,
 } from '../types.js';
 import type { ContextInjectionsResult } from './types.js';
+import { responseStyleHints } from './response-style-hints.js';
 
 import { diag } from '../../../services/diagnostic-logger.js';
 import { createBuilderBudget } from './builder-budget.js';
@@ -78,7 +79,6 @@ import {
 } from '../../../intelligence/context-builders/humanization/conversation-humanizing.js';
 
 import { getResponseEnhancements } from '../../../speech/response-naturalness.js';
-
 import { valueCapture } from '../../../services/monetization/value-capture.js';
 
 import { getBetterThanHuman } from '../../../conversation/superhuman/index.js';
@@ -1107,7 +1107,7 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
     }
   }
 
-  // 13. Response naturalness
+  // 13. Response naturalness (opener/catchphrase lines are gated in response-style-hints.ts)
   const turnCount = userData.turnCount || 0;
   const enhancements = getResponseEnhancements({
     personaId: persona.id,
@@ -1121,21 +1121,7 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
       analysis.emotion.primary === 'joy' || analysis.emotion.primary === 'anticipation',
   });
 
-  if (enhancements.prefix) {
-    injections.push({
-      category: 'response_prefix',
-      content: `[RESPONSE STYLE]\nStart your response with: "${enhancements.prefix.replace(/<[^>]+>/g, '')}"\nThen continue with your substantive response.\n\n⛔ NEVER SAY: "Good question", "Great question", "Well...", "That's a great point" - these are AI clichés. Just respond naturally.`,
-      priority: 15,
-    });
-  }
-
-  if (enhancements.suffix) {
-    injections.push({
-      category: 'catchphrase',
-      content: `[CATCHPHRASE MOMENT]\nIf appropriate, weave in this signature phrase naturally: "${enhancements.suffix.replace(/<[^>]+>/g, '')}"`,
-      priority: 12,
-    });
-  }
+  injections.push(...responseStyleHints(enhancements));
 
   // 14. Conversation state summary
   if (userData.conversationState) {
