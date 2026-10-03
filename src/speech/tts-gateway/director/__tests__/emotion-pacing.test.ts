@@ -62,6 +62,29 @@ describe('readValence', () => {
     expect(readValence('The meeting is on Tuesday.')).toBe('neutral');
   });
 
+  it('does not make a repair, an apology or slang heavy on one weak cue', () => {
+    // Review M2: each of these got the sympathetic voice and a slower pace.
+    expect(readValence('Sorry, could you say that again?')).toBe('inquisitive');
+    expect(readValence("That's a hard question.")).toBe('neutral');
+    expect(readValence('Tough call, honestly.')).toBe('neutral');
+    expect(readValence("That's sick!")).toBe('neutral');
+    expect(readValence('I lost my keys again.')).toBe('neutral');
+  });
+
+  it('reads a loss or illness word, or two weak cues together, as heavy', () => {
+    expect(readValence("I'm so sorry for your loss.")).toBe('heavy');
+    expect(readValence('My mom was diagnosed last week.')).toBe('heavy');
+    expect(readValence("I'm sorry, that sounds really hard.")).toBe('heavy');
+  });
+
+  it('keeps a repair turn untagged and at full pace', () => {
+    const opening = 'Sorry, could you say that again?';
+    expect(decideEmotion({ openingText: opening }).emotion).not.toBe('sympathetic');
+    expect(
+      decideSpeed({ valence: readValence(opening), voiceId: FERNI_VOICE, previous: 1 }).speed
+    ).toBe(1);
+  });
+
   it('does not read a positive word inside another word', () => {
     expect(readValence('That was greatly delayed.')).toBe('neutral');
   });
@@ -121,12 +144,16 @@ describe('decideEmotion (one per reply)', () => {
 
   it('never returns anything outside the allowlist', () => {
     const inputs = ['excited', 'angry', 'scared', 'happy', 'triumphant', 'zzz', undefined];
+    const chosen = new Set<string>();
     for (const authored of inputs) {
       for (const openingText of ['Wow!', 'I am sorry.', 'Why?', 'Okay.']) {
         const { emotion } = decideEmotion({ authored, openingText });
-        if (emotion) expect(STABLE_EMOTIONS).toContain(emotion);
+        if (emotion) chosen.add(emotion);
       }
     }
+    // Non-vacuous: real tags were chosen, and every one is on the allowlist.
+    expect(chosen.size).toBeGreaterThan(1);
+    for (const emotion of chosen) expect(STABLE_EMOTIONS).toContain(emotion);
   });
 });
 
@@ -149,10 +176,9 @@ describe('decideSpeed', () => {
   });
 
   it('stays inside 0.9-1.08', () => {
-    let previous = 1;
-    for (let i = 0; i < 20; i++)
-      previous = decideSpeed({ valence: 'heavy', voiceId: FERNI_VOICE, previous }).speed;
-    expect(previous).toBeGreaterThanOrEqual(0.9);
+    // A carried speed far outside the range is pulled back in by the clamp,
+    // not just by the half-way smoothing (which alone would give 0.72 / 1.52).
+    expect(decideSpeed({ valence: 'heavy', voiceId: FERNI_VOICE, previous: 0.5 }).speed).toBe(0.9);
     expect(
       decideSpeed({ valence: 'bright', voiceId: FERNI_VOICE, previous: 2 }).speed
     ).toBeLessThanOrEqual(1.08);

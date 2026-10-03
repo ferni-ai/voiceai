@@ -91,14 +91,29 @@ const FROM_WORDS: Partial<Record<Valence, StableEmotion>> = {
 };
 
 // Whole words only: "greatly" is not "great" (substring-classifier pitfall).
-const HEAVY =
-  /\b(?:sorry|loss|lost|passed away|passing|died|death|grief|grieving|hard|hurts?|pain(?:ful)?|scared|afraid|anxious|worried|struggl(?:e|ing)|difficult|tough|sad|lonely|sick|cancer|diagnosis|breakup|divorce|fired|laid off|overwhelmed|exhausted)\b/i;
+/**
+ * A loss, illness or grief word: one is enough to make a reply heavy.
+ * "sorry to hear" / "sorry for your loss" count; a bare "sorry" does not.
+ */
+const HEAVY_LEXEME =
+  /\b(?:loss|passed away|died|death|dying|grief|griev(?:e|ing)|funeral|miscarriage|cancer|tumou?r|diagnos(?:is|ed)|chemo(?:therapy)?|hospice|illness|dementia|breakup|divorce|laid off|sorry to hear|sorry for your)\b/i;
+/**
+ * Words that are heavy only in company. Alone they are routine: "Sorry,
+ * could you say that again?" is a repair, "that's a hard question" is not
+ * bad news, and "sick!" is praise. Two of them together read as heavy.
+ */
+const HEAVY_CUE =
+  /\b(?:sorry|lost|passing|terminal|stroke|hard|hurts?|pain(?:ful)?|scared|afraid|anxious|worried|struggl(?:e|ing)|difficult|tough|sad|lonely|sick|fired|overwhelmed|exhausted)\b/gi;
 const BRIGHT =
   /\b(?:congrat(?:s|ulations)|amazing|awesome|wonderful|fantastic|great|incredible|brilliant|delighted|celebrate|so happy|excited|proud of you|love that|yay)\b/i;
 
+function isHeavy(text: string): boolean {
+  return HEAVY_LEXEME.test(text) || (text.match(HEAVY_CUE)?.length ?? 0) >= 2;
+}
+
 /** How the reply's opening words read. Heavy wins over bright. */
 export function readValence(text: string): Valence {
-  if (HEAVY.test(text)) return 'heavy';
+  if (isHeavy(text)) return 'heavy';
   if (BRIGHT.test(text)) return 'bright';
   if (text.includes('?')) return 'inquisitive';
   return 'neutral';
