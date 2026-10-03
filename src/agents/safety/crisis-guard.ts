@@ -3,7 +3,9 @@
  *
  * Runs on the caller's words BEFORE the LLM (see turn-processor/process-turn.ts):
  *
- * 1. detectCrisis scores explicit and implicit crisis indicators, plus voice distress
+ * 1. detectCrisis scores explicit (0.9), passive-ideation (0.75) and implicit (0.6)
+ *    crisis indicators, plus voice distress. Two distinct implicit indicators in
+ *    one message count as passive ideation.
  * 2. guardPreResponse replaces the reply with a pre-written one that includes
  *    988 resources when severity >= 0.85
  *
@@ -61,11 +63,12 @@ export interface CrisisDetectionResult {
  * when voice distress corroborates them.
  */
 const EXPLICIT_CRISIS_PATTERNS = [
-  // Suicidal ideation. "die" excludes idioms: die of/from embarrassment, die laughing.
-  /want(ing)? to (die\b(?! (of|from|laughing)\b)|kill myself|not (be here|exist|wake up))/i,
+  // Suicidal ideation. "die" excludes idioms: die of/from embarrassment, die laughing,
+  // and "<this traffic> makes me want to die", which is implicit distress below.
+  /(?<!(makes|made|making) me )want(ing)? to (die\b(?! (of|from|laughing)\b)|kill myself|not (be here|exist|wake up))/i,
   // "end it" only when nothing follows (or "all"): excludes "end it with him".
   /want(ing)? to end (it all|my life|it\s*[.!?]*$)/i,
-  /don't want to (live|be alive|exist|be here anymore)/i,
+  /don'?t want to (live|be alive|exist|be here anymore)/i,
   /(thinking about|consider(ing)?) (suicide|ending (it|my life)|killing myself)/i,
   /no (point|reason) (in|to) (go(ing)? on )?(living|going on|continuing)/i,
   // "end/take my (own) life" — excludes recovery language: "take my life back / in a new direction".
@@ -77,25 +80,56 @@ const EXPLICIT_CRISIS_PATTERNS = [
   // Self-harm. Excludes "cutting myself a slice", "burning myself out".
   /(want to|going to|thinking about) hurt(ing)? myself/i,
   /\b(cutting|burning|harming) myself\b(?! (a|an|some|off|out|slack|short)\b)/i,
+  // Disclosure of ongoing or past self-harm ("I've been hurting myself again").
+  /\b(been|keep|kept|started|still) (hurting|cutting|harming|burning) myself\b(?! (a|an|some|off|out|slack|short|at the gym|playing|lifting|working out)\b)/i,
+  /\bhurting myself again\b/i,
+];
+
+/**
+ * Passive suicidal ideation, coded language and behavioral warning signs.
+ *
+ * A match marks the turn as a crisis (the LLM gets the crisis context and the
+ * 988 suggestion) but does not replace the reply on text alone; voice distress
+ * lifts it past the block threshold.
+ */
+const PASSIVE_IDEATION_PATTERNS = [
+  /\bwish (that )?i (could (just )?disappear|(was|were) (dead|gone|never born)|could (just )?not wake up)\b/i,
+  /\b(hope|wish) i (don'?t|won'?t|wouldn'?t|never) wake up\b/i,
+  /\bwouldn'?t mind if (something|anything) (bad )?happened to me\b/i,
+  /\bwhat'?s (even )?the point (of|in) (trying|living|anything|going on|being alive)\b/i,
+  /\bnothing (is ever going to|will ever) get better\b/i,
+  /\b(so )?tired of (living|life|being alive|it all|everything)\b(?! (about|at|with|in|on)\b)/i,
+  /\bcan'?t see (a|any) future (for )?(myself|me)\b|\bno future for me\b/i,
+  /\b(how|way|ways) to (end|stop) the pain\b(?! (in|of) (my )?(back|knee|neck|tooth|head|joints?|legs?|arms?|shoulders?)\b)/i,
+  /\b(looking for|want|need|found) a permanent solution\b(?! (to|for)\b)/i,
+  /\b(at|reached) the end of my rope\b/i,
+  /\bgiving away (all )?my (stuff|things|belongings|possessions)\b/i,
 ];
 
 /** Implicit distress indicators - need gentle exploration */
 const IMPLICIT_DISTRESS_PATTERNS = [
-  /everything is (falling apart|too much|overwhelming)/i,
-  /can't (breathe|handle|cope|function)/i,
+  /everything('?s| is) (falling apart|too much|overwhelming)/i,
+  /can'?t (breathe|handle|cope|function)/i,
   /nobody (cares|would (miss|notice))/i,
-  /I'm (such a|a complete) (failure|burden|mess)/i,
+  /i'?m (such a|a complete) (failure|burden|mess)/i,
   /I (hate|can't stand) myself/i,
   /feeling (so )?alone/i,
   /\bfeel(ing)? (so |really )?(trapped|stuck)\b|\bno way out\b/i,
 
   // Hopelessness. Ambiguous on text alone ("there's no point arguing with him");
   // voice distress lifts these past the block threshold.
-  /can't (do this|keep going|take it) anymore/i,
+  /can'?t (do this|keep going|take it) anymore/i,
   /nothing (will ever|is ever going to) (change|get better)/i,
-  /there's no (hope|point)/i,
-  /what's (even )?the point/i,
+  /there'?s no (hope|point)/i,
+  /what'?s (even )?the point/i,
   /\bwant (it|this|everything|the pain) to (stop|end) (for good|forever)\b/i,
+  /\b(makes|made|making) me want to die\b/i,
+
+  // Withdrawal and flat affect: weak alone, a crisis signal in combination.
+  /\bdon'?t care (about anything )?anymore\b/i,
+  /\bdon'?t bother (checking|calling|texting) (on |in on )?me\b/i,
+  /\bnot worth (your|anyone'?s) (time|effort)\b/i,
+  /\b(actually|really|seriously) not (okay|ok)\b/i,
 ];
 
 /** Patterns that indicate high distress from voice */
@@ -124,7 +158,7 @@ export function detectCrisis(
   const indicators: string[] = [];
   let severity = 0;
 
-  const lowerMessage = userMessage.toLowerCase();
+  const lowerMessage = userMessage.toLowerCase().replace(/[\u2018\u2019]/g, "'");
 
   // Check explicit crisis patterns
   for (const pattern of EXPLICIT_CRISIS_PATTERNS) {
@@ -135,13 +169,22 @@ export function detectCrisis(
     }
   }
 
-  // Check implicit distress patterns
-  for (const pattern of IMPLICIT_DISTRESS_PATTERNS) {
+  for (const pattern of PASSIVE_IDEATION_PATTERNS) {
     if (pattern.test(lowerMessage)) {
-      indicators.push('implicit_distress');
-      severity = Math.max(severity, 0.6);
+      indicators.push('passive_ideation');
+      severity = Math.max(severity, 0.75);
       break;
     }
+  }
+
+  const implicitHits = IMPLICIT_DISTRESS_PATTERNS.filter((p) => p.test(lowerMessage)).length;
+  if (implicitHits > 0) {
+    indicators.push('implicit_distress');
+    severity = Math.max(severity, 0.6);
+  }
+  if (implicitHits >= 2) {
+    indicators.push('compounded_distress');
+    severity = Math.max(severity, 0.75);
   }
 
   // Voice emotion amplifies severity

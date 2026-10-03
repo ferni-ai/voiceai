@@ -57,13 +57,15 @@ async function getDetector(capability: string): Promise<CapabilityDetector | nul
         };
       }
       case 'crisis_detection': {
-        const { detectCrisis } = await import('../../superhuman/emotional-first-aid.js');
+        // The guard live turns run (turn-processor/process-turn.ts), so the
+        // benchmark measures what callers actually get.
+        const { detectCrisis } = await import('../../../agents/safety/crisis-guard.js');
         return (input: string) => {
           const result = detectCrisis(input);
           return {
-            detected: result !== null,
-            confidence: result?.confidence,
-            value: result?.severity,
+            detected: result.isCrisis,
+            confidence: result.severity,
+            value: result.severity,
           };
         };
       }
