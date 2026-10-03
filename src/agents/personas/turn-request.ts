@@ -12,6 +12,7 @@ import { TransformStream, type ReadableStream } from 'node:stream/web';
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getBargeInFastPath } from '../multi-agent/barge-in-fastpath.js';
+import { withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
 import {
   getTurnToolRetrieval,
   latestUserText,
@@ -43,9 +44,11 @@ export interface TurnToolsState {
 
 /**
  * A copy of the context with the turn reminder, plus what Ferni has already
- * told on this call and the director's notes for this reply, if any.
+ * told on this call and the director's notes for this reply, if any, and
+ * without per-turn context built for an earlier turn (turn-intelligence.ts).
  */
-export function withTurnReminder(chatCtx: llm.ChatContext, session: object): llm.ChatContext {
+export function withTurnReminder(request: llm.ChatContext, session: object): llm.ChatContext {
+  const chatCtx = withoutStaleTurnContext(request);
   const director = getDirector(session);
   const notes = formatNotes(director?.current() ?? []);
   const reminder = [
