@@ -29,7 +29,7 @@ vi.mock('../../../personas/bundles/ferni/personality-integration.js', () => ({
 
 import {
   getPreviousExpression,
-  processFerniPersonality,
+  processPersonality,
   type PersonalityContext,
 } from '../turn-personality.js';
 import { buildFerniPersonalityContext } from '../../../intelligence/context-builders/personas/ferni-personality.js';
@@ -65,7 +65,9 @@ afterEach(() => {
 
 describe('scripted self-disclosure', () => {
   it('keeps the composed personality expression out of the turn context', async () => {
-    const result = await processFerniPersonality(turn('off'));
+    // processPersonality is the live entry (turn-handler); off means no injection at all.
+    const result = await processPersonality(turn('off'));
+    expect(result.shouldInject).toBe(false);
     expect(result.injectionContent ?? '').not.toContain('PERSONALITY EXPRESSION');
     expect(result.injectionContent ?? '').not.toContain('Weekend evenings feel different');
     // Not delivered, so not learned from as if it had been.
@@ -74,7 +76,7 @@ describe('scripted self-disclosure', () => {
 
   it('puts it back with PERSONALITY_EXPRESSIONS=on', async () => {
     process.env.PERSONALITY_EXPRESSIONS = 'on';
-    const result = await processFerniPersonality(turn('on'));
+    const result = await processPersonality(turn('on'));
     expect(result.injectionContent).toContain('[🎭 PERSONALITY EXPRESSION]');
     expect(result.injectionContent).toContain('Weekend evenings feel different');
   });

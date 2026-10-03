@@ -490,7 +490,7 @@ function createDefaultPatternData(userId: string): VoicePatternData {
 }
 
 /**
- * Load voice patterns from Firestore
+ * Load voice patterns from Firestore: null when the user has none; throws when the read fails
  */
 export async function loadVoicePatterns(userId: string): Promise<VoicePatternData | null> {
   try {
@@ -516,7 +516,7 @@ export async function loadVoicePatterns(userId: string): Promise<VoicePatternDat
     return data;
   } catch (error) {
     log.error({ userId, error: String(error) }, 'Failed to load voice patterns');
-    return null;
+    throw error; // a failed read must not pass for a new user, or its save would erase history
   }
 }
 

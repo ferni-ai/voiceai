@@ -26,18 +26,6 @@ export function scriptedSelfDisclosureEnabled(
 }
 
 /**
- * The personality system's "noticing" opener: 'START YOUR RESPONSE WITH: "You
- * took a moment there. Is everything okay?"' (realtime-noticing.ts). It's a
- * canned line, not a reply to the caller, so it stays out unless
- * PERSONALITY_NOTICING=on.
- */
-export function scriptedNoticingEnabled(
-  env: Record<string, string | undefined> = process.env
-): boolean {
-  return env.PERSONALITY_NOTICING === 'on';
-}
-
-/**
  * The ferni-personality injections that react to what the caller said rather
  * than volunteer Ferni's life: pushing back on "I always fail", his view when
  * they raise a topic, and the slower mode for distress.

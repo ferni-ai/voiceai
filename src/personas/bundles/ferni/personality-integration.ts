@@ -82,11 +82,11 @@ import {
   type VoicePersonalityAdjustment,
 } from './voice-emotion-personality.js';
 
+// NEW: Memory Callbacks
 import { memoryPersonalityBridge, type MemoryCallback } from '../../shared/memory-personality-bridge.js';
 
 // NEW: Cross-Persona Learning
 import { crossPersonaLearning } from '../../shared/cross-persona-learning.js';
-import { scriptedSelfDisclosureEnabled } from '../../shared/scripted-self-disclosure.js';
 
 // NEW: Voice Pace Integration
 import {
@@ -487,8 +487,8 @@ export async function processTurnPersonality(
       }
     }
 
-    // Background LLM calls that only feed the expression, which is off by default
-    if (input.textEmotion?.primary && scriptedSelfDisclosureEnabled()) {
+    // Request more LLM expressions for this emotional context (background)
+    if (input.textEmotion?.primary) {
       requestEmotionalExpressions(input.textEmotion.primary, llmContext);
     }
   } else if (noticing && noticing.type !== 'breakthrough_moment') {

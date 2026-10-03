@@ -24,7 +24,7 @@
  */
 
 import { isCoach } from '../../personas/persona-ids.js';
-import { scriptedSelfDisclosureEnabled } from '../../personas/shared/scripted-self-disclosure.js';
+import { scriptedPersonalityEnabled } from '../../personas/shared/scripted-personality-gate.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   createConversationSession,
@@ -85,8 +85,8 @@ export async function initConversationSession(
     });
 
     // Prewarm LLM expression cache (non-blocking) — Ferni only. The cache only
-    // feeds the scripted self-disclosure lines, so skip it while they're off.
-    if (isCoach(config.personaId) && scriptedSelfDisclosureEnabled()) {
+    // feeds the scripted personality lines, so skip it when they're off.
+    if (isCoach(config.personaId) && scriptedPersonalityEnabled()) {
       try {
         const { prewarmPersonalitySession } =
           await import('../../personas/bundles/ferni/personality-integration.js');

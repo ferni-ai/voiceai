@@ -3,8 +3,9 @@
  *
  * After Ferni finishes a reply, a fast model reads the recent conversation
  * and writes zero to two short notes for the next reply: subtext worth
- * noticing, a callback to something said earlier, the energy to match, a
- * habit to break. They are hints with reasons, never lines. The next request
+ * noticing, the energy to match, a habit to break. They are hints with
+ * reasons, never lines, and never a pointer back to an earlier line: Ferni
+ * reads them after the caller has spoken again (BACK_TO_EARLIER). The next request
  * carries them after the user's words (the channel the turn reminder showed
  * works; see turn-style.ts), and the character sheet tells Ferni to use them
  * only when they fit.
@@ -38,13 +39,35 @@ export interface Line {
 /** Writes notes from a prompt; injectable so tests need no model. */
 export type NoteWriter = (system: string, prompt: string) => Promise<string | undefined>;
 
-export const DIRECTOR_SYSTEM = [
-  "You are the director of a live, unscripted phone call between Ferni (warm, dry, curious; grew up in Wyoming, lived in Japan, a life coach who talks like a friend) and someone he cares about. Ferni improvises every word. Between his turns you whisper at most two private notes for his next reply.",
-  "Every note must point at something that actually happened in this call, naming the words or detail: what they hinted at but didn't say, a pattern across what they've said, something from earlier worth coming back to, the energy they're bringing, or a habit of Ferni's to drop (too many questions, fixing too early, sounding upbeat, repeating himself). Give the nudge and its reason in under 20 words.",
+const DIRECTOR_ROLE =
+  "You are the director of a live, unscripted phone call between Ferni (warm, dry, curious; grew up in Wyoming, lived in Japan, a life coach who talks like a friend) and someone he cares about. Ferni improvises every word. Between his turns you whisper at most two private notes for his next reply.";
+const DIRECTOR_RULES = [
   "Never tell him to acknowledge, validate, support or ask about feelings: that's what a therapist does and he's a friend. Never write lines for him to say.",
   "Pauses, short answers and unanswered questions are normal in conversation: never tell him to call them out, ask again or check they're still there. Prefer an observation to an instruction to ask something.",
   'If the conversation is flowing and Ferni is doing fine, reply NONE. Reply with only the notes, one per line, no numbering, or exactly NONE.',
+];
+
+export const DIRECTOR_SYSTEM = [
+  DIRECTOR_ROLE,
+  "Every note must point at something that actually happened in this call, naming the detail: what they hinted at but didn't say, a pattern across what they've said, the mood or energy they're bringing, or a habit of Ferni's to drop (too many questions, fixing too early, sounding upbeat, repeating himself). Give the nudge and its reason in under 20 words.",
+  "Ferni reads your notes only after they have spoken again, and what they say next comes first. So never send him back to an earlier line: no connecting to, coming back to or following up on something they said. Say what you notice about them instead.",
+  ...DIRECTOR_RULES,
 ].join('\n');
+
+/** The prompt before 2026-10-03, which invited notes that send Ferni back to an earlier line. */
+const LOOKING_BACK_SYSTEM = [
+  DIRECTOR_ROLE,
+  "Every note must point at something that actually happened in this call, naming the words or detail: what they hinted at but didn't say, a pattern across what they've said, something from earlier worth coming back to, the energy they're bringing, or a habit of Ferni's to drop (too many questions, fixing too early, sounding upbeat, repeating himself). Give the nudge and its reason in under 20 words.",
+  ...DIRECTOR_RULES,
+].join('\n');
+
+/**
+ * DIRECTOR_LOOK_BACK=on restores the director that may send Ferni back to an
+ * earlier line (the old prompt, and no BACK_TO_EARLIER filter).
+ */
+export function directorLooksBack(env: Record<string, string | undefined> = process.env): boolean {
+  return env.DIRECTOR_LOOK_BACK === 'on';
+}
 
 export function buildDirectorPrompt(lines: Line[], userName?: string): string {
   const who = userName || 'Them';
@@ -58,6 +81,14 @@ export function buildDirectorPrompt(lines: Line[], userName?: string): string {
 const GENERIC = /^(acknowledge|validate|show (support|empathy)|let (them|him|her) know|be supportive|offer (support|comfort)|empathi[sz]e)/i;
 /** Pushing on a pause or a question they skipped: a friend lets it go. */
 const PUSHY = /call (that|it) out|ask (it |that )?again|repeat (the|your) question|didn'?t (respond|answer)|still there|check (if|that) (they|he|she)/i;
+/**
+ * Sending Ferni back to an earlier line. Notes are read on the caller's next
+ * turn, so this one steers away from whatever they just said. Dev call
+ * 2026-10-03: 'They said "It's hard to say." about quiet moments. Connect to
+ * that.' reached the reply to "All right, brother.", which opened "No pressure
+ * to put words to it"; earlier, 'The "Donald Trump" comment is still hanging.'
+ */
+const BACK_TO_EARLIER = /\bconnect (it |this |that )?(to|with|back)\b|\b(come|circle|go|get) back to\b|\breturn to\b|\bbring (it|that|this) (back|up)\b|\bfollow(ing)? up on\b|\b(still|left) hanging\b/i;
 const STOP = new Set('that this they them their with what have from about your just like been were when then there some would could should into only also very really'.split(' '));
 
 /** Words a note must share with the call to be about the call (4+ letters, not function words). */
@@ -82,6 +113,7 @@ export function parseNotes(reply: string | undefined, call?: Line[]): string[] {
     // A note that is a quoted line for Ferni to say is exactly what we don't want.
     .filter((l) => !/^["“'].*["”']$/.test(l))
     .filter((l) => !GENERIC.test(l) && !PUSHY.test(l))
+    .filter((l) => directorLooksBack() || !BACK_TO_EARLIER.test(l))
     .filter((l) => !said || [...contentWords(l)].some((w) => said.has(w)))
     .map((l) => (l.length > 160 ? `${l.slice(0, 157)}...` : l));
   return notes.slice(0, 2);
@@ -126,7 +158,10 @@ export class Director {
     const work = (async () => {
       try {
         const reply = await withTimeout(
-          writer(DIRECTOR_SYSTEM, buildDirectorPrompt(lines, this.opts.userName)),
+          writer(
+            directorLooksBack() ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM,
+            buildDirectorPrompt(lines, this.opts.userName)
+          ),
           this.opts.budgetMs ?? 4000
         );
         if (gen !== this.generation) return; // a newer turn superseded this one
