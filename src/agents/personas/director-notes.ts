@@ -13,10 +13,16 @@
  * talking and used on their next turn, so a slow or failed call just means no
  * note. DIRECTOR_NOTES=on enables it.
  *
+ * Every reply it also updates the record of what Ferni has already told on the
+ * call (told-this-call.ts), computed in code and ready at once; that part runs
+ * unless TOLD_THIS_CALL=off, with or without the notes.
+ *
  * @module agents/personas/director-notes
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
+import { toldThisCallEnabled, toldThisCallNote } from './told-this-call.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
 
@@ -95,16 +101,26 @@ const defaultWriter: NoteWriter = async (system, prompt) => {
 
 export class Director {
   private notes: string[] = [];
+  private toldNote = '';
   private generation = 0;
 
   constructor(
-    private readonly opts: { sessionId: string; userName?: string; writer?: NoteWriter; budgetMs?: number }
+    private readonly opts: {
+      sessionId: string;
+      userName?: string;
+      writer?: NoteWriter;
+      budgetMs?: number;
+      /** Ask the model for notes (DIRECTOR_NOTES=on); false keeps only the told-this-call record. */
+      writeNotes?: boolean;
+    }
   ) {}
 
   /** Ferni finished a reply: think about the next one. Never throws. */
   observe(lines: Line[]): Promise<void> {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
+    this.toldNote = toldThisCallEnabled() ? toldThisCallNote(lines, this.opts.userName) : '';
+    if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
     const started = Date.now();
     const work = (async () => {
@@ -140,6 +156,11 @@ export class Director {
   current(): string[] {
     return this.notes;
   }
+
+  /** What Ferni has already told on this call, as the note for the next reply, or ''. */
+  told(): string {
+    return this.toldNote;
+  }
 }
 
 function withTimeout<T>(work: Promise<T>, ms: number): Promise<T | undefined> {
@@ -169,13 +190,19 @@ export function getDirector(session: object | undefined): Director | undefined {
   return session ? directors.get(session) : undefined;
 }
 
-/** The spoken conversation in a chat context: user and assistant messages, markup removed. */
+/**
+ * The spoken conversation in a chat context: user and assistant messages,
+ * markup removed. The per-turn context note is a user message too, but nobody
+ * said it: the director once reported "Stevie Wonder from personality
+ * expression" as part of the call.
+ */
 export function linesFromChat(
   items: ReadonlyArray<{ type?: string; role?: string; textContent?: string }>
 ): Line[] {
   const lines: Line[] = [];
   for (const item of items) {
     if (item.type !== 'message' || (item.role !== 'user' && item.role !== 'assistant')) continue;
+    if (item.textContent?.startsWith(TURN_CONTEXT_HEADER)) continue;
     const text = (item.textContent ?? '')
       .replace(/<[^>]+>/g, '')
       .replace(/\s+/g, ' ')

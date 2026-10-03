@@ -148,6 +148,9 @@ const score = {
   // About the caller, not Ferni: replies that tell Ferni's own story.
   selfStoryRate: round(replies.filter((t) => SELF_STORY.test(t)).length / (replies.length || 1)),
   scriptedLineHits: replies.filter((t) => SCRIPTED.test(t)).length,
+  // A reply cut off after a word or two ("The", "So", "It's"): Ferni started
+  // talking in the caller's mid-thought pause and the caller kept going.
+  falseStarts: replies.filter((t) => t.trim().split(/\s+/).filter(Boolean).length <= 2).length,
   repeatedPhraseCount: repeatedPhrases.length,
   repeatedPhrases: repeatedPhrases.slice(0, 10),
   greetingUtterances,

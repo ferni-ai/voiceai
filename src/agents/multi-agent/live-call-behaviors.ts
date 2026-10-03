@@ -1,6 +1,7 @@
 /**
  * Behaviors installed on every live call's AgentSession: an interrupt trace,
- * the barge-in fast path, in-call timer alerts and the turn keeper.
+ * the barge-in fast path, in-call timer alerts, the turn keeper, the hold on
+ * unfinished turns and the barge-in judge.
  *
  * @module agents/multi-agent/live-call-behaviors
  */
@@ -8,9 +9,14 @@ import { voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import {
+  createBargeInJudge,
+  registerBargeInJudge,
+} from '../../speech/graceful-interrupt/barge-in-judge.js';
 import { createCallAlertSpeaker } from '../shared/call-alerts.js';
 import { createBargeInFastPath, setBargeInFastPath } from './barge-in-fastpath.js';
 import { createTurnKeeper } from './turn-keeper.js';
+import { installUnfinishedTurnHold } from './unfinished-turn.js';
 
 const log = getLogger();
 
@@ -29,7 +35,9 @@ export interface LiveCallBehaviorsInput {
 
 export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   const { session, sessionEventHandlers, cleanupFunctions, sessionId, userId } = input;
-  const sessionWithEvents = input.sessionWithEvents as { on: (event: string, handler: Handler) => void };
+  const sessionWithEvents = input.sessionWithEvents as {
+    on: (event: string, handler: Handler) => void;
+  };
   // Diagnostics (2026-09-30): every interrupt() our code makes also cancels
   // LiveKit's preemptive reply, so log who calls it; and confirm the
   // PREEMPTIVE_DECISION patch to @livekit/agents is in this build.
@@ -120,6 +128,29 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       { event: 'conversation_item_added', handler: keeper.onItemAdded }
     );
     cleanupFunctions.push(() => keeper.stop());
+  }
+
+  // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off).
+  installUnfinishedTurnHold(session);
+
+  // Open the next reply softly only after a real barge-in, not after any
+  // overlap (barge-in-judge.ts). BARGE_IN_ACK=any keeps the old behavior.
+  if (process.env.BARGE_IN_ACK !== 'any') {
+    const judge = createBargeInJudge();
+    const onAgent = (ev: unknown) => judge.onAgentState((ev as { newState?: string })?.newState);
+    const onUser = (ev: unknown) => judge.onUserState((ev as { newState?: string })?.newState);
+    const onItem = (ev: unknown) =>
+      judge.onItemAdded((ev as { item?: { role?: string; interrupted?: boolean } })?.item);
+    const onFalse = () => judge.onFalseInterruption();
+    const handlers = [
+      { event: 'agent_state_changed', handler: onAgent },
+      { event: 'user_state_changed', handler: onUser },
+      { event: 'conversation_item_added', handler: onItem },
+      { event: voice.AgentSessionEventTypes.AgentFalseInterruption, handler: onFalse },
+    ];
+    for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
+    sessionEventHandlers.push(...handlers);
+    cleanupFunctions.push(registerBargeInJudge(sessionId, judge));
   }
 }
 

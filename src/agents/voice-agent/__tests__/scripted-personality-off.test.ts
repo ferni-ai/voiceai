@@ -1,17 +1,15 @@
 /**
- * The personality system's pre-written lines must not reach a live call.
- *
- * Evidence: on the 2026-10-03 dev call Ferni said "That golden hour light,
- * weekend evenings feel different, don't they?" and "The transition into
- * evening, weekend evenings feel different, don't they?" word for word, plus
- * "Just poured myself a cup" and "Just spent an hour trying to decipher
- * hieroglyphs". Each followed a "🎭 Better Than Human personality injection"
- * that quoted the line and told the model to say it.
+ * What the personality system still scripted after the self-disclosure gate
+ * (scripted-self-disclosure.test.ts covers the expression itself):
+ * - the "noticing" opener, 'START YOUR RESPONSE WITH: "You took a moment
+ *   there. Is everything okay?"' (realtime-noticing.ts);
+ * - the session-start LLM prewarm of "what I'm doing right now" asides
+ *   ("Just poured myself a cup" on the 2026-10-03 call). It only feeds the
+ *   expression, which is now dropped, so it was LLM calls for nothing.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const SCRIPTED_LINE =
-  'That golden hour light. <break time="100ms"/>Weekend evenings feel different, don\'t they?';
+const NOTICING_LINE = "You took a moment there. <break time='250ms'/>Is everything okay?";
 
 const processTurn = vi.fn();
 const prewarmPersonalitySession = vi.fn();
@@ -36,8 +34,8 @@ function ferniTurn() {
     userId: 'user-1',
     personaId: 'ferni',
     turnCount: 3,
-    userText: 'When you go to sleep, what do you dream of?',
-    userData: {},
+    userText: "It's hard to say.",
+    userData: { pauseBeforeMs: 4200 },
     emotionalResult: { primary: 'neutral', intensity: 0.2, distressLevel: 0 },
     injections: [],
   };
@@ -47,49 +45,48 @@ beforeEach(() => {
   processTurn.mockReset();
   prewarmPersonalitySession.mockReset();
   processTurn.mockResolvedValue({
-    expression: {
-      content: SCRIPTED_LINE,
-      theme: 'sensory_moment',
-      intimacyLevel: 0.3,
-      compositionReason: 'Weekend evening presence',
-      shouldBeSubtle: true,
-      timing: 'at_end',
-      personaId: 'ferni',
+    expression: null,
+    noticing: {
+      type: 'long_pause',
+      observation: 'Paused 4.2s before speaking',
+      acknowledgment: NOTICING_LINE,
+      shouldAcknowledge: true,
+      timing: 'immediate',
+      subtlety: 'gentle',
     },
-    noticing: null,
     context: {},
     shouldInject: true,
-    injectionPoint: 'after_response',
+    injectionPoint: 'as_acknowledgment',
     behaviorEvent: null,
   });
 });
 
 afterEach(() => {
-  delete process.env.FERNI_SCRIPTED_PERSONALITY;
+  delete process.env.PERSONALITY_NOTICING;
+  delete process.env.PERSONALITY_EXPRESSIONS;
 });
 
-describe('scripted personality lines on a live call', () => {
-  it('injects nothing and never asks the personality system for a line', async () => {
+describe('scripted personality lines left after the self-disclosure gate', () => {
+  it('does not hand the model a canned noticing opener', async () => {
     const result = await processPersonality(ferniTurn());
 
-    expect(result.shouldInject).toBe(false);
-    expect(result.injectionContent).toBeUndefined();
-    expect(processTurn).not.toHaveBeenCalled();
+    expect(result.injectionContent ?? '').not.toContain('START YOUR RESPONSE WITH');
+    expect(result.injectionContent ?? '').not.toContain('You took a moment there');
   });
 
-  it('FERNI_SCRIPTED_PERSONALITY=on restores the quoted line', async () => {
-    process.env.FERNI_SCRIPTED_PERSONALITY = 'on';
+  it('PERSONALITY_NOTICING=on restores the opener', async () => {
+    process.env.PERSONALITY_NOTICING = 'on';
     const result = await processPersonality(ferniTurn());
 
-    expect(processTurn).toHaveBeenCalledTimes(1);
-    expect(result.injectionContent).toContain(SCRIPTED_LINE);
+    expect(result.injectionContent).toContain('START YOUR RESPONSE WITH');
+    expect(result.injectionContent).toContain(NOTICING_LINE);
   });
 
-  it('does not pre-generate "what I am doing right now" asides at session start', async () => {
+  it('does not prewarm expression asides at session start unless expressions are on', async () => {
     await initConversationSession({ sessionId: 's', userId: 'u', personaId: 'ferni' });
     expect(prewarmPersonalitySession).not.toHaveBeenCalled();
 
-    process.env.FERNI_SCRIPTED_PERSONALITY = 'on';
+    process.env.PERSONALITY_EXPRESSIONS = 'on';
     await initConversationSession({ sessionId: 's2', userId: 'u', personaId: 'ferni' });
     expect(prewarmPersonalitySession).toHaveBeenCalledTimes(1);
   });

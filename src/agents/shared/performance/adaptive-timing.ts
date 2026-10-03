@@ -314,11 +314,14 @@ export function markTurnCheckpoint(
 }
 
 /**
- * Complete turn profiling and record latency
+ * Complete turn profiling and record latency. A background turn (the context
+ * build behind a reply that already started) is recorded but never warned
+ * about: its duration is not the reply's latency.
  */
 export function completeTurnProfile(
   sessionId: string,
-  turnNumber: number
+  turnNumber: number,
+  background = false
 ): { totalMs: number; checkpoints: Record<string, number> } | null {
   const key = `${sessionId}:${turnNumber}`;
   const profile = turnProfiles.get(key);
@@ -342,7 +345,7 @@ export function completeTurnProfile(
   turnProfiles.delete(key);
 
   // Log slow turns
-  if (totalMs > LATENCY_TARGETS.ACCEPTABLE) {
+  if (totalMs > LATENCY_TARGETS.ACCEPTABLE && !background) {
     log.warn(
       {
         sessionId,
@@ -429,7 +432,11 @@ export function computeDynamicVADDuration(
   let vadMs = analysis.recommendedVADMs;
 
   // 2. Emotional adjustments — be more patient with upset/anxious users
-  if (emotionalState === 'upset' || emotionalState === 'anxious' || emotionalState === 'distressed') {
+  if (
+    emotionalState === 'upset' ||
+    emotionalState === 'anxious' ||
+    emotionalState === 'distressed'
+  ) {
     vadMs += 100;
   } else if (emotionalState === 'excited' || emotionalState === 'happy') {
     vadMs -= 50;
