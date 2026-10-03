@@ -69,6 +69,7 @@ import { getLearningProfile, type LearningProfile } from './learning-style.js';
 import { getMediaPreferences, type MediaPreferences } from './media-suggestions.js';
 
 import { getReportHistory, type InsightsReport } from './relationship-insights.js';
+import { parseTrustProfile } from './parse-trust-profile.js';
 
 const log = createLogger({ module: 'TrustPersistence' });
 
@@ -347,8 +348,7 @@ async function loadSystemProfile<T>(userId: string, systemName: string): Promise
       return null;
     }
 
-    const data = doc.data() as FirestoreTrustDoc;
-    return JSON.parse(data.data) as T;
+    return parseTrustProfile<T>((doc.data() as FirestoreTrustDoc).data);
   } catch (error) {
     log.warn({ error, userId, systemName }, 'Failed to load trust profile');
     return null;

@@ -502,6 +502,14 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
+    {
+      "collectionGroup": "unified_memories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "topics", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "importance", "order": "DESCENDING" }
+      ]
+    },
 
     {
       "collectionGroup": "family_messages",
