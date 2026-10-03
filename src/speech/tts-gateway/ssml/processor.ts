@@ -75,6 +75,18 @@ const STRIP_BRACKET_REGEX =
 const STRIP_PAREN_DIRECTION_REGEX =
   /\s*\((?:pauses?|beat|sighs?|smiles?|nods?|grins?|winks?|laughs?|laughing|chuckles?|chuckling|whispers?|shrugs?|breathes|breath|clears throat|leans in|softly|warmly|gently)\b[^)]{0,30}\)/gi;
 
+/**
+ * Bracket expressions built around breath/sigh/exhale/inhale — none are
+ * Cartesia-documented nonverbal tags (only `[laughter]` is), and content
+ * files + prompt guidance commonly describe them with a leading adjective
+ * ("[soft breath]", "[gentle exhale]", "[quiet sigh]"). STRIP_BRACKET_REGEX
+ * only matches when the direction word is FIRST in the brackets, so those
+ * adjective-led variants slipped through and were spoken literally. Match
+ * the keyword anywhere in the brackets instead of only at the start.
+ */
+const BREATH_BRACKET_REGEX =
+  /\[[^[\]]*\b(?:breath(?:e[sd]?|ing)?|sighs?|exhales?|inhales?)\b[^[\]]*\]/gi;
+
 /** Speed range (Cartesia limits) */
 const SPEED_MIN = 0.6;
 const SPEED_MAX = 1.5;
@@ -294,6 +306,7 @@ export class SSMLProcessor implements ISSMLProcessor {
 
     // Strip non-synthesizable bracket expressions entirely
     cleanText = cleanText.replace(STRIP_BRACKET_REGEX, '');
+    cleanText = cleanText.replace(BREATH_BRACKET_REGEX, '');
     cleanText = cleanText.replace(STRIP_PAREN_DIRECTION_REGEX, '');
 
     // =========================================================================
