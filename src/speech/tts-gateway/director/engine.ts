@@ -138,9 +138,13 @@ export class DirectorEngine {
 
       let spokenBody = this.live('normalize') ? normalized.text : body;
       if (this.live('emotion')) spokenBody = spokenBody.replace(ANY_EMOTION_TAG, '');
+      // Opening tags lead the first phrase. A later push's tags travel inline
+      // with its own text, so a phrase held back from the previous push is
+      // never voiced with them (review LOW: tags one phrase early).
+      if (first) this.pendingTags += this.openingTags(tags, prosody);
+      else spokenBody = `${this.laterTags(tags, prosody)}${spokenBody}`;
       const spoken = this.spokenPhrases.accept(spokenBody, first);
       if (spoken.length === 0) this.stats.held++;
-      this.pendingTags += first ? this.openingTags(tags, prosody) : this.laterTags(tags, prosody);
       return this.emit(spoken);
     });
   }

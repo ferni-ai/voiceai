@@ -98,3 +98,55 @@ describe('levers that are not live leave the tags alone', () => {
     for (const push of pushes) expect(speedOf(push)).toBe(1.1);
   });
 });
+
+/**
+ * Review LOW (engine.ts pendingTags): a push held whole by phrasing used to
+ * leave its tags pending, and the NEXT push's tags were emitted with them in
+ * front of the held text, so the next phrase's speed applied one phrase early.
+ * Tags now travel inline with the text they arrived with.
+ */
+describe('tags from a fully held push', () => {
+  const HELD = [
+    'Hello there, my friend. ',
+    '<speed ratio="1.1"/>and honestly that is a lot of',
+    '<speed ratio="0.9"/>money to find in one month. ',
+  ];
+
+  async function runPushes(pushes: string[], env: Record<string, string>) {
+    const inner = new Recorder();
+    const directed = directSpeech(inner, {
+      textStream: new ReadableStream<string>({
+        start(c) {
+          c.enqueue(pushes.join(''));
+          c.close();
+        },
+      }),
+      voiceId: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+      sessionId: 'held-tags',
+      env,
+      sessions: new DirectorSessions(),
+      onPlan: () => undefined,
+    });
+    for await (const _ of directed.textStream) {
+      /* observe */
+    }
+    for (const p of pushes) directed.reply.push(p);
+    directed.reply.end();
+    return inner.pushes.join('');
+  }
+
+  it('attach to the text they arrived with, not the held phrase before it', async () => {
+    const all = await runPushes(HELD, { SPEECH_DIRECTOR: 'live', SPEECH_DIRECTOR_PACING: 'off' });
+    expect(all.indexOf('<speed ratio="1.1"/>')).toBeLessThan(all.indexOf('and honestly'));
+    expect(all.indexOf('<speed ratio="0.9"/>')).toBeGreaterThan(all.indexOf('a lot of'));
+    expect(all.indexOf('<speed ratio="0.9"/>')).toBeLessThan(all.indexOf('money to find'));
+  });
+
+  it('compose with the reply speed in place when pacing is live', async () => {
+    const all = await runPushes(HELD, { SPEECH_DIRECTOR: 'live' });
+    const speeds = [...all.matchAll(/<speed ratio="([\d.]+)"\/>/g)].map((m) => m.index ?? -1);
+    expect(speeds).toHaveLength(2);
+    expect(speeds[1]).toBeGreaterThan(all.indexOf('a lot of'));
+    expect(speeds[1]).toBeLessThan(all.indexOf('money to find'));
+  });
+});
