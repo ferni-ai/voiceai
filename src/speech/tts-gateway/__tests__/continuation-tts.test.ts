@@ -170,7 +170,7 @@ describe('createContinuationTTS', () => {
     expect(reply.pushes[2].startsWith('<speed ratio="1"/><volume ratio="1"/>')).toBe(true);
   });
 
-  it("passes the reply's own emotion, including big ones, and a change mid-reply", async () => {
+  it("drops big emotions (unstable pitch, #180) but passes a stable change mid-reply", async () => {
     const reply = new FakeReply([4]);
     await drain(
       run(
@@ -181,10 +181,10 @@ describe('createContinuationTTS', () => {
         reply
       ).stream as unknown as ReadableStream<AudioFrame>
     );
-    expect(reply.pushes[0]).toContain('<emotion value="excited"/>');
+    expect(reply.pushes[0]).not.toContain('excited');
     const later = reply.pushes.find((p) => p.includes('timing'));
     expect(later).toBe('<emotion value="sympathetic"/>But I know the timing is hard. ');
-    expect(reply.pushes.filter((p) => p.includes('<emotion'))).toHaveLength(2);
+    expect(reply.pushes.filter((p) => p.includes('<emotion'))).toHaveLength(1);
   });
 
   it('speaks at the session pace, with reply speed tags relative to it', async () => {
@@ -209,8 +209,8 @@ describe('createContinuationTTS', () => {
     const opened: FakeReply[] = [];
     const { stream } = run(
       [
-        '<emotion value="excited"/>You got the job?! ',
-        'That is huge. ',
+        '<emotion value="curious"/>You got the job? ',
+        'Tell me everything. ',
         '<emotion value="sympathetic"/>I know the last month was hard, though.',
       ],
       first,

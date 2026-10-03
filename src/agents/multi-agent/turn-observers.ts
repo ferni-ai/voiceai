@@ -26,6 +26,9 @@ export async function installPaceMatching(
   sessionId: string,
   cleanupFunctions: Cleanup
 ): Promise<{ onFinalTranscript(text: string): void }> {
+  // The speech director owns pacing when it's on (#180): one speed controller.
+  const { speechDirectorMode } = await import('../../speech/tts-gateway/director/index.js');
+  if (speechDirectorMode() !== 'off') return { onFinalTranscript: () => undefined };
   const { getPaceMatcher, clearPaceMatcher } =
     await import('../../speech/output-control/pace-matching.js');
   const paceWords: string[] = [];

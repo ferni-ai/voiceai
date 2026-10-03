@@ -17,8 +17,14 @@ import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { ReadableStream } from 'node:stream/web';
 
 import { findChunkEnd, findFirstChunkEnd, findFirstWordEnd } from './chunk-boundary.js';
+import { STABLE_EMOTIONS } from './director/emotion.js';
 import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type { SSMLProsodyConfig } from './types.js';
+
+// Big emotions widened the voice's pitch range (8.7 to 10.9 st) and swung it
+// between turns; only the measured-stable set reaches Cartesia (#180).
+const STABLE = new Set<string>(STABLE_EMOTIONS);
+const stable = (e?: string): string | undefined => (e && STABLE.has(e) ? e : undefined);
 
 /** The first piece may be a clause (see findFirstChunkEnd): start talking sooner. */
 const MIN_FIRST_CHUNK = 12;
@@ -124,7 +130,7 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
       const next: VoiceState = {
         speed: prosody.speed !== undefined ? scaleSpeed(base, prosody.speed) : state.speed,
         volume: prosody.volume ?? state.volume,
-        emotion: prosody.emotion ?? (first ? emotion : undefined) ?? state.emotion,
+        emotion: stable(prosody.emotion) ?? (first ? stable(emotion) : undefined) ?? state.emotion,
       };
       const shiftsEmotion =
         !first &&

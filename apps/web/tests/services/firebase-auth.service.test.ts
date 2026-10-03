@@ -156,6 +156,7 @@ vi.mock('../../src/config/firebase.js', () => ({
     onAuthStateChanged: vi.fn(),
   })),
   isFirebaseConfigured: vi.fn(() => true),
+  loadFirebaseConfig: vi.fn(async () => true),
 }));
 
 // Import after mocking

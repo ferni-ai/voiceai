@@ -450,7 +450,9 @@ describe('SSMLProcessor', () => {
 
     it('drops a period stuck to a question or exclamation mark', () => {
       // Scripted greeting on dev: "hey there. What's happening?."
-      expect(processor.parse("hey there. What's happening?.").cleanText).toBe("hey there. What's happening?");
+      expect(processor.parse("hey there. What's happening?.").cleanText).toBe(
+        "hey there. What's happening?"
+      );
       expect(processor.parse('Wow!. That is great.').cleanText).toBe('Wow! That is great.');
     });
 
@@ -486,6 +488,35 @@ describe('SSMLProcessor', () => {
     it('keeps ordinary parentheses that are part of what is said', () => {
       const result = processor.parse('Call me (or text me) any time.');
       expect(result.cleanText).toContain('(or text me)');
+    });
+  });
+
+  describe('breath/sigh bracket expressions', () => {
+    // Only `[laughter]` is a Cartesia-documented nonverbal bracket tag.
+    // STRIP_BRACKET_REGEX only matched when the direction word came FIRST,
+    // so adjective-led breath content (from persona breath-sounds.json and
+    // prompt guidance, e.g. "[soft breath]", "[gentle exhale]") passed
+    // through unmodified and Cartesia spoke it as literal words.
+    it.each([
+      '[soft breath]',
+      '[gentle exhale]',
+      '[quiet inhale]',
+      '[deep breath]',
+      '[breath]',
+      '[exhale]',
+      '[still breath]',
+      '[soft exhale]',
+      '[soft sigh]',
+      '[quiet sigh]',
+    ])('drops %s instead of speaking it literally', (bracket) => {
+      const result = processor.parse(`${bracket} Here's the thing.`);
+      expect(result.cleanText).not.toMatch(/breath|sigh|exhale|inhale/i);
+      expect(result.cleanText).toContain("Here's the thing.");
+    });
+
+    it('still passes [laughter] through untouched', () => {
+      const result = processor.parse("That's hilarious! [laughter]");
+      expect(result.cleanText).toContain('[laughter]');
     });
   });
 });

@@ -16,7 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getContact, recordInteraction } from './contact-relationship-service.js';
-import { CARTESIA_MODEL, CARTESIA_API_VERSION } from '../../config/voice-ids.js';
+import { CARTESIA_MODEL, CARTESIA_API_VERSION, VOICE_IDS } from '../../config/voice-ids.js';
 
 const log = createLogger({ module: 'voice-message-delivery' });
 
@@ -65,7 +65,7 @@ export interface TTSConfig {
  */
 const DEFAULT_TTS_CONFIG: TTSConfig = {
   provider: 'cartesia',
-  voiceId: process.env.FERNI_VOICE_ID || 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+  voiceId: process.env.FERNI_VOICE_ID || VOICE_IDS.FERNI,
   speed: 0.95,
   emotion: 'warm',
 };
@@ -451,7 +451,7 @@ export function getAvailableVoices(): Array<{
 }> {
   return [
     {
-      id: process.env.FERNI_VOICE_ID || 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+      id: process.env.FERNI_VOICE_ID || VOICE_IDS.FERNI,
       name: 'Ferni',
       provider: 'cartesia',
       description: 'Warm, friendly life coach voice',

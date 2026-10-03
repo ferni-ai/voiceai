@@ -31,14 +31,15 @@ describe('speech markup in the live Ferni prompts', () => {
     // The persona files' tag tables and templated openers are gone...
     expect(system).not.toMatch(/<emotion|<speed/);
     expect(system).not.toContain('Natural reactions: "Ha!"');
-    // ...replaced by one contract: one emotion per reply (the voice wavers when
-    // it changes mid-reply), pace for tender or important moments.
-    expect(base).toContain('keep it for the whole reply');
+    // ...replaced by one contract: at most one emotion per reply (#176 ruling;
+    // the voice wavers when it changes mid-reply). Pace and nonverbals belong
+    // to the speech director and pace matching, not the model (#180).
+    expect(base).toContain('It holds for the whole reply');
     // Cartesia pauses ~320 ms on every "...", even mid-sentence.
     expect(base).toContain('No ellipses');
     expect(base).not.toContain('genuinely shifts');
-    expect(base).toContain('<speed ratio="0.9"/>');
-    expect(base).toContain('[laughter]');
+    expect(base).toContain('Never write pause, speed or volume tags');
+    expect(base).not.toMatch(/<speed|\[laughter\]/);
     // Cartesia reads all-caps words as initialisms ("NUH-yun" came out as N-U-H).
     expect(base).toContain('Never write words in capitals for emphasis');
     expect(system.length).toBeGreaterThan(1000);
@@ -53,7 +54,7 @@ describe('speech markup in the live Ferni prompts', () => {
     expect(base).toContain('contractions');
     expect(base).toMatch(/and.*so.*but/);
     expect(base).toContain("it's just, uh, frustrating");
-    expect(base).toContain('let your words agree with the tag');
+    expect(base).toContain('only when the feeling is clear and your words carry it');
     expect(`${base}\n${system}`).not.toContain('Short sentences — Creates natural pauses');
   }, 60_000);
 
