@@ -142,7 +142,7 @@ export interface TurnRetrievalConfig {
   enableReranking: boolean;
   /** Reranking timeout in ms (default: 50) */
   rerankTimeoutMs: number;
-  /** Total timeout in ms (default: 100) */
+  /** Total timeout in ms (default: 350) */
   totalTimeoutMs: number;
   /** Enable graph expansion (default: true) */
   enableGraphExpansion: boolean;
@@ -155,7 +155,16 @@ const DEFAULT_CONFIG: TurnRetrievalConfig = {
   maxMemories: 5, // Increased from 3 - more context helps
   enableReranking: true,
   rerankTimeoutMs: 50,
-  totalTimeoutMs: 100,
+  // Was 100 (hybrid search got 100*0.7=70ms). This module's own docs
+  // (../CLAUDE.md "Performance") put vector search alone at 50-150ms, and
+  // hybridSearch() also calls embed() (an OpenAI network round trip) before
+  // it can even query Firestore/BM25/entity store. A 70ms budget was smaller
+  // than the documented latency of ONE of its three sub-searches, so on a
+  // live dev call (2026-10-03) every single turn hit "Hybrid search
+  // timeout" (TurnMemoryRetrieval) and fell back to zero memories. 350ms
+  // (245ms for hybrid search at the same 0.7 ratio) gives real headroom
+  // while still keeping retrieval well under human conversational latency.
+  totalTimeoutMs: 350,
   enableGraphExpansion: true,
   graphExpansionDepth: 2,
 };
@@ -353,7 +362,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
 
     // 2.5. ASSOCIATIVE MEMORY (find naturally associated memories)
     // When user mentions something, find what a friend would naturally think of
-    let associativeResults: HybridSearchResult[] = [];
+    const associativeResults: HybridSearchResult[] = [];
     if (rankedResults.length > 0) {
       try {
         const { getAssociativeMemory } = await import('../associative-memory.js');

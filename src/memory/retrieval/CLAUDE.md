@@ -46,7 +46,7 @@ The unified `retrieveContext()` function queries 5 sources in parallel:
 | File | Purpose |
 |------|---------|
 | `index.ts` | Unified retrieval entry point, write-through cache, LRU result cache |
-| `turn-memory-retrieval.ts` | Per-turn retrieval orchestrator (< 100ms budget) |
+| `turn-memory-retrieval.ts` | Per-turn retrieval orchestrator (< 350ms budget) |
 | `hybrid-search.ts` | BM25 + vector + entity store with RRF fusion |
 | `bm25-search.ts` | BM25 keyword search index (exact name/keyword matching) |
 | `semantic-memory-search.ts` | Vector search for memories, anchors, session summaries, facts |
@@ -183,7 +183,7 @@ The module re-exports from parent-level memory files for convenience:
 
 | Operation | Budget | Notes |
 |-----------|--------|-------|
-| Per-turn retrieval | < 100ms | Hybrid search + reranking + formatting |
+| Per-turn retrieval | < 350ms | Hybrid search + reranking + formatting (raised from 100ms 2026-10-03: timed out on every turn against documented 50-150ms vector latency + embedding call) |
 | BM25 search | < 5ms | In-memory index |
 | Vector search | 50-150ms | Firestore `findNearest()` |
 | Cross-encoder rerank | 20-50ms | Gemini provider |

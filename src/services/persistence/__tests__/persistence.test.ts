@@ -17,44 +17,31 @@ vi.mock('../../../utils/safe-logger.js', () => ({
   }),
 }));
 
-// Mock firestore-utils
-vi.mock('../../../utils/firestore-utils.js', () => ({
-  getFirestoreDb: vi.fn(() => null),
-  cleanForFirestore: vi.fn((obj) => {
-    if (obj === null || obj === undefined) return obj;
-    if (obj instanceof Date) return obj.toISOString();
-    if (typeof obj === 'object') {
-      const result: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-        if (value !== undefined) {
-          result[key] = value;
-        }
-      }
-      return result;
-    }
-    return obj;
-  }),
-  removeUndefined: vi.fn((obj) => {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      if (value !== undefined) {
-        result[key] = value;
-      }
-    }
-    return result;
-  }),
-  deepRemoveUndefined: vi.fn((obj) => obj),
-  recordDegradation: vi.fn(),
-  getFirestoreHealth: vi.fn(() => ({
-    dbAvailable: true,
-    initialized: true,
-    initializationError: null,
-    degradationCount: 0,
-    recentDegradations: [],
-    lastDegradationAt: null,
-  })),
-  resetFirestoreInstance: vi.fn(),
-}));
+// Mock firestore-utils, but keep the REAL (deep/recursive) cleanForFirestore
+// implementation — tests below rely on it actually stripping `undefined`
+// nested inside arrays (e.g. `events[].estimatedValueCents`), not just a
+// shallow top-level stand-in.
+vi.mock('../../../utils/firestore-utils.js', async () => {
+  const actual = await vi.importActual<typeof import('../../../utils/firestore-utils.js')>(
+    '../../../utils/firestore-utils.js'
+  );
+  return {
+    getFirestoreDb: vi.fn(() => null),
+    cleanForFirestore: actual.cleanForFirestore,
+    removeUndefined: actual.removeUndefined,
+    deepRemoveUndefined: actual.deepRemoveUndefined,
+    recordDegradation: vi.fn(),
+    getFirestoreHealth: vi.fn(() => ({
+      dbAvailable: true,
+      initialized: true,
+      initializationError: null,
+      degradationCount: 0,
+      recentDegradations: [],
+      lastDegradationAt: null,
+    })),
+    resetFirestoreInstance: vi.fn(),
+  };
+});
 
 // Mock Firestore
 const mockBatch = {
@@ -77,11 +64,18 @@ const mockCollection = vi.fn(() => ({
   })),
 }));
 
+// `vi.fn(() => ({...}))` (an arrow-function implementation) is NOT
+// constructible — `new Firestore(...)` would throw "is not a constructor"
+// and silently fall back to the "Firestore unavailable" no-op path,
+// meaning flush()/flushUser() would never actually exercise batch.set /
+// batch.commit. Use a real `function` so `new Firestore(...)` works.
 vi.mock('@google-cloud/firestore', () => ({
-  Firestore: vi.fn(() => ({
-    collection: mockCollection,
-    batch: () => mockBatch,
-  })),
+  Firestore: vi.fn(function FirestoreMock() {
+    return {
+      collection: mockCollection,
+      batch: () => mockBatch,
+    };
+  }),
 }));
 
 import { createPersistenceStore, type PersistenceConfig, type PersistenceStore } from '../index.js';
@@ -94,7 +88,7 @@ describe('PersistenceLayer', () => {
     items?: string[];
   }
 
-  const testUserId = 'persist-test-user-' + Date.now();
+  const testUserId = `persist-test-user-${Date.now()}`;
   let store: PersistenceStore<TestData>;
 
   beforeEach(() => {
@@ -345,6 +339,89 @@ describe('PersistenceLayer', () => {
 
       const stats = store.getStats();
       expect(stats.cached).toBe(10);
+    });
+  });
+
+  describe('resilience: undefined values and per-document isolation', () => {
+    // Regression test for the 2026-10-03 dev-call incident: every batch
+    // flush failed with "Cannot use 'undefined' as a Firestore value (found
+    // in field 'events.0.estimatedValueCents')" because a record nested
+    // inside an array had an explicit `undefined` field, and the old
+    // top-level-only `removeUndefined()` on the batch path didn't catch it.
+    interface EventRecord {
+      id: string;
+      estimatedValueCents?: number;
+      status: string;
+    }
+    interface ValueCaptureLikeData {
+      events: EventRecord[];
+    }
+
+    it('flushes a batch containing a record with undefined nested inside an array', async () => {
+      const vcStore = createPersistenceStore<ValueCaptureLikeData>({
+        collection: 'test_value_capture',
+        syncIntervalMs: 100,
+        maxPendingChanges: 20,
+      });
+
+      // Mirrors monetization/value-capture.ts building a ValueCaptureRecord
+      // without a quantifiable value — note the explicit `undefined`, the
+      // exact shape the source fix now avoids, used here to prove the
+      // persistence layer itself is resilient regardless.
+      vcStore.set('vc-user-1', {
+        events: [{ id: 'evt1', estimatedValueCents: undefined, status: 'detected' }],
+      });
+
+      await expect(vcStore.flush()).resolves.not.toThrow();
+
+      // The batch write Firestore actually saw must contain no `undefined`
+      // anywhere in the tree (top-level OR nested in the array).
+      expect(mockBatch.set).toHaveBeenCalled();
+      const [, payload] = mockBatch.set.mock.calls.at(-1) as [unknown, Record<string, unknown>];
+      expect(JSON.stringify(payload)).not.toContain('undefined');
+      expect((payload.events as EventRecord[])[0]).not.toHaveProperty('estimatedValueCents');
+
+      // The document stayed persisted (not re-queued as dirty after a
+      // successful flush).
+      expect(vcStore.getStats().dirty).toBe(0);
+
+      await vcStore.shutdown();
+    });
+
+    it('isolates a single bad document so other users still persist after a batch failure', async () => {
+      const isoStore = createPersistenceStore<TestData>({
+        collection: 'test_isolation',
+        syncIntervalMs: 100,
+        maxPendingChanges: 20,
+      });
+
+      // Whole-batch commit fails once (simulates one invalid doc poisoning
+      // the atomic batch commit).
+      mockBatch.commit.mockRejectedValueOnce(
+        new Error('Cannot use "undefined" as a Firestore value')
+      );
+      // Individual retry: only "bad-user"'s write keeps failing; everyone
+      // else succeeds when retried one document at a time.
+      mockDocRef.set.mockImplementation((data: unknown) => {
+        const userId = (data as Record<string, unknown>)._userId;
+        if (userId === 'bad-user') {
+          return Promise.reject(new Error('still invalid'));
+        }
+        return Promise.resolve(undefined);
+      });
+
+      isoStore.set('good-user', { name: 'good', value: 1 });
+      isoStore.set('bad-user', { name: 'bad', value: 2 });
+
+      await expect(isoStore.flush()).resolves.not.toThrow();
+
+      // Only the genuinely bad document is re-queued; the good one persisted.
+      const stats = isoStore.getStats();
+      expect(stats.dirty).toBe(1);
+
+      await isoStore.shutdown();
+      mockDocRef.set.mockReset();
+      mockDocRef.set.mockResolvedValue(undefined);
     });
   });
 });

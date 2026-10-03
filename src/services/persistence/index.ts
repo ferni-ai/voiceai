@@ -15,7 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
@@ -106,6 +106,13 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
     db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
       databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      // Belt-and-suspenders: this client is private to the persistence layer
+      // (module-scoped `db`, not shared with other Firestore clients in the
+      // codebase), so this is safe to set here without side effects elsewhere.
+      // Callers should still avoid writing `undefined` explicitly (see
+      // cleanForFirestore below), but a nested `undefined` slipping through
+      // (e.g. inside an array of records) must not fail the whole batch.
+      ignoreUndefinedProperties: true,
     });
     log.info('Persistence layer Firestore initialized');
     return db;
@@ -165,34 +172,42 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     const toFlush = Array.from(dirty);
     dirty.clear();
 
+    const docRefFor = (userId: string) =>
+      useRootCollection
+        ? firestore.collection(collection).doc(userId)
+        : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
+
+    // Deep-clean (not just top-level removeUndefined) before every write: a
+    // Firestore document rejects `undefined` anywhere in the tree, including
+    // nested inside arrays (e.g. `events[].estimatedValueCents`), and
+    // top-level-only stripping silently let those through. `ignoreUndefinedProperties`
+    // on the client (see initializeFirestore) is the primary guard; this stays as
+    // defense-in-depth and keeps Date handling consistent with flushUser().
+    const toDoc = (userId: string, data: unknown) =>
+      cleanForFirestore({
+        ...(data as Record<string, unknown>),
+        _updatedAt: new Date().toISOString(),
+        _userId: userId,
+      });
+
     try {
-      const batch = firestore.batch();
+      let batch = firestore.batch();
       let batchCount = 0;
 
       for (const userId of toFlush) {
         const data = cache.get(userId);
         if (!data) continue;
 
-        const docRef = useRootCollection
-          ? firestore.collection(collection).doc(userId)
-          : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
-
-        batch.set(
-          docRef,
-          removeUndefined({
-            ...data,
-            _updatedAt: new Date().toISOString(),
-            _userId: userId,
-          }),
-          { merge: true }
-        );
-
+        batch.set(docRefFor(userId), toDoc(userId, data), { merge: true });
         batchCount++;
 
-        // Firestore batch limit is 500
+        // Firestore batch limit is 500. A WriteBatch cannot be reused after
+        // commit(), so start a fresh one for the remaining documents.
         if (batchCount >= 450) {
           await batch.commit();
           log.debug({ collection, count: batchCount }, 'Batch committed (limit reached)');
+          batch = firestore.batch();
+          batchCount = 0;
         }
       }
 
@@ -201,9 +216,32 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         log.debug({ collection, count: batchCount }, 'Persistence batch committed');
       }
     } catch (error) {
-      // Re-add failed users to dirty set
-      toFlush.forEach((userId) => dirty.add(userId));
-      log.error({ error, collection }, 'Failed to flush persistence batch');
+      // A batch commit is all-or-nothing: one invalid document (bad data,
+      // a stale ref, etc.) fails every document in that batch, even though
+      // most are fine. Isolate by retrying each document individually so a
+      // single bad user can't block everyone else's data from persisting.
+      log.error(
+        { error, collection, count: toFlush.length },
+        'Persistence batch failed; retrying documents individually'
+      );
+
+      await Promise.all(
+        toFlush.map(async (userId) => {
+          const data = cache.get(userId);
+          if (!data) return;
+
+          try {
+            await docRefFor(userId).set(toDoc(userId, data), { merge: true });
+          } catch (docError) {
+            // Only the genuinely bad document stays dirty for the next cycle.
+            dirty.add(userId);
+            log.error(
+              { error: docError, collection, userId },
+              'Failed to persist individual document after batch failure'
+            );
+          }
+        })
+      );
     }
   };
 
