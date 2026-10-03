@@ -16,6 +16,7 @@
 import { TransformStream } from 'node:stream/web';
 import type { ISSMLProcessor, SSMLParseResult, SSMLProsodyConfig } from '../types.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { BREATH_BRACKET_REGEX, LAUGHTER_BRACKET_REGEX } from './nonverbal-brackets.js';
 
 const log = createLogger({ module: 'SSMLProcessor' });
 
@@ -53,13 +54,6 @@ const VALID_EMOTIONS = [
 
 /** Maximum buffer size to prevent memory issues */
 const MAX_BUFFER_SIZE = 4096;
-
-/**
- * Bracket expressions that map to Cartesia's native [laughter] tag.
- * LLMs often output variations; we normalize them all.
- */
-const LAUGHTER_BRACKET_REGEX =
-  /\[(laughs?|chuckles?|chuckling|warm laugh|big laugh|laughing|laughter)\]/gi;
 
 /**
  * Non-TTS bracket expressions that should be stripped entirely.
@@ -294,6 +288,7 @@ export class SSMLProcessor implements ISSMLProcessor {
 
     // Strip non-synthesizable bracket expressions entirely
     cleanText = cleanText.replace(STRIP_BRACKET_REGEX, '');
+    cleanText = cleanText.replace(BREATH_BRACKET_REGEX, '');
     cleanText = cleanText.replace(STRIP_PAREN_DIRECTION_REGEX, '');
 
     // =========================================================================
