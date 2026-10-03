@@ -124,6 +124,70 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
 /** Opens each pushed context note, so readers of the chat can tell it from the caller's words. */
 export const TURN_CONTEXT_HEADER = '[Context for your next reply, not something the user said]';
 
+/** The key, in a pushed note's `extra`, of the caller's words it was built for. */
+export const TURN_CONTEXT_FOR = 'turnContextFor';
+
+interface ChatItemView {
+  id: string;
+  type?: string;
+  role?: string;
+  textContent?: string;
+  extra?: Record<string, unknown>;
+}
+
+const isTurnContext = (item: ChatItemView): boolean =>
+  item.type === 'message' &&
+  item.role === 'user' &&
+  Boolean(item.textContent?.startsWith(TURN_CONTEXT_HEADER));
+const normalized = (text: unknown): string =>
+  String(text ?? '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * The request for one reply without pushed context built for an earlier turn.
+ *
+ * The note is built in the background from the caller's turn and is ready
+ * about 1.3 s after the reply to that turn has started, so it lands on the
+ * reply to the NEXT turn while still describing the previous one. Dev call
+ * 2026-10-03: the reply to "Why do you keep forgetting?" ("Maybe it's not about
+ * making me human...") followed the previous turn, with the note sitting
+ * just before the question. A note is kept only for a reply to the very words
+ * it was built for. STALE_TURN_CONTEXT=keep sends every note, as before.
+ */
+export function withoutStaleTurnContext<T extends { items: ChatItemView[]; copy(): T }>(
+  chatCtx: T,
+  env: Record<string, string | undefined> = process.env
+): T {
+  if (env.STALE_TURN_CONTEXT === 'keep') return chatCtx;
+  const items = chatCtx.items;
+  if (!items.some(isTurnContext)) return chatCtx;
+  // The caller's words this reply answers: their messages since Ferni last spoke.
+  const said: string[] = [];
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    if (item.type !== 'message') continue;
+    if (item.role === 'assistant') break;
+    if (item.role === 'user' && !isTurnContext(item)) said.unshift(item.textContent ?? '');
+  }
+  const answering = normalized(said.join(' '));
+  const stale = new Set(
+    items
+      .filter((item) => {
+        if (!isTurnContext(item)) return false;
+        const builtFor = normalized(item.extra?.[TURN_CONTEXT_FOR]);
+        return !builtFor || builtFor !== answering;
+      })
+      .map((item) => item.id)
+  );
+  if (stale.size === 0) return chatCtx;
+  log.info({ answering: answering.slice(0, 60), dropped: stale.size }, 'STALE_TURN_CONTEXT_DROPPED');
+  const ctx = chatCtx.copy();
+  ctx.items = ctx.items.filter((item) => !stale.has(item.id));
+  return ctx;
+}
+
 /** Keeps a pushed context note from growing the session's context unboundedly. */
 const MAX_PUSHED_CONTEXT_CHARS = 2000;
 
@@ -131,7 +195,11 @@ interface ContextAgent {
   readonly chatCtx: {
     copy(): {
       items: Array<{ id: string }>;
-      addMessage(msg: { role: 'user'; content: string }): { id: string };
+      addMessage(msg: {
+        role: 'user';
+        content: string;
+        extra: Record<string, unknown>;
+      }): { id: string };
     };
   };
   updateChatCtx(chatCtx: unknown): Promise<void>;
@@ -150,6 +218,8 @@ interface ContextAgent {
  * A push waits until Ferni is listening and the user is not speaking: one
  * that lands mid-speech would change the context under a preemptive
  * generation. Each push replaces the previous note, so notes never pile up.
+ * Each note carries the caller's words it was built for (TURN_CONTEXT_FOR),
+ * so withoutStaleTurnContext can keep it out of the reply to a later turn.
  */
 export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent) {
   let pending: string | null = null;
@@ -159,14 +229,17 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
   let agentListening = true;
   let userSpeaking = false;
 
+  let pendingFor = '';
+
   const tryPush = async (): Promise<void> => {
     if (!pending || !agentListening || userSpeaking) return;
     const content = `${TURN_CONTEXT_HEADER}\n${pending}`;
+    const extra = { [TURN_CONTEXT_FOR]: pendingFor };
     pending = null;
     try {
       const chatCtx = agent.chatCtx.copy();
       if (pushedId) chatCtx.items = chatCtx.items.filter((item) => item.id !== pushedId);
-      pushedId = chatCtx.addMessage({ role: 'user', content }).id;
+      pushedId = chatCtx.addMessage({ role: 'user', content, extra }).id;
       await agent.updateChatCtx(chatCtx);
     } catch (error) {
       log.warn({ error: String(error) }, 'Could not push turn context');
@@ -178,6 +251,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
     async onFinalTranscript(transcript: string): Promise<void> {
       if (!transcript.trim()) return;
       turnText = `${turnText} ${transcript.trim()}`.trim();
+      const forText = turnText;
       const mine = ++run;
       const { llm } = await import('@livekit/agents');
       const scratch = llm.ChatContext.empty();
@@ -188,6 +262,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
         .filter((text): text is string => Boolean(text));
       if (notes.length === 0) return;
       pending = notes.join('\n\n').slice(0, MAX_PUSHED_CONTEXT_CHARS);
+      pendingFor = forText;
       await tryPush();
     },
 
