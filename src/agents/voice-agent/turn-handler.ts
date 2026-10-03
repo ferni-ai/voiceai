@@ -473,11 +473,13 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     return;
   }
 
-  // ================================================================
-  // PERFORMANCE: Start turn profiling
-  // ================================================================
+  // PERFORMANCE: profile the turn. A context-only run is the background build
+  // behind a reply that has already started (turn-intelligence.ts): its timings
+  // are not the reply's latency, so they must not warn as if they were.
+  // BACKGROUND_TURN_LATENCY_WARNINGS=on restores profiling it as the reply.
   const turnNumber = userData.turnCount || 1;
-  startTurnProfiling(services.sessionId, turnNumber);
+  const timesReply = !contextOnly || process.env.BACKGROUND_TURN_LATENCY_WARNINGS === 'on';
+  if (timesReply) startTurnProfiling(services.sessionId, turnNumber);
 
   // ================================================================
   // 🏥 SESSION HEALTH MONITOR: Initialize on first turn
@@ -863,7 +865,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
         clearInterval(fillerCheckInterval);
       }
       // Record turn latency for future adaptive calculations
-      completeTurnProfile(services.sessionId, turnNumber);
+      completeTurnProfile(services.sessionId, turnNumber, !timesReply);
     });
 
     // Get unified intelligence result (should be ready by now)
@@ -2732,10 +2734,7 @@ IMPORTANT:
       }
     }
 
-    // ================================================================
-    // PERFORMANCE: Complete turn profiling
-    // ================================================================
-    const turnMetrics = completeTurnProfiling(services.sessionId, turnNumber);
+    const turnMetrics = timesReply ? completeTurnProfiling(services.sessionId, turnNumber) : null;
     if (turnMetrics && (turnMetrics.tier === 'slow' || turnMetrics.tier === 'critical')) {
       diag.warn('Turn latency above threshold', {
         totalMs: turnMetrics.latencies.totalTurnMs,

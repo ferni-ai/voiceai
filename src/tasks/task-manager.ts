@@ -16,11 +16,10 @@ import { getLogger } from '../utils/safe-logger.js';
 // Import directly from types to avoid circular dependency through services/index
 import type { ConversationAnalysis } from '../services/types.js';
 import {
-  getContextualTransition,
-  getTransition,
-  TASK_TRANSITIONS,
-  type TransitionKey,
-} from './transitions.js';
+  pickEntryTransition,
+  pickExitTransition,
+  scriptedTaskTransitionsEnabled,
+} from './task-entry-transition.js';
 import { getTaskWisdom, type TaskWisdom } from './wisdom/index.js';
 
 // Re-export TaskWisdom type for consumers
@@ -185,14 +184,11 @@ export class TaskManager {
           0.8
         );
 
-        // Add exit transition if available
-        if (activeTask.wisdom.transitions?.exit) {
-          const exitPhrase =
-            activeTask.wisdom.transitions.exit[
-              Math.floor(Math.random() * activeTask.wisdom.transitions.exit.length)
-            ];
-          contextParts.push(`[TRANSITION] Consider saying: "${exitPhrase}"`);
-        }
+        // Canned exit line, off unless FERNI_TASK_SCRIPTED_TRANSITIONS=on.
+        const exitPhrase = scriptedTaskTransitionsEnabled()
+          ? pickExitTransition(activeTask.wisdom)
+          : undefined;
+        if (exitPhrase) contextParts.push(`[TRANSITION] Consider saying: "${exitPhrase}"`);
       }
     }
 
@@ -215,9 +211,9 @@ export class TaskManager {
         instructions += `\n\n${wisdom.instructions.ifReturning}`;
       }
 
-      // Add entry transition on first turn
-      if (activeTask.turnCount === 1) {
-        const entryPhrase = this.getSmartEntryTransition(wisdom, analysis);
+      // Canned entry line on first turn, off unless FERNI_TASK_SCRIPTED_TRANSITIONS=on.
+      if (activeTask.turnCount === 1 && scriptedTaskTransitionsEnabled()) {
+        const entryPhrase = pickEntryTransition(wisdom, analysis);
         instructions = `[TRANSITION] Start with: "${entryPhrase}"\n\n${instructions}`;
       }
 
@@ -225,92 +221,6 @@ export class TaskManager {
     }
 
     return contextParts;
-  }
-
-  /**
-   * Get a contextually-appropriate entry transition for a task
-   */
-  private getSmartEntryTransition(wisdom: TaskWisdom, analysis: ConversationAnalysis): string {
-    // If task has specific entry transitions, use those first
-    if (wisdom.transitions?.entry && wisdom.transitions.entry.length > 0) {
-      return wisdom.transitions.entry[Math.floor(Math.random() * wisdom.transitions.entry.length)];
-    }
-
-    // Otherwise, use contextual transitions based on task category and emotional state
-    const taskToTransitionMap: Record<string, string> = {
-      goals: 'toGoals',
-      wisdom_sharing: 'toWisdom',
-      investment_wisdom: 'toWisdom',
-      fear_addressing: 'toFear',
-      panic_prevention: 'toFear',
-      market_panic: 'toFear',
-      milestone_celebration: 'toCelebration',
-      quick_celebrate: 'toCelebration',
-      goodbye: 'toGoodbye',
-    };
-
-    // Check for task-specific transition
-    const transitionKey = taskToTransitionMap[wisdom.id];
-    if (transitionKey && transitionKey in TASK_TRANSITIONS) {
-      return getTransition(transitionKey as TransitionKey);
-    }
-
-    // Use contextual transition based on emotional state
-    const currentMood = this.getMoodFromAnalysis(analysis);
-    const targetMood = this.getTargetMoodForCategory(wisdom.category);
-
-    if (currentMood !== targetMood) {
-      return getContextualTransition({
-        fromMood: currentMood,
-        toMood: targetMood,
-      });
-    }
-
-    // Default to gentle entry
-    return getTransition('gentle');
-  }
-
-  /**
-   * Determine mood from analysis
-   */
-  private getMoodFromAnalysis(
-    analysis: ConversationAnalysis
-  ): 'light' | 'serious' | 'support' | 'practical' {
-    if (analysis.emotion.distressLevel > 0.6) {
-      return 'support';
-    }
-    if (analysis.emotion.valence === 'positive') {
-      return 'light';
-    }
-    if (
-      analysis.intent.primary === 'seeking_advice' ||
-      analysis.intent.primary === 'asking_question'
-    ) {
-      return 'practical';
-    }
-    return 'serious';
-  }
-
-  /**
-   * Determine target mood for a task category
-   */
-  private getTargetMoodForCategory(
-    category: TaskWisdom['category']
-  ): 'light' | 'serious' | 'support' | 'practical' {
-    switch (category) {
-      case 'support':
-        return 'support';
-      case 'micro':
-        return 'light';
-      case 'life_event':
-        return 'support';
-      case 'advice':
-        return 'practical';
-      case 'relationship':
-        return 'light';
-      default:
-        return 'practical';
-    }
   }
 
   /**
@@ -322,6 +232,18 @@ export class TaskManager {
     userText: string
   ): boolean {
     const { triggers } = wisdom;
+
+    // Celebrations need the caller to have said what happened ("I got the job"),
+    // not just sound upbeat: "It's pretty good." scored joy and fired two
+    // celebration tasks on the 2026-10-03 call. FERNI_TASK_MOOD_ALONE_TRIGGERS=on
+    // restores mood-only triggering.
+    if (
+      triggers.keywordsRequired &&
+      process.env.FERNI_TASK_MOOD_ALONE_TRIGGERS !== 'on' &&
+      !triggers.keywords?.test(userText)
+    ) {
+      return false;
+    }
 
     // Check distress threshold
     if (triggers.distressThreshold !== undefined) {

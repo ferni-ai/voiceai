@@ -654,8 +654,8 @@ describe('Task Trigger Conditions', () => {
         },
       });
 
-      manager.processUserTurn(analysis, 'Great news!');
-      // milestone_celebration takes priority
+      manager.processUserTurn(analysis, 'Great news, I finally paid off my car!');
+      // Needs a milestone in the words (keywordsRequired), not just the mood
       expect(manager.getActiveTasks()).toContain('milestone_celebration');
     });
   });
