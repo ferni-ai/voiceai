@@ -199,8 +199,7 @@ const quickTimerDef: ToolDefinition = {
           }
 
           const tool = setTimerDef.create(ctx);
-          // Forward the SDK's second argument: setTimer reads the call's
-          // RunContext from it, and without it every quick timer threw.
+          // setTimer reads the call's RunContext from opts; without it every quick timer threw.
           const result = await tool.execute(
             { minutes: parsed.minutes, seconds: parsed.seconds, label },
             opts

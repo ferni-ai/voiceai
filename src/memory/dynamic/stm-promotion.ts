@@ -415,7 +415,7 @@ async function doPromoteSessionToFirestore(
       }
     }
 
-    // Write entities to Firestore
+    // Every write strips undefined: one undefined field (e.g. voiceTrajectory) fails the batch.
     for (const entity of entitiesToPromote) {
       const ref = db.collection('bogle_users').doc(userId).collection('promoted_entities').doc();
       batch.set(ref, deepRemoveUndefined(entity));
@@ -461,8 +461,6 @@ async function doPromoteSessionToFirestore(
           .doc(userId)
           .collection('emotional_arcs')
           .doc(sessionId);
-        // One undefined field (voiceTrajectory with <2 voice samples) failed the
-        // whole batch, so no entity, arc or topic from the session was saved.
         batch.set(arcRef, deepRemoveUndefined(emotionalArc));
         result.emotionalArcPromoted = true;
       }

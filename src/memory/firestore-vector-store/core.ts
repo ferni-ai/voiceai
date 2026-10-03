@@ -302,9 +302,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
       const docRef = this.db.collection(this.COLLECTION_NAME).doc(doc.id);
       const { FieldValue } = await import('@google-cloud/firestore');
 
-      // Store document even without embedding - mark for later retry
-      // Deep: metadata is caller-supplied and often has optional fields
-      // (e.g. a relationship without a strength), which Firestore rejects.
+      // Deep: caller metadata often has undefined optional fields, which Firestore rejects.
       const docData = deepRemoveUndefined({
         text: doc.text,
         embedding: embedding ? FieldValue.vector(embedding) : null,

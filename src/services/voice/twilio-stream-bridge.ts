@@ -89,7 +89,7 @@ export interface BridgeSession {
   customParameters: Record<string, string>;
   // Debug tracking
   audioPacketCount?: number;
-  // Rust audio enhancement (AGC, noise suppression, bandwidth extension)
+  // Rust audio enhancement (AGC + high-pass, 8kHz → 16kHz)
   audioEnhancer?: TwilioEnhancer;
 }
 
@@ -443,12 +443,10 @@ export class TwilioStreamBridge extends EventEmitter {
       customParameters: customParameters || {},
     };
 
-    // Initialize Rust audio enhancer if enabled
+    // Rust audio enhancer, AGC + high-pass only: with noise suppression and bandwidth extension
+    // too, Ink-2 got 83.8% of phone words wrong (2.2% raw); see twilio-audio-enhance.ts.
     if (isExperimentalEnabled('preSTTAudioProcessing')) {
       try {
-        // AGC + high-pass only: with noise suppression and bandwidth extension
-        // too, Ink-2 got 83.8% of phone words wrong (2.2% raw). See
-        // twilio-audio-enhance.ts for the measurements.
         session.audioEnhancer = await getTwilioEnhancer({
           sessionId: callSid,
           enableAgc: true,
@@ -548,8 +546,7 @@ export class TwilioStreamBridge extends EventEmitter {
     }, SILENCE_THRESHOLD_MS);
 
     // Emit raw audio event (for potential LiveKit bridging)
-    // Use Rust enhancer if available (AGC + noise suppression + bandwidth extension)
-    // Otherwise fall back to simple linear interpolation upsampling
+    // Use the Rust enhancer if available, else plain linear-interpolation upsampling
     let enhancedBuffer: Buffer;
 
     if (session.audioEnhancer) {
