@@ -172,13 +172,15 @@ describe('mid-sentence ellipses on the live gateway path', () => {
     expect(all).toContain('window...');
   });
 
-  it('are taken out with SPEECH_DIRECTOR=live, keeping every word', async () => {
+  it('are taken out with SPEECH_DIRECTOR=live after the opening, keeping every word', async () => {
     process.env.SPEECH_DIRECTOR = 'live';
     const { pushes } = await runGateway(ELLIPSIS_REPLY);
-    const all = pushes.join('');
-    expect(hasMidSentenceEllipsis(all)).toBe(false);
-    expect(all).toContain("that's just huge news");
-    expect(all).toContain('my window reminds me');
+    // The opening piece is never held (time to first audio, review M3), so a
+    // "..." that ends it reaches Cartesia; every later one is taken out.
+    expect(pushes[0]).toContain("Oh wow, that's just...");
+    const rest = pushes.slice(1).join('');
+    expect(rest).not.toMatch(/\.\.\.|…/);
+    expect(rest).toContain('my window reminds me');
   });
 
   it('are counted but left in with SPEECH_DIRECTOR=shadow', async () => {

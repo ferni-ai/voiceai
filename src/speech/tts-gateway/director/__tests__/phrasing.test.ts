@@ -74,6 +74,27 @@ describe('PhraseAssembler', () => {
     ]);
   });
 
+  it('never holds a first piece that ends in "..." (time to first audio)', () => {
+    // Review M3: the typical latency-masking opener was held until the next piece.
+    const a = new PhraseAssembler();
+    expect(a.accept('Hmm...', true)).toEqual(['Hmm...']);
+    expect(a.holding).toBe(false);
+    // Later pieces still wait to see whether the sentence goes on.
+    expect(a.accept("that's just...", false)).toEqual([]);
+    expect(a.holding).toBe(true);
+    expect(a.accept('huge news.', false)).toEqual(["that's just... huge news."]);
+  });
+
+  it('can put back what it held when the caller fails mid-push', () => {
+    const a = new PhraseAssembler();
+    a.accept('so much of what you are carrying right now is', false);
+    const before = a.snapshot();
+    a.accept('not yours to carry.', false);
+    expect(a.holding).toBe(false);
+    a.restore(before);
+    expect(a.flush()).toEqual(['so much of what you are carrying right now is']);
+  });
+
   it('stops holding once the fragment gets long', () => {
     const a = new PhraseAssembler();
     const long = 'word '.repeat(50).trim();

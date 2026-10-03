@@ -8,8 +8,10 @@
  * prosodic boundary (a comma, semicolon, colon or dash, else just before a
  * conjunction; not "so", which is as often "so much" as "so we went") and holds the tail until the next piece, so a push never ends
  * mid-phrase. Sentence-ended pieces pass through unchanged, the first piece
- * of a reply is never held (time to first audio), and a held fragment is
- * released once it grows past MAX_HOLD_CHARS.
+ * of a reply is never held whole (time to first audio), and a held fragment
+ * is released once it grows past MAX_HOLD_CHARS. reply-director.ts also
+ * releases any hold after HOLD_RELEASE_MS, so a slow LLM never leaves
+ * Cartesia waiting on text the Director is sitting on.
  *
  * Abbreviation and decimal handling reuses findSentenceEnd (chunk-boundary,
  * PR #177); numbers and abbreviations are already normalized upstream.
@@ -93,8 +95,9 @@ export interface PhraseOptions {
    * Hold a piece ending in "..." until the next one shows whether the
    * sentence goes on ("that's just..." + "huge news"): continuation-tts cuts
    * at "... " as a sentence end, and an ellipsis left at a push boundary
-   * can't be told apart from a real trailing-off. Applies to the first piece
-   * too: the text usually arrives well before the first audio.
+   * can't be told apart from a real trailing-off. Never applied to the first
+   * piece: "Hmm..." is the typical opener, and holding it delays the first
+   * audio until the next piece (review M3).
    */
   holdEllipsis: boolean;
 }
@@ -104,12 +107,27 @@ export class PhraseAssembler {
 
   constructor(private readonly options: PhraseOptions = { reCut: true, holdEllipsis: true }) {}
 
+  /** True while text is held back waiting for the next piece. */
+  get holding(): boolean {
+    return this.held !== '';
+  }
+
+  /** What is held, to put back with restore() if the caller fails mid-push. */
+  snapshot(): string {
+    return this.held;
+  }
+
+  restore(held: string): void {
+    this.held = held;
+  }
+
   /** Take one cleaned piece; return the phrases to push now. */
   accept(piece: string, isFirst: boolean): string[] {
     const text = [this.held, piece.trim()].filter(Boolean).join(' ');
     this.held = '';
     if (!text) return [];
-    if (this.options.holdEllipsis && endsWithEllipsis(text) && text.length < MAX_HOLD_CHARS) {
+    const holdEllipsis = this.options.holdEllipsis && !isFirst;
+    if (holdEllipsis && endsWithEllipsis(text) && text.length < MAX_HOLD_CHARS) {
       this.held = text;
       return [];
     }

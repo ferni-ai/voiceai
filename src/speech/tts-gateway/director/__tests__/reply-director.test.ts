@@ -213,8 +213,13 @@ describe('live mode', () => {
   });
 
   it('holds a push ending in "..." and joins it to the next when the sentence goes on', async () => {
-    const raw = ["Oh wow, that's just... huge news for you. ", 'And then... I left.'];
-    const pushes = ["Oh wow, that's just... ", 'huge news for you. ', 'And then... I left. '];
+    const raw = ["Okay. Oh wow, that's just... huge news for you. ", 'And then... I left.'];
+    const pushes = [
+      'Okay. ',
+      "Oh wow, that's just... ",
+      'huge news for you. ',
+      'And then... I left. ',
+    ];
     const live = await run({ SPEECH_DIRECTOR: 'live' }, { raw, pushes });
     expect(live.inner.pushes.join('')).toContain("Oh wow, that's just huge news for you.");
     // A trailing-off before a new sentence ("then... I") is kept.
