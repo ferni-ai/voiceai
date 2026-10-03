@@ -1,0 +1,13 @@
+# Seth's dev call, 2026-10-03: the turns where Ferni sounded least human.
+# Mid-thought pauses ([[slnc ms]]) are where Ferni answered half a sentence;
+# "It's hard to say" and "how does that make you feel" are where it answered
+# with its own backstory; the last two are direct questions it dodged.
+Hey there, how are you doing?
+It's pretty good.
+What else can you tell me?
+It's hard to say.
+Well, we don't get, [[slnc 900]] caught up in reviews at work. That's the thing.
+All right, now to, [[slnc 800]] it's not done yet. How does that make you feel?
+When you go to sleep, [[slnc 700]] what do you dream of?
+What more can we do to make you sound human?
+Why do you keep forgetting what I said?

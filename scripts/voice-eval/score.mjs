@@ -28,7 +28,17 @@ const THERAPIST =
 const HUMAN_MARKERS =
   /\b(i mean|honestly|kinda|sort of|kind of|you know|wait|actually|oh man|man,|haha|ha,|like,|anyway|i dunno|i guess|pretty much)\b|\[laughter\]/i;
 const HUMAN_MARKERS_G = new RegExp(HUMAN_MARKERS.source, 'gi');
+// Ferni telling its own story instead of answering: backstory names, its
+// "what I'm doing right now" asides, and "I remember when" openers.
+const SELF_STORY =
+  /\b(tanaka|wyoming|japan|my (old )?(neighbou?r|mentor|dad|mom|grandm\w*|porch|kitchen)|i remember (when|this)|(just )?(poured|pouring|brewing|sipping) (myself )?(a |another )?(cup|tea|coffee)|cup of (tea|coffee|genmaicha)|when i was (a kid|young|growing up)|reminds me of (a|this|one|when) )/i;
+// Lines written by code, not the model: the time-of-day presence lines and
+// task-transition phrases (src/personas/shared/better-than-human-personality.ts,
+// src/tasks/transitions.ts).
+const SCRIPTED =
+  /weekend evenings feel different|that golden hour light|day winding down|the transition into evening|let's not skip over this|do you realize what you just said|stop\. let me acknowledge something|before we move on.{0,3}that's worth celebrating|can i share a lesson i picked up/i;
 let greeting = null;
+let greetingUtterances = 0;
 const delays = [];
 const perceived = [];
 let openingSounds = 0;
@@ -58,6 +68,7 @@ for (const file of process.argv.slice(2)) {
   const firstTurnAt = run.userSpeech[0]?.[0] ?? 0;
   for (const e of run.events) if (e.who === 'agent' && e.t > firstTurnAt) replies.push(e.text);
   greeting ??= run.events.filter((e) => e.who === 'agent' && e.t <= firstTurnAt).map((e) => e.text).join(' ') || null;
+  greetingUtterances = Math.max(greetingUtterances, run.events.filter((e) => e.who === 'agent' && e.t <= firstTurnAt).length);
 
   for (const [start, end] of run.userSpeech) {
     userSpeechMs += end - start;
@@ -71,6 +82,20 @@ for (const file of process.argv.slice(2)) {
   }
 }
 
+// Five-word runs that show up in more than one reply: a person doesn't
+// repeat a sentence a minute later.
+const repeatedPhrases = (() => {
+  const seen = new Map();
+  replies.forEach((t, i) => {
+    const w = t.toLowerCase().replace(/<[^>]+>|\[[^\]]*\]/g, ' ').match(/[a-z']+/g) ?? [];
+    for (let k = 0; k + 5 <= w.length; k++) {
+      const g = w.slice(k, k + 5).join(' ');
+      if (!seen.has(g)) seen.set(g, new Set());
+      seen.get(g).add(i);
+    }
+  });
+  return [...seen].filter(([, ids]) => ids.size > 1).map(([g]) => g);
+})();
 const words = replies.map((t) => t.split(/\s+/).filter(Boolean).length);
 const m = mean(words);
 const sd = m === null ? null : Math.sqrt(mean(words.map((w) => (w - m) ** 2)));
@@ -120,6 +145,12 @@ const score = {
     return { word, rate: round(n / (replies.length || 1)) };
   })(),
   exclamationRate: round(replies.filter((t) => /!/.test(t)).length / (replies.length || 1)),
+  // About the caller, not Ferni: replies that tell Ferni's own story.
+  selfStoryRate: round(replies.filter((t) => SELF_STORY.test(t)).length / (replies.length || 1)),
+  scriptedLineHits: replies.filter((t) => SCRIPTED.test(t)).length,
+  repeatedPhraseCount: repeatedPhrases.length,
+  repeatedPhrases: repeatedPhrases.slice(0, 10),
+  greetingUtterances,
   greeting,
   replyTexts: replies,
 };
