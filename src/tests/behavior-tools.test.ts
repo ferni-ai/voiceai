@@ -266,6 +266,19 @@ describe('Behavior Tools', () => {
       expect(result.type).toBe('breath');
     });
 
+    it('breath SSML has no tag whose content/fallback Cartesia would speak aloud', async () => {
+      // <phoneme alphabet="ipa" ph="hh">...</phoneme> used to survive the
+      // SSML processor's generic tag-strip as a literal "..." — Cartesia has
+      // no breath tag, so a clean pause is the only safe rendering.
+      const toolDef = tools.find((t) => t.id === 'expressPresence')!;
+      const tool = toolDef.create(mockContext);
+
+      const result = await tool.execute({ type: 'breath' });
+
+      expect(result.ssml).not.toMatch(/phoneme|\.\.\./);
+      expect(result.ssml).toMatch(/<break time="\d+ms"\/>/);
+    });
+
     it('should return SSML for presence type', async () => {
       const toolDef = tools.find((t) => t.id === 'expressPresence')!;
       const tool = toolDef.create(mockContext);

@@ -109,7 +109,11 @@ const MODE_SSML: Record<BehaviorMode, string> = {
 };
 
 const PRESENCE_SSML: Record<PresenceExpression, string> = {
-  breath: '<break time="400ms"/><phoneme alphabet="ipa" ph="hh">...</phoneme><break time="300ms"/>',
+  // No Cartesia tag renders an actual breath sound (only `[laughter]` is a
+  // documented nonverbal), and `<phoneme>` content survives the generic
+  // tag-stripping fallback in ssml/processor.ts — "..." was left over and
+  // spoken as literal ellipsis. A clean pause reads as a breath on its own.
+  breath: '<break time="700ms"/>',
   hum: '<break time="200ms"/>Mmm.<break time="400ms"/>',
   nod: '<break time="200ms"/>',
   sigh: '<break time="300ms"/><emotion value="gentle"/>Ahh.<break time="400ms"/>',
