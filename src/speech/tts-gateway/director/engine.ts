@@ -191,8 +191,11 @@ export class DirectorEngine {
       const parsed = parseLead(push);
       const body = this.takeSpokenSigh(parsed.body);
       const { tags, prosody } = this.withStashedLead(parsed);
-      if (!body && parsed.body && !this.opened) {
-        this.stashedLead = { tags, prosody }; // the push was only the sigh's "Ahh."
+      if (!body && !this.opened) {
+        // Nothing spoken yet: tags only, or a sigh cue stripped down to
+        // nothing. Stash the tags/prosody for the push that opens the reply
+        // (review M3) instead of deciding the opening from empty text.
+        this.stashedLead = { tags, prosody };
         return [];
       }
       const first = !this.opened;
@@ -222,9 +225,15 @@ export class DirectorEngine {
   /**
    * With the nonverbal lever live, the behavior tool's sigh is rendered by
    * Stage 2, so its spoken "Ahh." at the start of the reply is taken out.
+   *
+   * Checked on the first push that has a body, not the first push overall
+   * (review M3): a tags-only first push (e.g. a lone `<emotion .../>`) has
+   * nothing to check yet, and would otherwise burn the one-time check
+   * before the reply's actual opening words arrive, letting a later "Ahh."
+   * through while Stage 2 still plays the sigh — heard twice.
    */
   private takeSpokenSigh(body: string): string {
-    if (this.spokenSighChecked) return body;
+    if (!body || this.spokenSighChecked) return body;
     this.spokenSighChecked = true;
     const strip = this.live('nonverbal') && this.ctx.cues.opensWithSpokenSigh === true;
     return strip ? stripSpokenSigh(body) : body;
