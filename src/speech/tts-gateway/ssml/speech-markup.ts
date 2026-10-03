@@ -50,7 +50,10 @@ export function dropBreaksBesideSpell(text: string): string {
 export function protectSpell(text: string): { text: string; restore: (out: string) => string } {
   const kept: string[] = [];
   const masked = text.replace(SPELL, (_m, inner: string) => {
-    kept.push(`<spell>${inner}</spell>`);
+    // A break (or any tag) *inside* <spell> isn't adjacency
+    // dropBreaksBesideSpell can see -- strip it here too (review M2), so one
+    // never survives nested.
+    kept.push(`<spell>${inner.replace(/<[^>]+>/g, '')}</spell>`);
     return `${kept.length - 1}`;
   });
   return {

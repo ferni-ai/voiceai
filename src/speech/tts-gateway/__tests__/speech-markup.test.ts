@@ -58,6 +58,14 @@ describe('<spell> passthrough', () => {
   it('is not mistaken for sentence text by the cleanup rules', () => {
     expect(clean('Code<spell>a.B</spell>ok')).toBe('Code<spell>a.B</spell>ok');
   });
+
+  // ---- M2: a break NESTED inside <spell>…</spell> must be dropped too ----
+  it('strips a break nested inside spell, not just one adjacent to it', () => {
+    expect(clean('Code <spell>A<break time="1s"/>B</spell> ok')).toBe('Code <spell>AB</spell> ok');
+    expect(protectSpell('Code <spell>A<break time="1s"/>B</spell> ok').text).not.toContain(
+      'break'
+    );
+  });
 });
 
 describe('consecutive breaks in the SSML processor', () => {
@@ -88,6 +96,14 @@ describe('Cartesia bytes path keeps <spell>', () => {
     );
     const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
     expect(body.transcript).toBe('It is <spell>ZX9</spell> now.');
+  });
+
+  // ---- L1: an unclosed <spell> must be stripped here too, like the processor ----
+  it('strips an unclosed spell, matching the SSML processor', async () => {
+    expect(clean('Unclosed <spell>ABC then more')).toBe('Unclosed ABC then more');
+    await new CartesiaTTSProvider().synthesize('Unclosed <spell>ABC then more', 'voice-1');
+    const body = JSON.parse(fetchMock.mock.calls.at(-1)![1].body as string);
+    expect(body.transcript).toBe('Unclosed ABC then more');
   });
 });
 
