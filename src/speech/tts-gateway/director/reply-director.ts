@@ -124,7 +124,7 @@ class DirectedReply implements ReplyStream {
       modes,
       voiceId: opts.voiceId,
       sessionHint: opts.emotion,
-      carry: opts.sessionId ? sessions.get(opts.sessionId) : { speed: 1 },
+      carry: opts.sessionId ? sessions.get(opts.sessionId, opts.personaId) : { speed: 1 },
       cues,
       renderTags: prosodyTags,
     });
@@ -235,7 +235,7 @@ class DirectedReply implements ReplyStream {
       failed: this.failed,
     };
     if (opts.sessionId && engine.stats.pushesIn > 0) {
-      (opts.sessions ?? directorSessions).update(opts.sessionId, {
+      (opts.sessions ?? directorSessions).update(opts.sessionId, opts.personaId, {
         emotion: engine.emotion.emotion,
         speed: engine.speed,
       });

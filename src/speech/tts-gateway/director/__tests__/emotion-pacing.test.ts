@@ -200,26 +200,37 @@ describe('decideSpeed', () => {
 describe('DirectorSessions', () => {
   it('keeps each session separate', () => {
     const sessions = new DirectorSessions(10);
-    sessions.update('a', { emotion: 'sympathetic', speed: 0.94 });
-    expect(sessions.get('a')).toEqual({ emotion: 'sympathetic', speed: 0.94 });
-    expect(sessions.get('b')).toEqual({ speed: 1 });
+    sessions.update('a', 'ferni', { emotion: 'sympathetic', speed: 0.94 });
+    expect(sessions.get('a', 'ferni')).toEqual({ emotion: 'sympathetic', speed: 0.94 });
+    expect(sessions.get('b', 'ferni')).toEqual({ speed: 1 });
   });
 
-  it('evicts the least recently used session past its cap', () => {
-    const sessions = new DirectorSessions(2);
-    sessions.update('a', { speed: 0.95 });
-    sessions.update('b', { speed: 0.96 });
-    sessions.get('a');
-    sessions.update('c', { speed: 0.97 });
-    expect(sessions.size).toBe(2);
-    expect(sessions.get('b')).toEqual({ speed: 1 });
-    expect(sessions.get('a').speed).toBe(0.95);
-  });
-
-  it('forgets a session on clear', () => {
+  it('starts a handed-off persona fresh inside the same session (review L3)', () => {
     const sessions = new DirectorSessions(10);
-    sessions.update('a', { speed: 0.95 });
+    sessions.update('a', 'ferni', { emotion: 'sympathetic', speed: 0.94 });
+    expect(sessions.get('a', 'maya')).toEqual({ speed: 1 });
+    expect(sessions.get('a', 'ferni').speed).toBe(0.94);
+  });
+
+  it('evicts the least recently used entry past its cap', () => {
+    const sessions = new DirectorSessions(2);
+    sessions.update('a', 'ferni', { speed: 0.95 });
+    sessions.update('b', 'ferni', { speed: 0.96 });
+    sessions.get('a', 'ferni');
+    sessions.update('c', 'ferni', { speed: 0.97 });
+    expect(sessions.size).toBe(2);
+    expect(sessions.get('b', 'ferni')).toEqual({ speed: 1 });
+    expect(sessions.get('a', 'ferni').speed).toBe(0.95);
+  });
+
+  it('forgets every persona of a session on clear, and only that session', () => {
+    const sessions = new DirectorSessions(10);
+    sessions.update('a', 'ferni', { speed: 0.95 });
+    sessions.update('a', 'maya', { speed: 0.96 });
+    sessions.update('ab', 'ferni', { speed: 0.97 });
     sessions.clear('a');
-    expect(sessions.get('a')).toEqual({ speed: 1 });
+    expect(sessions.get('a', 'ferni')).toEqual({ speed: 1 });
+    expect(sessions.get('a', 'maya')).toEqual({ speed: 1 });
+    expect(sessions.get('ab', 'ferni').speed).toBe(0.97);
   });
 });

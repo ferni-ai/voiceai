@@ -127,13 +127,13 @@ describe('SPEECH_DIRECTOR on the live gateway path', () => {
     process.env.SPEECH_DIRECTOR = 'shadow';
     expect((await runGateway()).pushes).toEqual(GOLDEN);
     // ...and the Director really ran on this path: it carried its plan forward.
-    expect(directorSessions.get('identity-session').emotion).toBe('sympathetic');
+    expect(directorSessions.get('identity-session', 'ferni').emotion).toBe('sympathetic');
   });
 
   it('never runs the Director when off', async () => {
     process.env.SPEECH_DIRECTOR = 'off';
     await runGateway();
-    expect(directorSessions.get('identity-session')).toEqual({ speed: 1 });
+    expect(directorSessions.get('identity-session', 'ferni')).toEqual({ speed: 1 });
   });
 
   it('changes what reaches Cartesia with SPEECH_DIRECTOR=live (the wiring is reached)', async () => {
