@@ -140,4 +140,15 @@ describe('reply-audio-plan', () => {
       getStage2Gates({ SPEECH_STAGE2_NONVERBAL: 'shadow', SPEECH_STAGE2_TEMPO: 'live' })
     ).toEqual({ nonverbal: false, tempo: true });
   });
+
+  it("keeps a speaker f0 for the opening sigh only when it's a plausible voice pitch", () => {
+    expect(
+      normalizeReplyAudioPlan({ opening: { kind: 'sigh', intensity: 0.6, f0Hz: 111 } })
+    ).toEqual({ opening: { kind: 'sigh', intensity: 0.6, f0Hz: 111 } });
+    for (const f0Hz of [Number.NaN, 0, -5, 20, 900]) {
+      expect(normalizeReplyAudioPlan({ opening: { kind: 'sigh', intensity: 0.6, f0Hz } })).toEqual({
+        opening: { kind: 'sigh', intensity: 0.6 },
+      });
+    }
+  });
 });

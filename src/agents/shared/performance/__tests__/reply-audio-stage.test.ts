@@ -77,8 +77,9 @@ function samples(frames: AudioFrame[]): Int16Array {
 /** Fake native: clip of 0.25s; stretcher drops every 10th sample and holds 100 back. */
 function fakeNative(log: string[] = []): ReplyAudioNative {
   return {
-    renderNonverbal(kind, durationMs, intensity, seed, sampleRate) {
-      log.push(`render ${kind} ${durationMs} ${intensity} ${sampleRate}`);
+    renderNonverbal(kind, durationMs, intensity, seed, sampleRate, f0Hz) {
+      const f0 = f0Hz === undefined ? '' : ` f0=${f0Hz}`;
+      log.push(`render ${kind} ${durationMs} ${intensity} ${sampleRate}${f0}`);
       if (kind !== 'breath' && kind !== 'sigh') throw new Error('unknown kind');
       const ms = durationMs > 0 ? durationMs : kind === 'breath' ? 350 : 800;
       return new Float32Array(Math.round((ms * sampleRate) / 1000)).fill(0.25);
@@ -192,6 +193,13 @@ describe('reply-audio-stage', () => {
     const second = toneFrames(2);
     const out = await runStage(second, fakeNative());
     expect(out).toEqual(second);
+  });
+
+  it("renders the sigh at the speaker's f0 when the plan carries one", async () => {
+    const calls: string[] = [];
+    setReplyAudioPlan(SID, TURN, { opening: { kind: 'sigh', intensity: 0.6, f0Hz: 111 } });
+    await runStage(toneFrames(2), fakeNative(calls));
+    expect(calls).toEqual(['render sigh 0 0.6 24000 f0=111']);
   });
 
   it('nonverbal gate off: plan opening is ignored (and consumed)', async () => {

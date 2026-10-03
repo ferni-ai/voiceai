@@ -30,8 +30,11 @@ export type NonverbalKind = 'breath' | 'sigh';
 export interface ReplyAudioPlan {
   /** Speed for the whole reply: 1.1 = 10% faster. Clamped to 0.8-1.25. */
   tempo?: number;
-  /** A breath or sigh rendered before the first word. */
-  opening?: { kind: NonverbalKind; intensity: number; durationMs?: number };
+  /**
+   * A breath or sigh rendered before the first word. `f0Hz`: the speaker's
+   * median pitch, so a sigh's voiced onset sits in the voice (50-400 Hz).
+   */
+  opening?: { kind: NonverbalKind; intensity: number; durationMs?: number; f0Hz?: number };
 }
 
 export interface Stage2Gates {
@@ -45,6 +48,9 @@ export const MAX_OPENING_MS: Readonly<Record<NonverbalKind, number>> = { breath:
 export const MAX_PLANNED_SESSIONS = 256;
 export const MIN_TEMPO = 0.8;
 export const MAX_TEMPO = 1.25;
+/** Plausible speaking pitch; the Rust renderer ignores anything else. */
+export const MIN_F0_HZ = 50;
+export const MAX_F0_HZ = 400;
 
 const NONVERBAL_KINDS: ReadonlySet<string> = new Set(['breath', 'sigh']);
 
@@ -86,6 +92,9 @@ export function normalizeReplyAudioPlan(plan: ReplyAudioPlan): ReplyAudioPlan | 
     out.opening = { kind: o.kind, intensity: Math.min(1, o.intensity) };
     if (typeof o.durationMs === 'number' && Number.isFinite(o.durationMs) && o.durationMs > 0) {
       out.opening.durationMs = Math.min(MAX_OPENING_MS[o.kind], o.durationMs);
+    }
+    if (typeof o.f0Hz === 'number' && o.f0Hz >= MIN_F0_HZ && o.f0Hz <= MAX_F0_HZ) {
+      out.opening.f0Hz = o.f0Hz;
     }
   }
   return out.tempo === undefined && out.opening === undefined ? undefined : out;

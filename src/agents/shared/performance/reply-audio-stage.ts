@@ -73,7 +73,8 @@ export interface ReplyAudioNative {
     durationMs: number,
     intensity: number,
     seed: number,
-    sampleRate: number
+    sampleRate: number,
+    f0Hz?: number
   ) => Float32Array;
   NativeTempoStretcher: new (sampleRate: number, ratio: number) => TempoStretcherInstance;
 }
@@ -175,11 +176,13 @@ function renderLead(
   opening: NonNullable<ReplyAudioPlan['opening']>,
   sr: number
 ): AudioFrame[] {
-  const { kind, intensity, durationMs } = opening;
+  const { kind, intensity, durationMs, f0Hz } = opening;
   seedCounter = (seedCounter + 1) >>> 0;
-  const clip = float32ToInt16(
-    native.renderNonverbal(kind, durationMs ?? 0, intensity, seedCounter, sr)
-  );
+  // f0Hz only when known, so an older binary (5 params) is called as before.
+  const args = [kind, durationMs ?? 0, intensity, seedCounter, sr] as const;
+  const pcm =
+    f0Hz === undefined ? native.renderNonverbal(...args) : native.renderNonverbal(...args, f0Hz);
+  const clip = float32ToInt16(pcm);
   const gap = kind === 'breath' ? Math.round((sr * BREATH_TO_SPEECH_GAP_MS) / 1000) : 0;
   const lead = new Int16Array(clip.length + gap);
   lead.set(clip);

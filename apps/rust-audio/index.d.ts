@@ -6,9 +6,11 @@
 /**
  * Render a breath or sigh as mono Float32 PCM at `sampleRate`.
  * `durationMs <= 0` uses the kind's default (breath 350 ms, sigh 800 ms).
+ * `f0Hz` (optional): the speaker's median f0, so a sigh's pitch follows the
+ * voice; omitted or outside 50-400 Hz keeps the default pitch.
  * Unknown kinds and out-of-range sample rates are errors, never panics.
  */
-export declare function renderNonverbal(kind: string, durationMs: number, intensity: number, seed: number, sampleRate: number): Float32Array
+export declare function renderNonverbal(kind: string, durationMs: number, intensity: number, seed: number, sampleRate: number, f0Hz?: number | undefined | null): Float32Array
 /**
  * Change duration without changing pitch. `ratio` is speed (1.1 = 10%
  * faster), clamped to 0.8-1.25.

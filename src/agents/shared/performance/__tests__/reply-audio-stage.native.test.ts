@@ -87,6 +87,23 @@ describe.skipIf(!native)('Stage 2 native (@ferni/audio)', () => {
     expect(() => n.renderNonverbal('breath', 0, 1, 1, 1000)).toThrow(/sample rate/);
   });
 
+  it("renderNonverbal: a sigh's onset follows the speaker f0 (Ferni ~111 Hz)", () => {
+    const sr = 24000;
+    const plain = n.renderNonverbal('sigh', 0, 1, 7, sr);
+    const lester = n.renderNonverbal('sigh', 0, 1, 7, sr, 111);
+    expect(lester.length).toBe(plain.length);
+    // Onset (4-16%): about 1.25 x 111 Hz, well under the 150-195 Hz default.
+    const onset = (x: Float32Array): Float32Array =>
+      x.subarray(Math.floor(x.length * 0.04), Math.floor(x.length * 0.16));
+    expect(f0(onset(lester), sr)).toBeGreaterThan(118);
+    expect(f0(onset(lester), sr)).toBeLessThan(152);
+    expect(f0(onset(lester), sr)).toBeLessThan(0.9 * f0(onset(plain), sr));
+    // A breath has no pitch: f0 leaves it as it was.
+    expect(Array.from(n.renderNonverbal('breath', 0, 1, 7, sr, 111))).toEqual(
+      Array.from(n.renderNonverbal('breath', 0, 1, 7, sr))
+    );
+  });
+
   it('NativeTempoStretcher: streamed = whole, length tracks ratio, pitch kept', () => {
     const sr = 24000;
     const x = tone(sr * 2, sr);
