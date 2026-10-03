@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 // In-memory Firestore: collection -> doc id -> data
 const { store, email } = vi.hoisted(() => ({
   store: new Map<string, Map<string, Record<string, unknown>>>(),
-  email: { value: 'newcomer@example.com' },
+  email: { value: 'newcomer@example.com', verified: true },
 }));
 const coll = (name: string) => store.get(name) ?? store.set(name, new Map()).get(name)!;
 const fakeDb = {
@@ -20,7 +20,13 @@ const fakeDb = {
 vi.mock('firebase-admin', () => ({
   default: {
     apps: [{}],
-    auth: () => ({ verifyIdToken: async () => ({ uid: 'uid-1', email: email.value }) }),
+    auth: () => ({
+      verifyIdToken: async () => ({
+        uid: 'uid-1',
+        email: email.value,
+        email_verified: email.verified,
+      }),
+    }),
   },
 }));
 vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => fakeDb, FieldValue: {} }));
@@ -48,6 +54,7 @@ const docId = (e: string) => Buffer.from(e).toString('base64').replace(/[/+=]/g,
 
 describe('waitlist check', () => {
   afterEach(() => {
+    email.verified = true;
     store.clear();
     vi.unstubAllEnvs();
   });
@@ -55,15 +62,24 @@ describe('waitlist check', () => {
   it('lets a brand-new person in on the free tier', async () => {
     const { body } = await check();
     expect(body).toMatchObject({ approved: true, status: 'approved', tier: 'free' });
-    const profile = coll('user_profiles').get(docId(email.value)) as { subscription: Record<string, unknown> };
-    expect(profile.subscription).toMatchObject({ tier: 'free', status: 'active', grantedVia: 'open-access' });
+    const profile = coll('user_profiles').get(docId(email.value)) as {
+      subscription: Record<string, unknown>;
+    };
+    expect(profile.subscription).toMatchObject({
+      tier: 'free',
+      status: 'active',
+      grantedVia: 'open-access',
+    });
   });
 
   it('lets in someone who was left pending on the waitlist', async () => {
     coll('waitlist').set(docId(email.value), { email: email.value, status: 'pending' });
     const { body } = await check();
     expect(body).toMatchObject({ approved: true, tier: 'free' });
-    expect(coll('waitlist').get(docId(email.value))).toMatchObject({ status: 'approved', source: 'open_access' });
+    expect(coll('waitlist').get(docId(email.value))).toMatchObject({
+      status: 'approved',
+      source: 'open_access',
+    });
   });
 
   it('still gives an approved waitlist entry the partner tier', async () => {
@@ -77,5 +93,20 @@ describe('waitlist check', () => {
     const { body } = await check();
     expect(body).toMatchObject({ approved: false, status: 'pending' });
     expect(coll('user_profiles').size).toBe(0);
+  });
+
+  it("never acts on an unverified email: no access, no write to that email's profile", async () => {
+    email.verified = false; // e.g. an email/password account claiming someone else's address
+    const owner = docId(email.value);
+    coll('user_profiles').set(owner, {
+      email: email.value,
+      subscription: { tier: 'partner', status: 'active' },
+    });
+    const { body } = await check();
+    expect(body).toMatchObject({ approved: false, status: 'unverified_email' });
+    expect(coll('user_profiles').get(owner)).toEqual({
+      email: email.value,
+      subscription: { tier: 'partner', status: 'active' },
+    });
   });
 });

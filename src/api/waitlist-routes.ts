@@ -469,6 +469,17 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
       return true;
     }
 
+    // Everything below trusts the email; an email/password account can claim anyone's.
+    if (decodedToken.email_verified !== true) {
+      log.warn({ uid: decodedToken.uid }, 'Access check with an unverified email');
+      sendJson(res, 200, {
+        approved: false,
+        status: 'unverified_email',
+        message: 'Verify your email address, then sign in again.',
+      });
+      return true;
+    }
+
     // =========================================================================
     // ADMIN BYPASS - Founders/admins should NEVER be blocked
     // =========================================================================
