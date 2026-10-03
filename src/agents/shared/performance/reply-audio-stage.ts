@@ -386,7 +386,22 @@ export function createReplyAudioStage(
     },
     transform(frame, controller) {
       if (!started) {
+        const awaitingUpdate = stopWaiting !== null;
         stopListening();
+        // An opening that lands after speech started is skipped (it would delay speech);
+        // consume and log it so a stale plan never lingers and misses are countable.
+        if (awaitingUpdate && gates.nonverbal) {
+          stopWaiting = onReplyAudioPlan(sessionId, turn, () => {
+            stopWaiting = null;
+            const late = takeReplyAudioPlan(sessionId, turn);
+            if (late?.opening) {
+              log.info(
+                { sessionId, turn, kind: late.opening.kind },
+                'Stage 2 opening arrived after speech started; skipped'
+              );
+            }
+          });
+        }
         try {
           begin(frame);
         } catch (error) {

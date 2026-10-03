@@ -380,8 +380,12 @@ describe('reply-audio-stage', () => {
     const input = toneFrames(3);
     void writer.write(input[0]);
     expect((await reader.read()).value).toBe(input[0]);
-    expect(replyAudioPlanListenerCount()).toBe(0);
+    // Speech started: only the late watch remains, to consume and log a late opening.
+    expect(replyAudioPlanListenerCount()).toBe(1);
     setReplyAudioPlan(SID, TURN, { opening: { kind: 'sigh', intensity: 1 }, tempo: 1.1 });
+    await Promise.resolve(); // listeners run on the next microtask
+    expect(takeReplyAudioPlan(SID, TURN)).toBeUndefined(); // consumed, never lingers
+    expect(replyAudioPlanListenerCount()).toBe(0);
     void writer.write(input[1]);
     void writer.write(input[2]);
     void writer.close();
@@ -436,8 +440,11 @@ describe('reply-audio-stage', () => {
     void writer.write(input[0]);
     const first = await readWithin(reader.read(), 50);
     expect((first as { value: AudioFrame }).value).toBe(input[0]); // straight through
-    expect(replyAudioPlanListenerCount()).toBe(0);
+    expect(replyAudioPlanListenerCount()).toBe(1); // the late watch
     mergeReplyAudioPlan(SID, TURN, { opening: { kind: 'breath', intensity: 0.5 } });
+    await Promise.resolve(); // listeners run on the next microtask
+    expect(takeReplyAudioPlan(SID, TURN)).toBeUndefined(); // late breath consumed, not left for a later reply
+    expect(replyAudioPlanListenerCount()).toBe(0);
     void writer.write(input[1]);
     void writer.write(input[2]);
     void writer.close();
