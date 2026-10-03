@@ -49,6 +49,7 @@ import {
 } from 'node:stream/web';
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { applyReplyAudioStage } from './reply-audio-stage.js';
 
 const log = createLogger({ module: 'PostTTSTransform' });
 
@@ -1417,16 +1418,15 @@ export async function applyPostTTSEnhancement(
   audioStream: NodeReadableStream<AudioFrame>,
   config: PostTTSConfig = {}
 ): Promise<NodeReadableStream<AudioFrame>> {
-  // Check if post-TTS enhancement is enabled
   if (process.env.POST_TTS_ENHANCEMENT_ENABLED === 'false') {
     log.debug({ sessionId: config.sessionId }, 'Post-TTS enhancement disabled by env');
-    return audioStream;
+    return applyReplyAudioStage(audioStream, config.sessionId);
   }
 
-  const transform = createPostTTSTransform(config);
-  return audioStream.pipeThrough(
-    transform as unknown as NodeTransformStream<AudioFrame, AudioFrame>
+  const enhanced = audioStream.pipeThrough(
+    createPostTTSTransform(config) as unknown as NodeTransformStream<AudioFrame, AudioFrame>
   );
+  return applyReplyAudioStage(enhanced, config.sessionId); // Stage 2, gated off by default
 }
 
 /**
