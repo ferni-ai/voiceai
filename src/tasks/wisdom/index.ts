@@ -39,6 +39,8 @@ export interface TaskWisdom {
     distressThreshold?: number;
     intents?: string[];
     keywords?: RegExp;
+    /** The task fires only when `keywords` matches; the other triggers still apply. */
+    keywordsRequired?: boolean;
     phases?: string[];
     custom?: (analysis: ConversationAnalysis, userText: string) => boolean;
   };
@@ -69,6 +71,7 @@ interface JsonTaskTrigger {
   distressThreshold?: number;
   intents?: string[];
   keywords?: string;
+  keywordsRequired?: boolean;
   phases?: string[];
   customCondition?: string;
 }
@@ -194,6 +197,7 @@ function loadTaskFile(filename: string): TaskWisdom[] {
           emotions: task.triggers.emotions,
           distressThreshold: task.triggers.distressThreshold,
           intents: task.triggers.intents,
+          keywordsRequired: task.triggers.keywordsRequired,
           phases: task.triggers.phases,
         },
 
