@@ -124,16 +124,14 @@ describe('shadow mode', () => {
 });
 
 describe('live mode', () => {
-  it('normalizes, re-phrases, renders pauses and sets one emotion and speed', async () => {
+  it('re-phrases, leaves conventional forms to Cartesia, and sets one emotion and speed', async () => {
     const { inner } = await run({ SPEECH_DIRECTOR: 'live' });
     const all = inner.pushes.join('');
-    expect(all).toContain('four thousand two hundred dollars');
-    expect(all).toContain('Missus Johnson');
-    expect(all).toContain('October third');
+    expect(all).toContain('Mrs. Johnson said the bill was $4,200 on 10/3,');
     expect(all).toContain("Here's the thing, you did the right thing.");
     // The 80-char fallback cut ("a lot of | money") is gone: no push ends mid-phrase.
     expect(inner.pushes.some((p) => p.trim().endsWith('a lot of'))).toBe(false);
-    expect(inner.pushes[1].trim().endsWith('October third,')).toBe(true);
+    expect(inner.pushes[1].trim().endsWith('on 10/3,')).toBe(true);
     // One emotion and one speed, on the opening only.
     expect(inner.pushes[0]).toMatch(
       /^<speed ratio="0\.97"\/><emotion value="sympathetic"\/>Oh, I hear you\. $/
@@ -157,15 +155,26 @@ describe('live mode', () => {
   });
 
   it('applies only the levers that are live', async () => {
-    const { inner, plans } = await run({
-      SPEECH_DIRECTOR: 'live',
-      SPEECH_DIRECTOR_PHRASING: 'shadow',
-      SPEECH_DIRECTOR_EMOTION: 'off',
-      SPEECH_DIRECTOR_PACING: 'off',
-    });
-    expect(inner.pushes).toHaveLength(PUSHES.length);
+    const pushes = [
+      '<emotion value="sympathetic"/>Oh, I hear you. ',
+      'That is **REALLY** a lot of money to find in a single month, and honestly that is ',
+      'more than anyone should have to carry. ',
+    ];
+    const { inner, plans } = await run(
+      {
+        SPEECH_DIRECTOR: 'live',
+        SPEECH_DIRECTOR_PHRASING: 'shadow',
+        SPEECH_DIRECTOR_EMOTION: 'off',
+        SPEECH_DIRECTOR_PACING: 'off',
+      },
+      { raw: pushes, pushes }
+    );
+    // Phrasing in shadow: the mid-phrase cut is not re-cut, one push per push.
+    expect(inner.pushes).toHaveLength(pushes.length);
+    // Emotion and pacing off: the opening goes out as continuation-tts wrote it.
     expect(inner.pushes[0]).toBe('<emotion value="sympathetic"/>Oh, I hear you. ');
-    expect(inner.pushes[1]).toContain('four thousand two hundred dollars');
+    // Normalize live: markdown and shouted caps are fixed.
+    expect(inner.pushes[1]).toContain('That is really a lot of money');
     expect(plans[0].summary.levers).toContain('phrasing:shadow');
   });
 

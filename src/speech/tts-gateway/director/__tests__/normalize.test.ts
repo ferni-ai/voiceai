@@ -1,124 +1,120 @@
 import { describe, expect, it } from 'vitest';
 
 import { normalizeForSpeech } from '../normalize.js';
-import { decimalToWords, integerToWords, ordinalToWords, yearToWords } from '../spoken-numbers.js';
 
 const say = (text: string): string => normalizeForSpeech(text).text;
 
-describe('spoken numbers', () => {
-  it('reads integers', () => {
-    expect(integerToWords(0)).toBe('zero');
-    expect(integerToWords(13)).toBe('thirteen');
-    expect(integerToWords(42)).toBe('forty-two');
-    expect(integerToWords(105)).toBe('one hundred five');
-    expect(integerToWords(4200)).toBe('four thousand two hundred');
-    expect(integerToWords(1_000_001)).toBe('one million one');
-    expect(integerToWords(2_500_000_000)).toBe('two billion five hundred million');
+/**
+ * Cartesia normalizes conventional written forms itself (prompting guide:
+ * "Write in conventional forms and let the system normalize them"), so these
+ * pass through exactly as written. Each was spelled out (wrongly, for some)
+ * before the normalize lever was narrowed: review findings H2, M1, M7, L4.
+ */
+describe('normalizeForSpeech leaves conventional forms to Cartesia', () => {
+  it.each([
+    // H2: decades.
+    'The 1990s were loud.',
+    "the '80s",
+    'the 2000s',
+    // M1: years and counts, alone and in lists.
+    'In 1905 and 2005 and 2010 we moved.',
+    'I have 2024 reasons.',
+    '1500 people came.',
+    // M7: dates and things that only look like dates.
+    'due on 10/3, so soon',
+    '10/3 works',
+    'open 24/7',
+    'a 50/50 chance',
+    'add 1/2 cup',
+    'born 7/4/1999',
+    'Oct. 3 works',
+    // L4: negatives.
+    'It was -5 degrees.',
+    // Money, times, percentages, phone numbers, grouped numbers.
+    'It costs $19.99 or $4,200.',
+    'See you at 7:00 PM.',
+    'up 12% this year',
+    'call (415) 555-1212',
+    'about 12,500 steps',
+  ])('%s', (text) => {
+    expect(normalizeForSpeech(text)).toEqual({ text, count: 0 });
   });
 
-  it('reads decimals digit by digit after the point', () => {
-    expect(decimalToWords('3.5')).toBe('three point five');
-    expect(decimalToWords('0.05')).toBe('zero point zero five');
-  });
-
-  it('reads ordinals', () => {
-    expect(ordinalToWords(1)).toBe('first');
-    expect(ordinalToWords(3)).toBe('third');
-    expect(ordinalToWords(12)).toBe('twelfth');
-    expect(ordinalToWords(22)).toBe('twenty-second');
-    expect(ordinalToWords(30)).toBe('thirtieth');
-    expect(ordinalToWords(101)).toBe('one hundred first');
-  });
-
-  it('reads years the way people say them', () => {
-    expect(yearToWords(2026)).toBe('twenty twenty-six');
-    expect(yearToWords(1999)).toBe('nineteen ninety-nine');
-    expect(yearToWords(2005)).toBe('two thousand five');
-    expect(yearToWords(2000)).toBe('two thousand');
-    expect(yearToWords(1900)).toBe('nineteen hundred');
+  it('keeps abbreviations as written', () => {
+    expect(say('Mrs. Johnson vs. Dr. Patel, e.g. today')).toBe(
+      'Mrs. Johnson vs. Dr. Patel, e.g. today'
+    );
   });
 });
 
-describe('normalizeForSpeech', () => {
-  it('speaks currency, including cents and scale words', () => {
-    expect(say('The bill was $4,200.')).toBe('The bill was four thousand two hundred dollars.');
-    expect(say('It costs $4.50 now')).toBe('It costs four dollars and fifty cents now');
-    expect(say('just $1 today')).toBe('just one dollar today');
-    expect(say('only $0.99')).toBe('only ninety-nine cents');
-    expect(say('raised $1.5M')).toBe('raised one point five million dollars');
-    expect(say('a $20k raise')).toBe('a twenty thousand dollars raise');
-    expect(say('about $3 billion')).toBe('about three billion dollars');
-    expect(say('$3m is a lot')).toBe('three million dollars is a lot');
-    expect(say('$5b fund')).toBe('five billion dollars fund');
-    expect(say('$5 more')).toBe('five dollars more');
+describe('normalizeForSpeech: clock times in the documented form', () => {
+  it('gives an hour its minutes and a spaced, capital AM/PM', () => {
+    expect(say('See you at 7pm.')).toBe('See you at 7:00 PM.');
+    expect(say('at 7 p.m. sharp')).toBe('at 7:00 PM sharp');
+    expect(say('wake at 6am')).toBe('wake at 6:00 AM');
   });
 
-  it('speaks percentages', () => {
-    expect(say('up 15% this year')).toBe('up fifteen percent this year');
-    expect(say('a 2.5 % fee')).toBe('a two point five percent fee');
+  it('fixes the AM/PM on a time with minutes', () => {
+    expect(say('Call at 3:30 p.m. if you can.')).toBe('Call at 3:30 PM if you can.');
+    expect(say('Meet at 9:05am. Bring water.')).toBe('Meet at 9:05 AM. Bring water.');
+    expect(say('Lunch is 12:15pm')).toBe('Lunch is 12:15 PM');
   });
 
-  it('speaks clock times and keeps a sentence-final period', () => {
-    expect(say('Call at 3:30 p.m. if you can.')).toBe('Call at three thirty PM if you can.');
-    expect(say('See you at 7pm.')).toBe('See you at seven PM.');
-    expect(say('Meet at 9:05 am. Bring water.')).toBe('Meet at nine oh five AM. Bring water.');
-    expect(say('at 10:00')).toBe("at ten o'clock");
-    expect(say('Lunch is at 12:15')).toBe('Lunch is at twelve fifteen');
+  it('leaves times without AM/PM and impossible hours alone', () => {
+    expect(say('at 10:00')).toBe('at 10:00');
+    expect(say('a 13pm typo')).toBe('a 13pm typo');
+  });
+});
+
+describe('normalizeForSpeech: markdown and emoji never reach the voice', () => {
+  it('strips emphasis, code, headings and links', () => {
+    expect(say('That is **so** good')).toBe('That is so good');
+    expect(say('a *really* big deal')).toBe('a really big deal');
+    expect(say('try __this__ first')).toBe('try this first');
+    expect(say('run `npm test` now')).toBe('run npm test now');
+    expect(say('# Plan for today')).toBe('Plan for today');
+    expect(say('read [the guide](https://example.com/guide) first')).toBe('read the guide first');
   });
 
-  it('speaks dates', () => {
-    expect(say('due on 10/3, so soon')).toBe('due on October third, so soon');
-    expect(say('born 7/4/1999')).toBe('born July fourth, nineteen ninety-nine');
-    expect(say('Oct. 3 works')).toBe('October third works');
-    expect(say('October 3rd, 2026 it is')).toBe('October third, twenty twenty-six it is');
-    expect(say('since March 2020')).toBe('since March twenty twenty');
+  it('drops a written-out sigh (Stage 2 renders it) and emoji', () => {
+    expect(say('*sighs* Okay, here we go.')).toBe('Okay, here we go.');
+    expect(say('That is great 😊.')).toBe('That is great.');
+    expect(say('Nice 👍🏽 work 👨‍👩‍👧')).toBe('Nice work');
   });
 
-  it('leaves a bare fraction alone when nothing says it is a date', () => {
-    expect(say('add 3/4 cup of flour')).toBe('add 3/4 cup of flour');
-  });
-
-  it('speaks ordinals, years and grouped or long numbers', () => {
-    expect(say('your 22nd birthday')).toBe('your twenty-second birthday');
-    expect(say('back in 1998 we met')).toBe('back in nineteen ninety-eight we met');
-    expect(say('about 12,500 steps')).toBe('about twelve thousand five hundred steps');
-    expect(say('a 3.5 rating')).toBe('a three point five rating');
-    expect(say('1500 people')).toBe('one thousand five hundred people');
-  });
-
-  it('leaves small whole numbers for the voice to read', () => {
-    expect(say('I have 3 ideas and 12 minutes')).toBe('I have 3 ideas and 12 minutes');
-  });
-
-  it('reads phone numbers digit by digit in groups', () => {
-    expect(say('call 555-123-4567 now')).toBe(
-      'call five five five, one two three, four five six seven now'
+  it('keeps snake_case, hashtags-with-numbers and Cartesia markup', () => {
+    expect(say('set my_var to 3')).toBe('set my_var to 3');
+    expect(say("We're #1")).toBe("We're #1");
+    expect(say('[laughter] ok <break time="300ms"/> go')).toBe(
+      '[laughter] ok <break time="300ms"/> go'
     );
   });
+});
 
-  it('expands abbreviations without leaving a stray period', () => {
-    expect(say('Mrs. Johnson and Dr. Patel')).toBe('Missus Johnson and Doctor Patel');
-    expect(say('apples vs. oranges')).toBe('apples versus oranges');
-    expect(say('fruit, e.g. apples')).toBe('fruit, for example apples');
-    expect(say('the goal, i.e. sleep')).toBe('the goal, that is sleep');
-    expect(say('approx. ten')).toBe('approximately ten');
-    expect(say('bread, milk, etc. Then home.')).toBe('bread, milk, et cetera. Then home.');
-    expect(say('bread, milk, etc.')).toBe('bread, milk, et cetera.');
-    expect(say('FYI it moved')).toBe('F Y I it moved');
+describe('normalizeForSpeech: shouted emphasis', () => {
+  it('lowercases an all-caps word used for emphasis', () => {
+    expect(say('That is REALLY good')).toBe('That is really good');
+    expect(say("I DON'T know")).toBe("I don't know");
+    expect(say('THIS IS HUGE. Okay.')).toBe('This is huge. Okay.');
   });
 
-  it('never rewrites inside bracket or angle markup', () => {
-    expect(say('[laughter] that was 2000 years ago')).toBe(
-      '[laughter] that was two thousand years ago'
-    );
-    expect(say('<speed ratio="0.95"/>hi')).toBe('<speed ratio="0.95"/>hi');
+  it('keeps acronyms and consonant clusters', () => {
+    expect(say('NASA and the FBI said OK')).toBe('NASA and the FBI said OK');
+    expect(say('BTW the NYC trip is ASAP')).toBe('BTW the NYC trip is ASAP');
+    expect(say('an MP3 file')).toBe('an MP3 file');
   });
+});
 
+describe('normalizeForSpeech: accounting', () => {
   it('counts what it changed and leaves plain text alone', () => {
     expect(normalizeForSpeech('Nothing to change here.')).toEqual({
       text: 'Nothing to change here.',
       count: 0,
     });
-    expect(normalizeForSpeech('$5 at 3pm').count).toBe(2);
+    expect(normalizeForSpeech('**WOW** at 3pm').count).toBe(3);
+  });
+
+  it('never rewrites inside bracket or angle markup', () => {
+    expect(say('<emotion value="REALLY"/>REALLY')).toBe('<emotion value="REALLY"/>Really');
   });
 });

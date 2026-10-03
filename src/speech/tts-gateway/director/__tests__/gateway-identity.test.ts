@@ -141,8 +141,9 @@ describe('SPEECH_DIRECTOR on the live gateway path', () => {
     const { pushes } = await runGateway();
     expect(pushes).not.toEqual(GOLDEN);
     const all = pushes.join('');
-    expect(all).toContain('four thousand two hundred dollars on October third,');
-    expect(all).toContain('three thirty PM');
+    // Conventional forms are Cartesia's to read; only the edge cases change.
+    expect(all).toContain('$4,200 on 10/3,');
+    expect(all).toContain('Call at 3:30 PM if you can.');
     expect(pushes.some((p) => p.trim().endsWith('a lot of'))).toBe(false);
     expect(pushes[0]).toContain('<emotion value="sympathetic"/>');
   });

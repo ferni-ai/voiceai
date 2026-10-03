@@ -45,14 +45,14 @@ describe('Director failure', () => {
       onPlan: (s) => plans.push(s),
     }).reply;
 
-    reply.push('It cost $5 and it was so much more than we planned on spending this week for ');
+    reply.push('We met at 7pm and it was so much more than we planned on spending this week for ');
     reply.push('BOOM goes the reply. ');
     reply.push('And this one is after it. ');
     reply.end();
 
     // The held tail of the first push is not lost; BOOM and after are verbatim.
     const all = inner.pushes.join('');
-    expect(all).toContain('five dollars');
+    expect(all).toContain('7:00 PM'); // directed before the failure
     expect(all).toContain('spending this week for');
     expect(inner.pushes).toContain('BOOM goes the reply. ');
     expect(inner.pushes.at(-1)).toBe('And this one is after it. ');
