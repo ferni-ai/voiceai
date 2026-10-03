@@ -23,7 +23,7 @@
  *   Sonic reads all-caps letter by letter. Fail safe: only words on an explicit
  *   emphasis list; every other caps token (FDIC, AAPL, HIIT, VIII) is kept.
  *
- * Nothing inside [...] or <...> markup is touched.
+ * Nothing inside [...] or <...> markup, or a <spell> element, is touched.
  *
  * @module speech/tts-gateway/director/normalize
  */
@@ -170,8 +170,8 @@ const RULES: readonly Rule[] = [
     }),
 ];
 
-/** Split off [...] and <...> markup so rules only see speakable text. */
-const MARKUP = /(\[[^\]]*\]|<[^>]*>)/;
+/** Split off <spell>...</spell>, [...] and <...> markup so rules only see speakable text. */
+const MARKUP = /(<spell>[\s\S]*?<\/spell>|\[[^\]]*\]|<[^>]*>)/i;
 
 export function normalizeForSpeech(text: string): NormalizeResult {
   let count = 0;

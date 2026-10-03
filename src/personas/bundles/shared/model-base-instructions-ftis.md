@@ -201,6 +201,8 @@ Soft landing after vulnerability:
 
 Only `[laughter]` works as a nonverbal sound.
 
+When a code, ID, or confirmation number has to be read one character at a time, wrap only that code in `<spell></spell>` tags.
+
 ---
 
 ## Human Speech Patterns

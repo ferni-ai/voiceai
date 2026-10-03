@@ -9,7 +9,7 @@
  * 2. **Extract prosody** - Convert SSML tags to API parameters where possible
  * 3. **Convert breaks to punctuation** - Since Cartesia streaming can't handle breaks reliably
  * 4. **Preserve intent** - Even when stripping, maintain the speech intent; stage directions
- *    (*smiles*) are never spoken (stage-directions.ts)
+ *    are never spoken, <spell> passes through, break runs collapse (speech-markup.ts)
  *
  * @module speech/tts-gateway/ssml/processor
  */
@@ -18,7 +18,7 @@ import { TransformStream } from 'node:stream/web';
 import type { ISSMLProcessor, SSMLParseResult, SSMLProsodyConfig } from '../types.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { BREATH_BRACKET_REGEX, LAUGHTER_BRACKET_REGEX } from './nonverbal-brackets.js';
-import { rewriteAsteriskSpans } from '../stage-directions.js';
+import { prepareSpeechMarkup } from './speech-markup.js';
 
 const log = createLogger({ module: 'SSMLProcessor' });
 
@@ -99,8 +99,7 @@ const BREAK_TAG_REGEX = /<break\s+time=["']?(\d+)(ms|s)?["']?\s*\/?>/gi;
 /** Match closing prosody tags */
 const PROSODY_CLOSE_REGEX = /<\/(?:speed|volume|emotion|prosody)>/gi;
 
-/** Match any XML-like tag (no 'g' flag — safe for .test() which is stateful with /g) */
-const ANY_TAG_REGEX = /<[^>]+>/;
+const ANY_TAG_REGEX = /<[^>]+>/; // no 'g' flag: safe for .test()
 
 /**
  * Match JSON function call blocks that LLM might output alongside speech text
@@ -172,7 +171,8 @@ export class SSMLProcessor implements ISSMLProcessor {
     const warnings: string[] = [];
     const originalTags: string[] = [];
     const prosody: SSMLProsodyConfig = {};
-    let cleanText = rewriteAsteriskSpans(text, false).text;
+    const markup = prepareSpeechMarkup(text);
+    let cleanText = markup.text;
     let hadSSML = false;
 
     // Extract speed tags
@@ -370,8 +370,8 @@ export class SSMLProcessor implements ISSMLProcessor {
       cleanText = cleanText.replace(/<[^>]+>/g, '');
     }
 
-    // Clean up whitespace and punctuation artifacts
-    cleanText = this.cleanupText(cleanText);
+    // Clean up whitespace and punctuation artifacts; put <spell> elements back
+    cleanText = markup.restore(this.cleanupText(cleanText));
 
     return {
       cleanText,

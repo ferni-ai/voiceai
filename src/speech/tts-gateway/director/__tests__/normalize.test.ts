@@ -179,3 +179,12 @@ describe('normalizeForSpeech: accounting', () => {
     expect(say('<emotion value="REALLY"/>REALLY')).toBe('<emotion value="REALLY"/>Really');
   });
 });
+
+describe('normalizeForSpeech: <spell> content is markup, never rewritten', () => {
+  it('leaves a spelled code alone even when it looks like a time or emphasis', () => {
+    expect(say('Your code is <spell>7PM AM</spell>, okay?')).toBe(
+      'Your code is <spell>7PM AM</spell>, okay?'
+    );
+    expect(say('Use <spell>NOW 😊</spell> at 7pm')).toBe('Use <spell>NOW 😊</spell> at 7 PM');
+  });
+});

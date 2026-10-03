@@ -40,10 +40,12 @@ function buildWebsocketUrl(apiKey: string): string {
 
 /**
  * Strip SSML and normalize text for Cartesia (tags get spoken literally otherwise).
+ * `<spell>` is Cartesia markup (codes read character by character) and is kept;
+ * every break is stripped, so a spell is never chained with one.
  */
 function stripForCartesia(text: string): string {
   return text
-    .replace(/<[^>]+>/g, ' ')
+    .replace(/<(?!\/?spell>)[^>]+>/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
