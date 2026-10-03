@@ -48,6 +48,9 @@ describe('normalizeForSpeech', () => {
     expect(say('raised $1.5M')).toBe('raised one point five million dollars');
     expect(say('a $20k raise')).toBe('a twenty thousand dollars raise');
     expect(say('about $3 billion')).toBe('about three billion dollars');
+    expect(say('$3m is a lot')).toBe('three million dollars is a lot');
+    expect(say('$5b fund')).toBe('five billion dollars fund');
+    expect(say('$5 more')).toBe('five dollars more');
   });
 
   it('speaks percentages', () => {

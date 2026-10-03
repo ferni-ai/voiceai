@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { PAUSE_RANGES, pauseDuration, planPauses, renderPauses } from '../pauses.js';
+import {
+  commaDensity,
+  PAUSE_RANGES,
+  pauseDuration,
+  planPauses,
+  removeMidSentenceEllipses,
+} from '../pauses.js';
 import type { PauseKind } from '../types.js';
 
 const kinds = (text: string): string[] => planPauses(text).map((e) => String(e.params.kind));
@@ -50,39 +56,44 @@ describe('planPauses', () => {
   });
 });
 
-describe('renderPauses', () => {
-  it('turns a lead-in to the point into a trailing pause', () => {
-    expect(renderPauses("Here's the thing, you did the right thing.")).toEqual({
-      text: "Here's the thing... you did the right thing.",
-      inserted: 1,
-    });
+describe('removeMidSentenceEllipses', () => {
+  const drop = (text: string): string => removeMidSentenceEllipses(text).text;
+
+  it('takes out the ellipses measured as mid-sentence breaks on dev', () => {
+    expect(drop("Oh wow, that's just... huge news.")).toBe("Oh wow, that's just huge news.");
+    expect(drop('The light outside my window... reminds me of home.')).toBe(
+      'The light outside my window reminds me of home.'
+    );
+    expect(drop('the whole thing… alive')).toBe('the whole thing alive');
   });
 
-  it('adds the comma after an opening discourse marker', () => {
-    expect(renderPauses('Well I think that works. Honestly it does.').text).toBe(
-      'Well, I think that works. Honestly, it does.'
-    );
-    expect(renderPauses('Well water is safe.').text).toBe('Well water is safe.');
+  it('joins "word...word" and "word ...word" with one space', () => {
+    expect(drop('that is...huge')).toBe('that is huge');
+    expect(drop('that is ...huge')).toBe('that is huge');
+    expect(drop('...and then it rained.')).toBe('and then it rained.');
   });
 
-  it('breathes before a contrast in a long unpunctuated run only', () => {
-    expect(
-      renderPauses('I know you wanted to go to the party with all of them but you stayed home.')
-        .text
-    ).toBe('I know you wanted to go to the party with all of them, but you stayed home.');
-    expect(renderPauses('Small but mighty.').text).toBe('Small but mighty.');
-    expect(
-      renderPauses('There was nothing left in the house to do that evening but sleep.').text
-    ).toBe('There was nothing left in the house to do that evening but sleep.');
+  it('keeps markup between the words', () => {
+    expect(drop('it was a drop... [laughter] just a drop.')).toBe(
+      'it was a drop [laughter] just a drop.'
+    );
   });
 
-  it('only ever writes punctuation, never a native break', () => {
-    const out = renderPauses(
-      "Well I tried. Here's the thing, it worked but not the way I thought it would at all."
-    );
-    expect(out.text).not.toMatch(/<break/);
-    expect(out.text.replace(/[,.]|\.\.\./g, '')).toBe(
-      "Well I tried Here's the thing it worked but not the way I thought it would at all"
-    );
+  it('keeps a trailing-off at the end of a sentence or turn', () => {
+    expect(drop("I don't know...")).toBe("I don't know...");
+    expect(drop('this morning... I went outside.')).toBe('this morning... I went outside.');
+  });
+
+  it('counts what it removed and never adds a pause or a break', () => {
+    const out = removeMidSentenceEllipses("that's just... huge, and the window... reminds me");
+    expect(out.removed).toBe(2);
+    expect(out.text).not.toMatch(/<break|\.\.\./);
+    expect(out.text.match(/,/g)).toHaveLength(1);
+  });
+});
+
+describe('commaDensity', () => {
+  it('counts commas and words', () => {
+    expect(commaDensity('Oh, well, I mean it works.')).toEqual({ commas: 2, words: 6 });
   });
 });

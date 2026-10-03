@@ -13,7 +13,7 @@ import type { SSMLProsodyConfig } from '../types.js';
 import { decideEmotion, readValence, type EmotionDecision } from './emotion.js';
 import { normalizeForSpeech } from './normalize.js';
 import { decideSpeed } from './pacing.js';
-import { planPauses, renderPauses } from './pauses.js';
+import { commaDensity, planPauses, removeMidSentenceEllipses } from './pauses.js';
 import { PhraseAssembler } from './phrasing.js';
 import type { CarryOver } from './session-state.js';
 import type { Lever, LeverModes, RustEvent, SpeechPlan, SpeechSegment } from './types.js';
@@ -46,8 +46,10 @@ export interface EngineStats {
   pushesIn: number;
   pushesOut: number;
   normalizations: number;
-  pauseUpgrades: number;
+  ellipsesRemoved: number;
   held: number;
+  commas: number;
+  words: number;
   breaths: number;
   sighs: number;
 }
@@ -72,8 +74,10 @@ export class DirectorEngine {
     pushesIn: 0,
     pushesOut: 0,
     normalizations: 0,
-    pauseUpgrades: 0,
+    ellipsesRemoved: 0,
     held: 0,
+    commas: 0,
+    words: 0,
     breaths: 0,
     sighs: 0,
   };
@@ -81,13 +85,19 @@ export class DirectorEngine {
   speed = 1;
 
   private readonly planPhrases = new PhraseAssembler();
-  private readonly spokenPhrases = new PhraseAssembler();
+  private readonly spokenPhrases: PhraseAssembler;
   private opened = false;
   private replySpeed = 1;
   private pendingTags = '';
   private segmentsSinceBreath = Infinity;
 
-  constructor(private readonly ctx: EngineContext) {}
+  constructor(private readonly ctx: EngineContext) {
+    // Live phrasing re-cuts; live pauses holds a trailing "..." to see what follows.
+    this.spokenPhrases = new PhraseAssembler({
+      reCut: this.live('phrasing'),
+      holdEllipsis: this.live('pauses'),
+    });
+  }
 
   private live(lever: Lever): boolean {
     return this.ctx.modes[lever] === 'live';
@@ -106,9 +116,7 @@ export class DirectorEngine {
     this.planSegments(planned);
 
     const spokenBody = this.live('normalize') ? normalized.text : body;
-    const spoken = this.live('phrasing')
-      ? this.spokenPhrases.accept(spokenBody, first)
-      : [spokenBody];
+    const spoken = this.spokenPhrases.accept(spokenBody, first);
     if (spoken.length === 0) this.stats.held++;
     this.pendingTags += first ? this.openingTags(tags, prosody) : this.paceTags(tags, prosody);
     return this.emit(spoken);
@@ -117,7 +125,7 @@ export class DirectorEngine {
   /** The reply is over: release held phrases. */
   finish(): string[] {
     this.planSegments(this.planPhrases.flush());
-    return this.emit(this.live('phrasing') ? this.spokenPhrases.flush() : []);
+    return this.emit(this.spokenPhrases.flush());
   }
 
   /** After a failure: whatever phrasing was holding, undirected, so no words are lost. */
@@ -165,7 +173,7 @@ export class DirectorEngine {
   private emit(texts: string[]): string[] {
     const out: string[] = [];
     for (const raw of texts) {
-      const text = this.live('pauses') ? renderPauses(raw).text : raw;
+      const text = this.live('pauses') ? removeMidSentenceEllipses(raw).text : raw;
       if (!text) continue;
       out.push(`${this.pendingTags}${text} `);
       this.pendingTags = '';
@@ -176,8 +184,11 @@ export class DirectorEngine {
 
   private planSegments(phrases: string[]): void {
     for (const phrase of phrases) {
-      const rendered = renderPauses(phrase);
-      this.stats.pauseUpgrades += rendered.inserted;
+      const rendered = removeMidSentenceEllipses(phrase);
+      this.stats.ellipsesRemoved += rendered.removed;
+      const density = commaDensity(rendered.text);
+      this.stats.commas += density.commas;
+      this.stats.words += density.words;
       const events: RustEvent[] = [];
       const sighs = this.ctx.cues.takeSighs();
       for (let i = 0; i < sighs; i++) {

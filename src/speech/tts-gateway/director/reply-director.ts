@@ -37,7 +37,10 @@ export interface PlanSummary {
   segments: number;
   heldPhrases: number;
   normalizations: number;
-  pauseUpgrades: number;
+  /** Mid-sentence "..." taken out (the measured cause of mid-sentence breaks). */
+  ellipsesRemoved: number;
+  /** Commas per 100 words in the planned text; each is a ~310 ms Sonic pause. */
+  commasPer100Words: number;
   emotion?: string;
   emotionSource: string;
   speed: number;
@@ -192,7 +195,10 @@ class DirectedReply implements ReplyStream {
       segments: engine.plan.segments.length,
       heldPhrases: engine.stats.held,
       normalizations: engine.stats.normalizations,
-      pauseUpgrades: engine.stats.pauseUpgrades,
+      ellipsesRemoved: engine.stats.ellipsesRemoved,
+      commasPer100Words: engine.stats.words
+        ? Math.round((engine.stats.commas / engine.stats.words) * 1000) / 10
+        : 0,
       emotion: engine.emotion.emotion,
       emotionSource: engine.emotion.source,
       speed: engine.speed,

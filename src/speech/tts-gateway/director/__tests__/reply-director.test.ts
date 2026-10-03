@@ -130,7 +130,7 @@ describe('live mode', () => {
     expect(all).toContain('four thousand two hundred dollars');
     expect(all).toContain('Missus Johnson');
     expect(all).toContain('October third');
-    expect(all).toContain("Here's the thing...");
+    expect(all).toContain("Here's the thing, you did the right thing.");
     // The 80-char fallback cut ("a lot of | money") is gone: no push ends mid-phrase.
     expect(inner.pushes.some((p) => p.trim().endsWith('a lot of'))).toBe(false);
     expect(inner.pushes[1].trim().endsWith('October third,')).toBe(true);
@@ -197,6 +197,21 @@ describe('live mode', () => {
     expect(a2.plans[0].summary.speed).toBeLessThan(0.97);
     expect(b1.plans[0].summary.speed).toBe(1);
     expect(b1.inner.pushes[0]).not.toContain('<speed');
+  });
+
+  it('holds a push ending in "..." and joins it to the next when the sentence goes on', async () => {
+    const raw = ["Oh wow, that's just... huge news for you. ", 'And then... I left.'];
+    const pushes = ["Oh wow, that's just... ", 'huge news for you. ', 'And then... I left. '];
+    const live = await run({ SPEECH_DIRECTOR: 'live' }, { raw, pushes });
+    expect(live.inner.pushes.join('')).toContain("Oh wow, that's just huge news for you.");
+    // A trailing-off before a new sentence ("then... I") is kept.
+    expect(live.inner.pushes.join('')).toContain('And then... I left.');
+    expect(live.plans[0].summary.ellipsesRemoved).toBe(1);
+
+    const shadow = await run({ SPEECH_DIRECTOR: 'shadow' }, { raw, pushes });
+    expect(shadow.inner.pushes).toEqual(pushes);
+    expect(shadow.plans[0].summary.ellipsesRemoved).toBe(1);
+    expect(shadow.plans[0].summary.commasPer100Words).toBeGreaterThan(0);
   });
 
   it('logs the plan on cancel too, and cancels the inner reply', async () => {
