@@ -22,10 +22,15 @@ const log = createLogger({ module: 'VoiceIds' });
 // =============================================================================
 
 /**
- * Cartesia model from environment variable.
- * sonic-3.6 is the latest stable alias (snapshot 2026-08-27); a drop-in for sonic-3.
+ * Default Cartesia model: a DATED snapshot, not the floating 'sonic-3.6' alias.
+ * Ferni's voice is a Professional Voice Clone, and a PVC must be used with a model
+ * it was fine-tuned on (see PVC_FINE_TUNED_MODELS in voice-capabilities.ts). An
+ * alias can move to a snapshot the PVC has no fine-tune for.
  */
-export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3.6';
+export const DEFAULT_CARTESIA_MODEL = 'sonic-3.6-2026-08-27';
+
+/** Cartesia model; CARTESIA_MODEL env overrides the pinned default. */
+export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || DEFAULT_CARTESIA_MODEL;
 
 /**
  * Cartesia API version for all TTS requests
