@@ -8,15 +8,25 @@
  *
  * Sentence-end detection also has to avoid abbreviations ("Mrs. Johnson",
  * "etc.", "vs.") and decimals/times ("3.50", "7 p.m.") — see
- * `isAbbreviationBoundary` below.
+ * `isAbbreviationBoundary` below. Abbreviations are not all the same shape:
+ * a TITLE ("Dr.", "Mrs.", "St.") is always followed by the name it
+ * introduces, so its period is never a sentence end. A GENERAL abbreviation
+ * ("etc.", "vs.", "p.m.") usually isn't either, but unlike a title it CAN
+ * end a sentence ("...stuff, etc. Then we left.") — treating it as always
+ * non-terminal ran the chunk past it to the 80-char fallback, cutting
+ * mid-phrase. `isAbbreviationBoundary` tells the two apart.
  *
  * @module speech/tts-gateway/chunk-boundary
  */
 
-import { SENTENCE_BOUNDARY_ABBREVIATIONS } from '../../ssml/constants/common-abbreviations.js';
+import {
+  TITLE_ABBREVIATIONS,
+  GENERAL_ABBREVIATIONS,
+} from '../../ssml/constants/common-abbreviations.js';
 
-/** Lowercase lookup of title/abbreviation words that precede a non-ending period. */
-const ABBREVIATION_WORDS = new Set(SENTENCE_BOUNDARY_ABBREVIATIONS);
+/** Lowercase lookups, split by whether the abbreviation can ever end a sentence. */
+const TITLE_WORDS = new Set(TITLE_ABBREVIATIONS);
+const GENERAL_WORDS = new Set(GENERAL_ABBREVIATIONS);
 
 /**
  * Candidate sentence ends: a run of ./!/? followed by whitespace or the end
@@ -34,21 +44,38 @@ function wordBefore(text: string, index: number): string {
   return text.slice(i, index);
 }
 
+/** True when `text[matchEnd]` starts a capitalized word (the usual shape of a new sentence). */
+function startsWithCapitalWord(text: string, matchEnd: number): boolean {
+  return matchEnd < text.length && /[A-Z]/.test(text[matchEnd]);
+}
+
 /**
- * True when the punctuation run starting at `index` is NOT a real sentence
- * end: a decimal ("3.50"), a single initial ("U.S.", "J. Smith"), a time
- * ("7 p.m."), or a known title/abbreviation ("Mrs.", "etc.", "vs.").
+ * True when the punctuation run `text[matchStart..matchEnd)` is NOT a real
+ * sentence end:
+ * - a decimal ("3.50")
+ * - a single initial ("U.S.", "J. Smith") — title-like, never terminal
+ * - a title abbreviation ("Mrs.", "Dr.", "St.") — never terminal, the next
+ *   word is the name it introduces regardless of capitalization
+ * - a general abbreviation ("etc.", "vs.", "7 p.m.") — terminal only when
+ *   followed by a capitalized word; otherwise still mid-sentence, or there
+ *   isn't enough text yet to tell
  */
-function isAbbreviationBoundary(text: string, index: number): boolean {
-  if (index > 0 && /[0-9]/.test(text[index - 1])) return true; // decimal: "3.50"
+function isAbbreviationBoundary(text: string, matchStart: number, matchEnd: number): boolean {
+  if (matchStart > 0 && /[0-9]/.test(text[matchStart - 1])) return true; // decimal: "3.50"
 
-  const before = text.slice(0, index);
-  if (/[ap]\.m$/i.test(before)) return true; // "7 p.m." / "7 a.m."
+  // "7 p.m." / "7 a.m." — wordBefore() only finds "m" here (the first period
+  // inside "p.m." breaks the letter run), so check the whole suffix instead.
+  const isTimeAbbrev = /[ap]\.m$/i.test(text.slice(0, matchStart));
+  if (isTimeAbbrev) return !startsWithCapitalWord(text, matchEnd);
 
-  const word = wordBefore(text, index);
+  const word = wordBefore(text, matchStart);
   if (!word) return false;
   if (word.length === 1) return /[A-Z]/.test(word); // single initial: "U.S.", "J. Smith"
-  return ABBREVIATION_WORDS.has(word.toLowerCase());
+
+  const lower = word.toLowerCase();
+  if (TITLE_WORDS.has(lower)) return true; // "Dr. Smith" stays joined either way
+  if (GENERAL_WORDS.has(lower)) return !startsWithCapitalWord(text, matchEnd);
+  return false;
 }
 
 /**
@@ -59,8 +86,9 @@ function findSentenceEnd(text: string, fromIndex = 0): number | null {
   SENTENCE_END_CANDIDATE.lastIndex = fromIndex;
   let match: RegExpExecArray | null;
   while ((match = SENTENCE_END_CANDIDATE.exec(text)) !== null) {
-    if (!isAbbreviationBoundary(text, match.index)) {
-      return match.index + match[0].length;
+    const matchEnd = match.index + match[0].length;
+    if (!isAbbreviationBoundary(text, match.index, matchEnd)) {
+      return matchEnd;
     }
     // Abbreviation: keep scanning right after this punctuation run so an
     // infinite loop isn't possible on a zero-width continuation.

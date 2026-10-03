@@ -85,19 +85,19 @@ export const COMMON_ABBREVIATIONS: PronunciationEntry[] = [
 ];
 
 /**
- * Title and other abbreviations that end in a period without ending a
- * sentence: "Mrs. Johnson called" must not be chunked after "Mrs." even
- * though the word before the period is all lowercase letters (unlike "Dr."
- * or "U.S.", a capital+lowercase or single-capital lookbehind can't catch
- * "Mrs.", "etc." or "approx." — the word itself has to be known).
+ * Title/name-prefix abbreviations: grammatically, the word right after one
+ * of these is always the name it introduces ("Dr. Smith", "St. Louis"), so
+ * the period after it NEVER ends a sentence — not even when followed by a
+ * capitalized word ("Dr. Smith is here" must stay joined, same as a buffer
+ * that ends right after "Mrs." with nothing yet to join to).
  *
  * Lowercase, no trailing period. Consumed by
  * `speech/tts-gateway/chunk-boundary.ts` to keep the gateway's sentence
- * splitter from cutting mid-abbreviation; kept here next to
- * `COMMON_ABBREVIATIONS` since both are "words that need special handling
- * around a period" for Cartesia TTS.
+ * splitter from cutting mid-title; kept here next to `COMMON_ABBREVIATIONS`
+ * since both are "words that need special handling around a period" for
+ * Cartesia TTS.
  */
-export const SENTENCE_BOUNDARY_ABBREVIATIONS: readonly string[] = [
+export const TITLE_ABBREVIATIONS: readonly string[] = [
   // Personal titles
   'mr',
   'mrs',
@@ -124,6 +124,22 @@ export const SENTENCE_BOUNDARY_ABBREVIATIONS: readonly string[] = [
   'gov',
   'sen',
   'rep',
+  // Place-name prefixes ("St. Louis", "Mt. Everest")
+  'st',
+  'mt',
+];
+
+/**
+ * Abbreviations that, unlike titles, CAN end a sentence — "etc.", "p.m.",
+ * "vs." are mid-clause most of the time ("etc. for the trip", "7 p.m.
+ * sharp") but do sometimes close one out ("...stuff, etc. Then we left.").
+ * `chunk-boundary.ts` treats the period as terminal only when a capitalized
+ * word follows (the common shape of the next sentence's first word);
+ * otherwise it stays non-terminal, same as before.
+ *
+ * Lowercase, no trailing period.
+ */
+export const GENERAL_ABBREVIATIONS: readonly string[] = [
   // Latin / general abbreviations
   'etc',
   'approx',
@@ -134,9 +150,7 @@ export const SENTENCE_BOUNDARY_ABBREVIATIONS: readonly string[] = [
   'viz',
   'eg',
   'ie',
-  // Places
-  'st',
-  'mt',
+  // Places (suffix form, e.g. "Main St.", not prefix — see TITLE_ABBREVIATIONS)
   'ave',
   'blvd',
   // Business / org
