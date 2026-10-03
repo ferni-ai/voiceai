@@ -407,21 +407,26 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
 
   describe('TTL Cleanup', () => {
     it('should get TTL statistics', async () => {
-      const { getTTLStatistics } = await import('../../services/data-layer/ttl-cleanup.js');
+      const { getTTLStatistics, TTL_CONFIGS } =
+        await import('../../services/data-layer/ttl-cleanup.js');
 
-      const stats = getTTLStatistics();
+      const stats = await getTTLStatistics();
 
-      expect(stats).toBeDefined();
-      expect(typeof stats).toBe('object');
-      // Should have entries for entity types with TTL
-      expect(Object.keys(stats).length).toBeGreaterThan(0);
+      expect(stats.collections).toBe(TTL_CONFIGS.length);
+      expect(stats.collections).toBeGreaterThan(0);
+      expect(stats.configured[0]).toEqual({
+        path: TTL_CONFIGS[0].path,
+        ttlDays: TTL_CONFIGS[0].ttlDays,
+      });
     });
 
     it('should run cleanup without errors', async () => {
-      const { cleanupExpiredDocuments } = await import('../../services/data-layer/ttl-cleanup.js');
+      const { runTTLCleanup } = await import('../../services/data-layer/ttl-cleanup.js');
 
-      // Should complete without throwing (even if no docs to clean)
-      await expect(cleanupExpiredDocuments()).resolves.not.toThrow();
+      // Completes with a report even when nothing has expired
+      const report = await runTTLCleanup({ dryRun: true });
+      expect(report.totalErrors).toBe(0);
+      expect(Array.isArray(report.results)).toBe(true);
     });
   });
 
@@ -756,8 +761,9 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
       // Search for non-existent user
       const results = await searchUserContext('non-existent-user', 'anything');
 
-      // Should return empty results, not throw
-      expect(Array.isArray(results) || results === undefined).toBe(true);
+      // Should return an empty context, not throw
+      expect(results.userId).toBe('non-existent-user');
+      expect(results.relevantMemories).toEqual([]);
     });
 
     it('should handle malformed content gracefully', async () => {
