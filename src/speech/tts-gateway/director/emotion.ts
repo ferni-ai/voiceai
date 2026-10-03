@@ -91,24 +91,39 @@ const FROM_WORDS: Partial<Record<Valence, StableEmotion>> = {
 };
 
 // Whole words only: "greatly" is not "great" (substring-classifier pitfall).
-/**
- * A loss, illness or grief word: one is enough to make a reply heavy.
- * "sorry to hear" / "sorry for your loss" count; a bare "sorry" does not.
- */
+/** A loss, illness or grief word: one is enough to make a reply heavy. */
 const HEAVY_LEXEME =
-  /\b(?:loss|passed away|died|death|dying|grief|griev(?:e|ing)|funeral|miscarriage|cancer|tumou?r|diagnos(?:is|ed)|chemo(?:therapy)?|hospice|illness|dementia|breakup|divorce|laid off|sorry to hear|sorry for your)\b/i;
+  /\b(?:loss|passed away|died|death|dying|grief|griev(?:e|ing)|funeral|miscarriage|cancer|tumou?r|diagnos(?:is|ed)|chemo(?:therapy)?|hospice|illness|dementia|breakup|divorce|laid off)\b/i;
 /**
- * Words that are heavy only in company. Alone they are routine: "Sorry,
- * could you say that again?" is a repair, "that's a hard question" is not
- * bad news, and "sick!" is praise. Two of them together read as heavy.
+ * A repair apology asks the user to repeat; it is not sympathy. "Sorry,
+ * could you say that again?" / "Sorry I lost track, what was the hard part?"
+ * read by their other words, never as heavy.
+ */
+const REPAIR =
+  /\bsorry\b.*\b(?:could you|can you|say that again|(?:didn'?t|did not) catch|missed that|what was (?:that|the)|come again|repeat|lost track)\b/i;
+/** An apology outside a repair is sympathy: "I'm so sorry." */
+const SORRY = /\bsorry\b/i;
+/**
+ * Hard/tough said OF the user's situation ("that sounds really hard", "that
+ * must be hard"), not of a question or a call ("hard question", "tough call").
+ */
+const EMPATHY_FRAME =
+  /\b(?:sounds?|must be|must have been|has been|have been|been|that's|that is|it's|it is|so|really|incredibly|truly)\s+(?:(?:really|so|incredibly|truly|very)\s+)?(?:hard|tough|difficult|painful|scary|lonely|overwhelming|exhausting|heartbreaking)\b(?!\s+(?:question|call|one|part|choice|decision|to (?:say|tell|beat)))/i;
+/**
+ * Words that are heavy only in company: alone they are routine ("that's a
+ * hard question", "sick!" as praise). Two of them together read as heavy.
  */
 const HEAVY_CUE =
-  /\b(?:sorry|lost|passing|terminal|stroke|hard|hurts?|pain(?:ful)?|scared|afraid|anxious|worried|struggl(?:e|ing)|difficult|tough|sad|lonely|sick|fired|overwhelmed|exhausted)\b/gi;
+  /\b(?:lost|passing|terminal|stroke|hard|hurts?|pain(?:ful)?|scared|afraid|anxious|worried|struggl(?:e|ing)|difficult|tough|sad|lonely|sick|fired|overwhelmed|exhausted)\b/gi;
 const BRIGHT =
   /\b(?:congrat(?:s|ulations)|amazing|awesome|wonderful|fantastic|great|incredible|brilliant|delighted|celebrate|so happy|excited|proud of you|love that|yay)\b/i;
 
 function isHeavy(text: string): boolean {
-  return HEAVY_LEXEME.test(text) || (text.match(HEAVY_CUE)?.length ?? 0) >= 2;
+  if (HEAVY_LEXEME.test(text)) return true;
+  // A repair turn is read only by its loss words, not by its other cues.
+  if (REPAIR.test(text)) return false;
+  if (SORRY.test(text) || EMPATHY_FRAME.test(text)) return true;
+  return (text.match(HEAVY_CUE)?.length ?? 0) >= 2;
 }
 
 /** How the reply's opening words read. Heavy wins over bright. */

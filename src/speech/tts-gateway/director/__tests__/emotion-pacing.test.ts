@@ -71,6 +71,19 @@ describe('readValence', () => {
     expect(readValence('I lost my keys again.')).toBe('neutral');
   });
 
+  it('reads sympathy as heavy again: an apology or "that sounds hard" (round 2)', () => {
+    expect(readValence("I'm sorry you're going through this.")).toBe('heavy');
+    expect(readValence("I'm so sorry.")).toBe('heavy');
+    expect(readValence('That sounds really hard.')).toBe('heavy');
+    expect(readValence('that must be hard')).toBe('heavy');
+  });
+
+  it('reads only a REPAIR apology by its other words, even with weak cues in it', () => {
+    expect(readValence('Sorry I lost track, what was the hard part?')).toBe('inquisitive');
+    expect(readValence("I'm sorry, I didn't catch that.")).toBe('neutral');
+    expect(readValence('Sorry, come again?')).toBe('inquisitive');
+  });
+
   it('reads a loss or illness word, or two weak cues together, as heavy', () => {
     expect(readValence("I'm so sorry for your loss.")).toBe('heavy');
     expect(readValence('My mom was diagnosed last week.')).toBe('heavy');
