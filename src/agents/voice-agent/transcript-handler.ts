@@ -131,6 +131,7 @@ import {
   processActiveListeningFinal,
   processActiveListeningPartial,
 } from './active-listening-handler.js';
+import { getUserResponseGapMs } from './user-response-gap.js';
 
 // ============================================================================
 // TYPES
@@ -1095,21 +1096,9 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
 
         // Say the cached response immediately (with SSML if available) via coordinated speech
         try {
+          // The spoken reply is recorded as the agent's turn when the session
+          // commits it (agent-reply-recorder, on conversation_item_added).
           coordinatedSay(sessionId, cached.ssml || cached.response, { allowInterruptions: true });
-
-          // Track that we used a cached response (+ on-behalf call capture)
-          import('./agent-turn-recorder.js')
-            .then(({ recordAgentTurn }) => recordAgentTurn(sessionId, services, cached.response))
-            .catch(() => {
-              // Fallback
-              if (services && typeof services.addTurn === 'function') {
-                services.addTurn('assistant', cached.response);
-              }
-            });
-          if (userData) {
-            userData.lastAgentResponse = cached.response;
-            userData.lastAgentResponseTime = Date.now();
-          }
         } catch (sayErr) {
           diag.warn('Cached response say failed', { error: String(sayErr) });
           // Fall through to normal processing
@@ -1849,9 +1838,7 @@ function processHumanListeningPipeline(
         emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
         durationMs: userData.voiceEmotion?.prosody?.utteranceDuration,
         prosodyFeatures,
-        timeSinceAgentMessage: userData.lastAgentResponseTime
-          ? Date.now() - userData.lastAgentResponseTime
-          : undefined,
+        timeSinceAgentMessage: getUserResponseGapMs(userData),
       });
 
       // Store for context builder access
