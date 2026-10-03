@@ -17,14 +17,16 @@
 
 import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 
+import { voiceHonorsProsodyTags } from '../../../config/voice-capabilities.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { setReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
 import { DirectorEngine } from './engine.js';
 import { leverModes, speechDirectorMode } from './gate.js';
 import { RawCues } from './raw-cues.js';
 import { directorSessions, type DirectorSessions } from './session-state.js';
-import type { DirectorMode, LeverModes, SpeechPlan } from './types.js';
+import type { DirectorMode, LeverModes, SpeechPlan, TurnContext } from './types.js';
 
 const log = createLogger({ module: 'SpeechDirector' });
 
@@ -64,6 +66,10 @@ export interface PlanSummary {
   emotion?: string;
   emotionSource: string;
   speed: number;
+  /** Stage 2 tempo planned for this turn (a voice that ignores <speed>). */
+  tempo?: number;
+  /** Prosody tags were taken off every push (the voice ignores them). */
+  tagsStripped: boolean;
   pauses: number;
   pauseMs: number;
   breaths: number;
@@ -80,6 +86,8 @@ export interface DirectSpeechOptions {
   personaId?: string;
   /** Session emotion hint. */
   emotion?: string;
+  /** The turn being answered: keys the Stage 2 plan; the user's words. */
+  turnContext?: TurnContext;
   env?: Record<string, string | undefined>;
   sessions?: DirectorSessions;
   onPlan?: (summary: PlanSummary, plan: SpeechPlan) => void;
@@ -111,6 +119,8 @@ class DirectedReply implements ReplyStream {
   private failed = false;
   private done = false;
   private holdHandle: unknown = undefined;
+  private planned = false;
+  private readonly stripProsody: boolean;
 
   constructor(
     private readonly inner: ReplyStream,
@@ -120,6 +130,7 @@ class DirectedReply implements ReplyStream {
     private readonly cues: RawCues
   ) {
     const sessions = opts.sessions ?? directorSessions;
+    this.stripProsody = mode === 'live' && !voiceHonorsProsodyTags(opts.voiceId);
     this.engine = new DirectorEngine({
       modes,
       voiceId: opts.voiceId,
@@ -127,7 +138,24 @@ class DirectedReply implements ReplyStream {
       carry: opts.sessionId ? sessions.get(opts.sessionId, opts.personaId) : { speed: 1 },
       cues,
       renderTags: prosodyTags,
+      stripProsody: this.stripProsody,
     });
+  }
+
+  /**
+   * Hand this reply's Stage 2 plan to the post-TTS stage, once, as soon as the
+   * opening is decided and before its text goes to Cartesia (so the plan is
+   * there before any of the reply's audio). Never throws.
+   */
+  private planStage2(): void {
+    if (this.planned || this.mode !== 'live' || this.failed) return;
+    this.planned = true;
+    try {
+      const plan = this.engine.audioPlan();
+      if (plan) setReplyAudioPlan(this.opts.sessionId, this.opts.turnContext?.turnNumber, plan);
+    } catch (error) {
+      log.warn({ err: String(error), sessionId: this.opts.sessionId }, 'Stage 2 plan failed');
+    }
   }
 
   /** Run Director work, timing it; on error stop directing this reply. */
@@ -166,6 +194,7 @@ class DirectedReply implements ReplyStream {
       this.inner.push(text);
       return;
     }
+    this.planStage2();
     for (const piece of out) this.inner.push(piece);
     // A new hold starts when nothing was held or this push released the last one.
     if (!this.engine.holding) this.stopHoldTimer();
@@ -256,6 +285,8 @@ class DirectedReply implements ReplyStream {
       emotion: engine.emotion.emotion,
       emotionSource: engine.emotion.source,
       speed: engine.speed,
+      tempo: engine.tempo,
+      tagsStripped: this.stripProsody,
       ...summarize(engine),
       breaths: engine.stats.breaths,
       sighs: engine.stats.sighs,

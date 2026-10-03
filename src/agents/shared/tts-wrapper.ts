@@ -1127,18 +1127,14 @@ export async function wrappedTtsNode(
       '🚀 Using FULL TTS Gateway - bypassing LiveKit Cartesia'
     );
 
-    // Create gateway TTS node that:
-    // 1. Collects text from stream
-    // 2. Parses/strips SSML
-    // 3. Checks unified cache
-    // 4. On miss: calls our Cartesia provider directly
-    // 5. Caches result
-    // 6. Returns audio frames
+    // Gateway TTS node: SSML → cache → Cartesia → frames. turnContext lets the
+    // Speech Director key this reply's Stage 2 plan by (sessionId, turnNumber).
     const gatewayTTS = createGatewayTTSNode({
       voiceId: actualVoiceId,
       sessionId,
       personaId,
       emotion,
+      turnContext: sessionContext,
       sampleRate: 24000,
       frameDurationMs: 20,
       enableCache: true,

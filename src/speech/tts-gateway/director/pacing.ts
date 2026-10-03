@@ -6,18 +6,16 @@
  * 0.9-1.08, so Ferni's pace drifts rather than jumps between replies. Within
  * a reply the pace is fixed: Cartesia's <speed> goes on the opening push only.
  *
- * Professional Voice Clones ignore <speed> (spec §2.6). Ferni's voice is
- * almost certainly a stock/instant voice, not a PVC, but that is unconfirmed
- * (needs GET /voices/{id}); a voice listed in PRO_VOICE_IDS gets no speed tag
- * and P3 can route pacing to the Rust SOLA stretch instead.
+ * Professional Voice Clones ignore <speed> (measured 2026-10-03,
+ * config/voice-capabilities.ts), and Ferni's voice is one. The pace is still
+ * decided for them, marked unsupported, and the engine routes it to the Rust
+ * tempo stretcher (Stage 2) instead of a tag.
  *
  * @module speech/tts-gateway/director/pacing
  */
 
+import { voiceHonorsProsodyTags } from '../../../config/voice-capabilities.js';
 import type { StableEmotion, Valence } from './emotion.js';
-
-/** Voice ids known to be Professional Voice Clones (`is_pro: true`). */
-export const PRO_VOICE_IDS = new Set<string>();
 
 const TARGET: Record<Valence, number> = {
   heavy: 0.94,
@@ -38,7 +36,6 @@ export interface SpeedInput {
 }
 
 export function decideSpeed(input: SpeedInput): { speed: number; supported: boolean } {
-  if (PRO_VOICE_IDS.has(input.voiceId)) return { speed: 1, supported: false };
   let target = TARGET[input.valence];
   // The voice slows with care: a sympathetic reply never runs brisk.
   if (input.emotion === 'sympathetic') target = Math.min(target, TARGET.heavy);
@@ -46,5 +43,8 @@ export function decideSpeed(input: SpeedInput): { speed: number; supported: bool
   const previous = input.previous ?? 1;
   const next = previous + PULL * (target - previous);
   const clamped = Math.min(MAX_SPEED, Math.max(MIN_SPEED, next));
-  return { speed: Math.round(clamped * 100) / 100, supported: true };
+  return {
+    speed: Math.round(clamped * 100) / 100,
+    supported: voiceHonorsProsodyTags(input.voiceId),
+  };
 }

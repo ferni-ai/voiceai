@@ -10,12 +10,8 @@
  * 4. E2E tracing - Full observability of TTS pipeline
  * 5. Cost tracking - Accurate FinOps for TTS calls
  *
- * Flow:
- * ```
- * Text Stream → Collect → Check Cache → Hit? → Split to Frames → Stream
- *                              ↓ Miss
- *                     Gateway.synthesize() → Cache → Split to Frames → Stream
- * ```
+ * Flow: Text Stream → Collect → Check Cache → Hit? → Split to Frames → Stream;
+ * on a miss Gateway.synthesize() → Cache → Split to Frames → Stream.
  *
  * @module speech/tts-gateway/gateway-tts-node
  */
@@ -40,7 +36,7 @@ import { getTTSProvider } from './providers/index.js';
 import { getSSMLProcessor } from './ssml/index.js';
 import { findChunkEnd } from './chunk-boundary.js';
 import { createContinuationTTS } from './continuation-tts.js';
-import { directSpeech } from './director/index.js';
+import { directSpeech, type TurnContext } from './director/index.js';
 import { prosodyTags } from './providers/cartesia.js';
 import type { SSMLProsodyConfig } from './types.js';
 
@@ -144,6 +140,8 @@ export interface GatewayTTSNodeConfig {
   personaId?: string;
   /** Initial emotion hint */
   emotion?: string;
+  /** The turn being answered (tts-wrapper's session context): keys the Stage 2 plan. */
+  turnContext?: TurnContext;
   /** Sample rate for audio frames (default: 24000) */
   sampleRate?: number;
   /** Frame duration in ms (default: 20) */
@@ -343,6 +341,7 @@ interface StreamingOverlapOptions {
   sessionId?: string;
   personaId?: string;
   emotion?: string;
+  turnContext?: TurnContext;
   sampleRate: number;
   frameDurationMs: number;
   enableCache: boolean;
@@ -709,6 +708,7 @@ export function createGatewayTTSNode(
     sessionId,
     personaId,
     emotion,
+    turnContext,
     sampleRate = 24000,
     frameDurationMs = 20,
     enableCache = true,
@@ -741,6 +741,7 @@ export function createGatewayTTSNode(
         sessionId,
         personaId,
         emotion,
+        turnContext,
         sampleRate,
         frameDurationMs,
         enableCache,
@@ -819,8 +820,7 @@ export function createGatewayTTSNode(
         },
         '🚫 Gateway TTS: Filtered JSON function call - NOT speaking this'
       );
-      // Return empty completed stream instead of null to avoid LiveKit SDK errors
-      return createEmptyAudioStream();
+      return createEmptyAudioStream(); // empty, not null: LiveKit SDK errors on null
     }
 
     // =========================================================================

@@ -47,6 +47,18 @@ export interface SpeechSegment {
   rustEvents: RustEvent[];
 }
 
+/**
+ * What the Director reads about the turn being answered. The shape of
+ * tts-wrapper's session context, so the wrapper can pass it as it is:
+ * `turnNumber` keys the Stage 2 plan (speech/reply-audio-plan.ts).
+ */
+export interface TurnContext {
+  turnNumber?: number;
+  /** The user's words this reply answers. */
+  userRequest?: string;
+  userEmotion?: { primary?: string };
+}
+
 /** The Director's only output: one per LLM reply. */
 export interface SpeechPlan {
   segments: SpeechSegment[];

@@ -9,6 +9,7 @@
  * @module speech/tts-gateway/director/engine
  */
 
+import type { ReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { SSMLProsodyConfig } from '../types.js';
 import { decideEmotion, readValence, type EmotionDecision } from './emotion.js';
 import { normalizeForSpeech } from './normalize.js';
@@ -25,6 +26,14 @@ const VOLUME_TAG = /<volume\s+ratio="([\d.]+)"\s*\/>/;
 const EMOTION_TAG = /<emotion\s+value="([a-z_]+)"\s*\/>/;
 /** Any emotion tag, anywhere in a push: stripped after the opening when emotion is live. */
 const ANY_EMOTION_TAG = /<\/?emotion\b[^>]*>/gi;
+/** Every prosody tag: stripped from each push when the voice ignores them (a PVC). */
+const PROSODY_TAG = /<\/?(?:speed|emotion|volume)\b[^>]*>/gi;
+/**
+ * Stage 2 tempo range for a voice that ignores <speed>. Listeners hear about
+ * +/-10% tempo; more is a different voice. Gentle on purpose.
+ */
+export const STAGE2_TEMPO_MIN = 0.85;
+export const STAGE2_TEMPO_MAX = 1.15;
 /** Cartesia's accepted speed range (providers/cartesia.ts prosodyTags). */
 const MIN_RATIO = 0.6;
 const MAX_RATIO = 1.5;
@@ -45,6 +54,11 @@ export interface EngineContext {
   cues: { authoredEmotion?: string; takeSighs: () => number };
   /** Renders opening controls; providers/cartesia.ts prosodyTags. */
   renderTags: (prosody: SSMLProsodyConfig) => string;
+  /**
+   * The voice ignores <speed>/<emotion>/<volume> (a Professional Voice Clone)
+   * and the Director is live: send no prosody tag at all.
+   */
+  stripProsody?: boolean;
 }
 
 export interface EngineStats {
@@ -98,6 +112,8 @@ export class DirectorEngine {
   };
   emotion: EmotionDecision = { emotion: undefined, source: 'none' };
   speed = 1;
+  /** Stage 2 tempo for this reply, when the voice can't take a <speed> tag. */
+  tempo: number | undefined;
 
   private readonly planPhrases = new PhraseAssembler();
   private readonly spokenPhrases: PhraseAssembler;
@@ -133,7 +149,7 @@ export class DirectorEngine {
       this.stats.normalizations += normalized.count;
 
       const planned = this.planPhrases.accept(normalized.text, first);
-      if (first) this.open(planned[0] ?? normalized.text);
+      if (first) this.open(planned[0] ?? normalized.text, prosody.speed);
       this.planSegments(planned);
 
       let spokenBody = this.live('normalize') ? normalized.text : body;
@@ -141,8 +157,10 @@ export class DirectorEngine {
       // Opening tags lead the first phrase. A later push's tags travel inline
       // with its own text, so a phrase held back from the previous push is
       // never voiced with them (review LOW: tags one phrase early).
-      if (first) this.pendingTags += this.openingTags(tags, prosody);
-      else spokenBody = `${this.laterTags(tags, prosody)}${spokenBody}`;
+      const strip = this.ctx.stripProsody === true;
+      if (strip) spokenBody = spokenBody.replace(PROSODY_TAG, '');
+      if (first) this.pendingTags += strip ? '' : this.openingTags(tags, prosody);
+      else spokenBody = `${strip ? '' : this.laterTags(tags, prosody)}${spokenBody}`;
       const spoken = this.spokenPhrases.accept(spokenBody, first);
       if (spoken.length === 0) this.stats.held++;
       return this.emit(spoken);
@@ -187,8 +205,13 @@ export class DirectorEngine {
     return held;
   }
 
+  /** What Stage 2 should do to this reply's audio, if anything. */
+  audioPlan(): ReplyAudioPlan | undefined {
+    return this.tempo === undefined ? undefined : { tempo: this.tempo };
+  }
+
   /** One emotion and one speed for the whole reply, from its opening phrase. */
-  private open(openingText: string): void {
+  private open(openingText: string, leadSpeed: number | undefined): void {
     this.opened = true;
     this.emotion = decideEmotion({
       authored: this.ctx.cues.authoredEmotion,
@@ -204,6 +227,12 @@ export class DirectorEngine {
     });
     this.speed = Math.abs(pace.speed - 1) < SPEED_EPSILON ? 1 : pace.speed;
     this.replySpeed = this.live('pacing') && pace.supported ? this.speed : 1;
+    if (this.live('pacing') && !pace.supported) {
+      // The voice ignores <speed>: the pace (with any soft start) goes to Stage 2.
+      const tempo = composeSpeed(leadSpeed ?? 1, this.speed);
+      const gentle = Math.min(STAGE2_TEMPO_MAX, Math.max(STAGE2_TEMPO_MIN, tempo));
+      this.tempo = Math.abs(gentle - 1) < SPEED_EPSILON ? undefined : gentle;
+    }
   }
 
   private openingTags(original: string, lead: SSMLProsodyConfig): string {
