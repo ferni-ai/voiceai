@@ -16,8 +16,8 @@
  * @module agents/model-provider/local-pipeline
  */
 
-import { DEFAULT_API_CONNECT_OPTIONS, llm, type APIConnectOptions } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
+import { OllamaLLMAdapter } from './ollama-llm-adapter.js';
 import type {
   LLMModelConfig,
   ModelProvider,
@@ -27,14 +27,9 @@ import type {
 
 const log = createLogger({ module: 'local-pipeline-provider' });
 
-// =============================================================================
-// OLLAMA CONFIGURATION
-// =============================================================================
-
 const OLLAMA_DEFAULTS = {
   url: 'http://127.0.0.1:11434',
   model: 'qwen3:8b',
-  maxTokens: 150,
 } as const;
 
 function getOllamaUrl(): string {
@@ -43,212 +38,6 @@ function getOllamaUrl(): string {
 
 function getOllamaModel(): string {
   return process.env.OLLAMA_MODEL || OLLAMA_DEFAULTS.model;
-}
-
-// =============================================================================
-// CHAT CONTEXT → OLLAMA MESSAGES
-// =============================================================================
-
-interface OllamaMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
-
-function chatContextToOllamaMessages(chatCtx: llm.ChatContext): OllamaMessage[] {
-  const messages: OllamaMessage[] = [];
-
-  for (const item of chatCtx.items) {
-    if (item.type === 'message') {
-      const msg = item as llm.ChatMessage;
-      const role = msg.role === 'developer' ? 'system' : msg.role;
-      if (role !== 'system' && role !== 'user' && role !== 'assistant') continue;
-      const text = msg.textContent?.trim() ?? '';
-      if (!text && role !== 'system') continue;
-      messages.push({ role: role as OllamaMessage['role'], content: text });
-    }
-  }
-
-  return messages;
-}
-
-// =============================================================================
-// OLLAMA LLM ADAPTER (LiveKit-compatible)
-// =============================================================================
-
-export interface OllamaLLMAdapterConfig {
-  ollamaUrl: string;
-  model: string;
-  instructions?: string;
-  temperature?: number;
-  maxTokens?: number;
-}
-
-/**
- * LiveKit LLM implementation that streams from ollama's /api/chat endpoint.
- *
- * Uses `think: false` to disable Qwen3's thinking mode — all tokens go directly
- * to response content with zero overhead. This is critical for voice latency.
- */
-export class OllamaLLMAdapter extends llm.LLM {
-  /** @internal */
-  readonly _config: OllamaLLMAdapterConfig;
-
-  constructor(config: OllamaLLMAdapterConfig) {
-    super();
-    this._config = config;
-  }
-
-  get model(): string {
-    return this._config.model;
-  }
-
-  label(): string {
-    return `ollama/${this._config.model}`;
-  }
-
-  chat(opts: {
-    chatCtx: llm.ChatContext;
-    toolCtx?: llm.ToolContextLike;
-    connOptions?: APIConnectOptions;
-    parallelToolCalls?: boolean;
-    toolChoice?: unknown;
-    extraKwargs?: Record<string, unknown>;
-  }): llm.LLMStream {
-    const connOptions = {
-      ...DEFAULT_API_CONNECT_OPTIONS,
-      ...opts.connOptions,
-    };
-    return new OllamaLLMStream(this, {
-      chatCtx: opts.chatCtx,
-      toolCtx: opts.toolCtx,
-      connOptions,
-    });
-  }
-}
-
-// =============================================================================
-// OLLAMA LLM STREAM
-// =============================================================================
-
-class OllamaLLMStream extends llm.LLMStream {
-  private adapter: OllamaLLMAdapter;
-
-  constructor(
-    adapter: OllamaLLMAdapter,
-    opts: {
-      chatCtx: llm.ChatContext;
-      toolCtx?: llm.ToolContextLike;
-      connOptions: APIConnectOptions;
-    }
-  ) {
-    super(adapter, opts);
-    this.adapter = adapter;
-  }
-
-  protected async run(): Promise<void> {
-    const config = this.adapter._config;
-    const messages = chatContextToOllamaMessages(this.chatCtx);
-
-    // Inject system instructions if provided
-    if (config.instructions) {
-      messages.unshift({ role: 'system', content: config.instructions });
-    }
-
-    const payload = {
-      model: config.model,
-      messages,
-      stream: true,
-      think: false, // Critical: disables Qwen3 thinking mode for voice latency
-      options: {
-        num_predict: config.maxTokens ?? OLLAMA_DEFAULTS.maxTokens,
-        temperature: config.temperature ?? 0.7,
-      },
-    };
-
-    const url = `${config.ollamaUrl}/api/chat`;
-
-    try {
-      let completionTokens = 0;
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: this.abortController.signal,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Ollama error ${response.status}: ${errorText.slice(0, 200)}`);
-      }
-
-      if (!response.body) {
-        throw new Error('Ollama returned no response body');
-      }
-
-      // Stream NDJSON lines from ollama
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        if (this.abortController.signal.aborted) break;
-
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        // Process complete lines
-        let newlineIdx: number;
-        while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
-          const line = buffer.slice(0, newlineIdx).trim();
-          buffer = buffer.slice(newlineIdx + 1);
-
-          if (!line) continue;
-
-          try {
-            const data = JSON.parse(line) as {
-              message?: { role?: string; content?: string };
-              done?: boolean;
-              eval_count?: number;
-              prompt_eval_count?: number;
-            };
-
-            const content = data.message?.content ?? '';
-            if (content) {
-              const chunk: llm.ChatChunk = {
-                id: `ollama_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-                delta: { role: 'assistant', content } as llm.ChoiceDelta,
-              };
-              this.queue.put(chunk);
-              completionTokens++;
-            }
-
-            // Final message with stats
-            if (data.done) {
-              const usage: llm.CompletionUsage = {
-                completionTokens: data.eval_count ?? completionTokens,
-                promptTokens: data.prompt_eval_count ?? 0,
-                promptCachedTokens: 0,
-                totalTokens: (data.eval_count ?? completionTokens) + (data.prompt_eval_count ?? 0),
-              };
-              this.queue.put({
-                id: `ollama_usage_${Date.now()}`,
-                usage,
-              });
-            }
-          } catch {
-            // Skip malformed JSON lines
-          }
-        }
-      }
-    } catch (error) {
-      if (this.abortController.signal.aborted) return;
-      log.error({ error: String(error) }, 'Ollama stream failed');
-      throw error;
-    }
-  }
 }
 
 // =============================================================================

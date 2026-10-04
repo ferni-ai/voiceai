@@ -85,7 +85,7 @@ export {
   toReplicatedVoiceConfig,
 } from './gemini-native-audio.js';
 export { Qwen3OmniProvider } from './qwen3-omni.js';
-export { LocalPipelineProvider, OllamaLLMAdapter } from './local-pipeline.js';
+export { OllamaLLMAdapter } from './ollama-llm-adapter.js';
 export {
   OmniPipelineProvider,
   OmniPipelineLLMAdapter,

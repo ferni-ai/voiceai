@@ -26,7 +26,7 @@
 
 import { DEFAULT_API_CONNECT_OPTIONS, llm, type APIConnectOptions } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
-import { OllamaLLMAdapter } from './local-pipeline.js';
+import { OllamaLLMAdapter } from './ollama-llm-adapter.js';
 import type {
   LLMModelConfig,
   ModelProvider,
