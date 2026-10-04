@@ -61,45 +61,46 @@ async function post(
 }
 
 /** A fresh pending challenge from alice to carol. */
-function aliceChallengesCarol(): string {
-  return games.createChallenge('score-beat', 'guess', 'alice', 'Alice', 'carol', {
+async function aliceChallengesCarol(): Promise<string> {
+  const challenge = await games.createChallenge('score-beat', 'guess', 'alice', 'Alice', 'carol', {
     challengerScore: 5,
-  }).id;
+  });
+  return challenge.id;
 }
 
-const status = (id: string) => games.getChallenge(id)?.status;
+const status = async (id: string) => (await games.getChallenge(id))?.status;
 
 describe('answering a social challenge', () => {
   it("accept: mallory naming carol gets 403; carol's challenge stays pending", async () => {
-    const id = aliceChallengesCarol();
+    const id = await aliceChallengesCarol();
     const res = await post(
       '/api/social/challenges/accept',
       { challengeId: id, challengeeId: 'carol', challengeeName: 'Carol' },
       'mallory'
     );
-    expect(status(id)).toBe('pending');
+    expect(await status(id)).toBe('pending');
     expect(res.status).toBe(403);
   });
 
   it("accept: mallory naming herself gets 403 (it isn't her challenge)", async () => {
-    const id = aliceChallengesCarol();
+    const id = await aliceChallengesCarol();
     const res = await post(
       '/api/social/challenges/accept',
       { challengeId: id, challengeeName: 'Mallory' },
       'mallory'
     );
-    expect(status(id)).toBe('pending');
+    expect(await status(id)).toBe('pending');
     expect(res.status).toBe(403);
   });
 
   it('accept: no credentials gets 401', async () => {
-    const id = aliceChallengesCarol();
+    const id = await aliceChallengesCarol();
     const res = await post(
       '/api/social/challenges/accept',
       { challengeId: id, challengeeId: 'carol', challengeeName: 'Carol' },
       null
     );
-    expect(status(id)).toBe('pending');
+    expect(await status(id)).toBe('pending');
     expect(res.status).toBe(401);
   });
 
@@ -113,7 +114,7 @@ describe('answering a social challenge', () => {
   });
 
   it('complete: only carol can finish her accepted challenge and decide the winner', async () => {
-    const id = aliceChallengesCarol();
+    const id = await aliceChallengesCarol();
     expect(
       (
         await post(
@@ -129,7 +130,7 @@ describe('answering a social challenge', () => {
       { challengeId: id, challengeeScore: 0 },
       'mallory'
     );
-    expect(status(id)).toBe('accepted');
+    expect(await status(id)).toBe('accepted');
     expect(byMallory.status).toBe(403);
 
     const byAlice = await post(
@@ -137,7 +138,7 @@ describe('answering a social challenge', () => {
       { challengeId: id, challengeeScore: 0 },
       'alice'
     );
-    expect(status(id)).toBe('accepted');
+    expect(await status(id)).toBe('accepted');
     expect(byAlice.status).toBe(403);
 
     const byCarol = await post(
@@ -146,12 +147,12 @@ describe('answering a social challenge', () => {
       'carol'
     );
     expect(byCarol.status).toBe(200);
-    expect(status(id)).toBe('completed');
-    expect(games.getChallenge(id)?.winnerId).toBe('carol');
+    expect(await status(id)).toBe('completed');
+    expect((await games.getChallenge(id))?.winnerId).toBe('carol');
   });
 
   it('complete: no credentials gets 401', async () => {
-    const id = aliceChallengesCarol();
+    const id = await aliceChallengesCarol();
     const res = await post(
       '/api/social/challenges/complete',
       { challengeId: id, challengeeScore: 9 },
@@ -161,18 +162,18 @@ describe('answering a social challenge', () => {
   });
 
   it("decline: mallory naming carol gets 403; carol's challenge stays pending", async () => {
-    const id = aliceChallengesCarol();
+    const id = await aliceChallengesCarol();
     const res = await post(
       '/api/social/challenges/decline',
       { challengeId: id, challengeeId: 'carol' },
       'mallory'
     );
-    expect(status(id)).toBe('pending');
+    expect(await status(id)).toBe('pending');
     expect(res.status).toBe(403);
   });
 
   it('decline: unknown id 404, no credentials 401, carol herself 200', async () => {
-    const id = aliceChallengesCarol();
+    const id = await aliceChallengesCarol();
     expect(
       (await post('/api/social/challenges/decline', { challengeId: 'x' }, 'carol')).status
     ).toBe(404);
@@ -182,14 +183,14 @@ describe('answering a social challenge', () => {
     const res = await post('/api/social/challenges/decline', { challengeId: id }, 'carol');
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(status(id)).toBe('declined');
+    expect(await status(id)).toBe('declined');
   });
 
   it('an admin may answer for the challengee', async () => {
-    const id = aliceChallengesCarol();
+    const id = await aliceChallengesCarol();
     const res = await post('/api/social/challenges/decline', { challengeId: id }, 'admin');
     expect(res.status).toBe(200);
-    expect(status(id)).toBe('declined');
+    expect(await status(id)).toBe('declined');
   });
 });
 
@@ -280,8 +281,9 @@ const ids = (body: Record<string, unknown>) =>
 
 describe('GET /api/social/challenges/pending and /history', () => {
   it("pending returns the caller's own incoming challenges, not someone else's", async () => {
-    const forDana = games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'dana').id;
-    const forFrank = games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'frank').id;
+    const forDana = (await games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'dana')).id;
+    const forFrank = (await games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'frank'))
+      .id;
 
     const res = await get('/api/social/challenges/pending', {}, 'dana');
 
@@ -291,9 +293,10 @@ describe('GET /api/social/challenges/pending and /history', () => {
   });
 
   it("history returns the caller's sent and received challenges", async () => {
-    const sent = games.createChallenge('score-beat', 'guess', 'gail', 'Gail', 'hank').id;
-    const received = games.createChallenge('score-beat', 'guess', 'ivan', 'Ivan', 'gail').id;
-    games.createChallenge('score-beat', 'guess', 'ivan', 'Ivan', 'hank');
+    const sent = (await games.createChallenge('score-beat', 'guess', 'gail', 'Gail', 'hank')).id;
+    const received = (await games.createChallenge('score-beat', 'guess', 'ivan', 'Ivan', 'gail'))
+      .id;
+    await games.createChallenge('score-beat', 'guess', 'ivan', 'Ivan', 'hank');
 
     const res = await get('/api/social/challenges/history', {}, 'gail');
 
@@ -308,7 +311,7 @@ describe('GET /api/social/challenges/pending and /history', () => {
   });
 
   it('a real challenge id still resolves through /challenges/:id', async () => {
-    const id = games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'dana').id;
+    const id = (await games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'dana')).id;
 
     const res = await get(`/api/social/challenges/${id}`, {}, null);
 

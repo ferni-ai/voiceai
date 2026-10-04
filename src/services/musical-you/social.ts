@@ -9,17 +9,24 @@
  * @module MusicalYouSocial
  */
 
+import { randomUUID } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
+import { challengeRecords } from '../social/challenge-records.js';
 import type { MusicChallenge, Leaderboard, LeaderboardEntry, TasteMatch } from './types.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
 const log = createLogger({ module: 'MusicalYouSocial' });
 
 // ============================================================================
-// IN-MEMORY STORAGE
+// STORAGE
 // ============================================================================
 
-const challenges = new Map<string, MusicChallenge>();
+/** Shared by every API instance (Firestore on Cloud Run); see challenge-records. */
+const challenges = challengeRecords<MusicChallenge>('musical_challenges', [
+  'createdAt',
+  'expiresAt',
+  'completedAt',
+]);
 const leaderboards = new Map<string, Leaderboard>();
 const tasteMatches = new Map<string, TasteMatch>();
 
@@ -30,18 +37,16 @@ const tasteMatches = new Map<string, TasteMatch>();
 /**
  * Send a music challenge to a friend
  */
-export function sendChallenge(
+export async function sendChallenge(
   challengerId: string,
   challengerName: string,
   challengeeId: string,
   gameType: string,
   challengerScore: number,
   challengerTime?: number
-): MusicChallenge {
-  const challengeId = `challenge-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
+): Promise<MusicChallenge> {
   const challenge: MusicChallenge = {
-    id: challengeId,
+    id: `challenge-${randomUUID()}`,
     type: 'score-beat',
     gameType,
     challengerId,
@@ -53,36 +58,30 @@ export function sendChallenge(
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
   };
-
-  challenges.set(challengeId, challenge);
+  await challenges.put(challenge);
 
   log.info(
-    { challengeId, challengerId, challengeeId, gameType, score: challengerScore },
+    { challengeId: challenge.id, challengerId, challengeeId, gameType, score: challengerScore },
     '🎯 Challenge sent'
   );
-
   return challenge;
 }
 
 /**
- * Get challenges for a user
+ * Get challenges for a user (pending ones past their expiry read as expired)
  */
-export function getUserChallenges(
+export async function getUserChallenges(
   userId: string,
   type: 'sent' | 'received' | 'all' = 'all'
-): MusicChallenge[] {
-  const allChallenges = Array.from(challenges.values());
-
-  return allChallenges.filter((c) => {
-    // Filter out expired
-    if (c.status === 'pending' && new Date() > c.expiresAt) {
-      c.status = 'expired';
-    }
-
-    if (type === 'sent') return c.challengerId === userId;
-    if (type === 'received') return c.challengeeId === userId;
-    return c.challengerId === userId || c.challengeeId === userId;
-  });
+): Promise<MusicChallenge[]> {
+  const [sent, received] = await Promise.all([
+    type === 'received' ? [] : challenges.where('challengerId', userId),
+    type === 'sent' ? [] : challenges.where('challengeeId', userId),
+  ]);
+  const now = new Date();
+  return [...sent, ...received.filter((r) => !sent.some((s) => s.id === r.id))].map((c) =>
+    c.status === 'pending' && now > c.expiresAt ? { ...c, status: 'expired' } : c
+  );
 }
 
 /**
@@ -90,8 +89,8 @@ export function getUserChallenges(
  * answered (completed) one of theirs. Naming someone isn't enough to read
  * their game history; this is the relationship they chose to have.
  */
-export function otherUserHasEngaged(userId: string, otherId: string): boolean {
-  return getUserChallenges(userId, 'all').some(
+export async function otherUserHasEngaged(userId: string, otherId: string): Promise<boolean> {
+  return (await getUserChallenges(userId, 'all')).some(
     (c) =>
       (c.challengerId === otherId && c.challengeeId === userId) ||
       (c.challengeeId === otherId && c.challengerId === userId && c.status === 'completed')
@@ -101,69 +100,56 @@ export function otherUserHasEngaged(userId: string, otherId: string): boolean {
 /**
  * Get a specific challenge
  */
-export function getChallenge(challengeId: string): MusicChallenge | null {
-  return challenges.get(challengeId) || null;
+export async function getChallenge(challengeId: string): Promise<MusicChallenge | null> {
+  return challenges.get(challengeId);
 }
 
 /**
- * Accept and complete a challenge
+ * Accept and complete a challenge (only while it is pending)
  */
-export function completeChallenge(
+export async function completeChallenge(
   challengeId: string,
   challengeeScore: number,
   challengeeTime?: number,
   challengeeName?: string
-): MusicChallenge | null {
-  const challenge = challenges.get(challengeId);
-  if (!challenge) return null;
-
-  if (challenge.status !== 'pending') {
-    log.warn({ challengeId, status: challenge.status }, 'Challenge not pending');
-    return challenge;
-  }
-
-  challenge.challengeeScore = challengeeScore;
-  challenge.challengeeTime = challengeeTime;
-  challenge.challengeeName = challengeeName;
-  challenge.status = 'completed';
-  challenge.completedAt = new Date();
-
-  // Determine winner
-  if (challengeeScore > challenge.challengerScore) {
-    challenge.winnerId = challenge.challengeeId;
-  } else if (challenge.challengerScore > challengeeScore) {
-    challenge.winnerId = challenge.challengerId;
-  } else if (challengeeTime && challenge.challengerTime) {
-    // Tie-breaker: faster time wins
-    challenge.winnerId =
-      challengeeTime < challenge.challengerTime ? challenge.challengeeId : challenge.challengerId;
-  }
-
-  log.info(
-    {
-      challengeId,
-      challengerScore: challenge.challengerScore,
+): Promise<MusicChallenge | null> {
+  const { current, written } = await challenges.update(challengeId, (challenge) => {
+    if (challenge.status !== 'pending') return null;
+    const done: MusicChallenge = {
+      ...challenge,
       challengeeScore,
-      winnerId: challenge.winnerId,
-    },
-    '🏆 Challenge completed'
-  );
+      challengeeTime,
+      challengeeName,
+      status: 'completed',
+      completedAt: new Date(),
+    };
+    // Determine winner; on a tie the faster time wins
+    if (challengeeScore > challenge.challengerScore) done.winnerId = challenge.challengeeId;
+    else if (challenge.challengerScore > challengeeScore) done.winnerId = challenge.challengerId;
+    else if (challengeeTime && challenge.challengerTime) {
+      done.winnerId =
+        challengeeTime < challenge.challengerTime ? challenge.challengeeId : challenge.challengerId;
+    }
+    return done;
+  });
 
-  return challenge;
+  if (current && !written) log.warn({ challengeId, status: current.status }, 'Not pending');
+  if (written) {
+    log.info(
+      { challengeId, challengeeScore, winnerId: written.winnerId },
+      '🏆 Challenge completed'
+    );
+  }
+  return written ?? current;
 }
 
 /**
  * Decline a challenge
  */
-export function declineChallenge(challengeId: string): MusicChallenge | null {
-  const challenge = challenges.get(challengeId);
-  if (!challenge) return null;
-
-  challenge.status = 'declined';
-
-  log.info({ challengeId }, '❌ Challenge declined');
-
-  return challenge;
+export async function declineChallenge(challengeId: string): Promise<MusicChallenge | null> {
+  const { written } = await challenges.update(challengeId, (c) => ({ ...c, status: 'declined' }));
+  if (written) log.info({ challengeId }, '❌ Challenge declined');
+  return written;
 }
 
 // ============================================================================
@@ -394,15 +380,15 @@ export function describeTasteMatch(tasteMatch: TasteMatch): string {
 /**
  * Get social stats for a user
  */
-export function getUserSocialStats(userId: string): {
+export async function getUserSocialStats(userId: string): Promise<{
   challengesSent: number;
   challengesReceived: number;
   challengesWon: number;
   challengesLost: number;
   currentLeaderboardRank: number | null;
   tasteMatchesCalculated: number;
-} {
-  const userChallenges = getUserChallenges(userId, 'all');
+}> {
+  const userChallenges = await getUserChallenges(userId, 'all');
 
   const sent = userChallenges.filter((c) => c.challengerId === userId);
   const received = userChallenges.filter((c) => c.challengeeId === userId);

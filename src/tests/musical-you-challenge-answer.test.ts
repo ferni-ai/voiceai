@@ -56,8 +56,8 @@ async function post(
 }
 
 /** A fresh pending challenge from alice to carol. */
-function aliceChallengesCarol(): string {
-  return sendMusicChallenge('alice', 'Alice', 'carol', 'guess', 5).id;
+async function aliceChallengesCarol(): Promise<string> {
+  return (await sendMusicChallenge('alice', 'Alice', 'carol', 'guess', 5)).id;
 }
 
 describe('answering a Musical You challenge', () => {
@@ -65,32 +65,32 @@ describe('answering a Musical You challenge', () => {
     const body = action === 'complete' ? { score: 99 } : {};
 
     it(`${action}: mallory answering carol's challenge gets 403; it stays pending`, async () => {
-      const id = aliceChallengesCarol();
-      expect(getChallenge(id)?.status).toBe('pending');
+      const id = await aliceChallengesCarol();
+      expect((await getChallenge(id))?.status).toBe('pending');
 
       const status = await post(`/api/musical/challenge/${id}/${action}`, body, 'mallory');
 
       expect(status).toBe(403);
-      expect(getChallenge(id)?.status).toBe('pending');
-      expect(getChallenge(id)?.challengeeScore).toBeUndefined();
+      expect((await getChallenge(id))?.status).toBe('pending');
+      expect((await getChallenge(id))?.challengeeScore).toBeUndefined();
     });
 
     it(`${action}: the challenger can't answer their own challenge either (403)`, async () => {
-      const id = aliceChallengesCarol();
+      const id = await aliceChallengesCarol();
 
       const status = await post(`/api/musical/challenge/${id}/${action}`, body, 'alice');
 
       expect(status).toBe(403);
-      expect(getChallenge(id)?.status).toBe('pending');
+      expect((await getChallenge(id))?.status).toBe('pending');
     });
 
     it(`${action}: no credentials gets 401; it stays pending`, async () => {
-      const id = aliceChallengesCarol();
+      const id = await aliceChallengesCarol();
 
       const status = await post(`/api/musical/challenge/${id}/${action}`, body, null);
 
       expect(status).toBe(401);
-      expect(getChallenge(id)?.status).toBe('pending');
+      expect((await getChallenge(id))?.status).toBe('pending');
     });
 
     it(`${action}: an unknown id gets 404`, async () => {
@@ -101,40 +101,40 @@ describe('answering a Musical You challenge', () => {
   }
 
   it('carol completes her own challenge and the result is recorded', async () => {
-    const id = aliceChallengesCarol();
+    const id = await aliceChallengesCarol();
 
     const status = await post(`/api/musical/challenge/${id}/complete`, { score: 9 }, 'carol');
 
     expect(status).toBe(200);
-    expect(getChallenge(id)?.status).toBe('completed');
-    expect(getChallenge(id)?.challengeeScore).toBe(9);
-    expect(getChallenge(id)?.winnerId).toBe('carol');
+    expect((await getChallenge(id))?.status).toBe('completed');
+    expect((await getChallenge(id))?.challengeeScore).toBe(9);
+    expect((await getChallenge(id))?.winnerId).toBe('carol');
   });
 
   it('carol declines her own challenge', async () => {
-    const id = aliceChallengesCarol();
+    const id = await aliceChallengesCarol();
 
     const status = await post(`/api/musical/challenge/${id}/decline`, {}, 'carol');
 
     expect(status).toBe(200);
-    expect(getChallenge(id)?.status).toBe('declined');
+    expect((await getChallenge(id))?.status).toBe('declined');
   });
 
   it('an admin may answer for the challengee', async () => {
-    const id = aliceChallengesCarol();
+    const id = await aliceChallengesCarol();
 
     const status = await post(`/api/musical/challenge/${id}/decline`, {}, 'admin');
 
     expect(status).toBe(200);
-    expect(getChallenge(id)?.status).toBe('declined');
+    expect((await getChallenge(id))?.status).toBe('declined');
   });
 
   it('carol completing without a score gets 400 and the challenge stays pending', async () => {
-    const id = aliceChallengesCarol();
+    const id = await aliceChallengesCarol();
 
     const status = await post(`/api/musical/challenge/${id}/complete`, {}, 'carol');
 
     expect(status).toBe(400);
-    expect(getChallenge(id)?.status).toBe('pending');
+    expect((await getChallenge(id))?.status).toBe('pending');
   });
 });

@@ -367,7 +367,7 @@ export async function getMusicalYouProfile(
     timeMachine: dna ? generateTimeMachine(dna) : [],
     dailyChallenge: getDailyChallenge(),
     challengeStats: getUserChallengeStats(userId),
-    socialStats: getUserSocialStats(userId),
+    socialStats: await getUserSocialStats(userId),
     cards: getUserCards(userId),
     leaderboardRank: getUserRank(userId),
     // Music source status

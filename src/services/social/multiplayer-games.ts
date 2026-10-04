@@ -202,182 +202,20 @@ const TASTE_MATCH_QUESTIONS: TasteMatchQuestion[] = [
 // CHALLENGE MANAGEMENT
 // ============================================================================
 
-// In-memory stores (would be Firestore in production)
-const challengeStore = new Map<string, Challenge>();
+// Challenges live in ./challenges.ts (shared by every API instance); re-exported here.
+export {
+  createChallenge,
+  acceptChallenge,
+  completeChallenge,
+  declineChallenge,
+  getChallenge,
+  getChallengeByShareCode,
+  getPendingChallenges,
+  getChallengeHistory,
+} from './challenges.js';
+
+// Taste Match sessions are still per process.
 const tasteMatchStore = new Map<string, TasteMatchSession>();
-
-/**
- * Create a new challenge
- */
-export function createChallenge(
-  type: ChallengeType,
-  gameType: string,
-  challengerId: string,
-  challengerName: string,
-  challengeeId: string,
-  options?: {
-    challengerScore?: number;
-    challengerTimeMs?: number;
-  }
-): Challenge {
-  const id = `challenge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const shareCode = generateShareCode();
-
-  const challenge: Challenge = {
-    id,
-    type,
-    gameType,
-    challengerId,
-    challengerName,
-    challengerScore: options?.challengerScore,
-    challengerTimeMs: options?.challengerTimeMs,
-    challengeeId,
-    status: 'pending',
-    createdAt: new Date(),
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    shareCode,
-  };
-
-  challengeStore.set(id, challenge);
-  log.info({ challengeId: id, type, gameType }, '🎮 Challenge created');
-
-  return challenge;
-}
-
-/**
- * Accept a challenge
- */
-export function acceptChallenge(
-  challengeId: string,
-  challengeeId: string,
-  challengeeName: string
-): Challenge | null {
-  const challenge = challengeStore.get(challengeId);
-  if (!challenge) return null;
-  if (challenge.challengeeId !== challengeeId) return null;
-  if (challenge.status !== 'pending') return null;
-
-  challenge.status = 'accepted';
-  challenge.challengeeName = challengeeName;
-  challenge.acceptedAt = new Date();
-
-  challengeStore.set(challengeId, challenge);
-  log.info({ challengeId }, '🎮 Challenge accepted');
-
-  return challenge;
-}
-
-/**
- * Complete a challenge (submit challengee's result)
- */
-export function completeChallenge(
-  challengeId: string,
-  challengeeScore: number,
-  challengeeTimeMs?: number
-): Challenge | null {
-  const challenge = challengeStore.get(challengeId);
-  if (!challenge) return null;
-  if (challenge.status !== 'accepted') return null;
-
-  challenge.challengeeScore = challengeeScore;
-  challenge.challengeeTimeMs = challengeeTimeMs;
-  challenge.status = 'completed';
-  challenge.completedAt = new Date();
-
-  // Determine winner
-  if (challenge.type === 'score-beat') {
-    if (challengeeScore > (challenge.challengerScore || 0)) {
-      challenge.winnerId = challenge.challengeeId;
-    } else if (challengeeScore < (challenge.challengerScore || 0)) {
-      challenge.winnerId = challenge.challengerId;
-    } else {
-      // Tie - use time as tiebreaker
-      challenge.tieBreaker = 'time';
-      if (challengeeTimeMs && challenge.challengerTimeMs) {
-        challenge.winnerId =
-          challengeeTimeMs < challenge.challengerTimeMs
-            ? challenge.challengeeId
-            : challenge.challengerId;
-      }
-    }
-  } else if (challenge.type === 'speed-beat') {
-    if (challengeeTimeMs && challenge.challengerTimeMs) {
-      challenge.winnerId =
-        challengeeTimeMs < challenge.challengerTimeMs
-          ? challenge.challengeeId
-          : challenge.challengerId;
-    }
-  }
-
-  challengeStore.set(challengeId, challenge);
-  log.info({ challengeId, winnerId: challenge.winnerId }, '🎮 Challenge completed');
-
-  return challenge;
-}
-
-/**
- * Decline a challenge
- */
-export function declineChallenge(challengeId: string, challengeeId: string): boolean {
-  const challenge = challengeStore.get(challengeId);
-  if (!challenge) return false;
-  if (challenge.challengeeId !== challengeeId) return false;
-  if (challenge.status !== 'pending') return false;
-
-  challenge.status = 'declined';
-  challengeStore.set(challengeId, challenge);
-
-  return true;
-}
-
-/**
- * Get challenge by ID
- */
-export function getChallenge(challengeId: string): Challenge | null {
-  return challengeStore.get(challengeId) || null;
-}
-
-/**
- * Get challenge by share code
- */
-export function getChallengeByShareCode(shareCode: string): Challenge | null {
-  for (const challenge of challengeStore.values()) {
-    if (challenge.shareCode === shareCode) {
-      return challenge;
-    }
-  }
-  return null;
-}
-
-/**
- * Get pending challenges for a user
- */
-export function getPendingChallenges(userId: string): Challenge[] {
-  const challenges: Challenge[] = [];
-  for (const challenge of challengeStore.values()) {
-    if (
-      challenge.challengeeId === userId &&
-      challenge.status === 'pending' &&
-      challenge.expiresAt > new Date()
-    ) {
-      challenges.push(challenge);
-    }
-  }
-  return challenges.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-}
-
-/**
- * Get challenge history for a user
- */
-export function getChallengeHistory(userId: string, limit = 20): Challenge[] {
-  const challenges: Challenge[] = [];
-  for (const challenge of challengeStore.values()) {
-    if (challenge.challengerId === userId || challenge.challengeeId === userId) {
-      challenges.push(challenge);
-    }
-  }
-  return challenges.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, limit);
-}
 
 // ============================================================================
 // TASTE MATCH GAME
@@ -636,17 +474,4 @@ function generateTasteInsights(session: TasteMatchSession): TasteMatchInsight[] 
   }
 
   return insights.slice(0, 4); // Max 4 insights
-}
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-function generateShareCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
 }

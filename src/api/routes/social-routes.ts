@@ -52,8 +52,12 @@ function send(res: ServerResponse, status: number, body: unknown): void {
 }
 
 /** The challenge, if the caller is its challengee (or an admin); else sends 404/403. */
-function challengeFor(caller: VerifiedCaller, id: unknown, res: ServerResponse): Challenge | null {
-  const challenge = typeof id === 'string' ? getChallenge(id) : null;
+async function challengeFor(
+  caller: VerifiedCaller,
+  id: unknown,
+  res: ServerResponse
+): Promise<Challenge | null> {
+  const challenge = typeof id === 'string' ? await getChallenge(id) : null;
   if (!challenge) send(res, 404, { error: 'Challenge not found' });
   else if (challenge.challengeeId === caller.userId || caller.isAdmin) return challenge;
   else send(res, 403, { error: "That challenge isn't yours to answer" });
@@ -120,7 +124,7 @@ export async function handleSocialRoutes(
         return true;
       }
 
-      const challenge = createChallenge(
+      const challenge = await createChallenge(
         type,
         gameType,
         challengerId,
@@ -147,10 +151,10 @@ export async function handleSocialRoutes(
         return true;
       }
       if (!claimedUserFor(caller, challengeeId, res)) return true;
-      const mine = challengeFor(caller, challengeId, res);
+      const mine = await challengeFor(caller, challengeId, res);
       if (!mine) return true;
 
-      const challenge = acceptChallenge(challengeId, mine.challengeeId, challengeeName);
+      const challenge = await acceptChallenge(challengeId, mine.challengeeId, challengeeName);
 
       if (!challenge) {
         send(res, 404, { error: 'Challenge not found or already processed' });
@@ -175,9 +179,9 @@ export async function handleSocialRoutes(
         return true;
       }
 
-      if (!challengeFor(caller, challengeId, res)) return true;
+      if (!(await challengeFor(caller, challengeId, res))) return true;
 
-      const challenge = completeChallenge(challengeId, challengeeScore, challengeeTimeMs);
+      const challenge = await completeChallenge(challengeId, challengeeScore, challengeeTimeMs);
 
       if (!challenge) {
         send(res, 404, { error: 'Challenge not found or not accepted' });
@@ -201,10 +205,10 @@ export async function handleSocialRoutes(
       };
 
       if (!claimedUserFor(caller, challengeeId, res)) return true;
-      const mine = challengeFor(caller, challengeId, res);
+      const mine = await challengeFor(caller, challengeId, res);
       if (!mine) return true;
 
-      send(res, 200, { success: declineChallenge(challengeId, mine.challengeeId) });
+      send(res, 200, { success: await declineChallenge(challengeId, mine.challengeeId) });
       return true;
     }
 
@@ -218,7 +222,9 @@ export async function handleSocialRoutes(
       if (!userId) return true;
       const limit = Math.min(Math.max(parseInt(searchParams.get('limit') ?? '', 10) || 20, 1), 100);
       const challenges =
-        own[1] === 'pending' ? getPendingChallenges(userId) : getChallengeHistory(userId, limit);
+        own[1] === 'pending'
+          ? await getPendingChallenges(userId)
+          : await getChallengeHistory(userId, limit);
       send(res, 200, { challenges });
       return true;
     }
@@ -228,9 +234,9 @@ export async function handleSocialRoutes(
       const idOrCode = pathname.split('/').pop() || '';
 
       // Try ID first, then share code
-      let challenge = getChallenge(idOrCode);
+      let challenge = await getChallenge(idOrCode);
       if (!challenge) {
-        challenge = getChallengeByShareCode(idOrCode);
+        challenge = await getChallengeByShareCode(idOrCode);
       }
 
       if (!challenge) {

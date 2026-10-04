@@ -273,7 +273,7 @@ export async function handleMusicalYouRoutes(
         return true;
       }
 
-      const challenge = sendMusicChallenge(
+      const challenge = await sendMusicChallenge(
         challengerId,
         challengerName || 'Anonymous',
         challengeeId,
@@ -295,7 +295,7 @@ export async function handleMusicalYouRoutes(
       }
 
       const type = (searchParams.get('type') || 'all') as 'all' | 'sent' | 'received';
-      const challenges = getUserChallenges(userId, type);
+      const challenges = await getUserChallenges(userId, type);
 
       sendJSON(res, { success: true, challenges });
       return true;
@@ -304,7 +304,7 @@ export async function handleMusicalYouRoutes(
     // GET /api/musical/challenge/:id
     if (pathname.match(/^\/api\/musical\/challenge\/[^/]+$/) && method === 'GET') {
       const challengeId = pathname.split('/').pop()!;
-      const challenge = getChallenge(challengeId);
+      const challenge = await getChallenge(challengeId);
 
       if (!challenge) {
         sendJSON(res, { success: false, error: WARM_ERRORS.challengeNotFound }, 404);
@@ -321,7 +321,7 @@ export async function handleMusicalYouRoutes(
       const [, challengeId, action] = answer;
       const auth = await requireAuth(req, res);
       if (!auth) return true;
-      const existing = getChallenge(challengeId);
+      const existing = await getChallenge(challengeId);
       if (!existing) {
         sendJSON(res, { success: false, error: WARM_ERRORS.challengeNotFound }, 404);
         return true;
@@ -335,7 +335,7 @@ export async function handleMusicalYouRoutes(
         return true;
       }
       if (action === 'decline') {
-        sendJSON(res, { success: true, challenge: declineChallenge(challengeId) });
+        sendJSON(res, { success: true, challenge: await declineChallenge(challengeId) });
         return true;
       }
       const { score, time, name } = await parseBody<{
@@ -349,7 +349,7 @@ export async function handleMusicalYouRoutes(
       }
       sendJSON(res, {
         success: true,
-        challenge: completeChallenge(challengeId, score, time, name),
+        challenge: await completeChallenge(challengeId, score, time, name),
       });
       return true;
     }
@@ -403,7 +403,7 @@ export async function handleMusicalYouRoutes(
       }
       // The match reveals user2's genres and decades, so user2 must have played with
       // the caller: sent them a challenge or answered one of theirs.
-      if (!otherUserHasEngaged(user1Id, user2Id)) {
+      if (!(await otherUserHasEngaged(user1Id, user2Id))) {
         sendJSON(res, { success: false, error: 'Challenge them first to compare tastes.' }, 403);
         return true;
       }
@@ -428,7 +428,7 @@ export async function handleMusicalYouRoutes(
         return true;
       }
 
-      const stats = getUserSocialStats(userId);
+      const stats = await getUserSocialStats(userId);
 
       sendJSON(res, { success: true, stats });
       return true;
