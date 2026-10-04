@@ -21,7 +21,10 @@ import type {
 } from './fast-capture.js';
 // 🧠 MEMORY FIX: Import vector store for semantic search capability
 import { getFirestoreVectorStore } from '../firestore-vector-store/index.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { buildExtractionFirestoreWritePayloads } from './extraction-firestore-docs.js';
 import { buildExtractionVectorDocuments } from './extraction-vector-docs.js';
+import { getMemoryMetricsCollector } from '../memory-metrics.js';
 
 // ============================================================================
 // TYPES
@@ -580,54 +583,39 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
       const batch = db.batch();
       const timestamp = new Date().toISOString();
 
-      // Store each entity
-      for (const entity of result.entities) {
-        const entityRef = db
-          .collection('bogle_users')
-          .doc(userId)
-          .collection('dynamic_entities')
-          .doc();
+      const payloads = buildExtractionFirestoreWritePayloads(
+        userId,
+        result,
+        job,
+        timestamp,
+        this.log
+      );
 
-        batch.set(entityRef, {
-          ...entity,
-          extractedAt: timestamp,
-          sessionId: job.sessionId,
-          turnNumber: job.turnNumber,
-          source: 'deep_extraction',
-          syncedToSpanner: false, // Required for L2→L3 sync
-        });
+      const totalDropped =
+        payloads.dropped.entities + payloads.dropped.facts + payloads.dropped.relationships;
+      if (totalDropped > 0) {
+        getMemoryMetricsCollector().recordExtractionDrop(totalDropped);
+        this.log.debug(
+          { userId, dropped: payloads.dropped },
+          '🧠 [MEMORY-AUDIT] Dropped malformed extraction items before Firestore write'
+        );
       }
 
-      // Store each fact
-      for (const fact of result.facts) {
-        const factRef = db.collection('bogle_users').doc(userId).collection('dynamic_facts').doc();
+      const userRoot = db.collection('bogle_users').doc(userId);
 
-        batch.set(factRef, {
-          ...fact,
-          extractedAt: timestamp,
-          sessionId: job.sessionId,
-          turnNumber: job.turnNumber,
-          source: 'deep_extraction',
-          syncedToSpanner: false, // Required for L2→L3 sync
-        });
+      for (const entityDoc of payloads.entities) {
+        const entityRef = userRoot.collection('dynamic_entities').doc();
+        batch.set(entityRef, entityDoc);
       }
 
-      // Store each relationship
-      for (const rel of result.relationships) {
-        const relRef = db
-          .collection('bogle_users')
-          .doc(userId)
-          .collection('dynamic_relationships')
-          .doc();
+      for (const factDoc of payloads.facts) {
+        const factRef = userRoot.collection('dynamic_facts').doc();
+        batch.set(factRef, factDoc);
+      }
 
-        batch.set(relRef, {
-          ...rel,
-          extractedAt: timestamp,
-          sessionId: job.sessionId,
-          turnNumber: job.turnNumber,
-          source: 'deep_extraction',
-          syncedToSpanner: false, // Required for L2→L3 sync
-        });
+      for (const relDoc of payloads.relationships) {
+        const relRef = userRoot.collection('dynamic_relationships').doc();
+        batch.set(relRef, relDoc);
       }
 
       // Store extraction metadata
@@ -637,26 +625,30 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         .collection('extraction_history')
         .doc(job.jobId);
 
-      batch.set(metaRef, {
-        jobId: job.jobId,
-        sessionId: job.sessionId,
-        turnNumber: job.turnNumber,
-        transcript: job.transcript.slice(0, 500),
-        entityCount: result.entities.length,
-        factCount: result.facts.length,
-        relationshipCount: result.relationships.length,
-        categories: result.categories,
-        importanceScore: result.importanceScore,
-        extractedAt: timestamp,
-      });
+      batch.set(
+        metaRef,
+        cleanForFirestore({
+          jobId: job.jobId,
+          sessionId: job.sessionId,
+          turnNumber: job.turnNumber,
+          transcript: job.transcript.slice(0, 500),
+          entityCount: payloads.entities.length,
+          factCount: payloads.facts.length,
+          relationshipCount: payloads.relationships.length,
+          categories: result.categories,
+          importanceScore: result.importanceScore,
+          extractedAt: timestamp,
+          droppedMalformed: totalDropped,
+        })
+      );
 
       await batch.commit();
 
       this.log.debug(
         {
           userId,
-          entityCount: result.entities.length,
-          factCount: result.facts.length,
+          entityCount: payloads.entities.length,
+          factCount: payloads.facts.length,
         },
         'Persisted extraction results to Firestore'
       );
@@ -713,7 +705,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         );
       }
     } catch (error) {
-      // Non-blocking - log but don't fail the extraction
+      getMemoryMetricsCollector().recordVectorPersistWarn();
       this.log.warn(
         { error: String(error), userId },
         '🧠 [MEMORY-AUDIT] Failed to persist to vector store (non-blocking)'

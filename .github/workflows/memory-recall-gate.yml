@@ -1,0 +1,47 @@
+name: Memory Recall Gate
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/memory/**'
+      - '.github/workflows/memory-recall-gate.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/memory/**'
+      - '.github/workflows/memory-recall-gate.yml'
+
+concurrency:
+  group: memory-recall-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  recall-at-5:
+    name: Memory recall@5 golden gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Run memory recall golden gate
+        run: pnpm test:memory:recall
+        env:
+          NODE_ENV: test
