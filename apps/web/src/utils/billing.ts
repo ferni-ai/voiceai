@@ -9,13 +9,14 @@
  * import { openBillingPortal } from '../utils/billing.js';
  *
  * // Open in new tab (default)
- * await openBillingPortal(userId);
+ * await openBillingPortal();
  *
  * // Open in same tab
- * await openBillingPortal(userId, { openInNewTab: false });
+ * await openBillingPortal({ openInNewTab: false });
  * ```
  */
 
+import { getApiHeadersAsync } from './api.js';
 import { createLogger } from './logger.js';
 import { toast } from '../ui/whisper.ui.js';
 
@@ -66,53 +67,41 @@ export function billingErrorMessage(status?: number): string {
 /**
  * Open the Stripe billing portal for subscription management.
  *
- * @param userId - The user's device ID / user ID
+ * The portal is for the signed-in user: the request carries the Firebase Bearer
+ * token and no userId (the server refuses a body naming another user, and the
+ * local deviceId is not the account id).
+ *
  * @param options - Configuration options
  * @returns Result indicating success and the portal URL
  *
  * @example
  * // Basic usage (opens in new tab)
- * await openBillingPortal(userId);
+ * await openBillingPortal();
  *
  * @example
  * // Open in same tab (for redirect flow)
- * await openBillingPortal(userId, { openInNewTab: false });
+ * await openBillingPortal({ openInNewTab: false });
  *
  * @example
  * // Custom return URL
- * await openBillingPortal(userId, {
+ * await openBillingPortal({
  *   returnUrl: 'https://app.ferni.ai/settings',
  *   openInNewTab: false
  * });
  */
 export async function openBillingPortal(
-  userId: string,
   options: BillingPortalOptions = {}
 ): Promise<BillingPortalResult> {
-  const {
-    returnUrl = window.location.href,
-    openInNewTab = true,
-    showErrorToast = true,
-  } = options;
-
-  if (!userId) {
-    log.warn('Attempted to open billing portal without userId');
-    if (showErrorToast) {
-      toast.error("Connect first, then we can manage that.");
-    }
-    return { success: false, error: 'No userId provided' };
-  }
+  const { returnUrl = window.location.href, openInNewTab = true, showErrorToast = true } = options;
 
   try {
-    log.debug({ userId, returnUrl, openInNewTab }, 'Opening billing portal');
+    log.debug({ returnUrl, openInNewTab }, 'Opening billing portal');
 
+    // Not under /api/, so the global fetch hook adds no token: attach it here.
     const response = await fetch(BILLING_PORTAL_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId,
-        returnUrl,
-      }),
+      headers: await getApiHeadersAsync(),
+      body: JSON.stringify({ returnUrl }),
     });
 
     if (!response.ok) {
@@ -153,42 +142,3 @@ export async function openBillingPortal(
     return { success: false, error: String(error) };
   }
 }
-
-/**
- * Get the billing portal URL without navigating.
- * Useful if you need to create a link or handle navigation yourself.
- *
- * @param userId - The user's device ID / user ID
- * @param returnUrl - Return URL after leaving portal
- * @returns The portal URL or null on error
- */
-export async function getBillingPortalUrl(
-  userId: string,
-  returnUrl: string = window.location.href
-): Promise<string | null> {
-  await openBillingPortal(userId, {
-    returnUrl,
-    openInNewTab: false,
-    showErrorToast: false,
-  });
-
-  // The function navigated, but we can still return the URL
-  // Actually, we need a different approach - let's not navigate
-  if (!userId) return null;
-
-  try {
-    const response = await fetch(BILLING_PORTAL_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, returnUrl }),
-    });
-
-    if (!response.ok) return null;
-
-    const { url } = await response.json();
-    return url || null;
-  } catch {
-    return null;
-  }
-}
-

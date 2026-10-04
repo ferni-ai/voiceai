@@ -8,6 +8,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const toast = vi.hoisted(() => ({ error: vi.fn() }));
 vi.mock('../../src/ui/whisper.ui.js', () => ({ toast }));
+vi.mock('../../src/utils/api.js', () => ({
+  getApiHeadersAsync: async () => ({
+    'Content-Type': 'application/json',
+    Authorization: 'Bearer tok',
+  }),
+}));
 
 import { billingErrorMessage, openBillingPortal } from '../../src/utils/billing.js';
 
@@ -20,7 +26,7 @@ describe('billing errors', () => {
         new Response(JSON.stringify({ error: 'Stripe is not configured' }), { status: 503 })
     ) as typeof fetch;
 
-    const result = await openBillingPortal('uid-1');
+    const result = await openBillingPortal();
 
     expect(result.success).toBe(false);
     expect(toast.error).toHaveBeenCalledWith("Payments aren't set up yet, so nothing was charged.");

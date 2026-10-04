@@ -19,6 +19,7 @@ import {
   type SubscriptionTier,
 } from '../../types/subscription.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { requireAppleVerifier } from './apple-signed-data.js';
 
 const log = createLogger({ module: 'AppleIAP' });
 
@@ -606,38 +607,24 @@ export async function handleNotification(signedPayload: string): Promise<{
  * Decode the signed notification payload (JWS)
  */
 async function decodeSignedPayload(signedPayload: string): Promise<AppleNotificationPayload> {
-  // In production, verify the signature using Apple's public key
-  // For now, just decode the payload
-  const parts = signedPayload.split('.');
-  if (parts.length !== 3) {
-    throw new Error('Invalid JWS format');
-  }
-
-  const payloadBase64 = parts[1];
-  const payloadJson = Buffer.from(payloadBase64, 'base64url').toString('utf8');
-  return JSON.parse(payloadJson);
+  // Apple's library: throws unless Apple signed it for our bundle id, app and environment.
+  const verified = await requireAppleVerifier().verifyAndDecodeNotification(signedPayload);
+  return verified as unknown as AppleNotificationPayload;
 }
 
 /**
  * Decode signed transaction info
  */
 async function decodeSignedTransaction(signedTransaction: string): Promise<AppleTransactionInfo> {
-  const parts = signedTransaction.split('.');
-  if (parts.length !== 3) {
-    throw new Error('Invalid transaction JWS format');
-  }
-
-  const payloadBase64 = parts[1];
-  const payloadJson = Buffer.from(payloadBase64, 'base64url').toString('utf8');
-  const data = JSON.parse(payloadJson);
-
+  // Verified on its own too: signature, bundle id and environment must all match ours.
+  const data = await requireAppleVerifier().verifyAndDecodeTransaction(signedTransaction);
   return {
-    transactionId: data.transactionId,
-    originalTransactionId: data.originalTransactionId,
-    productId: data.productId,
-    purchaseDate: new Date(data.purchaseDate),
-    expiresDate: new Date(data.expiresDate),
-    environment: data.environment,
+    transactionId: data.transactionId ?? '',
+    originalTransactionId: data.originalTransactionId ?? '',
+    productId: data.productId ?? '',
+    purchaseDate: new Date(data.purchaseDate ?? 0),
+    expiresDate: new Date(data.expiresDate ?? 0),
+    environment: data.environment === 'Production' ? 'Production' : 'Sandbox',
     isUpgraded: data.isUpgraded || false,
     offerType: data.offerType,
     offerIdentifier: data.offerIdentifier,
@@ -648,18 +635,10 @@ async function decodeSignedTransaction(signedTransaction: string): Promise<Apple
  * Decode signed renewal info
  */
 async function decodeSignedRenewal(signedRenewal: string): Promise<AppleRenewalInfo> {
-  const parts = signedRenewal.split('.');
-  if (parts.length !== 3) {
-    throw new Error('Invalid renewal JWS format');
-  }
-
-  const payloadBase64 = parts[1];
-  const payloadJson = Buffer.from(payloadBase64, 'base64url').toString('utf8');
-  const data = JSON.parse(payloadJson);
-
+  const data = await requireAppleVerifier().verifyAndDecodeRenewalInfo(signedRenewal);
   return {
-    autoRenewProductId: data.autoRenewProductId,
-    autoRenewStatus: data.autoRenewStatus,
+    autoRenewProductId: data.autoRenewProductId ?? '',
+    autoRenewStatus: data.autoRenewStatus === 1 ? 1 : 0,
     expirationIntent: data.expirationIntent,
     gracePeriodExpiresDate: data.gracePeriodExpiresDate
       ? new Date(data.gracePeriodExpiresDate)
