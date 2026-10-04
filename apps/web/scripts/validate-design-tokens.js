@@ -155,7 +155,6 @@ const IGNORE_PATTERNS = [
   'linkedin-settings.ui.ts',    // LinkedIn brand color
   'custom-agent-wizard.ui.ts',  // Complex wizard with many UI states
   'feature-hints.ui.ts',        // Feature hint tooltips with custom shadows
-  'button-polish.ui.ts',        // Button microinteraction shadows
   'contact-settings.ui.ts',     // Contact button shadows
   'stage-celebration.ui.ts',    // Celebration effects
   'ambient-effects.ui.ts',      // Ambient animation effects
@@ -262,7 +261,6 @@ const IGNORE_PATTERNS = [
   'coaching-mode.ui.ts',        // Coaching mode glass effects
   'cognitive-insights.ui.ts',   // Cognitive insights glass
   'connection-quality.ui.ts',   // Connection quality indicator
-  'form-polish.ui.ts',          // Form enhancement shadows
   'garden-dashboard.ui.ts',     // Garden visualization
   'marketing-dashboard.ui.ts',  // Marketing charts
   'marketplace/',               // Marketplace styles
