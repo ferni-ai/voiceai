@@ -12,7 +12,7 @@ import { captureTurn, type TurnCaptureInput } from './knowledge-capture.js';
 const log = createLogger({ module: 'KnowledgeCaptureBatch' });
 
 export const KNOWLEDGE_CAPTURE_BATCH_TURNS = 4;
-export const KNOWLEDGE_CAPTURE_IDLE_MS = 8_000;
+export const KNOWLEDGE_CAPTURE_IDLE_MS = 30_000;
 
 /** One capture covering several turns of a session, in turn order (latest emotion/topic win). */
 export function mergeTurnCaptures(inputs: readonly TurnCaptureInput[]): TurnCaptureInput {

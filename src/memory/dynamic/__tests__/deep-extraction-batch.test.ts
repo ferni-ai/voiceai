@@ -136,7 +136,10 @@ describe('deep extraction batching', () => {
     expect(run).not.toHaveBeenCalled();
     timers.fire();
     expect(run).toHaveBeenCalledTimes(1);
-    expect(DEEP_EXTRACTION_IDLE_MS).toBeLessThanOrEqual(10_000);
+    // Longer than a turn (10-15 s measured on dev, or the timer flushes every turn),
+    // short enough that the end of a call is captured promptly.
+    expect(DEEP_EXTRACTION_IDLE_MS).toBeGreaterThan(15_000);
+    expect(DEEP_EXTRACTION_IDLE_MS).toBeLessThanOrEqual(60_000);
   });
 
   it('does not mix two sessions into one job', () => {

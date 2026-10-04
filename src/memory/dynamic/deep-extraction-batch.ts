@@ -11,7 +11,7 @@ import type { DeepExtractionJob } from './deep-extraction-worker.js';
 import { createTurnBatcher, type TurnBatcher, type TurnBatcherOptions } from './turn-batcher.js';
 
 export const DEEP_EXTRACTION_BATCH_TURNS = 4;
-export const DEEP_EXTRACTION_IDLE_MS = 8_000;
+export const DEEP_EXTRACTION_IDLE_MS = 30_000;
 
 const PRIORITY_RANK: Record<DeepExtractionJob['priority'], number> = { low: 0, normal: 1, high: 2 };
 
