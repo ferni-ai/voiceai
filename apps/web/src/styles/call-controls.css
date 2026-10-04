@@ -1,0 +1,29 @@
+/* Mute button: a round icon button beside Disconnect during a live call */
+.btn-mute {
+  min-width: 48px;
+  width: 48px;
+  padding: 0;
+  border-radius: var(--radius-full);
+}
+
+.btn-mute .mute-icon-off {
+  display: none;
+}
+
+.btn-mute.muted .mute-icon-on {
+  display: none;
+}
+
+.btn-mute.muted .mute-icon-off {
+  display: block;
+}
+
+.btn-mute.muted {
+  color: var(--color-semantic-error);
+  border-color: var(--color-semantic-error);
+}
+
+.btn-mute:focus-visible {
+  outline: 2px solid var(--persona-primary, var(--color-accent-primary));
+  outline-offset: 2px;
+}

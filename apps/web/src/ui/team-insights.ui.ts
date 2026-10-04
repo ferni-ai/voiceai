@@ -17,7 +17,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { getApiHeadersAsync } from '../utils/api-helpers.js';
+import { getApiHeadersAsync, getUserId } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
@@ -339,23 +339,9 @@ function handleInsightEvent(event: NonNullable<WebSocketMessage['event']>): void
   updateTriggerBadge();
 }
 
-function getUserIdFromPage(): string | null {
-  // Try to get userId from various sources
-  const appState = (window as unknown as { appState?: { userId?: string } }).appState;
-  if (appState?.userId) return appState.userId;
-
-  // Check localStorage
-  const storedUser = localStorage.getItem('ferni_user');
-  if (storedUser) {
-    try {
-      const userData = JSON.parse(storedUser) as { id?: string };
-      if (userData.id) return userData.id;
-    } catch {
-      // Ignore parse errors
-    }
-  }
-
-  return null;
+/** The signed-in user (Firebase UID, else the legacy device ID) to subscribe insights for. */
+export function getUserIdFromPage(): string | null {
+  return getUserId();
 }
 
 // ============================================================================

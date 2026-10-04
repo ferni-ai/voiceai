@@ -41,6 +41,8 @@ export interface TokenResponse {
   readonly username: string; // Participant name
   /** When true, backend is using Qwen3-Omni; frontend shows Director Console in menu */
   readonly useQwen3Omni?: boolean;
+  /** False when the server could not dispatch the voice agent into the room. */
+  readonly agent_dispatched?: boolean;
 }
 
 /**
