@@ -115,6 +115,16 @@ export function parseClassifierReply(reply: string): CrisisVerdict | null {
   }
 }
 
+/** What the classifier actually sees: trimmed, latest not repeated in earlier, last 5 earlier. */
+function normalizeInput(input: CrisisClassifierInput): { latest: string; earlier: string[] } {
+  const latest = input.latest.trim();
+  const earlier = input.earlier
+    .map((m) => m.trim())
+    .filter((m) => m.length > 0 && m !== latest)
+    .slice(-MAX_EARLIER_MESSAGES);
+  return { latest, earlier };
+}
+
 /**
  * Classify one message. Resolves to null on timeout, error or an unusable
  * reply, so a caller can always fall back to the pattern guard alone.
@@ -124,12 +134,8 @@ export async function classifyCrisis(
   generate: CrisisGenerateFn,
   timeoutMs: number = DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS
 ): Promise<CrisisVerdict | null> {
-  const latest = input.latest.trim();
+  const { latest, earlier } = normalizeInput(input);
   if (!latest) return null;
-  const earlier = input.earlier
-    .map((m) => m.trim())
-    .filter((m) => m.length > 0 && m !== latest)
-    .slice(-MAX_EARLIER_MESSAGES);
 
   const controller = new globalThis.AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -246,7 +252,10 @@ export function startCrisisClassifier(
   if (mode === 'live' && options.pattern === 'block') return null;
 
   const startedAt = Date.now();
-  const key = JSON.stringify([input.latest.trim(), input.earlier.slice(-MAX_EARLIER_MESSAGES)]);
+  // Key on what the model sees: the turn pipeline's history ends with the
+  // latest message and the chat context's does not, which made them miss.
+  const normalized = normalizeInput(input);
+  const key = JSON.stringify([normalized.latest, normalized.earlier]);
   const shared = cachedRun(key, startedAt);
   if (shared) return { mode, verdict: shared.verdict };
 
