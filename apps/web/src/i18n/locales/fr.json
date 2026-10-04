@@ -1108,6 +1108,7 @@
       "insights": "Ce que je remarque",
       "yourJourney": "Notre parcours",
       "yourStory": "Notre histoire jusqu'ici",
+      "trustDashboard": "Confiance et évolution",
       "yourYear": "Cette année ensemble",
       "whatIllKnow": "Ce que j'apprendrai",
       "whatINotice": "Ce que je remarque",
@@ -1182,8 +1183,7 @@
       "growthJournal": "[NEEDS_TRANSLATION] Growth Journal",
       "knowledgeQuiz": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
       "soundEffects": "[NEEDS_TRANSLATION] Sound Effects",
-      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule",
-      "trustDashboard": "Confiance et évolution"
+      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule"
     },
     "quickAdd": {
       "person": "Quelqu'un de nouveau",
@@ -2331,8 +2331,8 @@
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
     "connectDevicesFirst": "Connectez d'abord vos lumières ou votre thermostat",
-    "couldNotChangeLights": "Impossible de changer les lumières. Réessayer ?",
-    "musicNeedsCall": "Les commandes musicales fonctionnent pendant une conversation"
+    "musicNeedsCall": "Les commandes musicales fonctionnent pendant une conversation",
+    "couldNotChangeLights": "Impossible de changer les lumières. Réessayer ?"
   },
   "ui": {
     "accountbutton": {

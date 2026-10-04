@@ -19,7 +19,7 @@ import {
   isEngagementTriggerMessage,
   isDailyCheckInRecordedMessage,
 } from '../types/events.js';
-import type { EngagementData, EmotionalWeatherData } from '../types/engagement.js';
+import type { EngagementData, EmotionalWeatherData } from '../ui/engagement.ui.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import { runningAccuracy, toPredictionData, type PredictionData } from './prediction-data.js';

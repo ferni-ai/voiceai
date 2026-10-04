@@ -1108,6 +1108,7 @@
       "insights": "我注意到的",
       "yourJourney": "我们的旅程",
       "yourStory": "我们的故事",
+      "trustDashboard": "信任与成长",
       "yourYear": "在一起的这一年",
       "whatIllKnow": "我会学到的",
       "whatINotice": "我注意到的",
@@ -1182,8 +1183,7 @@
       "growthJournal": "[NEEDS_TRANSLATION] Growth Journal",
       "knowledgeQuiz": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
       "soundEffects": "[NEEDS_TRANSLATION] Sound Effects",
-      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule",
-      "trustDashboard": "信任与成长"
+      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule"
     },
     "quickAdd": {
       "person": "新认识的人",
@@ -2331,8 +2331,8 @@
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
     "connectDevicesFirst": "请先连接你的灯光或恒温器",
-    "couldNotChangeLights": "无法更改灯光。要再试一次吗？",
-    "musicNeedsCall": "音乐控制在对话期间可用"
+    "musicNeedsCall": "音乐控制在对话期间可用",
+    "couldNotChangeLights": "无法更改灯光。要再试一次吗？"
   },
   "ui": {
     "accountbutton": {

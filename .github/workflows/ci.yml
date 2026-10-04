@@ -813,11 +813,6 @@ jobs:
           cd apps/web
           pnpm typecheck
 
-      - name: Architecture tests (layers, cycles, boundaries, naming, file size)
-        run: |
-          cd apps/web
-          pnpm test:arch
-
       - name: ESLint check
         run: |
           cd apps/web

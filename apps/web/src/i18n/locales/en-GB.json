@@ -1108,6 +1108,7 @@
       "insights": "What I'm Noticing",
       "yourJourney": "Our Journey",
       "yourStory": "Our Story So Far",
+      "trustDashboard": "Trust & Growth",
       "yourYear": "This Year Together",
       "whatIllKnow": "What I'll Learn",
       "whatINotice": "What I'm Noticing",
@@ -1182,8 +1183,7 @@
       "conversationInsights": "How We Connect",
       "growthJournal": "Growth Journal",
       "knowledgeQuiz": "How Well Do You Know Me?",
-      "soundEffects": "Sound Effects",
-      "trustDashboard": "Trust & Growth"
+      "soundEffects": "Sound Effects"
     },
     "quickAdd": {
       "person": "Someone new",
@@ -2371,8 +2371,8 @@
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
     "connectDevicesFirst": "Connect your lights or thermostat first",
-    "couldNotChangeLights": "Couldn't change the lights. Try again?",
-    "musicNeedsCall": "Music controls work during a conversation"
+    "musicNeedsCall": "Music controls work during a conversation",
+    "couldNotChangeLights": "Couldn't change the lights. Try again?"
   },
   "ui": {
     "accountbutton": {

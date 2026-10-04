@@ -6,7 +6,8 @@
  * @module voice-journal/calendar
  */
 
-import { getModal, getEntries, getCalendarMonth, setCalendarMonth, getFilterDate } from './state.js';
+import { getModal, getEntries, getCalendarMonth, setCalendarMonth, getFilterDate, setFilterDate } from './state.js';
+import { renderEntries } from './entries.js';
 import { t } from '../../i18n/index.js';
 
 // ============================================================================
@@ -42,6 +43,19 @@ export function navigateNextMonth(): void {
   const calendarMonth = getCalendarMonth();
   setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1));
   renderCalendar();
+}
+
+// ============================================================================
+// DATE FILTERING
+// ============================================================================
+
+/**
+ * Filter entries by a specific date or clear filter
+ */
+export function filterEntriesByDate(dateStr: string | null): void {
+  setFilterDate(dateStr);
+  renderCalendar();
+  renderEntries();
 }
 
 // ============================================================================

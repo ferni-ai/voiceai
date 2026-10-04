@@ -28,7 +28,7 @@ import {
   type ExpressionId,
   type ExpressionFamily,
   type ExpressionConfig,
-} from '../config/avatar-expressions.js';
+} from '../config/expressions.generated.js';
 
 const log = createLogger('LuxoExpressions');
 

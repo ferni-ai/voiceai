@@ -61,7 +61,7 @@ import {
 // 🎬 Ferni Expressions - Character-level avatar expressions
 import { ferniExpressions, type EmotionalExpression } from '../ui/ferni-expressions.ui.js';
 // 🎭 Luxo Expressions - 100+ expression system from design tokens
-import type { ExpressionId } from '../config/avatar-expressions.js';
+import type { ExpressionId } from '../config/expressions.generated.js';
 import * as luxoExpressions from '../ui/luxo-expressions.ui.js';
 // 🎚️ Music Audio Controller - Real-time ducking
 import { getMusicAudioController } from '../services/music-audio.controller.js';
@@ -84,8 +84,8 @@ import {
 // 🌉 Humanization Bridge - Connects backend humanization to frontend EQ
 import { humanizationBridge } from '../services/humanization-bridge.service.js';
 // 🧠 EQ Bridge - Handles BTH superhuman signals (emotional bond, inside jokes, etc.)
-import { handleBetterThanHumanSignal } from '../eq/index.js';
-import type { BetterThanHumanSignal, BetterThanHumanSignalType } from '../eq/index.js';
+import { handleBetterThanHumanSignal } from '../eq/bridge/index.js';
+import type { BetterThanHumanSignal, BetterThanHumanSignalType } from '../eq/types.js';
 // 🔄 Behavior Signal Service - Bidirectional behavior system
 import { behaviorSignalService } from '../services/behavior-signal.service.js';
 // 🎭 Persona Intro - Team member unlock modal

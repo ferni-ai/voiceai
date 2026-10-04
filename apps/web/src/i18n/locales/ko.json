@@ -1108,6 +1108,7 @@
       "insights": "알아차린 것들",
       "yourJourney": "우리의 여정",
       "yourStory": "지금까지의 이야기",
+      "trustDashboard": "신뢰와 성장",
       "yourYear": "함께한 1년",
       "whatIllKnow": "내가 알게 될 것",
       "whatINotice": "알아차린 것들",
@@ -1182,8 +1183,7 @@
       "growthJournal": "[NEEDS_TRANSLATION] Growth Journal",
       "knowledgeQuiz": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
       "soundEffects": "[NEEDS_TRANSLATION] Sound Effects",
-      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule",
-      "trustDashboard": "신뢰와 성장"
+      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule"
     },
     "quickAdd": {
       "person": "새로운 사람",
@@ -2331,8 +2331,8 @@
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
     "connectDevicesFirst": "먼저 조명이나 온도 조절기를 연결하세요",
-    "couldNotChangeLights": "조명을 바꾸지 못했어요. 다시 시도할까요?",
-    "musicNeedsCall": "음악 조작은 대화 중에 사용할 수 있어요"
+    "musicNeedsCall": "음악 조작은 대화 중에 사용할 수 있어요",
+    "couldNotChangeLights": "조명을 바꾸지 못했어요. 다시 시도할까요?"
   },
   "ui": {
     "accountbutton": {

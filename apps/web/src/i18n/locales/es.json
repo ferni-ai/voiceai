@@ -1123,6 +1123,7 @@
       "yourPlan": "Tu Plan",
       "insights": "[NEEDS_TRANSLATION] Understanding You",
       "yourStory": "[NEEDS_TRANSLATION] Your Story",
+      "trustDashboard": "Confianza y crecimiento",
       "whatINotice": "[NEEDS_TRANSLATION] What I Notice",
       "teamSessions": "[NEEDS_TRANSLATION] Team Sessions",
       "conferenceCalls": "[NEEDS_TRANSLATION] Conference Calls",
@@ -1149,8 +1150,7 @@
       "growthJournal": "[NEEDS_TRANSLATION] Growth Journal",
       "knowledgeQuiz": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
       "soundEffects": "[NEEDS_TRANSLATION] Sound Effects",
-      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule",
-      "trustDashboard": "Confianza y crecimiento"
+      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule"
     },
     "keepChatting": "Sigue charlando para desbloquear",
     "maxLevel": "Compañeros de Vida",
@@ -2331,8 +2331,8 @@
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
     "connectDevicesFirst": "Primero conecta tus luces o tu termostato",
-    "couldNotChangeLights": "No pudimos cambiar las luces. ¿Intentar de nuevo?",
-    "musicNeedsCall": "Los controles de música funcionan durante una conversación"
+    "musicNeedsCall": "Los controles de música funcionan durante una conversación",
+    "couldNotChangeLights": "No pudimos cambiar las luces. ¿Intentar de nuevo?"
   },
   "ui": {
     "accountbutton": {

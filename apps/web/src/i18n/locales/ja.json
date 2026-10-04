@@ -1108,6 +1108,7 @@
       "insights": "気づいていること",
       "yourJourney": "私たちの旅",
       "yourStory": "これまでの物語",
+      "trustDashboard": "信頼と成長",
       "yourYear": "一緒に過ごした一年",
       "whatIllKnow": "私が学ぶこと",
       "whatINotice": "気づいていること",
@@ -1182,8 +1183,7 @@
       "growthJournal": "[NEEDS_TRANSLATION] Growth Journal",
       "knowledgeQuiz": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
       "soundEffects": "[NEEDS_TRANSLATION] Sound Effects",
-      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule",
-      "trustDashboard": "信頼と成長"
+      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule"
     },
     "quickAdd": {
       "person": "新しい人",
@@ -2331,8 +2331,8 @@
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
     "connectDevicesFirst": "まず照明またはサーモスタットを接続してください",
-    "couldNotChangeLights": "照明を変更できませんでした。もう一度試しますか？",
-    "musicNeedsCall": "音楽の操作は会話中に使えます"
+    "musicNeedsCall": "音楽の操作は会話中に使えます",
+    "couldNotChangeLights": "照明を変更できませんでした。もう一度試しますか？"
   },
   "ui": {
     "accountbutton": {

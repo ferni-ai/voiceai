@@ -5,14 +5,9 @@
  * This allows the UI to be demonstrated and tested without a live conversation.
  */
 
-import type {
-  EngagementData,
-  RitualStreakData,
-  EmotionalWeatherData,
-  TeamHuddleData,
-  TeamHuddleParticipant,
-} from '../types/engagement.js';
+import type { EngagementData, RitualStreakData, EmotionalWeatherData } from '../ui/engagement.ui.js';
 import type { PredictionData } from './engagement.service.js';
+import type { TeamHuddleData, TeamHuddleParticipant } from '../ui/team-huddle.ui.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('DemoData');

@@ -354,9 +354,9 @@ import { initMagneticHover } from './ui/magnetic-hover.ui.js';
 import { playBeat, updateNarrativeContext } from './narrative/narrative-director.js';
 // 🎭 Ritual Engine - Multi-sensory brand moments
 // 🧪 Soul test utilities (available as window.testSoul in dev)
-// NOTE: Dev-only module, imported dynamically so production bundles skip it
+// NOTE: Test file imported dynamically to avoid build errors
 if (import.meta.env.DEV) {
-  void import('./ui/soul-dev-tools.js');
+  void import('./ui/soul.test.js');
 }
 
 // 🧪 First-time user testing utilities (available as window.testFirstTimeUser in dev)

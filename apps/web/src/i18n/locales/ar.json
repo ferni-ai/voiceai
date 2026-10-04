@@ -1115,6 +1115,7 @@
       "yourPlan": "خطتك",
       "insights": "[NEEDS_TRANSLATION] Understanding You",
       "yourStory": "[NEEDS_TRANSLATION] Your Story",
+      "trustDashboard": "الثقة والنمو",
       "whatINotice": "[NEEDS_TRANSLATION] What I Notice",
       "teamSessions": "[NEEDS_TRANSLATION] Team Sessions",
       "conferenceCalls": "[NEEDS_TRANSLATION] Conference Calls",
@@ -1142,8 +1143,7 @@
       "growthJournal": "[NEEDS_TRANSLATION] Growth Journal",
       "knowledgeQuiz": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
       "soundEffects": "[NEEDS_TRANSLATION] Sound Effects",
-      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule",
-      "trustDashboard": "الثقة والنمو"
+      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule"
     },
     "keepChatting": "استمر في الدردشة لفتح القفل",
     "maxLevel": "شركاء الحياة",
@@ -2331,8 +2331,8 @@
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
     "connectDevicesFirst": "صِل الأضواء أو منظم الحرارة أولاً",
-    "couldNotChangeLights": "تعذّر تغيير الأضواء. هل تريد المحاولة مجدداً؟",
-    "musicNeedsCall": "تعمل عناصر التحكم بالموسيقى أثناء المحادثة"
+    "musicNeedsCall": "تعمل عناصر التحكم بالموسيقى أثناء المحادثة",
+    "couldNotChangeLights": "تعذّر تغيير الأضواء. هل تريد المحاولة مجدداً؟"
   },
   "ui": {
     "accountbutton": {

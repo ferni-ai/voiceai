@@ -1123,6 +1123,7 @@
       "yourPlan": "Ihr Plan",
       "insights": "[NEEDS_TRANSLATION] Understanding You",
       "yourStory": "[NEEDS_TRANSLATION] Your Story",
+      "trustDashboard": "Vertrauen & Wachstum",
       "whatINotice": "[NEEDS_TRANSLATION] What I Notice",
       "teamSessions": "[NEEDS_TRANSLATION] Team Sessions",
       "conferenceCalls": "[NEEDS_TRANSLATION] Conference Calls",
@@ -1149,8 +1150,7 @@
       "growthJournal": "[NEEDS_TRANSLATION] Growth Journal",
       "knowledgeQuiz": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
       "soundEffects": "[NEEDS_TRANSLATION] Sound Effects",
-      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule",
-      "trustDashboard": "Vertrauen & Wachstum"
+      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule"
     },
     "keepChatting": "Weiter chatten zum Freischalten",
     "maxLevel": "Lebenspartner",
@@ -2331,8 +2331,8 @@
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
     "connectDevicesFirst": "Verbinden Sie zuerst Ihre Lampen oder Ihr Thermostat",
-    "couldNotChangeLights": "Das Licht ließ sich nicht ändern. Erneut versuchen?",
-    "musicNeedsCall": "Die Musiksteuerung funktioniert während eines Gesprächs"
+    "musicNeedsCall": "Die Musiksteuerung funktioniert während eines Gesprächs",
+    "couldNotChangeLights": "Das Licht ließ sich nicht ändern. Erneut versuchen?"
   },
   "ui": {
     "accountbutton": {

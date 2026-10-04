@@ -27,7 +27,6 @@ import {
 } from 'firebase/auth';
 import { getFirebaseAuth, isFirebaseConfigured, loadFirebaseConfig } from '../config/firebase.js';
 import { createLogger } from '../utils/logger.js';
-import type { AuthState, AuthStateCallback } from '../types/auth.js';
 
 const log = createLogger('FirebaseAuth');
 
@@ -35,7 +34,26 @@ const log = createLogger('FirebaseAuth');
 // TYPES
 // ============================================================================
 
-export type { AuthState, AuthStateCallback };
+export interface AuthState {
+  /** Whether Firebase Auth is available and configured */
+  isConfigured: boolean;
+  /** Whether user is authenticated (anonymous or linked) */
+  isAuthenticated: boolean;
+  /** Whether user has linked a real account (email, Google, Apple) */
+  isLinked: boolean;
+  /** Firebase UID (null if not authenticated) */
+  uid: string | null;
+  /** User's email (null if anonymous) */
+  email: string | null;
+  /** User's display name from provider */
+  displayName: string | null;
+  /** URL to user's profile photo */
+  photoURL: string | null;
+  /** Which providers are linked */
+  linkedProviders: string[];
+}
+
+export type AuthStateCallback = (state: AuthState) => void;
 
 // ============================================================================
 // STATE

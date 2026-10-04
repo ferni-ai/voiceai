@@ -18,7 +18,7 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { Modal, type ModalConfig } from '../components/base/index.js';
+import { Modal, type ModalConfig } from '../components/base/modal.js';
 import {
   teamUnlockService,
   TEAM_MEMBERS,

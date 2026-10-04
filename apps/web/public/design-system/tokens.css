@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2026-10-04T22:27:44.226Z
+ * Build: 2026-03-05T09:41:17.002Z
  */
 
 /* ========================================
@@ -638,7 +638,7 @@
   --viz-moods-anxious: #b5453a;
   --viz-moods-tired: #756a5e;
   --viz-moods-focused: #3a6b73;
-  --viz-moods-reflective: #5a6b8a;
+  --viz-moods-reflective: #7a6a8a;
   --viz-moods-stressed: #a54545;
   --viz-moods-energized: #4a7a52;
   --viz-moods-peaceful: #5a8a73;
@@ -661,7 +661,7 @@
   --viz-chapters-challenge: #b5453a;
   --viz-chapters-transition: #c4956a;
   --viz-chapters-celebration: #4a7a52;
-  --viz-chapters-reflection: #5a6b8a;
+  --viz-chapters-reflection: #7a6a8a;
 }
 
 /* ========================================

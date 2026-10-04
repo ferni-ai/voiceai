@@ -48,8 +48,13 @@ import { renderMoodOptions } from './mood-icons.js';
 import { fetchPrompt, renderPromptSection, shufflePrompt, prefetchPrompts } from './prompts.js';
 import { toggleRecording, stopRecording, stopVisualization } from './recording.js';
 import { renderStats } from './render-stats.js';
-import { renderCalendar, navigatePrevMonth, navigateNextMonth } from './calendar.js';
-import { renderEntries, deleteEntry, filterEntriesByDate } from './entries.js';
+import {
+  renderCalendar,
+  navigatePrevMonth,
+  navigateNextMonth,
+  filterEntriesByDate,
+} from './calendar.js';
+import { renderEntries, deleteEntry } from './entries.js';
 import { renderInsights } from './insights.js';
 import { exportJournal, shareJournal } from './export.js';
 import { getJournalStyles } from './styles.js';
