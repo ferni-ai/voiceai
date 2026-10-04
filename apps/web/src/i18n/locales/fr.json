@@ -1027,6 +1027,7 @@
     "apple": {
       "instructionsTitle": "Pour annuler ou modifier votre plan :",
       "note": "Apple exige que les abonnements soient gérés via les Paramètres iOS",
+      "source": "Vous vous êtes abonné via l'App Store.",
       "step1": "Ouvrez Paramètres sur votre appareil",
       "step2": "Appuyez sur votre nom en haut",
       "step3": "Appuyez sur \"Abonnements\"",
@@ -1043,6 +1044,7 @@
     "expiresLabel": "Accès jusqu'au",
     "freeNote": "Déverrouillez les sessions illimitées, l'équipe complète et la personnalisation",
     "label": "ABONNEMENT",
+    "noBilling": "Votre plan n'est pas facturé ici, il n'y a donc rien à modifier.",
     "renewsLabel": "Renouvellement",
     "restore": {
       "failed": "La restauration a échoué",

@@ -1027,6 +1027,7 @@
     "apple": {
       "instructionsTitle": "Um Ihren Plan zu kündigen oder zu ändern:",
       "note": "Apple erfordert, dass Abonnements über iOS-Einstellungen verwaltet werden",
+      "source": "Sie haben über den App Store abonniert.",
       "step1": "Öffnen Sie Einstellungen auf Ihrem Gerät",
       "step2": "Tippen Sie oben auf Ihren Namen",
       "step3": "Tippen Sie auf \"Abos\"",
@@ -1043,6 +1044,7 @@
     "expiresLabel": "Zugriff bis",
     "freeNote": "Freischalten Sie unbegrenzte Sitzungen, das vollständige Team und Personalisierung",
     "label": "ABONNEMENT",
+    "noBilling": "Ihr Plan wird hier nicht abgerechnet, daher gibt es nichts zu ändern.",
     "renewsLabel": "Erneuert",
     "restore": {
       "failed": "Wiederherstellung fehlgeschlagen",
