@@ -28,6 +28,10 @@ vi.mock('../../services/calendar/notification-preferences.js', () => ({
   setNotificationPreference: mocks.setNotificationPreference,
   getNotificationPreferences: vi.fn(),
 }));
+// Writes now require a verified caller; these requests come from signed-in u1.
+vi.mock('../auth-middleware.js', () => ({
+  requireAuth: vi.fn(async () => ({ userId: 'u1', isAdmin: false })),
+}));
 
 import { handleCalendarRoutes } from '../calendar-routes/index.js';
 
