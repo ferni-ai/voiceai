@@ -45,8 +45,12 @@ export interface SpeakerChangeConfig {
   changeDebounceCount: number;
   // Minimum audio duration for embedding extraction (ms)
   minAudioDurationMs: number;
-  // Check interval for continuous monitoring (ms)
+  // Check interval for continuous monitoring (ms): at most one comparison per interval
   checkIntervalMs: number;
+  // Most recent audio kept for the next comparison (ms of 16 kHz audio, any frame size)
+  maxBufferedMs: number;
+  // Windows quieter than this RMS are skipped (silence, not a voice to compare)
+  minSpeechRms: number;
   // Enable household identification
   enableHouseholdIdentification: boolean;
 }
@@ -72,8 +76,12 @@ const DEFAULT_CONFIG: SpeakerChangeConfig = {
   changeDebounceCount: 2,
   minAudioDurationMs: 1000,
   checkIntervalMs: 2000,
+  maxBufferedMs: 2000,
+  minSpeechRms: 0.01, // about -40 dBFS
   enableHouseholdIdentification: true,
 };
+
+const SAMPLE_RATE = 16000;
 
 // ============================================================================
 // SPEAKER CHANGE DETECTOR
@@ -84,7 +92,9 @@ export class SpeakerChangeDetector extends EventEmitter {
   private state: SpeakerState;
   private deviceId: string;
   private audioBuffer: Float32Array[] = [];
+  private bufferedSamples = 0;
   private isMonitoring = false;
+  private isComparing = false;
 
   private getIntervalName(): string {
     return `speaker-change-detector-${this.deviceId}`;
@@ -138,34 +148,41 @@ export class SpeakerChangeDetector extends EventEmitter {
     this.isMonitoring = false;
     clearNamedInterval(this.getIntervalName());
     this.audioBuffer = [];
+    this.bufferedSamples = 0;
 
     log.info({ deviceId: this.deviceId }, 'Speaker change detection stopped');
   }
 
   /**
-   * Feed audio samples for analysis.
+   * Feed audio samples for analysis. Only stores them (cheap, per frame); the
+   * comparison runs on the interval. Keeps the most recent maxBufferedMs of
+   * audio whatever the frame size (a 10-frame cap held only 100-200 ms of
+   * 10-20 ms frames, so the 1 s minimum was never reached).
    */
   feedAudio(samples: Float32Array): void {
     if (!this.isMonitoring) return;
 
     this.audioBuffer.push(samples);
+    this.bufferedSamples += samples.length;
 
-    // Limit buffer size
-    const maxBuffers = 10;
-    if (this.audioBuffer.length > maxBuffers) {
-      this.audioBuffer = this.audioBuffer.slice(-maxBuffers);
+    const maxSamples = (this.config.maxBufferedMs / 1000) * SAMPLE_RATE;
+    while (
+      this.audioBuffer.length > 1 &&
+      this.bufferedSamples - this.audioBuffer[0].length >= maxSamples
+    ) {
+      this.bufferedSamples -= this.audioBuffer.shift()?.length ?? 0;
     }
   }
 
   /**
-   * Process buffered audio and check for speaker change.
+   * Process buffered audio and check for speaker change. Runs at most once per
+   * checkIntervalMs (the interval), never overlapping, and skips silence.
    */
   private async processAudioBuffer(): Promise<void> {
-    if (this.audioBuffer.length === 0) return;
+    if (this.audioBuffer.length === 0 || this.isComparing) return;
 
     // Combine audio buffers
-    const totalLength = this.audioBuffer.reduce((sum, b) => sum + b.length, 0);
-    const combined = new Float32Array(totalLength);
+    const combined = new Float32Array(this.bufferedSamples);
     let offset = 0;
     for (const buffer of this.audioBuffer) {
       combined.set(buffer, offset);
@@ -174,13 +191,22 @@ export class SpeakerChangeDetector extends EventEmitter {
 
     // Clear buffer
     this.audioBuffer = [];
+    this.bufferedSamples = 0;
 
-    // Check minimum duration (assuming 16kHz)
-    const durationMs = (combined.length / 16000) * 1000;
+    // Check minimum duration (16 kHz)
+    const durationMs = (combined.length / SAMPLE_RATE) * 1000;
     if (durationMs < this.config.minAudioDurationMs) {
       return;
     }
 
+    // Silence is not a voice: comparing it would read as a "change"
+    let energy = 0;
+    for (const sample of combined) energy += sample * sample;
+    if (Math.sqrt(energy / combined.length) < this.config.minSpeechRms) {
+      return;
+    }
+
+    this.isComparing = true;
     try {
       // Extract embedding
       const speakerEmbedding = await extractSpeakerEmbedding(combined);
@@ -198,6 +224,8 @@ export class SpeakerChangeDetector extends EventEmitter {
       await this.checkSpeakerChange(embedding);
     } catch (error) {
       log.error({ error }, 'Error processing audio for speaker change');
+    } finally {
+      this.isComparing = false;
     }
   }
 
