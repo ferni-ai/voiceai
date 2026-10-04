@@ -13,7 +13,7 @@
  */
 
 import { findProjectRoot } from '../../utils/project-root.js';
-import { ChildProcess, execSync, spawn } from 'child_process';
+import { ChildProcess, execFileSync, execSync, spawn } from 'child_process';
 import { createWriteStream, existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -862,6 +862,7 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
     log.info('Would build frontend');
     log.info('Would deploy to preview channel');
     log.info('Would health check preview URL');
+    log.info('Would browser smoke test preview URL');
     log.info('Would promote to live if healthy');
     return true;
   }
@@ -893,20 +894,39 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
 
   // Step 2: Health check preview (if we got a URL)
   if (previewUrl) {
-    log.info('Step 2/3: Health checking preview...');
-    const health = await healthCheck(previewUrl, { maxRetries: 5, retryDelay: 3000 });
-
-    if (!health.healthy) {
-      log.error(`Preview health check failed: ${health.error}`);
+    const deletePreviewChannel = () => {
       log.info('Cleaning up preview channel...');
       try {
         exec(`cd ${frontendDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`, { silent: true });
       } catch {
         // Ignore cleanup errors
       }
+    };
+
+    log.info('Step 2/3: Health checking preview...');
+    const health = await healthCheck(previewUrl, { maxRetries: 5, retryDelay: 3000 });
+
+    if (!health.healthy) {
+      log.error(`Preview health check failed: ${health.error}`);
+      deletePreviewChannel();
       return false;
     }
     log.success(`Preview health check passed (HTTP ${health.statusCode})`);
+
+    // A 200 doesn't mean the app runs: on 2026-10-04 the JS crashed at module
+    // evaluation behind a 200. Load the preview in a real browser before promoting.
+    log.info('Smoke testing preview in a browser...');
+    try {
+      execFileSync('node', [join(PROJECT_ROOT, 'scripts/smoke-frontend.mjs'), previewUrl], {
+        cwd: PROJECT_ROOT,
+        stdio: 'inherit',
+      });
+    } catch {
+      log.error('Preview browser smoke test failed, not promoting');
+      deletePreviewChannel();
+      return false;
+    }
+    log.success('Preview browser smoke test passed');
   } else {
     log.info('Step 2/3: Skipping preview health check (no preview URL)');
   }
