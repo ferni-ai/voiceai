@@ -297,9 +297,7 @@ async function sendVoiceMessageRealWithUserId(
 // REMINDER FUNCTIONS (Persistent + Scheduled)
 // ============================================================================
 
-/**
- * Schedule a reminder with automatic delivery
- */
+/** Schedule a reminder with automatic delivery, and record Ferni's promise to send it. */
 async function scheduleReminderReal(params: {
   userId: string;
   message: string;
@@ -357,7 +355,9 @@ async function scheduleReminderReal(params: {
       deliveryAddress,
       createdBy: 'alex',
     });
-
+    const promises =
+      await import('../../../services/superhuman/semantic-intelligence/promise-keeper.js');
+    await promises.recordReminderPromise(params.userId, reminder);
     const formattedTime = scheduledFor.toLocaleString('en-US', {
       weekday: 'long',
       month: 'long',

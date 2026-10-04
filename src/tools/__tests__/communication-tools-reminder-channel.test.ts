@@ -35,14 +35,10 @@ vi.mock('../../services/communication-service.js', () => ({
   sendSMS: vi.fn(),
 }));
 
-vi.mock('../../utils/safe-logger.js', () => ({
-  getLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
-}));
+vi.mock('../../utils/safe-logger.js', () => {
+  const logger = () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() });
+  return { getLogger: vi.fn(logger), createLogger: vi.fn(logger) };
+});
 
 vi.mock('../validation.js', () => ({
   validatePhone: vi.fn(() => ({ valid: true, sanitized: '+15551234567' })),
