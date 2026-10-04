@@ -101,6 +101,19 @@ describe('TurnMetricsAggregator', () => {
     agg.add(llmM('t3', 600));
     expect(agg.add(ttsM('t3', 100))).toMatchObject({ speechId: 't3', eouDelayMs: 300 });
   });
+
+  it('still reports turns when the TTS emits no metrics (the cascade gateway TTS)', () => {
+    const agg = new TurnMetricsAggregator();
+    expect(agg.add(eou('t1', 400))).toBeNull();
+    expect(agg.add(llmM('t1', 5600))).toBeNull();
+    expect(agg.add(eou('t2', 300))).toMatchObject({
+      speechId: 't1',
+      llmTtftMs: 5600,
+      llmReadyMs: 6000,
+      responseLatencyMs: null,
+      ttsTtfbMs: null,
+    });
+  });
 });
 
 describe('attachTurnMetrics', () => {

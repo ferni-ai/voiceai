@@ -33,6 +33,7 @@ import {
 import type { ConversationContext as FeedbackContext } from '../../tools/optimization/feedback-collector.js';
 import { fireAndForget, safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
 import type { UserData } from '../shared/types.js';
+import { getUserResponseGapMs } from './user-response-gap.js';
 
 // ============================================================================
 // TYPES
@@ -141,9 +142,7 @@ export function processHumanListeningPipeline(
         emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
         durationMs: userData.voiceEmotion?.prosody?.utteranceDuration,
         prosodyFeatures,
-        timeSinceAgentMessage: userData.lastAgentResponseTime
-          ? Date.now() - userData.lastAgentResponseTime
-          : undefined,
+        timeSinceAgentMessage: getUserResponseGapMs(userData),
       });
 
       setHumanListeningResult(sessionId, listeningResult);

@@ -40,11 +40,14 @@ type AnyMetric = EouMetric | LlmMetric | TtsMetric | { type: string; speechId?: 
 
 export interface TurnMetricsRecord {
   speechId: string;
-  responseLatencyMs: number;
+  /** EOU delay + LLM TTFT + TTS TTFB; null when the TTS reported no metrics. */
+  responseLatencyMs: number | null;
+  /** EOU delay + LLM TTFT: when the reply's first words exist. */
+  llmReadyMs: number;
   eouDelayMs: number;
   transcriptionDelayMs: number;
   llmTtftMs: number;
-  ttsTtfbMs: number;
+  ttsTtfbMs: number | null;
   promptTokens: number;
   completionTokens: number;
   ttsCharacters: number;
@@ -64,6 +67,11 @@ interface OpenTurn {
  * first TTS metric after that complete it. TTS with no open turn (e.g. the
  * greeting) is ignored, later LLM calls in the same turn (tool calls) are
  * ignored, and a new end-of-utterance abandons an unanswered turn.
+ *
+ * A TTS that emits no metrics (the Cartesia gateway TTS used by the cascade)
+ * would leave every turn open forever, so a turn with an LLM metric but no TTS
+ * metric is emitted, without TTS figures, when the next end-of-utterance
+ * arrives.
  */
 export class TurnMetricsAggregator {
   private open: OpenTurn | null = null;
@@ -71,8 +79,9 @@ export class TurnMetricsAggregator {
   /** Add one metric. Returns the completed record once a turn has eou, llm and tts. */
   add(metric: AnyMetric): TurnMetricsRecord | null {
     if (metric.type === 'eou_metrics') {
+      const unfinished = this.open?.llm ? toRecord(this.open.eou, this.open.llm) : null;
       this.open = { eou: metric as EouMetric };
-      return null;
+      return unfinished;
     }
     const turn = this.open;
     if (!turn) return null;
@@ -81,26 +90,31 @@ export class TurnMetricsAggregator {
       return null;
     }
     if (metric.type !== 'tts_metrics' || !turn.llm) return null;
-    const tts = metric as TtsMetric;
     this.open = null;
-    return {
-      speechId: turn.eou.speechId ?? '',
-      responseLatencyMs: turn.eou.endOfUtteranceDelayMs + turn.llm.ttftMs + tts.ttfbMs,
-      eouDelayMs: turn.eou.endOfUtteranceDelayMs,
-      transcriptionDelayMs: turn.eou.transcriptionDelayMs,
-      llmTtftMs: turn.llm.ttftMs,
-      ttsTtfbMs: tts.ttfbMs,
-      promptTokens: turn.llm.promptTokens,
-      completionTokens: turn.llm.completionTokens,
-      ttsCharacters: tts.charactersCount,
-      interrupted: tts.cancelled,
-    };
+    return toRecord(turn.eou, turn.llm, metric as TtsMetric);
   }
 }
 
+function toRecord(eou: EouMetric, llm: LlmMetric, tts?: TtsMetric): TurnMetricsRecord {
+  const llmReadyMs = eou.endOfUtteranceDelayMs + llm.ttftMs;
+  return {
+    speechId: eou.speechId ?? '',
+    responseLatencyMs: tts ? llmReadyMs + tts.ttfbMs : null,
+    llmReadyMs,
+    eouDelayMs: eou.endOfUtteranceDelayMs,
+    transcriptionDelayMs: eou.transcriptionDelayMs,
+    llmTtftMs: llm.ttftMs,
+    ttsTtfbMs: tts ? tts.ttfbMs : null,
+    promptTokens: llm.promptTokens,
+    completionTokens: llm.completionTokens,
+    ttsCharacters: tts ? tts.charactersCount : 0,
+    interrupted: tts ? tts.cancelled : false,
+  };
+}
+
 interface EventSource {
-  on(event: string, handler: (ev: unknown) => void): unknown;
-  off(event: string, handler: (ev: unknown) => void): unknown;
+  on: (event: string, handler: (ev: unknown) => void) => unknown;
+  off: (event: string, handler: (ev: unknown) => void) => unknown;
 }
 
 /** LiveKit's voice.AgentSessionEventTypes.MetricsCollected. */

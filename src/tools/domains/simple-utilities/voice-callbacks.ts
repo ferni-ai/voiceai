@@ -32,41 +32,53 @@ export interface VoiceCallback {
   priority: 'high' | 'normal' | 'low';
   scheduledFor?: Date;
   context?: Record<string, unknown>;
+  /** The AgentSession of the call that asked for it, when known. */
+  session?: object;
 }
 
-// Registered callback handlers (set by voice agent on init)
-let voiceCallbackHandler: ((callback: VoiceCallback) => Promise<void>) | null = null;
+type VoiceCallbackHandler = (callback: VoiceCallback) => Promise<void>;
 
-// Pending callbacks queue (for when handler not registered yet)
-const pendingCallbacks: VoiceCallback[] = [];
+/**
+ * Handlers by call. This was one module-level handler plus a queue: in live
+ * calls nothing registered it (the registration paths had no callers), so a
+ * finished timer sat in the queue and the caller was never told; and with
+ * several calls in one process, a registered handler would have spoken every
+ * caller's timer into whichever call registered last. Now a callback reaches
+ * the call that set it (by session, else by user) or nobody.
+ */
+const handlersBySession = new WeakMap<object, VoiceCallbackHandler>();
+const handlersByUser = new Map<string, VoiceCallbackHandler>();
 
 // ============================================================================
 // CALLBACK REGISTRATION
 // ============================================================================
 
 /**
- * Register the voice callback handler (called by voice agent on startup)
+ * Register a call's handler. `session` is the call's AgentSession (tools pass
+ * it along from their RunContext). Returns the unregister function; call it
+ * when the call ends.
  */
 export function registerVoiceCallbackHandler(
-  handler: (callback: VoiceCallback) => Promise<void>
-): void {
-  voiceCallbackHandler = handler;
-  getLogger().info('Voice callback handler registered');
-
-  // Process any pending callbacks
-  while (pendingCallbacks.length > 0) {
-    const callback = pendingCallbacks.shift()!;
-    handler(callback).catch((err) => {
-      getLogger().error({ err, callback }, 'Failed to process pending callback');
-    });
-  }
+  userId: string,
+  handler: VoiceCallbackHandler,
+  session?: object
+): () => void {
+  handlersByUser.set(userId, handler);
+  if (session) handlersBySession.set(session, handler);
+  getLogger().info({ userId }, 'Voice callback handler registered');
+  return () => unregisterVoiceCallbackHandler(userId, handler, session);
 }
 
-/**
- * Unregister the voice callback handler
- */
-export function unregisterVoiceCallbackHandler(): void {
-  voiceCallbackHandler = null;
+/** Remove a call's handler (only if it is still the registered one). */
+export function unregisterVoiceCallbackHandler(
+  userId: string,
+  handler?: VoiceCallbackHandler,
+  session?: object
+): void {
+  if (!handler || handlersByUser.get(userId) === handler) handlersByUser.delete(userId);
+  if (session && (!handler || handlersBySession.get(session) === handler)) {
+    handlersBySession.delete(session);
+  }
 }
 
 // ============================================================================
@@ -74,18 +86,23 @@ export function unregisterVoiceCallbackHandler(): void {
 // ============================================================================
 
 /**
- * Trigger a voice callback (speaks to user)
+ * Speak a callback in the call it belongs to. With no live call for it (the
+ * caller hung up), it is logged and dropped: never queued for another call.
  */
-export async function triggerVoiceCallback(callback: VoiceCallback): Promise<void> {
-  getLogger().info({ type: callback.type, userId: callback.userId }, 'Voice callback triggered');
-
-  if (voiceCallbackHandler) {
-    await voiceCallbackHandler(callback);
-  } else {
-    // Queue for later if handler not registered
-    pendingCallbacks.push(callback);
-    getLogger().warn('Voice callback handler not registered, queueing callback');
+export async function triggerVoiceCallback(callback: VoiceCallback): Promise<boolean> {
+  const handler =
+    (callback.session ? handlersBySession.get(callback.session) : undefined) ??
+    handlersByUser.get(callback.userId);
+  if (!handler) {
+    getLogger().warn(
+      { type: callback.type, userId: callback.userId },
+      'Voice callback dropped: the caller is not on a call'
+    );
+    return false;
   }
+  getLogger().info({ type: callback.type, userId: callback.userId }, 'Voice callback triggered');
+  await handler(callback);
+  return true;
 }
 
 /**
@@ -94,7 +111,9 @@ export async function triggerVoiceCallback(callback: VoiceCallback): Promise<voi
 export async function onTimerComplete(
   userId: string,
   label: string,
-  durationMinutes: number
+  durationMinutes: number,
+  /** The call that set the timer: it rings there, not in the caller's other sessions. */
+  session?: object
 ): Promise<void> {
   // Build contextual follow-up based on timer type
   let message: string;
@@ -159,6 +178,7 @@ export async function onTimerComplete(
     sound,
     priority: 'high',
     context: { label, durationMinutes },
+    session,
   });
 }
 

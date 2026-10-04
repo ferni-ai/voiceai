@@ -68,7 +68,8 @@ const mockDb = {
   }),
 };
 
-vi.mock('../../../utils/firestore-utils.js', () => ({
+vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/firestore-utils.js')>()),
   getFirestoreDb: vi.fn(() => mockDb),
 }));
 
@@ -366,6 +367,32 @@ describe('STM Promotion', () => {
         const result = await promoteSessionToFirestore(testSessionId, testUserId);
 
         expect(result.emotionalArcPromoted).toBe(true);
+      });
+
+      it('writes no undefined field when the session had too few voice samples', async () => {
+        // Firestore rejects undefined, and one bad document fails the whole
+        // batch: every entity, arc and topic from the session was lost.
+        for (let i = 0; i < 4; i++) {
+          recordTurn(
+            testSessionId,
+            testUserId,
+            createMockCaptureResult([], [{ emotion: 'sad', intensity: 'medium' }]),
+            `Turn ${i}`,
+            i
+          );
+        }
+        await promoteSessionToFirestore(testSessionId, testUserId);
+
+        const hasUndefined = (v: unknown): boolean =>
+          v === undefined ||
+          (typeof v === 'object' &&
+            v !== null &&
+            Object.getPrototypeOf(v) === Object.prototype &&
+            Object.values(v).some(hasUndefined)) ||
+          (Array.isArray(v) && v.some(hasUndefined));
+        const written = mockBatch.set.mock.calls.map((c) => c[1]);
+        expect(written.length).toBeGreaterThan(0);
+        expect(written.filter(hasUndefined)).toEqual([]);
       });
 
       it('should NOT promote emotional trajectory when disabled', async () => {

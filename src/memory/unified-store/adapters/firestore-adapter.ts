@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { applyFilters } from './search-filters.js';
 import type {
   MemoryStoreAdapter,
   StoredMemory,
@@ -248,12 +249,7 @@ export class FirestoreAdapter implements MemoryStoreAdapter {
         query = query.where('type', 'in', params.types);
       }
 
-      // Apply custom filters
-      if (params.filters) {
-        for (const [field, value] of Object.entries(params.filters)) {
-          query = query.where(field, '==', value);
-        }
-      }
+      query = applyFilters(query, params.filters);
 
       // Order by importance/recency
       query = query.orderBy('importance', 'desc');

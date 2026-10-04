@@ -19,6 +19,14 @@ export interface DynamicLoaderConfig {
   maxLoadedDomains: number;
   /** Enable automatic unloading */
   enableAutoUnload: boolean;
+  /**
+   * Tools every session has, whatever domains are loaded (timers, reminders,
+   * music, safety...). Built by id, so a tool's whole domain isn't loaded
+   * just to have it.
+   */
+  essentialToolIds?: readonly string[];
+  /** Tool id → its domain, to register an essential tool's definitions. */
+  domainOfTool?: (toolId: string) => ToolDomain | undefined;
 }
 
 // ============================================================================

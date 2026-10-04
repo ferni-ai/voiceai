@@ -21,7 +21,7 @@ import { coordinatedSay } from '../../speech/coordination/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 // New DJ Architecture
-import { getDJController, resetDJController, type DJEvent } from '../../audio/dj-controller.js';
+import { getDJController, type DJEvent } from '../../audio/dj-controller.js';
 import {
   shouldSpeakIntro,
   shouldSpeakOutro,
@@ -36,31 +36,24 @@ import {
   prewarmInterjectionCache,
   type TrackSpeechContext,
 } from '../../audio/dj-speech-engine.js';
-import { getDJTimingEngine, resetDJTimingEngine } from '../../audio/dj-timing-engine.js';
+import { getDJTimingEngine } from '../../audio/dj-timing-engine.js';
 import {
   getMusicPlayer,
   initializeMusicPlayer,
-  resetMusicPlayer,
   type MusicState,
   type MusicTrack,
 } from '../../audio/music-player.js';
 
 // Music learning and analytics
-import {
-  clearMusicFeedbackRecorder,
-  registerMusicFeedbackRecorder,
-} from '../../audio/music-feedback-manager.js';
+import { registerMusicFeedbackRecorder } from '../../audio/music-feedback-manager.js';
 import { ensureMusicLearningLoaded } from '../../audio/music-learning-persistence.js';
-import {
-  clearMusicContext,
-  endMusicContext,
-  startMusicContext,
-} from '../../audio/music-session-context.js';
+import { endMusicContext, startMusicContext } from '../../audio/music-session-context.js';
 import { startAnalyticsPersistence } from '../../audio/music-transition-analytics.js';
 
 // Frontend communication
 import { getFrontendPublisher } from '../realtime/frontend-publisher.js';
 import { djSpeaksOnItsOwn } from '../../audio/dj-speech-policy.js';
+import { createMusicHandlerCleanup } from './music-handler-cleanup.js';
 
 const log = createLogger({ module: 'MusicHandler' });
 
@@ -103,7 +96,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
   // 🐛 FIX: Was checking isMusicAvailable() BEFORE init, which always returned false!
   // Now we just initialize directly - isMusicAvailable() is for AFTER init to check if it worked.
   try {
-    await initializeMusicPlayer(room);
+    await initializeMusicPlayer(room, undefined, sessionId);
     log.info({ sessionId }, '🎵 Music player initialized successfully');
   } catch (err) {
     log.warn(
@@ -488,29 +481,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
   // CLEANUP
   // ==========================================================================
 
-  const cleanup = (): void => {
-    log.info({ sessionId }, 'Cleaning up Music Handler');
-
-    // Remove DJ Controller event listeners to prevent memory leaks
-    djController.removeAllListeners('state_changed');
-    djController.removeAllListeners('track_started');
-    djController.removeAllListeners('should_speak_outro');
-    djController.removeAllListeners('fading_started');
-    djController.removeAllListeners('track_ended');
-    djController.removeAllListeners('ducking_started');
-    djController.removeAllListeners('ducking_ended');
-
-    musicPlayer.setOnMusicStateChangeCallback(() => {});
-    musicPlayer.setOnTrackEndedCallback(() => {});
-
-    clearMusicContext(sessionId);
-    clearMusicFeedbackRecorder();
-    resetDJController();
-    resetDJTimingEngine();
-    resetMusicPlayer().catch((err) =>
-      log.warn({ error: String(err) }, 'Music player reset failed during cleanup')
-    );
-  };
+  const cleanup = createMusicHandlerCleanup(sessionId, djController, musicPlayer);
 
   log.info({ sessionId }, '🎵 Music Handler setup complete');
 

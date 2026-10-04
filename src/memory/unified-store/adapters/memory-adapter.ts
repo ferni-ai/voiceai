@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { matchesFilters } from './search-filters.js';
 import type {
   MemoryStoreAdapter,
   StoredMemory,
@@ -182,17 +183,7 @@ export class MemoryAdapter implements MemoryStoreAdapter {
           if (!params.types.includes(memory.type)) continue;
         }
 
-        // Apply custom filters
-        if (params.filters) {
-          let match = true;
-          for (const [field, value] of Object.entries(params.filters)) {
-            if ((memory as unknown as Record<string, unknown>)[field] !== value) {
-              match = false;
-              break;
-            }
-          }
-          if (!match) continue;
-        }
+        if (!matchesFilters(memory as unknown as Record<string, unknown>, params.filters)) continue;
 
         // Calculate basic score from importance
         const score = memory.importance;

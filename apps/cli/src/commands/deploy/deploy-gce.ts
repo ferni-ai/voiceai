@@ -566,7 +566,7 @@ function deployToSlot(
     // Split: Live API model vs generateContent-capable default
     LLM_REALTIME_MODEL: 'gemini-2.0-flash-live-preview-04-09',
     GEMINI_MODEL: 'gemini-2.5-flash',
-    CARTESIA_MODEL: 'sonic-3-latest',
+    // CARTESIA_MODEL unset: src/config/voice-ids.ts pins the snapshot Ferni's PVC is tuned on
     // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
     GOOGLE_GENAI_USE_VERTEXAI: 'true',
     USE_VERTEX_AI: 'true',
@@ -635,7 +635,7 @@ function promoteSlot(slot: 'blue' | 'green', image: string, secrets: Record<stri
     // Split: Live API model vs generateContent-capable default
     LLM_REALTIME_MODEL: 'gemini-2.0-flash-live-preview-04-09',
     GEMINI_MODEL: 'gemini-2.5-flash',
-    CARTESIA_MODEL: 'sonic-3-latest',
+    // CARTESIA_MODEL unset: src/config/voice-ids.ts pins the snapshot Ferni's PVC is tuned on
     // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
     GOOGLE_GENAI_USE_VERTEXAI: 'true',
     USE_VERTEX_AI: 'true',

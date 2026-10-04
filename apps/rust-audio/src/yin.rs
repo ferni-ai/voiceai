@@ -84,27 +84,31 @@ impl YinDetector {
     #[inline]
     pub fn estimate_pitch(&mut self, samples: &[f32]) -> YinResult {
         let n = samples.len();
-        
-        // Need at least 2 * max_lag samples for reliable estimation
-        if n < self.max_lag * 2 {
+
+        // The window is half the frame, so lags up to n/2 fit. A frame shorter
+        // than two periods of min_pitch searches the lags that fit instead of
+        // giving up: the live callers pass 480-512 samples at 16 kHz, which
+        // with min_pitch 50 Hz (lag 320) used to return "no pitch" every time.
+        let lag_limit = self.max_lag.min(n / 2);
+        if lag_limit < self.min_lag.max(2) + 2 {
             return YinResult::default();
         }
 
         // Step 1: Compute difference function using SIMD
-        self.compute_difference_function(samples);
+        self.compute_difference_function(samples, lag_limit);
 
         // Step 2: Compute cumulative mean normalized difference function (CMNDF)
-        self.compute_cmndf();
+        self.compute_cmndf(lag_limit);
 
         // Step 3: Find the first dip below threshold (absolute threshold method)
-        let (best_lag, dip_value) = self.find_best_lag();
+        let (best_lag, dip_value) = self.find_best_lag(lag_limit);
 
         if best_lag == 0 {
             return YinResult::default();
         }
 
         // Step 4: Parabolic interpolation for sub-sample accuracy
-        let refined_lag = self.parabolic_interpolation(best_lag);
+        let refined_lag = self.parabolic_interpolation(best_lag, lag_limit);
 
         // Calculate pitch and confidence
         let pitch_hz = self.config.sample_rate as f32 / refined_lag;
@@ -132,7 +136,7 @@ impl YinDetector {
     /// 1. d(τ) = r(0) + r'(0) - 2*r(τ) where r is autocorrelation
     /// 2. SIMD for parallel computation
     #[inline]
-    fn compute_difference_function(&mut self, samples: &[f32]) {
+    fn compute_difference_function(&mut self, samples: &[f32], lag_limit: usize) {
         let n = samples.len();
         let w = n / 2; // Analysis window size
         
@@ -143,7 +147,7 @@ impl YinDetector {
         let r0 = sum_of_squares_simd(&samples[..w]);
         
         // For each lag τ, compute d(τ)
-        for tau in 1..=self.max_lag.min(w) {
+        for tau in 1..=lag_limit.min(w) {
             // Compute r'(0) = Σx[j+τ]² for shifted window
             // and r(τ) = Σx[j]*x[j+τ]
             let (r_shifted, autocorr) = compute_shifted_stats_simd(samples, tau, w);
@@ -159,12 +163,12 @@ impl YinDetector {
     ///
     /// This normalizes the difference function to be independent of amplitude
     #[inline]
-    fn compute_cmndf(&mut self) {
+    fn compute_cmndf(&mut self, lag_limit: usize) {
         self.cmndf_buffer[0] = 1.0; // Defined as 1 at lag 0
         
         let mut running_sum = 0.0f32;
         
-        for tau in 1..=self.max_lag {
+        for tau in 1..=lag_limit {
             running_sum += self.diff_buffer[tau];
             
             if running_sum > 0.0 {
@@ -179,10 +183,11 @@ impl YinDetector {
     ///
     /// Uses the "absolute threshold" method from the YIN paper
     #[inline]
-    fn find_best_lag(&self) -> (usize, f32) {
+    fn find_best_lag(&self, lag_limit: usize) -> (usize, f32) {
         // Skip lag 0 and very short lags (unrealistic pitches)
         let search_min = self.min_lag.max(2);
-        let search_max = self.max_lag.min(self.cmndf_buffer.len() - 1);
+        // Entries past lag_limit hold a previous frame's values: never read them.
+        let search_max = lag_limit.min(self.cmndf_buffer.len() - 1);
         
         let mut best_lag = 0usize;
         let mut best_value = 1.0f32;
@@ -226,8 +231,8 @@ impl YinDetector {
 
     /// Parabolic interpolation around the minimum for sub-sample accuracy
     #[inline]
-    fn parabolic_interpolation(&self, lag: usize) -> f32 {
-        if lag == 0 || lag >= self.cmndf_buffer.len() - 1 {
+    fn parabolic_interpolation(&self, lag: usize, lag_limit: usize) -> f32 {
+        if lag == 0 || lag >= lag_limit || lag >= self.cmndf_buffer.len() - 1 {
             return lag as f32;
         }
         
@@ -508,6 +513,27 @@ mod tests {
         // Should detect no pitch in silence
         assert!(result.pitch_hz < 1.0 || result.confidence < 0.3,
             "Should not detect pitch in silence");
+    }
+
+    #[test]
+    fn test_live_frame_sizes_detect_pitch() {
+        // The live callers: 512-sample windows (real-time analyzer) and 30 ms
+        // frames (voice tremor, 480 samples) at 16 kHz, min pitch 50 Hz.
+        for &(n, hz) in &[(512usize, 120.0f32), (480, 200.0), (512, 220.0)] {
+            let mut detector = YinDetector::new(YinConfig::default());
+            let r = detector.estimate_pitch(&generate_sine_wave(hz, 16000, n));
+            assert!((r.pitch_hz - hz).abs() < hz * 0.05, "{n} samples at {hz} Hz gave {}", r.pitch_hz);
+        }
+    }
+
+    #[test]
+    fn test_short_frame_after_long_frame_ignores_stale_lags() {
+        // A long 60 Hz frame fills lags up to 320; a following short 200 Hz
+        // frame must not find a dip among those stale values.
+        let mut detector = YinDetector::new(YinConfig::default());
+        detector.estimate_pitch(&generate_sine_wave(60.0, 16000, 1024));
+        let r = detector.estimate_pitch(&generate_sine_wave(200.0, 16000, 480));
+        assert!((r.pitch_hz - 200.0).abs() < 10.0, "got {}", r.pitch_hz);
     }
 
     #[test]
