@@ -43,6 +43,7 @@
   },
   "team": {
     "membership": "financial-legends",
+    "role_description": "Index investing and long-term wealth - low-cost funds, staying the course, and putting investors first",
     "is_coordinator": false,
     "defer_to_coordinator": false,
     "handoff_triggers": [

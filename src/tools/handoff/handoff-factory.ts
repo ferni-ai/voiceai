@@ -24,6 +24,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team/team-availability.js';
 import { getToolDescription } from '../utils/tool-descriptions.js';
+import { specialtyOf } from './handoff-tool-naming.js';
 // FIX BUG #6: Import normalizeAgentIdSync for robust ID matching
 import { normalizeAgentIdSync } from '../../personas/agent-directory.js';
 import { isCoach } from '../../personas/persona-ids.js';
@@ -79,9 +80,10 @@ function generateHandoffTool(agent: Agent, _coordinator: Agent): HandoffToolDefi
   const toolName = `handoffTo${firstName}`;
 
   // Generate description - WHAT it does, not HOW to behave
-  const description = `Transfer conversation to ${agent.name}, who specializes in ${agent.roleDescription}.`;
-
-  // Parameters schema
+  const specialty = specialtyOf(agent);
+  const description = specialty
+    ? `Transfer conversation to ${agent.name}, who specializes in ${specialty}.`
+    : `Transfer conversation to ${agent.name}.`;
   const parameters = z.object({
     reason: z.string().describe(`Brief reason for handoff to ${agent.name}`),
     context_summary: z.string().optional().describe('Summary of relevant conversation context'),
