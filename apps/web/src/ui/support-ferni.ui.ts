@@ -18,6 +18,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { payForSeed, seedPaymentFailureMessage } from '../services/seed-payment.js';
 import { appState } from '../state/app.state.js';
 import { apiPost } from '../utils/api.js';
 import { billingErrorMessage, openBillingPortal } from '../utils/billing.js';
@@ -536,18 +537,13 @@ async function handlePlantSeed(): Promise<void> {
   updateLoadingState(true);
 
   try {
-    // No userId: the server acts on the user the Bearer token (added by
-    // apiPost) verifies. The deviceId is a local id, never an account.
-    const response = await apiPost<{ url?: string }>('/api/garden/plant', {
-      amountInCents: selectedTipAmount * 100,
-      successUrl: window.location.origin + '?tip=success',
-      cancelUrl: window.location.origin + '?tip=cancel',
-    });
-
-    if (response.ok && response.data?.url) {
-      window.location.href = response.data.url;
-    } else {
-      toast.error(billingErrorMessage(response.status));
+    // Same Seed Fund flow as the Ferni Fund modal: dollars in, Stripe
+    // client secret back. The server acts on the Bearer-token user.
+    const outcome = await payForSeed(selectedTipAmount);
+    const problem = seedPaymentFailureMessage(outcome);
+    if (problem) {
+      log.error('Plant seed failed:', outcome);
+      toast.error(problem);
     }
   } catch (error) {
     log.error('Plant seed failed:', error);

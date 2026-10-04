@@ -14,10 +14,8 @@ import { getConversationHistoryUI } from '../ui/conversation-history.ui.js';
 import { getDataExportUI } from '../ui/data-export.ui.js';
 import { getPredictionTrackerUI } from '../ui/prediction-tracker.ui.js';
 import { showTeamHuddle as showTeamHuddleUI } from '../ui/team-huddle.ui.js';
-import type { fetchVisualizationData, YourStoryData } from '../ui/visualizations/index.js';
 import { loadYourStory } from '../ui/lazy-screens.js';
 import { createLogger } from '../utils/logger.js';
-import { apiGet } from '../utils/api.js';
 
 // 🧠 Better Than Human: Track screen view for Voice ↔ App Sync
 async function trackScreen(screen: ScreenName): Promise<void> {
@@ -641,9 +639,10 @@ export async function showTeamHuddle(_topic?: string): Promise<void> {
  * - Analytics stats (days together, conversations, streak)
  * - Relationship stage and milestones
  *
- * Data sources (in priority order):
- * 1. Backend API (/api/your-story/full) - aggregates all services
- * 2. Direct Firestore fetch - when the API has nothing or fails
+ * Data source: the backend API (/api/your-story/full), which builds every
+ * section from persisted data. There is no in-browser fallback: the old one
+ * read Firestore collections the security rules deny to clients, under field
+ * names no writer uses, and filled the gaps with defaults.
  *
  * With no story yet it shows an empty state; when loading fails, an error
  * with a retry. Demo data appears only behind the explicit demo flag, and
@@ -668,99 +667,7 @@ export async function showYourStoryDashboard(): Promise<void> {
     return;
   }
 
-  let failed = result.status === 'error';
-  const userId = localStorage.getItem('ferni_user_id');
-  try {
-    if (userId) {
-      const visualizationData = await viz.fetchVisualizationData(userId);
-      if (viz.hasAnyVisualizationData(visualizationData)) {
-        dashboard.show(await aggregateStoryData(userId, visualizationData));
-        return;
-      }
-    }
-  } catch (err) {
-    log.warn({ err }, 'Your Story Firestore read failed');
-    failed = true;
-  }
-
-  dashboard.showStatus(failed ? 'error' : 'empty', () => void showYourStoryDashboard());
-}
-
-/**
- * Aggregate story data from multiple sources.
- *
- * Combines:
- * - Visualization data (from Firestore)
- * - Analytics (from API)
- * - Relationship stage (from API)
- * - Recent milestones (from API)
- */
-async function aggregateStoryData(
-  userId: string,
-  visualizationData: Awaited<ReturnType<typeof fetchVisualizationData>>
-): Promise<YourStoryData> {
-  // Fetch additional data in parallel
-  const [analyticsData, stageData, milestonesData] = await Promise.all([
-    fetchAnalyticsStats(userId),
-    fetchRelationshipStage(userId),
-    fetchRecentMilestones(userId),
-  ]);
-
-  return {
-    ...visualizationData,
-    userId,
-    timestamp: new Date().toISOString(),
-    analytics: analyticsData,
-    stage: stageData,
-    milestones: milestonesData,
-  };
-}
-
-/**
- * Fetch analytics stats for the story header.
- */
-async function fetchAnalyticsStats(_userId: string): Promise<YourStoryData['analytics']> {
-  // TODO: Backend GET /api/analytics/user not implemented yet.
-  // Re-enable fetch when handler exists.
-  return { daysTogether: 0, conversations: 0, streak: 0 };
-}
-
-/**
- * Fetch relationship stage for the story header.
- */
-async function fetchRelationshipStage(_userId: string): Promise<YourStoryData['stage']> {
-  // TODO: Backend GET /api/journey/stage not implemented yet.
-  // Re-enable fetch when handler exists.
-  return {
-    name: 'Getting Started',
-    progress: 0,
-    tagline: 'Just beginning our journey',
-  };
-}
-
-/**
- * Fetch completed relationship milestones for the story.
- * Source: GET /api/your-story/section/relationship (src/api/your-story-routes.ts),
- * built from the relationship arc stored in Firestore.
- */
-async function fetchRecentMilestones(_userId: string): Promise<YourStoryData['milestones']> {
-  const response = await apiGet<{
-    data?: {
-      milestones?: Array<{ id: string; title: string; completed: boolean; completedAt?: string }>;
-    };
-  }>('/api/your-story/section/relationship');
-  if (!response.ok) {
-    log.debug({ status: response.status }, 'Failed to fetch milestones');
-    return [];
-  }
-  return (response.data?.data?.milestones ?? [])
-    .filter((m) => m.completed)
-    .map((m) => ({
-      id: m.id,
-      name: m.title,
-      celebratedAt: m.completedAt ? new Date(m.completedAt).getTime() : 0,
-      category: 'relationship' as const,
-    }));
+  dashboard.showStatus(result.status, () => void showYourStoryDashboard());
 }
 
 // ============================================================================

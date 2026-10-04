@@ -6,13 +6,9 @@
  * - Story so far (days together, conversations, streak)
  * - Relationship stage & milestones
  * - Energy/Capacity levels
- * - Mood calendar
- * - Growth fingerprint
- * - Life chapters
- * - Recovery path (hero's journey)
- * - Your World (relationship network)
- * - Open loops (commitments, intentions, follow-ups)
- * - Predictions/trajectory
+ * - Mood calendar, life chapters, emotional arc, your world, open loops
+ *   (your-story-sections.ts) and the energy forecast (your-story-prediction.ts),
+ *   each built only from persisted data and null when there is none
  *
  * GET /api/your-story/full - Complete dashboard data
  * GET /api/your-story/summary - Quick summary for header
@@ -24,9 +20,21 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
-import { getPersonaColor } from '../config/brand-colors.js';
 import { rateLimit, requireAuth, type AuthContext } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendJSON, sendError } from './helpers.js';
+import { fetchPrediction, type PredictionData } from './your-story-prediction.js';
+import {
+  fetchEmotionalArc,
+  fetchLifeChapters,
+  fetchMoodCalendar,
+  fetchOpenLoops,
+  fetchYourWorld,
+  type EmotionalArcSummary,
+  type LifeChapter,
+  type MoodCalendarData,
+  type OpenLoopsData,
+  type YourWorld,
+} from './your-story-sections.js';
 
 const log = createLogger({ module: 'YourStoryAPI' });
 
@@ -39,8 +47,9 @@ export interface StoryHeader {
   tagline: string;
   daysTogether: number;
   totalConversations: number;
-  currentStreak: number;
-  longestStreak: number;
+  /** null: no per-day conversation history is persisted to compute one */
+  currentStreak: number | null;
+  longestStreak: number | null;
 }
 
 export interface RelationshipProgress {
@@ -58,133 +67,25 @@ export interface RelationshipProgress {
 }
 
 export interface EnergyLevels {
-  overall: number; // 0-100
-  label: string; // e.g., "Balanced"
-  emotional: { score: number; label: string };
-  mental: { score: number; label: string };
-  physical: { score: number; label: string };
+  overall: number; // 0-100, average of the last 7 days of energy readings
+  label: string; // e.g., "Balanced", from the overall score
   trend: 'improving' | 'stable' | 'declining' | 'recovering';
-  recommendation: string;
-}
-
-export interface MoodCalendarData {
-  month: number;
-  year: number;
-  days: Array<{
-    date: string; // ISO date
-    dayOfMonth: number;
-    mood: string; // 'joyful' | 'calm' | 'neutral' | 'anxious' | etc.
-    intensity: number; // 0-1
-  }>;
-  summary: {
-    calmDays: number;
-    dominantMood: string;
-    trend: 'improving' | 'stable' | 'declining';
-  };
-}
-
-export interface GrowthData {
-  overallScore: number; // 0-100
-  dimensions: Array<{
-    name: string;
-    score: number; // 0-100
-    trend: 'up' | 'stable' | 'down';
-  }>;
-  strongest: string;
-  growthEdge: string;
-  narrative: string;
-}
-
-export interface LifeChapter {
-  title: string;
-  year: number;
-  isCurrent: boolean;
-  theme?: string;
-  progress?: number; // 0-100
-}
-
-export interface RecoveryPath {
-  currentPhase: string;
-  phaseLabel: string;
-  progress: number; // 0-100
-  emotionalIntensity: number; // 0-100
-  phases: Array<{
-    id: string;
-    name: string;
-    status: 'completed' | 'current' | 'future';
-  }>;
-}
-
-export interface YourWorld {
-  totalConnections: number;
-  activeConnections: number;
-  needsAttention: number;
-  categories: Array<{
-    type: string;
-    count: number;
-    color: string;
-  }>;
-  reconnectWith?: {
-    name: string;
-    lastContact: string;
-  };
-  topConnections: Array<{
-    name: string;
-    type: string;
-    strength: number;
-  }>;
-}
-
-export interface OpenLoopsData {
-  total: number;
-  closedThisWeek: number;
-  byPriority: { high: number; medium: number; low: number };
-  oldestLoop?: {
-    content: string;
-    age: string;
-  };
-  items: Array<{
-    id: string;
-    type: 'commitment' | 'intention' | 'follow_up';
-    content: string;
-    age: string;
-    priority: 'high' | 'medium' | 'low';
-  }>;
-}
-
-export interface PredictionData {
-  metric: string;
-  currentValue: number;
-  predictedValue: number;
-  changePercent: number;
-  confidence: number;
-  trackRecord: number; // historical accuracy %
-  timeframe: string;
-  range: {
-    conservative: number;
-    expected: number;
-    optimistic: number;
-  };
-  insight: string;
-  alsoTracking: Array<{
-    metric: string;
-    current: number;
-    predicted: number;
-    changePercent: number;
-  }>;
+  recommendation: string | null;
 }
 
 export interface YourStoryData {
   header: StoryHeader;
   relationship: RelationshipProgress;
-  energy: EnergyLevels;
-  moodCalendar: MoodCalendarData;
-  growth: GrowthData;
+  /** null when the user has no energy readings */
+  energy: EnergyLevels | null;
+  /** Sections below are null ([] for chapters) when the user has no such data */
+  moodCalendar: MoodCalendarData | null;
   lifeChapters: LifeChapter[];
-  recoveryPath: RecoveryPath;
-  yourWorld: YourWorld;
-  openLoops: OpenLoopsData;
-  prediction: PredictionData;
+  emotionalArc: EmotionalArcSummary | null;
+  yourWorld: YourWorld | null;
+  openLoops: OpenLoopsData | null;
+  /** null without enough real energy readings for a forecast */
+  prediction: PredictionData | null;
   lastUpdated: string;
 }
 
@@ -192,39 +93,47 @@ export interface YourStoryData {
 // DATA FETCHERS
 // ============================================================================
 
+/** One shared lazy import: the header and the relationship section both read the arc. */
+let arcStorageModule: Promise<
+  typeof import('../intelligence/context-builders/relationship/arc/storage.js')
+> | null = null;
+const arcStorage = () =>
+  (arcStorageModule ??= import('../intelligence/context-builders/relationship/arc/storage.js'));
+
+/**
+ * Header counts from the relationship arc the voice agent saves at the end of
+ * every conversation (bogle_users/{uid}/relationship_arc/data, incremented by
+ * cleanup-handler's incrementSessionStats). The personal-journey rhythm stats
+ * live in the voice agent's memory, so read here they were always 0.
+ * Days together counts the first day as day 1. No per-day history is saved,
+ * so no streak is claimed.
+ */
 async function fetchStoryHeader(userId: string): Promise<StoryHeader> {
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const header = {
+    greeting,
+    tagline: "Here's your story so far",
+    currentStreak: null,
+    longestStreak: null,
+  };
   try {
-    const { getRhythmStats } = await import('../services/personal-journey/rhythm-awareness.js');
-
-    const stats = getRhythmStats(userId);
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-
-    return {
-      greeting,
-      tagline: "Here's your story so far",
-      daysTogether: stats.daysKnown,
-      totalConversations: stats.totalConversations,
-      currentStreak: stats.currentStreak,
-      longestStreak: stats.longestStreak,
-    };
+    const arc = await (await arcStorage()).loadRelationshipArcData(userId);
+    const total = arc?.totalSessions ?? 0;
+    const daysTogether =
+      total > 0 && arc?.firstSessionDate
+        ? Math.floor((Date.now() - arc.firstSessionDate) / (24 * 60 * 60 * 1000)) + 1
+        : 0;
+    return { ...header, daysTogether, totalConversations: total };
   } catch (error) {
-    log.warn({ error, userId }, 'Failed to fetch story header, using defaults');
-    return {
-      greeting: 'Hello',
-      tagline: "Here's your story so far",
-      daysTogether: 0,
-      totalConversations: 0,
-      currentStreak: 0,
-      longestStreak: 0,
-    };
+    log.warn({ error, userId }, 'Failed to load conversation count for the story header');
+    return { ...header, daysTogether: 0, totalConversations: 0 };
   }
 }
 
 async function fetchRelationshipProgress(userId: string): Promise<RelationshipProgress> {
   try {
-    const { loadRelationshipArcData, getCurrentStage } =
-      await import('../intelligence/context-builders/relationship/arc/storage.js');
+    const { loadRelationshipArcData, getCurrentStage } = await arcStorage();
 
     const stage = await getCurrentStage(userId);
     const arcData = await loadRelationshipArcData(userId);
@@ -292,26 +201,21 @@ async function fetchRelationshipProgress(userId: string): Promise<RelationshipPr
   }
 }
 
-async function fetchEnergyLevels(userId: string): Promise<EnergyLevels> {
+/**
+ * The user's energy from their real energy readings (last 7 days), or null
+ * when there are none. Readings carry one score, so there is one number: no
+ * per-dimension split and no default.
+ */
+async function fetchEnergyLevels(userId: string): Promise<EnergyLevels | null> {
   try {
     const { assessBurnoutRisk, loadEnergyHistory } =
       await import('../services/superhuman/capacity-guardian.js');
 
-    const [assessment, history] = await Promise.all([
-      assessBurnoutRisk(userId),
-      loadEnergyHistory(userId, 7),
-    ]);
+    const history = await loadEnergyHistory(userId, 7);
+    if (history.length === 0) return null;
+    const assessment = await assessBurnoutRisk(userId);
 
-    // Calculate averages from recent readings
-    const avgScore =
-      history.length > 0
-        ? Math.round(history.reduce((sum, r) => sum + r.energyScore, 0) / history.length)
-        : 72;
-
-    const emotionalAvg = Math.round(avgScore * 1.04); // Slightly higher
-    const mentalAvg = Math.round(avgScore * 0.94); // Slightly lower
-    const physicalAvg = Math.round(avgScore * 1.0);
-
+    const overall = Math.round(history.reduce((sum, r) => sum + r.energyScore, 0) / history.length);
     const getLabel = (score: number) => {
       if (score >= 80) return 'Thriving';
       if (score >= 70) return 'Balanced';
@@ -320,7 +224,6 @@ async function fetchEnergyLevels(userId: string): Promise<EnergyLevels> {
       if (score >= 40) return 'Low';
       return 'Depleted';
     };
-
     const trend =
       assessment.risk === 'low'
         ? 'stable'
@@ -329,399 +232,15 @@ async function fetchEnergyLevels(userId: string): Promise<EnergyLevels> {
           : 'declining';
 
     return {
-      overall: avgScore,
-      label: getLabel(avgScore),
-      emotional: { score: emotionalAvg, label: 'Emotionally centered and resilient' },
-      mental: { score: mentalAvg, label: 'Some mental fatigue building' },
-      physical: { score: physicalAvg, label: 'Body feeling energized' },
+      overall,
+      label: getLabel(overall),
       trend,
-      recommendation:
-        assessment.recommendations[0] ||
-        'A short break or mindful pause could help restore mental clarity.',
+      recommendation: assessment.recommendations[0] ?? null,
     };
   } catch (error) {
     log.warn({ error, userId }, 'Failed to fetch energy levels');
-    return {
-      overall: 72,
-      label: 'Balanced',
-      emotional: { score: 75, label: 'Emotionally centered and resilient' },
-      mental: { score: 68, label: 'Some mental fatigue building' },
-      physical: { score: 72, label: 'Body feeling energized' },
-      trend: 'stable',
-      recommendation: 'A short break or mindful pause could help restore mental clarity.',
-    };
+    return null;
   }
-}
-
-async function fetchMoodCalendar(userId: string): Promise<MoodCalendarData> {
-  try {
-    const { loadMoodEntries, detectMoodPatterns } =
-      await import('../services/superhuman/mood-calendar.js');
-
-    const now = new Date();
-    const entries = await loadMoodEntries(userId, 30);
-
-    // Build calendar days
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const days: MoodCalendarData['days'] = [];
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      const date = new Date(now.getFullYear(), now.getMonth(), d);
-      const dateStr = date.toISOString().split('T')[0];
-
-      const dayEntry = entries.find((e) => {
-        const entryDate = new Date(e.timestamp).toISOString().split('T')[0];
-        return entryDate === dateStr;
-      });
-
-      days.push({
-        date: dateStr,
-        dayOfMonth: d,
-        mood: dayEntry?.mood || 'neutral',
-        intensity: dayEntry?.intensity || 0.5,
-      });
-    }
-
-    // Calculate summary
-    const calmDays = entries.filter((e) => e.mood === 'calm' || e.mood === 'content').length;
-    const patterns = detectMoodPatterns(entries);
-    const dominantMood = patterns[0]?.pattern || 'Calm';
-
-    return {
-      month: now.getMonth(),
-      year: now.getFullYear(),
-      days,
-      summary: {
-        calmDays,
-        dominantMood,
-        trend: 'improving',
-      },
-    };
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to fetch mood calendar');
-    return {
-      month: new Date().getMonth(),
-      year: new Date().getFullYear(),
-      days: [],
-      summary: { calmDays: 0, dominantMood: 'Calm', trend: 'stable' },
-    };
-  }
-}
-
-async function fetchGrowthData(userId: string): Promise<GrowthData> {
-  try {
-    const { getGrowthVisibilityEngine } = await import('../services/growth-visibility-engine.js');
-
-    const engine = getGrowthVisibilityEngine(userId);
-    engine.detectGrowth();
-    const stats = engine.getStats();
-    const insights = engine.getAllInsights();
-
-    // Calculate growth by dimension
-    const dimensions = [
-      { name: 'Self-Awareness', score: 75, trend: 'up' as const },
-      { name: 'Emotional Range', score: 68, trend: 'stable' as const },
-      { name: 'Boundaries', score: 62, trend: 'up' as const },
-      { name: 'Connection', score: 70, trend: 'stable' as const },
-      { name: 'Purpose', score: 58, trend: 'up' as const },
-      { name: 'Resilience', score: 65, trend: 'stable' as const },
-    ];
-
-    const strongest = dimensions.reduce((a, b) => (a.score > b.score ? a : b)).name;
-    const growthEdge = dimensions.reduce((a, b) => (a.score < b.score ? a : b)).name;
-
-    // Overall score
-    const overallScore = Math.round(
-      dimensions.reduce((sum, d) => sum + d.score, 0) / dimensions.length
-    );
-
-    // Get narrative from first insight's evidence
-    const firstEvidence = insights[0]?.evidence?.[0];
-    const narrativeText =
-      firstEvidence?.description ||
-      "You're growing in beautiful balance. Keep nurturing all aspects of your wellbeing.";
-
-    return {
-      overallScore,
-      dimensions,
-      strongest,
-      growthEdge,
-      narrative: narrativeText,
-    };
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to fetch growth data');
-    return {
-      overallScore: 66,
-      dimensions: [
-        { name: 'Self-Awareness', score: 75, trend: 'up' },
-        { name: 'Purpose', score: 58, trend: 'up' },
-      ],
-      strongest: 'Self-Awareness',
-      growthEdge: 'Purpose',
-      narrative: "You're growing in beautiful balance.",
-    };
-  }
-}
-
-async function fetchLifeChapters(userId: string): Promise<LifeChapter[]> {
-  try {
-    const { getChapterMoments } = await import('../services/personal-journey/chapter-detector.js');
-
-    const moments = getChapterMoments(userId);
-    const now = new Date().getFullYear();
-
-    // Build chapters from moments or defaults
-    const chapters: LifeChapter[] = [
-      { title: 'Finding My Footing', year: now - 2, isCurrent: false },
-      { title: 'Building Bridges', year: now - 1, isCurrent: false },
-      {
-        title: 'Intentional Living',
-        year: now,
-        isCurrent: true,
-        theme: "You're making deliberate choices about what matters",
-        progress: 60,
-      },
-    ];
-
-    return chapters;
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to fetch life chapters');
-    return [
-      {
-        title: 'Intentional Living',
-        year: new Date().getFullYear(),
-        isCurrent: true,
-        progress: 60,
-      },
-    ];
-  }
-}
-
-async function fetchRecoveryPath(userId: string): Promise<RecoveryPath> {
-  try {
-    // For now, return structured default - this would integrate with recovery-tracking.ts
-    const phases = [
-      { id: 'call', name: 'The Call', status: 'completed' as const },
-      { id: 'descent', name: 'The Descent', status: 'completed' as const },
-      { id: 'depths', name: 'The Depths', status: 'completed' as const },
-      { id: 'turn', name: 'The Turn', status: 'completed' as const },
-      { id: 'rise', name: 'The Rise', status: 'current' as const },
-      { id: 'integration', name: 'Integration', status: 'future' as const },
-    ];
-
-    return {
-      currentPhase: 'rise',
-      phaseLabel: 'Building something new',
-      progress: 75,
-      emotionalIntensity: 40,
-      phases,
-    };
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to fetch recovery path');
-    return {
-      currentPhase: 'rise',
-      phaseLabel: 'Building something new',
-      progress: 75,
-      emotionalIntensity: 40,
-      phases: [],
-    };
-  }
-}
-
-async function fetchYourWorld(userId: string): Promise<YourWorld> {
-  try {
-    const { loadNetwork, findConnectionOpportunities } =
-      await import('../services/superhuman/relationship-network.js');
-
-    const network = await loadNetwork(userId);
-    // findConnectionOpportunities is async, need to await
-    const opportunities = await findConnectionOpportunities(userId);
-
-    // Count by type
-    const typeCounts: Record<string, number> = {};
-    for (const person of network) {
-      typeCounts[person.type] = (typeCounts[person.type] || 0) + 1;
-    }
-
-    const categoryPersonaMap: Record<string, string> = {
-      family: 'maya-santos',
-      friend: 'ferni',
-      colleague: 'alex-chen',
-      mentor: 'nayan-patel',
-    };
-    const categories = [
-      {
-        type: 'family',
-        count: typeCounts.family || 0,
-        color: getPersonaColor(categoryPersonaMap.family),
-      },
-      {
-        type: 'friend',
-        count: typeCounts.friend || 0,
-        color: getPersonaColor(categoryPersonaMap.friend),
-      },
-      {
-        type: 'colleague',
-        count: typeCounts.colleague || 0,
-        color: getPersonaColor(categoryPersonaMap.colleague),
-      },
-      {
-        type: 'mentor',
-        count: typeCounts.mentor || 0,
-        color: getPersonaColor(categoryPersonaMap.mentor),
-      },
-    ].filter((c) => c.count > 0);
-
-    const needsAttention = opportunities.length;
-    const reconnectWith =
-      opportunities.length > 0
-        ? {
-            name: network.find((p) => p.id === opportunities[0].personId)?.name || 'Someone',
-            lastContact: opportunities[0].reason,
-          }
-        : undefined;
-
-    return {
-      totalConnections: network.length,
-      activeConnections: network.filter((p) => p.mentionGapDays && p.mentionGapDays < 30).length,
-      needsAttention,
-      categories,
-      reconnectWith,
-      topConnections: network
-        .sort((a, b) => b.importance - a.importance)
-        .slice(0, 5)
-        .map((p) => ({ name: p.name, type: p.type, strength: p.importance })),
-    };
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to fetch your world');
-    return {
-      totalConnections: 0,
-      activeConnections: 0,
-      needsAttention: 0,
-      categories: [],
-      topConnections: [],
-    };
-  }
-}
-
-async function fetchOpenLoops(userId: string): Promise<OpenLoopsData> {
-  try {
-    const { getLoopsReadyForFollowUp, getAllOpenLoops } =
-      await import('../services/superhuman/semantic-intelligence/open-loops.js');
-
-    // Get all open loops and those ready for follow-up
-    const [allLoops, ready] = await Promise.all([
-      getAllOpenLoops(userId),
-      getLoopsReadyForFollowUp(userId),
-    ]);
-
-    const byPriority = { high: 0, medium: 0, low: 0 };
-    for (const loop of ready) {
-      if (loop.priority >= 7) byPriority.high++;
-      else if (loop.priority >= 4) byPriority.medium++;
-      else byPriority.low++;
-    }
-
-    const items = ready.slice(0, 5).map((loop) => ({
-      id: loop.id,
-      type: loop.type as 'commitment' | 'intention' | 'follow_up',
-      content: loop.content,
-      age: formatAge(loop.created),
-      priority: (loop.priority >= 7 ? 'high' : loop.priority >= 4 ? 'medium' : 'low') as
-        | 'high'
-        | 'medium'
-        | 'low',
-    }));
-
-    const oldest = ready.sort(
-      (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
-    )[0];
-
-    return {
-      total: ready.length,
-      closedThisWeek: 5, // Would need to track this
-      byPriority,
-      oldestLoop: oldest ? { content: oldest.content, age: formatAge(oldest.created) } : undefined,
-      items,
-    };
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to fetch open loops');
-    return {
-      total: 0,
-      closedThisWeek: 0,
-      byPriority: { high: 0, medium: 0, low: 0 },
-      items: [],
-    };
-  }
-}
-
-async function fetchPrediction(userId: string): Promise<PredictionData> {
-  try {
-    const { runPredictiveAnalysis } = await import('../services/predictive-insights/index.js');
-
-    const insights = await runPredictiveAnalysis(userId);
-    const primary = insights[0];
-
-    if (!primary) {
-      return getDefaultPrediction();
-    }
-
-    return {
-      metric: primary.title || 'Emotional Wellbeing',
-      currentValue: 68,
-      predictedValue: 78,
-      changePercent: 15,
-      confidence: Math.round(primary.confidence * 100),
-      trackRecord: 84,
-      timeframe: '3 months',
-      range: {
-        conservative: 72,
-        expected: 78,
-        optimistic: 85,
-      },
-      insight:
-        primary.message ||
-        "These patterns are still emerging. As we talk more, I'll understand your rhythms better.",
-      alsoTracking: insights.slice(1, 3).map((i) => ({
-        metric: i.title || 'Metric',
-        current: 55,
-        predicted: 70,
-        changePercent: 27,
-      })),
-    };
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to fetch predictions');
-    return getDefaultPrediction();
-  }
-}
-
-function getDefaultPrediction(): PredictionData {
-  return {
-    metric: 'Emotional Wellbeing',
-    currentValue: 68,
-    predictedValue: 78,
-    changePercent: 15,
-    confidence: 82,
-    trackRecord: 84,
-    timeframe: '3 months',
-    range: { conservative: 72, expected: 78, optimistic: 85 },
-    insight:
-      "These patterns are still emerging. As we talk more, I'll understand your rhythms better.",
-    alsoTracking: [],
-  };
-}
-
-function formatAge(date: Date): string {
-  const now = Date.now();
-  const then = new Date(date).getTime();
-  const diffMs = now - then;
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return '1 day';
-  if (diffDays < 7) return `${diffDays} days`;
-  if (diffDays < 14) return '1 week';
-  return `${Math.floor(diffDays / 7)} weeks`;
 }
 
 // ============================================================================
@@ -768,9 +287,8 @@ export async function handleYourStoryRoutes(
         relationship,
         energy,
         moodCalendar,
-        growth,
         lifeChapters,
-        recoveryPath,
+        emotionalArc,
         yourWorld,
         openLoops,
         prediction,
@@ -779,9 +297,8 @@ export async function handleYourStoryRoutes(
         fetchRelationshipProgress(userId),
         fetchEnergyLevels(userId),
         fetchMoodCalendar(userId),
-        fetchGrowthData(userId),
         fetchLifeChapters(userId),
-        fetchRecoveryPath(userId),
+        fetchEmotionalArc(userId),
         fetchYourWorld(userId),
         fetchOpenLoops(userId),
         fetchPrediction(userId),
@@ -792,9 +309,8 @@ export async function handleYourStoryRoutes(
         relationship,
         energy,
         moodCalendar,
-        growth,
         lifeChapters,
-        recoveryPath,
+        emotionalArc,
         yourWorld,
         openLoops,
         prediction,
@@ -859,14 +375,11 @@ export async function handleYourStoryRoutes(
         case 'mood':
           data = await fetchMoodCalendar(userId);
           break;
-        case 'growth':
-          data = await fetchGrowthData(userId);
-          break;
         case 'chapters':
           data = await fetchLifeChapters(userId);
           break;
-        case 'recovery':
-          data = await fetchRecoveryPath(userId);
+        case 'arc':
+          data = await fetchEmotionalArc(userId);
           break;
         case 'world':
           data = await fetchYourWorld(userId);
