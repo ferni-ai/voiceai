@@ -93,11 +93,10 @@ This directory contains frontend services that power the Ferni web app. Services
 ### Integrations
 | Service | Purpose |
 |---------|---------|
-| `calendar-providers.service.ts` | Calendar integration |
 | `linkedin.service.ts` | LinkedIn integration |
 | `banking.service.ts` | Banking integration |
 | `geolocation.service.ts` | Location services |
-| `biometrics.service.ts` | Biometric auth |
+| `biometrics.service.ts` | Wearable / Apple Health connections |
 
 ---
 

@@ -281,11 +281,8 @@ import { showOuraSettings } from './ui/oura-settings.ui.js';
 // Apple Health Settings UI - iOS HealthKit sync
 import { showAppleHealthSettings } from './ui/apple-health-settings.ui.js';
 // LinkedIn connection for career awareness (used as fallback)
-import {
-  connectLinkedIn,
-  disconnectLinkedIn,
-  handleLinkedInCallback,
-} from './services/linkedin.service.js';
+import { handleLinkedInCallback } from './services/linkedin.service.js';
+import { createIntegrationsCallbacks } from './app/integrations-callbacks.js';
 // Group Coaching UI - Multi-participant sessions
 import { showGroupCoaching } from './ui/group-coaching.ui.js';
 // Voice Enrollment UI
@@ -2204,66 +2201,7 @@ class VoiceAIApp {
     // 🔗 Integrations Settings - "Better than Human" connections (LinkedIn, Calendar, Health)
     this.safeInit('IntegrationsSettingsUI', () => {
       getIntegrationsSettingsUI().initialize();
-      getIntegrationsSettingsUI().setCallbacks({
-        onConnectLinkedIn: () => {
-          void connectLinkedIn();
-        },
-        onDisconnectLinkedIn: () => {
-          void disconnectLinkedIn();
-        },
-        onConnectCalendar: () => {
-          const userId = appState.get('deviceId') || 'anonymous';
-          window.location.href = `/auth/google/calendar?userId=${userId}`;
-        },
-        onConnectBiometrics: async (platform) => {
-          const userId = appState.get('deviceId') || 'anonymous';
-          log.info('Connect biometrics requested', { platform, userId });
-
-          // Import biometrics service dynamically to avoid circular deps
-          const { connectBiometrics, isPlatformAvailable, getPlatformConfig } =
-            await import('./services/biometrics.service.js');
-
-          // Type assertion - the callback provides a string but we know it's a valid platform
-          type BiometricsPlatform = Parameters<typeof connectBiometrics>[0];
-          const typedPlatform = platform as BiometricsPlatform;
-
-          // Check if platform is available
-          if (!isPlatformAvailable(typedPlatform)) {
-            const config = getPlatformConfig(typedPlatform);
-            messageUI.show(
-              config?.name
-                ? `${config.name} isn't available on this device`
-                : 'Platform not available',
-              'warning',
-              3000
-            );
-            return;
-          }
-
-          // Initiate OAuth connection
-          const result = await connectBiometrics(typedPlatform, userId);
-
-          if (!result.success && result.error) {
-            messageUI.show(result.error, 'error', 4000);
-          }
-        },
-        onConnectBanking: async () => {
-          const userId = appState.get('deviceId') || 'anonymous';
-          log.info('Connect banking requested', { userId });
-
-          // Import banking service dynamically to avoid circular deps
-          const { connectBanking } = await import('./services/banking.service.js');
-
-          // Initiate Plaid Link flow
-          const result = await connectBanking(userId);
-
-          if (result.success) {
-            messageUI.show('Bank connected!', 'success', 2500);
-          } else if (result.error && result.error !== 'User cancelled') {
-            messageUI.show(result.error, 'error', 4000);
-          }
-        },
-      });
+      getIntegrationsSettingsUI().setCallbacks(createIntegrationsCallbacks());
     });
 
     // 📬 Listen for push notification navigation events
