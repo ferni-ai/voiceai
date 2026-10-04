@@ -9,13 +9,10 @@
  * new sign-in over an expired session), the subscription is either moved to
  * the new account (the server allows that because the keys match) or dropped,
  * so the previous account's notifications never reach the new person.
- *
- * In the native app the same holds for the device's push token (native-push.ts).
  */
 
 import { toast } from '../ui/whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
-import { isNative } from '../utils/platform.js';
 import { getFirebaseUid, onAuthStateChange, signOut } from './firebase-auth.service.js';
 import { getPushNotificationsService } from './push-notifications.service.js';
 
@@ -41,9 +38,9 @@ function writeOwner(uid: string | null): void {
   }
 }
 
-/** This browser's live push subscription, if any (web only). */
+/** This browser's live push subscription, if any. */
 async function getBrowserSubscription(): Promise<PushSubscription | null> {
-  if (isNative() || !('serviceWorker' in navigator)) return null;
+  if (!('serviceWorker' in navigator)) return null;
   try {
     const registration = await navigator.serviceWorker.getRegistration();
     return (await registration?.pushManager.getSubscription()) ?? null;
@@ -87,8 +84,7 @@ export async function applyPushPreference(enabled: boolean): Promise<void> {
   }
 
   if (service.getPermissionStatus() !== 'granted') {
-    const where = isNative() ? 'Settings' : 'your browser settings';
-    toast.error(`Notifications are blocked. Allow them in ${where}.`);
+    toast.error('Notifications are blocked. Allow them in your browser settings.');
   } else {
     toast.error("Notifications aren't available right now.");
   }
@@ -116,9 +112,8 @@ export async function syncPushOwner(uid: string | null): Promise<void> {
   if (!uid) return;
   const owner = readOwner();
   if (owner === uid) return;
-  // Web: nothing to hand over without a subscription. Native always has a device
-  // token, so an unrecorded owner means it still has to be registered for `uid`.
-  if (!owner && !isNative() && !(await getBrowserSubscription())) return;
+  // Nothing to hand over without a subscription.
+  if (!owner && !(await getBrowserSubscription())) return;
 
   const service = getPushNotificationsService();
   const keep = service.getPreferences().enabled && service.getPermissionStatus() === 'granted';
