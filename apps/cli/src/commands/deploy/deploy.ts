@@ -596,6 +596,9 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
   return true;
 }
 
+/** The landing site. Never ferni-prod, which serves the app. */
+const LANDING_SITE = 'ferni-landing';
+
 async function deployLanding(options: DeployOptions): Promise<boolean> {
   log.step('DEPLOYING LANDING PAGE (BLUE-GREEN)');
 
@@ -607,10 +610,9 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
   }
 
   if (options.dryRun) {
-    log.info('Would build the landing page');
-    log.info('Would deploy only hosting:ferni-landing');
+    log.info(`Would deploy to a preview channel of ${LANDING_SITE}`);
     log.info('Would health check preview URL');
-    log.info('Would promote to live if healthy');
+    log.info(`Would promote to live: firebase deploy --only hosting:${LANDING_SITE}`);
     return true;
   }
 
@@ -628,7 +630,7 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
 
     try {
       const previewOutput = exec(
-        `cd ${landingDir} && firebase hosting:channel:deploy ${channelId} --only ferni-landing --project ${CONFIG.projectId} --json`,
+        `cd ${landingDir} && firebase hosting:channel:deploy ${channelId} --only ${LANDING_SITE} --project ${CONFIG.projectId} --json`,
         { silent: true }
       );
       const previewData = JSON.parse(previewOutput);
@@ -654,10 +656,7 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
         log.error(`Preview health check failed: ${health.error}`);
         log.info('Cleaning up preview channel...');
         try {
-          exec(
-            `cd ${landingDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`,
-            { silent: true }
-          );
+          exec(`cd ${landingDir} && firebase hosting:channel:delete ${channelId} --site ${LANDING_SITE} --force --project ${CONFIG.projectId}`, { silent: true });
         } catch {
           // Ignore cleanup errors
         }
@@ -671,16 +670,13 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
     // Step 3: Promote to live
     log.info('Step 3/3: Promoting to live...');
     exec(
-      `cd ${landingDir} && firebase deploy --only hosting:ferni-landing --project ${CONFIG.projectId}`
+      `cd ${landingDir} && firebase deploy --only hosting:${LANDING_SITE} --project ${CONFIG.projectId}`
     );
 
     // Clean up preview channel
     if (previewUrl) {
       try {
-        exec(
-          `cd ${landingDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`,
-          { silent: true }
-        );
+        exec(`cd ${landingDir} && firebase hosting:channel:delete ${channelId} --site ${LANDING_SITE} --force --project ${CONFIG.projectId}`, { silent: true });
       } catch {
         // Ignore cleanup errors
       }
