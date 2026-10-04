@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-03-05T09:41:18.515Z
+ * Generated: 2026-10-04T19:43:37.894Z
  */
 
 :root {
@@ -206,6 +206,22 @@
   --color-joel-subtle: rgba(154, 7, 24, 0.06);
   --color-joel-light: #c83040;
   --color-joel-dark: #7A0514;
+
+  --color-lynch: #1a5f2a;
+  --color-lynch-secondary: #154c22;
+  --color-lynch-glow: rgba(26, 95, 42, 0.28);
+  --color-lynch-text: #1a5f2a;
+  --color-lynch-subtle: rgba(26, 95, 42, 0.06);
+  --color-lynch-light: #5f8f6a;
+  --color-lynch-dark: #154c22;
+
+  --color-bogle: #8b0000;
+  --color-bogle-secondary: #6f0000;
+  --color-bogle-glow: rgba(139, 0, 0, 0.28);
+  --color-bogle-text: #8b0000;
+  --color-bogle-subtle: rgba(139, 0, 0, 0.06);
+  --color-bogle-light: #ae4c4c;
+  --color-bogle-dark: #6f0000;
 
   --color-eli: #6B5B95;
   --color-eli-secondary: #4A4063;
@@ -581,6 +597,8 @@
     --color-jordan-text: #f0c0a0;
     --color-nayan-text: #e8d0a8;
     --color-joel-text: #f0a8a8;
+    --color-lynch-text: #dde7df;
+    --color-bogle-text: #f3e6e6;
     --color-eli-text: #b8a8d8;
     --color-marcus-text: #88c4a8;
     --color-kenji-text: #90b0c8;
@@ -635,6 +653,8 @@
   --color-jordan-text: #f0c0a0;
   --color-nayan-text: #e8d0a8;
   --color-joel-text: #f0a8a8;
+  --color-lynch-text: #dde7df;
+  --color-bogle-text: #f3e6e6;
   --color-eli-text: #b8a8d8;
   --color-marcus-text: #88c4a8;
   --color-kenji-text: #90b0c8;

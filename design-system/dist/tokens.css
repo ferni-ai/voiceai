@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2026-03-05T09:41:17.002Z
+ * Build: 2026-10-04T19:43:36.208Z
  */
 
 /* ========================================
@@ -368,6 +368,24 @@
   --persona-text: #ffffff;
   --persona-glow: rgba(154, 7, 24, 0.28);
   --persona-tint: rgba(154, 7, 24, 0.06);
+}
+
+/* Persona: lynch */
+[data-persona="lynch"] {
+  --persona-primary: #1a5f2a;
+  --persona-secondary: #154c22;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(26, 95, 42, 0.28);
+  --persona-tint: rgba(26, 95, 42, 0.06);
+}
+
+/* Persona: bogle */
+[data-persona="bogle"] {
+  --persona-primary: #8b0000;
+  --persona-secondary: #6f0000;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(139, 0, 0, 0.28);
+  --persona-tint: rgba(139, 0, 0, 0.06);
 }
 
 /* Persona: _marketplace_description */
