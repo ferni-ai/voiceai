@@ -132,7 +132,7 @@ export const LIGHT_MODEL = process.env.LLM_LIGHT_MODEL || 'gemini-3.5-flash-lite
  * Model for realtime/voice applications (Vertex AI Live API)
  * NOTE: Google retired gemini-2.0-flash model line.
  * NOTE: The Gemini Live pipeline is LEGACY. Do NOT select it without explicitly setting
- *       LLM_REALTIME_MODEL to a supported live model (e.g., gemini-2.5-flash-preview).
+ *       LLM_REALTIME_MODEL to a Live API model you have confirmed Vertex AI serves.
  * NOTE: Native-audio models (gemini-live-*-native-audio) do NOT work with TEXT modality!
  * NOTE: Do NOT fall back to GEMINI_MODEL — Live models break generateContent callers
  *       that use getDefaultModel()/GEMINI_MODEL. Keep the two env vars separate.
@@ -146,11 +146,8 @@ function getRealtimeModelOrFail(): string {
         const message = [
           'Gemini Live voice pipeline is legacy. Google retired the gemini-2.0-flash model line.',
           '',
-          'To use Gemini Live, you MUST explicitly set LLM_REALTIME_MODEL to a supported model:',
-          '  • gemini-2.5-flash-preview (recommended for Live API, free tier)',
-          '  • gemini-2.5-flash-preview-native-audio-latest (use only with native-audio callsite)',
-          '',
-          'Example: export LLM_REALTIME_MODEL="gemini-2.5-flash-preview"',
+          'To use Gemini Live, set LLM_REALTIME_MODEL to a Live API model that Vertex AI',
+          'currently serves for your project (check the Vertex AI model list first).',
           '',
           'Or switch to the default pipeline (Cartesia cascade):',
           '  • Unset VOICE_PIPELINE, or',

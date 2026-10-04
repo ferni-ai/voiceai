@@ -19,11 +19,11 @@ describe('Realtime model configuration', () => {
 
   it('succeeds when VOICE_PIPELINE=gemini-live with explicit LLM_REALTIME_MODEL', async () => {
     vi.stubEnv('VOICE_PIPELINE', 'gemini-live');
-    vi.stubEnv('LLM_REALTIME_MODEL', 'gemini-2.5-flash-preview');
+    vi.stubEnv('LLM_REALTIME_MODEL', 'test-live-model');
     vi.resetModules();
 
     const config = await import('../gemini-config.js');
-    expect(config.REALTIME_MODEL).toBe('gemini-2.5-flash-preview');
+    expect(config.REALTIME_MODEL).toBe('test-live-model');
   });
 
   it('succeeds with default pipeline (cartesia-cascade) without LLM_REALTIME_MODEL', async () => {
@@ -47,7 +47,7 @@ describe('Realtime model configuration', () => {
     } catch (e) {
       const message = (e as Error).message;
       expect(message).toContain('LLM_REALTIME_MODEL');
-      expect(message).toContain('gemini-2.5-flash-preview');
+      expect(message).toContain('VOICE_PIPELINE');
     }
   });
 });
