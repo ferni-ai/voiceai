@@ -49,7 +49,8 @@ export async function handleExportData(
     const body = await validateBody(req, res, ExportDataSchema);
     if (!body) return;
 
-    const userId = body.userId || requireUserId(req, res, parsedUrl);
+    // Never body.userId: the caller is who their verified credentials say.
+    const userId = requireUserId(req, res, parsedUrl);
     if (!userId) return;
 
     const { getDataExportService } = await import('../../services/data-export.js');
@@ -82,7 +83,8 @@ export async function handleDeleteAllData(
     const body = await validateBody(req, res, DeleteAllDataSchema);
     if (!body) return;
 
-    const userId = body.userId || requireUserId(req, res, parsedUrl);
+    // Never body.userId: the caller is who their verified credentials say.
+    const userId = requireUserId(req, res, parsedUrl);
     if (!userId) return;
 
     if (body.confirmDelete !== true) {
