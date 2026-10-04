@@ -15,6 +15,8 @@ import { isValidGameType } from '../../services/social/user-stats.js';
 import { sendJSON } from '../helpers.js';
 
 const BOARD_TYPES = ['weekly', 'monthly', 'all-time'] as const;
+const PERIODS = ['daily', 'weekly', 'monthly', 'all-time'] as const;
+const SCOPES = ['global', 'friends'] as const;
 
 export type PublicEntry<T extends { userId: string }> = Omit<T, 'userId'> & {
   isCurrentUser: boolean;
@@ -57,4 +59,21 @@ export function boardFrom(query: URLSearchParams): {
 export function unknownBoard(res: ServerResponse): true {
   sendJSON(res, { success: false, error: 'Unknown leaderboard' }, 400);
   return true;
+}
+
+/**
+ * The social board a query names (period defaults to weekly, gameType to
+ * overall, scope to global), or null when any of them isn't one. gameType
+ * becomes a Firestore field path, and each combination is cached per instance.
+ */
+export function socialBoardFrom(query: URLSearchParams): {
+  period: (typeof PERIODS)[number];
+  gameType: string;
+  scope: (typeof SCOPES)[number];
+} | null {
+  const period = PERIODS.find((p) => p === (query.get('period') || 'weekly'));
+  const scope = SCOPES.find((s) => s === (query.get('scope') || 'global'));
+  const gameType = query.get('gameType') || 'overall';
+  if (!period || !scope || (gameType !== 'overall' && !isValidGameType(gameType))) return null;
+  return { period, gameType, scope };
 }

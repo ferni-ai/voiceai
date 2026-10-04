@@ -15,8 +15,9 @@ import { requireUserId, sendJSON, parseBody } from '../helpers.js';
 import { resolveActingUser } from '../acting-user.js';
 import { rateLimit, requireAuth } from '../auth-middleware.js';
 import { LimitReachedError } from '../../services/social/open-challenge-slots.js';
-import { challengeCreateLimit } from './challenge-limits.js';
-import { boardFrom, isRecordableGame, publicEntries, unknownBoard } from './leaderboard-view.js';
+import { challengeCreateLimit, resultRecordLimit } from './challenge-limits.js';
+import { boardFrom, publicEntries, unknownBoard } from './leaderboard-view.js';
+import { isOptionalTime, isScore, isValidGameRecord, isValidNewChallenge } from './score-input.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
 // Import Musical You services
@@ -228,7 +229,7 @@ export async function handleMusicalYouRoutes(
       const challengeId = body.challengeId;
       const score = body.score;
 
-      if (!userId || !challengeId || score === undefined) {
+      if (!challengeId || !isScore(score)) {
         sendJSON(res, { success: false, error: 'Missing required fields' }, 400);
         return true;
       }
@@ -272,7 +273,8 @@ export async function handleMusicalYouRoutes(
       if (!challengerId) return true;
       const { challengerName, challengeeId, gameType, challengerScore, challengerTime } = body;
 
-      if (!challengeeId || !gameType || challengerScore === undefined) {
+      const fields = { gameType, challengeeId, score: challengerScore, timeMs: challengerTime };
+      if (!isValidNewChallenge(fields, challengerId, 'musical')) {
         sendJSON(res, { success: false, error: 'Missing required fields' }, 400);
         return true;
       }
@@ -280,9 +282,9 @@ export async function handleMusicalYouRoutes(
       const challenge = await sendMusicChallenge(
         challengerId,
         challengerName || 'Anonymous',
-        challengeeId,
-        gameType,
-        challengerScore,
+        challengeeId as string, // checked by isValidNewChallenge
+        gameType as string,
+        challengerScore as number,
         challengerTime
       ).catch((error: unknown) => {
         if (error instanceof LimitReachedError) return null;
@@ -295,12 +297,9 @@ export async function handleMusicalYouRoutes(
 
     // GET /api/musical/challenges?userId=xxx&type=all|sent|received
     if (pathname === '/api/musical/challenges' && method === 'GET') {
-      const userId = searchParams.get('userId');
-      if (!userId) {
-        sendJSON(res, { success: false, error: WARM_ERRORS.missingUserId }, 400);
-        return true;
-      }
-
+      // The caller's own challenges (an admin may name someone).
+      const userId = await resolveActingUser(req, res, searchParams.get('userId'));
+      if (!userId) return true;
       const type = (searchParams.get('type') || 'all') as 'all' | 'sent' | 'received';
       const challenges = await getUserChallenges(userId, type);
 
@@ -339,8 +338,8 @@ export async function handleMusicalYouRoutes(
         action === 'complete'
           ? await parseBody<{ score?: number; time?: number; name?: string }>(req)
           : {};
-      if (action === 'complete' && body.score === undefined) {
-        sendJSON(res, { success: false, error: 'Missing score' }, 400);
+      if (action === 'complete' && (!isScore(body.score) || !isOptionalTime(body.time))) {
+        sendJSON(res, { success: false, error: 'Missing or invalid score' }, 400);
         return true;
       }
       // The service checks the actor again and only answers a pending challenge.
@@ -694,15 +693,16 @@ export async function handleMusicalYouRoutes(
       if (!userId) return true;
       const { displayName, gameType, score, gamesPlayed, bestStreak } = body;
 
-      if (!userId || !isRecordableGame(gameType) || !Number.isFinite(score)) {
+      if (!isValidGameRecord(body)) {
         sendJSON(res, { success: false, error: 'Missing required fields' }, 400);
         return true;
       }
+      if (rateLimit(req, res, resultRecordLimit('musical', userId))) return true;
 
       await recordGameResult(
         userId,
         displayName || 'Player',
-        gameType,
+        gameType as string,
         score as number,
         gamesPlayed || 1,
         bestStreak || 0

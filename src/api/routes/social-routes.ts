@@ -14,8 +14,9 @@ import { claimedUserFor, type VerifiedCaller } from '../acting-user.js';
 import { rateLimit, requireAuth } from '../auth-middleware.js';
 import { LimitReachedError } from '../../services/social/open-challenge-slots.js';
 import { parseBody } from '../helpers.js';
-import { challengeCreateLimit } from './challenge-limits.js';
-import { publicEntries } from './leaderboard-view.js';
+import { challengeCreateLimit, resultRecordLimit } from './challenge-limits.js';
+import { isRecordableGame, publicEntries, socialBoardFrom } from './leaderboard-view.js';
+import { gameResultFrom, isOptionalTime, isScore, isValidNewChallenge } from './score-input.js';
 import {
   createChallenge,
   acceptChallenge,
@@ -42,9 +43,6 @@ import {
   getUserRank,
   getLeaderboardAroundUser,
   seedLeaderboardData,
-  isValidGameType,
-  type LeaderboardPeriod,
-  type LeaderboardScope,
 } from '../../services/social/leaderboards.js';
 
 const log = getLogger();
@@ -122,8 +120,15 @@ export async function handleSocialRoutes(
       const challengerId = claimedUserFor(caller, body.challengerId, res);
       if (!challengerId) return true;
 
-      if (!type || !gameType || !challengerName || !challengeeId) {
-        send(res, 400, { error: 'Missing required fields' });
+      const fields = {
+        type,
+        gameType,
+        challengeeId,
+        score: challengerScore,
+        timeMs: challengerTimeMs,
+      };
+      if (!challengerName || !isValidNewChallenge(fields, challengerId, 'social')) {
+        send(res, 400, { error: 'Missing or invalid fields' });
         return true;
       }
 
@@ -174,15 +179,15 @@ export async function handleSocialRoutes(
 
     // POST /api/social/challenges/complete
     if (pathname === '/api/social/challenges/complete' && method === 'POST') {
-      const body = await parseBody(req);
-      const { challengeId, challengeeScore, challengeeTimeMs } = body as {
-        challengeId: string;
-        challengeeScore: number;
-        challengeeTimeMs?: number;
-      };
+      const body = await parseBody<{
+        challengeId?: string;
+        challengeeScore?: unknown;
+        challengeeTimeMs?: unknown;
+      }>(req);
+      const { challengeId, challengeeScore, challengeeTimeMs } = body;
 
-      if (!challengeId || challengeeScore === undefined) {
-        send(res, 400, { error: 'Missing required fields' });
+      if (!challengeId || !isScore(challengeeScore) || !isOptionalTime(challengeeTimeMs)) {
+        send(res, 400, { error: 'Missing or invalid fields' });
         return true;
       }
 
@@ -354,6 +359,10 @@ export async function handleSocialRoutes(
 
       const player = claimedUserFor(caller, userId, res);
       if (!player) return true;
+      if (typeof answer !== 'string' || answer.length > 500 || !isOptionalTime(timeMs)) {
+        send(res, 400, { error: 'Invalid answer' });
+        return true;
+      }
       const session = await submitTasteMatchAnswer(sessionId, player, answer, timeMs);
 
       if (!session) {
@@ -387,14 +396,12 @@ export async function handleSocialRoutes(
 
     // GET /api/social/leaderboard?period=weekly&gameType=overall&scope=global
     if (pathname === '/api/social/leaderboard' && method === 'GET') {
-      const period = (searchParams.get('period') as LeaderboardPeriod) || 'weekly';
-      const gameType = searchParams.get('gameType') || 'overall';
-      const scope = (searchParams.get('scope') as LeaderboardScope) || 'global';
-      if (gameType !== 'overall' && !isValidGameType(gameType)) {
-        send(res, 400, { error: 'Unknown game type' });
+      const board = socialBoardFrom(searchParams);
+      if (!board) {
+        send(res, 400, { error: 'Unknown leaderboard' });
         return true;
       }
-      const leaderboard = await getLeaderboard(period, gameType, scope);
+      const leaderboard = await getLeaderboard(board.period, board.gameType, board.scope);
       send(res, 200, {
         leaderboard: { ...leaderboard, entries: publicEntries(leaderboard.entries, req) },
       });
@@ -404,16 +411,14 @@ export async function handleSocialRoutes(
     // GET /api/social/leaderboard/around?userId=xxx
     if (pathname === '/api/social/leaderboard/around' && method === 'GET') {
       const userId = searchParams.get('userId');
-      const period = (searchParams.get('period') as LeaderboardPeriod) || 'weekly';
-      const gameType = searchParams.get('gameType') || 'overall';
-
-      if (!userId) {
-        send(res, 400, { error: 'Missing userId' });
+      const board = socialBoardFrom(searchParams);
+      if (!userId || !board) {
+        send(res, 400, { error: userId ? 'Unknown leaderboard' : 'Missing userId' });
         return true;
       }
 
-      const entries = await getLeaderboardAroundUser(userId, period, gameType);
-      const rank = await getUserRank(userId, period, gameType);
+      const entries = await getLeaderboardAroundUser(userId, board.period, board.gameType);
+      const rank = await getUserRank(userId, board.period, board.gameType);
 
       send(res, 200, { entries: publicEntries(entries, req), rank });
       return true;
@@ -442,27 +447,17 @@ export async function handleSocialRoutes(
 
     // POST /api/social/stats/update
     if (pathname === '/api/social/stats/update' && method === 'POST') {
-      const body = await parseBody(req);
-      const { userId, gameType, result } = body as {
-        userId: string;
-        gameType: string;
-        result: {
-          score: number;
-          correctAnswers: number;
-          totalQuestions: number;
-          timeMs: number;
-          usedHints: boolean;
-        };
-      };
-
-      const statsUser = claimedUserFor(caller, userId, res);
+      const body = await parseBody<{ userId?: string; gameType?: unknown; result?: unknown }>(req);
+      const statsUser = claimedUserFor(caller, body.userId, res);
       if (!statsUser) return true;
-      if (!isValidGameType(gameType) || !result) {
-        send(res, 400, { error: 'Missing required fields' });
+      const result = gameResultFrom(body.result);
+      if (!isRecordableGame(body.gameType) || !result) {
+        send(res, 400, { error: 'Missing or invalid fields' });
         return true;
       }
+      if (rateLimit(req, res, resultRecordLimit('social', statsUser))) return true;
 
-      const stats = await updateUserStats(statsUser, gameType, result);
+      const stats = await updateUserStats(statsUser, body.gameType, result);
 
       send(res, 200, { stats });
       return true;
