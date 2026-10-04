@@ -125,7 +125,13 @@ const LINT_RULES: LintRule[] = [
       return errors;
     },
     fileTypes: ['.ts', '.js'],
-    exclude: ['**/tokens.ts', '**/tokens.css', '**/design-tokens.css'],
+    // Token outputs: generated from design-system/tokens/*.json, the hex values ARE the tokens
+    exclude: [
+      '**/tokens.ts',
+      '**/tokens.css',
+      '**/design-tokens.css',
+      '**/persona-colors.generated.ts',
+    ],
   },
   
   {
