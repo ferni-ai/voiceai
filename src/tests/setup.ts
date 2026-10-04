@@ -135,6 +135,18 @@ const removeUndefinedImpl = <T extends object>(obj: T): T => {
   return result as T;
 };
 
+// Mirrors utils/firestore-utils.ts's sanitizeFirestoreDocId.
+const sanitizeFirestoreDocIdImpl = (input: string): string => {
+  const MAX_BYTES = 1400;
+  let safe = (input ?? '').replace(/\//g, '-').trim();
+  if (safe === '.' || safe === '..') safe = safe.replace(/\./g, '_dot_');
+  if (safe.length === 0) safe = '_';
+  if (Buffer.byteLength(safe, 'utf8') > MAX_BYTES) {
+    safe = Buffer.from(safe, 'utf8').subarray(0, MAX_BYTES).toString('utf8');
+  }
+  return safe;
+};
+
 // Helper: Safely convert any timestamp-like value to Date
 const toSafeDateImpl = (value: unknown, fallback: Date = new Date()): Date => {
   if (!value) return fallback;
@@ -170,6 +182,7 @@ vi.mock('../utils/firestore-utils.js', () => ({
   // Not cleanForFirestore: that turns Dates into strings, which the real
   // deepRemoveUndefined doesn't do.
   deepRemoveUndefined: vi.fn((obj: unknown) => deepRemoveUndefinedImpl(obj)),
+  sanitizeFirestoreDocId: vi.fn((input: string) => sanitizeFirestoreDocIdImpl(input)),
   toSafeDate: vi.fn((value: unknown, fallback?: Date) => toSafeDateImpl(value, fallback)),
   toSafeDateOptional: vi.fn((value: unknown) => toSafeDateOptionalImpl(value)),
   recordDegradation: vi.fn(),
