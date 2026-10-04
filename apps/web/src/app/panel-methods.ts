@@ -704,10 +704,11 @@ export async function showTeamHuddle(_topic?: string): Promise<void> {
  *
  * Data sources (in priority order):
  * 1. Backend API (/api/your-story/full) - aggregates all services
- * 2. Direct Firestore fetch - fallback for offline/errors
- * 3. Demo data - for new users or when all else fails
+ * 2. Direct Firestore fetch - when the API has nothing or fails
  *
- * For new users, shows aspirational demo data with a warm banner.
+ * With no story yet it shows an empty state; when loading fails, an error
+ * with a retry. Demo data appears only behind the explicit demo flag, and
+ * always with the demo banner, so example numbers never pass as the user's.
  */
 export async function showYourStoryDashboard(): Promise<void> {
   void trackScreen('your-story');
@@ -717,46 +718,33 @@ export async function showYourStoryDashboard(): Promise<void> {
   const dashboard = getYourStoryUI();
   dashboard.showLoading();
 
-  const userId = localStorage.getItem('ferni_user_id');
-
-  // Priority 1: Try the unified API endpoint (aggregates all services)
-  try {
-    if (userId) {
-      log.debug({ userId }, 'Fetching from /api/your-story/full');
-      const storyData = await fetchYourStory();
-
-      // Check if we got real data (not demo fallback)
-      if (storyData.analytics.conversations > 0 || storyData.analytics.daysTogether > 0) {
-        dashboard.show(storyData);
-        log.info({ userId }, 'Your Story shown from API');
-        return;
-      }
-    }
-  } catch (err) {
-    log.debug({ err }, 'API fetch failed, trying Firestore fallback');
+  if (isDemoDataEnabled()) {
+    dashboard.show(viz.createDemoStoryData('demo-user'), { showDemoBanner: true });
+    return;
   }
 
-  // Priority 2: Fallback to direct Firestore fetch
+  const result = await fetchYourStory();
+  if (result.status === 'ok') {
+    dashboard.show(result.data);
+    return;
+  }
+
+  let failed = result.status === 'error';
+  const userId = localStorage.getItem('ferni_user_id');
   try {
     if (userId) {
       const visualizationData = await viz.fetchVisualizationData(userId);
-
       if (viz.hasAnyVisualizationData(visualizationData)) {
-        // Aggregate with analytics and milestone data
-        const storyData = await aggregateStoryData(userId, visualizationData);
-        dashboard.show(storyData);
-        log.info({ userId }, 'Your Story shown from Firestore fallback');
+        dashboard.show(await aggregateStoryData(userId, visualizationData));
         return;
       }
     }
   } catch (err) {
-    log.debug({ err }, 'Firestore fetch failed, using demo data');
+    log.warn({ err }, 'Your Story Firestore read failed');
+    failed = true;
   }
 
-  // Priority 3: Demo data for new users or when all else fails
-  const demoData = viz.createDemoStoryData(userId || 'demo-user');
-  dashboard.show(demoData, { showDemoBanner: true });
-  log.info('Your Story shown with demo data (new user or demo mode)');
+  dashboard.showStatus(failed ? 'error' : 'empty', () => void showYourStoryDashboard());
 }
 
 /**
