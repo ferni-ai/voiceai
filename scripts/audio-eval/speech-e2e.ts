@@ -157,6 +157,7 @@ const stage2Native = await hookStage2Native();
 
 const voiceIds = await import('../../src/config/voice-ids.js');
 const gateway = await import('../../src/speech/tts-gateway/gateway-tts-node.js');
+const { getReplyAudioId } = await import('../../src/speech/tts-gateway/reply-audio-id.js');
 const providers = await import('../../src/speech/tts-gateway/providers/index.js');
 const { CartesiaSocket } =
   await import('../../src/speech/tts-gateway/providers/cartesia-socket.js');
@@ -275,7 +276,7 @@ async function runReply(
     if (!audio) throw new Error('gateway TTS node returned null');
     // Pass the reply id the gateway node tagged `audio` with, the same way
     // tts-wrapper does (review H2) — Stage 2 refuses a plan with no id.
-    const replyId = gateway.getReplyAudioId(audio);
+    const replyId = getReplyAudioId(audio);
     const out = await postTts.applyPostTTSEnhancement(
       audio,
       { ...postTts.PostTTSPresets.betterThanHuman, sessionId, personaId: 'ferni' },

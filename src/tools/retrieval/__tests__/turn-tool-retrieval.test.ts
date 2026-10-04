@@ -262,10 +262,13 @@ describe('helpers', () => {
     expect(r.isCore('getCurrentContext')).toBe(true);
   });
 
-  it('is off unless TOOL_RETRIEVAL says shadow or live', () => {
-    expect(toolRetrievalMode({})).toBe('off');
-    expect(toolRetrievalMode({ TOOL_RETRIEVAL: 'shadow' })).toBe('shadow');
-    expect(toolRetrievalMode({ TOOL_RETRIEVAL: 'yes' })).toBe('off');
+  it('defaults to shadow, to off under tests, and never to live', () => {
+    expect(toolRetrievalMode({})).toBe('shadow');
+    expect(toolRetrievalMode({ VITEST: 'true' })).toBe('off');
+    expect(toolRetrievalMode({ NODE_ENV: 'test' })).toBe('off');
+    expect(toolRetrievalMode({ TOOL_RETRIEVAL: 'off' })).toBe('off');
+    expect(toolRetrievalMode({ TOOL_RETRIEVAL: ' Live ', VITEST: 'true' })).toBe('live');
+    expect(toolRetrievalMode({ TOOL_RETRIEVAL: 'yes' })).toBe('shadow');
   });
 
   it('findTools pins the best matches the agent has for the next request', async () => {
@@ -305,4 +308,3 @@ describe('helpers', () => {
     expect(sent.length).toBeLessThan(10);
   });
 });
-

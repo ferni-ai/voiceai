@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { lineCount, lowered, regressions, type Measurement } from '../ratchet.js';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { lineCount, lowered, measureBundle, regressions, type Measurement } from '../ratchet.js';
 import { findTerm, visibleCopy } from '../check-brand-compliance.js';
 
 const base: Measurement = {
@@ -53,6 +56,65 @@ describe('quality ratchet', () => {
     expect(lineCount('')).toBe(0);
     expect(lineCount('a\nb\n')).toBe(2);
     expect(lineCount('a\nb')).toBe(2);
+  });
+});
+
+describe('bundle measurement', () => {
+  let dist = '';
+  afterEach(() => {
+    rmSync(dist, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  /** A dist/ whose assets are `kb` KB each, with an optional Vite manifest. */
+  function build(kb: Record<string, number>, manifest?: object): string {
+    dist = mkdtempSync(join(tmpdir(), 'ratchet-dist-'));
+    mkdirSync(join(dist, 'assets'));
+    for (const [file, size] of Object.entries(kb)) writeFileSync(join(dist, 'assets', file), 'x'.repeat(size * 1024));
+    if (manifest) {
+      mkdirSync(join(dist, '.vite'));
+      writeFileSync(join(dist, '.vite', 'manifest.json'), JSON.stringify(manifest));
+    }
+    return join(dist, 'assets');
+  }
+
+  const assets = {
+    'index-a1.js': 10, // the entry
+    'index-a1.css': 2, // the entry's CSS
+    'vendor-b2.js': 40, // eager vendor chunk
+    'index-c3.js': 100, // lazy settings/index.ts: named index-*, but not initial
+    'firestore-d4.js': 7, // eager, but named like nothing the old regex knew
+    'firestore-d4.css': 1,
+  };
+  const manifest = {
+    'index.html': {
+      file: 'assets/index-a1.js',
+      isEntry: true,
+      css: ['assets/index-a1.css'],
+      imports: ['_vendor-b2.js', 'src/db/firestore.ts'],
+      dynamicImports: ['src/settings/index.ts'],
+    },
+    '_vendor-b2.js': { file: 'assets/vendor-b2.js' },
+    'src/db/firestore.ts': {
+      file: 'assets/firestore-d4.js',
+      css: ['assets/firestore-d4.css'],
+      imports: ['_vendor-b2.js'], // shared: counted once
+    },
+    'src/settings/index.ts': { file: 'assets/index-c3.js', imports: ['_vendor-b2.js'] },
+  };
+
+  it('counts what the entry imports statically, whatever the chunks are called', () => {
+    expect(measureBundle(build(assets, manifest))).toEqual({
+      totalKB: 160,
+      initialKB: 10 + 2 + 40 + 7 + 1, // not the lazy index-c3.js; yes firestore-d4.*
+      maxChunkKB: 100,
+    });
+  });
+
+  it('falls back to guessing from filenames, with a warning, when there is no manifest', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    expect(measureBundle(build(assets)).initialKB).toBe(10 + 2 + 40 + 100);
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/manifest\.json/));
   });
 });
 

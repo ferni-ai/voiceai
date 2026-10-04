@@ -9,6 +9,10 @@
 
 import { toast } from '../ui/whisper.ui.js';
 import { t } from '../i18n/index.js';
+import { apiGet, apiPost } from '../utils/api.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('LinkedInService');
 
 // ============================================================================
 // TYPES
@@ -32,74 +36,46 @@ export interface LinkedInStatus {
 
 // ============================================================================
 // API CALLS
-// TODO: Backend /api/linkedin/* routes exist but are NOT mounted on the server.
-// All functions below return graceful fallbacks. Re-enable when routes are mounted.
+// /api/linkedin/* (src/api/linkedin-routes.ts) requires a verified caller, so
+// every call goes through the authenticated api helpers (Bearer token).
 // ============================================================================
 
 /**
- * Get LinkedIn connection status
+ * Get LinkedIn connection status, or null when it couldn't be loaded.
  */
 export async function getLinkedInStatus(): Promise<LinkedInStatus | null> {
-  // TODO: Backend /api/linkedin/status route not mounted. Re-enable when available.
-  try {
-    const response = await fetch('/api/linkedin/status', {
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return await response.json();
-  } catch {
+  const response = await apiGet<LinkedInStatus>('/api/linkedin/status');
+  if (!response.ok || !response.data) {
+    log.warn({ status: response.status }, 'LinkedIn status request failed');
     return null;
   }
+  return response.data;
 }
 
 /**
  * Disconnect LinkedIn
  */
 export async function disconnectLinkedIn(): Promise<boolean> {
-  // TODO: Backend /api/linkedin/disconnect route not mounted. Re-enable when available.
-  try {
-    const response = await fetch('/api/linkedin/disconnect', {
-      method: 'POST',
-      credentials: 'include',
-    });
-
-    if (response.ok) {
-      toast.success(t('toasts.linkedInDisconnected'));
-      return true;
-    }
-
-    toast.error("Couldn't disconnect LinkedIn");
-    return false;
-  } catch {
-    toast.error("Couldn't disconnect LinkedIn");
-    return false;
+  const response = await apiPost('/api/linkedin/disconnect');
+  if (response.ok) {
+    toast.success(t('toasts.linkedInDisconnected'));
+    return true;
   }
+  toast.error("Couldn't disconnect LinkedIn");
+  return false;
 }
 
 /**
  * Force sync LinkedIn data
  */
 export async function syncLinkedIn(): Promise<boolean> {
-  // TODO: Backend /api/linkedin/sync route not mounted. Re-enable when available.
-  try {
-    const response = await fetch('/api/linkedin/sync', {
-      method: 'POST',
-      credentials: 'include',
-    });
-
-    if (response.ok) {
-      toast.info(t('toasts.syncingLinkedIn'));
-      return true;
-    }
-
-    return false;
-  } catch {
-    return false;
+  const response = await apiPost('/api/linkedin/sync');
+  if (response.ok) {
+    toast.info(t('toasts.syncingLinkedIn'));
+    return true;
   }
+  toast.error("Couldn't sync LinkedIn. Try again?");
+  return false;
 }
 
 // ============================================================================

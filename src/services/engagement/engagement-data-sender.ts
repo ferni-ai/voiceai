@@ -13,6 +13,7 @@ import {
   type StoredPrediction,
   type StoredWeatherEntry,
 } from './engagement-store.js';
+import { withHonestScore } from './prediction-scoring.js';
 
 // Generic interface for LiveKit room-like objects
 // FIX AUDIT ISSUE: Export the interface so consumers can avoid `any` casts
@@ -49,6 +50,10 @@ export interface EngagementDataMessage {
     question: string;
     userPrediction: number;
     actualOutcome?: number;
+    /** Each predicted metric by its stored name, with the actual once recorded. */
+    metrics: Array<{ key: string; predicted: number; actual?: number }>;
+    /** Score (0-100), only when actuals were matched to predicted metrics. */
+    accuracy?: number;
     status: 'pending' | 'resolved';
     createdAt: string;
   }>;
@@ -238,15 +243,26 @@ class EngagementDataSender {
     try {
       const storedPredictions = await this.store.getRecentPredictions(userId, 20);
 
-      return storedPredictions.map((p) => ({
-        id: p.id,
-        category: this.extractCategoryFromPrediction(p),
-        question: this.formatPredictionQuestion(p),
-        userPrediction: this.extractMainPrediction(p),
-        actualOutcome: p.accuracy,
-        status: p.completedAt ? ('resolved' as const) : ('pending' as const),
-        createdAt: p.createdAt,
-      }));
+      return storedPredictions.map((stored) => {
+        // Unmatched old resolutions were never scored: send them as open.
+        const p = withHonestScore(stored);
+        const metrics = Object.entries(p.predictions ?? {}).map(([key, predicted]) => ({
+          key,
+          predicted,
+          ...(typeof p.actuals?.[key] === 'number' ? { actual: p.actuals[key] } : {}),
+        }));
+        return {
+          id: p.id,
+          category: this.extractCategoryFromPrediction(p),
+          question: this.formatPredictionQuestion(p),
+          userPrediction: metrics[0]?.predicted ?? 0,
+          actualOutcome: metrics[0]?.actual,
+          metrics,
+          accuracy: p.accuracy,
+          status: p.completedAt ? ('resolved' as const) : ('pending' as const),
+          createdAt: p.createdAt,
+        };
+      });
     } catch (error) {
       this.logger.warn({ error, userId }, '[EngagementDataSender] Failed to get predictions');
       return [];
@@ -269,13 +285,6 @@ class EngagementDataSender {
       return `Week of ${p.weekOf}: ${keys[0]}`;
     }
     return `Week of ${p.weekOf}: Weekly behavior prediction`;
-  }
-
-  private extractMainPrediction(p: StoredPrediction): number {
-    const values = Object.values(p.predictions);
-    // Return first value as representative, or average
-    if (values.length === 1) return values[0];
-    return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
   }
 
   private async getRitualStreaks(userId: string): Promise<EngagementDataMessage['ritualStreaks']> {

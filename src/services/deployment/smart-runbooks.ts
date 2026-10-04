@@ -196,7 +196,7 @@ async function initializeGemini(): Promise<void> {
 }
 
 // Cache the model name
-let cachedModelName = 'gemini-2.0-flash-exp';
+let cachedModelName = 'gemini-3.5-flash';
 
 function findMatchingPattern(incident: IncidentContext): IncidentPattern | undefined {
   const searchText = `${incident.title} ${incident.description}`.toLowerCase();
