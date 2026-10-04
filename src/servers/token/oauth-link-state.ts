@@ -83,7 +83,9 @@ function createFirestoreStore(): OAuthLinkStore {
     async put(key, record) {
       const col = collection();
       if (!col) return false;
-      await col.doc(key).set(record);
+      // ttlAt is a Timestamp (a Date in the SDK) so a Firestore TTL policy on it can
+      // delete abandoned flows; TTL ignores numeric fields like expiresAt.
+      await col.doc(key).set({ ...record, ttlAt: new Date(record.expiresAt) });
       return true;
     },
     async get(key) {
