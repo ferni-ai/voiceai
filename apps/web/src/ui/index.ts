@@ -552,10 +552,7 @@ export {
   showCalendarSelection,
   hideCalendarSelection,
 } from './calendar-selection.ui.js';
-export type {
-  CalendarItem,
-  CalendarProvider,
-} from './calendar-selection.ui.js';
+export type { CalendarItem, CalendarProvider } from './calendar-selection.ui.js';
 
 // Team Observations Panel - Cross-persona coordination visibility
 export {
@@ -565,10 +562,7 @@ export {
 } from './team-observations-panel.ui.js';
 
 // Agent Page Builder - Self-serve landing page creation
-export {
-  pageBuilder,
-  showPageBuilder,
-} from './agent-page-builder.ui.js';
+export { pageBuilder, showPageBuilder } from './agent-page-builder.ui.js';
 export type { PageBuilderCallbacks } from './agent-page-builder.ui.js';
 
 // Types
