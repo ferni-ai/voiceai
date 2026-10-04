@@ -22,6 +22,8 @@ import type {
 // 🧠 MEMORY FIX: Import vector store for semantic search capability
 import { getFirestoreVectorStore } from '../firestore-vector-store/index.js';
 import { buildExtractionVectorDocuments } from './extraction-vector-docs.js';
+import { createDeepExtractionBatcher } from './deep-extraction-batch.js';
+import type { DeepExtractionBatchOptions } from './deep-extraction-batch.js';
 
 // ============================================================================
 // TYPES
@@ -184,6 +186,7 @@ export class DeepExtractionWorker {
   private isProcessing = false;
   private running = false;
   private eventListenerCleanup: (() => void) | null = null;
+  private batcher: ReturnType<typeof createDeepExtractionBatcher>;
   private extractionStats = {
     totalJobs: 0,
     completedJobs: 0,
@@ -193,8 +196,8 @@ export class DeepExtractionWorker {
     totalFactsExtracted: 0,
   };
 
-  constructor() {
-    // Don't auto-subscribe - wait for explicit start()
+  constructor(options: DeepExtractionBatchOptions = {}) {
+    this.batcher = createDeepExtractionBatcher((job) => this.enqueue(job), options);
   }
 
   /**
@@ -217,6 +220,7 @@ export class DeepExtractionWorker {
    * Stop the worker
    */
   stop(): void {
+    this.batcher.flushAll(); // don't drop turns still waiting for their batch
     this.running = false;
     if (this.eventListenerCleanup) {
       this.eventListenerCleanup();
@@ -228,15 +232,10 @@ export class DeepExtractionWorker {
   private setupEventListener(): void {
     // Listen for deep extraction events via DI wrapper (avoids layer violation)
     const listener = (job: unknown) => {
-      this.log.info(
-        { jobId: (job as DeepExtractionJob)?.jobId, userId: (job as DeepExtractionJob)?.userId },
-        '🧠 [MEMORY-AUDIT] Received deep extraction job'
-      );
-      if (this.running) {
-        this.enqueue(job as DeepExtractionJob);
-      } else {
-        this.log.warn('🧠 [MEMORY-AUDIT] Received job but worker not running');
-      }
+      const { jobId, userId } = (job ?? {}) as Partial<DeepExtractionJob>;
+      this.log.info({ jobId, userId }, '🧠 [MEMORY-AUDIT] Received deep extraction job');
+      if (this.running) this.batcher.add(job as DeepExtractionJob);
+      else this.log.warn('🧠 [MEMORY-AUDIT] Received job but worker not running');
     };
     const registered = safeOnEvent('memory:deep-extraction', listener);
 

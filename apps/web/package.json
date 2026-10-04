@@ -51,7 +51,7 @@
     "firebase": "^10.14.1",
     "gsap": "^3.15.0",
     "livekit-client": "^2.0.0",
-    "zod": "^3.23.0"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.4.4",

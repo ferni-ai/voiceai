@@ -507,7 +507,7 @@
     "twilio": "^5.10.7",
     "uuid": "14.0.2",
     "ws": "8.18.3",
-    "zod": "4.1.13"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
