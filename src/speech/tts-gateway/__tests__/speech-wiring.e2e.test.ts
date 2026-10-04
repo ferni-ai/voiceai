@@ -161,7 +161,8 @@ async function speak(
   turn: number,
   replyIdOverride?: string
 ): Promise<Run> {
-  const { createGatewayTTSNode, getReplyAudioId } = await import('../gateway-tts-node.js');
+  const { createGatewayTTSNode } = await import('../gateway-tts-node.js');
+  const { getReplyAudioId } = await import('../reply-audio-id.js');
   let go: () => void = () => undefined;
   const started = new Promise<void>((resolve) => {
     go = resolve;

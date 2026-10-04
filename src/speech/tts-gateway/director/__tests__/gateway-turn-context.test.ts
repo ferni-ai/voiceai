@@ -83,7 +83,7 @@ async function speak(
 describe('gateway → Director turn wiring', () => {
   it('keys the Stage 2 plan by the reply id the gateway node generated', async () => {
     process.env.SPEECH_DIRECTOR = 'live';
-    const { getReplyAudioId } = await import('../../gateway-tts-node.js');
+    const { getReplyAudioId } = await import('../../reply-audio-id.js');
     const audio = await speak(9);
     const replyId = getReplyAudioId(audio);
     expect(replyId).toBeDefined();
@@ -93,7 +93,7 @@ describe('gateway → Director turn wiring', () => {
 
   it('plans even without a turnNumber (the reply id never depends on it), and none with the Director off', async () => {
     process.env.SPEECH_DIRECTOR = 'live';
-    const { getReplyAudioId } = await import('../../gateway-tts-node.js');
+    const { getReplyAudioId } = await import('../../reply-audio-id.js');
     const audio1 = await speak(undefined);
     const replyId1 = getReplyAudioId(audio1);
     expect(takeReplyAudioPlan(SESSION, replyId1)?.tempo).toBeLessThan(1);

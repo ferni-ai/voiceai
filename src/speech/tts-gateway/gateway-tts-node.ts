@@ -40,9 +40,7 @@ import { createContinuationTTS } from './continuation-tts.js';
 import { createFirstAudioObserver, type FirstAudioObserver } from './first-audio-observer.js';
 import { directSpeech, speechDirectorMode, type TurnContext } from './director/index.js';
 import { prosodyTags } from './providers/cartesia.js';
-import { tagReplyAudioId, getReplyAudioId } from './reply-audio-id.js';
-
-export { getReplyAudioId };
+import { tagReplyAudioId } from './reply-audio-id.js';
 import type { SSMLProsodyConfig } from './types.js';
 
 // ============================================================================
@@ -707,9 +705,7 @@ export function createGatewayTTSNode(
     const markFirstAudio = createFirstAudioObserver({ sessionId, startTime });
     metrics.totalRequests++;
 
-    // =========================================================================
     // STREAMING OVERLAP: Start TTS on first phrase (target -100–200ms E2E)
-    // =========================================================================
     if (enableStreamingOverlap) {
       // One id per reply (review H2): keys this reply's Stage 2 plan so no
       // other TTS stream in the same turn can take or discard it.
@@ -736,9 +732,7 @@ export function createGatewayTTSNode(
       });
     }
 
-    // =========================================================================
     // 1. COLLECT TEXT FROM STREAM (non-streaming path)
-    // =========================================================================
 
     let fullText = '';
     const reader = textStream.getReader();
@@ -771,9 +765,7 @@ export function createGatewayTTSNode(
       `🚀 Gateway TTS: Processing "${truncateForLog(fullText, 50)}"`
     );
 
-    // =========================================================================
     // 2. PARSE SSML AND EXTRACT PROSODY
-    // =========================================================================
 
     const ssmlResult = ssmlProcessor.parse(fullText);
     const cleanText = ssmlResult.cleanText;
@@ -788,9 +780,7 @@ export function createGatewayTTSNode(
       return createEmptyAudioStream();
     }
 
-    // =========================================================================
     // 2.5. FILTER JSON FUNCTION CALLS
-    // =========================================================================
 
     if (isJsonFunctionCall(cleanText)) {
       log.warn(
@@ -806,9 +796,7 @@ export function createGatewayTTSNode(
       return createEmptyAudioStream(); // empty, not null: LiveKit SDK errors on null
     }
 
-    // =========================================================================
     // 2.6. STRIP INSTRUCTION BLOCKS
-    // =========================================================================
     // Final safety net: Strip instruction blocks like [TYPE: presence], [TONE: warm]
     // that Gemini sometimes echoes back from the prompt.
     //
@@ -867,9 +855,7 @@ export function createGatewayTTSNode(
       emotion: ssmlResult.prosody.emotion || emotion,
     };
 
-    // =========================================================================
     // 3. CHECK CACHE (with optional speculative synthesis)
-    // =========================================================================
 
     // Speculative synthesis: start both cache check and synthesis in parallel
     // This reduces latency on cache misses but wastes API calls on cache hits
@@ -938,9 +924,7 @@ export function createGatewayTTSNode(
       }
     }
 
-    // =========================================================================
     // 4. SYNTHESIZE VIA GATEWAY (CACHE MISS)
-    // =========================================================================
 
     metrics.cacheMisses++;
     metrics.gatewaySyntheses++;

@@ -1341,10 +1341,7 @@ function applySoftReleaseToFrame(
  *
  * @param audioStream - Input audio stream from TTS
  * @param config - Enhancement configuration
- * @param replyId - The id the gateway TTS node tagged `audioStream` with
- *   (`tts-gateway/reply-audio-id.ts`): keys Stage 2's plan. No id, no Stage 2
- *   (review H2) — a stream the Director never ran on (a filler, `say()`, a
- *   cached clip) was never tagged, so no plan could ever apply to it.
+ * @param replyId - Id the gateway tagged `audioStream` with (reply-audio-id.ts); keys Stage 2's plan. Untagged streams (fillers, `say()`) get no Stage 2.
  * @returns Enhanced audio stream
  */
 export async function applyPostTTSEnhancement(
