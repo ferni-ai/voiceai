@@ -206,9 +206,6 @@ export class MemoryMetricsCollector {
   private totalEmbeddings = 0;
   private estimatedTokens = 0;
 
-  private extractionItemsDropped = 0;
-  private vectorPersistWarnings = 0;
-
   private lastCollected: Date | null = null;
   private thresholds: MetricThresholds;
 
@@ -245,34 +242,6 @@ export class MemoryMetricsCollector {
   /**
    * Record an embedding operation
    */
-  /** Malformed deep-extraction items dropped before Firestore write. */
-  recordExtractionDrop(count: number): void {
-    if (count > 0) {
-      this.extractionItemsDropped += count;
-      log.debug(
-        { count, totalDropped: this.extractionItemsDropped },
-        '🧠 [MEMORY-AUDIT] extraction_items_dropped'
-      );
-    }
-  }
-
-  /** Non-blocking vector persist failure during deep extraction. */
-  recordVectorPersistWarn(): void {
-    this.vectorPersistWarnings++;
-    log.debug(
-      { total: this.vectorPersistWarnings },
-      '🧠 [MEMORY-AUDIT] vector_persist_warn'
-    );
-  }
-
-  getExtractionDropCount(): number {
-    return this.extractionItemsDropped;
-  }
-
-  getVectorPersistWarnCount(): number {
-    return this.vectorPersistWarnings;
-  }
-
   recordEmbedding(durationMs: number, tokenCount: number, success: boolean): void {
     this.totalEmbeddings++;
 

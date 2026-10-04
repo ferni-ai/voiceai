@@ -49,10 +49,7 @@ export {
 
 // Internal import for embedding provider validation
 import { getEmbeddingProvider as getInternalEmbeddingProvider } from './embeddings.js';
-import {
-  assertEmbeddingDimensionsMatch,
-  getConfiguredFirestoreVectorDimensions,
-} from './embedding-dimension-guard.js';
+import { validateMemoryEmbeddingDimensions } from './embedding-dimension-guard.js';
 
 // Vector store interface (unified)
 export {
@@ -953,39 +950,10 @@ let initializingPromise: Promise<MemorySystemResult> | null = null;
  * - Local hash fallback: 384
  */
 function validateEmbeddingDimensions(usePersistentVectors: boolean): void {
-  const provider = getInternalEmbeddingProvider();
-  const providerDimensions = provider.dimensions;
-  const providerModel = provider.model;
-
-  const vectorStoreDimensions = usePersistentVectors
-    ? getConfiguredFirestoreVectorDimensions()
-    : providerDimensions;
-
-  assertEmbeddingDimensionsMatch({
-    providerDimensions,
-    providerModel,
-    vectorStoreDimensions,
+  validateMemoryEmbeddingDimensions(
+    getInternalEmbeddingProvider(),
     usePersistentVectors,
-    nodeEnv: process.env.NODE_ENV,
-  });
-
-  if (providerDimensions !== vectorStoreDimensions) {
-    getLogger().warn(
-      {
-        providerModel,
-        providerDimensions,
-        vectorStoreDimensions,
-        usePersistentVectors,
-        risk: 'SEARCH_QUALITY_DEGRADED',
-      },
-      '⚠️ Embedding dimension mismatch detected - semantic search quality may be affected'
-    );
-    return;
-  }
-
-  getLogger().debug(
-    { providerModel, dimensions: providerDimensions },
-    'Embedding dimensions validated successfully'
+    getLogger()
   );
 }
 

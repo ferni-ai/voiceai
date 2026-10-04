@@ -12,7 +12,7 @@
 
 import { STORAGE_KEYS } from '../config/index.js';
 import { getCoach, getPersona } from '../config/personas.js';
-import type { AuthState } from '../services/firebase-auth.service.js';
+import type { AuthState } from '../types/auth.js';
 import type { AudioState, ConnectionState, SpotifyState } from '../types/events.js';
 import type { PersonaConfig, PersonaId } from '../types/persona.js';
 

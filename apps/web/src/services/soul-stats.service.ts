@@ -14,7 +14,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { getAdminHeadersAsync } from '../admin/admin-api.js';
+import { getAdminHeadersAsync } from './admin-auth.service.js';
 
 const log = createLogger('SoulStatsService');
 

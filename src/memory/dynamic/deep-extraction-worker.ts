@@ -24,7 +24,10 @@ import { getFirestoreVectorStore } from '../firestore-vector-store/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { buildExtractionFirestoreWritePayloads } from './extraction-firestore-docs.js';
 import { buildExtractionVectorDocuments } from './extraction-vector-docs.js';
-import { getMemoryMetricsCollector } from '../memory-metrics.js';
+import {
+  recordExtractionDrop,
+  recordVectorPersistWarn,
+} from '../operations/memory-extraction-telemetry.js';
 import { createDeepExtractionBatcher } from './deep-extraction-batch.js';
 import type { DeepExtractionBatchOptions } from './deep-extraction-batch.js';
 
@@ -593,7 +596,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
       const totalDropped =
         payloads.dropped.entities + payloads.dropped.facts + payloads.dropped.relationships;
       if (totalDropped > 0) {
-        getMemoryMetricsCollector().recordExtractionDrop(totalDropped);
+        recordExtractionDrop(totalDropped);
         this.log.debug(
           { userId, dropped: payloads.dropped },
           '🧠 [MEMORY-AUDIT] Dropped malformed extraction items before Firestore write'
@@ -704,7 +707,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         );
       }
     } catch (error) {
-      getMemoryMetricsCollector().recordVectorPersistWarn();
+      recordVectorPersistWarn();
       this.log.warn(
         { error: String(error), userId },
         '🧠 [MEMORY-AUDIT] Failed to persist to vector store (non-blocking)'

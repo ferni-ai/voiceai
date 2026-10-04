@@ -26,8 +26,8 @@ const localStorageMock = (() => {
 
 Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock });
 
-// Mock admin-api
-vi.mock('../../src/admin/admin-api.js', () => ({
+// Mock admin auth headers
+vi.mock('../../src/services/admin-auth.service.js', () => ({
   getAdminHeadersAsync: vi.fn().mockResolvedValue({
     'Content-Type': 'application/json',
     Authorization: 'Bearer test-token',

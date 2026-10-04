@@ -7,7 +7,16 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
-import { getModal, getEntries, setEntries, getCurrentAgent, getFilteredEntries, getFilterDate, getSearchQuery } from './state.js';
+import {
+  getModal,
+  getEntries,
+  setEntries,
+  getCurrentAgent,
+  getFilteredEntries,
+  getFilterDate,
+  setFilterDate,
+  getSearchQuery,
+} from './state.js';
 import { getMoodIcon } from './mood-icons.js';
 import { deleteMemory, listMemories } from '../../services/custom-agent.service.js';
 import { renderStats } from './render-stats.js';
@@ -62,6 +71,19 @@ function getMomentLabel(momentType: string): string {
     vulnerability: 'Vulnerability',
   };
   return labels[momentType] || 'Captured moment';
+}
+
+// ============================================================================
+// DATE FILTERING
+// ============================================================================
+
+/**
+ * Filter entries by a specific date or clear filter
+ */
+export function filterEntriesByDate(dateStr: string | null): void {
+  setFilterDate(dateStr);
+  renderCalendar();
+  renderEntries();
 }
 
 // ============================================================================

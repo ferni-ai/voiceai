@@ -20,7 +20,7 @@
 
 import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
 import * as luxoExpressions from '../ui/luxo-expressions.ui.js';
-import type { ExpressionId } from '../config/expressions.generated.js';
+import type { ExpressionId } from '../config/avatar-expressions.js';
 import { createLogger } from '../utils/logger.js';
 import { emotionState, type EmotionId, type EmotionState } from './emotion-state.js';
 

@@ -22,9 +22,29 @@ import { renderStats } from './render-stats.js';
 import { renderCalendar } from './calendar.js';
 import { renderEntries } from './entries.js';
 import { renderInsights } from './insights.js';
-import { blobToBase64 } from './recording.js';
 
 const log = createLogger('VoiceJournalSave');
+
+// ============================================================================
+// AUDIO UTILITIES
+// ============================================================================
+
+/**
+ * Convert Blob to base64 string
+ */
+export function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result as string;
+      // Remove the data URL prefix (e.g., "data:audio/webm;base64,")
+      const base64 = dataUrl.split(',')[1] || '';
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
 
 // ============================================================================
 // GET SELECTED MOOD

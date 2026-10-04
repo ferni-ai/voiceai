@@ -14,6 +14,7 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import type { TeamHuddleData, TeamHuddleParticipant } from '../types/engagement.js';
 
 // ============================================================================
 // TYPES
@@ -22,23 +23,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
-export interface TeamHuddleParticipant {
-  personaId: string;
-  name: string;
-  initials: string;
-  comment: string;
-  avatarColor: string;
-}
-
-export interface TeamHuddleData {
-  id: string;
-  title: string;
-  intro: string;
-  participants: TeamHuddleParticipant[];
-  outro: string;
-  scheduledAt: string;
-  type: 'weekly' | 'milestone' | 'special';
-}
+export type { TeamHuddleData, TeamHuddleParticipant };
 
 export interface TeamHuddleUICallbacks {
   onClose?: () => void;

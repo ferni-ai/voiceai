@@ -16,7 +16,6 @@ import {
   type WorkflowTrigger,
 } from '../../services/life-automation.service.js';
 import { getUserId } from '../../utils/api.js';
-import { showFerniCareDashboard } from './dashboard.ui.js';
 import {
   ANALYTICS_ICONS,
   GROWTH_ICONS,
@@ -949,6 +948,7 @@ export class RoutineBuilder {
       }
 
       this.close();
+      const { showFerniCareDashboard } = await import('./dashboard.ui.js');
       showFerniCareDashboard();
     } catch (error) {
       log.error('Failed to save routine', error);

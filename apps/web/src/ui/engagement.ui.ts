@@ -31,6 +31,12 @@ import { isDemoDataEnabled, getDemoEngagementData } from '../services/engagement
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { teaserPreview } from './teaser-preview.ui.js';
+import type {
+  EmotionalWeatherData,
+  EngagementData,
+  EngagementStats,
+  RitualStreakData,
+} from '../types/engagement.js';
 
 const log = createLogger('EngagementUI');
 
@@ -41,37 +47,7 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // TYPES
 // ============================================================================
 
-export interface RitualStreakData {
-  ritualId: string;
-  ritualName: string;
-  personaId: string;
-  currentStreak: number;
-  longestStreak: number;
-  lastCompletedAt: string | null;
-  dueToday: boolean;
-}
-
-export interface EmotionalWeatherData {
-  primary: 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'foggy' | 'rainbow';
-  energy: 'high' | 'medium' | 'low';
-  note?: string;
-  recordedAt: string;
-}
-
-export interface EngagementStats {
-  totalRitualDays: number;
-  longestOverallStreak: number;
-  currentActiveStreaks: number;
-  predictionAccuracy?: number;
-  teamHuddlesAttended: number;
-}
-
-export interface EngagementData {
-  ritualStreaks: RitualStreakData[];
-  weatherHistory: EmotionalWeatherData[];
-  stats: EngagementStats;
-  lastEngagementAt: string | null;
-}
+export type { EmotionalWeatherData, EngagementData, EngagementStats, RitualStreakData };
 
 // ============================================================================
 // ENGAGEMENT UI CLASS
