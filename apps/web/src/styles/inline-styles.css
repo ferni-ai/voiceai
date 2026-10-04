@@ -676,9 +676,10 @@ body {
   z-index: -1;
 }
 
-/* Zen avatar styling */
+/* Zen avatar styling: the face carries the persona color. The eyes are
+   opaque white (index.html), so a white face leaves Ferni with no face. */
 [data-theme='zen'] #coachAvatar {
-  background: linear-gradient(145deg, #ffffff 0%, #f5f5f4 100%);
+  background: var(--gradient-orb);
 }
 
 [data-theme='zen'] #avatarRing {

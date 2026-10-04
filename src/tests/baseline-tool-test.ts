@@ -86,7 +86,7 @@ async function testGeminiToolCalling() {
 
   // Create the Gemini model with toolChoice: 'auto'
   const model = new google.beta.realtime.RealtimeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-3.5-flash',
     modalities: [genai.Modality.TEXT],
     temperature: 0.3, // Low for deterministic tool calling
     language: 'en-US',
@@ -94,7 +94,7 @@ async function testGeminiToolCalling() {
   });
 
   console.log('\n✅ Model created with:');
-  console.log('   - model: gemini-2.0-flash-exp');
+  console.log('   - model: gemini-3.5-flash');
   console.log('   - temperature: 0.3');
   console.log('   - toolChoice: auto');
 

@@ -32,7 +32,7 @@ import * as path from 'path';
 // ============================================================================
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-const MODEL = 'gemini-2.0-flash-exp';
+const MODEL = 'gemini-3.5-flash';
 
 interface TestResult {
   name: string;
