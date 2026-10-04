@@ -64,6 +64,19 @@ describe('bindVerifiedIdentity', () => {
     expect(r.url).toBe('/api/export');
   });
 
+  it('drops a spoofed x-user-id header in production', async () => {
+    const r = req('/api/seeds', { 'x-user-id': 'victim' });
+    await bindVerifiedIdentity(r, PROD);
+    expect(r.headers['x-user-id']).toBeUndefined();
+  });
+
+  it('replaces x-user-id with the verified uid in production', async () => {
+    optionalAuthAsync.mockResolvedValue({ userId: 'real-user' });
+    const r = req('/api/seeds', { authorization: 'Bearer t', 'x-user-id': 'victim' });
+    await bindVerifiedIdentity(r, PROD);
+    expect(r.headers['x-user-id']).toBe('real-user');
+  });
+
   it('leaves the query alone outside production', async () => {
     const r = req('/api/export?userId=dev-user');
     await bindVerifiedIdentity(r, { NODE_ENV: 'development' });

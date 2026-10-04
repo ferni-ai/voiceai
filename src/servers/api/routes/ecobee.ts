@@ -31,6 +31,7 @@ import {
 } from '../../../services/identity/ecobee-api.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { API_ERRORS } from '../../../api/error-messages.js';
+import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
 const log = createLogger({ module: 'ecobee-routes' });
 
@@ -38,19 +39,6 @@ const log = createLogger({ module: 'ecobee-routes' });
 // HELPERS
 // ============================================================================
 
-function getUserId(req: IncomingMessage): string | null {
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.slice(7);
-  }
-
-  const userIdHeader = req.headers['x-user-id'];
-  if (userIdHeader && typeof userIdHeader === 'string') {
-    return userIdHeader;
-  }
-
-  return null;
-}
 
 function sendJson(res: ServerResponse, statusCode: number, data: unknown): void {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });

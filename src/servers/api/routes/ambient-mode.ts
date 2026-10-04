@@ -23,6 +23,7 @@ import {
   type AmbientPreferences,
   type NudgeType,
 } from '../../../services/ambient-mode/index.js';
+import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
 const log = createLogger({ module: 'ambient-mode-routes' });
 
@@ -30,19 +31,6 @@ const log = createLogger({ module: 'ambient-mode-routes' });
 // HELPERS
 // ============================================================================
 
-function getUserId(req: IncomingMessage): string | null {
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.slice(7);
-  }
-
-  const userIdHeader = req.headers['x-user-id'];
-  if (userIdHeader && typeof userIdHeader === 'string') {
-    return userIdHeader;
-  }
-
-  return null;
-}
 
 function sendJson(res: ServerResponse, statusCode: number, data: unknown): void {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });

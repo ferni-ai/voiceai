@@ -14,6 +14,8 @@
  * - in production, a userId query parameter is replaced with the verified uid,
  *   or removed when the request carries no verified identity. Public
  *   endpoints that use it as an anonymous visitor id keep it.
+ * - in production, the legacy x-user-id header (~26 route helpers fall back
+ *   to it) gets the same treatment: the verified uid, or nothing.
  *
  * Development keeps the old query behavior so local tools keep working.
  *
@@ -50,6 +52,11 @@ export async function bindVerifiedIdentity(
   const uid = auth?.userId ?? null;
   if (uid) req.headers['x-firebase-uid'] = uid;
 
+  if (env.NODE_ENV === 'production') {
+    if (uid) req.headers['x-user-id'] = uid;
+    else delete req.headers['x-user-id'];
+  }
+
   if (env.NODE_ENV === 'production' && req.url) {
     const url = new URL(req.url, 'http://local');
     const anonymousAllowed = ANONYMOUS_USER_ID_PREFIXES.some((p) => url.pathname.startsWith(p));
@@ -60,4 +67,17 @@ export async function bindVerifiedIdentity(
     }
   }
   return uid;
+}
+
+/**
+ * The caller's user id, as bound by bindVerifiedIdentity: a verified Firebase
+ * uid, else (outside production only) a raw x-user-id. Use this instead of
+ * reading the Authorization header: the bearer string is a token, not a user id.
+ */
+export function getVerifiedUserId(req: IncomingMessage): string | null {
+  for (const name of ['x-firebase-uid', 'x-user-id'] as const) {
+    const value = req.headers[name];
+    if (typeof value === 'string' && value) return value;
+  }
+  return null;
 }

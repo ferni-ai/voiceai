@@ -16,6 +16,7 @@ import {
 } from '../../../services/identity/spotify-room-config-store.js';
 import { discoverDevices } from '../../../services/identity/spotify-room-service.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
 const log = createLogger({ module: 'spotify-rooms-routes' });
 
@@ -23,19 +24,6 @@ const log = createLogger({ module: 'spotify-rooms-routes' });
 // HELPERS
 // ============================================================================
 
-function getUserId(req: IncomingMessage): string | null {
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.slice(7);
-  }
-
-  const userIdHeader = req.headers['x-user-id'];
-  if (userIdHeader && typeof userIdHeader === 'string') {
-    return userIdHeader;
-  }
-
-  return null;
-}
 
 async function parseBody<T>(req: IncomingMessage): Promise<T | null> {
   return new Promise((resolve) => {
