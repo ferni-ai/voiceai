@@ -15,6 +15,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { sendError, getUserId as getUserIdFromRequest } from '../helpers.js';
+import { resolveActingUser } from '../acting-user.js';
 import { readJsonBody } from './helpers.js';
 
 // Status handlers
@@ -81,25 +82,25 @@ export async function handleCalendarRoutes(
   // Normalize path (remove /api prefix if present)
   const normalizedPath = pathname.startsWith('/api') ? pathname.slice(4) : pathname;
 
-  // Get userId from request
+  // The user is the verified caller. Writes require one, and a body may still
+  // name a user (the web sends user_id), but naming anyone else is refused, not
+  // acted on (acting-user.ts). The Outlook callback's ?state= is no identity
+  // either: it was the bare user id, unsigned, so anyone could attach a calendar
+  // to any account. The live Outlook flow is /auth/microsoft/*, with server-side state.
   let userId: string | null = null;
 
-  if (req.method === 'POST') {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    let body: Record<string, unknown> = {};
     try {
-      const body = await readJsonBody<Record<string, unknown>>(req);
-      userId =
-        (body.userId as string) || (body.user_id as string) || getUserIdFromRequest(req, parsedUrl);
+      if (req.method !== 'DELETE') body = await readJsonBody<Record<string, unknown>>(req);
     } catch {
       sendError(res, 'Invalid request body');
       return true;
     }
+    userId = await resolveActingUser(req, res, body.userId ?? body.user_id);
+    if (!userId) return true;
   } else {
     userId = getUserIdFromRequest(req, parsedUrl);
-  }
-
-  // Special case: Outlook OAuth callback may not have userId in body
-  if (normalizedPath === '/calendar/outlook/callback') {
-    userId = parsedUrl.searchParams.get('state') || userId;
   }
 
   if (!userId) {
