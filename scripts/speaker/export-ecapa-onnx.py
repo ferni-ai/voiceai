@@ -16,10 +16,17 @@ separate voices poorly (EER 30-35% vs 0.3% with this export, six TTS voices).
 
 Checks parity against SpeechBrain's encode_batch and exits non-zero if it fails.
 
+Reproducible: with the versions below and the pinned weights revision, the
+output is byte-identical: 84,131,064 bytes, sha256
+93ccd596285b31d5debad84ab3f138d5dc1145f19c3f287b81ece65afa034fc9 (reproduced
+2026-10-04 on macOS arm64, CPU wheels). That digest is pinned in
+docker/Dockerfile.agent and src/services/voice/speaker-embedding-worker.ts;
+a new export means a new object name and both pins (see README.md here).
+
 Usage (about 2 GB of pip downloads, Python 3.12):
-  python3.12 -m venv /tmp/sb && /tmp/sb/bin/pip install torch torchaudio speechbrain onnx onnxruntime
-  /tmp/sb/bin/python scripts/speaker/export-ecapa-onnx.py ecapa-tdnn.onnx
-  # fp32, about 84 MB. Record its sha256 next to wherever it is hosted.
+  python3.12 -m venv /tmp/sb && /tmp/sb/bin/pip install torch==2.14.1 torchaudio==2.11.0 \
+    speechbrain==1.1.1 onnx==1.23.1 onnxruntime==1.30.0 numpy==2.5.3 huggingface-hub==2.1.1
+  /tmp/sb/bin/python scripts/speaker/export-ecapa-onnx.py ecapa-tdnn-waveform.onnx
 """
 
 
@@ -32,10 +39,16 @@ import onnxruntime as ort
 import torch
 import torch.nn as nn
 from speechbrain.inference.speaker import SpeakerRecognition
+from speechbrain.utils.fetching import FetchConfig
+
+# The Hugging Face commit of speechbrain/spkrec-ecapa-voxceleb the pinned export used.
+WEIGHTS_REVISION = "0f99f2d0ebe89ac095bcc5903c4dd8f72b367286"
 
 out_path = sys.argv[1]
 sr = SpeakerRecognition.from_hparams(
-    source="speechbrain/spkrec-ecapa-voxceleb", savedir=os.path.join(tempfile.gettempdir(), "spkrec-ecapa")
+    source="speechbrain/spkrec-ecapa-voxceleb",
+    savedir=os.path.join(tempfile.gettempdir(), "spkrec-ecapa-" + WEIGHTS_REVISION[:8]),
+    fetch_config=FetchConfig(revision=WEIGHTS_REVISION),
 )
 
 
