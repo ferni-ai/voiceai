@@ -232,7 +232,7 @@ describe('Memory Pipeline E2E Integration', () => {
     let eventHandler: (job: unknown) => void;
 
     beforeAll(() => {
-      worker = new DeepExtractionWorker();
+      worker = new DeepExtractionWorker({ batchTurns: 1 });
 
       // Capture event handler
       (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {

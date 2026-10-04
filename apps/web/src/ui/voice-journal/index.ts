@@ -20,13 +20,11 @@ import { createLogger } from '../../utils/logger.js';
 import { soundUI } from '../sound.ui.js';
 import { getCustomAgent, listMemories } from '../../services/custom-agent.service.js';
 import { t } from '../../i18n/index.js';
-import { 
-  startJournalSync, 
-  stopJournalSync, 
-  subscribeToJournalSync,
-  type JournalSyncEvent 
+import {
+  startJournalSync,
+  stopJournalSync,
+  type JournalSyncChange,
 } from '../../services/journal-sync.service.js';
-import { getUserId } from '../../utils/api.js';
 import type { JournalTab } from './types.js';
 
 // State management
@@ -37,6 +35,7 @@ import {
   setCurrentTab,
   getCurrentAgent,
   setCurrentAgent,
+  getEntries,
   setEntries,
   setCurrentPrompt,
   setCalendarMonth,
@@ -49,16 +48,18 @@ import { renderMoodOptions } from './mood-icons.js';
 import { fetchPrompt, renderPromptSection, shufflePrompt, prefetchPrompts } from './prompts.js';
 import { toggleRecording, stopRecording, stopVisualization } from './recording.js';
 import { renderStats } from './render-stats.js';
-import { renderCalendar, navigatePrevMonth, navigateNextMonth, filterEntriesByDate } from './calendar.js';
+import {
+  renderCalendar,
+  navigatePrevMonth,
+  navigateNextMonth,
+  filterEntriesByDate,
+} from './calendar.js';
 import { renderEntries, deleteEntry } from './entries.js';
 import { renderInsights } from './insights.js';
 import { exportJournal, shareJournal } from './export.js';
 import { getJournalStyles } from './styles.js';
 
 const log = createLogger('VoiceJournalUI');
-
-// Real-time sync unsubscribe function
-let syncUnsubscribe: (() => void) | null = null;
 
 // ============================================================================
 // MODAL INITIALIZATION
@@ -218,7 +219,7 @@ function ensureModalExists(): HTMLElement {
   // Add event listeners
   modal.addEventListener('click', handleModalClick);
   modal.addEventListener('keydown', handleModalKeydown);
-  
+
   // Add search input listener
   const searchInput = modal.querySelector('#journal-search-input') as HTMLInputElement;
   if (searchInput) {
@@ -432,7 +433,7 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
     // Load initial prompt
     const prompt = await fetchPrompt();
     setCurrentPrompt(prompt);
-    
+
     // Pre-fetch prompts for offline use (background)
     void prefetchPrompts();
 
@@ -446,16 +447,8 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
     renderEntries();
     renderInsights();
 
-    // Start real-time sync
-    const userId = getUserId();
-    if (userId) {
-      startJournalSync(userId, agent.id);
-      
-      // Subscribe to sync events
-      syncUnsubscribe = subscribeToJournalSync((event: JournalSyncEvent) => {
-        handleSyncEvent(event);
-      });
-    }
+    // Pick up entries written elsewhere (other devices, the agent) on focus
+    startJournalSync(agent.id, getEntries, (change) => void applySyncedEntries(change));
 
     // Show modal
     modal.classList.add('open');
@@ -470,35 +463,18 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
 }
 
 /**
- * Handle real-time sync events from other devices
+ * Show entries that changed elsewhere since the journal last loaded them.
  */
-async function handleSyncEvent(event: JournalSyncEvent): Promise<void> {
-  const currentAgent = getCurrentAgent();
-  if (!currentAgent || event.agentId !== currentAgent.id) return;
-  
-  log.debug('Received sync event:', event.type);
-  
-  if (event.type === 'entry_added' || event.type === 'entry_deleted' || event.type === 'entry_updated') {
-    // Reload entries from server
-    const entries = (await listMemories(currentAgent.id, 'journalEntry')) || [];
-    setEntries(entries);
-    
-    // Re-render all sections
-    renderStats();
-    renderCalendar();
-    renderEntries();
-    renderInsights();
-    
-    // Show toast notification
-    const { toast } = await import('../whisper.ui.js');
-    if (event.type === 'entry_added') {
-      toast.info(t('toasts.newEntrySynced'));
-    } else if (event.type === 'entry_deleted') {
-      toast.info(t('toasts.entryRemoved'));
-    }
-  }
-}
+async function applySyncedEntries(change: JournalSyncChange): Promise<void> {
+  setEntries(change.entries);
+  renderStats();
+  renderCalendar();
+  renderEntries();
+  renderInsights();
 
+  const { toast } = await import('../whisper.ui.js');
+  toast.info(t(change.added > 0 ? 'toasts.newEntrySynced' : 'toasts.entryRemoved'));
+}
 
 /**
  * Close the voice journal
@@ -509,12 +485,7 @@ export function closeVoiceJournal(): void {
 
   stopRecording();
   stopVisualization();
-  
-  // Stop real-time sync
-  if (syncUnsubscribe) {
-    syncUnsubscribe();
-    syncUnsubscribe = null;
-  }
+
   stopJournalSync();
 
   modal.classList.remove('open');
@@ -530,4 +501,3 @@ export function closeVoiceJournal(): void {
 // ============================================================================
 
 export type { JournalTab, JournalPrompt, JournalStats, MoodOption } from './types.js';
-

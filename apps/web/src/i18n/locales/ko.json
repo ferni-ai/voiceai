@@ -1182,7 +1182,8 @@
       "growthJournal": "[NEEDS_TRANSLATION] Growth Journal",
       "knowledgeQuiz": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
       "soundEffects": "[NEEDS_TRANSLATION] Sound Effects",
-      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule"
+      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule",
+      "trustDashboard": "신뢰와 성장"
     },
     "quickAdd": {
       "person": "새로운 사람",
@@ -2012,11 +2013,11 @@
     },
     "empty": {
       "title": "당신의 이야기는 여기서 시작돼요",
-      "body": "몇 번 대화를 나누고 나면, 당신에게 중요한 순간들이 여기에 나타나요."
+      "body": "몇 번 대화를 나누고 나면, 당신에게 소중한 순간들이 여기에 나타날 거예요."
     },
     "error": {
       "title": "이야기를 불러오지 못했어요",
-      "body": "저희 쪽에 문제가 생겼어요. 다시 시도할까요?",
+      "body": "저희 쪽에서 문제가 생겼어요. 다시 시도할까요?",
       "retry": "다시 시도"
     }
   },
@@ -2329,9 +2330,9 @@
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
-    "connectDevicesFirst": "먼저 조명이나 온도 조절기를 연결해 주세요",
+    "connectDevicesFirst": "먼저 조명이나 온도 조절기를 연결하세요",
     "couldNotChangeLights": "조명을 바꾸지 못했어요. 다시 시도할까요?",
-    "musicNeedsCall": "음악 컨트롤은 대화 중에 사용할 수 있어요"
+    "musicNeedsCall": "음악 조작은 대화 중에 사용할 수 있어요"
   },
   "ui": {
     "accountbutton": {
@@ -2463,7 +2464,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "최근 7일"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2566,6 +2568,10 @@
       "subtitle": "전화, 메시지, 지킨 약속",
       "empty": "아직 작업 없음",
       "recent": "최근"
+    },
+    "predictions": {
+      "title": "앞으로의 방향",
+      "now": "지금"
     }
   },
   "sleepSettings": {
@@ -3006,6 +3012,55 @@
       "fictional": "가상",
       "professional": "전문가",
       "legacy": "레거시"
+    }
+  },
+  "predictionResolution": {
+    "title": "어땠어요?",
+    "youGuessed": "예상: {value}",
+    "actual": "실제: {value}",
+    "scored": "정확도 {accuracy}%",
+    "record": "결과 기록하기",
+    "save": "예상 맞춰 보기",
+    "saveFailed": "저장하지 못했어요. 다시 해 볼까요?",
+    "metrics": {
+      "deepWork": {
+        "label": "몰입 작업",
+        "question": "몰입해서 일한 시간은 몇 시간이었나요?",
+        "unit": "시간"
+      },
+      "exercise": {
+        "label": "운동",
+        "question": "운동은 몇 번 했나요?",
+        "unit": "회"
+      },
+      "social": {
+        "label": "사람들과 보낸 시간",
+        "question": "사람들과 보낸 시간은 몇 시간이었나요?",
+        "unit": "시간"
+      },
+      "screen": {
+        "label": "화면 사용 시간",
+        "question": "화면 사용 시간은 몇 시간이었나요?",
+        "unit": "시간"
+      },
+      "mood": {
+        "label": "기분",
+        "question": "평균 기분은 1부터 10 중 몇이었나요?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "실제 {label} 값은 얼마였나요?"
+      }
+    },
+    "result": {
+      "line": "예상은 {predicted}, 실제는 {actual}. {verdict}",
+      "overall": "이번 주 전체 정확도는 {accuracy}%예요."
+    },
+    "tone": {
+      "spotOn": "딱 맞혔어요!",
+      "close": "꽤 가까워요!",
+      "off": "이번엔 조금 빗나갔어요.",
+      "wayOff": "이번엔 많이 빗나갔어요. 이제 알게 됐네요."
     }
   }
 }

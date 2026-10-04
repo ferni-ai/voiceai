@@ -1142,7 +1142,8 @@
       "growthJournal": "[NEEDS_TRANSLATION] Growth Journal",
       "knowledgeQuiz": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
       "soundEffects": "[NEEDS_TRANSLATION] Sound Effects",
-      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule"
+      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule",
+      "trustDashboard": "الثقة والنمو"
     },
     "keepChatting": "استمر في الدردشة لفتح القفل",
     "maxLevel": "شركاء الحياة",
@@ -2012,12 +2013,12 @@
     },
     "empty": {
       "title": "قصتك تبدأ هنا",
-      "body": "بعد أن نتحدث بضع مرات، ستظهر هنا اللحظات التي تهمّك."
+      "body": "بعد أن نتحدث بضع مرات، ستظهر هنا اللحظات التي تهمك."
     },
     "error": {
       "title": "تعذّر تحميل قصتك",
-      "body": "حدث خطأ من جهتنا. هل نحاول مجددًا؟",
-      "retry": "حاول مجددًا"
+      "body": "حدث خطأ من جهتنا. هل تريد المحاولة مجدداً؟",
+      "retry": "حاول مجدداً"
     }
   },
   "memoryBrowser": {
@@ -2263,7 +2264,7 @@
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
       "skip": "[NEEDS_TRANSLATION] Skip",
-      "linkSpotify": "اربط Spotify من الإعدادات للاستماع إلى الأغاني كاملة"
+      "linkSpotify": "اربط Spotify من الإعدادات لتشغيل الأغاني كاملة"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2329,9 +2330,9 @@
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
-    "connectDevicesFirst": "صِل الأضواء أو منظّم الحرارة أولًا",
-    "couldNotChangeLights": "تعذّر تغيير الأضواء. هل نحاول مجددًا؟",
-    "musicNeedsCall": "تعمل أدوات التحكم بالموسيقى أثناء المحادثة"
+    "connectDevicesFirst": "صِل الأضواء أو منظم الحرارة أولاً",
+    "couldNotChangeLights": "تعذّر تغيير الأضواء. هل تريد المحاولة مجدداً؟",
+    "musicNeedsCall": "تعمل عناصر التحكم بالموسيقى أثناء المحادثة"
   },
   "ui": {
     "accountbutton": {
@@ -2463,7 +2464,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "أيامك السبعة الأخيرة"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2566,6 +2568,10 @@
       "subtitle": "المكالمات والرسائل والتزامات مبرمة",
       "empty": "لا توجد إجراءات حتى الآن",
       "recent": "الأخيرة"
+    },
+    "predictions": {
+      "title": "إلى أين تتجه",
+      "now": "الآن"
     }
   },
   "sleepSettings": {
@@ -3006,6 +3012,55 @@
       "fictional": "خيالي",
       "professional": "احترافي",
       "legacy": "الإرث"
+    }
+  },
+  "predictionResolution": {
+    "title": "كيف جرت الأمور؟",
+    "youGuessed": "توقّعك: {value}",
+    "actual": "الفعلي: {value}",
+    "scored": "دقة {accuracy}%",
+    "record": "سجّل ما حدث",
+    "save": "تحقّق من توقّعاتي",
+    "saveFailed": "تعذّر الحفظ. هل تحاول مجددًا؟",
+    "metrics": {
+      "deepWork": {
+        "label": "العمل المركّز",
+        "question": "كم ساعة من العمل المركّز أنجزت؟",
+        "unit": "ساعات"
+      },
+      "exercise": {
+        "label": "الرياضة",
+        "question": "كم مرة مارست الرياضة؟",
+        "unit": "جلسات"
+      },
+      "social": {
+        "label": "الوقت مع الناس",
+        "question": "كم ساعة قضيت مع الآخرين؟",
+        "unit": "ساعات"
+      },
+      "screen": {
+        "label": "وقت الشاشة",
+        "question": "كم ساعة كان وقت الشاشة لديك؟",
+        "unit": "ساعات"
+      },
+      "mood": {
+        "label": "المزاج",
+        "question": "ما متوسط مزاجك من 1 إلى 10؟",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "ما القيمة الفعلية لـ {label}؟"
+      }
+    },
+    "result": {
+      "line": "توقّعت {predicted}. وكانت النتيجة {actual}. {verdict}",
+      "overall": "الدقة الإجمالية هذا الأسبوع {accuracy}%."
+    },
+    "tone": {
+      "spotOn": "أصبت تمامًا!",
+      "close": "قريب جدًا!",
+      "off": "ابتعدت قليلًا هذه المرة.",
+      "wayOff": "بعيد جدًا هذه المرة. الآن صرت تعرف."
     }
   }
 }

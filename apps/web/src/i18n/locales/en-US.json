@@ -267,7 +267,8 @@
       "growthJournal": "Growth Journal",
       "knowledgeQuiz": "How Well Do You Know Me?",
       "soundEffects": "Sound Effects",
-      "sleepSchedule": "Sleep Schedule"
+      "sleepSchedule": "Sleep Schedule",
+      "trustDashboard": "Trust & Growth"
     },
     "quickAdd": {
       "person": "Someone new",
@@ -2498,7 +2499,8 @@
     "reconnectWith": "Reconnect With",
     "energyRings": {
       "title": "Energy Levels",
-      "subtitle": "Your current capacity"
+      "subtitle": "Your current capacity",
+      "weekSubtitle": "Your last 7 days"
     },
     "energy": {
       "emotional": "Emotional",
@@ -2601,6 +2603,10 @@
       "subtitle": "Calls, messages, and commitments kept",
       "empty": "No actions yet",
       "recent": "Recent"
+    },
+    "predictions": {
+      "title": "Where You're Headed",
+      "now": "Now"
     }
   },
   "nowPlaying": {
@@ -2998,6 +3004,55 @@
       "fictional": "Fictional",
       "professional": "Professional",
       "legacy": "Legacy"
+    }
+  },
+  "predictionResolution": {
+    "title": "How did it go?",
+    "youGuessed": "You guessed {value}",
+    "actual": "Actual: {value}",
+    "scored": "{accuracy}% accurate",
+    "record": "Record what happened",
+    "save": "Check my guesses",
+    "saveFailed": "Couldn't save that. Try again?",
+    "metrics": {
+      "deepWork": {
+        "label": "Deep work",
+        "question": "How many hours of deep work did you get?",
+        "unit": "hours"
+      },
+      "exercise": {
+        "label": "Exercise",
+        "question": "How many times did you exercise?",
+        "unit": "sessions"
+      },
+      "social": {
+        "label": "Time with people",
+        "question": "How many hours did you spend with people?",
+        "unit": "hours"
+      },
+      "screen": {
+        "label": "Screen time",
+        "question": "How many hours of screen time did you have?",
+        "unit": "hours"
+      },
+      "mood": {
+        "label": "Mood",
+        "question": "What was your average mood, from 1 to 10?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "What was your actual {label}?"
+      }
+    },
+    "result": {
+      "line": "You guessed {predicted}. You got {actual}. {verdict}",
+      "overall": "{accuracy}% accurate overall this week."
+    },
+    "tone": {
+      "spotOn": "Nailed it!",
+      "close": "Pretty close!",
+      "off": "A little off this time.",
+      "wayOff": "Way off this time. Now you know."
     }
   }
 }

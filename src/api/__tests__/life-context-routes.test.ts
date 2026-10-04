@@ -25,6 +25,13 @@ vi.mock('../../utils/safe-logger.js', () => {
   };
 });
 
+// Firebase verification: 'tok-<uid>' is a valid token for <uid>.
+vi.mock('../../services/identity/firebase-auth.js', () => ({
+  verifyFirebaseToken: vi.fn(async (token: string) =>
+    token.startsWith('tok-') ? { uid: token.slice(4), claims: {}, isAnonymous: false } : null
+  ),
+}));
+
 // Mock trigger intelligence modules
 const mockAggregateLifeContext = vi.fn();
 const mockGenerateSynthesisTriggers = vi.fn();
@@ -57,8 +64,10 @@ function createMockRequest(
     url: pathname,
     headers: {
       host: 'localhost',
+      authorization: 'Bearer tok-user-123',
       ...headers,
     },
+    socket: { remoteAddress: '127.0.0.1' },
     on: vi.fn((event, callback) => {
       if (event === 'end') {
         callback();
@@ -180,40 +189,41 @@ describe('Life Context API Routes', () => {
   });
 
   describe('Authentication', () => {
-    it('should require userId parameter', async () => {
-      const req = createMockRequest('GET', '/api/life-context');
+    it('should require a signed-in caller (401)', async () => {
+      const req = createMockRequest('GET', '/api/life-context', { authorization: '' });
       const res = createMockResponse();
 
       await handleLifeContextRoutes(req, res, '/api/life-context');
 
-      expect(res._statusCode).toBe(400);
-      expect(JSON.parse(res._data).error).toMatch(/userId.*required/i);
+      expect(res._statusCode).toBe(401);
+      expect(mockAggregateLifeContext).not.toHaveBeenCalled();
     });
 
-    it('should accept userId from query parameter', async () => {
+    it('should ignore a userId query parameter naming someone else', async () => {
       mockAggregateLifeContext.mockResolvedValue(createMockLifeContextSnapshot());
       mockGenerateSynthesisTriggers.mockReturnValue([]);
 
-      const req = createMockRequest('GET', '/api/life-context?userId=user-123');
+      const req = createMockRequest('GET', '/api/life-context?userId=someone-else');
       const res = createMockResponse();
 
       await handleLifeContextRoutes(req, res, '/api/life-context');
 
       expect(res._statusCode).toBe(200);
       expect(mockAggregateLifeContext).toHaveBeenCalledWith('user-123');
+      expect(mockAggregateLifeContext).not.toHaveBeenCalledWith('someone-else');
     });
 
-    it('should reject the client-spoofable X-User-Id header (auth comes from x-firebase-uid)', async () => {
-      mockAggregateLifeContext.mockResolvedValue(createMockLifeContextSnapshot());
-      mockGenerateSynthesisTriggers.mockReturnValue([]);
-
-      const req = createMockRequest('GET', '/api/life-context', { 'x-user-id': 'user-456' });
+    it('should reject the client-spoofable X-User-Id header without a token (401)', async () => {
+      const req = createMockRequest('GET', '/api/life-context', {
+        authorization: '',
+        'x-user-id': 'user-456',
+      });
       const res = createMockResponse();
 
       await handleLifeContextRoutes(req, res, '/api/life-context');
 
-      expect(res._statusCode).toBe(400);
-      expect(mockAggregateLifeContext).not.toHaveBeenCalledWith('user-456');
+      expect(res._statusCode).toBe(401);
+      expect(mockAggregateLifeContext).not.toHaveBeenCalled();
     });
   });
 

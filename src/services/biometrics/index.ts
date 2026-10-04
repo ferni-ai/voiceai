@@ -18,6 +18,8 @@
 
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { devStubOrUnavailable } from '../../utils/dev-stub.js';
+import { createMockSnapshot } from './mock-snapshot.js';
 
 // Re-export extracted modules
 export * from './token-persistence.js';
@@ -141,15 +143,15 @@ const config = {
 // ============================================================================
 
 /**
- * Get OAuth authorization URL for a biometric platform
+ * OAuth authorization URL for a biometric platform. `state` is an opaque value
+ * from servers/token/oauth-link-state.ts: it must not encode the user id.
  */
 export function getAuthorizationUrl(
   platform: BiometricPlatform,
   userId: string,
+  state: string,
   scopes?: string[]
 ): string {
-  const state = Buffer.from(JSON.stringify({ userId, platform })).toString('base64');
-
   switch (platform) {
     case 'healthkit':
       // HealthKit uses Apple Health via HealthKit JS or native app
@@ -641,8 +643,11 @@ export async function syncBiometrics(userId: string): Promise<BiometricSnapshot 
         snapshot = await fetchTerraData(userId, user.accessToken);
         break;
       default:
-        // HealthKit/Fitbit native - use mock for now (requires companion iOS app)
-        snapshot = createMockSnapshot(userId, user.platform);
+        // HealthKit/Fitbit native: needs the companion iOS app, not implemented yet
+        snapshot = devStubOrUnavailable(
+          `Biometrics platform "${user.platform}" is not yet supported. Please configure a supported platform (Google Fit, Oura, Whoop, or Terra).`,
+          () => createMockSnapshot(userId, user.platform)
+        );
     }
 
     // Update state
@@ -969,7 +974,7 @@ async function fetchWhoopData(userId: string, accessToken: string): Promise<Biom
 async function fetchTerraData(userId: string, terraUserId: string): Promise<BiometricSnapshot> {
   if (!config.terra.apiKey || !config.terra.devId) {
     log.warn('Terra API not configured');
-    return createMockSnapshot(userId, 'terra');
+    throw new Error('Terra API not configured');
   }
 
   try {
@@ -988,7 +993,7 @@ async function fetchTerraData(userId: string, terraUserId: string): Promise<Biom
 
     if (!response.ok) {
       log.warn({ status: response.status }, 'Terra API request failed');
-      return createMockSnapshot(userId, 'terra');
+      throw new Error(`Terra API request failed (${response.status})`);
     }
 
     const data = (await response.json()) as {
@@ -1071,21 +1076,8 @@ async function fetchTerraData(userId: string, terraUserId: string): Promise<Biom
     };
   } catch (error) {
     log.error({ error: String(error) }, 'Terra data fetch error');
-    return createMockSnapshot(userId, 'terra');
+    throw error;
   }
-}
-
-function createMockSnapshot(userId: string, platform: BiometricPlatform): BiometricSnapshot {
-  return {
-    userId,
-    platform,
-    timestamp: new Date(),
-    hrv: null,
-    sleep: null,
-    activity: null,
-    recovery: null,
-    stressLevel: 'moderate',
-  };
 }
 
 // ============================================================================

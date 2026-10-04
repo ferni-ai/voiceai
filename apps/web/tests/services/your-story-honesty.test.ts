@@ -73,6 +73,38 @@ describe('Your Story honesty', () => {
     expect(dashboard.showStatus).toHaveBeenCalledWith('error', expect.any(Function));
   });
 
+  it('on API error, never shows a story pieced together in the browser with made-up header numbers', async () => {
+    // What the old in-browser Firestore fallback returned (with its 0.5 / "calm" defaults)
+    fetchVisualizationData.mockResolvedValue({
+      moodCalendar: {
+        entries: [{ date: '2026-10-03', mood: 'calm', intensity: 0.5 }],
+        summary: { dominantMood: 'calm', calmDays: 1, trend: 'stable' },
+      },
+    });
+    hasAnyVisualizationData.mockReturnValue(true);
+    apiGet.mockResolvedValue({ ok: false, status: 503, error: 'down' });
+
+    await showYourStoryDashboard();
+
+    expect(dashboard.show).not.toHaveBeenCalled();
+    expect(dashboard.showStatus).toHaveBeenCalledWith('error', expect.any(Function));
+  });
+
+  it('with no story on the server, shows the empty state even if the browser could read something', async () => {
+    fetchVisualizationData.mockResolvedValue({ openLoops: { loops: [], totalOpen: 1 } });
+    hasAnyVisualizationData.mockReturnValue(true);
+    apiGet.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { success: true, data: emptyStory() },
+    });
+
+    await showYourStoryDashboard();
+
+    expect(dashboard.show).not.toHaveBeenCalled();
+    expect(dashboard.showStatus).toHaveBeenCalledWith('empty', expect.any(Function));
+  });
+
   it('a new user with an empty story sees the empty state, not demo data', async () => {
     apiGet.mockResolvedValue({
       ok: true,
@@ -98,6 +130,19 @@ describe('Your Story honesty', () => {
     expect(options).toBeUndefined();
   });
 
+  it('the energy ring carries only what the API measured: one overall score, no social score', async () => {
+    const story = emptyStory();
+    story.header.totalConversations = 3;
+    story.energy = { overall: 64, label: 'Good', trend: 'stable', recommendation: null };
+    apiGet.mockResolvedValue({ ok: true, status: 200, data: { success: true, data: story } });
+
+    const result = await fetchYourStory();
+
+    expect(result.status).toBe('ok');
+    const rings = (result as { data: { energyRings: unknown } }).data.energyRings;
+    expect(rings).toEqual({ overall: 64, label: 'Good', recommendation: undefined });
+  });
+
   it('demo data appears only behind the demo flag, and always with the banner', async () => {
     demoEnabled = true;
     await showYourStoryDashboard();
@@ -118,55 +163,19 @@ function emptyStory() {
       longestStreak: 0,
     },
     relationship: { stage: 'new', stageLabel: 'New', progress: 0, nextStage: null, tagline: '' },
-    energy: {
-      overall: 0,
-      label: '',
-      trend: 'stable',
-      recommendation: '',
-      emotional: { score: 0, label: '' },
-      mental: { score: 0, label: '' },
-      physical: { score: 0, label: '' },
+    energy: null as null | {
+      overall: number;
+      label: string;
+      trend: string;
+      recommendation: string | null;
     },
-    moodCalendar: {
-      month: 1,
-      year: 2026,
-      days: [],
-      summary: { calmDays: 0, dominantMood: 'neutral', trend: 'stable' },
-    },
-    growth: { overallScore: 0, dimensions: [], strongest: '', growthEdge: '', narrative: '' },
+    // The other sections as the server sends them with no data
+    moodCalendar: null,
     lifeChapters: [],
-    recoveryPath: {
-      currentPhase: '',
-      phaseLabel: '',
-      progress: 0,
-      emotionalIntensity: 0,
-      phases: [],
-    },
-    yourWorld: {
-      totalConnections: 0,
-      activeConnections: 0,
-      needsAttention: 0,
-      categories: [],
-      topConnections: [],
-    },
-    openLoops: {
-      total: 0,
-      closedThisWeek: 0,
-      byPriority: { high: 0, medium: 0, low: 0 },
-      items: [],
-    },
-    prediction: {
-      metric: '',
-      currentValue: 0,
-      predictedValue: 0,
-      changePercent: 0,
-      confidence: 0,
-      trackRecord: 0,
-      timeframe: '',
-      range: { conservative: 0, expected: 0, optimistic: 0 },
-      insight: '',
-      alsoTracking: [],
-    },
+    emotionalArc: null,
+    yourWorld: null,
+    openLoops: null,
+    prediction: null,
     lastUpdated: '2026-10-03T00:00:00.000Z',
   };
 }

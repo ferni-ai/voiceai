@@ -7,14 +7,19 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleSessionCleanup, type CleanupContext } from '../cleanup-handler.js';
-import {
-  clearSessionClosing,
-  isSessionClosing,
-} from '../../shared/session-closing-tracker.js';
+import { clearSessionClosing, isSessionClosing } from '../../shared/session-closing-tracker.js';
 import type { SessionServices } from '../../../services/types.js';
 import type { PersonaConfig } from '../../../personas/types.js';
 
-describe('cleanup-handler', () => {
+// The real cleanup dynamically imports dozens of modules, which vitest
+// transforms on first use: ~3 s on a fast idle Mac, and past 5 s on the loaded
+// self-hosted CI runner (run 37171889352: "Session cleanup timeout", elapsedMs
+// 5003), where the timeout won the race and endSession was never reached.
+// This test checks completion, not the timeout path, so the budget must not
+// race the work.
+const CLEANUP_BUDGET_MS = 60_000;
+
+describe('cleanup-handler', { timeout: CLEANUP_BUDGET_MS + 10_000 }, () => {
   const sessionId = `test-cleanup-${Date.now()}`;
 
   afterEach(() => {
@@ -41,7 +46,7 @@ describe('cleanup-handler', () => {
       autoOptimizer: { endSession: vi.fn() },
     };
 
-    const p = handleSessionCleanup(ctx, 5000);
+    const p = handleSessionCleanup(ctx, CLEANUP_BUDGET_MS);
 
     // Shortly after start, session should be marked closing
     await new Promise((r) => setTimeout(r, 50));

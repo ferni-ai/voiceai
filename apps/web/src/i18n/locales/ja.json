@@ -1182,7 +1182,8 @@
       "growthJournal": "[NEEDS_TRANSLATION] Growth Journal",
       "knowledgeQuiz": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
       "soundEffects": "[NEEDS_TRANSLATION] Sound Effects",
-      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule"
+      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule",
+      "trustDashboard": "信頼と成長"
     },
     "quickAdd": {
       "person": "新しい人",
@@ -2329,8 +2330,8 @@
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
-    "connectDevicesFirst": "まずライトかサーモスタットを接続してください",
-    "couldNotChangeLights": "ライトを変更できませんでした。もう一度試しますか？",
+    "connectDevicesFirst": "まず照明またはサーモスタットを接続してください",
+    "couldNotChangeLights": "照明を変更できませんでした。もう一度試しますか？",
     "musicNeedsCall": "音楽の操作は会話中に使えます"
   },
   "ui": {
@@ -2463,7 +2464,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "直近7日間"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2566,6 +2568,10 @@
       "subtitle": "通話、メッセージ、果たした約束",
       "empty": "まだアクションはありません",
       "recent": "最近"
+    },
+    "predictions": {
+      "title": "これからの方向",
+      "now": "今"
     }
   },
   "sleepSettings": {
@@ -3006,6 +3012,55 @@
       "fictional": "フィクショナル",
       "professional": "プロフェッショナル",
       "legacy": "レガシー"
+    }
+  },
+  "predictionResolution": {
+    "title": "どうでしたか？",
+    "youGuessed": "予想：{value}",
+    "actual": "実際：{value}",
+    "scored": "的中率 {accuracy}%",
+    "record": "結果を記録",
+    "save": "予想を答え合わせ",
+    "saveFailed": "保存できませんでした。もう一度試しますか？",
+    "metrics": {
+      "deepWork": {
+        "label": "集中作業",
+        "question": "集中して作業できたのは何時間でしたか？",
+        "unit": "時間"
+      },
+      "exercise": {
+        "label": "運動",
+        "question": "運動したのは何回でしたか？",
+        "unit": "回"
+      },
+      "social": {
+        "label": "人と過ごした時間",
+        "question": "人と過ごしたのは何時間でしたか？",
+        "unit": "時間"
+      },
+      "screen": {
+        "label": "スクリーンタイム",
+        "question": "スクリーンタイムは何時間でしたか？",
+        "unit": "時間"
+      },
+      "mood": {
+        "label": "気分",
+        "question": "平均の気分は1〜10でいくつでしたか？",
+        "unit": "1〜10"
+      },
+      "generic": {
+        "question": "{label}の実際の値はいくつでしたか？"
+      }
+    },
+    "result": {
+      "line": "予想は{predicted}、実際は{actual}。{verdict}",
+      "overall": "今週の全体の的中率は{accuracy}%です。"
+    },
+    "tone": {
+      "spotOn": "ぴったり！",
+      "close": "かなり近い！",
+      "off": "今回は少しずれました。",
+      "wayOff": "今回は大きく外れました。でも、これで分かりましたね。"
     }
   }
 }

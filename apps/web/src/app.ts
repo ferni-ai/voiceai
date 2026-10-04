@@ -242,8 +242,9 @@ import {
   getDemoEngagementData,
   getDemoPredictions,
 } from './services/engagement-demo-data.js';
+import { scoredStreak } from './services/prediction-data.js';
 // Environment detection
-import { apiGet, apiPost } from './utils/api.js';
+import { getApiHeadersAsync } from './utils/api.js';
 import { shouldUseDemoData } from './utils/environment.js';
 
 // New Feature UIs (v2)
@@ -278,7 +279,7 @@ import { watchPushOwnership } from './services/push-preference.js';
 // Calendar Analytics UI - Insights dashboard
 // Calendar analytics is now integrated into calendar-view.ui.ts
 // LinkedIn connection for career awareness (used as fallback)
-import { handleLinkedInCallback } from './services/linkedin.service.js';
+import { handleOAuthReturns } from './app/oauth-return.js';
 import { createIntegrationsCallbacks } from './app/integrations-callbacks.js';
 // Voice Enrollment UI
 import { initVoiceEnrollmentUI, showVoiceEnrollmentModal } from './ui/voice-enrollment.ui.js';
@@ -1693,44 +1694,14 @@ class VoiceAIApp {
       initializeEngagementUI();
       initializeInsightsView();
       initializePredictionsUI();
-      // Wire up prediction resolution callback
-      getPredictionsUI().setOnResolutionSubmit(async (predictionId, actualValue) => {
-        try {
-          // TODO: Backend POST /api/predictions/:id/actuals and GET /api/predictions not implemented yet.
-          const postResponse = await apiPost(`/api/predictions/${predictionId}/actuals`, {
-            actuals: { result: actualValue },
-          });
-          if (!postResponse.ok) throw new Error('Failed to save');
-
-          // Refresh predictions data using apiGet
-          const refreshResponse = await apiGet<{
-            predictions: Record<string, unknown>[];
-            stats?: { averageAccuracy?: number };
-          }>('/api/predictions');
-          if (refreshResponse.ok && refreshResponse.data) {
-            const predictions = refreshResponse.data.predictions || [];
-            getPredictionsUI().update({
-              predictions: predictions.map((p: Record<string, unknown>) => ({
-                id: p.id as string,
-                category: 'overall',
-                question: `Week of ${p.weekOf}`,
-                userPrediction: 50,
-                actualOutcome: p.accuracy as number | undefined,
-                status: p.completedAt ? ('resolved' as const) : ('pending' as const),
-                createdAt: p.createdAt as string,
-              })),
-              accuracy: refreshResponse.data.stats?.averageAccuracy || null,
-              totalResolved: predictions.filter((p: Record<string, unknown>) => p.completedAt)
-                .length,
-              currentStreak: 0,
-            });
-          }
-
-          messageUI.show('Result recorded! Nice work tracking your predictions.', 'success', 3000);
-        } catch (err) {
-          log.error('Failed to save prediction result', err);
-          throw err;
-        }
+      // Resolution: the modal shows the server's comparison; the refresh
+      // redraws the panel through engagementService's onPredictionsUpdate.
+      getPredictionsUI().setOnResolutionSubmit(async (predictionId, actuals) => {
+        const { submitPredictionActuals } =
+          await import('./services/prediction-actuals.service.js');
+        const score = await submitPredictionActuals(predictionId, actuals);
+        void engagementService.refreshPredictions();
+        return score;
       });
     });
     this.safeInit('EngagementTriggerUI', () =>
@@ -1966,7 +1937,10 @@ class VoiceAIApp {
         onFamilyCallersClick: () => void showFamilyIdentities(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
-        onLifeContextClick: () => void showLifeContextDashboard(),
+        onLifeContextClick: () =>
+          void import('./services/life-context-updates.service.js').then((m) =>
+            m.openLifeContextDashboard()
+          ),
         onTeamInsightsClick: () => teamInsightsUI.toggle(),
         onSupportFerniClick: () => void openSupportFerni(),
         onPersonalizeClick: () => void openPersonalize(),
@@ -2178,26 +2152,6 @@ class VoiceAIApp {
         this.selectPersona(personaId as PersonaId);
       }
     }) as EventListener);
-    // 🎙️ Group Conversations - imported UI opens team roundtable or adds participant
-    this.addTrackedListener(window, 'ferni:start-roundtable', ((e: CustomEvent) => {
-      // Import dynamically to avoid circular deps
-      void import('./ui/group-conversation.ui.js').then((m) => {
-        void m.showTeamSelector(e.detail?.preselected);
-      });
-    }) as EventListener);
-    this.addTrackedListener(window, 'ferni:add-call-participant', () => {
-      void import('./ui/group-conversation.ui.js').then((m) => {
-        void m.showAddParticipant({
-          onAdd: (phoneNumber, name, relationship) => {
-            log.info({ phoneNumber, name, relationship }, 'Adding participant to call');
-            // TODO: Implement actual participant addition via connection service
-          },
-          onCancel: () => {
-            log.debug('Add participant cancelled');
-          },
-        });
-      });
-    });
 
     // 🌱 Handle garden payment result routes (Stripe redirects here)
     const gardenPathname = window.location.pathname;
@@ -2257,8 +2211,8 @@ class VoiceAIApp {
       }, 500);
     }
 
-    // 💼 Handle LinkedIn OAuth callback
-    handleLinkedInCallback();
+    // 💼 LinkedIn and wearable OAuth returns
+    handleOAuthReturns();
 
     // 📊 Dev Panel modal event listeners
     this.addTrackedListener(window, 'ferni:open-analytics', () => {
@@ -2739,9 +2693,8 @@ class VoiceAIApp {
    * Called after each conversation ends.
    */
   private async recordConversationUsage(sessionStart: number | null): Promise<void> {
-    const deviceId = appState.get('deviceId');
-    // Server contract: { userId, durationMinutes } (subscription-routes recordConversationUsage)
-    const body = buildConversationUsageBody(deviceId, sessionStart);
+    // Server contract: { durationMinutes } for the Bearer-token user (subscription-routes)
+    const body = buildConversationUsageBody(sessionStart);
     if (!body) return;
 
     // 🤝 Process any pending referral on first/early conversation
@@ -2761,7 +2714,7 @@ class VoiceAIApp {
     try {
       const response = await fetch('/usage/conversation', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getApiHeadersAsync(), // not under /api/, so the fetch hook adds no token
         body: JSON.stringify(body),
       });
 
@@ -3123,26 +3076,13 @@ class VoiceAIApp {
 
       // 🎬 Expression: Curious "thinking" expression during handoff
       ferniExpressions.contemplation(1500);
-
-      // Show handoff progress indicator
-      const handoffProgress = document.getElementById('handoffProgress');
-      const handoffTargetName = document.getElementById('handoffTargetName');
-      if (handoffProgress && handoffTargetName) {
-        const persona = getPersona(toPersona);
-        handoffTargetName.textContent = persona.name;
-        handoffProgress.classList.remove('hidden');
-        log.debug('Showing handoff progress for', persona.name);
-      } else {
-        log.warn('handoffProgress element not found!');
-      }
+      // The progress indicator itself is ui/handoff-presence.ui.ts (heartbeat-driven).
 
       // FIX BUG: Safety timeout - force hide UI after 20 seconds max
       if (handoffUITimeout) clearTimeout(handoffUITimeout);
       handoffUITimeout = setTimeout(() => {
         log.warn('Safety timeout - forcing handoff UI cleanup');
         waveformUI.setTransitioning(false);
-        const progress = document.getElementById('handoffProgress');
-        if (progress) progress.classList.add('hidden');
         thinkingUI.hide();
       }, 20000);
     });
@@ -3163,12 +3103,6 @@ class VoiceAIApp {
       // 🎬 Expression: New persona arrives with excited greeting
       ferniExpressions.heldPose('happy', 500);
 
-      // Hide handoff progress indicator
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-        log.debug('Hiding handoff progress');
-      }
       // Also make sure thinking is hidden
       thinkingUI.hide();
     });
@@ -3193,10 +3127,6 @@ class VoiceAIApp {
         this.updatePersonaTheme(rollbackTo);
       }
 
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-      }
       thinkingUI.hide();
       messageUI.show("Couldn't reach them right now. I'm still here though!", 'error', 3000);
     });
@@ -3211,36 +3141,7 @@ class VoiceAIApp {
       }
 
       waveformUI.setTransitioning(false);
-
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-      }
       thinkingUI.hide();
-    });
-
-    // FIX AUDIT GAP #3: Subscribe to handoff progress for waveform visual feedback
-    // This provides visual progress indication on the waveform/avatar even when team roster is hidden
-    handoffService.onHandoffProgress((targetPersona, elapsedMs, timeoutMs) => {
-      log.debug('onHandoffProgress:', { targetPersona, elapsedMs, timeoutMs });
-
-      // Calculate progress percentage (0-100)
-      const progress = Math.min(100, Math.round((elapsedMs / timeoutMs) * 100));
-
-      // Update waveform with progress indication
-      // The waveform shimmer intensity can vary based on progress
-      if (progress > 50) {
-        // After halfway, intensify the shimmer to show progress
-        // (waveformUI already handles transitioning state, but this adds visual variety)
-        log.debug('Handoff progress:', `${progress}%`);
-      }
-
-      // Update the handoff progress element if present
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        // Add a data attribute for CSS-based progress visualization
-        handoffProgress.setAttribute('data-progress', String(progress));
-      }
     });
 
     // Main handoff callback (plays sounds, updates UI)
@@ -3254,10 +3155,6 @@ class VoiceAIApp {
       // FIX BUG: Clean up any stuck transition UI state
       // This handles legacy single-message handoffs that don't have separate start/complete
       waveformUI.setTransitioning(false);
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-      }
       // Also hide thinking indicator in case it's stuck
       thinkingUI.hide();
 
@@ -3333,29 +3230,12 @@ class VoiceAIApp {
         const readyCount = predictions.filter((p) => p.status === 'resolved').length;
         engagementTriggerUI.updateBadges({ predictionsReady: readyCount > 0 ? readyCount : 0 });
 
-        // Update predictions panel
-        // Calculate prediction streak: consecutive accurate predictions (within 15% of actual)
-        const resolved = predictions
-          .filter((p) => p.status === 'resolved' && p.actualOutcome !== undefined)
-          .sort(
-            (a, b) => new Date(b.resolvedAt || 0).getTime() - new Date(a.resolvedAt || 0).getTime()
-          );
-
-        let predictionStreak = 0;
-        for (const p of resolved) {
-          const error = Math.abs(p.userPrediction - (p.actualOutcome ?? 0));
-          if (error <= 15) {
-            predictionStreak++;
-          } else {
-            break; // Streak broken
-          }
-        }
-
+        // Accuracy and streak come from the server's scores, not the raw numbers.
         getPredictionsUI().update({
           predictions,
           accuracy: engagementService.calculateAccuracy(),
           totalResolved: predictions.filter((p) => p.status === 'resolved').length,
-          currentStreak: predictionStreak,
+          currentStreak: scoredStreak(predictions),
         });
       },
 

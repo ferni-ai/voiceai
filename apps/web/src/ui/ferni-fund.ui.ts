@@ -15,13 +15,24 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION } from '../config/animation-constants.js';
-import { formatAmount, loadStripe } from '../services/monetization.service.js';
+import { formatAmount } from '../services/monetization.service.js';
+import {
+  payForSeed,
+  seedPaymentFailureMessage,
+  startMonthlyGift,
+} from '../services/seed-payment.js';
+import type { SeedPaymentOutcome } from '../services/seed-payment.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import type { GardenStatus, PlantSeedResponse, SubscriptionResponse, UserGarden } from '../types/seed-fund.types.js';
+import type { GardenStatus, UserGarden } from '../types/seed-fund.types.js';
 import { getStatusDisplayName } from '../types/seed-fund.types.js';
-import { ferniFundStyles as styles, CLOSE_ICON, SEED_ICON, CHECK_ICON } from './ferni-fund.styles.js';
+import {
+  ferniFundStyles as styles,
+  CLOSE_ICON,
+  SEED_ICON,
+  CHECK_ICON,
+} from './ferni-fund.styles.js';
 import { toast } from './whisper.ui.js';
 
 const log = createLogger('FerniFundUI');
@@ -59,36 +70,6 @@ async function fetchUserGarden(userId: string): Promise<UserGarden | null> {
     log.warn({ error: String(error) }, 'Failed to fetch user garden');
     return null;
   }
-}
-
-/**
- * Plant a one-time seed contribution
- */
-async function plantSeed(amount: number): Promise<PlantSeedResponse> {
-  const response = await apiFetch('/api/garden/plant', {
-    method: 'POST',
-    body: JSON.stringify({ amount }),
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `API error: ${response.status}`);
-  }
-  return response.json();
-}
-
-/**
- * Start a monthly subscription
- */
-async function startMonthlySubscription(amount: number): Promise<SubscriptionResponse> {
-  const response = await apiFetch('/api/garden/subscribe', {
-    method: 'POST',
-    body: JSON.stringify({ amount }),
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `API error: ${response.status}`);
-  }
-  return response.json();
 }
 
 // ============================================================================
@@ -178,11 +159,12 @@ function renderContributionForm(gardenStatus: GardenStatus | null): string {
     'needs-water': 'var(--color-semantic-warning, #eab308)',
   };
 
-  const healthMessage = health === 'thriving'
-    ? `Ferni is free because ${gardenersThisMonth} people planted seeds.`
-    : health === 'growing'
-    ? `${percentFunded}% funded. Every seed helps keep Ferni free.`
-    : `The garden needs some love. Can you help?`;
+  const healthMessage =
+    health === 'thriving'
+      ? `Ferni is free because ${gardenersThisMonth} people planted seeds.`
+      : health === 'growing'
+        ? `${percentFunded}% funded. Every seed helps keep Ferni free.`
+        : `The garden needs some love. Can you help?`;
 
   return `
     <div class="ferni-fund-header">
@@ -280,7 +262,11 @@ function renderLoading(): string {
   `;
 }
 
-function renderThankYou(impact: { conversationsSponsored: number; message: string; seedsPlanted?: number }): string {
+function renderThankYou(impact: {
+  conversationsSponsored: number;
+  message: string;
+  seedsPlanted?: number;
+}): string {
   const seeds = impact.seedsPlanted || impact.conversationsSponsored;
   return `
     <div class="ferni-fund-thank-you">
@@ -376,57 +362,25 @@ async function processContribution(
 
   // Convert cents to dollars (garden API uses dollars)
   const amountDollars = Math.round(amountCents / 100);
+  let outcome: SeedPaymentOutcome;
 
   try {
-    if (isRecurring) {
-      // Monthly subscription - redirect to Stripe Checkout
-      const result = await startMonthlySubscription(amountDollars);
-
-      if (!result.success || !result.checkoutUrl) {
-        throw new Error(result.error || 'Failed to start subscription');
-      }
-
-      // Redirect to Stripe Checkout
-      window.location.href = result.checkoutUrl;
-      return;
-    } else {
-      // One-time payment - use Stripe.js with client secret
-      const result = await plantSeed(amountDollars);
-
-      if (!result.success || !result.clientSecret) {
-        throw new Error(result.error || 'Failed to create payment');
-      }
-
-      // Load Stripe and process payment
-      const stripe = await loadStripe();
-      if (!stripe) {
-        throw new Error('Stripe not available');
-      }
-
-      // @ts-expect-error - Stripe types
-      const { error } = await stripe.confirmPayment({
-        clientSecret: result.clientSecret,
-        confirmParams: {
-          return_url: `${window.location.origin}/garden/success`,
-        },
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    }
+    // Monthly: Stripe Checkout. One-time: card form, then Stripe.js confirms.
+    outcome = isRecurring ? await startMonthlyGift(amountDollars) : await payForSeed(amountDollars);
+    if (outcome.status === 'confirmed' || outcome.status === 'redirected') return;
   } catch (error) {
-    log.error({ error: String(error) }, 'Fund contribution failed');
-
-    // Show error and reset form
-    if (content) {
-      const gardenStatus = await fetchGardenStatus();
-      content.innerHTML = renderContributionForm(gardenStatus);
-      setupFormListeners();
-    }
-
-    toast.error("Payment didn't go through. Try again?");
+    outcome = { status: 'failed', reason: String(error) };
   }
+  const problem = seedPaymentFailureMessage(outcome);
+  if (problem) log.error({ outcome }, 'Fund contribution failed');
+
+  // Back to the form (with the error, unless the user cancelled)
+  if (content) {
+    const gardenStatus = await fetchGardenStatus();
+    content.innerHTML = renderContributionForm(gardenStatus);
+    setupFormListeners();
+  }
+  if (problem) toast.error(problem);
 }
 
 // ============================================================================
@@ -519,7 +473,10 @@ function renderUserImpact(
   const hasContributed = userGarden && userGarden.totalSeeds > 0;
   const statusName = userGarden ? getStatusDisplayName(userGarden.status) : 'New Gardener';
   const firstSeedDate = userGarden?.firstSeedDate
-    ? new Date(userGarden.firstSeedDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    ? new Date(userGarden.firstSeedDate).toLocaleDateString('en-US', {
+        month: 'short',
+        year: 'numeric',
+      })
     : null;
 
   return `
@@ -531,7 +488,9 @@ function renderUserImpact(
         <p class="ferni-fund-subtitle">Thank you for keeping Ferni free</p>
       </div>
 
-      ${hasContributed ? `
+      ${
+        hasContributed
+          ? `
         <div class="ferni-fund-user-stats">
           <div class="ferni-fund-stat ferni-fund-stat--primary">
             <div class="ferni-fund-stat-value">${userGarden.totalSeeds}</div>
@@ -543,19 +502,29 @@ function renderUserImpact(
             <div class="ferni-fund-stat-label">Your Status</div>
           </div>
 
-          ${userGarden.isMonthlyGardener ? `
+          ${
+            userGarden.isMonthlyGardener
+              ? `
             <div class="ferni-fund-stat">
               <div class="ferni-fund-stat-value">$${userGarden.monthlyAmount || 5}/mo</div>
               <div class="ferni-fund-stat-label">Monthly Support</div>
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
 
-        ${firstSeedDate ? `
+        ${
+          firstSeedDate
+            ? `
           <p class="ferni-fund-member-since">Growing with Ferni since ${firstSeedDate}</p>
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${gardenStatus ? `
+        ${
+          gardenStatus
+            ? `
           <div class="ferni-fund-community">
             <h3>The Garden This Month</h3>
             <div class="ferni-fund-progress-container">
@@ -567,7 +536,9 @@ function renderUserImpact(
               </div>
             </div>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <div class="ferni-fund-actions" role="button" tabindex="0">
           <button aria-label="${t('accessibility.plantMoreSeeds')}" class="ferni-fund-action-btn ferni-fund-action-btn--secondary" data-action="plant-more">
@@ -575,13 +546,16 @@ function renderUserImpact(
             <span>Plant More Seeds</span>
           </button>
         </div>
-      ` : `
+      `
+          : `
         <div class="ferni-fund-welcome">
           <div class="ferni-fund-welcome-icon">${SEED_ICON}</div>
           <h3>Start Your Garden</h3>
           <p>Ferni stays free because of gardeners like you. Plant your first seed and join a community keeping AI accessible for everyone.</p>
 
-          ${gardenStatus ? `
+          ${
+            gardenStatus
+              ? `
             <div class="ferni-fund-community">
               <div class="ferni-fund-progress-container">
                 <div class="ferni-fund-progress">
@@ -592,7 +566,9 @@ function renderUserImpact(
                 </div>
               </div>
             </div>
-          ` : ''}
+          `
+              : ''
+          }
 
           <div class="ferni-fund-actions" role="button" tabindex="0">
             <button aria-label="${t('accessibility.plantYourFirstSeed')}" class="ferni-fund-action-btn ferni-fund-action-btn--primary" data-action="plant-first">
@@ -601,7 +577,8 @@ function renderUserImpact(
             </button>
           </div>
         </div>
-      `}
+      `
+      }
     </div>
   `;
 }

@@ -1182,7 +1182,8 @@
       "growthJournal": "[NEEDS_TRANSLATION] Growth Journal",
       "knowledgeQuiz": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
       "soundEffects": "[NEEDS_TRANSLATION] Sound Effects",
-      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule"
+      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule",
+      "trustDashboard": "信任与成长"
     },
     "quickAdd": {
       "person": "新认识的人",
@@ -2012,12 +2013,12 @@
     },
     "empty": {
       "title": "你的故事从这里开始",
-      "body": "我们多聊几次之后，对你重要的时刻会出现在这里。"
+      "body": "等我们聊过几次之后，对你重要的时刻会出现在这里。"
     },
     "error": {
       "title": "无法加载你的故事",
-      "body": "我们这边出了点问题。再试一次？",
-      "retry": "重试"
+      "body": "我们这边出了点问题。要再试一次吗？",
+      "retry": "再试一次"
     }
   },
   "memoryBrowser": {
@@ -2263,7 +2264,7 @@
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
       "skip": "[NEEDS_TRANSLATION] Skip",
-      "linkSpotify": "在设置中关联 Spotify 即可收听完整歌曲"
+      "linkSpotify": "在设置中关联 Spotify 即可播放完整歌曲"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2329,8 +2330,8 @@
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
-    "connectDevicesFirst": "请先连接你的灯光或温控器",
-    "couldNotChangeLights": "无法更改灯光。再试一次？",
+    "connectDevicesFirst": "请先连接你的灯光或恒温器",
+    "couldNotChangeLights": "无法更改灯光。要再试一次吗？",
     "musicNeedsCall": "音乐控制在对话期间可用"
   },
   "ui": {
@@ -2463,7 +2464,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "最近 7 天"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2566,6 +2568,10 @@
       "subtitle": "通话、消息和信守的承诺",
       "empty": "还没有操作",
       "recent": "最近"
+    },
+    "predictions": {
+      "title": "你的方向",
+      "now": "现在"
     }
   },
   "sleepSettings": {
@@ -3006,6 +3012,55 @@
       "fictional": "虚构",
       "professional": "专业",
       "legacy": "遗产"
+    }
+  },
+  "predictionResolution": {
+    "title": "结果怎么样？",
+    "youGuessed": "你的预测：{value}",
+    "actual": "实际：{value}",
+    "scored": "准确率 {accuracy}%",
+    "record": "记录实际情况",
+    "save": "核对我的预测",
+    "saveFailed": "没能保存。再试一次？",
+    "metrics": {
+      "deepWork": {
+        "label": "专注工作",
+        "question": "你专注工作了多少小时？",
+        "unit": "小时"
+      },
+      "exercise": {
+        "label": "运动",
+        "question": "你运动了几次？",
+        "unit": "次"
+      },
+      "social": {
+        "label": "与人相处",
+        "question": "你和别人相处了多少小时？",
+        "unit": "小时"
+      },
+      "screen": {
+        "label": "屏幕时间",
+        "question": "你的屏幕时间是多少小时？",
+        "unit": "小时"
+      },
+      "mood": {
+        "label": "心情",
+        "question": "你的平均心情是几分（1 到 10）？",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "你的实际{label}是多少？"
+      }
+    },
+    "result": {
+      "line": "你预测 {predicted}，实际是 {actual}。{verdict}",
+      "overall": "本周整体准确率 {accuracy}%。"
+    },
+    "tone": {
+      "spotOn": "完全猜中！",
+      "close": "非常接近！",
+      "off": "这次有点偏差。",
+      "wayOff": "这次差得挺远。现在你知道了。"
     }
   }
 }

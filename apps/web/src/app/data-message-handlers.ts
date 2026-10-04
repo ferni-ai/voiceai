@@ -35,7 +35,6 @@ import { setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/i
 import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { delightService } from '../services/delight.service.js';
-// 🌱 Smart Vote Prompts - Track user mentions for feature recommendations
 import { engagementService, handoffService, moodService } from '../services/index.js';
 import { handleVoiceEventDataMessage } from '../services/voice-events.service.js';
 import { smartPromptTracker } from '../services/roadmap.service.js';
@@ -45,6 +44,7 @@ import { celebrationsUI } from '../ui/celebrations.ui.js';
 import { coachUI } from '../ui/coach.ui.js';
 import { engagementTriggerUI } from '../ui/engagement-trigger.ui.js';
 import { messageUI } from '../ui/message.ui.js';
+import { showSpeakerCheck } from '../ui/speaker-change-indicator.ui.js';
 import { moodUI } from '../ui/mood.ui.js';
 import { presenceUI } from '../ui/presence.ui.js';
 import { soundUI } from '../ui/sound.ui.js';
@@ -272,8 +272,8 @@ export function handleDataMessage(message: DataMessage): void {
 
   // Handle other message types
   switch (message.type) {
-    case 'spotify':
-      // Spotify-related message
+    case 'speaker_changed':
+      showSpeakerCheck(); // "Someone new?" (the agent already gated it)
       break;
 
     case 'status':

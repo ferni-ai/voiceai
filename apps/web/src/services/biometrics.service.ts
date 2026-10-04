@@ -21,6 +21,8 @@
 import { createLogger } from '../utils/logger.js';
 import { apiDelete, apiGet, apiPost } from '../utils/api.js';
 import { Capacitor } from '../stubs/capacitor-stub.js';
+import type { OperationResult } from '../types/results.js';
+import { startOAuthConnect } from './oauth-connect.service.js';
 
 const log = createLogger('BiometricsService');
 
@@ -81,12 +83,8 @@ function isWearable(platform: string): platform is WearableProvider {
  * Returns null when the server couldn't be reached, so callers can tell
  * "nothing is available" apart from "we don't know".
  */
-export async function fetchWearableProviders(
-  userId: string
-): Promise<WearableProviderStatus[] | null> {
-  const response = await apiGet<{ providers: WearableProviderStatus[] }>('/wearables/status', {
-    user_id: userId,
-  });
+export async function fetchWearableProviders(): Promise<WearableProviderStatus[] | null> {
+  const response = await apiGet<{ providers: WearableProviderStatus[] }>('/wearables/status');
   if (!response.ok || !response.data) {
     log.warn('Wearables status unavailable', { status: response.status });
     return null;
@@ -106,13 +104,11 @@ export async function fetchBiometricsStatus(): Promise<BiometricsStatus | null> 
 
 /**
  * Connect to a biometrics platform.
- * Wearables redirect to the server's OAuth start route — but only after the
- * server confirms the provider is configured.
+ * Wearables go through POST /auth/oauth/start (bound to the signed-in user) and
+ * then the server's login route, but only after the server confirms the
+ * provider is configured.
  */
-export async function connectBiometrics(
-  platform: BiometricsPlatform,
-  userId: string
-): Promise<{ success: boolean; error?: string }> {
+export async function connectBiometrics(platform: BiometricsPlatform): Promise<OperationResult> {
   const config = PLATFORM_CONFIGS[platform];
   if (!config) {
     return { success: false, error: 'Unknown platform' };
@@ -125,7 +121,7 @@ export async function connectBiometrics(
     return requestAppleHealthPermissions();
   }
 
-  const providers = await fetchWearableProviders(userId);
+  const providers = await fetchWearableProviders();
   if (!providers) {
     return { success: false, error: `Couldn't reach ${config.name}. Try again?` };
   }
@@ -134,10 +130,8 @@ export async function connectBiometrics(
     return { success: false, error: `${config.name} isn't available yet` };
   }
 
-  const loginUrl = `/wearables/${platform}/login?user_id=${encodeURIComponent(userId)}&return_url=${encodeURIComponent('/')}`;
   log.info('Initiating wearable OAuth', { platform });
-  window.location.href = loginUrl;
-  return { success: true };
+  return startOAuthConnect(platform, '/');
 }
 
 /**
@@ -147,15 +141,11 @@ export async function connectBiometrics(
  * Succeeds only when every server call succeeds.
  */
 export async function disconnectBiometrics(
-  userId: string,
   linkedWearables: WearableProvider[]
-): Promise<{ success: boolean; error?: string }> {
+): Promise<OperationResult> {
   const calls = [
     ...linkedWearables.map((provider) =>
-      apiPost<{ success: boolean }>(
-        `/wearables/${provider}/unlink?user_id=${encodeURIComponent(userId)}`,
-        {}
-      )
+      apiPost<{ success: boolean }>(`/wearables/${provider}/unlink`, {})
     ),
     apiDelete<{ success: boolean }>('/api/v1/integrations/biometrics/disconnect'),
   ];

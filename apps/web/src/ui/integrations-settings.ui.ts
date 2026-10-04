@@ -18,7 +18,6 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
-import { getDeviceId } from '../state/app.state.js';
 import {
   fetchWearableProviders,
   getBiometricsPlatformList,
@@ -148,7 +147,7 @@ class IntegrationsSettingsUI {
   private async fetchStatus(): Promise<void> {
     const [response, wearables] = await Promise.all([
       apiGet<{ integrations: IntegrationStatus; capabilities: IntegrationCapabilities }>('/api/v1/integrations/status'),
-      fetchWearableProviders(getDeviceId()),
+      fetchWearableProviders(),
     ]);
     this.wearables = wearables;
     // apiGet never throws: a non-ok response (e.g. 401 while signed out) still renders, as "not connected".

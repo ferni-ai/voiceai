@@ -18,6 +18,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { payForSeed, seedPaymentFailureMessage } from '../services/seed-payment.js';
 import { appState } from '../state/app.state.js';
 import { apiPost } from '../utils/api.js';
 import { billingErrorMessage, openBillingPortal } from '../utils/billing.js';
@@ -115,7 +116,11 @@ const TIERS: TierInfo[] = [
     name: 'Founding Member',
     tagline: 'Chip in. Help us build this.',
     price: '$10/mo',
-    features: ['Unlimited time (our thank you)', 'Meet the whole team', 'Your name on Founders Wall'],
+    features: [
+      'Unlimited time (our thank you)',
+      'Meet the whole team',
+      'Your name on Founders Wall',
+    ],
   },
   {
     id: 'partner',
@@ -158,10 +163,10 @@ export async function openSupportFerni(): Promise<void> {
   log.info('Opening Support Ferni modal');
   saveFocus();
   log.info('Focus saved');
-  
+
   injectStyles();
   log.info('Styles injected');
-  
+
   cleanupOrphanedElements();
   log.info('Orphaned elements cleaned up');
 
@@ -174,7 +179,7 @@ export async function openSupportFerni(): Promise<void> {
   log.info('Creating overlay...');
   overlay = createOverlay(status);
   log.info('Overlay created', { hasOverlay: !!overlay });
-  
+
   document.body.appendChild(overlay);
   log.info('Overlay appended to body');
 
@@ -500,8 +505,6 @@ async function handleUpgrade(tier: string): Promise<void> {
 
   try {
     const response = await apiPost<{ url?: string }>('/subscription/checkout', {
-      userId: deviceId,
-      device_id: deviceId,
       tier,
       successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
       cancelUrl: window.location.origin + '?upgrade=cancel',
@@ -534,17 +537,13 @@ async function handlePlantSeed(): Promise<void> {
   updateLoadingState(true);
 
   try {
-    const response = await apiPost<{ url?: string }>('/api/garden/plant', {
-      userId: deviceId,
-      amountInCents: selectedTipAmount * 100,
-      successUrl: window.location.origin + '?tip=success',
-      cancelUrl: window.location.origin + '?tip=cancel',
-    });
-
-    if (response.ok && response.data?.url) {
-      window.location.href = response.data.url;
-    } else {
-      toast.error(billingErrorMessage(response.status));
+    // Same Seed Fund flow as the Ferni Fund modal: dollars in, Stripe
+    // client secret back. The server acts on the Bearer-token user.
+    const outcome = await payForSeed(selectedTipAmount);
+    const problem = seedPaymentFailureMessage(outcome);
+    if (problem) {
+      log.error('Plant seed failed:', outcome);
+      toast.error(problem);
     }
   } catch (error) {
     log.error('Plant seed failed:', error);
@@ -556,11 +555,8 @@ async function handlePlantSeed(): Promise<void> {
 }
 
 async function handleOpenBillingPortal(): Promise<void> {
-  const deviceId = appState.getState().deviceId;
-  if (!deviceId) return;
-
   // Use the consolidated billing utility (opens in new tab by default)
-  await openBillingPortal(deviceId, { openInNewTab: true });
+  await openBillingPortal({ openInNewTab: true });
 }
 
 function updateLoadingState(loading: boolean): void {

@@ -1149,7 +1149,8 @@
       "growthJournal": "[NEEDS_TRANSLATION] Growth Journal",
       "knowledgeQuiz": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
       "soundEffects": "[NEEDS_TRANSLATION] Sound Effects",
-      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule"
+      "sleepSchedule": "[NEEDS_TRANSLATION] Sleep Schedule",
+      "trustDashboard": "Confianza y crecimiento"
     },
     "keepChatting": "Sigue charlando para desbloquear",
     "maxLevel": "Compañeros de Vida",
@@ -2015,8 +2016,8 @@
       "body": "Cuando hayamos hablado algunas veces, aquí aparecerán los momentos que te importan."
     },
     "error": {
-      "title": "No pude cargar tu historia",
-      "body": "Algo salió mal por nuestra parte. ¿Lo intentamos de nuevo?",
+      "title": "No pudimos cargar tu historia",
+      "body": "Algo salió mal de nuestro lado. ¿Intentar de nuevo?",
       "retry": "Intentar de nuevo"
     }
   },
@@ -2330,7 +2331,7 @@
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
     "connectDevicesFirst": "Primero conecta tus luces o tu termostato",
-    "couldNotChangeLights": "No pude cambiar las luces. ¿Lo intentamos de nuevo?",
+    "couldNotChangeLights": "No pudimos cambiar las luces. ¿Intentar de nuevo?",
     "musicNeedsCall": "Los controles de música funcionan durante una conversación"
   },
   "ui": {
@@ -2463,7 +2464,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "Tus últimos 7 días"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2566,6 +2568,10 @@
       "subtitle": "Llamadas, mensajes y compromisos cumplidos",
       "empty": "Sin acciones aún",
       "recent": "Reciente"
+    },
+    "predictions": {
+      "title": "Hacia dónde vas",
+      "now": "Ahora"
     }
   },
   "sleepSettings": {
@@ -3006,6 +3012,55 @@
       "fictional": "Ficticio",
       "professional": "Profesional",
       "legacy": "Legado"
+    }
+  },
+  "predictionResolution": {
+    "title": "¿Cómo te fue?",
+    "youGuessed": "Tu apuesta: {value}",
+    "actual": "Real: {value}",
+    "scored": "{accuracy}% de acierto",
+    "record": "Anotar lo que pasó",
+    "save": "Comprobar mis apuestas",
+    "saveFailed": "No se pudo guardar. ¿Lo intentas de nuevo?",
+    "metrics": {
+      "deepWork": {
+        "label": "Trabajo profundo",
+        "question": "¿Cuántas horas de trabajo profundo hiciste?",
+        "unit": "horas"
+      },
+      "exercise": {
+        "label": "Ejercicio",
+        "question": "¿Cuántas veces hiciste ejercicio?",
+        "unit": "sesiones"
+      },
+      "social": {
+        "label": "Tiempo con gente",
+        "question": "¿Cuántas horas pasaste con otras personas?",
+        "unit": "horas"
+      },
+      "screen": {
+        "label": "Tiempo de pantalla",
+        "question": "¿Cuántas horas de pantalla tuviste?",
+        "unit": "horas"
+      },
+      "mood": {
+        "label": "Ánimo",
+        "question": "¿Cuál fue tu ánimo medio, del 1 al 10?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "¿Cuál fue tu valor real de {label}?"
+      }
+    },
+    "result": {
+      "line": "Apostaste {predicted}. Fue {actual}. {verdict}",
+      "overall": "{accuracy}% de acierto en total esta semana."
+    },
+    "tone": {
+      "spotOn": "¡Clavado!",
+      "close": "¡Muy cerca!",
+      "off": "Esta vez te desviaste un poco.",
+      "wayOff": "Esta vez, muy lejos. Ahora ya lo sabes."
     }
   }
 }

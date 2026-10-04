@@ -250,10 +250,9 @@
  * ```kotlin
  * @Serializable
  * data class EnergyRingsData(
- *     val emotional: Int,
- *     val mental: Int,
- *     val physical: Int,
- *     val overall: Int
+ *     val overall: Int,
+ *     val label: String? = null,
+ *     val recommendation: String? = null
  * )
  * ```
  */

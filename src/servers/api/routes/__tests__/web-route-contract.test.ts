@@ -52,8 +52,12 @@ const WEB_FILES = [
   'services/biometrics.service.ts',
   'services/banking.service.ts',
   'services/life-automation.service.ts',
-  'app/integrations-callbacks.ts',
-  'app/panel-methods.ts',
+  // app/integrations-callbacks.ts makes no direct API calls any more: its connect
+  // actions go through services/oauth-connect.service.ts (POST /auth/oauth/start),
+  // covered by oauth-connect-sites and oauth-connect-identity tests.
+  // app/panel-methods.ts has no live API calls in this tree: Your Story now loads
+  // through services/your-story (GET /api/your-story/full) and its other fetches
+  // are commented out until they are wired. Add it back when they are.
   'ui/integrations-settings.ui.ts',
   'ui/connected-life.ui.ts',
   'ui/vibe-controller.ui.ts',
@@ -120,6 +124,25 @@ const ROUTERS: Router[] = [
     mountedAs: 'handleYourStoryRoutes',
     load: async () => (await import('../../../../api/your-story-routes.js')).handleYourStoryRoutes,
   },
+  {
+    prefix: '/api/predictions',
+    mountedAs: 'handlePredictionsRoutes',
+    load: async () =>
+      (await import('../../../../api/routes/predictions.js')).handlePredictionsRoutes,
+  },
+  {
+    // GET /api/huddles/:id claims any one-segment path, so scope the
+    // negative control to the start route's own prefix.
+    prefix: '/api/huddles/start',
+    mountedAs: 'handleEngagementRoutes',
+    load: async () => (await import('../../../../api/engagement-routes.js')).handleEngagementRoutes,
+  },
+  // Conversation history, analytics and memories (#253) are engagement routes too.
+  ...['/api/conversations', '/api/analytics/user', '/api/cognitive/memories'].map((prefix) => ({
+    prefix,
+    mountedAs: 'handleEngagementRoutes',
+    load: async () => (await import('../../../../api/engagement-routes.js')).handleEngagementRoutes,
+  })),
   {
     prefix: '/api/life-automation',
     mountedAs: 'handleLifeAutomationRoutes',
