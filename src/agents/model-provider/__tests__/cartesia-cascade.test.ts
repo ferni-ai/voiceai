@@ -72,11 +72,11 @@ describe('cascade thinking level', () => {
 });
 
 describe('buildCascadeHedge', () => {
-  it('hedges gemini-3.5-flash with gemini-3-flash-preview after 1.3 s by default', () => {
+  it('hedges gemini-3.5-flash with gemini-3.5-flash-lite after 1.3 s by default', () => {
     const hedge = buildCascadeHedge({ GOOGLE_CLOUD_PROJECT: 'proj' });
     expect(hedge?.hedgeAfterMs).toBe(1300);
     expect(hedge?.backup).toMatchObject({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.5-flash-lite',
       location: 'global',
       vertexai: true,
     });

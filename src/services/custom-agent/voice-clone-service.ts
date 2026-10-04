@@ -12,6 +12,13 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { devStubOrUnavailable } from '../../utils/dev-stub.js';
+import {
+  CLONE_UNAVAILABLE,
+  PREVIEW_UNAVAILABLE,
+  simulatedVoiceClone,
+  simulatedVoicePreview,
+} from './voice-clone-stubs.js';
 import { getRateLimiter } from '../../tools/rate-limiter.js';
 import type {
   ClonedVoice,
@@ -450,16 +457,9 @@ async function callCartesiaCloneAPI(
     throw new Error('Rate limited - voice clone operation. Please try again in a few seconds.');
   }
 
-  // If no API key, return simulated response for development
+  // If no API key, reject with honest error
   if (!CARTESIA_API_KEY) {
-    log.warn('CARTESIA_API_KEY not set, using simulated voice clone');
-    return {
-      id: `voice_sim_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-      name,
-      description: `Custom voice for ${name} (simulated)`,
-      is_public: false,
-      created_at: new Date().toISOString(),
-    };
+    return devStubOrUnavailable(CLONE_UNAVAILABLE, () => simulatedVoiceClone(name));
   }
 
   try {
@@ -545,13 +545,9 @@ export async function generateVoicePreview(
     throw new Error('Rate limited - TTS preview. Please try again shortly.');
   }
 
-  // If no API key, return simulated response
+  // If no API key, reject with honest error
   if (!CARTESIA_API_KEY) {
-    log.warn('CARTESIA_API_KEY not set, returning simulated preview');
-    return {
-      audioUrl: `preview://${voiceId}/${Date.now()}.mp3`,
-      durationSeconds: text.length * 0.05,
-    };
+    return devStubOrUnavailable(PREVIEW_UNAVAILABLE, () => simulatedVoicePreview(voiceId, text));
   }
 
   try {

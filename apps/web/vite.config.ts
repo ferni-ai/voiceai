@@ -1,4 +1,4 @@
-import { resolve } from 'path';
+import { basename, dirname, resolve } from 'path';
 import { defineConfig, loadEnv } from 'vite';
 
 // Stub for Firebase when not configured (dev only)
@@ -42,11 +42,12 @@ export default defineConfig(({ mode }) => {
         'gsap',
         // Node/agent SDK - not for browser; excluding avoids 504 Outdated Optimize Dep
         '@livekit/agents',
+        // LiveKit client - loaded via voice-engine.js UMD; no npm bundle needed
+        'livekit-client',
       ],
       // Pre-bundle these heavy dependencies on server start (not on first request)
       // This significantly speeds up the first page load
       include: [
-        'livekit-client',
         'firebase/app',
         'firebase/auth',
         'firebase/firestore',
@@ -121,6 +122,10 @@ export default defineConfig(({ mode }) => {
       sourcemap: process.env.SOURCE_MAP === 'true', // Only enable if explicitly requested
       minify: 'esbuild',
       target: 'es2022',
+      // dist/.vite/manifest.json: the chunk graph the bundle ratchet
+      // (apps/cli/src/commands/quality/ratchet.ts) reads to tell initial
+      // chunks from lazy ones. Firebase hosting skips dot-directories.
+      manifest: true,
       // Drop console logs and debugger in production
       esbuild: {
         drop: ['console', 'debugger'],
@@ -128,10 +133,26 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         // Treat gsap as external - use window.gsap from CDN
         external: ['gsap'],
+        // A circular chunk is a runtime TDZ crash waiting for the right import
+        // order; it shipped once as a warning nobody read. Fail the build.
+        onwarn(warning, warn) {
+          if (warning.code === 'CIRCULAR_CHUNK') {
+            throw new Error(`[vite.config] ${warning.message}`);
+          }
+          warn(warning);
+        },
         output: {
           // Map gsap imports to the global
           globals: {
             gsap: 'gsap',
+          },
+          // Rollup names a chunk after its module's file, so a lazily loaded
+          // foo/index.ts became index-*.js: indistinguishable from the entry in
+          // devtools, and counted as initial by the bundle ratchet. Use the folder.
+          chunkFileNames(chunk) {
+            const id = chunk.facadeModuleId ?? chunk.moduleIds.at(-1);
+            if (chunk.name === 'index' && id) return `assets/${basename(dirname(id))}-[hash].js`;
+            return 'assets/[name]-[hash].js';
           },
           // Smart chunking strategy for optimal loading
           manualChunks(id) {
@@ -139,68 +160,24 @@ export default defineConfig(({ mode }) => {
             if (id.includes('node_modules')) {
               if (id.includes('@tsparticles')) return 'vendor-particles';
               if (id.includes('livekit-client')) return 'vendor-rtc';
+              // Only lazy screens use Firestore. In the catch-all below, every
+              // visitor downloaded it with the entry. It imports @firebase/app
+              // (in vendor); nothing in vendor imports it, so no chunk cycle.
+              // The regex also takes the firebase/firestore wrapper: left in
+              // vendor, it would import this chunk and close a cycle.
+              if (/\/@?firebase\/(firestore|webchannel-wrapper)\//.test(id)) return 'firestore';
               // Other node_modules go to vendor chunk
               return 'vendor';
             }
 
-            // Admin portal - lazy loaded, separate chunk
-            if (id.includes('/admin/')) return 'admin';
-
-            // Dev panel - lazy loaded for 17KB gzipped savings
-            if (id.includes('dev-panel')) return 'dev-panel';
-
-            // Engagement features - heavy dashboards, lazy loaded
-            if (
-              id.includes('engagement') ||
-              id.includes('predictions') ||
-              id.includes('analytics-dashboard') ||
-              id.includes('prediction-tracker') ||
-              id.includes('team-huddle') ||
-              id.includes('cognitive-insights')
-            ) {
-              return 'ui-engagement';
-            }
-
-            // Premium effects - celebrations, particles, etc.
-            if (
-              id.includes('celebrations') ||
-              id.includes('easter-eggs') ||
-              id.includes('streak-celebrations') ||
-              id.includes('agent-particles') ||
-              id.includes('weather-effects')
-            ) {
-              return 'ui-premium';
-            }
-
-            // Secondary modals - lazy loaded
-            if (
-              id.includes('onboarding') ||
-              id.includes('conversation-history') ||
-              id.includes('ritual-builder') ||
-              id.includes('data-export') ||
-              id.includes('settings-menu') ||
-              id.includes('marketplace')
-            ) {
-              return 'ui-secondary';
-            }
-
-            // Animation systems
-            if (
-              id.includes('animation-orchestrator') ||
-              id.includes('micro-interactions') ||
-              id.includes('kinetic-typography') ||
-              id.includes('ambient-effects') ||
-              id.includes('loading-states') ||
-              id.includes('persona-transition')
-            ) {
-              return 'ui-animations';
-            }
-
-            // Services - split heavy from light
-            if (id.includes('/services/')) {
-              if (id.includes('spotify') || id.includes('music')) return 'services-music';
-              if (id.includes('engagement') || id.includes('ritual')) return 'services-engagement';
-            }
+            // App code is deliberately NOT hand-assigned. Name-based rules
+            // (includes('engagement'), '/admin/', ...) split modules that import
+            // each other eagerly into cyclic chunks; Rollup cannot order a chunk
+            // cycle, so a chunk ran its top-level code before a dependency's
+            // `const` was initialized ("Cannot access 'v' before initialization"
+            // in admin-*.js took down app.ferni.ai). Rollup's automatic chunking
+            // still splits at real dynamic-import() boundaries, and never cycles.
+            return undefined;
           },
         },
       },

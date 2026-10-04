@@ -3015,5 +3015,54 @@
       "professional": "מקצועי",
       "legacy": "מורשת"
     }
+  },
+  "predictionResolution": {
+    "title": "איך היה?",
+    "youGuessed": "הניחוש שלך: {value}",
+    "actual": "בפועל: {value}",
+    "scored": "דיוק של {accuracy}%",
+    "record": "לרשום מה קרה",
+    "save": "לבדוק את הניחושים שלי",
+    "saveFailed": "לא הצלחנו לשמור. לנסות שוב?",
+    "metrics": {
+      "deepWork": {
+        "label": "עבודה מרוכזת",
+        "question": "כמה שעות של עבודה מרוכזת היו לך?",
+        "unit": "שעות"
+      },
+      "exercise": {
+        "label": "ספורט",
+        "question": "כמה פעמים עשית ספורט?",
+        "unit": "אימונים"
+      },
+      "social": {
+        "label": "זמן עם אנשים",
+        "question": "כמה שעות בילית עם אנשים?",
+        "unit": "שעות"
+      },
+      "screen": {
+        "label": "זמן מסך",
+        "question": "כמה שעות מסך היו לך?",
+        "unit": "שעות"
+      },
+      "mood": {
+        "label": "מצב רוח",
+        "question": "מה היה מצב הרוח הממוצע שלך, מ-1 עד 10?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "מה היה הערך בפועל של {label}?"
+      }
+    },
+    "result": {
+      "line": "ניחשת {predicted}. יצא {actual}. {verdict}",
+      "overall": "דיוק כולל השבוע: {accuracy}%."
+    },
+    "tone": {
+      "spotOn": "בול!",
+      "close": "ממש קרוב!",
+      "off": "הפעם קצת פספסת.",
+      "wayOff": "הפעם רחוק מאוד. עכשיו אתה יודע."
+    }
   }
 }
