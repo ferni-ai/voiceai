@@ -97,7 +97,7 @@ class ManageSubscriptionUI {
   }
 
   /**
-   * Fetch subscription status from backend/StoreKit
+   * Fetch subscription status from the server
    */
   private async fetchStatus(userId: string): Promise<SubscriptionStatus> {
     try {
@@ -172,14 +172,11 @@ class ManageSubscriptionUI {
         void this.handleOpenBillingPortal();
       });
     this.container.querySelector('[data-action="apple-manage"]')?.addEventListener('click', () => {
-      void this.openAppleManagement();
+      this.openAppleManagement();
     });
     this.container
       .querySelector('[data-action="upgrade"]')
       ?.addEventListener('click', () => this.handleUpgrade());
-    this.container
-      .querySelector('[data-action="restore"]')
-      ?.addEventListener('click', () => this.handleRestore());
 
     document.body.appendChild(this.container);
 
@@ -206,15 +203,6 @@ class ManageSubscriptionUI {
             ${ICONS.heart}
             <span>${t('manageSubscription.buttons.upgrade')}</span>
           </button>
-          ${
-            appleIAPService.isIOS()
-              ? `
-            <button class="manage-sub__btn manage-sub__btn--ghost" data-action="restore">
-              ${t('manageSubscription.buttons.restore')}
-            </button>
-          `
-              : ''
-          }
         </div>
         <p class="manage-sub__footer-note">${t('manageSubscription.freeNote')}</p>
       `;
@@ -267,8 +255,8 @@ class ManageSubscriptionUI {
   /**
    * Open Apple subscription management
    */
-  private async openAppleManagement(): Promise<void> {
-    await appleIAPService.openSubscriptionManagement();
+  private openAppleManagement(): void {
+    appleIAPService.openSubscriptionManagement();
   }
 
   /**
@@ -277,45 +265,6 @@ class ManageSubscriptionUI {
   private handleUpgrade(): void {
     this.close();
     this.callbacks.onUpgrade?.();
-  }
-
-  /**
-   * Handle restore purchases (iOS)
-   */
-  private async handleRestore(): Promise<void> {
-    if (!this.userId) return;
-
-    const btn = this.container?.querySelector('[data-action="restore"]') as HTMLButtonElement;
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = t('manageSubscription.buttons.restoring');
-    }
-
-    try {
-      const result = await appleIAPService.restorePurchases(this.userId);
-
-      if (result.restoredTier) {
-        // Refresh the modal with new status
-        this.status = await this.fetchStatus(this.userId);
-        this.container?.remove();
-        this.createModal();
-      } else if (btn) {
-        btn.textContent = t('manageSubscription.restore.noFound');
-        trackedTimeout(() => {
-          btn.textContent = t('manageSubscription.buttons.restore');
-          btn.disabled = false;
-        }, 2000);
-      }
-    } catch (error) {
-      log.error('Restore failed:', error);
-      if (btn) {
-        btn.textContent = t('manageSubscription.restore.failed');
-        trackedTimeout(() => {
-          btn.textContent = t('manageSubscription.buttons.restore');
-          btn.disabled = false;
-        }, 2000);
-      }
-    }
   }
 
   /**

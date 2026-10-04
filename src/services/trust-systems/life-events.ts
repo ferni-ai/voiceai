@@ -162,14 +162,25 @@ const SENTIMENT_INDICATORS: Record<EventSentiment, RegExp[]> = {
 // ============================================================================
 
 const userEvents = new Map<string, LifeEvent[]>();
+/** Most events kept per user (they persist as one Firestore doc). */
+const MAX_EVENTS = 200;
+
+/** A user's saved events, oldest first. */
+export function getUserEvents(userId: string): LifeEvent[] {
+  return userEvents.get(userId) ?? [];
+}
+
+/** Replace a user's events with persisted ones (empty forgets them). */
+export function setUserEvents(userId: string, events: LifeEvent[]): void {
+  if (events.length > 0) userEvents.set(userId, events.slice(-MAX_EVENTS));
+  else userEvents.delete(userId);
+}
 
 // ============================================================================
 // EVENT DETECTION
 // ============================================================================
 
-/**
- * Detect life events mentioned in user text
- */
+/** Detect life events mentioned in user text */
 export function detectLifeEvents(
   userId: string,
   text: string,
@@ -237,9 +248,7 @@ export function detectLifeEvents(
   return results;
 }
 
-/**
- * Extract date information from text
- */
+/** Extract date information from text */
 function extractDateFromText(text: string): {
   found: boolean;
   date?: Date;
@@ -321,9 +330,7 @@ function extractDateFromText(text: string): {
   return { found: false };
 }
 
-/**
- * Detect event type from text
- */
+/** Detect event type from text */
 function detectEventType(text: string): EventType | null {
   for (const [type, patterns] of Object.entries(EVENT_INDICATORS)) {
     for (const pattern of patterns) {
@@ -335,9 +342,7 @@ function detectEventType(text: string): EventType | null {
   return null;
 }
 
-/**
- * Detect sentiment about the event
- */
+/** Detect sentiment about the event */
 function detectSentiment(text: string): EventSentiment {
   for (const [sentiment, patterns] of Object.entries(SENTIMENT_INDICATORS)) {
     for (const pattern of patterns) {
@@ -349,9 +354,7 @@ function detectSentiment(text: string): EventSentiment {
   return 'neutral';
 }
 
-/**
- * Extract event description
- */
+/** Extract event description */
 function extractEventDescription(text: string, eventType: EventType | null): string {
   // Try to extract the key part
   // This is a simplified extraction - in production, use NLP
@@ -370,9 +373,7 @@ function extractEventDescription(text: string, eventType: EventType | null): str
   return description || `${eventType || 'event'} coming up`;
 }
 
-/**
- * Determine importance of event
- */
+/** Determine importance of event */
 function determineImportance(
   type: EventType | null,
   sentiment: EventSentiment,
@@ -395,9 +396,7 @@ function determineImportance(
   return 'medium';
 }
 
-/**
- * Extract tags from text
- */
+/** Extract tags from text */
 function extractTags(text: string): string[] {
   const tags: string[] = [];
 
@@ -410,9 +409,7 @@ function extractTags(text: string): string[] {
   return tags;
 }
 
-/**
- * Calculate confidence in detection
- */
+/** Calculate confidence in detection */
 function calculateConfidence(
   dateInfo: { found: boolean; date?: Date },
   eventType: EventType | null,
@@ -431,13 +428,18 @@ function calculateConfidence(
 // EVENT MANAGEMENT
 // ============================================================================
 
-/**
- * Save a detected event
- */
+/** Save a detected event */
 export function saveEvent(event: LifeEvent): void {
   const events = userEvents.get(event.userId) || [];
+  // The agent re-detects an event every turn it's mentioned; keep one.
+  const day = event.date.toDateString();
+  const key = event.description.trim().toLowerCase();
+  if (
+    events.some((e) => e.date.toDateString() === day && e.description.trim().toLowerCase() === key)
+  )
+    return;
   events.push(event);
-  userEvents.set(event.userId, events);
+  userEvents.set(event.userId, events.slice(-MAX_EVENTS));
 
   // Index to semantic memory
   indexLifeEvent(event.userId, {
@@ -458,9 +460,7 @@ export function saveEvent(event: LifeEvent): void {
   );
 }
 
-/**
- * Get upcoming events for a user
- */
+/** Get upcoming events for a user */
 export function getUpcomingEvents(userId: string): UpcomingEventSummary {
   const events = userEvents.get(userId) || [];
   const now = new Date();
@@ -485,9 +485,7 @@ export function getUpcomingEvents(userId: string): UpcomingEventSummary {
   };
 }
 
-/**
- * Get events needing reminders
- */
+/** Get events needing reminders */
 export function getEventsNeedingReminders(userId: string): LifeEvent[] {
   const events = userEvents.get(userId) || [];
   const now = new Date();
@@ -507,9 +505,7 @@ export function getEventsNeedingReminders(userId: string): LifeEvent[] {
   });
 }
 
-/**
- * Get events needing follow-up
- */
+/** Get events needing follow-up */
 export function getEventsNeedingFollowUp(userId: string): LifeEvent[] {
   const events = userEvents.get(userId) || [];
   const now = new Date();
@@ -530,9 +526,7 @@ export function getEventsNeedingFollowUp(userId: string): LifeEvent[] {
   });
 }
 
-/**
- * Record event outcome
- */
+/** Record event outcome */
 export function recordEventOutcome(
   userId: string,
   eventId: string,
@@ -548,9 +542,7 @@ export function recordEventOutcome(
   }
 }
 
-/**
- * Mark reminder sent
- */
+/** Mark reminder sent */
 export function markReminderSent(userId: string, eventId: string): void {
   const events = userEvents.get(userId);
   if (!events) return;
@@ -561,9 +553,7 @@ export function markReminderSent(userId: string, eventId: string): void {
   }
 }
 
-/**
- * Mark check-in sent
- */
+/** Mark check-in sent */
 export function markCheckInSent(userId: string, eventId: string): void {
   const events = userEvents.get(userId);
   if (!events) return;
@@ -574,9 +564,7 @@ export function markCheckInSent(userId: string, eventId: string): void {
   }
 }
 
-/**
- * Generate reminder message for an event
- */
+/** Generate reminder message for an event */
 export function generateReminderMessage(event: LifeEvent): string {
   const messages: Record<EventSentiment, string[]> = {
     excited: [
@@ -610,9 +598,7 @@ export function generateReminderMessage(event: LifeEvent): string {
   return options[Math.floor(Math.random() * options.length)];
 }
 
-/**
- * Generate follow-up message for an event
- */
+/** Generate follow-up message for an event */
 export function generateFollowUpMessage(event: LifeEvent): string {
   const messages: Record<EventType, string[]> = {
     deadline: [

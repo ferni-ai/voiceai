@@ -11,6 +11,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { setCorsHeaders } from '../servers/shared/cors.js';
+import { requireAuth } from './auth-middleware.js';
 
 const log = createLogger({ module: 'LifeContextRoutes' });
 
@@ -168,10 +169,6 @@ function sendError(res: ServerResponse, message: string, status = 500): void {
   res.end(JSON.stringify({ error: message }));
 }
 
-function getParam(url: URL, name: string): string | null {
-  return url.searchParams.get(name);
-}
-
 // ============================================================================
 // ROUTE HANDLER
 // ============================================================================
@@ -194,15 +191,12 @@ export async function handleLifeContextRoutes(
     return true;
   }
 
-  // Get userId from query or header
-  const url = new URL(req.url || '', `http://${req.headers.host}`);
-  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
-  const userId = firebaseUid || getParam(url, 'userId');
-
-  if (!userId) {
-    sendError(res, 'userId is required', 400);
-    return true;
-  }
+  // Only the verified caller. Never ?userId= or a client-sent x-firebase-uid:
+  // this handler verifies the token itself, so it is safe even where
+  // bindVerifiedIdentity did not run first (e.g. development). 401 otherwise.
+  const auth = await requireAuth(req, res);
+  if (!auth) return true;
+  const { userId } = auth;
 
   try {
     // GET /api/life-context

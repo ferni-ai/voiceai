@@ -61,14 +61,14 @@ This directory contains frontend services that power the Ferni web app. Services
 |---------|---------|
 | `monetization.service.ts` | Subscription logic |
 | `monetization-integration.service.ts` | Payment integration |
-| `apple-iap.service.ts` | Apple In-App Purchase |
+| `apple-iap.service.ts` | Subscription status; App Store purchases happen in the iOS app |
 | `seeds-economy.service.ts` | Seeds virtual currency |
 
 ### Intelligence & Context
 | Service | Purpose |
 |---------|---------|
 | `intelligence.service.ts` | AI intelligence features |
-| `life-context.service.ts` | Life context tracking |
+| `life-context-updates.service.ts` | Life context dashboard stream (/ws/life-context) |
 | `mood-context.service.ts` | Mood tracking |
 | `predictive-insights.service.ts` | Predictive features |
 | `cross-team-notifications.service.ts` | Team coordination |

@@ -13,7 +13,6 @@
 
 import { toast } from '../ui/whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
-import { isNative } from '../utils/platform.js';
 import { getFirebaseUid, onAuthStateChange, signOut } from './firebase-auth.service.js';
 import { getPushNotificationsService } from './push-notifications.service.js';
 
@@ -39,9 +38,9 @@ function writeOwner(uid: string | null): void {
   }
 }
 
-/** This browser's live push subscription, if any (web only). */
+/** This browser's live push subscription, if any. */
 async function getBrowserSubscription(): Promise<PushSubscription | null> {
-  if (isNative() || !('serviceWorker' in navigator)) return null;
+  if (!('serviceWorker' in navigator)) return null;
   try {
     const registration = await navigator.serviceWorker.getRegistration();
     return (await registration?.pushManager.getSubscription()) ?? null;
@@ -78,10 +77,11 @@ export async function applyPushPreference(enabled: boolean): Promise<void> {
     return;
   }
 
-  // Native registers asynchronously through its token listener, so null is expected there.
   const subscription = await service.subscribe();
-  if (subscription) writeOwner(getFirebaseUid());
-  if (subscription || isNative()) return;
+  if (subscription) {
+    writeOwner(getFirebaseUid());
+    return;
+  }
 
   if (service.getPermissionStatus() !== 'granted') {
     toast.error('Notifications are blocked. Allow them in your browser settings.');
@@ -112,7 +112,8 @@ export async function syncPushOwner(uid: string | null): Promise<void> {
   if (!uid) return;
   const owner = readOwner();
   if (owner === uid) return;
-  if (!owner && !(await getBrowserSubscription())) return; // nothing to hand over
+  // Nothing to hand over without a subscription.
+  if (!owner && !(await getBrowserSubscription())) return;
 
   const service = getPushNotificationsService();
   const keep = service.getPreferences().enabled && service.getPermissionStatus() === 'granted';
