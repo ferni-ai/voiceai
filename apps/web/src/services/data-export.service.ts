@@ -144,7 +144,10 @@ class DataExportService {
 
     if (!response?.ok) {
       log.error('Server refused data deletion', { status: response?.status });
-      throw new DataRightsError('server', "Couldn't delete your data. Nothing was removed. Try again?");
+      throw new DataRightsError(
+        'server',
+        "Couldn't delete your data. Nothing was removed. Try again?"
+      );
     }
 
     this.clearLocalData();
@@ -153,9 +156,11 @@ class DataExportService {
 
   /**
    * Close the account: the server erases every store and the Firebase user,
-   * then this device forgets everything and signs out.
+   * then this device forgets everything and signs out. Resolves with a notice
+   * for the user when the account is gone but some records couldn't be
+   * removed (the server lists them in details.failures), else null.
    */
-  async deleteAccount(): Promise<void> {
+  async deleteAccount(): Promise<string | null> {
     log.warn('Starting account deletion');
     await requireSignedIn('delete your account');
 
@@ -168,7 +173,10 @@ class DataExportService {
       return null;
     });
     const result = response?.ok
-      ? ((await response.json().catch(() => ({}))) as { success?: boolean })
+      ? ((await response.json().catch(() => ({}))) as {
+          success?: boolean;
+          details?: { failures?: unknown };
+        })
       : null;
 
     if (!result?.success) {
@@ -181,7 +189,13 @@ class DataExportService {
     await signOutReleasingPush().catch((err: unknown) =>
       log.warn('Sign-out after account deletion failed', err)
     );
+    const failures = result.details?.failures;
+    if (Array.isArray(failures) && failures.length > 0) {
+      log.warn('Account deleted, but some records were left', { failures });
+      return "Your account is deleted, but a few records didn't clear. Contact us to finish.";
+    }
     log.info('Account deleted');
+    return null;
   }
 
   private clearLocalData(): void {

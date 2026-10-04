@@ -2,7 +2,7 @@
  * Custom Agent API Types
  *
  * Simplified types for the CRUD API layer. These are used by:
- * - API routes (custom-agent-routes.ts)
+ * - API routes (api/custom-agent/*.ts)
  * - Persistence service (custom-agent-persistence.service.ts)
  * - Frontend service (custom-agent.service.ts)
  *

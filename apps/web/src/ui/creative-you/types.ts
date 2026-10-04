@@ -35,13 +35,15 @@ export interface PodcastRecommendation {
 }
 
 export interface CreativeDNA {
-  personalityLabel: string;
-  personalityDescription: string;
+  /** null until real activity has produced a label */
+  personalityLabel: string | null;
+  personalityDescription: string | null;
   topTopics: Array<{ topic: string; score: number }>;
   totalVideosWatched: number;
   totalPodcastsListened: number;
   totalInsightsSaved: number;
-  learningStyle: string;
+  /** null until Ferni has learned a style from real activity */
+  learningStyle: string | null;
 }
 
 export interface LearningTrack {
