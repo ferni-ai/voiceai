@@ -1,15 +1,20 @@
 /**
- * Google Calendar OAuth management
+ * Google Calendar OAuth management for the /auth/google/* connect flow.
  *
- * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
- * Tokens are encrypted before storage for security.
+ * STORAGE: services/identity/google-calendar-token-store.ts, the single
+ * encrypted store every calendar reader uses (Firestore, per user).
  */
 
 import type { OAuthTokens } from '../../shared/types.js';
-import { encryptData, decryptData } from '../../shared/encryption.js';
-import { createPersistenceStore } from '../../../services/persistence/index.js';
+import {
+  getTokens,
+  saveTokens,
+  removeTokens,
+  shutdownTokenStore,
+} from '../../../services/identity/google-calendar-token-store.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+
+export { getTokens, saveTokens, removeTokens };
 
 const log = createLogger({ module: 'GoogleCalendarOAuth' });
 
@@ -30,31 +35,11 @@ interface GoogleTokenResponse {
   scope?: string;
 }
 
-/**
- * Encrypted token data stored in Firestore
- */
-interface EncryptedTokenData {
-  encrypted: string;
-  updated_at: number;
-}
-
 // Required scopes for Google Calendar
 export const GOOGLE_CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/calendar.events',
 ];
-
-// Firestore-backed persistence store for encrypted tokens
-// Uses per-user storage under bogle_users/{userId}/google_calendar_tokens/data
-const tokenStore = createPersistenceStore<EncryptedTokenData>({
-  collection: 'google_calendar_tokens',
-  documentId: 'data',
-  useRootCollection: false, // Per-user storage
-  syncIntervalMs: 2000,
-});
-
-// In-memory cache for decrypted tokens (fast access)
-const tokenCache = new Map<string, OAuthTokens>();
 
 /**
  * Check if Google Calendar OAuth is configured
@@ -76,79 +61,6 @@ export function getConfig(): {
     redirectUri: GOOGLE_REDIRECT_URI,
     scopes: GOOGLE_CALENDAR_SCOPES,
   };
-}
-
-/**
- * Get tokens for a specific user (from cache or Firestore)
- */
-export async function getTokens(userId: string): Promise<OAuthTokens | null> {
-  // Check cache first
-  const cached = tokenCache.get(userId);
-  if (cached) {
-    return cached;
-  }
-
-  try {
-    const data = await tokenStore.get(userId);
-    if (data?.encrypted) {
-      const decrypted = decryptData<OAuthTokens>(data.encrypted);
-      if (decrypted) {
-        tokenCache.set(userId, decrypted);
-        return decrypted;
-      }
-    }
-  } catch (err) {
-    log.error(
-      { error: (err as Error).message, userId: userId.substring(0, 8) },
-      'Error loading Google Calendar tokens'
-    );
-  }
-  return null;
-}
-
-/**
- * Save tokens for a specific user (encrypted)
- */
-export async function saveTokens(userId: string, tokens: OAuthTokens): Promise<void> {
-  const tokensWithTimestamp = {
-    ...tokens,
-    updated_at: Date.now(),
-  };
-
-  // Update cache
-  tokenCache.set(userId, tokensWithTimestamp);
-
-  // Encrypt and persist
-  try {
-    const encrypted = encryptData(tokensWithTimestamp);
-    await tokenStore.setImmediate(userId, {
-      encrypted,
-      updated_at: Date.now(),
-    });
-    log.info({ userId: userId.substring(0, 8) }, 'Saved Google Calendar tokens');
-  } catch (err) {
-    log.error(
-      { error: (err as Error).message, userId: userId.substring(0, 8) },
-      'Error saving Google Calendar tokens'
-    );
-  }
-}
-
-/**
- * Remove tokens for a specific user
- */
-export async function removeTokens(userId: string): Promise<void> {
-  tokenCache.delete(userId);
-
-  try {
-    await tokenStore.delete(userId);
-    log.info({ userId: userId.substring(0, 8) }, 'Removed Google Calendar tokens');
-  } catch (err) {
-    log.error(
-      { error: (err as Error).message, userId: userId.substring(0, 8) },
-      'Error removing Google Calendar tokens'
-    );
-  }
 }
 
 /**
@@ -273,7 +185,6 @@ export function buildAuthUrl(state: string): string {
  * Shutdown Google Calendar OAuth service
  */
 export async function shutdown(): Promise<void> {
-  await tokenStore.shutdown();
-  tokenCache.clear();
+  await shutdownTokenStore();
   log.info('Google Calendar OAuth service shutdown complete');
 }

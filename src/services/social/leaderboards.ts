@@ -15,10 +15,19 @@
  * - XP-based progression
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { isValidGameType } from './game-types.js';
+import { deleteUserStats, ownGameStats, topUserStats } from './user-stats.js';
 
-const log = getLogger();
+// Stats and XP live in ./user-stats.ts and ./xp.ts (shared by every API instance).
+export {
+  getUserStats,
+  updateUserStats,
+  recordChallengeResult,
+  seedLeaderboardData,
+  isValidGameType,
+  deleteUserStats,
+} from './user-stats.js';
+export { calculateLevel, getXPForNextLevel } from './xp.js';
 
 // ============================================================================
 // TYPES
@@ -94,263 +103,55 @@ export interface GameStats {
 }
 
 // ============================================================================
-// XP SYSTEM
-// ============================================================================
-
-const XP_CONFIG = {
-  // Base XP rewards
-  gameComplete: 10,
-  correctAnswer: 5,
-  perfectGame: 50,
-  dailyChallenge: 25,
-  winChallenge: 30,
-  streak3: 20,
-  streak7: 50,
-  streak30: 200,
-
-  // Multipliers
-  speedBonus: 1.5, // Fast answer
-  firstTryBonus: 1.2, // No hints used
-
-  // Level thresholds
-  xpPerLevel: 100,
-  levelScaling: 1.2, // Each level requires 20% more XP
-};
-
-export function calculateLevel(totalXP: number): number {
-  let level = 1;
-  let xpNeeded = XP_CONFIG.xpPerLevel;
-  let xpRemaining = totalXP;
-
-  while (xpRemaining >= xpNeeded) {
-    xpRemaining -= xpNeeded;
-    level++;
-    xpNeeded = Math.floor(xpNeeded * XP_CONFIG.levelScaling);
-  }
-
-  return level;
-}
-
-export function getXPForNextLevel(totalXP: number): {
-  currentXP: number;
-  neededXP: number;
-  progress: number;
-} {
-  let xpNeeded = XP_CONFIG.xpPerLevel;
-  let xpRemaining = totalXP;
-
-  while (xpRemaining >= xpNeeded) {
-    xpRemaining -= xpNeeded;
-    xpNeeded = Math.floor(xpNeeded * XP_CONFIG.levelScaling);
-  }
-
-  return {
-    currentXP: xpRemaining,
-    neededXP: xpNeeded,
-    progress: Math.round((xpRemaining / xpNeeded) * 100),
-  };
-}
-
-// ============================================================================
-// STORAGE
-// ============================================================================
-
-// In-memory stores (would be Firestore in production)
-const userStatsStore = new Map<string, UserStats>();
-const leaderboardCache = new Map<string, Leaderboard>();
-
-// ============================================================================
-// USER STATS
-// ============================================================================
-
-/**
- * Get or create user stats
- */
-export function getUserStats(userId: string, displayName?: string): UserStats {
-  let stats = userStatsStore.get(userId);
-
-  if (!stats) {
-    stats = createInitialStats(userId, displayName || 'Player');
-    userStatsStore.set(userId, stats);
-  }
-
-  return stats;
-}
-
-/**
- * A game type is a client-supplied key into `gameStats`, so it must be a plain
- * name that can't reach Object.prototype: `__proto__` read back
- * Object.prototype itself, and the stats update below then wrote gamesPlayed,
- * totalScore and accuracy onto every object in the process.
- */
-export function isValidGameType(gameType: unknown): gameType is string {
-  return (
-    typeof gameType === 'string' &&
-    /^[a-z0-9][a-z0-9-]{0,39}$/i.test(gameType) &&
-    !(gameType in Object.prototype)
-  );
-}
-
-/**
- * Update user stats after a game
- */
-export function updateUserStats(
-  userId: string,
-  gameType: string,
-  result: {
-    score: number;
-    correctAnswers: number;
-    totalQuestions: number;
-    timeMs: number;
-    usedHints: boolean;
-  }
-): UserStats {
-  const stats = getUserStats(userId);
-  const now = new Date();
-
-  // Update overall stats
-  stats.totalGamesPlayed++;
-  stats.totalScore += result.score;
-
-  // Calculate XP earned
-  let xpEarned = XP_CONFIG.gameComplete;
-  xpEarned += result.correctAnswers * XP_CONFIG.correctAnswer;
-
-  const isPerfect = result.correctAnswers === result.totalQuestions;
-  if (isPerfect) {
-    xpEarned += XP_CONFIG.perfectGame;
-    stats.perfectGames++;
-  }
-
-  if (!result.usedHints) {
-    xpEarned = Math.floor(xpEarned * XP_CONFIG.firstTryBonus);
-  }
-
-  // Update streak
-  const lastPlayed = stats.lastPlayedAt;
-  if (lastPlayed) {
-    const hoursSinceLast = (now.getTime() - lastPlayed.getTime()) / (1000 * 60 * 60);
-    if (hoursSinceLast > 48) {
-      // Streak broken
-      stats.currentStreak = 1;
-    } else if (hoursSinceLast > 20) {
-      // New day, increment streak
-      stats.currentStreak++;
-    }
-    // else same day, don't change streak
-  } else {
-    stats.currentStreak = 1;
-  }
-
-  // Streak bonuses
-  if (stats.currentStreak >= 3 && stats.currentStreak % 3 === 0) {
-    xpEarned += XP_CONFIG.streak3;
-  }
-  if (stats.currentStreak === 7) {
-    xpEarned += XP_CONFIG.streak7;
-  }
-  if (stats.currentStreak === 30) {
-    xpEarned += XP_CONFIG.streak30;
-  }
-
-  stats.longestStreak = Math.max(stats.longestStreak, stats.currentStreak);
-  stats.totalXP += xpEarned;
-  stats.level = calculateLevel(stats.totalXP);
-  stats.lastPlayedAt = now;
-  stats.updatedAt = now;
-
-  // Update game-specific stats
-  if (!isValidGameType(gameType)) {
-    throw new Error(`Invalid game type: ${JSON.stringify(gameType)}`);
-  }
-  if (!Object.hasOwn(stats.gameStats, gameType)) {
-    stats.gameStats[gameType] = {
-      gameType,
-      gamesPlayed: 0,
-      totalScore: 0,
-      highScore: 0,
-      averageScore: 0,
-      accuracy: 0,
-      lastPlayedAt: null,
-    };
-  }
-
-  const gameStats = stats.gameStats[gameType];
-  gameStats.gamesPlayed++;
-  gameStats.totalScore += result.score;
-  gameStats.highScore = Math.max(gameStats.highScore, result.score);
-  gameStats.averageScore = Math.round(gameStats.totalScore / gameStats.gamesPlayed);
-  gameStats.accuracy = Math.round(
-    (gameStats.accuracy * (gameStats.gamesPlayed - 1) +
-      (result.correctAnswers / result.totalQuestions) * 100) /
-      gameStats.gamesPlayed
-  );
-  if (result.timeMs) {
-    gameStats.fastestTimeMs = gameStats.fastestTimeMs
-      ? Math.min(gameStats.fastestTimeMs, result.timeMs)
-      : result.timeMs;
-  }
-  gameStats.lastPlayedAt = now;
-
-  userStatsStore.set(userId, stats);
-  log.debug({ userId, gameType, xpEarned, newLevel: stats.level }, '📊 Stats updated');
-
-  return stats;
-}
-
-/**
- * Record a challenge result
- */
-export function recordChallengeResult(userId: string, won: boolean): void {
-  const stats = getUserStats(userId);
-
-  if (won) {
-    stats.challengesWon++;
-    stats.totalXP += XP_CONFIG.winChallenge;
-    stats.level = calculateLevel(stats.totalXP);
-  } else {
-    stats.challengesLost++;
-  }
-
-  stats.updatedAt = new Date();
-  userStatsStore.set(userId, stats);
-}
-
-// ============================================================================
 // LEADERBOARDS
 // ============================================================================
 
+/** How many top scorers a leaderboard reads; it shows up to 100 of them. */
+const TOP_READ = 100;
+/** Each instance reuses a leaderboard for this long, then reads the store again. */
+const CACHE_MS = 30_000;
 /**
- * Get a leaderboard
+ * At most this many cached boards per instance (oldest dropped first). Keys
+ * are period, game type and scope, all from closed lists, so this is a
+ * backstop rather than the bound.
  */
-export function getLeaderboard(
+const CACHE_MAX = 200;
+const leaderboardCache = new Map<string, Leaderboard>();
+
+/** How many boards this instance has cached (for tests). */
+export function cachedLeaderboardCount(): number {
+  return leaderboardCache.size;
+}
+
+/**
+ * Get a leaderboard, built from the shared stats store (cached CACHE_MS per instance)
+ */
+export async function getLeaderboard(
   period: LeaderboardPeriod,
   gameType: string | 'overall' = 'overall',
   scope: LeaderboardScope = 'global',
   currentUserId?: string,
   friendIds?: string[]
-): Leaderboard {
+): Promise<Leaderboard> {
+  if (gameType !== 'overall' && !isValidGameType(gameType)) {
+    throw new Error(`Unknown game type: ${gameType}`); // routes answer 400 before this
+  }
   const cacheKey = `${period}_${gameType}_${scope}`;
   const cached = leaderboardCache.get(cacheKey);
-
-  // Return cached if fresh (less than 5 minutes old)
-  if (cached && Date.now() - cached.lastUpdated.getTime() < 5 * 60 * 1000) {
-    // Add current user flag
-    if (currentUserId) {
-      cached.entries = cached.entries.map((e) => ({
-        ...e,
-        isCurrentUser: e.userId === currentUserId,
-      }));
-    }
-    return cached;
+  if (cached && Date.now() - cached.lastUpdated.getTime() < CACHE_MS) {
+    return {
+      ...cached,
+      entries: cached.entries.map((e) => ({ ...e, isCurrentUser: e.userId === currentUserId })),
+    };
   }
 
   // Build leaderboard
   const { start, end } = getPeriodDates(period);
   let entries: LeaderboardEntry[] = [];
 
-  // Get all user stats
-  for (const stats of userStatsStore.values()) {
+  // The highest scorers from the shared store (bounded: TOP_READ records)
+  const field = gameType === 'overall' ? 'totalScore' : `gameStats.${gameType}.totalScore`;
+  for (const stats of await topUserStats(field, TOP_READ)) {
     // Filter by scope
     if (scope === 'friends' && friendIds) {
       if (!friendIds.includes(stats.userId) && stats.userId !== currentUserId) {
@@ -371,9 +172,7 @@ export function getLeaderboard(
           ? Math.round((stats.challengesWon / (stats.challengesWon + stats.challengesLost)) * 100)
           : 0;
     } else {
-      const gameStats = Object.hasOwn(stats.gameStats, gameType)
-        ? stats.gameStats[gameType]
-        : undefined;
+      const gameStats = ownGameStats(stats, gameType);
       if (!gameStats) continue;
       score = gameStats.totalScore;
       gamesPlayed = gameStats.gamesPlayed;
@@ -417,75 +216,63 @@ export function getLeaderboard(
     periodEnd: end,
   };
 
+  leaderboardCache.delete(cacheKey); // re-inserted last, so the oldest is first to go
   leaderboardCache.set(cacheKey, leaderboard);
+  for (const key of leaderboardCache.keys()) {
+    if (leaderboardCache.size <= CACHE_MAX) break;
+    leaderboardCache.delete(key);
+  }
   return leaderboard;
 }
 
 /**
- * Get user's rank on a leaderboard
+ * Account deletion: remove the user's stats and this instance's cached boards
+ * (which may list them). Other instances rebuild theirs within CACHE_MS.
  */
-export function getUserRank(
+export async function eraseSocialStatsFor(userId: string): Promise<void> {
+  await deleteUserStats(userId);
+  leaderboardCache.clear();
+}
+
+/**
+ * Get user's rank on a leaderboard (among the top TOP_READ; beyond that, last + 1)
+ */
+export async function getUserRank(
   userId: string,
   period: LeaderboardPeriod = 'weekly',
   gameType: string | 'overall' = 'overall'
-): { rank: number; totalUsers: number } | null {
-  const leaderboard = getLeaderboard(period, gameType);
+): Promise<{ rank: number; totalUsers: number } | null> {
+  const leaderboard = await getLeaderboard(period, gameType);
   const entry = leaderboard.entries.find((e) => e.userId === userId);
-
   if (!entry) {
     return { rank: leaderboard.entries.length + 1, totalUsers: leaderboard.entries.length };
   }
-
   return { rank: entry.rank, totalUsers: leaderboard.entries.length };
 }
 
 /**
  * Get leaderboard around a specific user
  */
-export function getLeaderboardAroundUser(
+export async function getLeaderboardAroundUser(
   userId: string,
   period: LeaderboardPeriod = 'weekly',
   gameType: string | 'overall' = 'overall',
   contextSize = 3
-): LeaderboardEntry[] {
-  const leaderboard = getLeaderboard(period, gameType, 'global', userId);
+): Promise<LeaderboardEntry[]> {
+  const leaderboard = await getLeaderboard(period, gameType, 'global', userId);
   const userIndex = leaderboard.entries.findIndex((e) => e.userId === userId);
-
   if (userIndex === -1) {
     // User not on leaderboard - return top entries
     return leaderboard.entries.slice(0, contextSize * 2 + 1);
   }
-
   const start = Math.max(0, userIndex - contextSize);
   const end = Math.min(leaderboard.entries.length, userIndex + contextSize + 1);
-
   return leaderboard.entries.slice(start, end);
 }
 
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function createInitialStats(userId: string, displayName: string): UserStats {
-  const now = new Date();
-  return {
-    userId,
-    displayName,
-    totalGamesPlayed: 0,
-    totalScore: 0,
-    totalXP: 0,
-    level: 1,
-    gameStats: {},
-    currentStreak: 0,
-    longestStreak: 0,
-    lastPlayedAt: null,
-    challengesWon: 0,
-    challengesLost: 0,
-    perfectGames: 0,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
 
 function getPeriodDates(period: LeaderboardPeriod): { start: Date; end: Date } {
   const now = new Date();
@@ -498,7 +285,7 @@ function getPeriodDates(period: LeaderboardPeriod): { start: Date; end: Date } {
       end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
       break;
 
-    case 'weekly':
+    case 'weekly': {
       // Start of week (Monday)
       const dayOfWeek = now.getDay() || 7; // Make Sunday = 7
       start = new Date(now);
@@ -506,6 +293,7 @@ function getPeriodDates(period: LeaderboardPeriod): { start: Date; end: Date } {
       start.setHours(0, 0, 0, 0);
       end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
       break;
+    }
 
     case 'monthly':
       start = new Date(now.getFullYear(), now.getMonth(), 1);

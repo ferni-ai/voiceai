@@ -9,39 +9,63 @@
  * @module MusicalYouSocial
  */
 
+import { randomUUID } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import type { MusicChallenge, Leaderboard, LeaderboardEntry, TasteMatch } from './types.js';
+import { boundedChallenges, type ChallengeActor } from '../social/open-challenge-slots.js';
+import { daysAfter, sharedRecords } from '../social/shared-records.js';
+import {
+  deleteMusicalLeaderboardEntries,
+  getLeaderboard,
+  getTopEntries,
+  getUserRank,
+  updateLeaderboardEntry,
+} from './leaderboard-store.js';
+import type { MusicChallenge, TasteMatch } from './types.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
 const log = createLogger({ module: 'MusicalYouSocial' });
 
 // ============================================================================
-// IN-MEMORY STORAGE
+// STORAGE
 // ============================================================================
 
-const challenges = new Map<string, MusicChallenge>();
-const leaderboards = new Map<string, Leaderboard>();
+/**
+ * Shared by every API instance (Firestore on Cloud Run); see shared-records.
+ * Deletable (ttlAt) at expiry while pending, or 30 days after it finished.
+ */
+const challenges = sharedRecords<MusicChallenge>('musical_challenges', {
+  dateFields: ['createdAt', 'expiresAt', 'completedAt'],
+  ttlAt: (c, now) => (c.status === 'pending' ? c.expiresAt : daysAfter(c.completedAt ?? now, 30)),
+});
+/** Open-challenge caps per sender and recipient, enforced in the create transaction. */
+const bounded = boundedChallenges(challenges, 'musical_open_challenge_slots');
+/** Each user's slots document, for account deletion. */
+export const musicalChallengeSlots = bounded.slots;
 const tasteMatches = new Map<string, TasteMatch>();
 
 // ============================================================================
 // CHALLENGES
 // ============================================================================
 
+/** Lists read at most this many records per direction from the store. */
+const LIST_LIMIT = 100;
+
 /**
- * Send a music challenge to a friend
+ * Send a music challenge to a friend. Throws LimitReachedError (from
+ * open-challenge-slots) when the sender has too many open challenges out, or
+ * the recipient too many waiting; the check and the write are one transaction.
  */
-export function sendChallenge(
+export async function sendChallenge(
   challengerId: string,
   challengerName: string,
   challengeeId: string,
   gameType: string,
   challengerScore: number,
   challengerTime?: number
-): MusicChallenge {
-  const challengeId = `challenge-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
+): Promise<MusicChallenge> {
+  const now = new Date();
   const challenge: MusicChallenge = {
-    id: challengeId,
+    id: `challenge-${randomUUID()}`,
     type: 'score-beat',
     gameType,
     challengerId,
@@ -50,107 +74,116 @@ export function sendChallenge(
     challengerTime,
     challengeeId,
     status: 'pending',
-    createdAt: new Date(),
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    createdAt: now,
+    expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days
   };
-
-  challenges.set(challengeId, challenge);
+  await bounded.create(challenge);
 
   log.info(
-    { challengeId, challengerId, challengeeId, gameType, score: challengerScore },
+    { challengeId: challenge.id, challengerId, challengeeId, gameType, score: challengerScore },
     '🎯 Challenge sent'
   );
-
   return challenge;
 }
 
 /**
- * Get challenges for a user
+ * Get a user's challenges (at most LIST_LIMIT sent and LIST_LIMIT received;
+ * pending ones past their expiry read as expired)
  */
-export function getUserChallenges(
+export async function getUserChallenges(
   userId: string,
   type: 'sent' | 'received' | 'all' = 'all'
-): MusicChallenge[] {
-  const allChallenges = Array.from(challenges.values());
+): Promise<MusicChallenge[]> {
+  const [sent, received] = await Promise.all([
+    type === 'received' ? [] : challenges.query({ challengerId: userId }, LIST_LIMIT),
+    type === 'sent' ? [] : challenges.query({ challengeeId: userId }, LIST_LIMIT),
+  ]);
+  const now = new Date();
+  return [...sent, ...received.filter((r) => !sent.some((s) => s.id === r.id))].map((c) =>
+    c.status === 'pending' && now > c.expiresAt ? { ...c, status: 'expired' } : c
+  );
+}
 
-  return allChallenges.filter((c) => {
-    // Filter out expired
-    if (c.status === 'pending' && new Date() > c.expiresAt) {
-      c.status = 'expired';
-    }
-
-    if (type === 'sent') return c.challengerId === userId;
-    if (type === 'received') return c.challengeeId === userId;
-    return c.challengerId === userId || c.challengeeId === userId;
-  });
+/**
+ * Whether `otherId` has played with `userId`, counting only what `otherId`
+ * did: they sent `userId` a challenge, or they completed one of `userId`'s.
+ * Nothing `userId` can do alone (sending, or answering for someone) counts.
+ */
+export async function otherUserHasEngaged(userId: string, otherId: string): Promise<boolean> {
+  const [theySent, theyAnswered] = await Promise.all([
+    challenges.query({ challengerId: otherId, challengeeId: userId }, 1),
+    challenges.query({ challengerId: userId, challengeeId: otherId, completedBy: otherId }, 1),
+  ]);
+  return theySent.length > 0 || theyAnswered.length > 0;
 }
 
 /**
  * Get a specific challenge
  */
-export function getChallenge(challengeId: string): MusicChallenge | null {
-  return challenges.get(challengeId) || null;
+export async function getChallenge(challengeId: string): Promise<MusicChallenge | null> {
+  return challenges.get(challengeId);
 }
 
+/** Only the challengee answers (an admin may, explicitly), and only while pending. */
+const mayAnswer = (c: MusicChallenge, actor: ChallengeActor) =>
+  c.status === 'pending' && (c.challengeeId === actor.userId || actor.isAdmin === true);
+
 /**
- * Accept and complete a challenge
+ * Complete a pending challenge as its challengee. Null when it doesn't exist,
+ * isn't pending, or `actor` isn't the challengee (or an admin).
  */
-export function completeChallenge(
+export async function completeChallenge(
   challengeId: string,
+  actor: ChallengeActor,
   challengeeScore: number,
   challengeeTime?: number,
   challengeeName?: string
-): MusicChallenge | null {
-  const challenge = challenges.get(challengeId);
-  if (!challenge) return null;
-
-  if (challenge.status !== 'pending') {
-    log.warn({ challengeId, status: challenge.status }, 'Challenge not pending');
-    return challenge;
-  }
-
-  challenge.challengeeScore = challengeeScore;
-  challenge.challengeeTime = challengeeTime;
-  challenge.challengeeName = challengeeName;
-  challenge.status = 'completed';
-  challenge.completedAt = new Date();
-
-  // Determine winner
-  if (challengeeScore > challenge.challengerScore) {
-    challenge.winnerId = challenge.challengeeId;
-  } else if (challenge.challengerScore > challengeeScore) {
-    challenge.winnerId = challenge.challengerId;
-  } else if (challengeeTime && challenge.challengerTime) {
-    // Tie-breaker: faster time wins
-    challenge.winnerId =
-      challengeeTime < challenge.challengerTime ? challenge.challengeeId : challenge.challengerId;
-  }
-
-  log.info(
-    {
-      challengeId,
-      challengerScore: challenge.challengerScore,
+): Promise<MusicChallenge | null> {
+  const { current, written } = await bounded.answer(challengeId, (challenge) => {
+    if (!mayAnswer(challenge, actor)) return null;
+    const done: MusicChallenge = {
+      ...challenge,
       challengeeScore,
-      winnerId: challenge.winnerId,
-    },
-    '🏆 Challenge completed'
-  );
+      challengeeTime,
+      challengeeName,
+      status: 'completed',
+      completedAt: new Date(),
+      completedBy: actor.userId,
+    };
+    // Determine winner; on a tie the faster time wins
+    if (challengeeScore > challenge.challengerScore) done.winnerId = challenge.challengeeId;
+    else if (challenge.challengerScore > challengeeScore) done.winnerId = challenge.challengerId;
+    else if (challengeeTime && challenge.challengerTime) {
+      done.winnerId =
+        challengeeTime < challenge.challengerTime ? challenge.challengeeId : challenge.challengerId;
+    }
+    return done;
+  });
 
-  return challenge;
+  if (current && !written) {
+    log.warn({ challengeId, status: current.status, actor: actor.userId }, 'Refused to complete');
+  }
+  if (written) {
+    log.info({ challengeId, winnerId: written.winnerId }, '🏆 Challenge completed');
+  }
+  return written;
 }
 
 /**
- * Decline a challenge
+ * Decline a pending challenge as its challengee. Null when it doesn't exist,
+ * isn't pending, or `actor` isn't the challengee (or an admin).
  */
-export function declineChallenge(challengeId: string): MusicChallenge | null {
-  const challenge = challenges.get(challengeId);
-  if (!challenge) return null;
-
-  challenge.status = 'declined';
-
-  log.info({ challengeId }, '❌ Challenge declined');
-
-  return challenge;
+export async function declineChallenge(
+  challengeId: string,
+  actor: ChallengeActor
+): Promise<MusicChallenge | null> {
+  const { written } = await bounded.answer(challengeId, (c) =>
+    mayAnswer(c, actor)
+      ? { ...c, status: 'declined', completedAt: new Date(), declinedBy: actor.userId }
+      : null
+  );
+  if (written) log.info({ challengeId }, '❌ Challenge declined');
+  return written;
 }
 
 // ============================================================================
@@ -158,107 +191,26 @@ export function declineChallenge(challengeId: string): MusicChallenge | null {
 // ============================================================================
 
 /**
- * Get or create a leaderboard
+ * Account deletion: the user's challenges (open ones resolved first, freeing
+ * the other party's slot), their slots document and their leaderboard entries.
  */
-export function getLeaderboard(
-  type: 'weekly' | 'monthly' | 'all-time',
-  gameType: string | 'overall' = 'overall'
-): Leaderboard {
-  const key = `${type}-${gameType}`;
-  let leaderboard = leaderboards.get(key);
-
-  if (!leaderboard) {
-    leaderboard = {
-      type,
-      gameType,
-      entries: [],
-      updatedAt: new Date(),
-    };
-    leaderboards.set(key, leaderboard);
-  }
-
-  return leaderboard;
+export async function eraseMusicalSocialData(
+  userId: string
+): Promise<{ challenges: number; boards: number }> {
+  const removed = await bounded.eraseUser(userId);
+  const boards = await deleteMusicalLeaderboardEntries(userId);
+  log.info({ userId, challenges: removed, boards }, 'Erased Musical You social records');
+  return { challenges: removed, boards };
 }
 
-/**
- * Update a user's leaderboard entry
- */
-export function updateLeaderboardEntry(
-  type: 'weekly' | 'monthly' | 'all-time',
-  gameType: string | 'overall',
-  userId: string,
-  displayName: string,
-  score: number,
-  gamesPlayed: number,
-  bestStreak: number,
-  avatarUrl?: string
-): LeaderboardEntry {
-  const leaderboard = getLeaderboard(type, gameType);
-
-  // Find or create entry
-  let entry = leaderboard.entries.find((e) => e.userId === userId);
-  const previousRank = entry?.rank || leaderboard.entries.length + 1;
-
-  if (entry) {
-    entry.score = Math.max(entry.score, score); // Keep best score
-    entry.gamesPlayed = gamesPlayed;
-    entry.bestStreak = Math.max(entry.bestStreak, bestStreak);
-    if (displayName) entry.displayName = displayName;
-    if (avatarUrl) entry.avatarUrl = avatarUrl;
-  } else {
-    entry = {
-      rank: 0, // Will be calculated
-      userId,
-      displayName,
-      score,
-      gamesPlayed,
-      bestStreak,
-      avatarUrl,
-      change: 0,
-    };
-    leaderboard.entries.push(entry);
-  }
-
-  // Re-sort and assign ranks
-  leaderboard.entries.sort((a, b) => b.score - a.score);
-  leaderboard.entries.forEach((e, index) => {
-    const newRank = index + 1;
-    if (e.userId === userId) {
-      e.change = previousRank - newRank;
-    }
-    e.rank = newRank;
-  });
-
-  leaderboard.updatedAt = new Date();
-
-  log.debug({ userId, type, gameType, rank: entry.rank }, '📊 Leaderboard updated');
-
-  return entry;
-}
-
-/**
- * Get user's rank on a leaderboard
- */
-export function getUserRank(
-  userId: string,
-  type: 'weekly' | 'monthly' | 'all-time' = 'weekly',
-  gameType: string | 'overall' = 'overall'
-): LeaderboardEntry | null {
-  const leaderboard = getLeaderboard(type, gameType);
-  return leaderboard.entries.find((e) => e.userId === userId) || null;
-}
-
-/**
- * Get top N entries from leaderboard
- */
-export function getTopEntries(
-  type: 'weekly' | 'monthly' | 'all-time',
-  gameType: string | 'overall',
-  limit = 10
-): LeaderboardEntry[] {
-  const leaderboard = getLeaderboard(type, gameType);
-  return leaderboard.entries.slice(0, limit);
-}
+// Leaderboards live in ./leaderboard-store.ts (shared by every API instance).
+export {
+  getLeaderboard,
+  updateLeaderboardEntry,
+  getUserRank,
+  getTopEntries,
+  deleteMusicalLeaderboardEntries,
+};
 
 // ============================================================================
 // TASTE MATCHING
@@ -381,15 +333,15 @@ export function describeTasteMatch(tasteMatch: TasteMatch): string {
 /**
  * Get social stats for a user
  */
-export function getUserSocialStats(userId: string): {
+export async function getUserSocialStats(userId: string): Promise<{
   challengesSent: number;
   challengesReceived: number;
   challengesWon: number;
   challengesLost: number;
   currentLeaderboardRank: number | null;
   tasteMatchesCalculated: number;
-} {
-  const userChallenges = getUserChallenges(userId, 'all');
+}> {
+  const userChallenges = await getUserChallenges(userId, 'all');
 
   const sent = userChallenges.filter((c) => c.challengerId === userId);
   const received = userChallenges.filter((c) => c.challengeeId === userId);
@@ -398,7 +350,7 @@ export function getUserSocialStats(userId: string): {
   const won = completed.filter((c) => c.winnerId === userId).length;
   const lost = completed.filter((c) => c.winnerId && c.winnerId !== userId).length;
 
-  const rank = getUserRank(userId, 'weekly', 'overall');
+  const rank = await getUserRank(userId, 'weekly', 'overall');
 
   // Count taste matches
   let tasteMatchCount = 0;
