@@ -26,7 +26,10 @@ export interface PresenceParticipant {
 export interface PresenceRoom {
   remoteParticipants: Map<string, PresenceParticipant>;
   on(event: 'participantConnected' | 'disconnected', cb: (p: PresenceParticipant) => void): unknown;
-  off(event: 'participantConnected' | 'disconnected', cb: (p: PresenceParticipant) => void): unknown;
+  off(
+    event: 'participantConnected' | 'disconnected',
+    cb: (p: PresenceParticipant) => void
+  ): unknown;
 }
 
 /**

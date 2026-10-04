@@ -64,11 +64,7 @@ import {
   AGENT_JOIN_TIMEOUT_MS,
   waitForAgent,
 } from './agent-presence.js';
-import {
-  classifyConnectError,
-  ConnectStepError,
-  type ConnectFailure,
-} from './connect-failure.js';
+import { classifyConnectError, ConnectStepError, type ConnectFailure } from './connect-failure.js';
 import { reportDisconnect } from './disconnect-report.js';
 import { registerMicRestoreHandlers, type MicRoom } from './mic-restore.js';
 import { spotifyService } from './spotify.service.js';
@@ -481,7 +477,10 @@ class ConnectionService {
           throw new ConnectStepError('mic_denied');
         }
         // No device / iOS quirks: continue so the user can at least hear
-        log.warn('Microphone not available:', micError instanceof Error ? micError.message : micError);
+        log.warn(
+          'Microphone not available:',
+          micError instanceof Error ? micError.message : micError
+        );
       }
 
       // Not "connected" until the agent is actually here (it may already be).
@@ -494,7 +493,8 @@ class ConnectionService {
           attemptAbort.signal
         );
       } catch (agentError) {
-        const timedOut = agentError instanceof ConnectStepError && agentError.kind === 'agent_timeout';
+        const timedOut =
+          agentError instanceof ConnectStepError && agentError.kind === 'agent_timeout';
         throw timedOut && !dispatched ? new ConnectStepError('agent_unavailable') : agentError;
       }
       throwIfAborted();
