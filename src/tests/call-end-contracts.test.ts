@@ -73,6 +73,7 @@ describe('POST /usage/conversation contract', () => {
       pathname: '/usage/conversation',
       query: {},
       headers: {},
+      authUserId: 'device-1', // the verified caller, as the UI server mount passes it
       body,
     });
 

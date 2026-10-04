@@ -444,6 +444,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/usage/conversation',
         query: {},
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
         body: {
           userId: 'user-123',
           durationMinutes: 5,
@@ -490,6 +491,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/usage/conversation',
         query: {},
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
         body: {
           userId: 'user-123',
           durationMinutes: 3,

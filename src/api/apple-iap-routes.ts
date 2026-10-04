@@ -14,6 +14,8 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { appleIAP, isAppleConfigured } from '../services/apple-iap.js';
 import { verifyAppleSignedJws } from '../services/billing/apple-jws-verify.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { resolveActingUser } from './acting-user.js';
+import { optionalAuthAsync } from './auth-middleware.js';
 import { parseBody } from './helpers.js';
 
 const log = createLogger({ module: 'AppleIAPRoutes' });
@@ -28,6 +30,9 @@ interface RequestContext {
   query: Record<string, string>;
   body?: unknown;
   headers: Record<string, string | string[] | undefined>;
+  /** Verified caller (never from the body); set by handleAppleRoutes. */
+  authUserId?: string;
+  isAdmin?: boolean;
 }
 
 interface ResponseContext {
@@ -57,16 +62,26 @@ async function verifyReceipt(ctx: RequestContext): Promise<ResponseContext> {
 
   const body = ctx.body as { receiptData?: string; userId?: string } | undefined;
 
-  if (!body?.receiptData || !body?.userId) {
+  // The receipt is attached to the verified caller; naming another user needs admin.
+  const actor = resolveActingUser(ctx.authUserId, ctx.isAdmin, body?.userId);
+  if (!actor.ok) {
+    return {
+      status: actor.status,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: actor.error },
+    };
+  }
+
+  if (!body?.receiptData) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'receiptData and userId are required' },
+      body: { error: 'receiptData is required' },
     };
   }
 
   try {
-    const result = await appleIAP.verifyReceipt(body.receiptData, body.userId);
+    const result = await appleIAP.verifyReceipt(body.receiptData, actor.userId);
 
     return {
       status: 200,
@@ -80,7 +95,7 @@ async function verifyReceipt(ctx: RequestContext): Promise<ResponseContext> {
       },
     };
   } catch (error) {
-    log.error({ error: String(error), userId: body.userId }, 'Receipt verification failed');
+    log.error({ error: String(error), userId: actor.userId }, 'Receipt verification failed');
     return {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -319,12 +334,16 @@ export async function handleAppleRoutes(
     const body = method === 'POST' ? await parseBody(req) : undefined;
     const query = parseQuery(url);
 
+    const auth = pathname === '/api/apple/webhook' ? null : await optionalAuthAsync(req);
+
     const ctx: RequestContext = {
       method,
       pathname,
       query,
       body,
       headers: req.headers as Record<string, string | string[] | undefined>,
+      authUserId: auth?.userId,
+      isAdmin: auth?.isAdmin ?? false,
     };
 
     // Execute handler
