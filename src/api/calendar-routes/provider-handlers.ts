@@ -7,8 +7,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { getLogger } from '../../utils/safe-logger.js';
-import { parseBody, sendError } from '../helpers.js';
-import { sendJson, checkRateLimitAndApply } from './helpers.js';
+import { sendError } from '../helpers.js';
+import { sendJson, checkRateLimitAndApply, readJsonBody } from './helpers.js';
 import { appleCalendarProvider } from '../../services/calendar/providers/apple-provider.js';
 import { outlookCalendarProvider } from '../../services/calendar/providers/outlook-provider.js';
 import {
@@ -38,7 +38,7 @@ export async function handleAppleConnect(
   if (checkRateLimitAndApply(res, userId, 'credential')) return;
 
   try {
-    const body = await parseBody<{ apple_id?: string; app_password?: string }>(req);
+    const body = await readJsonBody<{ apple_id?: string; app_password?: string }>(req);
 
     const appleId = body.apple_id;
     const appPassword = body.app_password;

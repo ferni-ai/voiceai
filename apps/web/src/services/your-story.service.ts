@@ -7,7 +7,7 @@
  * Handles:
  * - Firebase auth token injection
  * - Dev mode bypass for testing
- * - Error handling with graceful fallback
+ * - Honest empty / error results (never demo data)
  * - Data transformation from API to visualization format
  *
  * @module services/your-story
@@ -15,10 +15,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
-import {
-  type YourStoryData,
-  createDemoStoryData,
-} from '../ui/visualizations/index.js';
+import type { YourStoryData } from '../ui/visualizations/index.js';
 
 /**
  * Get the current user ID from localStorage.
@@ -147,15 +144,23 @@ interface ApiStoryResponse {
 // ============================================================================
 
 /**
- * Fetch the user's story data from the API.
- *
- * @returns YourStoryData for the dashboard, or demo data on error
+ * Outcome of loading the user's story. Never demo data: the caller decides
+ * what an empty or failed load looks like, so made-up numbers can't pass as
+ * the user's own.
  */
-export async function fetchYourStory(): Promise<YourStoryData> {
+export type YourStoryResult =
+  | { status: 'ok'; data: YourStoryData }
+  | { status: 'empty' }
+  | { status: 'error' };
+
+/**
+ * Fetch the user's story data from the API.
+ */
+export async function fetchYourStory(): Promise<YourStoryResult> {
   const userId = getCurrentUserId();
   if (!userId) {
-    log.warn('No user ID, returning demo data');
-    return createDemoStoryData('demo-user');
+    log.debug('No user ID yet, nothing to show');
+    return { status: 'empty' };
   }
 
   try {
@@ -164,14 +169,16 @@ export async function fetchYourStory(): Promise<YourStoryData> {
     const response = await apiGet<ApiStoryResponse>('/api/your-story/full');
 
     if (!response.ok || !response.data?.success) {
-      log.warn({ error: response.error }, 'API error, using demo data');
-      return createDemoStoryData(userId);
+      log.warn({ error: response.error }, 'Your Story API error');
+      return { status: 'error' };
     }
 
-    return transformApiResponse(response.data.data, userId);
+    const data = transformApiResponse(response.data.data, userId);
+    const hasStory = data.analytics.conversations > 0 || data.analytics.daysTogether > 0;
+    return hasStory ? { status: 'ok', data } : { status: 'empty' };
   } catch (error) {
     log.error({ error, userId }, 'Failed to fetch Your Story');
-    return createDemoStoryData(userId);
+    return { status: 'error' };
   }
 }
 

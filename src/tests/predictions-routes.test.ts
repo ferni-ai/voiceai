@@ -36,6 +36,11 @@ vi.mock('../utils/safe-logger.js', () => ({
   })),
 }));
 
+// Writes require a verified caller; these requests come from signed-in test-user.
+vi.mock('../api/auth-middleware.js', () => ({
+  requireAuth: vi.fn(async () => ({ userId: 'test-user', isAdmin: false })),
+}));
+
 // Mock validators
 vi.mock('../api/validators.js', () => ({
   validateBody: vi.fn(),

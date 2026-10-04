@@ -497,59 +497,9 @@ export function emitConversationEnd(context: {
   );
 }
 
-/**
- * Emit trust update event.
- */
-export function emitTrustUpdate(context: {
-  sessionId?: string;
-  userId: string;
-  personaId: string;
-  trustDelta: number;
-  reason: string;
-}): void {
-  AsyncEvents.emit(
-    'trust:update',
-    {
-      trustDelta: context.trustDelta,
-      reason: context.reason,
-    },
-    context
-  );
-}
-
-/**
- * Emit analytics interaction event.
- */
-export function emitAnalyticsInteraction(context: {
-  sessionId: string;
-  userId: string;
-  personaId: string;
-  interactionType: string;
-  metadata?: Record<string, unknown>;
-}): void {
-  AsyncEvents.emit(
-    'analytics:interaction',
-    {
-      interactionType: context.interactionType,
-      metadata: context.metadata || {},
-    },
-    context
-  );
-}
-
 // ============================================================================
 // PUB/SUB WORKER EMITTERS
 // ============================================================================
-
-/**
- * Queue embedding generation (processed by Pub/Sub worker).
- */
-export function queueEmbeddingGeneration(
-  text: string,
-  context?: { userId?: string; sessionId?: string }
-): void {
-  AsyncEvents.emit('embedding:generate', { text, ...context }, context);
-}
 
 /**
  * Queue batch embedding generation (processed by Pub/Sub worker).

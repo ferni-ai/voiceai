@@ -7,6 +7,7 @@
  * Philosophy: Keep it simple. Let Stripe handle complexity.
  */
 
+import { createHash, timingSafeEqual } from 'crypto';
 import {
   checkTrialStatus,
   getTrialState,
@@ -31,6 +32,7 @@ import {
   trackStripeEvent,
 } from '../services/subscription-metrics.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { decideActingUser } from './acting-user.js';
 
 // Initialize subscription metrics on module load (fire-and-forget)
 // Logger isn't available yet at module level, so we use process.stderr for init errors
@@ -66,6 +68,24 @@ interface ResponseContext {
 }
 
 type RouteHandler = (ctx: RequestContext) => Promise<ResponseContext>;
+
+/** Constant-time key compare (hashed to equal length); false when either side is missing. */
+function adminKeyMatches(presented: unknown, expected: string | undefined): boolean {
+  if (typeof presented !== 'string' || !presented || !expected) return false;
+  const digest = (v: string) => createHash('sha256').update(v).digest();
+  return timingSafeEqual(digest(presented), digest(expected));
+}
+
+/** The user a body-named action may touch: the verified caller (admins may name another). */
+function actingUser(ctx: RequestContext, named: unknown): { userId: string } | ResponseContext {
+  const r = decideActingUser(ctx.authUserId, ctx.isAdmin, named);
+  if (r.ok) return { userId: r.userId };
+  return {
+    status: r.status,
+    headers: { 'Content-Type': 'application/json' },
+    body: { error: r.error },
+  };
+}
 
 // ============================================================================
 // ROUTE HANDLERS
@@ -177,11 +197,13 @@ async function createCheckout(ctx: RequestContext): Promise<ResponseContext> {
     currency?: string; // Optional override: 'USD', 'EUR', 'JPY', etc.
   };
 
-  if (!body.userId || !body.tier) {
+  const actor = actingUser(ctx, body.userId);
+  if (!('userId' in actor)) return actor;
+  if (!body.tier) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId and tier are required' },
+      body: { error: 'tier is required' },
     };
   }
 
@@ -202,7 +224,7 @@ async function createCheckout(ctx: RequestContext): Promise<ResponseContext> {
     }
 
     const session = await createCheckoutSession({
-      userId: body.userId,
+      userId: actor.userId,
       tier: body.tier,
       successUrl: body.successUrl || 'https://ferni.ai/subscription/success',
       cancelUrl: body.cancelUrl || 'https://ferni.ai/subscription/cancel',
@@ -217,7 +239,7 @@ async function createCheckout(ctx: RequestContext): Promise<ResponseContext> {
       body: session,
     };
   } catch (error) {
-    log.error({ error: String(error), userId: body.userId }, 'Failed to create checkout session');
+    log.error({ error: String(error), userId: actor.userId }, 'Failed to create checkout session');
     return {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -244,17 +266,12 @@ async function createBillingPortal(ctx: RequestContext): Promise<ResponseContext
     returnUrl?: string;
   };
 
-  if (!body.userId) {
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId is required' },
-    };
-  }
+  const actor = actingUser(ctx, body.userId);
+  if (!('userId' in actor)) return actor;
 
   try {
     const session = await createPortalSession(
-      body.userId,
+      actor.userId,
       body.returnUrl || 'https://ferni.ai/settings'
     );
 
@@ -264,7 +281,7 @@ async function createBillingPortal(ctx: RequestContext): Promise<ResponseContext
       body: session,
     };
   } catch (error) {
-    log.error({ error: String(error), userId: body.userId }, 'Failed to create portal session');
+    log.error({ error: String(error), userId: actor.userId }, 'Failed to create portal session');
     return {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -283,23 +300,18 @@ async function recordConversationUsage(ctx: RequestContext): Promise<ResponseCon
     durationMinutes?: number;
   };
 
-  if (!body.userId) {
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId is required' },
-    };
-  }
+  const actor = actingUser(ctx, body.userId);
+  if (!('userId' in actor)) return actor;
 
   try {
-    const status = await recordConversation(body.userId, body.durationMinutes ?? 0);
+    const status = await recordConversation(actor.userId, body.durationMinutes ?? 0);
     return {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
       body: status,
     };
   } catch (error) {
-    log.error({ error: String(error), userId: body.userId }, 'Failed to record conversation');
+    log.error({ error: String(error), userId: actor.userId }, 'Failed to record conversation');
     return {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -320,35 +332,24 @@ async function createAdminUpgrade(ctx: RequestContext): Promise<ResponseContext>
     admin_key?: string;
   };
 
-  // SECURITY: Only allow admin upgrades in development OR with valid ADMIN_KEY
-  const isDev = process.env.NODE_ENV !== 'production';
+  // SECURITY: the admin key is required everywhere except a developer's machine
+  // (NODE_ENV=development, where 'dev-mode' also works). Staging is not exempt.
+  const isDev = process.env.NODE_ENV === 'development';
   const adminKey = process.env.ADMIN_KEY;
-
-  // In production, REQUIRE ADMIN_KEY env var (no fallback!)
-  if (!isDev) {
-    if (!adminKey) {
-      return {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-        body: { error: 'ADMIN_KEY not configured' },
-      };
-    }
-    if (body.admin_key !== adminKey) {
-      return {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-        body: { error: 'Unauthorized' },
-      };
-    }
-  } else {
-    // In development, allow 'dev-mode' key
-    if (body.admin_key !== 'dev-mode' && body.admin_key !== adminKey) {
-      return {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-        body: { error: 'Unauthorized - use admin_key: dev-mode in development' },
-      };
-    }
+  if (!isDev && !adminKey) {
+    return {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'ADMIN_KEY not configured' },
+    };
+  }
+  const accepted = isDev ? [adminKey, 'dev-mode'] : [adminKey];
+  if (!accepted.some((key) => adminKeyMatches(body.admin_key, key))) {
+    return {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Unauthorized' },
+    };
   }
 
   const userId = body.userId || body.device_id;
@@ -542,15 +543,9 @@ async function getTrialStatus(ctx: RequestContext): Promise<ResponseContext> {
  * Start trial for a new user.
  */
 async function startTrialEndpoint(ctx: RequestContext): Promise<ResponseContext> {
-  const { userId } = ctx.body as { userId?: string };
-
-  if (!userId) {
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId is required' },
-    };
-  }
+  const actor = actingUser(ctx, (ctx.body as { userId?: string } | undefined)?.userId);
+  if (!('userId' in actor)) return actor;
+  const { userId } = actor;
 
   try {
     // Check if already started
@@ -595,15 +590,13 @@ async function startTrialEndpoint(ctx: RequestContext): Promise<ResponseContext>
  * Record time spent in current session.
  */
 async function recordTrialTimeEndpoint(ctx: RequestContext): Promise<ResponseContext> {
-  const { userId, sessionTimeMs } = ctx.body as { userId?: string; sessionTimeMs?: number };
-
-  if (!userId) {
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId is required' },
-    };
-  }
+  const { userId: named, sessionTimeMs } = (ctx.body ?? {}) as {
+    userId?: string;
+    sessionTimeMs?: number;
+  };
+  const actor = actingUser(ctx, named);
+  if (!('userId' in actor)) return actor;
+  const { userId } = actor;
 
   if (typeof sessionTimeMs !== 'number' || sessionTimeMs < 0) {
     return {

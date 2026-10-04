@@ -221,7 +221,7 @@ export async function handleDeleteMemory(
 
     // Try persona memories first
     const { forget } = await import('../../services/memory/persona-memories.js');
-    const personaDeleted = await forget(memoryId);
+    const personaDeleted = await forget(memoryId, userId);
     if (personaDeleted) {
       deleted = true;
       deleteSource = 'persona_memory';

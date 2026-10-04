@@ -267,6 +267,30 @@ vi.mock('firebase-admin/firestore', () => {
   };
 });
 
+// About 100 modules (the persistence layer among them) import @google-cloud/firestore
+// directly, which the firebase-admin mock above doesn't cover, so tests built a real
+// client. In CI, with no credentials, every call retried to its deadline (13-21 s per
+// test), pushing Integration Tests past its 30-minute limit; locally, a developer's
+// gcloud credentials sent test reads and writes to the real project. Tests run against
+// the emulator keep the real client, and a test's own vi.mock still takes precedence.
+vi.mock('@google-cloud/firestore', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@google-cloud/firestore')>();
+  if (process.env.FIRESTORE_EMULATOR_HOST) return actual;
+
+  class Firestore {
+    constructor() {
+      const db = createMockFirestore();
+      return Object.assign(db, {
+        settings: vi.fn(),
+        terminate: vi.fn().mockResolvedValue(undefined),
+        listCollections: vi.fn().mockResolvedValue([]),
+        collectionGroup: vi.fn(() => db.collection('')),
+      });
+    }
+  }
+  return { ...actual, Firestore, default: { ...actual, Firestore } };
+});
+
 vi.mock('firebase-admin/app', () => ({
   initializeApp: vi.fn(),
   getApp: vi.fn(() => ({

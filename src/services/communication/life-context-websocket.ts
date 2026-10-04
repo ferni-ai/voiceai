@@ -5,8 +5,10 @@
  * Connects to the LifeContextBroadcast service and streams events to clients.
  *
  * Usage:
- * - Client connects to ws://localhost:PORT/ws/life-context
- * - Client sends { type: 'subscribe', userId: 'xxx' } to start receiving updates
+ * - Client connects to ws://localhost:PORT/ws/life-context, offering subprotocols
+ *   ['ferni.v1', 'bearer.<Firebase ID token>']
+ *   (no valid token: the upgrade is refused with 401)
+ * - Client sends { type: 'subscribe' } to receive updates for the verified user
  * - Server streams life context events as JSON
  * - Client can send ping messages to keep connection alive
  *
@@ -25,6 +27,12 @@ import {
   getLifeContextSnapshot,
 } from './life-context-broadcast.js';
 import { generateSynthesisTriggers } from '../../intelligence/triggers/index.js';
+import {
+  rejectUpgrade,
+  selectWsProtocol,
+  upgradePath,
+  verifyUpgradeIdentity,
+} from '../identity/ws-identity.js';
 
 const log = createLogger({ module: 'LifeContextWebSocket' });
 
@@ -34,6 +42,8 @@ const log = createLogger({ module: 'LifeContextWebSocket' });
 
 interface ClientInfo {
   ws: WebSocket;
+  /** Verified at the upgrade; the only user this socket may read. */
+  uid: string;
   userId: string | null;
   subscribedAt: number | null;
 }
@@ -79,21 +89,19 @@ export function initLifeContextWebSocket(httpServer: Server): WebSocketServer {
   const wss = new WebSocketServer({
     noServer: true,
     // Disable compression to prevent "RSV1 must be clear" errors
+    handleProtocols: selectWsProtocol,
     perMessageDeflate: false,
   });
 
   wssInstance = wss;
 
-  // Handle upgrade requests for /ws/life-context path
+  // Other paths belong to other upgrade handlers: leave their sockets alone.
   httpServer.on('upgrade', (request, socket, head) => {
-    const { pathname } = new URL(request.url || '', `http://${request.headers.host}`);
-
-    if (pathname === '/ws/life-context') {
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);
-      });
-    }
-    // Note: Don't destroy socket here - let other handlers process their paths
+    if (upgradePath(request) !== '/ws/life-context') return;
+    void verifyUpgradeIdentity(request).then((uid) => {
+      if (!uid) return rejectUpgrade(socket);
+      wss.handleUpgrade(request, socket, head, (ws) => onConnection(ws, uid));
+    });
   });
 
   log.info('Life Context WebSocket server initialized on /ws/life-context');
@@ -119,13 +127,8 @@ export function initLifeContextWebSocket(httpServer: Server): WebSocketServer {
     });
   });
 
-  wss.on('connection', (ws: WebSocket) => {
-    // Initialize client info
-    clients.set(ws, {
-      ws,
-      userId: null,
-      subscribedAt: null,
-    });
+  function onConnection(ws: WebSocket, uid: string): void {
+    clients.set(ws, { ws, uid, userId: null, subscribedAt: null });
 
     log.info({ clientCount: clients.size }, 'Life Context WebSocket client connected');
 
@@ -151,7 +154,7 @@ export function initLifeContextWebSocket(httpServer: Server): WebSocketServer {
       log.warn({ error: String(error) }, 'Life Context WebSocket client error');
       handleClientDisconnect(ws);
     });
-  });
+  }
 
   // Heartbeat to keep connections alive AND clean up stale connections
   registerInterval(
@@ -193,16 +196,16 @@ export function initLifeContextWebSocket(httpServer: Server): WebSocketServer {
 }
 
 /**
- * Handle incoming message from client
+ * Handle incoming message from client. A userId in the message is ignored:
+ * subscribe and refresh always act on the uid verified at the upgrade. We
+ * ignore rather than reject a mismatch because clients send whatever local id
+ * they hold; acting on the bound uid keeps them working and reads nobody else.
  */
-interface ClientMessage {
-  type: string;
-  userId?: string;
-}
-
 function handleClientMessage(ws: WebSocket, message: Buffer): void {
   try {
-    const data = JSON.parse(message.toString()) as ClientMessage;
+    const data = JSON.parse(message.toString()) as { type: string };
+    const uid = clients.get(ws)?.uid;
+    if (!uid) return;
 
     switch (data.type) {
       case 'ping':
@@ -210,9 +213,7 @@ function handleClientMessage(ws: WebSocket, message: Buffer): void {
         break;
 
       case 'subscribe':
-        if (data.userId) {
-          handleSubscribe(ws, data.userId);
-        }
+        handleSubscribe(ws, uid);
         break;
 
       case 'unsubscribe':
@@ -220,11 +221,9 @@ function handleClientMessage(ws: WebSocket, message: Buffer): void {
         break;
 
       case 'refresh':
-        if (data.userId) {
-          handleRefreshRequest(ws, data.userId).catch((error: unknown) => {
-            log.error({ error, userId: data.userId }, 'Unhandled error in refresh request');
-          });
-        }
+        handleRefreshRequest(ws, uid).catch((error: unknown) => {
+          log.error({ error, userId: uid }, 'Unhandled error in refresh request');
+        });
         break;
 
       default:

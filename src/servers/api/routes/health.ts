@@ -52,9 +52,8 @@ export async function handleHealthRoutes(
         const initialized = toolRegistry.isInitialized();
 
         if (!initialized || stats.totalTools === 0) {
-          checks.tools = { status: 'error', latencyMs: Date.now() - toolStart, details: 'Not initialized' };
-          overallStatus = 'not_ready';
-          alerts.push({ level: 'error', message: 'Tool registry not ready' });
+          // Tools run in the voice agent, not this API server: informational only.
+          checks.tools = { status: 'ok', latencyMs: Date.now() - toolStart, details: 'Not loaded here (voice agent)' };
         } else if (stats.totalTools < 50) {
           checks.tools = { status: 'degraded', latencyMs: Date.now() - toolStart, details: `${stats.totalTools} tools` };
           if (overallStatus === 'ready') overallStatus = 'degraded';
@@ -90,7 +89,7 @@ export async function handleHealthRoutes(
       // 3. LLM Connectivity Check (OpenAI key present)
       const llmStart = Date.now();
       const hasOpenAI = !!process.env.OPENAI_API_KEY;
-      const hasGemini = !!process.env.GOOGLE_API_KEY;
+      const hasGemini = !!process.env.GOOGLE_API_KEY || process.env.USE_VERTEX_AI !== 'false'; // Vertex: service account
       if (hasOpenAI || hasGemini) {
         checks.llm = { status: 'ok', latencyMs: Date.now() - llmStart, details: hasOpenAI ? 'OpenAI' : 'Gemini' };
       } else {

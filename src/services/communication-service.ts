@@ -106,8 +106,14 @@ export async function sendEmail(
 
   // Check API key
   if (!SENDGRID_API_KEY) {
-    getLogger().warn('SendGrid API key not configured - email not sent');
-    return `[DEV MODE] Would send email to ${sanitizeEmailForLog(to)}: ${subject}`;
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    if (isDevelopment) {
+      getLogger().warn('SendGrid API key not configured - email not sent (development mode)');
+      return `[DEV MODE] Would send email to ${sanitizeEmailForLog(to)}: ${subject}`;
+    }
+
+    getLogger().error('SendGrid API key not configured in production');
+    throw new Error('Email service is not available: SendGrid API key is not configured. Contact support to enable email delivery.');
   }
 
   const sanitizedBody = isHtml ? body : sanitizePlainText(body);
@@ -159,8 +165,14 @@ export async function sendSMS(to: string, message: string): Promise<string> {
 
   // Check Twilio credentials
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
-    getLogger().warn('Twilio credentials not configured - SMS not sent');
-    return `[DEV MODE] Would send SMS to ${sanitizePhoneForLog(to)}: ${message.slice(0, 50)}...`;
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    if (isDevelopment) {
+      getLogger().warn('Twilio credentials not configured - SMS not sent (development mode)');
+      return `[DEV MODE] Would send SMS to ${sanitizePhoneForLog(to)}: ${message.slice(0, 50)}...`;
+    }
+
+    getLogger().error('Twilio credentials not configured in production');
+    throw new Error('SMS service is not available: Twilio credentials are not configured. Contact support to enable SMS delivery.');
   }
 
   const sanitizedMessage = sanitizePlainText(message);

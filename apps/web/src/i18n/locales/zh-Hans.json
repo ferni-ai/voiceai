@@ -2009,6 +2009,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "你的故事从这里开始",
+      "body": "我们多聊几次之后，对你重要的时刻会出现在这里。"
+    },
+    "error": {
+      "title": "无法加载你的故事",
+      "body": "我们这边出了点问题。再试一次？",
+      "retry": "重试"
     }
   },
   "memoryBrowser": {
@@ -2253,7 +2262,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "在设置中关联 Spotify 即可收听完整歌曲"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2318,7 +2328,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "请先连接你的灯光或温控器",
+    "couldNotChangeLights": "无法更改灯光。再试一次？",
+    "musicNeedsCall": "音乐控制在对话期间可用"
   },
   "ui": {
     "accountbutton": {

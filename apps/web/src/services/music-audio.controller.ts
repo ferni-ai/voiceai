@@ -119,6 +119,9 @@ class MusicAudioController {
   private fallbackAudioElement: HTMLAudioElement | null = null;
   private usingFallback = false;
 
+  /** The listener's own music level (Now Playing slider/mute), 0-1. Scales every gain. */
+  private listenerVolume = 1;
+
   constructor() {
     log.debug('MusicAudioController created');
   }
@@ -232,7 +235,7 @@ class MusicAudioController {
 
       // 3. Create GainNode for ducking 🎚️
       const gainNode = ctx.createGain();
-      gainNode.gain.value = GAIN.NORMAL;
+      gainNode.gain.value = GAIN.NORMAL * this.listenerVolume;
 
       // 4. Connect the chain
       mediaSource.connect(analyser);
@@ -258,16 +261,9 @@ class MusicAudioController {
         backendDucking: this.backendDucking,
       });
 
-      // Apply any existing ducking state (in case someone started speaking before track attached)
-      const duckingApplied = this.updateDucking();
-      if (this.agentSpeaking || this.userSpeaking || this.backendDucking) {
-        log.info('🎚️ Applied pending ducking state after track attachment', {
-          duckingApplied,
-          agentSpeaking: this.agentSpeaking,
-          userSpeaking: this.userSpeaking,
-          backendDucking: this.backendDucking,
-        });
-      }
+      // Apply any existing ducking state (in case someone started speaking before track attached).
+      // The attach log above records the speaking flags.
+      this.updateDucking();
 
       // Return cleanup function
       return () => this.detachTrack(trackId);
@@ -302,10 +298,8 @@ class MusicAudioController {
       this.fallbackAudioElement = audioElement;
       this.usingFallback = true;
 
-      // Apply any pending ducking state to fallback
-      if (this.agentSpeaking || this.userSpeaking || this.backendDucking) {
-        this.applyFallbackDuck();
-      }
+      // Apply any pending ducking state (and the listener's volume) to fallback
+      this.applyFallbackDuck();
 
       return () => {
         log.debug('🎚️ Fallback cleanup', { trackId });
@@ -340,7 +334,7 @@ class MusicAudioController {
     }
 
     // Direct volume control (instant, no ramp)
-    this.fallbackAudioElement.volume = Math.max(targetVolume, GAIN.MINIMUM);
+    this.fallbackAudioElement.volume = Math.max(targetVolume, GAIN.MINIMUM) * this.listenerVolume;
 
     log.info('🎚️ Fallback ducking applied', {
       volume: this.fallbackAudioElement.volume.toFixed(2),
@@ -349,13 +343,17 @@ class MusicAudioController {
   }
 
   /**
-   * Restore volume via fallback.
+   * Set the listener's music level from the Now Playing slider (0-100; 0 mutes).
+   * Applied here because the agent's music player fixes a track's volume when it
+   * starts (its `volume` action only affects the next track).
    */
-  private restoreFallbackVolume(): void {
-    if (!this.fallbackAudioElement) return;
-
-    this.fallbackAudioElement.volume = GAIN.NORMAL;
-    log.debug('🎚️ Fallback volume restored');
+  setListenerVolume(percent: number): void {
+    this.listenerVolume = Math.max(0, Math.min(100, percent)) / 100;
+    if (this.currentTrack) {
+      this.rampGain(this.currentTrack.targetGain, RAMP.DUCK_DOWN_MS);
+    } else if (this.usingFallback) {
+      this.applyFallbackDuck();
+    }
   }
 
   /**
@@ -612,7 +610,7 @@ class MusicAudioController {
 
     // Use linear ramp (exponential can't go to exactly 0)
     // Clamp to minimum to avoid complete silence
-    const clampedGain = Math.max(targetGain, GAIN.MINIMUM);
+    const clampedGain = Math.max(targetGain, GAIN.MINIMUM) * this.listenerVolume;
     gainNode.gain.linearRampToValueAtTime(clampedGain, endTime);
 
     // 🎚️ FIX: Use info level so volume changes are visible in console

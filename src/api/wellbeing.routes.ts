@@ -13,51 +13,14 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
-import {
-  getUserId,
-  handleCorsPreflightIfNeeded,
-  parseBody as parseBodyHelper,
-  sendJSON,
-} from './helpers.js';
+import { buildDashboardResponse, loadWellbeingData, snapshotsWithin } from './wellbeing-data.js';
+import { handleCorsPreflightIfNeeded, parseBody as parseBodyHelper, sendJSON } from './helpers.js';
 
 const log = getLogger().child({ module: 'wellbeing-handler' });
 
 // ============================================================================
 // TYPES
 // ============================================================================
-
-interface DashboardResponse {
-  userId: string;
-  currentState: {
-    mood: number;
-    energy: number;
-    anxiety: number;
-    connection: number;
-    purpose: number;
-    sleep: number;
-    lastUpdated: string;
-  };
-  trends: {
-    period: 'week' | 'month';
-    direction: 'improving' | 'stable' | 'declining';
-    changedDimensions: string[];
-  };
-  insights: Array<{
-    type: 'pattern' | 'suggestion' | 'celebration';
-    message: string;
-    dimension?: string;
-  }>;
-  warnings: Array<{
-    type: string;
-    severity: 'watch' | 'concern' | 'urgent';
-    message: string;
-  }>;
-  streaks: {
-    currentDays: number;
-    bestDays: number;
-    lastCheckIn: string;
-  };
-}
 
 interface SnapshotRequest {
   mood?: number;
@@ -73,7 +36,7 @@ interface SnapshotRequest {
 // HELPERS
 // ============================================================================
 
-// getUserId, parseBodyHelper, sendJSON imported from ./helpers.js
+// parseBodyHelper, sendJSON imported from ./helpers.js
 
 /**
  * Parse body with null fallback (for optional/nullable body)
@@ -97,109 +60,23 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
 // ROUTE HANDLERS
 // ============================================================================
 
-async function handleGetDashboard(
-  req: IncomingMessage,
-  res: ServerResponse,
-  url: URL
-): Promise<void> {
-  const userId = getUserId(req, url);
-  if (!userId) {
-    sendJson(res, 400, { error: 'userId is required' });
-    return;
-  }
-
+async function handleGetDashboard(res: ServerResponse, userId: string): Promise<void> {
   try {
-    const { getWellbeingProfile, getRecentSnapshots } =
-      await import('../services/wellbeing-tracking/index.js');
     const { checkWarnings } = await import('../services/wellbeing-tracking/early-warning.js');
+    const data = await loadWellbeingData(userId);
+    const warnings = data.profile && data.current ? checkWarnings(data.profile) : [];
 
-    const profile = getWellbeingProfile(userId);
-    const recentSnapshots = getRecentSnapshots(userId, 7);
-
-    // Calculate current state from profile
-    const currentState = {
-      mood: profile.current?.dimensions.mood ?? 0.5,
-      energy: profile.current?.dimensions.energy ?? 0.5,
-      anxiety: profile.current?.dimensions.worry ?? 0.5,
-      connection: profile.current?.dimensions.loneliness
-        ? 1 - profile.current.dimensions.loneliness
-        : 0.5,
-      purpose: profile.current?.dimensions.meaningfulness ?? 0.5,
-      sleep: profile.current?.dimensions.sleepQuality ?? 0.5,
-      lastUpdated: profile.current?.timestamp?.toISOString() || new Date().toISOString(),
-    };
-
-    // Get trends
-    const trends = {
-      period: 'week' as const,
-      direction: (profile.weeklyTrends.filter((t) => t.direction === 'improving').length >
-      profile.weeklyTrends.filter((t) => t.direction === 'declining').length
-        ? 'improving'
-        : profile.weeklyTrends.filter((t) => t.direction === 'declining').length >
-            profile.weeklyTrends.filter((t) => t.direction === 'improving').length
-          ? 'declining'
-          : 'stable') as 'improving' | 'stable' | 'declining',
-      changedDimensions: profile.weeklyTrends
-        .filter((t) => t.direction !== 'stable')
-        .map((t) => t.dimension),
-    };
-
-    // Check warnings
-    const warnings = checkWarnings(profile);
-
-    // Generate insights
-    const insights: DashboardResponse['insights'] = [];
-    if (currentState.mood > 0.7) {
-      insights.push({
-        type: 'celebration',
-        message: 'Your mood has been great lately!',
-        dimension: 'mood',
-      });
-    }
-    if (currentState.anxiety < 0.3) {
-      insights.push({
-        type: 'celebration',
-        message: 'Anxiety seems well-managed.',
-        dimension: 'anxiety',
-      });
-    }
-    if (currentState.sleep < 0.4) {
-      insights.push({
-        type: 'pattern',
-        message: 'Sleep quality has been low lately.',
-        dimension: 'sleep',
-      });
-    }
-    if (currentState.connection < 0.4) {
-      insights.push({
-        type: 'suggestion',
-        message: 'Connection feels low - reaching out might help.',
-        dimension: 'connection',
-      });
-    }
-
-    // Calculate streaks
-    const uniqueDays = new Set(recentSnapshots.map((s) => s.timestamp.toISOString().split('T')[0]));
-    const streaks = {
-      currentDays: uniqueDays.size,
-      bestDays: uniqueDays.size,
-      lastCheckIn: recentSnapshots[0]?.timestamp?.toISOString() || '',
-    };
-
-    const response: DashboardResponse = {
+    const response = buildDashboardResponse(
       userId,
-      currentState,
-      trends,
-      insights,
-      warnings: warnings.map((w) => ({
+      data,
+      warnings.map((w) => ({
         type: w.type,
         severity: w.severity,
         message: w.recommendations?.forUser?.[0] || `Warning: ${w.type}`,
-      })),
-      streaks,
-    };
+      }))
+    );
 
-    log.debug({ userId, warnings: warnings.length }, 'Dashboard data retrieved');
+    log.debug({ userId, hasData: response.hasData }, 'Dashboard data retrieved');
     sendJson(res, 200, response);
   } catch (error) {
     log.error({ error, userId }, 'Failed to get dashboard');
@@ -207,20 +84,12 @@ async function handleGetDashboard(
   }
 }
 
-async function handleGetTrends(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
-  const userId = getUserId(req, url);
+async function handleGetTrends(res: ServerResponse, url: URL, userId: string): Promise<void> {
   const period = (url.searchParams.get('period') as 'week' | 'month' | 'quarter') || 'week';
 
-  if (!userId) {
-    sendJson(res, 400, { error: 'userId is required' });
-    return;
-  }
-
   try {
-    const { getRecentSnapshots } = await import('../services/wellbeing-tracking/index.js');
-
     const days = period === 'week' ? 7 : period === 'month' ? 30 : 90;
-    const snapshots = getRecentSnapshots(userId, days);
+    const snapshots = snapshotsWithin((await loadWellbeingData(userId)).snapshots, days);
 
     // Group by date
     const byDate = new Map<string, typeof snapshots>();
@@ -252,21 +121,19 @@ async function handleGetTrends(req: IncomingMessage, res: ServerResponse, url: U
       }));
 
     const averages = {
-      mood: average(snapshots.map((s) => s.dimensions.mood).filter(Boolean) as number[]) || 0.5,
-      energy: average(snapshots.map((s) => s.dimensions.energy).filter(Boolean) as number[]) || 0.5,
-      anxiety: average(snapshots.map((s) => s.dimensions.worry).filter(Boolean) as number[]) || 0.5,
-      connection:
-        average(
-          snapshots
-            .map((s) => s.dimensions.loneliness)
-            .filter(Boolean)
-            .map((v) => 1 - (v as number)) as number[]
-        ) || 0.5,
-      purpose:
-        average(snapshots.map((s) => s.dimensions.meaningfulness).filter(Boolean) as number[]) ||
-        0.5,
-      sleep:
-        average(snapshots.map((s) => s.dimensions.sleepQuality).filter(Boolean) as number[]) || 0.5,
+      mood: average(snapshots.map((s) => s.dimensions.mood).filter(Boolean) as number[]),
+      energy: average(snapshots.map((s) => s.dimensions.energy).filter(Boolean) as number[]),
+      anxiety: average(snapshots.map((s) => s.dimensions.worry).filter(Boolean) as number[]),
+      connection: average(
+        snapshots
+          .map((s) => s.dimensions.loneliness)
+          .filter(Boolean)
+          .map((v) => 1 - (v as number)) as number[]
+      ),
+      purpose: average(
+        snapshots.map((s) => s.dimensions.meaningfulness).filter(Boolean) as number[]
+      ),
+      sleep: average(snapshots.map((s) => s.dimensions.sleepQuality).filter(Boolean) as number[]),
     };
 
     sendJson(res, 200, { userId, period, dataPoints, averages, correlations: [] });
@@ -276,24 +143,10 @@ async function handleGetTrends(req: IncomingMessage, res: ServerResponse, url: U
   }
 }
 
-async function handleGetInsights(
-  req: IncomingMessage,
-  res: ServerResponse,
-  url: URL
-): Promise<void> {
-  const userId = getUserId(req, url);
-
-  if (!userId) {
-    sendJson(res, 400, { error: 'userId is required' });
-    return;
-  }
-
+async function handleGetInsights(res: ServerResponse, userId: string): Promise<void> {
   try {
-    const { getWellbeingProfile, getRecentSnapshots } =
-      await import('../services/wellbeing-tracking/index.js');
-
-    const profile = getWellbeingProfile(userId);
-    const snapshots = getRecentSnapshots(userId, 30);
+    const data = await loadWellbeingData(userId);
+    const snapshots = snapshotsWithin(data.snapshots, 30);
 
     // Generate patterns
     const patterns: Array<{
@@ -346,7 +199,7 @@ async function handleGetInsights(
       reason: string;
       priority: 'high' | 'medium' | 'low';
     }> = [];
-    const current = profile.current?.dimensions;
+    const current = data.current?.dimensions;
     if (current) {
       if ((current.sleepQuality ?? 1) < 0.4) {
         recommendations.push({
@@ -386,15 +239,9 @@ async function handleGetInsights(
 async function handlePostSnapshot(
   req: IncomingMessage,
   res: ServerResponse,
-  url: URL
+  userId: string
 ): Promise<void> {
-  const userId = getUserId(req, url);
   const snapshot = await parseBody<SnapshotRequest>(req);
-
-  if (!userId) {
-    sendJson(res, 400, { error: 'userId is required' });
-    return;
-  }
 
   if (!snapshot) {
     sendJson(res, 400, { error: 'Invalid request body' });
@@ -465,7 +312,7 @@ export async function handleWellbeingRoutes(
     return true;
   }
 
-  // Require authentication
+  // Require authentication; every handler reads the authenticated user's own data
   const auth = await requireAuth(req, res, { allowDevMode: true });
   if (!auth) {
     return true; // 401 already sent
@@ -473,25 +320,25 @@ export async function handleWellbeingRoutes(
 
   // GET /api/wellbeing/dashboard
   if (pathname === '/api/wellbeing/dashboard' && req.method === 'GET') {
-    await handleGetDashboard(req, res, parsedUrl);
+    await handleGetDashboard(res, auth.userId);
     return true;
   }
 
   // GET /api/wellbeing/trends
   if (pathname === '/api/wellbeing/trends' && req.method === 'GET') {
-    await handleGetTrends(req, res, parsedUrl);
+    await handleGetTrends(res, parsedUrl, auth.userId);
     return true;
   }
 
   // GET /api/wellbeing/insights
   if (pathname === '/api/wellbeing/insights' && req.method === 'GET') {
-    await handleGetInsights(req, res, parsedUrl);
+    await handleGetInsights(res, auth.userId);
     return true;
   }
 
   // POST /api/wellbeing/snapshot
   if (pathname === '/api/wellbeing/snapshot' && req.method === 'POST') {
-    await handlePostSnapshot(req, res, parsedUrl);
+    await handlePostSnapshot(req, res, auth.userId);
     return true;
   }
 

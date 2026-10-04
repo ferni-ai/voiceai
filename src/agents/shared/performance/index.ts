@@ -17,7 +17,6 @@
 export {
   initializePerformanceOptimizations,
   processOptimizedTurn,
-  queueBackgroundTasks,
   startSpeculativeTTS,
   getPerformanceMetrics,
   getPerformanceSummary as getIntegrationPerformanceSummary,

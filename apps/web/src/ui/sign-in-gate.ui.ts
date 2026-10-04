@@ -10,13 +10,13 @@
  * @module SignInGateUI
  */
 
+import { signOutReleasingPush } from '../services/push-preference.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import {
   getAuthToken,
   onAuthStateChange,
   signInWithApple,
   signInWithGoogle,
-  signOut,
   type AuthState,
 } from '../services/firebase-auth.service.js';
 import { createLogger } from '../utils/logger.js';
@@ -435,7 +435,7 @@ function showWaitlistPending(email?: string): void {
  */
 async function handleSignOutAndRetry(): Promise<void> {
   try {
-    await signOut();
+    await signOutReleasingPush();
     log.info('Signed out, showing sign-in options');
 
     // Remove and recreate the overlay

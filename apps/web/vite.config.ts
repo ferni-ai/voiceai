@@ -1,4 +1,4 @@
-import { resolve } from 'path';
+import { basename, dirname, resolve } from 'path';
 import { defineConfig, loadEnv } from 'vite';
 
 // Stub for native Capacitor plugins that don't exist in web builds
@@ -49,11 +49,12 @@ export default defineConfig(({ mode }) => {
         'gsap',
         // Node/agent SDK - not for browser; excluding avoids 504 Outdated Optimize Dep
         '@livekit/agents',
+        // LiveKit client - loaded via voice-engine.js UMD; no npm bundle needed
+        'livekit-client',
       ],
       // Pre-bundle these heavy dependencies on server start (not on first request)
       // This significantly speeds up the first page load
       include: [
-        'livekit-client',
         'firebase/app',
         'firebase/auth',
         'firebase/firestore',
@@ -128,6 +129,10 @@ export default defineConfig(({ mode }) => {
       sourcemap: process.env.SOURCE_MAP === 'true', // Only enable if explicitly requested
       minify: 'esbuild',
       target: 'es2022',
+      // dist/.vite/manifest.json: the chunk graph the bundle ratchet
+      // (apps/cli/src/commands/quality/ratchet.ts) reads to tell initial
+      // chunks from lazy ones. Firebase hosting skips dot-directories.
+      manifest: true,
       // Drop console logs and debugger in production
       esbuild: {
         drop: ['console', 'debugger'],
@@ -148,6 +153,14 @@ export default defineConfig(({ mode }) => {
           globals: {
             gsap: 'gsap',
           },
+          // Rollup names a chunk after its module's file, so a lazily loaded
+          // foo/index.ts became index-*.js: indistinguishable from the entry in
+          // devtools, and counted as initial by the bundle ratchet. Use the folder.
+          chunkFileNames(chunk) {
+            const id = chunk.facadeModuleId ?? chunk.moduleIds.at(-1);
+            if (chunk.name === 'index' && id) return `assets/${basename(dirname(id))}-[hash].js`;
+            return 'assets/[name]-[hash].js';
+          },
           // Smart chunking strategy for optimal loading
           manualChunks(id) {
             // Vendor libraries - separate chunks for parallel loading
@@ -155,6 +168,12 @@ export default defineConfig(({ mode }) => {
               if (id.includes('@tsparticles')) return 'vendor-particles';
               if (id.includes('livekit-client')) return 'vendor-rtc';
               if (id.includes('@capacitor')) return 'vendor-capacitor';
+              // Only lazy screens use Firestore. In the catch-all below, every
+              // visitor downloaded it with the entry. It imports @firebase/app
+              // (in vendor); nothing in vendor imports it, so no chunk cycle.
+              // The regex also takes the firebase/firestore wrapper: left in
+              // vendor, it would import this chunk and close a cycle.
+              if (/\/@?firebase\/(firestore|webchannel-wrapper)\//.test(id)) return 'firestore';
               // Other node_modules go to vendor chunk
               return 'vendor';
             }
