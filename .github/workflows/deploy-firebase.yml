@@ -253,8 +253,16 @@ jobs:
     if: failure()
     steps:
       - name: Send Slack notification
+        # The commit message is attacker-controlled text: read it from env and
+        # let jq build the JSON, never splice it into the script.
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
-            -H 'Content-type: application/json' \
-            --data '{"text":"❌ Firebase deploy failed or rolled back: ${{ github.event.head_commit.message }}\n\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View logs>"}'
+          jq -n --arg msg "$COMMIT_MSG" --arg url "$RUN_URL" \
+            '{text: ("❌ Firebase deploy failed or rolled back: " + $msg + "\n\n🔗 <" + $url + "|View logs>")}' \
+            | curl -fsS -X POST "$SLACK_WEBHOOK_URL" \
+                -H 'Content-type: application/json' \
+                --data @-
         continue-on-error: true
