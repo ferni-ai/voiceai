@@ -1,6 +1,6 @@
 /**
- * Empty-reading snapshot used as a development stub (see utils/dev-stub.ts)
- * and as the Terra error fallback. All metrics are null.
+ * Empty-reading snapshot, served only as a development stub (see
+ * utils/dev-stub.ts). Never returned in production.
  */
 import type { BiometricPlatform, BiometricSnapshot } from './types.js';
 

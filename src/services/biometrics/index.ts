@@ -974,7 +974,7 @@ async function fetchWhoopData(userId: string, accessToken: string): Promise<Biom
 async function fetchTerraData(userId: string, terraUserId: string): Promise<BiometricSnapshot> {
   if (!config.terra.apiKey || !config.terra.devId) {
     log.warn('Terra API not configured');
-    return createMockSnapshot(userId, 'terra');
+    throw new Error('Terra API not configured');
   }
 
   try {
@@ -993,7 +993,7 @@ async function fetchTerraData(userId: string, terraUserId: string): Promise<Biom
 
     if (!response.ok) {
       log.warn({ status: response.status }, 'Terra API request failed');
-      return createMockSnapshot(userId, 'terra');
+      throw new Error(`Terra API request failed (${response.status})`);
     }
 
     const data = (await response.json()) as {
@@ -1076,7 +1076,7 @@ async function fetchTerraData(userId: string, terraUserId: string): Promise<Biom
     };
   } catch (error) {
     log.error({ error: String(error) }, 'Terra data fetch error');
-    return createMockSnapshot(userId, 'terra');
+    throw error;
   }
 }
 
