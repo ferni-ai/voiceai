@@ -411,6 +411,30 @@
       "_note": "Vanguard burgundy red - distinguished, trustworthy, Stanford PhD mentor",
       "_textOnDarkContrast": "4.9:1 on #70605a - WCAG AA compliant"
     },
+    "lynch": {
+      "primary": "#1a5f2a",
+      "secondary": "#154c22",
+      "text": "#ffffff",
+      "textOnDark": "#dde7df",
+      "glow": "rgba(26, 95, 42, 0.28)",
+      "tint": "rgba(26, 95, 42, 0.06)",
+      "subtle": "rgba(26, 95, 42, 0.06)",
+      "light": "#5f8f6a",
+      "_note": "Peter Lynch (Financial Legend) - Fidelity forest green, from his bundle avatar colour",
+      "_textOnDarkContrast": "4.7:1 on #70605a - WCAG AA compliant"
+    },
+    "bogle": {
+      "primary": "#8b0000",
+      "secondary": "#6f0000",
+      "text": "#ffffff",
+      "textOnDark": "#f3e6e6",
+      "glow": "rgba(139, 0, 0, 0.28)",
+      "tint": "rgba(139, 0, 0, 0.06)",
+      "subtle": "rgba(139, 0, 0, 0.06)",
+      "light": "#ae4c4c",
+      "_note": "John Bogle (Financial Legend) - deep Vanguard red, from his bundle avatar colour",
+      "_textOnDarkContrast": "4.9:1 on #70605a - WCAG AA compliant"
+    },
 
     "_marketplace_description": "Marketplace agent colors - specialized support personas",
     "eli": {

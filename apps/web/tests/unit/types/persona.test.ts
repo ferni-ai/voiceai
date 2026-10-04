@@ -26,7 +26,7 @@ describe('Persona Types', () => {
     it('should return false for legacy persona IDs (use normalizeAgentId instead)', () => {
       // Legacy IDs are no longer valid - use normalizeAgentId to convert them
       expect(isValidPersonaId('jack-b')).toBe(false);
-      expect(isValidPersonaId('peter-lynch')).toBe(false); // Now maps to peter-john
+      expect(isValidPersonaId('peter-lynch')).toBe(false); // a Financial Legend, not on the team
       expect(isValidPersonaId('comm-specialist')).toBe(false);
       expect(isValidPersonaId('spend-save')).toBe(false);
       expect(isValidPersonaId('event-planner')).toBe(false);
