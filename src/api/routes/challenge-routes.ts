@@ -6,6 +6,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
+import { requireAuth } from '../auth-middleware.js';
 import { parseBody } from '../helpers.js';
 import {
   getTodaysChallenge,
@@ -120,12 +121,13 @@ export async function handleChallengeRoutes(
     // POST /api/challenges/start
     if (pathname === '/api/challenges/start' && method === 'POST') {
       const body = await parseBody<{ userId?: string; challengeId?: string }>(req);
-      const userId = body.userId;
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
       const challengeId = body.challengeId;
 
-      if (!userId || !challengeId) {
+      if (!challengeId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing userId or challengeId' }));
+        res.end(JSON.stringify({ error: 'Missing challengeId' }));
         return true;
       }
 
@@ -139,13 +141,14 @@ export async function handleChallengeRoutes(
     // POST /api/challenges/complete
     if (pathname === '/api/challenges/complete' && method === 'POST') {
       const body = await parseBody<{ userId?: string; challengeId?: string; score?: number }>(req);
-      const userId = body.userId;
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
       const challengeId = body.challengeId;
       const score = body.score || 0;
 
-      if (!userId || !challengeId) {
+      if (!challengeId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing userId or challengeId' }));
+        res.end(JSON.stringify({ error: 'Missing challengeId' }));
         return true;
       }
 
@@ -174,13 +177,8 @@ export async function handleChallengeRoutes(
     // POST /api/challenges/streak-freeze
     if (pathname === '/api/challenges/streak-freeze' && method === 'POST') {
       const body = await parseBody<{ userId?: string }>(req);
-      const userId = body.userId;
-
-      if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing userId' }));
-        return true;
-      }
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
 
       const success = useStreakFreeze(userId);
       const stats = getChallengeStats(userId);
@@ -229,7 +227,28 @@ export async function handleChallengeRoutes(
 // HELPERS
 // ============================================================================
 
-// parseBody imported from '../helpers.js'
+/**
+ * Who a challenge write acts on. The request identity layer cleans ?userId=
+ * but cannot see a JSON body, so a body userId used to let any caller start,
+ * complete or streak-freeze another user's challenges. Now the actor is the
+ * verified caller; a body naming someone else is refused (403) unless the
+ * caller is an admin, who may act for the user they name. On refusal the
+ * response is already sent and this returns null.
+ */
+async function resolveActingUser(
+  req: IncomingMessage,
+  res: ServerResponse,
+  claimedUserId: string | undefined
+): Promise<string | null> {
+  const auth = await requireAuth(req, res);
+  if (!auth) return null;
+  if (!claimedUserId || claimedUserId === auth.userId) return auth.userId;
+  if (auth.isAdmin) return claimedUserId;
+  log.warn({ callerId: auth.userId }, '🎯 Challenge write named another user; refused');
+  res.writeHead(403, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: "You can't change another user's challenges" }));
+  return null;
+}
 
 /**
  * Check for milestone achievements
