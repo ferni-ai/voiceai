@@ -83,7 +83,6 @@ export class GroupConversationUI {
   private container: HTMLElement | null = null;
   private participantGrid: HTMLElement | null = null;
   private teamSelectorModal: HTMLElement | null = null;
-  private addParticipantModal: HTMLElement | null = null;
   private participants: Map<string, Participant> = new Map();
   private isActive = false;
 
@@ -132,40 +131,6 @@ export class GroupConversationUI {
   }
 
   /**
-   * Show the add participant modal for conference calls
-   */
-  showAddParticipant(options: {
-    onAdd: (phoneNumber: string, name: string, relationship?: string) => void;
-    onCancel: () => void;
-  }): void {
-    this.hideAddParticipant();
-
-    const modal = this.createAddParticipantModal(options);
-    document.body.appendChild(modal);
-    this.addParticipantModal = modal;
-
-    // Animate in
-    requestAnimationFrame(() => {
-      modal.classList.add('visible');
-    });
-
-    log.debug('Add participant modal shown');
-  }
-
-  /**
-   * Hide the add participant modal
-   */
-  hideAddParticipant(): void {
-    if (this.addParticipantModal) {
-      this.addParticipantModal.classList.remove('visible');
-      setTimeout(() => {
-        this.addParticipantModal?.remove();
-        this.addParticipantModal = null;
-      }, DURATION.SLOW);
-    }
-  }
-
-  /**
    * Show the participant grid
    */
   showParticipantGrid(participants: Participant[]): void {
@@ -207,7 +172,7 @@ export class GroupConversationUI {
   addParticipant(participant: Participant): void {
     this.participants.set(participant.id, participant);
     this.renderParticipantGrid();
-    
+
     // Celebration toast
     toast.success(t('toasts.participantnameJoined'));
   }
@@ -261,7 +226,6 @@ export class GroupConversationUI {
    */
   cleanup(): void {
     this.hideTeamSelector();
-    this.hideAddParticipant();
     this.hideParticipantGrid();
     this.participants.clear();
   }
@@ -311,7 +275,14 @@ export class GroupConversationUI {
   }
 
   private renderTeamMembers(unlockedPersonas: string[]): string {
-    const allPersonas = ['ferni', 'peter-john', 'maya-habits', 'alex-chen', 'jordan-taylor', 'nayan-sharma'];
+    const allPersonas = [
+      'ferni',
+      'peter-john',
+      'maya-habits',
+      'alex-chen',
+      'jordan-taylor',
+      'nayan-sharma',
+    ];
 
     return allPersonas
       .map((personaId) => {
@@ -410,119 +381,6 @@ export class GroupConversationUI {
   }
 
   // ==========================================================================
-  // PRIVATE METHODS - ADD PARTICIPANT
-  // ==========================================================================
-
-  private createAddParticipantModal(options: {
-    onAdd: (phoneNumber: string, name: string, relationship?: string) => void;
-    onCancel: () => void;
-  }): HTMLElement {
-    const modal = document.createElement('div');
-    modal.className = 'group-modal-overlay';
-    modal.innerHTML = `
-      <div class="group-modal-backdrop"></div>
-      <div class="group-modal-card add-participant">
-        <header>
-          <span class="eyebrow">CONFERENCE CALL</span>
-          <h2>Add someone to this conversation</h2>
-          <button class="close-btn" aria-label="${t('accessibility.close')}">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
-          </button>
-        </header>
-        
-        <div class="form-fields">
-          <div class="field">
-            <label for="participant-name">Their name</label>
-            <input type="text" id="participant-name" placeholder="Sarah" required />
-          </div>
-          
-          <div class="field">
-            <label for="participant-phone">Phone number</label>
-            <input type="tel" id="participant-phone" placeholder="+1 (555) 123-4567" required />
-          </div>
-          
-          <div class="field">
-            <label for="participant-relationship">Relationship <span class="optional">(optional)</span></label>
-            <input type="text" id="participant-relationship" placeholder="Partner, friend, therapist..." />
-          </div>
-        </div>
-        
-        <footer>
-          <button class="secondary-btn" data-action="cancel">Cancel</button>
-          <button class="primary-btn" data-action="add">Add to Call</button>
-        </footer>
-      </div>
-    `;
-
-    this.attachAddParticipantListeners(modal, options);
-    return modal;
-  }
-
-  private attachAddParticipantListeners(
-    modal: HTMLElement,
-    options: {
-      onAdd: (phoneNumber: string, name: string, relationship?: string) => void;
-      onCancel: () => void;
-    }
-  ): void {
-    const nameInput = modal.querySelector('#participant-name') as HTMLInputElement;
-    const phoneInput = modal.querySelector('#participant-phone') as HTMLInputElement;
-    const relationshipInput = modal.querySelector('#participant-relationship') as HTMLInputElement;
-    const addBtn = modal.querySelector('[data-action="add"]') as HTMLButtonElement;
-
-    // Phone formatting
-    phoneInput.addEventListener('input', () => {
-      const formatted = this.formatPhoneNumber(phoneInput.value);
-      phoneInput.value = formatted;
-    });
-
-    // Validate on input
-    const validate = () => {
-      const nameValid = nameInput.value.trim().length > 0;
-      const phoneValid = this.isValidPhoneNumber(phoneInput.value);
-      addBtn.disabled = !nameValid || !phoneValid;
-    };
-
-    nameInput.addEventListener('input', validate);
-    phoneInput.addEventListener('input', validate);
-
-    // Close button
-    modal.querySelector('.close-btn')?.addEventListener('click', () => {
-      this.hideAddParticipant();
-      options.onCancel();
-    });
-
-    // Cancel button
-    modal.querySelector('[data-action="cancel"]')?.addEventListener('click', () => {
-      this.hideAddParticipant();
-      options.onCancel();
-    });
-
-    // Add button
-    addBtn.addEventListener('click', () => {
-      const name = nameInput.value.trim();
-      const phone = phoneInput.value.replace(/\D/g, '');
-      const relationship = relationshipInput.value.trim() || undefined;
-
-      if (!name || !this.isValidPhoneNumber(phoneInput.value)) {
-        toast.warning(t('toasts.enterNameAndPhone'));
-        return;
-      }
-
-      this.hideAddParticipant();
-      options.onAdd(phone, name, relationship);
-    });
-
-    // Backdrop click
-    modal.querySelector('.group-modal-backdrop')?.addEventListener('click', () => {
-      this.hideAddParticipant();
-      options.onCancel();
-    });
-  }
-
-  // ==========================================================================
   // PRIVATE METHODS - PARTICIPANT GRID
   // ==========================================================================
 
@@ -583,18 +441,6 @@ export class GroupConversationUI {
   // ==========================================================================
   // PRIVATE METHODS - UTILITIES
   // ==========================================================================
-
-  private formatPhoneNumber(value: string): string {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
-  }
-
-  private isValidPhoneNumber(value: string): boolean {
-    const digits = value.replace(/\D/g, '');
-    return digits.length >= 10;
-  }
 
   private cleanupOrphanedElements(): void {
     document.querySelectorAll('.group-modal-overlay').forEach((el) => el.remove());
@@ -1006,11 +852,3 @@ export function showTeamSelector(options: {
 }): void {
   groupConversationUI.showTeamSelector(options);
 }
-
-export function showAddParticipant(options: {
-  onAdd: (phoneNumber: string, name: string, relationship?: string) => void;
-  onCancel: () => void;
-}): void {
-  groupConversationUI.showAddParticipant(options);
-}
-

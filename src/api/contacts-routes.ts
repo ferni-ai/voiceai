@@ -36,7 +36,6 @@ import {
   getContact,
   upsertContact,
   recordInteraction,
-  getContactsNeedingAttention,
   getRelationshipInsights,
   searchContacts,
   getInteractionHistory,
@@ -51,10 +50,8 @@ import {
   updateGroup,
   deleteGroup,
 } from '../services/contacts/contact-groups.js';
-import {
-  buildNudgeContext,
-  getOverdueFrequentContacts,
-} from '../services/contacts/outreach-nudges.js';
+import { buildNudgeContext } from '../services/contacts/outreach-nudges.js';
+import { buildRelationshipInsightsView } from '../services/contacts/relationship-insights-view.js';
 
 const log = createLogger({ module: 'ContactsAPI' });
 
@@ -612,23 +609,12 @@ async function getInsights(
   }
 
   try {
-    const [insights, needsAttention, overdueFrequent] = await Promise.all([
+    // Exactly what the web Relationship Insights dashboard reads.
+    const [contacts, insights] = await Promise.all([
+      getContacts(userId),
       getRelationshipInsights(userId),
-      getContactsNeedingAttention(userId, 5),
-      getOverdueFrequentContacts(userId),
     ]);
-
-    sendJSON(res, {
-      insights,
-      needsAttention: needsAttention.map((c) => ({
-        id: c.id,
-        name: c.name,
-        daysSinceContact: Math.floor(
-          (Date.now() - new Date(c.lastInteraction).getTime()) / (1000 * 60 * 60 * 24)
-        ),
-      })),
-      overdueFrequent,
-    });
+    sendJSON(res, buildRelationshipInsightsView(contacts, insights));
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get insights');
     sendError(res, 'Failed to get insights', 500);
