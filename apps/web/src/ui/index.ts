@@ -390,22 +390,6 @@ export {
   unmountNextCheckinWidget,
 } from './next-checkin.ui.js';
 
-// Trust Analytics Dashboard - Admin monitoring view
-export {
-  hideTrustAnalytics,
-  initTrustAnalyticsUI,
-  setTrustAnalyticsCallbacks,
-  showTrustAnalytics,
-  trustAnalyticsUI,
-} from './trust-analytics.ui.js';
-export type {
-  ABTestResult,
-  SystemHealth,
-  TrustAnalyticsCallbacks,
-  TrustAnalyticsData,
-  TrustMetrics,
-} from './trust-analytics.ui.js';
-
 // Trust Dashboard - Consolidated trust features UI (Phases 12-29)
 export {
   hideTrustDashboard,

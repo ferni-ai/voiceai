@@ -1721,7 +1721,6 @@ class VoiceAIApp {
       // Wire up prediction resolution callback
       getPredictionsUI().setOnResolutionSubmit(async (predictionId, actualValue) => {
         try {
-          // TODO: Backend POST /api/predictions/:id/actuals and GET /api/predictions not implemented yet.
           const postResponse = await apiPost(`/api/predictions/${predictionId}/actuals`, {
             actuals: { result: actualValue },
           });
