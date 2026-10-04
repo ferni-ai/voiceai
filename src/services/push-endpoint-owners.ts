@@ -6,15 +6,43 @@
  * in on the same browser and subscribes the same endpoint, so A's
  * notifications (which carry A's personal content) are delivered to B.
  *
+ * Moving an endpoint to a new user requires the subscription's keys
+ * (p256dh/auth), which only the browser that created it holds. An endpoint
+ * URL alone (logged, leaked, guessed) can't be used to take one over.
+ *
  * Reads are fresh (not served from a process cache) because subscriptions are
  * written by the API server and read by senders in other processes.
  */
 
-import { createHash } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 
 interface EndpointOwner {
   userId: string;
+  /** sha256 of the subscription's p256dh and auth keys. */
+  keysHash?: string;
+}
+
+export interface SubscriptionKeys {
+  p256dh: string;
+  auth: string;
+}
+
+/** The endpoint belongs to another user and the request didn't prove it holds the subscription. */
+export class EndpointOwnedError extends Error {
+  constructor() {
+    super('Push endpoint belongs to another user');
+    this.name = 'EndpointOwnedError';
+  }
+}
+
+function hashKeys(keys: SubscriptionKeys): string {
+  return createHash('sha256').update(`${keys.p256dh}\n${keys.auth}`).digest('hex');
+}
+
+function sameHash(stored: string | undefined, presented: string): boolean {
+  if (!stored || stored.length !== presented.length) return false;
+  return timingSafeEqual(Buffer.from(stored), Buffer.from(presented));
 }
 
 let store: PersistenceStore<EndpointOwner> | null = null;
@@ -39,13 +67,24 @@ export async function getEndpointOwner(endpoint: string): Promise<string | null>
 }
 
 /**
- * Record `userId` as the endpoint's owner. Returns the previous owner when it
- * was someone else, so the caller can drop that user's copy of the endpoint.
+ * Record `userId` as the endpoint's owner. Taking an endpoint from another user
+ * requires the same keys it was registered with (the same browser subscription),
+ * otherwise this throws EndpointOwnedError and nothing changes. Returns the
+ * previous owner when it was someone else, so the caller can drop their copy.
  */
-export async function claimEndpoint(endpoint: string, userId: string): Promise<string | null> {
-  const previous = await getEndpointOwner(endpoint);
-  await owners().setImmediate(endpointKey(endpoint), { userId });
-  return previous && previous !== userId ? previous : null;
+export async function claimEndpoint(
+  endpoint: string,
+  keys: SubscriptionKeys,
+  userId: string
+): Promise<string | null> {
+  const current = await owners().load(endpointKey(endpoint), { fresh: true });
+  const keysHash = hashKeys(keys);
+  const takingOver = Boolean(current && current.userId !== userId);
+  if (takingOver && !sameHash(current?.keysHash, keysHash)) {
+    throw new EndpointOwnedError();
+  }
+  await owners().setImmediate(endpointKey(endpoint), { userId, keysHash });
+  return takingOver ? (current?.userId ?? null) : null;
 }
 
 /** Forget the owner, but only if it is still `userId`. */

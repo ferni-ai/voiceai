@@ -7,6 +7,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { rateLimit, requireAdmin, requireAuth } from '../../../api/auth-middleware.js';
 import { parseBody, sendError, sendJSON } from '../../../api/helpers.js';
+import { EndpointOwnedError } from '../../../services/push-endpoint-owners.js';
 import { getPushNotificationsService } from '../../../services/push-notifications.js';
 import { isWebPushDeliverable } from '../../../services/web-push-loader.js';
 import { createLogger } from '../../../utils/safe-logger.js';
@@ -95,6 +96,11 @@ export async function handlePushRoutes(
       });
       sendJSON(res, { success: true });
     } catch (err) {
+      if (err instanceof EndpointOwnedError) {
+        log.warn({ userId: auth.userId }, 'Refused push endpoint claim without matching keys');
+        sendError(res, 'This subscription belongs to another account', 403);
+        return true;
+      }
       log.error(
         { error: String(err), userId: auth.userId },
         'Failed to register push subscription'

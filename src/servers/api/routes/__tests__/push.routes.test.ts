@@ -254,4 +254,61 @@ describe('push subscribe → sender lookup', () => {
       expect(delivered).toEqual([SUBSCRIPTION.endpoint]);
     });
   });
+
+  describe('endpoint takeover', () => {
+    const stolen = { ...SUBSCRIPTION, keys: { p256dh: 'attacker-p256dh', auth: 'attacker-auth' } };
+
+    it("a user who only knows A's endpoint URL can't take it over", async () => {
+      await subscribeAs('alice');
+      const res = response();
+
+      await handlePushRoutes(
+        post('/api/push/subscribe', stolen, { authorization: 'Bearer verified-mallory' }),
+        res,
+        '/api/push/subscribe'
+      );
+
+      expect(res.statusCode).toBe(403);
+      const { sender, delivered } = await newSender();
+      expect(await sender.sendNotification('mallory', NOTE)).toBe(false);
+      expect(await sender.sendNotification('alice', NOTE)).toBe(true);
+      expect(delivered).toEqual([SUBSCRIPTION.endpoint]);
+    });
+
+    it("can't unsubscribe someone else's endpoint", async () => {
+      await subscribeAs('alice');
+      const res = response();
+
+      await handlePushRoutes(
+        post(
+          '/api/push/unsubscribe',
+          { endpoint: SUBSCRIPTION.endpoint },
+          { authorization: 'Bearer verified-mallory' }
+        ),
+        res,
+        '/api/push/unsubscribe'
+      );
+
+      const { sender, delivered } = await newSender();
+      expect(await sender.sendNotification('alice', NOTE)).toBe(true);
+      expect(delivered).toEqual([SUBSCRIPTION.endpoint]);
+    });
+
+    it('the same browser subscription (same keys) can move to the next account', async () => {
+      await subscribeAs('alice');
+      const res = response();
+
+      await handlePushRoutes(
+        post('/api/push/subscribe', SUBSCRIPTION, { authorization: 'Bearer verified-bob' }),
+        res,
+        '/api/push/subscribe'
+      );
+
+      expect(res.statusCode).toBe(200);
+      const { sender, delivered } = await newSender();
+      expect(await sender.sendNotification('alice', NOTE)).toBe(false);
+      expect(await sender.sendNotification('bob', NOTE)).toBe(true);
+      expect(delivered).toEqual([SUBSCRIPTION.endpoint]);
+    });
+  });
 });

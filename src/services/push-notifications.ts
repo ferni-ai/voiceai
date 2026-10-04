@@ -231,12 +231,13 @@ class PushNotificationsBackendService {
   }
 
   /**
-   * Register a push subscription for a user. An endpoint belongs to one user,
-   * so whoever subscribed it before (e.g. another account on this browser) loses it.
+   * Register a push subscription for a user. An endpoint belongs to one user; it
+   * moves from a previous owner only with the same keys (EndpointOwnedError otherwise).
    */
   async registerSubscription(subscription: PushSubscription): Promise<void> {
-    const previousOwner = await claimEndpoint(subscription.endpoint, subscription.userId);
-    if (previousOwner) await this.removeSubscription(previousOwner, subscription.endpoint);
+    const { endpoint, keys, userId } = subscription;
+    const previousOwner = await claimEndpoint(endpoint, keys, userId);
+    if (previousOwner) await this.removeSubscription(previousOwner, endpoint);
 
     const userSubs = await this.loadSubscriptions(subscription.userId);
     if (!userSubs.some((s) => s.endpoint === subscription.endpoint)) {
