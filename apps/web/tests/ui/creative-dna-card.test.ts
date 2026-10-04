@@ -59,10 +59,10 @@ describe('Creative DNA card', () => {
     expect(dnaCard()?.querySelector('.empty-dna')).not.toBeNull();
   });
   // The shape GET /api/creative/dna returns (src/tests/creative-dna-dashboard.test.ts).
-  function dnaWith(learningStyle: string | null) {
+  function dnaWith(learningStyle: string | null, personalityLabel: string | null = null) {
     return {
-      personalityLabel: 'The Newcomer',
-      personalityDescription: "You're just getting started.",
+      personalityLabel,
+      personalityDescription: personalityLabel ? 'You go deep on ideas.' : null,
       topTopics: [{ topic: 'gardening', score: 2 }],
       totalVideosWatched: 0,
       totalPodcastsListened: 0,
@@ -91,5 +91,29 @@ describe('Creative DNA card', () => {
     await getCreativeYouDashboard('device-d').initialize();
 
     expect(styleStat()?.querySelector('.stat-value')?.textContent).toBe('audio');
+  });
+  it('uses neutral wording, not a made-up label, when Ferni has not learned one', async () => {
+    apiGet.mockResolvedValue({ ok: true, status: 200, data: { dna: dnaWith(null) } });
+
+    await getCreativeYouDashboard('device-e').initialize();
+
+    expect(dnaCard()?.querySelector('.personality-label')).toBeNull();
+    expect(dnaCard()?.querySelector('.share-dna-btn')).toBeNull();
+    expect(dnaCard()?.querySelector('.personality-desc')?.textContent).toBe(
+      'creativeYou.noProfile'
+    );
+    expect(dnaCard()?.textContent).not.toMatch(/newcomer|null/i);
+  });
+
+  it('shows the personality label when real activity produced one', async () => {
+    apiGet.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { dna: dnaWith('audio', 'The Deep Diver') },
+    });
+
+    await getCreativeYouDashboard('device-f').initialize();
+
+    expect(dnaCard()?.querySelector('.personality-label')?.textContent).toBe('The Deep Diver');
   });
 });
