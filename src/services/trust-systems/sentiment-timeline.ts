@@ -144,6 +144,9 @@ const EMOTION_AROUSAL: Record<EmotionCategory, number> = {
 // ============================================================================
 
 const timelines = new Map<string, SentimentTimeline>();
+/** Bounds on what a persisted timeline carries (one Firestore doc, max 1 MB). */
+const MAX_SNAPSHOTS = 500;
+const MAX_DAILY_SUMMARIES = 365;
 
 // ============================================================================
 // SNAPSHOT RECORDING
@@ -171,10 +174,14 @@ export function recordEmotionalSnapshot(
   };
 
   timeline.snapshots.push(fullSnapshot);
+  timeline.snapshots.splice(0, Math.max(0, timeline.snapshots.length - MAX_SNAPSHOTS));
   timeline.currentMood = fullSnapshot;
 
-  // Update daily summary
   updateDailySummary(timeline, fullSnapshot);
+  timeline.dailySummaries.splice(
+    0,
+    Math.max(0, timeline.dailySummaries.length - MAX_DAILY_SUMMARIES)
+  );
 
   // Update baseline if stable
   updateBaseline(timeline);
@@ -211,17 +218,13 @@ function calculateValence(emotion: EmotionCategory, intensity: number): number {
   return base * intensity;
 }
 
-/**
- * Calculate arousal from emotion and intensity
- */
+/** Calculate arousal from emotion and intensity */
 function calculateArousal(emotion: EmotionCategory, intensity: number): number {
   const base = EMOTION_AROUSAL[emotion] || 0.3;
   return base * intensity;
 }
 
-/**
- * Update daily summary
- */
+/** Update daily summary */
 function updateDailySummary(timeline: SentimentTimeline, snapshot: EmotionalSnapshot): void {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -281,9 +284,7 @@ function updateBaseline(timeline: SentimentTimeline): void {
   }
 }
 
-/**
- * Detect peaks and valleys
- */
+/** Detect peaks and valleys */
 function detectPeaksValleys(timeline: SentimentTimeline): void {
   const summaries = timeline.dailySummaries.slice(-30);
   if (summaries.length < 7) return;
@@ -338,9 +339,7 @@ function detectPeaksValleys(timeline: SentimentTimeline): void {
   timeline.peaks = timeline.peaks.slice(-20);
 }
 
-/**
- * Update trends
- */
+/** Update trends */
 function updateTrends(timeline: SentimentTimeline): void {
   const periods: Array<{ name: 'week' | 'month' | 'quarter'; days: number }> = [
     { name: 'week', days: 7 },
@@ -552,16 +551,18 @@ function getOrCreateTimeline(userId: string): SentimentTimeline {
 // PUBLIC API
 // ============================================================================
 
-/**
- * Get timeline
- */
+/** Get timeline */
 export function getTimeline(userId: string): SentimentTimeline | null {
   return timelines.get(userId) || null;
 }
 
-/**
- * Get current mood context
- */
+/** Replace a user's timeline with a persisted one (null forgets it). */
+export function setTimeline(userId: string, timeline: SentimentTimeline | null): void {
+  if (timeline) timelines.set(userId, timeline);
+  else timelines.delete(userId);
+}
+
+/** Get current mood context */
 export function getCurrentMoodContext(userId: string): string | null {
   const timeline = timelines.get(userId);
   if (!timeline?.currentMood) return null;
@@ -588,9 +589,7 @@ export function getCurrentMoodContext(userId: string): string | null {
   return parts.join(' • ');
 }
 
-/**
- * Get recent peaks and valleys
- */
+/** Get recent peaks and valleys */
 export function getRecentPeaksValleys(userId: string, limit = 5): EmotionalPeak[] {
   const timeline = timelines.get(userId);
   if (!timeline) return [];
@@ -598,9 +597,7 @@ export function getRecentPeaksValleys(userId: string, limit = 5): EmotionalPeak[
   return timeline.peaks.slice(-limit);
 }
 
-/**
- * Get patterns for sharing
- */
+/** Get patterns for sharing */
 export function getInsightfulPatterns(userId: string): EmotionalPattern[] {
   const timeline = timelines.get(userId);
   if (!timeline) return [];
@@ -608,9 +605,7 @@ export function getInsightfulPatterns(userId: string): EmotionalPattern[] {
   return timeline.patterns.filter((p) => p.confidence > 0.5);
 }
 
-/**
- * Export timeline for therapy/coaching
- */
+/** Export timeline for therapy/coaching */
 export function exportTimelineData(
   userId: string,
   period: 'week' | 'month' | 'quarter' | 'all' = 'month'
@@ -640,9 +635,7 @@ export function exportTimelineData(
   };
 }
 
-/**
- * Generate timeline summary for context injection
- */
+/** Generate timeline summary for context injection */
 export function generateTimelineSummary(userId: string): string | null {
   const timeline = timelines.get(userId);
   if (!timeline || timeline.dailySummaries.length < 7) return null;

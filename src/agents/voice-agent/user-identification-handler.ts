@@ -21,6 +21,7 @@ import {
   type SpeakerChangeEvent,
 } from '../../services/voice/voice-speaker-change.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { createSpeakerChangePrompter, listenForSpeakerCheckReplies } from './speaker-check.js';
 
 // ============================================================================
 // TYPES
@@ -251,6 +252,13 @@ function setupSpeakerChangeDetection(
 ): void {
   try {
     const speakerChangeDetector = getSpeakerChangeDetector(sessionId);
+    // "Someone new?" prompt on the web: gated (30 s quiet start, 10 min apart,
+    // above the detector's confidence threshold); the answer comes back here.
+    const promptIfDue = createSpeakerChangePrompter(
+      room,
+      Date.now(),
+      speakerChangeDetector.getChangeConfidenceThreshold()
+    );
     speakerChangeDetector.on('speaker_changed', (event: SpeakerChangeEvent) => {
       diag.session('👥 Speaker change detected', {
         previousSpeaker: event.previousSpeakerId,
@@ -258,29 +266,12 @@ function setupSpeakerChangeDetection(
         confidence: event.confidence,
         isNewSpeaker: event.isNewSpeaker,
       });
-
-      // Notify frontend of speaker change (for UI indicator)
-      room.localParticipant
-        ?.publishData(
-          new TextEncoder().encode(
-            JSON.stringify({
-              type: 'speaker_changed',
-              previousSpeakerId: event.previousSpeakerId,
-              currentSpeakerId: event.currentSpeakerId,
-              confidence: event.confidence,
-              isNewSpeaker: event.isNewSpeaker,
-              timestamp: Date.now(),
-            })
-          ),
-          { reliable: true }
-        )
-        .catch((e) => {
-          diag.debug('Speaker change publish failed (non-critical)', { error: String(e) });
-        });
+      promptIfDue(event);
 
       // Trigger identity re-evaluation on speaker change
       void handleSpeakerChangeIdentity(sessionId, event);
     });
+    listenForSpeakerCheckReplies(room, sessionId, userId);
     speakerChangeDetector.start(userId);
     diag.session('🎤 Speaker change detection initialized');
   } catch (speakerChangeErr) {

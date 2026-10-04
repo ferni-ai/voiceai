@@ -8,11 +8,12 @@
  */
 
 import {
+  showLifeContextDashboard,
   updateLifeContextDashboard,
   setLifeContextLoading,
   setLifeContextError,
 } from '../ui/life-context-dashboard.ui.js';
-import { getApiHeadersAsync } from '../utils/api-helpers.js';
+import { getFirebaseUid } from './firebase-auth.service.js';
 import { apiGet } from '../utils/api.js';
 import { openAuthedWebSocket } from './authed-websocket.service.js';
 import { createLogger } from '../utils/logger.js';
@@ -63,7 +64,6 @@ function mapPatternToFrontend(pattern: {
   domains: string[];
   impact: 'positive' | 'negative' | 'neutral';
 }): { pattern: string; severity: 'low' | 'medium' | 'high'; domains: string[]; insight: string } {
-  // Map impact to severity
   const severityMap: Record<string, 'low' | 'medium' | 'high'> = {
     positive: 'low',
     neutral: 'medium',
@@ -74,7 +74,7 @@ function mapPatternToFrontend(pattern: {
     pattern: pattern.description,
     severity: severityMap[pattern.impact] || 'medium',
     domains: pattern.domains,
-    insight: pattern.description, // Use description as insight
+    insight: pattern.description,
   };
 }
 
@@ -141,13 +141,24 @@ function mapSnapshotToFrontend(
   };
 }
 
+/** What the server (src/services/communication/life-context-websocket.ts) sends. */
 interface LifeContextUpdateEvent {
-  type: 'context_update' | 'trigger_alert' | 'scan_complete' | 'heartbeat';
+  type:
+    | 'welcome'
+    | 'initial_state'
+    | 'refresh_result'
+    | 'context_update'
+    | 'trigger_alert'
+    | 'scan_complete'
+    | 'heartbeat'
+    | 'pong'
+    | 'unsubscribed'
+    | 'error';
   userId: string;
-  snapshot?: LifeContextSnapshot;
+  snapshot?: LifeContextSnapshot | null;
   trigger?: SynthesisTrigger;
   triggers?: SynthesisTrigger[];
-  timestamp: number;
+  timestamp: string;
   scanDuration?: number;
 }
 
@@ -229,15 +240,19 @@ export async function connectToLifeContextStream(userId: string): Promise<void> 
   const wsUrl = `${protocol}//${window.location.host}/ws/life-context`;
 
   try {
-    wsConnection = await openAuthedWebSocket(wsUrl);
+    const ws = await openAuthedWebSocket(wsUrl);
+    wsConnection = ws;
 
-    wsConnection.onopen = () => {
+    ws.onopen = () => {
       log.info('Connected to life context WebSocket');
       reconnectAttempts = 0;
       stopPolling();
+      // The server streams nothing until asked. It binds the socket to the
+      // verified uid from the token, so the message names no user.
+      ws.send(JSON.stringify({ type: 'subscribe' }));
     };
 
-    wsConnection.onmessage = (event) => {
+    ws.onmessage = (event) => {
       try {
         const data: LifeContextUpdateEvent = JSON.parse(event.data);
         handleLifeContextEvent(data);
@@ -246,12 +261,13 @@ export async function connectToLifeContextStream(userId: string): Promise<void> 
       }
     };
 
-    wsConnection.onerror = (error) => {
+    ws.onerror = (error) => {
       log.warn('WebSocket error:', error);
     };
 
-    wsConnection.onclose = (event) => {
+    ws.onclose = (event) => {
       log.info(`Disconnected from life context WebSocket (code: ${event.code})`);
+      if (wsConnection !== ws) return; // an older socket; a newer one is live
       wsConnection = null;
 
       if (isEnabled && currentUserId) {
@@ -293,7 +309,7 @@ async function fetchLifeContext(userId: string): Promise<void> {
     const response = await apiGet<{
       snapshot?: LifeContextSnapshot;
       triggers?: SynthesisTrigger[];
-    }>(`/api/life-context?userId=${userId}`);
+    }>(`/api/life-context`); // the server reads the verified caller
 
     if (!response.ok || !response.data) {
       throw new Error(`HTTP ${response.status}`);
@@ -349,13 +365,14 @@ function handleLifeContextEvent(event: LifeContextUpdateEvent): void {
   log.debug({ type: event.type }, 'Received life context event');
 
   switch (event.type) {
+    case 'initial_state':
+    case 'refresh_result':
     case 'context_update':
     case 'scan_complete':
       if (event.snapshot) {
         lastSnapshot = event.snapshot;
         lastTriggers = event.triggers || [];
 
-        // Map backend data to frontend types
         const mappedData = mapSnapshotToFrontend(event.userId, event.snapshot, lastTriggers);
         updateLifeContextDashboard(mappedData as Parameters<typeof updateLifeContextDashboard>[0]);
       }
@@ -367,7 +384,6 @@ function handleLifeContextEvent(event: LifeContextUpdateEvent): void {
         lastTriggers = [event.trigger, ...lastTriggers].slice(0, 10);
 
         if (lastSnapshot) {
-          // Map backend data to frontend types
           const mappedData = mapSnapshotToFrontend(event.userId, lastSnapshot, lastTriggers);
           updateLifeContextDashboard(
             mappedData as Parameters<typeof updateLifeContextDashboard>[0]
@@ -384,8 +400,12 @@ function handleLifeContextEvent(event: LifeContextUpdateEvent): void {
       }
       break;
 
-    case 'heartbeat':
-      // Connection is alive, nothing to do
+    case 'error':
+      setLifeContextError('Could not load life context');
+      break;
+
+    default:
+      // welcome, heartbeat, pong, unsubscribed: nothing to show
       break;
   }
 }
@@ -434,6 +454,25 @@ export function disposeLifeContextUpdates(): void {
   lastSnapshot = null;
   lastTriggers = [];
   log.info('Life context updates disposed');
+}
+
+/**
+ * Open the dashboard and stream the signed-in user's life context into it
+ * until it closes. The settings menu's "Your World" item calls this.
+ */
+export function openLifeContextDashboard(): void {
+  showLifeContextDashboard();
+  const uid = getFirebaseUid();
+  if (!uid) {
+    setLifeContextError('Sign in to see your world');
+    return;
+  }
+  if (currentUserId !== uid) {
+    disposeLifeContextUpdates();
+    setLifeContextLoading(true);
+    initLifeContextUpdates(uid);
+  }
+  window.addEventListener('ferni:life-context-hidden', disposeLifeContextUpdates, { once: true });
 }
 
 export function setLifeContextUpdatesEnabled(enabled: boolean): void {

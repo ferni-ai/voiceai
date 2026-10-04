@@ -16,6 +16,8 @@
  *   create, so a second user can never take it over (403). Known limitation:
  *   whoever obtains a tokenless signed transaction first (a forwarded receipt,
  *   a logged JWS) can claim it before the buyer, until the app sends the token.
+ * - Deleting an account tombstones its records (no raw uid kept). A tombstoned
+ *   purchase is never claimable by first claim, only by a matching token.
  * Every claim is logged with uid and originalTransactionId. Ownership never
  * comes from a client-supplied userId.
  *
@@ -30,6 +32,7 @@ import {
   SignedDataVerifier,
   type JWSTransactionDecodedPayload,
 } from '@apple/app-store-server-library';
+import { createHash } from 'node:crypto';
 import { v5 as uuidv5 } from 'uuid';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -120,10 +123,28 @@ async function fetchSignedTransaction(transactionId: string, env: Env): Promise<
   return response.signedTransactionInfo ?? null;
 }
 
-/** Record `userId` as the owner unless someone else already is. */
+/**
+ * An owner record. When its account is deleted the record becomes a tombstone
+ * ({ userId: null, deletedAt, previousOwnerHash }) rather than being removed:
+ * removing it would let the next account to present the signed transaction
+ * take the subscription by first claim.
+ */
+interface OwnerRecord {
+  userId?: string | null;
+  claimedAt?: string;
+  deletedAt?: string;
+  previousOwnerHash?: string;
+}
+
+/**
+ * Record `userId` as the owner unless someone else already is. A deleted
+ * account's purchase (tombstone) is never claimable by first claim; only a
+ * claim whose appAccountToken was issued for `userId` (`tokenBound`) proves it.
+ */
 export async function claimTransactionOwner(
   originalTransactionId: string,
-  userId: string
+  userId: string,
+  tokenBound = false
 ): Promise<'mine' | 'theirs' | 'unavailable'> {
   const db = getFirestoreDb();
   if (!db) return 'unavailable';
@@ -136,9 +157,55 @@ export async function claimTransactionOwner(
       log.error({ error: String(error) }, 'Could not record Apple transaction owner');
       return 'unavailable';
     }
-    const owner = (await ref.get()).data() as { userId?: string } | undefined;
-    return owner?.userId === userId ? 'mine' : 'theirs';
   }
+  try {
+    const owner = (await ref.get()).data() as OwnerRecord | undefined;
+    if (owner?.userId === userId) return 'mine';
+    if (owner?.deletedAt === undefined || !tokenBound) return 'theirs';
+    await ref.set({ userId, claimedAt: new Date().toISOString() });
+    return 'mine';
+  } catch (error) {
+    log.error({ error: String(error) }, 'Could not read or update Apple transaction owner');
+    return 'unavailable';
+  }
+}
+
+/**
+ * Who owns a transaction: the user id, null when nobody has claimed it, or
+ * 'unavailable' when the record can't be read (callers fail closed).
+ */
+export async function getTransactionOwner(
+  originalTransactionId: string
+): Promise<{ owner: string | null } | 'unavailable'> {
+  const db = getFirestoreDb();
+  if (!db) return 'unavailable';
+  try {
+    const snap = await db.collection(APPLE_TRANSACTION_OWNERS).doc(originalTransactionId).get();
+    const owner = (snap.data() as { userId?: string } | undefined)?.userId;
+    return { owner: typeof owner === 'string' ? owner : null };
+  } catch (error) {
+    log.error({ error: String(error) }, 'Could not read Apple transaction owner');
+    return 'unavailable';
+  }
+}
+
+/**
+ * Account deletion: replace every ownership record held by `userId` with a
+ * tombstone that keeps no raw uid (only its SHA-256), so the deleted account
+ * no longer holds its purchases, and nobody else can take them by first claim
+ * (see claimTransactionOwner). Throws when it can't.
+ */
+export async function tombstoneTransactionOwnersFor(userId: string): Promise<number> {
+  const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore unavailable');
+  const snap = await db.collection(APPLE_TRANSACTION_OWNERS).where('userId', '==', userId).get();
+  const tombstone: OwnerRecord = {
+    userId: null,
+    deletedAt: new Date().toISOString(),
+    previousOwnerHash: createHash('sha256').update(userId).digest('hex'),
+  };
+  await Promise.all(snap.docs.map(async (doc) => doc.ref.set(tombstone)));
+  return snap.docs.length;
 }
 
 export type AppleClaimResult =
@@ -202,7 +269,7 @@ export async function claimAppleTransaction(
     return OWNED_ELSEWHERE;
   }
 
-  const owner = await claimTransactionOwner(originalTransactionId, userId);
+  const owner = await claimTransactionOwner(originalTransactionId, userId, Boolean(token));
   log.info(
     { userId, originalTransactionId, bound: token ? 'appAccountToken' : 'first-claim', owner },
     'Apple purchase claim'

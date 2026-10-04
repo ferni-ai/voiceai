@@ -135,17 +135,15 @@ function buildWatch(
   metric.appendChild(metricLabel);
   container.appendChild(metric);
 
-  // Recently closed
-  if (data.recentlyClosed > 0) {
+  if ((data.recentlyClosed ?? 0) > 0) {
     const closedLabel = createElement('div', 'viz-label');
     closedLabel.textContent = `${data.recentlyClosed} ${t('visualizations.openLoops.closedRecently', 'closed recently')}`;
     container.appendChild(closedLabel);
   }
 
-  // Screen reader label
   container.appendChild(
     createScreenReaderLabel(
-      `${data.totalOpen} open loops, ${data.recentlyClosed} recently closed`
+      `${data.totalOpen} open loops${closedText(data)}`
     )
   );
 
@@ -153,7 +151,7 @@ function buildWatch(
     element: container,
     type: 'open-loops',
     device: 'watch',
-    ariaLabel: `${data.totalOpen} open loops, ${data.recentlyClosed} recently closed`,
+    ariaLabel: `${data.totalOpen} open loops${closedText(data)}`,
   };
 }
 
@@ -232,8 +230,7 @@ function buildMobile(
 
   summaryCard.appendChild(priorityRow);
 
-  // Recently closed
-  if (data.recentlyClosed > 0) {
+  if ((data.recentlyClosed ?? 0) > 0) {
     const closedText = createElement('div', 'viz-label');
     setStyles(closedText, { marginTop: 'var(--viz-space-breath)' });
     closedText.textContent = `${data.recentlyClosed} ${t('visualizations.openLoops.closedThisWeek', 'closed this week')}`;
@@ -327,10 +324,9 @@ function buildMobile(
     container.appendChild(oldestCard);
   }
 
-  // Screen reader summary
   container.appendChild(
     createScreenReaderLabel(
-      `${data.totalOpen} open loops: ${priorityBreakdown.high} high priority, ${priorityBreakdown.medium} medium, ${priorityBreakdown.low} low. ${data.recentlyClosed} recently closed.`
+      `${data.totalOpen} open loops: ${priorityBreakdown.high} high priority, ${priorityBreakdown.medium} medium, ${priorityBreakdown.low} low${closedText(data)}.`
     )
   );
 
@@ -493,7 +489,6 @@ function buildTablet(
   statsLabel.textContent = t('common.overview', 'Overview');
   statsPanel.appendChild(statsLabel);
 
-  // Total stat
   const totalRow = createElement('div', 'viz-stat-row');
   const totalLabel = createElement('span', 'viz-stat-row__label');
   totalLabel.textContent = t('visualizations.openLoops.totalOpen', 'Total Open');
@@ -503,17 +498,17 @@ function buildTablet(
   totalRow.appendChild(totalValue);
   statsPanel.appendChild(totalRow);
 
-  // Recently closed
-  const closedRow = createElement('div', 'viz-stat-row');
-  const closedLabel = createElement('span', 'viz-stat-row__label');
-  closedLabel.textContent = t('visualizations.openLoops.closedThisWeek', 'Closed This Week');
-  closedRow.appendChild(closedLabel);
-  const closedValue = createElement('span', 'viz-stat-row__value');
-  closedValue.textContent = String(data.recentlyClosed);
-  closedRow.appendChild(closedValue);
-  statsPanel.appendChild(closedRow);
+  if (data.recentlyClosed !== undefined) {
+    const closedRow = createElement('div', 'viz-stat-row');
+    const closedLabel = createElement('span', 'viz-stat-row__label');
+    closedLabel.textContent = t('visualizations.openLoops.closedThisWeek', 'Closed This Week');
+    closedRow.appendChild(closedLabel);
+    const closedValue = createElement('span', 'viz-stat-row__value');
+    closedValue.textContent = String(data.recentlyClosed);
+    closedRow.appendChild(closedValue);
+    statsPanel.appendChild(closedRow);
+  }
 
-  // Priority breakdown section
   const priorityLabel = createElement('div', 'viz-label viz-label--section');
   setStyles(priorityLabel, { marginTop: 'var(--viz-space-pause)' });
   priorityLabel.textContent = t('visualizations.byPriority', 'By Priority');
@@ -698,5 +693,10 @@ function truncate(text: string, maxLength: number): string {
 // ============================================================================
 // EXPORTS
 // ============================================================================
+
+/** ", 3 recently closed" when closed loops are tracked, else "". */
+function closedText(data: OpenLoopsData): string {
+  return data.recentlyClosed === undefined ? '' : `, ${data.recentlyClosed} recently closed`;
+}
 
 export default buildOpenLoops;
