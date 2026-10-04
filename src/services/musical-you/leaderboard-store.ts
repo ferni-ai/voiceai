@@ -4,7 +4,7 @@
  * Boards lived in a Map in each process, so every Cloud Run instance showed its
  * own leaderboard, and weekly boards "reset" whenever an instance restarted.
  * Each entry is now a shared record (see shared-records), one board per period:
- * musical_leaderboards/<type>_<period>_<gameType>/entries/<uid>, where the
+ * musical_leaderboards/<type>_<period>_<gameType>/musical_board_entries/<uid>, where the
  * period is the week's Monday (UTC) for weekly, YYYY-MM for monthly and "all"
  * for all-time. A board is read as its top 100 by score (one orderBy, served by
  * Firestore's automatic index) and cached for 30 s per instance. A rank is a
@@ -82,7 +82,7 @@ function boardExpiry(key: string): Date | null {
 
 const boardRecords = (key: string) => {
   const expiry = boardExpiry(key);
-  return sharedRecords<StoredEntry>(`musical_leaderboards/${key}/entries`, {
+  return sharedRecords<StoredEntry>(`musical_leaderboards/${key}/musical_board_entries`, {
     dateFields: ['updatedAt'],
     ...(expiry ? { ttlAt: () => expiry } : {}),
   });
