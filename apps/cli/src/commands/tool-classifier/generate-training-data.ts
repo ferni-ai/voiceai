@@ -4,7 +4,7 @@
  * Generates synthetic training data for the Ferni Router Model.
  * Uses tool definitions to create diverse query examples.
  *
- * @module cli/commands/ftis/generate-training-data
+ * @module cli/commands/tool-classifier/generate-training-data
  */
 
 import { promises as fs } from 'fs';

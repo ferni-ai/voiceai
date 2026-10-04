@@ -3860,7 +3860,7 @@ async function handleFTIS(args: string[]): Promise<void> {
       'npx',
       [
         'tsx',
-        'apps/cli/src/commands/ftis/generate-training-data.ts',
+        'apps/cli/src/commands/tool-classifier/generate-training-data.ts',
         '--output=./data/ftis-training',
         '--examples=400',
       ],

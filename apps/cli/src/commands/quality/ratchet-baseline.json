@@ -20,7 +20,7 @@
   "apps/cli/src/commands/exec/scheduler.ts": 729,
   "apps/cli/src/commands/exec/unified-knowledge-context.ts": 613,
   "apps/cli/src/commands/experiments/experiments.ts": 551,
-  "apps/cli/src/commands/ftis/generate-training-data.ts": 796,
+  "apps/cli/src/commands/tool-classifier/generate-training-data.ts": 796,
   "apps/cli/src/commands/generate/generate-openapi.ts": 738,
   "apps/cli/src/commands/growth/content-engine.ts": 558,
   "apps/cli/src/commands/growth/growth-intelligence.ts": 1367,
