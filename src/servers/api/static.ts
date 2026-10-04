@@ -62,6 +62,15 @@ export function serveStaticFile(
     return;
   }
 
+  // Dot-files and dot-directories are build metadata, not site content
+  // (dist/.vite/manifest.json lists every source module). Firebase hosting
+  // skips them too ("**/.*"), so both hosts serve the same files.
+  if (path.relative(frontendDir, resolvedPath).split(path.sep).some((segment) => segment.startsWith('.'))) {
+    res.writeHead(404);
+    res.end('Not Found');
+    return;
+  }
+
   fs.stat(fullPath, (err, stats) => {
     if (err || !stats.isFile()) {
       res.writeHead(404);
