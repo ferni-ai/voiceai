@@ -376,6 +376,11 @@ export class SpeakerChangeDetector extends EventEmitter {
     };
   }
 
+  /** Minimum change confidence (1 - similarity) for a change worth acting on. */
+  getChangeConfidenceThreshold(): number {
+    return this.config.changeConfidenceThreshold;
+  }
+
   /**
    * Manually set current speaker.
    */

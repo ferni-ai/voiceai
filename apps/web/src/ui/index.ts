@@ -450,7 +450,7 @@ export {
   showSpeakerChangePrompt,
   speakerChangeIndicator,
 } from './speaker-change-indicator.ui.js';
-export type { SpeakerChangeEvent } from './speaker-change-indicator.ui.js';
+export type { SpeakerCheckAnswer } from './speaker-change-indicator.ui.js';
 
 // Household Manager - Multi-user voice household management
 export {
