@@ -13,7 +13,7 @@
   "apps/cli/src/commands/chat/chat.ts": 584,
   "apps/cli/src/commands/community/community.ts": 630,
   "apps/cli/src/commands/deploy/deploy-gce.ts": 1328,
-  "apps/cli/src/commands/deploy/deploy.ts": 1720,
+  "apps/cli/src/commands/deploy/deploy.ts": 1711,
   "apps/cli/src/commands/exec/better-than-human.ts": 770,
   "apps/cli/src/commands/exec/exec.ts": 1373,
   "apps/cli/src/commands/exec/proactive-outreach.ts": 624,

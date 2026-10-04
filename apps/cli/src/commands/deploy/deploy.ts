@@ -13,6 +13,11 @@
  */
 
 import { findProjectRoot } from '../../utils/project-root.js';
+import {
+  healthCheck as checkHealth,
+  type HealthCheckOptions,
+  type HealthCheckResult,
+} from './health-check.js';
 import { ChildProcess, execFileSync, execSync, spawn } from 'child_process';
 import { createWriteStream, existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
@@ -151,43 +156,9 @@ function getLatestRevision(serviceName: string): string {
   }
 }
 
-/**
- * Health check a URL with retries
- */
-async function healthCheck(
-  url: string,
-  options: { maxRetries?: number; retryDelay?: number; timeout?: number } = {}
-): Promise<{ healthy: boolean; statusCode?: number; error?: string }> {
-  const { maxRetries = 5, retryDelay = 3000, timeout = 10000 } = options;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-      const response = await fetch(url, {
-        method: 'GET',
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        return { healthy: true, statusCode: response.status };
-      }
-
-      log.warn(`Health check attempt ${attempt}/${maxRetries}: status ${response.status}`);
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      log.warn(`Health check attempt ${attempt}/${maxRetries}: ${errorMsg}`);
-    }
-
-    if (attempt < maxRetries) {
-      await new Promise((resolve) => setTimeout(resolve, retryDelay));
-    }
-  }
-
-  return { healthy: false, error: `Failed after ${maxRetries} attempts` };
+/** Health check a URL with retries, logging each failed attempt. */
+function healthCheck(url: string, options: HealthCheckOptions = {}): Promise<HealthCheckResult> {
+  return checkHealth(url, { ...options, onRetry: log.warn });
 }
 
 /**
