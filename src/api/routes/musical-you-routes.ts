@@ -13,6 +13,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { requireUserId, sendJSON, parseBody } from '../helpers.js';
 import { resolveActingUser } from '../acting-user.js';
+import { requireAuth } from '../auth-middleware.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
 // Import Musical You services
@@ -312,39 +313,42 @@ export async function handleMusicalYouRoutes(
       return true;
     }
 
-    // POST /api/musical/challenge/:id/complete
-    if (pathname.match(/^\/api\/musical\/challenge\/[^/]+\/complete$/) && method === 'POST') {
-      const challengeId = pathname.split('/')[4];
-      const body = await parseBody<{ score?: number; time?: number; name?: string }>(req);
-      const { score, time, name } = body;
-
+    // POST /api/musical/challenge/:id/complete and /decline: only the challengee (or an admin).
+    const answer = pathname.match(/^\/api\/musical\/challenge\/([^/]+)\/(complete|decline)$/);
+    if (answer && method === 'POST') {
+      const [, challengeId, action] = answer;
+      const auth = await requireAuth(req, res);
+      if (!auth) return true;
+      const existing = getChallenge(challengeId);
+      if (!existing) {
+        sendJSON(res, { success: false, error: WARM_ERRORS.challengeNotFound }, 404);
+        return true;
+      }
+      if (existing.challengeeId !== auth.userId && !auth.isAdmin) {
+        log.warn(
+          { callerId: auth.userId, challengeId },
+          'Refused to answer a challenge for someone else'
+        );
+        sendJSON(res, { success: false, error: "That challenge isn't yours to answer." }, 403);
+        return true;
+      }
+      if (action === 'decline') {
+        sendJSON(res, { success: true, challenge: declineChallenge(challengeId) });
+        return true;
+      }
+      const { score, time, name } = await parseBody<{
+        score?: number;
+        time?: number;
+        name?: string;
+      }>(req);
       if (score === undefined) {
         sendJSON(res, { success: false, error: 'Missing score' }, 400);
         return true;
       }
-
-      const challenge = completeChallenge(challengeId, score, time, name);
-
-      if (!challenge) {
-        sendJSON(res, { success: false, error: WARM_ERRORS.challengeNotFound }, 404);
-        return true;
-      }
-
-      sendJSON(res, { success: true, challenge });
-      return true;
-    }
-
-    // POST /api/musical/challenge/:id/decline
-    if (pathname.match(/^\/api\/musical\/challenge\/[^/]+\/decline$/) && method === 'POST') {
-      const challengeId = pathname.split('/')[4];
-      const challenge = declineChallenge(challengeId);
-
-      if (!challenge) {
-        sendJSON(res, { success: false, error: WARM_ERRORS.challengeNotFound }, 404);
-        return true;
-      }
-
-      sendJSON(res, { success: true, challenge });
+      sendJSON(res, {
+        success: true,
+        challenge: completeChallenge(challengeId, score, time, name),
+      });
       return true;
     }
 
@@ -454,11 +458,6 @@ export async function handleMusicalYouRoutes(
       const body = await parseBody<{ userId?: string }>(req);
       const userId = await resolveActingUser(req, res, body.userId);
       if (!userId) return true;
-
-      if (!userId) {
-        sendJSON(res, { success: false, error: WARM_ERRORS.missingUserId }, 400);
-        return true;
-      }
 
       const gameMemory = await getUserGameMemory(userId);
       const dna = await getMusicalDNA(userId, gameMemory);
