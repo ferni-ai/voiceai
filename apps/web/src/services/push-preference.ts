@@ -9,6 +9,8 @@
  * new sign-in over an expired session), the subscription is either moved to
  * the new account (the server allows that because the keys match) or dropped,
  * so the previous account's notifications never reach the new person.
+ *
+ * In the native app the same holds for the device's push token (native-push.ts).
  */
 
 import { toast } from '../ui/whisper.ui.js';
@@ -78,13 +80,15 @@ export async function applyPushPreference(enabled: boolean): Promise<void> {
     return;
   }
 
-  // Native registers asynchronously through its token listener, so null is expected there.
   const subscription = await service.subscribe();
-  if (subscription) writeOwner(getFirebaseUid());
-  if (subscription || isNative()) return;
+  if (subscription) {
+    writeOwner(getFirebaseUid());
+    return;
+  }
 
   if (service.getPermissionStatus() !== 'granted') {
-    toast.error('Notifications are blocked. Allow them in your browser settings.');
+    const where = isNative() ? 'Settings' : 'your browser settings';
+    toast.error(`Notifications are blocked. Allow them in ${where}.`);
   } else {
     toast.error("Notifications aren't available right now.");
   }
@@ -112,7 +116,9 @@ export async function syncPushOwner(uid: string | null): Promise<void> {
   if (!uid) return;
   const owner = readOwner();
   if (owner === uid) return;
-  if (!owner && !(await getBrowserSubscription())) return; // nothing to hand over
+  // Web: nothing to hand over without a subscription. Native always has a device
+  // token, so an unrecorded owner means it still has to be registered for `uid`.
+  if (!owner && !isNative() && !(await getBrowserSubscription())) return;
 
   const service = getPushNotificationsService();
   const keep = service.getPreferences().enabled && service.getPermissionStatus() === 'granted';

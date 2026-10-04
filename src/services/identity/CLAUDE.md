@@ -19,7 +19,8 @@ Identity services handle:
 |------|---------|
 | `apple-signin-oauth.ts` | Apple Sign-In flow |
 | `spotify-auth.ts` | Spotify OAuth |
-| `google-calendar-oauth.ts` | Google Calendar OAuth |
+| `google-calendar-oauth.ts` | Google Calendar OAuth + Calendar API calls |
+| `google-calendar-token-store.ts` | The ONE Google Calendar token store (encrypted, `bogle_users/{uid}/google_calendar_tokens/data`). The old root collection `google_calendar_tokens/{uid}` is no longer read or written. |
 | `firebase-auth.ts` | Firebase authentication |
 | `natural-auth.ts` | Natural/conversational auth |
 | `identity-linking.ts` | Link multiple accounts |

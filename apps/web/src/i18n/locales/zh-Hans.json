@@ -1108,6 +1108,7 @@
       "insights": "我注意到的",
       "yourJourney": "我们的旅程",
       "yourStory": "我们的故事",
+      "trustDashboard": "信任与成长",
       "yourYear": "在一起的这一年",
       "whatIllKnow": "我会学到的",
       "whatINotice": "我注意到的",
@@ -2012,12 +2013,12 @@
     },
     "empty": {
       "title": "你的故事从这里开始",
-      "body": "我们多聊几次之后，对你重要的时刻会出现在这里。"
+      "body": "等我们聊过几次之后，对你重要的时刻会出现在这里。"
     },
     "error": {
       "title": "无法加载你的故事",
-      "body": "我们这边出了点问题。再试一次？",
-      "retry": "重试"
+      "body": "我们这边出了点问题。要再试一次吗？",
+      "retry": "再试一次"
     }
   },
   "memoryBrowser": {
@@ -2263,7 +2264,7 @@
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
       "skip": "[NEEDS_TRANSLATION] Skip",
-      "linkSpotify": "在设置中关联 Spotify 即可收听完整歌曲"
+      "linkSpotify": "在设置中关联 Spotify 即可播放完整歌曲"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2329,9 +2330,9 @@
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
-    "connectDevicesFirst": "请先连接你的灯光或温控器",
-    "couldNotChangeLights": "无法更改灯光。再试一次？",
-    "musicNeedsCall": "音乐控制在对话期间可用"
+    "connectDevicesFirst": "请先连接你的灯光或恒温器",
+    "musicNeedsCall": "音乐控制在对话期间可用",
+    "couldNotChangeLights": "无法更改灯光。要再试一次吗？"
   },
   "ui": {
     "accountbutton": {
@@ -2463,7 +2464,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "最近 7 天"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2566,6 +2568,10 @@
       "subtitle": "通话、消息和信守的承诺",
       "empty": "还没有操作",
       "recent": "最近"
+    },
+    "predictions": {
+      "title": "你的方向",
+      "now": "现在"
     }
   },
   "sleepSettings": {

@@ -1108,6 +1108,7 @@
       "insights": "What I'm Noticing",
       "yourJourney": "Our Journey",
       "yourStory": "Our Story So Far",
+      "trustDashboard": "Trust & Growth",
       "yourYear": "This Year Together",
       "whatIllKnow": "What I'll Learn",
       "whatINotice": "What I'm Noticing",
@@ -2370,8 +2371,8 @@
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
     "connectDevicesFirst": "Connect your lights or thermostat first",
-    "couldNotChangeLights": "Couldn't change the lights. Try again?",
-    "musicNeedsCall": "Music controls work during a conversation"
+    "musicNeedsCall": "Music controls work during a conversation",
+    "couldNotChangeLights": "Couldn't change the lights. Try again?"
   },
   "ui": {
     "accountbutton": {
@@ -2503,7 +2504,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "Energy Levels",
-      "subtitle": "Your current capacity"
+      "subtitle": "Your current capacity",
+      "weekSubtitle": "Your last 7 days"
     },
     "energy": {
       "emotional": "Emotional",
@@ -2606,6 +2608,10 @@
       "subtitle": "Calls, messages, and commitments kept",
       "empty": "No actions yet",
       "recent": "Recent"
+    },
+    "predictions": {
+      "title": "Where You're Headed",
+      "now": "Now"
     }
   },
   "nowPlaying": {

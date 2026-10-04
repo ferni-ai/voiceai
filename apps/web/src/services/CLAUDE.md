@@ -68,7 +68,7 @@ This directory contains frontend services that power the Ferni web app. Services
 | Service | Purpose |
 |---------|---------|
 | `intelligence.service.ts` | AI intelligence features |
-| `life-context.service.ts` | Life context tracking |
+| `life-context-updates.service.ts` | Life context dashboard stream (/ws/life-context) |
 | `mood-context.service.ts` | Mood tracking |
 | `predictive-insights.service.ts` | Predictive features |
 | `cross-team-notifications.service.ts` | Team coordination |
