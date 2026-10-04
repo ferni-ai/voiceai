@@ -12,7 +12,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getDefaultStore } from '../memory/index.js';
 import { deleteOAuthLinkStatesFor } from '../servers/token/oauth-link-state.js';
-import { deleteTransactionOwnersFor } from '../services/billing/apple-signed-data.js';
+import { tombstoneTransactionOwnersFor } from '../services/billing/apple-signed-data.js';
 import { deleteFirebaseUser, getFirebaseUser } from '../services/identity/firebase-auth.js';
 import { erasePushRecordsFor } from '../services/push-endpoint-owners.js';
 import { recordSecurityEvent } from '../services/security-events.js';
@@ -164,7 +164,7 @@ async function handleGetAccount(
 const LINKED_RECORDS: ReadonlyArray<readonly [string, (userId: string) => Promise<unknown>]> = [
   ['push_subscriptions', erasePushRecordsFor],
   ['oauth_link_states', deleteOAuthLinkStatesFor],
-  ['apple_transaction_owners', deleteTransactionOwnersFor],
+  ['apple_transaction_owners', tombstoneTransactionOwnersFor],
 ];
 
 /** Best effort: every sweep runs; returns the names of those that failed. */

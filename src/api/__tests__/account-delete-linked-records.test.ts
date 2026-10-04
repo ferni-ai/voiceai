@@ -4,7 +4,8 @@
  * - push subscriptions (bogle_users/<uid>/push_subscriptions/data) and the
  *   push_endpoint_owners records naming them;
  * - OAuth link states they started;
- * - apple_transaction_owners records naming them.
+ * - apple_transaction_owners records naming them, replaced by tombstones that
+ *   keep no raw uid (deleting them would free the purchase for a first claim).
  * Each is best effort: a failure is logged and listed in details.failures,
  * never hidden behind a plain success.
  *
@@ -186,12 +187,15 @@ for (const storeKind of ['memory', 'firestore'] as const) {
 
       expect(fs.docs.has('bogle_users/alice/push_subscriptions/data')).toBe(false);
       expect(fs.docs.has('push_endpoint_owners/hash-alice')).toBe(false);
-      expect(fs.docs.has('apple_transaction_owners/otx-alice')).toBe(false);
+      const tomb = fs.docs.get('apple_transaction_owners/otx-alice');
+      expect(tomb?.userId).toBeNull(); // tombstoned, not freed for someone's first claim
+      expect(tomb?.deletedAt).toEqual(expect.any(String));
+      expect(JSON.stringify(tomb)).not.toContain('alice');
       expect(await live(stateA)).toBeNull();
 
       expect(fs.docs.has('bogle_users/bob/push_subscriptions/data')).toBe(true);
       expect(fs.docs.has('push_endpoint_owners/hash-bob')).toBe(true);
-      expect(fs.docs.has('apple_transaction_owners/otx-bob')).toBe(true);
+      expect(fs.docs.get('apple_transaction_owners/otx-bob')?.userId).toBe('bob');
       expect((await live(stateB))?.uid).toBe('bob');
 
       expect(sent.status).toBe(200);
@@ -221,6 +225,6 @@ describe('DELETE /api/account when a linked sweep fails', () => {
     expect(sent.body.details?.failures).toEqual(['apple_transaction_owners']);
     expect(sent.body.message).toMatch(/couldn't be removed/);
     expect(fs.docs.has('push_endpoint_owners/hash-alice')).toBe(false);
-    expect(fs.docs.has('apple_transaction_owners/otx-alice')).toBe(true);
+    expect(fs.docs.get('apple_transaction_owners/otx-alice')?.userId).toBe('alice');
   });
 });
