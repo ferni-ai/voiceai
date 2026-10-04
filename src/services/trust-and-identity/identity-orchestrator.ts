@@ -542,13 +542,13 @@ export async function endIdentitySession(sessionId: string): Promise<void> {
       const { updateProfile } = await import('../voice/voice-enrollment.js');
       const { extractSpeakerEmbedding } = await import('../voice-memory-enhanced.js');
 
-      // Convert audio samples to enrollment samples
       const newSamples = [];
       for (const audio of session.newVoiceSamples.slice(0, 5)) {
         const embedding = await extractSpeakerEmbedding(audio);
         if (embedding) {
           newSamples.push({
             embedding: Array.from(embedding.vector),
+            method: embedding.method,
             collectedAt: new Date(),
             durationMs: (audio.length / 16000) * 1000,
             quality: { confidence: embedding.confidence },
