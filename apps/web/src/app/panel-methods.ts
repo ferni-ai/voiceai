@@ -17,6 +17,7 @@ import { showTeamHuddle as showTeamHuddleUI } from '../ui/team-huddle.ui.js';
 import type { fetchVisualizationData, YourStoryData } from '../ui/visualizations/index.js';
 import { loadYourStory } from '../ui/lazy-screens.js';
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 
 // 🧠 Better Than Human: Track screen view for Voice ↔ App Sync
 async function trackScreen(screen: ScreenName): Promise<void> {
@@ -738,38 +739,26 @@ async function fetchRelationshipStage(_userId: string): Promise<YourStoryData['s
 }
 
 /**
- * Fetch recent milestones for the story.
+ * Fetch completed relationship milestones for the story.
+ * Source: GET /api/your-story/section/relationship (src/api/your-story-routes.ts),
+ * built from the relationship arc stored in Firestore.
  */
-async function fetchRecentMilestones(userId: string): Promise<YourStoryData['milestones']> {
-  try {
-    const response = await fetch(
-      `/api/journey/milestones?userId=${encodeURIComponent(userId)}&limit=5`
-    );
-    if (response.ok) {
-      const data = await response.json();
-      return (data.milestones || []).map(
-        (m: { id: string; name: string; celebratedAt: string | number; category?: string }) => ({
-          id: m.id,
-          name: m.name,
-          celebratedAt:
-            typeof m.celebratedAt === 'string'
-              ? new Date(m.celebratedAt).getTime()
-              : m.celebratedAt,
-          category: (m.category || 'discovery') as
-            | 'relationship'
-            | 'team'
-            | 'conversation'
-            | 'discovery'
-            | 'sweet',
-        })
-      );
-    }
-  } catch (err) {
-    log.debug({ err }, 'Failed to fetch milestones');
+async function fetchRecentMilestones(_userId: string): Promise<YourStoryData['milestones']> {
+  const response = await apiGet<{
+    data?: { milestones?: Array<{ id: string; title: string; completed: boolean; completedAt?: string }> };
+  }>('/api/your-story/section/relationship');
+  if (!response.ok) {
+    log.debug({ status: response.status }, 'Failed to fetch milestones');
+    return [];
   }
-
-  // Return empty array if API fails
-  return [];
+  return (response.data?.data?.milestones ?? [])
+    .filter((m) => m.completed)
+    .map((m) => ({
+      id: m.id,
+      name: m.title,
+      celebratedAt: m.completedAt ? new Date(m.completedAt).getTime() : 0,
+      category: 'relationship' as const,
+    }));
 }
 
 // ============================================================================
