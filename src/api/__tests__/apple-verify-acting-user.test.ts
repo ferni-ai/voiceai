@@ -28,7 +28,8 @@ vi.mock('../../services/apple-iap.js', () => ({
   isAppleConfigured: () => true,
   appleIAP: { productToTier: { 'com.ferni.friend.monthly': 'friend' } },
 }));
-vi.mock('../../services/billing/apple-signed-data.js', () => ({
+vi.mock('../../services/billing/apple-signed-data.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/billing/apple-signed-data.js')>()),
   claimAppleTransaction,
   getAppleVerifier: () => null,
 }));
@@ -79,5 +80,17 @@ describe('POST /api/apple/verify', () => {
     const res = await verify({ receiptData: 'tx-1' }, 'tok-A');
     expect(res.status).toBe(200);
     expect(claimAppleTransaction).toHaveBeenCalledWith('uid-A', 'tx-1');
+  });
+
+  it('serves the signed-in user their appAccountToken, and nobody else', async () => {
+    const { appAccountTokenFor } = await import('../../services/billing/apple-signed-data.js');
+    const mine = await fetch(`${base}/api/apple/account-token`, {
+      headers: { authorization: 'Bearer tok-A' },
+    });
+    expect(mine.status).toBe(200);
+    expect(await mine.json()).toEqual({ appAccountToken: appAccountTokenFor('uid-A') });
+
+    const anonymous = await fetch(`${base}/api/apple/account-token`);
+    expect(anonymous.status).toBe(401);
   });
 });

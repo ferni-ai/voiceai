@@ -7,11 +7,17 @@
  * bundle id, and our environment (and app Apple ID in production). There's no
  * hand-rolled JWS/x5c code here.
  *
- * Purchases are bound to the verified caller. The iOS app doesn't set
- * appAccountToken yet, so ownership is first claim: the first verified user to
- * claim an originalTransactionId owns it, and any other user gets 403. The
- * claim is an atomic Firestore create, so two users can't both win a race.
- * Ownership never comes from a client-supplied userId.
+ * Purchases are bound to the verified caller:
+ * - A transaction carrying appAccountToken belongs to the user that token was
+ *   issued for (appAccountTokenFor, served by GET /api/apple/account-token for
+ *   the app to pass to StoreKit). Any other caller gets 403, even on first claim.
+ * - Without a token (today's iOS builds don't set one) ownership falls back to
+ *   first claim on originalTransactionId, recorded with an atomic Firestore
+ *   create, so a second user can never take it over (403). Known limitation:
+ *   whoever obtains a tokenless signed transaction first (a forwarded receipt,
+ *   a logged JWS) can claim it before the buyer, until the app sends the token.
+ * Every claim is logged with uid and originalTransactionId. Ownership never
+ * comes from a client-supplied userId.
  *
  * When verification can't run (no root/bundle/app id config, no Firestore,
  * Apple unreachable) callers get `unavailable` and must fail closed.
@@ -24,6 +30,7 @@ import {
   SignedDataVerifier,
   type JWSTransactionDecodedPayload,
 } from '@apple/app-store-server-library';
+import { v5 as uuidv5 } from 'uuid';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { APPLE_ROOT_CERTIFICATES } from './apple-root-certs.js';
@@ -37,6 +44,17 @@ export const APPLE_TRANSACTION_OWNERS = 'apple_transaction_owners';
 const ALREADY_EXISTS = 6;
 
 type Env = Record<string, string | undefined>;
+
+/** Fixed namespace for appAccountToken = UUIDv5(uid). Changing it orphans every issued token. */
+const APP_ACCOUNT_TOKEN_NAMESPACE = 'dd86dd64-3f16-47aa-8f79-689103b9bfed';
+
+/**
+ * The appAccountToken the app should pass to StoreKit for this user: a stable
+ * UUID derived from the uid, so nothing needs storing.
+ */
+export function appAccountTokenFor(userId: string): string {
+  return uuidv5(userId, APP_ACCOUNT_TOKEN_NAMESPACE);
+}
 
 /**
  * The App Store environment this server accepts. Only Production or Sandbox:
@@ -133,6 +151,12 @@ const UNAVAILABLE: AppleClaimResult = {
   error: "Purchases can't be verified right now",
 };
 
+const OWNED_ELSEWHERE: AppleClaimResult = {
+  ok: false,
+  status: 403,
+  error: 'That purchase belongs to another account',
+};
+
 /**
  * Verify a purchase with Apple and bind it to `userId` (the verified caller).
  * `receipt` is a StoreKit 2 transaction id or its signed JWS representation.
@@ -171,11 +195,19 @@ export async function claimAppleTransaction(
     return { ok: false, status: 400, error: "That purchase couldn't be verified" };
   }
 
-  const owner = await claimTransactionOwner(originalTransactionId, userId);
-  if (owner === 'unavailable') return UNAVAILABLE;
-  if (owner === 'theirs') {
-    log.warn({ userId, originalTransactionId }, 'Refused a claim on another account’s purchase');
-    return { ok: false, status: 403, error: 'That purchase belongs to another account' };
+  // A token issued for one user decides ownership outright: no first-claim race.
+  const token = transaction.appAccountToken?.toLowerCase();
+  if (token && token !== appAccountTokenFor(userId)) {
+    log.warn({ userId, originalTransactionId }, 'Refused a purchase bought for another account');
+    return OWNED_ELSEWHERE;
   }
+
+  const owner = await claimTransactionOwner(originalTransactionId, userId);
+  log.info(
+    { userId, originalTransactionId, bound: token ? 'appAccountToken' : 'first-claim', owner },
+    'Apple purchase claim'
+  );
+  if (owner === 'unavailable') return UNAVAILABLE;
+  if (owner === 'theirs') return OWNED_ELSEWHERE;
   return { ok: true, transaction };
 }

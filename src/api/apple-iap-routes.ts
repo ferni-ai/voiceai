@@ -12,7 +12,11 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { appleIAP, isAppleConfigured } from '../services/apple-iap.js';
-import { claimAppleTransaction, getAppleVerifier } from '../services/billing/apple-signed-data.js';
+import {
+  appAccountTokenFor,
+  claimAppleTransaction,
+  getAppleVerifier,
+} from '../services/billing/apple-signed-data.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { resolveActingUser } from './acting-user.js';
 import { optionalAuthAsync } from './auth-middleware.js';
@@ -235,6 +239,27 @@ async function handleWebhook(ctx: RequestContext): Promise<ResponseContext> {
 }
 
 /**
+ * GET /api/apple/account-token
+ * The appAccountToken for the signed-in user. The iOS app passes it to StoreKit
+ * at purchase, which binds the purchase to this account (see apple-signed-data).
+ */
+// eslint-disable-next-line @typescript-eslint/require-await
+async function getAccountToken(ctx: RequestContext): Promise<ResponseContext> {
+  if (!ctx.authUserId) {
+    return {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Authentication required' },
+    };
+  }
+  return {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+    body: { appAccountToken: appAccountTokenFor(ctx.authUserId) },
+  };
+}
+
+/**
  * GET /api/apple/products
  * Get available product IDs for the iOS app
  */
@@ -279,6 +304,7 @@ const routes: {
   GET: {
     '/api/apple/status': getStatus,
     '/api/apple/products': getProducts,
+    '/api/apple/account-token': getAccountToken,
     '/api/apple/cancel-instructions': getCancelInstructions,
   },
   POST: {

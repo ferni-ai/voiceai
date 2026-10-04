@@ -153,7 +153,7 @@ describe('claimAppleTransaction', () => {
     firestore.available = true;
   });
 
-  it("gives a purchase to its first claimant and refuses another user's claim with 403", async () => {
+  it("without a token, gives a purchase to its first claimant and refuses another user's claim with 403", async () => {
     const first = await signedData.claimAppleTransaction('uid-A', purchase, appleTestHelper);
     expect(first.ok).toBe(true);
     expect(owners.get('12345')?.userId).toBe('uid-A');
@@ -168,6 +168,36 @@ describe('claimAppleTransaction', () => {
 
     const again = await signedData.claimAppleTransaction('uid-A', purchase, appleTestHelper);
     expect(again.ok).toBe(true);
+  });
+
+  it('gives a token-bound purchase only to the user the token was issued for', async () => {
+    const { privateKey } = await generateKeyPair('ES256');
+    const boundToA = await new CompactSign(
+      new TextEncoder().encode(
+        JSON.stringify({
+          ...SIGNED_TRANSACTION_MODEL,
+          appAccountToken: signedData.appAccountTokenFor('uid-A'),
+        })
+      )
+    )
+      .setProtectedHeader({ alg: 'ES256' })
+      .sign(privateKey);
+
+    // B gets there first, with A's genuine purchase: refused, and nothing recorded.
+    const squatter = await signedData.claimAppleTransaction('uid-B', boundToA, appleTestHelper);
+    expect(squatter).toMatchObject({ ok: false, status: 403 });
+    expect(owners.size).toBe(0);
+
+    const buyer = await signedData.claimAppleTransaction('uid-A', boundToA, appleTestHelper);
+    expect(buyer.ok).toBe(true);
+    expect(owners.get('12345')?.userId).toBe('uid-A');
+  });
+
+  it('issues a stable, per-user appAccountToken', () => {
+    const token = signedData.appAccountTokenFor('uid-A');
+    expect(token).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(signedData.appAccountTokenFor('uid-A')).toBe(token);
+    expect(signedData.appAccountTokenFor('uid-B')).not.toBe(token);
   });
 
   it('rejects a genuinely signed transaction for another bundle id', async () => {
