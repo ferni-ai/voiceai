@@ -1,7 +1,7 @@
 /**
  * POST /api/garden/plant: whom does a seed payment act on?
  *
- * The web's Support Ferni modal put its local deviceId in `body.userId`. The
+ * The web's Support Ferni modal once put its local deviceId in `body.userId`. The
  * handler ignored the body and used whoever the router resolved, so an
  * old-style body naming someone else was quietly answered as the caller. Now
  * the handler applies the shared acting-user rule: act on the verified caller,
@@ -49,6 +49,7 @@ vi.mock('../../apps/web/src/ui/whisper.ui.js', () => ({ toast: { error: vi.fn() 
 const { handleGardenRoutes } = await import('../api/garden-routes.js');
 const { apiPost } = await import('../../apps/web/src/utils/api.js');
 const { apiFetch } = await import('../../apps/web/src/utils/api-helpers.js');
+const { payForSeed } = await import('../../apps/web/src/services/seed-payment.js');
 
 interface Captured {
   path: string;
@@ -123,25 +124,20 @@ const paidFor = () =>
   );
 
 describe('POST /api/garden/plant', () => {
-  it('Support Ferni: the web sends no device id, only the Bearer token, and is accepted as uid-42', async () => {
-    // The exact fields support-ferni.ui.ts handlePlantSeed now sends, through the real apiPost.
-    await apiPost('/api/garden/plant', {
-      amountInCents: 500,
-      successUrl: '?tip=success',
-      cancelUrl: '?tip=cancel',
-    });
+  it('Support Ferni: plants through payForSeed, sends no device id, and pays as uid-42', async () => {
+    // support-ferni.ui.ts handlePlantSeed calls payForSeed (seed-payment.ts),
+    // the same flow as the Seed Fund modal. It used to send
+    // { amountInCents, successUrl, cancelUrl }, which this handler 400s.
+    await payForSeed(5);
     const [request] = captured;
     expect(request.headers.authorization).toBe('Bearer tok-42');
-    // apiPost fills userId with the Firebase uid when the body names nobody.
-    expect(request.body.userId).toBe('uid-42');
+    expect(request.body).toEqual({ amount: 5 });
 
     const out = await serve(request);
 
-    // Identity passes (no 401/403). The body still fails the handler's own
-    // contract: it reads `amount` in dollars, not amountInCents (pre-existing).
-    expect(out.status).toBe(400);
-    expect(out.body.error).toMatch(/at least \$1/);
-    expect(paidFor()).toEqual([]);
+    expect(out.status).toBe(200);
+    expect(out.body).toMatchObject({ success: true, clientSecret: 'pi_secret' });
+    expect(paidFor()).toEqual(['uid-42']);
   });
 
   it('Seed Fund: the real web body succeeds and pays as the verified uid', async () => {

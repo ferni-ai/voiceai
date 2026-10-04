@@ -54,6 +54,12 @@ vi.mock('../../src/ui/subscription.ui.js', () => ({
   loadStatus: vi.fn(() => Promise.resolve()),
 }));
 
+// Stripe.js (external): confirmPayment navigates away on success.
+const mockStripe = { confirmPayment: vi.fn(async () => ({})) };
+vi.mock('../../src/services/monetization.service.js', () => ({
+  loadStripe: vi.fn(async () => mockStripe),
+}));
+
 // Mock fetch globally
 vi.stubGlobal('fetch', mockFetch);
 
@@ -122,7 +128,8 @@ describe('Support Ferni UI', () => {
     });
 
     it('should close on backdrop click', async () => {
-      const { openSupportFerni, closeSupportFerni } = await import('../../src/ui/support-ferni.ui.js');
+      const { openSupportFerni, closeSupportFerni } =
+        await import('../../src/ui/support-ferni.ui.js');
 
       await openSupportFerni();
       const backdrop = document.querySelector('.support-ferni-backdrop');
@@ -310,6 +317,63 @@ describe('Support Ferni UI', () => {
 
       const plantBtn = findPlantSeedButton();
       expect(plantBtn?.hasAttribute('disabled')).toBe(false);
+    });
+
+    // The bodies below are what POST /api/garden/plant actually answers
+    // (src/tests/seed-payment-contract.test.ts drives the real handler).
+    const plantRequests = () =>
+      mockFetch.mock.calls.filter(([url]) => String(url) === '/api/garden/plant');
+
+    async function plantTenDollars(): Promise<void> {
+      const { openSupportFerni } = await import('../../src/ui/support-ferni.ui.js');
+      await openSupportFerni();
+      (document.querySelector('[data-tip-amount="10"]') as HTMLElement).click();
+      findPlantSeedButton()?.click();
+      await new Promise((r) => setTimeout(r, 50));
+    }
+
+    it('plants a seed: sends dollars, then confirms the returned client secret with Stripe', async () => {
+      mockFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({ success: true, clientSecret: 'pi_secret', paymentIntentId: 'pi_1' }),
+          { status: 200 }
+        )
+      );
+
+      await plantTenDollars();
+
+      expect(plantRequests()).toHaveLength(1);
+      expect(JSON.parse(plantRequests()[0][1].body)).toEqual({ amount: 10 });
+      expect(mockStripe.confirmPayment).toHaveBeenCalledWith(
+        expect.objectContaining({ clientSecret: 'pi_secret' })
+      );
+      expect(mockToast.error).not.toHaveBeenCalled();
+    });
+
+    it('says payments are not set up when the server has no Stripe (503)', async () => {
+      mockFetch.mockResolvedValue(
+        new Response(JSON.stringify({ success: false, error: 'Payment system not configured' }), {
+          status: 503,
+        })
+      );
+
+      await plantTenDollars();
+
+      expect(mockToast.error).toHaveBeenCalledWith(
+        "Payments aren't set up yet, so nothing was charged."
+      );
+      expect(mockStripe.confirmPayment).not.toHaveBeenCalled();
+    });
+
+    it('says the payment did not go through when Stripe declines it', async () => {
+      mockFetch.mockResolvedValue(
+        new Response(JSON.stringify({ success: true, clientSecret: 'pi_secret' }), { status: 200 })
+      );
+      mockStripe.confirmPayment.mockResolvedValueOnce({ error: { message: 'Card declined' } });
+
+      await plantTenDollars();
+
+      expect(mockToast.error).toHaveBeenCalledWith("Payment didn't go through. Try again?");
     });
   });
 
@@ -516,7 +580,8 @@ describe('Support Ferni UI', () => {
     });
 
     it('should not duplicate styles on multiple opens', async () => {
-      const { openSupportFerni, closeSupportFerni } = await import('../../src/ui/support-ferni.ui.js');
+      const { openSupportFerni, closeSupportFerni } =
+        await import('../../src/ui/support-ferni.ui.js');
 
       await openSupportFerni();
       closeSupportFerni();
@@ -530,4 +595,3 @@ describe('Support Ferni UI', () => {
     });
   });
 });
-
