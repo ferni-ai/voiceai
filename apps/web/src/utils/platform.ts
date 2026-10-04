@@ -1,8 +1,9 @@
 /**
- * Platform Detection & Native Feature Bridge
+ * Platform Detection
  *
- * Detects the runtime environment (Web, Electron, Capacitor/iOS) and provides
- * unified APIs for native features like haptics, status bar, and storage.
+ * The web app runs in a browser or inside the Electron desktop shell. There is
+ * no native mobile shell around it: the iOS app is native Swift
+ * (apps/ios-native) and talks to the server directly.
  */
 
 import { createLogger } from './logger.js';
@@ -14,44 +15,7 @@ const log = createLogger('Platform');
 // ============================================================================
 
 /** Supported platforms */
-export type Platform = 'web' | 'electron' | 'ios' | 'android';
-
-/** Native haptic feedback intensities */
-export type HapticStyle = 'light' | 'medium' | 'heavy' | 'selection' | 'success' | 'warning' | 'error';
-
-/** Capacitor global interface (injected by Capacitor runtime) */
-interface CapacitorGlobal {
-  isNativePlatform: () => boolean;
-  getPlatform: () => string;
-  Plugins: {
-    Haptics?: {
-      impact: (options: { style: string }) => Promise<void>;
-      notification: (options: { type: string }) => Promise<void>;
-      selectionStart: () => Promise<void>;
-      selectionChanged: () => Promise<void>;
-      selectionEnd: () => Promise<void>;
-    };
-    StatusBar?: {
-      setStyle: (options: { style: string }) => Promise<void>;
-      setBackgroundColor: (options: { color: string }) => Promise<void>;
-      hide: () => Promise<void>;
-      show: () => Promise<void>;
-    };
-    SplashScreen?: {
-      hide: (options?: { fadeOutDuration?: number }) => Promise<void>;
-      show: (options?: { fadeInDuration?: number; autoHide?: boolean }) => Promise<void>;
-    };
-    App?: {
-      addListener: (event: string, callback: (data: unknown) => void) => { remove: () => void };
-      getState: () => Promise<{ isActive: boolean }>;
-    };
-    Keyboard?: {
-      hide: () => Promise<void>;
-      show: () => Promise<void>;
-      setAccessoryBarVisible: (options: { isVisible: boolean }) => Promise<void>;
-    };
-  };
-}
+export type Platform = 'web' | 'electron';
 
 /** Electron API interface (exposed via preload script) */
 interface ElectronAPI {
@@ -70,7 +34,6 @@ interface ElectronAPI {
 // Extend Window interface
 declare global {
   interface Window {
-    Capacitor?: CapacitorGlobal;
     electronAPI?: ElectronAPI;
   }
 }
@@ -83,19 +46,10 @@ declare global {
  * Detect the current platform.
  */
 export function getPlatform(): Platform {
-  // Check for Electron first (preload script sets this)
+  // The Electron preload script sets this
   if (typeof window !== 'undefined' && window.electronAPI?.isElectron) {
     return 'electron';
   }
-
-  // Check for Capacitor (native iOS/Android)
-  if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
-    const platform = window.Capacitor.getPlatform();
-    if (platform === 'ios') return 'ios';
-    if (platform === 'android') return 'android';
-  }
-
-  // Default to web
   return 'web';
 }
 
@@ -117,179 +71,7 @@ export function platform(): Platform {
  */
 export const isWeb = (): boolean => platform() === 'web';
 export const isElectron = (): boolean => platform() === 'electron';
-export const isIOS = (): boolean => platform() === 'ios';
-export const isAndroid = (): boolean => platform() === 'android';
-export const isNative = (): boolean => isIOS() || isAndroid();
 export const isDesktop = (): boolean => isElectron();
-export const isMobile = (): boolean => isIOS() || isAndroid();
-
-// ============================================================================
-// NATIVE HAPTICS
-// ============================================================================
-
-/**
- * Trigger native haptic feedback.
- * Falls back gracefully on unsupported platforms.
- */
-export async function haptic(style: HapticStyle = 'light'): Promise<void> {
-  // iOS/Android: Use Capacitor Haptics plugin
-  if (isNative()) {
-    const Haptics = window.Capacitor?.Plugins?.Haptics;
-    if (!Haptics) return;
-
-    try {
-      switch (style) {
-        case 'selection':
-          await Haptics.selectionChanged();
-          break;
-        case 'success':
-          await Haptics.notification({ type: 'SUCCESS' });
-          break;
-        case 'warning':
-          await Haptics.notification({ type: 'WARNING' });
-          break;
-        case 'error':
-          await Haptics.notification({ type: 'ERROR' });
-          break;
-        case 'light':
-          await Haptics.impact({ style: 'LIGHT' });
-          break;
-        case 'medium':
-          await Haptics.impact({ style: 'MEDIUM' });
-          break;
-        case 'heavy':
-          await Haptics.impact({ style: 'HEAVY' });
-          break;
-        default:
-          await Haptics.impact({ style: 'LIGHT' });
-      }
-    } catch (err) {
-      log.debug('Haptics error:', err);
-    }
-    return;
-  }
-
-  // Web: Try Vibration API (limited support)
-  if ('vibrate' in navigator) {
-    const patterns: Record<HapticStyle, number | number[]> = {
-      light: 10,
-      medium: 25,
-      heavy: 50,
-      selection: 5,
-      success: [15, 50, 15],
-      warning: [25, 50, 25],
-      error: [50, 100, 50],
-    };
-    navigator.vibrate(patterns[style] || 10);
-  }
-}
-
-// ============================================================================
-// STATUS BAR (iOS/Android)
-// ============================================================================
-
-/**
- * Configure the native status bar.
- */
-export async function setStatusBarStyle(style: 'light' | 'dark'): Promise<void> {
-  if (!isNative()) return;
-
-  const StatusBar = window.Capacitor?.Plugins?.StatusBar;
-  if (!StatusBar) return;
-
-  try {
-    // iOS uses 'Light' for light content (dark bg), 'Dark' for dark content (light bg)
-    await StatusBar.setStyle({ style: style === 'light' ? 'LIGHT' : 'DARK' });
-  } catch (err) {
-    log.debug('StatusBar error:', err);
-  }
-}
-
-/**
- * Set status bar background color.
- */
-export async function setStatusBarColor(color: string): Promise<void> {
-  if (!isNative()) return;
-
-  const StatusBar = window.Capacitor?.Plugins?.StatusBar;
-  if (!StatusBar) return;
-
-  try {
-    await StatusBar.setBackgroundColor({ color });
-  } catch (err) {
-    log.debug('StatusBar color error:', err);
-  }
-}
-
-// ============================================================================
-// SPLASH SCREEN (iOS/Android)
-// ============================================================================
-
-/**
- * Hide the native splash screen.
- */
-export async function hideSplashScreen(fadeOutMs = 200): Promise<void> {
-  if (!isNative()) return;
-
-  const SplashScreen = window.Capacitor?.Plugins?.SplashScreen;
-  if (!SplashScreen) return;
-
-  try {
-    await SplashScreen.hide({ fadeOutDuration: fadeOutMs });
-  } catch (err) {
-    log.debug('SplashScreen error:', err);
-  }
-}
-
-// ============================================================================
-// APP LIFECYCLE (iOS/Android)
-// ============================================================================
-
-/**
- * Listen for app going to background/foreground.
- */
-export function onAppStateChange(callback: (isActive: boolean) => void): () => void {
-  if (!isNative()) {
-    // Web fallback using visibility API
-    const handler = () => callback(!document.hidden);
-    document.addEventListener('visibilitychange', handler);
-    return () => document.removeEventListener('visibilitychange', handler);
-  }
-
-  const App = window.Capacitor?.Plugins?.App;
-  if (!App) return () => {};
-
-  const listener = App.addListener('appStateChange', (state: unknown) => {
-    const { isActive } = state as { isActive: boolean };
-    callback(isActive);
-  });
-
-  return () => listener?.remove();
-}
-
-// ============================================================================
-// KEYBOARD (iOS/Android)
-// ============================================================================
-
-/**
- * Hide the virtual keyboard.
- */
-export async function hideKeyboard(): Promise<void> {
-  if (!isNative()) {
-    // Web fallback - blur active element
-    (document.activeElement as HTMLElement)?.blur();
-    return;
-  }
-
-  const Keyboard = window.Capacitor?.Plugins?.Keyboard;
-  if (!Keyboard) return;
-
-  try {
-    await Keyboard.hide();
-  } catch (err) {
-    log.debug('Keyboard hide error:', err);
-  }
-}
 
 // ============================================================================
 // ELECTRON SPECIFIC
@@ -396,189 +178,16 @@ export async function storeSet(key: string, value: unknown): Promise<void> {
 }
 
 // ============================================================================
-// SHARING (Capacitor Share plugin)
-// ============================================================================
-
-export interface ShareOptions {
-  title?: string;
-  text?: string;
-  url?: string;
-  dialogTitle?: string;
-}
-
-/**
- * Check if native sharing is available.
- */
-export function canShare(): boolean {
-  // Native platforms always have share capability
-  if (isNative()) return true;
-  // Web: check for Web Share API
-  return 'share' in navigator;
-}
-
-/**
- * Share content using native share dialog.
- */
-export async function share(options: ShareOptions): Promise<boolean> {
-  try {
-    if (isNative()) {
-      // Capacitor Share plugin would go here
-      // For now, fall through to web implementation
-    }
-    
-    if ('share' in navigator) {
-      await navigator.share({
-        title: options.title,
-        text: options.text,
-        url: options.url,
-      });
-      return true;
-    }
-    
-    log.warn('Share not supported on this platform');
-    return false;
-  } catch (err) {
-    if ((err as Error).name !== 'AbortError') {
-      log.debug('Share error:', err);
-    }
-    return false;
-  }
-}
-
-// ============================================================================
-// DEEP LINKING (Capacitor App plugin)
-// ============================================================================
-
-export interface DeepLinkData {
-  url: string;
-  path: string;
-  params: Record<string, string>;
-}
-
-/**
- * Parse a deep link URL into its components.
- */
-export function parseDeepLink(url: string): DeepLinkData {
-  try {
-    const parsed = new URL(url);
-    const params: Record<string, string> = {};
-    parsed.searchParams.forEach((value, key) => {
-      params[key] = value;
-    });
-    return {
-      url,
-      path: parsed.pathname,
-      params,
-    };
-  } catch {
-    return { url, path: '/', params: {} };
-  }
-}
-
-/**
- * Listen for deep link events.
- */
-export function onDeepLink(callback: (data: DeepLinkData) => void): () => void {
-  if (!isNative()) {
-    // Web: handle URL changes
-    const handler = () => {
-      callback(parseDeepLink(window.location.href));
-    };
-    window.addEventListener('popstate', handler);
-    return () => window.removeEventListener('popstate', handler);
-  }
-  
-  // Native: Use Capacitor App plugin
-  const App = window.Capacitor?.Plugins?.App;
-  if (!App) return () => {};
-  
-  const listener = App.addListener('appUrlOpen', (event: unknown) => {
-    const { url } = event as { url: string };
-    callback(parseDeepLink(url));
-  });
-  
-  return () => listener?.remove();
-}
-
-// ============================================================================
-// SECURE STORAGE (Capacitor SecureStorage plugin)
-// ============================================================================
-
-/**
- * Store a value securely (falls back to localStorage on web).
- * Async interface for future native implementation with secure storage plugin.
- */
-// eslint-disable-next-line @typescript-eslint/require-await
-export async function secureStore(key: string, value: string): Promise<void> {
-  // Note: Would use @capacitor-community/secure-storage-plugin on native
-  // For now, use regular storage
-  try {
-    localStorage.setItem(`secure_${key}`, value);
-  } catch {
-    log.debug('SecureStore failed for key:', key);
-  }
-}
-
-/**
- * Retrieve a securely stored value.
- * Async interface for future native implementation with secure storage plugin.
- */
-// eslint-disable-next-line @typescript-eslint/require-await
-export async function secureRetrieve(key: string): Promise<string | null> {
-  try {
-    return localStorage.getItem(`secure_${key}`);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Delete a securely stored value.
- * Async interface for future native implementation with secure storage plugin.
- */
-// eslint-disable-next-line @typescript-eslint/require-await
-export async function secureDelete(key: string): Promise<void> {
-  try {
-    localStorage.removeItem(`secure_${key}`);
-  } catch {
-    log.debug('SecureDelete failed for key:', key);
-  }
-}
-
-// ============================================================================
 // INITIALIZATION HELPER
 // ============================================================================
 
 /**
- * Initialize native platform features.
+ * Log the platform and sync Electron with the system theme.
  * Call this early in app startup.
  */
 export async function initPlatform(): Promise<void> {
   const p = platform();
   log.info(`🌐 Platform detected: ${p}`);
-
-  if (isNative()) {
-    // Set status bar to match our dark theme
-    await setStatusBarStyle('light'); // Light content on dark background
-    await setStatusBarColor('#0d0d1a');
-
-    // Hide splash screen with fade
-    // Note: Using a short delay allows the web app to render first
-    setTimeout(() => {
-      void hideSplashScreen(300);
-    }, 100);
-
-    // Listen for app lifecycle changes
-    onAppStateChange((isActive) => {
-      log.info(`📱 App ${isActive ? 'active' : 'background'}`);
-      
-      // Dispatch custom event so other parts of the app can react
-      // The connection service will use this to restore the microphone
-      document.dispatchEvent(new CustomEvent('ferni:app-state', { 
-        detail: { isActive } 
-      }));
-    });
-  }
 
   if (isElectron()) {
     // Sync with system theme
@@ -586,4 +195,3 @@ export async function initPlatform(): Promise<void> {
     log.info(`🖥️ Electron system theme: ${theme}`);
   }
 }
-

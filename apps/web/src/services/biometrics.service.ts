@@ -2,7 +2,7 @@
  * Biometrics Service
  *
  * Connects Ferni to health/biometrics platforms:
- * - Apple Health (via iOS native only)
+ * - Apple Health: only the native iOS app (apps/ios-native) can read HealthKit
  * - Oura, WHOOP, Fitbit, Garmin (web OAuth via the UI server's /wearables routes)
  *
  * Every path here is one the UI server actually serves:
@@ -20,7 +20,6 @@
 
 import { createLogger } from '../utils/logger.js';
 import { apiDelete, apiGet, apiPost } from '../utils/api.js';
-import { Capacitor } from '../stubs/capacitor-stub.js';
 import type { OperationResult } from '../types/results.js';
 import { startOAuthConnect } from './oauth-connect.service.js';
 
@@ -58,16 +57,15 @@ export interface BiometricsStatus {
 
 interface PlatformConfig {
   name: string;
-  supportsNative: boolean;
   supportsWeb: boolean;
 }
 
 const PLATFORM_CONFIGS: Record<BiometricsPlatform, PlatformConfig> = {
-  apple_health: { name: 'Apple Health', supportsNative: true, supportsWeb: false },
-  oura: { name: 'Oura Ring', supportsNative: false, supportsWeb: true },
-  whoop: { name: 'WHOOP', supportsNative: false, supportsWeb: true },
-  fitbit: { name: 'Fitbit', supportsNative: false, supportsWeb: true },
-  garmin: { name: 'Garmin', supportsNative: false, supportsWeb: true },
+  apple_health: { name: 'Apple Health', supportsWeb: false },
+  oura: { name: 'Oura Ring', supportsWeb: true },
+  whoop: { name: 'WHOOP', supportsWeb: true },
+  fitbit: { name: 'Fitbit', supportsWeb: true },
+  garmin: { name: 'Garmin', supportsWeb: true },
 };
 
 function isWearable(platform: string): platform is WearableProvider {
@@ -115,10 +113,7 @@ export async function connectBiometrics(platform: BiometricsPlatform): Promise<O
   }
 
   if (platform === 'apple_health') {
-    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') {
-      return { success: false, error: 'Apple Health is only available in the iPhone app' };
-    }
-    return requestAppleHealthPermissions();
+    return { success: false, error: 'Apple Health is only available in the iPhone app' };
   }
 
   const providers = await fetchWearableProviders();
@@ -161,21 +156,11 @@ export async function disconnectBiometrics(
 // ============================================================================
 
 /**
- * Check if a platform can be connected from the current device
+ * Check if a platform can be connected from the web app
  * (server configuration is checked separately via fetchWearableProviders).
  */
 export function isPlatformAvailable(platform: BiometricsPlatform): boolean {
-  const config = PLATFORM_CONFIGS[platform];
-  if (!config) return false;
-
-  if (Capacitor.isNativePlatform()) {
-    if (platform === 'apple_health' && Capacitor.getPlatform() === 'ios') {
-      return true;
-    }
-    return config.supportsNative;
-  }
-
-  return config.supportsWeb;
+  return PLATFORM_CONFIGS[platform]?.supportsWeb ?? false;
 }
 
 export function getPlatformConfig(platform: BiometricsPlatform): PlatformConfig | undefined {
@@ -204,29 +189,4 @@ export function getLinkedWearables(wearables: WearableProviderStatus[] | null): 
   return (wearables ?? [])
     .filter((w) => w.linked && isWearable(w.provider))
     .map((w) => w.provider as WearableProvider);
-}
-
-// ============================================================================
-// APPLE HEALTH (iOS native)
-// ============================================================================
-
-async function requestAppleHealthPermissions(): Promise<{ success: boolean; error?: string }> {
-  try {
-    const HealthKit = await import('../stubs/capacitor-stub.js').then((m) => m.HealthKit);
-
-    const result = await HealthKit.requestAuthorization({
-      read: [
-        'HKQuantityTypeIdentifierHeartRate',
-        'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
-        'HKQuantityTypeIdentifierStepCount',
-        'HKQuantityTypeIdentifierActiveEnergyBurned',
-        'HKCategoryTypeIdentifierSleepAnalysis',
-      ],
-      write: [],
-    });
-
-    return result.authorized ? { success: true } : { success: false, error: 'Permission denied' };
-  } catch (error) {
-    return { success: false, error: String(error) };
-  }
 }
