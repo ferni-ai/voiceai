@@ -295,6 +295,7 @@
     "quality:arch": "npx tsx apps/cli/src/commands/quality/architecture-validator.ts",
     "quality:full": "npm run quality && npm run quality:check && npm run quality:arch && npm run brand:check && npm run tokens:check && npm run i18n:check && npm run lint:design",
     "quality:deploy": "npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts --all",
+    "quality:module-state": "npx tsx apps/cli/src/commands/quality/module-state-check.ts --max=5",
     "bridge:discover": "npx tsx -e \"import('./src/tools/semantic-router/domain-bridge-discovery.js').then(m => m.runDiscovery())\"",
     "bridge:generate": "npx tsx -e \"import('./src/tools/semantic-router/domain-bridge-discovery.js').then(m => m.runDiscovery())\" -- --generate",
     "bridge:coverage": "npx tsx -e \"import('./src/tools/semantic-router/domain-bridge.js').then(m => { const all = m.getAllMappings(); console.log('Mapped:', Object.keys(all).length, 'tools'); })\"",
