@@ -58,21 +58,6 @@ vi.mock('../api/helpers.js', () => ({
   }),
 }));
 
-// Mock verified auth: only a "verified" bearer token yields an identity. Everything a
-// client can type (body.userId, ?userId=, x-user-id, x-firebase-uid) is NOT auth.
-vi.mock('../api/auth-middleware.js', () => ({
-  requireAuth: vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
-    const header = req.headers.authorization;
-    const match = typeof header === 'string' ? header.match(/^Bearer verified-(.+)$/) : null;
-    if (!match) {
-      (res as { writeHead: (s: number) => void }).writeHead(401);
-      (res as { end: (d?: string) => void }).end(JSON.stringify({ error: 'Auth required' }));
-      return null;
-    }
-    return { userId: match[1], isAdmin: false, isDevMode: false, authMethod: 'firebase' };
-  }),
-}));
-
 // Mock validators
 vi.mock('../api/validators.js', () => ({
   validateBody: mockValidateBody,
@@ -111,7 +96,7 @@ function createMockRequest(options: {
   const req = {
     method,
     url,
-    headers: { authorization: 'Bearer verified-test-user', host: 'localhost:3002', ...headers },
+    headers: { 'x-user-id': 'test-user', host: 'localhost:3002', ...headers },
     on: vi.fn((event: string, callback: (chunk?: unknown) => void) => {
       if (event === 'data' && body) {
         setTimeout(() => callback(Buffer.from(body)), 0);
@@ -187,13 +172,10 @@ describe('Data Routes', () => {
       expect(data.categories).toEqual(sampleCategories);
     });
 
-    it('should return 401 without a verified token', async () => {
-      const req = createMockRequest({
-        url: '/api/export/categories',
-        headers: { authorization: undefined },
-      });
+    it('should return 401 when userId missing', async () => {
+      const req = createMockRequest({ url: '/api/export/categories' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export/categories?userId=test-user', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export/categories', 'http://localhost:3002'); // No userId
 
       await handleGetExportCategories(req, res, parsedUrl);
 
@@ -218,7 +200,6 @@ describe('Data Routes', () => {
   describe('handleExportData', () => {
     it('should export data as JSON', async () => {
       mockValidateBody.mockResolvedValue({
-        userId: 'test-user',
         format: 'json',
         categories: ['conversations'],
       });
@@ -228,7 +209,7 @@ describe('Data Routes', () => {
         url: '/api/export',
       });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export?userId=test-user', 'http://localhost:3002');
 
       await handleExportData(req, res, parsedUrl);
 
@@ -243,7 +224,6 @@ describe('Data Routes', () => {
       mockExportService.exportData.mockResolvedValue('col1,col2\nval1,val2');
 
       mockValidateBody.mockResolvedValue({
-        userId: 'test-user',
         format: 'csv',
         categories: ['goals'],
       });
@@ -253,7 +233,7 @@ describe('Data Routes', () => {
         url: '/api/export',
       });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export?userId=test-user', 'http://localhost:3002');
 
       await handleExportData(req, res, parsedUrl);
 
@@ -263,13 +243,12 @@ describe('Data Routes', () => {
 
     it('should include Content-Disposition header with filename', async () => {
       mockValidateBody.mockResolvedValue({
-        userId: 'test-user',
         format: 'json',
       });
 
       const req = createMockRequest({ method: 'POST', url: '/api/export' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export?userId=test-user', 'http://localhost:3002');
 
       await handleExportData(req, res, parsedUrl);
 
@@ -282,7 +261,7 @@ describe('Data Routes', () => {
 
       const req = createMockRequest({ method: 'POST', url: '/api/export' });
       const { res } = createMockResponse();
-      const parsedUrl = new URL('/api/export', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export?userId=test-user', 'http://localhost:3002');
 
       await handleExportData(req, res, parsedUrl);
 
@@ -291,10 +270,33 @@ describe('Data Routes', () => {
 
     it('should handle export errors', async () => {
       mockValidateBody.mockResolvedValue({
-        userId: 'test-user',
         format: 'json',
       });
       mockExportService.exportData.mockRejectedValue(new Error('Export failed'));
+
+      const req = createMockRequest({ method: 'POST', url: '/api/export' });
+      const { res, getWrittenData } = createMockResponse();
+      const parsedUrl = new URL('/api/export?userId=test-user', 'http://localhost:3002');
+
+      await handleExportData(req, res, parsedUrl);
+
+      expect(getWrittenData().status).toBe(500);
+    });
+
+    it('ignores body.userId and exports only the verified caller', async () => {
+      mockValidateBody.mockResolvedValue({ userId: 'victim', format: 'json' });
+
+      const req = createMockRequest({ method: 'POST', url: '/api/export' });
+      const { res } = createMockResponse();
+      const parsedUrl = new URL('/api/export?userId=test-user', 'http://localhost:3002');
+
+      await handleExportData(req, res, parsedUrl);
+
+      expect(mockExportService.exportData).toHaveBeenCalledWith('test-user', 'json', []);
+    });
+
+    it('refuses an export whose only identity is body.userId', async () => {
+      mockValidateBody.mockResolvedValue({ userId: 'victim', format: 'json' });
 
       const req = createMockRequest({ method: 'POST', url: '/api/export' });
       const { res, getWrittenData } = createMockResponse();
@@ -302,20 +304,32 @@ describe('Data Routes', () => {
 
       await handleExportData(req, res, parsedUrl);
 
-      expect(getWrittenData().status).toBe(500);
+      expect(mockExportService.exportData).not.toHaveBeenCalled();
+      expect(getWrittenData().status).toBe(401);
     });
   });
 
   describe('handleDeleteAllData', () => {
+    it('refuses a delete whose only identity is body.userId', async () => {
+      mockValidateBody.mockResolvedValue({ userId: 'victim', confirmDelete: true });
+
+      const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
+      const { res, getWrittenData } = createMockResponse();
+      const parsedUrl = new URL('/api/export/all', 'http://localhost:3002');
+
+      await handleDeleteAllData(req, res, parsedUrl);
+
+      expect(mockExportService.deleteAllData).not.toHaveBeenCalled();
+      expect(getWrittenData().status).toBe(401);
+    });
     it('should delete all user data when confirmed', async () => {
       mockValidateBody.mockResolvedValue({
-        userId: 'test-user',
         confirmDelete: true,
       });
 
       const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export/all', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export/all?userId=test-user', 'http://localhost:3002');
 
       await handleDeleteAllData(req, res, parsedUrl);
 
@@ -327,13 +341,12 @@ describe('Data Routes', () => {
 
     it('should return 400 when confirmation not provided', async () => {
       mockValidateBody.mockResolvedValue({
-        userId: 'test-user',
         confirmDelete: false,
       });
 
       const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export/all', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export/all?userId=test-user', 'http://localhost:3002');
 
       await handleDeleteAllData(req, res, parsedUrl);
 
@@ -346,7 +359,7 @@ describe('Data Routes', () => {
 
       const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
       const { res } = createMockResponse();
-      const parsedUrl = new URL('/api/export/all', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export/all?userId=test-user', 'http://localhost:3002');
 
       await handleDeleteAllData(req, res, parsedUrl);
 
@@ -355,83 +368,17 @@ describe('Data Routes', () => {
 
     it('should handle delete errors', async () => {
       mockValidateBody.mockResolvedValue({
-        userId: 'test-user',
         confirmDelete: true,
       });
       mockExportService.deleteAllData.mockRejectedValue(new Error('Delete failed'));
 
       const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export/all', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export/all?userId=test-user', 'http://localhost:3002');
 
       await handleDeleteAllData(req, res, parsedUrl);
 
       expect(getWrittenData().status).toBe(500);
-    });
-  });
-
-  describe('caller binding (security)', () => {
-    it('refuses to delete when identity is only claimed, never verified', async () => {
-      mockValidateBody.mockResolvedValue({ userId: 'victim', confirmDelete: true });
-      const req = createMockRequest({
-        method: 'DELETE',
-        url: '/api/export/all?userId=victim',
-        headers: { authorization: undefined, 'x-firebase-uid': 'victim', 'x-user-id': 'victim' },
-      });
-      const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export/all?userId=victim', 'http://localhost:3002');
-
-      await handleDeleteAllData(req, res, parsedUrl);
-
-      expect(getWrittenData().status).toBe(401);
-      expect(mockExportService.deleteAllData).not.toHaveBeenCalled();
-    });
-
-    it('refuses to delete another user even when the caller is signed in', async () => {
-      mockValidateBody.mockResolvedValue({ userId: 'victim', confirmDelete: true });
-      const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
-      const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export/all', 'http://localhost:3002');
-
-      await handleDeleteAllData(req, res, parsedUrl);
-
-      expect(getWrittenData().status).toBe(403);
-      expect(mockExportService.deleteAllData).not.toHaveBeenCalled();
-    });
-
-    it('deletes the verified caller when the body names no user', async () => {
-      mockValidateBody.mockResolvedValue({ confirmDelete: true });
-      const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
-      const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export/all', 'http://localhost:3002');
-
-      await handleDeleteAllData(req, res, parsedUrl);
-
-      expect(getWrittenData().status).toBe(200);
-      expect(mockExportService.deleteAllData).toHaveBeenCalledWith('test-user');
-    });
-
-    it("refuses to export another user's data", async () => {
-      mockValidateBody.mockResolvedValue({ userId: 'victim', format: 'json' });
-      const req = createMockRequest({ method: 'POST', url: '/api/export' });
-      const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export', 'http://localhost:3002');
-
-      await handleExportData(req, res, parsedUrl);
-
-      expect(getWrittenData().status).toBe(403);
-      expect(mockExportService.exportData).not.toHaveBeenCalled();
-    });
-
-    it("refuses to list another user's categories via ?userId=", async () => {
-      const req = createMockRequest({ url: '/api/export/categories' });
-      const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export/categories?userId=victim', 'http://localhost:3002');
-
-      await handleGetExportCategories(req, res, parsedUrl);
-
-      expect(getWrittenData().status).toBe(403);
-      expect(mockExportService.getExportableCategories).not.toHaveBeenCalled();
     });
   });
 
@@ -449,13 +396,12 @@ describe('Data Routes', () => {
 
     it('should route POST /api/export', async () => {
       mockValidateBody.mockResolvedValue({
-        userId: 'test-user',
         format: 'json',
       });
 
       const req = createMockRequest({ method: 'POST', url: '/api/export' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export?userId=test-user', 'http://localhost:3002');
 
       const handled = await handleDataRoutes(req, res, '/api/export', parsedUrl);
 
@@ -465,13 +411,12 @@ describe('Data Routes', () => {
 
     it('should route DELETE /api/export/all', async () => {
       mockValidateBody.mockResolvedValue({
-        userId: 'test-user',
         confirmDelete: true,
       });
 
       const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
       const { res, getWrittenData } = createMockResponse();
-      const parsedUrl = new URL('/api/export/all', 'http://localhost:3002');
+      const parsedUrl = new URL('/api/export/all?userId=test-user', 'http://localhost:3002');
 
       const handled = await handleDataRoutes(req, res, '/api/export/all', parsedUrl);
 

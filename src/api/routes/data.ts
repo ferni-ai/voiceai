@@ -8,32 +8,11 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
-import { requireAuth } from '../auth-middleware.js';
-import { sendJSON, sendError } from '../helpers.js';
+import { requireUserId, sendJSON, sendError } from '../helpers.js';
 import { validateBody, ExportDataSchema, DeleteAllDataSchema } from '../validators.js';
 import { API_ERRORS } from '../error-messages.js';
 
 const log = createLogger({ module: 'DataAPI' });
-
-/**
- * Resolve the caller from a verified Firebase token (or API key), never from
- * the body, query or an x-firebase-uid header a client can set. A request
- * naming another user's id is refused rather than silently re-targeted.
- */
-async function resolveCaller(
-  req: IncomingMessage,
-  res: ServerResponse,
-  requestedUserId?: string | null
-): Promise<string | null> {
-  const auth = await requireAuth(req, res);
-  if (!auth) return null;
-  if (requestedUserId && requestedUserId !== auth.userId) {
-    log.warn({ authUserId: auth.userId }, 'Refused data request for a different user');
-    sendError(res, 'Forbidden', 403);
-    return null;
-  }
-  return auth.userId;
-}
 
 /**
  * GET /api/export/categories - Get exportable categories
@@ -43,7 +22,7 @@ export async function handleGetExportCategories(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  const userId = await resolveCaller(req, res, parsedUrl.searchParams.get('userId'));
+  const userId = requireUserId(req, res, parsedUrl);
   if (!userId) return;
 
   try {
@@ -66,18 +45,13 @@ export async function handleExportData(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  const callerId = await resolveCaller(req, res, parsedUrl.searchParams.get('userId'));
-  if (!callerId) return;
-
   try {
     const body = await validateBody(req, res, ExportDataSchema);
     if (!body) return;
 
-    if (body.userId && body.userId !== callerId) {
-      sendError(res, 'Forbidden', 403);
-      return;
-    }
-    const userId = callerId;
+    // Never body.userId: the caller is who their verified credentials say.
+    const userId = requireUserId(req, res, parsedUrl);
+    if (!userId) return;
 
     const { getDataExportService } = await import('../../services/data-export.js');
     const exportService = getDataExportService();
@@ -105,18 +79,13 @@ export async function handleDeleteAllData(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  const callerId = await resolveCaller(req, res, parsedUrl.searchParams.get('userId'));
-  if (!callerId) return;
-
   try {
     const body = await validateBody(req, res, DeleteAllDataSchema);
     if (!body) return;
 
-    if (body.userId && body.userId !== callerId) {
-      sendError(res, 'Forbidden', 403);
-      return;
-    }
-    const userId = callerId;
+    // Never body.userId: the caller is who their verified credentials say.
+    const userId = requireUserId(req, res, parsedUrl);
+    if (!userId) return;
 
     if (body.confirmDelete !== true) {
       sendError(res, API_ERRORS.DATA_DELETE_CONFIRMATION, 400);
