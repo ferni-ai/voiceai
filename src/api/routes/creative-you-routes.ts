@@ -30,13 +30,14 @@ import {
   getLearningTrackById,
 } from '../../services/creative-you/podcast-discovery.js';
 import {
-  getCreativeDNA,
   updateCreativeDNA,
   saveInsight,
   getInsights,
   getCreativeJourneyStats,
   getCreativeProfileCardData,
 } from '../../services/creative-you/creative-dna.js';
+import { loadCreativeDNAView } from '../../services/creative-you/creative-dna-view.js';
+import { requireAuth } from '../auth-middleware.js';
 import {
   getIntelligentRecommendations,
   generateLearningTrackForUser,
@@ -514,18 +515,15 @@ export async function handleCreativeYouRoutes(
     // CREATIVE DNA ROUTES
     // ========================================
 
-    // GET /api/creative/dna?userId=xxx
+    // GET /api/creative/dna — built from the signed-in user's conversation topics,
+    // so it reads the authenticated user, not a ?userId= anyone could pass.
+    // dna is null until there is something real to show.
     if (pathname === '/api/creative/dna' && method === 'GET') {
-      const userId = searchParams.get('userId') || '';
+      const auth = await requireAuth(req, res, { allowDevMode: true });
+      if (!auth) return true;
 
-      if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing userId parameter' }));
-        return true;
-      }
-
-      const dna = getCreativeDNA(userId);
-      const stats = getCreativeJourneyStats(userId);
+      const dna = await loadCreativeDNAView(auth.userId);
+      const stats = dna ? getCreativeJourneyStats(auth.userId) : null;
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ dna, stats }));

@@ -12,6 +12,12 @@
 import { t } from '../i18n/index.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
+import {
+  hasWellbeingData,
+  type ApiDashboardWithData,
+  type ApiDashboardResponse,
+  type ApiTrendsResponse,
+} from './wellbeing-api.js';
 
 const log = createLogger('WellbeingDashboard');
 
@@ -1230,63 +1236,6 @@ function isCacheValid(): boolean {
 // API
 // ============================================================================
 
-/** API response format from /api/wellbeing/dashboard */
-interface ApiDashboardResponse {
-  userId: string;
-  currentState: {
-    mood: number;
-    energy: number;
-    anxiety: number;
-    connection: number;
-    purpose: number;
-    sleep: number;
-    lastUpdated: string;
-  };
-  trends: {
-    period: 'week' | 'month';
-    direction: 'improving' | 'stable' | 'declining';
-    changedDimensions: string[];
-  };
-  insights: Array<{
-    type: 'pattern' | 'suggestion' | 'celebration';
-    message: string;
-    dimension?: string;
-  }>;
-  warnings: Array<{
-    type: string;
-    severity: 'watch' | 'concern' | 'urgent';
-    message: string;
-  }>;
-  streaks: {
-    currentDays: number;
-    bestDays: number;
-    lastCheckIn: string;
-  };
-}
-
-/** API response format from /api/wellbeing/trends */
-interface ApiTrendsResponse {
-  userId: string;
-  period: 'week' | 'month' | 'quarter';
-  dataPoints: Array<{
-    date: string;
-    mood: number | null;
-    energy: number | null;
-    anxiety: number | null;
-    connection: number | null;
-    purpose: number | null;
-    sleep: number | null;
-  }>;
-  averages: {
-    mood: number;
-    energy: number;
-    anxiety: number;
-    connection: number;
-    purpose: number;
-    sleep: number;
-  };
-}
-
 /** Color mapping for dimensions */
 const DIMENSION_COLORS: Record<string, string> = {
   mood: 'var(--color-ferni)',
@@ -1346,34 +1295,36 @@ function getDimensionInsight(
 
 /** Transform API response into UI expected format */
 function transformApiResponse(
-  dashboardData: ApiDashboardResponse,
+  dashboardData: ApiDashboardWithData,
   trendsData: ApiTrendsResponse | null
 ): DashboardData {
   const { currentState, trends, insights } = dashboardData;
 
-  // Calculate overall score as weighted average of dimensions
+  // Overall score averages only the dimensions actually measured.
   // Invert anxiety for the calculation (lower anxiety = better)
   const dimensionScores = [
     currentState.mood,
     currentState.energy,
-    1 - currentState.anxiety, // Invert anxiety
+    currentState.anxiety === null ? null : 1 - currentState.anxiety,
     currentState.connection,
     currentState.purpose,
     currentState.sleep,
-  ];
-  const overallScore = Math.round(
-    (dimensionScores.reduce((a, b) => a + b, 0) / dimensionScores.length) * 100
-  );
+  ].filter((v): v is number => v !== null);
+  const overallScore = dimensionScores.length
+    ? Math.round((dimensionScores.reduce((a, b) => a + b, 0) / dimensionScores.length) * 100)
+    : 0;
 
   // Build dimension cards
-  const dimensions: DimensionCard[] = [
+  // Only dimensions the user actually talked about get a card
+  const measured = [
     { dimension: 'mood', displayName: 'Mood', currentScore: currentState.mood },
     { dimension: 'energy', displayName: 'Energy', currentScore: currentState.energy },
     { dimension: 'anxiety', displayName: 'Anxiety', currentScore: currentState.anxiety },
     { dimension: 'connection', displayName: 'Connection', currentScore: currentState.connection },
     { dimension: 'purpose', displayName: 'Purpose', currentScore: currentState.purpose },
     { dimension: 'sleep', displayName: 'Sleep', currentScore: currentState.sleep },
-  ].map((dim) => {
+  ].filter((dim): dim is typeof dim & { currentScore: number } => dim.currentScore !== null);
+  const dimensions: DimensionCard[] = measured.map((dim) => {
     // Determine trend for this dimension
     const isTrending = trends.changedDimensions.includes(dim.dimension);
     let trend: 'up' | 'stable' | 'down' = 'stable';
@@ -1483,8 +1434,8 @@ async function fetchDashboardData(): Promise<DashboardData | null> {
     ]);
 
     if (!dashboardResponse.ok) {
-      log.warn('Dashboard API returned error:', dashboardResponse.status);
-      return null;
+      // A failed load is an error, not "no data yet"
+      throw new Error(`Wellbeing dashboard returned ${dashboardResponse.status}`);
     }
 
     const dashboardData: ApiDashboardResponse = await dashboardResponse.json();
@@ -1492,13 +1443,7 @@ async function fetchDashboardData(): Promise<DashboardData | null> {
       ? await trendsResponse.json()
       : null;
 
-    // Check if there's meaningful data
-    const hasData =
-      dashboardData.currentState &&
-      (dashboardData.streaks.currentDays > 0 ||
-        dashboardData.currentState.lastUpdated !== new Date().toISOString().split('T')[0]);
-
-    if (!hasData) {
+    if (!hasWellbeingData(dashboardData)) {
       // Return null to show empty state for new users
       log.debug('No meaningful wellbeing data yet');
       return null;
