@@ -19,6 +19,7 @@ import {
   getExtractionModel,
   getGeminiClient,
   getOpenAIFallbackModel,
+  vertexOptions,
 } from '../../config/gemini-config.js';
 import { CircuitOpenError, getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -101,17 +102,9 @@ async function initializeVertexAIClient(): Promise<VertexAIClient | null> {
       process.env.GCLOUD_PROJECT ||
       process.env.GCP_PROJECT_ID ||
       'johnb-2025';
-    // Gemini 3.5 is served only on the global location. This SDK builds
-    // "<location>-aiplatform.googleapis.com", so global needs the explicit host.
-    const location = process.env.VERTEX_AI_LOCATION || 'global';
-    const apiEndpoint = location === 'global' ? 'aiplatform.googleapis.com' : undefined;
-
-    getLogger().info({ projectId, location }, 'Initializing Vertex AI client...');
-    vertexAIClient = new VertexAI({
-      project: projectId,
-      location,
-      apiEndpoint,
-    }) as unknown as VertexAIClient;
+    const options = vertexOptions(projectId, process.env.VERTEX_AI_LOCATION || undefined);
+    getLogger().info(options, 'Initializing Vertex AI client...');
+    vertexAIClient = new VertexAI(options) as unknown as VertexAIClient;
     getLogger().info('Vertex AI client initialized successfully (enterprise quotas)');
     return vertexAIClient;
   } catch (error) {

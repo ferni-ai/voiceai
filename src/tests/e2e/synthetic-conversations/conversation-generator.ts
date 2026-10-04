@@ -43,18 +43,10 @@ export interface SyntheticConversation {
 }
 
 export interface ExpectedExtraction {
-  type:
-    | 'user_name'
-    | 'person_name'
-    | 'location'
-    | 'emotion'
-    | 'correction'
-    | 'relationship'
-    | 'tool_call'
-    | 'tool_result';
+  type: 'user_name' | 'person_name' | 'location' | 'emotion' | 'correction' | 'relationship' | 'tool_call' | 'tool_result';
   value: string;
   turnIndex: number;
-  toolArgs?: Record<string, unknown>; // For tool_call type
+  toolArgs?: Record<string, unknown>;  // For tool_call type
 }
 
 export interface ValidationCheck {
@@ -309,7 +301,7 @@ export class ConversationGenerator {
     }
     this.genAI = new GoogleGenerativeAI(key);
     this.model = this.genAI.getGenerativeModel({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.0-flash-exp',
       generationConfig: {
         temperature: 0.9, // Higher for more creative conversations
         topP: 0.95,

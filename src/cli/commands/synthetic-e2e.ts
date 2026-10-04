@@ -28,6 +28,7 @@ import 'dotenv/config';
 
 import { GoogleGenAI } from '@google/genai';
 import { VertexAI, type FunctionDeclaration } from '@google-cloud/vertexai';
+import { vertexOptions } from '../../config/gemini-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SyntheticE2E' });
@@ -53,14 +54,8 @@ const USE_VERTEX_AI = process.env.USE_VERTEX_AI === 'true';
 const VERTEX_AI_API_KEY = process.env.VERTEX_AI_API_KEY;
 const VERTEX_PROJECT =
   process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT_ID || 'johnb-2025';
-// Gemini 3.5 is served only on the global location (us-central1 returns 404).
-const VERTEX_LOCATION = process.env.GEMINI_LOCATION || 'global';
-const VERTEX_HOST =
-  VERTEX_LOCATION === 'global'
-    ? 'aiplatform.googleapis.com'
-    : `${VERTEX_LOCATION}-aiplatform.googleapis.com`;
-// Vertex AI Express endpoint for API key access
-const VERTEX_API_ENDPOINT = `https://${VERTEX_HOST}/v1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}/publishers/google/models`;
+const VERTEX = vertexOptions(VERTEX_PROJECT);
+const VERTEX_API_ENDPOINT = `https://${VERTEX.apiEndpoint}/v1/projects/${VERTEX_PROJECT}/locations/${VERTEX.location}/publishers/google/models`; // Vertex AI Express endpoint for API key access
 
 // ============================================================================
 // CONFIGURATION
@@ -2826,14 +2821,10 @@ class SyntheticE2ETester {
         console.log('   ✓ No ADC required - using API key authentication');
       } else {
         console.log(
-          `🌐 Using Vertex AI with ADC (project: ${VERTEX_PROJECT}, location: ${VERTEX_LOCATION})`
+          `🌐 Using Vertex AI with ADC (project: ${VERTEX_PROJECT}, location: ${VERTEX.location})`
         );
         console.log('   Vertex AI has separate quotas from Generative Language API');
-        this.vertexAI = new VertexAI({
-          project: VERTEX_PROJECT,
-          location: VERTEX_LOCATION,
-          apiEndpoint: VERTEX_HOST,
-        });
+        this.vertexAI = new VertexAI(VERTEX);
       }
     } else {
       this.keyManager = new ApiKeyManager();

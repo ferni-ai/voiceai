@@ -30,13 +30,14 @@ export const { GOOGLE_CLOUD_PROJECT } = process.env;
 /** Google Cloud Location (default: us-central1) */
 export const GOOGLE_CLOUD_LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
 
-/**
- * Vertex location for Gemini generateContent (default: global). Gemini 3.5 is
- * served only there: us-central1 returns 404 for gemini-3.5-flash and
- * gemini-3.5-flash-lite (probed 2026-10-03). Separate from
- * GOOGLE_CLOUD_LOCATION, which other Vertex services still use.
- */
+/** Vertex location for Gemini calls (default: global; Gemini 3.5 404s on us-central1) */
 export const GEMINI_LOCATION = process.env.GEMINI_LOCATION || 'global';
+
+/** Init options for the legacy @google-cloud/vertexai SDK, which can't derive the global host. */
+export function vertexOptions(project: string, location = GEMINI_LOCATION) {
+  const region = location === 'global' ? '' : `${location}-`;
+  return { project, location, apiEndpoint: `${region}aiplatform.googleapis.com` };
+}
 
 /** Gemini API Key (for non-Vertex AI usage) */
 export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -88,7 +89,6 @@ export const GEMINI_LANGUAGE = process.env.GEMINI_LANGUAGE || 'en-US';
 /**
  * Model for fast extraction tasks (entity, fact, relationship extraction)
  * Optimized for: Speed, structured output, low cost
- * Default: gemini-3.5-flash
  */
 export const EXTRACTION_MODEL = process.env.LLM_EXTRACTION_MODEL || 'gemini-3.5-flash';
 
@@ -106,21 +106,18 @@ export const OPENAI_FALLBACK_MODEL = process.env.LLM_OPENAI_FALLBACK_MODEL || 'g
 
 /**
  * Model for evaluation tasks (coherence, quality scoring)
- * Default: gemini-3.5-flash
  */
 export const EVALUATION_MODEL = process.env.LLM_EVALUATION_MODEL || 'gemini-3.5-flash';
 
 /**
  * Model for classification/routing tasks
  * Optimized for: Consistency, low latency
- * Default: gemini-3.5-flash-lite
  */
 export const CLASSIFICATION_MODEL = process.env.LLM_CLASSIFICATION_MODEL || 'gemini-3.5-flash-lite';
 
 /**
  * Model for content generation (marketing, outreach)
  * Optimized for: Quality, creativity
- * Default: gemini-3.5-flash
  */
 export const CONTENT_GENERATION_MODEL =
   process.env.LLM_CONTENT_GENERATION_MODEL || 'gemini-3.5-flash';
@@ -128,7 +125,6 @@ export const CONTENT_GENERATION_MODEL =
 /**
  * Model for light/fast tasks (humanization, expressions)
  * Optimized for: Ultra-low latency, minimal cost
- * Default: gemini-3.5-flash-lite
  */
 export const LIGHT_MODEL = process.env.LLM_LIGHT_MODEL || 'gemini-3.5-flash-lite';
 
@@ -393,7 +389,6 @@ export function getShortLLMTimeout(): number {
 
 /**
  * Get model for extraction tasks (entity, fact, relationship extraction)
- * Use this instead of hardcoding a model ID
  */
 export function getExtractionModel(): string {
   return EXTRACTION_MODEL;
@@ -417,7 +412,6 @@ export function getOpenAIFallbackModel(): string {
 
 /**
  * Get model for evaluation tasks
- * Use this instead of hardcoding a model ID
  */
 export function getEvaluationModel(): string {
   return EVALUATION_MODEL;
@@ -425,7 +419,6 @@ export function getEvaluationModel(): string {
 
 /**
  * Get model for classification/routing tasks
- * Use this instead of hardcoding a model ID
  */
 export function getClassificationModel(): string {
   return CLASSIFICATION_MODEL;
@@ -433,7 +426,6 @@ export function getClassificationModel(): string {
 
 /**
  * Get model for content generation (marketing, outreach)
- * Use this instead of hardcoding a model ID
  */
 export function getContentGenerationModel(): string {
   return CONTENT_GENERATION_MODEL;
@@ -441,7 +433,6 @@ export function getContentGenerationModel(): string {
 
 /**
  * Get model for light/fast tasks (humanization, expressions)
- * Use this instead of hardcoding a model ID
  */
 export function getLightModel(): string {
   return LIGHT_MODEL;
