@@ -62,6 +62,9 @@ const WEB_FILES = [
   'ui/connected-life.ui.ts',
   'ui/vibe-controller.ui.ts',
   'ui/vibe-controller.api.ts',
+  'ui/practice-experience.ui.ts',
+  'ui/bth-analytics-dashboard.ui.ts',
+  'ui/relationship-card.ui.ts',
 ];
 
 type Handler = (
@@ -144,6 +147,27 @@ const ROUTERS: Router[] = [
     load: async () => (await import('../../../../api/engagement-routes.js')).handleEngagementRoutes,
   })),
   {
+    prefix: '/api/practice',
+    mountedAs: 'handlePracticeRoutes',
+    load: async () => {
+      const { handlePracticeRoutes } = await import('../../../../api/practice-routes.js');
+      return (req, res, pathname) => handlePracticeRoutes(req, res, pathname);
+    },
+  },
+  {
+    // GET /api/gifts/:contactId claims any one-segment path, so the negative
+    // control goes one segment deeper.
+    prefix: '/api/gifts/x',
+    mountedAs: 'handleGiftRoutes',
+    load: async () => (await import('../../../../api/gift-routes.js')).handleGiftRoutes,
+  },
+  {
+    // GET /api/contacts/:id claims any one-segment path (see /api/gifts/x).
+    prefix: '/api/contacts/x',
+    mountedAs: 'handleContactsRoutes',
+    load: async () => (await import('../../../../api/contacts-routes.js')).handleContactsRoutes,
+  },
+  {
     prefix: '/api/life-automation',
     mountedAs: 'handleLifeAutomationRoutes',
     load: async () =>
@@ -165,7 +189,10 @@ interface WebCall {
 const SAMPLES: Record<string, string> = { provider: 'oura', platform: 'oura' };
 
 function stripComments(src: string): string {
-  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  // A block comment starts after whitespace or punctuation, so `image/*` in markup isn't one.
+  return src
+    .replace(/(^|[\s;{}(),])\/\*[\s\S]*?\*\//g, '$1')
+    .replace(/^\s*\/\/.*$/gm, '');
 }
 
 function resolveTemplate(raw: string, src: string): string {
@@ -181,6 +208,8 @@ function resolveTemplate(raw: string, src: string): string {
 const API_CALL = /\bapi(Get|Post|Put|Delete)\s*(?:<[\s\S]*?>)?\s*\(\s*(['`])([\s\S]*?)\2/g;
 const NAVIGATION = /window\.location\.href\s*=\s*(['`])([\s\S]*?)\1/g;
 const FETCH = /\bfetch\(\s*(['`])([\s\S]*?)\1/g;
+/** apiFetch(path) with no options is a GET; calls with options aren't read. */
+const API_FETCH_GET = /\bapiFetch\(\s*(['`])([^'`\n]*)\1\s*\)/g;
 const API_CALL_SITES = /\bapi(Get|Post|Put|Delete)\s*[<(]/g;
 
 function extractCalls(file: string): {
@@ -197,6 +226,7 @@ function extractCalls(file: string): {
   for (const m of apiMatches) add(m[1].toUpperCase(), m[3]);
   for (const m of src.matchAll(NAVIGATION)) add('GET', m[2]);
   for (const m of src.matchAll(FETCH)) add('GET', m[2]);
+  for (const m of src.matchAll(API_FETCH_GET)) add('GET', m[2]);
   return {
     // Navigations to external sites (e.g. OAuth providers) aren't ours to check.
     // ('/' is a reload of the app shell, served statically.)

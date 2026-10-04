@@ -5,9 +5,9 @@
  * Shows which superhuman capabilities resonate with users and their effectiveness over time.
  *
  * Fetches data from:
- * - GET /api/admin/bth-analytics/stats - All capability stats
- * - GET /api/admin/bth-analytics/top - Most effective capabilities
- * - GET /api/admin/bth-analytics/trend - Effectiveness trend
+ * - GET /api/v1/admin/bth/capabilities - All capability stats
+ * - GET /api/v1/admin/bth/top - Most effective capabilities
+ * - GET /api/v1/admin/bth/trends/:capability - 7-day trend of the top capability
  *
  * @module @ferni/ui/bth-analytics-dashboard
  */
@@ -43,6 +43,33 @@ interface DashboardData {
   stats: CapabilityStats[];
   topCapabilities: Array<{ capability: string; score: number }>;
   trend: TrendPoint[];
+  /** The capability the trend is for (the server only has per-capability trends) */
+  trendCapability: string | null;
+}
+
+/** One row of GET /api/v1/admin/bth/capabilities (`effectivenessRate` is 0-100). */
+interface CapabilityRow {
+  capability: string;
+  usage: number;
+  applied: number;
+  positive: number;
+  neutral: number;
+  negative: number;
+  effectivenessRate: number;
+}
+
+/** One entry of GET /api/v1/admin/bth/top (`effectivenessRate` is 0-1). */
+interface TopCapability {
+  capability: string;
+  effectivenessRate: number;
+}
+
+/** One day of GET /api/v1/admin/bth/trends/:capability. */
+interface TrendDay {
+  date: string;
+  positive: number;
+  neutral: number;
+  negative: number;
 }
 
 // ============================================================================
@@ -272,7 +299,9 @@ function renderContent(data: DashboardData | null): HTMLElement {
     const trendSection = createElement('section', { className: 'bth-section' });
     trendSection.appendChild(createElement('h3', {
       className: 'bth-section__title',
-      textContent: '7-Day Trend',
+      textContent: data.trendCapability
+        ? `7-Day Trend: ${formatCapabilityName(data.trendCapability)}`
+        : '7-Day Trend',
     }));
 
     const trend = createElement('div', { className: 'bth-trend' });
@@ -313,21 +342,52 @@ function formatDate(dateStr: string): string {
 // DATA FETCHING
 // ============================================================================
 
+function toCapabilityStats(row: CapabilityRow): CapabilityStats {
+  return {
+    capability: row.capability,
+    totalUsage: row.usage,
+    appliedCount: row.applied,
+    positiveReactions: row.positive,
+    neutralReactions: row.neutral,
+    negativeReactions: row.negative,
+    effectivenessScore: row.effectivenessRate / 100,
+  };
+}
+
+function toTrendPoint(day: TrendDay): TrendPoint {
+  const usageCount = day.positive + day.neutral + day.negative;
+  return {
+    date: day.date,
+    effectiveness: usageCount > 0 ? day.positive / usageCount : 0,
+    usageCount,
+  };
+}
+
 async function fetchDashboardData(): Promise<DashboardData> {
-  const [statsRes, topRes, trendRes] = await Promise.all([
-    apiGet<{ stats?: CapabilityStats[] }>('/api/admin/bth-analytics/stats'),
-    apiGet<{ capabilities?: CapabilityStats[] }>('/api/admin/bth-analytics/top?limit=5'),
-    apiGet<{ trend?: TrendPoint[] }>('/api/admin/bth-analytics/trend?days=7'),
+  const [statsRes, topRes] = await Promise.all([
+    apiGet<{ all?: CapabilityRow[] }>('/api/v1/admin/bth/capabilities'),
+    apiGet<{ recommended?: TopCapability[] }>('/api/v1/admin/bth/top'),
   ]);
 
-  if (!statsRes.ok || !topRes.ok || !trendRes.ok) {
+  if (!statsRes.ok || !topRes.ok) {
     throw new Error('Failed to fetch analytics data');
   }
 
+  const top = (topRes.data?.recommended || []).slice(0, 5);
+  const trendCapability = top[0]?.capability ?? null;
+  let trend: TrendPoint[] = [];
+  if (trendCapability) {
+    const trendRes = await apiGet<{ trends?: TrendDay[] }>(
+      `/api/v1/admin/bth/trends/${encodeURIComponent(trendCapability)}`
+    );
+    trend = trendRes.ok ? (trendRes.data?.trends || []).map(toTrendPoint) : [];
+  }
+
   return {
-    stats: (statsRes.data?.stats || []),
-    topCapabilities: (topRes.data?.capabilities || []).map(c => ({ capability: String(c.capability || ''), score: Number(c.effectivenessScore || 0) })),
-    trend: trendRes.data?.trend || [],
+    stats: (statsRes.data?.all || []).map(toCapabilityStats),
+    topCapabilities: top.map((c) => ({ capability: c.capability, score: c.effectivenessRate })),
+    trend,
+    trendCapability,
   };
 }
 

@@ -180,6 +180,7 @@ import { handleCEORoutes } from '../../api/ceo/index.js';
 import { handleCalendarWebhookRoutes } from '../../api/calendar-webhook-routes.js';
 import { handlePracticeCalendarRoutes } from '../../api/routes/practice-calendar.js';
 import { handlePracticeViewRoutes } from '../../api/routes/practice-view.js';
+import { handlePracticeRoutes } from '../../api/practice-routes.js';
 import { handleFinOpsRoutes } from '../../api/finops-routes.js';
 import { handleConversationCostRoutes } from '../../api/conversation-cost-routes.js';
 import { handleJournalRoutes } from '../../api/journal-routes.js';
@@ -830,6 +831,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // Practice View routes (What's Ahead - rich calendar + insights)
     if (pathname.startsWith('/api/practice-view')) {
       const handled = await handlePracticeViewRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Practice chat (text replies inside a guided practice)
+    if (pathname.startsWith('/api/practice/')) {
+      const handled = await handlePracticeRoutes(req, res, pathname);
       if (handled) return;
     }
 
