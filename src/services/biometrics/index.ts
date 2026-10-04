@@ -143,15 +143,15 @@ const config = {
 // ============================================================================
 
 /**
- * Get OAuth authorization URL for a biometric platform
+ * OAuth authorization URL for a biometric platform. `state` is an opaque value
+ * from servers/token/oauth-link-state.ts: it must not encode the user id.
  */
 export function getAuthorizationUrl(
   platform: BiometricPlatform,
   userId: string,
+  state: string,
   scopes?: string[]
 ): string {
-  const state = Buffer.from(JSON.stringify({ userId, platform })).toString('base64');
-
   switch (platform) {
     case 'healthkit':
       // HealthKit uses Apple Health via HealthKit JS or native app

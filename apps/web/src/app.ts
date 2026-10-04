@@ -279,7 +279,7 @@ import { watchPushOwnership } from './services/push-preference.js';
 // Calendar Analytics UI - Insights dashboard
 // Calendar analytics is now integrated into calendar-view.ui.ts
 // LinkedIn connection for career awareness (used as fallback)
-import { handleLinkedInCallback } from './services/linkedin.service.js';
+import { handleOAuthReturns } from './app/oauth-return.js';
 import { createIntegrationsCallbacks } from './app/integrations-callbacks.js';
 // Voice Enrollment UI
 import { initVoiceEnrollmentUI, showVoiceEnrollmentModal } from './ui/voice-enrollment.ui.js';
@@ -2208,8 +2208,8 @@ class VoiceAIApp {
       }, 500);
     }
 
-    // 💼 Handle LinkedIn OAuth callback
-    handleLinkedInCallback();
+    // 💼 LinkedIn and wearable OAuth returns
+    handleOAuthReturns();
 
     // 📊 Dev Panel modal event listeners
     this.addTrackedListener(window, 'ferni:open-analytics', () => {

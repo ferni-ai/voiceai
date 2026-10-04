@@ -36,6 +36,7 @@ import {
   handleGoogleCalendarRoutes,
   handleAppleCalendarRoutes,
   handleMicrosoftCalendarRoutes,
+  handleOAuthStartRoute,
   handleMusicRoutes,
   handleAgentRoutes,
   handlePushRoutes,
@@ -338,18 +339,11 @@ const server = http.createServer(async (req, res) => {
     if (await handleWearablesRoutes(req, res, pathname, parsedUrl)) return;
   }
 
-  // Google Calendar OAuth routes
-  if (pathname.startsWith('/auth/google')) {
+  // OAuth connect: authenticated start, then Google / Apple / Microsoft calendar
+  if (pathname.startsWith('/auth/')) {
+    if (await handleOAuthStartRoute(req, res, pathname)) return;
     if (await handleGoogleCalendarRoutes(req, res, pathname, parsedUrl)) return;
-  }
-
-  // Apple Calendar OAuth routes (Sign in with Apple)
-  if (pathname.startsWith('/auth/apple')) {
     if (await handleAppleCalendarRoutes(req, res, pathname, parsedUrl)) return;
-  }
-
-  // Microsoft Calendar OAuth routes
-  if (pathname.startsWith('/auth/microsoft')) {
     if (await handleMicrosoftCalendarRoutes(req, res, pathname, parsedUrl)) return;
   }
 
