@@ -12,7 +12,7 @@ let package = Package(
     ],
     dependencies: [
         // LiveKit Swift SDK - pinned to 2.1.0 for macOS 15 compatibility
-        .package(url: "https://github.com/livekit/client-sdk-swift", exact: "2.1.0"),
+        .package(url: "https://github.com/livekit/client-sdk-swift", exact: "2.11.0"),
 
         // Shared code between macOS and iOS apps
         .package(path: "../shared"),
