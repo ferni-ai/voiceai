@@ -43,9 +43,11 @@ export function endsSentence(text: string): boolean {
 }
 
 function insideMarkup(text: string, index: number): boolean {
+  const head = text.slice(0, index).toLowerCase();
   return (
     text.lastIndexOf('[', index - 1) > text.lastIndexOf(']', index - 1) ||
-    text.lastIndexOf('<', index - 1) > text.lastIndexOf('>', index - 1)
+    text.lastIndexOf('<', index - 1) > text.lastIndexOf('>', index - 1) ||
+    head.lastIndexOf('<spell>') > head.lastIndexOf('</spell>')
   );
 }
 

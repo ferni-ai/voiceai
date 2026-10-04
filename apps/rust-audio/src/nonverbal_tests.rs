@@ -256,3 +256,70 @@ fn works_at_48k_and_clamps_garbage_inputs() {
     assert_eq!(NonverbalKind::parse(" Sigh "), Some(NonverbalKind::Sigh));
     assert_eq!(NonverbalKind::parse("laugh"), None);
 }
+
+/// f0 of the voiced onset (4-16% of the clip, where voicing is strong):
+/// normalized autocorrelation over 90-400 Hz, taking the shortest lag within
+/// 85% of the best peak so a subharmonic (octave-down) peak never wins.
+fn onset_f0(x: &[f32], sr: u32) -> f32 {
+    let n = x.len();
+    let seg = &x[n * 4 / 100..n * 16 / 100];
+    let (lo, hi) = ((sr / 400) as usize, (sr / 90) as usize);
+    let acf: Vec<(usize, f32)> = (lo..hi)
+        .map(|lag| {
+            let (a, b) = (&seg[..seg.len() - lag], &seg[lag..]);
+            let dot: f32 = a.iter().zip(b).map(|(p, q)| p * q).sum();
+            let e = (a.iter().map(|v| v * v).sum::<f32>() * b.iter().map(|v| v * v).sum::<f32>())
+                .sqrt();
+            (lag, if e > 0.0 { dot / e } else { 0.0 })
+        })
+        .collect();
+    let best = acf.iter().map(|c| c.1).fold(f32::MIN, f32::max);
+    // Local maxima only, so the lag-`lo` edge of a peak isn't taken.
+    let lag = (1..acf.len() - 1)
+        .find(|&i| acf[i].1 >= 0.85 * best && acf[i].1 >= acf[i - 1].1 && acf[i].1 >= acf[i + 1].1)
+        .map_or(acf[0].0, |i| acf[i].0);
+    sr as f32 / lag as f32
+}
+
+#[test]
+fn sigh_pitch_follows_the_speakers_f0() {
+    // Lester (Ferni's voice) has a median f0 of ~111 Hz: the sigh's voiced
+    // onset starts near 1.25x that (~139 Hz) and falls toward 0.9x, instead
+    // of the speaker-agnostic 150-195 Hz start.
+    for seed in 0..10 {
+        let low = render_nonverbal_at(NonverbalKind::Sigh, 0.0, 1.0, seed, SR, Some(111.0));
+        let default = render_nonverbal(NonverbalKind::Sigh, 0.0, 1.0, seed, SR);
+        let (fl, fd) = (onset_f0(&low, SR), onset_f0(&default, SR));
+        assert!((118.0..=152.0).contains(&fl), "seed {seed}: onset f0 {fl}");
+        assert!(fl < 0.9 * fd, "seed {seed}: {fl} vs default {fd}");
+        let high = render_nonverbal_at(NonverbalKind::Sigh, 0.0, 1.0, seed, SR, Some(220.0));
+        assert!(
+            onset_f0(&high, SR) > 1.5 * fl,
+            "seed {seed}: pitch must track f0"
+        );
+    }
+}
+
+#[test]
+fn sigh_f0_is_optional_and_garbage_means_default() {
+    for seed in [1, 2, 3] {
+        let default = render_nonverbal(NonverbalKind::Sigh, 0.0, 1.0, seed, SR);
+        for f0 in [None, Some(f32::NAN), Some(0.0), Some(-111.0), Some(5000.0)] {
+            assert_eq!(
+                render_nonverbal_at(NonverbalKind::Sigh, 0.0, 1.0, seed, SR, f0),
+                default,
+                "seed {seed} f0 {f0:?}"
+            );
+        }
+        // A breath is unvoiced: f0 does not change it.
+        assert_eq!(
+            render_nonverbal_at(NonverbalKind::Breath, 0.0, 1.0, seed, SR, Some(111.0)),
+            render_nonverbal(NonverbalKind::Breath, 0.0, 1.0, seed, SR)
+        );
+        // Still every guarantee: length, edges at 0, peak under -12 dBFS.
+        let x = render_nonverbal_at(NonverbalKind::Sigh, 0.0, 1.0, seed, SR, Some(111.0));
+        assert_eq!(x.len(), default.len());
+        assert!(x[0].abs() < 1e-6 && x[x.len() - 1].abs() < 1e-6);
+        assert!(peak(&x) <= 10f32.powf(-12.0 / 20.0));
+    }
+}

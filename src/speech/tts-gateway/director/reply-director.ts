@@ -17,14 +17,16 @@
 
 import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 
+import { voiceHonorsProsodyTags } from '../../../config/voice-capabilities.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
 import { DirectorEngine } from './engine.js';
 import { leverModes, speechDirectorMode } from './gate.js';
 import { RawCues } from './raw-cues.js';
 import { directorSessions, type DirectorSessions } from './session-state.js';
-import type { DirectorMode, LeverModes, SpeechPlan } from './types.js';
+import type { DirectorMode, LeverModes, SpeechPlan, TurnContext } from './types.js';
 
 const log = createLogger({ module: 'SpeechDirector' });
 
@@ -64,6 +66,15 @@ export interface PlanSummary {
   emotion?: string;
   emotionSource: string;
   speed: number;
+  /** Stage 2 tempo planned for this turn (a voice that ignores <speed>). */
+  tempo?: number;
+  /** Prosody tags were taken off every push (the voice ignores them). */
+  tagsStripped: boolean;
+  /** The opening breath/sigh decided (nonverbal lever not off), and why. */
+  opening?: string;
+  openingReason: string;
+  /** Where [laughter] was added (or would be, in shadow). */
+  laughter?: string;
   pauses: number;
   pauseMs: number;
   breaths: number;
@@ -80,6 +91,18 @@ export interface DirectSpeechOptions {
   personaId?: string;
   /** Session emotion hint. */
   emotion?: string;
+  /** The turn being answered: the user's words (laughter cooldowns, nonverbal). */
+  turnContext?: TurnContext;
+  /**
+   * The id the gateway TTS node tagged this reply's audio stream with
+   * (`tts-gateway/reply-audio-id.ts`): keys the Stage 2 plan, never the turn
+   * number — two TTS streams in the same turn (a filler, `say()`, a
+   * pre-tool phrase, and the real reply) each get their own id, so one can
+   * never take or discard another's plan (review H2).
+   */
+  replyId?: string;
+  /** Rapport 0-1 for the laughter rules (overrides turnContext.comfortLevel). */
+  comfortLevel?: number;
   env?: Record<string, string | undefined>;
   sessions?: DirectorSessions;
   onPlan?: (summary: PlanSummary, plan: SpeechPlan) => void;
@@ -111,6 +134,11 @@ class DirectedReply implements ReplyStream {
   private failed = false;
   private done = false;
   private holdHandle: unknown = undefined;
+  private planned = false;
+  /** The engine's opening revision the plan last carried (one update per reply). */
+  private plannedRevision = 0;
+  private updated = false;
+  private readonly stripProsody: boolean;
 
   constructor(
     private readonly inner: ReplyStream,
@@ -120,6 +148,7 @@ class DirectedReply implements ReplyStream {
     private readonly cues: RawCues
   ) {
     const sessions = opts.sessions ?? directorSessions;
+    this.stripProsody = mode === 'live' && !voiceHonorsProsodyTags(opts.voiceId);
     this.engine = new DirectorEngine({
       modes,
       voiceId: opts.voiceId,
@@ -127,7 +156,53 @@ class DirectedReply implements ReplyStream {
       carry: opts.sessionId ? sessions.get(opts.sessionId, opts.personaId) : { speed: 1 },
       cues,
       renderTags: prosodyTags,
+      stripProsody: this.stripProsody,
+      userText: opts.turnContext?.userRequest,
+      laughter: {
+        sessionId: opts.sessionId,
+        personaId: opts.personaId,
+        turn: opts.turnContext?.turnNumber,
+        userEmotion: opts.turnContext?.userEmotion?.primary,
+        comfortLevel: opts.comfortLevel ?? opts.turnContext?.comfortLevel,
+      },
     });
+  }
+
+  /**
+   * Hand this reply's Stage 2 plan to the post-TTS stage, once, as soon as the
+   * opening is decided and before its text goes to Cartesia (so the plan is
+   * there before any of the reply's audio). Never throws.
+   */
+  private planStage2(): void {
+    if (this.planned || this.mode !== 'live' || this.failed || !this.engine.decided) return;
+    this.planned = true;
+    this.plannedRevision = this.engine.openingRevision;
+    try {
+      const plan = this.engine.audioPlan();
+      if (plan) setReplyAudioPlan(this.opts.sessionId, this.opts.replyId, plan);
+    } catch (error) {
+      log.warn({ err: String(error), sessionId: this.opts.sessionId }, 'Stage 2 plan failed');
+    }
+  }
+
+  /**
+   * The opening was decided after the plan went out (a long first sentence):
+   * update the plan once, merged with what it already carries (the tempo).
+   * Stage 2 plays it only if it arrives before the first speech frame.
+   */
+  private updateStage2(): void {
+    if (!this.planned || this.updated || this.mode !== 'live' || this.failed) return;
+    if (this.engine.openingRevision === this.plannedRevision) return;
+    this.updated = true;
+    try {
+      const plan = this.engine.audioPlan();
+      if (plan) mergeReplyAudioPlan(this.opts.sessionId, this.opts.replyId, plan);
+    } catch (error) {
+      log.warn(
+        { err: String(error), sessionId: this.opts.sessionId },
+        'Stage 2 plan update failed'
+      );
+    }
   }
 
   /** Run Director work, timing it; on error stop directing this reply. */
@@ -166,6 +241,8 @@ class DirectedReply implements ReplyStream {
       this.inner.push(text);
       return;
     }
+    this.planStage2();
+    this.updateStage2();
     for (const piece of out) this.inner.push(piece);
     // A new hold starts when nothing was held or this push released the last one.
     if (!this.engine.holding) this.stopHoldTimer();
@@ -176,6 +253,7 @@ class DirectedReply implements ReplyStream {
     if (this.done) return;
     this.stopHoldTimer();
     const rest = this.direct(() => this.engine.finish()) ?? this.engine.releaseHeld();
+    this.planStage2();
     if (this.mode === 'live') for (const piece of rest) this.inner.push(piece);
     this.report(false);
     this.inner.end();
@@ -256,6 +334,11 @@ class DirectedReply implements ReplyStream {
       emotion: engine.emotion.emotion,
       emotionSource: engine.emotion.source,
       speed: engine.speed,
+      tempo: engine.tempo,
+      tagsStripped: this.stripProsody,
+      opening: engine.opening.opening?.kind,
+      openingReason: engine.opening.reason,
+      laughter: engine.laughter,
       ...summarize(engine),
       breaths: engine.stats.breaths,
       sighs: engine.stats.sighs,
@@ -267,6 +350,7 @@ class DirectedReply implements ReplyStream {
       (opts.sessions ?? directorSessions).update(opts.sessionId, opts.personaId, {
         emotion: engine.emotion.emotion,
         speed: engine.speed,
+        ...engine.nonverbalCarry(),
       });
     }
     if (opts.onPlan) opts.onPlan(summary, engine.plan);

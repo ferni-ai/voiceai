@@ -330,9 +330,11 @@ class TurnProfiler {
     const start = timings.turnStart;
     const end = timings.turnComplete || Date.now();
 
+    // First SPEECH, not a Stage 2 opening breath/sigh (ttsFirstByte fires on that).
+    const firstSpeech = timings.ttsFirstSpeech || timings.ttsFirstByte;
     return {
       totalTurnMs: end - start,
-      timeToFirstAudioMs: (timings.audioPlaybackStart || timings.ttsFirstByte || end) - start,
+      timeToFirstAudioMs: (timings.audioPlaybackStart || firstSpeech || end) - start,
       analysisMs: (timings.analysisComplete || start) - start,
       contextBuildingMs:
         (timings.contextBuildComplete || start) - (timings.contextBuildStart || start),
@@ -340,7 +342,7 @@ class TurnProfiler {
       embeddingMs: timings.embeddingComplete ? timings.embeddingComplete - start : 0,
       llmTtftMs: (timings.llmFirstToken || timings.llmStart || start) - (timings.llmStart || start),
       llmTotalMs: (timings.llmComplete || timings.llmStart || start) - (timings.llmStart || start),
-      ttsTtfbMs: (timings.ttsFirstByte || timings.ttsStart || start) - (timings.ttsStart || start),
+      ttsTtfbMs: (firstSpeech || timings.ttsStart || start) - (timings.ttsStart || start),
       ttsTotalMs: (timings.ttsComplete || timings.ttsStart || start) - (timings.ttsStart || start),
     };
   }

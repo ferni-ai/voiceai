@@ -13,6 +13,10 @@
  * LLM wrote something Sonic reads badly:
  * - clock times get a spaced, capital AM/PM: "7pm" / "7 p.m." → "7 PM",
  *   "3:30pm" → "3:30 PM", and a range "7-9pm" → "7 to 9 PM";
+ * - a bare date in date context, which Sonic reads as a fraction ("10
+ *   thirds"): "on 10/3" → "on October 3" (bare-dates.ts);
+ * - a markdown dash list after a colon or at the start of a piece becomes
+ *   plain comma-separated text: "Idea: - one - two" → "Idea: one, two";
  * - stage directions are not spoken: an *asterisk span* that starts with an
  *   action verb (*smiles*, *takes a breath*) or opens a sentence in lowercase
  *   is removed (Stage 2 renders sighs and breaths); paired emphasis asterisks
@@ -23,10 +27,13 @@
  *   Sonic reads all-caps letter by letter. Fail safe: only words on an explicit
  *   emphasis list; every other caps token (FDIC, AAPL, HIIT, VIII) is kept.
  *
- * Nothing inside [...] or <...> markup is touched.
+ * Nothing inside [...] or <...> markup, or a <spell> element, is touched.
  *
  * @module speech/tts-gateway/director/normalize
  */
+
+import { rewriteAsteriskSpans } from '../stage-directions.js';
+import { writeBareDates } from './bare-dates.js';
 
 export interface NormalizeResult {
   text: string;
@@ -76,11 +83,9 @@ const CLOCK_RANGE = new RegExp(
   String.raw`\b(\d{1,2}(?::\d{2})?)(?:\s?([ap])\.?\s?m(?![a-z]))?\s?[-–]\s?(\d{1,2}(?::\d{2})?)${MERIDIEM}`,
   'gi'
 );
-/** Verbs that make an *asterisk span* a stage direction wherever it sits. */
-const ACTION_VERB =
-  /^(?:sighs?|smiles?|laughs?|chuckles?|giggles?|grins?|nods?|shrugs?|winks?|pauses?|breathes?|takes|clears|leans|looks|beams?|exhales?|inhales?|whispers?|gasps?|snorts?|hums?)\b/i;
-/** An *asterisk-wrapped* span of up to 5 words. */
-const ASTERISK_SPAN = /(^|[^\w*])\*{1,3}([A-Za-z][A-Za-z' -]{0,60}?)\*{1,3}(?=$|[^\w*])/g;
+/** A dash list after a colon or at the start of a piece: "Idea: - one - two". */
+const DASH_LIST = /(^|:)[ \t]*[-•][ \t]+(?=\S)([^.!?\n]*)/g;
+const LIST_DASH = /[ \t]+[-•][ \t]+/;
 const MARKDOWN_LINK = /\[([^\]\n]+)\]\((?:https?:\/\/|www\.)[^)\s]*\)/g;
 
 /** Tidy the spaces a removal left behind ("good 😊." → "good."), keeping the original's edges. */
@@ -142,20 +147,22 @@ const RULES: readonly Rule[] = [
         return `${h} ${mer.toUpperCase()}M${keepSentenceEnd(dot, all.slice(at + match.length))}`;
       }
     ),
+  // Bare dates in date context: "on 10/3" → "on October 3".
+  (t, hit) => writeBareDates(t, hit),
+  // Dash lists: "Idea: - one - two" → "Idea: one, two".
+  (t, hit) =>
+    t.replace(DASH_LIST, (_m, lead: string, rest: string) => {
+      hit();
+      const items = rest.split(LIST_DASH).map((item) => item.trim());
+      const tail = /\s$/.test(rest) ? ' ' : '';
+      return `${lead}${lead ? ' ' : ''}${items.filter(Boolean).join(', ')}${tail}`;
+    }),
   // Stage directions and markdown.
   (t, hit) => {
-    const out = t
-      .replace(ASTERISK_SPAN, (match, lead: string, inner: string, at: number, all: string) => {
-        const before = all.slice(0, at) + lead;
-        // Lowercase at a sentence start reads as a direction (*a long pause*);
-        // emphasis there would be capitalised (*Really*).
-        const startsSentence = /(?:^|[.!?])\s*$/.test(before) && /^[a-z]/.test(inner);
-        const words = inner.trim().split(/\s+/).length;
-        const direction = words <= 5 && (ACTION_VERB.test(inner) || startsSentence);
-        // A stage direction is not spoken at all; emphasis keeps its words.
-        return direction ? lead : `${lead}${inner}`;
-      })
-      .replace(/^\s*\*\s+(?=\S)/, '')
+    // Stage directions are dropped and emphasis unwrapped (shared with the
+    // always-on SSML processor, which only drops directions).
+    const out = rewriteAsteriskSpans(t, true)
+      .text.replace(/^\s*\*\s+(?=\S)/, '')
       .replace(/(^|\s)__?([^_\s][^_]*?)__?(?=$|[\s.,!?;:])/g, '$1$2')
       .replace(/`+/g, '')
       .replace(/^\s*#{1,6}\s+(?=\D)/, '');
@@ -181,8 +188,8 @@ const RULES: readonly Rule[] = [
     }),
 ];
 
-/** Split off [...] and <...> markup so rules only see speakable text. */
-const MARKUP = /(\[[^\]]*\]|<[^>]*>)/;
+/** Split off <spell>...</spell>, [...] and <...> markup so rules only see speakable text. */
+const MARKUP = /(<spell>[\s\S]*?<\/spell>|\[[^\]]*\]|<[^>]*>)/i;
 
 export function normalizeForSpeech(text: string): NormalizeResult {
   let count = 0;

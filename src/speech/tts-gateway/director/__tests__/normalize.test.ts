@@ -20,8 +20,8 @@ describe('normalizeForSpeech leaves conventional forms to Cartesia', () => {
     'In 1905 and 2005 and 2010 we moved.',
     'I have 2024 reasons.',
     '1500 people came.',
-    // M7: dates and things that only look like dates.
-    'due on 10/3, so soon',
+    // M7: dates and things that only look like dates. A bare M/D with date
+    // context ("on 10/3") is now written out (see "bare dates" below).
     '10/3 works',
     'open 24/7',
     'a 50/50 chance',
@@ -98,7 +98,10 @@ describe('normalizeForSpeech: markdown and emoji never reach the voice', () => {
     expect(say('*smiles* That is great. *laughs* Okay. *takes a breath* Now.')).toBe(
       'That is great. Okay. Now.'
     );
-    expect(say("that's funny *chuckles* anyway")).toBe("that's funny anyway");
+    // Review H1: "chuckles" is the sentence's own verb here, not a
+    // stand-alone aside, so it keeps the word (asterisks still unwrapped,
+    // same as any other action word on the Director's path).
+    expect(say("that's funny *chuckles* anyway")).toBe("that's funny chuckles anyway");
     expect(say('*a long pause* So.')).toBe('So.');
     // Emphasis keeps its words, wherever it sits.
     expect(say('That was *great*.')).toBe('That was great.');
@@ -177,5 +180,78 @@ describe('normalizeForSpeech: accounting', () => {
 
   it('never rewrites inside bracket or angle markup', () => {
     expect(say('<emotion value="REALLY"/>REALLY')).toBe('<emotion value="REALLY"/>Really');
+  });
+});
+
+describe('normalizeForSpeech: <spell> content is markup, never rewritten', () => {
+  it('leaves a spelled code alone even when it looks like a time or emphasis', () => {
+    expect(say('Your code is <spell>7PM AM</spell>, okay?')).toBe(
+      'Your code is <spell>7PM AM</spell>, okay?'
+    );
+    expect(say('Use <spell>NOW 😊</spell> at 7pm')).toBe('Use <spell>NOW 😊</spell> at 7 PM');
+  });
+});
+
+/**
+ * Cartesia reads a bare "10/3" as "10 thirds" (live run with Lester,
+ * 2026-10-03); its guide wants MM/DD/YYYY. A bare M/D in date context is
+ * written as the month name; anything else that looks like a fraction stays.
+ */
+describe('normalizeForSpeech: bare dates in date context', () => {
+  it.each([
+    ['due on 10/3, so soon', 'due on October 3, so soon'],
+    ['the bill was $4,200 on 10/3, and', 'the bill was $4,200 on October 3, and'],
+    ['by 12/31 at the latest', 'by December 31 at the latest'],
+    ['Until 1/15 we wait', 'Until January 15 we wait'],
+    ['since 2/29', 'since February 29'],
+    ['due 4/1', 'due April 1'],
+    ['see you Friday 10/3', 'see you Friday October 3'],
+    ['see you Fri, 10/3', 'see you Fri, October 3'],
+    ['from 9/5 to 9/9', 'from September 5 to September 9'],
+    ['before 3/4 or after 3/8', 'before March 4 or after March 8'],
+  ])('%s', (input, expected) => {
+    expect(say(input)).toBe(expected);
+  });
+
+  it.each([
+    'open 24/7',
+    'a 50/50 chance',
+    'add 1/2 cup',
+    'add 3/4 cup of flour',
+    'about 3/4 of them',
+    'born 7/4/1999',
+    'on 10/3/2026',
+    'on 10/3/26',
+    'on 13/3',
+    'on 2/30',
+    'on 0/5',
+    '10/3 works',
+    'score was 2/3 on Friday',
+  ])('leaves %s alone', (text) => {
+    expect(say(text)).toBe(text);
+  });
+});
+
+/** The normalize lever stripped ** but sent list dashes ("Idea: - one - two") to Cartesia. */
+describe('normalizeForSpeech: markdown list dashes', () => {
+  it.each([
+    ['Idea: - one - two', 'Idea: one, two'],
+    ['Try these: - stretch - walk - breathe.', 'Try these: stretch, walk, breathe.'],
+    ['- buy milk - call mom', 'buy milk, call mom'],
+    ['- just one item', 'just one item'],
+  ])('%s', (input, expected) => {
+    expect(say(input)).toBe(expected);
+  });
+
+  it.each(['It was -5 degrees.', 'I went - well, sort of - home.', 'call (415) 555-1212', '7-9pm'])(
+    'leaves prose dashes alone: %s',
+    (text) => {
+      expect(say(text)).toBe(normalizeForSpeech(text).text);
+      expect(say(text)).not.toMatch(/,\s*well/);
+    }
+  );
+
+  it('leaves a mid-sentence dash in prose alone', () => {
+    expect(say('I went - well, sort of - home.')).toBe('I went - well, sort of - home.');
   });
 });

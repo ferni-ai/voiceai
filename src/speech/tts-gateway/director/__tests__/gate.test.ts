@@ -27,6 +27,9 @@ describe('leverModes', () => {
       normalize: 'live',
       emotion: 'live',
       pacing: 'live',
+      // Opt-in levers stay off until set (stream D).
+      nonverbal: 'off',
+      laughter: 'off',
     });
   });
 

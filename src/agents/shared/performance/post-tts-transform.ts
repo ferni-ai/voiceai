@@ -1341,22 +1341,22 @@ function applySoftReleaseToFrame(
  *
  * @param audioStream - Input audio stream from TTS
  * @param config - Enhancement configuration
- * @param replyTurn - The reply's turn number: keys Stage 2's plan (no turn, no Stage 2)
+ * @param replyId - Id the gateway tagged `audioStream` with (reply-audio-id.ts); keys Stage 2's plan. Untagged streams (fillers, `say()`) get no Stage 2.
  * @returns Enhanced audio stream
  */
 export async function applyPostTTSEnhancement(
   audioStream: NodeReadableStream<AudioFrame>,
   config: PostTTSConfig = {},
-  replyTurn?: number
+  replyId?: string
 ): Promise<NodeReadableStream<AudioFrame>> {
   if (process.env.POST_TTS_ENHANCEMENT_ENABLED === 'false') {
     log.debug({ sessionId: config.sessionId }, 'Post-TTS enhancement disabled by env');
-    return applyReplyAudioStage(audioStream, config.sessionId, replyTurn, config.sampleRate);
+    return applyReplyAudioStage(audioStream, config.sessionId, replyId, config.sampleRate);
   }
   const enhanced = audioStream.pipeThrough(
     createPostTTSTransform(config) as unknown as NodeTransformStream<AudioFrame, AudioFrame>
   ); // then Stage 2 (opening breath/sigh, tempo), gated off by default:
-  return applyReplyAudioStage(enhanced, config.sessionId, replyTurn, config.sampleRate);
+  return applyReplyAudioStage(enhanced, config.sessionId, replyId, config.sampleRate);
 }
 
 /**

@@ -14,8 +14,18 @@ import type { SSMLProsodyConfig } from '../types.js';
 /** The gate: off (untouched path), shadow (plan + log only), live (applied). */
 export type DirectorMode = 'off' | 'shadow' | 'live';
 
-/** Independently gated levers (spec §4.4: one gate per lever). */
-export type Lever = 'phrasing' | 'pauses' | 'normalize' | 'emotion' | 'pacing';
+/**
+ * Independently gated levers (spec §4.4: one gate per lever). `nonverbal`
+ * (opening breath/sigh) and `laughter` are opt-in: off unless set.
+ */
+export type Lever =
+  | 'phrasing'
+  | 'pauses'
+  | 'normalize'
+  | 'emotion'
+  | 'pacing'
+  | 'nonverbal'
+  | 'laughter';
 
 export type LeverModes = Readonly<Record<Lever, DirectorMode>>;
 
@@ -45,6 +55,20 @@ export interface SpeechSegment {
    */
   cartesiaControls?: SSMLProsodyConfig;
   rustEvents: RustEvent[];
+}
+
+/**
+ * What the Director reads about the turn being answered. The shape of
+ * tts-wrapper's session context, so the wrapper can pass it as it is:
+ * `turnNumber` keys the Stage 2 plan (speech/reply-audio-plan.ts).
+ */
+export interface TurnContext {
+  turnNumber?: number;
+  /** The user's words this reply answers. */
+  userRequest?: string;
+  userEmotion?: { primary?: string };
+  /** Rapport 0-1, for the laughter rules; their default when absent. */
+  comfortLevel?: number;
 }
 
 /** The Director's only output: one per LLM reply. */

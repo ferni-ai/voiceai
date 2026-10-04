@@ -4,7 +4,7 @@
  *
  * One TTS stream is one reply (one Cartesia context per reply). When the
  * stream is built (the reply's TTS start, before Cartesia's first byte) this
- * takes the plan for (sessionId, turn) (`speech/reply-audio-plan.ts`) and:
+ * takes the plan for (sessionId, replyId) (`speech/reply-audio-plan.ts`) and:
  * - SPEECH_STAGE2_NONVERBAL=live + plan.opening: renders the breath/sigh in
  *   Rust at the configured output rate and enqueues it right away, so it
  *   plays while we wait for Cartesia instead of delaying the first word. It
@@ -14,16 +14,26 @@
  *   streaming pitch-preserving stretcher (WSOLA) and re-frames its output
  *   to the incoming frame size.
  *
- * Late plan: if no plan exists at TTS start, the stage looks once more on
- * the first speech frame and applies only its tempo. The opening is skipped:
- * by then the wait is over, and a breath there would only push speech back.
+ * Late plan: the director decides on the reply's first text, which is
+ * usually after TTS start. With no plan at TTS start the stage waits for one
+ * (`onReplyAudioPlan`) until the first speech frame; a plan with no opening
+ * may be followed by ONE update (the director's late long-sentence breath,
+ * merged with the tempo), which is handled the same way. A plan that arrives
+ * first has its opening enqueued at once (it plays during the rest of the
+ * Cartesia wait) and speech queues after it. If the first speech frame
+ * arrives first, the stage stops waiting: the opening is skipped (by then the
+ * wait is over, and a breath there would only push speech back) and only a
+ * plan already in the store by then supplies a tempo. The stage also stops
+ * waiting when the reply ends or is cancelled.
  *
  * Lead (opening) frames are marked; `isReplyAudioLeadFrame` lets latency
  * checkpoints tell them from speech.
  *
- * With both gates off, or without a real session id and turn,
- * `applyReplyAudioStage` returns the input stream itself; with a gate on but
- * no plan, frames pass through untouched (the same AudioFrame objects).
+ * With both gates off, or without a real session id and reply id (no id at
+ * all means no Director ran on this stream: a filler, `say()`, a pre-tool
+ * phrase, or a cached clip — review H2), `applyReplyAudioStage` returns the
+ * input stream itself; with a gate on but no plan, frames pass through
+ * untouched (the same AudioFrame objects).
  *
  * @module agents/shared/performance/reply-audio-stage
  */
@@ -32,11 +42,15 @@ import { AudioFrame } from '@livekit/rtc-node';
 import {
   TransformStream as NodeTransformStream,
   type ReadableStream as NodeReadableStream,
+  type Transformer,
+  type TransformStreamDefaultController,
 } from 'node:stream/web';
 
 import {
   getStage2Gates,
   isPlannableSession,
+  isReplyId,
+  onReplyAudioPlan,
   takeReplyAudioPlan,
   type ReplyAudioPlan,
   type Stage2Gates,
@@ -68,12 +82,16 @@ interface TempoStretcherInstance {
 
 /** The slice of `@ferni/audio` this stage uses. */
 export interface ReplyAudioNative {
+  /** (kind, durationMs, intensity, seed, sampleRate, f0Hz?) → mono PCM. */
   renderNonverbal: (
-    kind: string,
-    durationMs: number,
-    intensity: number,
-    seed: number,
-    sampleRate: number
+    ...args: [
+      kind: string,
+      durationMs: number,
+      intensity: number,
+      seed: number,
+      sampleRate: number,
+      f0Hz?: number,
+    ]
   ) => Float32Array;
   NativeTempoStretcher: new (sampleRate: number, ratio: number) => TempoStretcherInstance;
 }
@@ -127,8 +145,12 @@ function frameSamples(frame: AudioFrame): Int16Array {
 
 export interface ReplyAudioStageOptions {
   sessionId: string | undefined;
-  /** The reply's turn (`turnNumber`); a plan for another turn never applies. */
-  turn: number | undefined;
+  /**
+   * The id the gateway TTS node tagged this stream with
+   * (`tts-gateway/reply-audio-id.ts`); a plan for a different reply never
+   * applies, even in the same session or turn (review H2).
+   */
+  replyId: string | undefined;
   native: ReplyAudioNative;
   /** Defaults to the env gates read when the stream starts. */
   gates?: Stage2Gates;
@@ -175,11 +197,13 @@ function renderLead(
   opening: NonNullable<ReplyAudioPlan['opening']>,
   sr: number
 ): AudioFrame[] {
-  const { kind, intensity, durationMs } = opening;
+  const { kind, intensity, durationMs, f0Hz } = opening;
   seedCounter = (seedCounter + 1) >>> 0;
-  const clip = float32ToInt16(
-    native.renderNonverbal(kind, durationMs ?? 0, intensity, seedCounter, sr)
-  );
+  // f0Hz only when known, so an older binary (5 params) is called as before.
+  const args = [kind, durationMs ?? 0, intensity, seedCounter, sr] as const;
+  const pcm =
+    f0Hz === undefined ? native.renderNonverbal(...args) : native.renderNonverbal(...args, f0Hz);
+  const clip = float32ToInt16(pcm);
   const gap = kind === 'breath' ? Math.round((sr * BREATH_TO_SPEECH_GAP_MS) / 1000) : 0;
   const lead = new Int16Array(clip.length + gap);
   lead.set(clip);
@@ -205,6 +229,7 @@ function fadeFrom(from: number, frame: AudioFrame): AudioFrame {
 }
 
 type Emit = (f: AudioFrame) => void;
+type Controller = TransformStreamDefaultController<AudioFrame>;
 
 /** One reply's speech through the stretcher, re-framed to the incoming frame size. */
 class TempoPath {
@@ -287,11 +312,29 @@ class TempoPath {
   }
 }
 
+/** The stretcher for this reply's speech, or null (no tempo, 1, or not mono). */
+function startTempo(
+  native: ReplyAudioNative,
+  ratio: number | undefined,
+  first: AudioFrame,
+  sessionId: string | undefined
+): TempoPath | null {
+  if (ratio === undefined || Math.abs(ratio - 1) <= 1e-3) return null;
+  if (first.channels !== 1) {
+    log.warn({ sessionId, channels: first.channels }, 'Stage 2 tempo needs mono; skipped');
+    return null;
+  }
+  const sr = first.sampleRate;
+  const size = first.samplesPerChannel || Math.round((sr * LEAD_FRAME_MS) / 1000);
+  log.debug({ sessionId, tempo: ratio, sr }, 'Stage 2 tempo engaged');
+  return new TempoPath(native, ratio, sr, size, sessionId);
+}
+
 /** One stream = one reply. */
 export function createReplyAudioStage(
   options: ReplyAudioStageOptions
 ): NodeTransformStream<AudioFrame, AudioFrame> {
-  const { sessionId, turn, native } = options;
+  const { sessionId, replyId, native } = options;
   const gates = options.gates ?? getStage2Gates();
   const outRate = options.outputSampleRate ?? DEFAULT_OUTPUT_SAMPLE_RATE;
   let plan: ReplyAudioPlan | undefined;
@@ -302,41 +345,73 @@ export function createReplyAudioStage(
   const begin = (first: AudioFrame): void => {
     started = true;
     if (!plan) {
-      plan = takeReplyAudioPlan(sessionId, turn);
+      plan = takeReplyAudioPlan(sessionId, replyId);
       if (plan?.opening && gates.nonverbal) {
-        log.debug({ sessionId, turn }, 'Stage 2 plan arrived after TTS start; opening skipped');
+        log.debug(
+          { sessionId, replyId },
+          'Stage 2 plan arrived after TTS start; opening skipped'
+        );
       }
     }
     if (leadRate && first.sampleRate !== leadRate) {
-      const speechRate = first.sampleRate;
-      log.warn({ sessionId, leadRate, speechRate }, 'Stage 2 opening rate differs from speech');
+      log.warn({ sessionId, leadRate, speech: first.sampleRate }, 'Stage 2 opening rate mismatch');
     }
-    const ratio = plan?.tempo;
-    if (!gates.tempo || ratio === undefined || Math.abs(ratio - 1) <= 1e-3) return;
-    if (first.channels !== 1) {
-      log.warn({ sessionId, channels: first.channels }, 'Stage 2 tempo needs mono; skipped');
-      return;
-    }
-    const sr = first.sampleRate;
-    const size = first.samplesPerChannel || Math.round((sr * LEAD_FRAME_MS) / 1000);
-    tempo = new TempoPath(native, ratio, sr, size, sessionId);
-    log.debug({ sessionId, tempo: ratio, sr }, 'Stage 2 tempo engaged');
+    if (gates.tempo) tempo = startTempo(native, plan?.tempo, first, sessionId);
   };
 
-  return new NodeTransformStream<AudioFrame, AudioFrame>({
+  let stopWaiting: (() => void) | null = null;
+  const stopListening = (): void => {
+    stopWaiting?.();
+    stopWaiting = null;
+  };
+  /** Enqueue the plan's opening now (nothing of the reply's speech is out yet). */
+  const playOpening = (controller: Controller): void => {
+    if (!plan?.opening || !gates.nonverbal) return;
+    try {
+      for (const f of renderLead(native, plan.opening, outRate)) controller.enqueue(f);
+      leadRate = outRate;
+      log.debug({ sessionId, replyId, kind: plan.opening.kind, sr: outRate }, 'Stage 2 opening');
+    } catch (error) {
+      log.warn({ sessionId, error: String(error) }, 'Stage 2 opening failed; skipped');
+    }
+  };
+
+  // `cancel` (Node 21+) ends the wait on playback stop; else TTL / first frame / end do.
+  /** Wait for the plan; a plan with no opening may get `updates` more (a late breath). */
+  const waitForPlan = (controller: Controller, updates: number): void => {
+    stopWaiting = onReplyAudioPlan(sessionId, replyId, () => {
+      stopWaiting = null;
+      if (started) return;
+      plan = { ...plan, ...takeReplyAudioPlan(sessionId, replyId) }; // an update keeps the tempo
+      playOpening(controller);
+      if (!plan?.opening && gates.nonverbal && updates > 0) waitForPlan(controller, updates - 1);
+    });
+  };
+  const transformer: Transformer<AudioFrame, AudioFrame> & { cancel?: () => void } = {
     start(controller) {
-      plan = takeReplyAudioPlan(sessionId, turn);
-      if (!plan?.opening || !gates.nonverbal) return;
-      try {
-        for (const f of renderLead(native, plan.opening, outRate)) controller.enqueue(f);
-        leadRate = outRate;
-        log.debug({ sessionId, turn, kind: plan.opening.kind, sr: outRate }, 'Stage 2 opening');
-      } catch (error) {
-        log.warn({ sessionId, error: String(error) }, 'Stage 2 opening failed; skipped');
-      }
+      plan = takeReplyAudioPlan(sessionId, replyId);
+      if (!plan) return waitForPlan(controller, 1);
+      playOpening(controller);
+      if (!plan.opening && gates.nonverbal) waitForPlan(controller, 0);
     },
     transform(frame, controller) {
       if (!started) {
+        const awaitingUpdate = stopWaiting !== null;
+        stopListening();
+        // An opening that lands after speech started is skipped (it would delay speech);
+        // consume and log it so a stale plan never lingers and misses are countable.
+        if (awaitingUpdate && gates.nonverbal) {
+          stopWaiting = onReplyAudioPlan(sessionId, replyId, () => {
+            stopWaiting = null;
+            const late = takeReplyAudioPlan(sessionId, replyId);
+            if (late?.opening) {
+              log.info(
+                { sessionId, replyId, kind: late.opening.kind },
+                'Stage 2 opening arrived after speech started; skipped'
+              );
+            }
+          });
+        }
         try {
           begin(frame);
         } catch (error) {
@@ -348,30 +423,34 @@ export function createReplyAudioStage(
       if (pass) controller.enqueue(pass);
     },
     flush(controller) {
+      stopListening();
       tempo?.flush((f) => controller.enqueue(f));
       tempo = null;
     },
-  });
+    cancel: stopListening,
+  };
+  return new NodeTransformStream<AudioFrame, AudioFrame>(transformer);
 }
 
 /**
  * Add Stage 2 after post-TTS enhancement. Returns `stream` itself when both
- * gates are off, without a real session id and turn (no plan can exist), or
- * when the native module can't load.
+ * gates are off, without a real session id and reply id (no reply id means
+ * no Director ran on this stream, so no plan could ever apply — review H2),
+ * or when the native module can't load.
  */
 export async function applyReplyAudioStage(
   stream: NodeReadableStream<AudioFrame>,
   sessionId: string | undefined,
-  turn: number | undefined,
+  replyId: string | undefined,
   outputSampleRate?: number
 ): Promise<NodeReadableStream<AudioFrame>> {
   const gates = getStage2Gates();
   if (!gates.nonverbal && !gates.tempo) return stream;
-  if (!isPlannableSession(sessionId) || turn === undefined) return stream;
+  if (!isPlannableSession(sessionId) || !isReplyId(replyId)) return stream;
   const native = await loadNative();
   if (!native) return stream;
   return stream.pipeThrough(
-    createReplyAudioStage({ sessionId, turn, native, gates, outputSampleRate })
+    createReplyAudioStage({ sessionId, replyId, native, gates, outputSampleRate })
   );
 }
 

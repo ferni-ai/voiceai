@@ -111,3 +111,14 @@ describe('PhraseAssembler', () => {
     expect(out.join(' ').split(/\s+/)).toEqual(pieces.join(' ').split(/\s+/));
   });
 });
+
+describe('phrasing never cuts inside a <spell> element', () => {
+  it('finds no boundary inside the spelled text', () => {
+    const text = 'Your reference number is going to be <spell>AB, CD, EF</spell> and';
+    const cut = lastPhraseBoundary(text);
+    if (cut !== null) {
+      const head = text.slice(0, cut);
+      expect(head.lastIndexOf('<spell>') <= head.lastIndexOf('</spell>')).toBe(true);
+    }
+  });
+});

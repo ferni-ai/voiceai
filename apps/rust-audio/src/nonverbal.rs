@@ -16,6 +16,10 @@
 //! - starts and ends at 0 with raised-cosine edges (no click at either end);
 //! - peak is `peak_dbfs(kind) + 20*log10(intensity)` (below -12 dBFS);
 //! - zero mean; deterministic for a seed, different across seeds.
+//!
+//! A sigh's voiced onset follows the speaker when their median f0 is given
+//! (`render_nonverbal_at`): it starts near 1.25x f0 and falls toward 0.9x, so
+//! the sigh sits in the same voice as the speech after it.
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -60,6 +64,9 @@ pub const MIN_DURATION_MS: f64 = 60.0;
 pub const MAX_DURATION_MS: f64 = 3000.0;
 pub const MIN_SAMPLE_RATE: u32 = 8000;
 pub const MAX_SAMPLE_RATE: u32 = 192_000;
+/// Speaker f0 range accepted for a sigh; anything else means "unknown".
+pub const MIN_SPEAKER_F0_HZ: f32 = 50.0;
+pub const MAX_SPEAKER_F0_HZ: f32 = 400.0;
 
 /// Render a nonverbal sound. Never panics: out-of-range inputs are clamped
 /// (a non-positive or non-finite duration means the kind's default).
@@ -69,6 +76,20 @@ pub fn render_nonverbal(
     intensity: f32,
     seed: u32,
     sample_rate: u32,
+) -> Vec<f32> {
+    render_nonverbal_at(kind, duration_ms, intensity, seed, sample_rate, None)
+}
+
+/// `render_nonverbal` with the speaker's median f0 (Hz). A sigh's pitch then
+/// follows the speaker; a breath is unvoiced and ignores it. `None` or an f0
+/// outside 50-400 Hz gives exactly `render_nonverbal`'s output.
+pub fn render_nonverbal_at(
+    kind: NonverbalKind,
+    duration_ms: f64,
+    intensity: f32,
+    seed: u32,
+    sample_rate: u32,
+    speaker_f0_hz: Option<f32>,
 ) -> Vec<f32> {
     let sr = sample_rate.clamp(MIN_SAMPLE_RATE, MAX_SAMPLE_RATE);
     let dur = if duration_ms.is_finite() && duration_ms > 0.0 {
@@ -85,7 +106,7 @@ pub fn render_nonverbal(
 
     let (mut out, env) = match kind {
         NonverbalKind::Breath => synth_breath(n, sr as f32, seed),
-        NonverbalKind::Sigh => synth_sigh(n, sr as f32, seed),
+        NonverbalKind::Sigh => synth_sigh(n, sr as f32, seed, speaker_f0(speaker_f0_hz)),
     };
 
     // Remove DC without moving the endpoints: subtract the mean in proportion
@@ -159,12 +180,23 @@ fn synth_breath(n: usize, sr: f32, seed: u32) -> (Vec<f32>, Vec<f32>) {
 /// Sigh: a short voiced "hh-a" onset (glottal pulses, falling pitch) that
 /// fades into aspiration noise, with a lowpass that closes over time so the
 /// spectrum tilts darker as the breath runs out.
-fn synth_sigh(n: usize, sr: f32, seed: u32) -> (Vec<f32>, Vec<f32>) {
+fn synth_sigh(n: usize, sr: f32, seed: u32, speaker_f0: Option<f32>) -> (Vec<f32>, Vec<f32>) {
     let mut p = Rng::new(seed ^ 0x51ED_270B);
     let mut noise = Rng::new(seed.wrapping_mul(0x27D4_EB2F) ^ 0x1656_67B1);
 
-    let f0_start = p.range(150.0, 195.0);
-    let f0_end = f0_start * p.range(0.70, 0.80);
+    // Draw both pitch values either way, so every other parameter of a seed
+    // is the same with and without a speaker f0.
+    let drawn_start = p.range(150.0, 195.0);
+    let drawn_fall = p.range(0.70, 0.80);
+    let (f0_start, f0_end) = match speaker_f0 {
+        // Start near 1.25x the speaker's f0, fall toward 0.9x; the draws
+        // jitter both by about +/-2.6% so sighs still differ per seed.
+        Some(f0) => (
+            f0 * 1.25 * (1.0 + 0.2 * (drawn_start - 172.5) / 172.5),
+            f0 * 0.9 * (1.0 + 0.4 * (drawn_fall - 0.75) / 0.75),
+        ),
+        None => (drawn_start, drawn_start * drawn_fall),
+    };
     let voiced_peak = p.range(0.08, 0.14); // fraction of duration
     let voiced_end = p.range(0.38, 0.50);
     let voiced_gain = p.range(0.30, 0.45);
@@ -265,6 +297,11 @@ fn synth_sigh(n: usize, sr: f32, seed: u32) -> (Vec<f32>, Vec<f32>) {
         env.push(e);
     }
     (out, env)
+}
+
+/// A usable speaker f0, or None (unknown, or outside 50-400 Hz).
+fn speaker_f0(f0: Option<f32>) -> Option<f32> {
+    f0.filter(|f| f.is_finite() && (MIN_SPEAKER_F0_HZ..=MAX_SPEAKER_F0_HZ).contains(f))
 }
 
 /// 0 -> 1 raised cosine over x in [0, 1] (zero slope at both ends).
@@ -399,6 +436,8 @@ impl Biquad {
 
 /// Render a breath or sigh as mono Float32 PCM at `sampleRate`.
 /// `durationMs <= 0` uses the kind's default (breath 350 ms, sigh 800 ms).
+/// `f0Hz` (optional): the speaker's median f0, so a sigh's pitch follows the
+/// voice; omitted or outside 50-400 Hz keeps the default pitch.
 /// Unknown kinds and out-of-range sample rates are errors, never panics.
 #[napi(js_name = "renderNonverbal")]
 pub fn render_nonverbal_napi(
@@ -407,6 +446,7 @@ pub fn render_nonverbal_napi(
     intensity: f64,
     seed: u32,
     sample_rate: u32,
+    f0_hz: Option<f64>,
 ) -> Result<Float32Array> {
     let kind = NonverbalKind::parse(&kind).ok_or_else(|| {
         Error::new(
@@ -420,12 +460,13 @@ pub fn render_nonverbal_napi(
             format!("sample rate out of range: {sample_rate}"),
         ));
     }
-    Ok(Float32Array::new(render_nonverbal(
+    Ok(Float32Array::new(render_nonverbal_at(
         kind,
         duration_ms,
         intensity as f32,
         seed,
         sample_rate,
+        f0_hz.map(|f| f as f32),
     )))
 }
 

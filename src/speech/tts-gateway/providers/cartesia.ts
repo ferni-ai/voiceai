@@ -22,6 +22,7 @@ import {
 import type { ITTSProvider, SSMLProsodyConfig } from '../types.js';
 import { CartesiaReplyStream, type ReplyStream } from './cartesia-reply-stream.js';
 import { CartesiaSocket } from './cartesia-socket.js';
+import { protectSpell } from '../ssml/speech-markup.js';
 
 const log = createLogger({ module: 'CartesiaTTSProvider' });
 
@@ -41,12 +42,20 @@ function buildWebsocketUrl(apiKey: string): string {
 
 /**
  * Strip SSML and normalize text for Cartesia (tags get spoken literally otherwise).
+ * `<spell>` is Cartesia markup (codes read character by character) and is kept,
+ * but only when PAIRED — an unclosed `<spell>` is stripped like any other
+ * stray tag (review L1: this used to keep a lone `<spell>` here, while the
+ * SSML processor already stripped one; `protectSpell` is the shared source
+ * of truth for which spell elements are real). Every break is stripped, so
+ * a spell is never chained with one, including one nested inside it.
  */
 function stripForCartesia(text: string): string {
-  return text
-    .replace(/<[^>]+>/g, ' ')
+  const { text: masked, restore } = protectSpell(text);
+  const stripped = masked
+    .replace(/<[^>]+>/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+  return restore(stripped);
 }
 
 const clamp = (value: number, min: number, max: number): number =>

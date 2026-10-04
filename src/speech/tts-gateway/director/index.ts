@@ -20,4 +20,5 @@ export type {
   RustEventAnchor,
   SpeechPlan,
   SpeechSegment,
+  TurnContext,
 } from './types.js';
