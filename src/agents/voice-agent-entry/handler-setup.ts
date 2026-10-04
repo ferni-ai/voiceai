@@ -19,6 +19,7 @@ import { finops } from '../../services/observability/finops.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
 import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
+import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 
 /** Inputs for handler setup */
 export interface HandlerSetupInput {
@@ -163,15 +164,12 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   process.stderr.write(
     `[voice-agent-entry] 👤 Waiting for participant (${participantTimeout}ms timeout, MULTI_AGENT_MODE=${MULTI_AGENT_MODE})...\n`
   );
-  const participant = await Promise.race([
-    ctx.waitForParticipant(),
-    new Promise<null>((resolve) => {
-      setTimeout(() => {
-        process.stderr.write(`[voice-agent-entry] 👤 Participant wait timed out after ${participantTimeout}ms\n`);
-        resolve(null);
-      }, participantTimeout);
-    }),
-  ]);
+  const waitResult = await waitForParticipantWithTimeout(ctx, participantTimeout);
+  if (roomClosedBeforeParticipant(waitResult, ctx.room?.isConnected === true)) {
+    process.stderr.write(`[voice-agent-entry] 🚪 Room closed before a participant joined — ending job\n`);
+    return null as unknown as HandlerSetupResult; // caller runs the shared cleanup path
+  }
+  const participant = waitResult.participant;
   if (participant) {
     process.stderr.write(`[voice-agent-entry] 👤 Participant joined: ${participant.identity}\n`);
   }
