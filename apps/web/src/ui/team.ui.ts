@@ -395,19 +395,15 @@ export function initTeamUI(): void {
     });
     cleanupFunctions.push(unsubSoftOpen);
 
-    // Listen for progress heartbeat to update UI indicator
+    // Listen for progress heartbeat to update UI indicator.
+    // Only the data attribute: the `handoff-progress` class is the old pill's style
+    // (inline-styles.css) and would turn the avatar container into a pill.
     const unsubProgress = handoffService.onHandoffProgress((_targetPersona, elapsedMs, timeoutMs) => {
-      // Update progress indicator on avatar container
       const avatarContainer = document.querySelector('.avatar-container');
       if (avatarContainer instanceof HTMLElement) {
         // Calculate progress percentage (0-100)
         const progress = Math.min(100, Math.round((elapsedMs / timeoutMs) * 100));
         avatarContainer.dataset.handoffProgress = String(progress);
-
-        // Add pulse class if not already present
-        if (!avatarContainer.classList.contains('handoff-progress')) {
-          avatarContainer.classList.add('handoff-progress');
-        }
       }
     });
     cleanupFunctions.push(unsubProgress);
@@ -417,7 +413,6 @@ export function initTeamUI(): void {
       const avatarContainer = document.querySelector('.avatar-container');
       if (avatarContainer instanceof HTMLElement) {
         delete avatarContainer.dataset.handoffProgress;
-        avatarContainer.classList.remove('handoff-progress');
       }
     });
     cleanupFunctions.push(unsubProgressClear);
