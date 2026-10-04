@@ -207,6 +207,21 @@ export async function handleSocialRoutes(
       return true;
     }
 
+    // GET /api/social/challenges/pending and /history: the caller's own challenges.
+    // Matched before /challenges/:id, which would otherwise take "pending" as an id.
+    const own = pathname.match(/^\/api\/social\/challenges\/(pending|history)$/);
+    if (own && method === 'GET') {
+      const viewer = await requireAuth(req, res);
+      if (!viewer) return true;
+      const userId = claimedUserFor(viewer, searchParams.get('userId'), res);
+      if (!userId) return true;
+      const limit = Math.min(Math.max(parseInt(searchParams.get('limit') ?? '', 10) || 20, 1), 100);
+      const challenges =
+        own[1] === 'pending' ? getPendingChallenges(userId) : getChallengeHistory(userId, limit);
+      send(res, 200, { challenges });
+      return true;
+    }
+
     // GET /api/social/challenges/:id
     if (pathname.match(/^\/api\/social\/challenges\/[^/]+$/) && method === 'GET') {
       const idOrCode = pathname.split('/').pop() || '';
@@ -223,37 +238,6 @@ export async function handleSocialRoutes(
       }
 
       send(res, 200, { challenge });
-      return true;
-    }
-
-    // GET /api/social/challenges/pending?userId=xxx
-    if (pathname === '/api/social/challenges/pending' && method === 'GET') {
-      const userId = searchParams.get('userId');
-
-      if (!userId) {
-        send(res, 400, { error: 'Missing userId' });
-        return true;
-      }
-
-      const challenges = getPendingChallenges(userId);
-
-      send(res, 200, { challenges });
-      return true;
-    }
-
-    // GET /api/social/challenges/history?userId=xxx
-    if (pathname === '/api/social/challenges/history' && method === 'GET') {
-      const userId = searchParams.get('userId');
-      const limit = parseInt(searchParams.get('limit') || '20');
-
-      if (!userId) {
-        send(res, 400, { error: 'Missing userId' });
-        return true;
-      }
-
-      const challenges = getChallengeHistory(userId, limit);
-
-      send(res, 200, { challenges });
       return true;
     }
 

@@ -253,3 +253,66 @@ describe('other /api/social writes act on the verified caller', () => {
     expect((await post('/api/social/seed', {}, 'admin')).status).toBe(200);
   });
 });
+
+async function get(
+  path: string,
+  query: Record<string, string>,
+  caller: string | null
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  const headers = caller ? { authorization: `Bearer ${caller}` } : {};
+  const req = { method: 'GET', url: path, headers } as unknown as IncomingMessage;
+  const out = { status: 200, body: {} as Record<string, unknown> };
+  const res = {
+    setHeader: vi.fn(),
+    writeHead: vi.fn((s: number) => {
+      out.status = s;
+    }),
+    end: vi.fn((data?: string) => {
+      out.body = JSON.parse(data || '{}') as Record<string, unknown>;
+    }),
+  } as unknown as ServerResponse;
+  await handleSocialRoutes(req, res, path, new URLSearchParams(query));
+  return out;
+}
+
+const ids = (body: Record<string, unknown>) =>
+  ((body.challenges ?? []) as Array<{ id: string }>).map((c) => c.id);
+
+describe('GET /api/social/challenges/pending and /history', () => {
+  it("pending returns the caller's own incoming challenges, not someone else's", async () => {
+    const forDana = games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'dana').id;
+    const forFrank = games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'frank').id;
+
+    const res = await get('/api/social/challenges/pending', {}, 'dana');
+
+    expect(res.status).toBe(200);
+    expect(ids(res.body)).toEqual([forDana]);
+    expect(ids(res.body)).not.toContain(forFrank);
+  });
+
+  it("history returns the caller's sent and received challenges", async () => {
+    const sent = games.createChallenge('score-beat', 'guess', 'gail', 'Gail', 'hank').id;
+    const received = games.createChallenge('score-beat', 'guess', 'ivan', 'Ivan', 'gail').id;
+    games.createChallenge('score-beat', 'guess', 'ivan', 'Ivan', 'hank');
+
+    const res = await get('/api/social/challenges/history', {}, 'gail');
+
+    expect(res.status).toBe(200);
+    expect(ids(res.body).sort()).toEqual([sent, received].sort());
+  });
+
+  it("naming someone else's userId gets 403; no credentials gets 401", async () => {
+    const named = await get('/api/social/challenges/pending', { userId: 'dana' }, 'mallory');
+    expect(named.status).toBe(403);
+    expect((await get('/api/social/challenges/history', {}, null)).status).toBe(401);
+  });
+
+  it('a real challenge id still resolves through /challenges/:id', async () => {
+    const id = games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'dana').id;
+
+    const res = await get(`/api/social/challenges/${id}`, {}, null);
+
+    expect(res.status).toBe(200);
+    expect((res.body.challenge as { id: string }).id).toBe(id);
+  });
+});
