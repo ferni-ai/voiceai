@@ -6,7 +6,7 @@ name: Deploy Firebase Hosting
 # Deployment Strategy:
 # 1. Build frontend
 # 2. Deploy to Firebase (atomic - instant switch)
-# 3. Run health checks on deployed site
+# 3. Run health checks on deployed site (HTTP status + browser smoke test)
 # 4. If unhealthy, auto-rollback to previous version
 #
 # NOTE: Deploys on ALL pushes to main (not just frontend changes) because:
@@ -137,8 +137,24 @@ jobs:
 
           echo "healthy=$HEALTHY" >> $GITHUB_OUTPUT
 
+      # curl only proves the HTML was served. On 2026-10-04 app.ferni.ai returned
+      # 200 while its JS crashed at module evaluation, so also load each site in
+      # a real browser and fail on uncaught errors or a missing sign-in gate.
+      - name: Install Playwright chromium
+        run: pnpm playwright install --with-deps --only-shell chromium
+
+      - name: Browser smoke test deployed sites
+        id: smoke
+        # Let the rollback step below run when this fails
+        continue-on-error: true
+        run: |
+          rc=0
+          node scripts/smoke-frontend.mjs https://ferni-prod.web.app || rc=1
+          node scripts/smoke-frontend.mjs https://app.ferni.ai || rc=1
+          exit $rc
+
       - name: Rollback on health check failure
-        if: steps.health.outputs.healthy == 'false'
+        if: steps.health.outputs.healthy == 'false' || steps.smoke.outcome == 'failure'
         run: |
           echo "⚠️ Health check failed - initiating rollback"
 
@@ -156,7 +172,7 @@ jobs:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
       - name: Deployment summary
-        if: steps.health.outputs.healthy == 'true'
+        if: steps.health.outputs.healthy == 'true' && steps.smoke.outcome == 'success'
         run: |
           echo "## 🚀 Firebase Hosting Deployed (Healthy)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
