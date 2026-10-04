@@ -69,6 +69,16 @@ describe('installApiAuthFetch', () => {
   });
 });
 
+describe('installApiAuthFetch without fetch', () => {
+  it('does nothing when the host has no fetch, instead of throwing', () => {
+    const h = { location: { origin: ORIGIN } } as unknown as Parameters<
+      typeof installApiAuthFetch
+    >[0];
+    expect(() => installApiAuthFetch(h, async () => 'tok-1')).not.toThrow();
+    expect((h as { fetch?: unknown }).fetch).toBeUndefined();
+  });
+});
+
 describe('isOwnApiRequest', () => {
   it.each([
     ['/api/a', true],

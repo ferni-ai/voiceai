@@ -43,7 +43,8 @@ export function isOwnApiRequest(input: RequestInfo | URL, origin: string): boole
  * Safe to call more than once.
  */
 export function installApiAuthFetch(host: FetchHost, getToken: () => Promise<string | null>): void {
-  if (installed.has(host)) return;
+  // No fetch to wrap (non-browser runtimes, some test environments): leave auth init unaffected.
+  if (installed.has(host) || typeof host.fetch !== 'function') return;
   installed.add(host);
   const original = host.fetch.bind(host);
 
