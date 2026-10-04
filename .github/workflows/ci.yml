@@ -165,6 +165,14 @@ jobs:
           key: ${{ needs.setup.outputs.cache-key }}
           fail-on-cache-miss: true
 
+      # The root vitest.config.ts excludes apps/**, so the step below never sees the
+      # CLI's tests; they run under apps/cli/vitest.config.ts instead. They need no
+      # native bindings and finish in seconds, so they run before the Rust build.
+      - name: Run CLI unit tests
+        run: pnpm test:cli:unit
+        env:
+          NODE_ENV: test
+
       # 60 call sites use the THROWING loadRustPerf() (tryLoadRustPerf is documented
       # "for availability checks, not for actual operations"), so the accelerator is
       # genuinely required — skipping those tests would hide coverage, not fix it.
