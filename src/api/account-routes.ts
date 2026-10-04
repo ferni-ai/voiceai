@@ -11,7 +11,10 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getDefaultStore } from '../memory/index.js';
+import { deleteOAuthLinkStatesFor } from '../servers/token/oauth-link-state.js';
+import { deleteTransactionOwnersFor } from '../services/billing/apple-signed-data.js';
 import { deleteFirebaseUser, getFirebaseUser } from '../services/identity/firebase-auth.js';
+import { erasePushRecordsFor } from '../services/push-endpoint-owners.js';
 import { recordSecurityEvent } from '../services/security-events.js';
 import { createUserProfile } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
@@ -154,10 +157,34 @@ async function handleGetAccount(
 }
 
 /**
+ * Records about the user kept outside their own documents (keyed by an
+ * endpoint hash, an OAuth state hash or an Apple transaction id), so the
+ * deleteAllData sweep can't reach them.
+ */
+const LINKED_RECORDS: ReadonlyArray<readonly [string, (userId: string) => Promise<unknown>]> = [
+  ['push_subscriptions', erasePushRecordsFor],
+  ['oauth_link_states', deleteOAuthLinkStatesFor],
+  ['apple_transaction_owners', deleteTransactionOwnersFor],
+];
+
+/** Best effort: every sweep runs; returns the names of those that failed. */
+async function eraseLinkedRecords(userId: string): Promise<string[]> {
+  const results = await Promise.allSettled(LINKED_RECORDS.map(async ([, erase]) => erase(userId)));
+  return LINKED_RECORDS.flatMap(([name], i) => {
+    const result = results[i];
+    if (result?.status !== 'rejected') return [];
+    log.error({ error: String(result.reason), userId, records: name }, 'Records left behind');
+    return [name];
+  });
+}
+
+/**
  * DELETE /api/account - Delete account and all data
  *
- * Erases every data store (same sweep as DELETE /api/export/all), then the
- * Firebase sign-in. Success is reported only when both actually happened.
+ * Erases every data store (same sweep as DELETE /api/export/all) and the
+ * records linked to the user elsewhere, then the Firebase sign-in. Success is
+ * reported only when the data sweep and the sign-in deletion happened; linked
+ * records that couldn't be removed are listed in details.failures.
  */
 async function handleDeleteAccount(
   req: IncomingMessage,
@@ -202,6 +229,8 @@ async function handleDeleteAccount(
     return true;
   }
 
+  const failures = await eraseLinkedRecords(userId);
+
   const firebaseDeleted = firebaseUid ? await deleteFirebaseUser(firebaseUid) : false;
   if (firebaseUid && !firebaseDeleted) {
     log.error({ userId }, 'Data erased but Firebase user deletion failed');
@@ -211,9 +240,12 @@ async function handleDeleteAccount(
 
   sendJson(res, {
     success: true,
-    message: 'Your account and all associated data have been deleted.',
+    message:
+      failures.length === 0
+        ? 'Your account and all associated data have been deleted.'
+        : "Your account is deleted, but some records couldn't be removed.",
     deletedAt: new Date().toISOString(),
-    details: { dataDeleted: true, firebaseDeleted },
+    details: { dataDeleted: true, firebaseDeleted, failures },
   });
   return true;
 }

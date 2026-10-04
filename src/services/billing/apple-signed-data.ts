@@ -160,6 +160,18 @@ export async function getTransactionOwner(
   }
 }
 
+/**
+ * Remove every ownership record held by `userId` (account deletion), so a
+ * deleted account no longer holds its purchases. Throws when it can't.
+ */
+export async function deleteTransactionOwnersFor(userId: string): Promise<number> {
+  const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore unavailable');
+  const snap = await db.collection(APPLE_TRANSACTION_OWNERS).where('userId', '==', userId).get();
+  await Promise.all(snap.docs.map(async (doc) => doc.ref.delete()));
+  return snap.docs.length;
+}
+
 export type AppleClaimResult =
   | { ok: true; transaction: JWSTransactionDecodedPayload }
   | { ok: false; status: 400 | 403 | 503; error: string };
