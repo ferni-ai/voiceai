@@ -5,10 +5,15 @@
  * caller sounds finished, up to the maximum when they sound mid-thought.
  * Human gaps after a finished turn are ~200 ms, but thinking pauses inside a
  * turn run well past a second; the old 150/450 ms cap made Ferni answer into
- * those pauses ("it overlaps with the dialogue"). The fix is the maximum
- * (thinking pauses). The minimum stays short: gaps of 700 ms or more read as
- * hesitation (Kendrick & Torreira 2015) and reply latency already adds 2+ s.
- * Env overrides allow tuning by ear on dev.
+ * those pauses ("it overlaps with the dialogue"). The minimum stays short:
+ * gaps of 700 ms or more read as hesitation (Kendrick & Torreira 2015) and
+ * reply latency already adds 2+ s.
+ *
+ * The maximum only applies when LiveKit's own turn detection runs
+ * (CASCADE_TURN_DETECTION=vad). In the default stt mode ink-2 decides when the
+ * caller has finished and LiveKit waits the minimum after that; tune pauses
+ * there with CASCADE_TURN_END (cartesia-cascade.ts). Env overrides allow tuning
+ * by ear on dev.
  */
 
 export const DEFAULT_MIN_ENDPOINTING_MS = 300;
