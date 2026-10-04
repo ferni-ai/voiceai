@@ -14,7 +14,11 @@ import {
   registerBargeInJudge,
 } from '../../speech/graceful-interrupt/barge-in-judge.js';
 import { createCallAlertSpeaker } from '../shared/call-alerts.js';
-import { createBargeInFastPath, setBargeInFastPath } from './barge-in-fastpath.js';
+import {
+  createBargeInFastPath,
+  installBackchannelHook,
+  setBargeInFastPath,
+} from './barge-in-fastpath.js';
 import { createTurnKeeper } from './turn-keeper.js';
 import { installUnfinishedTurnHold } from './unfinished-turn.js';
 
@@ -132,6 +136,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off).
   installUnfinishedTurnHold(session);
+  // One backchannel list for the patched LiveKit and the barge-in fast path.
+  installBackchannelHook();
 
   // Open the next reply softly only after a real barge-in, not after any
   // overlap (barge-in-judge.ts). BARGE_IN_ACK=any keeps the old behavior.
