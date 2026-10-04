@@ -7,6 +7,7 @@
  * Philosophy: Keep it simple. Let Stripe handle complexity.
  */
 
+import { createHash, timingSafeEqual } from 'crypto';
 import {
   checkTrialStatus,
   getTrialState,
@@ -67,6 +68,13 @@ interface ResponseContext {
 }
 
 type RouteHandler = (ctx: RequestContext) => Promise<ResponseContext>;
+
+/** Constant-time key compare (hashed to equal length); false when either side is missing. */
+function adminKeyMatches(presented: unknown, expected: string | undefined): boolean {
+  if (typeof presented !== 'string' || !presented || !expected) return false;
+  const digest = (v: string) => createHash('sha256').update(v).digest();
+  return timingSafeEqual(digest(presented), digest(expected));
+}
 
 /** The user a body-named action may touch: the verified caller (admins may name another). */
 function actingUser(ctx: RequestContext, named: unknown): { userId: string } | ResponseContext {
@@ -324,35 +332,24 @@ async function createAdminUpgrade(ctx: RequestContext): Promise<ResponseContext>
     admin_key?: string;
   };
 
-  // SECURITY: Only allow admin upgrades in development OR with valid ADMIN_KEY
-  const isDev = process.env.NODE_ENV !== 'production';
+  // SECURITY: the admin key is required everywhere except a developer's machine
+  // (NODE_ENV=development, where 'dev-mode' also works). Staging is not exempt.
+  const isDev = process.env.NODE_ENV === 'development';
   const adminKey = process.env.ADMIN_KEY;
-
-  // In production, REQUIRE ADMIN_KEY env var (no fallback!)
-  if (!isDev) {
-    if (!adminKey) {
-      return {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-        body: { error: 'ADMIN_KEY not configured' },
-      };
-    }
-    if (body.admin_key !== adminKey) {
-      return {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-        body: { error: 'Unauthorized' },
-      };
-    }
-  } else {
-    // In development, allow 'dev-mode' key
-    if (body.admin_key !== 'dev-mode' && body.admin_key !== adminKey) {
-      return {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-        body: { error: 'Unauthorized - use admin_key: dev-mode in development' },
-      };
-    }
+  if (!isDev && !adminKey) {
+    return {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'ADMIN_KEY not configured' },
+    };
+  }
+  const accepted = isDev ? [adminKey, 'dev-mode'] : [adminKey];
+  if (!accepted.some((key) => adminKeyMatches(body.admin_key, key))) {
+    return {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Unauthorized' },
+    };
   }
 
   const userId = body.userId || body.device_id;
