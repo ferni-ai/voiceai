@@ -20,7 +20,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { appState } from '../state/app.state.js';
 import { apiPost } from '../utils/api.js';
-import { openBillingPortal } from '../utils/billing.js';
+import { billingErrorMessage, openBillingPortal } from '../utils/billing.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { openFoundersJourney } from './founders-journey.ui.js';
@@ -510,7 +510,7 @@ async function handleUpgrade(tier: string): Promise<void> {
     if (response.ok && response.data?.url) {
       window.location.href = response.data.url;
     } else {
-      toast.error("That didn't go through. Try again?");
+      toast.error(billingErrorMessage(response.status));
     }
   } catch (error) {
     log.error('Upgrade failed:', error);
@@ -544,7 +544,7 @@ async function handlePlantSeed(): Promise<void> {
     if (response.ok && response.data?.url) {
       window.location.href = response.data.url;
     } else {
-      toast.error("Hmm, that didn't work. Try again?");
+      toast.error(billingErrorMessage(response.status));
     }
   } catch (error) {
     log.error('Plant seed failed:', error);
