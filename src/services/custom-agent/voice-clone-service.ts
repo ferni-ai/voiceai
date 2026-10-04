@@ -12,6 +12,13 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { devStubOrUnavailable } from '../../utils/dev-stub.js';
+import {
+  CLONE_UNAVAILABLE,
+  PREVIEW_UNAVAILABLE,
+  simulatedVoiceClone,
+  simulatedVoicePreview,
+} from './voice-clone-stubs.js';
 import { getRateLimiter } from '../../tools/rate-limiter.js';
 import type {
   ClonedVoice,
@@ -452,20 +459,7 @@ async function callCartesiaCloneAPI(
 
   // If no API key, reject with honest error
   if (!CARTESIA_API_KEY) {
-    const isDevelopment = process.env.NODE_ENV !== 'production';
-    if (isDevelopment) {
-      log.warn('CARTESIA_API_KEY not set, using simulated voice clone for development');
-      return {
-        id: `voice_sim_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-        name,
-        description: `Custom voice for ${name} (simulated)`,
-        is_public: false,
-        created_at: new Date().toISOString(),
-      };
-    }
-
-    log.error('CARTESIA_API_KEY not configured in production');
-    throw new Error('Voice cloning service is not available: Cartesia API key is not configured. Contact support to enable this feature.');
+    return devStubOrUnavailable(CLONE_UNAVAILABLE, () => simulatedVoiceClone(name));
   }
 
   try {
@@ -553,17 +547,7 @@ export async function generateVoicePreview(
 
   // If no API key, reject with honest error
   if (!CARTESIA_API_KEY) {
-    const isDevelopment = process.env.NODE_ENV !== 'production';
-    if (isDevelopment) {
-      log.warn('CARTESIA_API_KEY not set, returning simulated preview for development');
-      return {
-        audioUrl: `preview://${voiceId}/${Date.now()}.mp3`,
-        durationSeconds: text.length * 0.05,
-      };
-    }
-
-    log.error('CARTESIA_API_KEY not configured in production');
-    throw new Error('Voice preview service is not available: Cartesia API key is not configured. Contact support to enable this feature.');
+    return devStubOrUnavailable(PREVIEW_UNAVAILABLE, () => simulatedVoicePreview(voiceId, text));
   }
 
   try {

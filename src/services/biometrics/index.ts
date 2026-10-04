@@ -18,6 +18,8 @@
 
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { devStubOrUnavailable } from '../../utils/dev-stub.js';
+import { createMockSnapshot } from './mock-snapshot.js';
 
 // Re-export extracted modules
 export * from './token-persistence.js';
@@ -641,15 +643,11 @@ export async function syncBiometrics(userId: string): Promise<BiometricSnapshot 
         snapshot = await fetchTerraData(userId, user.accessToken);
         break;
       default:
-        // HealthKit/Fitbit native - not yet implemented
-        const isDevelopment = process.env.NODE_ENV !== 'production';
-        if (isDevelopment) {
-          log.warn({ userId, platform: user.platform }, 'Native platform not implemented, using mock data for development');
-          snapshot = createMockSnapshot(userId, user.platform);
-        } else {
-          log.error({ userId, platform: user.platform }, 'Native platform not implemented in production');
-          throw new Error(`Biometrics platform "${user.platform}" is not yet supported. Please configure a supported platform (Google Fit, Oura, Whoop, or Terra).`);
-        }
+        // HealthKit/Fitbit native: needs the companion iOS app, not implemented yet
+        snapshot = devStubOrUnavailable(
+          `Biometrics platform "${user.platform}" is not yet supported. Please configure a supported platform (Google Fit, Oura, Whoop, or Terra).`,
+          () => createMockSnapshot(userId, user.platform)
+        );
     }
 
     // Update state
@@ -1080,19 +1078,6 @@ async function fetchTerraData(userId: string, terraUserId: string): Promise<Biom
     log.error({ error: String(error) }, 'Terra data fetch error');
     return createMockSnapshot(userId, 'terra');
   }
-}
-
-function createMockSnapshot(userId: string, platform: BiometricPlatform): BiometricSnapshot {
-  return {
-    userId,
-    platform,
-    timestamp: new Date(),
-    hrv: null,
-    sleep: null,
-    activity: null,
-    recovery: null,
-    stressLevel: 'moderate',
-  };
 }
 
 // ============================================================================
