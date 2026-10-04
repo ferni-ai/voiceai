@@ -31,9 +31,7 @@ import { generateSuggestions } from '../services/trust-systems/media-suggestions
 import {
   getStageDescription,
   getStageName,
-  type RelationshipHealthScore,
 } from '../services/trust-systems/relationship-health.js';
-import type { InsightsReport } from '../services/trust-systems/relationship-insights.js';
 import {
   exportTimelineData,
   getCurrentMoodContext,
@@ -44,6 +42,11 @@ import {
 } from '../services/trust-systems/sentiment-timeline.js';
 import { LIFE_EVENTS_DOC, TIMELINE_DOC } from '../services/trust-systems/dashboard-history.js';
 import { readTrustDoc } from '../services/trust-systems/trust-doc.js';
+import {
+  getTogetherHealth,
+  getTogetherNotes,
+  TogetherStoreUnavailable,
+} from '../services/trust-systems/together-store.js';
 import { sendJSON } from './helpers.js';
 
 type Respond = (status: number, body: unknown) => void;
@@ -73,31 +76,29 @@ function timeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {
   return 'night';
 }
 
-async function health(userId: string): Promise<Record<string, unknown>> {
-  const h = await stored<RelationshipHealthScore>(userId, 'relationship_health');
-  if (!h) {
-    return {
-      hasData: false,
-      score: null,
-      stage: null,
-      stageName: null,
-      stageDescription: null,
-      trend: null,
-      factors: [],
-      alerts: [],
-    };
-  }
+/**
+ * How we're doing together. 'getting-started' has data but no score yet;
+ * factors are only the ones with real signals behind them.
+ */
+async function health(userId: string, tz: string | null): Promise<Record<string, unknown>> {
+  const h = await getTogetherHealth(userId, tz);
   return {
-    hasData: true,
-    score: h.overallScore,
+    hasData: h.state !== 'none',
+    state: h.state,
+    score: h.score,
     stage: h.stage,
-    stageName: getStageName(h.stage),
-    stageDescription: getStageDescription(h.stage),
-    trend: h.overallTrend,
-    factors: h.factors.map((f) => ({ name: f.name, score: f.score, trend: f.trend })),
-    alerts: h.alerts
-      .filter((a) => !a.acknowledged)
-      .map((a) => ({ message: a.message, severity: a.severity })),
+    stageName: h.stage ? getStageName(h.stage) : null,
+    stageDescription: h.stage ? getStageDescription(h.stage) : null,
+    trend: h.trend,
+    daysTalked: h.daysTalked,
+    factors: h.factors.map((f) => ({
+      name: f.id,
+      tone: f.tone,
+      score: f.score,
+      trend: f.trend,
+      detail: f.detail,
+    })),
+    alerts: [],
   };
 }
 
@@ -187,11 +188,16 @@ async function media(userId: string, query: URLSearchParams): Promise<Record<str
   return { hasData: true, mood, suggestions };
 }
 
-async function insights(userId: string, period: string | null): Promise<Record<string, unknown>> {
-  const reports = (await stored<InsightsReport[]>(userId, 'insights_reports')) ?? [];
-  const wanted = period ?? 'month';
-  const latest = reports.filter((r) => r.period === wanted).pop() ?? null;
-  return { hasData: reports.length > 0, latest, history: reports.slice(-5) };
+/** Ferni's "things I've noticed" note for the week or (default) the month. */
+async function insights(
+  userId: string,
+  period: string | null,
+  tz: string | null
+): Promise<Record<string, unknown>> {
+  const { state, notes } = await getTogetherNotes(userId, tz);
+  const wanted = period === 'week' ? 'week' : 'month';
+  const latest = notes.find((n) => n.period === wanted) ?? null;
+  return { hasData: state !== 'none', period: wanted, latest, history: notes };
 }
 
 /**
@@ -207,12 +213,12 @@ export async function handleTrustDashboardRoute(
 ): Promise<boolean> {
   if (method !== 'GET') return false;
   const routes = new Map<string, () => Promise<Record<string, unknown>>>([
-    ['/api/trust/health', async () => health(userId)],
+    ['/api/trust/health', async () => health(userId, query.get('tz'))],
     ['/api/trust/sentiment', async () => sentiment(userId, query.get('period'))],
     ['/api/trust/life-events', async () => lifeEvents(userId)],
     ['/api/trust/journaling/prompts', async () => journaling(userId, query.get('situation'))],
     ['/api/trust/media/suggestions', async () => media(userId, query)],
-    ['/api/trust/insights', async () => insights(userId, query.get('period'))],
+    ['/api/trust/insights', async () => insights(userId, query.get('period'), query.get('tz'))],
   ]);
   const route = routes.get(pathname);
   if (route === undefined) return false;
@@ -221,7 +227,8 @@ export async function handleTrustDashboardRoute(
   try {
     respond(200, await route());
   } catch (error) {
-    if (!(error instanceof StoreUnavailable)) throw error;
+    if (!(error instanceof StoreUnavailable || error instanceof TogetherStoreUnavailable))
+      throw error;
     respond(503, { error: "Couldn't load your trust data. Try again?" });
   }
   return true;
