@@ -788,7 +788,8 @@ class SettingsMenuUI {
                   expandedSections.has('understandingYou'),
                   `
             ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory') || 'Your Story')}
-            ${this.renderMenuItem('trust-dashboard', ICONS.wellbeing, t('menu.items.trustDashboard') || 'Trust & Growth')}
+            ${this.renderMenuItem('trust-dashboard', ICONS.ring, t('menu.items.trustDashboard') || 'Trust & Growth')}
+            ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
             ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane') || 'Memory Lane', t('common.new'))}
             ${this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights') || 'Your Patterns')}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
