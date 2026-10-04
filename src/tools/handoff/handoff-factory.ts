@@ -24,6 +24,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team/team-availability.js';
 import { getToolDescription } from '../utils/tool-descriptions.js';
+import { isHandoffTargetOpen } from './handoff-availability.js';
 import { assignHandoffToolNames, specialtyOf } from './handoff-tool-naming.js';
 // FIX BUG #6: Import normalizeAgentIdSync for robust ID matching
 import { normalizeAgentIdSync } from '../../personas/agent-directory.js';
@@ -417,7 +418,7 @@ export async function buildHandoffTools(
       hasProfileData &&
       !isTargetCoordinator &&
       !bypassUnlocks &&
-      !isTeamMemberUnlocked(def.agentId, userProfile ?? null, subscriptionTier)
+      !isHandoffTargetOpen(def.agentId, userProfile ?? null, subscriptionTier)
     ) {
       filteredTools.push(def.name);
       // 🐛 FIX: Use INFO level for filtered tools - this helps diagnose "can't handoff" issues

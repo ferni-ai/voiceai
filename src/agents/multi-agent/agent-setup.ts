@@ -83,8 +83,7 @@ import {
 } from './memory-recall-hook.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
-import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
-import { buildHandoffTools } from '../../tools/handoff/handoff-factory.js';
+import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
 import { interruptionOverrides } from './interruption-config.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
@@ -751,42 +750,19 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const loadEssentialToolsFallback = async (
     policy: InitialToolPolicy = { essentialOnly: false }
   ): Promise<Record<string, unknown>> => {
-    // This is the fallback when full tool loading times out
-    // Load ESSENTIAL tools (handoff + entertainment + information) so agent can still function
-    // buildHandoffTools now hoisted to module level
+    // Initial agent (essential-only) and timeout fallback: this session's handoffs
+    // plus the essential domains (music, weather, memory...). See essential-tool-set.ts.
     try {
-      const subscriptionTier =
-        (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
-
-      // 1. Build handoff tools (critical for team switching)
-      const { tools: handoffTools, toolCount: handoffCount } = await buildHandoffTools({
-        currentAgentId: persona.id,
-        userProfile: services.userProfile,
-        subscriptionTier,
-        services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },
+      const {
+        tools: allTools,
+        handoffTools,
+        essentialTools,
+      } = await buildEssentialToolSet({
+        personaId: persona.id,
+        userId,
+        services: services as EssentialToolSetInput['services'],
       });
-
-      // 2. Load essential domain tools (music, weather, etc.)
-      // These are pre-loaded at worker startup, so this is fast
-      // loadEssentialDomains now hoisted to module level
-      let essentialTools: Record<string, unknown> = {};
-      try {
-        essentialTools = await loadEssentialDomains(userId || 'anonymous', services);
-        log.info(
-          { personaId: persona.id, essentialToolCount: Object.keys(essentialTools).length },
-          '🎵 Essential domain tools loaded (music, weather, memory, etc.)'
-        );
-      } catch (essentialErr) {
-        log.warn(
-          { error: String(essentialErr) },
-          '⚠️ Failed to load essential tools - only handoffs available'
-        );
-        // This logger is silent inside the job context; a call without its
-        // domain tools must be visible in the agent log.
-        process.stderr.write(`🚨 Essential tools failed to load: ${String(essentialErr)}\n`);
-      }
-
-      const allTools = { ...handoffTools, ...essentialTools };
+      const handoffCount = Object.keys(handoffTools).length;
       const filteredTools = filterToolRecordByInitialPolicy(
         allTools,
         new Set(Object.keys(essentialTools)),
@@ -1292,11 +1268,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         personaId: persona.id,
         sessionCount: services.userProfile?.totalConversations,
         relationshipStage: services.userProfile?.relationshipStage as
-          | 'stranger'
-          | 'acquaintance'
-          | 'friend'
-          | 'trusted_advisor'
-          | undefined,
+          'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor' | undefined,
         userProfile: services.userProfile
           ? { humanMemory: services.userProfile.humanMemory }
           : undefined,

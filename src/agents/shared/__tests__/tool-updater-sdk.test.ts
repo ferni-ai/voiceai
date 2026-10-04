@@ -38,6 +38,30 @@ describe('updateAgentTools on a real SDK agent', () => {
     expect(tool).toBeDefined();
   });
 
+  it("keeps the agent's own handoffs: a shared catalog's handoffs neither replace nor add any", async () => {
+    // The agent was built for this user: Peter John is its only handoff.
+    const ownPeter = makeTool('peter-john');
+    const agent = makeAgent({ handoffToPeter: ownPeter, playMusic: makeTool('a') });
+
+    // The dynamic loader's catalog carries every persona's handoff, Ferni's own
+    // included, and its handoffToPeter goes elsewhere.
+    await updateAgentTools(agent, {
+      handoffToPeter: makeTool('peter-lynch'),
+      handoffToFerni: makeTool('ferni'),
+      handoffToAlex: makeTool('alex-chen'),
+      recallFromMemory: makeTool('b'),
+    });
+
+    expect(getAgentToolNames(agent).sort()).toEqual([
+      'handoffToPeter',
+      'playMusic',
+      'recallFromMemory',
+    ]);
+    expect(agent.toolCtx.getFunctionTool('handoffToPeter')?.description).toBe(
+      'test tool peter-john'
+    );
+  });
+
   it('is a no-op when every tool is already registered', async () => {
     const tools = { playMusic: makeTool('a') };
     const agent = makeAgent(tools);
