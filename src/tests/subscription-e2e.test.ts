@@ -392,6 +392,9 @@ describe('Subscription E2E Integration', () => {
     });
 
     it('should reject invalid tier values', async () => {
+      // 'dev-mode' is only accepted on a developer machine (NODE_ENV=development)
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
       const response = await handleSubscriptionRequest({
         method: 'POST',
         pathname: '/subscription/upgrade',
@@ -407,6 +410,7 @@ describe('Subscription E2E Integration', () => {
       // Note: Current implementation doesn't validate tier enum
       // This documents current behavior - may want to add validation
       expect(response.status).toBe(200);
+      process.env.NODE_ENV = originalNodeEnv;
     });
   });
 
