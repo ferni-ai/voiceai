@@ -207,11 +207,14 @@ export interface Prediction {
   predictedValue: number;
   confidence: number; // 0-1
   timeframe: string;
+  /** 80% range around the predicted value */
   scenarios: {
     conservative: number;
     expected: number;
     optimistic: number;
   };
+  /** How the forecast was worked out, in plain words */
+  basis?: string;
 }
 
 /**
@@ -220,7 +223,8 @@ export interface Prediction {
 export interface PredictionsData {
   predictions: Prediction[];
   primaryPrediction: Prediction;
-  accuracy: number; // historical accuracy
+  /** Historical accuracy, only when past forecasts have actually been scored */
+  accuracy?: number;
 }
 
 /**

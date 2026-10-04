@@ -240,7 +240,7 @@ class YourStoryUI {
   }
 
   private initialize(): void {
-    if (this.panel) return;
+    if (this.panel?.isConnected) return; // rebuild if something removed it from the page
     document.querySelectorAll('.your-story').forEach((e) => e.remove());
     this.injectStyles();
     this.createPanel();

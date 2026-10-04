@@ -16,6 +16,7 @@
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import type { YourStoryData } from '../ui/visualizations/index.js';
+import { toPredictions, type ApiPrediction } from './your-story-sections.js';
 
 /**
  * Get the current user ID from localStorage.
@@ -117,22 +118,8 @@ interface ApiStoryResponse {
         createdAt?: string;
       }>;
     };
-    prediction: {
-      metric: string;
-      currentValue: number;
-      predictedValue: number;
-      changePercent: number;
-      confidence: number;
-      trackRecord: number;
-      timeframe: string;
-      range: {
-        conservative: number;
-        expected: number;
-        optimistic: number;
-      };
-      insight: string;
-      alsoTracking: Array<{ metric: string; trend: string }>;
-    };
+    /** null without enough real energy readings for a forecast */
+    prediction: ApiPrediction | null;
     lastUpdated: string;
   };
 }
@@ -362,20 +349,8 @@ function transformApiResponse(
       },
     },
 
-    // Predictions visualization
-    predictions: {
-      currentScore: api.prediction.currentValue,
-      projectedScore: api.prediction.predictedValue,
-      confidence: api.prediction.confidence,
-      trackRecord: api.prediction.trackRecord,
-      timeframe: api.prediction.timeframe,
-      factors: api.prediction.alsoTracking.map((t) => ({
-        name: t.metric,
-        impact: t.trend === 'up' ? 10 : t.trend === 'down' ? -10 : 0,
-      })),
-      insight: api.prediction.insight,
-      scenarios: api.prediction.range,
-    },
+    // Forecast from real energy readings, or nothing
+    predictions: toPredictions(api.prediction),
   };
   };
 

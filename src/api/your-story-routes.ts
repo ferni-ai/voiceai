@@ -27,6 +27,7 @@ import { createLogger } from '../utils/safe-logger.js';
 import { getPersonaColor } from '../config/brand-colors.js';
 import { rateLimit, requireAuth, type AuthContext } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendJSON, sendError } from './helpers.js';
+import { fetchPrediction, type PredictionData } from './your-story-prediction.js';
 
 const log = createLogger({ module: 'YourStoryAPI' });
 
@@ -149,28 +150,6 @@ export interface OpenLoopsData {
   }>;
 }
 
-export interface PredictionData {
-  metric: string;
-  currentValue: number;
-  predictedValue: number;
-  changePercent: number;
-  confidence: number;
-  trackRecord: number; // historical accuracy %
-  timeframe: string;
-  range: {
-    conservative: number;
-    expected: number;
-    optimistic: number;
-  };
-  insight: string;
-  alsoTracking: Array<{
-    metric: string;
-    current: number;
-    predicted: number;
-    changePercent: number;
-  }>;
-}
-
 export interface YourStoryData {
   header: StoryHeader;
   relationship: RelationshipProgress;
@@ -182,7 +161,8 @@ export interface YourStoryData {
   recoveryPath: RecoveryPath;
   yourWorld: YourWorld;
   openLoops: OpenLoopsData;
-  prediction: PredictionData;
+  /** null without enough real energy readings for a forecast */
+  prediction: PredictionData | null;
   lastUpdated: string;
 }
 
@@ -632,62 +612,6 @@ async function fetchOpenLoops(userId: string): Promise<OpenLoopsData> {
       items: [],
     };
   }
-}
-
-async function fetchPrediction(userId: string): Promise<PredictionData> {
-  try {
-    const { runPredictiveAnalysis } = await import('../services/predictive-insights/index.js');
-
-    const insights = await runPredictiveAnalysis(userId);
-    const primary = insights[0];
-
-    if (!primary) {
-      return getDefaultPrediction();
-    }
-
-    return {
-      metric: primary.title || 'Emotional Wellbeing',
-      currentValue: 68,
-      predictedValue: 78,
-      changePercent: 15,
-      confidence: Math.round(primary.confidence * 100),
-      trackRecord: 84,
-      timeframe: '3 months',
-      range: {
-        conservative: 72,
-        expected: 78,
-        optimistic: 85,
-      },
-      insight:
-        primary.message ||
-        "These patterns are still emerging. As we talk more, I'll understand your rhythms better.",
-      alsoTracking: insights.slice(1, 3).map((i) => ({
-        metric: i.title || 'Metric',
-        current: 55,
-        predicted: 70,
-        changePercent: 27,
-      })),
-    };
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to fetch predictions');
-    return getDefaultPrediction();
-  }
-}
-
-function getDefaultPrediction(): PredictionData {
-  return {
-    metric: 'Emotional Wellbeing',
-    currentValue: 68,
-    predictedValue: 78,
-    changePercent: 15,
-    confidence: 82,
-    trackRecord: 84,
-    timeframe: '3 months',
-    range: { conservative: 72, expected: 78, optimistic: 85 },
-    insight:
-      "These patterns are still emerging. As we talk more, I'll understand your rhythms better.",
-    alsoTracking: [],
-  };
 }
 
 function formatAge(date: Date): string {
