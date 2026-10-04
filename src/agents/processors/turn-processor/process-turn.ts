@@ -120,7 +120,14 @@ import {
   processUserResponseForResonance,
 } from '../../integrations/better-than-human-integration.js';
 
-import { detectCrisis, guardPreResponse } from '../../safety/crisis-guard.js';
+import {
+  applyClassifierVerdict,
+  detectCrisis,
+  guardFromDetection,
+  type CrisisDetectionResult,
+} from '../../safety/crisis-guard.js';
+import { startCrisisClassifier } from '../../../services/safety/crisis-classifier.js';
+import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../../safety/crisis-shadow.js';
 
 import { fastCapture } from '../../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../../services/realtime-persistence.js';
@@ -198,16 +205,32 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   }
 
   // SAFETY FIRST: Crisis detection runs BEFORE anything else
-  const voiceEmotionForCrisis = userData?.voiceEmotion
-    ? {
-        primary: userData.voiceEmotion.primary || 'neutral',
-        intensity: userData.voiceEmotion.confidence || 0.5,
-        confidence: userData.voiceEmotion.confidence,
-      }
-    : undefined;
+  const voiceEmotionForCrisis = toGuardVoiceEmotion(
+    userData?.voiceEmotion as ProsodyEmotionLike | undefined
+  );
 
-  const crisisResult = detectCrisis(userText, voiceEmotionForCrisis);
-  const preResponseGuard = guardPreResponse(userText, voiceEmotionForCrisis);
+  const crisisResult = detectCrisis(userText, voiceEmotionForCrisis, {
+    recentMessages: userData?.recentTranscripts,
+  });
+  const preResponseGuard = guardFromDetection(crisisResult);
+
+  // Semantic second stage: started now so it overlaps the rest of the turn.
+  // In live mode its verdict is awaited (bounded) before any LLM bypass and
+  // before the final result; in shadow mode it only logs.
+  const crisisClassifier = startCrisisClassifier(
+    { latest: userText, earlier: userData?.recentTranscripts ?? [] },
+    { pattern: preResponseGuard.shouldBlock ? 'block' : crisisResult.isCrisis ? 'crisis' : 'none' }
+  );
+  let turnCrisis: CrisisDetectionResult | null = null;
+  const resolveTurnCrisis = async (): Promise<CrisisDetectionResult> => {
+    if (!turnCrisis) {
+      turnCrisis =
+        crisisClassifier?.mode === 'live'
+          ? applyClassifierVerdict(crisisResult, await crisisClassifier.verdict)
+          : crisisResult;
+    }
+    return turnCrisis;
+  };
 
   if (crisisResult.isCrisis || crisisResult.severity > 0.3) {
     diag.state('🚨 Crisis detection result', {
@@ -746,8 +769,18 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   if (ftisRoutingPromise) {
     const ftisResult = await ftisRoutingPromise;
+    const ftisCrisis =
+      ftisResult.bypassLLM && ftisResult.toolResult ? await resolveTurnCrisis() : null;
 
-    if (ftisResult.bypassLLM && ftisResult.toolResult) {
+    // Never bypass the LLM on a turn with crisis signal: the bypass result
+    // carries no crisis, so the guard's response or guidance would be dropped.
+    if (
+      ftisResult.bypassLLM &&
+      ftisResult.toolResult &&
+      ftisCrisis &&
+      !ftisCrisis.isCrisis &&
+      ftisCrisis.severity <= 0.3
+    ) {
       diag.state('🧠 FTIS: Direct tool execution complete', {
         tool: ftisResult.toolResult.toolId,
         confidence: ftisResult.classification?.confidence,
@@ -813,9 +846,10 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // SEMANTIC SHORT-CIRCUIT
   if (semanticRoutingPromise) {
+    const routedCrisis = await resolveTurnCrisis();
     const shortCircuitResult = await checkSemanticShortCircuit(semanticRoutingPromise, {
-      crisisDetected: crisisResult.isCrisis,
-      crisisSeverity: crisisResult.severity,
+      crisisDetected: routedCrisis.isCrisis,
+      crisisSeverity: routedCrisis.severity,
       analysisResult,
       ctx,
     });
@@ -1490,6 +1524,15 @@ If they're just conversing, respond naturally without the tool call.`,
     }
   }
 
+  const finalCrisis = await resolveTurnCrisis();
+  if (finalCrisis !== crisisResult) {
+    diag.state('🚨 Crisis classifier escalated the turn', {
+      severity: finalCrisis.severity,
+      indicators: finalCrisis.indicators,
+      shouldOverride: guardFromDetection(finalCrisis).shouldBlock,
+    });
+  }
+
   // DEV TELEMETRY: Complete trace
   trace?.complete();
 
@@ -1516,11 +1559,13 @@ If they're just conversing, respond naturally without the tool call.`,
     valueCapture: valueCaptureResult,
     advancedHumanization,
     crisis: {
-      isCrisis: crisisResult.isCrisis,
-      severity: crisisResult.severity,
-      indicators: crisisResult.indicators,
-      suggestedResponse: crisisResult.suggestedResponse,
-      shouldOverrideLLM: preResponseGuard.shouldBlock,
+      isCrisis: finalCrisis.isCrisis,
+      severity: finalCrisis.severity,
+      indicators: finalCrisis.indicators,
+      suggestedResponse: finalCrisis.suggestedResponse,
+      shouldOverrideLLM: guardFromDetection(finalCrisis).shouldBlock,
+      subject: finalCrisis.subject,
+      language: finalCrisis.language,
     },
     trustContext: trustContextSummary,
     semanticRouting,

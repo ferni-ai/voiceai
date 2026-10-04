@@ -19,7 +19,11 @@
  * transcript text. A caller in crisis must not end up quoted in log storage.
  */
 
-import { guardPreResponse, type VoiceEmotionContext } from './crisis-guard.js';
+import {
+  guardPreResponse,
+  type CrisisDetectionOptions,
+  type VoiceEmotionContext,
+} from './crisis-guard.js';
 
 export type CrisisGuardMode = 'off' | 'shadow';
 
@@ -70,13 +74,14 @@ export interface CrisisShadowRecord {
 export function observeCrisisTurn(
   transcript: string,
   voiceEmotion: VoiceEmotionContext | undefined,
-  mode: CrisisGuardMode
+  mode: CrisisGuardMode,
+  options?: CrisisDetectionOptions
 ): CrisisShadowRecord | null {
   if (mode === 'off') return null;
   const text = transcript.trim();
   if (!text) return null;
 
-  const guard = guardPreResponse(text, voiceEmotion);
+  const guard = guardPreResponse(text, voiceEmotion, options);
   return {
     mode,
     wouldBlock: guard.shouldBlock,
