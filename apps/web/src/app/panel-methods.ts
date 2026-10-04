@@ -529,10 +529,11 @@ export async function showPredictionTracker(): Promise<void> {
  */
 export async function showDataExport(): Promise<void> {
   void trackScreen('settings');
-  const { dataExportService } = await import('../services/data-export.service.js');
+  const { dataExportService, dataRightsErrorMessage } =
+    await import('../services/data-export.service.js');
   const { toast } = await import('../ui/whisper.ui.js');
 
-  // Set up callbacks for export and delete
+  // Each request only reports success after the server confirms it.
   getDataExportUI().setCallbacks({
     onExport: async (format, categories) => {
       try {
@@ -541,7 +542,7 @@ export async function showDataExport(): Promise<void> {
         toast.success('Download started!');
       } catch (err) {
         log.error('Export failed:', err);
-        toast.error("Couldn't export. Try again?");
+        toast.error(dataRightsErrorMessage(err, "Couldn't export. Try again?"));
       }
     },
     onDeleteData: async () => {
@@ -549,13 +550,25 @@ export async function showDataExport(): Promise<void> {
         toast.info('Deleting your data...');
         await dataExportService.deleteAllData();
         toast.success('All data deleted');
-        // Redirect to home after deletion
         setTimeout(() => {
           window.location.href = '/';
         }, 1500);
       } catch (err) {
         log.error('Delete failed:', err);
-        toast.error("Couldn't delete. Try again?");
+        toast.error(dataRightsErrorMessage(err, "Couldn't delete. Try again?"));
+      }
+    },
+    onDeleteAccount: async () => {
+      try {
+        toast.info('Deleting your account...');
+        await dataExportService.deleteAccount();
+        toast.success('Your account is deleted. Take care.');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1500);
+      } catch (err) {
+        log.error('Account deletion failed:', err);
+        toast.error(dataRightsErrorMessage(err, "Couldn't delete your account. Try again?"));
       }
     },
     onClose: () => {
@@ -563,82 +576,7 @@ export async function showDataExport(): Promise<void> {
     },
   });
 
-  // Fetch categories from backend
-  const categories = await dataExportService.getExportableCategories();
-  getDataExportUI().show(categories);
-
-  // Fall back to demo data if needed
-  if (categories.length === 0 && isDemoDataEnabled()) {
-    const demoData = [
-      {
-        category: 'Conversations',
-        description: 'All conversation transcripts',
-        itemCount: 45,
-        exportable: true,
-      },
-      {
-        category: 'Insights',
-        description: 'What Ferni has learned about you',
-        itemCount: 23,
-        exportable: true,
-      },
-      {
-        category: 'Rituals',
-        description: 'Daily practice history and streaks',
-        itemCount: 156,
-        exportable: true,
-      },
-      {
-        category: 'Predictions',
-        description: 'Your predictions and outcomes',
-        itemCount: 18,
-        exportable: true,
-      },
-      {
-        category: 'Mood History',
-        description: 'Emotional weather records',
-        itemCount: 42,
-        exportable: true,
-      },
-      {
-        category: 'Profile',
-        description: 'Your profile and preferences',
-        itemCount: 1,
-        exportable: true,
-      },
-      {
-        category: 'Contacts',
-        description: 'Your people and relationships',
-        itemCount: 12,
-        exportable: true,
-      },
-      {
-        category: 'Trust Journey',
-        description: 'Your growth, boundaries, and shared moments',
-        itemCount: 28,
-        exportable: true,
-      },
-      {
-        category: 'Wellbeing',
-        description: 'Wellness snapshots and trends',
-        itemCount: 35,
-        exportable: true,
-      },
-      {
-        category: 'Habits',
-        description: "Maya's habit coaching data",
-        itemCount: 8,
-        exportable: true,
-      },
-      {
-        category: 'Productivity',
-        description: 'Tasks, notes, and journal entries',
-        itemCount: 67,
-        exportable: true,
-      },
-    ];
-    getDataExportUI().show(demoData);
-  }
+  getDataExportUI().show(await dataExportService.getExportableCategories());
 }
 
 // ============================================================================

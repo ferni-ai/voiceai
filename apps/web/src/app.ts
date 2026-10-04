@@ -230,7 +230,7 @@ import { initAnalyticsDashboardUI } from './ui/analytics-dashboard.ui.js';
 import { initCognitiveInsightsUI } from './ui/cognitive-insights.ui.js';
 import { getCommandsPanelUI, setCommandsPersonaId } from './ui/commands.ui.js';
 import { initConversationHistoryUI } from './ui/conversation-history.ui.js';
-import { getDataExportUI, initDataExportUI } from './ui/data-export.ui.js';
+import { initDataExportUI } from './ui/data-export.ui.js';
 import { initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
 import { getRitualBuilderUI, initRitualBuilderUI } from './ui/ritual-builder.ui.js';
 import { getSanctuaryUI } from './ui/sanctuary.ui.js';
@@ -245,7 +245,6 @@ import {
   conversationTracker,
   initConversationTracker,
 } from './services/conversation-tracker.service.js';
-import { dataExportService } from './services/data-export.service.js';
 import { initRitualsService, ritualsService } from './services/rituals.service.js';
 import { getOnboardingUI, initOnboardingUI, startOnboardingIfNeeded } from './ui/onboarding.ui.js';
 import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
@@ -258,6 +257,7 @@ import { initTeamHuddleUI } from './ui/team-huddle.ui.js';
 import { initTeamIntro, showTeamIntro } from './ui/team-intro.ui.js';
 // Push Notifications
 import { initPushNotifications } from './services/push-notifications.service.js';
+import { watchPushOwnership } from './services/push-preference.js';
 // Outreach Schedule UI
 import { openOutreachSchedule } from './ui/outreach-schedule.ui.js';
 // Contact Settings UI
@@ -1864,34 +1864,8 @@ class VoiceAIApp {
 
     this.safeInit('PredictionTrackerUI', () => initPredictionTrackerUI());
 
-    // 📦 Data Export - with actual export/delete functionality
-    this.safeInit('DataExportUI', () => {
-      initDataExportUI();
-      getDataExportUI().setCallbacks({
-        onExport: async (format, categories) => {
-          try {
-            messageUI.show('Preparing your data...', 'info', 2000);
-            await dataExportService.exportData(format, categories);
-            messageUI.show('Your data has been downloaded!', 'success', 4000);
-          } catch (err) {
-            log.error('Export failed', err);
-            messageUI.show("Hmm, couldn't export your data. Mind trying again?", 'error', 4000);
-          }
-        },
-        onDeleteData: async () => {
-          try {
-            await dataExportService.deleteAllData();
-            messageUI.show('Your data has been removed. Fresh start!', 'info', 4000);
-            // Optionally reload to reset state
-            setTimeout(() => window.location.reload(), 2000);
-          } catch (err) {
-            log.error('Deletion failed', err);
-            messageUI.show("Couldn't delete your data right now. Try again?", 'error', 4000);
-          }
-        },
-        onClose: () => log.debug('Data export closed'),
-      });
-    });
+    // 📦 Data Export - callbacks are set by showDataExport (app/panel-methods.ts) on open
+    this.safeInit('DataExportUI', () => initDataExportUI());
     this.safeInit('OnboardingUI', () => initOnboardingUI());
     this.safeInit('PersonaTransitionUI', () => initPersonaTransitionUI());
     // 🎬 Cameo Roster - Team member pop-in/out in the roster
@@ -2199,7 +2173,7 @@ class VoiceAIApp {
       const { initNotificationSettingsUI } = await import('./ui/notification-settings.ui.js');
       await initNotificationSettingsUI();
     });
-    this.safeInit('PushNotifications', () => void initPushNotifications());
+    this.safeInit('PushNotifications', () => void initPushNotifications().then(watchPushOwnership));
 
     // 🔗 Integrations Settings - "Better than Human" connections (LinkedIn, Calendar, Health)
     this.safeInit('IntegrationsSettingsUI', () => {

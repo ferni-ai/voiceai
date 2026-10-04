@@ -62,7 +62,7 @@ export async function handleAccountRoutes(
 
     // DELETE /api/account - Delete account
     if (pathname === '/api/account' && method === 'DELETE') {
-      return await handleDeleteAccount(req, res, userId);
+      return await handleDeleteAccount(req, res, userId, auth.firebaseUid);
     }
 
     // PUT /api/account/profile - Update profile
@@ -155,11 +155,15 @@ async function handleGetAccount(
 
 /**
  * DELETE /api/account - Delete account and all data
+ *
+ * Erases every data store (same sweep as DELETE /api/export/all), then the
+ * Firebase sign-in. Success is reported only when both actually happened.
  */
 async function handleDeleteAccount(
   req: IncomingMessage,
   res: ServerResponse,
-  userId: string
+  userId: string,
+  firebaseUid?: string
 ): Promise<boolean> {
   // Extra rate limiting for deletion (expensive operation)
   if (rateLimit(req, res, { maxRequests: 3, windowMs: 3600000, keyPrefix: 'delete-account' })) {
@@ -180,7 +184,6 @@ async function handleDeleteAccount(
 
   log.warn({ userId: `${userId.substring(0, 15)}...` }, 'Account deletion requested');
 
-  // Record this critical event
   await recordSecurityEvent({
     type: 'profile_delete',
     actorId: userId,
@@ -191,51 +194,28 @@ async function handleDeleteAccount(
   });
 
   try {
-    const store = getDefaultStore();
-    await store.initialize();
-
-    // Delete profile and all associated data
-    const profileDeleted = await store.deleteProfile(userId);
-
-    // Delete Firebase user if this looks like a Firebase UID
-    let firebaseDeleted = false;
-    if (!userId.startsWith('device:') && userId.length >= 20) {
-      try {
-        firebaseDeleted = await deleteFirebaseUser(userId);
-        if (firebaseDeleted) {
-          log.info({ userId: `${userId.substring(0, 8)}...` }, 'Firebase user deleted');
-        }
-      } catch (firebaseErr) {
-        log.warn(
-          { error: String(firebaseErr), userId: `${userId.substring(0, 8)}...` },
-          'Firebase user deletion failed (non-fatal)'
-        );
-      }
-    }
-
-    if (profileDeleted || firebaseDeleted) {
-      sendJson(res, {
-        success: true,
-        message: 'Your account and all associated data have been deleted.',
-        deletedAt: new Date().toISOString(),
-        details: {
-          profileDeleted,
-          firebaseDeleted,
-        },
-      });
-    } else {
-      sendJson(res, {
-        success: false,
-        message: 'No account found to delete.',
-      });
-    }
-
-    return true;
+    const { getDataExportService } = await import('../services/data-export.js');
+    await getDataExportService().deleteAllData(userId);
   } catch (error) {
-    log.error({ error, userId }, 'Account deletion failed');
-    sendError(res, 'Failed to delete account. Please contact support.', 500);
+    log.error({ error, userId }, 'Account deletion failed while erasing data');
+    sendError(res, "Couldn't delete your account. Nothing was closed. Try again?", 500);
     return true;
   }
+
+  const firebaseDeleted = firebaseUid ? await deleteFirebaseUser(firebaseUid) : false;
+  if (firebaseUid && !firebaseDeleted) {
+    log.error({ userId }, 'Data erased but Firebase user deletion failed');
+    sendError(res, "Your data was deleted, but we couldn't close your sign-in. Try again?", 500);
+    return true;
+  }
+
+  sendJson(res, {
+    success: true,
+    message: 'Your account and all associated data have been deleted.',
+    deletedAt: new Date().toISOString(),
+    details: { dataDeleted: true, firebaseDeleted },
+  });
+  return true;
 }
 
 /**

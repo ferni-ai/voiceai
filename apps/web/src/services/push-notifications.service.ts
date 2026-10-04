@@ -326,7 +326,6 @@ class PushNotificationsService {
     if (!this.swRegistration) return null;
 
     try {
-      // Get VAPID public key from server (placeholder)
       const vapidPublicKey = await this.getVapidPublicKey();
       
       const pushSubscription = await this.swRegistration.pushManager.subscribe({
@@ -360,6 +359,7 @@ class PushNotificationsService {
     try {
       const subscription = await this.swRegistration.pushManager.getSubscription();
       if (subscription) {
+        await apiPost('/api/push/unsubscribe', { endpoint: subscription.endpoint });
         await subscription.unsubscribe();
         this.subscription = null;
         return true;
@@ -679,12 +679,10 @@ class PushNotificationsService {
     return 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
   }
 
+  /** Throws when the server didn't store it: a subscription it can't see never gets a push. */
   private async sendSubscriptionToServer(subscription: PushSubscription): Promise<void> {
-    try {
-      await apiPost('/api/push/subscribe', subscription);
-    } catch (error) {
-      log.warn('[PushNotifications] Failed to send subscription to server:', error);
-    }
+    const response = await apiPost('/api/push/subscribe', subscription);
+    if (!response.ok) throw new Error(`Push subscribe failed: ${response.status}`);
   }
 
   private urlBase64ToUint8Array(base64String: string): Uint8Array {
