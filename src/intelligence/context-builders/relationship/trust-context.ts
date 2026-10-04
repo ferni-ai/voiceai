@@ -109,7 +109,7 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
 
   // Load persona-specific trust phrases (with fallback to Ferni)
   const personaId = persona?.id || 'ferni';
-  await ensureTrustPhrasesLoaded(personaId);
+  const trustPhrases = await ensureTrustPhrasesLoaded(personaId);
 
   const injections: ContextInjection[] = [];
 
@@ -122,9 +122,8 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
     analysis,
     userData as Record<string, unknown>
   );
-  const trustPhrases = trustPhrasesCache.get(personaId) as TrustPhrasesWithTriggers | null;
-  const proactiveTriggers = trustPhrases?.proactive_triggers;
-  const usageRules = trustPhrases?.usage_rules;
+  const proactiveTriggers = (trustPhrases as TrustPhrasesWithTriggers | null)?.proactive_triggers;
+  const usageRules = (trustPhrases as TrustPhrasesWithTriggers | null)?.usage_rules;
 
   // Check never_when conditions
   if (!shouldSkipDueToNeverWhen(usageRules?.never_when, triggerContext)) {
@@ -193,7 +192,7 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
 
   // 1. Unsaid Signals - What they're NOT saying
   if (trustContext.unsaidSignals.length > 0) {
-    const unsaidInjection = formatUnsaidSignals(trustContext.unsaidSignals, personaId);
+    const unsaidInjection = formatUnsaidSignals(trustContext.unsaidSignals, trustPhrases);
     if (unsaidInjection) {
       injections.push(unsaidInjection);
     }
@@ -233,8 +232,8 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
   if (trustContext.growthReflection) {
     const growthInjection = formatGrowthReflection(
       trustContext.growthReflection,
-      growthMoment.reason === 'milestone_turn',
-      personaId
+      trustPhrases,
+      growthMoment.reason === 'milestone_turn'
     );
     if (growthInjection) {
       injections.push(growthInjection);
@@ -269,7 +268,7 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
     if (reflection) {
       const isMilestone =
         growthMoment.reason === 'milestone_turn' || growthMoment.reason === 'time_milestone';
-      const growthInjection = formatGrowthReflection(reflection, isMilestone, personaId);
+      const growthInjection = formatGrowthReflection(reflection, trustPhrases, isMilestone);
       if (growthInjection) {
         injections.push(growthInjection);
         log.info(
@@ -297,7 +296,7 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
   if (trustContext.celebrationOpportunity) {
     const celebrationInjection = formatCelebrationOpportunity(
       trustContext.celebrationOpportunity,
-      personaId
+      trustPhrases
     );
     if (celebrationInjection) {
       injections.push(celebrationInjection);
@@ -639,21 +638,25 @@ const FALLBACK_TRUST_PHRASES = {
 /**
  * Ensure trust phrases are loaded for the active persona (async, lazy, cached per persona)
  */
-async function ensureTrustPhrasesLoaded(personaId = 'ferni'): Promise<void> {
+async function ensureTrustPhrasesLoaded(personaId = 'ferni'): Promise<TrustPhrases | null> {
+  // Check if already loaded for this persona
   if (trustPhrasesCache.has(personaId)) {
-    return;
+    return trustPhrasesCache.get(personaId) || null;
   }
 
   try {
+    // Load trust phrases for the specific persona (with Ferni fallback built-in)
     const phrases = await loadTrustPhrases(personaId);
     trustPhrasesCache.set(personaId, phrases);
 
     if (phrases) {
       log.debug({ personaId }, 'Loaded trust phrases from JSON');
     }
+    return phrases;
   } catch (error) {
     log.warn({ personaId, error: String(error) }, 'Failed to load trust phrases, using fallback');
     trustPhrasesCache.set(personaId, null);
+    return null;
   }
 }
 
@@ -661,10 +664,6 @@ async function ensureTrustPhrasesLoaded(personaId = 'ferni'): Promise<void> {
  * Get a random Ferni-voiced phrase for a trust signal type
  * Now loads from trust-phrases.json with fallback to hardcoded phrases
  */
-function phrasesFor(personaId: string): TrustPhrases | null {
-  return trustPhrasesCache.get(personaId) ?? null;
-}
-
 function getFerniPhrase(
   type:
     | 'falseFine'
@@ -674,57 +673,92 @@ function getFerniPhrase(
     | 'topicAvoidance'
     | 'growthReflection'
     | 'smallWin',
-  personaId = 'ferni'
+  cachedTrustPhrases: TrustPhrases | null
 ): string {
-  const loaded = phrasesFor(personaId);
-  if (loaded) {
-    const fromJson =
-      type === 'falseFine'
-        ? getRandomPhraseClean(loaded.reading_between_lines?.false_fine)
-        : type === 'deflection'
-          ? getRandomPhraseClean(loaded.reading_between_lines?.deflection)
-          : type === 'permissionSeeking'
-            ? getRandomPhraseClean(loaded.reading_between_lines?.permission_seeking)
-            : type === 'minimizingPain'
-              ? getRandomPhraseClean(loaded.reading_between_lines?.minimizing_pain)
-              : type === 'topicAvoidance'
-                ? getRandomPhraseClean(loaded.reading_between_lines?.topic_avoidance)
-                : type === 'growthReflection'
-                  ? getRandomPhraseClean(loaded.growth_reflection?.noticing_change)
-                  : getRandomPhraseClean(loaded.small_wins_celebration?.noticing_effort);
-    if (fromJson) {
-      return fromJson;
+  // Try to get from loaded JSON first
+  if (cachedTrustPhrases) {
+    let phrase: string | null = null;
+
+    switch (type) {
+      case 'falseFine':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.reading_between_lines?.false_fine);
+        break;
+      case 'deflection':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.reading_between_lines?.deflection);
+        break;
+      case 'permissionSeeking':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.reading_between_lines?.permission_seeking);
+        break;
+      case 'minimizingPain':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.reading_between_lines?.minimizing_pain);
+        break;
+      case 'topicAvoidance':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.reading_between_lines?.topic_avoidance);
+        break;
+      case 'growthReflection':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.growth_reflection?.noticing_change);
+        break;
+      case 'smallWin':
+        phrase = getRandomPhraseClean(cachedTrustPhrases.small_wins_celebration?.noticing_effort);
+        break;
+    }
+
+    if (phrase) {
+      return phrase;
     }
   }
 
+  // Fallback to hardcoded phrases
   const phrases = FALLBACK_TRUST_PHRASES[type];
   return phrases[Math.floor(Math.random() * phrases.length)];
 }
 
+/**
+ * Get a thinking-of-you phrase for proactive outreach
+ */
 function getThinkingOfYouPhrase(
   context: 'checkin' | 'followup' | 'harddate',
-  personaId = 'ferni'
+  cachedTrustPhrases: TrustPhrases | null
 ): string | null {
-  const loaded = phrasesFor(personaId)?.thinking_of_you_proactive;
-  if (!loaded) {
+  if (!cachedTrustPhrases?.thinking_of_you_proactive) {
     return null;
   }
-  if (context === 'checkin') return getRandomPhraseClean(loaded.genuine_checkin);
-  if (context === 'followup') return getRandomPhraseClean(loaded.following_up);
-  return getRandomPhraseClean(loaded.anticipating_hard_date);
+
+  switch (context) {
+    case 'checkin':
+      return getRandomPhraseClean(cachedTrustPhrases.thinking_of_you_proactive.genuine_checkin);
+    case 'followup':
+      return getRandomPhraseClean(cachedTrustPhrases.thinking_of_you_proactive.following_up);
+    case 'harddate':
+      return getRandomPhraseClean(
+        cachedTrustPhrases.thinking_of_you_proactive.anticipating_hard_date
+      );
+    default:
+      return null;
+  }
 }
 
+/**
+ * Get a callback/inside joke phrase
+ */
 function getCallbackPhrase(
   context: 'shared_moment' | 'continuity',
-  personaId = 'ferni'
+  cachedTrustPhrases: TrustPhrases | null
 ): string | null {
-  const loaded = phrasesFor(personaId)?.inside_jokes_callbacks;
-  if (!loaded) {
+  if (!cachedTrustPhrases?.inside_jokes_callbacks) {
     return null;
   }
-  return context === 'shared_moment'
-    ? getRandomPhraseClean(loaded.referencing_shared_moment)
-    : getRandomPhraseClean(loaded.building_continuity);
+
+  switch (context) {
+    case 'shared_moment':
+      return getRandomPhraseClean(
+        cachedTrustPhrases.inside_jokes_callbacks.referencing_shared_moment
+      );
+    case 'continuity':
+      return getRandomPhraseClean(cachedTrustPhrases.inside_jokes_callbacks.building_continuity);
+    default:
+      return null;
+  }
 }
 
 /**
@@ -735,7 +769,7 @@ function getCallbackPhrase(
  */
 function formatUnsaidSignals(
   signals: UnsaidSignal[],
-  personaId = 'ferni'
+  phrases: TrustPhrases | null
 ): ContextInjection | null {
   if (signals.length === 0) return null;
 
@@ -756,20 +790,20 @@ function formatUnsaidSignals(
     switch (signal.type) {
       case 'emotional_mismatch':
         lines.push(`🚨 FALSE "I'M FINE" DETECTED - THIS IS YOUR MOMENT.`);
-        lines.push(`   → SAY THIS NOW: "${getFerniPhrase('falseFine', personaId)}"`);
+        lines.push(`   → SAY THIS NOW: "${getFerniPhrase('falseFine', phrases)}"`);
         lines.push(`   → Don't let it slide. This is why they need you.`);
         break;
       case 'topic_avoidance':
         lines.push(`⚠️ They've avoided "${signal.underlying}" multiple times.`);
-        lines.push(`   → SAY THIS: "${getFerniPhrase('topicAvoidance', personaId)}"`);
+        lines.push(`   → SAY THIS: "${getFerniPhrase('topicAvoidance', phrases)}"`);
         break;
       case 'deflection':
         lines.push(`⚠️ They just changed the subject.`);
-        lines.push(`   → SAY THIS: "${getFerniPhrase('deflection', personaId)}"`);
+        lines.push(`   → SAY THIS: "${getFerniPhrase('deflection', phrases)}"`);
         break;
       case 'permission_seeking':
         lines.push(`💭 They seem to want to share something.`);
-        lines.push(`   → SAY THIS: "${getFerniPhrase('permissionSeeking', personaId)}"`);
+        lines.push(`   → SAY THIS: "${getFerniPhrase('permissionSeeking', phrases)}"`);
         break;
       case 'unfinished_thought':
         lines.push(`💭 They started to say something but stopped.`);
@@ -777,7 +811,7 @@ function formatUnsaidSignals(
         break;
       case 'minimizing_pain':
         lines.push(`💭 They're downplaying something significant.`);
-        lines.push(`   → SAY THIS: "${getFerniPhrase('minimizingPain', personaId)}"`);
+        lines.push(`   → SAY THIS: "${getFerniPhrase('minimizingPain', phrases)}"`);
         break;
     }
   }
@@ -823,8 +857,8 @@ function formatBoundaryWarnings(topics: string[]): string {
  */
 function formatGrowthReflection(
   reflection: GrowthReflection,
-  isMilestone = false,
-  personaId = 'ferni'
+  phrases: TrustPhrases | null,
+  isMilestone = false
 ): ContextInjection | null {
   const lines: string[] = [
     isMilestone
@@ -838,7 +872,7 @@ function formatGrowthReflection(
     `Now: ${reflection.pattern.after.pattern}`,
     '',
     '💡 SAY THIS (in your voice):',
-    `"${getFerniPhrase('growthReflection', personaId)}"`,
+    `"${getFerniPhrase('growthReflection', phrases)}"`,
     '',
     'Then connect it to their specific change:',
     `"${reflection.reflection}"`,
@@ -887,7 +921,7 @@ function formatCallbackOpportunity(opportunity: CallbackOpportunity): ContextInj
  */
 function formatCelebrationOpportunity(
   opportunity: CelebrationOpportunity,
-  personaId = 'ferni'
+  phrases: TrustPhrases | null
 ): ContextInjection | null {
   const { win, celebration, intensity } = opportunity;
 
@@ -905,7 +939,7 @@ function formatCelebrationOpportunity(
 
   lines.push('');
   lines.push(`💡 SAY THIS (${intensity} intensity):`);
-  lines.push(`"${getFerniPhrase('smallWin', personaId)}"`);
+  lines.push(`"${getFerniPhrase('smallWin', phrases)}"`);
   lines.push('');
   lines.push(`Then add context: "${celebration}"`);
   lines.push('');

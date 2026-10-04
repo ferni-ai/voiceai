@@ -123,16 +123,18 @@ interface INoticePhrases {
   };
 }
 
-let cachedPhrases: INoticePhrases | null = null;
+/** Loaded "I notice" phrases per persona, so one persona never speaks another's lines. */
+const phrasesByPersona = new Map<string, INoticePhrases>();
 
 async function loadINoticePhrases(personaId: string): Promise<INoticePhrases | null> {
-  if (cachedPhrases) return cachedPhrases;
+  const cached = phrasesByPersona.get(personaId);
+  if (cached) return cached;
 
   try {
     const content = await loadPersonaContent<INoticePhrases>(personaId, 'i-notice-power');
     if (content) {
-      cachedPhrases = content;
-      return cachedPhrases;
+      phrasesByPersona.set(personaId, content);
+      return content;
     }
   } catch (err) {
     log.debug({ personaId, error: String(err) }, 'Could not load i-notice-power.json');

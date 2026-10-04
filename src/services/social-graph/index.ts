@@ -121,6 +121,8 @@ interface UserSocialGraph {
 }
 
 const userGraphs = new Map<string, UserSocialGraph>();
+/** Users whose stored graph has been read into `userGraphs` since it was last released. */
+const loadedFromFirestore = new Set<string>();
 
 // Common relationship aliases
 const RELATIONSHIP_ALIASES: Record<string, string[]> = {
@@ -893,7 +895,27 @@ export function getMentionFrequency(userId: string, personName: string, days: nu
 
 export function clearSocialGraph(userId: string): void {
   userGraphs.delete(userId);
+  loadedFromFirestore.delete(userId);
   log.info({ userId }, 'Social graph cleared');
+}
+
+/**
+ * Load a user's stored graph into memory once; later calls are no-ops until the
+ * graph is released.
+ */
+export async function ensureGraphLoaded(userId: string): Promise<void> {
+  if (loadedFromFirestore.has(userId)) return;
+  await loadGraphFromFirestore(userId);
+  loadedFromFirestore.add(userId);
+}
+
+/**
+ * Drop a user's graph from memory after it has been saved, so the next call
+ * reloads it from Firestore instead of the worker holding every caller's graph.
+ */
+export function releaseSocialGraph(userId: string): void {
+  userGraphs.delete(userId);
+  loadedFromFirestore.delete(userId);
 }
 
 // ============================================================================
@@ -934,13 +956,13 @@ export function serializeGraph(graph: UserSocialGraph): object {
 export async function persistGraphToFirestore(
   userId: string,
   graph: UserSocialGraph
-): Promise<void> {
+): Promise<boolean> {
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
     const db = getFirestoreDb();
     if (!db) {
       log.warn({ userId }, 'Cannot persist social graph - no Firestore connection');
-      return;
+      return false;
     }
 
     const serialized = serializeGraph(graph);
@@ -1005,8 +1027,10 @@ export async function persistGraphToFirestore(
     }
 
     log.debug({ userId, peopleCount: graph.people.size }, 'Social graph persisted');
+    return true;
   } catch (error) {
     log.error({ userId, error: String(error) }, 'Failed to persist social graph');
+    return false;
   }
 }
 
@@ -1093,6 +1117,7 @@ export function getSocialInsights(userId: string): SocialInsight[] {
 export function clearAllSocialGraphs(): void {
   const count = userGraphs.size;
   userGraphs.clear();
+  loadedFromFirestore.clear();
   log.info({ count }, 'All social graphs cleared from memory');
 }
 
@@ -1179,4 +1204,6 @@ export default {
   serializeGraph,
   persistGraphToFirestore,
   loadGraphFromFirestore,
+  ensureGraphLoaded,
+  releaseSocialGraph,
 };
