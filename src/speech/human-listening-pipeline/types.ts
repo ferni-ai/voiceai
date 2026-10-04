@@ -75,7 +75,10 @@ export interface HumanListeningContext {
   /** Pause info if available */
   pauseInfo?: { count: number; totalDurationMs: number };
 
-  /** Time since last agent message (for engagement) */
+  /**
+   * Gap between the agent's last reply and the user starting to answer (ms).
+   * Scored as response latency, so it must not include the user's own speech.
+   */
   timeSinceAgentMessage?: number;
 }
 

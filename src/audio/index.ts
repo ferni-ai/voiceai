@@ -109,6 +109,7 @@ export {
   getMusicPlayer,
   initializeMusicPlayer,
   isMusicAvailable,
+  isMusicPlayerOwnedBy,
   resetMusicPlayer,
   type MusicPlayerEvents,
   type MusicPlayerState,

@@ -40,6 +40,7 @@ import {
   getRandomExpression,
   type DynamicExpressionResult,
 } from '../../../personas/bundles/ferni/dynamic-personality.js';
+import { withoutScriptedSelfDisclosure } from '../../../personas/shared/scripted-self-disclosure.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'FerniPersonality' });
@@ -382,10 +383,7 @@ async function buildFerniPersonalityContext(
   const { userText, persona, services, userData, analysis } = input;
   const injections: ContextInjection[] = [];
 
-  // Only run for Ferni
-  if (persona.id !== 'ferni') {
-    return injections;
-  }
+  if (persona.id !== 'ferni') return injections; // Only run for Ferni
 
   const turnCount = userData?.turnCount || 0;
   const sessionId = services?.sessionId || userData?.userName || 'anonymous';
@@ -594,7 +592,8 @@ When they're excited, MATCH AND AMPLIFY. When they're hurting, SLOW DOWN AND BE 
     );
   }
 
-  return injections;
+  // Volunteered backstory stays out unless PERSONALITY_EXPRESSIONS=on.
+  return withoutScriptedSelfDisclosure(injections);
 }
 
 // ============================================================================

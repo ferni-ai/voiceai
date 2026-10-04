@@ -104,7 +104,7 @@ export class RateLimiter {
       minimumDelayMs?: number;
     } = {}
   ) {
-    this.maxRequests = options.maxRequestsPerMinute || 8; // Conservative for gemini-2.0-flash-exp
+    this.maxRequests = options.maxRequestsPerMinute || 8; // Conservative for quota
     this.windowMs = 60 * 1000; // 1 minute window
     this.delayMs = options.minimumDelayMs || 8000; // 8 seconds between requests
   }

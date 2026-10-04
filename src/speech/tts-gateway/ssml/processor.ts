@@ -7,8 +7,9 @@
  * Design decisions:
  * 1. **Buffer complete tags** - Ensure SSML tags aren't split across chunks
  * 2. **Extract prosody** - Convert SSML tags to API parameters where possible
- * 3. **Convert breaks to punctuation** - Since Cartesia streaming can't handle breaks reliably
- * 4. **Preserve intent** - Even when stripping, maintain the speech intent
+ * 3. **Breaks** - Short breaks become punctuation; real pauses stay native (native-breaks.ts)
+ * 4. **Preserve intent** - Even when stripping, maintain the speech intent; stage directions
+ *    are never spoken, <spell> passes through, break runs collapse (speech-markup.ts)
  *
  * @module speech/tts-gateway/ssml/processor
  */
@@ -16,6 +17,11 @@
 import { TransformStream } from 'node:stream/web';
 import type { ISSMLProcessor, SSMLParseResult, SSMLProsodyConfig } from '../types.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { holdBreak, isUnspeakable, restoreHeldBreaks, speakableText } from './native-breaks.js';
+
+export { speakableText };
+import { BREATH_BRACKET_REGEX, LAUGHTER_BRACKET_REGEX } from './nonverbal-brackets.js';
+import { prepareSpeechMarkup } from './speech-markup.js';
 
 const log = createLogger({ module: 'SSMLProcessor' });
 
@@ -53,13 +59,6 @@ const VALID_EMOTIONS = [
 
 /** Maximum buffer size to prevent memory issues */
 const MAX_BUFFER_SIZE = 4096;
-
-/**
- * Bracket expressions that map to Cartesia's native [laughter] tag.
- * LLMs often output variations; we normalize them all.
- */
-const LAUGHTER_BRACKET_REGEX =
-  /\[(laughs?|chuckles?|chuckling|warm laugh|big laugh|laughing|laughter)\]/gi;
 
 /**
  * Non-TTS bracket expressions that should be stripped entirely.
@@ -103,8 +102,7 @@ const BREAK_TAG_REGEX = /<break\s+time=["']?(\d+)(ms|s)?["']?\s*\/?>/gi;
 /** Match closing prosody tags */
 const PROSODY_CLOSE_REGEX = /<\/(?:speed|volume|emotion|prosody)>/gi;
 
-/** Match any XML-like tag (no 'g' flag — safe for .test() which is stateful with /g) */
-const ANY_TAG_REGEX = /<[^>]+>/;
+const ANY_TAG_REGEX = /<[^>]+>/; // no 'g' flag: safe for .test()
 
 /**
  * Match JSON function call blocks that LLM might output alongside speech text
@@ -165,9 +163,8 @@ export class SSMLProcessor implements ISSMLProcessor {
   /**
    * Parse SSML from text
    *
-   * Extracts prosody configuration and cleans the text.
-   * Break tags are converted to punctuation since they can't be reliably
-   * passed through streaming TTS.
+   * Extracts prosody configuration and cleans the text. Short breaks become
+   * punctuation; real pauses stay native break tags.
    *
    * @param text - Text potentially containing SSML tags
    * @returns Parse result with clean text and extracted config
@@ -176,7 +173,8 @@ export class SSMLProcessor implements ISSMLProcessor {
     const warnings: string[] = [];
     const originalTags: string[] = [];
     const prosody: SSMLProsodyConfig = {};
-    let cleanText = text;
+    const markup = prepareSpeechMarkup(text);
+    let cleanText = markup.text;
     let hadSSML = false;
 
     // Extract speed tags
@@ -254,8 +252,7 @@ export class SSMLProcessor implements ISSMLProcessor {
       }
     );
 
-    // Convert break tags to punctuation
-    // This preserves the intent (pause) while being streaming-safe
+    // Convert break tags to punctuation, keeping the pause's intent
     cleanText = cleanText.replace(BREAK_TAG_REGEX, (match, time: string, unit: string) => {
       hadSSML = true;
       originalTags.push(match);
@@ -265,10 +262,10 @@ export class SSMLProcessor implements ISSMLProcessor {
         durationMs *= 1000;
       }
 
-      // Convert to punctuation based on duration
-      // Long pause = sentence break, short pause = comma
-      if (durationMs >= 500) {
-        return '. ';
+      // Real pauses stay native Sonic breaks (why: see native-breaks.ts),
+      // held as a placeholder past the catch-all tag strip below.
+      if (durationMs >= 400) {
+        return holdBreak(durationMs);
       } else if (durationMs >= 200) {
         return ', ';
       } else if (durationMs >= 50) {
@@ -294,6 +291,7 @@ export class SSMLProcessor implements ISSMLProcessor {
 
     // Strip non-synthesizable bracket expressions entirely
     cleanText = cleanText.replace(STRIP_BRACKET_REGEX, '');
+    cleanText = cleanText.replace(BREATH_BRACKET_REGEX, '');
     cleanText = cleanText.replace(STRIP_PAREN_DIRECTION_REGEX, '');
 
     // =========================================================================
@@ -365,7 +363,6 @@ export class SSMLProcessor implements ISSMLProcessor {
     }
 
     // Remove any remaining XML-like tags we might have missed
-    // Use inline regex with 'g' flag for matching/replacing all occurrences
     const remainingTags = cleanText.match(/<[^>]+>/g);
     if (remainingTags) {
       hadSSML = true;
@@ -375,8 +372,9 @@ export class SSMLProcessor implements ISSMLProcessor {
       cleanText = cleanText.replace(/<[^>]+>/g, '');
     }
 
-    // Clean up whitespace and punctuation artifacts
-    cleanText = this.cleanupText(cleanText);
+    // Clean up whitespace and punctuation artifacts; put held breaks and <spell> back
+    cleanText = markup.restore(restoreHeldBreaks(this.cleanupText(cleanText)));
+    if (isUnspeakable(cleanText)) cleanText = '';
 
     return {
       cleanText,
@@ -456,11 +454,7 @@ export class SSMLProcessor implements ISSMLProcessor {
   /**
    * Normalize text for cache key generation
    *
-   * Creates a consistent key by:
-   * 1. Stripping all SSML tags
-   * 2. Lowercasing
-   * 3. Collapsing whitespace
-   * 4. Trimming
+   * Strips SSML, lowercases, collapses whitespace and trims.
    *
    * @param text - Text to normalize
    * @returns Normalized cache key string
@@ -547,7 +541,7 @@ export function parseSSML(text: string): SSMLParseResult {
  * Strip SSML from text (convenience function)
  */
 export function stripSSML(text: string): string {
-  return getSSMLProcessor().parse(text).cleanText;
+  return speakableText(getSSMLProcessor().parse(text).cleanText).replace(/\s{2,}/g, ' ');
 }
 
 /**

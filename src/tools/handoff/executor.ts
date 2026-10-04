@@ -334,6 +334,8 @@ export interface HandoffResult {
   instructions?: string;
   voiceId?: string;
   rateLimited?: boolean;
+  /** The target isn't unlocked for this user; retrying won't help. */
+  locked?: boolean;
   /** FIX: Indicates greeting was actually spoken by handler */
   greetingSpoken?: boolean;
   /** FIX: Indicates LLM instructions were updated by handler */
@@ -383,10 +385,8 @@ export async function executeHandoff(
   const sessionState = sessionId && hasSessionState(sessionId) ? getSessionState(sessionId) : null;
   const previousAgent = sessionState ? getSessionCurrentAgent(sessionState) : getCurrentAgent();
 
-  // Normalize the target agent ID
   const canonicalTargetId = getCanonicalPersonaId(targetAgentId);
 
-  // Check if already with this agent
   if (isSameAgent(previousAgent, canonicalTargetId)) {
     getLogger().warn({ reason, targetAgent: canonicalTargetId }, 'Already with target agent');
     return {
@@ -419,7 +419,6 @@ export async function executeHandoff(
     const tier = options.subscriptionTier || 'free';
     const targetName = getPersonaDisplayName(canonicalTargetId);
 
-    // Check if this is a core team member or a marketplace agent
     if (isCoreTeamMember(canonicalTargetId)) {
       // Core team member - check individual unlock status
       const isUnlocked = isTeamMemberUnlocked(canonicalTargetId, options.userProfile || null, tier);
@@ -441,6 +440,7 @@ export async function executeHandoff(
           targetAgentName: targetName,
           previousAgent,
           greeting: '',
+          locked: true,
         };
       }
     } else {
@@ -460,12 +460,12 @@ export async function executeHandoff(
           targetAgentName: targetName,
           previousAgent,
           greeting: '',
+          locked: true,
         };
       }
     }
   }
 
-  // Get agent info from registry
   let agent;
   try {
     agent = await AgentRegistry.getAgentOrNull(canonicalTargetId);

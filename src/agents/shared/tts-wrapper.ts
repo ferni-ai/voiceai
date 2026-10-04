@@ -33,8 +33,10 @@ import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
 import {
   applyPostTTSEnhancement,
   PostTTSPresets,
+  postTtsEnvOverrides,
   type PostTTSConfig,
 } from './performance/post-tts-transform.js';
+import { wrapWithTTSCheckpoints } from './performance/tts-checkpoints.js';
 import {
   createStreamingTTSTransform,
   getOptimizedStreamingConfig,
@@ -45,10 +47,8 @@ import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
 import { isFTISEnabled } from '../processors/tool-routing-integration.js';
 
 // TTS Gateway integration
-import {
-  createGatewayTTSNode,
-  isTTSGatewayEnabled,
-} from '../../speech/tts-gateway/index.js';
+import { createGatewayTTSNode, isTTSGatewayEnabled } from '../../speech/tts-gateway/index.js';
+import { getReplyAudioId } from '../../speech/tts-gateway/reply-audio-id.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -1129,18 +1129,16 @@ export async function wrappedTtsNode(
       '🚀 Using FULL TTS Gateway - bypassing LiveKit Cartesia'
     );
 
-    // Create gateway TTS node that:
-    // 1. Collects text from stream
-    // 2. Parses/strips SSML
-    // 3. Checks unified cache
-    // 4. On miss: calls our Cartesia provider directly
-    // 5. Caches result
-    // 6. Returns audio frames
+    // Gateway TTS node: SSML → cache → Cartesia → frames. turnContext gives
+    // the Speech Director the user's words and the turn for laughter
+    // cooldowns; the Stage 2 plan is keyed by the reply id the node
+    // generates itself and tags onto the stream it returns (review H2).
     const gatewayTTS = createGatewayTTSNode({
       voiceId: actualVoiceId,
       sessionId,
       personaId,
       emotion,
+      turnContext: sessionContext,
       sampleRate: 24000,
       frameDurationMs: 20,
       enableCache: true,
@@ -1168,39 +1166,15 @@ export async function wrappedTtsNode(
     audioStream = await cacheAwareTTS(agent, trackedTextStream, modelSettings);
   }
 
-  // =========================================================================
-  // P1 UTO Fix (January 2026): Wrap audio stream with checkpoint markers
-  // This tracks ttsFirstByte and ttsComplete for latency measurement
-  // =========================================================================
-  function wrapWithTTSCheckpoints(
-    stream: NodeReadableStream<AudioFrame> | null
-  ): NodeReadableStream<AudioFrame> | null {
-    if (!stream || sessionId === 'unknown' || turnNumber === undefined) {
-      return stream;
-    }
-
-    let isFirstFrame = true;
-    const checkpointTransform = new NodeTransformStream<AudioFrame, AudioFrame>({
-      transform(frame, controller) {
-        if (isFirstFrame) {
-          isFirstFrame = false;
-          markTurnCheckpoint(sessionId, turnNumber!, 'ttsFirstByte');
-        }
-        controller.enqueue(frame);
-      },
-      flush() {
-        markTurnCheckpoint(sessionId, turnNumber!, 'ttsComplete');
-      },
-    });
-
-    return stream.pipeThrough(checkpointTransform);
-  }
+  // P1 UTO Fix (January 2026): ttsFirstByte / ttsFirstSpeech / ttsComplete checkpoints
+  // are added by wrapWithTTSCheckpoints (./performance/tts-checkpoints.ts).
 
   // 7. Apply "Better Than Human" post-TTS enhancement (Rust-accelerated audio processing)
   if (audioStream && enablePostTTSEnhancement) {
     const enhancementConfig = {
       ...PostTTSPresets.betterThanHuman,
       ...postTTSConfig,
+      ...postTtsEnvOverrides(),
       sessionId,
       personaId,
     };
@@ -1210,19 +1184,19 @@ export async function wrappedTtsNode(
       '🦀 Applying post-TTS "Better Than Human" audio enhancement'
     );
 
-    const enhancedStream = await applyPostTTSEnhancement(audioStream, enhancementConfig);
-    return wrapWithTTSCheckpoints(enhancedStream);
+    const enhancedStream = await applyPostTTSEnhancement(
+      audioStream,
+      enhancementConfig,
+      getReplyAudioId(audioStream)
+    );
+    return wrapWithTTSCheckpoints(enhancedStream, sessionId, turnNumber, markTurnCheckpoint);
   }
 
-  return wrapWithTTSCheckpoints(audioStream);
+  return wrapWithTTSCheckpoints(audioStream, sessionId, turnNumber, markTurnCheckpoint);
 }
 
-// =============================================================================
-// HELPER FOR EXTRACTING SESSION CONTEXT FROM AGENT
-// =============================================================================
-
 // ============================================================================
-// BETTER THAN HUMAN: Context Helpers
+// BETTER THAN HUMAN: Context Helpers (session context from the agent)
 // ============================================================================
 
 /**

@@ -28,6 +28,7 @@ import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { BRAND_ACCENT, BRAND_TEXT_PRIMARY, getPersonaColor } from '../config/brand-colors.js';
 import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
+import { grantAccess, waitlistGateOn } from './open-access.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
 
@@ -468,6 +469,17 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
       return true;
     }
 
+    // Everything below trusts the email; an email/password account can claim anyone's.
+    if (decodedToken.email_verified !== true) {
+      log.warn({ uid: decodedToken.uid }, 'Access check with an unverified email');
+      sendJson(res, 200, {
+        approved: false,
+        status: 'unverified_email',
+        message: 'Verify your email address, then sign in again.',
+      });
+      return true;
+    }
+
     // =========================================================================
     // ADMIN BYPASS - Founders/admins should NEVER be blocked
     // =========================================================================
@@ -526,41 +538,29 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     const waitlistDocId = Buffer.from(email).toString('base64').replace(/[/+=]/g, '_');
     const waitlistDoc = await db.collection('waitlist').doc(waitlistDocId).get();
 
+    if (waitlistDoc.exists && waitlistDoc.data()?.status === 'approved') {
+      // Approved but no profile yet - create one now
+      const grant = { email, uid: decodedToken.uid, tier: 'partner' as const, years: 10 };
+      await grantAccess(db, profileDocId, { ...grant, grantedVia: 'waitlist-approval-auto' });
+      log.info({ email: hashEmail(email) }, 'Auto-created profile for approved waitlist user');
+      sendJson(res, 200, { approved: true, status: 'approved', tier: 'partner', email });
+      return true;
+    }
+
+    // Open access (the default): everyone who signs in gets the free tier.
+    if (!waitlistGateOn()) {
+      const grant = { email, uid: decodedToken.uid, tier: 'free' as const };
+      await grantAccess(db, profileDocId, { ...grant, grantedVia: 'open-access' });
+      await db.collection('waitlist').doc(waitlistDocId).set(
+        cleanForFirestore({ email, status: 'approved', source: 'open_access', approvedAt: new Date() }),
+        { merge: true }
+      );
+      log.info({ email: hashEmail(email) }, 'Open access: signed-in user let in on the free tier');
+      sendJson(res, 200, { approved: true, status: 'approved', tier: 'free', email });
+      return true;
+    }
+
     if (waitlistDoc.exists) {
-      const waitlistData = waitlistDoc.data();
-      if (waitlistData?.status === 'approved') {
-        // Approved but no profile yet - create one now
-        await db
-          .collection('user_profiles')
-          .doc(profileDocId)
-          .set(
-            cleanForFirestore({
-              email,
-              firebaseUid: decodedToken.uid,
-              subscription: {
-                tier: 'partner',
-                status: 'active',
-                subscribedAt: new Date(),
-                currentPeriodEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10),
-                grantedVia: 'waitlist-approval-auto',
-              },
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            }),
-            { merge: true }
-          );
-
-        log.info({ email: hashEmail(email) }, 'Auto-created profile for approved waitlist user');
-        sendJson(res, 200, {
-          approved: true,
-          status: 'approved',
-          tier: 'partner',
-          email,
-        });
-        return true;
-      }
-
-      // On waitlist but pending
       log.info({ email: hashEmail(email) }, 'User on waitlist, pending approval');
       sendJson(res, 200, {
         approved: false,

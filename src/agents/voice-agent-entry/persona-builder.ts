@@ -7,6 +7,7 @@
  * @module agents/voice-agent-entry/persona-builder
  */
 
+import { timeContext } from '../shared/time-context.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { DEFAULT_COMMUNICATION, buildDefaultIdentity, buildPersonaName } from './constants.js';
 import type { E2EDiagnostics } from './types.js';
@@ -118,18 +119,7 @@ export async function buildSessionPersona(
   ]);
 
   // DATE/TIME AWARENESS - Critical for grounding agent in reality
-  const sessionStartTime = new Date();
-  const dateTimeContext = `
----
-
-## Current Date & Time
-
-Today is ${sessionStartTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
-The current time is ${sessionStartTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}.
-
-Use this awareness naturally - don't announce it unless asked, just BE present in the moment.
-If someone asks what day it is, what time it is, or what the date is, you know the answer.
-`;
+  const dateTimeContext = timeContext(new Date());
 
   const modelBaseInstructions = baseInstructions + dateTimeContext;
 

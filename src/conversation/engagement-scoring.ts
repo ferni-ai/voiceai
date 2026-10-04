@@ -36,8 +36,8 @@ export type EngagementAction =
 
 export interface EngagementObservation {
   timestamp: number;
-  /** Response latency from agent's last message (ms) */
-  responseLatencyMs: number;
+  /** Response latency from agent's last message (ms), when the agent's timing is known */
+  responseLatencyMs?: number;
   /** Word count in user's response */
   wordCount: number;
   /** Did user ask a question? */
@@ -112,6 +112,11 @@ const QUESTION_PATTERN = /\?$/;
 // ENGAGEMENT SCORER
 // ============================================================================
 
+/** Mean of the known latencies; NaN when none are known, so every threshold check is false */
+function averageLatency(observations: EngagementObservation[]): number {
+  const known = observations.flatMap((o) => o.responseLatencyMs ?? []);
+  return known.reduce((sum, ms) => sum + ms, 0) / known.length;
+}
 export class EngagementScorer {
   private observations: EngagementObservation[] = [];
   private readonly maxObservations = 15;
@@ -133,9 +138,8 @@ export class EngagementScorer {
     }
   ): EngagementScoringResult {
     const now = Date.now();
-    const latency = options?.lastAgentMessageTime
-      ? now - options.lastAgentMessageTime
-      : now - this.lastAgentMessageTime;
+    const agentTime = options?.lastAgentMessageTime ?? this.lastAgentMessageTime;
+    const latency = agentTime > 0 ? now - agentTime : undefined;
 
     // Analyze the response
     const words = text.split(/\s+/).filter((w) => w.length > 0);
@@ -226,8 +230,7 @@ export class EngagementScorer {
     // Latency factor (faster = more engaged)
     // Typical engaged response: 1-3 seconds
     // Distracted: 5+ seconds
-    const avgLatency =
-      this.observations.reduce((sum, o) => sum + o.responseLatencyMs, 0) / this.observations.length;
+    const avgLatency = averageLatency(this.observations);
     if (avgLatency < 2000) score += 0.15;
     else if (avgLatency < 4000) score += 0.05;
     else if (avgLatency > 6000) score -= 0.15;
@@ -316,10 +319,8 @@ export class EngagementScorer {
     // Latency trend
     const firstHalfLatency = recent.slice(0, Math.floor(recent.length / 2));
     const secondHalfLatency = recent.slice(Math.floor(recent.length / 2));
-    const firstAvgLatency =
-      firstHalfLatency.reduce((sum, o) => sum + o.responseLatencyMs, 0) / firstHalfLatency.length;
-    const secondAvgLatency =
-      secondHalfLatency.reduce((sum, o) => sum + o.responseLatencyMs, 0) / secondHalfLatency.length;
+    const firstAvgLatency = averageLatency(firstHalfLatency);
+    const secondAvgLatency = averageLatency(secondHalfLatency);
 
     let latencyTrend: 'faster' | 'slower' | 'stable' = 'stable';
     if (secondAvgLatency < firstAvgLatency * 0.7) latencyTrend = 'faster';
@@ -376,8 +377,7 @@ export class EngagementScorer {
 
     let score = 0.5;
     const avgLength = observations.reduce((sum, o) => sum + o.wordCount, 0) / observations.length;
-    const avgLatency =
-      observations.reduce((sum, o) => sum + o.responseLatencyMs, 0) / observations.length;
+    const avgLatency = averageLatency(observations);
     const questionCount = observations.filter((o) => o.askedQuestion).length;
     const engagementCount = observations.reduce((sum, o) => sum + o.engagementPhrases, 0);
     const disengagementCount = observations.reduce((sum, o) => sum + o.disengagementPhrases, 0);

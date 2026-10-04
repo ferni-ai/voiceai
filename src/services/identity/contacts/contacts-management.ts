@@ -432,7 +432,7 @@ export function updateContact(
       importantDates: contact.birthday
         ? [{ label: 'Birthday', date: contact.birthday }]
         : undefined,
-      communicationPreference: contact.phones.length > 0 ? 'phone' : 'email',
+      communicationPreference: (contact.phones?.length ?? 0) > 0 ? 'phone' : 'email',
     },
     'update'
   );
@@ -622,7 +622,7 @@ export async function searchContacts(
         matchReason = 'Last name match';
       }
       // Nickname match
-      else if (contact.nicknames.some((n) => n.toLowerCase() === term)) {
+      else if ((contact.nicknames ?? []).some((n) => n.toLowerCase() === term)) {
         score += 95;
         matchReason = 'Nickname match';
       }
@@ -642,7 +642,7 @@ export async function searchContacts(
         matchReason = 'Company match';
       }
       // Group match
-      else if (contact.groups.some((g) => g.toLowerCase().includes(term))) {
+      else if ((contact.groups ?? []).some((g) => g.toLowerCase().includes(term))) {
         score += 40;
         matchReason = 'Group match';
       }
@@ -654,7 +654,7 @@ export async function searchContacts(
         score += 20;
         matchReason += ' + company context';
       }
-      if (contact.groups.some((g) => g.toLowerCase().includes(hint))) {
+      if ((contact.groups ?? []).some((g) => g.toLowerCase().includes(hint))) {
         score += 20;
         matchReason += ' + group context';
       }
@@ -1159,7 +1159,7 @@ export function addNickname(contactId: string, nickname: string): Contact | null
   if (!contact) return null;
 
   const normalizedNickname = nickname.toLowerCase().trim();
-  if (!contact.nicknames.includes(normalizedNickname)) {
+  if (!(contact.nicknames ??= []).includes(normalizedNickname)) {
     contact.nicknames.push(normalizedNickname);
     contact.updatedAt = new Date();
     contactsStore.set(contactId, contact);

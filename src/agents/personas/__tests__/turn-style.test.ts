@@ -31,7 +31,7 @@ describe('withTurnStyleReminder', () => {
     const before = original.items.map((i) => (i as llm.ChatMessage).textContent);
     withTurnStyleReminder(original);
     expect(original.items.map((i) => (i as llm.ChatMessage).textContent)).toEqual(before);
-    expect(JSON.stringify(before)).not.toContain('one to three sentences');
+    expect(JSON.stringify(before)).not.toContain('like a friend on a call');
   });
 
   it('keeps the message id so the request lines up with the saved turn', () => {

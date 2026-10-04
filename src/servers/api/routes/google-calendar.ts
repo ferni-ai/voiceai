@@ -13,6 +13,7 @@ import {
   createWatchChannel,
   stopAllUserChannels as stopAllUserWatchChannels,
 } from '../../../services/calendar/webhooks/google-webhook.js';
+import { getVerifiedUserId } from '../request-identity.js';
 
 const log = createLogger({ module: 'GoogleCalendarRoutes' });
 
@@ -193,11 +194,11 @@ export async function handleGoogleCalendarRoutes(
 
   // Get Google Calendar access token for a user
   if (pathname === '/auth/google/token') {
-    const userId = parsedUrl.searchParams.get('user_id');
+    const userId = getVerifiedUserId(req);
 
     if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required' }));
       return true;
     }
 
@@ -226,11 +227,11 @@ export async function handleGoogleCalendarRoutes(
 
   // Check Google Calendar link status
   if (pathname === '/auth/google/status') {
-    const userId = parsedUrl.searchParams.get('user_id');
+    const userId = getVerifiedUserId(req);
 
     if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required' }));
       return true;
     }
 
@@ -253,11 +254,11 @@ export async function handleGoogleCalendarRoutes(
 
   // Unlink Google Calendar for a user
   if (pathname === '/auth/google/unlink') {
-    const userId = parsedUrl.searchParams.get('user_id');
+    const userId = getVerifiedUserId(req);
 
     if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required' }));
       return true;
     }
 

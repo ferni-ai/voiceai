@@ -100,7 +100,7 @@ export async function initializeUtilitiesForSession(
 
   // 2. Register voice callback handler if provided
   if (options?.voiceHandler) {
-    registerVoiceCallbackHandler(options.voiceHandler);
+    registerVoiceCallbackHandler(userId, options.voiceHandler);
     log.debug({ userId }, 'Voice callback handler registered');
   }
 

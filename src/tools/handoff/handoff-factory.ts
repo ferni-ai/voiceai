@@ -31,6 +31,7 @@ import { AgentRegistry, type Agent } from '../../personas/registry/unified-regis
 import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { executeHandoff } from './executor.js';
+import { handoffToolResponse } from './handoff-tool-response.js';
 import { cameoUnlockEvents } from './state.js';
 
 // FIX BUG: Use safe-logger utility instead of console fallback
@@ -518,31 +519,14 @@ export async function buildHandoffTools(
           voiceEmotion,
         });
 
-        if (!result.success) {
-          return { error: result.error, rateLimited: result.rateLimited };
-        }
-
         // 🐛 FIX BUG-008: Clear stale conversation context after successful handoff
         // Without this, the new persona would see messages from the previous persona's conversation
-        if (userData) {
+        if (result.success && userData) {
           userData.recentMessages = [];
           userData.conversationTopics = [];
           // Note: We preserve lastEmotionAnalysis as it's useful context for the new persona
         }
-
-        // FIX: The executor now waits for handler completion, so we use actual result values.
-        // The handler calls session.say(greeting) before the tool result returns.
-        // We tell the LLM not to repeat it.
-        return {
-          handoff_complete: true,
-          new_agent: result.targetAgentName,
-          // IMPORTANT: Greeting has ALREADY been spoken by the voice handler via session.say()
-          // The LLM should NOT speak the greeting again!
-          greetingAlreadySpoken: result.greetingSpoken ?? true,
-          instructionsUpdated: result.instructionsUpdated ?? true,
-          instructions: result.instructions,
-          voice_id: result.voiceId,
-        };
+        return handoffToolResponse(result, def.agentName);
       },
     });
 

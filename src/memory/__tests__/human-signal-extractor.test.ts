@@ -574,4 +574,64 @@ describe('Edge Cases', () => {
 
     expect(result.identity?.values).toHaveLength(1);
   });
+
+  it('should not write an undefined "temporal" key when existing memory has none', () => {
+    // Reproduces the "Human signal persistence to Firestore failed (non-fatal)"
+    // error from cleanup-handler.ts: `Cannot use "undefined" as a Firestore
+    // value (found in field "temporal")`. This happens on a user's first-ever
+    // extraction, when `existingMemory` is `{}` (no doc yet) and the merge
+    // used to write `temporal: existing?.temporal` verbatim — i.e.
+    // `temporal: undefined` — straight into the object passed to
+    // `humanMemoryRef.set()`.
+    const existing: Partial<HumanMemory> = {};
+    const extracted = {
+      importantDates: [],
+      insideJokes: [],
+      runningThemes: [],
+      values: [],
+      dreams: [],
+      fears: [],
+      growthMarkers: [],
+      challenges: [],
+      avoidances: [],
+      comfortPatterns: [],
+      stressTriggers: [],
+      emotionalTells: [],
+    };
+
+    const result = mergeSignalsIntoMemory(existing, extracted);
+
+    // The key must be absent, not merely `undefined` — Firestore's `.set()`
+    // throws on a present key whose value is `undefined`, so
+    // `JSON.stringify`-style "it reads back as undefined" isn't enough.
+    expect(Object.prototype.hasOwnProperty.call(result, 'temporal')).toBe(false);
+    expect(result.temporal).toBeUndefined();
+  });
+
+  it('should preserve an existing "temporal" value through the merge', () => {
+    const temporal: NonNullable<HumanMemory['temporal']> = {
+      seasonal: [],
+      timeOfDay: [],
+      updatedAt: new Date(),
+    };
+    const existing: Partial<HumanMemory> = { temporal };
+    const extracted = {
+      importantDates: [],
+      insideJokes: [],
+      runningThemes: [],
+      values: [],
+      dreams: [],
+      fears: [],
+      growthMarkers: [],
+      challenges: [],
+      avoidances: [],
+      comfortPatterns: [],
+      stressTriggers: [],
+      emotionalTells: [],
+    };
+
+    const result = mergeSignalsIntoMemory(existing, extracted);
+
+    expect(result.temporal).toEqual(temporal);
+  });
 });

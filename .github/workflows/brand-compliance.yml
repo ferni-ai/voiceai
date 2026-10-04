@@ -59,6 +59,9 @@ jobs:
       # summary and the first errors, and links to the artifact for the rest.
       - name: Comment on PR
         if: github.event_name == 'pull_request' && steps.brand-lint.outcome == 'failure'
+        # Dependabot and fork PRs always get a read-only token; the comment is a
+        # courtesy and must not decide the check.
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |

@@ -57,6 +57,7 @@ vi.mock('../intelligence/processing-intelligence.js', () => ({
 // Import after mocks
 import type { ToolContext, ToolDefinition } from '../tools/registry/types.js';
 import { getToolDefinitions, behaviorToolDefinitions } from '../tools/domains/behavior/index.js';
+import { createSSMLProcessor } from '../speech/tts-gateway/ssml/processor.js';
 
 describe('Behavior Tools', () => {
   let mockContext: ToolContext;
@@ -265,6 +266,41 @@ describe('Behavior Tools', () => {
       expect(result.success).toBe(true);
       expect(result.type).toBe('breath');
     });
+
+    it('breath SSML has no tag whose content/fallback Cartesia would speak aloud', async () => {
+      // <phoneme alphabet="ipa" ph="hh">...</phoneme> used to survive the
+      // SSML processor's generic tag-strip as a literal "..." — Cartesia has
+      // no breath tag, so a clean pause is the only safe rendering.
+      const toolDef = tools.find((t) => t.id === 'expressPresence')!;
+      const tool = toolDef.create(mockContext);
+
+      const result = await tool.execute({ type: 'breath' });
+
+      expect(result.ssml).not.toMatch(/phoneme|\.\.\./);
+      expect(result.ssml).toMatch(/<break time="\d+ms"\/>/);
+    });
+
+    it('breath SSML through the real SSMLProcessor speaks no artifact', async () => {
+      // What Cartesia actually receives, through the live gateway's own
+      // SSMLProcessor. Since #171 a <break> passes through as a native break
+      // (a pause, not words); nothing else may reach the voice as text.
+      const toolDef = tools.find((t) => t.id === 'expressPresence')!;
+      const tool = toolDef.create(mockContext);
+      const result = await tool.execute({ type: 'breath' });
+
+      const processor = createSSMLProcessor();
+      const alone = processor.parse(result.ssml as string).cleanText;
+      const prepended = processor.parse(`${result.ssml as string}Here is my response.`).cleanText;
+      const NATIVE_BREAK = /<break time="\d+ms"\/>/g;
+      expect(alone.replace(NATIVE_BREAK, '')).not.toMatch(/[A-Za-z<>[\]]|\.\.\./);
+      expect(prepended.replace(NATIVE_BREAK, '')).toBe('Here is my response.');
+    });
+
+    // KNOWN GAP, not desired behaviour: a breath is currently inaudible.
+    // Cartesia has no breath sound and a leading break is stripped before
+    // synthesis. The approved speech design renders breaths in the Rust
+    // post-TTS stage (docs/superpowers/specs/2026-10-03-human-speech-director-design.md, P3).
+    it.todo('breath produces an audible breath (needs the P3 Rust breath event)');
 
     it('should return SSML for presence type', async () => {
       const toolDef = tools.find((t) => t.id === 'expressPresence')!;

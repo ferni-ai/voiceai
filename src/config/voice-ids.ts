@@ -22,10 +22,31 @@ const log = createLogger({ module: 'VoiceIds' });
 // =============================================================================
 
 /**
- * Cartesia model from environment variable.
- * sonic-3.6 is the latest stable alias (snapshot 2026-08-27); a drop-in for sonic-3.
+ * Cartesia model (CARTESIA_MODEL). A dated Sonic snapshot never changes; the bare 'sonic-3.6' alias moves to
+ * each new stable snapshot, which can change Ferni's sound without a deploy.
+ * Cartesia recommends a dated snapshot in production.
  */
-export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3.6';
+export const CARTESIA_SNAPSHOT = 'sonic-3.6-2026-08-27';
+/** The pinned snapshot under main's name (#179). */
+export const DEFAULT_CARTESIA_MODEL = CARTESIA_SNAPSHOT;
+export const CARTESIA_MODEL = pinCartesiaModel(process.env.CARTESIA_MODEL);
+
+/**
+ * Cartesia pronunciation dictionary for names TTS gets wrong (e.g. Nayan,
+ * which sonic read as "NIGH-in"), built from COMMON_DIFFICULT_NAMES in
+ * speech/pronunciation-memory/constants.ts. Spread into every TTS request.
+ */
+export function cartesiaPronunciation(
+  env: Record<string, string | undefined> = process.env
+): { pronunciation_dict_id?: string } {
+  const id = env.CARTESIA_PRONUNCIATION_DICT_ID?.trim();
+  return id ? { pronunciation_dict_id: id } : {};
+}
+
+/** The bare sonic-3.6 alias (or nothing) becomes the dated snapshot; anything else is kept. */
+export function pinCartesiaModel(model: string | undefined): string {
+  return !model || model === 'sonic-3.6' ? CARTESIA_SNAPSHOT : model;
+}
 
 /**
  * Cartesia API version for all TTS requests
@@ -46,8 +67,10 @@ export const CARTESIA_API_URL = process.env.CARTESIA_API_URL || 'https://api.car
  * Bundle manifests are the primary source of truth.
  */
 export const VOICE_IDS = {
-  // Ferni (life coach) - Dec 2024
-  FERNI: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+  // Ferni (life coach) - "Lester Nare (Pro) - V3" Cartesia Professional Voice
+  // Clone, switched 2026-10-03. Pro clones ignore <speed>/<emotion> tags — see
+  // config/voice-capabilities.ts before relying on prosody tags for this voice.
+  FERNI: 'ebaf7477-b6ae-417e-be54-19e6176777ea',
 
   // Peter John (insights quant) - Synced from .env Dec 2024
   PETER_JOHN: '3f04e815-3260-4f50-8fd9-af9c657be4c2',
@@ -74,6 +97,15 @@ export const VOICE_IDS = {
   // Generic advisor fallback
   GENERIC: '79a125e8-cd45-4c13-8a67-188112f4dd22',
 } as const;
+
+/**
+ * Ferni's previous voice (Cartesia instant clone, Dec 2024 → 2026-10-03). Not in
+ * VOICE_IDS: no persona speaks with it now. It stays the default for new template
+ * agents and the developer voice catalog (literals in .templates manifests,
+ * cli/agent-manager.ts, api/v1/developers/voice-routes.ts) so those never default
+ * to Lester's Professional Voice Clone.
+ */
+export const LEGACY_FERNI_IVC_VOICE_ID = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
 
 /**
  * Alias for backwards compatibility with cartesia-core.ts

@@ -1,0 +1,7 @@
+# A short timer during a call: Ferni should set it, keep talking, and bring it
+# up on its own at a pause once it goes off (~20 s after it's set), in its
+# own words. Before 2026-09-30 nothing announced a finished timer.
+Can you set a timer for twenty seconds? My tea is steeping.
+Thanks. So, what have you been up to today?
+Ha. Okay, tell me one weird fact about tea.
+That's wild. What else do you know about it?

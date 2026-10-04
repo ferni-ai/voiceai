@@ -58,6 +58,15 @@ on:
         type: number
         default: 100
 
+# One deploy at a time. Merges minutes apart each start a deploy, and without
+# a group they ran in parallel, so whichever finished last decided what served
+# production, even an older commit (2026-10-02: four at once). A queued run
+# waits; GitHub keeps only the newest pending one, so main's head wins.
+# cancel-in-progress stays off so a rollout is never cut off midway.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1

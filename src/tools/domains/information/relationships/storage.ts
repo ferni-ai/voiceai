@@ -6,6 +6,7 @@
  */
 
 import { getLogger } from '../../../../utils/safe-logger.js';
+import { removeUndefined } from '../../../../utils/firestore-utils.js';
 import type { Relationship, GiftRecord, ImportantDate } from './types.js';
 
 const log = getLogger();
@@ -161,12 +162,17 @@ export async function saveRelationship(
         fullRelationship.createdAt = existing.data()?.createdAt?.toDate?.() || now;
       }
 
-      await docRef.set({
-        ...fullRelationship,
-        createdAt: fullRelationship.createdAt,
-        updatedAt: fullRelationship.updatedAt,
-        lastContact: fullRelationship.lastContact || null,
-      });
+      // Optional fields (nickname, birthday, notes, ...) are `undefined` when
+      // not provided, and Firestore rejects a literal `undefined` anywhere in
+      // a document. Strip them instead of writing them.
+      await docRef.set(
+        removeUndefined({
+          ...fullRelationship,
+          createdAt: fullRelationship.createdAt,
+          updatedAt: fullRelationship.updatedAt,
+          lastContact: fullRelationship.lastContact || null,
+        })
+      );
 
       log.info({ userId, relationshipId: id, name: relationship.name }, 'Saved relationship');
     } catch (error) {

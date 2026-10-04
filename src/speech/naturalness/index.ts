@@ -28,9 +28,9 @@ import {
   getRecommendedAgentWpm,
   getRecommendedTurnGap,
   initializeVoicePatterns,
-  persistVoicePatterns,
   type VoiceObservation,
 } from '../../conversation/humanization/voice-pattern-learning.js';
+import { persistSessionVoicePatterns } from '../../conversation/humanization/voice-pattern-session.js';
 import {
   getAmbientAwarenessService,
   resetAmbientAwareness,
@@ -177,7 +177,7 @@ export async function initializeNaturalnessEngine(
  */
 export async function persistNaturalnessData(sessionId: string): Promise<void> {
   try {
-    await persistVoicePatterns(sessionId);
+    await persistSessionVoicePatterns(sessionId);
     log.debug({ sessionId }, '💾 Voice patterns persisted');
   } catch (error) {
     log.warn({ sessionId, error: String(error) }, 'Failed to persist voice patterns');
@@ -251,20 +251,11 @@ export function processTurn(sessionId: string, input: TurnInput): NaturalnessRes
   const voiceObs = buildVoiceObservation(input.context);
   recordVoiceObservation(sessionId, voiceObs);
 
+  // Reported, never applied as a speed adjustment: session pace matching
+  // (multi-agent/turn-observers.ts) and the Speech Director own speech speed,
+  // and a third speed controller would stack on theirs.
   const recommendedWpm = getRecommendedAgentWpm(sessionId);
   const recommendedGap = getRecommendedTurnGap(sessionId);
-
-  // Only add adjustment if significantly different from default
-  if (Math.abs(recommendedWpm - 150) > 10) {
-    activeSystems.push('patterns');
-    const speedMultiplier = recommendedWpm / 150;
-    sources.push({
-      source: 'patterns',
-      speedMultiplier: Math.max(0.85, Math.min(1.15, speedMultiplier)),
-      reason: `user prefers ${recommendedWpm} WPM`,
-      priority: 2, // Medium priority
-    });
-  }
 
   // -------------------------------------------------------------------------
   // 3. AMBIENT AWARENESS
@@ -449,7 +440,7 @@ function buildVoiceObservation(context: TurnContextInput): VoiceObservation {
   return {
     userWpm: context.userWordCount > 0 ? context.userWordCount * 15 : undefined, // Estimate ~4s turn
     agentWpm: context.agentWordCount > 0 ? context.agentWordCount * 15 : undefined,
-    turnGapMs: context.silenceDurationMs,
+    turnGapMs: context.silenceDurationMs || undefined, // 0 means the gap was not measured
     userInterrupted: context.userInterrupted,
     wantedMoreGap: context.silenceDurationMs !== undefined && context.silenceDurationMs > 2000,
     userEnergy: undefined, // Would need audio analysis
