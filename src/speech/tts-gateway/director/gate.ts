@@ -1,9 +1,10 @@
 /**
  * The Speech Director gate.
  *
- * SPEECH_DIRECTOR=off|shadow|live (default off). Off leaves the gateway's
- * reply and text streams untouched; shadow plans each reply and logs one
- * line without changing what Cartesia receives; live applies the plan.
+ * SPEECH_DIRECTOR=off|shadow|live (default shadow; off under tests). Off
+ * leaves the gateway's reply and text streams untouched; shadow plans each
+ * reply and logs one line without changing what Cartesia receives; live
+ * applies the plan.
  *
  * Each lever has its own override (SPEECH_DIRECTOR_PHRASING, _PAUSES,
  * _NORMALIZE, _EMOTION, _PACING) so a regression can be pinned to one lever.
@@ -26,7 +27,9 @@ function parseMode(value: string | undefined): DirectorMode | undefined {
 }
 
 export function speechDirectorMode(env: Env = process.env): DirectorMode {
-  return parseMode(env.SPEECH_DIRECTOR) ?? 'off';
+  const explicit = parseMode(env.SPEECH_DIRECTOR);
+  if (explicit) return explicit;
+  return env.VITEST || env.NODE_ENV === 'test' ? 'off' : 'shadow';
 }
 
 export function leverModes(env: Env = process.env): LeverModes {
