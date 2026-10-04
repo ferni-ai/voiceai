@@ -49,6 +49,7 @@ export const API_ERRORS = {
   PREDICTION_NOT_FOUND: "Hmm, couldn't find that prediction. It may have expired.",
   PREDICTION_ALREADY_COMPLETED: 'Looks like this prediction was already resolved.',
   PREDICTION_UPDATE_FAILED: "Couldn't update that prediction. Mind trying again?",
+  PREDICTION_METRIC_MISMATCH: "Those numbers don't match what you predicted. Try again?",
 
   // Memories
   MEMORY_NOT_FOUND: "Couldn't find that memory. It may have been removed.",

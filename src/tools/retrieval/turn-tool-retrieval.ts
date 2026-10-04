@@ -8,7 +8,7 @@
  * computed while they are still talking, from interim transcripts, so the
  * ~200 ms embedding call is off the reply's critical path.
  *
- * Modes (TOOL_RETRIEVAL): off (default); shadow = pick and log, but send the
+ * Modes (TOOL_RETRIEVAL): off (the default under tests); shadow (default) = pick and log, but send the
  * tools as before, then log whether each tool the model called was in the
  * pick; live = send only the pick. Selection happens inside llmNode on a copy:
  * the agent's own tool list never changes, so the SDK's preemptive reply is
@@ -38,8 +38,9 @@ export type ToolRetrievalMode = 'off' | 'shadow' | 'live';
 export function toolRetrievalMode(
   env: Record<string, string | undefined> = process.env
 ): ToolRetrievalMode {
-  const v = env.TOOL_RETRIEVAL;
-  return v === 'shadow' || v === 'live' ? v : 'off';
+  const v = env.TOOL_RETRIEVAL?.trim().toLowerCase();
+  if (v === 'off' || v === 'shadow' || v === 'live') return v;
+  return env.VITEST || env.NODE_ENV === 'test' ? 'off' : 'shadow';
 }
 
 /** Never left to retrieval: handoffs and every safety tool. */

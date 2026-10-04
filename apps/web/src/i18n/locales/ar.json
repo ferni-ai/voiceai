@@ -3014,6 +3014,55 @@
       "legacy": "الإرث"
     }
   },
+  "predictionResolution": {
+    "title": "كيف جرت الأمور؟",
+    "youGuessed": "توقّعك: {value}",
+    "actual": "الفعلي: {value}",
+    "scored": "دقة {accuracy}%",
+    "record": "سجّل ما حدث",
+    "save": "تحقّق من توقّعاتي",
+    "saveFailed": "تعذّر الحفظ. هل تحاول مجددًا؟",
+    "metrics": {
+      "deepWork": {
+        "label": "العمل المركّز",
+        "question": "كم ساعة من العمل المركّز أنجزت؟",
+        "unit": "ساعات"
+      },
+      "exercise": {
+        "label": "الرياضة",
+        "question": "كم مرة مارست الرياضة؟",
+        "unit": "جلسات"
+      },
+      "social": {
+        "label": "الوقت مع الناس",
+        "question": "كم ساعة قضيت مع الآخرين؟",
+        "unit": "ساعات"
+      },
+      "screen": {
+        "label": "وقت الشاشة",
+        "question": "كم ساعة كان وقت الشاشة لديك؟",
+        "unit": "ساعات"
+      },
+      "mood": {
+        "label": "المزاج",
+        "question": "ما متوسط مزاجك من 1 إلى 10؟",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "ما القيمة الفعلية لـ {label}؟"
+      }
+    },
+    "result": {
+      "line": "توقّعت {predicted}. وكانت النتيجة {actual}. {verdict}",
+      "overall": "الدقة الإجمالية هذا الأسبوع {accuracy}%."
+    },
+    "tone": {
+      "spotOn": "أصبت تمامًا!",
+      "close": "قريب جدًا!",
+      "off": "ابتعدت قليلًا هذه المرة.",
+      "wayOff": "بعيد جدًا هذه المرة. الآن صرت تعرف."
+    }
+  },
   "trustDashboard": {
     "together": {
       "empty": "بعد أن نتحدث بضع مرات، سأخبرك كيف حالنا معًا.",

@@ -14,7 +14,11 @@ import {
   getContextForOutreach,
   loadUserContextFromFirestore,
 } from '../outreach/context-aggregator.js';
-import { TEMP_CREATIVE, MAX_TOKENS_TINY } from '../../config/gemini-config.js';
+import {
+  TEMP_CREATIVE,
+  MAX_TOKENS_TINY,
+  getContentGenerationModel,
+} from '../../config/gemini-config.js';
 import { HTTP_TIMEOUT_MS } from '../../config/resilience-config.js';
 
 const log = createLogger({ module: 'ferni-message-generator' });
@@ -306,44 +310,27 @@ export async function generateFerniMessage(ctx: MessageContext): Promise<Generat
  * Generate using Gemini
  */
 async function generateWithGemini(prompt: string): Promise<string | null> {
-  const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) {
-    return null;
-  }
-
   try {
-    // Using gemini-2.0-flash-exp for best quality
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: TEMP_CREATIVE, // Higher for more natural variation
-            maxOutputTokens: MAX_TOKENS_TINY, // Keep it short
-            topP: 0.95,
-          },
-        }),
-        signal: AbortSignal.timeout(HTTP_TIMEOUT_MS),
-      }
-    );
-
-    if (!response.ok) {
-      log.warn({ status: response.status }, 'Gemini request failed');
+    const { getGenerativeModel } = await import('../../config/generative-model.js');
+    const model = await getGenerativeModel({
+      model: getContentGenerationModel(),
+      generationConfig: {
+        temperature: TEMP_CREATIVE, // Higher for more natural variation
+        maxOutputTokens: MAX_TOKENS_TINY, // Keep it short
+        topP: 0.95,
+      },
+    });
+    if (!model) {
       return null;
     }
 
-    const data = (await response.json()) as {
-      candidates?: Array<{
-        content?: {
-          parts?: Array<{ text?: string }>;
-        };
-      }>;
-    };
-
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const result = await Promise.race([
+      model.generateContent(prompt),
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), HTTP_TIMEOUT_MS);
+      }),
+    ]);
+    const text = result?.response.text();
     if (!text) {
       return null;
     }

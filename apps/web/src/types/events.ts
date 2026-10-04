@@ -7,6 +7,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import type { PersonaId } from './persona.js';
+import type { PredictionData } from '../services/prediction-data.js';
 
 const log = createLogger('Events');
 
@@ -679,15 +680,8 @@ export interface EngagementEvent {
     predictionAccuracy?: number;
     teamHuddlesAttended: number;
   };
-  readonly predictions?: Array<{
-    id: string;
-    category: string;
-    question: string;
-    userPrediction: number;
-    actualOutcome?: number;
-    status: 'pending' | 'resolved';
-    createdAt: string;
-  }>;
+  /** Sent by src/services/engagement/engagement-data-sender.ts (with metric names). */
+  readonly predictions?: PredictionData[];
   readonly message?: string;
   readonly timestamp: number;
 }
