@@ -2504,7 +2504,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "Energy Levels",
-      "subtitle": "Your current capacity"
+      "subtitle": "Your current capacity",
+      "weekSubtitle": "Your last 7 days"
     },
     "energy": {
       "emotional": "Emotional",
@@ -2607,6 +2608,10 @@
       "subtitle": "Calls, messages, and commitments kept",
       "empty": "No actions yet",
       "recent": "Recent"
+    },
+    "predictions": {
+      "title": "Where You're Headed",
+      "now": "Now"
     }
   },
   "nowPlaying": {

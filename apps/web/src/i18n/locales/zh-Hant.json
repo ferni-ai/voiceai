@@ -2464,7 +2464,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "最近 7 天"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2567,6 +2568,10 @@
       "subtitle": "通話、訊息和信守的承諾",
       "empty": "還沒有操作",
       "recent": "最近"
+    },
+    "predictions": {
+      "title": "你的方向",
+      "now": "現在"
     }
   },
   "sleepSettings": {

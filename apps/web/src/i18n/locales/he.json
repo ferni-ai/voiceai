@@ -2464,7 +2464,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "7 הימים האחרונים שלך"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2567,6 +2568,10 @@
       "subtitle": "שיחות, הודעות והתחייבויות קיימות",
       "empty": "אין פעולות עדיין",
       "recent": "אחרון"
+    },
+    "predictions": {
+      "title": "לאן מועדות פניך",
+      "now": "עכשיו"
     }
   },
   "sleepSettings": {
