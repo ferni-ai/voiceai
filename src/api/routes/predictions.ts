@@ -2,7 +2,7 @@
  * Predictions Routes
  *
  * GET /api/predictions - Get user predictions
- * POST /api/predictions/:id/actuals - Update prediction with actual values
+ * POST /api/predictions/:id/actuals - Score a prediction against what happened
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -12,6 +12,10 @@ import { resolveActingUser } from '../acting-user.js';
 import { validateBody, UpdatePredictionActualsSchema } from '../validators.js';
 import { API_ERRORS } from '../error-messages.js';
 import type { AnyRecord } from './types.js';
+import {
+  averageRealAccuracy,
+  withHonestScore,
+} from '../../services/engagement/prediction-scoring.js';
 
 const log = createLogger({ module: 'PredictionsAPI' });
 
@@ -32,14 +36,17 @@ export async function handleGetPredictions(
 
     const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
-    let predictions = (await store.getRecentPredictions(userId, limit)) as unknown as AnyRecord[];
+    // A resolution whose actuals matched no predicted metric was never really
+    // scored (see prediction-scoring.ts): it comes back open, not as a 0% miss.
+    const stored = (await store.getRecentPredictions(userId, limit)) as unknown as AnyRecord[];
     const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
 
     // Auto-expire old predictions
     const EXPIRY_DAYS = 7;
     const expiryThreshold = Date.now() - EXPIRY_DAYS * 24 * 60 * 60 * 1000;
 
-    predictions = predictions.map((p) => {
+    const predictions = stored.map((record) => {
+      const p = withHonestScore(record);
       if (!p.completedAt && new Date(p.createdAt as string).getTime() < expiryThreshold) {
         return { ...p, status: 'expired', expiredAt: new Date().toISOString() };
       }
@@ -47,14 +54,6 @@ export async function handleGetPredictions(
     });
 
     const validPredictions = predictions.filter((p) => p.status !== 'expired');
-    const completedPredictions = validPredictions.filter((p) => p.accuracy !== undefined);
-    const avgAccuracy =
-      completedPredictions.length > 0
-        ? Math.round(
-            completedPredictions.reduce((sum, p) => sum + ((p.accuracy as number) || 0), 0) /
-              completedPredictions.length
-          )
-        : ((profile.stats as AnyRecord)?.predictionAccuracy as number) || 0;
 
     sendJSONCached(
       res,
@@ -62,7 +61,8 @@ export async function handleGetPredictions(
         predictions,
         stats: {
           totalPredictions: ((profile.stats as AnyRecord)?.totalPredictions as number) || 0,
-          averageAccuracy: avgAccuracy,
+          // Only predictions scored against matching actuals count.
+          averageAccuracy: averageRealAccuracy(validPredictions) ?? 0,
           pendingCount: validPredictions.filter((p) => !p.completedAt).length,
           expiredCount: predictions.filter((p) => p.status === 'expired').length,
         },
@@ -76,7 +76,12 @@ export async function handleGetPredictions(
 }
 
 /**
- * POST /api/predictions/:id/actuals - Update prediction with actual values
+ * POST /api/predictions/:id/actuals - Score a prediction against what happened.
+ *
+ * Body: `{ actuals: { [metric]: number } }`, keyed by the metric names the
+ * prediction stored. Responds with the score: `{ accuracy, metrics }`.
+ * Acts only as the verified caller (bound from the token by
+ * bindVerifiedIdentity); a body naming anyone else is refused.
  */
 export async function handleUpdatePredictionActuals(
   req: IncomingMessage,
@@ -96,6 +101,10 @@ export async function handleUpdatePredictionActuals(
     const store = await getEngagementStore();
     const result = await store.updatePredictionActuals(userId, predictionId, body.actuals);
 
+    if (result === 'no-matching-metric') {
+      sendError(res, API_ERRORS.PREDICTION_METRIC_MISMATCH, 400);
+      return;
+    }
     if (!result) {
       sendError(res, API_ERRORS.PREDICTION_NOT_FOUND, 404);
       return;

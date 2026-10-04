@@ -16,11 +16,10 @@ import { z } from 'zod';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody, sendJSON } from '../../helpers.js';
 import { requireAuth, type AuthContext } from '../../auth-middleware.js';
-
-// SECURITY: Schema for validating OAuth state parameter
-const OAuthStateSchema = z.object({
-  userId: z.string().min(1),
-});
+import {
+  consumeOAuthLinkState,
+  createOAuthLinkState,
+} from '../../../servers/token/oauth-link-state.js';
 
 // ============================================================================
 // REQUEST BODY VALIDATION SCHEMAS
@@ -264,7 +263,16 @@ export async function handleIntegrationsRoutes(
         return true;
       }
 
-      const authUrl = getAuthorizationUrl(platform, userId);
+      const state = await createOAuthLinkState(req, res, {
+        uid: userId,
+        provider: `integrations_biometrics_${platform}`,
+        returnUrl: '/settings/integrations',
+      });
+      if (!state) {
+        sendJson(res, 503, { error: 'Try again shortly' });
+        return true;
+      }
+      const authUrl = getAuthorizationUrl(platform, userId, state);
       log.info({ userId, platform }, 'Generated biometrics auth URL');
       sendJson(res, 200, { authUrl, platform });
       return true;
@@ -287,21 +295,12 @@ export async function handleIntegrationsRoutes(
         return true;
       }
 
-      // SECURITY: Decode and validate state parameter with Zod schema
-      let userId: string;
-      try {
-        const rawDecoded = JSON.parse(Buffer.from(state, 'base64').toString());
-        const parsed = OAuthStateSchema.safeParse(rawDecoded);
-        if (!parsed.success) {
-          log.warn({ issues: parsed.error.issues }, 'Invalid OAuth state structure');
-          sendJson(res, 400, { error: 'Invalid state parameter' });
-          return true;
-        }
-        userId = parsed.data.userId;
-      } catch {
+      const record = await consumeOAuthLinkState(req, state, `integrations_biometrics_${platform}`);
+      if (!record) {
         sendJson(res, 400, { error: 'Invalid state parameter' });
         return true;
       }
+      const userId = record.uid;
 
       const success = await exchangeCodeForTokens(platform, code, userId);
       if (success) {
@@ -722,8 +721,17 @@ export async function handleIntegrationsRoutes(
     if (subPath === '/calendar/connect' && method === 'GET') {
       const userId = getTargetUserId(auth!, parsedUrl);
 
+      const state = await createOAuthLinkState(req, res, {
+        uid: userId,
+        provider: 'integrations_calendar',
+        returnUrl: '/settings/integrations',
+      });
+      if (!state) {
+        sendJson(res, 503, { error: 'Try again shortly' });
+        return true;
+      }
       const cal = await getCalendarServices();
-      const authUrl = cal.getCalendarAuthUrl(userId);
+      const authUrl = cal.getCalendarAuthUrl(state);
 
       log.info({ userId }, 'Generated calendar auth URL');
       sendJson(res, 200, { authUrl });
@@ -746,21 +754,12 @@ export async function handleIntegrationsRoutes(
         return true;
       }
 
-      // SECURITY: Decode and validate state parameter with Zod schema
-      let userId: string;
-      try {
-        const rawDecoded = JSON.parse(Buffer.from(state, 'base64').toString());
-        const parsed = OAuthStateSchema.safeParse(rawDecoded);
-        if (!parsed.success) {
-          log.warn({ issues: parsed.error.issues }, 'Invalid OAuth state structure');
-          sendJson(res, 400, { error: 'Invalid state parameter' });
-          return true;
-        }
-        userId = parsed.data.userId;
-      } catch {
+      const record = await consumeOAuthLinkState(req, state, 'integrations_calendar');
+      if (!record) {
         sendJson(res, 400, { error: 'Invalid state parameter' });
         return true;
       }
+      const userId = record.uid;
 
       const cal = await getCalendarServices();
       const calOAuth = await getCalendarOAuthServices();
