@@ -52,7 +52,9 @@ const WEB_FILES = [
   'services/biometrics.service.ts',
   'services/banking.service.ts',
   'services/life-automation.service.ts',
-  'app/integrations-callbacks.ts',
+  // app/integrations-callbacks.ts makes no direct API calls any more: its connect
+  // actions go through services/oauth-connect.service.ts (POST /auth/oauth/start),
+  // covered by oauth-connect-sites and oauth-connect-identity tests.
   'app/panel-methods.ts',
   'ui/integrations-settings.ui.ts',
   'ui/connected-life.ui.ts',

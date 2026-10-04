@@ -6,20 +6,16 @@
  * shown to the user rather than swallowed.
  */
 
-import { appState } from '../state/app.state.js';
 import { messageUI } from '../ui/message.ui.js';
 import {
   getIntegrationsSettingsUI,
   type IntegrationsUICallbacks,
 } from '../ui/integrations-settings.ui.js';
 import { connectLinkedIn, disconnectLinkedIn } from '../services/linkedin.service.js';
+import { startOAuthConnect } from '../services/oauth-connect.service.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('IntegrationsCallbacks');
-
-function deviceUserId(): string {
-  return appState.get('deviceId') || 'anonymous';
-}
 
 /** Re-fetch status from the server and redraw the panel. */
 function refreshPanel(): void {
@@ -35,7 +31,10 @@ export function createIntegrationsCallbacks(): IntegrationsUICallbacks {
       void disconnectLinkedIn();
     },
     onConnectCalendar: () => {
-      window.location.href = `/auth/google/calendar?userId=${encodeURIComponent(deviceUserId())}`;
+      void startOAuthConnect('google_calendar').then((result) => {
+        if (!result.success)
+          messageUI.show(result.error ?? "Couldn't connect. Try again?", 'error', 4000);
+      });
     },
     onConnectBiometrics: async (platform) => {
       const { connectBiometrics, isPlatformAvailable, getPlatformConfig } =
@@ -54,7 +53,7 @@ export function createIntegrationsCallbacks(): IntegrationsUICallbacks {
       }
 
       log.info('Connect biometrics requested', { platform });
-      const result = await connectBiometrics(typedPlatform, deviceUserId());
+      const result = await connectBiometrics(typedPlatform);
       if (!result.success && result.error) {
         messageUI.show(result.error, 'error', 4000);
       }
@@ -62,9 +61,8 @@ export function createIntegrationsCallbacks(): IntegrationsUICallbacks {
     onDisconnectBiometrics: async () => {
       const { disconnectBiometrics, fetchWearableProviders, getLinkedWearables } =
         await import('../services/biometrics.service.js');
-      const userId = deviceUserId();
-      const linked = getLinkedWearables(await fetchWearableProviders(userId));
-      const result = await disconnectBiometrics(userId, linked);
+      const linked = getLinkedWearables(await fetchWearableProviders());
+      const result = await disconnectBiometrics(linked);
       messageUI.show(
         result.success ? 'Disconnected' : (result.error ?? "Couldn't disconnect. Try again?"),
         result.success ? 'success' : 'error',

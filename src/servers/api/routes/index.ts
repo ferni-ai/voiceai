@@ -9,6 +9,7 @@ export { handleTokenRoutes } from './token.js';
 export { handleGoogleCalendarRoutes } from './google-calendar.js';
 export { handleAppleCalendarRoutes } from './apple-calendar.js';
 export { handleMicrosoftCalendarRoutes } from './microsoft-calendar.js';
+export { handleOAuthStartRoute } from './oauth-start.js';
 export { handleMusicRoutes } from './music.js';
 export { handleAgentRoutes } from './agents.js';
 export { handlePushRoutes } from './push.js';
