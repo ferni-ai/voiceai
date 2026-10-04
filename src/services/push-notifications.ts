@@ -12,35 +12,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { AgentRole } from '../personas/index.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
-
-// Web-push module interface (optional dependency)
-interface WebPushModule {
-  setVapidDetails: (subject: string, publicKey: string, privateKey: string) => void;
-  sendNotification: (
-    subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
-    payload: string
-  ) => Promise<unknown>;
-}
-
-// Optional web-push import - notifications will be no-ops if not available
-let webpush: WebPushModule | null = null;
-let webpushLoadAttempted = false;
-
-async function loadWebPush(): Promise<WebPushModule | null> {
-  if (webpushLoadAttempted) return webpush;
-  webpushLoadAttempted = true;
-
-  try {
-    // @ts-expect-error - web-push is an optional dependency
-    const mod = await import('web-push');
-    webpush = mod.default || mod;
-    getLogger().info('web-push module loaded successfully');
-    return webpush;
-  } catch {
-    getLogger().warn('web-push module not available - push notifications disabled');
-    return null;
-  }
-}
+import { loadWebPush } from './web-push-loader.js';
 
 // ============================================================================
 // TYPES
@@ -269,8 +241,8 @@ class PushNotificationsBackendService {
       userSubs.push(subscription);
       this.subscriptions.set(subscription.userId, userSubs);
 
-      // Persist to Firestore
-      this.subscriptionStore?.set(subscription.userId, { subscriptions: userSubs });
+      // Persist to Firestore now (not on the next batch), so other processes' senders see it
+      await this.subscriptionStore?.setImmediate(subscription.userId, { subscriptions: userSubs });
 
       getLogger().info(
         { userId: subscription.userId, platform: subscription.platform },
@@ -557,8 +529,8 @@ class PushNotificationsBackendService {
   private async sendWebPush(subscription: PushSubscription, payload: string): Promise<void> {
     const wp = await loadWebPush();
     if (!wp) {
-      getLogger().warn('web-push not available, skipping notification');
-      return;
+      // Throw so sendNotification() reports "not sent" instead of a silent success.
+      throw new Error('web-push not available; notification not sent');
     }
     await wp.sendNotification(
       {

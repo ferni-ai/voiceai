@@ -1,0 +1,91 @@
+/**
+ * Enabling notifications in settings must actually subscribe this browser on
+ * the server, and say so when the server didn't store it.
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  apiPost: vi.fn(),
+  apiGet: vi.fn(),
+  toastError: vi.fn(),
+  pushSubscribe: vi.fn(),
+  getSubscription: vi.fn(),
+  browserUnsubscribe: vi.fn(),
+}));
+
+vi.mock('../../src/utils/platform.js', () => ({
+  platform: 'web',
+  isNative: () => false,
+  isIOS: () => false,
+  isAndroid: () => false,
+  isWeb: () => true,
+}));
+vi.mock('../../src/utils/api.js', () => ({ apiPost: mocks.apiPost, apiGet: mocks.apiGet }));
+vi.mock('../../src/ui/whisper.ui.js', () => ({ toast: { error: mocks.toastError } }));
+
+const ENDPOINT = 'https://fcm.googleapis.com/fcm/send/abc123';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.resetModules();
+  vi.stubGlobal('Notification', {
+    permission: 'granted',
+    requestPermission: vi.fn(() => Promise.resolve('granted')),
+  });
+  vi.stubGlobal('PushManager', {});
+  Object.defineProperty(navigator, 'serviceWorker', {
+    configurable: true,
+    value: {
+      register: vi.fn(async () => ({
+        pushManager: { subscribe: mocks.pushSubscribe, getSubscription: mocks.getSubscription },
+      })),
+      addEventListener: vi.fn(),
+    },
+  });
+  mocks.pushSubscribe.mockResolvedValue({
+    endpoint: ENDPOINT,
+    toJSON: () => ({ endpoint: ENDPOINT, keys: { p256dh: 'p256dh-key', auth: 'auth-key' } }),
+  });
+  mocks.getSubscription.mockResolvedValue({ endpoint: ENDPOINT, unsubscribe: mocks.browserUnsubscribe });
+  mocks.apiGet.mockResolvedValue({ ok: true, data: { publicKey: 'BEl62iUYgUivxIkv69yViEuiBIa' } });
+});
+
+async function enable(enabled: boolean): Promise<void> {
+  const { initPushNotifications } = await import('../../src/services/push-notifications.service.js');
+  await initPushNotifications();
+  const { applyPushPreference } = await import('../../src/services/push-preference.js');
+  await applyPushPreference(enabled);
+}
+
+describe('applyPushPreference', () => {
+  it('turning notifications on registers the subscription with the server', async () => {
+    mocks.apiPost.mockResolvedValue({ ok: true, data: { success: true } });
+
+    await enable(true);
+
+    expect(mocks.apiPost).toHaveBeenCalledWith('/api/push/subscribe', {
+      endpoint: ENDPOINT,
+      keys: { p256dh: 'p256dh-key', auth: 'auth-key' },
+      platform: 'web',
+    });
+    expect(mocks.toastError).not.toHaveBeenCalled();
+  });
+
+  it('tells the user when the server did not store the subscription', async () => {
+    mocks.apiPost.mockResolvedValue({ ok: false, status: 401 });
+
+    await enable(true);
+
+    expect(mocks.toastError).toHaveBeenCalledWith("Notifications aren't available right now.");
+  });
+
+  it('turning notifications off removes the server subscription too', async () => {
+    mocks.apiPost.mockResolvedValue({ ok: true, data: { success: true } });
+
+    await enable(false);
+
+    expect(mocks.apiPost).toHaveBeenCalledWith('/api/push/unsubscribe', { endpoint: ENDPOINT });
+    expect(mocks.browserUnsubscribe).toHaveBeenCalled();
+  });
+});
