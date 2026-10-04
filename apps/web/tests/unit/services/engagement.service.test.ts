@@ -743,7 +743,10 @@ describe('EngagementService', () => {
 
       expect(result).toHaveLength(2);
       expect(result[0].category).toBe('mood');
-      expect(result[0].actualOutcome).toBe(90);
+      // The score is the score; no actual value was recorded in this record.
+      expect(result[0].accuracy).toBe(90);
+      expect(result[0].actualOutcome).toBeUndefined();
+      expect(result[0].metrics?.map((m) => m.key)).toEqual(['Mood average (1-10)', 'Sleep hours']);
       expect(result[0].status).toBe('resolved');
       expect(result[1].category).toBe('productivity');
       expect(result[1].status).toBe('pending');
@@ -808,7 +811,7 @@ describe('EngagementService', () => {
       expect(result[3].category).toBe('overall');
     });
 
-    it('should calculate main value as average', async () => {
+    it('should keep each metric guess instead of averaging across units', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
 
       engagementService.clearCache();
@@ -834,8 +837,12 @@ describe('EngagementService', () => {
 
       const result = await engagementService.fetchPredictions('user123');
 
-      // Average of 6, 8, 10 = 8
-      expect(result[0].userPrediction).toBe(8);
+      expect(result[0].metrics).toEqual([
+        { key: 'Metric A', predicted: 6 },
+        { key: 'Metric B', predicted: 8 },
+        { key: 'Metric C', predicted: 10 },
+      ]);
+      expect(result[0].userPrediction).toBe(6); // the first metric's guess
     });
   });
 
@@ -961,11 +968,13 @@ describe('EngagementService', () => {
       expect(resolved[0].status).toBe('resolved');
     });
 
-    it('should calculate prediction accuracy', async () => {
+    it('should average the server scores for prediction accuracy', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
 
       engagementService.clearCache();
 
+      // Raw units differ per metric (hours vs 1-10 mood), so only the server's
+      // score is comparable: (88 + 100) / 2.
       const predictions: PredictionData[] = [
         {
           id: 'pred-1',
@@ -973,6 +982,7 @@ describe('EngagementService', () => {
           question: 'Test 1',
           userPrediction: 7,
           actualOutcome: 8,
+          accuracy: 88,
           status: 'resolved',
           createdAt: '2025-12-01',
         },
@@ -982,6 +992,7 @@ describe('EngagementService', () => {
           question: 'Test 2',
           userPrediction: 10,
           actualOutcome: 10,
+          accuracy: 100,
           status: 'resolved',
           createdAt: '2025-12-01',
         },
@@ -1005,9 +1016,7 @@ describe('EngagementService', () => {
 
       const accuracy = engagementService.calculateAccuracy();
 
-      // Average error: (|7-8| + |10-10|) / 2 = 0.5
-      // Accuracy: 100 - 0.5 = 99.5 → rounded to 100
-      expect(accuracy).toBeGreaterThanOrEqual(99);
+      expect(accuracy).toBe(94);
     });
 
     it('should return null accuracy with no resolved predictions', async () => {

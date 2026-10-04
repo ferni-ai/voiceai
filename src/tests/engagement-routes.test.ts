@@ -220,9 +220,25 @@ describe('Predictions Routes', () => {
       userId: 'test-user',
       stats: { totalPredictions: 10, predictionAccuracy: 75 },
     });
+    // Scored resolutions carry the actuals they were scored from.
+    const completedAt = new Date().toISOString();
     mockStore.getRecentPredictions.mockResolvedValue([
-      { id: 'pred-1', createdAt: new Date().toISOString(), accuracy: 80 },
-      { id: 'pred-2', createdAt: new Date().toISOString(), accuracy: 70 },
+      {
+        id: 'pred-1',
+        createdAt: completedAt,
+        predictions: { sleep: 8 },
+        actuals: { sleep: 6.4 },
+        accuracy: 80,
+        completedAt,
+      },
+      {
+        id: 'pred-2',
+        createdAt: completedAt,
+        predictions: { sleep: 7 },
+        actuals: { sleep: 10 },
+        accuracy: 70,
+        completedAt,
+      },
     ]);
   });
 
@@ -283,9 +299,8 @@ describe('Predictions Routes', () => {
   describe('POST /api/predictions/:id/actuals', () => {
     it('should update prediction actuals', async () => {
       mockStore.updatePredictionActuals.mockResolvedValue({
-        id: 'pred-123',
-        accuracy: 85,
-        actuals: { sleep: 7.5 },
+        accuracy: 94,
+        metrics: [{ key: 'sleep', predicted: 7, actual: 7.5, accuracy: 94 }],
       });
 
       // Signed in as test-user (the mocked requireUserId reads ?userId=).

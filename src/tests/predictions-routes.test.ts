@@ -145,7 +145,10 @@ describe('Predictions Routes', () => {
     vi.clearAllMocks();
     mockStore.getRecentPredictions.mockResolvedValue(samplePredictions);
     mockStore.getProfile.mockResolvedValue(sampleProfile);
-    mockStore.updatePredictionActuals.mockResolvedValue({ updated: true, accuracy: 90 });
+    mockStore.updatePredictionActuals.mockResolvedValue({
+      accuracy: 90,
+      metrics: [{ key: 'value', predicted: 90, actual: 100, accuracy: 90 }],
+    });
   });
 
   describe('handleGetPredictions', () => {
@@ -209,10 +212,26 @@ describe('Predictions Routes', () => {
     });
 
     it('should calculate average accuracy from completed predictions', async () => {
+      const now = new Date().toISOString();
       const predictions = [
-        { id: '1', accuracy: 80, createdAt: new Date().toISOString() },
-        { id: '2', accuracy: 90, createdAt: new Date().toISOString() },
-        { id: '3', createdAt: new Date().toISOString() }, // no accuracy
+        // Scored resolutions carry the actuals they were scored from.
+        {
+          id: '1',
+          predictions: { m: 10 },
+          actuals: { m: 8 },
+          accuracy: 80,
+          completedAt: now,
+          createdAt: now,
+        },
+        {
+          id: '2',
+          predictions: { m: 10 },
+          actuals: { m: 9 },
+          accuracy: 90,
+          completedAt: now,
+          createdAt: now,
+        },
+        { id: '3', predictions: { m: 10 }, createdAt: now }, // not resolved yet
       ];
       mockStore.getRecentPredictions.mockResolvedValue(predictions);
 
