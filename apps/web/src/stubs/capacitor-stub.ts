@@ -13,7 +13,8 @@
 export const FerniPurchases = {
   initialize: () => Promise.resolve({ success: false, error: 'Not available on web' }),
   getProducts: (_options: { productIds: string[] }) => Promise.resolve({ products: [] }),
-  purchase: (_options: { productId: string }) => Promise.resolve({ success: false, error: 'Not available on web' }),
+  purchase: (_options: { productId: string }) =>
+    Promise.resolve({ success: false, error: 'Not available on web' }),
   restorePurchases: () => Promise.resolve({ success: false, transactions: [] }),
   getActiveSubscriptions: () => Promise.resolve({ subscriptions: [] }),
 };
@@ -35,8 +36,11 @@ export const Browser = {
 export const PushNotifications = {
   requestPermissions: () => Promise.resolve({ receive: 'granted' as const }),
   register: () => Promise.resolve(),
+  unregister: () => Promise.resolve(),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addListener: (_event: string, _callback: (data: any) => void) => ({ remove: () => Promise.resolve() }),
+  addListener: (_event: string, _callback: (data: any) => void) => ({
+    remove: () => Promise.resolve(),
+  }),
   removeAllListeners: () => Promise.resolve(),
   getDeliveredNotifications: () => Promise.resolve({ notifications: [] }),
   removeDeliveredNotifications: () => Promise.resolve(),
@@ -53,7 +57,9 @@ export const LocalNotifications = {
   getPending: () => Promise.resolve({ notifications: [] }),
   cancel: (_options: unknown) => Promise.resolve(),
   registerActionTypes: () => Promise.resolve(),
-  addListener: (_event: string, _callback: (data: unknown) => void) => ({ remove: () => Promise.resolve() }),
+  addListener: (_event: string, _callback: (data: unknown) => void) => ({
+    remove: () => Promise.resolve(),
+  }),
   removeAllListeners: () => Promise.resolve(),
   areEnabled: () => Promise.resolve({ value: false }),
   requestPermissions: () => Promise.resolve({ display: 'granted' as const }),
