@@ -5,7 +5,7 @@
  * A premium experience that rivals Apple and Google.
  */
 
-import type { PersonaId } from './types/persona.js';
+import { isLegendId, isValidPersonaId, type PersonaId, type SpeakerId } from './types/persona.js';
 
 // Theme system
 import {
@@ -1079,18 +1079,9 @@ class VoiceAIApp {
   /**
    * Update the persona theme colors.
    */
-  private updatePersonaTheme(personaId: PersonaId): void {
-    // Use canonical persona IDs (CSS selectors now use these)
-    const validIds = [
-      'ferni',
-      'peter-john',
-      'alex-chen',
-      'maya-santos',
-      'jordan-taylor',
-      'nayan-patel',
-    ];
-    const themePersona = validIds.includes(personaId) ? personaId : 'ferni';
-    setThemePersona(themePersona as Parameters<typeof setThemePersona>[0]);
+  private updatePersonaTheme(personaId: SpeakerId): void {
+    // Canonical ids, and a Legend while one speaks (their colours: setActivePersona)
+    setThemePersona(isValidPersonaId(personaId) || isLegendId(personaId) ? personaId : 'ferni');
   }
 
   /**

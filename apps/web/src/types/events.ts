@@ -6,7 +6,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import type { PersonaId } from './persona.js';
+import type { SpeakerId } from './persona.js';
 
 const log = createLogger('Events');
 
@@ -111,8 +111,8 @@ export interface HandoffEvent {
  * Normalized handoff data after processing.
  */
 export interface NormalizedHandoff {
-  readonly fromPersona: PersonaId;
-  readonly toPersona: PersonaId;
+  readonly fromPersona: SpeakerId;
+  readonly toPersona: SpeakerId;
   readonly direction: HandoffDirection;
 }
 

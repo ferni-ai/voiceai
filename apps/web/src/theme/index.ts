@@ -5,7 +5,7 @@
  * Uses CSS custom properties from the design system.
  */
 
-import { type PersonaId, ALL_PERSONA_IDS } from '../types/persona.js';
+import { type PersonaId, type SpeakerId, ALL_PERSONA_IDS } from '../types/persona.js';
 
 export type ThemeName = 'midnight' | 'zen';
 
@@ -152,7 +152,7 @@ export function watchSystemTheme(callback?: (theme: ThemeName) => void): () => v
 /**
  * Set the active persona (for persona-specific colors)
  */
-export function setPersona(persona: PersonaId): void {
+export function setPersona(persona: SpeakerId): void {
   document.body.setAttribute('data-persona', persona);
 
   // Dispatch custom event
