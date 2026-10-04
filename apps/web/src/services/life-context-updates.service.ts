@@ -309,7 +309,7 @@ async function fetchLifeContext(userId: string): Promise<void> {
     const response = await apiGet<{
       snapshot?: LifeContextSnapshot;
       triggers?: SynthesisTrigger[];
-    }>(`/api/life-context?userId=${userId}`);
+    }>(`/api/life-context`); // the server reads the verified caller
 
     if (!response.ok || !response.data) {
       throw new Error(`HTTP ${response.status}`);
