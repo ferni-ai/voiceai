@@ -16,6 +16,7 @@ import {
   appAccountTokenFor,
   claimAppleTransaction,
   getAppleVerifier,
+  getTransactionOwner,
 } from '../services/billing/apple-signed-data.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { decideActingUser } from './acting-user.js';
@@ -116,27 +117,31 @@ async function verifyReceipt(ctx: RequestContext): Promise<ResponseContext> {
   }
 }
 
+function jsonError(status: number, error: string): ResponseContext {
+  return { status, headers: { 'Content-Type': 'application/json' }, body: { error } };
+}
+
 /**
- * GET /api/apple/status
- * Get subscription status for a user
+ * GET /api/apple/status?transactionId=<originalTransactionId>
+ * Subscription status for a purchase the verified caller owns (claimed via
+ * /api/apple/verify). Anyone else's transaction is 403: its tier and expiry
+ * are that user's billing data. An admin may look up any transaction.
  */
 async function getStatus(ctx: RequestContext): Promise<ResponseContext> {
-  if (!isAppleConfigured()) {
-    return {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Apple IAP not configured' },
-    };
-  }
+  if (!isAppleConfigured()) return jsonError(503, 'Apple IAP not configured');
 
-  const { userId, transactionId } = ctx.query;
+  // ?userId= is rewritten to the verified caller at the door; naming another user needs admin.
+  const actor = decideActingUser(ctx.authUserId, ctx.isAdmin, ctx.query.userId);
+  if (!actor.ok) return jsonError(actor.status, actor.error);
+  const userId = actor.userId;
+  const { transactionId } = ctx.query;
+  if (!transactionId) return jsonError(400, 'transactionId is required');
 
-  if (!userId || !transactionId) {
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId and transactionId are required' },
-    };
+  const ownership = await getTransactionOwner(transactionId);
+  if (ownership === 'unavailable') return jsonError(503, "Purchases can't be checked right now");
+  if (ownership.owner !== userId && !ctx.isAdmin) {
+    log.warn({ userId }, 'Refused subscription status for a transaction the caller does not own');
+    return jsonError(403, 'That purchase belongs to another account');
   }
 
   try {

@@ -11,6 +11,7 @@ import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync } from 'child_process';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { CLI_GEMINI_MODEL } from './gemini-model.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = findProjectRoot();
@@ -40,7 +41,7 @@ async function callGemini(prompt: string, systemPrompt: string): Promise<string>
   if (!apiKey) throw new Error('GOOGLE_API_KEY not set');
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${CLI_GEMINI_MODEL}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

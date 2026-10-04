@@ -31,20 +31,17 @@ import { t } from '../../../i18n/index.js';
 // DESIGN CONSTANTS - Warm, earthy Ferni palette
 // ============================================================================
 
-const ARC_TYPE_LABELS: Record<EmotionalArcsData['arcType'], string> = {
+const ARC_TYPE_LABELS: Record<NonNullable<EmotionalArcsData['arcType']>, string> = {
   'hero-journey': 'Hero Journey',
   'growth': 'Growth Arc',
   'recovery': 'Recovery Path',
   'discovery': 'Discovery Trail',
 };
 
-// Narrative subtitles for each arc type
-const ARC_TYPE_NARRATIVES: Record<EmotionalArcsData['arcType'], string> = {
-  'hero-journey': 'Every step forward is courage',
-  'growth': 'Becoming who you were meant to be',
-  'recovery': 'Finding your way back to yourself',
-  'discovery': 'The joy of uncovering what matters',
-};
+/** What the arc is about: its theme when known, else the arc type's name. */
+function arcLabel(data: EmotionalArcsData): string {
+  return data.theme ?? (data.arcType ? ARC_TYPE_LABELS[data.arcType] : 'Emotional arc');
+}
 
 // Phase-specific colors - earthy and warm
 const PHASE_COLORS: Record<string, string> = {
@@ -137,14 +134,14 @@ function buildWatch(
   container.appendChild(phaseLabel);
 
   // Arc type
-  const metric = createElement('div', 'watch-metric', ARC_TYPE_LABELS[data.arcType]);
+  const metric = createElement('div', 'watch-metric', arcLabel(data));
   container.appendChild(metric);
 
   return {
     element: container,
     type: 'emotional-arcs',
     device: 'watch',
-    ariaLabel: `Emotional arc showing ${data.currentPhase.name} phase of ${ARC_TYPE_LABELS[data.arcType]}`,
+    ariaLabel: `Emotional arc showing ${data.currentPhase.name} phase of ${arcLabel(data)}`,
   };
 }
 
@@ -166,7 +163,7 @@ function buildMobile(
   // Header
   const header = createElement('div', 'viz-header');
   header.appendChild(createElement('h3', '', 'Emotional Arc'));
-  header.appendChild(createElement('p', '', ARC_TYPE_LABELS[data.arcType]));
+  header.appendChild(createElement('p', '', arcLabel(data)));
   container.appendChild(header);
 
   // Current phase card
@@ -319,7 +316,7 @@ function buildMobile(
   // Screen reader summary
   container.appendChild(
     createScreenReaderLabel(
-      `Emotional arc showing ${ARC_TYPE_LABELS[data.arcType]}. Current phase: ${data.currentPhase.name} at ${Math.round(data.currentPhase.position * 100)}% with ${Math.round(data.currentPhase.intensity * 100)}% intensity.`
+      `Emotional arc showing ${arcLabel(data)}. Current phase: ${data.currentPhase.name} at ${Math.round(data.currentPhase.position * 100)}% with ${Math.round(data.currentPhase.intensity * 100)}% intensity.`
     )
   );
 
@@ -356,7 +353,7 @@ function buildTablet(
   // ========== HEADER - Narrative headline ==========
   const header = createElement('div', 'ej-header');
   
-  const eyebrow = createElement('span', 'ej-eyebrow', ARC_TYPE_LABELS[data.arcType].toUpperCase());
+  const eyebrow = createElement('span', 'ej-eyebrow', arcLabel(data).toUpperCase());
   header.appendChild(eyebrow);
   
   const headline = createElement('h3', 'ej-headline', data.currentPhase.name);
@@ -616,7 +613,7 @@ function buildTablet(
   // Screen reader summary
   container.appendChild(
     createScreenReaderLabel(
-      `${ARC_TYPE_LABELS[data.arcType]}: Currently in "${data.currentPhase.name}" phase at ${Math.round(data.currentPhase.position * 100)}% progress. ${phaseDescription} Emotional intensity: ${Math.round(data.currentPhase.intensity * 100)}%.`
+      `${arcLabel(data)}: Currently in "${data.currentPhase.name}" phase at ${Math.round(data.currentPhase.position * 100)}% progress. ${phaseDescription} Emotional intensity: ${Math.round(data.currentPhase.intensity * 100)}%.`
     )
   );
 
@@ -624,7 +621,7 @@ function buildTablet(
     element: container,
     type: 'emotional-arcs',
     device: 'tablet',
-    ariaLabel: `${ARC_TYPE_LABELS[data.arcType]}: ${data.currentPhase.name} - ${phaseDescription}`,
+    ariaLabel: `${arcLabel(data)}: ${data.currentPhase.name} - ${phaseDescription}`,
   };
 }
 
