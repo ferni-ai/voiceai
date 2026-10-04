@@ -4,10 +4,18 @@
  * @module tools/handoff/handoff-tool-naming
  */
 
-import type { Agent } from '../../personas/registry/unified-registry.js';
+/**
+ * What naming needs from a persona: the registry's Agent, or a static stand-in.
+ * Structural, so the registry (which names its agents with this) needn't be imported.
+ */
+export interface NameableAgent {
+  readonly id: string;
+  readonly name: string;
+  readonly manifest?: { readonly team?: { readonly membership?: string } };
+}
 
 /** 'Peter John' -> 'Peter'; 'Peter Lynch' (full) -> 'PeterLynch'. Letters only. */
-function nameForTool(agent: Agent, full: boolean): string {
+function nameForTool(agent: NameableAgent, full: boolean): string {
   const name = full ? agent.name : agent.name.split(' ')[0];
   return name.replace(/[^a-zA-Z]/g, '');
 }
@@ -19,9 +27,12 @@ function nameForTool(agent: Agent, full: boolean): string {
  * it and the other is named in full (handoffToPeterLynch). Before this, both
  * were handoffToPeter and whichever was built last took the name.
  */
-export function assignHandoffToolNames(agents: Agent[], coordinator: Agent): Map<string, string> {
-  const membership = (a: Agent): string | undefined => a.manifest?.team?.membership;
-  const byShort = new Map<string, Agent[]>();
+export function assignHandoffToolNames<T extends NameableAgent>(
+  agents: T[],
+  coordinator: T
+): Map<string, string> {
+  const membership = (a: T): string | undefined => a.manifest?.team?.membership;
+  const byShort = new Map<string, T[]>();
   for (const agent of agents) {
     const short = nameForTool(agent, false);
     byShort.set(short, [...(byShort.get(short) ?? []), agent]);
@@ -40,7 +51,10 @@ export function assignHandoffToolNames(agents: Agent[], coordinator: Agent): Map
 }
 
 /** What the agent does, for the tool description: never "undefined". */
-export function specialtyOf(agent: Agent): string | undefined {
+export function specialtyOf(agent: {
+  readonly roleDescription?: string;
+  readonly description?: string;
+}): string | undefined {
   const text = [agent.roleDescription, agent.description].find(
     (t): t is string => typeof t === 'string' && t.trim().length > 0
   );
