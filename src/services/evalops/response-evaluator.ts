@@ -180,8 +180,14 @@ async function callEvaluatorLLM(prompt: string, config: EvaluatorConfig): Promis
   const apiKey = config.apiKey || process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
-    log.warn('No API key configured for evaluator - using mock response');
-    return getMockEvaluationResponse();
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    if (isDevelopment) {
+      log.warn('No API key configured for evaluator - using mock response for development');
+      return getMockEvaluationResponse();
+    }
+
+    log.error('No API key configured for evaluator in production');
+    throw new Error('Response evaluation service is not available: API keys are not configured. Contact support to enable quality assessment.');
   }
 
   try {

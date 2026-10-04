@@ -450,16 +450,22 @@ async function callCartesiaCloneAPI(
     throw new Error('Rate limited - voice clone operation. Please try again in a few seconds.');
   }
 
-  // If no API key, return simulated response for development
+  // If no API key, reject with honest error
   if (!CARTESIA_API_KEY) {
-    log.warn('CARTESIA_API_KEY not set, using simulated voice clone');
-    return {
-      id: `voice_sim_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-      name,
-      description: `Custom voice for ${name} (simulated)`,
-      is_public: false,
-      created_at: new Date().toISOString(),
-    };
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    if (isDevelopment) {
+      log.warn('CARTESIA_API_KEY not set, using simulated voice clone for development');
+      return {
+        id: `voice_sim_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        name,
+        description: `Custom voice for ${name} (simulated)`,
+        is_public: false,
+        created_at: new Date().toISOString(),
+      };
+    }
+
+    log.error('CARTESIA_API_KEY not configured in production');
+    throw new Error('Voice cloning service is not available: Cartesia API key is not configured. Contact support to enable this feature.');
   }
 
   try {
@@ -545,13 +551,19 @@ export async function generateVoicePreview(
     throw new Error('Rate limited - TTS preview. Please try again shortly.');
   }
 
-  // If no API key, return simulated response
+  // If no API key, reject with honest error
   if (!CARTESIA_API_KEY) {
-    log.warn('CARTESIA_API_KEY not set, returning simulated preview');
-    return {
-      audioUrl: `preview://${voiceId}/${Date.now()}.mp3`,
-      durationSeconds: text.length * 0.05,
-    };
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    if (isDevelopment) {
+      log.warn('CARTESIA_API_KEY not set, returning simulated preview for development');
+      return {
+        audioUrl: `preview://${voiceId}/${Date.now()}.mp3`,
+        durationSeconds: text.length * 0.05,
+      };
+    }
+
+    log.error('CARTESIA_API_KEY not configured in production');
+    throw new Error('Voice preview service is not available: Cartesia API key is not configured. Contact support to enable this feature.');
   }
 
   try {

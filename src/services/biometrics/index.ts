@@ -641,8 +641,15 @@ export async function syncBiometrics(userId: string): Promise<BiometricSnapshot 
         snapshot = await fetchTerraData(userId, user.accessToken);
         break;
       default:
-        // HealthKit/Fitbit native - use mock for now (requires companion iOS app)
-        snapshot = createMockSnapshot(userId, user.platform);
+        // HealthKit/Fitbit native - not yet implemented
+        const isDevelopment = process.env.NODE_ENV !== 'production';
+        if (isDevelopment) {
+          log.warn({ userId, platform: user.platform }, 'Native platform not implemented, using mock data for development');
+          snapshot = createMockSnapshot(userId, user.platform);
+        } else {
+          log.error({ userId, platform: user.platform }, 'Native platform not implemented in production');
+          throw new Error(`Biometrics platform "${user.platform}" is not yet supported. Please configure a supported platform (Google Fit, Oura, Whoop, or Terra).`);
+        }
     }
 
     // Update state
