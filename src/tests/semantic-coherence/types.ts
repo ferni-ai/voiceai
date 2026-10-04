@@ -82,7 +82,7 @@ export interface ExportMetadata {
  */
 export interface SemanticTestConfig {
   /** LLM model to use for evaluation */
-  model: 'gemini-2.0-flash' | 'gpt-4o' | 'claude-sonnet';
+  model: 'gemini-3.5-flash' | 'gpt-4o' | 'claude-sonnet';
   /** Minimum coherence score to pass (0-100) */
   passingThreshold: number;
   /** Categories to include */

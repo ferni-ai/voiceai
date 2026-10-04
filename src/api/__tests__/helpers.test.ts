@@ -128,6 +128,18 @@ describe('API Helpers', () => {
       expect(result).toBe('dev-user-123');
     });
 
+    it.each([['staging'], ['test'], [undefined]])(
+      'should NOT return dev user when NODE_ENV is %s (only development allows it)',
+      (nodeEnv) => {
+        if (nodeEnv === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = nodeEnv;
+        const req = createMockRequest({});
+        const parsedUrl = new URL('http://localhost/?admin_key=dev-mode');
+
+        expect(getUserId(req, parsedUrl)).toBeNull();
+      }
+    );
+
     it('should NOT return dev user in production mode', () => {
       process.env.NODE_ENV = 'production';
       const req = createMockRequest({});

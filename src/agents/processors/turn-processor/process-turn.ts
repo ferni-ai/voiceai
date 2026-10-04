@@ -35,9 +35,7 @@ import {
 } from '../../../services/intelligence-publisher.js';
 import { updateUserContextForHandoff } from '../../../tools/handoff/index.js';
 import { safeFireAndForget } from '../../../utils/safe-fire-and-forget.js';
-import {
-  processConversationForLearning,
-} from '../../../intelligence/predictive/index.js';
+import { processConversationForLearning } from '../../../intelligence/predictive/index.js';
 
 import { shouldUseIntelligentRouting } from '../../../tools/semantic-router/advanced/intelligent/index.js';
 import {
@@ -70,16 +68,11 @@ import {
   recordTopicCovered,
   loadPreviousFollowUps,
 } from '../../../intelligence/conversation-planner.js';
-import {
-  loadUserModel,
-  updateFromConversation,
-} from '../../../intelligence/unified-user-model.js';
+import { loadUserModel, updateFromConversation } from '../../../intelligence/unified-user-model.js';
 
 import { getContextOutcomeTracker } from '../../../intelligence/context-outcome-tracker.js';
 
-import {
-  selectInjections as smartSelectInjections,
-} from '../../../intelligence/context-routing/index.js';
+import { selectInjections as smartSelectInjections } from '../../../intelligence/context-routing/index.js';
 
 import { getTimingState } from '../../../intelligence/context-builders/awareness/system-state-awareness.js';
 import { applyTimingAwareDegradation } from '../timing-aware-injection.js';
@@ -111,16 +104,14 @@ import { createTurnTrace } from '../../shared/dev-telemetry.js';
 import { initializeVoiceTracking, recordVoiceTurn } from '../../../intelligence/voice-signals.js';
 import { analyzeAndPreload } from '../../shared/performance/speculative-preloading.js';
 
-import {
-  recordMemoryResponse,
-} from '../../../intelligence/memory-intelligence/turn-processor-integration.js';
+import { recordMemoryResponse } from '../../../intelligence/memory-intelligence/turn-processor-integration.js';
 
 import {
   getNextResonanceCheck,
   processUserResponseForResonance,
 } from '../../integrations/better-than-human-integration.js';
 
-import { detectCrisis, guardPreResponse } from '../../safety/crisis-guard.js';
+import { crisisSummary, hasCrisisSignal, startTurnCrisis } from './turn-crisis.js';
 
 import { fastCapture } from '../../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../../services/realtime-persistence.js';
@@ -198,23 +189,16 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   }
 
   // SAFETY FIRST: Crisis detection runs BEFORE anything else
-  const voiceEmotionForCrisis = userData?.voiceEmotion
-    ? {
-        primary: userData.voiceEmotion.primary || 'neutral',
-        intensity: userData.voiceEmotion.confidence || 0.5,
-        confidence: userData.voiceEmotion.confidence,
-      }
-    : undefined;
+  // The classifier's verdict is awaited (turn-crisis.ts) before any LLM bypass and the result.
+  const turnCrisis = startTurnCrisis(userText, userData);
+  const crisisResult = turnCrisis.patterns;
 
-  const crisisResult = detectCrisis(userText, voiceEmotionForCrisis);
-  const preResponseGuard = guardPreResponse(userText, voiceEmotionForCrisis);
-
-  if (crisisResult.isCrisis || crisisResult.severity > 0.3) {
+  if (hasCrisisSignal(crisisResult)) {
     diag.state('🚨 Crisis detection result', {
       isCrisis: crisisResult.isCrisis,
       severity: crisisResult.severity,
       indicators: crisisResult.indicators,
-      shouldOverride: preResponseGuard.shouldBlock,
+      shouldOverride: turnCrisis.shouldBlock,
     });
 
     if (userData.userId) {
@@ -242,14 +226,19 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   }
 
   // USER CORRECTIONS: Auto-detect and record when user corrects Ferni (fire-and-forget)
-  if (services.userId && userText.trim().length > 0 && (userData.lastAgentResponse?.length ?? 0) > 0) {
+  if (
+    services.userId &&
+    userText.trim().length > 0 &&
+    (userData.lastAgentResponse?.length ?? 0) > 0
+  ) {
     const uid = services.userId;
     const prevFerni = userData.lastAgentResponse as string;
     const personaId = ctx.persona?.id;
     safeFireAndForget(
       async () => {
         try {
-          const { userCorrections } = await import('../../../services/superhuman/user-corrections.js');
+          const { userCorrections } =
+            await import('../../../services/superhuman/user-corrections.js');
           await userCorrections.autoRecord(uid, userText, prevFerni, personaId);
         } catch {
           // Non-blocking
@@ -331,11 +320,17 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       const recentTranscripts = userData.recentTranscripts || [];
       const avgLen =
         recentTranscripts.length > 1
-          ? recentTranscripts.slice(0, -1).reduce((s, t) => s + t.length, 0) / (recentTranscripts.length - 1)
+          ? recentTranscripts.slice(0, -1).reduce((s, t) => s + t.length, 0) /
+            (recentTranscripts.length - 1)
           : 100;
       const outcome: TurnOutcome = {
         userContinued: true,
-        responseEngagement: userText.length > avgLen * 1.3 ? 'high' : userText.length > avgLen * 0.7 ? 'medium' : 'low',
+        responseEngagement:
+          userText.length > avgLen * 1.3
+            ? 'high'
+            : userText.length > avgLen * 0.7
+              ? 'medium'
+              : 'low',
         sentimentDelta: (analysisResult.analysis.emotion?.intensity || 0.5) - 0.5,
         wasTopicShift: analysisResult.currentTopic !== userData.lastTopic,
         positiveFeedback: /thank|great|helpful|awesome|love|perfect|exactly/i.test(userText),
@@ -564,7 +559,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     safeFireAndForget(
       async () => {
         try {
-          const { captureTurn, isKnowledgeCaptureReady } =
+          const { queueTurnCapture, isKnowledgeCaptureReady } =
             await import('../../../memory/knowledge-graph/index.js');
 
           if (!isKnowledgeCaptureReady()) return;
@@ -576,7 +571,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
             return 0;
           };
 
-          const captureResult = await captureTurn({
+          // Runs with the next few turns of the session (knowledge-capture-batch.ts)
+          queueTurnCapture({
             userId: services.userId!,
             sessionId: services.sessionId,
             turnNumber: turnCount,
@@ -592,16 +588,6 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
             topic: analysisResult?.analysis?.topics?.detected?.[0],
             recentContext: undefined,
           });
-
-          if (captureResult.entities.created > 0 || captureResult.entities.updated > 0) {
-            diag.state('🧠 Knowledge graph updated', {
-              entitiesCreated: captureResult.entities.created,
-              entitiesUpdated: captureResult.entities.updated,
-              factsCount: captureResult.facts.count,
-              relationshipsCount: captureResult.relationships.count,
-              timeMs: captureResult.metrics.totalTimeMs,
-            });
-          }
         } catch (error) {
           diag.debug('Knowledge graph capture failed (non-blocking)', { error: String(error) });
         }
@@ -734,7 +720,10 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     };
 
     if (isIntelligentRouterInitialized() && shouldUseIntelligentRouting(routingUserId)) {
-      diag.debug('🧠 Using intelligent routing (A/B test)', { userId: routingUserId, mode: 'intelligent' });
+      diag.debug('🧠 Using intelligent routing (A/B test)', {
+        userId: routingUserId,
+        mode: 'intelligent',
+      });
       semanticRoutingPromise = startIntelligentRouting(userText, routingContext);
     } else {
       semanticRoutingPromise = startSemanticRouting(userText, routingContext);
@@ -746,8 +735,12 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   if (ftisRoutingPromise) {
     const ftisResult = await ftisRoutingPromise;
-
-    if (ftisResult.bypassLLM && ftisResult.toolResult) {
+    // Never bypass the LLM on a crisis turn: the bypass result carries no crisis.
+    if (
+      ftisResult.bypassLLM &&
+      ftisResult.toolResult &&
+      !hasCrisisSignal(await turnCrisis.resolve())
+    ) {
       diag.state('🧠 FTIS: Direct tool execution complete', {
         tool: ftisResult.toolResult.toolId,
         confidence: ftisResult.classification?.confidence,
@@ -813,9 +806,10 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // SEMANTIC SHORT-CIRCUIT
   if (semanticRoutingPromise) {
+    const routedCrisis = await turnCrisis.resolve();
     const shortCircuitResult = await checkSemanticShortCircuit(semanticRoutingPromise, {
-      crisisDetected: crisisResult.isCrisis,
-      crisisSeverity: crisisResult.severity,
+      crisisDetected: routedCrisis.isCrisis,
+      crisisSeverity: routedCrisis.severity,
       analysisResult,
       ctx,
     });
@@ -1490,6 +1484,8 @@ If they're just conversing, respond naturally without the tool call.`,
     }
   }
 
+  const finalCrisis = await turnCrisis.resolve();
+
   // DEV TELEMETRY: Complete trace
   trace?.complete();
 
@@ -1515,13 +1511,7 @@ If they're just conversing, respond naturally without the tool call.`,
     easterEgg,
     valueCapture: valueCaptureResult,
     advancedHumanization,
-    crisis: {
-      isCrisis: crisisResult.isCrisis,
-      severity: crisisResult.severity,
-      indicators: crisisResult.indicators,
-      suggestedResponse: crisisResult.suggestedResponse,
-      shouldOverrideLLM: preResponseGuard.shouldBlock,
-    },
+    crisis: crisisSummary(finalCrisis),
     trustContext: trustContextSummary,
     semanticRouting,
     resonanceCheck,

@@ -391,7 +391,7 @@ export class GeminiTestHarness {
 
       // Make API call
       const response = await genai.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-3.5-flash',
         contents: messages,
         config: {
           temperature: this.config.temperature,
