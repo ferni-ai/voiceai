@@ -4,7 +4,7 @@
  *
  * RECOMMENDED: Use the Ferni CLI instead of calling this directly:
  *   ferni deploy            # Interactive menu
- *   ferni deploy gce        # Voice agent to GCE (WebRTC/UDP)
+ *   ferni deploy agent      # Voice agent to LiveKit Cloud (dev; --prod for production)
  *   ferni deploy ui         # UI backend to Cloud Run
  *   ferni deploy frontend   # Frontend to Firebase
  *   ferni deploy all        # Deploy everything
@@ -13,17 +13,25 @@
  */
 
 import { findProjectRoot } from '../../utils/project-root.js';
+import {
+  LIVEKIT_AGENTS,
+  isLkInstalled,
+  lkAgentArgs,
+  parseAgentStatus,
+  prepareAgentDockerfile,
+  resolveAgentEnv,
+  runLkAgent,
+  type AgentEnv,
+} from '../../utils/livekit-agent.js';
 import { ChildProcess, execSync, spawn } from 'child_process';
-import { createWriteStream, existsSync, mkdirSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { createWriteStream, existsSync, mkdirSync, rmSync } from 'fs';
+import { join } from 'path';
 import { healthCheck, smokeTestFrontend } from './url-checks.js';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = findProjectRoot();
 
 const CONFIG = {
@@ -31,18 +39,12 @@ const CONFIG = {
   projectId: process.env.GCP_PROJECT_ID || 'johnb-2025',
   region: process.env.GCP_REGION || 'us-central1',
 
-  // Service names
+  // Cloud Run services (the voice agent is on LiveKit Cloud, see deployAgent)
   services: {
-    agent: process.env.AGENT_SERVICE_NAME || 'voiceai-agent',
     ui: process.env.UI_SERVICE_NAME || 'john-bogle-ui',
   },
 
-  // Build files
-  cloudbuildAgent: 'cloudbuild.yaml',
   cloudbuildUi: 'cloudbuild-ui.yaml',
-
-  // Persona
-  personaId: process.env.PERSONA_ID || 'ferni',
 };
 
 // ============================================================================
@@ -182,54 +184,6 @@ function removeTag(serviceName: string, tag: string): void {
   }
 }
 
-/**
- * Delete old revisions that no longer receive traffic
- * 
- * CRITICAL: This prevents "zombie" LiveKit workers!
- * Old Cloud Run revisions with min-instances>0 keep running even with 0% traffic.
- * They stay registered with LiveKit but have stale connections.
- * LiveKit dispatches jobs to ALL registered workers, including these zombies.
- * Result: Jobs fail because the old workers can't actually process them.
- */
-function cleanupOldRevisions(serviceName: string, keepLatest: number = 2): void {
-  try {
-    // Get all revisions sorted by creation time (newest first)
-    const revisionList = exec(
-      `gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --format='value(name)' --sort-by='~metadata.creationTimestamp'`,
-      { silent: true }
-    ).trim();
-
-    if (!revisionList) return;
-
-    const revisions = revisionList.split('\n').filter(Boolean);
-    
-    // Keep the latest N revisions, delete the rest
-    const toDelete = revisions.slice(keepLatest);
-    
-    if (toDelete.length === 0) {
-      log.info(`No old revisions to clean up (${revisions.length} total, keeping ${keepLatest})`);
-      return;
-    }
-
-    log.info(`Cleaning up ${toDelete.length} old revision(s) to prevent zombie LiveKit workers...`);
-    
-    for (const revision of toDelete) {
-      try {
-        exec(
-          `gcloud run revisions delete ${revision} --region=${CONFIG.region} --quiet`,
-          { silent: true }
-        );
-        log.success(`  Deleted: ${revision}`);
-      } catch (err) {
-        // Revision might have traffic or be in use
-        log.warn(`  Could not delete ${revision} (may still have traffic)`);
-      }
-    }
-  } catch (err) {
-    log.warn('Could not clean up old revisions (non-fatal)');
-  }
-}
-
 // ============================================================================
 // DEPLOYMENT FUNCTIONS
 // ============================================================================
@@ -240,6 +194,7 @@ interface DeployOptions {
   verbose: boolean;
   async: boolean;
   skipGitCheck: boolean;
+  agentEnv: AgentEnv;
 }
 
 // ============================================================================
@@ -290,326 +245,54 @@ function spawnAsync(cmd: string, logFile: string): ChildProcess {
   return child;
 }
 
+/**
+ * The voice agent runs on LiveKit Cloud agents, never Cloud Run: Cloud Run has
+ * no UDP, and a worker there steals jobs from the real agent (2026-02-24
+ * outage). Production must be chosen with --prod, so a bare deploy hits dev.
+ */
 async function deployAgent(options: DeployOptions): Promise<boolean> {
-  log.step('DEPLOYING VOICE AGENT (BLUE-GREEN)');
+  const target = LIVEKIT_AGENTS[options.agentEnv];
+  log.step(`DEPLOYING VOICE AGENT TO LIVEKIT CLOUD (${target.project}, ${target.agentId})`);
 
+  const deployCmd = `lk ${lkAgentArgs('deploy', target).join(' ')}`;
   if (options.dryRun) {
-    log.info(`Would build: gcloud builds submit --config ${CONFIG.cloudbuildAgent} .`);
-    log.info(`Would deploy with --no-traffic --tag=green`);
-    log.info(`Would health check green revision`);
-    log.info(`Would shift 100% traffic if healthy`);
+    log.info('Would copy docker/Dockerfile.agent to ./Dockerfile (lk builds ./Dockerfile)');
+    log.info(`Would run: ${deployCmd}`);
+    log.info(`Would check: lk ${lkAgentArgs('status', target).join(' ')}`);
     return true;
   }
 
-  const serviceName = CONFIG.services.agent;
-
-  // Build secrets string
-  const secrets = [
-    'GOOGLE_API_KEY=google-api-key:latest',
-    'CARTESIA_API_KEY=cartesia-api-key:latest',
-    'LIVEKIT_URL=livekit-url:latest',
-    'LIVEKIT_API_KEY=livekit-api-key:latest',
-    'LIVEKIT_API_SECRET=livekit-api-secret:latest',
-    // Security secrets (required in production)
-    'ADMIN_KEY=admin-api-key:latest',
-    'LOG_HASH_SECRET=log-hash-secret:latest',
-    'EVALOPS_ADMIN_KEY=evalops-admin-key:latest',
-    // Redis for persistent rate limiting
-    'REDIS_URL=redis-url:latest',
-    // Spotify (for music playback)
-    'SPOTIFY_CLIENT_ID=spotify-client-id:latest',
-    'SPOTIFY_CLIENT_SECRET=spotify-client-secret:latest',
-    'SPOTIFY_REFRESH_TOKEN=spotify-refresh-token:latest',
-  ];
-
-  // Check for optional secrets (only in sync mode - async skips this)
-  if (!options.async) {
-    const optionalSecrets = [
-      ['alpha-vantage-key', 'ALPHA_VANTAGE_API_KEY'],
-      ['finnhub-api-key', 'FINNHUB_API_KEY'],
-      ['sendgrid-api-key', 'SENDGRID_API_KEY'],
-      ['fred-api-key', 'FRED_API_KEY'],
-    ];
-
-    for (const [secretName, envVar] of optionalSecrets) {
-      try {
-        exec(`gcloud secrets describe ${secretName}`, { silent: true });
-        secrets.push(`${envVar}=${secretName}:latest`);
-      } catch {
-        // Secret doesn't exist, skip
-      }
-    }
+  if (!isLkInstalled()) {
+    log.error('The LiveKit CLI (lk) is required: brew install livekit-cli');
+    return false;
   }
-
-  const buildCmd = `gcloud builds submit --config ${CONFIG.cloudbuildAgent} . --quiet`;
-
-  // Deploy with --no-traffic and --tag=green for blue-green
-  const deployCmd = [
-    `gcloud run deploy ${serviceName}`,
-    `--image gcr.io/${CONFIG.projectId}/ferni-voice-agent:latest`,
-    `--region ${CONFIG.region}`,
-    '--platform managed',
-    '--allow-unauthenticated',
-    '--memory 4Gi',
-    '--cpu 4',
-    '--cpu-boost',
-    '--timeout 3600',
-    '--concurrency 10',
-    '--min-instances 1',
-    '--max-instances 50',
-    '--vpc-connector ferni-redis-connector',
-    `--set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app,https://developers.ferni.ai,https://marketplace.ferni.ai,https://www.ferni.ai@BYPASS_TEAM_UNLOCKS=true"`,
-    `--set-secrets "${secrets.join(',')}"`,
-    '--no-traffic', // Blue-green: deploy without receiving traffic
-    '--tag green', // Tag for easy identification
-    '--quiet',
-  ].join(' ');
-
   if (options.async) {
-    // Async mode: Build script that does full blue-green
-    const logFile = getLogFilePath('agent');
-    const secretsStr = secrets.join(',');
-    const blueGreenScript = `
-      set -e
-      echo "🔵 BLUE-GREEN DEPLOYMENT: ${serviceName}"
-      echo ""
-      echo "Step 1/5: Building container image..."
-      ${buildCmd}
-
-      echo ""
-      echo "Step 2/5: Deploying to Cloud Run (no traffic)..."
-      gcloud run deploy ${serviceName} \\
-        --image gcr.io/${CONFIG.projectId}/ferni-voice-agent:latest \\
-        --region ${CONFIG.region} \\
-        --platform managed \\
-        --execution-environment gen2 \\
-        --allow-unauthenticated \\
-        --memory 4Gi \\
-        --cpu 4 \\
-        --cpu-boost \\
-        --timeout 3600 \\
-        --concurrency 10 \\
-        --min-instances 1 \\
-        --max-instances 50 \\
-        --vpc-connector ferni-redis-connector \\
-        --set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app,https://developers.ferni.ai,https://marketplace.ferni.ai,https://www.ferni.ai@BYPASS_TEAM_UNLOCKS=true" \\
-        --set-secrets "${secretsStr}" \\
-        --no-traffic \\
-        --tag green \\
-        --quiet
-
-      echo ""
-      echo "Step 3/5: Liveness check (server responding)..."
-      REVISION=\$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --limit=1 --format='value(name)')
-      GREEN_URL="https://green---${serviceName}-1031920444452.${CONFIG.region}.run.app"
-
-      MAX_RETRIES=10
-      RETRY_DELAY=5
-
-      for i in \$(seq 1 \$MAX_RETRIES); do
-        echo "  Liveness check attempt \$i/\$MAX_RETRIES..."
-        HTTP_CODE=\$(curl -s -o /dev/null -w "%{http_code}" "\$GREEN_URL/health" --max-time 10 || echo "000")
-
-        if [ "\$HTTP_CODE" = "200" ]; then
-          echo "  ✅ Liveness check passed (HTTP \$HTTP_CODE)"
-          break
-        fi
-
-        if [ "\$i" = "\$MAX_RETRIES" ]; then
-          echo "  ❌ Liveness check failed after \$MAX_RETRIES attempts"
-          echo "  Keeping traffic on previous revision"
-          gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
-          exit 1
-        fi
-
-        echo "  ⏳ Waiting \$RETRY_DELAY seconds before retry (HTTP \$HTTP_CODE)..."
-        sleep \$RETRY_DELAY
-      done
-
-      echo ""
-      echo "Step 4/5: Worker readiness check (waiting for workers to accept calls)..."
-      echo "  This ensures zero-downtime - traffic shifts only when workers are ready"
-      
-      READY_MAX_RETRIES=30
-      READY_RETRY_DELAY=10
-      
-      for i in \$(seq 1 \$READY_MAX_RETRIES); do
-        echo "  Readiness check attempt \$i/\$READY_MAX_RETRIES..."
-        
-        # Get detailed readiness status
-        READY_RESPONSE=\$(curl -s "\$GREEN_URL/health/ready" --max-time 15 || echo '{"ready":false}')
-        
-        # Simple string check - if response contains "ready":true, we're good
-        if echo "\$READY_RESPONSE" | grep -q '"ready":true'; then
-          echo "  ✅ Workers ready!"
-          break
-        fi
-
-        if [ "\$i" = "\$READY_MAX_RETRIES" ]; then
-          echo "  ❌ Workers not ready after \$READY_MAX_RETRIES attempts (5 min timeout)"
-          echo "  Last response: \$READY_RESPONSE"
-          echo "  Keeping traffic on previous revision"
-          gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
-          exit 1
-        fi
-
-        echo "  ⏳ Workers initializing... (retry in \$READY_RETRY_DELAY s)"
-        sleep \$READY_RETRY_DELAY
-      done
-
-      echo ""
-      echo "Step 5/6: Shifting 100% traffic to ready revision..."
-      gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --to-revisions=\$REVISION=100 --quiet
-      SERVICE_URL=\$(gcloud run services describe ${serviceName} --region=${CONFIG.region} --format='value(status.url)')
-
-      # Clean up green tag
-      gcloud run services update-traffic ${serviceName} --region=${CONFIG.region} --remove-tags=green --quiet || true
-
-      echo ""
-      echo "Step 6/6: Cleaning up old revisions (CRITICAL for LiveKit voice agents)..."
-      echo "  ⚠️  Old revisions with min-instances>0 stay running even with 0% traffic"
-      echo "  ⚠️  They register with LiveKit but have stale WebSocket connections"
-      echo "  ⚠️  LiveKit dispatches jobs to ALL workers, including these zombies"
-      echo "  ⚠️  Result: Jobs fail because old workers can't actually process them"
-      echo ""
-      
-      # Wait a moment for traffic to fully shift
-      sleep 5
-      
-      # Get the current revision that has 100% traffic
-      CURRENT_REVISION=\$(gcloud run services describe ${serviceName} --region=${CONFIG.region} --format='value(status.traffic[0].revisionName)')
-      echo "  Current active revision: \$CURRENT_REVISION"
-      
-      # Delete ALL other revisions - we only want ONE revision running for voice agents
-      ALL_REVISIONS=\$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --format='value(name)')
-      DELETED_COUNT=0
-      
-      for rev in \$ALL_REVISIONS; do
-        if [ "\$rev" != "\$CURRENT_REVISION" ]; then
-          echo "  Deleting zombie revision: \$rev"
-          if gcloud run revisions delete \$rev --region=${CONFIG.region} --quiet 2>/dev/null; then
-            DELETED_COUNT=\$((DELETED_COUNT + 1))
-          else
-            echo "    (could not delete \$rev - may be the 'latest' revision marker)"
-          fi
-        fi
-      done
-      
-      if [ \$DELETED_COUNT -gt 0 ]; then
-        echo "  ✅ Deleted \$DELETED_COUNT zombie revision(s)"
-      else
-        echo "  ✅ No zombie revisions found"
-      fi
-      
-      # Verify only one revision is running
-      REVISION_COUNT=\$(gcloud run revisions list --service=${serviceName} --region=${CONFIG.region} --format='value(name)' | wc -l | tr -d ' ')
-      echo ""
-      echo "  📊 Revision count: \$REVISION_COUNT (should be 1-2)"
-      
-      if [ \$REVISION_COUNT -gt 2 ]; then
-        echo "  ⚠️  WARNING: Multiple revisions still running. May need manual cleanup:"
-        echo "     gcloud run revisions list --service=${serviceName} --region=${CONFIG.region}"
-      fi
-
-      echo ""
-      echo "🟢 ZERO-DOWNTIME DEPLOYMENT COMPLETE"
-      echo "  Revision: \$REVISION"
-      echo "  URL: \$SERVICE_URL"
-      echo "  Status: Workers verified ready before traffic shift"
-      echo "  Zombies: Cleaned up"
-    `;
-
-    log.info('Starting async blue-green deployment...');
-    spawnAsync(blueGreenScript, logFile);
-
-    console.log(`
-${colors.green}✓${colors.reset} Blue-green deployment started in background!
-
-${colors.bold}What's happening:${colors.reset}
-  1. Build container image
-  2. Deploy new revision (no traffic)
-  3. Liveness check (server responding)
-  4. Readiness check (workers accepting calls) ← NEW!
-  5. Shift traffic only when workers ready
-  6. Zero-downtime guaranteed!
-
-${colors.bold}Monitor progress:${colors.reset}
-  ${colors.cyan}tail -f ${logFile}${colors.reset}
-
-${colors.bold}Or check Cloud Build:${colors.reset}
-  ${colors.cyan}gcloud builds list --limit=1${colors.reset}
-`);
-    return true;
+    log.warn('--async is not supported for the agent; deploying in the foreground');
   }
 
-  // Synchronous blue-green deployment
-  log.info('Building container image...');
-  exec(buildCmd);
-
-  log.info('Deploying to Cloud Run (no traffic)...');
-  exec(deployCmd);
-
-  // Get the new revision name
-  const newRevision = getLatestRevision(serviceName);
-  if (!newRevision) {
-    log.error('Failed to get new revision name');
-    return false;
-  }
-  log.info(`New revision: ${newRevision}`);
-
-  // Step 1: Liveness check - server is responding
-  log.info('Liveness check (server responding)...');
-  const greenUrl = getRevisionUrlByTag(serviceName, 'green');
-  const healthUrl = `${greenUrl}/health`;
-  log.info(`Checking: ${healthUrl}`);
-
-  const health = await healthCheck(healthUrl, { maxRetries: 10, retryDelay: 5000 });
-
-  if (!health.healthy) {
-    log.error(`Liveness check failed: ${health.error}`);
-    log.warn('Keeping traffic on previous revision');
-    removeTag(serviceName, 'green');
+  const dockerfile = prepareAgentDockerfile(PROJECT_ROOT);
+  if (!dockerfile.ok) {
+    log.error(dockerfile.reason);
     return false;
   }
 
-  log.success(`Liveness check passed (HTTP ${health.statusCode})`);
-
-  // Step 2: Readiness check - workers can accept connections
-  log.info('Readiness check (waiting for workers to accept calls)...');
-  const readyUrl = `${greenUrl}/health/ready`;
-  log.info(`Checking: ${readyUrl}`);
-
-  // More retries for readiness - workers can take time to initialize
-  const readiness = await healthCheck(readyUrl, { maxRetries: 30, retryDelay: 10000 });
-
-  if (!readiness.healthy) {
-    log.error(`Readiness check failed: ${readiness.error}`);
-    log.warn('Workers not ready after 5 minutes - keeping traffic on previous revision');
-    removeTag(serviceName, 'green');
-    return false;
+  try {
+    log.info(`Running: ${deployCmd}`);
+    if (!runLkAgent(PROJECT_ROOT, 'deploy', target).ok) {
+      log.error(
+        `lk agent deploy failed. Logs: ferni logs agent${options.agentEnv === 'prod' ? '' : ' --dev'}`
+      );
+      return false;
+    }
+  } finally {
+    if (dockerfile.created) rmSync(join(PROJECT_ROOT, 'Dockerfile'));
   }
 
-  log.success('Workers ready to accept calls');
-
-  // Step 3: Shift traffic - only now that workers are verified ready
-  log.info('Shifting 100% traffic to ready revision...');
-  if (!shiftTraffic(serviceName, newRevision)) {
-    log.error('Failed to shift traffic');
-    return false;
-  }
-
-  // Clean up green tag
-  removeTag(serviceName, 'green');
-
-  // CRITICAL: Delete old revisions to prevent zombie LiveKit workers
-  // Old revisions with min-instances>0 keep running and stay registered with LiveKit
-  // but have stale WebSocket connections that can't actually process jobs
-  log.info('Cleaning up old revisions (prevents zombie LiveKit workers)...');
-  cleanupOldRevisions(serviceName, 2);
-
-  const url = getServiceUrl(serviceName);
-  log.success(`Zero-downtime deployment complete: ${url}`);
-  log.info('Workers verified ready before traffic shift - no connection issues!');
+  const status = parseAgentStatus(
+    runLkAgent(PROJECT_ROOT, 'status', target, { capture: true }).output,
+    target.agentId
+  );
+  log.success(`Agent ${target.agentId} status: ${status ?? 'unknown (run lk agent status)'}`);
   return true;
 }
 
@@ -859,7 +542,10 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
     const deletePreviewChannel = () => {
       log.info('Cleaning up preview channel...');
       try {
-        exec(`cd ${frontendDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`, { silent: true });
+        exec(
+          `cd ${frontendDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`,
+          { silent: true }
+        );
       } catch {
         // Ignore cleanup errors
       }
@@ -895,7 +581,10 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
   // Clean up preview channel
   if (previewUrl) {
     try {
-      exec(`cd ${frontendDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`, { silent: true });
+      exec(
+        `cd ${frontendDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`,
+        { silent: true }
+      );
     } catch {
       // Ignore cleanup errors
     }
@@ -959,7 +648,10 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
         log.error(`Preview health check failed: ${health.error}`);
         log.info('Cleaning up preview channel...');
         try {
-          exec(`cd ${landingDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`, { silent: true });
+          exec(
+            `cd ${landingDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`,
+            { silent: true }
+          );
         } catch {
           // Ignore cleanup errors
         }
@@ -977,7 +669,10 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
     // Clean up preview channel
     if (previewUrl) {
       try {
-        exec(`cd ${landingDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`, { silent: true });
+        exec(
+          `cd ${landingDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`,
+          { silent: true }
+        );
       } catch {
         // Ignore cleanup errors
       }
@@ -1006,130 +701,6 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
   }
 
   return true;
-}
-
-async function deployJoel(options: DeployOptions): Promise<boolean> {
-  log.step('DEPLOYING JOEL DICKSON');
-
-  const joelConfig = {
-    agentService: 'joel-dickson-agent',
-    uiService: 'joel-dickson-ui',
-    personaId: 'joel-dickson',
-  };
-
-  if (options.dryRun) {
-    log.info(`Would deploy Joel agent: ${joelConfig.agentService}`);
-    log.info(`Would deploy Joel UI: ${joelConfig.uiService}`);
-    return true;
-  }
-
-  // Build agent
-  log.info('Building Joel agent container...');
-  exec(
-    `gcloud builds submit --tag gcr.io/${CONFIG.projectId}/${joelConfig.agentService}:latest . --quiet`
-  );
-
-  // Deploy agent
-  log.info('Deploying Joel agent...');
-  const agentSecrets = [
-    'GOOGLE_API_KEY=google-api-key:latest',
-    'CARTESIA_API_KEY=cartesia-api-key:latest',
-    'LIVEKIT_URL=livekit-url:latest',
-    'LIVEKIT_API_KEY=livekit-api-key:latest',
-    'LIVEKIT_API_SECRET=livekit-api-secret:latest',
-  ];
-
-  exec(
-    [
-      `gcloud run deploy ${joelConfig.agentService}`,
-      `--image gcr.io/${CONFIG.projectId}/${joelConfig.agentService}:latest`,
-      `--region ${CONFIG.region}`,
-      '--platform managed',
-      '--allow-unauthenticated',
-      '--memory 2Gi',
-      '--cpu 2',
-      '--timeout 3600',
-      '--concurrency 1',
-      '--min-instances 0',
-      '--max-instances 20',
-      `--set-env-vars "NODE_ENV=production,PERSONA_ID=${joelConfig.personaId},GOOGLE_CLOUD_PROJECT=${CONFIG.projectId},MUSIC_ENABLED=true"`,
-      `--set-secrets "${agentSecrets.join(',')}"`,
-      '--quiet',
-    ].join(' \\\n  ')
-  );
-
-  const agentUrl = getServiceUrl(joelConfig.agentService);
-  log.success(`Joel agent deployed: ${agentUrl}`);
-
-  // Build UI
-  log.info('Building Joel UI...');
-  exec(`gcloud builds submit --config cloudbuild-joel-ui.yaml . --quiet`);
-
-  // Deploy UI
-  log.info('Deploying Joel UI...');
-  const uiSecrets = [
-    'LIVEKIT_URL=livekit-url:latest',
-    'LIVEKIT_API_KEY=livekit-api-key:latest',
-    'LIVEKIT_API_SECRET=livekit-api-secret:latest',
-  ];
-
-  exec(
-    [
-      `gcloud run deploy ${joelConfig.uiService}`,
-      `--image gcr.io/${CONFIG.projectId}/${joelConfig.uiService}:latest`,
-      `--region ${CONFIG.region}`,
-      '--platform managed',
-      '--allow-unauthenticated',
-      '--memory 512Mi',
-      '--cpu 1',
-      '--timeout 300',
-      '--min-instances 0',
-      '--max-instances 10',
-      '--set-env-vars "NODE_ENV=production,AGENT_NAME=voice-agent,TOKEN_SERVER_PORT=8080"',
-      `--set-secrets "${uiSecrets.join(',')}"`,
-      '--quiet',
-    ].join(' \\\n  ')
-  );
-
-  const uiUrl = getServiceUrl(joelConfig.uiService);
-  log.success(`Joel UI deployed: ${uiUrl}`);
-
-  return true;
-}
-
-async function deployGce(options: DeployOptions): Promise<boolean> {
-  log.step('DEPLOYING VOICE AGENT TO GCE');
-
-  const gceArgs: string[] = [];
-
-  if (options.dryRun) {
-    gceArgs.push('--dry-run');
-  }
-
-  // Spawn the GCE deployment script
-  const gceScript = join(__dirname, 'deploy-gce.ts');
-
-  return new Promise((resolve) => {
-    const child = spawn('npx', ['tsx', gceScript, ...gceArgs], {
-      cwd: PROJECT_ROOT,
-      stdio: 'inherit',
-    });
-
-    child.on('close', (code) => {
-      if (code === 0) {
-        log.success('GCE deployment complete!');
-        resolve(true);
-      } else {
-        log.error(`GCE deployment failed with code ${code}`);
-        resolve(false);
-      }
-    });
-
-    child.on('error', (err) => {
-      log.error(`GCE deployment error: ${err.message}`);
-      resolve(false);
-    });
-  });
 }
 
 async function deployEvolution(options: DeployOptions): Promise<boolean> {
@@ -1419,9 +990,12 @@ function preflightChecks(options: DeployOptions): boolean {
         log.error('Uncommitted changes detected! Commit your changes before deploying.');
         log.info('');
         log.info('Uncommitted files:');
-        gitStatus.split('\n').slice(0, 10).forEach((line) => {
-          log.info(`  ${line}`);
-        });
+        gitStatus
+          .split('\n')
+          .slice(0, 10)
+          .forEach((line) => {
+            log.info(`  ${line}`);
+          });
         if (gitStatus.split('\n').length > 10) {
           log.info(`  ... and ${gitStatus.split('\n').length - 10} more`);
         }
@@ -1438,7 +1012,9 @@ function preflightChecks(options: DeployOptions): boolean {
       // Also check if we're ahead of remote
       try {
         exec('git fetch --quiet', { silent: true });
-        const behindAhead = exec('git rev-list --left-right --count HEAD...@{upstream}', { silent: true }).trim();
+        const behindAhead = exec('git rev-list --left-right --count HEAD...@{upstream}', {
+          silent: true,
+        }).trim();
         const [behind, ahead] = behindAhead.split('\t').map(Number);
         if (ahead > 0) {
           log.warn(`${ahead} commit(s) not pushed. Consider: git push`);
@@ -1525,14 +1101,12 @@ ${colors.bold}Usage:${colors.reset}
 ${colors.bold}Targets:${colors.reset}
   ${colors.green}ui${colors.reset}         Deploy UI backend to Cloud Run (APIs)
   ${colors.green}frontend${colors.reset}   Deploy frontend to Firebase Hosting (app.ferni.ai)
-  ${colors.green}agent${colors.reset}      Deploy voice agent to Cloud Run
-  ${colors.green}gce${colors.reset}        Deploy voice agent to GCE (blue-green, WebRTC/UDP)
+  ${colors.green}agent${colors.reset}      Deploy voice agent to LiveKit Cloud (dev agent; --prod for production)
   ${colors.green}brand${colors.reset}      Deploy brand assets to Cloud Storage
   ${colors.green}landing${colors.reset}    Deploy landing page (Firebase/Cloud Storage)
-  ${colors.green}joel${colors.reset}       Deploy Joel Dickson (agent + UI)
   ${colors.green}evolution${colors.reset}  Deploy evolution scheduler Cloud Function
   ${colors.green}workers${colors.reset}    Deploy async workers to Cloud Run (outreach processing)
-  ${colors.green}all${colors.reset}        Deploy everything (agent, ui, frontend, landing)
+  ${colors.green}all${colors.reset}        Deploy ui, frontend, landing (and the production agent with --prod)
 
 ${colors.bold}Options:${colors.reset}
   --async           Run deployment in background (don't wait for completion)
@@ -1540,16 +1114,17 @@ ${colors.bold}Options:${colors.reset}
   --skip-build      Skip local build steps
   --skip-git-check  Allow deploy with uncommitted changes (not recommended)
   --verbose         Show detailed output
+  --prod / --dev    Agent target: ferni-prod (livekit.prod-cloud.toml) or ferni-dev (livekit.toml, default)
   --help, -h        Show this help
 
 ${colors.bold}Safety:${colors.reset}
   All deploys require committed code. Uncommitted changes will be rejected.
-  Blue-green deployment ensures health check before traffic shift.
+  Cloud Run deploys are blue-green: health check before traffic shift.
+  The agent deploy goes to ferni-dev unless --prod is given.
 
 ${colors.bold}Environment Variables:${colors.reset}
   GCP_PROJECT_ID    Google Cloud project (default: johnb-2025)
   GCP_REGION        Deployment region (default: us-central1)
-  PERSONA_ID        Default persona (default: ferni)
 
 ${colors.bold}Examples:${colors.reset}
   npm run deploy ui              # Deploy UI (wait for completion)
@@ -1557,7 +1132,8 @@ ${colors.bold}Examples:${colors.reset}
   npm run deploy all             # Deploy everything
   npm run deploy -- --dry-run ui # Preview UI deployment
   npm run deploy -- --async ui   # Deploy UI async via flags
-  GCP_PROJECT_ID=my-project npm run deploy agent
+  ferni deploy agent --dry-run   # Preview a dev agent deploy
+  ferni deploy agent --prod      # Deploy the production agent
 `);
 }
 
@@ -1571,6 +1147,7 @@ async function main() {
     verbose: args.includes('--verbose'),
     async: args.includes('--async'),
     skipGitCheck: args.includes('--skip-git-check'),
+    agentEnv: resolveAgentEnv(args, 'dev'),
   };
 
   // Get target (non-option argument)
@@ -1612,10 +1189,6 @@ ${colors.cyan}╚═════════════════════
       success = await deployAgent(options);
       break;
 
-    case 'gce':
-      success = await deployGce(options);
-      break;
-
     case 'brand':
       success = await deployBrand(options);
       break;
@@ -1626,10 +1199,6 @@ ${colors.cyan}╚═════════════════════
 
     case 'frontend':
       success = await deployFrontend(options);
-      break;
-
-    case 'joel':
-      success = await deployJoel(options);
       break;
 
     case 'evolution':
@@ -1646,9 +1215,12 @@ ${colors.cyan}╚═════════════════════
       break;
 
     case 'all':
+      if (options.agentEnv !== 'prod') {
+        log.warn('Skipping the voice agent; add --prod to deploy the production agent too');
+      }
       if (options.async) {
         // In async mode, start all deployments in parallel
-        await deployAgent(options);
+        if (options.agentEnv === 'prod') await deployAgent(options);
         await deployUi(options);
         await deployFrontend(options);
         await deployLanding(options);
@@ -1656,7 +1228,7 @@ ${colors.cyan}╚═════════════════════
         success = true;
       } else {
         success =
-          (await deployAgent(options)) &&
+          (options.agentEnv !== 'prod' || (await deployAgent(options))) &&
           (await deployUi(options)) &&
           (await deployFrontend(options)) &&
           (await deployLanding(options));
@@ -1676,12 +1248,12 @@ ${colors.cyan}╚═════════════════════
     log.success('All deployments successful!');
     console.log(`
 ${colors.bold}Services:${colors.reset}
-  Agent URL:   ${getServiceUrl(CONFIG.services.agent) || '(not deployed)'}
   UI URL:      ${getServiceUrl(CONFIG.services.ui) || '(not deployed)'}
+  Voice agent: LiveKit Cloud (ferni status agent)
 
 ${colors.bold}Next Steps:${colors.reset}
   • Test: curl <SERVICE_URL>/health
-  • Logs: gcloud run services logs read <SERVICE_NAME> --region ${CONFIG.region}
+  • Logs: ferni logs ui, ferni logs agent
 `);
   } else {
     log.error('Some deployments failed');

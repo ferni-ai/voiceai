@@ -5,11 +5,19 @@
  * Quick command to diagnose disconnect patterns and identify root causes.
  *
  * Usage:
- *   npx tsx apps/cli/src/commands/ops/diagnose-disconnects.ts
- *   pnpm ops:diagnose
+ *   pnpm ops:diagnose            # production agent
+ *   pnpm ops:diagnose --dev      # ferni-dev agent
+ *   AGENT_OBS_URL=http://localhost:8080 pnpm ops:diagnose --dev
  */
 
 import { execSync } from 'node:child_process';
+import { findProjectRoot } from '../../utils/project-root.js';
+import {
+  LIVEKIT_AGENTS,
+  parseAgentStatus,
+  resolveAgentEnv,
+  runLkAgent,
+} from '../../utils/livekit-agent.js';
 
 // ANSI colors
 const RED = '\x1b[31m';
@@ -54,14 +62,11 @@ interface CrashSummary {
   }>;
 }
 
-interface ReadinessState {
-  ready: boolean;
-  checks: Record<string, boolean>;
-  readyWorkerCount: number;
-  uptimeMs: number;
-}
-
-const GCE_URL = 'http://34.134.186.63:8080';
+// LiveKit Cloud agents expose no public HTTP port, so the agent's
+// observability endpoints are only reachable from a worker you can address
+// (a local `pnpm dev` worker on http://localhost:8080, say).
+const OBS_URL = process.env.AGENT_OBS_URL;
+const TARGET = LIVEKIT_AGENTS[resolveAgentEnv(process.argv.slice(2), 'prod')];
 
 async function fetchJson<T>(url: string): Promise<T | null> {
   try {
@@ -74,9 +79,13 @@ async function fetchJson<T>(url: string): Promise<T | null> {
 }
 
 function printHeader(text: string): void {
-  console.log(`\n${BOLD}${CYAN}═══════════════════════════════════════════════════════════${RESET}`);
+  console.log(
+    `\n${BOLD}${CYAN}═══════════════════════════════════════════════════════════${RESET}`
+  );
   console.log(`${BOLD}${CYAN}  ${text}${RESET}`);
-  console.log(`${BOLD}${CYAN}═══════════════════════════════════════════════════════════${RESET}\n`);
+  console.log(
+    `${BOLD}${CYAN}═══════════════════════════════════════════════════════════${RESET}\n`
+  );
 }
 
 function printSection(title: string): void {
@@ -94,20 +103,21 @@ function scoreColor(score: number, warnThreshold: number, criticalThreshold: num
   return RED;
 }
 
-async function checkZombies(): Promise<string[]> {
+/** A voice agent on Cloud Run registers as a LiveKit worker and steals jobs it can't serve. */
+async function checkCompetingWorkers(): Promise<string[]> {
   const issues: string[] = [];
   try {
-    // Just check if we can detect zombies - full check requires gcloud auth
-    const result = execSync(
-      'gcloud run revisions list --service=voiceai-agent --region=us-central1 --format="value(metadata.name,status.conditions[0].type)" 2>/dev/null | head -5',
-      { encoding: 'utf8', timeout: 10000 }
-    );
-    const lines = result.trim().split('\n').filter(Boolean);
-    if (lines.length > 1) {
-      issues.push(`Found ${lines.length} revisions - check for zombies with: pnpm ops:zombies`);
+    const names = execSync(
+      'gcloud run services list --project=johnb-2025 --format="value(metadata.name)" 2>/dev/null',
+      { encoding: 'utf8', timeout: 20000 }
+    )
+      .split('\n')
+      .filter((name) => /voiceai-agent|voice-agent/i.test(name));
+    for (const name of names) {
+      issues.push(`Cloud Run service "${name}" may be a LiveKit worker stealing jobs - delete it`);
     }
   } catch {
-    issues.push('Could not check Cloud Run revisions (gcloud auth required)');
+    issues.push('Could not list Cloud Run services (gcloud auth required)');
   }
   return issues;
 }
@@ -115,34 +125,28 @@ async function checkZombies(): Promise<string[]> {
 async function main(): Promise<void> {
   printHeader('🔌 DISCONNECT DIAGNOSTICS');
 
-  console.log(`${CYAN}Fetching metrics from voice agent...${RESET}\n`);
+  // ===== AGENT STATUS =====
+  printSection(`LIVEKIT CLOUD AGENT (${TARGET.project} ${TARGET.agentId})`);
 
-  // Parallel fetch all endpoints
-  const [readiness, observability, crashes] = await Promise.all([
-    fetchJson<ReadinessState>(`${GCE_URL}/health/ready`),
-    fetchJson<ObservabilityData>(`${GCE_URL}/api/observability`),
-    fetchJson<CrashSummary>(`${GCE_URL}/api/crash-analytics`),
-  ]);
-
-  // ===== READINESS =====
-  printSection('READINESS STATUS');
-
-  if (!readiness) {
-    console.log(`${RED}✗ Could not reach voice agent at ${GCE_URL}${RESET}`);
-    console.log(`  ${YELLOW}→ Check if agent is running: ssh to GCE and check docker ps${RESET}`);
+  const statusOutput = runLkAgent(findProjectRoot(), 'status', TARGET, { capture: true }).output;
+  const agentStatus = parseAgentStatus(statusOutput, TARGET.agentId);
+  const isRunning = agentStatus === 'Running';
+  if (!agentStatus) {
+    console.log(`${RED}✗ Could not read agent status (is lk installed and logged in?)${RESET}`);
   } else {
-    const readyStatus = readiness.ready ? `${GREEN}✓ READY${RESET}` : `${RED}✗ NOT READY${RESET}`;
-    console.log(`Status: ${readyStatus}`);
-    console.log(`Workers Ready: ${readiness.readyWorkerCount}`);
-    console.log(`Uptime: ${Math.round(readiness.uptimeMs / 1000 / 60)} minutes`);
+    console.log(`Status: ${statusColor(isRunning)}${agentStatus}${RESET}`);
+  }
 
-    if (readiness.checks) {
-      console.log(`\nHealth Checks:`);
-      for (const [check, passed] of Object.entries(readiness.checks)) {
-        const icon = passed ? `${GREEN}✓${RESET}` : `${RED}✗${RESET}`;
-        console.log(`  ${icon} ${check}`);
-      }
-    }
+  const [observability, crashes] = OBS_URL
+    ? await Promise.all([
+        fetchJson<ObservabilityData>(`${OBS_URL}/api/observability`),
+        fetchJson<CrashSummary>(`${OBS_URL}/api/crash-analytics`),
+      ])
+    : [null, null];
+  if (!OBS_URL) {
+    console.log(
+      `\n${YELLOW}Call quality and crash data need AGENT_OBS_URL (a reachable worker health server).${RESET}`
+    );
   }
 
   // ===== CALL QUALITY =====
@@ -230,13 +234,13 @@ async function main(): Promise<void> {
     }
   }
 
-  // ===== ZOMBIE CHECK =====
-  printSection('ZOMBIE REVISION CHECK');
-  const zombieIssues = await checkZombies();
-  if (zombieIssues.length === 0) {
-    console.log(`${GREEN}✓ No zombie revision warnings${RESET}`);
+  // ===== COMPETING WORKERS =====
+  printSection('COMPETING WORKER CHECK');
+  const workerIssues = await checkCompetingWorkers();
+  if (workerIssues.length === 0) {
+    console.log(`${GREEN}✓ No voice agent on Cloud Run${RESET}`);
   } else {
-    for (const issue of zombieIssues) {
+    for (const issue of workerIssues) {
       console.log(`${YELLOW}⚠ ${issue}${RESET}`);
     }
   }
@@ -246,17 +250,26 @@ async function main(): Promise<void> {
 
   const recommendations: string[] = [];
 
-  if (!readiness?.ready) {
-    recommendations.push('Agent not ready - check deployment with: ferni deploy gce');
+  if (!isRunning) {
+    recommendations.push(
+      `Agent not running - check: ferni logs agent${TARGET.env === 'dev' ? ' --dev' : ''}`
+    );
+  }
+  if (workerIssues.some((issue) => issue.includes('stealing'))) {
+    recommendations.push(
+      'Delete the Cloud Run voice agent service (see CLAUDE.md Zombie Prevention)'
+    );
   }
 
   if (observability?.callQuality) {
     const cq = observability.callQuality;
     if (cq.disconnectRate > 0.1) {
-      recommendations.push('High disconnect rate (>10%) - check zombie revisions: pnpm ops:zombies');
+      recommendations.push(
+        'High disconnect rate (>10%) - check for competing workers and agent logs'
+      );
     }
     if (cq.connectionSuccessRate < 0.95) {
-      recommendations.push('Low connection success - check LiveKit status and GCE health');
+      recommendations.push('Low connection success - check LiveKit status and agent logs');
     }
     if (cq.avgFirstResponseTimeMs > 3000) {
       recommendations.push('High response latency - check LLM/TTS quotas');
@@ -280,14 +293,14 @@ async function main(): Promise<void> {
 
   // ===== QUICK COMMANDS =====
   printSection('QUICK COMMANDS');
-  console.log(`  ${CYAN}pnpm ops:logs${RESET}           - View recent logs`);
-  console.log(`  ${CYAN}pnpm ops:logs:errors${RESET}    - View error logs`);
-  console.log(`  ${CYAN}pnpm ops:zombies${RESET}        - Check zombie revisions`);
-  console.log(`  ${CYAN}pnpm ops:zombies:fix${RESET}    - Fix zombie revisions`);
-  console.log(`  ${CYAN}ferni deploy gce${RESET}        - Redeploy voice agent`);
+  console.log(
+    `  ${CYAN}ferni logs agent${RESET}          - Stream agent logs (--dev for ferni-dev)`
+  );
+  console.log(`  ${CYAN}ferni logs agent --errors${RESET} - Stream agent errors only`);
+  console.log(`  ${CYAN}ferni status agent${RESET}        - Agent status, prod and dev`);
+  console.log(`  ${CYAN}ferni rollback agent --prod${RESET} - Roll back the production agent`);
 
   console.log(`\n${CYAN}Full debugging guide: docs/runbooks/DISCONNECT-DEBUGGING.md${RESET}\n`);
 }
 
 main().catch(console.error);
-
