@@ -182,9 +182,10 @@ function cascadeThinkingLevel(model: string, env: Env): ThinkingLevel {
 
 /**
  * Backup model for hedged replies (see hedged-llm.ts), or null when off.
- * gemini-3-flash-preview kept humour and emotion tags in side-by-side replies
- * and its first text took p50 1.5 s / p90 1.7 s on 2026-09-28, when the
- * primary gemini-3.5-flash took p50 7.2 s. CASCADE_LLM_HEDGE_MS=off disables.
+ * gemini-3.5-flash-lite: the fastest 3.5 model, on the primary's location.
+ * (gemini-3-flash-preview, the earlier backup, took p50 1.5 s to first text on
+ * 2026-09-28 when the primary took 7.2 s; set CASCADE_LLM_BACKUP_MODEL to
+ * hedge across model families instead.) CASCADE_LLM_HEDGE_MS=off disables.
  */
 export function buildCascadeHedge(
   env: Env = process.env
@@ -193,7 +194,7 @@ export function buildCascadeHedge(
   if (raw === 'off') return null;
   const hedgeAfterMs = Number(raw);
   if (!Number.isFinite(hedgeAfterMs) || hedgeAfterMs < 0) return null;
-  const model = env.CASCADE_LLM_BACKUP_MODEL || 'gemini-3-flash-preview';
+  const model = env.CASCADE_LLM_BACKUP_MODEL || 'gemini-3.5-flash-lite';
   const primary = buildCascadeLLMOptions(env);
   if (model === primary.model) return null;
   return {

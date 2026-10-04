@@ -27,7 +27,7 @@ const log = createLogger({ module: 'ModelConfig' });
  * Gemini model configuration parameters
  */
 export interface GeminiModelConfig {
-  /** Model ID (e.g., 'gemini-2.5-flash', 'gemini-1.5-pro-latest') */
+  /** Model ID (e.g., 'gemini-3.5-flash', 'gemini-3.5-flash-lite') */
   model: string;
   /** Temperature (0.0 - 2.0, default: 0.8) - Controls randomness */
   temperature: number;
@@ -295,22 +295,15 @@ export const DEFAULT_TOOL_CONFIG: ToolConfig = {
  */
 export const AVAILABLE_MODELS = [
   {
-    id: 'gemini-2.5-flash',
-    name: 'Gemini 2.5 Flash',
-    description: 'Fast, stable, recommended',
+    id: 'gemini-3.5-flash',
+    name: 'Gemini 3.5 Flash',
+    description: 'Fast, recommended',
   },
   {
-    id: 'gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
-    description: 'Fast, stable, good for extraction',
+    id: 'gemini-3.5-flash-lite',
+    name: 'Gemini 3.5 Flash-Lite',
+    description: 'Fastest, lowest cost: classification and light tasks',
   },
-  {
-    id: 'gemini-2.0-flash-live-001',
-    name: 'Gemini 2.0 Flash Live',
-    description: 'Realtime voice optimized',
-  },
-  { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', description: 'Fast, stable' },
-  { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro', description: 'Higher quality, slower' },
 ];
 
 // ============================================================================
@@ -670,7 +663,7 @@ export function validateGeminiConfig(config: Partial<GeminiModelConfig>): {
  * Use this instead of hardcoding model names!
  *
  * @example
- * // Instead of: model: 'gemini-2.5-flash'
+ * // Instead of: model: 'gemini-3.5-flash'
  * // Use: model: getDefaultModel()
  */
 export function getDefaultModel(): string {
