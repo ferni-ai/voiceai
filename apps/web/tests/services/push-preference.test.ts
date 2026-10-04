@@ -50,12 +50,16 @@ beforeEach(() => {
     endpoint: ENDPOINT,
     toJSON: () => ({ endpoint: ENDPOINT, keys: { p256dh: 'p256dh-key', auth: 'auth-key' } }),
   });
-  mocks.getSubscription.mockResolvedValue({ endpoint: ENDPOINT, unsubscribe: mocks.browserUnsubscribe });
+  mocks.getSubscription.mockResolvedValue({
+    endpoint: ENDPOINT,
+    unsubscribe: mocks.browserUnsubscribe,
+  });
   mocks.apiGet.mockResolvedValue({ ok: true, data: { publicKey: 'BEl62iUYgUivxIkv69yViEuiBIa' } });
 });
 
 async function enable(enabled: boolean): Promise<void> {
-  const { initPushNotifications } = await import('../../src/services/push-notifications.service.js');
+  const { initPushNotifications } =
+    await import('../../src/services/push-notifications.service.js');
   await initPushNotifications();
   const { applyPushPreference } = await import('../../src/services/push-preference.js');
   await applyPushPreference(enabled);
@@ -101,7 +105,8 @@ describe('applyPushPreference', () => {
     mocks.signOut.mockImplementation(async () => {
       mocks.calls.push('signOut');
     });
-    const { initPushNotifications } = await import('../../src/services/push-notifications.service.js');
+    const { initPushNotifications } =
+      await import('../../src/services/push-notifications.service.js');
     await initPushNotifications();
     const { signOutReleasingPush } = await import('../../src/services/push-preference.js');
 

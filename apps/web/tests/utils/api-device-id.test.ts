@@ -33,6 +33,8 @@ describe('device id header', () => {
   it('reads an id persisted by an earlier session', async () => {
     localStorage.setItem('voiceai_deviceId', 'device-from-last-visit');
     const { getApiHeaders } = await import('../../src/utils/api.js');
-    expect((getApiHeaders() as Record<string, string>)['X-Device-Id']).toBe('device-from-last-visit');
+    expect((getApiHeaders() as Record<string, string>)['X-Device-Id']).toBe(
+      'device-from-last-visit'
+    );
   });
 });

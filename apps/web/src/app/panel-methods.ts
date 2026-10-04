@@ -529,7 +529,8 @@ export async function showPredictionTracker(): Promise<void> {
  */
 export async function showDataExport(): Promise<void> {
   void trackScreen('settings');
-  const { dataExportService, dataRightsErrorMessage } = await import('../services/data-export.service.js');
+  const { dataExportService, dataRightsErrorMessage } =
+    await import('../services/data-export.service.js');
   const { toast } = await import('../ui/whisper.ui.js');
 
   // Each request only reports success after the server confirms it.

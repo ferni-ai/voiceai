@@ -111,9 +111,13 @@ describe('push subscribe → sender lookup', () => {
 
   it('a subscribed user is found by the sender', async () => {
     // What the web client sends: its subscription plus the userId apiPost adds.
-    const req = post('/api/push/subscribe', { userId: 'uid-1', ...SUBSCRIPTION }, {
-      authorization: 'Bearer verified-uid-1',
-    });
+    const req = post(
+      '/api/push/subscribe',
+      { userId: 'uid-1', ...SUBSCRIPTION },
+      {
+        authorization: 'Bearer verified-uid-1',
+      }
+    );
     const res = response();
 
     await handlePushRoutes(req, res, '/api/push/subscribe');
@@ -142,9 +146,13 @@ describe('push subscribe → sender lookup', () => {
   });
 
   it('keys the subscription by the verified caller, not a userId in the body', async () => {
-    const req = post('/api/push/subscribe', { ...SUBSCRIPTION, userId: 'victim' }, {
-      authorization: 'Bearer verified-uid-2',
-    });
+    const req = post(
+      '/api/push/subscribe',
+      { ...SUBSCRIPTION, userId: 'victim' },
+      {
+        authorization: 'Bearer verified-uid-2',
+      }
+    );
     await handlePushRoutes(req, response(), '/api/push/subscribe');
 
     const store = collections.get('push_subscriptions')!;
@@ -154,7 +162,11 @@ describe('push subscribe → sender lookup', () => {
 
   it('rejects an unauthenticated subscribe', async () => {
     const res = response();
-    await handlePushRoutes(post('/api/push/subscribe', SUBSCRIPTION, {}), res, '/api/push/subscribe');
+    await handlePushRoutes(
+      post('/api/push/subscribe', SUBSCRIPTION, {}),
+      res,
+      '/api/push/subscribe'
+    );
 
     expect(res.statusCode).toBe(401);
     expect(collections.get('push_subscriptions')?.size ?? 0).toBe(0);
@@ -162,7 +174,11 @@ describe('push subscribe → sender lookup', () => {
 
   it('unsubscribe removes it from the store the sender reads', async () => {
     const headers = { authorization: 'Bearer verified-uid-3' };
-    await handlePushRoutes(post('/api/push/subscribe', SUBSCRIPTION, headers), response(), '/api/push/subscribe');
+    await handlePushRoutes(
+      post('/api/push/subscribe', SUBSCRIPTION, headers),
+      response(),
+      '/api/push/subscribe'
+    );
     const res = response();
     await handlePushRoutes(
       post('/api/push/unsubscribe', { endpoint: SUBSCRIPTION.endpoint }, headers),
@@ -173,7 +189,9 @@ describe('push subscribe → sender lookup', () => {
     expect(res.statusCode).toBe(200);
     const sender = new PushNotificationsBackendService();
     await sender.initialize();
-    expect(await sender.sendNotification('uid-3', { title: 't', body: 'b', type: 'general' })).toBe(false);
+    expect(await sender.sendNotification('uid-3', { title: 't', body: 'b', type: 'general' })).toBe(
+      false
+    );
   });
 
   it('a send without web-push installed is reported as not sent', async () => {
@@ -186,7 +204,9 @@ describe('push subscribe → sender lookup', () => {
     await sender.initialize();
 
     // web-push is not a dependency of this repo, so the real sendWebPush can't deliver.
-    expect(await sender.sendNotification('uid-4', { title: 't', body: 'b', type: 'general' })).toBe(false);
+    expect(await sender.sendNotification('uid-4', { title: 't', body: 'b', type: 'general' })).toBe(
+      false
+    );
   });
 
   describe('one browser, two accounts', () => {
@@ -218,9 +238,13 @@ describe('push subscribe → sender lookup', () => {
       await subscribeAs('alice');
       await subscribeAs('bob');
       await handlePushRoutes(
-        post('/api/push/unsubscribe', { endpoint: SUBSCRIPTION.endpoint }, {
-          authorization: 'Bearer verified-alice',
-        }),
+        post(
+          '/api/push/unsubscribe',
+          { endpoint: SUBSCRIPTION.endpoint },
+          {
+            authorization: 'Bearer verified-alice',
+          }
+        ),
         response(),
         '/api/push/unsubscribe'
       );

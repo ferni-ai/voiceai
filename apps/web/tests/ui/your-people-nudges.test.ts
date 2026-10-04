@@ -9,7 +9,9 @@ const apiFetch = vi.hoisted(() => vi.fn());
 
 vi.mock('../../src/utils/api-helpers.js', () => ({ apiFetch }));
 vi.mock('../../src/utils/environment.js', () => ({ shouldUseDemoData: () => false }));
-vi.mock('../../src/i18n/index.js', () => ({ t: (_k: string, fallback?: string) => fallback ?? _k }));
+vi.mock('../../src/i18n/index.js', () => ({
+  t: (_k: string, fallback?: string) => fallback ?? _k,
+}));
 
 import { openYourPeople, closeYourPeople } from '../../src/ui/your-people.ui.js';
 

@@ -21,7 +21,9 @@ vi.mock('../../src/utils/api.js', () => ({
   apiDelete: mocks.apiDelete,
 }));
 vi.mock('../../src/ui/whisper.ui.js', () => ({ toast: mocks.toast }));
-vi.mock('../../src/i18n/index.js', () => ({ t: (_k: string, fallback?: string) => fallback ?? _k }));
+vi.mock('../../src/i18n/index.js', () => ({
+  t: (_k: string, fallback?: string) => fallback ?? _k,
+}));
 
 import { FamilyIdentities } from '../../src/ui/family-identities.ui.js';
 
@@ -74,7 +76,9 @@ describe('FamilyIdentities', () => {
     document.querySelector<HTMLElement>('[data-identity-id="si_1"]')?.click();
     document.querySelector<HTMLElement>('[data-action="delete"]')?.click();
     await vi.waitFor(() => expect(mocks.apiDelete).toHaveBeenCalled());
-    await vi.waitFor(() => expect(mocks.toast.error).toHaveBeenCalledWith("Couldn't remove them. Try again?"));
+    await vi.waitFor(() =>
+      expect(mocks.toast.error).toHaveBeenCalledWith("Couldn't remove them. Try again?")
+    );
 
     expect(mocks.toast.success).not.toHaveBeenCalledWith('Removed');
   });

@@ -41,7 +41,10 @@ function post(path: string, body: unknown): IncomingMessage {
   return req;
 }
 
-function response(): ServerResponse & { status: () => number; json: () => Record<string, unknown> } {
+function response(): ServerResponse & {
+  status: () => number;
+  json: () => Record<string, unknown>;
+} {
   let status = 0;
   let raw = '';
   return {
@@ -79,9 +82,20 @@ describe('calendar POST bodies are read once', () => {
       app_password: 'abcd-efgh-ijkl-mnop',
     });
 
-    await withinOneSecond(handleCalendarRoutes(req, res, '/api/calendar/apple/connect', new URL('http://x/api/calendar/apple/connect')));
+    await withinOneSecond(
+      handleCalendarRoutes(
+        req,
+        res,
+        '/api/calendar/apple/connect',
+        new URL('http://x/api/calendar/apple/connect')
+      )
+    );
 
-    expect(mocks.storeCredentials).toHaveBeenCalledWith('u1', 'me@icloud.com', 'abcd-efgh-ijkl-mnop');
+    expect(mocks.storeCredentials).toHaveBeenCalledWith(
+      'u1',
+      'me@icloud.com',
+      'abcd-efgh-ijkl-mnop'
+    );
     expect(res.json().success).toBe(true);
   });
 
@@ -94,7 +108,12 @@ describe('calendar POST bodies are read once', () => {
     });
 
     await withinOneSecond(
-      handleCalendarRoutes(req, res, '/api/calendar/notification-preferences', new URL('http://x/api/calendar/notification-preferences'))
+      handleCalendarRoutes(
+        req,
+        res,
+        '/api/calendar/notification-preferences',
+        new URL('http://x/api/calendar/notification-preferences')
+      )
     );
 
     expect(mocks.setNotificationPreference).toHaveBeenCalledWith('u1', 'morningBriefing', false);

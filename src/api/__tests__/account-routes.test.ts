@@ -81,7 +81,11 @@ describe('DELETE /api/account', () => {
     const { handleAccountRoutes } = await import('../account-routes.js');
     const res = response();
 
-    await handleAccountRoutes(deleteRequest({ confirmation: 'DELETE_MY_ACCOUNT' }), res, '/api/account');
+    await handleAccountRoutes(
+      deleteRequest({ confirmation: 'DELETE_MY_ACCOUNT' }),
+      res,
+      '/api/account'
+    );
 
     expect(mockDeleteAllData).toHaveBeenCalledWith('user-123');
     expect(mockDeleteFirebaseUser).toHaveBeenCalledWith('user-123');
@@ -92,7 +96,10 @@ describe('DELETE /api/account', () => {
   it('ignores a spoofed identity header and needs a verified token', async () => {
     const { handleAccountRoutes } = await import('../account-routes.js');
     const res = response();
-    const req = deleteRequest({ confirmation: 'DELETE_MY_ACCOUNT' }, { 'x-firebase-uid': 'victim' });
+    const req = deleteRequest(
+      { confirmation: 'DELETE_MY_ACCOUNT' },
+      { 'x-firebase-uid': 'victim' }
+    );
     delete req.headers.authorization;
 
     await handleAccountRoutes(req, res, '/api/account');
@@ -116,7 +123,11 @@ describe('DELETE /api/account', () => {
     const { handleAccountRoutes } = await import('../account-routes.js');
     const res = response();
 
-    await handleAccountRoutes(deleteRequest({ confirmation: 'DELETE_MY_ACCOUNT' }), res, '/api/account');
+    await handleAccountRoutes(
+      deleteRequest({ confirmation: 'DELETE_MY_ACCOUNT' }),
+      res,
+      '/api/account'
+    );
 
     expect(res.status).toBe(500);
     expect(mockDeleteFirebaseUser).not.toHaveBeenCalled();
@@ -127,7 +138,11 @@ describe('DELETE /api/account', () => {
     const { handleAccountRoutes } = await import('../account-routes.js');
     const res = response();
 
-    await handleAccountRoutes(deleteRequest({ confirmation: 'DELETE_MY_ACCOUNT' }), res, '/api/account');
+    await handleAccountRoutes(
+      deleteRequest({ confirmation: 'DELETE_MY_ACCOUNT' }),
+      res,
+      '/api/account'
+    );
 
     expect(res.status).toBe(500);
     expect(res.body().success).not.toBe(true);

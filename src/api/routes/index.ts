@@ -94,4 +94,3 @@ export { handleLandingAIRoutes } from './landing-ai.js';
 
 // Marketplace reviews routes
 export { handleReviewsRoutes as handleMarketplaceReviewsRoutes } from './marketplace-reviews.js';
-

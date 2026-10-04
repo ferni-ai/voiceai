@@ -343,7 +343,10 @@ describe('PersistenceLayer', () => {
 
     it('fresh: re-reads a clean cached entry that another process may have changed', async () => {
       await store.setImmediate(testUserId, { name: 'stale', value: 1 });
-      mockDocRef.get.mockResolvedValueOnce({ exists: true, data: () => ({ name: 'new', value: 2 }) });
+      mockDocRef.get.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({ name: 'new', value: 2 }),
+      });
 
       const loaded = await store.load(testUserId, { fresh: true });
 

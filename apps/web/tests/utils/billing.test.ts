@@ -16,7 +16,8 @@ describe('billing errors', () => {
 
   it('tells the user payments are not set up when Stripe is unconfigured', async () => {
     globalThis.fetch = vi.fn(
-      async () => new Response(JSON.stringify({ error: 'Stripe is not configured' }), { status: 503 })
+      async () =>
+        new Response(JSON.stringify({ error: 'Stripe is not configured' }), { status: 503 })
     ) as typeof fetch;
 
     const result = await openBillingPortal('uid-1');

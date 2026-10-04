@@ -95,7 +95,10 @@ export async function handlePushRoutes(
       });
       sendJSON(res, { success: true });
     } catch (err) {
-      log.error({ error: String(err), userId: auth.userId }, 'Failed to register push subscription');
+      log.error(
+        { error: String(err), userId: auth.userId },
+        'Failed to register push subscription'
+      );
       sendError(res, 'Failed to register subscription', 500);
     }
     return true;
