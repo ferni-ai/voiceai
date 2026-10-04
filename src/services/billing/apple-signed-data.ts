@@ -171,18 +171,23 @@ export async function claimTransactionOwner(
 }
 
 /**
- * Who owns a transaction: the user id, null when nobody has claimed it, or
- * 'unavailable' when the record can't be read (callers fail closed).
+ * Who owns a transaction: the user id, null when nobody holds it (unclaimed, or
+ * `tombstoned` because its account was deleted), or 'unavailable' when the
+ * record can't be read (callers fail closed).
  */
 export async function getTransactionOwner(
   originalTransactionId: string
-): Promise<{ owner: string | null } | 'unavailable'> {
+): Promise<{ owner: string | null; tombstoned: boolean } | 'unavailable'> {
   const db = getFirestoreDb();
   if (!db) return 'unavailable';
   try {
     const snap = await db.collection(APPLE_TRANSACTION_OWNERS).doc(originalTransactionId).get();
-    const owner = (snap.data() as { userId?: string } | undefined)?.userId;
-    return { owner: typeof owner === 'string' ? owner : null };
+    const record = snap.data() as OwnerRecord | undefined;
+    const owner = record?.userId;
+    return {
+      owner: typeof owner === 'string' ? owner : null,
+      tombstoned: record?.deletedAt !== undefined,
+    };
   } catch (error) {
     log.error({ error: String(error) }, 'Could not read Apple transaction owner');
     return 'unavailable';

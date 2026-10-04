@@ -2,50 +2,28 @@
  * Apple In-App Purchase Service
  *
  * Handles Apple App Store subscriptions and in-app purchases:
- * - Receipt verification with App Store Server API
- * - Subscription status sync
- * - App Store Server Notifications v2
- * - Grace period handling
+ * - Subscription status sync (App Store Server API)
+ * - App Store Server Notifications v2 (apple-notifications.ts)
+ * - Purchases applied to the buyer's profile (apple-entitlement.ts)
  *
  * Philosophy: Apple users get the same Ferni experience.
  * We just verify through a different payment provider.
  */
 
 import * as crypto from 'crypto';
-import { getStore } from '../../memory/store-factory.js';
-import {
-  createDefaultSubscription,
-  type SubscriptionStatus,
-  type SubscriptionTier,
-} from '../../types/subscription.js';
+import type { SubscriptionStatus, SubscriptionTier } from '../../types/subscription.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { requireAppleVerifier } from './apple-signed-data.js';
+import { APPLE_PRODUCT_IDS, PRODUCT_TO_TIER } from './apple-entitlement.js';
+import { handleNotification } from './apple-notifications.js';
+
+export { APPLE_PRODUCT_IDS, PRODUCT_TO_TIER } from './apple-entitlement.js';
+export { handleNotification } from './apple-notifications.js';
 
 const log = createLogger({ module: 'AppleIAP' });
 
 // ============================================================================
 // TYPES
 // ============================================================================
-
-/**
- * Apple product IDs mapped to our subscription tiers
- */
-export const APPLE_PRODUCT_IDS = {
-  friend_monthly: 'com.ferni.friend.monthly',
-  friend_annual: 'com.ferni.friend.annual',
-  partner_monthly: 'com.ferni.partner.monthly',
-  partner_annual: 'com.ferni.partner.annual',
-} as const;
-
-/**
- * Reverse mapping: product ID → tier
- */
-export const PRODUCT_TO_TIER: Record<string, SubscriptionTier> = {
-  [APPLE_PRODUCT_IDS.friend_monthly]: 'friend',
-  [APPLE_PRODUCT_IDS.friend_annual]: 'friend',
-  [APPLE_PRODUCT_IDS.partner_monthly]: 'partner',
-  [APPLE_PRODUCT_IDS.partner_annual]: 'partner',
-};
 
 /**
  * Apple subscription status from App Store
@@ -56,25 +34,6 @@ export type AppleSubscriptionStatus =
   | 'in_billing_retry'
   | 'in_grace_period'
   | 'revoked';
-
-/**
- * Apple notification type (App Store Server Notifications v2)
- */
-export type AppleNotificationType =
-  | 'SUBSCRIBED'
-  | 'DID_RENEW'
-  | 'DID_FAIL_TO_RENEW'
-  | 'DID_CHANGE_RENEWAL_STATUS'
-  | 'DID_CHANGE_RENEWAL_PREF'
-  | 'OFFER_REDEEMED'
-  | 'EXPIRED'
-  | 'GRACE_PERIOD_EXPIRED'
-  | 'REFUND'
-  | 'CONSUMPTION_REQUEST'
-  | 'RENEWAL_EXTENDED'
-  | 'REVOKE'
-  | 'PRICE_INCREASE'
-  | 'TEST';
 
 /**
  * Decoded Apple transaction info
@@ -89,35 +48,6 @@ export interface AppleTransactionInfo {
   isUpgraded: boolean;
   offerType?: number;
   offerIdentifier?: string;
-}
-
-/**
- * Decoded Apple renewal info
- */
-export interface AppleRenewalInfo {
-  autoRenewProductId: string;
-  autoRenewStatus: 0 | 1;
-  expirationIntent?: number;
-  gracePeriodExpiresDate?: Date;
-  isInBillingRetryPeriod?: boolean;
-  priceIncreaseStatus?: number;
-}
-
-/**
- * App Store Server Notification payload
- */
-export interface AppleNotificationPayload {
-  notificationType: AppleNotificationType;
-  subtype?: string;
-  notificationUUID: string;
-  data: {
-    appAppleId?: number;
-    bundleId: string;
-    bundleVersion?: string;
-    environment: 'Production' | 'Sandbox';
-    signedTransactionInfo: string;
-    signedRenewalInfo?: string;
-  };
 }
 
 /**
@@ -224,73 +154,8 @@ async function generateAppleJWT(): Promise<string> {
 }
 
 // ============================================================================
-// RECEIPT VERIFICATION
+// SUBSCRIPTION STATUS
 // ============================================================================
-
-/**
- * Verify a receipt from the iOS app
- *
- * @param receiptData - Base64 encoded receipt from StoreKit
- * @param userId - Ferni user ID to associate with subscription
- */
-export async function verifyReceipt(
-  receiptData: string,
-  userId: string
-): Promise<ReceiptVerificationResult> {
-  if (!isAppleConfigured()) {
-    log.warn('Apple IAP not configured');
-    return {
-      isValid: false,
-      tier: 'free',
-      status: 'expired',
-      environment: 'Sandbox',
-      error: 'Apple IAP not configured',
-    };
-  }
-
-  try {
-    // For App Store Server API v2, we don't send the receipt directly
-    // Instead, we use the transaction ID from StoreKit 2
-    // The receipt contains the transaction info we need
-
-    const jwt = await generateAppleJWT();
-    const baseUrl = APPLE_CONFIG.useSandbox ? APPLE_CONFIG.sandboxUrl : APPLE_CONFIG.productionUrl;
-
-    // This is a simplified flow - in production, use StoreKit 2's
-    // transaction verification flow
-    const response = await fetch(`${baseUrl}/inApps/v1/subscriptions/${APPLE_CONFIG.bundleId}`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      log.error({ status: response.status, error: errorText }, 'Apple API error');
-      return {
-        isValid: false,
-        tier: 'free',
-        status: 'expired',
-        environment: APPLE_CONFIG.useSandbox ? 'Sandbox' : 'Production',
-        error: `Apple API error: ${response.status}`,
-      };
-    }
-
-    const data = await response.json();
-    return await parseSubscriptionResponse(data);
-  } catch (error) {
-    log.error({ error: String(error) }, 'Receipt verification failed');
-    return {
-      isValid: false,
-      tier: 'free',
-      status: 'expired',
-      environment: 'Sandbox',
-      error: String(error),
-    };
-  }
-}
 
 /**
  * Get subscription status for a specific transaction
@@ -504,385 +369,6 @@ function mapToSubscriptionStatus(appleStatus: AppleSubscriptionStatus): Subscrip
 }
 
 // ============================================================================
-// APP STORE SERVER NOTIFICATIONS
-// ============================================================================
-
-/**
- * Handle incoming App Store Server Notification v2
- *
- * Apple sends these when subscription status changes:
- * - New subscription
- * - Renewal
- * - Cancellation
- * - Refund
- * - Grace period
- */
-export async function handleNotification(signedPayload: string): Promise<{
-  success: boolean;
-  notificationType?: AppleNotificationType;
-  userId?: string;
-  error?: string;
-}> {
-  try {
-    // 1. Decode and verify the signed payload (JWS)
-    const payload = await decodeSignedPayload(signedPayload);
-
-    log.info(
-      { notificationType: payload.notificationType, uuid: payload.notificationUUID },
-      'Received Apple notification'
-    );
-
-    // 2. Decode transaction and renewal info
-    const transactionInfo = await decodeSignedTransaction(payload.data.signedTransactionInfo);
-    const renewalInfo = payload.data.signedRenewalInfo
-      ? await decodeSignedRenewal(payload.data.signedRenewalInfo)
-      : null;
-
-    // 3. Find the user associated with this transaction
-    const userId = await findUserByTransaction(transactionInfo.originalTransactionId);
-
-    if (!userId) {
-      log.warn(
-        { originalTransactionId: transactionInfo.originalTransactionId },
-        'No user found for Apple transaction'
-      );
-      return {
-        success: false,
-        notificationType: payload.notificationType,
-        error: 'User not found',
-      };
-    }
-
-    // 4. Handle based on notification type
-    switch (payload.notificationType) {
-      case 'SUBSCRIBED':
-        await handleNewSubscription(userId, transactionInfo);
-        break;
-
-      case 'DID_RENEW':
-        await handleRenewal(userId, transactionInfo);
-        break;
-
-      case 'DID_FAIL_TO_RENEW':
-        await handleFailedRenewal(userId, transactionInfo, renewalInfo);
-        break;
-
-      case 'EXPIRED':
-      case 'GRACE_PERIOD_EXPIRED':
-        await handleExpiration(userId, transactionInfo);
-        break;
-
-      case 'REFUND':
-      case 'REVOKE':
-        await handleRefund(userId, transactionInfo);
-        break;
-
-      case 'DID_CHANGE_RENEWAL_STATUS':
-        await handleRenewalStatusChange(userId, renewalInfo);
-        break;
-
-      case 'TEST':
-        log.info('Received Apple test notification');
-        break;
-
-      default:
-        log.info({ type: payload.notificationType }, 'Unhandled Apple notification type');
-    }
-
-    return {
-      success: true,
-      notificationType: payload.notificationType,
-      userId,
-    };
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to process Apple notification');
-    return {
-      success: false,
-      error: String(error),
-    };
-  }
-}
-
-/**
- * Decode the signed notification payload (JWS)
- */
-async function decodeSignedPayload(signedPayload: string): Promise<AppleNotificationPayload> {
-  // Apple's library: throws unless Apple signed it for our bundle id, app and environment.
-  const verified = await requireAppleVerifier().verifyAndDecodeNotification(signedPayload);
-  return verified as unknown as AppleNotificationPayload;
-}
-
-/**
- * Decode signed transaction info
- */
-async function decodeSignedTransaction(signedTransaction: string): Promise<AppleTransactionInfo> {
-  // Verified on its own too: signature, bundle id and environment must all match ours.
-  const data = await requireAppleVerifier().verifyAndDecodeTransaction(signedTransaction);
-  return {
-    transactionId: data.transactionId ?? '',
-    originalTransactionId: data.originalTransactionId ?? '',
-    productId: data.productId ?? '',
-    purchaseDate: new Date(data.purchaseDate ?? 0),
-    expiresDate: new Date(data.expiresDate ?? 0),
-    environment: data.environment === 'Production' ? 'Production' : 'Sandbox',
-    isUpgraded: data.isUpgraded || false,
-    offerType: data.offerType,
-    offerIdentifier: data.offerIdentifier,
-  };
-}
-
-/**
- * Decode signed renewal info
- */
-async function decodeSignedRenewal(signedRenewal: string): Promise<AppleRenewalInfo> {
-  const data = await requireAppleVerifier().verifyAndDecodeRenewalInfo(signedRenewal);
-  return {
-    autoRenewProductId: data.autoRenewProductId ?? '',
-    autoRenewStatus: data.autoRenewStatus === 1 ? 1 : 0,
-    expirationIntent: data.expirationIntent,
-    gracePeriodExpiresDate: data.gracePeriodExpiresDate
-      ? new Date(data.gracePeriodExpiresDate)
-      : undefined,
-    isInBillingRetryPeriod: data.isInBillingRetryPeriod,
-    priceIncreaseStatus: data.priceIncreaseStatus,
-  };
-}
-
-// ============================================================================
-// SUBSCRIPTION HANDLERS
-// ============================================================================
-
-/**
- * Find user by Apple transaction ID
- * Looks up in our database for the associated Ferni user
- */
-async function findUserByTransaction(originalTransactionId: string): Promise<string | null> {
-  try {
-    const store = await getStore();
-    // Query all profiles and find the one with matching Apple transaction ID
-    // Note: In production, you'd want an index for this. For now, we scan.
-    const profiles = await store.listProfiles({ limit: 1000 });
-
-    for (const profile of profiles) {
-      if (profile.subscription?.appleOriginalTransactionId === originalTransactionId) {
-        log.debug({ originalTransactionId, userId: profile.id }, 'Found user by Apple transaction');
-        return profile.id;
-      }
-    }
-
-    log.debug({ originalTransactionId }, 'No user found for Apple transaction');
-    return null;
-  } catch (error) {
-    log.error(
-      { error: String(error), originalTransactionId },
-      'Error looking up user by transaction'
-    );
-    return null;
-  }
-}
-
-/**
- * Handle new subscription purchase
- */
-async function handleNewSubscription(
-  userId: string,
-  transaction: AppleTransactionInfo
-): Promise<void> {
-  const tier = PRODUCT_TO_TIER[transaction.productId] || 'free';
-
-  log.info({ userId, productId: transaction.productId, tier }, 'Processing new Apple subscription');
-
-  const store = await getStore();
-  const profile = await store.getProfile(userId);
-
-  if (!profile) {
-    log.warn({ userId }, 'Cannot update subscription - profile not found');
-    return;
-  }
-
-  const existingSubscription = profile.subscription ?? createDefaultSubscription();
-
-  const updatedSubscription = {
-    ...existingSubscription,
-    tier,
-    status: 'active' as const,
-    provider: 'apple' as const,
-    appleOriginalTransactionId: transaction.originalTransactionId,
-    appleProductId: transaction.productId,
-    subscribedAt: existingSubscription.subscribedAt ?? transaction.purchaseDate,
-    currentPeriodEnd: transaction.expiresDate,
-    lastSyncedAt: new Date(),
-  };
-
-  await store.saveProfile({
-    ...profile,
-    subscription: updatedSubscription,
-    updatedAt: new Date(),
-  });
-
-  log.info({ userId, tier }, '✅ Apple subscription activated');
-}
-
-/**
- * Handle subscription renewal
- */
-async function handleRenewal(userId: string, transaction: AppleTransactionInfo): Promise<void> {
-  log.info({ userId, productId: transaction.productId }, 'Processing Apple renewal');
-
-  const store = await getStore();
-  const profile = await store.getProfile(userId);
-
-  if (!profile) {
-    log.warn({ userId }, 'Cannot update subscription - profile not found');
-    return;
-  }
-
-  const existingSubscription = profile.subscription ?? createDefaultSubscription();
-
-  const updatedSubscription = {
-    ...existingSubscription,
-    status: 'active' as const,
-    currentPeriodEnd: transaction.expiresDate,
-    gracePeriodEnd: undefined, // Clear any grace period
-    lastSyncedAt: new Date(),
-  };
-
-  await store.saveProfile({
-    ...profile,
-    subscription: updatedSubscription,
-    updatedAt: new Date(),
-  });
-
-  log.info({ userId }, '✅ Apple subscription renewed');
-}
-
-/**
- * Handle failed renewal (billing retry / grace period)
- */
-async function handleFailedRenewal(
-  userId: string,
-  transaction: AppleTransactionInfo,
-  renewalInfo: AppleRenewalInfo | null
-): Promise<void> {
-  log.warn({ userId, productId: transaction.productId }, 'Apple renewal failed');
-
-  const store = await getStore();
-  const profile = await store.getProfile(userId);
-
-  if (!profile) {
-    log.warn({ userId }, 'Cannot update subscription - profile not found');
-    return;
-  }
-
-  const existingSubscription = profile.subscription ?? createDefaultSubscription();
-
-  // Keep access during grace period but mark as past_due
-  const updatedSubscription = {
-    ...existingSubscription,
-    status: 'past_due' as const,
-    gracePeriodEnd: renewalInfo?.gracePeriodExpiresDate,
-    lastSyncedAt: new Date(),
-  };
-
-  await store.saveProfile({
-    ...profile,
-    subscription: updatedSubscription,
-    updatedAt: new Date(),
-  });
-
-  log.warn(
-    { userId, gracePeriodEnd: renewalInfo?.gracePeriodExpiresDate },
-    '⚠️ Apple subscription in grace period'
-  );
-}
-
-/**
- * Handle subscription expiration
- */
-async function handleExpiration(userId: string, transaction: AppleTransactionInfo): Promise<void> {
-  log.info({ userId, productId: transaction.productId }, 'Apple subscription expired');
-
-  const store = await getStore();
-  const profile = await store.getProfile(userId);
-
-  if (!profile) {
-    log.warn({ userId }, 'Cannot update subscription - profile not found');
-    return;
-  }
-
-  const existingSubscription = profile.subscription ?? createDefaultSubscription();
-
-  // Downgrade to free tier
-  const updatedSubscription = {
-    ...existingSubscription,
-    tier: 'free' as const,
-    status: 'canceled' as const,
-    gracePeriodEnd: undefined,
-    lastSyncedAt: new Date(),
-  };
-
-  await store.saveProfile({
-    ...profile,
-    subscription: updatedSubscription,
-    updatedAt: new Date(),
-  });
-
-  log.info({ userId }, '📉 Apple subscription expired - downgraded to free');
-}
-
-/**
- * Handle refund or revocation
- */
-async function handleRefund(userId: string, transaction: AppleTransactionInfo): Promise<void> {
-  log.info({ userId, transactionId: transaction.transactionId }, 'Apple refund/revoke');
-
-  const store = await getStore();
-  const profile = await store.getProfile(userId);
-
-  if (!profile) {
-    log.warn({ userId }, 'Cannot update subscription - profile not found');
-    return;
-  }
-
-  const existingSubscription = profile.subscription ?? createDefaultSubscription();
-
-  // Immediately revoke access and downgrade to free
-  const updatedSubscription = {
-    ...existingSubscription,
-    tier: 'free' as const,
-    status: 'canceled' as const,
-    revokedAt: new Date(),
-    gracePeriodEnd: undefined,
-    lastSyncedAt: new Date(),
-  };
-
-  await store.saveProfile({
-    ...profile,
-    subscription: updatedSubscription,
-    updatedAt: new Date(),
-  });
-
-  log.warn({ userId }, '🚫 Apple subscription refunded/revoked - access removed');
-}
-
-/**
- * Handle auto-renew status change (user toggled in Settings)
- */
-async function handleRenewalStatusChange(
-  userId: string,
-  renewalInfo: AppleRenewalInfo | null
-): Promise<void> {
-  const willRenew = renewalInfo?.autoRenewStatus === 1;
-
-  log.info({ userId, willRenew }, 'Apple auto-renew status changed');
-
-  // This doesn't change access, just tracks intent
-  // We log it for analytics but don't modify the subscription
-  // If user turns off auto-renew, they keep access until period ends
-  // The EXPIRED notification will handle the actual downgrade
-}
-
-// ============================================================================
 // SUBSCRIPTION SYNC
 // ============================================================================
 
@@ -951,8 +437,7 @@ export const appleIAP = {
   productIds: APPLE_PRODUCT_IDS,
   productToTier: PRODUCT_TO_TIER,
 
-  // Verification
-  verifyReceipt,
+  // Status
   getSubscriptionStatus,
 
   // Notifications
