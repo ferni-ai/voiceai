@@ -15,7 +15,7 @@ import { deleteOAuthLinkStatesFor } from '../servers/token/oauth-link-state.js';
 import { tombstoneTransactionOwnersFor } from '../services/billing/apple-signed-data.js';
 import { eraseMusicalSocialData } from '../services/musical-you/social.js';
 import { eraseSocialChallengesFor } from '../services/social/challenges.js';
-import { deleteUserStats } from '../services/social/user-stats.js';
+import { eraseSocialStatsFor } from '../services/social/leaderboards.js';
 import { deleteFirebaseUser, getFirebaseUser } from '../services/identity/firebase-auth.js';
 import { erasePushRecordsFor } from '../services/push-endpoint-owners.js';
 import { recordSecurityEvent } from '../services/security-events.js';
@@ -171,7 +171,7 @@ const LINKED_RECORDS: ReadonlyArray<readonly [string, (userId: string) => Promis
   ['apple_transaction_owners', tombstoneTransactionOwnersFor],
   ['musical_challenges_and_leaderboards', eraseMusicalSocialData],
   ['social_challenges', eraseSocialChallengesFor],
-  ['social_user_stats', deleteUserStats],
+  ['social_user_stats', eraseSocialStatsFor],
 ];
 
 /** Best effort: every sweep runs; returns the names of those that failed. */

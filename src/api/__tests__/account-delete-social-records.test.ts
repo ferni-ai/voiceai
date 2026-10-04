@@ -5,8 +5,9 @@
  *   resolved first, freeing the other party's open-challenge slot (otherwise
  *   a deleted user's 50 unanswered challenges would block their friends);
  * - both open-challenge slots documents;
- * - Musical You leaderboard entries (every board, via the membership list)
- *   and social game stats.
+ * - Musical You leaderboard entries (every board, via the membership list,
+ *   including weekly boards past their ttlAt that TTL hasn't removed yet) and
+ *   social game stats (and this instance's cached social leaderboards).
  * Same A/B shape as account-delete-linked-records: seed A and B, delete A, A's
  * records are gone and B's remain.
  *
@@ -69,6 +70,7 @@ const { handleAccountRoutes } = await import('../account-routes.js');
 const musical = await import('../../services/musical-you/social.js');
 const social = await import('../../services/social/challenges.js');
 const stats = await import('../../services/social/user-stats.js');
+const boards = await import('../../services/social/leaderboards.js');
 
 function deleteRequest(uid: string): IncomingMessage {
   const req = new EventEmitter() as IncomingMessage;
@@ -170,5 +172,41 @@ describe('DELETE /api/account social game records', () => {
     expect((await stats.getUserStats('bob')).totalGamesPlayed).toBe(1);
     expect((await musical.getUserRank('bob', 'weekly', 'guess'))?.rank).toBe(1);
     expect((await musical.getUserRank('bob', 'all-time', 'overall'))?.rank).toBe(1);
+  });
+
+  it('reaches a weekly board past its ttlAt, the all-time board and the membership list', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      // A plays in an early week; that board's ttlAt (week end + 90 days) then passes,
+      // but Firestore TTL hasn't removed the entry yet. A plays again 120 days later.
+      await musical.updateLeaderboardEntry('weekly', 'guess', 'alice', 'Al', 5, 1, 1);
+      const oldWeek = [...fake.docs.keys()].find((p) => p.includes('/weekly_'));
+      vi.setSystemTime(Date.now() + 120 * 24 * 3600_000);
+      await musical.updateLeaderboardEntry('weekly', 'guess', 'alice', 'Al', 7, 2, 1);
+      await musical.updateLeaderboardEntry('all-time', 'overall', 'alice', 'Al', 7, 2, 1);
+      expect(oldWeek && fake.docs.has(oldWeek)).toBe(true);
+
+      await deleteAccount('alice');
+
+      expect(fake.docs.has(oldWeek ?? '')).toBe(false);
+      expect([...fake.docs.keys()].filter((p) => p.startsWith('musical_leaderboards/'))).toEqual(
+        []
+      );
+      expect(fake.docs.has('musical_leaderboard_members/alice')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("drops A from this instance's cached social leaderboard", async () => {
+    await stats.updateUserStats('alice', 'guess', result);
+    await stats.updateUserStats('bob', 'guess', result);
+    const ids = async () =>
+      (await boards.getLeaderboard('all-time')).entries.map((e) => e.userId).sort();
+    expect(await ids()).toEqual(['alice', 'bob']); // now cached for 30 s
+
+    await deleteAccount('alice');
+
+    expect(await ids()).toEqual(['bob']);
   });
 });

@@ -14,7 +14,10 @@
  * profiles. Weekly and monthly entries get a ttlAt 90 days after their period
  * ends (Firestore TTL deletes them); all-time entries are kept. Each user's
  * boards are listed in musical_leaderboard_members/<uid> so account deletion
- * can remove them all; boards past their ttlAt drop off that list.
+ * can remove them all. Boards stay on that list after their ttlAt: Firestore
+ * TTL deletes some time after it, not at it, so an entry past its ttlAt may
+ * still exist. The list grows by at most one key per game played per week
+ * (and per month); deleting a key whose entry is already gone is harmless.
  *
  * Moved out of social.ts, which re-exports these functions.
  *
@@ -136,12 +139,7 @@ export async function updateLeaderboardEntry(
       updatedAt: new Date(),
     };
     tx.set(board, userId, entry);
-    if (!index.boards.includes(key)) {
-      // Boards past their ttlAt are gone (or going): no need to remember them.
-      const now = Date.now();
-      const live = index.boards.filter((k) => (boardExpiry(k)?.getTime() ?? Infinity) > now);
-      tx.set(members, userId, { boards: [...live, key] });
-    }
+    if (!index.boards.includes(key)) tx.set(members, userId, { boards: [...index.boards, key] });
     return entry;
   });
 

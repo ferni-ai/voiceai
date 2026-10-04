@@ -15,7 +15,7 @@
  * - XP-based progression
  */
 
-import { topUserStats } from './user-stats.js';
+import { deleteUserStats, topUserStats } from './user-stats.js';
 
 // Stats and XP live in ./user-stats.ts and ./xp.ts (shared by every API instance).
 export {
@@ -203,6 +203,15 @@ export async function getLeaderboard(
 
   leaderboardCache.set(cacheKey, leaderboard);
   return leaderboard;
+}
+
+/**
+ * Account deletion: remove the user's stats and this instance's cached boards
+ * (which may list them). Other instances rebuild theirs within CACHE_MS.
+ */
+export async function eraseSocialStatsFor(userId: string): Promise<void> {
+  await deleteUserStats(userId);
+  leaderboardCache.clear();
 }
 
 /**
