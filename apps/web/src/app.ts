@@ -366,7 +366,7 @@ import { initGSAP, promoteAllToGPU } from './utils/gsap-animations.js';
 import { getPersona } from './config/personas.js';
 
 // Platform Detection
-import { hideSplashScreen, initPlatform, isNative, platform } from './utils/platform.js';
+import { initPlatform, platform } from './utils/platform.js';
 
 // Magnetic hover effect
 import { initMagneticHover } from './ui/magnetic-hover.ui.js';
@@ -529,7 +529,7 @@ class VoiceAIApp {
       // Skip intro - take users straight to the app
       // The awakening can still be triggered manually if needed
 
-      // Initialize platform detection (Electron/iOS/Web)
+      // Initialize platform detection (Electron/Web)
       void initPlatform();
       log.info('Running on:', platform());
 
@@ -572,11 +572,6 @@ class VoiceAIApp {
       this.promptForUserName();
 
       this.isInitialized = true;
-
-      // Hide native splash screen on iOS/Android
-      if (isNative()) {
-        void hideSplashScreen(300);
-      }
 
       // Mark entrance complete immediately (no animations to wait for)
       const avatarContainerEl = document.querySelector('.avatar-container');
