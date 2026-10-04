@@ -50,6 +50,9 @@ beforeEach(() => {
       register: vi.fn(async () => ({
         pushManager: { subscribe: mocks.pushSubscribe, getSubscription: mocks.getSubscription },
       })),
+      getRegistration: vi.fn(async () => ({
+        pushManager: { subscribe: mocks.pushSubscribe, getSubscription: mocks.getSubscription },
+      })),
       addEventListener: vi.fn(),
     },
   });
@@ -187,6 +190,61 @@ describe('applyPushPreference', () => {
 
       expect(mocks.apiPost).not.toHaveBeenCalled();
       expect(mocks.browserUnsubscribe).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('fails closed', () => {
+    async function signInAs(uid: string): Promise<void> {
+      const { initPushNotifications } =
+        await import('../../src/services/push-notifications.service.js');
+      await initPushNotifications();
+      const { syncPushOwner } = await import('../../src/services/push-preference.js');
+      await syncPushOwner(uid);
+    }
+
+    it('an unrecorded subscription is moved to whoever signs in, not inherited', async () => {
+      // e.g. subscribed before ownership tracking shipped, or storage was blocked
+      mocks.apiPost.mockResolvedValue({ ok: true, data: { success: true } });
+
+      await signInAs('bob');
+
+      expect(mocks.apiPost).toHaveBeenCalledWith('/api/push/subscribe', expect.anything());
+      expect(localStorage.getItem('ferni:push-owner')).toBe('bob');
+    });
+
+    it("an unrecorded subscription is killed when the new account doesn't want notifications", async () => {
+      localStorage.setItem('ferni:notification-prefs', JSON.stringify({ enabled: false }));
+      mocks.apiPost.mockResolvedValue({ ok: true, data: { success: true } });
+
+      await signInAs('bob');
+
+      expect(mocks.browserUnsubscribe).toHaveBeenCalled();
+    });
+
+    it('a sign-out whose server unsubscribe fails still kills the browser subscription', async () => {
+      mocks.apiPost.mockRejectedValue(new Error('network down'));
+      const { initPushNotifications } =
+        await import('../../src/services/push-notifications.service.js');
+      await initPushNotifications();
+      const { signOutReleasingPush } = await import('../../src/services/push-preference.js');
+
+      await signOutReleasingPush();
+
+      expect(mocks.browserUnsubscribe).toHaveBeenCalled();
+      expect(mocks.signOut).toHaveBeenCalled();
+    });
+
+    it('a move that throws falls through to unsubscribing', async () => {
+      localStorage.setItem('ferni:push-owner', 'alice');
+      mocks.apiPost.mockResolvedValue({ ok: true, data: { success: true } });
+      const { getPushNotificationsService } =
+        await import('../../src/services/push-notifications.service.js');
+      vi.spyOn(getPushNotificationsService(), 'subscribe').mockRejectedValue(new Error('boom'));
+
+      await signInAs('bob');
+
+      expect(mocks.browserUnsubscribe).toHaveBeenCalled();
+      expect(localStorage.getItem('ferni:push-owner')).toBeNull();
     });
   });
 });

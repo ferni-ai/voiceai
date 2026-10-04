@@ -12,9 +12,12 @@
  */
 
 import { toast } from '../ui/whisper.ui.js';
+import { createLogger } from '../utils/logger.js';
 import { isNative } from '../utils/platform.js';
 import { getFirebaseUid, onAuthStateChange, signOut } from './firebase-auth.service.js';
 import { getPushNotificationsService } from './push-notifications.service.js';
+
+const log = createLogger('PushPreference');
 
 /** The account this browser's push subscription is registered to. */
 const OWNER_KEY = 'ferni:push-owner';
@@ -36,10 +39,41 @@ function writeOwner(uid: string | null): void {
   }
 }
 
+/** This browser's live push subscription, if any (web only). */
+async function getBrowserSubscription(): Promise<PushSubscription | null> {
+  if (isNative() || !('serviceWorker' in navigator)) return null;
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    return (await registration?.pushManager.getSubscription()) ?? null;
+  } catch (err) {
+    log.warn('Could not read the browser push subscription', err);
+    return null;
+  }
+}
+
+/**
+ * Drop the subscription: tell the server, then ALWAYS unsubscribe in the
+ * browser, whatever the server call did. Killing the endpoint is what
+ * guarantees nothing addressed to the previous account can arrive.
+ */
+async function releasePush(): Promise<void> {
+  try {
+    await getPushNotificationsService().unsubscribe();
+  } catch (err) {
+    log.warn('Server push unsubscribe failed; killing the endpoint anyway', err);
+  } finally {
+    try {
+      await (await getBrowserSubscription())?.unsubscribe();
+    } catch (err) {
+      log.error('Browser push unsubscribe failed', err);
+    }
+  }
+}
+
 export async function applyPushPreference(enabled: boolean): Promise<void> {
   const service = getPushNotificationsService();
   if (!enabled) {
-    await service.unsubscribe();
+    await releasePush();
     writeOwner(null);
     return;
   }
@@ -62,27 +96,35 @@ export async function applyPushPreference(enabled: boolean): Promise<void> {
  * notifications.
  */
 export async function signOutReleasingPush(): Promise<void> {
-  await getPushNotificationsService()
-    .unsubscribe()
-    .catch(() => false);
+  await releasePush();
   writeOwner(null);
   await signOut();
 }
 
 /**
- * When `uid` isn't the account this browser's subscription belongs to, move it
- * to `uid` (if they have notifications on) or unsubscribe it. Unsubscribing in
- * the browser kills the endpoint, so the old account's record can't deliver.
+ * Make sure this browser's subscription belongs to `uid`. If it belongs to
+ * someone else, or nobody is recorded (blocked storage, or subscribed before
+ * ownership was tracked), it is re-posted for `uid` when they want
+ * notifications (same keys, so the server binds it to them) and otherwise, or
+ * on any failure, unsubscribed. It is never left as it was.
  */
 export async function syncPushOwner(uid: string | null): Promise<void> {
+  if (!uid) return;
   const owner = readOwner();
-  if (!uid || !owner || owner === uid) return;
+  if (owner === uid) return;
+  if (!owner && !(await getBrowserSubscription())) return; // nothing to hand over
 
   const service = getPushNotificationsService();
   const keep = service.getPreferences().enabled && service.getPermissionStatus() === 'granted';
-  // Re-posting the same browser subscription: same keys, so the server moves it.
-  const moved = keep ? await service.subscribe() : null;
-  if (!moved) await service.unsubscribe();
+  let moved = false;
+  if (keep) {
+    try {
+      moved = Boolean(await service.subscribe());
+    } catch (err) {
+      log.warn('Could not move the push subscription to the new account', err);
+    }
+  }
+  if (!moved) await releasePush();
   writeOwner(moved ? uid : null);
 }
 
