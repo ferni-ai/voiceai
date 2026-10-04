@@ -24,7 +24,13 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
-import { calmGreeting, GREETING_DIRECTION, partOfDayFor } from './greeting-direction.js';
+import {
+  calmGreeting,
+  GREETING_DIRECTION,
+  greetingFacts,
+  partOfDayFor,
+  takeCallerHistory,
+} from './greeting-direction.js';
 export { calmGreeting } from './greeting-direction.js';
 
 // Predictive handoff - pre-briefings for specialist personas
@@ -225,9 +231,6 @@ export class AgentOrchestrator {
    * Generate the initial greeting for a freshly spawned agent.
    * This runs in background so start() returns quickly.
    *
-   * SIMPLIFIED: Uses warm-greeting.ts directly with agent.say() wrapper.
-   * No LLM call, no timeouts, no failures - just speaks immediately.
-   *
    * ⚡ FAST-AGENT-JOIN: If handlers were deferred, wire them after greeting starts.
    * This reduces critical path by ~500ms (handlers wire in parallel with speech).
    *
@@ -235,16 +238,12 @@ export class AgentOrchestrator {
    */
   private async generateInitialGreeting(agent: PersonaAgent): Promise<void> {
     try {
-      // OPTIMIZATION: Removed 100ms delay - session is ready by the time this is called
-      // The delay was causing noticeable lag before Ferni speaks
-
-      // Import the warm greeting generator (already has per-persona, time-aware, randomized greetings)
       const { generateWarmGreeting } = await import('../shared/warm-greeting.js');
-
-      // Build context for "Better than Human" greetings
+      // A returning caller's greeting can pick up from last time (agent-setup hands it over).
+      const history = takeCallerHistory(this.sessionId);
       const ctx = {
         hour: new Date().getHours(),
-        isReturningUser: false, // Initial greeting = new session
+        isReturningUser: history !== undefined,
         relationshipStage: 'friend' as const, // Default for multi-agent
       };
 
@@ -257,7 +256,7 @@ export class AgentOrchestrator {
       const directed = await directedText(this.sessionId, {
         moment: 'greeting',
         direction: GREETING_DIRECTION,
-        facts: { 'time of day': partOfDay, ...(userName ? { 'their name': userName } : {}) },
+        facts: greetingFacts(partOfDay, userName, history),
         fallback: scripted,
         urgency: 'now',
         maxChars: 140,
