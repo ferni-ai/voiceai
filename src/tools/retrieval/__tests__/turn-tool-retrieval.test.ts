@@ -113,12 +113,55 @@ describe('TurnToolRetrieval', () => {
     r.onToolsExecuted(['setTimer']); // used earlier: now recent
     r.select(toolCtx, (await r.pick('will it rain today'))!);
     const coverage = r.onToolsExecuted(['getWeather', 'handoffToMaya', 'setTimer', 'trackHabit']);
-    expect(coverage.map((c) => [c.tool, c.via, c.covered])).toEqual([
-      ['getWeather', 'retrieved', true],
-      ['handoffToMaya', 'core', true],
-      ['setTimer', 'sticky', true],
-      ['trackHabit', 'missed', false],
+    expect(coverage.map((c) => [c.tool, c.via, c.covered, c.liveCovered])).toEqual([
+      ['getWeather', 'retrieved', true, true],
+      ['handoffToMaya', 'core', true, true],
+      ['setTimer', 'sticky', true, true],
+      ['trackHabit', 'missed', false, false],
     ]);
+  });
+
+  it('in shadow, counts a tool retrieved only from the loaded subset as not live-covered', async () => {
+    const { r } = await setup();
+    // setTimer ranks first overall but isn't loaded, so the pick falls to a lower rank.
+    const agentTools = new llm.ToolContext(['getWeather', 'handoffToMaya', 'trackHabit'].map(fn));
+    const pick = (await r.pick('set a timer for ten minutes'))!;
+    r.select(agentTools, pick);
+    const [chosen] = [...r['lastChosen']];
+    const [c] = r.onToolsExecuted([chosen]);
+    expect(c.via).toBe('retrieved');
+    expect(c.rank).toBeGreaterThanOrEqual(1); // k = 1
+    expect(c.covered).toBe(true);
+    expect(c.liveCovered).toBe(false);
+  });
+
+  it('summarizes the session as counts and tool names, never text', async () => {
+    const { r, toolCtx } = await setup();
+    r.select(toolCtx, (await r.pick('will it rain today'))!);
+    r.onToolsExecuted(['getWeather', 'trackHabit']);
+    r.newTurn();
+    const stats = r['stats'].summary();
+    expect(stats).toMatchObject({
+      picks: 1,
+      pickFailures: 0,
+      calls: 2,
+      covered: 1,
+      liveCovered: 1,
+      missedTools: ['trackHabit'],
+    });
+    expect(stats.embedMsP95).not.toBeNull();
+    expect(JSON.stringify(stats)).not.toContain('rain');
+  });
+
+  it('counts a failed pick', async () => {
+    const r = new TurnToolRetrieval({
+      sessionId: 's',
+      embedder: fakeEmbedder(),
+      index: () => Promise.reject(new Error('index down')),
+      domainOf: () => undefined,
+    });
+    expect(await r.pick('anything')).toBeNull();
+    expect(r['stats'].summary()).toMatchObject({ picks: 0, pickFailures: 1, embedMsP50: null });
   });
 });
 
