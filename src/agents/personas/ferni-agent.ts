@@ -32,8 +32,9 @@ import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
 import { filterCaptionStream } from './caption-filter.js';
+import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
-import { tapSpokenText, toolsForTurn, withTurnReminder } from './turn-request.js';
+import { tapSpokenText, toolsForTurn } from './turn-request.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -688,19 +689,17 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   }
 
   /**
-   * Every LLM request (preemptive or not) goes through here: add the turn reminder and
-   * director's notes to a copy of the context, and send this turn's tools. See turn-request.ts.
+   * Every LLM request (preemptive or not) goes through here, gated for crisis with
+   * the turn reminder and director's notes (crisis-gate.ts), with this turn's tools.
    */
   async llmNode(
     chatCtx: llm.ChatContext,
     toolCtx: llm.ToolContext,
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
-    const ctx = withTurnReminder(chatCtx, this.session as object);
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
-    const stream = await super.llmNode(ctx, tools, modelSettings);
-    if (!stream || process.env.OPENER_GATE === 'off') return stream;
-    return this.openerGate.wrap(stream as never) as unknown as typeof stream;
+    const model = async (ctx: llm.ChatContext) => super.llmNode(ctx, tools, modelSettings) as never;
+    return gatedReply(chatCtx, this.session, model, this.openerGate as never) as never;
   }
 
   private readonly turnTools = { loggedLockedHandoffs: false };
