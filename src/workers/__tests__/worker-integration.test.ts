@@ -120,7 +120,6 @@ const MockAsyncEvents = {
 vi.mock('../../services/async-events/index.js', () => ({
   AsyncEvents: MockAsyncEvents,
   asyncEvents: mockEventEmitter,
-  emitTrustUpdate: vi.fn(),
   emitConversationEnd: vi.fn(),
 }));
 

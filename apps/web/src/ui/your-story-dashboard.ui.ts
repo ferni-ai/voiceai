@@ -27,6 +27,7 @@ import {
   type ActionsTakenData,
 } from './visualizations/builders/actions-taken.js';
 import { getAuthToken } from '../services/firebase-auth.service.js';
+import { buildYourStoryStatus, type YourStoryStatus } from './your-story-status.js';
 
 const log = createLogger('YourStoryDashboard');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -154,10 +155,8 @@ class YourStoryUI {
       // Build skeleton loading state matching dashboard shape
       const skeleton = el('div', 'your-story__skeleton');
 
-      // Skeleton header
       const headerSkel = el('div', 'your-story__skeleton-header');
 
-      // Title skeleton
       const titleSkel = el('div', 'your-story__skeleton-line your-story__skeleton-line--title');
       const subtitleSkel = el('div', 'your-story__skeleton-line your-story__skeleton-line--subtitle');
       headerSkel.appendChild(titleSkel);
@@ -185,8 +184,7 @@ class YourStoryUI {
       for (let i = 0; i < 3; i++) {
         const sectionSkel = el('div', 'your-story__skeleton-section');
 
-        // Section title
-        const sectionTitleSkel = el('div', 'your-story__skeleton-line your-story__skeleton-line--section-title');
+          const sectionTitleSkel = el('div', 'your-story__skeleton-line your-story__skeleton-line--section-title');
         sectionSkel.appendChild(sectionTitleSkel);
 
         // Visualization cards (2x2 grid)
@@ -200,7 +198,6 @@ class YourStoryUI {
         skeleton.appendChild(sectionSkel);
       }
 
-      // Loading indicator text
       const loadingText = el('div', 'your-story__loading-text');
       loadingText.textContent = t('yourStory.loading') || 'Loading your story...';
       skeleton.appendChild(loadingText);
@@ -222,12 +219,14 @@ class YourStoryUI {
     );
   }
 
-  toggle(data?: YourStoryData): void {
-    if (this.isVisible) {
-      this.hide();
-    } else if (data) {
-      this.show(data);
-    }
+  /** Show the empty or error state in place of the dashboard (never demo data). */
+  showStatus(kind: YourStoryStatus, onRetry?: () => void): void {
+    this.initialize();
+    const content = this.panel?.querySelector('.your-story__content');
+    if (!this.panel || !content) return;
+    content.replaceChildren(buildYourStoryStatus(kind, onRetry));
+    this.panel.classList.add('your-story--visible');
+    this.isVisible = true;
   }
 
   destroy(): void {

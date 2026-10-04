@@ -178,7 +178,6 @@ const IGNORE_PATTERNS = [
   'subscription.ui.ts',         // Subscription modal shadows
   'team-intro.ui.ts',           // Team intro shadows
   'trust-signals.ui.ts',        // Trust signal colors
-  'onboarding-progress.ui.ts',  // Onboarding shadows
   'team-huddle.ui.ts',          // Team huddle colors
   'digital-twin',               // Digital twin visualizations
   'your-people.ui.ts',          // People relationships colors
@@ -275,10 +274,8 @@ const IGNORE_PATTERNS = [
   'modals/',                    // Modal glass effects
   'roleplay-mode.ui.ts',        // Roleplay mode glass
   'task-mode.ui.ts',            // Task mode glass
-  'calendar-provider-settings.ui.ts', // Calendar provider glass
   'confirm-modal.ui.ts',        // Confirm modal glass
   'group-conversation.ui.ts',   // Group conversation glass
-  'insights-hub.ui.ts',         // Insights hub glass
   'life-context-dashboard.ui.ts', // Life context glass
   'onboarding.ui.ts',           // Onboarding glass
   'outreach-settings.ui.ts',    // Outreach settings glass

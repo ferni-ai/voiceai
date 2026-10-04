@@ -5,7 +5,11 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { rateLimit, requireAdmin } from '../../../api/auth-middleware.js';
+import { rateLimit, requireAdmin, requireAuth } from '../../../api/auth-middleware.js';
+import { parseBody, sendError, sendJSON } from '../../../api/helpers.js';
+import { EndpointOwnedError } from '../../../services/push-endpoint-owners.js';
+import { getPushNotificationsService } from '../../../services/push-notifications.js';
+import { isWebPushDeliverable } from '../../../services/web-push-loader.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PushRoutes' });
@@ -13,21 +17,22 @@ const log = createLogger({ module: 'PushRoutes' });
 // VAPID configuration
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 
-// In-memory push subscription storage
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const globalWithPush = global as typeof global & { pushSubscriptions?: Map<string, any[]> };
-if (!globalWithPush.pushSubscriptions) {
-  globalWithPush.pushSubscriptions = new Map();
+interface SubscribeBody {
+  endpoint?: unknown;
+  keys?: { auth?: unknown; p256dh?: unknown };
+  platform?: unknown;
 }
 
-interface PushSubscription {
-  endpoint: string;
-  keys: {
-    auth: string;
-    p256dh: string;
-  };
-  userId?: string;
-  createdAt?: string;
+const PLATFORMS = ['web', 'ios', 'android'] as const;
+
+/** Read the JSON body; answers 400 itself and returns null when it isn't JSON. */
+async function readJson(req: IncomingMessage, res: ServerResponse): Promise<SubscribeBody | null> {
+  try {
+    return await parseBody<SubscribeBody>(req);
+  } catch {
+    sendError(res, 'Invalid JSON body', 400);
+    return null;
+  }
 }
 
 /**
@@ -40,13 +45,14 @@ export async function handlePushRoutes(
 ): Promise<boolean> {
   // GET /api/push/vapid-key - Get VAPID public key
   if (pathname === '/api/push/vapid-key' && req.method === 'GET') {
-    if (!VAPID_PUBLIC_KEY) {
-      log.warn('VAPID_PUBLIC_KEY not set - push notifications unavailable');
+    // Don't hand out a key (and let the browser subscribe) when nothing could be delivered.
+    if (!VAPID_PUBLIC_KEY || !(await isWebPushDeliverable())) {
+      log.warn('Web push not deliverable (VAPID keys or web-push module missing)');
       res.writeHead(503, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
           error: 'Push notifications not configured',
-          message: 'VAPID_PUBLIC_KEY environment variable not set.',
+          message: 'Web push needs VAPID keys and the web-push module.',
         })
       );
       return true;
@@ -58,101 +64,72 @@ export async function handlePushRoutes(
   }
 
   // POST /api/push/subscribe - Register push subscription
+  // Stored through the same service (Firestore push_subscriptions) the senders
+  // read, keyed by the verified caller, so a subscribed user can actually be reached.
   if (pathname === '/api/push/subscribe' && req.method === 'POST') {
-    let body = '';
-    req.on('data', (chunk: Buffer) => (body += chunk.toString()));
+    const auth = await requireAuth(req, res);
+    if (!auth) return true;
 
-    // FIX BUG: Add error handler to prevent hanging promises on request errors
-    return new Promise((resolve) => {
-      req.on('error', (err) => {
-        log.error({ error: err.message }, 'Request error in push subscribe');
-        if (!res.headersSent) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Request error' }));
-        }
-        resolve(true);
+    const body = await readJson(req, res);
+    if (!body) return true;
+
+    const { endpoint, keys } = body;
+    const platform = PLATFORMS.find((p) => p === (body.platform ?? 'web'));
+    if (
+      typeof endpoint !== 'string' ||
+      !endpoint ||
+      typeof keys?.auth !== 'string' ||
+      typeof keys?.p256dh !== 'string' ||
+      !platform
+    ) {
+      sendError(res, 'Invalid subscription format', 400);
+      return true;
+    }
+
+    try {
+      await getPushNotificationsService().registerSubscription({
+        endpoint,
+        keys: { auth: keys.auth, p256dh: keys.p256dh },
+        platform,
+        userId: auth.userId,
+        createdAt: new Date().toISOString(),
       });
-
-      req.on('end', () => {
-        try {
-          const subscription = JSON.parse(body) as PushSubscription;
-
-          if (!subscription.endpoint || !subscription.keys) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Invalid subscription format' }));
-            resolve(true);
-            return;
-          }
-
-          const userId = subscription.userId || 'anonymous';
-          const userSubs = globalWithPush.pushSubscriptions!.get(userId) || [];
-
-          // Avoid duplicates
-          const exists = userSubs.some((s) => s.endpoint === subscription.endpoint);
-          if (!exists) {
-            userSubs.push({
-              ...subscription,
-              createdAt: new Date().toISOString(),
-            });
-            globalWithPush.pushSubscriptions!.set(userId, userSubs);
-            log.info({ userId }, 'Push subscription registered');
-          }
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true }));
-        } catch (err) {
-          log.error({ error: (err as Error).message }, 'Failed to register push subscription');
-          if (!res.headersSent) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Failed to register subscription' }));
-          }
-        }
-        resolve(true);
-      });
-    });
+      sendJSON(res, { success: true });
+    } catch (err) {
+      if (err instanceof EndpointOwnedError) {
+        log.warn({ userId: auth.userId }, 'Refused push endpoint claim without matching keys');
+        sendError(res, 'This subscription belongs to another account', 403);
+        return true;
+      }
+      log.error(
+        { error: String(err), userId: auth.userId },
+        'Failed to register push subscription'
+      );
+      sendError(res, 'Failed to register subscription', 500);
+    }
+    return true;
   }
 
   // POST /api/push/unsubscribe - Remove push subscription
   if (pathname === '/api/push/unsubscribe' && req.method === 'POST') {
-    let body = '';
-    req.on('data', (chunk: Buffer) => (body += chunk.toString()));
+    const auth = await requireAuth(req, res);
+    if (!auth) return true;
 
-    // FIX BUG: Add error handler to prevent hanging promises on request errors
-    return new Promise((resolve) => {
-      req.on('error', (err) => {
-        log.error({ error: err.message }, 'Request error in push unsubscribe');
-        if (!res.headersSent) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Request error' }));
-        }
-        resolve(true);
-      });
+    const body = await readJson(req, res);
+    if (!body) return true;
+    if (typeof body.endpoint !== 'string' || !body.endpoint) {
+      sendError(res, 'endpoint is required', 400);
+      return true;
+    }
 
-      req.on('end', () => {
-        try {
-          const { endpoint, userId } = JSON.parse(body) as { endpoint: string; userId?: string };
-          const userSubs = globalWithPush.pushSubscriptions!.get(userId || 'anonymous') || [];
-          const filtered = userSubs.filter((s) => s.endpoint !== endpoint);
-
-          if (filtered.length > 0) {
-            globalWithPush.pushSubscriptions!.set(userId || 'anonymous', filtered);
-          } else {
-            globalWithPush.pushSubscriptions!.delete(userId || 'anonymous');
-          }
-
-          log.info({ userId: userId || 'anonymous' }, 'Push subscription removed');
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true }));
-        } catch (err) {
-          log.error({ error: (err as Error).message }, 'Failed to unsubscribe');
-          if (!res.headersSent) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Failed to unsubscribe' }));
-          }
-        }
-        resolve(true);
-      });
-    });
+    try {
+      await getPushNotificationsService().removeSubscription(auth.userId, body.endpoint);
+      sendJSON(res, { success: true });
+    } catch (err) {
+      log.error({ error: String(err), userId: auth.userId }, 'Failed to unsubscribe');
+      sendError(res, 'Failed to unsubscribe', 500);
+    }
+    return true;
   }
 
   // POST /api/push/send - Send a push notification (ADMIN ONLY)
@@ -196,8 +173,7 @@ export async function handlePushRoutes(
 
           // Try to use backend service if available
           try {
-            const pushModule = await import('../../../services/push-notifications.js');
-            const service = pushModule.getPushNotificationsService();
+            const service = getPushNotificationsService();
             // Valid notification types from the service
             const validTypes = [
               'ritual_reminder',

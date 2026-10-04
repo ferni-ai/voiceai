@@ -64,8 +64,11 @@ export interface PersistenceStore<T> {
   /** Flush changes for a specific user */
   flushUser: (userId: string) => Promise<void>;
 
-  /** Load data from Firestore into memory */
-  load: (userId: string) => Promise<T | null>;
+  /**
+   * Load data from Firestore into memory. `fresh` skips a clean cache entry, for
+   * data another process may have changed (unflushed local writes still win).
+   */
+  load: (userId: string, options?: { fresh?: boolean }) => Promise<T | null>;
 
   /** Clear memory cache for user */
   clearCache: (userId: string) => void;
@@ -296,14 +299,14 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
   };
 
   // Load from Firestore
-  const load = async (userId: string): Promise<T | null> => {
+  const load = async (userId: string, options?: { fresh?: boolean }): Promise<T | null> => {
     // Check cache first
-    if (cache.has(userId)) {
+    if (cache.has(userId) && (!options?.fresh || dirty.has(userId))) {
       return cache.get(userId)!;
     }
 
     const firestore = await getFirestore();
-    if (!firestore) return null;
+    if (!firestore) return cache.get(userId) ?? null;
 
     try {
       const docRef = useRootCollection
@@ -313,6 +316,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       const doc = await docRef.get();
 
       if (!doc.exists) {
+        cache.delete(userId);
         return null;
       }
 

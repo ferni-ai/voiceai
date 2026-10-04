@@ -50,6 +50,15 @@ export interface BillingPortalResult {
  */
 const BILLING_PORTAL_ENDPOINT = '/subscription/portal';
 
+/**
+ * Human text for a failed billing request. 503 means payments aren't set up on
+ * the server (Stripe not configured), so retrying won't help and nothing was charged.
+ */
+export function billingErrorMessage(status?: number): string {
+  if (status === 503) return "Payments aren't set up yet, so nothing was charged.";
+  return "Couldn't reach billing. Try again?";
+}
+
 // ============================================================================
 // MAIN FUNCTION
 // ============================================================================
@@ -111,7 +120,7 @@ export async function openBillingPortal(
       log.error({ status: response.status, errorText }, 'Billing portal request failed');
 
       if (showErrorToast) {
-        toast.error("Couldn't open billing. Try again?");
+        toast.error(billingErrorMessage(response.status));
       }
       return { success: false, error: `HTTP ${response.status}: ${errorText}` };
     }

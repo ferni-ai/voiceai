@@ -18,6 +18,7 @@ import type { llm } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { SessionServices } from '../../services/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import type { UserData } from '../shared/types.js';
 import type { TurnHandlerContext } from '../voice-agent/turn-handler.js';
 import { getUserResponseGapMs } from '../voice-agent/user-response-gap.js';
@@ -44,14 +45,8 @@ export interface TurnIntelligenceDeps {
 }
 
 export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurnHook {
-  const sendDataMessage = async (type: string, payload: Record<string, unknown>): Promise<void> => {
-    try {
-      const data = new TextEncoder().encode(JSON.stringify({ type, ...payload }));
-      await deps.room?.localParticipant?.publishData(data, { reliable: true });
-    } catch {
-      // Frontend signals are best-effort; a dropped one must not affect the turn.
-    }
-  };
+  // Frontend signals are best-effort; a dropped one must not affect the turn.
+  const sendDataMessage = createDataMessageSender(deps.room);
 
   return async (turnCtx, newMessage) => {
     const userText = newMessage.textContent?.trim();

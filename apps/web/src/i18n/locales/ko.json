@@ -2009,6 +2009,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "당신의 이야기는 여기서 시작돼요",
+      "body": "몇 번 대화를 나누고 나면, 당신에게 중요한 순간들이 여기에 나타나요."
+    },
+    "error": {
+      "title": "이야기를 불러오지 못했어요",
+      "body": "저희 쪽에 문제가 생겼어요. 다시 시도할까요?",
+      "retry": "다시 시도"
     }
   },
   "memoryBrowser": {
@@ -2253,7 +2262,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "전체 곡을 들으려면 설정에서 Spotify를 연결하세요"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2318,7 +2328,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "먼저 조명이나 온도 조절기를 연결해 주세요",
+    "couldNotChangeLights": "조명을 바꾸지 못했어요. 다시 시도할까요?",
+    "musicNeedsCall": "음악 컨트롤은 대화 중에 사용할 수 있어요"
   },
   "ui": {
     "accountbutton": {

@@ -83,6 +83,8 @@ class ConversationHistoryService {
         );
       } catch (error) {
         getLogger().error({ error, userId }, 'Failed to record conversation session');
+        // Rethrow so the caller can report the failure instead of claiming it saved.
+        throw error;
       }
     }
 

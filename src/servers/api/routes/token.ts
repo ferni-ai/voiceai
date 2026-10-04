@@ -278,17 +278,13 @@ export async function handleTokenRoutes(
 
       // Create room and dispatch agent (createRoomWithAgent handles both — no double-dispatch)
       log.info({ room: roomName, persona: personaId, city: demoGeoData.city }, '🚀 Dispatching agent');
-      const dispatched = await createRoomWithAgent(
+      // Failures are logged at error inside createRoomWithAgent; the client learns via agent_dispatched.
+      const dispatch = await createRoomWithAgent(
         roomName,
         demoRoomMetadata,
         DEMO_CONFIG.sessionDurationMinutes * 60 + 30, // emptyTimeout in seconds + buffer
         2 // visitor + agent
       );
-      if (dispatched) {
-        log.info({ room: roomName, persona: personaId }, '✅ Agent dispatched');
-      } else {
-        log.error({ room: roomName }, '❌ Agent dispatch failed');
-      }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -298,6 +294,7 @@ export async function handleTokenRoutes(
           room: roomName,
           username,
           demo_id: demoId,
+          agent_dispatched: dispatch.agentDispatched,
           expires_in_minutes: DEMO_CONFIG.sessionDurationMinutes,
           sessions_remaining: isBrandedPersona
             ? 999
@@ -703,12 +700,8 @@ export async function handleTokenRoutes(
 
       // Create room and dispatch agent (createRoomWithAgent handles both — no double-dispatch)
       log.info({ room, persona_id: selectedPersona }, '🎯 Dispatching agent with persona');
-      const dispatched = await createRoomWithAgent(room, roomMetadata);
-      if (dispatched) {
-        log.info({ room, persona_id: selectedPersona }, '✅ Agent dispatch successful');
-      } else {
-        log.error({ room, persona_id: selectedPersona }, '❌ Agent dispatch FAILED');
-      }
+      // Failures are logged at error inside createRoomWithAgent; the client learns via agent_dispatched.
+      const dispatch = await createRoomWithAgent(room, roomMetadata);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -720,6 +713,7 @@ export async function handleTokenRoutes(
           device_id,
           firebase_uid: firebaseUid,
           persona_id: selectedPersona,
+          agent_dispatched: dispatch.agentDispatched,
           accent: geoData.detectedAccent,
           countryCode: geoData.countryCode,
           // IP-detected location for weather, local content

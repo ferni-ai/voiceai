@@ -13,6 +13,7 @@
 import { showOutreach, type ProactiveOutreachData } from '../ui/proactive-outreach.ui.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { apiGet } from '../utils/api.js';
+import { openAuthedWebSocket } from './authed-websocket.service.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('CrossTeamNotifications');
@@ -272,7 +273,7 @@ function scheduleReconnect(userId: string): void {
   
   reconnectTimeout = setTimeout(() => {
     if (isEnabled && currentUserId) {
-      connectToInsightsStream(currentUserId);
+      void connectToInsightsStream(currentUserId);
     }
   }, delay);
 }
@@ -280,9 +281,8 @@ function scheduleReconnect(userId: string): void {
 /**
  * Connect to the insights WebSocket for real-time updates
  */
-export function connectToInsightsStream(userId: string): void {
-  // Store userId for reconnection
-  currentUserId = userId;
+export async function connectToInsightsStream(userId: string): Promise<void> {
+  currentUserId = userId; // for reconnection
 
   if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
     log.debug('Already connected to insights stream');
@@ -298,10 +298,10 @@ export function connectToInsightsStream(userId: string): void {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   // In development, connect directly to UI server (port 3002) to bypass Vite proxy
   const host = import.meta.env.DEV ? 'localhost:3002' : window.location.host;
-  const wsUrl = `${protocol}//${host}/ws/insights?userId=${userId}`;
+  const wsUrl = `${protocol}//${host}/ws/insights`;
 
   try {
-    wsConnection = new WebSocket(wsUrl);
+    wsConnection = await openAuthedWebSocket(wsUrl);
 
     wsConnection.onopen = () => {
       log.info('Connected to insights WebSocket');
@@ -531,7 +531,7 @@ export function initCrossTeamNotifications(userId: string): void {
   } else {
     // Local development - try WebSocket (works directly with ui-server)
     try {
-      connectToInsightsStream(userId);
+      void connectToInsightsStream(userId);
     } catch {
       log.info('WebSocket unavailable, using polling');
       startInsightsPolling(userId);

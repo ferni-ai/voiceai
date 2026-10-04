@@ -17,6 +17,7 @@ import { showTeamHuddle as showTeamHuddleUI } from '../ui/team-huddle.ui.js';
 import type { fetchVisualizationData, YourStoryData } from '../ui/visualizations/index.js';
 import { loadYourStory } from '../ui/lazy-screens.js';
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 
 // 🧠 Better Than Human: Track screen view for Voice ↔ App Sync
 async function trackScreen(screen: ScreenName): Promise<void> {
@@ -529,10 +530,11 @@ export async function showPredictionTracker(): Promise<void> {
  */
 export async function showDataExport(): Promise<void> {
   void trackScreen('settings');
-  const { dataExportService } = await import('../services/data-export.service.js');
+  const { dataExportService, dataRightsErrorMessage } =
+    await import('../services/data-export.service.js');
   const { toast } = await import('../ui/whisper.ui.js');
 
-  // Set up callbacks for export and delete
+  // Each request only reports success after the server confirms it.
   getDataExportUI().setCallbacks({
     onExport: async (format, categories) => {
       try {
@@ -541,7 +543,7 @@ export async function showDataExport(): Promise<void> {
         toast.success('Download started!');
       } catch (err) {
         log.error('Export failed:', err);
-        toast.error("Couldn't export. Try again?");
+        toast.error(dataRightsErrorMessage(err, "Couldn't export. Try again?"));
       }
     },
     onDeleteData: async () => {
@@ -549,13 +551,25 @@ export async function showDataExport(): Promise<void> {
         toast.info('Deleting your data...');
         await dataExportService.deleteAllData();
         toast.success('All data deleted');
-        // Redirect to home after deletion
         setTimeout(() => {
           window.location.href = '/';
         }, 1500);
       } catch (err) {
         log.error('Delete failed:', err);
-        toast.error("Couldn't delete. Try again?");
+        toast.error(dataRightsErrorMessage(err, "Couldn't delete. Try again?"));
+      }
+    },
+    onDeleteAccount: async () => {
+      try {
+        toast.info('Deleting your account...');
+        await dataExportService.deleteAccount();
+        toast.success('Your account is deleted. Take care.');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1500);
+      } catch (err) {
+        log.error('Account deletion failed:', err);
+        toast.error(dataRightsErrorMessage(err, "Couldn't delete your account. Try again?"));
       }
     },
     onClose: () => {
@@ -563,82 +577,7 @@ export async function showDataExport(): Promise<void> {
     },
   });
 
-  // Fetch categories from backend
-  const categories = await dataExportService.getExportableCategories();
-  getDataExportUI().show(categories);
-
-  // Fall back to demo data if needed
-  if (categories.length === 0 && isDemoDataEnabled()) {
-    const demoData = [
-      {
-        category: 'Conversations',
-        description: 'All conversation transcripts',
-        itemCount: 45,
-        exportable: true,
-      },
-      {
-        category: 'Insights',
-        description: 'What Ferni has learned about you',
-        itemCount: 23,
-        exportable: true,
-      },
-      {
-        category: 'Rituals',
-        description: 'Daily practice history and streaks',
-        itemCount: 156,
-        exportable: true,
-      },
-      {
-        category: 'Predictions',
-        description: 'Your predictions and outcomes',
-        itemCount: 18,
-        exportable: true,
-      },
-      {
-        category: 'Mood History',
-        description: 'Emotional weather records',
-        itemCount: 42,
-        exportable: true,
-      },
-      {
-        category: 'Profile',
-        description: 'Your profile and preferences',
-        itemCount: 1,
-        exportable: true,
-      },
-      {
-        category: 'Contacts',
-        description: 'Your people and relationships',
-        itemCount: 12,
-        exportable: true,
-      },
-      {
-        category: 'Trust Journey',
-        description: 'Your growth, boundaries, and shared moments',
-        itemCount: 28,
-        exportable: true,
-      },
-      {
-        category: 'Wellbeing',
-        description: 'Wellness snapshots and trends',
-        itemCount: 35,
-        exportable: true,
-      },
-      {
-        category: 'Habits',
-        description: "Maya's habit coaching data",
-        itemCount: 8,
-        exportable: true,
-      },
-      {
-        category: 'Productivity',
-        description: 'Tasks, notes, and journal entries',
-        itemCount: 67,
-        exportable: true,
-      },
-    ];
-    getDataExportUI().show(demoData);
-  }
+  getDataExportUI().show(await dataExportService.getExportableCategories());
 }
 
 // ============================================================================
@@ -704,10 +643,11 @@ export async function showTeamHuddle(_topic?: string): Promise<void> {
  *
  * Data sources (in priority order):
  * 1. Backend API (/api/your-story/full) - aggregates all services
- * 2. Direct Firestore fetch - fallback for offline/errors
- * 3. Demo data - for new users or when all else fails
+ * 2. Direct Firestore fetch - when the API has nothing or fails
  *
- * For new users, shows aspirational demo data with a warm banner.
+ * With no story yet it shows an empty state; when loading fails, an error
+ * with a retry. Demo data appears only behind the explicit demo flag, and
+ * always with the demo banner, so example numbers never pass as the user's.
  */
 export async function showYourStoryDashboard(): Promise<void> {
   void trackScreen('your-story');
@@ -717,46 +657,33 @@ export async function showYourStoryDashboard(): Promise<void> {
   const dashboard = getYourStoryUI();
   dashboard.showLoading();
 
-  const userId = localStorage.getItem('ferni_user_id');
-
-  // Priority 1: Try the unified API endpoint (aggregates all services)
-  try {
-    if (userId) {
-      log.debug({ userId }, 'Fetching from /api/your-story/full');
-      const storyData = await fetchYourStory();
-
-      // Check if we got real data (not demo fallback)
-      if (storyData.analytics.conversations > 0 || storyData.analytics.daysTogether > 0) {
-        dashboard.show(storyData);
-        log.info({ userId }, 'Your Story shown from API');
-        return;
-      }
-    }
-  } catch (err) {
-    log.debug({ err }, 'API fetch failed, trying Firestore fallback');
+  if (isDemoDataEnabled()) {
+    dashboard.show(viz.createDemoStoryData('demo-user'), { showDemoBanner: true });
+    return;
   }
 
-  // Priority 2: Fallback to direct Firestore fetch
+  const result = await fetchYourStory();
+  if (result.status === 'ok') {
+    dashboard.show(result.data);
+    return;
+  }
+
+  let failed = result.status === 'error';
+  const userId = localStorage.getItem('ferni_user_id');
   try {
     if (userId) {
       const visualizationData = await viz.fetchVisualizationData(userId);
-
       if (viz.hasAnyVisualizationData(visualizationData)) {
-        // Aggregate with analytics and milestone data
-        const storyData = await aggregateStoryData(userId, visualizationData);
-        dashboard.show(storyData);
-        log.info({ userId }, 'Your Story shown from Firestore fallback');
+        dashboard.show(await aggregateStoryData(userId, visualizationData));
         return;
       }
     }
   } catch (err) {
-    log.debug({ err }, 'Firestore fetch failed, using demo data');
+    log.warn({ err }, 'Your Story Firestore read failed');
+    failed = true;
   }
 
-  // Priority 3: Demo data for new users or when all else fails
-  const demoData = viz.createDemoStoryData(userId || 'demo-user');
-  dashboard.show(demoData, { showDemoBanner: true });
-  log.info('Your Story shown with demo data (new user or demo mode)');
+  dashboard.showStatus(failed ? 'error' : 'empty', () => void showYourStoryDashboard());
 }
 
 /**
@@ -812,38 +739,26 @@ async function fetchRelationshipStage(_userId: string): Promise<YourStoryData['s
 }
 
 /**
- * Fetch recent milestones for the story.
+ * Fetch completed relationship milestones for the story.
+ * Source: GET /api/your-story/section/relationship (src/api/your-story-routes.ts),
+ * built from the relationship arc stored in Firestore.
  */
-async function fetchRecentMilestones(userId: string): Promise<YourStoryData['milestones']> {
-  try {
-    const response = await fetch(
-      `/api/journey/milestones?userId=${encodeURIComponent(userId)}&limit=5`
-    );
-    if (response.ok) {
-      const data = await response.json();
-      return (data.milestones || []).map(
-        (m: { id: string; name: string; celebratedAt: string | number; category?: string }) => ({
-          id: m.id,
-          name: m.name,
-          celebratedAt:
-            typeof m.celebratedAt === 'string'
-              ? new Date(m.celebratedAt).getTime()
-              : m.celebratedAt,
-          category: (m.category || 'discovery') as
-            | 'relationship'
-            | 'team'
-            | 'conversation'
-            | 'discovery'
-            | 'sweet',
-        })
-      );
-    }
-  } catch (err) {
-    log.debug({ err }, 'Failed to fetch milestones');
+async function fetchRecentMilestones(_userId: string): Promise<YourStoryData['milestones']> {
+  const response = await apiGet<{
+    data?: { milestones?: Array<{ id: string; title: string; completed: boolean; completedAt?: string }> };
+  }>('/api/your-story/section/relationship');
+  if (!response.ok) {
+    log.debug({ status: response.status }, 'Failed to fetch milestones');
+    return [];
   }
-
-  // Return empty array if API fails
-  return [];
+  return (response.data?.data?.milestones ?? [])
+    .filter((m) => m.completed)
+    .map((m) => ({
+      id: m.id,
+      name: m.title,
+      celebratedAt: m.completedAt ? new Date(m.completedAt).getTime() : 0,
+      category: 'relationship' as const,
+    }));
 }
 
 // ============================================================================

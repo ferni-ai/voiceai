@@ -6,8 +6,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
-import { parseBody, sendError } from '../helpers.js';
-import { sendJson, checkRateLimitAndApply } from './helpers.js';
+import { sendError } from '../helpers.js';
+import { sendJson, checkRateLimitAndApply, readJsonBody } from './helpers.js';
 import {
   getSelectedCalendars,
   updateSelectedCalendars,
@@ -56,7 +56,7 @@ export async function handleSelectCalendars(
   if (checkRateLimitAndApply(res, userId, 'credential')) return;
 
   try {
-    const body = await parseBody<{
+    const body = await readJsonBody<{
       calendar_ids?: string[];
       calendarIds?: string[];
     }>(req);

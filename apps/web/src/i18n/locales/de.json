@@ -2009,6 +2009,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "Hier beginnt deine Geschichte",
+      "body": "Wenn wir ein paar Mal gesprochen haben, erscheinen hier die Momente, die dir wichtig sind."
+    },
+    "error": {
+      "title": "Deine Geschichte konnte nicht geladen werden",
+      "body": "Bei uns ist etwas schiefgelaufen. Nochmal versuchen?",
+      "retry": "Erneut versuchen"
     }
   },
   "memoryBrowser": {
@@ -2253,7 +2262,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "Verknüpfe Spotify in den Einstellungen für ganze Songs"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2318,7 +2328,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "Verbinde zuerst deine Lampen oder dein Thermostat",
+    "couldNotChangeLights": "Das Licht ließ sich nicht ändern. Nochmal versuchen?",
+    "musicNeedsCall": "Die Musiksteuerung funktioniert während eines Gesprächs"
   },
   "ui": {
     "accountbutton": {
