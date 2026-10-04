@@ -43,10 +43,6 @@
     "prepare": "husky || true"
   },
   "dependencies": {
-    "@capacitor/core": "^7.4.4",
-    "@capacitor/haptics": "^7.0.2",
-    "@capacitor/local-notifications": "^7.0.3",
-    "@capacitor/push-notifications": "^7.0.3",
     "@tsparticles/engine": "^3.9.1",
     "@tsparticles/slim": "^3.9.1",
     "firebase": "^10.14.1",
@@ -55,7 +51,6 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@capacitor/cli": "^7.4.4",
     "@playwright/test": "^1.63.0",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",

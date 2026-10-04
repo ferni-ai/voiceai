@@ -61,7 +61,7 @@ This directory contains frontend services that power the Ferni web app. Services
 |---------|---------|
 | `monetization.service.ts` | Subscription logic |
 | `monetization-integration.service.ts` | Payment integration |
-| `apple-iap.service.ts` | Apple In-App Purchase |
+| `apple-iap.service.ts` | Subscription status; App Store purchases happen in the iOS app |
 | `seeds-economy.service.ts` | Seeds virtual currency |
 
 ### Intelligence & Context

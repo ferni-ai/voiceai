@@ -17,13 +17,6 @@ const mocks = vi.hoisted(() => ({
   uid: 'alice' as string | null,
 }));
 
-vi.mock('../../src/utils/platform.js', () => ({
-  platform: 'web',
-  isNative: () => false,
-  isIOS: () => false,
-  isAndroid: () => false,
-  isWeb: () => true,
-}));
 vi.mock('../../src/utils/api.js', () => ({ apiPost: mocks.apiPost, apiGet: mocks.apiGet }));
 vi.mock('../../src/ui/whisper.ui.js', () => ({ toast: { error: mocks.toastError } }));
 vi.mock('../../src/services/firebase-auth.service.js', () => ({
