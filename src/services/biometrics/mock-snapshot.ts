@@ -1,6 +1,6 @@
 /**
- * Empty-reading snapshot, served only as a development stub (see
- * utils/dev-stub.ts). Never returned in production.
+ * Empty-reading snapshot: the development stub (see utils/dev-stub.ts), and
+ * the base a Terra webhook fills in before its real fields are applied.
  */
 import type { BiometricPlatform, BiometricSnapshot } from './types.js';
 
