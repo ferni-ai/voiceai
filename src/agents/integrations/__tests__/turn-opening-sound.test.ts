@@ -64,6 +64,30 @@ describe('attachTurnOpeningSound', () => {
     expect(played).toEqual([]);
   });
 
+  it('never plays over the caller: they kept talking after a pause', () => {
+    const { session, played } = setup();
+    // ink's early end-of-turn starts a preemptive reply at a thinking pause...
+    session.emit('agent_state_changed', { newState: 'thinking' });
+    vi.advanceTimersByTime(300);
+    // ...but the caller was only pausing
+    session.emit('user_state_changed', { newState: 'speaking' });
+    vi.advanceTimersByTime(1000);
+    expect(played).toEqual([]);
+  });
+
+  it('does not fire while the caller is speaking, even if thinking began then', () => {
+    const { session, played } = setup();
+    session.emit('user_state_changed', { newState: 'speaking' });
+    session.emit('agent_state_changed', { newState: 'thinking' });
+    vi.advanceTimersByTime(1000);
+    expect(played).toEqual([]);
+    // once they stop and the agent is still thinking, the next wait may play
+    session.emit('user_state_changed', { newState: 'listening' });
+    session.emit('agent_state_changed', { newState: 'thinking' });
+    vi.advanceTimersByTime(700);
+    expect(played).toEqual(['Mm']);
+  });
+
   it('skips the turn after one that had a sound, then may play again', () => {
     const { session, played } = setup();
     for (let turn = 0; turn < 3; turn++) {

@@ -65,18 +65,25 @@ export function attachTurnOpeningSound(
   let timer: NodeJS.Timeout | null = null;
   let playedLastTurn = false;
   let userStartedAt = 0;
+  let userSpeaking = false;
+  const cancel = (): void => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+  };
+  // The agent goes "thinking" on ink's early end-of-turn, which is often only a
+  // pause: if the caller carries on, the "Mm" would land on top of them.
   const onUserState = (ev: unknown): void => {
-    if ((ev as { newState?: string }).newState === 'speaking') userStartedAt = Date.now();
+    userSpeaking = (ev as { newState?: string }).newState === 'speaking';
+    if (!userSpeaking) return;
+    userStartedAt = Date.now();
+    cancel();
   };
   const onState = (ev: unknown): void => {
-    const state = (ev as { newState?: string }).newState;
-    if (timer) {
-      clearTimeout(timer);
-      timer = null;
-    }
-    if (state !== 'thinking') return;
+    cancel();
+    if ((ev as { newState?: string }).newState !== 'thinking') return;
     timer = setTimeout(() => {
       timer = null;
+      if (userSpeaking) return;
       // The reply's audio exists already; its playback is about to start.
       if (replyAudioSince(userStartedAt)) return;
       const text = turnOpeningClip({
@@ -91,7 +98,7 @@ export function attachTurnOpeningSound(
   session.on('agent_state_changed', onState);
   session.on('user_state_changed', onUserState);
   return () => {
-    if (timer) clearTimeout(timer);
+    cancel();
     session.off('agent_state_changed', onState);
     session.off('user_state_changed', onUserState);
   };
