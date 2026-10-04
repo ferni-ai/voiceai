@@ -244,6 +244,7 @@ import {
 } from './services/engagement-demo-data.js';
 import { scoredStreak } from './services/prediction-data.js';
 // Environment detection
+import { getApiHeadersAsync } from './utils/api.js';
 import { shouldUseDemoData } from './utils/environment.js';
 
 // New Feature UIs (v2)
@@ -2696,9 +2697,8 @@ class VoiceAIApp {
    * Called after each conversation ends.
    */
   private async recordConversationUsage(sessionStart: number | null): Promise<void> {
-    const deviceId = appState.get('deviceId');
-    // Server contract: { userId, durationMinutes } (subscription-routes recordConversationUsage)
-    const body = buildConversationUsageBody(deviceId, sessionStart);
+    // Server contract: { durationMinutes } for the Bearer-token user (subscription-routes)
+    const body = buildConversationUsageBody(sessionStart);
     if (!body) return;
 
     // 🤝 Process any pending referral on first/early conversation
@@ -2718,7 +2718,7 @@ class VoiceAIApp {
     try {
       const response = await fetch('/usage/conversation', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getApiHeadersAsync(), // not under /api/, so the fetch hook adds no token
         body: JSON.stringify(body),
       });
 

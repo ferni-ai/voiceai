@@ -15,6 +15,21 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const updatePredictionActuals = vi.fn();
+// The route resolves the caller through acting-user.ts -> requireAuth. Stand in
+// for the verified token with the uid bindVerifiedIdentity would have bound
+// (x-firebase-uid); no uid means no credentials (401).
+vi.mock('../api/auth-middleware.js', () => ({
+  requireAuth: vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
+    const uid = req.headers['x-firebase-uid'];
+    if (typeof uid !== 'string' || !uid) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return null;
+    }
+    return { userId: uid, isAdmin: false };
+  }),
+}));
+
 vi.mock('../services/engagement/engagement-store.js', () => ({
   getEngagementStore: async () => ({ updatePredictionActuals }),
 }));
@@ -76,7 +91,6 @@ describe('recording prediction actuals uses the verified caller', () => {
     const { status, error } = await post('alice', { userId: 'bob', actuals: { [DEEP_WORK]: 7 } });
 
     expect(status).toBe(403);
-    expect(error).toBe('You can only record your own predictions.');
     expect(updatePredictionActuals).not.toHaveBeenCalled();
   });
 

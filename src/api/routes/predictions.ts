@@ -8,6 +8,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { requireUserId, sendJSON, sendJSONCached, sendError } from '../helpers.js';
+import { resolveActingUser } from '../acting-user.js';
 import { validateBody, UpdatePredictionActualsSchema } from '../validators.js';
 import { API_ERRORS } from '../error-messages.js';
 import type { AnyRecord } from './types.js';
@@ -89,16 +90,12 @@ export async function handleUpdatePredictionActuals(
   predictionId: string
 ): Promise<void> {
   try {
-    const userId = requireUserId(req, res, parsedUrl);
-    if (!userId) return;
-
     const body = await validateBody(req, res, UpdatePredictionActualsSchema);
     if (!body) return;
 
-    if (body.userId && body.userId !== userId) {
-      sendError(res, API_ERRORS.PREDICTION_NOT_YOURS, 403);
-      return;
-    }
+    // Named users must be the verified caller (403 otherwise; see acting-user.ts).
+    const userId = await resolveActingUser(req, res, body.userId);
+    if (!userId) return;
 
     const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();

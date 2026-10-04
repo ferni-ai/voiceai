@@ -50,7 +50,6 @@ export const API_ERRORS = {
   PREDICTION_ALREADY_COMPLETED: 'Looks like this prediction was already resolved.',
   PREDICTION_UPDATE_FAILED: "Couldn't update that prediction. Mind trying again?",
   PREDICTION_METRIC_MISMATCH: "Those numbers don't match what you predicted. Try again?",
-  PREDICTION_NOT_YOURS: 'You can only record your own predictions.',
 
   // Memories
   MEMORY_NOT_FOUND: "Couldn't find that memory. It may have been removed.",
