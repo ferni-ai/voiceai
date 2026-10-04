@@ -2086,6 +2086,8 @@ export function handleMusic(event: MusicEvent): void {
       // 🎚️ Set up music control callbacks
       // NO optimistic updates - wait for backend music_state confirmation via MusicStateManager
       nowPlayingUI.setCallbacks({
+        // Volume/mute is the listener's level, applied in the browser right away
+        onVolumeChange: (volume) => getMusicAudioController().setListenerVolume(volume),
         onPause: () => {
           log.info('🎵 User clicked pause button');
           const room = connectionService.getRoom();
