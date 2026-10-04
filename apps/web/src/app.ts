@@ -383,6 +383,7 @@ import {
   showDataExport,
   showPredictionTracker,
   showTeamHuddle,
+  showTrustDashboard,
   showYourStoryDashboard,
 } from './app/panel-methods.js';
 
@@ -1867,6 +1868,10 @@ class VoiceAIApp {
           void import('./ui/team-observations-panel.ui.js').then((m) => m.show()),
         // Trust Journey is now integrated into the unified Journey modal
         onTrustJourneyClick: () => journeyUI.open(),
+        onTrustDashboardClick: () =>
+          void showTrustDashboard().catch((error: unknown) =>
+            log.error({ error }, "Couldn't open the trust dashboard")
+          ),
         onMusicDashboardClick: () => void openMusicDashboard(),
         onPlayGamesClick: () => void openGamePicker(),
         onOutreachScheduleClick: () => void openOutreachSchedule(),
