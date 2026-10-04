@@ -73,7 +73,7 @@ const PRESET_COLORS = [
   { nameKey: 'agentPageBuilder.colorVanguardRed', value: '#96151D' },
   { nameKey: 'agentPageBuilder.colorForestGreen', value: '#2D5A27' },
   { nameKey: 'agentPageBuilder.colorOceanBlue', value: '#1E4D8C' },
-  { nameKey: 'agentPageBuilder.colorRoyalPurple', value: '#5B2C6F' },
+  { nameKey: 'agentPageBuilder.colorRoyalPurple', value: '#a67a6a' }, // maya terracotta, not purple
   { nameKey: 'agentPageBuilder.colorSunsetOrange', value: '#D35400' },
   { nameKey: 'agentPageBuilder.colorSlateGray', value: '#34495E' },
 ];

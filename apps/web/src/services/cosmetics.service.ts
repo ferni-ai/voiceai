@@ -100,8 +100,8 @@ const PREMIUM_AVATAR_SKINS: CosmeticItem[] = [
     requiredTier: 'friend',
     isLimited: false,
     config: {
-      primaryColor: '#6B5B95',
-      glowColor: '#9B8DC4',
+      primaryColor: '#4a5a73', // design-system/tokens/colors.json personas.alex.secondary
+      glowColor: '#7a8baa', // personas.alex.light
       particleEffect: 'stardust',
     },
   },
@@ -144,7 +144,7 @@ const PREMIUM_AVATAR_SKINS: CosmeticItem[] = [
     isLimited: true,
     config: {
       primaryColor: '#00CED1',
-      secondaryColor: '#9370DB',
+      secondaryColor: '#7a8baa', // personas.alex.light
       effect: 'aurora-shift',
     },
   },
