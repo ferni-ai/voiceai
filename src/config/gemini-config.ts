@@ -130,14 +130,49 @@ export const LIGHT_MODEL = process.env.LLM_LIGHT_MODEL || 'gemini-3.5-flash-lite
 
 /**
  * Model for realtime/voice applications (Vertex AI Live API)
- * Default: gemini-2.0-flash-live-preview-04-09 (supports TEXT modality)
- * NOTE: gemini-live-2.5-flash-preview also works but gemini-live-2.5-flash is private GA
+ * NOTE: Google retired gemini-2.0-flash model line.
+ * NOTE: The Gemini Live pipeline is LEGACY. Do NOT select it without explicitly setting
+ *       LLM_REALTIME_MODEL to a supported live model (e.g., gemini-2.5-flash-preview).
  * NOTE: Native-audio models (gemini-live-*-native-audio) do NOT work with TEXT modality!
  * NOTE: Do NOT fall back to GEMINI_MODEL — Live models break generateContent callers
  *       that use getDefaultModel()/GEMINI_MODEL. Keep the two env vars separate.
  */
-export const REALTIME_MODEL =
-  process.env.LLM_REALTIME_MODEL || 'gemini-2.0-flash-live-preview-04-09';
+function getRealtimeModelOrFail(): string {
+  const providerId = (() => {
+    // Check if Gemini Live is being selected (copy of logic from model-provider-config.ts)
+    if (process.env.VOICE_PIPELINE === 'gemini-live') {
+      // Gemini Live pipeline is legacy; require explicit LLM_REALTIME_MODEL
+      if (!process.env.LLM_REALTIME_MODEL) {
+        const message = [
+          'Gemini Live voice pipeline is legacy. Google retired the gemini-2.0-flash model line.',
+          '',
+          'To use Gemini Live, you MUST explicitly set LLM_REALTIME_MODEL to a supported model:',
+          '  • gemini-2.5-flash-preview (recommended for Live API, free tier)',
+          '  • gemini-2.5-flash-preview-native-audio-latest (use only with native-audio callsite)',
+          '',
+          'Example: export LLM_REALTIME_MODEL="gemini-2.5-flash-preview"',
+          '',
+          'Or switch to the default pipeline (Cartesia cascade):',
+          '  • Unset VOICE_PIPELINE, or',
+          '  • export VOICE_PIPELINE="cartesia-cascade"',
+        ].join('\n');
+        throw new Error(message);
+      }
+      return 'gemini-live';
+    }
+    return null;
+  })();
+
+  // If Gemini Live is selected, user must have provided LLM_REALTIME_MODEL (checked above)
+  if (providerId === 'gemini-live') {
+    return process.env.LLM_REALTIME_MODEL!;
+  }
+
+  // For other pipelines, return explicit override or empty (not used by non-live providers)
+  return process.env.LLM_REALTIME_MODEL || '';
+}
+
+export const REALTIME_MODEL = getRealtimeModelOrFail();
 
 /**
  * OpenAI realtime model (for OpenAI realtime API)

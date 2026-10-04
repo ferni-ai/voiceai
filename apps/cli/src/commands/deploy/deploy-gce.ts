@@ -564,7 +564,8 @@ function deployToSlot(
     // Use Gemini Live model (not OpenAI Realtime)
     USE_OPENAI_REALTIME: 'false',
     // Split: Live API model vs generateContent-capable default
-    LLM_REALTIME_MODEL: 'gemini-2.0-flash-live-preview-04-09',
+    // Note: gemini-2.0-flash is retired; using gemini-2.5-flash-preview instead
+    LLM_REALTIME_MODEL: 'gemini-2.5-flash-preview',
     GEMINI_MODEL: 'gemini-2.5-flash',
     // CARTESIA_MODEL unset: src/config/voice-ids.ts pins the snapshot Ferni's PVC is tuned on
     // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
@@ -633,7 +634,8 @@ function promoteSlot(slot: 'blue' | 'green', image: string, secrets: Record<stri
     // Use Gemini Live model (not OpenAI Realtime)
     USE_OPENAI_REALTIME: 'false',
     // Split: Live API model vs generateContent-capable default
-    LLM_REALTIME_MODEL: 'gemini-2.0-flash-live-preview-04-09',
+    // Note: gemini-2.0-flash is retired; using gemini-2.5-flash-preview instead
+    LLM_REALTIME_MODEL: 'gemini-2.5-flash-preview',
     GEMINI_MODEL: 'gemini-2.5-flash',
     // CARTESIA_MODEL unset: src/config/voice-ids.ts pins the snapshot Ferni's PVC is tuned on
     // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
@@ -811,7 +813,8 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
   envVarsArray.push('PORT=8080');
   // Split: Live API model vs generateContent-capable default
   envVarsArray.push('USE_OPENAI_REALTIME=false');
-  envVarsArray.push('LLM_REALTIME_MODEL=gemini-2.0-flash-live-preview-04-09');
+  // Note: gemini-2.0-flash is retired; using gemini-2.5-flash-preview instead
+  envVarsArray.push('LLM_REALTIME_MODEL=gemini-2.5-flash-preview');
   envVarsArray.push('GEMINI_MODEL=gemini-2.5-flash');
   envVarsArray.push('CARTESIA_MODEL=sonic-3-latest');
   // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
