@@ -299,16 +299,15 @@ export class CreativeYouDashboard {
       }
 
       // Load DNA and tracks in parallel
+      // DNA is per signed-in user (auth header), and null until there's something real
       const [dnaRes, tracksRes] = await Promise.all([
-        fetch(`${baseUrl}/api/creative/dna?userId=${this.userId}`),
+        apiGet<{ dna: CreativeDNA | null }>('/api/creative/dna'),
         fetch(`${baseUrl}/api/creative/tracks`),
       ]);
 
-      if (dnaRes.ok) {
-        const data = await dnaRes.json();
-        this.creativeDNA = data.dna;
-        this.renderCreativeDNA();
-      }
+      // Empty card on no profile or a failed load, never a skeleton stuck loading
+      this.creativeDNA = dnaRes.ok ? (dnaRes.data?.dna ?? null) : null;
+      this.renderCreativeDNA();
 
       if (tracksRes.ok) {
         const data = await tracksRes.json();
