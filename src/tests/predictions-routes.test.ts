@@ -261,6 +261,7 @@ describe('Predictions Routes', () => {
 
       const req = createMockRequest({
         method: 'POST',
+        headers: { 'x-firebase-uid': 'test-user' },
         url: '/api/predictions/pred-1/actuals',
         body: JSON.stringify({ userId: 'test-user', actuals: { value: 100 } }),
       });
@@ -284,6 +285,7 @@ describe('Predictions Routes', () => {
 
       const req = createMockRequest({
         method: 'POST',
+        headers: { 'x-firebase-uid': 'test-user' },
         url: '/api/predictions/nonexistent/actuals',
       });
       const { res, getWrittenData } = createMockResponse();
@@ -319,6 +321,7 @@ describe('Predictions Routes', () => {
 
       const req = createMockRequest({
         method: 'POST',
+        headers: { 'x-firebase-uid': 'test-user' },
         url: '/api/predictions/pred-1/actuals',
       });
       const { res, getWrittenData } = createMockResponse();
@@ -348,7 +351,11 @@ describe('Predictions Routes', () => {
         actuals: { value: 100 },
       });
 
-      const req = createMockRequest({ method: 'POST', url: '/api/predictions/pred-1/actuals' });
+      const req = createMockRequest({
+        method: 'POST',
+        url: '/api/predictions/pred-1/actuals',
+        headers: { 'x-firebase-uid': 'test-user' },
+      });
       const { res, getWrittenData } = createMockResponse();
       const parsedUrl = new URL('/api/predictions/pred-1/actuals', 'http://localhost:3002');
 

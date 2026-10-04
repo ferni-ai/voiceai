@@ -288,12 +288,13 @@ describe('Predictions Routes', () => {
         actuals: { sleep: 7.5 },
       });
 
+      // Signed in as test-user (the mocked requireUserId reads ?userId=).
       const req = createMockRequest({
         method: 'POST',
         body: JSON.stringify({ userId: 'test-user', actuals: { sleep: 7.5 } }),
       });
       const { res, getWrittenData } = createMockResponse();
-      const url = new URL('http://localhost/api/predictions/pred-123/actuals');
+      const url = new URL('http://localhost/api/predictions/pred-123/actuals?userId=test-user');
 
       const handled = await handlePredictionsRoutes(
         req,
@@ -317,7 +318,7 @@ describe('Predictions Routes', () => {
         body: JSON.stringify({ userId: 'test-user', actuals: { sleep: 7 } }),
       });
       const { res, getWrittenData } = createMockResponse();
-      const url = new URL('http://localhost/api/predictions/nonexistent/actuals');
+      const url = new URL('http://localhost/api/predictions/nonexistent/actuals?userId=test-user');
 
       await handlePredictionsRoutes(req, res, '/api/predictions/nonexistent/actuals', url);
 

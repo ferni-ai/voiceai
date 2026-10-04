@@ -75,7 +75,10 @@ export async function handleGetPredictions(
 }
 
 /**
- * POST /api/predictions/:id/actuals - Update prediction with actual values
+ * POST /api/predictions/:id/actuals - Update prediction with actual values.
+ *
+ * Acts only as the verified caller (bound from the token by
+ * bindVerifiedIdentity); a body naming anyone else is refused.
  */
 export async function handleUpdatePredictionActuals(
   req: IncomingMessage,
@@ -84,11 +87,16 @@ export async function handleUpdatePredictionActuals(
   predictionId: string
 ): Promise<void> {
   try {
+    const userId = requireUserId(req, res, parsedUrl);
+    if (!userId) return;
+
     const body = await validateBody(req, res, UpdatePredictionActualsSchema);
     if (!body) return;
 
-    const userId = body.userId || requireUserId(req, res, parsedUrl);
-    if (!userId) return;
+    if (body.userId && body.userId !== userId) {
+      sendError(res, API_ERRORS.PREDICTION_NOT_YOURS, 403);
+      return;
+    }
 
     const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
