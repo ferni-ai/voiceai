@@ -72,6 +72,34 @@ the cached declarations. The cascade's primary and hedge backup share it.
 The request body is unchanged: tests compare it with the plugin's own
 conversion.
 
+## Not changed, and why
+
+**Tool count per request (64).** The count is pinned by
+`DEFAULT_INITIAL_TOOL_LIMIT`, not by what the set contains: the initial set has
+124 tools, so removing a duplicate only lets the next tool in. No schema is
+oversized (largest 307 tokens, no enum over 10 values). Making the set smaller
+means lowering the cap, which trades coverage for tokens, and the 09-28/09-30
+measurements found no first-token gain in this range. No reduction shipped,
+so `scripts/tool-retrieval/eval-choice.ts` was not run. (It also measures the
+retrieval tool set, not this initial set.)
+
+Defects found in the set (handoff behaviour, outside this latency work):
+
+- The essential `handoff` domain adds `handoffToFerni`, `handoffToJoel`,
+  `handoffToJohn` and `handoffToPeter` for every user, after
+  `buildHandoffTools` has dropped the agent itself and locked teammates
+  (record merge `{ ...handoffTools, ...essentialTools }` in `agent-setup.ts`).
+  The Ferni agent gets a tool to hand off to itself.
+- Two registry agents generate the same tool name: Peter John (`peter-john`)
+  and Peter Lynch (`peter-lynch`) both become `handoffToPeter`. In the sent set
+  it reads "Transfer conversation to Peter Lynch, who specializes in
+  undefined". John Bogle's tool also says "specializes in undefined".
+
+**Hedging.** Already conditional: the backup starts only after
+`CASCADE_LLM_HEDGE_MS` (1300 ms) with no text or tool call, or when the
+primary fails. `hedged-llm.test.ts` covers fast primary / slow primary /
+cancel. Fix 1 makes the backup reuse the primary's declarations.
+
 ## What this means
 
 Schema conversion is real but small: about 1 ms of a ~1 s first-token time.
