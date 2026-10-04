@@ -55,7 +55,9 @@ const WEB_FILES = [
   // app/integrations-callbacks.ts makes no direct API calls any more: its connect
   // actions go through services/oauth-connect.service.ts (POST /auth/oauth/start),
   // covered by oauth-connect-sites and oauth-connect-identity tests.
-  'app/panel-methods.ts',
+  // app/panel-methods.ts has no live API calls in this tree: Your Story now loads
+  // through services/your-story (GET /api/your-story/full) and its other fetches
+  // are commented out until they are wired. Add it back when they are.
   'ui/integrations-settings.ui.ts',
   'ui/connected-life.ui.ts',
   'ui/vibe-controller.ui.ts',

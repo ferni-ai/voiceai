@@ -28,6 +28,7 @@ vi.mock('../api/auth-middleware.js', () => ({
 }));
 
 const { handleCreativeYouRoutes } = await import('../api/routes/creative-you-routes.js');
+const { updateCreativeDNA } = await import('../services/creative-you/creative-dna.js');
 
 async function getDna(query = ''): Promise<{ status: number; body: Record<string, unknown> }> {
   const out = { status: 0, body: {} as Record<string, unknown> };
@@ -84,6 +85,38 @@ describe('GET /api/creative/dna', () => {
       { topic: 'marathon training', score: 5 },
       { topic: 'gardening', score: 2 },
     ]);
+  });
+
+  it('has no style when only conversation topics are known, instead of the default "explorer"', async () => {
+    loadTopicHistory.mockResolvedValue(history([{ topic: 'gardening', count: 2 }]));
+
+    const { body } = await getDna();
+
+    expect((body.dna as { learningStyle: unknown }).learningStyle).toBeNull();
+  });
+
+  it('has no personality label when only topics are known, instead of "The Newcomer"', async () => {
+    loadTopicHistory.mockResolvedValue(history([{ topic: 'gardening', count: 2 }]));
+
+    const dna = (await getDna()).body.dna as Record<string, unknown>;
+
+    expect(dna.personalityLabel).toBeNull();
+    expect(dna.personalityDescription).toBeNull();
+  });
+
+  it('keeps the style computed from real watching/listening activity', async () => {
+    authedUser = 'active-user';
+    for (let i = 0; i < 3; i++) updateCreativeDNA('active-user', { type: 'podcast_listened' });
+    loadTopicHistory.mockResolvedValue(history([]));
+
+    const { body } = await getDna();
+
+    // 3 podcasts, 0 videos: calculateLearningStyle says 'audio'
+    const dna = body.dna as Record<string, unknown>;
+    expect(dna.learningStyle).toBe('audio');
+    // 3 listens is enough activity for calculatePersonalityLabel to pick a real label
+    expect(dna.personalityLabel).toEqual(expect.any(String));
+    expect(dna.personalityLabel).not.toBe('The Newcomer');
   });
 
   it('reads the signed-in user, ignoring a ?userId= for someone else', async () => {

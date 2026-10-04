@@ -1108,6 +1108,7 @@
       "insights": "알아차린 것들",
       "yourJourney": "우리의 여정",
       "yourStory": "지금까지의 이야기",
+      "trustDashboard": "신뢰와 성장",
       "yourYear": "함께한 1년",
       "whatIllKnow": "내가 알게 될 것",
       "whatINotice": "알아차린 것들",
@@ -2012,11 +2013,11 @@
     },
     "empty": {
       "title": "당신의 이야기는 여기서 시작돼요",
-      "body": "몇 번 대화를 나누고 나면, 당신에게 중요한 순간들이 여기에 나타나요."
+      "body": "몇 번 대화를 나누고 나면, 당신에게 소중한 순간들이 여기에 나타날 거예요."
     },
     "error": {
       "title": "이야기를 불러오지 못했어요",
-      "body": "저희 쪽에 문제가 생겼어요. 다시 시도할까요?",
+      "body": "저희 쪽에서 문제가 생겼어요. 다시 시도할까요?",
       "retry": "다시 시도"
     }
   },
@@ -2329,9 +2330,9 @@
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
-    "connectDevicesFirst": "먼저 조명이나 온도 조절기를 연결해 주세요",
-    "couldNotChangeLights": "조명을 바꾸지 못했어요. 다시 시도할까요?",
-    "musicNeedsCall": "음악 컨트롤은 대화 중에 사용할 수 있어요"
+    "connectDevicesFirst": "먼저 조명이나 온도 조절기를 연결하세요",
+    "musicNeedsCall": "음악 조작은 대화 중에 사용할 수 있어요",
+    "couldNotChangeLights": "조명을 바꾸지 못했어요. 다시 시도할까요?"
   },
   "ui": {
     "accountbutton": {
@@ -2463,7 +2464,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "최근 7일"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2566,6 +2568,10 @@
       "subtitle": "전화, 메시지, 지킨 약속",
       "empty": "아직 작업 없음",
       "recent": "최근"
+    },
+    "predictions": {
+      "title": "앞으로의 방향",
+      "now": "지금"
     }
   },
   "sleepSettings": {

@@ -1108,6 +1108,7 @@
       "insights": "気づいていること",
       "yourJourney": "私たちの旅",
       "yourStory": "これまでの物語",
+      "trustDashboard": "信頼と成長",
       "yourYear": "一緒に過ごした一年",
       "whatIllKnow": "私が学ぶこと",
       "whatINotice": "気づいていること",
@@ -2329,9 +2330,9 @@
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
-    "connectDevicesFirst": "まずライトかサーモスタットを接続してください",
-    "couldNotChangeLights": "ライトを変更できませんでした。もう一度試しますか？",
-    "musicNeedsCall": "音楽の操作は会話中に使えます"
+    "connectDevicesFirst": "まず照明またはサーモスタットを接続してください",
+    "musicNeedsCall": "音楽の操作は会話中に使えます",
+    "couldNotChangeLights": "照明を変更できませんでした。もう一度試しますか？"
   },
   "ui": {
     "accountbutton": {
@@ -2463,7 +2464,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "直近7日間"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2566,6 +2568,10 @@
       "subtitle": "通話、メッセージ、果たした約束",
       "empty": "まだアクションはありません",
       "recent": "最近"
+    },
+    "predictions": {
+      "title": "これからの方向",
+      "now": "今"
     }
   },
   "sleepSettings": {

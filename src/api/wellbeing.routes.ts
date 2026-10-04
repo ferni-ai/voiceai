@@ -5,7 +5,6 @@
  * - GET /api/wellbeing/dashboard - Full dashboard data
  * - GET /api/wellbeing/trends - Trend analysis over time
  * - GET /api/wellbeing/insights - Personalized insights
- * - POST /api/wellbeing/snapshot - Manual wellbeing check-in
  *
  * @module WellbeingHandler
  */
@@ -14,40 +13,13 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { buildDashboardResponse, loadWellbeingData, snapshotsWithin } from './wellbeing-data.js';
-import { handleCorsPreflightIfNeeded, parseBody as parseBodyHelper, sendJSON } from './helpers.js';
+import { handleCorsPreflightIfNeeded, sendJSON } from './helpers.js';
 
 const log = getLogger().child({ module: 'wellbeing-handler' });
 
 // ============================================================================
-// TYPES
-// ============================================================================
-
-interface SnapshotRequest {
-  mood?: number;
-  energy?: number;
-  anxiety?: number;
-  connection?: number;
-  purpose?: number;
-  sleep?: number;
-  note?: string;
-}
-
-// ============================================================================
 // HELPERS
 // ============================================================================
-
-// parseBodyHelper, sendJSON imported from ./helpers.js
-
-/**
- * Parse body with null fallback (for optional/nullable body)
- */
-async function parseBody<T>(req: IncomingMessage): Promise<T | null> {
-  try {
-    return await parseBodyHelper<T>(req);
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Legacy wrapper for sendJSON with (res, status, data) signature.
@@ -236,52 +208,6 @@ async function handleGetInsights(res: ServerResponse, userId: string): Promise<v
   }
 }
 
-async function handlePostSnapshot(
-  req: IncomingMessage,
-  res: ServerResponse,
-  userId: string
-): Promise<void> {
-  const snapshot = await parseBody<SnapshotRequest>(req);
-
-  if (!snapshot) {
-    sendJson(res, 400, { error: 'Invalid request body' });
-    return;
-  }
-
-  // Validate dimensions are 0-1
-  const dims = ['mood', 'energy', 'anxiety', 'connection', 'purpose', 'sleep'] as const;
-  for (const dim of dims) {
-    const value = snapshot[dim];
-    if (value !== undefined && (value < 0 || value > 1)) {
-      sendJson(res, 400, { error: `${dim} must be between 0 and 1` });
-      return;
-    }
-  }
-
-  try {
-    const { recordSnapshot } = await import('../services/wellbeing-tracking/index.js');
-
-    const recorded = recordSnapshot(
-      userId,
-      {
-        mood: snapshot.mood,
-        energy: snapshot.energy,
-        worry: snapshot.anxiety,
-        loneliness: snapshot.connection !== undefined ? 1 - snapshot.connection : undefined,
-        meaningfulness: snapshot.purpose,
-        sleepQuality: snapshot.sleep,
-      },
-      { source: 'self_reported', notes: snapshot.note }
-    );
-
-    log.info({ userId, dimensions: Object.keys(snapshot) }, 'Wellbeing snapshot recorded');
-    sendJson(res, 200, { success: true, snapshot: recorded });
-  } catch (error) {
-    log.error({ error, userId }, 'Failed to record snapshot');
-    sendJson(res, 500, { error: 'Failed to record snapshot' });
-  }
-}
-
 function average(nums: number[]): number | null {
   if (nums.length === 0) return null;
   return nums.reduce((a, b) => a + b, 0) / nums.length;
@@ -333,12 +259,6 @@ export async function handleWellbeingRoutes(
   // GET /api/wellbeing/insights
   if (pathname === '/api/wellbeing/insights' && req.method === 'GET') {
     await handleGetInsights(res, auth.userId);
-    return true;
-  }
-
-  // POST /api/wellbeing/snapshot
-  if (pathname === '/api/wellbeing/snapshot' && req.method === 'POST') {
-    await handlePostSnapshot(req, res, auth.userId);
     return true;
   }
 

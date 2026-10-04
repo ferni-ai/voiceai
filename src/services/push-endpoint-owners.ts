@@ -15,6 +15,7 @@
  */
 
 import { createHash, timingSafeEqual } from 'crypto';
+import { getFirestoreDb } from '../utils/firestore-utils.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 
 interface EndpointOwner {
@@ -45,11 +46,13 @@ function sameHash(stored: string | undefined, presented: string): boolean {
   return timingSafeEqual(Buffer.from(stored), Buffer.from(presented));
 }
 
+const OWNERS_COLLECTION = 'push_endpoint_owners';
+
 let store: PersistenceStore<EndpointOwner> | null = null;
 
 function owners(): PersistenceStore<EndpointOwner> {
   store ??= createPersistenceStore<EndpointOwner>({
-    collection: 'push_endpoint_owners',
+    collection: OWNERS_COLLECTION,
     useRootCollection: true,
   });
   return store;
@@ -92,4 +95,19 @@ export async function releaseEndpoint(endpoint: string, userId: string): Promise
   if ((await getEndpointOwner(endpoint)) === userId) {
     await owners().delete(endpointKey(endpoint));
   }
+}
+
+/**
+ * Account deletion: drop the user's push subscriptions (where push-notifications.ts
+ * keeps them: bogle_users/<uid>/push_subscriptions/data) and every endpoint they
+ * own. Reads and deletes Firestore directly so a failure throws instead of being
+ * logged and skipped.
+ */
+export async function erasePushRecordsFor(userId: string): Promise<void> {
+  const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore unavailable');
+  const owned = await db.collection(OWNERS_COLLECTION).where('userId', '==', userId).get();
+  await Promise.all(owned.docs.map(async (doc) => doc.ref.delete()));
+  for (const doc of owned.docs) store?.clearCache(doc.id);
+  await db.doc(`bogle_users/${userId}/push_subscriptions/data`).delete();
 }
