@@ -2177,13 +2177,6 @@ class VoiceAIApp {
         this.selectPersona(personaId as PersonaId);
       }
     }) as EventListener);
-    // 🎙️ Group Conversations - imported UI opens team roundtable
-    this.addTrackedListener(window, 'ferni:start-roundtable', ((e: CustomEvent) => {
-      // Import dynamically to avoid circular deps
-      void import('./ui/group-conversation.ui.js').then((m) => {
-        void m.showTeamSelector(e.detail?.preselected);
-      });
-    }) as EventListener);
 
     // 🌱 Handle garden payment result routes (Stripe redirects here)
     const gardenPathname = window.location.pathname;
