@@ -2,19 +2,19 @@
  * Persona Configuration
  *
  * UI-specific persona configurations with colors, skills, and display settings.
- * 
+ *
  * ARCHITECTURE (Single Source of Truth):
  * ======================================
  * PRIMARY SOURCE: Backend persona.manifest.json files at:
  *   src/personas/bundles/{persona-id}/persona.manifest.json
- * 
+ *
  * GENERATED DATA: Run `npm run generate:personas` to create:
  *   apps/web/src/config/personas.generated.json
- * 
+ *
  * This file imports from the generated JSON and enhances with:
  *   - UI-specific configs (colors, theme classes, sound effects)
  *   - Display settings (quotes formatting, skill icons)
- * 
+ *
  * CANONICAL IDS (core team) - discovered from manifests, not hardcoded:
  * - ferni (Life Coach / Coordinator)
  * - peter-john (Research & Discovery / The Quant)
@@ -28,8 +28,15 @@ import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('Personas');
 
-import type { PersonaConfig, PersonaRegistry, PersonaId, PersonaSkill } from '../types/persona.js';
-import { isValidPersonaId } from '../types/persona.js';
+import type {
+  LegendId,
+  PersonaConfig,
+  PersonaRegistry,
+  PersonaId,
+  PersonaSkill,
+  SpeakerId,
+} from '../types/persona.js';
+import { isLegendId, isValidPersonaId } from '../types/persona.js';
 import { getPersonaColorConfig } from './persona-colors.js';
 import generatedData from './personas.generated.json' with { type: 'json' };
 
@@ -42,7 +49,7 @@ interface GeneratedPersona {
   name: string;
   initials: string;
   subtitle: string;
-  role: 'coach' | 'team';
+  role: 'coach' | 'team' | 'standalone';
   description: string;
   helperText: string;
   skills: Array<{ icon: string; name: string }>;
@@ -66,6 +73,8 @@ interface GeneratedConfig {
     version: string;
   };
   personas: Record<string, GeneratedPersona>;
+  /** Financial Legends (generated from their bundles): speakers, not team members */
+  legends: Record<string, GeneratedPersona>;
   teamOrder: string[];
   coordinatorId: string;
 }
@@ -77,41 +86,41 @@ interface GeneratedConfig {
 // ============================================================================
 
 const SKILL_ICONS: Record<string, Record<string, string>> = {
-  'ferni': {
-    'Strategy': '',
-    'Guidance': '',
-    'Coordination': '',
+  ferni: {
+    Strategy: '',
+    Guidance: '',
+    Coordination: '',
   },
   'peter-john': {
-    'Research': '',
-    'Growth': '',
-    'Companies': '',
-    'Insights': '',
+    Research: '',
+    Growth: '',
+    Companies: '',
+    Insights: '',
   },
   'alex-chen': {
-    'Email': '',
-    'Calendar': '',
-    'Calls': '',
-    'Messages': '',
+    Email: '',
+    Calendar: '',
+    Calls: '',
+    Messages: '',
   },
   'maya-santos': {
-    'Spending': '',
-    'Saving': '',
-    'Budgets': '',
-    'Habits': '',
-    'Goals': '',
+    Spending: '',
+    Saving: '',
+    Budgets: '',
+    Habits: '',
+    Goals: '',
   },
   'jordan-taylor': {
-    'Goals': '',
-    'Milestones': '',
-    'Planning': '',
-    'Retirement': '',
+    Goals: '',
+    Milestones: '',
+    Planning: '',
+    Retirement: '',
   },
   'nayan-patel': {
-    'Wisdom': '',
+    Wisdom: '',
     'Long-term': '',
-    'Patience': '',
-    'Simplicity': '',
+    Patience: '',
+    Simplicity: '',
   },
 };
 
@@ -121,7 +130,7 @@ const SKILL_ICONS: Record<string, Record<string, string>> = {
 // ============================================================================
 
 const DISPLAY_QUOTES: Partial<Record<string, readonly string[]>> = {
-  'ferni': [
+  ferni: [
     '"The best investment you can make is in yourself."',
     '"Stay curious, keep learning, keep growing."',
     '"Financial freedom is built one decision at a time."',
@@ -174,9 +183,12 @@ const generated = generatedData as GeneratedConfig;
 /**
  * Enhance skills with icons
  */
-function enhanceSkills(personaId: string, skills: Array<{ icon: string; name: string }>): readonly PersonaSkill[] {
+function enhanceSkills(
+  personaId: string,
+  skills: Array<{ icon: string; name: string }>
+): readonly PersonaSkill[] {
   const icons = SKILL_ICONS[personaId] || {};
-  return skills.map(skill => ({
+  return skills.map((skill) => ({
     icon: icons[skill.name] || skill.icon || '',
     name: skill.name,
   }));
@@ -186,15 +198,15 @@ function enhanceSkills(personaId: string, skills: Array<{ icon: string; name: st
  * Build a PersonaConfig from generated data
  */
 function buildPersonaConfig(gen: GeneratedPersona): PersonaConfig {
-  const id = gen.id as PersonaId;
-  
+  const id = gen.id as SpeakerId;
+
   return {
     id,
     name: gen.name,
     initials: gen.initials,
     subtitle: gen.subtitle,
     role: gen.role,
-    quotes: DISPLAY_QUOTES[id] || gen.quotes.map(q => `"${q.replace(/<[^>]*>/g, '').trim()}"`),
+    quotes: DISPLAY_QUOTES[id] || gen.quotes.map((q) => `"${q.replace(/<[^>]*>/g, '').trim()}"`),
     helperText: gen.helperText.split(' - ')[0] ?? gen.helperText, // Short version
     themeClass: `persona-${id}`,
     colors: getPersonaColorConfig(id),
@@ -209,13 +221,13 @@ function buildPersonaConfig(gen: GeneratedPersona): PersonaConfig {
  */
 function buildPersonaRegistry(): PersonaRegistry {
   const registry: Record<string, PersonaConfig> = {};
-  
+
   for (const [id, gen] of Object.entries(generated.personas)) {
     if (isValidPersonaId(id)) {
       registry[id] = buildPersonaConfig(gen);
     }
   }
-  
+
   return Object.freeze(registry) as PersonaRegistry;
 }
 
@@ -228,6 +240,37 @@ function buildPersonaRegistry(): PersonaRegistry {
  * Built from generated manifest data, frozen for immutability.
  */
 export const PERSONAS: PersonaRegistry = buildPersonaRegistry();
+
+/**
+ * The Financial Legends, for "who's speaking now" surfaces only. Not in PERSONAS,
+ * so team grids, TEAM_ORDER and unlocks never see them.
+ */
+export const LEGENDS: Readonly<Record<LegendId, PersonaConfig>> = Object.freeze(
+  Object.fromEntries(
+    Object.entries(generated.legends ?? {})
+      .filter(([id]) => isLegendId(id))
+      .map(([id, gen]) => [id, buildPersonaConfig(gen)])
+  ) as Record<LegendId, PersonaConfig>
+);
+
+/** Legend aliases from their bundles. 'peter' and 'john' stay with Peter John. */
+const LEGEND_ALIASES: Readonly<Record<string, LegendId>> = {
+  lynch: 'peter-lynch',
+  'stock-picker': 'peter-lynch',
+  magellan: 'peter-lynch',
+  bogle: 'john-bogle',
+  'jack-bogle': 'john-bogle',
+  'vanguard-founder': 'john-bogle',
+  joel: 'joel-dickson',
+  dickson: 'joel-dickson',
+  'dr-dickson': 'joel-dickson',
+  'life-mentor': 'joel-dickson',
+};
+
+function toLegendId(id: string): LegendId | undefined {
+  const lower = id.toLowerCase();
+  return isLegendId(lower) ? lower : LEGEND_ALIASES[lower];
+}
 
 /**
  * Coordinator ID from generated data
@@ -248,19 +291,21 @@ export const TEAM_ORDER: readonly PersonaId[] = Object.freeze(
 /**
  * Get transition config for a persona (from generated manifest data)
  */
-export function getTransitionConfig(personaId: PersonaId): {
+export function getTransitionConfig(personaId: SpeakerId): {
   style: 'standard' | 'dramatic' | 'subtle' | 'warm';
   emoji: string;
   sound: string;
   delayMultiplier: number;
 } {
-  const gen = generated.personas[personaId];
-  return gen?.transition || {
-    style: 'standard',
-    emoji: '',
-    sound: 'connect',
-    delayMultiplier: 1.0,
-  };
+  const gen = generated.personas[personaId] ?? generated.legends?.[personaId];
+  return (
+    gen?.transition || {
+      style: 'standard',
+      emoji: '',
+      sound: 'connect',
+      delayMultiplier: 1.0,
+    }
+  );
 }
 
 // ============================================================================
@@ -276,13 +321,19 @@ export function getPersona(id: string): PersonaConfig {
   if (id in PERSONAS) {
     return PERSONAS[id as PersonaId];
   }
-  
+
+  // A Financial Legend shows as themselves, never as a team member
+  const legend = toLegendId(id);
+  if (legend && LEGENDS[legend]) {
+    return LEGENDS[legend];
+  }
+
   // Try normalizing
   const normalized = normalizeAgentId(id);
   if (normalized in PERSONAS) {
     return PERSONAS[normalized];
   }
-  
+
   log.warn(`Unknown persona ID: ${id}, falling back to coach`);
   return PERSONAS[COORDINATOR_ID];
 }
@@ -307,58 +358,56 @@ export function getTeamMembers(): readonly PersonaConfig[] {
  */
 const LEGACY_ID_MAPPING: Record<string, PersonaId> = (() => {
   const mapping: Record<string, PersonaId> = {};
-  
+
   // Built-in legacy mappings for backwards compatibility
   // These are short aliases that users might type
   const legacyAliases: Record<string, PersonaId> = {
     // Ferni aliases
     'jack-b': 'ferni',
-    'coach': 'ferni',
+    coach: 'ferni',
     'life-coach': 'ferni',
     // Peter John aliases
-    'peter': 'peter-john',
-    'peter-lynch': 'peter-john',
-    'lynch': 'peter-john',
-    'john': 'peter-john',
+    peter: 'peter-john',
+    john: 'peter-john',
     // Alex Chen aliases
     'comm-specialist': 'alex-chen',
-    'comm': 'alex-chen',
-    'alex': 'alex-chen',
-    'communications': 'alex-chen',
+    comm: 'alex-chen',
+    alex: 'alex-chen',
+    communications: 'alex-chen',
     'generic-advisor': 'alex-chen',
     // Maya Santos aliases
     'spend-save': 'maya-santos',
-    'spend': 'maya-santos',
-    'save': 'maya-santos',
-    'maya': 'maya-santos',
-    'budget': 'maya-santos',
+    spend: 'maya-santos',
+    save: 'maya-santos',
+    maya: 'maya-santos',
+    budget: 'maya-santos',
     'debt-counselor': 'maya-santos',
-    'debt': 'maya-santos',
+    debt: 'maya-santos',
     // Jordan Taylor aliases
     'event-planner': 'jordan-taylor',
-    'event': 'jordan-taylor',
-    'planner': 'jordan-taylor',
-    'jordan': 'jordan-taylor',
-    'events': 'jordan-taylor',
+    event: 'jordan-taylor',
+    planner: 'jordan-taylor',
+    jordan: 'jordan-taylor',
+    events: 'jordan-taylor',
     'retirement-specialist': 'jordan-taylor',
-    'retirement': 'jordan-taylor',
+    retirement: 'jordan-taylor',
     // Nayan aliases
-    'nayan': 'nayan-patel',
-    'guru': 'nayan-patel',
-    'mystic': 'nayan-patel',
-    'sage': 'nayan-patel',
+    nayan: 'nayan-patel',
+    guru: 'nayan-patel',
+    mystic: 'nayan-patel',
+    sage: 'nayan-patel',
   };
-  
+
   // Add legacy aliases
   Object.assign(mapping, legacyAliases);
-  
+
   // Also add canonical IDs pointing to themselves
   for (const id of Object.keys(generated.personas)) {
     if (isValidPersonaId(id)) {
       mapping[id] = id as PersonaId;
     }
   }
-  
+
   return mapping;
 })();
 
@@ -387,13 +436,22 @@ export function normalizeAgentId(agentId: string | undefined | null): PersonaId 
     return 'ferni';
   }
   const normalized = agentId.toLowerCase();
-  
+
   // Direct canonical match
   if (normalized in PERSONAS) {
     return normalized as PersonaId;
   }
-  
+
   return LEGACY_ID_MAPPING[normalized] ?? COORDINATOR_ID;
+}
+
+/**
+ * Normalize the id of whoever is speaking: a Financial Legend keeps their own id
+ * (peter-lynch is Peter Lynch, not Peter John); anything else is normalizeAgentId.
+ */
+export function normalizeSpeakerId(agentId: string | undefined | null): SpeakerId {
+  const legend = agentId ? toLegendId(agentId) : undefined;
+  return legend && LEGENDS[legend] ? legend : normalizeAgentId(agentId);
 }
 
 /**
