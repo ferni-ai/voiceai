@@ -10,7 +10,6 @@
 import type { JobContext } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { VoiceHumanizationCleanup } from './types.js';
-import type { AudioRouter } from '../../integrations/qwen3-omni/director/audio-router.js';
 import { TOOL_HEALTH_CHECK_INTERVAL, MULTI_AGENT_MODE } from './constants.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import { isPipelineSwitchingEnabled, selectPipeline, type PipelineSwitchContext } from '../shared/performance/pipeline-switcher.js';
@@ -43,7 +42,6 @@ export interface HandlerSetupInput {
   cleanupTracker: {
     register: (type: 'event' | 'timer' | 'subscription' | 'resource', description: string, cleanup: () => void | Promise<void>) => () => void;
   };
-  directorAudioRouter: AudioRouter | undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sessionTools: Record<string, any>;
   toolCount: number;
@@ -76,7 +74,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   const {
     ctx, session, agent, voiceAgentRef, sessionPersona, userId, sessionId,
     services, userData, isReturningUser, userName, cleanupHandlers, cleanupTracker,
-    directorAudioRouter, toolCount: _toolCount, voiceHumanization: _voiceHumanization,
+    toolCount: _toolCount, voiceHumanization: _voiceHumanization,
   } = input;
 
   // Import all handlers in parallel
@@ -525,7 +523,6 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   const dataChannelResult = setupDataChannelHandler({
     room: ctx.room, ctx, session, services, sessionPersona, userId: userId ?? undefined, sessionId, voiceAgentRef,
     tts: session.tts as { switchVoice?: (name: string, voiceId: string, accent?: string) => void },
-    ...(directorAudioRouter ? { audioRouter: directorAudioRouter } : {}),
   });
   cleanupHandlers.push(dataChannelResult.cleanup);
   process.stderr.write(`[voice-agent-entry] 📡 Data channel handler set up\n`);

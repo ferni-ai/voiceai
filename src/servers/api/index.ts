@@ -220,8 +220,6 @@ import {
   initUserEventsWebSocket,
   shutdownUserEventsWebSocket,
 } from '../../services/user-events-websocket.js';
-// WebSocket for Director Mode (Qwen3-Omni ensemble control)
-import { initDirectorWebSocket, shutdownDirectorWebSocket } from '../../api/director-routes.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
 // SECURITY: Uses new modular version with Firebase auth (no x-user-id)
 import { handleCustomAgentRoutes } from '../../api/custom-agent/index.js';
@@ -1469,14 +1467,6 @@ log.info('Life Context WebSocket server initialized on /ws/life-context');
 initUserEventsWebSocket(server);
 log.info('User Events WebSocket server initialized on /ws/user-events');
 
-// Initialize WebSocket server for Director Mode (Qwen3-Omni ensemble control)
-const directorAuthorizedIds = (process.env.DIRECTOR_AUTHORIZED_IDS ?? '')
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
-initDirectorWebSocket(server, { authorizedDirectorIds: directorAuthorizedIds });
-log.info('Director WebSocket server initialized on /ws/director');
-
 // Register DDoS alerting to Slack
 registerDDoSAlertCallback(async (details) => {
   await notifyDDoSAlert(details);
@@ -1575,7 +1565,6 @@ async function gracefulShutdown(): Promise<void> {
   shutdownInsightsWebSocket();
   shutdownLifeContextWebSocket();
   shutdownUserEventsWebSocket();
-  shutdownDirectorWebSocket();
 
   // Stop proactive scheduler
   stopProactiveScheduler();

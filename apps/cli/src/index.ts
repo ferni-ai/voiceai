@@ -793,19 +793,6 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni ops metrics',
     ],
   },
-  qwen3: {
-    name: 'Qwen3-Omni',
-    description: 'Manage Qwen3-Omni self-hosted speech-to-speech AI server',
-    icon: '🧠',
-    handler: handleQwen3Omni,
-    subcommands: ['deploy', 'health', 'logs', 'voices', 'status', 'ssh', 'destroy', 'test'],
-    examples: [
-      'ferni qwen3 deploy',
-      'ferni qwen3 health',
-      'ferni qwen3 voices',
-      'ferni qwen3 test',
-    ],
-  },
   waitlist: {
     name: 'Waitlist',
     description: 'Manage user waitlist',
@@ -7443,26 +7430,6 @@ async function handleOps(args: string[]): Promise<void> {
 }
 
 // ============================================================================
-// QWEN3-OMNI COMMAND
-// ============================================================================
-
-async function handleQwen3Omni(args: string[]): Promise<void> {
-  const cliDir = join(PROJECT_ROOT, 'apps/cli/src/commands/qwen3-omni');
-
-  if (existsSync(cliDir + '/index.ts')) {
-    try {
-      const { main: qwen3Main } = await import('./commands/qwen3-omni/index.js');
-      await qwen3Main(args);
-      return;
-    } catch (err) {
-      log.error(`Failed to load Qwen3-Omni CLI: ${err}`);
-    }
-  }
-
-  log.error('Qwen3-Omni CLI not found. Ensure apps/cli/src/commands/qwen3-omni/ exists.');
-}
-
-// ============================================================================
 // WAITLIST COMMAND
 // ============================================================================
 
@@ -13159,7 +13126,6 @@ ${colors.bold}Commands:${colors.reset}
       'integrations',
       'secrets',
       'ops',
-      'qwen3',
       'users',
       'data',
       'waitlist',
