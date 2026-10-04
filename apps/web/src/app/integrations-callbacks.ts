@@ -13,6 +13,7 @@ import {
 } from '../ui/integrations-settings.ui.js';
 import { connectLinkedIn, disconnectLinkedIn } from '../services/linkedin.service.js';
 import { startOAuthConnect } from '../services/oauth-connect.service.js';
+import { apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('IntegrationsCallbacks');
@@ -30,11 +31,23 @@ export function createIntegrationsCallbacks(): IntegrationsUICallbacks {
     onDisconnectLinkedIn: () => {
       void disconnectLinkedIn();
     },
+    // Google Calendar connects and disconnects through /auth/google/*, the
+    // flow whose token store every calendar feature (and the status) reads.
     onConnectCalendar: () => {
       void startOAuthConnect('google_calendar').then((result) => {
         if (!result.success)
           messageUI.show(result.error ?? "Couldn't connect. Try again?", 'error', 4000);
       });
+    },
+    onDisconnectCalendar: async () => {
+      const response = await apiPost<{ success?: boolean }>('/auth/google/unlink', {});
+      const ok = response.ok && response.data?.success === true;
+      messageUI.show(
+        ok ? 'Calendar disconnected' : "Couldn't disconnect. Try again?",
+        ok ? 'success' : 'error',
+        ok ? 2500 : 4000
+      );
+      refreshPanel();
     },
     onConnectBiometrics: async (platform) => {
       const { connectBiometrics, isPlatformAvailable, getPlatformConfig } =

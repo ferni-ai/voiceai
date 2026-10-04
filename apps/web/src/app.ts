@@ -299,10 +299,7 @@ import { initConversationMemory, showConversationMemory } from './ui/conversatio
 // Wellbeing Dashboard - "State of Me" visualization
 import { initWellbeingDashboard, showWellbeingDashboard } from './ui/wellbeing-dashboard.ui.js';
 // Life Context Dashboard - Cross-domain life synthesis (Phase 6)
-import {
-  initLifeContextDashboard,
-  showLifeContextDashboard,
-} from './ui/life-context-dashboard.ui.js';
+import { initLifeContextDashboard } from './ui/life-context-dashboard.ui.js';
 // Service Health - Show degradation status to users
 import { initServiceHealthUI } from './ui/service-health.ui.js';
 // Monetization UIs - Support Ferni
@@ -2014,7 +2011,10 @@ class VoiceAIApp {
         onFamilyCallersClick: () => void FamilyIdentities.show(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
-        onLifeContextClick: () => void showLifeContextDashboard(),
+        onLifeContextClick: () =>
+          void import('./services/life-context-updates.service.js').then((m) =>
+            m.openLifeContextDashboard()
+          ),
         onTeamInsightsClick: () => teamInsightsUI.toggle(),
         onSupportFerniClick: () => void supportFerniUI.open(),
         onPersonalizeClick: () => personalizeUI.open(),
