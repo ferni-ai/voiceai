@@ -282,8 +282,8 @@ describe('Behavior Tools', () => {
 
     it('breath SSML through the real SSMLProcessor speaks no artifact', async () => {
       // What Cartesia actually receives, through the live gateway's own
-      // SSMLProcessor: the break becomes leading punctuation that
-      // cleanupText() strips, so no tag text or ellipsis is ever spoken.
+      // SSMLProcessor. Since #171 a <break> passes through as a native break
+      // (a pause, not words); nothing else may reach the voice as text.
       const toolDef = tools.find((t) => t.id === 'expressPresence')!;
       const tool = toolDef.create(mockContext);
       const result = await tool.execute({ type: 'breath' });
@@ -291,8 +291,9 @@ describe('Behavior Tools', () => {
       const processor = createSSMLProcessor();
       const alone = processor.parse(result.ssml as string).cleanText;
       const prepended = processor.parse(`${result.ssml as string}Here is my response.`).cleanText;
-      expect(alone).not.toMatch(/[A-Za-z<>[\]]|\.\.\./);
-      expect(prepended).toBe('Here is my response.');
+      const NATIVE_BREAK = /<break time="\d+ms"\/>/g;
+      expect(alone.replace(NATIVE_BREAK, '')).not.toMatch(/[A-Za-z<>[\]]|\.\.\./);
+      expect(prepended.replace(NATIVE_BREAK, '')).toBe('Here is my response.');
     });
 
     // KNOWN GAP, not desired behaviour: a breath is currently inaudible.

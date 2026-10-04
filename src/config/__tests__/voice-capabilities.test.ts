@@ -10,6 +10,7 @@ import {
   pvcFineTunedModels,
   voiceHonorsProsodyTags,
   voiceHonorsVolumeTag,
+  voiceMedianF0Hz,
 } from '../voice-capabilities.js';
 import { DEFAULT_CARTESIA_MODEL, LEGACY_FERNI_IVC_VOICE_ID, VOICE_IDS } from '../voice-ids.js';
 
@@ -94,5 +95,17 @@ describe('Ferni PVC + pinned Cartesia model', () => {
   it('non-PVC voices are not Pro clones and have no fine-tune list', () => {
     expect(isProVoiceClone(LEGACY_FERNI_IVC_VOICE_ID)).toBe(false);
     expect(pvcFineTunedModels(LEGACY_FERNI_IVC_VOICE_ID)).toBeUndefined();
+  });
+});
+
+describe('voiceMedianF0Hz', () => {
+  it("gives Ferni's voice (Lester Pro V3) its median f0 for Stage 2 sighs", () => {
+    expect(voiceMedianF0Hz(VOICE_IDS.FERNI)).toBe(111);
+    expect(voiceMedianF0Hz(` ${VOICE_IDS.FERNI.toUpperCase()} `)).toBe(111);
+  });
+
+  it('is undefined for a voice nobody measured (the renderer keeps its default)', () => {
+    expect(voiceMedianF0Hz(LEGACY_FERNI_IVC_VOICE_ID)).toBeUndefined();
+    expect(voiceMedianF0Hz('not-a-voice')).toBeUndefined();
   });
 });

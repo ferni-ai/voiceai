@@ -6,11 +6,16 @@
  */
 import { AudioFrame } from '@livekit/rtc-node';
 import { createRequire } from 'node:module';
-import { ReadableStream as NodeReadableStream } from 'node:stream/web';
+import {
+  ReadableStream as NodeReadableStream,
+  type ReadableStreamDefaultReader,
+} from 'node:stream/web';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   clearReplyAudioPlan,
+  mergeReplyAudioPlan,
+  replyAudioPlanListenerCount,
   setReplyAudioPlan,
   takeReplyAudioPlan,
 } from '../../../../speech/reply-audio-plan.js';
@@ -34,7 +39,7 @@ function hasNativeTempo(): boolean {
     return false;
   }
 }
-const TURN = 4;
+const TURN = 'reply-4';
 
 function toneFrames(count: number, sr = 24000, size = 480): AudioFrame[] {
   const frames: AudioFrame[] = [];
@@ -77,8 +82,9 @@ function samples(frames: AudioFrame[]): Int16Array {
 /** Fake native: clip of 0.25s; stretcher drops every 10th sample and holds 100 back. */
 function fakeNative(log: string[] = []): ReplyAudioNative {
   return {
-    renderNonverbal(kind, durationMs, intensity, seed, sampleRate) {
-      log.push(`render ${kind} ${durationMs} ${intensity} ${sampleRate}`);
+    renderNonverbal(...[kind, durationMs, intensity, , sampleRate, f0Hz]) {
+      const f0 = f0Hz === undefined ? '' : ` f0=${f0Hz}`;
+      log.push(`render ${kind} ${durationMs} ${intensity} ${sampleRate}${f0}`);
       if (kind !== 'breath' && kind !== 'sigh') throw new Error('unknown kind');
       const ms = durationMs > 0 ? durationMs : kind === 'breath' ? 350 : 800;
       return new Float32Array(Math.round((ms * sampleRate) / 1000)).fill(0.25);
@@ -106,11 +112,17 @@ async function runStage(
   frames: AudioFrame[],
   native: ReplyAudioNative,
   gates = LIVE,
-  turn = TURN
+  replyId = TURN
 ): Promise<AudioFrame[]> {
   return collect(
-    streamOf(frames).pipeThrough(createReplyAudioStage({ sessionId: SID, turn, native, gates }))
+    streamOf(frames).pipeThrough(createReplyAudioStage({ sessionId: SID, replyId, native, gates }))
   );
+}
+
+/** Read a reader to its end. */
+async function readAll(reader: ReadableStreamDefaultReader<AudioFrame>): Promise<AudioFrame[]> {
+  const r = await reader.read();
+  return r.done ? [] : [r.value, ...(await readAll(reader))];
 }
 
 /** Resolves with the value, or 'timeout' if the read doesn't settle in `ms`. */
@@ -173,7 +185,7 @@ describe('reply-audio-stage', () => {
       streamOf(input).pipeThrough(
         createReplyAudioStage({
           sessionId: SID,
-          turn: TURN,
+          replyId: TURN,
           native: fakeNative(),
           gates: LIVE,
           outputSampleRate: 48000,
@@ -192,6 +204,13 @@ describe('reply-audio-stage', () => {
     const second = toneFrames(2);
     const out = await runStage(second, fakeNative());
     expect(out).toEqual(second);
+  });
+
+  it("renders the sigh at the speaker's f0 when the plan carries one", async () => {
+    const calls: string[] = [];
+    setReplyAudioPlan(SID, TURN, { opening: { kind: 'sigh', intensity: 0.6, f0Hz: 111 } });
+    await runStage(toneFrames(2), fakeNative(calls));
+    expect(calls).toEqual(['render sigh 0 0.6 24000 f0=111']);
   });
 
   it('nonverbal gate off: plan opening is ignored (and consumed)', async () => {
@@ -248,24 +267,41 @@ describe('reply-audio-stage', () => {
     expect(calls).toEqual([]);
   });
 
-  // ---- M1: plans are per (session, turn) ----
-  it('a plan for turn N never lands on turn N+1', async () => {
+  // ---- H2: plans are per (session, replyId), never cross-reply ----
+  it('a plan for one reply never lands on a different reply in the same session', async () => {
     const calls: string[] = [];
     setReplyAudioPlan(SID, TURN, { opening: { kind: 'sigh', intensity: 1 }, tempo: 1.2 });
     const input = toneFrames(5);
-    const out = await runStage(input, fakeNative(calls), LIVE, TURN + 1);
+    const out = await runStage(input, fakeNative(calls), LIVE, 'a-different-reply');
     expect(out).toHaveLength(input.length);
     out.forEach((f, i) => expect(f).toBe(input[i]));
     expect(calls).toEqual([]);
-    expect(takeReplyAudioPlan(SID, TURN)).toBeUndefined(); // the stale plan was discarded
-    // Control: the same plan on its own turn does apply.
-    setReplyAudioPlan(SID, TURN, { opening: { kind: 'sigh', intensity: 1 }, tempo: 1.2 });
+    // Control: untouched by the mismatched-id stage, the plan still applies
+    // to its own reply id (a destructive `take` here would consume it before
+    // this check, so the control run below is the proof it's still there).
     await runStage(toneFrames(5), fakeNative(calls), LIVE, TURN);
     expect(calls).toEqual(['render sigh 0 1 24000', 'stretch 24000 1.2']);
   });
 
+  it("two concurrent stage streams in the same session: only the stream carrying the plan's reply id gets it", async () => {
+    const calls: string[] = [];
+    const REPLY_A = 'concurrent-reply-a';
+    const REPLY_B = 'concurrent-reply-b';
+    setReplyAudioPlan(SID, REPLY_A, { opening: { kind: 'sigh', intensity: 1 }, tempo: 1.2 });
+    const framesA = toneFrames(5);
+    const framesB = toneFrames(5);
+    const [outA, outB] = await Promise.all([
+      runStage(framesA, fakeNative(calls), LIVE, REPLY_A),
+      runStage(framesB, fakeNative(calls), LIVE, REPLY_B),
+    ]);
+    // Byte-identical passthrough: no id match, no plan, nothing rendered for it.
+    expect(outB).toEqual(framesB);
+    expect(calls).toEqual(['render sigh 0 1 24000', 'stretch 24000 1.2']); // reply A only
+    expect(outA).not.toEqual(framesA); // the opening was prepended for reply A
+  });
+
   // ---- M2: no shared 'unknown' slot ----
-  it('no real session id or no turn: the stream comes back untouched', async () => {
+  it('no real session id or no reply id: the stream comes back untouched', async () => {
     process.env.SPEECH_STAGE2_NONVERBAL = 'live';
     process.env.SPEECH_STAGE2_TEMPO = 'live';
     setReplyAudioPlan('unknown', TURN, { tempo: 1.1 }); // rejected
@@ -287,7 +323,7 @@ describe('reply-audio-stage', () => {
     setReplyAudioPlan(SID, TURN, { opening: { kind: 'breath', intensity: 0.7 } });
     const stage = createReplyAudioStage({
       sessionId: SID,
-      turn: TURN,
+      replyId: TURN,
       native: fakeNative(),
       gates: LIVE,
     });
@@ -312,19 +348,154 @@ describe('reply-audio-stage', () => {
     expect(out.slice(lead.length).some(isReplyAudioLeadFrame)).toBe(false);
   });
 
-  it('a plan that arrives after TTS start gets its tempo but no opening', async () => {
+  // ---- Timing: the director decides on the first text, after TTS start ----
+  it('a plan that arrives after TTS start, before any speech, plays its opening at once', async () => {
     const calls: string[] = [];
     const stage = createReplyAudioStage({
       sessionId: SID,
-      turn: TURN,
+      replyId: TURN,
       native: fakeNative(calls),
       gates: LIVE,
     });
+    const reader = stage.readable.getReader();
+    const pending = reader.read();
+    // Nothing from Cartesia yet, and no plan: nothing to play.
+    expect(await readWithin(pending, 50)).toBe('timeout');
+    expect(replyAudioPlanListenerCount()).toBe(1);
+    // The director decides (its first push) while Cartesia is still working.
     setReplyAudioPlan(SID, TURN, { opening: { kind: 'sigh', intensity: 1 }, tempo: 1.1 });
+    const first = await readWithin(pending);
+    expect(first).not.toBe('timeout');
+    expect(isReplyAudioLeadFrame((first as { value: AudioFrame }).value)).toBe(true);
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    // Speech queues after the opening and is stretched.
+    const writer = stage.writable.getWriter();
     const input = toneFrames(20);
-    const out = await collect(streamOf(input).pipeThrough(stage));
-    expect(calls).toEqual(['stretch 24000 1.1']); // no render
-    expect(samples(out).length).toBe(20 * 480 - (20 * 480) / 10);
+    const writing = Promise.all([...input.map((f) => writer.write(f)), writer.close()]);
+    const rest = await readAll(reader);
+    await writing;
+    const lead = rest.filter(isReplyAudioLeadFrame);
+    const speech = rest.filter((f) => !isReplyAudioLeadFrame(f));
+    expect(rest.slice(0, lead.length).every(isReplyAudioLeadFrame)).toBe(true);
+    expect(samples([(first as { value: AudioFrame }).value, ...lead]).length).toBe(
+      Math.round(0.8 * 24000)
+    );
+    expect(samples(speech).length).toBe(20 * 480 - (20 * 480) / 10);
+    expect(calls).toEqual(['render sigh 0 1 24000', 'stretch 24000 1.1']);
+  });
+
+  it('a plan that arrives after the first speech frame is ignored: no opening, no tempo', async () => {
+    const calls: string[] = [];
+    const stage = createReplyAudioStage({
+      sessionId: SID,
+      replyId: TURN,
+      native: fakeNative(calls),
+      gates: LIVE,
+    });
+    const reader = stage.readable.getReader();
+    const writer = stage.writable.getWriter();
+    const input = toneFrames(3);
+    void writer.write(input[0]);
+    expect((await reader.read()).value).toBe(input[0]);
+    // Speech started: only the late watch remains, to consume and log a late opening.
+    expect(replyAudioPlanListenerCount()).toBe(1);
+    setReplyAudioPlan(SID, TURN, { opening: { kind: 'sigh', intensity: 1 }, tempo: 1.1 });
+    await Promise.resolve(); // listeners run on the next microtask
+    expect(takeReplyAudioPlan(SID, TURN)).toBeUndefined(); // consumed, never lingers
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    void writer.write(input[1]);
+    void writer.write(input[2]);
+    void writer.close();
+    const rest = await readAll(reader);
+    expect(rest).toEqual([input[1], input[2]]);
+    expect(calls).toEqual([]);
+  });
+
+  // ---- One plan update per reply: the director's late long-sentence breath ----
+  it('a breath update that arrives before the first speech frame is rendered', async () => {
+    const calls: string[] = [];
+    const stage = createReplyAudioStage({
+      sessionId: SID,
+      replyId: TURN,
+      native: fakeNative(calls),
+      gates: LIVE,
+    });
+    const reader = stage.readable.getReader();
+    const pending = reader.read();
+    setReplyAudioPlan(SID, TURN, { tempo: 1.1 }); // the first plan: tempo, no opening
+    expect(await readWithin(pending, 50)).toBe('timeout');
+    expect(replyAudioPlanListenerCount()).toBe(1); // still waiting for the one update
+    mergeReplyAudioPlan(SID, TURN, { opening: { kind: 'breath', intensity: 0.5 } });
+    const first = await readWithin(pending);
+    expect(first).not.toBe('timeout');
+    expect(isReplyAudioLeadFrame((first as { value: AudioFrame }).value)).toBe(true);
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    const writer = stage.writable.getWriter();
+    const input = toneFrames(20);
+    const writing = Promise.all([...input.map((f) => writer.write(f)), writer.close()]);
+    const rest = await readAll(reader);
+    await writing;
+    const speech = rest.filter((f) => !isReplyAudioLeadFrame(f));
+    // Merged, not replaced: the tempo still applies.
+    expect(calls).toEqual(['render breath 0 0.5 24000', 'stretch 24000 1.1']);
+    expect(samples(speech).length).toBe(20 * 480 - (20 * 480) / 10);
+  });
+
+  it('a breath update after the first speech frame is skipped and delays nothing', async () => {
+    const calls: string[] = [];
+    const stage = createReplyAudioStage({
+      sessionId: SID,
+      replyId: TURN,
+      native: fakeNative(calls),
+      gates: LIVE,
+    });
+    const reader = stage.readable.getReader();
+    const writer = stage.writable.getWriter();
+    setReplyAudioPlan(SID, TURN, { tempo: 1 }); // a plan with nothing to do yet
+    await Promise.resolve();
+    const input = toneFrames(3);
+    void writer.write(input[0]);
+    const first = await readWithin(reader.read(), 50);
+    expect((first as { value: AudioFrame }).value).toBe(input[0]); // straight through
+    expect(replyAudioPlanListenerCount()).toBe(1); // the late watch
+    mergeReplyAudioPlan(SID, TURN, { opening: { kind: 'breath', intensity: 0.5 } });
+    await Promise.resolve(); // listeners run on the next microtask
+    expect(takeReplyAudioPlan(SID, TURN)).toBeUndefined(); // late breath consumed, not left for a later reply
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    void writer.write(input[1]);
+    void writer.write(input[2]);
+    void writer.close();
+    expect(await readAll(reader)).toEqual([input[1], input[2]]);
+    expect(calls).toEqual([]);
+  });
+
+  it('waits for at most one update: a third plan for the turn is not played', async () => {
+    const calls: string[] = [];
+    createReplyAudioStage({ sessionId: SID, replyId: TURN, native: fakeNative(calls), gates: LIVE });
+    setReplyAudioPlan(SID, TURN, { tempo: 1 });
+    await Promise.resolve();
+    mergeReplyAudioPlan(SID, TURN, { tempo: 1.05 });
+    await Promise.resolve();
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    mergeReplyAudioPlan(SID, TURN, { opening: { kind: 'breath', intensity: 0.5 } });
+    await Promise.resolve();
+    expect(calls).toEqual([]);
+  });
+
+  it('stops waiting for a plan on cancel and at the end of the reply', async () => {
+    const make = () =>
+      createReplyAudioStage({ sessionId: SID, replyId: TURN, native: fakeNative(), gates: LIVE });
+    const cancelled = make();
+    expect(replyAudioPlanListenerCount()).toBe(1);
+    await cancelled.readable.cancel('barge-in');
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    const ended = make();
+    expect(replyAudioPlanListenerCount()).toBe(1);
+    await Promise.all([ended.writable.getWriter().close(), collect(ended.readable)]);
+    expect(replyAudioPlanListenerCount()).toBe(0);
+    // A plan set afterwards is left for its own turn's next take, not played into a dead stream.
+    setReplyAudioPlan(SID, TURN, { opening: { kind: 'breath', intensity: 1 } });
+    expect(takeReplyAudioPlan(SID, TURN)).toEqual({ opening: { kind: 'breath', intensity: 1 } });
   });
 
   it('the opening duration reaching the renderer is capped', async () => {
@@ -413,11 +584,11 @@ describe('applyPostTTSEnhancement with Stage 2 off == Stage 2 module stubbed out
   }
 
   /** Bytes out of a freshly imported applyPostTTSEnhancement (seeded dither). */
-  async function run(config: object, turn?: number): Promise<Int16Array> {
+  async function run(config: object, replyId?: string): Promise<Int16Array> {
     const mod = await import('../post-tts-transform.js');
     seedRandom();
     const out = samples(
-      await collect(await mod.applyPostTTSEnhancement(streamOf(toneFrames(25)), config, turn))
+      await collect(await mod.applyPostTTSEnhancement(streamOf(toneFrames(25)), config, replyId))
     );
     vi.restoreAllMocks();
     return out;

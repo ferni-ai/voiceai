@@ -44,18 +44,18 @@ describe('session-state-handler: barge-in and the Stage 2 plan', () => {
 
   it('user barges in while the agent speaks: the pending plan is dropped', () => {
     const { userSpeaks, result } = setup(true);
-    setReplyAudioPlan(SID, 2, { opening: { kind: 'sigh', intensity: 1 } });
+    setReplyAudioPlan(SID, 'reply-2', { opening: { kind: 'sigh', intensity: 1 } });
     expect(pendingReplyAudioPlanCount()).toBe(1);
     userSpeaks();
     result.clearTimers();
-    expect(takeReplyAudioPlan(SID, 2)).toBeUndefined();
+    expect(takeReplyAudioPlan(SID, 'reply-2')).toBeUndefined();
   });
 
   it('user speaks while the agent is silent (not a barge-in): the plan stays', () => {
     const { userSpeaks, result } = setup(false);
-    setReplyAudioPlan(SID, 2, { tempo: 1.1 });
+    setReplyAudioPlan(SID, 'reply-2', { tempo: 1.1 });
     userSpeaks();
     result.clearTimers();
-    expect(takeReplyAudioPlan(SID, 2)).toEqual({ tempo: 1.1 });
+    expect(takeReplyAudioPlan(SID, 'reply-2')).toEqual({ tempo: 1.1 });
   });
 });

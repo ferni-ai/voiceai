@@ -8,7 +8,8 @@
  * 1. **Buffer complete tags** - Ensure SSML tags aren't split across chunks
  * 2. **Extract prosody** - Convert SSML tags to API parameters where possible
  * 3. **Breaks** - Short breaks become punctuation; real pauses stay native (native-breaks.ts)
- * 4. **Preserve intent** - Even when stripping, maintain the speech intent
+ * 4. **Preserve intent** - Even when stripping, maintain the speech intent; stage directions
+ *    are never spoken, <spell> passes through, break runs collapse (speech-markup.ts)
  *
  * @module speech/tts-gateway/ssml/processor
  */
@@ -20,6 +21,7 @@ import { holdBreak, isUnspeakable, restoreHeldBreaks, speakableText } from './na
 
 export { speakableText };
 import { BREATH_BRACKET_REGEX, LAUGHTER_BRACKET_REGEX } from './nonverbal-brackets.js';
+import { prepareSpeechMarkup } from './speech-markup.js';
 
 const log = createLogger({ module: 'SSMLProcessor' });
 
@@ -100,8 +102,7 @@ const BREAK_TAG_REGEX = /<break\s+time=["']?(\d+)(ms|s)?["']?\s*\/?>/gi;
 /** Match closing prosody tags */
 const PROSODY_CLOSE_REGEX = /<\/(?:speed|volume|emotion|prosody)>/gi;
 
-/** Match any XML-like tag (no 'g' flag — safe for .test() which is stateful with /g) */
-const ANY_TAG_REGEX = /<[^>]+>/;
+const ANY_TAG_REGEX = /<[^>]+>/; // no 'g' flag: safe for .test()
 
 /**
  * Match JSON function call blocks that LLM might output alongside speech text
@@ -172,7 +173,8 @@ export class SSMLProcessor implements ISSMLProcessor {
     const warnings: string[] = [];
     const originalTags: string[] = [];
     const prosody: SSMLProsodyConfig = {};
-    let cleanText = text;
+    const markup = prepareSpeechMarkup(text);
+    let cleanText = markup.text;
     let hadSSML = false;
 
     // Extract speed tags
@@ -361,7 +363,6 @@ export class SSMLProcessor implements ISSMLProcessor {
     }
 
     // Remove any remaining XML-like tags we might have missed
-    // Use inline regex with 'g' flag for matching/replacing all occurrences
     const remainingTags = cleanText.match(/<[^>]+>/g);
     if (remainingTags) {
       hadSSML = true;
@@ -371,9 +372,8 @@ export class SSMLProcessor implements ISSMLProcessor {
       cleanText = cleanText.replace(/<[^>]+>/g, '');
     }
 
-    // Clean up whitespace and punctuation artifacts
-    cleanText = this.cleanupText(cleanText);
-    cleanText = restoreHeldBreaks(cleanText);
+    // Clean up whitespace and punctuation artifacts; put held breaks and <spell> back
+    cleanText = markup.restore(restoreHeldBreaks(this.cleanupText(cleanText)));
     if (isUnspeakable(cleanText)) cleanText = '';
 
     return {

@@ -7,7 +7,8 @@ import type { ReplyStream } from '../../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../../providers/cartesia.js';
 import { getSSMLProcessor } from '../../ssml/processor.js';
 import { decideEmotion, readValence, STABLE_EMOTIONS } from '../emotion.js';
-import { decideSpeed, PRO_VOICE_IDS } from '../pacing.js';
+import { VOICE_IDS } from '../../../../config/voice-ids.js';
+import { decideSpeed } from '../pacing.js';
 import { DirectorSessions } from '../session-state.js';
 
 const FERNI_VOICE = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
@@ -197,16 +198,14 @@ describe('decideSpeed', () => {
     ).toBeLessThanOrEqual(1.08);
   });
 
-  it('asks for no speed tag on a Professional Voice Clone', () => {
-    PRO_VOICE_IDS.add('pvc-voice');
-    try {
-      expect(decideSpeed({ valence: 'heavy', voiceId: 'pvc-voice' })).toEqual({
-        speed: 1,
-        supported: false,
-      });
-    } finally {
-      PRO_VOICE_IDS.delete('pvc-voice');
-    }
+  it('marks the speed tag unsupported on a Professional Voice Clone (Stage 2 takes the pace)', () => {
+    // Was { speed: 1, supported: false } via an empty PRO_VOICE_IDS list; the
+    // measured PVC list now lives in config/voice-capabilities.ts and the pace
+    // is still decided so the engine can route it to the Stage 2 tempo.
+    expect(decideSpeed({ valence: 'heavy', voiceId: VOICE_IDS.FERNI })).toEqual({
+      speed: 0.97,
+      supported: false,
+    });
   });
 });
 

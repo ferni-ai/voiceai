@@ -4,7 +4,11 @@
 
 version: 2
 updates:
-  # Backend (root package.json)
+  # Backend (root package.json). This is the pnpm workspace: Dependabot reads
+  # pnpm-lock.yaml and updates every workspace package from here. Never add a
+  # package-lock.json at the root or in a workspace package: Dependabot then
+  # switches to npm, which can't resolve "workspace:*" (every security update
+  # failed this way until 2026-10-03).
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
@@ -47,6 +51,11 @@ updates:
     labels:
       - "dependencies"
       - "frontend"
+    ignore:
+      # No patched braces release exists for its open advisory, so every
+      # security-update run failed with security_update_not_found. Remove
+      # once a fixed version ships.
+      - dependency-name: "braces"
     groups:
       minor-and-patch:
         patterns:

@@ -42,6 +42,23 @@ export const PVC_FINE_TUNED_MODELS: Readonly<Record<string, readonly string[]>> 
   'ebaf7477-b6ae-417e-be54-19e6176777ea': ['sonic-3.6-2026-08-27', 'sonic-3.5-2026-05-04'],
 };
 
+/**
+ * Median speaking f0 (Hz) per voice, so sounds Stage 2 renders around the
+ * speech (a sigh's voiced onset) sit in the same voice. Lester Pro V3's
+ * ~111 Hz is the speech-wiring coordinator's 2026-10-03 figure for Ferni's
+ * renders (not re-measured in this change). Unlisted voices: undefined, and
+ * the renderer keeps its speaker-agnostic default.
+ */
+const VOICE_MEDIAN_F0_HZ: Readonly<Record<string, number>> = {
+  // Lester Nare (Pro) - V3 (Ferni)
+  'ebaf7477-b6ae-417e-be54-19e6176777ea': 111,
+};
+
+/** The voice's median speaking f0 in Hz, when it has been measured. */
+export function voiceMedianF0Hz(voiceId: string): number | undefined {
+  return VOICE_MEDIAN_F0_HZ[normalize(voiceId)];
+}
+
 /** Whether this voice is a known Cartesia Professional Voice Clone. */
 export function isProVoiceClone(voiceId: string): boolean {
   return PRO_CLONE_VOICE_IDS.has(normalize(voiceId));

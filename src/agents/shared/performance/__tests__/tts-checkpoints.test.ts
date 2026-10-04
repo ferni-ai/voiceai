@@ -4,7 +4,12 @@
  */
 import { AudioFrame } from '@livekit/rtc-node';
 import { ReadableStream as NodeReadableStream } from 'node:stream/web';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  createBargeInJudge,
+  registerBargeInJudge,
+} from '../../../../speech/graceful-interrupt/barge-in-judge.js';
 
 import { setReplyAudioPlan } from '../../../../speech/reply-audio-plan.js';
 import { createReplyAudioStage } from '../reply-audio-stage.js';
@@ -68,10 +73,10 @@ describe('wrapWithTTSCheckpoints', () => {
   });
 
   it('with an opening breath: first byte is the breath, first speech is after it', async () => {
-    setReplyAudioPlan(SID, 3, { opening: { kind: 'breath', intensity: 0.5 } });
+    setReplyAudioPlan(SID, 'reply-3', { opening: { kind: 'breath', intensity: 0.5 } });
     const stage = createReplyAudioStage({
       sessionId: SID,
-      turn: 3,
+      replyId: 'reply-3',
       native: fakeNative,
       gates: { nonverbal: true, tempo: false },
     });
@@ -82,10 +87,38 @@ describe('wrapWithTTSCheckpoints', () => {
     expect(frames).toBe(leadFrames + 3);
   });
 
-  it('no session id or turn: no checkpoints, stream untouched', async () => {
+  it('no session id: stream untouched; no turn: wrapped (for the lead) but no checkpoints', async () => {
     const s = streamOf(speech(1));
     expect(wrapWithTTSCheckpoints(s, 'unknown', 3, mark)).toBe(s);
-    expect(wrapWithTTSCheckpoints(s, SID, undefined, mark)).toBe(s);
     expect(wrapWithTTSCheckpoints(null, SID, 3, mark)).toBeNull();
+    const wrapped = wrapWithTTSCheckpoints(streamOf(speech(2)), SID, undefined, mark);
+    let frames = 0;
+    for await (const _ of wrapped as NodeReadableStream<AudioFrame>) frames++;
+    expect(frames).toBe(2);
+    expect(marks).toEqual([]);
+  });
+
+  it("reports the opening's length to the session's barge-in judge at the first word", async () => {
+    const judge = createBargeInJudge();
+    const lead = vi.spyOn(judge, 'onReplyLead');
+    const unregister = registerBargeInJudge(SID, judge);
+    try {
+      setReplyAudioPlan(SID, 'reply-4', { opening: { kind: 'breath', intensity: 0.5 } });
+      const stage = createReplyAudioStage({
+        sessionId: SID,
+        replyId: 'reply-4',
+        native: fakeNative,
+        gates: { nonverbal: true, tempo: false },
+      });
+      await run(streamOf(speech(3)).pipeThrough(stage));
+      expect(lead).toHaveBeenCalledTimes(1);
+      expect(lead.mock.calls[0][0]).toBeCloseTo(350 + 60, 5); // the 350 ms breath + 60 ms gap, from its samples
+
+      lead.mockClear();
+      await run(streamOf(speech(3))); // no opening: nothing to report
+      expect(lead).not.toHaveBeenCalled();
+    } finally {
+      unregister();
+    }
   });
 });

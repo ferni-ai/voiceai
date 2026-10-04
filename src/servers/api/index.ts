@@ -24,6 +24,7 @@ import {
 } from '../../utils/ddos-protection.js';
 import { notifyDDoSAlert } from '../../services/slack-notifications.js';
 import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
+import { bindVerifiedIdentity } from './request-identity.js';
 import { parseRawBody } from '../../api/helpers.js';
 
 // Local routes
@@ -263,11 +264,9 @@ if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
  * Create the HTTP server
  */
 const server = http.createServer(async (req, res) => {
-  // Add request ID for tracing
-  addRequestId(req, res);
+  addRequestId(req, res); // request ID for tracing
 
-  // Set security headers (HSTS, CSP, X-Frame-Options, etc.)
-  setSecurityHeaders(res);
+  setSecurityHeaders(res); // HSTS, CSP, X-Frame-Options, etc.
 
   // Handle CORS
   setCorsHeaders(req, res);
@@ -276,6 +275,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  await bindVerifiedIdentity(req); // identity from verified credentials only; see request-identity.ts
   const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   let pathname = parsedUrl.pathname;
 

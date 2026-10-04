@@ -9,8 +9,20 @@
  * @module speech/tts-gateway/director/engine
  */
 
+import type { ReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { SSMLProsodyConfig } from '../types.js';
-import { decideEmotion, readValence, type EmotionDecision } from './emotion.js';
+import { decideEmotion, readValence, type EmotionDecision, type Valence } from './emotion.js';
+import { decideReplyLaughter, placeLaughter, type LaughPlacement } from './laughter.js';
+import {
+  FIRST_SENTENCE_WATCH_CHARS,
+  decideLateBreath,
+  decideOpening,
+  firstSentenceEnded,
+  nextNonverbalCarry,
+  stripSpokenSigh,
+  type NonverbalCarry,
+  type OpeningDecision,
+} from './nonverbal.js';
 import { normalizeForSpeech } from './normalize.js';
 import { decideSpeed } from './pacing.js';
 import { commaDensity, planPauses, removeMidSentenceEllipses } from './pauses.js';
@@ -25,6 +37,14 @@ const VOLUME_TAG = /<volume\s+ratio="([\d.]+)"\s*\/>/;
 const EMOTION_TAG = /<emotion\s+value="([a-z_]+)"\s*\/>/;
 /** Any emotion tag, anywhere in a push: stripped after the opening when emotion is live. */
 const ANY_EMOTION_TAG = /<\/?emotion\b[^>]*>/gi;
+/** Every prosody tag: stripped from each push when the voice ignores them (a PVC). */
+const PROSODY_TAG = /<\/?(?:speed|emotion|volume)\b[^>]*>/gi;
+/**
+ * Stage 2 tempo range for a voice that ignores <speed>. Listeners hear about
+ * +/-10% tempo; more is a different voice. Gentle on purpose.
+ */
+export const STAGE2_TEMPO_MIN = 0.85;
+export const STAGE2_TEMPO_MAX = 1.15;
 /** Cartesia's accepted speed range (providers/cartesia.ts prosodyTags). */
 const MIN_RATIO = 0.6;
 const MAX_RATIO = 1.5;
@@ -41,10 +61,31 @@ export interface EngineContext {
   /** The session's emotion hint (gateway config). */
   sessionHint?: string;
   carry: CarryOver;
-  /** Raw-stream cues: the LLM's own emotion tag, and sigh cues not yet placed. */
-  cues: { authoredEmotion?: string; takeSighs: () => number };
+  /** Raw-stream cues: the LLM's own emotion tag, sigh cues, how the reply opens. */
+  cues: {
+    authoredEmotion?: string;
+    takeSighs: () => number;
+    opensWithSigh?: boolean;
+    opensWithSpokenSigh?: boolean;
+    sawLaughter?: boolean;
+  };
+  /** Who and which turn, for the laughter rules' cooldowns. */
+  laughter?: {
+    sessionId?: string;
+    personaId?: string;
+    turn?: number;
+    userEmotion?: string;
+    comfortLevel?: number;
+  };
+  /** The user's words this reply answers (nonverbal.ts). */
+  userText?: string;
   /** Renders opening controls; providers/cartesia.ts prosodyTags. */
   renderTags: (prosody: SSMLProsodyConfig) => string;
+  /**
+   * The voice ignores <speed>/<emotion>/<volume> (a Professional Voice Clone)
+   * and the Director is live: send no prosody tag at all.
+   */
+  stripProsody?: boolean;
 }
 
 export interface EngineStats {
@@ -98,6 +139,18 @@ export class DirectorEngine {
   };
   emotion: EmotionDecision = { emotion: undefined, source: 'none' };
   speed = 1;
+  /** Stage 2 tempo for this reply, when the voice can't take a <speed> tag. */
+  tempo: number | undefined;
+  /** The opening breath/sigh decision (decided unless the nonverbal lever is off). */
+  opening: OpeningDecision = { reason: 'none' };
+  /** Bumped when a live opening is decided late (a long first sentence): at most once. */
+  openingRevision = 0;
+  /** The first sentence so far, while it is still being read for a late breath. */
+  private firstSentence: string | undefined;
+  /** Where `[laughter]` went (or would go, in shadow), if anywhere. */
+  laughter: LaughPlacement | undefined;
+  private laughterAsked = false;
+  private replyValence: Valence = 'neutral';
 
   private readonly planPhrases = new PhraseAssembler();
   private readonly spokenPhrases: PhraseAssembler;
@@ -105,6 +158,9 @@ export class DirectorEngine {
   private replySpeed = 1;
   private pendingTags = '';
   private segmentsSinceBreath = Infinity;
+  private spokenSighChecked = false;
+  /** Tags of a first push whose only words were the spoken sigh: they lead the next. */
+  private stashedLead: { tags: string; prosody: SSMLProsodyConfig } | undefined;
 
   constructor(private readonly ctx: EngineContext) {
     // Live phrasing re-cuts; live pauses holds a trailing "..." to see what follows.
@@ -118,6 +174,11 @@ export class DirectorEngine {
     return this.ctx.modes[lever] === 'live';
   }
 
+  /** True once the reply's opening (emotion, pace, breath/sigh) is decided. */
+  get decided(): boolean {
+    return this.opened;
+  }
+
   /** True while phrasing holds text back from Cartesia. */
   get holding(): boolean {
     return this.spokenPhrases.holding;
@@ -127,26 +188,71 @@ export class DirectorEngine {
   take(push: string): string[] {
     return this.atomically(() => {
       this.stats.pushesIn++;
-      const { tags, body, prosody } = parseLead(push);
+      const parsed = parseLead(push);
+      const body = this.takeSpokenSigh(parsed.body);
+      const { tags, prosody } = this.withStashedLead(parsed);
+      if (!body && !this.opened) {
+        // Nothing spoken yet: tags only, or a sigh cue stripped down to
+        // nothing. Stash the tags/prosody for the push that opens the reply
+        // (review M3) instead of deciding the opening from empty text.
+        this.stashedLead = { tags, prosody };
+        return [];
+      }
       const first = !this.opened;
       const normalized = normalizeForSpeech(body);
       this.stats.normalizations += normalized.count;
 
       const planned = this.planPhrases.accept(normalized.text, first);
-      if (first) this.open(planned[0] ?? normalized.text);
+      if (first) this.open(planned[0] ?? normalized.text, prosody.speed);
+      this.readFirstSentence(normalized.text, first);
       this.planSegments(planned);
 
       let spokenBody = this.live('normalize') ? normalized.text : body;
       if (this.live('emotion')) spokenBody = spokenBody.replace(ANY_EMOTION_TAG, '');
+      // Opening tags lead the first phrase. A later push's tags travel inline
+      // with its own text, so a phrase held back from the previous push is
+      // never voiced with them (review LOW: tags one phrase early).
+      const strip = this.ctx.stripProsody === true;
+      if (strip) spokenBody = spokenBody.replace(PROSODY_TAG, '');
+      if (first) this.pendingTags += strip ? '' : this.openingTags(tags, prosody);
+      else spokenBody = `${strip ? '' : this.laterTags(tags, prosody)}${spokenBody}`;
       const spoken = this.spokenPhrases.accept(spokenBody, first);
       if (spoken.length === 0) this.stats.held++;
-      this.pendingTags += first ? this.openingTags(tags, prosody) : this.laterTags(tags, prosody);
       return this.emit(spoken);
     });
   }
 
+  /**
+   * With the nonverbal lever live, the behavior tool's sigh is rendered by
+   * Stage 2, so its spoken "Ahh." at the start of the reply is taken out.
+   *
+   * Checked on the first push that has a body, not the first push overall
+   * (review M3): a tags-only first push (e.g. a lone `<emotion .../>`) has
+   * nothing to check yet, and would otherwise burn the one-time check
+   * before the reply's actual opening words arrive, letting a later "Ahh."
+   * through while Stage 2 still plays the sigh — heard twice.
+   */
+  private takeSpokenSigh(body: string): string {
+    if (!body || this.spokenSighChecked) return body;
+    this.spokenSighChecked = true;
+    const strip = this.live('nonverbal') && this.ctx.cues.opensWithSpokenSigh === true;
+    return strip ? stripSpokenSigh(body) : body;
+  }
+
+  private withStashedLead(parsed: { tags: string; prosody: SSMLProsodyConfig }): {
+    tags: string;
+    prosody: SSMLProsodyConfig;
+  } {
+    const stash = this.stashedLead;
+    this.stashedLead = undefined;
+    if (!stash) return parsed;
+    return { tags: stash.tags + parsed.tags, prosody: { ...stash.prosody, ...parsed.prosody } };
+  }
+
   /** The reply is over: release held phrases. */
   finish(): string[] {
+    // A reply that was only the sigh still gets its opening decided.
+    if (!this.opened && this.stashedLead) this.open('', this.stashedLead.prosody.speed);
     return this.atomically(() => {
       this.planSegments(this.planPhrases.flush());
       return this.emit(this.spokenPhrases.flush());
@@ -183,9 +289,51 @@ export class DirectorEngine {
     return held;
   }
 
+  /** What Stage 2 should do to this reply's audio, if anything. */
+  audioPlan(): ReplyAudioPlan | undefined {
+    const plan: ReplyAudioPlan = {};
+    if (this.tempo !== undefined) plan.tempo = this.tempo;
+    if (this.live('nonverbal') && this.opening.opening) plan.opening = this.opening.opening;
+    return plan.tempo === undefined && plan.opening === undefined ? undefined : plan;
+  }
+
+  /** The session's nonverbal cooldown counters after this reply. */
+  nonverbalCarry(): NonverbalCarry {
+    const { sinceSigh, sinceBreath } = this.ctx.carry;
+    if (this.ctx.modes.nonverbal === 'off') return { sinceSigh, sinceBreath };
+    return nextNonverbalCarry({ sinceSigh, sinceBreath }, this.opening.opening);
+  }
+
+  /**
+   * Read the first sentence as it streams for a late long-sentence breath:
+   * only while no opening is decided, until the sentence ends or
+   * FIRST_SENTENCE_WATCH_CHARS have streamed, and at most once.
+   */
+  private readFirstSentence(text: string, first: boolean): void {
+    if (first) {
+      const watch = this.ctx.modes.nonverbal !== 'off' && !this.opening.opening;
+      const open = !firstSentenceEnded(text) && text.length < FIRST_SENTENCE_WATCH_CHARS;
+      this.firstSentence = watch && open ? text : undefined;
+      return;
+    }
+    if (this.firstSentence === undefined) return;
+    const soFar = `${this.firstSentence} ${text}`.trim();
+    const breath = decideLateBreath(soFar, this.ctx.carry);
+    if (breath) {
+      this.opening = { opening: breath, reason: 'long-sentence' };
+      if (this.live('nonverbal')) this.openingRevision++; // shadow only logs it
+    }
+    const done =
+      breath !== undefined ||
+      firstSentenceEnded(soFar) ||
+      soFar.length >= FIRST_SENTENCE_WATCH_CHARS;
+    this.firstSentence = done ? undefined : soFar;
+  }
+
   /** One emotion and one speed for the whole reply, from its opening phrase. */
-  private open(openingText: string): void {
+  private open(openingText: string, leadSpeed: number | undefined): void {
     this.opened = true;
+    this.replyValence = readValence(openingText);
     this.emotion = decideEmotion({
       authored: this.ctx.cues.authoredEmotion,
       sessionHint: this.ctx.sessionHint,
@@ -200,6 +348,21 @@ export class DirectorEngine {
     });
     this.speed = Math.abs(pace.speed - 1) < SPEED_EPSILON ? 1 : pace.speed;
     this.replySpeed = this.live('pacing') && pace.supported ? this.speed : 1;
+    if (this.ctx.modes.nonverbal !== 'off') {
+      this.opening = decideOpening({
+        openingText,
+        opensWithSigh: this.ctx.cues.opensWithSigh === true,
+        userText: this.ctx.userText,
+        voiceId: this.ctx.voiceId,
+        carry: this.ctx.carry,
+      });
+    }
+    if (this.live('pacing') && !pace.supported) {
+      // The voice ignores <speed>: the pace (with any soft start) goes to Stage 2.
+      const tempo = composeSpeed(leadSpeed ?? 1, this.speed);
+      const gentle = Math.min(STAGE2_TEMPO_MAX, Math.max(STAGE2_TEMPO_MIN, tempo));
+      this.tempo = Math.abs(gentle - 1) < SPEED_EPSILON ? undefined : gentle;
+    }
   }
 
   private openingTags(original: string, lead: SSMLProsodyConfig): string {
@@ -230,11 +393,26 @@ export class DirectorEngine {
     return tags;
   }
 
+  /** Ask the laughter rules once, on the reply's first phrase. */
+  private withLaughter(text: string): string {
+    if (this.laughterAsked || this.ctx.modes.laughter === 'off') return text;
+    this.laughterAsked = true;
+    this.laughter = decideReplyLaughter({
+      ...this.ctx.laughter,
+      phrase: text,
+      replyValence: this.replyValence,
+      alreadyLaughing: this.ctx.cues.sawLaughter === true,
+      userText: this.ctx.userText,
+    });
+    return this.laughter && this.live('laughter') ? placeLaughter(text, this.laughter) : text;
+  }
+
   private emit(texts: string[]): string[] {
     const out: string[] = [];
     for (const raw of texts) {
-      const text = this.live('pauses') ? removeMidSentenceEllipses(raw).text : raw;
-      if (!text) continue;
+      const paused = this.live('pauses') ? removeMidSentenceEllipses(raw).text : raw;
+      if (!paused) continue;
+      const text = this.withLaughter(paused);
       out.push(`${this.pendingTags}${text} `);
       this.pendingTags = '';
     }

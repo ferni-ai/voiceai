@@ -13,9 +13,14 @@
  * @module speech/tts-gateway/director/session-state
  */
 
+import { resetLaughterSession } from '../../adaptive-ssml/contextual-laughter.js';
+
 export interface CarryOver {
   emotion?: string;
   speed: number;
+  /** Replies since the last opening sigh / breath (nonverbal.ts cooldowns). */
+  sinceSigh?: number;
+  sinceBreath?: number;
 }
 
 const DEFAULT: CarryOver = { speed: 1 };
@@ -52,8 +57,12 @@ export class DirectorSessions {
     }
   }
 
-  /** Forget every persona's carry-over for a session (call when it ends). */
+  /**
+   * Forget every persona's carry-over for a session (call when it ends),
+   * including the laughter rules' per-session history (laughter.ts).
+   */
   clear(sessionId: string): void {
+    resetLaughterSession(sessionId);
     const prefix = keyOf(sessionId);
     for (const key of [...this.states.keys()]) {
       if (key.startsWith(prefix)) this.states.delete(key);

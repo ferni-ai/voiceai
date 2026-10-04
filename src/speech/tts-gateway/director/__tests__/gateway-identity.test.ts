@@ -143,7 +143,8 @@ describe('SPEECH_DIRECTOR on the live gateway path', () => {
     expect(pushes).not.toEqual(GOLDEN);
     const all = pushes.join('');
     // Conventional forms are Cartesia's to read; only the edge cases change.
-    expect(all).toContain('$4,200 on 10/3,');
+    // A bare date in date context is one (Sonic read "10/3" as "10 thirds").
+    expect(all).toContain('$4,200 on October 3,');
     expect(all).toContain('Call at 3:30 PM if you can.');
     expect(pushes.some((p) => p.trim().endsWith('a lot of'))).toBe(false);
     expect(pushes[0]).toContain('<emotion value="sympathetic"/>');
@@ -188,5 +189,46 @@ describe('mid-sentence ellipses on the live gateway path', () => {
     process.env.SPEECH_DIRECTOR = 'shadow';
     const all = (await runGateway(ELLIPSIS_REPLY)).pushes.join('');
     expect(hasMidSentenceEllipsis(all)).toBe(true);
+  });
+});
+
+/**
+ * Deliberate change to the default path (stream D item 4): asterisk stage
+ * directions used to reach Cartesia verbatim with the Director off, so the
+ * voice said "smiles" and "laughs". Before this fix the pushes were exactly
+ * BEFORE_FIX_PUSHES; now a stand-alone direction ("*smiles*", at this push's
+ * own start) is dropped entirely, and a mid-sentence action word ("*laughs*",
+ * preceded by "Okay ") keeps the word, asterisks only (review H1) — it reads
+ * as the sentence's own verb, not an aside. Nothing else in the reply changes.
+ */
+describe('asterisk stage directions on the live gateway path', () => {
+  const REPLY = ['*smiles* That is great news. ', 'Okay *laughs* so 5*3 is 15, f*** yes.'];
+  const BEFORE_FIX_PUSHES = [
+    '*smiles* That is great news. ',
+    'Okay *laughs* so 5*3 is 15, f*** yes. ',
+  ];
+
+  afterEach(() => {
+    delete process.env.SPEECH_DIRECTOR;
+  });
+
+  for (const mode of [undefined, 'off', 'shadow', 'live']) {
+    it(`a stand-alone direction is never spoken, a mid-sentence one keeps its word (SPEECH_DIRECTOR=${mode ?? 'unset'})`, async () => {
+      if (mode) process.env.SPEECH_DIRECTOR = mode;
+      const { pushes } = await runGateway(REPLY);
+      const all = pushes.join('');
+      expect(all).not.toMatch(/smiles/); // stand-alone: removed entirely
+      expect(all).toMatch(/\blaughs\b/); // mid-sentence: the word is kept
+      expect(all).not.toMatch(/\*laughs\*/); // but never with its asterisks
+      expect(all).toContain('5*3 is 15, f*** yes.');
+    });
+  }
+
+  it('changes only the directions on the default path', async () => {
+    delete process.env.SPEECH_DIRECTOR;
+    const { pushes } = await runGateway(REPLY);
+    expect(pushes).toEqual(
+      BEFORE_FIX_PUSHES.map((p) => p.replace('*smiles* ', '').replace('*laughs*', 'laughs'))
+    );
   });
 });
