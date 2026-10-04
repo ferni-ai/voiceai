@@ -49,11 +49,12 @@ export default defineConfig(({ mode }) => {
         'gsap',
         // Node/agent SDK - not for browser; excluding avoids 504 Outdated Optimize Dep
         '@livekit/agents',
+        // LiveKit client - loaded via voice-engine.js UMD; no npm bundle needed
+        'livekit-client',
       ],
       // Pre-bundle these heavy dependencies on server start (not on first request)
       // This significantly speeds up the first page load
       include: [
-        'livekit-client',
         'firebase/app',
         'firebase/auth',
         'firebase/firestore',

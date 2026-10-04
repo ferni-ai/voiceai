@@ -149,13 +149,12 @@ import {
   getIntegrationsSettingsUI,
   showIntegrationsSettings,
 } from './ui/integrations-settings.ui.js';
-import { openAdminQueue as openMarketplaceAdmin } from './ui/marketplace-admin.ui.js';
-import { marketplaceUI, openMarketplace } from './ui/marketplace.ui.js';
+// Lazy-loaded: Marketplace UI (only needed when user clicks Discover Agents)
+// Lazy-loaded: Admin Queue (only needed for admin marketplace operations)
 // 📔 Journal Capture - Auto-capture meaningful moments from conversations
 // CLI Authentication (for ferni auth login)
 import { initCLIAuth } from './ui/cli-auth.ui.js';
-// New Unified Admin Portal
-import { initAdminPortal } from './admin/index.js';
+// Lazy-loaded: Admin Portal (only needed when pathname === '/admin')
 // Engagement UI
 import { engagementTriggerUI, initEngagementTriggerUI } from './ui/engagement-trigger.ui.js';
 import { getEngagementUI } from './ui/engagement.ui.js';
@@ -353,6 +352,20 @@ import { initRoadmapPanelUI } from './ui/roadmap-panel.ui.js';
 // Structured logger
 import { createLogger } from './utils/logger.js';
 const log = createLogger('App');
+
+/**
+ * Open a UI module that is split into its own chunk. The chunk can fail to load
+ * (offline, or a deploy replaced the hashed file this page still references), so
+ * tell the user instead of letting the click silently do nothing.
+ */
+function openLazy<T>(load: () => Promise<T>, use: (mod: T) => unknown): void {
+  load()
+    .then(use)
+    .catch((error: unknown) => {
+      log.error({ error: String(error) }, 'Lazy UI module failed to load');
+      toast.error("Couldn't open that. Refresh the page and try again?");
+    });
+}
 
 // Modal Coordinator - Prevents popup storms for first-time users
 import { initModalCoordinator, modalCoordinator } from './services/modal-coordinator.service.js';
@@ -1052,7 +1065,8 @@ class VoiceAIApp {
       injectAdminStyles();
       await initAdminDashboard();
     } else {
-      // New unified Admin Portal
+      // New unified Admin Portal - lazy-loaded
+      const { initAdminPortal } = await import('./admin/index.js');
       await initAdminPortal();
     }
 
@@ -2115,17 +2129,26 @@ class VoiceAIApp {
         onVideoSettingsClick: () => void showVideoSettings(),
         onGroupCoachingClick: () => void showGroupCoaching(),
         onMarketplaceAdminClick: () => {
-          // Admin panel requires admin session
+          // Admin panel requires admin session - lazy-load marketplace admin UI
           const adminId = localStorage.getItem('ferni_admin_id');
           if (adminId) {
-            void openMarketplaceAdmin({ id: adminId, name: 'Admin' });
+            openLazy(
+              () => import('./ui/marketplace-admin.ui.js'),
+              ({ openAdminQueue }) => openAdminQueue({ id: adminId, name: 'Admin' })
+            );
           }
         },
         onCreativeYouClick: () => {
           const userId = appState.get('deviceId') || 'anonymous';
           void openCreativeYouDashboard(userId);
         },
-        onDiscoverAgentsClick: () => void openMarketplace(),
+        onDiscoverAgentsClick: () => {
+          // Lazy-load marketplace UI - not needed until user clicks Discover Agents
+          openLazy(
+            () => import('./ui/marketplace.ui.js'),
+            ({ openMarketplace }) => openMarketplace()
+          );
+        },
         onJournalClick: () => void openChronicle(),
         onHubClick: () => {
           // Open Ferni Hub - "Your Day with Ferni"
@@ -2489,7 +2512,11 @@ class VoiceAIApp {
       }
     });
     this.addTrackedListener(window, 'ferni:open-marketplace', () => {
-      void marketplaceUI.open();
+      // Lazy-load marketplace UI
+      openLazy(
+        () => import('./ui/marketplace.ui.js'),
+        ({ marketplaceUI }) => marketplaceUI.open()
+      );
     });
 
     // 📱 Mobile Bottom Sheet - Quick action event handlers
@@ -2674,7 +2701,11 @@ class VoiceAIApp {
     if (marketplaceBtn) {
       this.addTrackedListener(marketplaceBtn, 'click', ((e: MouseEvent) => {
         e.stopPropagation(); // Prevent team roster from handling this
-        void marketplaceUI.open();
+        // Lazy-load marketplace UI
+        openLazy(
+          () => import('./ui/marketplace.ui.js'),
+          ({ marketplaceUI }) => marketplaceUI.open()
+        );
       }) as EventListener);
     }
   }
