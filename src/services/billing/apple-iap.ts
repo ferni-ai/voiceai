@@ -15,6 +15,7 @@ import type { SubscriptionStatus, SubscriptionTier } from '../../types/subscript
 import { createLogger } from '../../utils/safe-logger.js';
 import { APPLE_PRODUCT_IDS, PRODUCT_TO_TIER } from './apple-entitlement.js';
 import { handleNotification } from './apple-notifications.js';
+import { DEFAULT_APPLE_BUNDLE_ID } from './apple-signed-data.js';
 
 export { APPLE_PRODUCT_IDS, PRODUCT_TO_TIER } from './apple-entitlement.js';
 export { handleNotification } from './apple-notifications.js';
@@ -72,7 +73,7 @@ const APPLE_CONFIG = {
   // App Store Connect credentials
   issuerId: process.env.APPLE_ISSUER_ID || '',
   keyId: process.env.APPLE_KEY_ID || '',
-  bundleId: process.env.APPLE_BUNDLE_ID || 'com.ferni.app',
+  bundleId: process.env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID,
 
   // API endpoints
   productionUrl: 'https://api.storekit.itunes.apple.com',

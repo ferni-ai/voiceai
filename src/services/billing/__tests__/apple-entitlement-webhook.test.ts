@@ -132,7 +132,7 @@ describe('POST /api/apple/webhook follows the subscription', () => {
   });
 
   it('upgrade friend → partner applies now, downgrade partner → friend does not', async () => {
-    await subscribed({ productId: 'com.ferni.friend.monthly' });
+    await subscribed({ productId: 'com.ferni.subscription.friend.monthly' });
     expect(sub('alice')).toMatchObject({ tier: 'friend' });
 
     await apple.webhook(
@@ -143,7 +143,7 @@ describe('POST /api/apple/webhook follows the subscription', () => {
     await apple.webhook(
       await appStoreNotification('DID_CHANGE_RENEWAL_PREF', {
         subtype: 'DOWNGRADE',
-        transaction: { productId: 'com.ferni.friend.monthly' },
+        transaction: { productId: 'com.ferni.subscription.friend.monthly' },
       })
     );
     expect(sub('alice')).toMatchObject({ tier: 'partner' });

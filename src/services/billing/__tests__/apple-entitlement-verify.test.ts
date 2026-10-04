@@ -64,7 +64,7 @@ describe('POST /api/apple/verify writes the buyer’s profile', () => {
       status: 'active',
       provider: 'apple',
       appleOriginalTransactionId: 'otx-1',
-      appleProductId: 'com.ferni.partner.monthly',
+      appleProductId: 'com.ferni.subscription.partner.monthly',
     });
     expect(time(sub('alice').currentPeriodEnd)).toBe(expiresDate);
     const info = await getSubscriptionInfo('alice');
@@ -129,7 +129,7 @@ describe('paying twice: the higher tier wins, Stripe keeps ties', () => {
     profiles.set('alice', { id: 'alice', subscription: stripe('partner') });
     await apple.verify(
       'alice',
-      await appStoreTransaction({ productId: 'com.ferni.friend.monthly' })
+      await appStoreTransaction({ productId: 'com.ferni.subscription.friend.monthly' })
     );
     expect(sub('alice')).toMatchObject({
       tier: 'partner',

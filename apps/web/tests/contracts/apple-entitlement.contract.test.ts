@@ -68,7 +68,7 @@ vi.stubEnv('APPLE_ISSUER_ID', 'issuer');
 vi.stubEnv('APPLE_KEY_ID', 'key');
 vi.stubEnv('APPLE_PRIVATE_KEY', 'unused-for-signed-transactions');
 vi.stubEnv('APPLE_ENVIRONMENT', 'Sandbox');
-vi.stubEnv('APPLE_BUNDLE_ID', 'com.ferni.app');
+vi.stubEnv('APPLE_BUNDLE_ID', ''); // the default: the iOS app's bundle id
 vi.stubEnv('APPLE_ONLINE_CHECKS', 'false');
 
 const { handleAppleRoutes } = await import('../../../../src/api/apple-iap-routes.js');

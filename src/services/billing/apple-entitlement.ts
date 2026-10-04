@@ -33,20 +33,30 @@ import { getTransactionOwner } from './apple-signed-data.js';
 
 const log = createLogger({ module: 'AppleEntitlement' });
 
-/** Apple product IDs for our subscription tiers. */
+/**
+ * The products the iOS app sells (apps/ios-native: ProductID in
+ * SubscriptionService.swift and Ferni.storekit).
+ */
 export const APPLE_PRODUCT_IDS = {
-  friend_monthly: 'com.ferni.friend.monthly',
-  friend_annual: 'com.ferni.friend.annual',
-  partner_monthly: 'com.ferni.partner.monthly',
-  partner_annual: 'com.ferni.partner.annual',
+  friend_monthly: 'com.ferni.subscription.friend.monthly',
+  friend_annual: 'com.ferni.subscription.friend.yearly',
+  partner_monthly: 'com.ferni.subscription.partner.monthly',
+  partner_annual: 'com.ferni.subscription.partner.yearly',
 } as const;
 
-/** Product ID → tier. */
+/**
+ * Product ID → tier. Also maps the names in the older billing docs
+ * (com.ferni.friend.monthly, ...) in case App Store Connect still has them.
+ */
 export const PRODUCT_TO_TIER: Record<string, SubscriptionTier> = {
   [APPLE_PRODUCT_IDS.friend_monthly]: 'friend',
   [APPLE_PRODUCT_IDS.friend_annual]: 'friend',
   [APPLE_PRODUCT_IDS.partner_monthly]: 'partner',
   [APPLE_PRODUCT_IDS.partner_annual]: 'partner',
+  'com.ferni.friend.monthly': 'friend',
+  'com.ferni.friend.annual': 'friend',
+  'com.ferni.partner.monthly': 'partner',
+  'com.ferni.partner.annual': 'partner',
 };
 
 const TIER_RANK: Record<SubscriptionTier, number> = { free: 0, friend: 1, partner: 2 };

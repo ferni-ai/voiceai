@@ -71,7 +71,8 @@ export async function signLikeAppStore(payload: object): Promise<string> {
   return `${header}.${body}.${signature.toString('base64url')}`;
 }
 
-const BUNDLE_ID = 'com.ferni.app';
+/** The iOS app's bundle id (apps/ios-native/project.yml). */
+export const APP_BUNDLE_ID = 'com.sethdford.ferni';
 const DAY = 24 * 60 * 60 * 1000;
 
 /** A signed StoreKit 2 transaction for our app (Sandbox), current for 30 days unless overridden. */
@@ -80,8 +81,8 @@ export async function appStoreTransaction(fields: Record<string, unknown> = {}):
   return signLikeAppStore({
     transactionId: `tx-${now}-${Math.random()}`,
     originalTransactionId: 'otx-1',
-    bundleId: BUNDLE_ID,
-    productId: 'com.ferni.partner.monthly',
+    bundleId: APP_BUNDLE_ID,
+    productId: 'com.ferni.subscription.partner.monthly',
     purchaseDate: now - DAY,
     originalPurchaseDate: now - DAY,
     expiresDate: now + 30 * DAY,
@@ -110,8 +111,8 @@ export async function appStoreNotification(
   const signedRenewalInfo = renewal
     ? await signLikeAppStore({
         originalTransactionId: transaction.originalTransactionId ?? 'otx-1',
-        autoRenewProductId: 'com.ferni.partner.monthly',
-        productId: 'com.ferni.partner.monthly',
+        autoRenewProductId: 'com.ferni.subscription.partner.monthly',
+        productId: 'com.ferni.subscription.partner.monthly',
         autoRenewStatus: 1,
         signedDate: now,
         environment: 'Sandbox',
@@ -126,7 +127,7 @@ export async function appStoreNotification(
     signedDate: now,
     data: {
       appAppleId: 1234,
-      bundleId: BUNDLE_ID,
+      bundleId: APP_BUNDLE_ID,
       environment: 'Sandbox',
       signedTransactionInfo: await appStoreTransaction(transaction),
       signedRenewalInfo,
