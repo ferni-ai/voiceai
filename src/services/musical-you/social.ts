@@ -11,7 +11,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import { challengeRecords } from '../social/challenge-records.js';
+import { daysAfter, sharedRecords } from '../social/shared-records.js';
 import type { MusicChallenge, Leaderboard, LeaderboardEntry, TasteMatch } from './types.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
@@ -21,12 +21,14 @@ const log = createLogger({ module: 'MusicalYouSocial' });
 // STORAGE
 // ============================================================================
 
-/** Shared by every API instance (Firestore on Cloud Run); see challenge-records. */
-const challenges = challengeRecords<MusicChallenge>('musical_challenges', [
-  'createdAt',
-  'expiresAt',
-  'completedAt',
-]);
+/**
+ * Shared by every API instance (Firestore on Cloud Run); see shared-records.
+ * Deletable (ttlAt) at expiry while pending, or 30 days after it finished.
+ */
+const challenges = sharedRecords<MusicChallenge>('musical_challenges', {
+  dateFields: ['createdAt', 'expiresAt', 'completedAt'],
+  ttlAt: (c, now) => (c.status === 'pending' ? c.expiresAt : daysAfter(c.completedAt ?? now, 30)),
+});
 const leaderboards = new Map<string, Leaderboard>();
 const tasteMatches = new Map<string, TasteMatch>();
 
@@ -58,7 +60,7 @@ export async function sendChallenge(
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
   };
-  await challenges.put(challenge);
+  await challenges.put(challenge.id, challenge);
 
   log.info(
     { challengeId: challenge.id, challengerId, challengeeId, gameType, score: challengerScore },

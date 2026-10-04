@@ -12,42 +12,29 @@
  * (game history) and Firestore are faked.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PassThrough } from 'stream';
 import type { IncomingMessage, ServerResponse } from 'http';
-
-type Json = Record<string, unknown>;
+import {
+  call,
+  startInstance,
+  type ApiInstance as Instance,
+  type Handler,
+  type Json,
+} from './helpers/api-instances.js';
+import { resetFakeFirestore } from './helpers/fake-firestore.js';
 
 /** One Firestore, shared by both instances. */
-const fake = vi.hoisted(() => ({ docs: new Map<string, Json>(), up: true }));
+const fake = vi.hoisted(() => ({
+  docs: new Map<string, Record<string, unknown>>(),
+  versions: new Map<string, number>(),
+  up: true,
+  writes: [] as Array<{ path: string; data: Record<string, unknown> }>,
+}));
 
 vi.mock('../utils/firestore-utils.js', async (importOriginal) => {
-  const ref = (path: string) => ({
-    get: async () => ({ exists: fake.docs.has(path), data: () => fake.docs.get(path) }),
-    set: async (data: Json) => {
-      fake.docs.set(path, JSON.parse(JSON.stringify(data)) as Json);
-    },
-  });
-  const db = {
-    collection: (name: string) => ({
-      doc: (id: string) => ref(`${name}/${id}`),
-      where: (field: string, _op: '==', value: unknown) => ({
-        get: async () => ({
-          docs: [...fake.docs]
-            .filter(([path, data]) => path.startsWith(`${name}/`) && data[field] === value)
-            .map(([, data]) => ({ data: () => data })),
-        }),
-      }),
-    }),
-    runTransaction: async <T>(
-      fn: (tx: {
-        get: (r: ReturnType<typeof ref>) => ReturnType<ReturnType<typeof ref>['get']>;
-        set: (r: ReturnType<typeof ref>, data: Json) => void;
-      }) => Promise<T>
-    ) => fn({ get: async (r) => r.get(), set: (r, data) => void r.set(data) }),
-  };
+  const { createFakeFirestore } = await import('./helpers/fake-firestore.js');
   return {
     ...(await importOriginal<typeof import('../utils/firestore-utils.js')>()),
-    getFirestoreDb: () => (fake.up ? db : null),
+    getFirestoreDb: createFakeFirestore(fake),
   };
 });
 
@@ -71,53 +58,6 @@ vi.mock('../services/engagement/engagement-store.js', () => ({
   })),
 }));
 
-type Handler = (
-  req: IncomingMessage,
-  res: ServerResponse,
-  pathname: string,
-  query: URLSearchParams
-) => Promise<boolean>;
-
-interface Instance {
-  musical: Handler;
-  social: Handler;
-}
-
-/** A fresh API process: new module instances, nothing shared but Firestore. */
-async function startInstance(): Promise<Instance> {
-  vi.resetModules();
-  const { handleMusicalYouRoutes } = await import('../api/routes/musical-you-routes.js');
-  const { handleSocialRoutes } = await import('../api/routes/social-routes.js');
-  return { musical: handleMusicalYouRoutes, social: handleSocialRoutes };
-}
-
-async function call(
-  handler: Handler,
-  method: 'GET' | 'POST',
-  path: string,
-  caller: string,
-  body: Json = {}
-): Promise<{ status: number; body: Json }> {
-  const stream = new PassThrough();
-  const req = stream as unknown as IncomingMessage;
-  req.method = method;
-  req.url = path;
-  req.headers = { authorization: `Bearer ${caller}` };
-  stream.end(method === 'POST' ? JSON.stringify(body) : undefined);
-  const out = { status: 200, body: {} as Json };
-  const res = {
-    setHeader: vi.fn(),
-    writeHead: vi.fn((s: number) => {
-      out.status = s;
-    }),
-    end: vi.fn((data?: string) => {
-      out.body = JSON.parse(data || '{}') as Json;
-    }),
-  } as unknown as ServerResponse;
-  await handler(req, res, path, new URLSearchParams());
-  return out;
-}
-
 const idOf = (body: Json) => (body.challenge as { id: string }).id;
 
 describe('challenges across API instances', () => {
@@ -125,8 +65,7 @@ describe('challenges across API instances', () => {
   let two: Instance;
 
   beforeEach(async () => {
-    fake.docs.clear();
-    fake.up = true;
+    resetFakeFirestore(fake);
     vi.stubEnv('K_SERVICE', 'api');
     one = await startInstance();
     two = await startInstance();

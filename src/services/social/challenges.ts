@@ -1,23 +1,29 @@
 /**
  * Head-to-head social challenges (score-beat, speed-beat), stored where every
- * API instance sees them (see challenge-records). Moved out of
+ * API instance sees them (see shared-records). Moved out of
  * multiplayer-games.ts, which re-exports these functions.
  *
  * @module services/social/challenges
  */
 import { randomUUID, randomInt } from 'node:crypto';
 import { getLogger } from '../../utils/safe-logger.js';
-import { challengeRecords } from './challenge-records.js';
+import { daysAfter, sharedRecords } from './shared-records.js';
 import type { Challenge, ChallengeType } from './multiplayer-games.js';
 
 const log = getLogger();
 
-const challenges = challengeRecords<Challenge>('social_challenges', [
-  'createdAt',
-  'expiresAt',
-  'acceptedAt',
-  'completedAt',
-]);
+/**
+ * Deletable (ttlAt) at expiry while pending, 30 days after expiry once accepted
+ * (still being played), or 30 days after it finished.
+ */
+const challenges = sharedRecords<Challenge>('social_challenges', {
+  dateFields: ['createdAt', 'expiresAt', 'acceptedAt', 'completedAt'],
+  ttlAt: (c, now) => {
+    if (c.status === 'pending') return c.expiresAt;
+    if (c.status === 'accepted') return daysAfter(c.expiresAt, 30);
+    return daysAfter(c.completedAt ?? now, 30);
+  },
+});
 
 const newest = (a: Challenge, b: Challenge) => b.createdAt.getTime() - a.createdAt.getTime();
 
@@ -53,7 +59,7 @@ export async function createChallenge(
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     shareCode: generateShareCode(),
   };
-  await challenges.put(challenge);
+  await challenges.put(challenge.id, challenge);
   log.info({ challengeId: challenge.id, type, gameType }, '🎮 Challenge created');
   return challenge;
 }
