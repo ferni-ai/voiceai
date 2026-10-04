@@ -512,6 +512,13 @@ deploy rights come from `GCP_SA_KEY` / `FIREBASE_SERVICE_ACCOUNT` at job time, n
 (unset → `ubuntu-latest`; set to `["self-hosted","Linux","X64","deploy"]` to use the VM) and refuse any ref but
 `main`. Only those two workflows may target the `deploy` label: never point a PR-triggered workflow at it.
 If the VM is stopped, unset `DEPLOY_RUNNER` (`gh variable delete DEPLOY_RUNNER`) or deploys queue for 24h.
+The trust boundary is enforced ON the VM (a PR can edit workflow files, so a workflow-level guard isn't
+enough). VM-side config, re-create it if the VM is rebuilt: the runner's `.env` sets
+`ACTIONS_RUNNER_HOOK_JOB_STARTED=/opt/runner-hooks/deploy-guard.sh`, which fails the job unless
+`GITHUB_WORKFLOW_REF` ends in `@refs/heads/main` and the event is push / workflow_dispatch / schedule /
+workflow_run / release, and `ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/opt/runner-hooks/wipe-creds.sh`; both hooks
+delete `~/.config/gcloud`, `~/.docker/config.json`, `~/.config/firebase` and any `gha-creds-*.json`, so no job
+inherits a previous job's production credentials.
 
 VM-side config (not in the repo, re-create it if the VM is rebuilt):
 - **Workspace hook:** each runner's `.env` sets `ACTIONS_RUNNER_HOOK_JOB_STARTED=/opt/runner-hooks/reclaim-workspace.sh`,
