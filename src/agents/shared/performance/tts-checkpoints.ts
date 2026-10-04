@@ -8,6 +8,9 @@
  *   equals ttsFirstByte when there is no opening.
  * - ttsComplete: the stream ended.
  *
+ * At the first speech frame the lead's length goes to the session's barge-in
+ * judge (barge-in-judge.ts), which then times Ferni from her first word.
+ *
  * @module agents/shared/performance/tts-checkpoints
  */
 
@@ -17,6 +20,7 @@ import {
   type ReadableStream as NodeReadableStream,
 } from 'node:stream/web';
 
+import { noteReplyLead } from '../../../speech/graceful-interrupt/barge-in-judge.js';
 import { isReplyAudioLeadFrame } from './reply-audio-stage.js';
 
 /** `markTurnCheckpoint` from the turn profiler (injected; keeps this module services-free). */
@@ -32,24 +36,34 @@ export function wrapWithTTSCheckpoints(
   turnNumber: number | undefined,
   mark: MarkTurnCheckpoint
 ): NodeReadableStream<AudioFrame> | null {
-  if (!stream || sessionId === 'unknown' || turnNumber === undefined) return stream;
+  if (!stream || sessionId === 'unknown') return stream;
+  // Without a turn there are no checkpoints, but the judge still needs the lead.
+  const markTurn = (checkpoint: Parameters<MarkTurnCheckpoint>[2]): void => {
+    if (turnNumber !== undefined) mark(sessionId, turnNumber, checkpoint);
+  };
   let firstFrame = true;
   let firstSpeech = true;
+  let leadMs = 0;
   return stream.pipeThrough(
     new NodeTransformStream<AudioFrame, AudioFrame>({
       transform(frame, controller) {
         if (firstFrame) {
           firstFrame = false;
-          mark(sessionId, turnNumber, 'ttsFirstByte');
+          markTurn('ttsFirstByte');
         }
-        if (firstSpeech && !isReplyAudioLeadFrame(frame)) {
-          firstSpeech = false;
-          mark(sessionId, turnNumber, 'ttsFirstSpeech');
+        if (firstSpeech) {
+          if (isReplyAudioLeadFrame(frame)) {
+            leadMs += (frame.samplesPerChannel / frame.sampleRate) * 1000;
+          } else {
+            firstSpeech = false;
+            markTurn('ttsFirstSpeech');
+            if (leadMs > 0) noteReplyLead(sessionId, leadMs);
+          }
         }
         controller.enqueue(frame);
       },
       flush() {
-        mark(sessionId, turnNumber, 'ttsComplete');
+        markTurn('ttsComplete');
       },
     })
   );
