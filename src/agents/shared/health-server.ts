@@ -11,8 +11,8 @@
  * - GET /health/ready - Readiness check (200 only when workers can accept calls)
  * - GET /health/workers - Background worker stats (trust, analytics, predictions, etc.)
  * - GET /health/crash-analytics - Crash analytics summary
- * - GET /api/cognitive - Current cognitive state (for dashboard)
- * - GET /api/cognitive/history - Recent cognitive events
+ * - GET /api/cognitive - Current cognitive state (admin only: names users)
+ * - GET /api/cognitive/history - Recent cognitive events (admin only)
  * - GET /api/metrics - Full persistence metrics snapshot
  * - GET /api/metrics/summary - Concise metrics summary
  * - GET /api/metrics/sessions - Active sessions only
@@ -121,13 +121,13 @@ async function initWebSocketServer(httpServer: Server) {
   }
 }
 
-/**
- * Handle cognitive API requests
- */
-async function handleCognitiveAPI(url: string, res: ServerResponse): Promise<void> {
-  const broadcast = await getCognitiveBroadcast();
-
+/** Cognitive state/history: every user's events (as /ws/cognitive), so admin only (401/403). */
+async function handleCognitiveAPI(req: IncomingMessage, res: ServerResponse): Promise<void> {
   setMonitoringCorsHeaders(res);
+  const { requireAdmin } = await import('../../api/auth-middleware.js');
+  if (!(await requireAdmin(req, res))) return;
+  const url = req.url || '/';
+  const broadcast = await getCognitiveBroadcast();
 
   if (!broadcast) {
     res.writeHead(503, { 'Content-Type': 'application/json' });
@@ -266,9 +266,8 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
 
       try {
         // Check unified memory service
-        const { getUnifiedMemoryService } = await import(
-          '../../services/unified-memory-service.js'
-        );
+        const { getUnifiedMemoryService } =
+          await import('../../services/unified-memory-service.js');
         if (getUnifiedMemoryService()) {
           components.unifiedMemoryService = 'up';
         }
@@ -278,9 +277,8 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
 
       try {
         // Check vector store
-        const { getFirestoreVectorStore } = await import(
-          '../../memory/firestore-vector-store/index.js'
-        );
+        const { getFirestoreVectorStore } =
+          await import('../../memory/firestore-vector-store/index.js');
         const vectorStore = getFirestoreVectorStore();
         if (vectorStore) {
           const stats = await vectorStore.getStats();
@@ -292,9 +290,8 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
 
       try {
         // Check deep extraction worker
-        const { getDeepExtractionWorker } = await import(
-          '../../memory/dynamic/deep-extraction-worker.js'
-        );
+        const { getDeepExtractionWorker } =
+          await import('../../memory/dynamic/deep-extraction-worker.js');
         const worker = getDeepExtractionWorker();
         components.deepExtractionWorker = worker.isRunning() ? 'up' : 'down';
       } catch {
@@ -782,8 +779,9 @@ async function handleMetricsAPI(url: string, res: ServerResponse): Promise<void>
  * This starts immediately so Cloud Run health checks pass while LiveKit agent initializes
  *
  * @param serviceName - Name of the service (e.g., 'voice-agent', 'jack-bogle-agent')
+ * @returns the listening server (tests use it to find the bound port)
  */
-export function startHealthCheckServer(serviceName = 'voice-agent'): void {
+export function startHealthCheckServer(serviceName = 'voice-agent'): Server {
   const port = process.env['PORT'] ? parseInt(process.env['PORT'], 10) : 8080;
 
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -1020,7 +1018,7 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
 
       // Cognitive API endpoints
       if (url.startsWith('/api/cognitive')) {
-        await handleCognitiveAPI(url, res);
+        await handleCognitiveAPI(req, res);
         return;
       }
 
@@ -1181,4 +1179,5 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
       log.error({ serviceName, error: String(err) }, 'Health check server error');
     }
   });
+  return server;
 }
