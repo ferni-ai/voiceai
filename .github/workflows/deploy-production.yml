@@ -305,7 +305,8 @@ jobs:
       # GCR AUTHENTICATION
       # ═══════════════════════════════════════════════════════════════════════
       # Uses gcloud auth configure-docker which works with service account keys
-      # Required for pulling private base image (ferni-speaker:latest)
+      # Required to push the UI image to gcr.io. The build itself pulls nothing
+      # private (the ferni-speaker base image is gone from Dockerfile.ui).
       # ═══════════════════════════════════════════════════════════════════════
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -314,13 +315,6 @@ jobs:
 
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker gcr.io --quiet
-
-      - name: Pre-pull private base image
-        run: |
-          # Explicitly pull private base image before build
-          # This ensures gcloud credentials are properly used
-          echo "Pulling private base image: gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-speaker:latest"
-          docker pull gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-speaker:latest
 
       - name: Free runner disk space
         # The ui image build ran out of disk (ERR_PNPM_ENOSPC) on ubuntu-latest.
@@ -331,14 +325,12 @@ jobs:
 
       - name: Build and push image
         run: |
-          # Native docker build (uses locally cached base image)
           docker build \
             --file docker/Dockerfile.ui \
             --tag ${{ env.UI_IMAGE }}:${{ github.sha }} \
             --tag ${{ env.UI_IMAGE }}:${{ needs.prepare.outputs.short_sha }} \
             --tag ${{ env.UI_IMAGE }}:latest \
             --build-arg NODE_VERSION=20 \
-            --build-arg PROJECT_ID=${{ env.GCP_PROJECT_ID }} \
             .
 
           # Push all tags
