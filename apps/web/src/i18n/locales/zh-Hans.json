@@ -3007,5 +3007,54 @@
       "professional": "专业",
       "legacy": "遗产"
     }
+  },
+  "predictionResolution": {
+    "title": "结果怎么样？",
+    "youGuessed": "你的预测：{value}",
+    "actual": "实际：{value}",
+    "scored": "准确率 {accuracy}%",
+    "record": "记录实际情况",
+    "save": "核对我的预测",
+    "saveFailed": "没能保存。再试一次？",
+    "metrics": {
+      "deepWork": {
+        "label": "专注工作",
+        "question": "你专注工作了多少小时？",
+        "unit": "小时"
+      },
+      "exercise": {
+        "label": "运动",
+        "question": "你运动了几次？",
+        "unit": "次"
+      },
+      "social": {
+        "label": "与人相处",
+        "question": "你和别人相处了多少小时？",
+        "unit": "小时"
+      },
+      "screen": {
+        "label": "屏幕时间",
+        "question": "你的屏幕时间是多少小时？",
+        "unit": "小时"
+      },
+      "mood": {
+        "label": "心情",
+        "question": "你的平均心情是几分（1 到 10）？",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "你的实际{label}是多少？"
+      }
+    },
+    "result": {
+      "line": "你预测 {predicted}，实际是 {actual}。{verdict}",
+      "overall": "本周整体准确率 {accuracy}%。"
+    },
+    "tone": {
+      "spotOn": "完全猜中！",
+      "close": "非常接近！",
+      "off": "这次有点偏差。",
+      "wayOff": "这次差得挺远。现在你知道了。"
+    }
   }
 }
