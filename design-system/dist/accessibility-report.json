@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-05T09:41:17.012Z",
+  "timestamp": "2026-10-04T19:43:36.218Z",
   "passed": true,
   "errors": 0,
-  "warnings": 28,
+  "warnings": 32,
   "details": {
     "errors": [],
     "warnings": [
@@ -125,6 +125,38 @@
         "bg": "#70605a",
         "ratio": "1.45",
         "message": "joel primary (#9A0718) has 1.45:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "lynch",
+        "color": "#1a5f2a",
+        "bg": "#584840",
+        "ratio": "1.12",
+        "message": "lynch primary (#1a5f2a) has 1.12:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "lynch",
+        "color": "#1a5f2a",
+        "bg": "#70605a",
+        "ratio": "1.29",
+        "message": "lynch primary (#1a5f2a) has 1.29:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "bogle",
+        "color": "#8b0000",
+        "bg": "#584840",
+        "ratio": "1.15",
+        "message": "bogle primary (#8b0000) has 1.15:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "bogle",
+        "color": "#8b0000",
+        "bg": "#70605a",
+        "ratio": "1.67",
+        "message": "bogle primary (#8b0000) has 1.67:1 contrast on dark bg - DO NOT use as text"
       },
       {
         "type": "persona-as-text",

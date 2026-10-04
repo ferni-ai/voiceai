@@ -12,7 +12,9 @@ import {
   getCoach,
   getTeamMembers,
   normalizeAgentId,
+  normalizeSpeakerId,
 } from '../../../src/config/personas.js';
+import { getPersonaColors } from '../../../src/config/persona-colors.js';
 import type { PersonaId } from '../../../src/types/persona.js';
 
 describe('Personas Config', () => {
@@ -113,17 +115,17 @@ describe('Personas Config', () => {
       const team = getTeamMembers();
 
       expect(team.length).toBe(5);
-      expect(team.every(p => p.role === 'team')).toBe(true);
+      expect(team.every((p) => p.role === 'team')).toBe(true);
     });
 
     it('should not include coach', () => {
       const team = getTeamMembers();
-      expect(team.find(p => p.id === 'ferni')).toBeUndefined();
+      expect(team.find((p) => p.id === 'ferni')).toBeUndefined();
     });
 
     it('should include all team members', () => {
       const team = getTeamMembers();
-      const ids = team.map(p => p.id);
+      const ids = team.map((p) => p.id);
 
       expect(ids).toContain('peter-john');
       expect(ids).toContain('alex-chen');
@@ -164,14 +166,19 @@ describe('Personas Config', () => {
     it('should map legacy IDs to canonical IDs', () => {
       // Legacy jack-b -> ferni
       expect(normalizeAgentId('jack-b')).toBe('ferni');
-      // Legacy peter-lynch -> peter-john
-      expect(normalizeAgentId('peter-lynch')).toBe('peter-john');
       // Legacy comm-specialist -> alex-chen
       expect(normalizeAgentId('comm-specialist')).toBe('alex-chen');
       // Legacy spend-save -> maya-santos
       expect(normalizeAgentId('spend-save')).toBe('maya-santos');
       // Legacy event-planner -> jordan-taylor
       expect(normalizeAgentId('event-planner')).toBe('jordan-taylor');
+    });
+
+    it('does not turn Peter Lynch into Peter John', () => {
+      // A Financial Legend is not on the team: no team id stands in for him
+      expect(normalizeAgentId('peter-lynch')).not.toBe('peter-john');
+      expect(normalizeAgentId('lynch')).not.toBe('peter-john');
+      expect(normalizeAgentId('peter')).toBe('peter-john');
     });
 
     it('should map backend legacy aliases to canonical IDs', () => {
@@ -201,6 +208,34 @@ describe('Personas Config', () => {
     it('should normalize nayan aliases', () => {
       expect(normalizeAgentId('guru')).toBe('nayan-patel');
       expect(normalizeAgentId('mystic')).toBe('nayan-patel');
+    });
+  });
+
+  describe('Financial Legends (who is speaking, not the team)', () => {
+    it('normalizeSpeakerId keeps a Legend as themselves and aliases as the bundles do', () => {
+      expect(normalizeSpeakerId('peter-lynch')).toBe('peter-lynch');
+      expect(normalizeSpeakerId('lynch')).toBe('peter-lynch');
+      expect(normalizeSpeakerId('bogle')).toBe('john-bogle');
+      expect(normalizeSpeakerId('jack-bogle')).toBe('john-bogle');
+      expect(normalizeSpeakerId('joel')).toBe('joel-dickson');
+    });
+
+    it('normalizeSpeakerId leaves team ids and aliases to the team', () => {
+      expect(normalizeSpeakerId('peter')).toBe('peter-john');
+      expect(normalizeSpeakerId('john')).toBe('peter-john');
+      expect(normalizeSpeakerId('maya')).toBe('maya-santos');
+      expect(normalizeSpeakerId(undefined)).toBe('ferni');
+      expect(normalizeSpeakerId('unknown')).toBe('ferni');
+    });
+
+    it('getPersona returns the Legend, with their own colour', () => {
+      const lynch = getPersona('peter-lynch');
+      expect(lynch.name).toBe('Peter Lynch');
+      expect(lynch.initials).toBe('PL');
+      expect(lynch.colors.primary).toBe(getPersonaColors('lynch').primary);
+      expect(lynch.colors.primary).not.toBe(getPersona('peter-john').colors.primary);
+      expect(getPersona('john-bogle').name).toBe('John Bogle');
+      expect(getPersona('joel-dickson').name).toBe('Joel Dickson');
     });
   });
 });
