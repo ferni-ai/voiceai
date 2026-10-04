@@ -15,6 +15,8 @@ export {
   type CaptureResult,
 } from './knowledge-capture.js';
 
+export { queueTurnCapture, drainTurnCaptures } from './knowledge-capture-batch.js';
+
 export {
   executeNaturalQuery,
   detectQueryType,

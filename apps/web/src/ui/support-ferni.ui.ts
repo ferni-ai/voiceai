@@ -20,7 +20,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { appState } from '../state/app.state.js';
 import { apiPost } from '../utils/api.js';
-import { openBillingPortal } from '../utils/billing.js';
+import { billingErrorMessage, openBillingPortal } from '../utils/billing.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { openFoundersJourney } from './founders-journey.ui.js';
@@ -115,7 +115,11 @@ const TIERS: TierInfo[] = [
     name: 'Founding Member',
     tagline: 'Chip in. Help us build this.',
     price: '$10/mo',
-    features: ['Unlimited time (our thank you)', 'Meet the whole team', 'Your name on Founders Wall'],
+    features: [
+      'Unlimited time (our thank you)',
+      'Meet the whole team',
+      'Your name on Founders Wall',
+    ],
   },
   {
     id: 'partner',
@@ -158,10 +162,10 @@ export async function openSupportFerni(): Promise<void> {
   log.info('Opening Support Ferni modal');
   saveFocus();
   log.info('Focus saved');
-  
+
   injectStyles();
   log.info('Styles injected');
-  
+
   cleanupOrphanedElements();
   log.info('Orphaned elements cleaned up');
 
@@ -174,7 +178,7 @@ export async function openSupportFerni(): Promise<void> {
   log.info('Creating overlay...');
   overlay = createOverlay(status);
   log.info('Overlay created', { hasOverlay: !!overlay });
-  
+
   document.body.appendChild(overlay);
   log.info('Overlay appended to body');
 
@@ -500,8 +504,6 @@ async function handleUpgrade(tier: string): Promise<void> {
 
   try {
     const response = await apiPost<{ url?: string }>('/subscription/checkout', {
-      userId: deviceId,
-      device_id: deviceId,
       tier,
       successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
       cancelUrl: window.location.origin + '?upgrade=cancel',
@@ -510,7 +512,7 @@ async function handleUpgrade(tier: string): Promise<void> {
     if (response.ok && response.data?.url) {
       window.location.href = response.data.url;
     } else {
-      toast.error("That didn't go through. Try again?");
+      toast.error(billingErrorMessage(response.status));
     }
   } catch (error) {
     log.error('Upgrade failed:', error);
@@ -544,7 +546,7 @@ async function handlePlantSeed(): Promise<void> {
     if (response.ok && response.data?.url) {
       window.location.href = response.data.url;
     } else {
-      toast.error("Hmm, that didn't work. Try again?");
+      toast.error(billingErrorMessage(response.status));
     }
   } catch (error) {
     log.error('Plant seed failed:', error);
@@ -556,11 +558,8 @@ async function handlePlantSeed(): Promise<void> {
 }
 
 async function handleOpenBillingPortal(): Promise<void> {
-  const deviceId = appState.getState().deviceId;
-  if (!deviceId) return;
-
   // Use the consolidated billing utility (opens in new tab by default)
-  await openBillingPortal(deviceId, { openInNewTab: true });
+  await openBillingPortal({ openInNewTab: true });
 }
 
 function updateLoadingState(loading: boolean): void {

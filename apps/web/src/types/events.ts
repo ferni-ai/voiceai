@@ -310,7 +310,7 @@ export interface DataMessage {
 /**
  * Type guard for handoff messages.
  * Validates that the message has the required structure for a handoff event.
- * Recognizes: 'handoff', 'handoff_acknowledged', 'handoff_started', 'soft_open_complete', 'handoff_complete', 'handoff_failed', 'handoff_cancelled'
+ * Recognizes: 'handoff', 'handoff_acknowledged', 'handoff_started', 'soft_open_complete', 'handoff_progress', 'handoff_complete', 'handoff_failed', 'handoff_cancelled'
  *
  * FIX BUG: More lenient validation - accepts 'target' OR 'newAgent' for all types
  */
@@ -325,13 +325,13 @@ export function isHandoffMessage(data: unknown): data is HandoffEvent {
     'handoff_acknowledged',
     'handoff_started',
     'soft_open_complete',
+    'handoff_progress',
     'handoff_complete',
     'handoff_failed',
     'handoff_cancelled',
   ];
   if (!validTypes.includes(msg['type'] as string)) return false;
 
-  // DEBUG: Log handoff messages to help diagnose issues
   log.debug(
     `Checking handoff message type=${msg['type']}, newAgent=${msg['newAgent']}, target=${msg['target']}`
   );

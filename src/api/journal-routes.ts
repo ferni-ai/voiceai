@@ -32,6 +32,7 @@ import {
 import { getLogger } from '../utils/safe-logger.js';
 import { parseBody, sendJSON } from './helpers.js';
 import { requireAuth } from './auth-middleware.js';
+import { getVerifiedUserId } from '../servers/api/request-identity.js';
 
 const log = getLogger();
 
@@ -73,7 +74,6 @@ export async function handleJournalRoutes(
     // POST /api/journal/prompt - Get a single prompt
     if (method === 'POST' && pathname === '/api/journal/prompt') {
       const body = await parseBody<{
-        userId?: string;
         timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
         mood?: string;
         recentTopics?: string[];
@@ -84,7 +84,7 @@ export async function handleJournalRoutes(
       }>(req);
 
       const context: PromptContext = {
-        userId: body.userId || 'anonymous',
+        userId: getVerifiedUserId(req) ?? 'anonymous', // never a body-claimed id
         timeOfDay: body.timeOfDay,
         currentEmotion: body.mood,
         recentTopics: body.recentTopics,
@@ -105,7 +105,6 @@ export async function handleJournalRoutes(
     // POST /api/journal/prompts - Get multiple prompts
     if (method === 'POST' && pathname === '/api/journal/prompts') {
       const body = await parseBody<{
-        userId?: string;
         count?: number;
         timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
         mood?: string;
@@ -117,7 +116,7 @@ export async function handleJournalRoutes(
       }>(req);
 
       const context: PromptContext = {
-        userId: body.userId || 'anonymous',
+        userId: getVerifiedUserId(req) ?? 'anonymous', // never a body-claimed id
         timeOfDay: body.timeOfDay,
         currentEmotion: body.mood,
         recentTopics: body.recentTopics,

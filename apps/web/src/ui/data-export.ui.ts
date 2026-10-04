@@ -28,6 +28,8 @@ export interface DataExportUICallbacks {
   onClose?: () => void;
   onExport?: (format: 'json' | 'csv', categories: string[]) => void;
   onDeleteData?: () => void;
+  /** Close the account itself: all data plus the sign-in. */
+  onDeleteAccount?: () => void;
 }
 
 // ============================================================================
@@ -129,6 +131,7 @@ class DataExportUI {
 
       <div class="data-export__footer">
         <p>Your data belongs to you. We respect your privacy.</p>
+        <button type="button" class="data-export__delete-account">Delete my account</button>
       </div>
     `;
 
@@ -162,6 +165,16 @@ class DataExportUI {
     this.wrapper.querySelector('.data-export__btn--danger')?.addEventListener('click', () => {
       if (confirm('Are you sure you want to delete all your data? This cannot be undone.')) {
         this.callbacks.onDeleteData?.();
+        this.hide();
+      }
+    });
+
+    this.wrapper.querySelector('.data-export__delete-account')?.addEventListener('click', () => {
+      const ok = confirm(
+        'Delete your Ferni account? This erases everything Ferni knows about you and signs you out for good. It cannot be undone.'
+      );
+      if (ok) {
+        this.callbacks.onDeleteAccount?.();
         this.hide();
       }
     });
@@ -380,6 +393,17 @@ class DataExportUI {
         padding: var(--ma-breath, 13px) var(--ma-silence, 34px);
         background: var(--color-background-secondary, #f5f2ed);
         text-align: center;
+      }
+
+      .data-export__delete-account {
+        margin-top: var(--space-2, 8px);
+        background: none;
+        border: none;
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-semantic-error, #b5453a);
+        text-decoration: underline;
+        cursor: pointer;
       }
 
       .data-export__footer p {

@@ -12,6 +12,7 @@
  * @module AccountButtonUI
  */
 
+import { signOutReleasingPush } from '../services/push-preference.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import {
@@ -19,7 +20,6 @@ import {
   linkWithEmail,
   linkWithGoogle,
   onAuthStateChange,
-  signOut,
   type AuthState,
 } from '../services/firebase-auth.service.js';
 import { createLogger } from '../utils/logger.js';
@@ -738,7 +738,7 @@ function showAccountMenu(): void {
   // Sign out handler
   const signoutBtn = menu.querySelector('[data-action="signout"]');
   signoutBtn?.addEventListener('click', async () => {
-    await signOut();
+    await signOutReleasingPush();
     menu.remove();
   });
 
