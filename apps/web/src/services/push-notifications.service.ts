@@ -1,8 +1,8 @@
 /**
  * Push Notifications Service
  *
- * Handles push notifications for both web and native mobile platforms.
- * Integrates with Capacitor for iOS/Android native notifications.
+ * Web push through the service worker (/sw.js) and the browser's PushManager.
+ * The iOS app is native Swift (apps/ios-native) and does its own notifications.
  *
  * NOTIFICATION TYPES:
  *   - Ritual reminders (daily practice prompts)
@@ -12,11 +12,9 @@
  *   - Ferni check-ins (proactive engagement)
  */
 
-import { platform, isNative } from '../utils/platform.js';
 import { createLogger } from '../utils/logger.js';
 import { isDevelopment } from '../utils/environment.js';
 import { apiGet, apiPost } from '../utils/api.js';
-import { NativePush, type NativeNotification } from './native-push.js';
 
 const log = createLogger('PushNotify');
 
@@ -63,7 +61,7 @@ export interface PushSubscription {
     p256dh: string;
     auth: string;
   };
-  platform: 'web' | 'ios' | 'android';
+  platform: 'web';
 }
 
 type NotificationCallback = (notification: PushNotification) => void;
@@ -107,7 +105,6 @@ class PushNotificationsService {
   private preferences: NotificationPreferences = DEFAULT_PREFERENCES;
   private callbacks: Map<NotificationType | 'all', NotificationCallback[]> = new Map();
   private initialized = false;
-  private readonly native = new NativePush();
 
   /**
    * Initialize the push notification service
@@ -125,14 +122,7 @@ class PushNotificationsService {
     }
 
     try {
-      if (isNative()) {
-        // Initialize native push (Capacitor)
-        await this.initializeNative();
-      } else {
-        // Initialize web push
-        await this.initializeWeb();
-      }
-
+      await this.initializeWeb();
       this.initialized = true;
       log.debug('[PushNotifications] Initialized successfully');
       return true;
@@ -146,9 +136,6 @@ class PushNotificationsService {
    * Check if push notifications are supported
    */
   isSupported(): boolean {
-    if (isNative()) {
-      return true; // Capacitor handles this
-    }
     return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
   }
 
@@ -156,9 +143,6 @@ class PushNotificationsService {
    * Request permission for notifications
    */
   async requestPermission(): Promise<'granted' | 'denied' | 'default'> {
-    if (isNative()) {
-      return this.requestNativePermission();
-    }
     return this.requestWebPermission();
   }
 
@@ -166,7 +150,6 @@ class PushNotificationsService {
    * Get current permission status
    */
   getPermissionStatus(): 'granted' | 'denied' | 'default' {
-    if (isNative()) return this.native.getPermission();
     return Notification.permission;
   }
 
@@ -180,9 +163,6 @@ class PushNotificationsService {
       return null;
     }
 
-    if (isNative()) {
-      return this.subscribeNative();
-    }
     return this.subscribeWeb();
   }
 
@@ -190,9 +170,6 @@ class PushNotificationsService {
    * Unsubscribe from push notifications
    */
   async unsubscribe(): Promise<boolean> {
-    if (isNative()) {
-      return this.unsubscribeNative();
-    }
     return this.unsubscribeWeb();
   }
 
@@ -211,11 +188,7 @@ class PushNotificationsService {
       return;
     }
 
-    if (isNative()) {
-      await this.showNativeNotification(notification);
-    } else {
-      await this.showWebNotification(notification);
-    }
+    await this.showWebNotification(notification);
 
     // Trigger callbacks
     this.triggerCallbacks(notification);
@@ -227,41 +200,17 @@ class PushNotificationsService {
   async scheduleNotification(notification: PushNotification): Promise<string> {
     const id = notification.id ?? `notif-${Date.now()}`;
 
-    if (isNative()) {
-      await this.scheduleNativeNotification({ ...notification, id });
+    // Web has no scheduled notifications: show it from a timer while the page is open
+    const delay = notification.scheduledAt ? notification.scheduledAt.getTime() - Date.now() : 0;
+    if (delay > 0) {
+      setTimeout(() => {
+        void this.showLocalNotification({ ...notification, id });
+      }, delay);
     } else {
-      // Web doesn't support scheduled notifications, use setTimeout
-      const delay = notification.scheduledAt ? notification.scheduledAt.getTime() - Date.now() : 0;
-
-      if (delay > 0) {
-        setTimeout(() => {
-          void this.showLocalNotification({ ...notification, id });
-        }, delay);
-      } else {
-        await this.showLocalNotification({ ...notification, id });
-      }
+      await this.showLocalNotification({ ...notification, id });
     }
 
     return id;
-  }
-
-  /**
-   * Cancel a scheduled notification
-   */
-  async cancelNotification(id: string): Promise<void> {
-    if (isNative()) {
-      await this.cancelNativeNotification(id);
-    }
-    // Web scheduled notifications are just timeouts, hard to cancel
-  }
-
-  /**
-   * Cancel all pending notifications
-   */
-  async cancelAllNotifications(): Promise<void> {
-    if (isNative()) {
-      await this.cancelAllNativeNotifications();
-    }
   }
 
   /**
@@ -391,110 +340,6 @@ class PushNotificationsService {
       // vibrate: notification.vibrate !== false ? [200, 100, 200] : undefined, // Not in NotificationOptions
       requireInteraction: notification.type === 'team_huddle',
     });
-  }
-
-  // ============================================================================
-  // NATIVE PUSH IMPLEMENTATION (Capacitor)
-  // ============================================================================
-
-  private async initializeNative(): Promise<void> {
-    const toNotification = (n: NativeNotification): PushNotification => ({
-      id: n.id,
-      type: (n.data?.type as NotificationType) ?? 'general',
-      title: n.title ?? '',
-      body: n.body ?? '',
-      data: n.data,
-    });
-    try {
-      await this.native.initialize({
-        onReceived: (n) => this.triggerCallbacks(toNotification(n)),
-        onAction: (n) => this.handleNotificationClick(toNotification(n)),
-      });
-    } catch (error) {
-      log.warn('[PushNotifications] Native push not available:', error);
-    }
-  }
-
-  private requestNativePermission(): Promise<'granted' | 'denied' | 'default'> {
-    return this.native.requestPermission();
-  }
-
-  /** Registers the device token with the server for the signed-in user (see native-push). */
-  private async subscribeNative(): Promise<PushSubscription | null> {
-    try {
-      this.subscription = await this.native.subscribe(platform() === 'ios' ? 'ios' : 'android');
-      return this.subscription;
-    } catch (error) {
-      log.error('[PushNotifications] Native subscription failed:', error);
-      return null;
-    }
-  }
-
-  private async unsubscribeNative(): Promise<boolean> {
-    this.subscription = null;
-    return this.native.unsubscribe();
-  }
-
-  private async showNativeNotification(notification: PushNotification): Promise<void> {
-    try {
-      const { LocalNotifications } = await import('@capacitor/local-notifications');
-
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: parseInt(notification.id.replace(/\D/g, '')) ?? Date.now(),
-            title: notification.title,
-            body: notification.body,
-            extra: notification.data,
-            sound: notification.sound !== false ? 'default' : undefined,
-          },
-        ],
-      });
-    } catch (error) {
-      log.warn('[PushNotifications] Local notification failed:', error);
-    }
-  }
-
-  private async scheduleNativeNotification(notification: PushNotification): Promise<void> {
-    try {
-      const { LocalNotifications } = await import('@capacitor/local-notifications');
-
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: parseInt(notification.id.replace(/\D/g, '')) ?? Date.now(),
-            title: notification.title,
-            body: notification.body,
-            extra: notification.data,
-            schedule: notification.scheduledAt ? { at: notification.scheduledAt } : undefined,
-            sound: notification.sound !== false ? 'default' : undefined,
-          },
-        ],
-      });
-    } catch (error) {
-      log.warn('[PushNotifications] Schedule notification failed:', error);
-    }
-  }
-
-  private async cancelNativeNotification(id: string): Promise<void> {
-    try {
-      const { LocalNotifications } = await import('@capacitor/local-notifications');
-      await LocalNotifications.cancel({
-        notifications: [{ id: parseInt(id.replace(/\D/g, '')) ?? 0 }],
-      });
-    } catch (error) {
-      log.warn('[PushNotifications] Cancel notification failed:', error);
-    }
-  }
-
-  private async cancelAllNativeNotifications(): Promise<void> {
-    try {
-      const { LocalNotifications } = await import('@capacitor/local-notifications');
-      const pending = await LocalNotifications.getPending();
-      await LocalNotifications.cancel({ notifications: pending.notifications });
-    } catch (error) {
-      log.warn('[PushNotifications] Cancel all notifications failed:', error);
-    }
   }
 
   // ============================================================================

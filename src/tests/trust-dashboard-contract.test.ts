@@ -37,8 +37,30 @@ function docRef(path: string): Record<string, unknown> {
   };
 }
 
+/** The docs directly under a collection, as a Firestore query would return them. */
+function query(path: string, order?: { field: string; dir: string }, max = Infinity) {
+  const self: Record<string, unknown> = {
+    orderBy: (field: string, dir = 'asc') => query(path, { field, dir }, max),
+    limit: (n: number) => query(path, order, n),
+    async get() {
+      if (failReads.on) throw new Error('firestore unavailable');
+      const rows = [...store.entries()]
+        .filter(([p]) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/'))
+        .map(([p, data]) => ({ id: p.slice(path.length + 1), data: () => data }));
+      if (order) {
+        const key = (r: { data: () => Record<string, unknown> }): number =>
+          new Date(r.data()[order.field] as string).getTime();
+        rows.sort((a, b) => (order.dir === 'desc' ? key(b) - key(a) : key(a) - key(b)));
+      }
+      return { docs: rows.slice(0, max) };
+    },
+  };
+  return self;
+}
+
 function collectionRef(path: string): Record<string, unknown> {
   return {
+    ...query(path),
     doc: (id: string) => docRef(`${path}/${id}`),
     async add() {
       return docRef(`${path}/auto`);
