@@ -71,6 +71,8 @@ import { executeNaturalQuery } from './services/index.js';
 export {
   captureTurn,
   captureBatch,
+  queueTurnCapture,
+  drainTurnCaptures,
   initializeKnowledgeCapture,
   setKnowledgeCaptureEnabled,
   isKnowledgeCaptureReady,
