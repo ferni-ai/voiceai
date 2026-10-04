@@ -577,6 +577,82 @@
         "intensityMultiplier": 0.7,
         "signaturePattern": "steady"
       }
+    },
+    "lynch": {
+      "name": "Peter Lynch",
+      "role": "Stock Picking Guide (Financial Legend)",
+      "archetype": "The Legendary Stock Picker Who Says Invest in What You Know",
+      "colors": {
+        "primary": {
+          "value": "#1a5f2a",
+          "description": "Fidelity forest green"
+        },
+        "secondary": {
+          "value": "#154c22",
+          "description": "Deeper forest green"
+        },
+        "glow": {
+          "value": "rgba(26, 95, 42, 0.28)",
+          "description": "Forest green glow"
+        },
+        "tint": {
+          "value": "rgba(26, 95, 42, 0.06)",
+          "description": "Subtle forest green tint"
+        }
+      },
+      "animation": {
+        "timingMultiplier": 1.0,
+        "easingPreference": "smooth",
+        "breathingBase": 4500,
+        "reactionIntensity": 0.9
+      },
+      "audio": {
+        "signature": "curious",
+        "pitchRange": "medium",
+        "paceBase": "brisk"
+      },
+      "haptics": {
+        "intensityMultiplier": 0.9,
+        "signaturePattern": "steady"
+      }
+    },
+    "bogle": {
+      "name": "John Bogle",
+      "role": "Index Investing Pioneer (Financial Legend)",
+      "archetype": "The Father of Index Investing Who Put Investors First",
+      "colors": {
+        "primary": {
+          "value": "#8b0000",
+          "description": "Deep Vanguard red"
+        },
+        "secondary": {
+          "value": "#6f0000",
+          "description": "Deeper red"
+        },
+        "glow": {
+          "value": "rgba(139, 0, 0, 0.28)",
+          "description": "Deep red glow"
+        },
+        "tint": {
+          "value": "rgba(139, 0, 0, 0.06)",
+          "description": "Subtle deep red tint"
+        }
+      },
+      "animation": {
+        "timingMultiplier": 0.9,
+        "easingPreference": "measured",
+        "breathingBase": 5500,
+        "reactionIntensity": 0.6
+      },
+      "audio": {
+        "signature": "authoritative",
+        "pitchRange": "low-mid",
+        "paceBase": "measured"
+      },
+      "haptics": {
+        "intensityMultiplier": 0.7,
+        "signaturePattern": "steady"
+      }
     }
   },
   "relationships": {
