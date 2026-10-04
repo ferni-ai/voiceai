@@ -21,7 +21,7 @@
  *
  * @module quality/ratchet
  */
-import { readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
 import { dirname, join, relative } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 
@@ -40,10 +40,11 @@ export interface Measurement {
   lint: Record<string, number>;
 }
 
-/** The built web app (apps/web/dist/assets), in KB. */
+/** The built web app (apps/web/dist), in KB. */
 export interface BundleSize {
+  /** every js/css file Vite emitted to dist/assets */
   totalKB: number;
-  /** index* and vendor* files: what loads before the app runs */
+  /** the same-origin js/css index.html loads before the app runs (see initialFiles) */
   initialKB: number;
   maxChunkKB: number;
 }
@@ -51,16 +52,44 @@ export interface BundleSize {
 /** Builds differ by a few bytes run to run; growth under this isn't a regression. */
 export const BUNDLE_TOLERANCE = 0.02;
 
-export function measureBundle(dir = join(ROOT, 'apps/web/dist/assets')): BundleSize {
-  const files = readdirSync(dir).filter((f) => /\.(js|css)$/.test(f));
+/**
+ * The same-origin js/css files an index.html loads at startup: script src,
+ * and stylesheet / modulepreload / preload links. Paths are relative to dist.
+ *
+ * initialKB used to count files named index* or vendor*, which missed chunks
+ * index.html preloaded under other names: #221 folded those into index-*.js
+ * and the ratchet reported +1.8 MB while the first load had shrunk.
+ */
+export function initialFiles(html: string): string[] {
+  const files = new Set<string>();
+  const tags = html.replace(/<!--[\s\S]*?-->/g, '').matchAll(/<(script|link)\b([^>]*)>/gi);
+  for (const [, tag, attrs] of tags) {
+    const rel = /(?:^|\s)rel\s*=\s*["']?([^"'\s>]+)/i.exec(attrs)?.[1]?.toLowerCase() ?? '';
+    if (tag.toLowerCase() === 'link' && !['stylesheet', 'modulepreload', 'preload'].includes(rel)) continue;
+    const url = /(?:^|\s)(?:src|href)\s*=\s*["']([^"']+)["']/i.exec(attrs)?.[1];
+    // Cross-origin (fonts, CDNs, SDKs) isn't ours to ratchet.
+    if (!url || /^([a-z][a-z0-9+.-]*:|\/\/)/i.test(url)) continue;
+    const path = url.split(/[?#]/)[0].replace(/^\.?\//, '');
+    if (/\.(m?js|css)$/.test(path)) files.add(path);
+  }
+  return [...files];
+}
+
+export function measureBundle(dist = join(ROOT, 'apps/web/dist')): BundleSize {
+  const assets = join(dist, 'assets');
+  const files = readdirSync(assets).filter((f) => /\.(js|css)$/.test(f));
   let totalKB = 0;
-  let initialKB = 0;
   let maxChunkKB = 0;
   for (const f of files) {
-    const kb = statSync(join(dir, f)).size / 1024;
+    const kb = statSync(join(assets, f)).size / 1024;
     totalKB += kb;
-    if (/^(index|vendor)/.test(f)) initialKB += kb;
     maxChunkKB = Math.max(maxChunkKB, kb);
+  }
+  let initialKB = 0;
+  for (const f of initialFiles(readFileSync(join(dist, 'index.html'), 'utf8'))) {
+    // A missing file is a broken build, not a smaller bundle.
+    if (!existsSync(join(dist, f))) throw new Error(`index.html loads ${f}, which is not in ${dist}`);
+    initialKB += statSync(join(dist, f)).size / 1024;
   }
   const round = (n: number): number => Math.round(n * 10) / 10;
   return { totalKB: round(totalKB), initialKB: round(initialKB), maxChunkKB: round(maxChunkKB) };
