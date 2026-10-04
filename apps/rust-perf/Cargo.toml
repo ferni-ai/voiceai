@@ -62,7 +62,7 @@ memchr = "2.7"
 lazy_static = "1.5"
 
 # RNG for sampling in Thinker generation
-rand = "0.8"
+rand = "0.9"
 
 # Aho-Corasick for multi-pattern matching (O(n) for all patterns)
 aho-corasick = "1.1"
@@ -74,7 +74,7 @@ rustfft = "6.2"
 sha2 = "0.10"
 
 # LRU cache for embedding cache
-lru = "0.12"
+lru = "0.16"
 
 # Generic array for FFT
 num-complex = "0.4"

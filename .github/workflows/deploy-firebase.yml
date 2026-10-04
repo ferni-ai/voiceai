@@ -6,7 +6,7 @@ name: Deploy Firebase Hosting
 # Deployment Strategy:
 # 1. Build frontend
 # 2. Deploy to Firebase (atomic - instant switch)
-# 3. Run health checks on deployed site
+# 3. Run health checks on deployed site (HTTP status + browser smoke test)
 # 4. If unhealthy, auto-rollback to previous version
 #
 # NOTE: Deploys on ALL pushes to main (not just frontend changes) because:
@@ -137,8 +137,24 @@ jobs:
 
           echo "healthy=$HEALTHY" >> $GITHUB_OUTPUT
 
+      # curl only proves the HTML was served. On 2026-10-04 app.ferni.ai returned
+      # 200 while its JS crashed at module evaluation, so also load each site in
+      # a real browser and fail on uncaught errors or a missing sign-in gate.
+      - name: Install Playwright chromium
+        run: pnpm playwright install --with-deps --only-shell chromium
+
+      - name: Browser smoke test deployed sites
+        id: smoke
+        # Let the rollback step below run when this fails
+        continue-on-error: true
+        run: |
+          rc=0
+          node scripts/smoke-frontend.mjs https://ferni-prod.web.app || rc=1
+          node scripts/smoke-frontend.mjs https://app.ferni.ai || rc=1
+          exit $rc
+
       - name: Rollback on health check failure
-        if: steps.health.outputs.healthy == 'false'
+        if: steps.health.outputs.healthy == 'false' || steps.smoke.outcome == 'failure'
         run: |
           echo "⚠️ Health check failed - initiating rollback"
 
@@ -156,7 +172,7 @@ jobs:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
       - name: Deployment summary
-        if: steps.health.outputs.healthy == 'true'
+        if: steps.health.outputs.healthy == 'true' && steps.smoke.outcome == 'success'
         run: |
           echo "## 🚀 Firebase Hosting Deployed (Healthy)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -253,8 +269,16 @@ jobs:
     if: failure()
     steps:
       - name: Send Slack notification
+        # The commit message is attacker-controlled text: read it from env and
+        # let jq build the JSON, never splice it into the script.
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
-            -H 'Content-type: application/json' \
-            --data '{"text":"❌ Firebase deploy failed or rolled back: ${{ github.event.head_commit.message }}\n\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View logs>"}'
+          jq -n --arg msg "$COMMIT_MSG" --arg url "$RUN_URL" \
+            '{text: ("❌ Firebase deploy failed or rolled back: " + $msg + "\n\n🔗 <" + $url + "|View logs>")}' \
+            | curl -fsS -X POST "$SLACK_WEBHOOK_URL" \
+                -H 'Content-type: application/json' \
+                --data @-
         continue-on-error: true

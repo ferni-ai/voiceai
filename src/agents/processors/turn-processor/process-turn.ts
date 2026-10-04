@@ -120,7 +120,7 @@ import {
   processUserResponseForResonance,
 } from '../../integrations/better-than-human-integration.js';
 
-import { detectCrisis, guardPreResponse } from '../../safety/crisis-guard.js';
+import { crisisSummary, hasCrisisSignal, startTurnCrisis } from './turn-crisis.js';
 
 import { fastCapture } from '../../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../../services/realtime-persistence.js';
@@ -198,23 +198,16 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   }
 
   // SAFETY FIRST: Crisis detection runs BEFORE anything else
-  const voiceEmotionForCrisis = userData?.voiceEmotion
-    ? {
-        primary: userData.voiceEmotion.primary || 'neutral',
-        intensity: userData.voiceEmotion.confidence || 0.5,
-        confidence: userData.voiceEmotion.confidence,
-      }
-    : undefined;
+  // The classifier's verdict is awaited (turn-crisis.ts) before any LLM bypass and the result.
+  const turnCrisis = startTurnCrisis(userText, userData);
+  const crisisResult = turnCrisis.patterns;
 
-  const crisisResult = detectCrisis(userText, voiceEmotionForCrisis);
-  const preResponseGuard = guardPreResponse(userText, voiceEmotionForCrisis);
-
-  if (crisisResult.isCrisis || crisisResult.severity > 0.3) {
+  if (hasCrisisSignal(crisisResult)) {
     diag.state('🚨 Crisis detection result', {
       isCrisis: crisisResult.isCrisis,
       severity: crisisResult.severity,
       indicators: crisisResult.indicators,
-      shouldOverride: preResponseGuard.shouldBlock,
+      shouldOverride: turnCrisis.shouldBlock,
     });
 
     if (userData.userId) {
@@ -746,8 +739,12 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   if (ftisRoutingPromise) {
     const ftisResult = await ftisRoutingPromise;
-
-    if (ftisResult.bypassLLM && ftisResult.toolResult) {
+    // Never bypass the LLM on a crisis turn: the bypass result carries no crisis.
+    if (
+      ftisResult.bypassLLM &&
+      ftisResult.toolResult &&
+      !hasCrisisSignal(await turnCrisis.resolve())
+    ) {
       diag.state('🧠 FTIS: Direct tool execution complete', {
         tool: ftisResult.toolResult.toolId,
         confidence: ftisResult.classification?.confidence,
@@ -813,9 +810,10 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // SEMANTIC SHORT-CIRCUIT
   if (semanticRoutingPromise) {
+    const routedCrisis = await turnCrisis.resolve();
     const shortCircuitResult = await checkSemanticShortCircuit(semanticRoutingPromise, {
-      crisisDetected: crisisResult.isCrisis,
-      crisisSeverity: crisisResult.severity,
+      crisisDetected: routedCrisis.isCrisis,
+      crisisSeverity: routedCrisis.severity,
       analysisResult,
       ctx,
     });
@@ -1490,6 +1488,8 @@ If they're just conversing, respond naturally without the tool call.`,
     }
   }
 
+  const finalCrisis = await turnCrisis.resolve();
+
   // DEV TELEMETRY: Complete trace
   trace?.complete();
 
@@ -1515,13 +1515,7 @@ If they're just conversing, respond naturally without the tool call.`,
     easterEgg,
     valueCapture: valueCaptureResult,
     advancedHumanization,
-    crisis: {
-      isCrisis: crisisResult.isCrisis,
-      severity: crisisResult.severity,
-      indicators: crisisResult.indicators,
-      suggestedResponse: crisisResult.suggestedResponse,
-      shouldOverrideLLM: preResponseGuard.shouldBlock,
-    },
+    crisis: crisisSummary(finalCrisis),
     trustContext: trustContextSummary,
     semanticRouting,
     resonanceCheck,

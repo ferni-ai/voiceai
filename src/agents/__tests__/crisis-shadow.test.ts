@@ -6,20 +6,17 @@ import {
 } from '../safety/crisis-shadow.js';
 
 describe('resolveCrisisGuardMode', () => {
-  it('defaults to shadow when unset', () => {
-    expect(resolveCrisisGuardMode({})).toBe('shadow');
+  it('defaults to live when unset', () => {
+    expect(resolveCrisisGuardMode({})).toBe('live');
   });
 
-  it('honours an explicit off', () => {
+  it('honours an explicit off or shadow', () => {
     expect(resolveCrisisGuardMode({ CRISIS_GUARD_MODE: ' OFF ' })).toBe('off');
+    expect(resolveCrisisGuardMode({ CRISIS_GUARD_MODE: 'Shadow' })).toBe('shadow');
   });
 
-  it('resolves "live" to shadow because live is not implemented', () => {
-    expect(resolveCrisisGuardMode({ CRISIS_GUARD_MODE: 'live' })).toBe('shadow');
-  });
-
-  it('resolves a typo to shadow rather than silently disabling', () => {
-    expect(resolveCrisisGuardMode({ CRISIS_GUARD_MODE: 'of' })).toBe('shadow');
+  it('resolves a typo to live rather than silently disabling', () => {
+    expect(resolveCrisisGuardMode({ CRISIS_GUARD_MODE: 'of' })).toBe('live');
   });
 });
 
