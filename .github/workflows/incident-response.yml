@@ -41,7 +41,7 @@ env:
 jobs:
   triage:
     name: Incident Triage
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     outputs:
       action: ${{ steps.triage.outputs.action }}
 
@@ -95,7 +95,7 @@ jobs:
   respond:
     name: Execute Response
     needs: triage
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
 
     steps:
       - name: Checkout
@@ -216,7 +216,7 @@ jobs:
   verify:
     name: Verify Resolution
     needs: [triage, respond]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
 
     steps:
       - name: Wait for changes to propagate

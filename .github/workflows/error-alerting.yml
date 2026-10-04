@@ -17,7 +17,7 @@ env:
 jobs:
   check-errors:
     name: Check Error Rates
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
 
     steps:
       - name: Authenticate to Google Cloud

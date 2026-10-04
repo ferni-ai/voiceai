@@ -53,7 +53,7 @@ env:
 jobs:
   build:
     name: Build ${{ matrix.name }} image
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -87,7 +87,7 @@ jobs:
     name: Deploy worker to Cloud Run
     if: github.event_name == 'workflow_dispatch'
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     permissions:
       contents: read

@@ -33,7 +33,7 @@ concurrency:
 jobs:
   generate:
     name: Generate Dashboard
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     outputs:
       budget_percentage: ${{ steps.generate.outputs.budget_percentage }}
       has_alerts: ${{ steps.generate.outputs.has_alerts }}
@@ -102,7 +102,7 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     needs: generate
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     if: inputs.publish == true || github.event_name == 'schedule'
     environment:
       name: github-pages
@@ -135,7 +135,7 @@ jobs:
   notify:
     name: Notify on Alerts
     needs: generate
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     if: needs.generate.outputs.has_alerts == 'true' && needs.generate.outputs.budget_percentage > 90
 
     steps:

@@ -142,7 +142,7 @@ jobs:
     name: Publish to npm
     # GitHub-hosted on purpose: this job holds NPM_TOKEN, and the self-hosted CI
     # runner runs PR code with docker (root) access. See ci.yml.
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     needs: [build, storybook]
     if: |
       (github.event_name == 'workflow_dispatch' && inputs.publish) ||
@@ -172,7 +172,7 @@ jobs:
   # ============================================================================
   publish-vscode:
     name: Publish VS Code Extension
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     needs: build
     if: |
       (github.event_name == 'workflow_dispatch' && inputs.publish) ||

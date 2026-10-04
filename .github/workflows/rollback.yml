@@ -41,7 +41,7 @@ jobs:
   # ============================================================================
   rollback-voice-agent:
     name: Rollback Voice Agent (GCE)
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     if: ${{ inputs.service == 'voice-agent' || inputs.service == 'all' }}
     outputs:
       previous_revision: ${{ steps.rollback.outputs.previous }}
@@ -72,7 +72,7 @@ jobs:
   # ============================================================================
   rollback-ui-server:
     name: Rollback UI Server
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     if: ${{ inputs.service == 'ui-server' || inputs.service == 'all' }}
     outputs:
       previous_revision: ${{ steps.current.outputs.revision }}
@@ -148,7 +148,7 @@ jobs:
   # ============================================================================
   track-rollback:
     name: Track Rollback
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     needs: [rollback-voice-agent, rollback-ui-server]
     if: always()
     
@@ -195,7 +195,7 @@ jobs:
   # ============================================================================
   summary:
     name: Summary
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     needs: [rollback-voice-agent, rollback-ui-server, track-rollback]
     if: always()
     

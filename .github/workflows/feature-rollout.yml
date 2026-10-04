@@ -53,7 +53,7 @@ jobs:
   # ============================================================================
   validate:
     name: Pre-Rollout Validation
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     if: ${{ !inputs.skip_validation }}
     outputs:
       can_proceed: ${{ steps.validate.outputs.can_proceed }}
@@ -108,7 +108,7 @@ jobs:
   # ============================================================================
   start-rollout:
     name: Start Rollout
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     needs: [validate]
     if: ${{ always() && (needs.validate.result == 'success' || inputs.skip_validation) }}
     outputs:
@@ -179,7 +179,7 @@ jobs:
   # ============================================================================
   monitor:
     name: Monitor Rollout
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     needs: [start-rollout]
     if: needs.start-rollout.outputs.rollout_started == 'true'
     
@@ -240,7 +240,7 @@ jobs:
   # ============================================================================
   notify-completion:
     name: Notify Completion
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     needs: [monitor]
     if: always() && inputs.notify_slack
     
