@@ -77,6 +77,34 @@ describe('bindVerifiedIdentity', () => {
     expect(r.headers['x-user-id']).toBe('real-user');
   });
 
+  it('fails closed when NODE_ENV is unset', async () => {
+    const r = req('/api/export?userId=victim', { 'x-user-id': 'victim' });
+    await bindVerifiedIdentity(r, {});
+    expect(r.url).toBe('/api/export');
+    expect(r.headers['x-user-id']).toBeUndefined();
+  });
+
+  it('scrubs a path that only looks like the landing prefix', async () => {
+    const r = req('/api/landing-export?userId=victim');
+    await bindVerifiedIdentity(r, PROD);
+    expect(r.url).toBe('/api/landing-export');
+  });
+
+  it('lets a verified admin act for the target user it names', async () => {
+    optionalAuthAsync.mockResolvedValue({ userId: 'system', isAdmin: true });
+    const r = req('/api/export?userId=target-user', { 'x-api-key': 'k' });
+    await bindVerifiedIdentity(r, PROD);
+    expect(r.url).toBe('/api/export?userId=target-user');
+    expect(r.headers['x-firebase-uid']).toBeUndefined();
+  });
+
+  it('binds an admin with no target to their own id', async () => {
+    optionalAuthAsync.mockResolvedValue({ userId: 'admin-uid', isAdmin: true });
+    const r = req('/api/export', { authorization: 'Bearer t' });
+    await bindVerifiedIdentity(r, PROD);
+    expect(r.headers['x-firebase-uid']).toBe('admin-uid');
+  });
+
   it('leaves the query alone outside production', async () => {
     const r = req('/api/export?userId=dev-user');
     await bindVerifiedIdentity(r, { NODE_ENV: 'development' });

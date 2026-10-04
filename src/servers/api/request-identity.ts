@@ -11,13 +11,14 @@
  * Now, before routing:
  * - an inbound x-firebase-uid header is always removed: only this module sets
  *   it, from a verified Firebase ID token or API key;
- * - in production, a userId query parameter is replaced with the verified uid,
+ * - unless NODE_ENV is development, a userId query parameter is replaced with the verified uid,
  *   or removed when the request carries no verified identity. Public
  *   endpoints that use it as an anonymous visitor id keep it.
- * - in production, the legacy x-user-id header (~26 route helpers fall back
+ * - likewise the legacy x-user-id header (~26 route helpers fall back
  *   to it) gets the same treatment: the verified uid, or nothing.
  *
- * Development keeps the old query behavior so local tools keep working.
+ * Only NODE_ENV=development keeps the old behavior, so an unset NODE_ENV fails
+ * closed. A verified admin keeps the target user it names.
  *
  * @module servers/api/request-identity
  */
@@ -28,11 +29,16 @@ import { createLogger } from '../../utils/safe-logger.js';
 const log = createLogger({ module: 'RequestIdentity' });
 
 /** Endpoints where userId is an anonymous visitor id, not an account. */
-const ANONYMOUS_USER_ID_PREFIXES = ['/api/v1/public/', '/api/landing'];
+const ANONYMOUS_USER_ID_PREFIXES = ['/api/v1/public/', '/api/landing/'];
 
 function hasCredential(req: IncomingMessage): boolean {
   const auth = req.headers.authorization;
   return (typeof auth === 'string' && auth.startsWith('Bearer ')) || !!req.headers['x-api-key'];
+}
+
+/** Client-claimed ids are only taken as given on a developer's machine. */
+function trustsClaimedIds(env: Record<string, string | undefined>): boolean {
+  return env.NODE_ENV === 'development';
 }
 
 /**
@@ -50,28 +56,35 @@ export async function bindVerifiedIdentity(
         return null;
       }) : null;
   const uid = auth?.userId ?? null;
-  if (uid) req.headers['x-firebase-uid'] = uid;
+  const url = new URL(req.url || '/', 'http://local');
 
-  if (env.NODE_ENV === 'production') {
-    if (uid) req.headers['x-user-id'] = uid;
-    else delete req.headers['x-user-id'];
+  // A verified admin (admin API key or admin claim) may act for a target user
+  // named in ?userId= or x-user-id; rewriting that to the admin's own id would
+  // turn an admin action into a wrong-user action.
+  if (auth?.isAdmin) {
+    const target = url.searchParams.get('userId') || req.headers['x-user-id'];
+    if (!target && uid) req.headers['x-firebase-uid'] = uid;
+    return uid;
   }
 
-  if (env.NODE_ENV === 'production' && req.url) {
-    const url = new URL(req.url, 'http://local');
-    const anonymousAllowed = ANONYMOUS_USER_ID_PREFIXES.some((p) => url.pathname.startsWith(p));
-    if (url.searchParams.has('userId') && !anonymousAllowed) {
-      if (uid) url.searchParams.set('userId', uid);
-      else url.searchParams.delete('userId');
-      req.url = `${url.pathname}${url.search}`;
-    }
+  if (uid) req.headers['x-firebase-uid'] = uid;
+  if (trustsClaimedIds(env)) return uid;
+
+  if (uid) req.headers['x-user-id'] = uid;
+  else delete req.headers['x-user-id'];
+
+  const anonymousAllowed = ANONYMOUS_USER_ID_PREFIXES.some((p) => url.pathname.startsWith(p));
+  if (url.searchParams.has('userId') && !anonymousAllowed) {
+    if (uid) url.searchParams.set('userId', uid);
+    else url.searchParams.delete('userId');
+    req.url = `${url.pathname}${url.search}`;
   }
   return uid;
 }
 
 /**
  * The caller's user id, as bound by bindVerifiedIdentity: a verified Firebase
- * uid, else (outside production only) a raw x-user-id. Use this instead of
+ * uid, else (in development only) a raw x-user-id. Use this instead of
  * reading the Authorization header: the bearer string is a token, not a user id.
  */
 export function getVerifiedUserId(req: IncomingMessage): string | null {
