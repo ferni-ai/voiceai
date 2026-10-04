@@ -38,18 +38,23 @@ describe('Conversation Integration', () => {
   });
 
   describe('getUserTopTopics', () => {
+    // Its own user: the shared one already holds 'creativity' from the test
+    // above, which tied it with 'philosophy' at two mentions and left the order
+    // to which timestamp landed a millisecond later (failed under load).
+    const rankUserId = 'test-user-conv-rank';
+
     beforeEach(async () => {
       // Record some topics first
       await recordConversationTopics(
-        testUserId,
+        rankUserId,
         ['philosophy', 'mindfulness', 'sleep'],
         'session-a'
       );
-      await recordConversationTopics(testUserId, ['philosophy', 'creativity'], 'session-b');
+      await recordConversationTopics(rankUserId, ['philosophy', 'creativity'], 'session-b');
     });
 
     it('should return topics sorted by frequency', async () => {
-      const topics = await getUserTopTopics(testUserId, 5);
+      const topics = await getUserTopTopics(rankUserId, 5);
 
       expect(topics).toBeInstanceOf(Array);
       // Philosophy should be first since it was mentioned twice
@@ -57,7 +62,7 @@ describe('Conversation Integration', () => {
     });
 
     it('should respect count limit', async () => {
-      const topics = await getUserTopTopics(testUserId, 2);
+      const topics = await getUserTopTopics(rankUserId, 2);
       expect(topics.length).toBeLessThanOrEqual(2);
     });
   });

@@ -1,25 +1,10 @@
 /**
  * Visualization API Index
  *
- * Re-exports API client, Firestore fetcher, and utilities.
+ * Re-exports demo data and its helpers. Real story data comes from the API
+ * (services/your-story.service.ts).
  *
  * @module visualizations/api
  */
 
-export {
-  createInsightsClient,
-  createMockVisualizationData,
-  type InsightsClientOptions,
-  type InsightsResult,
-} from './insights-client.js';
-
-export {
-  fetchVisualizationData,
-  type FirestoreFetcherOptions,
-} from './firestore-fetcher.js';
-
-export {
-  createDemoStoryData,
-  hasAnyVisualizationData,
-  type YourStoryData,
-} from './demo-data.js';
+export { createDemoStoryData, hasAnyVisualizationData, type YourStoryData } from './demo-data.js';
