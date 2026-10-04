@@ -27,6 +27,7 @@ import { ThinkingLevel } from '@google/genai';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import * as google from '@livekit/agents-plugin-google';
 import { createLogger } from '../../utils/safe-logger.js';
+import { CachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
 import { HedgedLLM } from './hedged-llm.js';
 import type {
   AgentSessionTurnDetection,
@@ -162,7 +163,10 @@ export function buildCascadeLLMOptions(
  * budget and the plugin ignores a level, so a level alone left 2.5-flash
  * thinking dynamically. Budget 0 turns thinking off on 2.x.
  */
-export function cascadeThinking(model: string, env: Env = process.env): CascadeLLMOptions['thinkingConfig'] {
+export function cascadeThinking(
+  model: string,
+  env: Env = process.env
+): CascadeLLMOptions['thinkingConfig'] {
   return /^gemini-[12]\./.test(model)
     ? { thinkingBudget: 0 }
     : { thinkingLevel: cascadeThinkingLevel(model, env) };
@@ -274,9 +278,14 @@ export class CartesiaCascadeProvider implements ModelProvider {
       },
       'Creating cascade Gemini text LLM'
     );
-    const primary = new google.LLM(opts);
+    // Both models share one declaration cache, so a hedge reuses the
+    // primary's converted tool schemas.
+    const declarations = await sharedDeclarationCache();
+    const gemini = (o: CascadeLLMOptions): google.LLM =>
+      declarations ? new CachedDeclarationsLLM(o, declarations) : new google.LLM(o);
+    const primary = gemini(opts);
     if (!hedge) return primary;
-    const backup = new google.LLM({ ...hedge.backup, temperature: config.temperature });
+    const backup = gemini({ ...hedge.backup, temperature: config.temperature });
     return new HedgedLLM(primary, backup, hedge.hedgeAfterMs);
   }
 

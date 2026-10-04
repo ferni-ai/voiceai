@@ -55,6 +55,23 @@ not read; numbers are for the code defaults, plus `PROMPT_MODE=character`.
   slow one, 2. Both send the full system prompt and all 64 tools, and the
   backup converted all 64 schemas again.
 
+## Fix 1: convert each tool set once
+
+`src/agents/model-provider/gemini-declarations.ts` keeps the plugin's own
+conversion per tool set (key: each tool's name, description and schema object)
+in an LRU of 32 sets shared by the process, and `CachedDeclarationsLLM` sends
+the cached declarations. The cascade's primary and hedge backup share it.
+
+|                                                                                      | Before          | After                            |
+| ------------------------------------------------------------------------------------ | --------------- | -------------------------------- |
+| Declarations converted per request (harness, median of 50)                           | 64              | 0                                |
+| Declarations converted by a hedge backup                                             | 64              | 0                                |
+| CPU for the declarations, 64 tools (same process, interleaved, median of 50, 3 runs) | 0.51 to 0.72 ms | 0.038 to 0.058 ms (cache lookup) |
+| `chat()` to request handed to the SDK (harness, 3 runs)                              | 2.7 to 3.6 ms   | 1.8 to 2.0 ms                    |
+
+The request body is unchanged: tests compare it with the plugin's own
+conversion.
+
 ## What this means
 
 Schema conversion is real but small: about 1 ms of a ~1 s first-token time.
