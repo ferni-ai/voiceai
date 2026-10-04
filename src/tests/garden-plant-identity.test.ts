@@ -128,7 +128,7 @@ describe('POST /api/garden/plant', () => {
     // support-ferni.ui.ts handlePlantSeed calls payForSeed (seed-payment.ts),
     // the same flow as the Seed Fund modal. It used to send
     // { amountInCents, successUrl, cancelUrl }, which this handler 400s.
-    await payForSeed(5);
+    await payForSeed(5, async () => ({ status: 'cancelled' }));
     const [request] = captured;
     expect(request.headers.authorization).toBe('Bearer tok-42');
     expect(request.body).toEqual({ amount: 5 });

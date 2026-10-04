@@ -2,7 +2,8 @@
  * Seed Fund gifts, shared by every "plant a seed" button and the monthly gift.
  *
  * POST /api/garden/plant takes `{ amount }` in whole dollars and answers with a
- * Stripe PaymentIntent client secret, which Stripe.js then confirms. The
+ * Stripe PaymentIntent client secret. The card form (ui/seed-payment-form)
+ * mounts Stripe's Payment Element for it and confirms with `elements`. The
  * server answers 503 when Stripe isn't configured, and the web build has no
  * publishable key when payments were never set up here; both come back as
  * `not-configured` so the button can say so instead of inviting a retry.
@@ -15,6 +16,7 @@ import type { PlantSeedResponse, SubscriptionResponse } from '../types/seed-fund
 import { apiFetch } from '../utils/api-helpers.js';
 import { billingErrorMessage } from '../utils/billing.js';
 import { createLogger } from '../utils/logger.js';
+import { collectCardPayment, type StripeForCard } from '../ui/seed-payment-form.ui.js';
 import { loadStripe } from './monetization.service.js';
 
 const log = createLogger('SeedPayment');
@@ -26,14 +28,16 @@ export type SeedPaymentOutcome =
   | { status: 'redirected' }
   /** Payments aren't set up (server 503 or no Stripe key in this build); nothing was charged. */
   | { status: 'not-configured' }
+  /** The user closed the card form; nothing was charged. */
+  | { status: 'cancelled' }
   | { status: 'failed'; reason: string };
 
-interface StripeConfirm {
-  confirmPayment(options: {
-    clientSecret: string;
-    confirmParams: { return_url: string };
-  }): Promise<{ error?: { message?: string } }>;
-}
+/** Shows the card form and confirms the payment (replaceable in tests). */
+export type CardCollector = (
+  stripe: StripeForCard,
+  clientSecret: string,
+  amountDollars: number
+) => Promise<SeedPaymentOutcome>;
 
 async function readError(response: Response): Promise<string> {
   const body = (await response.json().catch(() => null)) as { error?: string } | null;
@@ -41,7 +45,10 @@ async function readError(response: Response): Promise<string> {
 }
 
 /** Plant a one-time seed of `amountDollars` for the signed-in user. */
-export async function payForSeed(amountDollars: number): Promise<SeedPaymentOutcome> {
+export async function payForSeed(
+  amountDollars: number,
+  collect: CardCollector = collectCardPayment
+): Promise<SeedPaymentOutcome> {
   const response = await apiFetch('/api/garden/plant', {
     method: 'POST',
     body: JSON.stringify({ amount: amountDollars }),
@@ -55,19 +62,13 @@ export async function payForSeed(amountDollars: number): Promise<SeedPaymentOutc
     return { status: 'failed', reason: result.error || 'Failed to create payment' };
   }
 
-  const stripe = (await loadStripe()) as StripeConfirm | null;
+  const stripe = (await loadStripe()) as StripeForCard | null;
   if (!stripe) {
     log.warn('Stripe.js has no publishable key; seed payment not attempted');
     return { status: 'not-configured' };
   }
 
-  const { error } = await stripe.confirmPayment({
-    clientSecret: result.clientSecret,
-    confirmParams: { return_url: `${window.location.origin}/garden/success` },
-  });
-  if (error) return { status: 'failed', reason: error.message || 'Payment was declined' };
-
-  return { status: 'confirmed' };
+  return collect(stripe, result.clientSecret, amountDollars);
 }
 
 /** Start a monthly gift of `amountDollars`: on success, go to Stripe Checkout. */
@@ -88,9 +89,9 @@ export async function startMonthlyGift(amountDollars: number): Promise<SeedPayme
   return { status: 'redirected' };
 }
 
-/** The toast for a seed payment that didn't complete. */
-export function seedPaymentFailureMessage(outcome: SeedPaymentOutcome): string {
-  return outcome.status === 'not-configured'
-    ? billingErrorMessage(503)
-    : "Payment didn't go through. Try again?";
+/** The toast for a gift that went wrong, or null when there is nothing to say. */
+export function seedPaymentFailureMessage(outcome: SeedPaymentOutcome): string | null {
+  if (outcome.status === 'not-configured') return billingErrorMessage(503);
+  if (outcome.status === 'failed') return "Payment didn't go through. Try again?";
+  return null; // confirmed, redirected, or cancelled by the user
 }

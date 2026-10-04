@@ -9,7 +9,10 @@
  * Here the REAL payForSeed builds the request through the REAL web transport,
  * the REAL garden handler answers it, and that answer goes back into
  * payForSeed's own parsing. Only Firebase token verification, the Stripe
- * server SDK wrappers, and Stripe.js are mocked.
+ * server SDK wrappers, and Stripe.js are mocked. The card form itself needs a
+ * DOM, so here a stand-in collector records what payForSeed hands it; the
+ * real form is tested in apps/web/tests/ui/support-ferni.test.ts and
+ * ferni-fund.test.ts.
  */
 import type { IncomingMessage, ServerResponse } from 'http';
 import { Readable } from 'stream';
@@ -44,8 +47,13 @@ vi.mock('../../apps/web/src/ui/whisper.ui.js', () => ({ toast: { error: vi.fn() 
 
 // Stripe.js in the browser: null when the build has no publishable key.
 const stripeJs = vi.hoisted(() => ({
-  instance: null as null | { confirmPayment: ReturnType<typeof vi.fn> },
+  instance: null as null | {
+    elements: ReturnType<typeof vi.fn>;
+    confirmPayment: ReturnType<typeof vi.fn>;
+  },
 }));
+/** Stand-in for the card form: records the Stripe instance, secret and amount. */
+const collect = vi.fn(async () => ({ status: 'confirmed' as const }));
 vi.mock('../../apps/web/src/services/monetization.service.js', () => ({
   loadStripe: vi.fn(async () => stripeJs.instance),
 }));
@@ -94,7 +102,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   exchanges = [];
   stripePayments.isStripeConfigured.mockReturnValue(true);
-  stripeJs.instance = { confirmPayment: vi.fn(async () => ({})) };
+  stripeJs.instance = { elements: vi.fn(), confirmPayment: vi.fn(async () => ({})) };
   vi.stubEnv('DEV', false);
   vi.stubGlobal('navigator', { onLine: true });
   vi.stubGlobal('window', {
@@ -121,8 +129,8 @@ afterEach(() => {
 });
 
 describe('plant a seed: payForSeed ↔ POST /api/garden/plant', () => {
-  it('a $10 tip is accepted (200), paid as the signed-in user, and confirmed with the returned client secret', async () => {
-    const outcome = await payForSeed(10);
+  it('a $10 tip is accepted (200), paid as the signed-in user, and its client secret goes to the card form', async () => {
+    const outcome = await payForSeed(10, collect);
 
     expect(exchanges).toHaveLength(1);
     expect(exchanges[0].body).toEqual({ amount: 10 });
@@ -131,40 +139,30 @@ describe('plant a seed: payForSeed ↔ POST /api/garden/plant', () => {
     expect(stripePayments.createPaymentIntent).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'uid-42', amountCents: 1000 })
     );
-    expect(stripeJs.instance?.confirmPayment).toHaveBeenCalledWith({
-      clientSecret: 'pi_secret',
-      confirmParams: { return_url: 'https://app.ferni.ai/garden/success' },
-    });
+    expect(collect).toHaveBeenCalledWith(stripeJs.instance, 'pi_secret', 10);
     expect(outcome).toEqual({ status: 'confirmed' });
   });
 
   it('server without Stripe answers 503, and the web reports not-configured without touching Stripe.js', async () => {
     stripePayments.isStripeConfigured.mockReturnValue(false);
 
-    const outcome = await payForSeed(5);
+    const outcome = await payForSeed(5, collect);
 
     expect(exchanges[0].status).toBe(503);
     expect(exchanges[0].response).toMatchObject({ success: false });
     expect(stripePayments.createPaymentIntent).not.toHaveBeenCalled();
-    expect(stripeJs.instance?.confirmPayment).not.toHaveBeenCalled();
+    expect(collect).not.toHaveBeenCalled();
     expect(outcome).toEqual({ status: 'not-configured' });
   });
 
   it('a web build with no Stripe publishable key reports not-configured, not a retryable failure', async () => {
     stripeJs.instance = null;
 
-    const outcome = await payForSeed(5);
+    const outcome = await payForSeed(5, collect);
 
     expect(exchanges[0].status).toBe(200);
+    expect(collect).not.toHaveBeenCalled();
     expect(outcome).toEqual({ status: 'not-configured' });
-  });
-
-  it('a card Stripe declines comes back as failed with Stripe’s reason', async () => {
-    stripeJs.instance = {
-      confirmPayment: vi.fn(async () => ({ error: { message: 'Your card was declined.' } })),
-    };
-
-    expect(await payForSeed(5)).toEqual({ status: 'failed', reason: 'Your card was declined.' });
   });
 
   it('a server-side PaymentIntent failure comes back as failed', async () => {
@@ -172,11 +170,11 @@ describe('plant a seed: payForSeed ↔ POST /api/garden/plant', () => {
       null as unknown as { clientSecret: string; paymentIntentId: string }
     );
 
-    const outcome = await payForSeed(5);
+    const outcome = await payForSeed(5, collect);
 
     expect(exchanges[0].response).toMatchObject({ success: false });
     expect(outcome).toEqual({ status: 'failed', reason: 'Failed to create payment' });
-    expect(stripeJs.instance?.confirmPayment).not.toHaveBeenCalled();
+    expect(collect).not.toHaveBeenCalled();
   });
 });
 

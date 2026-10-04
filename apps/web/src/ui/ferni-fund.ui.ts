@@ -371,15 +371,16 @@ async function processContribution(
   } catch (error) {
     outcome = { status: 'failed', reason: String(error) };
   }
-  log.error({ outcome }, 'Fund contribution failed');
+  const problem = seedPaymentFailureMessage(outcome);
+  if (problem) log.error({ outcome }, 'Fund contribution failed');
 
-  // Show the error and reset form
+  // Back to the form (with the error, unless the user cancelled)
   if (content) {
     const gardenStatus = await fetchGardenStatus();
     content.innerHTML = renderContributionForm(gardenStatus);
     setupFormListeners();
   }
-  toast.error(seedPaymentFailureMessage(outcome));
+  if (problem) toast.error(problem);
 }
 
 // ============================================================================

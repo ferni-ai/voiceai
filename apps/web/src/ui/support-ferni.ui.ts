@@ -540,9 +540,10 @@ async function handlePlantSeed(): Promise<void> {
     // Same Seed Fund flow as the Ferni Fund modal: dollars in, Stripe
     // client secret back. The server acts on the Bearer-token user.
     const outcome = await payForSeed(selectedTipAmount);
-    if (outcome.status !== 'confirmed') {
+    const problem = seedPaymentFailureMessage(outcome);
+    if (problem) {
       log.error('Plant seed failed:', outcome);
-      toast.error(seedPaymentFailureMessage(outcome));
+      toast.error(problem);
     }
   } catch (error) {
     log.error('Plant seed failed:', error);

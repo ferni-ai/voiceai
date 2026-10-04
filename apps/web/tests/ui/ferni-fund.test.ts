@@ -11,7 +11,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn(), info: vi.fn() }));
 vi.mock('../../src/ui/whisper.ui.js', () => ({ toast }));
 
-const stripeJs = vi.hoisted(() => ({ instance: null as unknown }));
+const stripeJs = vi.hoisted(() => {
+  const paymentElement = { mount: vi.fn(), destroy: vi.fn() };
+  const elements = { create: vi.fn(() => paymentElement) };
+  const instance = {
+    elements: vi.fn(() => elements),
+    confirmPayment: vi.fn(async (): Promise<{ error?: { message: string } }> => ({})),
+  };
+  return { instance, elements, paymentElement };
+});
 vi.mock('../../src/services/monetization.service.js', () => ({
   loadStripe: vi.fn(async () => stripeJs.instance),
   formatAmount: (cents: number) => `$${cents / 100}`,
@@ -69,5 +77,62 @@ describe('Ferni Fund: monthly gift', () => {
     await settle();
 
     expect(toast.error).toHaveBeenCalledWith("Payments aren't set up yet, so nothing was charged.");
+  });
+});
+
+describe('Ferni Fund: one-time seed', () => {
+  const dialog = () => document.querySelector('.seed-pay-dialog[role="dialog"]');
+  async function press(action: 'submit' | 'cancel'): Promise<void> {
+    document.querySelector<HTMLButtonElement>(`[data-seed-pay="${action}"]`)?.click();
+    await settle();
+  }
+
+  beforeEach(() => {
+    replies.set(
+      '/api/garden/plant',
+      json(200, { success: true, clientSecret: 'pi_secret', paymentIntentId: 'pi_1' })
+    );
+  });
+
+  it('opens the card form for the client secret and confirms with the Payment Element', async () => {
+    await openFund();
+    choose('[data-amount="500"]');
+    await settle();
+
+    expect(dialog()).not.toBeNull();
+    expect(stripeJs.instance.elements).toHaveBeenCalledWith({ clientSecret: 'pi_secret' });
+    expect(stripeJs.instance.confirmPayment).not.toHaveBeenCalled();
+
+    await press('submit');
+
+    expect(stripeJs.instance.confirmPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ elements: stripeJs.elements })
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('cancel closes the form, charges nothing, and returns to the gift choices quietly', async () => {
+    await openFund();
+    choose('[data-amount="500"]');
+    await settle();
+
+    await press('cancel');
+
+    expect(dialog()).toBeNull();
+    expect(stripeJs.instance.confirmPayment).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(document.querySelector('.ferni-fund-submit-btn')).not.toBeNull();
+  });
+
+  it('a declined card says the payment did not go through', async () => {
+    stripeJs.instance.confirmPayment.mockResolvedValueOnce({ error: { message: 'Card declined' } });
+    await openFund();
+    choose('[data-amount="500"]');
+    await settle();
+
+    await press('submit');
+
+    expect(dialog()).toBeNull();
+    expect(toast.error).toHaveBeenCalledWith("Payment didn't go through. Try again?");
   });
 });

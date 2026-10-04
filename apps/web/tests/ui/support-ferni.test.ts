@@ -54,8 +54,13 @@ vi.mock('../../src/ui/subscription.ui.js', () => ({
   loadStatus: vi.fn(() => Promise.resolve()),
 }));
 
-// Stripe.js (external): confirmPayment navigates away on success.
-const mockStripe = { confirmPayment: vi.fn(async () => ({})) };
+// Stripe.js (external): the Payment Element and confirmPayment.
+const mockPaymentElement = { mount: vi.fn(), destroy: vi.fn() };
+const mockElements = { create: vi.fn(() => mockPaymentElement) };
+const mockStripe = {
+  elements: vi.fn(() => mockElements),
+  confirmPayment: vi.fn(async (): Promise<{ error?: { message: string } }> => ({})),
+};
 vi.mock('../../src/services/monetization.service.js', () => ({
   loadStripe: vi.fn(async () => mockStripe),
 }));
@@ -327,27 +332,71 @@ describe('Support Ferni UI', () => {
     async function plantTenDollars(): Promise<void> {
       const { openSupportFerni } = await import('../../src/ui/support-ferni.ui.js');
       await openSupportFerni();
+      await new Promise((r) => setTimeout(r, 30)); // let the modal finish opening
       (document.querySelector('[data-tip-amount="10"]') as HTMLElement).click();
       findPlantSeedButton()?.click();
       await new Promise((r) => setTimeout(r, 50));
     }
 
-    it('plants a seed: sends dollars, then confirms the returned client secret with Stripe', async () => {
-      mockFetch.mockResolvedValue(
-        new Response(
-          JSON.stringify({ success: true, clientSecret: 'pi_secret', paymentIntentId: 'pi_1' }),
-          { status: 200 }
-        )
+    const secretReply = () =>
+      new Response(
+        JSON.stringify({ success: true, clientSecret: 'pi_secret', paymentIntentId: 'pi_1' }),
+        { status: 200 }
       );
+    const dialog = () =>
+      document.querySelector<HTMLElement>('[role="dialog"][aria-modal="true"].seed-pay-dialog');
+    const press = async (action: 'submit' | 'cancel') => {
+      document.querySelector<HTMLButtonElement>(`[data-seed-pay="${action}"]`)?.click();
+      await new Promise((r) => setTimeout(r, 20));
+    };
+
+    it('plants a seed: sends dollars, opens the card form, and confirms with the Payment Element', async () => {
+      mockFetch.mockResolvedValue(secretReply());
 
       await plantTenDollars();
 
       expect(plantRequests()).toHaveLength(1);
       expect(JSON.parse(plantRequests()[0][1].body)).toEqual({ amount: 10 });
-      expect(mockStripe.confirmPayment).toHaveBeenCalledWith(
-        expect.objectContaining({ clientSecret: 'pi_secret' })
+      // Card form, mounted for the server's client secret; nothing charged yet.
+      expect(dialog()).not.toBeNull();
+      expect(dialog()?.contains(document.activeElement)).toBe(true);
+      expect(mockStripe.elements).toHaveBeenCalledWith({ clientSecret: 'pi_secret' });
+      expect(mockPaymentElement.mount).toHaveBeenCalledWith(
+        document.querySelector('[data-seed-pay="element"]')
       );
+      expect(mockStripe.confirmPayment).not.toHaveBeenCalled();
+
+      await press('submit');
+
+      expect(mockStripe.confirmPayment).toHaveBeenCalledWith({
+        elements: mockElements,
+        confirmParams: { return_url: expect.stringMatching(/\/garden\/success$/) },
+      });
       expect(mockToast.error).not.toHaveBeenCalled();
+    });
+
+    it('cancel closes the card form without charging or complaining', async () => {
+      mockFetch.mockResolvedValue(secretReply());
+      await plantTenDollars();
+      expect(dialog()).not.toBeNull();
+
+      await press('cancel');
+
+      expect(dialog()).toBeNull();
+      expect(mockPaymentElement.destroy).toHaveBeenCalled();
+      expect(mockStripe.confirmPayment).not.toHaveBeenCalled();
+      expect(mockToast.error).not.toHaveBeenCalled();
+    });
+
+    it('Escape also cancels the card form', async () => {
+      mockFetch.mockResolvedValue(secretReply());
+      await plantTenDollars();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await new Promise((r) => setTimeout(r, 20));
+
+      expect(dialog()).toBeNull();
+      expect(mockStripe.confirmPayment).not.toHaveBeenCalled();
     });
 
     it('says payments are not set up when the server has no Stripe (503)', async () => {
@@ -362,17 +411,18 @@ describe('Support Ferni UI', () => {
       expect(mockToast.error).toHaveBeenCalledWith(
         "Payments aren't set up yet, so nothing was charged."
       );
+      expect(dialog()).toBeNull();
       expect(mockStripe.confirmPayment).not.toHaveBeenCalled();
     });
 
-    it('says the payment did not go through when Stripe declines it', async () => {
-      mockFetch.mockResolvedValue(
-        new Response(JSON.stringify({ success: true, clientSecret: 'pi_secret' }), { status: 200 })
-      );
+    it('a declined card closes the form and says the payment did not go through', async () => {
+      mockFetch.mockResolvedValue(secretReply());
       mockStripe.confirmPayment.mockResolvedValueOnce({ error: { message: 'Card declined' } });
-
       await plantTenDollars();
 
+      await press('submit');
+
+      expect(dialog()).toBeNull();
       expect(mockToast.error).toHaveBeenCalledWith("Payment didn't go through. Try again?");
     });
   });
