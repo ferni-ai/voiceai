@@ -10,6 +10,7 @@ import type { URL } from 'url';
 import { TwitterClient } from '../tools/domains/marketing/twitter-client.js';
 import { LinkedInClient } from '../tools/domains/marketing/linkedin-client.js';
 import { MarketingStorage } from '../tools/domains/marketing/storage.js';
+import { requireAdmin } from './auth-middleware.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { createOAuthStateManager } from '../utils/ddos-protection.js';
 
@@ -34,6 +35,15 @@ export async function handleMarketingRoutes(
 
   const query = parsedUrl.searchParams;
   const method = req.method || 'GET';
+
+  // This is the company's own social publishing tool, not a user feature, and it
+  // was mounted with no auth: anyone could read posts and analytics and write
+  // scheduled posts under any userId. Admin only; the OAuth callbacks stay open
+  // because the state they carry was issued to an admin by the connect route.
+  if (!pathname.endsWith('/callback')) {
+    const auth = await requireAdmin(req, res);
+    if (!auth) return true;
+  }
 
   // ============================================================================
   // OAuth - Twitter

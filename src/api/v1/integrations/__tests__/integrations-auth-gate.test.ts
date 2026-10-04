@@ -74,7 +74,11 @@ describe('integrations auth gate', () => {
   it('builds the OAuth start URL for the signed-in caller (was 500)', async () => {
     const res = await call('GET', '/biometrics/connect/oura', 'tok-A');
     expect(res.status).toBe(200);
-    expect(biometrics.getAuthorizationUrl).toHaveBeenCalledWith('oura', 'uid-A');
+    expect(biometrics.getAuthorizationUrl).toHaveBeenCalledWith(
+      'oura',
+      'uid-A',
+      expect.stringMatching(/^[A-Za-z0-9_-]{43}$/)
+    );
   });
 
   it('refuses an unauthenticated OAuth start with 401 (was 500)', async () => {

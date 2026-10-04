@@ -44,12 +44,17 @@ async function getPredictions(): Promise<{ status: number; body: Record<string, 
 
 const recent = new Date().toISOString();
 
+const MOOD = 'Mood average (1-10)';
+
+/** A guess of 7; when scored, the actual that earns `accuracy` (7 × accuracy / 100). */
 function prediction(id: string, accuracy?: number): StoredPrediction {
   return {
     id,
     weekOf: '2026-09-28',
-    predictions: { 'Mood average (1-10)': 7 },
-    ...(accuracy === undefined ? {} : { accuracy, completedAt: recent }),
+    predictions: { [MOOD]: 7 },
+    ...(accuracy === undefined
+      ? {}
+      : { actuals: { [MOOD]: (7 * accuracy) / 100 }, accuracy, completedAt: recent }),
     createdAt: recent,
   };
 }
@@ -94,6 +99,28 @@ describe('GET /api/predictions → prediction tracker', () => {
     expect(status).toBe(200);
     expect(body.predictions).toEqual([]);
     expect(toPredictionTrackerData(body)).toBeNull();
+  });
+
+  it('does not count the old unmatched "{ result }" resolutions as 0% misses', async () => {
+    // Before the scoring fix the web posted { result: n }: nothing matched the
+    // predicted metric, and the store saved accuracy 0 as if it were scored.
+    getRecentPredictions.mockResolvedValue([
+      { ...prediction('p3'), actuals: { result: 7 }, accuracy: 0, completedAt: recent },
+      prediction('p2', 90),
+      prediction('p1', 80),
+    ]);
+    getProfile.mockResolvedValue({ stats: { totalPredictions: 3, predictionAccuracy: 57 } });
+
+    const { body } = await getPredictions();
+    const p3 = (body.predictions as StoredPrediction[]).find((p) => p.id === 'p3');
+    // Reopened so the real number can be recorded, not shown as a miss.
+    expect(p3?.completedAt).toBeUndefined();
+    expect(p3?.accuracy).toBeUndefined();
+
+    const data = toPredictionTrackerData(body);
+    expect(data?.overallAccuracy).toBe(85); // (90 + 80) / 2, not (0 + 90 + 80) / 3
+    expect(data?.recentTrend).toEqual([80, 90]);
+    expect(data?.currentStreak).toBe(2);
   });
 
   it('counts unscored predictions without inventing accuracy for them', async () => {

@@ -4,8 +4,19 @@
  * Provides real-time WebSocket streaming of cognitive state updates.
  * Connects to the CognitiveBroadcast service and streams events to clients.
  *
+ * ADMIN ONLY. The stream carries every user's events (voice_emotion and
+ * user_style name the userId), so it used to hand any connected client every
+ * user's emotional state with no credentials. Now the upgrade must carry a
+ * verified Firebase ID token whose user has the `admin` custom claim (the same
+ * claim auth-middleware reads for HTTP admins). No token, or an invalid one,
+ * gets 401; a verified non-admin gets 403. Neither ever receives an event.
+ *
  * Usage:
- * - Client connects to ws://localhost:8080/ws/cognitive
+ * - Client (an admin) connects to ws://localhost:8080/ws/cognitive offering the
+ *   subprotocols ['ferni.v1', 'bearer.<idToken>'] (see
+ *   apps/web/src/services/authed-websocket.service.ts); the server selects
+ *   ferni.v1. The only client is apps/web/public/cognitive-dashboard.html,
+ *   which connects on localhost only.
  * - Server streams cognitive events as JSON
  * - Client can send ping messages to keep connection alive
  */
@@ -14,7 +25,16 @@ import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'node:http';
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
-import { cognitiveBroadcast, type CognitiveBroadcastEvent } from '../cognitive-intelligence/cognitive-broadcast.js';
+import {
+  cognitiveBroadcast,
+  type CognitiveBroadcastEvent,
+} from '../cognitive-intelligence/cognitive-broadcast.js';
+import {
+  rejectUpgrade,
+  selectWsProtocol,
+  upgradePath,
+  verifyUpgradeCaller,
+} from '../identity/ws-identity.js';
 
 const logger = getLogger();
 
@@ -27,16 +47,34 @@ const HEARTBEAT_INTERVAL = 30000;
 // Store interval handle for cleanup
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
+const COGNITIVE_PATH = '/ws/cognitive';
+
 /**
- * Initialize WebSocket server for cognitive streaming
+ * Upgrade only a verified admin; everyone else is refused (401/403) before any
+ * event can reach them. Other paths are left to their own handlers.
+ */
+function upgradeAdminsOnly(httpServer: Server, wss: WebSocketServer): void {
+  httpServer.on('upgrade', (request, socket, head) => {
+    if (upgradePath(request) !== COGNITIVE_PATH) return;
+    void verifyUpgradeCaller(request).then((caller) => {
+      if (!caller) return rejectUpgrade(socket, 401);
+      if (!caller.isAdmin) {
+        logger.warn({ uid: caller.uid }, 'Non-admin refused on /ws/cognitive');
+        return rejectUpgrade(socket, 403);
+      }
+      wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request));
+    });
+  });
+}
+
+/**
+ * Initialize WebSocket server for cognitive streaming (admins only).
  */
 export function initCognitiveWebSocket(httpServer: Server): WebSocketServer {
-  const wss = new WebSocketServer({
-    server: httpServer,
-    path: '/ws/cognitive',
-  });
+  const wss = new WebSocketServer({ noServer: true, handleProtocols: selectWsProtocol });
+  upgradeAdminsOnly(httpServer, wss);
 
-  logger.info('Cognitive WebSocket server initialized on /ws/cognitive');
+  logger.info('Cognitive WebSocket server initialized on /ws/cognitive (admin only)');
 
   wss.on('connection', (ws: WebSocket) => {
     clients.add(ws);
