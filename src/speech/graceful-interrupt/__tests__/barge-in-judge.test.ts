@@ -9,8 +9,10 @@ import { ReadableStream } from 'node:stream/web';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   COLLISION_MS,
+  MAX_REPLY_LEAD_MS,
   REAL_BARGE_IN_MS,
   createBargeInJudge,
+  noteReplyLead,
   registerBargeInJudge,
   softenAfterInterrupt,
 } from '../barge-in-judge.js';
@@ -118,6 +120,88 @@ async function opening(sessionId: string, wasInterrupted: boolean): Promise<stri
   for await (const chunk of out) text += chunk;
   return text;
 }
+
+describe('a Stage 2 breath/sigh lead before the first word', () => {
+  const LEAD = 410; // a breath opening: 350 ms breath + 60 ms gap
+  const START = 600; // caller starts 600 ms after Ferni's audio starts
+
+  /** The caller talks for 1.2 s, starting START ms into Ferni's reply. */
+  function overlapAt(lead: 'none' | 'before' | 'after'): boolean {
+    const { judge, wait, ferni, caller } = call();
+    if (lead === 'before') judge.onReplyLead(LEAD);
+    ferni('speaking');
+    if (lead === 'after') judge.onReplyLead(LEAD);
+    wait(START);
+    caller('speaking');
+    wait(1200);
+    caller('listening');
+    return judge.wasTakenOver();
+  }
+
+  it("without a lead, speech 600 ms into Ferni's audio is a barge-in", () => {
+    expect(START).toBeGreaterThanOrEqual(COLLISION_MS);
+    expect(overlapAt('none')).toBe(true);
+  });
+
+  it('with a lead, the same speech is only 190 ms into her first word: a collision', () => {
+    expect(START - LEAD).toBeLessThan(COLLISION_MS);
+    expect(overlapAt('before')).toBe(false); // lead reported before playback began
+    expect(overlapAt('after')).toBe(false); // lead reported once she was speaking
+  });
+
+  it('still catches a real barge-in after the first word', () => {
+    const { judge, wait, ferni, caller } = call();
+    judge.onReplyLead(LEAD);
+    ferni('speaking');
+    wait(LEAD + COLLISION_MS + 100);
+    caller('speaking');
+    wait(REAL_BARGE_IN_MS + 50);
+    caller('listening');
+    expect(judge.wasTakenOver()).toBe(true);
+  });
+
+  it('applies a lead once per reply, and never to the next one', () => {
+    const { judge, wait, ferni, caller } = call();
+    judge.onReplyLead(LEAD);
+    ferni('speaking');
+    judge.onReplyLead(LEAD); // a second report must not push the first word later still
+    judge.onItemAdded({ role: 'assistant' });
+    ferni('listening');
+    judge.onReplyLead(LEAD); // a lead for a reply that never played...
+    judge.onItemAdded({ role: 'assistant', interrupted: true });
+    ferni('speaking'); // ...does not carry over to this one
+    wait(START);
+    caller('speaking');
+    wait(1200);
+    caller('listening');
+    expect(judge.wasTakenOver()).toBe(true);
+  });
+
+  it('ignores leads that are not believable', () => {
+    for (const bad of [0, -100, MAX_REPLY_LEAD_MS + 1, Number.NaN]) {
+      const { judge, wait, ferni, caller } = call();
+      judge.onReplyLead(bad);
+      ferni('speaking');
+      wait(START);
+      caller('speaking');
+      wait(1200);
+      caller('listening');
+      expect(judge.wasTakenOver()).toBe(true);
+    }
+  });
+
+  it("noteReplyLead reaches the session's registered judge", () => {
+    const judge = createBargeInJudge();
+    const spy = vi.spyOn(judge, 'onReplyLead');
+    const unregister = registerBargeInJudge('lead-session', judge);
+    noteReplyLead('lead-session', LEAD);
+    noteReplyLead('another-session', LEAD); // no judge: nothing to do
+    unregister();
+    noteReplyLead('lead-session', LEAD); // unregistered: ignored
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(LEAD);
+  });
+});
 
 describe('the reply after an overlap (speech-wrapper.ts)', () => {
   const unregister: Array<() => void> = [];

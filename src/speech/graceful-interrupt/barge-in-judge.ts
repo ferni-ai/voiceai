@@ -16,6 +16,11 @@
  * as Ferni starts is the caller going on with their own turn (a split
  * sentence, or a reply begun early): Ferni talked over them, not the reverse.
  *
+ * Ferni is audible from her first word, not from a Stage 2 breath or sigh
+ * opening (reply-audio-stage.ts): agent_state_changed reports "speaking" when
+ * the lead starts, so the lead's length is added (onReplyLead), and a caller
+ * who starts talking during the breath is not judged to have cut Ferni off.
+ *
  * Sessions with a judge registered (the live multi-agent path) only soften
  * after a real barge-in. BARGE_IN_ACK=any (live-call-behaviors.ts) registers
  * none, which softens after any overlap as before.
@@ -30,24 +35,30 @@
  * were reported at up to 0.87 s.
  */
 export const REAL_BARGE_IN_MS = 950;
-/** Caller speech starting this soon after Ferni's audio is a collision, not a barge-in. */
+/** Caller speech starting this soon after Ferni's first word is a collision, not a barge-in. */
 export const COLLISION_MS = 500;
+/** Longest believable Stage 2 lead; anything longer is ignored rather than trusted. */
+export const MAX_REPLY_LEAD_MS = 2000;
 
 export interface BargeInJudge {
   /** agent_state_changed */
-  onAgentState(newState: string | undefined): void;
+  onAgentState: (newState: string | undefined) => void;
   /** user_state_changed: the caller's voice activity */
-  onUserState(newState: string | undefined): void;
+  onUserState: (newState: string | undefined) => void;
   /** conversation_item_added: Ferni's reply, and whether it was cut off */
-  onItemAdded(item: { role?: string; interrupted?: boolean } | undefined): void;
+  onItemAdded: (item: { role?: string; interrupted?: boolean } | undefined) => void;
   /** agent_false_interruption: LiveKit judged the overlap not a turn */
-  onFalseInterruption(): void;
+  onFalseInterruption: () => void;
+  /** The reply's non-speech lead (breath/sigh) before its first word, in ms. */
+  onReplyLead: (leadMs: number) => void;
   /** Whether the caller took the floor from Ferni's latest reply. */
-  wasTakenOver(): boolean;
+  wasTakenOver: () => boolean;
 }
 
 export function createBargeInJudge(now: () => number = Date.now): BargeInJudge {
-  let agentSpeakingSince: number | undefined;
+  let agentSpeakingSince: number | undefined; // when Ferni's first word is (or was) audible
+  let pendingLeadMs = 0; // a lead reported before the reply started playing
+  let leadApplied = false; // this reply's lead is already in agentSpeakingSince
   let overlapSince: number | undefined; // caller speech that began over Ferni's audio
   let takenOver = false;
   const overlapLongEnough = (): boolean =>
@@ -57,7 +68,9 @@ export function createBargeInJudge(now: () => number = Date.now): BargeInJudge {
     onAgentState(newState) {
       if (newState === 'speaking') {
         if (agentSpeakingSince === undefined) {
-          agentSpeakingSince = now();
+          agentSpeakingSince = now() + pendingLeadMs;
+          leadApplied = pendingLeadMs > 0;
+          pendingLeadMs = 0;
           takenOver = false; // a new reply (or a resumed one) is under way
         }
       } else {
@@ -74,13 +87,24 @@ export function createBargeInJudge(now: () => number = Date.now): BargeInJudge {
       overlapSince = undefined;
     },
     onItemAdded(item) {
-      if (item?.role !== 'assistant' || item.interrupted) return;
+      if (item?.role !== 'assistant') return;
+      pendingLeadMs = 0; // a lead reported for this reply must not carry to the next
+      if (item.interrupted) return;
       takenOver = false; // Ferni's reply played to the end
       overlapSince = undefined;
     },
     onFalseInterruption() {
       takenOver = false;
       overlapSince = undefined;
+    },
+    onReplyLead(leadMs) {
+      if (!(leadMs > 0) || leadMs > MAX_REPLY_LEAD_MS) return;
+      if (agentSpeakingSince === undefined) {
+        pendingLeadMs = leadMs; // reported before playback began
+      } else if (!leadApplied) {
+        agentSpeakingSince += leadMs;
+        leadApplied = true;
+      }
     },
     wasTakenOver() {
       return takenOver || overlapLongEnough();
@@ -96,6 +120,11 @@ export function registerBargeInJudge(sessionId: string, judge: BargeInJudge): ()
   return () => {
     if (judges.get(sessionId) === judge) judges.delete(sessionId);
   };
+}
+
+/** A reply's opening lead (breath/sigh) for this session's judge, if any. */
+export function noteReplyLead(sessionId: string, leadMs: number): void {
+  judges.get(sessionId)?.onReplyLead(leadMs);
 }
 
 /**
