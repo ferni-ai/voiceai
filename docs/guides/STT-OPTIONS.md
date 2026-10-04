@@ -2,6 +2,8 @@
 
 How the voice agent gets user speech as text, and how to switch between options.
 
+> **2026-10-04:** Production STT is Cartesia Ink-2 in the cascade. The Kyutai STT adapter and health check described in Option 2 no longer exist, and the Kyutai sidecars were removed. See `docs/VOICE-STACK-DIRECTION.md`.
+
 ## Default: LLM built-in STT (Gemini or OpenAI)
 
 **When you're not using Higgs or Kyutai STT**, the **realtime LLM does speech-to-text**:
