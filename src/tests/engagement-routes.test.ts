@@ -197,7 +197,8 @@ describe('Conversations Routes', () => {
     });
 
     it('should return false for wrong HTTP method', async () => {
-      const req = createMockRequest({ method: 'POST' });
+      // POST is a real route now (records a call); PUT is still unsupported.
+      const req = createMockRequest({ method: 'PUT' });
       const { res } = createMockResponse();
       const url = new URL('http://localhost/api/conversations');
 

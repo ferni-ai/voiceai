@@ -198,6 +198,8 @@ function fakeRequest(method: string, path: string): IncomingMessage {
     headers: {
       host: 'localhost',
       authorization: 'Bearer contract-token',
+      // What bindVerifiedIdentity sets for a verified token: routes read identity from here.
+      'x-firebase-uid': 'contract-user',
       'content-type': 'application/json',
     },
     socket: { remoteAddress: '127.0.0.1' },
