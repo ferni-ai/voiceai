@@ -24,6 +24,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { wrapCreateWithUserIdGuard } from './user-id-guard.js';
 
 import {
   ALL_TOOL_DOMAINS,
@@ -91,14 +92,13 @@ export class ToolRegistry {
       throw new Error(`Invalid tool definition: ${errors.join(', ')}`);
     }
 
-    // Check for duplicates - this is expected during parallel initialization
-    // (Tool Gateway + Unified Tool Orchestrator may both load the same domains)
+    // Duplicates are expected: Tool Gateway + Orchestrator may load the same domains
     if (this.tools.has(definition.id)) {
-      getLogger().debug({ toolId: definition.id }, 'Tool already registered, overwriting (expected during parallel init)');
+      getLogger().debug({ toolId: definition.id }, 'Tool re-registered (parallel init)');
     }
 
-    // Store the definition
-    this.tools.set(definition.id, definition);
+    // Store it with the session userId winning over a model-supplied one (./user-id-guard.ts)
+    this.tools.set(definition.id, { ...definition, create: wrapCreateWithUserIdGuard(definition) });
 
     // Index by primary domain
     this.indexByDomain(definition.domain, definition.id);
