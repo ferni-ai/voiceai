@@ -553,9 +553,9 @@ export async function touchMemory(memoryId: string): Promise<void> {
 /**
  * Forget a memory
  */
-export async function forget(memoryId: string): Promise<boolean> {
-  const memory = memoriesCache.get(memoryId);
-  if (memory) {
+export async function forget(memoryId: string, ownerId: string): Promise<boolean> {
+  const memory = memoriesCache.get(memoryId); // cache spans users: owner check required
+  if (memory && memory.userId === ownerId) {
     dirtyUsers.add(memory.userId);
     memoriesCache.delete(memoryId);
     await saveMemoriesForUser(memory.userId);

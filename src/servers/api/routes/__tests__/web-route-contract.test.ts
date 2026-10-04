@@ -133,6 +133,12 @@ const ROUTERS: Router[] = [
     mountedAs: 'handleEngagementRoutes',
     load: async () => (await import('../../../../api/engagement-routes.js')).handleEngagementRoutes,
   },
+  // Conversation history, analytics and memories (#253) are engagement routes too.
+  ...['/api/conversations', '/api/analytics/user', '/api/cognitive/memories'].map((prefix) => ({
+    prefix,
+    mountedAs: 'handleEngagementRoutes',
+    load: async () => (await import('../../../../api/engagement-routes.js')).handleEngagementRoutes,
+  })),
   {
     prefix: '/api/life-automation',
     mountedAs: 'handleLifeAutomationRoutes',
