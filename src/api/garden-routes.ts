@@ -340,7 +340,7 @@ async function handleStartMonthly(
         success: false,
         error: 'Subscription system not configured',
       };
-      sendJSON(res, response);
+      sendJSON(res, response, 503);
       return;
     }
 
@@ -403,7 +403,7 @@ async function handleUpdateMonthly(
         success: false,
         error: 'Subscription system not configured',
       };
-      sendJSON(res, response);
+      sendJSON(res, response, 503);
       return;
     }
 
@@ -463,7 +463,7 @@ async function handleCancelMonthly(
         success: false,
         error: 'Subscription system not configured',
       };
-      sendJSON(res, response);
+      sendJSON(res, response, 503);
       return;
     }
 

@@ -26,10 +26,14 @@ const stripePayments = vi.hoisted(() => ({
   createPaymentIntent: vi.fn(async () => ({ clientSecret: 'pi_secret', paymentIntentId: 'pi_1' })),
 }));
 vi.mock('../services/stripe-payments.js', () => stripePayments);
-vi.mock('../services/stripe-subscription.js', () => ({
-  createCheckoutSession: vi.fn(),
+const stripeSubscription = vi.hoisted(() => ({
+  createCheckoutSession: vi.fn(async () => ({
+    sessionId: 'cs_1',
+    url: 'https://checkout.stripe.com/cs_1',
+  })),
   createPortalSession: vi.fn(),
 }));
+vi.mock('../services/stripe-subscription.js', () => stripeSubscription);
 
 vi.mock('../../apps/web/src/services/firebase-auth.service.js', () => ({
   initAuth: vi.fn(async () => undefined),
@@ -47,7 +51,8 @@ vi.mock('../../apps/web/src/services/monetization.service.js', () => ({
 }));
 
 const { handleGardenRoutes } = await import('../api/garden-routes.js');
-const { payForSeed } = await import('../../apps/web/src/services/seed-payment.js');
+const { payForSeed, startMonthlyGift } =
+  await import('../../apps/web/src/services/seed-payment.js');
 
 interface Exchange {
   body: Record<string, unknown>;
@@ -172,5 +177,29 @@ describe('plant a seed: payForSeed ↔ POST /api/garden/plant', () => {
     expect(exchanges[0].response).toMatchObject({ success: false });
     expect(outcome).toEqual({ status: 'failed', reason: 'Failed to create payment' });
     expect(stripeJs.instance?.confirmPayment).not.toHaveBeenCalled();
+  });
+});
+
+describe('monthly gift: startMonthlyGift ↔ POST /api/garden/subscribe', () => {
+  it('a $10 monthly gift is accepted (200) and goes to Stripe Checkout', async () => {
+    const outcome = await startMonthlyGift(10);
+
+    expect(exchanges[0].body).toEqual({ amount: 10 });
+    expect(exchanges[0].status).toBe(200);
+    expect(stripeSubscription.createCheckoutSession).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'uid-42' })
+    );
+    expect(window.location.href).toBe('https://checkout.stripe.com/cs_1');
+    expect(outcome).toEqual({ status: 'redirected' });
+  });
+
+  it('server without Stripe answers 503, and the web reports not-configured', async () => {
+    stripePayments.isStripeConfigured.mockReturnValue(false);
+
+    const outcome = await startMonthlyGift(10);
+
+    expect(exchanges[0].status).toBe(503);
+    expect(stripeSubscription.createCheckoutSession).not.toHaveBeenCalled();
+    expect(outcome).toEqual({ status: 'not-configured' });
   });
 });

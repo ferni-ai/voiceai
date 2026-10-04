@@ -16,12 +16,16 @@
 import { t } from '../i18n/index.js';
 import { DURATION } from '../config/animation-constants.js';
 import { formatAmount } from '../services/monetization.service.js';
-import { payForSeed, seedPaymentFailureMessage } from '../services/seed-payment.js';
+import {
+  payForSeed,
+  seedPaymentFailureMessage,
+  startMonthlyGift,
+} from '../services/seed-payment.js';
 import type { SeedPaymentOutcome } from '../services/seed-payment.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import type { GardenStatus, SubscriptionResponse, UserGarden } from '../types/seed-fund.types.js';
+import type { GardenStatus, UserGarden } from '../types/seed-fund.types.js';
 import { getStatusDisplayName } from '../types/seed-fund.types.js';
 import {
   ferniFundStyles as styles,
@@ -66,21 +70,6 @@ async function fetchUserGarden(userId: string): Promise<UserGarden | null> {
     log.warn({ error: String(error) }, 'Failed to fetch user garden');
     return null;
   }
-}
-
-/**
- * Start a monthly subscription
- */
-async function startMonthlySubscription(amount: number): Promise<SubscriptionResponse> {
-  const response = await apiFetch('/api/garden/subscribe', {
-    method: 'POST',
-    body: JSON.stringify({ amount }),
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `API error: ${response.status}`);
-  }
-  return response.json();
 }
 
 // ============================================================================
@@ -376,21 +365,9 @@ async function processContribution(
   let outcome: SeedPaymentOutcome;
 
   try {
-    if (isRecurring) {
-      // Monthly subscription - redirect to Stripe Checkout
-      const result = await startMonthlySubscription(amountDollars);
-
-      if (!result.success || !result.checkoutUrl) {
-        throw new Error(result.error || 'Failed to start subscription');
-      }
-
-      // Redirect to Stripe Checkout
-      window.location.href = result.checkoutUrl;
-      return;
-    }
-    // One-time payment: PaymentIntent client secret confirmed by Stripe.js
-    outcome = await payForSeed(amountDollars);
-    if (outcome.status === 'confirmed') return;
+    // Monthly: Stripe Checkout. One-time: card form, then Stripe.js confirms.
+    outcome = isRecurring ? await startMonthlyGift(amountDollars) : await payForSeed(amountDollars);
+    if (outcome.status === 'confirmed' || outcome.status === 'redirected') return;
   } catch (error) {
     outcome = { status: 'failed', reason: String(error) };
   }
