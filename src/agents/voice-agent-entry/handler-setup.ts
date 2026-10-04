@@ -19,6 +19,7 @@ import { finops } from '../../services/observability/finops.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
 import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
+import { createDataMessageSender } from '../shared/data-message-envelope.js';
 
 /** Inputs for handler setup */
 export interface HandlerSetupInput {
@@ -292,13 +293,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   });
 
   // Tool tracking
-  const sendDataMessage = async (type: string, payload: Record<string, unknown>) => {
-    try {
-      const message = JSON.stringify({ type, ...payload });
-      const data = new TextEncoder().encode(message);
-      await ctx.room.localParticipant?.publishData(data, { reliable: true });
-    } catch { /* Non-critical */ }
-  };
+  const sendDataMessage = createDataMessageSender(ctx.room);
 
   // =========================================================================
   // 🎤 AUDIO PROCESSOR: Prosody analysis, voice biomarkers, emotion detection

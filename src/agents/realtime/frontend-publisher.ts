@@ -14,6 +14,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { buildDataMessage } from '../shared/data-message-envelope.js';
 
 // ============================================================================
 // TYPES
@@ -791,11 +792,7 @@ export class FrontendPublisher {
     }
 
     try {
-      const message = JSON.stringify({
-        type,
-        ...payload,
-        timestamp: Date.now(),
-      });
+      const message = JSON.stringify({ ...buildDataMessage(type, payload), timestamp: Date.now() });
 
       await this.room.localParticipant.publishData(new TextEncoder().encode(message), {
         reliable: true,

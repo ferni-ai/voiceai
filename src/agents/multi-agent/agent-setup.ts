@@ -129,6 +129,7 @@ import {
 import { timeContext } from '../shared/time-context.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
+import { createDataMessageSender } from '../shared/data-message-envelope.js';
 // WAVE 2: Voice humanization (micro-interrupt/barge-in recovery) + live backchanneling
 import { getEmotionalArcTracker } from '../../conversation/index.js';
 import {
@@ -1819,18 +1820,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     try {
       // Handler imports now hoisted to module level for faster startup
       // Create sendDataMessage helper for frontend signaling
-      const sendDataMessage = async (
-        type: string,
-        payload: Record<string, unknown>
-      ): Promise<void> => {
-        try {
-          const message = JSON.stringify({ type, ...payload });
-          const data = new TextEncoder().encode(message);
-          await room.localParticipant?.publishData(data, { reliable: true });
-        } catch {
-          // Non-critical - silently ignore errors
-        }
-      };
+      const sendDataMessage = createDataMessageSender(room);
 
       // TRANSCRIPT HANDLER
       if (conversationManager) {
