@@ -5,7 +5,15 @@
  * capture, repeat-last).
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+
+// Code under test schedules timers at import (luxo-expressions auto-init, 100 ms)
+// and while handling messages (hold-space end, delayed expressions). Real timers
+// would fire after the file finishes and jsdom is torn down ("document is not
+// defined"). Fake them from before the first import and drop them after each test.
+vi.hoisted(() => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
+});
 
 import {
   attachLiveTranscription,
@@ -54,8 +62,8 @@ async function deliver(
   identity: string
 ): Promise<void> {
   room.handlers.get(TRANSCRIPTION_TOPIC)?.(reader, { identity });
-  // let the async reader drain
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  // let the async reader drain (setImmediate runs after all pending microtasks)
+  await new Promise((resolve) => setImmediate(resolve));
 }
 
 const live: Array<{ type: string; text: string; isFinal: boolean }> = [];
@@ -63,7 +71,12 @@ const onLive = (e: Event): void => {
   live.push((e as CustomEvent<{ type: string; text: string; isFinal: boolean }>).detail);
 };
 
+afterAll(() => {
+  vi.useRealTimers();
+});
+
 afterEach(() => {
+  vi.clearAllTimers();
   window.removeEventListener('ferni:transcript', onLive);
   live.length = 0;
   vi.restoreAllMocks();

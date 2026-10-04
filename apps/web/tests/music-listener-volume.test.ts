@@ -9,7 +9,7 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const gainNodes: MockGainNode[] = [];
 
@@ -46,6 +46,16 @@ class MockAudioContext {
 }
 
 vi.stubGlobal('AudioContext', MockAudioContext);
+// The modules imported below schedule timers at import (luxo-expressions auto-init)
+// and while showing the Now Playing card. Real ones would fire after jsdom is torn
+// down ("document is not defined"); fake them and drop them after each test.
+vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
+afterEach(() => {
+  vi.clearAllTimers();
+});
+afterAll(() => {
+  vi.useRealTimers();
+});
 // jsdom has no Web Animations API; the Now Playing card animates in
 Element.prototype.animate = vi.fn(
   () => ({ finished: Promise.resolve(), cancel: vi.fn(), onfinish: null }) as unknown as Animation

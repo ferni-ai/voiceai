@@ -12,7 +12,15 @@
  * the web as unknown messages and did nothing.
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+
+// Code under test schedules timers at import (luxo-expressions auto-init, 100 ms)
+// and while handling messages (hold-space end, delayed expressions). Real timers
+// would fire after the file finishes and jsdom is torn down ("document is not
+// defined"). Fake them from before the first import and drop them after each test.
+vi.hoisted(() => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
+});
 
 import {
   buildHandoffUIMessage,
@@ -27,6 +35,8 @@ import { DEFAULT_RESPONSE_TEMPLATES } from '../../../../src/intelligence/trigger
 
 import { handleDataMessage } from '../../src/app/data-message-handlers.js';
 import { handoffService } from '../../src/services/index.js';
+import { initProgressiveFeatures } from '../../src/services/progressive-features.service.js';
+import { trustSignalHelpers } from '../../src/ui/trust-signals.ui.js';
 import type { DataMessage } from '../../src/types/events.js';
 import { ferni } from '../../src/ui/better-than-human.ui.js';
 import { ferniExpressions } from '../../src/ui/ferni-expressions.ui.js';
@@ -56,7 +66,12 @@ function captureWindowEvent(name: string): Array<Record<string, unknown>> {
 
 const cleanups: Array<() => void> = [];
 
+afterAll(() => {
+  vi.useRealTimers();
+});
+
 afterEach(() => {
+  vi.clearAllTimers();
   cleanups.splice(0).forEach((cleanup) => cleanup());
   vi.restoreAllMocks();
 });
@@ -115,6 +130,39 @@ describe('trust_signal', () => {
         message: 'You handled that differently than last month.',
       }),
     ]);
+  });
+});
+
+describe('trust_signal deploy skew (new agent, base web 9c88304e0)', () => {
+  it("the card listener, unchanged since base, shows no card for the turn handler's hint-only signals", () => {
+    initProgressiveFeatures();
+    const helpers = Object.keys(trustSignalHelpers) as Array<keyof typeof trustSignalHelpers>;
+    const spies = helpers.map((name) =>
+      vi.spyOn(trustSignalHelpers, name).mockImplementation(() => undefined)
+    );
+
+    // What the base handleTrustSignal dispatched for every trust_signal: signalType
+    // as `type`, title and message undefined for the hint-only signals.
+    for (const type of [
+      'emotional_mismatch_detected',
+      'growth_reflection_available',
+      'celebration_opportunity',
+    ]) {
+      window.dispatchEvent(
+        new CustomEvent('ferni:backend-trust-signal', {
+          detail: { type, title: undefined, message: undefined, personaId: 'ferni' },
+        })
+      );
+    }
+    spies.forEach((spy) => expect(spy).not.toHaveBeenCalled());
+
+    // Control: a real card type does render.
+    window.dispatchEvent(
+      new CustomEvent('ferni:backend-trust-signal', {
+        detail: { type: 'growth', message: 'You kept your word to yourself.' },
+      })
+    );
+    expect(trustSignalHelpers.growthMoment).toHaveBeenCalledWith('You kept your word to yourself.');
   });
 });
 
