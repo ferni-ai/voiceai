@@ -13,10 +13,11 @@
  */
 
 import { findProjectRoot } from '../../utils/project-root.js';
-import { ChildProcess, execFileSync, execSync, spawn } from 'child_process';
+import { ChildProcess, execSync, spawn } from 'child_process';
 import { createWriteStream, existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { healthCheck, smokeTestFrontend } from './url-checks.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -149,45 +150,6 @@ function getLatestRevision(serviceName: string): string {
   } catch {
     return '';
   }
-}
-
-/**
- * Health check a URL with retries
- */
-async function healthCheck(
-  url: string,
-  options: { maxRetries?: number; retryDelay?: number; timeout?: number } = {}
-): Promise<{ healthy: boolean; statusCode?: number; error?: string }> {
-  const { maxRetries = 5, retryDelay = 3000, timeout = 10000 } = options;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-      const response = await fetch(url, {
-        method: 'GET',
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        return { healthy: true, statusCode: response.status };
-      }
-
-      log.warn(`Health check attempt ${attempt}/${maxRetries}: status ${response.status}`);
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      log.warn(`Health check attempt ${attempt}/${maxRetries}: ${errorMsg}`);
-    }
-
-    if (attempt < maxRetries) {
-      await new Promise((resolve) => setTimeout(resolve, retryDelay));
-    }
-  }
-
-  return { healthy: false, error: `Failed after ${maxRetries} attempts` };
 }
 
 /**
@@ -913,15 +875,8 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
     }
     log.success(`Preview health check passed (HTTP ${health.statusCode})`);
 
-    // A 200 doesn't mean the app runs: on 2026-10-04 the JS crashed at module
-    // evaluation behind a 200. Load the preview in a real browser before promoting.
     log.info('Smoke testing preview in a browser...');
-    try {
-      execFileSync('node', [join(PROJECT_ROOT, 'scripts/smoke-frontend.mjs'), previewUrl], {
-        cwd: PROJECT_ROOT,
-        stdio: 'inherit',
-      });
-    } catch {
+    if (!smokeTestFrontend(PROJECT_ROOT, previewUrl)) {
       log.error('Preview browser smoke test failed, not promoting');
       deletePreviewChannel();
       return false;
