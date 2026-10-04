@@ -37,7 +37,7 @@ export interface LLMFallbackConfig {
   /** Max tools to show LLM for selection */
   maxCandidates: number;
   /** Model to use for fallback */
-  model: 'gemini-2.0-flash' | 'gpt-4o-mini' | 'claude-3-haiku';
+  model: string;
   /** Enable reasoning output */
   includeReasoning: boolean;
   /** Timeout for LLM call */
@@ -79,7 +79,7 @@ const DEFAULT_CONFIG: LLMFallbackConfig = {
   uncertaintyThreshold: 0.35, // If uncertainty > 35%, use LLM
   confidenceGapThreshold: 0.12, // If top 2 tools within 12%, use LLM
   maxCandidates: 8,
-  model: getEvaluationModel() as 'gemini-2.0-flash' | 'gpt-4o-mini' | 'claude-3-haiku',
+  model: getEvaluationModel(),
   includeReasoning: true,
   timeoutMs: 3000,
 };

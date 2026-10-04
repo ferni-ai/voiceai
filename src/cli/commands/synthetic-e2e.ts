@@ -47,21 +47,26 @@ const log = createLogger({ module: 'SyntheticE2E' });
  * To use:
  *   1. Ensure you're authenticated: gcloud auth application-default login
  *   2. Set USE_VERTEX_AI=true in .env
- *   3. Set GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION in .env
+ *   3. Set GOOGLE_CLOUD_PROJECT (and optionally GEMINI_LOCATION, default global) in .env
  */
 const USE_VERTEX_AI = process.env.USE_VERTEX_AI === 'true';
 const VERTEX_AI_API_KEY = process.env.VERTEX_AI_API_KEY;
 const VERTEX_PROJECT =
   process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT_ID || 'johnb-2025';
-const VERTEX_LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+// Gemini 3.5 is served only on the global location (us-central1 returns 404).
+const VERTEX_LOCATION = process.env.GEMINI_LOCATION || 'global';
+const VERTEX_HOST =
+  VERTEX_LOCATION === 'global'
+    ? 'aiplatform.googleapis.com'
+    : `${VERTEX_LOCATION}-aiplatform.googleapis.com`;
 // Vertex AI Express endpoint for API key access
-const VERTEX_API_ENDPOINT = `https://${VERTEX_LOCATION}-aiplatform.googleapis.com/v1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}/publishers/google/models`;
+const VERTEX_API_ENDPOINT = `https://${VERTEX_HOST}/v1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}/publishers/google/models`;
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-const MODEL = 'gemini-2.0-flash-exp';
+const MODEL = 'gemini-3.5-flash';
 const MIN_DELAY_MS = 7000; // Rate limit: ~8 req/min (conservative for quota)
 
 // ============================================================================
@@ -2824,7 +2829,11 @@ class SyntheticE2ETester {
           `🌐 Using Vertex AI with ADC (project: ${VERTEX_PROJECT}, location: ${VERTEX_LOCATION})`
         );
         console.log('   Vertex AI has separate quotas from Generative Language API');
-        this.vertexAI = new VertexAI({ project: VERTEX_PROJECT, location: VERTEX_LOCATION });
+        this.vertexAI = new VertexAI({
+          project: VERTEX_PROJECT,
+          location: VERTEX_LOCATION,
+          apiEndpoint: VERTEX_HOST,
+        });
       }
     } else {
       this.keyManager = new ApiKeyManager();
