@@ -73,6 +73,38 @@ describe('Your Story honesty', () => {
     expect(dashboard.showStatus).toHaveBeenCalledWith('error', expect.any(Function));
   });
 
+  it('on API error, never shows a story pieced together in the browser with made-up header numbers', async () => {
+    // What the old in-browser Firestore fallback returned (with its 0.5 / "calm" defaults)
+    fetchVisualizationData.mockResolvedValue({
+      moodCalendar: {
+        entries: [{ date: '2026-10-03', mood: 'calm', intensity: 0.5 }],
+        summary: { dominantMood: 'calm', calmDays: 1, trend: 'stable' },
+      },
+    });
+    hasAnyVisualizationData.mockReturnValue(true);
+    apiGet.mockResolvedValue({ ok: false, status: 503, error: 'down' });
+
+    await showYourStoryDashboard();
+
+    expect(dashboard.show).not.toHaveBeenCalled();
+    expect(dashboard.showStatus).toHaveBeenCalledWith('error', expect.any(Function));
+  });
+
+  it('with no story on the server, shows the empty state even if the browser could read something', async () => {
+    fetchVisualizationData.mockResolvedValue({ openLoops: { loops: [], totalOpen: 1 } });
+    hasAnyVisualizationData.mockReturnValue(true);
+    apiGet.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { success: true, data: emptyStory() },
+    });
+
+    await showYourStoryDashboard();
+
+    expect(dashboard.show).not.toHaveBeenCalled();
+    expect(dashboard.showStatus).toHaveBeenCalledWith('empty', expect.any(Function));
+  });
+
   it('a new user with an empty story sees the empty state, not demo data', async () => {
     apiGet.mockResolvedValue({
       ok: true,
