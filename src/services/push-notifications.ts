@@ -534,7 +534,7 @@ class PushNotificationsBackendService {
   ): Promise<void> {
     // Use the FCM push notification service from outreach/delivery
     try {
-      const { sendPushNotification, isPushNotificationsAvailable, registerPushToken } =
+      const { sendPushNotification, isPushNotificationsAvailable } =
         await import('./outreach/delivery/push-notifications.js');
 
       if (!isPushNotificationsAvailable()) {
@@ -542,20 +542,18 @@ class PushNotificationsBackendService {
         return;
       }
 
-      // The outreach push service uses its own token registry, so we need to ensure
-      // the token is registered there as well
-      registerPushToken(subscription.userId, subscription.endpoint, subscription.platform);
-
-      // Send via FCM
-      const result = await sendPushNotification({
+      // To this subscription's token only (its owner was checked by the caller), never
+      // to the outreach module's in-memory registry, which doesn't know a token moved.
+      const notification = {
         userId: subscription.userId,
         outreachId: `push-${Date.now()}`,
         personaId: payload.personaId || 'ferni',
         title: payload.title,
         body: payload.body,
-        priority: 'high',
+        priority: 'high' as const,
         data: payload.data as Record<string, string> | undefined,
-      });
+      };
+      const result = await sendPushNotification(notification, subscription.endpoint);
 
       const success = result.some((r) => r.success);
       if (!success) {
