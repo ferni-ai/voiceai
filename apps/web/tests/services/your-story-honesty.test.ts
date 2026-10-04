@@ -98,20 +98,17 @@ describe('Your Story honesty', () => {
     expect(options).toBeUndefined();
   });
 
-  it('energy dimensions are only the ones the API measured, with no invented social score', async () => {
+  it('the energy ring carries only what the API measured: one overall score, no social score', async () => {
     const story = emptyStory();
     story.header.totalConversations = 3;
-    story.energy.emotional.score = 61;
-    story.energy.mental.score = 55;
-    story.energy.physical.score = 70;
+    story.energy = { overall: 64, label: 'Good', trend: 'stable', recommendation: null };
     apiGet.mockResolvedValue({ ok: true, status: 200, data: { success: true, data: story } });
 
     const result = await fetchYourStory();
 
     expect(result.status).toBe('ok');
-    const rings = (result as { data: { energyRings: { dimensions: Record<string, number> } } }).data
-      .energyRings;
-    expect(rings.dimensions).toEqual({ emotional: 61, mental: 55, physical: 70 });
+    const rings = (result as { data: { energyRings: unknown } }).data.energyRings;
+    expect(rings).toEqual({ overall: 64, label: 'Good', recommendation: undefined });
   });
 
   it('demo data appears only behind the demo flag, and always with the banner', async () => {
@@ -134,14 +131,11 @@ function emptyStory() {
       longestStreak: 0,
     },
     relationship: { stage: 'new', stageLabel: 'New', progress: 0, nextStage: null, tagline: '' },
-    energy: {
-      overall: 0,
-      label: '',
-      trend: 'stable',
-      recommendation: '',
-      emotional: { score: 0, label: '' },
-      mental: { score: 0, label: '' },
-      physical: { score: 0, label: '' },
+    energy: null as null | {
+      overall: number;
+      label: string;
+      trend: string;
+      recommendation: string | null;
     },
     moodCalendar: {
       month: 1,

@@ -551,17 +551,10 @@ async function fetchEnergyRings(
     if (!firstDoc) return undefined; // Guard for noUncheckedIndexedAccess
     const data = firstDoc.data();
 
-    const emotional = Math.round(data.emotional ?? data.emotionalCapacity ?? 60);
-    const mental = Math.round(data.mental ?? data.mentalCapacity ?? 60);
-    const physical = Math.round(data.physical ?? data.physicalCapacity ?? 60);
-    const overall = Math.round((emotional + mental + physical) / 3);
-
-    return {
-      emotional,
-      mental,
-      physical,
-      overall,
-    };
+    // Readings store one energyScore (capacity-guardian); no default.
+    return typeof data.energyScore === 'number'
+      ? { overall: Math.round(data.energyScore) }
+      : undefined;
   } catch {
     return undefined;
   }

@@ -58,13 +58,10 @@ export interface RelationshipProgress {
 }
 
 export interface EnergyLevels {
-  overall: number; // 0-100
-  label: string; // e.g., "Balanced"
-  emotional: { score: number; label: string };
-  mental: { score: number; label: string };
-  physical: { score: number; label: string };
+  overall: number; // 0-100, average of the last 7 days of energy readings
+  label: string; // e.g., "Balanced", from the overall score
   trend: 'improving' | 'stable' | 'declining' | 'recovering';
-  recommendation: string;
+  recommendation: string | null;
 }
 
 export interface MoodCalendarData {
@@ -177,7 +174,8 @@ export interface PredictionData {
 export interface YourStoryData {
   header: StoryHeader;
   relationship: RelationshipProgress;
-  energy: EnergyLevels;
+  /** null when the user has no energy readings */
+  energy: EnergyLevels | null;
   moodCalendar: MoodCalendarData;
   growth: GrowthData;
   lifeChapters: LifeChapter[];
@@ -292,26 +290,21 @@ async function fetchRelationshipProgress(userId: string): Promise<RelationshipPr
   }
 }
 
-async function fetchEnergyLevels(userId: string): Promise<EnergyLevels> {
+/**
+ * The user's energy from their real energy readings (last 7 days), or null
+ * when there are none. Readings carry one score, so there is one number: no
+ * per-dimension split and no default.
+ */
+async function fetchEnergyLevels(userId: string): Promise<EnergyLevels | null> {
   try {
     const { assessBurnoutRisk, loadEnergyHistory } =
       await import('../services/superhuman/capacity-guardian.js');
 
-    const [assessment, history] = await Promise.all([
-      assessBurnoutRisk(userId),
-      loadEnergyHistory(userId, 7),
-    ]);
+    const history = await loadEnergyHistory(userId, 7);
+    if (history.length === 0) return null;
+    const assessment = await assessBurnoutRisk(userId);
 
-    // Calculate averages from recent readings
-    const avgScore =
-      history.length > 0
-        ? Math.round(history.reduce((sum, r) => sum + r.energyScore, 0) / history.length)
-        : 72;
-
-    const emotionalAvg = Math.round(avgScore * 1.04); // Slightly higher
-    const mentalAvg = Math.round(avgScore * 0.94); // Slightly lower
-    const physicalAvg = Math.round(avgScore * 1.0);
-
+    const overall = Math.round(history.reduce((sum, r) => sum + r.energyScore, 0) / history.length);
     const getLabel = (score: number) => {
       if (score >= 80) return 'Thriving';
       if (score >= 70) return 'Balanced';
@@ -320,7 +313,6 @@ async function fetchEnergyLevels(userId: string): Promise<EnergyLevels> {
       if (score >= 40) return 'Low';
       return 'Depleted';
     };
-
     const trend =
       assessment.risk === 'low'
         ? 'stable'
@@ -329,27 +321,14 @@ async function fetchEnergyLevels(userId: string): Promise<EnergyLevels> {
           : 'declining';
 
     return {
-      overall: avgScore,
-      label: getLabel(avgScore),
-      emotional: { score: emotionalAvg, label: 'Emotionally centered and resilient' },
-      mental: { score: mentalAvg, label: 'Some mental fatigue building' },
-      physical: { score: physicalAvg, label: 'Body feeling energized' },
+      overall,
+      label: getLabel(overall),
       trend,
-      recommendation:
-        assessment.recommendations[0] ||
-        'A short break or mindful pause could help restore mental clarity.',
+      recommendation: assessment.recommendations[0] ?? null,
     };
   } catch (error) {
     log.warn({ error, userId }, 'Failed to fetch energy levels');
-    return {
-      overall: 72,
-      label: 'Balanced',
-      emotional: { score: 75, label: 'Emotionally centered and resilient' },
-      mental: { score: 68, label: 'Some mental fatigue building' },
-      physical: { score: 72, label: 'Body feeling energized' },
-      trend: 'stable',
-      recommendation: 'A short break or mindful pause could help restore mental clarity.',
-    };
+    return null;
   }
 }
 

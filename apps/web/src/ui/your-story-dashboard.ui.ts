@@ -529,13 +529,9 @@ class YourStoryUI {
     for (const viz of visualizations) {
       const container = this.panel?.querySelector(`#${viz.id}`);
       const vizData = viz.getData();
-      if (container && vizData) {
-        this.deviceAdapter.render(
-          container as HTMLElement,
-          viz.type,
-          vizData
-        );
-      }
+      // No data, no box: an empty frame would read as a reading of zero
+      if (!vizData) container?.remove();
+      else if (container) this.deviceAdapter.render(container as HTMLElement, viz.type, vizData);
     }
   }
 

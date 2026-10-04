@@ -267,13 +267,15 @@ export interface OpenLoopsData {
 }
 
 /**
- * Energy ring data (for watch).
+ * Energy ring data: one overall score from the user's real energy readings.
+ * Readings carry a single score, so there are no per-dimension values.
  */
 export interface EnergyRingsData {
-  emotional: number; // 0-100
-  mental: number; // 0-100
-  physical: number; // 0-100
   overall: number; // 0-100
+  /** Status label from the server (e.g. "Balanced") */
+  label?: string;
+  /** Recommendation from the user's own burnout assessment */
+  recommendation?: string;
 }
 
 // ============================================================================

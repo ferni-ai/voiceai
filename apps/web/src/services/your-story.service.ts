@@ -49,15 +49,13 @@ interface ApiStoryResponse {
       nextStage: string | null;
       tagline: string;
     };
+    /** null when the user has no energy readings */
     energy: {
       overall: number;
       label: string;
-      emotional: { score: number; label: string };
-      mental: { score: number; label: string };
-      physical: { score: number; label: string };
       trend: string;
-      recommendation: string;
-    };
+      recommendation: string | null;
+    } | null;
     moodCalendar: {
       month: number;
       year: number;
@@ -257,18 +255,14 @@ function transformApiResponse(
     // Milestones (placeholder - add real milestones API later)
     milestones: [],
 
-    // Energy Rings visualization
-    energyRings: {
-      overall: api.energy.overall,
-      dimensions: {
-        emotional: api.energy.emotional.score,
-        mental: api.energy.mental.score,
-        physical: api.energy.physical.score,
-        // No social score: the API has no source for one, so none is shown.
-      },
-      trend: 'stable',
-      recommendation: api.energy.recommendation,
-    },
+    // Energy ring: one real overall score; none at all without readings
+    energyRings: api.energy
+      ? {
+          overall: api.energy.overall,
+          label: api.energy.label,
+          recommendation: api.energy.recommendation ?? undefined,
+        }
+      : undefined,
 
     // Mood Calendar visualization
     moodCalendar: {
@@ -284,18 +278,9 @@ function transformApiResponse(
       },
     },
 
-    // Burnout Gauge visualization (inferred from energy data)
-    burnoutGauge: {
-      currentLevel: 100 - api.energy.overall, // Invert energy to get burnout
-      trend: api.energy.trend === 'declining' ? 'increasing' : 'stable',
-      warning: api.energy.overall < 40,
-      recommendation: api.energy.recommendation,
-      factors: [
-        { name: 'Emotional Load', contribution: 100 - api.energy.emotional.score },
-        { name: 'Mental Load', contribution: 100 - api.energy.mental.score },
-        { name: 'Physical Load', contribution: 100 - api.energy.physical.score },
-      ],
-    },
+    // No burnout gauge: it needs emotional/mental/physical factors, which no
+    // reading measures.
+    burnoutGauge: undefined,
 
     // Life Timeline visualization
     lifeTimeline: {

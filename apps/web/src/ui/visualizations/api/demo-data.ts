@@ -400,10 +400,9 @@ function createDemoOpenLoops(now: Date): OpenLoopsData {
  */
 function createDemoEnergyRings(): EnergyRingsData {
   return {
-    emotional: 75,
-    mental: 68,
-    physical: 72,
     overall: 72,
+    label: 'Balanced',
+    recommendation: 'A short walk between calls could help.',
   };
 }
 
