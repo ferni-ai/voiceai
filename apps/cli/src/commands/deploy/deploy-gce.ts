@@ -48,6 +48,7 @@ import { findProjectRoot } from '../../utils/project-root.js';
 import { execSync } from 'child_process';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { GEMINI_MODEL } from '../../../../../src/config/gemini-config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = findProjectRoot();
@@ -565,7 +566,7 @@ function deployToSlot(
     USE_OPENAI_REALTIME: 'false',
     // Split: Live API model vs generateContent-capable default
     LLM_REALTIME_MODEL: 'gemini-2.0-flash-live-preview-04-09',
-    GEMINI_MODEL: 'gemini-2.5-flash',
+    GEMINI_MODEL,
     // CARTESIA_MODEL unset: src/config/voice-ids.ts pins the snapshot Ferni's PVC is tuned on
     // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
     GOOGLE_GENAI_USE_VERTEXAI: 'true',
@@ -634,7 +635,7 @@ function promoteSlot(slot: 'blue' | 'green', image: string, secrets: Record<stri
     USE_OPENAI_REALTIME: 'false',
     // Split: Live API model vs generateContent-capable default
     LLM_REALTIME_MODEL: 'gemini-2.0-flash-live-preview-04-09',
-    GEMINI_MODEL: 'gemini-2.5-flash',
+    GEMINI_MODEL,
     // CARTESIA_MODEL unset: src/config/voice-ids.ts pins the snapshot Ferni's PVC is tuned on
     // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
     GOOGLE_GENAI_USE_VERTEXAI: 'true',
@@ -804,15 +805,14 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
   envVarsArray.push(`GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}`);
   envVarsArray.push(`FIREBASE_PROJECT_ID=${CONFIG.projectId}`);
   envVarsArray.push('GCS_BUCKET_NAME=ferni-voice-audio-3235');
-  // GCS bucket specifically for voice calls (Cartesia TTS → Twilio playback)
-  envVarsArray.push('GCS_VOICE_BUCKET=ferni-voice-audio-3235');
+  envVarsArray.push('GCS_VOICE_BUCKET=ferni-voice-audio-3235'); // Cartesia TTS → Twilio playback
   envVarsArray.push('REDIS_URL=redis://10.237.188.163:6379'); // Redis internal IP
   envVarsArray.push('PUBSUB_ENABLED=true');
   envVarsArray.push('PORT=8080');
   // Split: Live API model vs generateContent-capable default
   envVarsArray.push('USE_OPENAI_REALTIME=false');
   envVarsArray.push('LLM_REALTIME_MODEL=gemini-2.0-flash-live-preview-04-09');
-  envVarsArray.push('GEMINI_MODEL=gemini-2.5-flash');
+  envVarsArray.push(`GEMINI_MODEL=${GEMINI_MODEL}`);
   envVarsArray.push('CARTESIA_MODEL=sonic-3-latest');
   // Vertex AI is REQUIRED for Gemini Live API (bidiGenerateContent)
   envVarsArray.push('GOOGLE_GENAI_USE_VERTEXAI=true');
