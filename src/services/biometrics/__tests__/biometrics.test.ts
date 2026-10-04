@@ -150,14 +150,14 @@ describe('Biometrics', () => {
 
   describe('getAuthorizationUrl', () => {
     it('should generate HealthKit deep link URL', () => {
-      const url = getAuthorizationUrl('healthkit', 'user-123');
+      const url = getAuthorizationUrl('healthkit', 'user-123', 'opaque-state');
 
       expect(url).toContain('ferni://healthkit/auth');
-      expect(url).toContain('state=');
+      expect(url).toContain('state=opaque-state');
     });
 
     it('should generate Google Fit OAuth URL', () => {
-      const url = getAuthorizationUrl('googlefit', 'user-123');
+      const url = getAuthorizationUrl('googlefit', 'user-123', 'opaque-state');
 
       expect(url).toContain('accounts.google.com/o/oauth2/v2/auth');
       expect(url).toContain('response_type=code');
@@ -165,14 +165,14 @@ describe('Biometrics', () => {
     });
 
     it('should generate Oura OAuth URL', () => {
-      const url = getAuthorizationUrl('oura', 'user-123');
+      const url = getAuthorizationUrl('oura', 'user-123', 'opaque-state');
 
       expect(url).toContain('cloud.ouraring.com/oauth/authorize');
       expect(url).toContain('response_type=code');
     });
 
     it('should generate Whoop OAuth URL', () => {
-      const url = getAuthorizationUrl('whoop', 'user-123');
+      const url = getAuthorizationUrl('whoop', 'user-123', 'opaque-state');
 
       expect(url).toContain('api.prod.whoop.com/oauth/oauth2/auth');
       // Colons are URL-encoded as %3A
@@ -183,48 +183,43 @@ describe('Biometrics', () => {
     it.skip('should generate Terra session placeholder (requires TERRA env vars)', () => {
       // Terra URL generation requires TERRA_DEV_ID and TERRA_API_KEY env vars
       // Tested via integration tests with actual credentials
-      const url = getAuthorizationUrl('terra', 'user-123');
+      const url = getAuthorizationUrl('terra', 'user-123', 'opaque-state');
 
       expect(url).toContain('TERRA_SESSION_REQUIRED');
       expect(url).toContain('user-123');
     });
 
     it('should throw for unsupported platform', () => {
-      expect(() => getAuthorizationUrl('unknown' as BiometricPlatform, 'user-123')).toThrow(
-        'Unsupported platform'
-      );
+      expect(() =>
+        getAuthorizationUrl('unknown' as BiometricPlatform, 'user-123', 'opaque-state')
+      ).toThrow('Unsupported platform');
     });
 
-    it('should include encoded state with userId and platform', () => {
-      const url = getAuthorizationUrl('googlefit', 'user-123');
-      const stateMatch = url.match(/state=([^&]+)/);
+    it('carries the opaque state as given, with no user id in it', () => {
+      const url = getAuthorizationUrl('googlefit', 'user-123', 'opaque-state');
 
-      expect(stateMatch).toBeTruthy();
-
-      if (stateMatch) {
-        const decoded = JSON.parse(Buffer.from(stateMatch[1], 'base64').toString());
-        expect(decoded.userId).toBe('user-123');
-        expect(decoded.platform).toBe('googlefit');
-      }
+      expect(new URL(url).searchParams.get('state')).toBe('opaque-state');
+      expect(url).not.toContain('user-123');
+      expect(url).not.toContain(Buffer.from('{"userId"').toString('base64').slice(0, 8));
     });
 
     it('should accept custom scopes for Google Fit', () => {
       const customScopes = ['https://www.googleapis.com/auth/fitness.activity.read'];
-      const url = getAuthorizationUrl('googlefit', 'user-123', customScopes);
+      const url = getAuthorizationUrl('googlefit', 'user-123', 'opaque-state', customScopes);
 
       expect(url).toContain(encodeURIComponent(customScopes[0]));
     });
 
     it('should accept custom scopes for Oura', () => {
       const customScopes = ['daily', 'sleep'];
-      const url = getAuthorizationUrl('oura', 'user-123', customScopes);
+      const url = getAuthorizationUrl('oura', 'user-123', 'opaque-state', customScopes);
 
       expect(url).toContain(encodeURIComponent(customScopes.join(' ')));
     });
 
     it('should accept custom scopes for Whoop', () => {
       const customScopes = ['read:recovery'];
-      const url = getAuthorizationUrl('whoop', 'user-123', customScopes);
+      const url = getAuthorizationUrl('whoop', 'user-123', 'opaque-state', customScopes);
 
       expect(url).toContain(encodeURIComponent(customScopes[0]));
     });
@@ -425,10 +420,10 @@ describe('Biometrics', () => {
     it('should have different URL formats for each platform (excluding Terra)', () => {
       // Terra excluded because it requires env vars - tested separately
       const urls = {
-        healthkit: getAuthorizationUrl('healthkit', 'user'),
-        googlefit: getAuthorizationUrl('googlefit', 'user'),
-        oura: getAuthorizationUrl('oura', 'user'),
-        whoop: getAuthorizationUrl('whoop', 'user'),
+        healthkit: getAuthorizationUrl('healthkit', 'user', 's'),
+        googlefit: getAuthorizationUrl('googlefit', 'user', 's'),
+        oura: getAuthorizationUrl('oura', 'user', 's'),
+        whoop: getAuthorizationUrl('whoop', 'user', 's'),
       };
 
       // All URLs should be unique

@@ -158,19 +158,16 @@ export function isAppleSignInConfigured(): boolean {
 }
 
 /**
- * Get the authorization URL for Apple Sign In
+ * Get the authorization URL for Apple Sign In.
+ * The state is the opaque one from servers/token/oauth-link-state.ts; it must
+ * not carry the user id (the callback used to trust whatever it decoded).
  */
-export function getAppleAuthorizationUrl(userId: string, returnUrl?: string): string {
+export function getAppleAuthorizationUrl(state: string): string {
   const { clientId, redirectUri } = getAppleConfig();
 
   if (!clientId) {
     throw new Error('Apple Sign In not configured');
   }
-
-  // State includes userId and optional return URL
-  const state = Buffer.from(JSON.stringify({ userId, returnUrl: returnUrl || '/' })).toString(
-    'base64'
-  );
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -185,21 +182,14 @@ export function getAppleAuthorizationUrl(userId: string, returnUrl?: string): st
 }
 
 /**
- * Handle the OAuth callback from Apple
+ * Finish the OAuth callback from Apple for a user the caller has already
+ * resolved from a consumed server-side state record.
  */
 export async function handleAppleCallback(
   code: string,
-  state: string
+  userId: string
 ): Promise<{ success: boolean; userId?: string; error?: string }> {
   try {
-    // Parse state to get userId
-    const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
-    const userId = stateData.userId;
-
-    if (!userId) {
-      return { success: false, error: 'Missing userId in state' };
-    }
-
     // Exchange code for tokens
     const tokens = await exchangeCodeForTokens(code);
 
