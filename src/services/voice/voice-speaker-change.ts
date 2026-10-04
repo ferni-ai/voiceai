@@ -16,7 +16,7 @@
 import pino from 'pino';
 import { EventEmitter } from 'events';
 import { extractSpeakerEmbedding, type SpeakerEmbedding } from '../voice-memory-enhanced.js';
-import { identifyHouseholdSpeaker, updateSessionSpeaker } from './voice-household.js';
+import { updateSessionSpeaker } from './voice-household.js';
 // Centralized cosine similarity - uses optimized implementation from rust-accelerator
 import { cosineSimilarity } from '../../memory/rust-accelerator.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
@@ -37,8 +37,10 @@ export interface SpeakerChangeEvent {
 }
 
 export interface SpeakerChangeConfig {
-  // Minimum similarity to consider same speaker
+  // Minimum similarity to consider same speaker (DSP voice features)
   sameSpeakerThreshold: number;
+  // Same, for neural (ECAPA-TDNN) embeddings, whose same-speaker cosine is lower
+  neuralSameSpeakerThreshold: number;
   // Minimum confidence to trigger speaker change
   changeConfidenceThreshold: number;
   // Number of consecutive different samples before triggering change
@@ -58,6 +60,8 @@ export interface SpeakerChangeConfig {
 interface SpeakerState {
   currentSpeakerId: string | null;
   currentEmbedding: number[] | null;
+  // Method that produced currentEmbedding; vectors of different methods are not comparable
+  currentMethod: SpeakerEmbedding['method'] | null;
   recentEmbeddings: Array<{
     embedding: number[];
     timestamp: Date;
@@ -72,6 +76,9 @@ interface SpeakerState {
 
 const DEFAULT_CONFIG: SpeakerChangeConfig = {
   sameSpeakerThreshold: 0.75,
+  // ECAPA-TDNN on 2 s windows (6 TTS voices, 2026-10-04): same speaker p5 0.535,
+  // different speakers p95 0.306; equal-error point 0.45 (0.3% / 0.1%).
+  neuralSameSpeakerThreshold: 0.45,
   changeConfidenceThreshold: 0.6,
   changeDebounceCount: 2,
   minAudioDurationMs: 1000,
@@ -108,6 +115,7 @@ export class SpeakerChangeDetector extends EventEmitter {
     this.state = {
       currentSpeakerId: null,
       currentEmbedding: null,
+      currentMethod: null,
       recentEmbeddings: [],
       consecutiveDifferentCount: 0,
       lastCheckTime: new Date(),
@@ -221,7 +229,7 @@ export class SpeakerChangeDetector extends EventEmitter {
       const embedding = Array.from(speakerEmbedding.vector);
 
       // Compare with current speaker
-      await this.checkSpeakerChange(embedding);
+      await this.checkSpeakerChange(embedding, speakerEmbedding.method);
     } catch (error) {
       log.error({ error }, 'Error processing audio for speaker change');
     } finally {
@@ -232,8 +240,20 @@ export class SpeakerChangeDetector extends EventEmitter {
   /**
    * Check if speaker has changed based on embedding.
    */
-  private async checkSpeakerChange(newEmbedding: number[]): Promise<void> {
+  private async checkSpeakerChange(
+    newEmbedding: number[],
+    method: SpeakerEmbedding['method']
+  ): Promise<void> {
     const now = new Date();
+
+    // A neural vector and a DSP vector live in different spaces: if the method
+    // changed (model came up, or fell back), start over from this voice.
+    if (this.state.currentMethod !== method) {
+      this.state.currentMethod = method;
+      this.state.currentEmbedding = null;
+      this.state.recentEmbeddings = [];
+      this.state.consecutiveDifferentCount = 0;
+    }
 
     // Add to recent embeddings
     this.state.recentEmbeddings.push({
@@ -254,8 +274,12 @@ export class SpeakerChangeDetector extends EventEmitter {
 
     // Compare with current speaker - uses centralized SIMD-ready implementation
     const similarity = cosineSimilarity(newEmbedding, this.state.currentEmbedding);
+    const threshold =
+      method === 'neural'
+        ? this.config.neuralSameSpeakerThreshold
+        : this.config.sameSpeakerThreshold;
 
-    if (similarity >= this.config.sameSpeakerThreshold) {
+    if (similarity >= threshold) {
       // Same speaker - reset debounce counter
       this.state.consecutiveDifferentCount = 0;
 
@@ -277,7 +301,8 @@ export class SpeakerChangeDetector extends EventEmitter {
         {
           similarity,
           consecutiveCount: this.state.consecutiveDifferentCount,
-          threshold: this.config.sameSpeakerThreshold,
+          threshold,
+          method,
         },
         'Different speaker detected'
       );
@@ -297,13 +322,8 @@ export class SpeakerChangeDetector extends EventEmitter {
   private async handleNewSpeaker(embedding: number[]): Promise<void> {
     this.state.currentEmbedding = embedding;
 
-    // Try to identify speaker
+    // Who it is stays unknown here: household matching is not wired into this path
     if (this.config.enableHouseholdIdentification) {
-      // Reconstruct audio from embedding is not possible,
-      // so we'll use the most recent audio buffer
-      // This is a limitation - in practice, you'd keep the audio
-
-      // For now, emit unknown speaker event
       this.emitEvent('unknown_speaker', 0);
 
       log.info({ deviceId: this.deviceId }, 'New speaker detected (unidentified)');
@@ -316,7 +336,6 @@ export class SpeakerChangeDetector extends EventEmitter {
   private async handleSpeakerChange(newEmbedding: number[], confidence: number): Promise<void> {
     const previousSpeakerId = this.state.currentSpeakerId;
 
-    // Try to identify new speaker from household
     const newSpeakerId: string | null = null;
     const isNewSpeaker = true;
 
