@@ -334,14 +334,14 @@ class ConversationHistoryUI {
     const isFavorite = favoritePersona && session.personaName.toLowerCase() === favoritePersona.toLowerCase();
 
     return `
-      <article class="history__session ${isFavorite ? 'history__session--favorite' : ''}" data-session="${session.id}" style="--session-delay: ${delay}ms">
+      <article class="history__session ${isFavorite ? 'history__session--favorite' : ''}" data-session="${this.escapeHtml(session.id)}" style="--session-delay: ${delay}ms">
         <div class="history__session-header">
-          <div class="history__session-persona ${isFavorite ? 'history__session-persona--favorite' : ''}" data-persona="${session.personaId}">
+          <div class="history__session-persona ${isFavorite ? 'history__session-persona--favorite' : ''}" data-persona="${this.escapeHtml(session.personaId)}">
             ${session.personaName.slice(0, 2).toUpperCase()}
             ${isFavorite ? `<span class="history__favorite-badge" title="Your favorite">★</span>` : ''}
           </div>
           <div class="history__session-meta">
-            <span class="history__session-name">${session.personaName}</span>
+            <span class="history__session-name">${this.escapeHtml(session.personaName)}</span>
             <span class="history__session-date">${formattedDate}</span>
           </div>
           ${moodIcon ? `<div class="history__session-mood">${moodIcon}</div>` : ''}

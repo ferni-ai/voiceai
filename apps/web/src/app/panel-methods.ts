@@ -8,14 +8,16 @@
 
 import type { ScreenName } from '../services/app-context-tracking.service.js';
 import { getDemoTeamHuddle, isDemoDataEnabled } from '../services/engagement-demo-data.js';
-import { getAnalyticsDashboardUI } from '../ui/analytics-dashboard.ui.js';
-import { getCognitiveInsightsUI } from '../ui/cognitive-insights.ui.js';
-import { getConversationHistoryUI } from '../ui/conversation-history.ui.js';
+import { type AnalyticsDashboardData, getAnalyticsDashboardUI } from '../ui/analytics-dashboard.ui.js';
+import { type CognitiveInsightsData, getCognitiveInsightsUI } from '../ui/cognitive-insights.ui.js';
+import { type ConversationHistoryData, getConversationHistoryUI } from '../ui/conversation-history.ui.js';
 import { getDataExportUI } from '../ui/data-export.ui.js';
 import { getPredictionTrackerUI } from '../ui/prediction-tracker.ui.js';
 import { showTeamHuddle as showTeamHuddleUI } from '../ui/team-huddle.ui.js';
 import type { fetchVisualizationData, YourStoryData } from '../ui/visualizations/index.js';
 import { loadYourStory } from '../ui/lazy-screens.js';
+import { toast } from '../ui/whisper.ui.js';
+import { apiDelete, apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
 // 🧠 Better Than Human: Track screen view for Voice ↔ App Sync
@@ -42,18 +44,12 @@ export async function showConversationHistory(): Promise<void> {
   void trackScreen('journal');
   getConversationHistoryUI().showLoading();
 
-  // TODO: Backend GET /api/conversations not implemented yet.
-  // When the handler exists, uncomment the fetch below.
-  // try {
-  //   const response = await fetch('/api/conversations');
-  //   if (response.ok) {
-  //     const data = await response.json();
-  //     getConversationHistoryUI().show(data);
-  //     return;
-  //   }
-  // } catch (err) {
-  //   log.debug('API fetch failed, checking for demo mode');
-  // }
+  const response = await apiGet<ConversationHistoryData>('/api/conversations');
+  if (response.ok && response.data) {
+    getConversationHistoryUI().show(response.data);
+    return;
+  }
+  log.debug({ status: response.status, error: response.error }, 'Conversation history fetch failed');
 
   // Fall back to demo data if enabled
   if (isDemoDataEnabled()) {
@@ -125,22 +121,13 @@ export async function showAnalyticsDashboard(): Promise<void> {
   // Show loading state immediately
   getAnalyticsDashboardUI().showLoading();
 
-  // TODO: Backend GET /api/analytics/user not implemented yet.
-  // When the handler exists, uncomment the fetch below.
-  // try {
-  //   const userId = localStorage.getItem('ferni_user_id');
-  //   const url = userId
-  //     ? `/api/analytics/user?userId=${encodeURIComponent(userId)}`
-  //     : '/api/analytics/user';
-  //   const response = await fetch(url);
-  //   if (response.ok) {
-  //     const data = await response.json();
-  //     getAnalyticsDashboardUI().show(data);
-  //     return;
-  //   }
-  // } catch (err) {
-  //   log.debug('API fetch failed, checking for demo mode');
-  // }
+  // No userId param: the server takes identity from the auth token only.
+  const response = await apiGet<AnalyticsDashboardData>('/api/analytics/user');
+  if (response.ok && response.data) {
+    getAnalyticsDashboardUI().show(response.data);
+    return;
+  }
+  log.debug({ status: response.status, error: response.error }, 'Analytics fetch failed');
 
   // Fall back to demo data if enabled
   if (isDemoDataEnabled()) {
@@ -211,9 +198,15 @@ export async function showAnalyticsDashboard(): Promise<void> {
  * Delete a memory from "What I've Learned" and refresh the UI.
  */
 export async function deleteMemory(memoryId: string): Promise<void> {
-  // TODO: Backend DELETE /api/cognitive/memories/:id not implemented yet.
-  // Re-enable when handler exists.
-  log.debug({ memoryId }, 'deleteMemory: backend not implemented yet');
+  const response = await apiDelete(`/api/cognitive/memories/${encodeURIComponent(memoryId)}`);
+  if (response.ok) {
+    toast.success('Memory removed');
+  } else {
+    log.error({ memoryId, status: response.status, error: response.error }, 'Failed to delete memory');
+    toast.error("Couldn't remove that memory. Try again?");
+  }
+  // Re-fetch either way so the list matches what the server actually has.
+  await showCognitiveInsights();
 }
 
 /**
@@ -229,23 +222,18 @@ export async function showCognitiveInsights(): Promise<void> {
   });
   getCognitiveInsightsUI().showLoading();
 
-  // TODO: Backend GET /api/cognitive/memories not implemented yet.
-  // When the handler exists, uncomment the fetch below.
-  // try {
-  //   const response = await fetch('/api/cognitive/memories');
-  //   if (response.ok) {
-  //     const data = await response.json();
-  //     getCognitiveInsightsUI().show({
-  //       memories: data.memories || [],
-  //       patterns: data.patterns || [],
-  //       totalInteractions: data.totalInteractions || 0,
-  //       knowledgeScore: data.knowledgeScore || 0,
-  //     });
-  //     return;
-  //   }
-  // } catch (err) {
-  //   log.debug('API fetch failed, checking for demo mode');
-  // }
+  const response = await apiGet<Partial<CognitiveInsightsData>>('/api/cognitive/memories');
+  if (response.ok && response.data) {
+    const data = response.data;
+    getCognitiveInsightsUI().show({
+      memories: data.memories ?? [],
+      patterns: data.patterns ?? [],
+      totalInteractions: data.totalInteractions ?? 0,
+      knowledgeScore: data.knowledgeScore ?? 0,
+    });
+    return;
+  }
+  log.debug({ status: response.status, error: response.error }, 'Cognitive memories fetch failed');
 
   // Fall back to demo data if enabled
   if (isDemoDataEnabled()) {
