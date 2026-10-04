@@ -178,6 +178,20 @@ export function getUserStats(userId: string, displayName?: string): UserStats {
 }
 
 /**
+ * A game type is a client-supplied key into `gameStats`, so it must be a plain
+ * name that can't reach Object.prototype: `__proto__` read back
+ * Object.prototype itself, and the stats update below then wrote gamesPlayed,
+ * totalScore and accuracy onto every object in the process.
+ */
+export function isValidGameType(gameType: unknown): gameType is string {
+  return (
+    typeof gameType === 'string' &&
+    /^[a-z0-9][a-z0-9-]{0,39}$/i.test(gameType) &&
+    !(gameType in Object.prototype)
+  );
+}
+
+/**
  * Update user stats after a game
  */
 export function updateUserStats(
@@ -246,7 +260,10 @@ export function updateUserStats(
   stats.updatedAt = now;
 
   // Update game-specific stats
-  if (!stats.gameStats[gameType]) {
+  if (!isValidGameType(gameType)) {
+    throw new Error(`Invalid game type: ${JSON.stringify(gameType)}`);
+  }
+  if (!Object.hasOwn(stats.gameStats, gameType)) {
     stats.gameStats[gameType] = {
       gameType,
       gamesPlayed: 0,
@@ -354,7 +371,9 @@ export function getLeaderboard(
           ? Math.round((stats.challengesWon / (stats.challengesWon + stats.challengesLost)) * 100)
           : 0;
     } else {
-      const gameStats = stats.gameStats[gameType];
+      const gameStats = Object.hasOwn(stats.gameStats, gameType)
+        ? stats.gameStats[gameType]
+        : undefined;
       if (!gameStats) continue;
       score = gameStats.totalScore;
       gamesPlayed = gameStats.gamesPlayed;
@@ -501,60 +520,4 @@ function getPeriodDates(period: LeaderboardPeriod): { start: Date; end: Date } {
   }
 
   return { start, end };
-}
-
-// ============================================================================
-// SEED DATA (for testing)
-// ============================================================================
-
-/**
- * Seed leaderboard with test data
- */
-export function seedLeaderboardData(): void {
-  const testUsers = [
-    { id: 'user-1', name: 'MusicMaster99', score: 2450, games: 45 },
-    { id: 'user-2', name: 'TuneTitan', score: 2380, games: 42 },
-    { id: 'user-3', name: 'MelodyQueen', score: 2290, games: 38 },
-    { id: 'user-4', name: 'BeatDropper', score: 2100, games: 35 },
-    { id: 'user-5', name: 'RhythmRider', score: 1950, games: 32 },
-    { id: 'user-6', name: 'VinylVince', score: 1820, games: 30 },
-    { id: 'user-7', name: 'NoteNinja', score: 1700, games: 28 },
-    { id: 'user-8', name: 'SoundSage', score: 1580, games: 25 },
-    { id: 'user-9', name: 'GrooveGuru', score: 1450, games: 22 },
-    { id: 'user-10', name: 'AudioAce', score: 1320, games: 20 },
-  ];
-
-  for (const user of testUsers) {
-    const stats: UserStats = {
-      userId: user.id,
-      displayName: user.name,
-      totalGamesPlayed: user.games,
-      totalScore: user.score,
-      totalXP: user.score * 2,
-      level: calculateLevel(user.score * 2),
-      gameStats: {
-        'name-that-tune': {
-          gameType: 'name-that-tune',
-          gamesPlayed: Math.floor(user.games * 0.6),
-          totalScore: Math.floor(user.score * 0.6),
-          highScore: Math.floor(user.score * 0.3),
-          averageScore: Math.floor(user.score / user.games),
-          accuracy: 70 + Math.floor(Math.random() * 25),
-          lastPlayedAt: new Date(),
-        },
-      },
-      currentStreak: Math.floor(Math.random() * 10) + 1,
-      longestStreak: Math.floor(Math.random() * 20) + 5,
-      lastPlayedAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000),
-      challengesWon: Math.floor(Math.random() * 15),
-      challengesLost: Math.floor(Math.random() * 10),
-      perfectGames: Math.floor(Math.random() * 5),
-      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(),
-    };
-
-    userStatsStore.set(user.id, stats);
-  }
-
-  log.info('🏆 Seeded leaderboard with test data');
 }

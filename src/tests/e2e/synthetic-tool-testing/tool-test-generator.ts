@@ -96,7 +96,7 @@ export class ToolTestGenerator {
       throw new Error('GOOGLE_API_KEY required for test generation');
     }
     this.genAI = new GoogleGenerativeAI(key);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
   }
 
   /**
@@ -228,7 +228,7 @@ export class ToolTestRunner {
     }
     this.genAI = new GoogleGenerativeAI(key);
     this.model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-3.5-flash',
       generationConfig: {
         temperature: 0.3, // Lower temperature for more consistent tool calling
       },

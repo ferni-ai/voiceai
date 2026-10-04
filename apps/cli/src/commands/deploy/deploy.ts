@@ -17,6 +17,7 @@ import { ChildProcess, execSync, spawn } from 'child_process';
 import { createWriteStream, existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { healthCheck, smokeTestFrontend } from './url-checks.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -149,45 +150,6 @@ function getLatestRevision(serviceName: string): string {
   } catch {
     return '';
   }
-}
-
-/**
- * Health check a URL with retries
- */
-async function healthCheck(
-  url: string,
-  options: { maxRetries?: number; retryDelay?: number; timeout?: number } = {}
-): Promise<{ healthy: boolean; statusCode?: number; error?: string }> {
-  const { maxRetries = 5, retryDelay = 3000, timeout = 10000 } = options;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-      const response = await fetch(url, {
-        method: 'GET',
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        return { healthy: true, statusCode: response.status };
-      }
-
-      log.warn(`Health check attempt ${attempt}/${maxRetries}: status ${response.status}`);
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      log.warn(`Health check attempt ${attempt}/${maxRetries}: ${errorMsg}`);
-    }
-
-    if (attempt < maxRetries) {
-      await new Promise((resolve) => setTimeout(resolve, retryDelay));
-    }
-  }
-
-  return { healthy: false, error: `Failed after ${maxRetries} attempts` };
 }
 
 /**
@@ -862,6 +824,7 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
     log.info('Would build frontend');
     log.info('Would deploy to preview channel');
     log.info('Would health check preview URL');
+    log.info('Would browser smoke test preview URL');
     log.info('Would promote to live if healthy');
     return true;
   }
@@ -893,20 +856,32 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
 
   // Step 2: Health check preview (if we got a URL)
   if (previewUrl) {
-    log.info('Step 2/3: Health checking preview...');
-    const health = await healthCheck(previewUrl, { maxRetries: 5, retryDelay: 3000 });
-
-    if (!health.healthy) {
-      log.error(`Preview health check failed: ${health.error}`);
+    const deletePreviewChannel = () => {
       log.info('Cleaning up preview channel...');
       try {
         exec(`cd ${frontendDir} && firebase hosting:channel:delete ${channelId} --force --project ${CONFIG.projectId}`, { silent: true });
       } catch {
         // Ignore cleanup errors
       }
+    };
+
+    log.info('Step 2/3: Health checking preview...');
+    const health = await healthCheck(previewUrl, { maxRetries: 5, retryDelay: 3000 });
+
+    if (!health.healthy) {
+      log.error(`Preview health check failed: ${health.error}`);
+      deletePreviewChannel();
       return false;
     }
     log.success(`Preview health check passed (HTTP ${health.statusCode})`);
+
+    log.info('Smoke testing preview in a browser...');
+    if (!smokeTestFrontend(PROJECT_ROOT, previewUrl)) {
+      log.error('Preview browser smoke test failed, not promoting');
+      deletePreviewChannel();
+      return false;
+    }
+    log.success('Preview browser smoke test passed');
   } else {
     log.info('Step 2/3: Skipping preview health check (no preview URL)');
   }

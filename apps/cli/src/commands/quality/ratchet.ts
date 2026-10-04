@@ -21,7 +21,7 @@
  *
  * @module quality/ratchet
  */
-import { readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
 import { dirname, join, relative } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 
@@ -43,23 +43,65 @@ export interface Measurement {
 /** The built web app (apps/web/dist/assets), in KB. */
 export interface BundleSize {
   totalKB: number;
-  /** index* and vendor* files: what loads before the app runs */
+  /** JS and CSS the entry pulls in statically: what loads before the app runs */
   initialKB: number;
   maxChunkKB: number;
+}
+
+/** One chunk in Vite's build manifest (dist/.vite/manifest.json, `build.manifest: true`). */
+export interface ManifestChunk {
+  file: string;
+  isEntry?: boolean;
+  /** manifest keys of chunks this one imports statically */
+  imports?: string[];
+  /** manifest keys of chunks this one loads with import(): not initial */
+  dynamicImports?: string[];
+  css?: string[];
 }
 
 /** Builds differ by a few bytes run to run; growth under this isn't a regression. */
 export const BUNDLE_TOLERANCE = 0.02;
 
+/**
+ * Files (relative to dist) that load before the app runs: every entry, and
+ * everything it reaches through static imports, with their CSS. Asking the
+ * manifest instead of guessing from filenames, because Rollup names a chunk
+ * after its module: a lazy foo/index.ts becomes index-*.js, and an eager
+ * chunk can have any name.
+ */
+export function initialFiles(manifest: Record<string, ManifestChunk>): Set<string> {
+  const files = new Set<string>();
+  const seen = new Set<string>();
+  const queue = Object.keys(manifest).filter((key) => manifest[key]?.isEntry);
+  for (let key = queue.pop(); key !== undefined; key = queue.pop()) {
+    const chunk = manifest[key];
+    if (!chunk || seen.has(key)) continue;
+    seen.add(key);
+    files.add(chunk.file);
+    for (const css of chunk.css ?? []) files.add(css);
+    queue.push(...(chunk.imports ?? []));
+  }
+  return files;
+}
+
 export function measureBundle(dir = join(ROOT, 'apps/web/dist/assets')): BundleSize {
   const files = readdirSync(dir).filter((f) => /\.(js|css)$/.test(f));
+  const manifestPath = join(dir, '..', '.vite', 'manifest.json');
+  let isInitial: (file: string) => boolean;
+  if (existsSync(manifestPath)) {
+    const initial = initialFiles(JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, ManifestChunk>);
+    isInitial = (f) => initial.has(`assets/${f}`);
+  } else {
+    console.warn(`⚠️  No ${relative(ROOT, manifestPath)}: guessing initial files from their names (index*, vendor*).`);
+    isInitial = (f) => /^(index|vendor)/.test(f);
+  }
   let totalKB = 0;
   let initialKB = 0;
   let maxChunkKB = 0;
   for (const f of files) {
     const kb = statSync(join(dir, f)).size / 1024;
     totalKB += kb;
-    if (/^(index|vendor)/.test(f)) initialKB += kb;
+    if (isInitial(f)) initialKB += kb;
     maxChunkKB = Math.max(maxChunkKB, kb);
   }
   const round = (n: number): number => Math.round(n * 10) / 10;

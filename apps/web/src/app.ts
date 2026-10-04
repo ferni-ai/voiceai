@@ -21,9 +21,42 @@ import { devPanelMayEnable } from './ui/dev-panel-gate.js';
 import {
   openCalendarSettings,
   openCalendarView,
+  openChronicle,
+  openContactSettings,
+  openCreativeYouDashboard,
+  openFerniFund,
+  openFutureInsights,
   openGamePicker,
+  openGrowthJournal,
+  openKnowledgeQuiz,
+  openManageSubscription,
+  openMarketplace,
+  openMarketplaceAdmin,
+  openMemoryLane,
   openMusicDashboard,
   openNotificationSettings,
+  openOutreachSchedule,
+  openPersonalize,
+  openReferral,
+  openRitualBuilder,
+  openSupportFerni,
+  openYourPeople,
+  showAppleHealthSettings,
+  showConversationMemory,
+  showEightSleepSettings,
+  showFamilyIdentities,
+  showFerniFundThankYou,
+  showGroupCoaching,
+  showHouseholdManager,
+  showLifeContextDashboard,
+  showLinkedInSettings,
+  showOuraSettings,
+  showPatternInsights,
+  showSmartHomeSettings,
+  showVibeController,
+  showVideoSettings,
+  showWearableSettings,
+  showWellbeingDashboard,
 } from './ui/lazy-screens.js';
 
 // State
@@ -78,9 +111,6 @@ import {
 } from './ui/spotify.ui.js';
 import { initTeamUI, teamUI } from './ui/team.ui.js';
 import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
-// Relationship Management (Your People) - unified contact & gift management
-import { openYourPeople } from './ui/your-people.ui.js';
-// openAddPerson available via Your People panel
 // Group Conversations - Team Roundtables and Conference Calls
 import { initGroupConversationUI } from './ui/group-conversation.ui.js';
 // Proactive Messages - In-app messages from intelligent outreach
@@ -142,20 +172,13 @@ function hideDirectorTriggerButton(): void {
   const el = document.getElementById(DIRECTOR_TRIGGER_ID);
   if (el) el.style.display = 'none';
 }
-// Marketplace UI
-import { openChronicle } from './ui/chronicle.ui.js';
-import { openCreativeYouDashboard } from './ui/creative-you-dashboard.ui.js';
 import {
   getIntegrationsSettingsUI,
   showIntegrationsSettings,
 } from './ui/integrations-settings.ui.js';
-import { openAdminQueue as openMarketplaceAdmin } from './ui/marketplace-admin.ui.js';
-import { marketplaceUI, openMarketplace } from './ui/marketplace.ui.js';
 // 📔 Journal Capture - Auto-capture meaningful moments from conversations
 // CLI Authentication (for ferni auth login)
 import { initCLIAuth } from './ui/cli-auth.ui.js';
-// New Unified Admin Portal
-import { initAdminPortal } from './admin/index.js';
 // Engagement UI
 import { engagementTriggerUI, initEngagementTriggerUI } from './ui/engagement-trigger.ui.js';
 import { getEngagementUI } from './ui/engagement.ui.js';
@@ -232,14 +255,8 @@ import { getCommandsPanelUI, setCommandsPersonaId } from './ui/commands.ui.js';
 import { initConversationHistoryUI } from './ui/conversation-history.ui.js';
 import { initDataExportUI } from './ui/data-export.ui.js';
 import { initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
-import { getRitualBuilderUI, initRitualBuilderUI } from './ui/ritual-builder.ui.js';
 import { getSanctuaryUI } from './ui/sanctuary.ui.js';
 import { getSettingsMenuUI, initSettingsMenuUI } from './ui/settings-menu.ui.js';
-// New feature UIs - Memory Lane, Knowledge Quiz, Growth Journal, Pattern Insights
-import { openGrowthJournal } from './ui/growth-journal.ui.js';
-import { openKnowledgeQuiz } from './ui/knowledge-quiz.ui.js';
-import { memoryLaneUI } from './ui/memory-lane.ui.js';
-import { patternInsightsUI } from './ui/pattern-insights.ui.js';
 // Services for feature persistence
 import {
   conversationTracker,
@@ -258,63 +275,22 @@ import { initTeamIntro, showTeamIntro } from './ui/team-intro.ui.js';
 // Push Notifications
 import { initPushNotifications } from './services/push-notifications.service.js';
 import { watchPushOwnership } from './services/push-preference.js';
-// Outreach Schedule UI
-import { openOutreachSchedule } from './ui/outreach-schedule.ui.js';
-// Contact Settings UI
-import { openContactSettings } from './ui/contact-settings.ui.js';
 // Calendar Analytics UI - Insights dashboard
 // Calendar analytics is now integrated into calendar-view.ui.ts
-// Wearable Settings UI - Connected device management
-import { showWearableSettings } from './ui/wearable-settings.ui.js';
-// Video Settings UI - Video session controls
-import { showVideoSettings } from './ui/video-settings.ui.js';
-// LinkedIn Settings UI - Career milestone awareness
-import { initLinkedInSettings, showLinkedInSettings } from './ui/linkedin-settings.ui.js';
-// Vibe Controller UI - Unified Music, Lights, Temperature control
-import { show as showVibeController } from './ui/vibe-controller.ui.js';
-// Smart Home Settings UI - Connect Ecobee, Hue, LIFX
-import { showSmartHomeSettings } from './ui/smart-home-settings.ui.js';
-// Eight Sleep Settings UI - Smart mattress control
-import { showEightSleepSettings } from './ui/eight-sleep-settings.ui.js';
-// Oura Ring Settings UI - Sleep and readiness tracking
-import { showOuraSettings } from './ui/oura-settings.ui.js';
-// Apple Health Settings UI - iOS HealthKit sync
-import { showAppleHealthSettings } from './ui/apple-health-settings.ui.js';
 // LinkedIn connection for career awareness (used as fallback)
 import { handleOAuthReturns } from './app/oauth-return.js';
 import { createIntegrationsCallbacks } from './app/integrations-callbacks.js';
-// Group Coaching UI - Multi-participant sessions
-import { showGroupCoaching } from './ui/group-coaching.ui.js';
 // Voice Enrollment UI
 import { initVoiceEnrollmentUI, showVoiceEnrollmentModal } from './ui/voice-enrollment.ui.js';
 // Voice ID Badge
 import { initVoiceIdBadge } from './ui/voice-id-badge.ui.js';
 // Speaker Change Indicator - Gentle verification when voice changes
 import { initSpeakerChangeIndicator } from './ui/speaker-change-indicator.ui.js';
-// Household Manager - Multi-user voice household management
-import { FamilyIdentities } from './ui/family-identities.ui.js';
-import { initHouseholdManager, showHouseholdManager } from './ui/household-manager.ui.js';
-// Conversation Memory Browser - Browse past conversations and memories
-import { initConversationMemory, showConversationMemory } from './ui/conversation-memory.ui.js';
-// Wellbeing Dashboard - "State of Me" visualization
-import { initWellbeingDashboard, showWellbeingDashboard } from './ui/wellbeing-dashboard.ui.js';
-// Life Context Dashboard - Cross-domain life synthesis (Phase 6)
-import {
-  initLifeContextDashboard,
-  showLifeContextDashboard,
-} from './ui/life-context-dashboard.ui.js';
 // Service Health - Show degradation status to users
 import { initServiceHealthUI } from './ui/service-health.ui.js';
-// Monetization UIs - Support Ferni
-import { ferniFundUI } from './ui/ferni-fund.ui.js';
-import { futureInsightsUI } from './ui/future-insights.ui.js';
 import { journeyUI } from './ui/journey.ui.js';
-import { supportFerniUI } from './ui/support-ferni.ui.js';
 // Garden Widget - Seed Fund community contribution display
 // Garden widget removed - using simple menu option instead
-import { manageSubscriptionUI } from './ui/manage-subscription.ui.js';
-import { personalizeUI } from './ui/personalize.ui.js';
-import { referralUI } from './ui/referral.ui.js';
 // tipJarUI removed - now using ferniFundUI (Garden metaphor)
 // Growth Journey - Celebrates relationship milestones
 import { growthJourneyService } from './services/growth-journey.service.js';
@@ -347,8 +323,6 @@ import { initSeedsDisplay } from './ui/seeds-display.ui.js';
 import { initSeedsToast } from './ui/seeds-toast.ui.js';
 // Subscription Badge - subtle status indicator in header
 import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-badge.ui.js';
-// Support Ferni - Founders Fund experience
-import { initSupportFerniUI } from './ui/support-ferni.ui.js';
 // Roadmap Panel - What's Growing feature voting
 import { initRoadmapPanelUI } from './ui/roadmap-panel.ui.js';
 // Structured logger
@@ -1018,6 +992,7 @@ class VoiceAIApp {
       await initAdminDashboard();
     } else {
       // New unified Admin Portal
+      const { initAdminPortal } = await import('./admin/index.js');
       await initAdminPortal();
     }
 
@@ -1781,17 +1756,6 @@ class VoiceAIApp {
 
     // 📝 Conversation Tracker - for history persistence
     this.safeInit('ConversationTracker', () => initConversationTracker());
-    this.safeInit('RitualBuilderUI', () => {
-      initRitualBuilderUI();
-      getRitualBuilderUI().setCallbacks({
-        onSave: async (ritual) => {
-          const saved = await ritualsService.createRitual(ritual);
-          messageUI.show(`"${saved.name}" created! You've got this.`, 'success', 4000);
-          log.info('Ritual created via builder', { id: saved.id, name: saved.name });
-        },
-        onClose: () => log.debug('Ritual builder closed'),
-      });
-    });
 
     // 🎯 Commands Panel - for starting predefined practices
     this.safeInit('CommandsPanelUI', () => {
@@ -1886,8 +1850,8 @@ class VoiceAIApp {
     // Philosophy: "Limits feel like natural breaks, not walls."
     this.safeInit('SubscriptionUI', () => initSubscriptionUI());
 
-    // 💚 Support Ferni / Founders Fund - Community-driven support
-    this.safeInit('SupportFerniUI', () => initSupportFerniUI());
+    // 💚 Support Ferni / Founders Fund - the founders-journey CTA opens it
+    this.addTrackedListener(document, 'ferni:open-support', () => void openSupportFerni());
 
     // 🌱 Roadmap Panel - "What's Growing" feature voting
     this.safeInit('RoadmapPanelUI', () => initRoadmapPanelUI());
@@ -1966,18 +1930,6 @@ class VoiceAIApp {
     // 👥 Speaker Change Indicator - Gentle verification when voice changes
     this.safeInit('SpeakerChangeIndicator', () => initSpeakerChangeIndicator());
 
-    // 🏠 Household Manager - Multi-user voice household management
-    this.safeInit('HouseholdManager', () => initHouseholdManager());
-
-    // 💭 Conversation Memory - Browse past conversations and memories
-    this.safeInit('ConversationMemory', () => initConversationMemory());
-
-    // 🌈 Wellbeing Dashboard - "State of Me" visualization
-    this.safeInit('WellbeingDashboard', () => initWellbeingDashboard());
-
-    // 📊 Life Context Dashboard - Cross-domain synthesis (Phase 6)
-    this.safeInit('LifeContextDashboard', () => initLifeContextDashboard());
-
     // 🏥 Service Health - Show degradation status to users
     this.safeInit('ServiceHealthUI', () => initServiceHealthUI());
 
@@ -1987,7 +1939,7 @@ class VoiceAIApp {
         onHistoryClick: () => void showConversationHistory(),
         onAnalyticsClick: () => void showAnalyticsDashboard(),
         onCognitiveClick: () => void showCognitiveInsights(),
-        onRitualBuilderClick: () => getRitualBuilderUI().show(),
+        onRitualBuilderClick: () => void openRitualBuilder(),
         onCommandsClick: () => void getSanctuaryUI().open(),
         onPredictionTrackerClick: () => void showPredictionTracker(),
         onExportDataClick: () => void showDataExport(),
@@ -2008,16 +1960,16 @@ class VoiceAIApp {
         // The calendar view has the connect button for disconnected users
         onCalendarSettingsClick: () => void openCalendarView(),
         onVoiceEnrollmentClick: () => void showVoiceEnrollmentModal(),
-        onSubscriptionClick: () => void supportFerniUI.open(),
+        onSubscriptionClick: () => void openSupportFerni(),
         onBillingPortalClick: () => void this.openBillingPortal(),
         onHouseholdClick: () => void showHouseholdManager(),
-        onFamilyCallersClick: () => void FamilyIdentities.show(),
+        onFamilyCallersClick: () => void showFamilyIdentities(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
         onLifeContextClick: () => void showLifeContextDashboard(),
         onTeamInsightsClick: () => teamInsightsUI.toggle(),
-        onSupportFerniClick: () => void supportFerniUI.open(),
-        onPersonalizeClick: () => personalizeUI.open(),
+        onSupportFerniClick: () => void openSupportFerni(),
+        onPersonalizeClick: () => void openPersonalize(),
         onYourStoryClick: () => void showYourStoryDashboard(),
         onActivityClick: () => showActivity(),
         onYourYearClick: () => {
@@ -2036,7 +1988,7 @@ class VoiceAIApp {
               log.error({ error: String(err) }, 'YourYear error');
             });
         },
-        onFutureInsightsClick: () => futureInsightsUI.open(),
+        onFutureInsightsClick: () => void openFutureInsights(),
         onDeepInsightsClick: () => {
           // Open the Semantic Intelligence Panel (8-tab dashboard showing all superhuman insights)
           import('./ui/semantic-intelligence-panel.ui.js').then(
@@ -2045,13 +1997,10 @@ class VoiceAIApp {
             }
           );
         },
-        onShareFerniClick: () => referralUI.open(),
+        onShareFerniClick: () => void openReferral(),
         onAccentSettingsClick: () => accentSettingsUI.open(),
         onWearableSettingsClick: () => void showWearableSettings(),
-        onLinkedInClick: () => {
-          initLinkedInSettings();
-          showLinkedInSettings();
-        },
+        onLinkedInClick: () => void showLinkedInSettings(),
         onVibeControllerClick: () => void showVibeController(),
         onSmartHomeClick: () => void showSmartHomeSettings(),
         onEightSleepClick: () => void showEightSleepSettings(),
@@ -2098,10 +2047,7 @@ class VoiceAIApp {
               onConnectEightSleep: () => void showEightSleepSettings(),
               onConnectWearables: () => void showWearableSettings(),
               onConnectCalendar: () => void openCalendarSettings(),
-              onConnectLinkedIn: () => {
-                void initLinkedInSettings();
-                void showLinkedInSettings();
-              },
+              onConnectLinkedIn: () => void showLinkedInSettings(),
               onConnectSpotify: () => void triggerSpotifyLinkToggle(),
               onConnectEcobee: () => void showVibeController(), // Ecobee is in Vibe Controller
               onOpenVibeController: () => void showVibeController(),
@@ -2109,12 +2055,12 @@ class VoiceAIApp {
           });
         },
         // New feature callbacks
-        onMemoryLaneClick: () => void memoryLaneUI.open(),
+        onMemoryLaneClick: () => void openMemoryLane(),
         onPatternInsightsClick: () => {
           // Show pattern insights in a modal container
           const container = document.querySelector('.app-shell') as HTMLElement | null;
           if (container) {
-            void patternInsightsUI.show(container);
+            void showPatternInsights(container);
           }
         },
         onConversationInsightsClick: async () => {
@@ -2170,7 +2116,7 @@ class VoiceAIApp {
       void showYourStoryDashboard();
     });
     this.addTrackedListener(window, 'ferni:open-memory-lane', () => {
-      void memoryLaneUI.open();
+      void openMemoryLane();
     });
     this.addTrackedListener(window, 'ferni:open-history', () => {
       void showConversationHistory();
@@ -2178,7 +2124,7 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-patterns', () => {
       const container = document.querySelector('.app-shell') as HTMLElement | null;
       if (container) {
-        void patternInsightsUI.show(container);
+        void showPatternInsights(container);
       }
     });
     this.addTrackedListener(window, 'ferni:open-quiz', () => {
@@ -2259,7 +2205,7 @@ class VoiceAIApp {
       // Show thank you message for successful payment
       // Wait a moment for UI to initialize
       setTimeout(() => {
-        ferniFundUI.showThankYou({
+        void showFerniFundThankYou({
           conversationsSponsored: 1,
           message: 'Thank you for planting a seed!',
         });
@@ -2278,7 +2224,7 @@ class VoiceAIApp {
       setTimeout(() => {
         const userId = appState.get('deviceId');
         if (userId) {
-          void ferniFundUI.open(userId);
+          void openFerniFund(userId);
         }
         // Clean up the URL without reload
         window.history.replaceState({}, '', window.location.pathname);
@@ -2375,7 +2321,7 @@ class VoiceAIApp {
       }
     });
     this.addTrackedListener(window, 'ferni:open-marketplace', () => {
-      void marketplaceUI.open();
+      void openMarketplace();
     });
 
     // 📱 Mobile Bottom Sheet - Quick action event handlers
@@ -2388,7 +2334,7 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-music', () => void openMusicDashboard());
     this.addTrackedListener(window, 'ferni:open-calendar', () => void openCalendarView());
     this.addTrackedListener(window, 'ferni:open-people', () => {
-      openYourPeople();
+      void openYourPeople();
     });
 
     // 🌱 Garden Widget - Plant seed flow integration
@@ -2398,7 +2344,7 @@ class VoiceAIApp {
       if (userId) {
         // Open Ferni Fund modal - user can choose contribution type
         log.debug('Plant seed requested', { type: detail?.type });
-        void ferniFundUI.open(userId);
+        void openFerniFund(userId);
       }
     }) as EventListener);
 
@@ -2567,7 +2513,7 @@ class VoiceAIApp {
     if (marketplaceBtn) {
       this.addTrackedListener(marketplaceBtn, 'click', ((e: MouseEvent) => {
         e.stopPropagation(); // Prevent team roster from handling this
-        void marketplaceUI.open();
+        void openMarketplace();
       }) as EventListener);
     }
   }
@@ -2782,7 +2728,7 @@ class VoiceAIApp {
     }
 
     // Open the unified subscription management modal
-    await manageSubscriptionUI.open(deviceId, {
+    await openManageSubscription(deviceId, {
       onUpgrade: () => showUpgradeModal(),
       onClose: () => log.debug('Subscription management closed'),
     });
