@@ -3013,5 +3013,54 @@
       "professional": "Profesional",
       "legacy": "Legado"
     }
+  },
+  "predictionResolution": {
+    "title": "¿Cómo te fue?",
+    "youGuessed": "Tu apuesta: {value}",
+    "actual": "Real: {value}",
+    "scored": "{accuracy}% de acierto",
+    "record": "Anotar lo que pasó",
+    "save": "Comprobar mis apuestas",
+    "saveFailed": "No se pudo guardar. ¿Lo intentas de nuevo?",
+    "metrics": {
+      "deepWork": {
+        "label": "Trabajo profundo",
+        "question": "¿Cuántas horas de trabajo profundo hiciste?",
+        "unit": "horas"
+      },
+      "exercise": {
+        "label": "Ejercicio",
+        "question": "¿Cuántas veces hiciste ejercicio?",
+        "unit": "sesiones"
+      },
+      "social": {
+        "label": "Tiempo con gente",
+        "question": "¿Cuántas horas pasaste con otras personas?",
+        "unit": "horas"
+      },
+      "screen": {
+        "label": "Tiempo de pantalla",
+        "question": "¿Cuántas horas de pantalla tuviste?",
+        "unit": "horas"
+      },
+      "mood": {
+        "label": "Ánimo",
+        "question": "¿Cuál fue tu ánimo medio, del 1 al 10?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "¿Cuál fue tu valor real de {label}?"
+      }
+    },
+    "result": {
+      "line": "Apostaste {predicted}. Fue {actual}. {verdict}",
+      "overall": "{accuracy}% de acierto en total esta semana."
+    },
+    "tone": {
+      "spotOn": "¡Clavado!",
+      "close": "¡Muy cerca!",
+      "off": "Esta vez te desviaste un poco.",
+      "wayOff": "Esta vez, muy lejos. Ahora ya lo sabes."
+    }
   }
 }

@@ -9,11 +9,21 @@
  * - HTTP API (initial load and background sync)
  */
 
-import type { EngagementEvent, EngagementTriggerEvent, DailyCheckInRecordedEvent } from '../types/events.js';
-import { isEngagementMessage, isEngagementTriggerMessage, isDailyCheckInRecordedMessage } from '../types/events.js';
+import type {
+  EngagementEvent,
+  EngagementTriggerEvent,
+  DailyCheckInRecordedEvent,
+} from '../types/events.js';
+import {
+  isEngagementMessage,
+  isEngagementTriggerMessage,
+  isDailyCheckInRecordedMessage,
+} from '../types/events.js';
 import type { EngagementData, EmotionalWeatherData } from '../ui/engagement.ui.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
+import { runningAccuracy, toPredictionData, type PredictionData } from './prediction-data.js';
+import type { PredictionsResponse } from './prediction-tracker-data.js';
 
 const log = createLogger('Engagement');
 
@@ -21,16 +31,7 @@ const log = createLogger('Engagement');
 // TYPES
 // ============================================================================
 
-export interface PredictionData {
-  id: string;
-  category: string;
-  question: string;
-  userPrediction: number;
-  actualOutcome?: number;
-  status: 'pending' | 'resolved';
-  createdAt: string;
-  resolvedAt?: string;
-}
+export type { PredictionData } from './prediction-data.js';
 
 export interface EngagementServiceCallbacks {
   onEngagementUpdate?: (data: EngagementData) => void;
@@ -179,7 +180,7 @@ class EngagementService {
 
       // Update stats
       this.cachedData.lastEngagementAt = event.timestamp;
-      
+
       // Notify listeners to refresh UI
       this.callbacks.onEngagementUpdate?.(this.cachedData);
     }
@@ -221,10 +222,10 @@ class EngagementService {
         stats?: Record<string, unknown>;
         lastEngagementAt?: string;
       }>('/api/rituals', { userId });
-      
+
       if (result.ok && result.data) {
         const data = result.data;
-        
+
         // Transform to EngagementData format
         const engagementData: EngagementData = {
           ritualStreaks: (data.streaks || []).map((s: Record<string, unknown>) => ({
@@ -237,15 +238,19 @@ class EngagementService {
             dueToday: this.isDueToday(s.lastCompletedAt as string | null),
           })),
           weatherHistory: (data.weatherHistory || []).map((w: Record<string, unknown>) => ({
-            primary: ((w.weather as Record<string, string>)?.primary || 'cloudy') as EmotionalWeatherData['primary'],
-            energy: ((w.weather as Record<string, string>)?.energy || 'medium') as EmotionalWeatherData['energy'],
+            primary: ((w.weather as Record<string, string>)?.primary ||
+              'cloudy') as EmotionalWeatherData['primary'],
+            energy: ((w.weather as Record<string, string>)?.energy ||
+              'medium') as EmotionalWeatherData['energy'],
             note: w.weather ? (w.weather as Record<string, string>).note : undefined,
             recordedAt: w.date as string,
           })),
           stats: {
             totalRitualDays: (data.stats?.totalRitualDays as number) || 0,
             longestOverallStreak: (data.stats?.longestOverallStreak as number) || 0,
-            currentActiveStreaks: data.streaks?.filter((s: Record<string, unknown>) => (s.currentStreak as number) > 0).length || 0,
+            currentActiveStreaks:
+              data.streaks?.filter((s: Record<string, unknown>) => (s.currentStreak as number) > 0)
+                .length || 0,
             predictionAccuracy: data.stats?.predictionAccuracy as number | undefined,
             teamHuddlesAttended: (data.stats?.teamHuddlesAttended as number) || 0,
           },
@@ -254,7 +259,7 @@ class EngagementService {
 
         this.cachedData = engagementData;
         this.callbacks.onEngagementUpdate?.(engagementData);
-        log.info('Loaded engagement data from API', { 
+        log.info('Loaded engagement data from API', {
           streaks: engagementData.ritualStreaks.length,
           weather: engagementData.weatherHistory.length,
         });
@@ -304,29 +309,22 @@ class EngagementService {
    * First tries REST API, then falls back to cached data from LiveKit.
    */
   async fetchPredictions(userId: string): Promise<PredictionData[]> {
-    // If we have cached data, return it
     if (this.cachedPredictions.length > 0) {
       return this.cachedPredictions;
     }
+    return this.loadPredictions({ userId });
+  }
 
-    // Try REST API with proper auth headers
+  /** Re-read predictions from the server (e.g. after one is resolved). */
+  async refreshPredictions(): Promise<PredictionData[]> {
+    return this.loadPredictions();
+  }
+
+  private async loadPredictions(params?: Record<string, string>): Promise<PredictionData[]> {
     try {
-      const result = await apiGet<{
-        predictions?: Array<Record<string, unknown>>;
-      }>('/api/predictions', { userId });
-      
+      const result = await apiGet<PredictionsResponse>('/api/predictions', params);
       if (result.ok && result.data) {
-        const data = result.data;
-        // Transform from StoredPrediction to PredictionData format
-        const predictions: PredictionData[] = (data.predictions || []).map((p: Record<string, unknown>) => ({
-          id: p.id as string,
-          category: this.extractCategory(p.predictions as Record<string, number>),
-          question: `Week of ${p.weekOf}`,
-          userPrediction: this.extractMainValue(p.predictions as Record<string, number>),
-          actualOutcome: p.accuracy as number | undefined,
-          status: p.completedAt ? 'resolved' as const : 'pending' as const,
-          createdAt: p.createdAt as string,
-        }));
+        const predictions = (result.data.predictions ?? []).map(toPredictionData);
         this.cachedPredictions = predictions;
         this.callbacks.onPredictionsUpdate?.(predictions);
         return predictions;
@@ -336,27 +334,6 @@ class EngagementService {
     }
 
     return this.cachedPredictions;
-  }
-
-  /**
-   * Extract category from prediction data.
-   */
-  private extractCategory(predictions: Record<string, number>): string {
-    const keys = Object.keys(predictions);
-    if (keys.includes('Mood average (1-10)')) return 'mood';
-    if (keys.includes('Deep work hours')) return 'productivity';
-    if (keys.includes('Exercise sessions')) return 'health';
-    return 'overall';
-  }
-
-  /**
-   * Extract main value from prediction data.
-   */
-  private extractMainValue(predictions: Record<string, number>): number {
-    const values = Object.values(predictions);
-    if (values.length === 0) return 0;
-    if (values.length === 1) return values[0] ?? 0;
-    return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
   }
 
   /**
@@ -410,34 +387,22 @@ class EngagementService {
    * Get pending predictions (not yet resolved).
    */
   getPendingPredictions(): PredictionData[] {
-    return this.cachedPredictions.filter(p => p.status === 'pending');
+    return this.cachedPredictions.filter((p) => p.status === 'pending');
   }
 
   /**
    * Get resolved predictions.
    */
   getResolvedPredictions(): PredictionData[] {
-    return this.cachedPredictions.filter(p => p.status === 'resolved');
+    return this.cachedPredictions.filter((p) => p.status === 'resolved');
   }
 
   /**
-   * Calculate prediction accuracy.
+   * Running prediction accuracy: the average of the server's scores for
+   * resolved predictions, or null when none has been scored.
    */
   calculateAccuracy(): number | null {
-    const resolved = this.getResolvedPredictions();
-    if (resolved.length === 0) return null;
-
-    let totalError = 0;
-    for (const pred of resolved) {
-      if (pred.actualOutcome !== undefined) {
-        totalError += Math.abs(pred.userPrediction - pred.actualOutcome);
-      }
-    }
-
-    // Convert error to accuracy (inverse, scaled to 0-100)
-    // Lower error = higher accuracy
-    const avgError = totalError / resolved.length;
-    return Math.max(0, Math.round(100 - avgError));
+    return runningAccuracy(this.cachedPredictions);
   }
 }
 
@@ -446,4 +411,3 @@ class EngagementService {
 // ============================================================================
 
 export const engagementService = new EngagementService();
-
