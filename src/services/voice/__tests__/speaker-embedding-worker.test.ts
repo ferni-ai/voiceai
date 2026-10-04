@@ -8,6 +8,7 @@
  * - mel-contract.onnx: the old ferni-speaker input; must be refused.
  */
 
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,10 +23,13 @@ import { extractDSPFeatures } from '../speaker-dsp-features.js';
 import {
   embedOffMainThread,
   getSpeakerEmbeddingMethod,
+  PINNED_SPEAKER_MODEL_SHA256,
   resetSpeakerEmbeddingWorker,
 } from '../speaker-embedding-worker.js';
+import { sha256Of, useSpeakerModel } from './speaker-model-fixture.js';
 
 const FIXTURES = join(__dirname, 'fixtures');
+const WAVEFORM = join(FIXTURES, 'waveform-contract.onnx');
 
 /** 1 s of a voice-like tone with a ramp so the first 192 samples are distinctive. */
 function voice(seconds = 1): Float32Array {
@@ -41,10 +45,9 @@ function unitHead(a: Float32Array): number[] {
   return head.map((v) => v / n);
 }
 
-function useModel(path: string | undefined): void {
-  if (path === undefined) delete process.env.SPEAKER_MODEL_PATH;
-  else process.env.SPEAKER_MODEL_PATH = path;
-}
+const useModel = useSpeakerModel;
+
+const warnings = (): string[] => logged.warn.mock.calls.map((c) => JSON.stringify(c));
 
 afterEach(async () => {
   await resetSpeakerEmbeddingWorker();
@@ -116,5 +119,47 @@ describe('speaker embedding worker', () => {
   it('still returns null for audio shorter than 0.5 s', async () => {
     useModel(join(FIXTURES, 'waveform-contract.onnx'));
     expect(await extractSpeakerEmbedding(new Float32Array(7999))).toBeNull();
+  });
+
+  it('refuses a model whose sha256 is not the pinned one, with one log line, and uses DSP', async () => {
+    useModel(WAVEFORM);
+    process.env.SPEAKER_MODEL_SHA256 = sha256Of(join(FIXTURES, 'mel-contract.onnx'));
+
+    expect(await getSpeakerEmbeddingMethod()).toBe('dsp');
+    expect((await extractSpeakerEmbedding(voice()))?.method).toBe('dsp');
+    expect(warnings()).toHaveLength(1);
+    expect(warnings()[0]).toContain(`model sha256 ${sha256Of(WAVEFORM)} is not the pinned`);
+    await expect(embedOffMainThread(voice())).rejects.toThrow('no neural speaker model');
+  });
+
+  it('pins the production model when SPEAKER_MODEL_SHA256 is unset', async () => {
+    useModel(WAVEFORM);
+    delete process.env.SPEAKER_MODEL_SHA256;
+
+    expect(await getSpeakerEmbeddingMethod()).toBe('dsp');
+    expect(warnings()).toHaveLength(1);
+    expect(warnings()[0]).toContain(`is not the pinned ${PINNED_SPEAKER_MODEL_SHA256}`);
+  });
+
+  it('refuses a SPEAKER_MODEL_SHA256 that is not a sha256', async () => {
+    useModel(WAVEFORM);
+    process.env.SPEAKER_MODEL_SHA256 = 'latest';
+
+    expect(await getSpeakerEmbeddingMethod()).toBe('dsp');
+    expect(warnings()).toHaveLength(1);
+    expect(warnings()[0]).toContain('SPEAKER_MODEL_SHA256 is not a sha256');
+  });
+
+  it('the agent image downloads and checks the model the worker pins', () => {
+    const dockerfile = readFileSync(join(__dirname, '../../../../docker/Dockerfile.agent'), 'utf8');
+    const sha = PINNED_SPEAKER_MODEL_SHA256;
+    expect(dockerfile).toContain(`ARG SPEAKER_MODEL_SHA256=${sha}`);
+    expect(dockerfile).toContain(
+      `ARG SPEAKER_MODEL_URL=https://storage.googleapis.com/ferni-public-models/speaker/ecapa-tdnn-waveform-${sha.slice(0, 8)}.onnx`
+    );
+    expect(dockerfile).toContain('sha256sum -c /models/speaker/ecapa-tdnn-waveform.onnx.sha256');
+    expect(dockerfile).toMatch(
+      /ENV SPEAKER_MODEL_PATH=\/models\/speaker\/ecapa-tdnn-waveform\.onnx/
+    );
   });
 });

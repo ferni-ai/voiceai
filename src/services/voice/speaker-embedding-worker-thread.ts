@@ -10,11 +10,14 @@
  * mono, float32 in [-1, 1]) and output `embedding` [batch, 192], unit length.
  * The graph contains its own features (see scripts/speaker/export-ecapa-onnx.py),
  * so no front end is reimplemented here. If the model does not load or does
- * not meet that contract (e.g. the old mel-spectrogram-input model), the
- * worker reports why and the main thread stops it and uses DSP features.
+ * not meet that contract (e.g. the old mel-spectrogram-input model), or its
+ * sha256 is not the pinned one, the worker reports why and the main thread
+ * stops it and uses DSP features. The file is hashed here, before
+ * onnxruntime sees it, so hashing 84 MB never blocks the main event loop.
  */
 
-import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { createReadStream, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { parentPort, threadId, workerData } from 'node:worker_threads';
 import type {
@@ -44,8 +47,18 @@ interface OrtModule {
 
 type Embedder = (audio: Float32Array) => Promise<Float32Array>;
 
-async function loadNeural(modelPath: string): Promise<Embedder> {
+async function sha256File(path: string): Promise<string> {
+  const hash = createHash('sha256');
+  for await (const chunk of createReadStream(path)) hash.update(chunk as Buffer);
+  return hash.digest('hex');
+}
+
+async function loadNeural({ modelPath, expectedSha256 }: SpeakerWorkerInit): Promise<Embedder> {
   if (!existsSync(modelPath)) throw new Error(`no model file at ${modelPath}`);
+  const actual = await sha256File(modelPath);
+  if (actual !== expectedSha256) {
+    throw new Error(`model sha256 ${actual} is not the pinned ${expectedSha256}; refusing it`);
+  }
   const ort = createRequire(import.meta.url)('onnxruntime-node') as OrtModule;
   // One intra-op thread: the comparison runs every 2 s, so latency is not the
   // constraint; keeping CPU use to one core is (2-CPU dev instances).
@@ -86,7 +99,7 @@ async function main(): Promise<void> {
 
   let neural: Embedder;
   try {
-    neural = await loadNeural(init.modelPath);
+    neural = await loadNeural(init);
   } catch (error) {
     // The main thread logs this, stops the worker and uses DSP itself.
     const reason = error instanceof Error ? error.message : String(error);

@@ -13,6 +13,11 @@
  * compute features that are cheap inline): the method is 'dsp' and callers
  * compute DSP features themselves. Exactly one log line says which method is
  * in use, and why.
+ *
+ * The worker loads only a file whose sha256 is the pinned one
+ * (SPEAKER_MODEL_SHA256, default PINNED_SPEAKER_MODEL_SHA256): a truncated
+ * download, a swapped object or a stale cache must not decide who a voice is.
+ * Kill switch: unset SPEAKER_MODEL_PATH and every embedding is DSP.
  */
 
 import { existsSync } from 'node:fs';
@@ -27,9 +32,18 @@ const log = createLogger({ module: 'SpeakerEmbeddingWorker' });
 
 export type SpeakerEmbeddingMethod = 'neural' | 'dsp';
 
+/**
+ * sha256 of scripts/speaker/export-ecapa-onnx.py's output (84,131,064 bytes),
+ * the file docker/Dockerfile.agent downloads. Change both together.
+ */
+export const PINNED_SPEAKER_MODEL_SHA256 =
+  '93ccd596285b31d5debad84ab3f138d5dc1145f19c3f287b81ece65afa034fc9';
+
 /** workerData for the thread. */
 export interface SpeakerWorkerInit {
   modelPath: string;
+  /** Lowercase hex; the worker refuses a file with any other digest. */
+  expectedSha256: string;
 }
 export interface SpeakerWorkerRequest {
   id: number;
@@ -98,7 +112,12 @@ function unavailableReason(modelPath: string | undefined): string | null {
   }
   if (!modelPath) return 'SPEAKER_MODEL_PATH is not set';
   if (!existsSync(modelPath)) return `no model file at ${modelPath}`;
+  if (!/^[0-9a-f]{64}$/.test(expectedSha256())) return 'SPEAKER_MODEL_SHA256 is not a sha256';
   return null;
+}
+
+function expectedSha256(): string {
+  return (process.env.SPEAKER_MODEL_SHA256 ?? PINNED_SPEAKER_MODEL_SHA256).trim().toLowerCase();
 }
 
 async function start(): Promise<SpeakerEmbeddingMethod> {
@@ -108,7 +127,7 @@ async function start(): Promise<SpeakerEmbeddingMethod> {
 
   let w: Worker;
   try {
-    const init: SpeakerWorkerInit = { modelPath };
+    const init: SpeakerWorkerInit = { modelPath, expectedSha256: expectedSha256() };
     w = new Worker(workerEntry(), { workerData: init });
   } catch (error) {
     return useDsp(`worker failed to start: ${String(error)}`);
