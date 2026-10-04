@@ -15,7 +15,8 @@
 import { createLogger } from '../utils/logger.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { clearAllUserData, exportLocalStorage } from '../config/storage-keys.js';
-import { getAuthToken, initAuth, signOut } from './firebase-auth.service.js';
+import { getAuthToken, initAuth } from './firebase-auth.service.js';
+import { signOutReleasingPush } from './push-preference.js';
 import { ritualsService } from './rituals.service.js';
 
 const log = createLogger('DataExport');
@@ -176,7 +177,10 @@ class DataExportService {
     }
 
     this.clearLocalData();
-    await signOut().catch((err: unknown) => log.warn('Sign-out after account deletion failed', err));
+    // Also kills this browser's push endpoint, so nothing addressed to the deleted account lands here.
+    await signOutReleasingPush().catch((err: unknown) =>
+      log.warn('Sign-out after account deletion failed', err)
+    );
     log.info('Account deleted');
   }
 

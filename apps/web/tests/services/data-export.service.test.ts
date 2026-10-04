@@ -19,6 +19,10 @@ vi.mock('../../src/services/firebase-auth.service.js', () => ({
   signOut: auth.signOut,
 }));
 
+vi.mock('../../src/services/push-preference.js', () => ({
+  signOutReleasingPush: auth.signOut,
+}));
+
 vi.mock('../../src/services/rituals.service.js', () => ({
   ritualsService: { clearAll: vi.fn() },
 }));
@@ -112,7 +116,7 @@ describe('dataExportService', () => {
   });
 
   describe('deleteAccount', () => {
-    it('sends the confirmation the server requires, then signs out', async () => {
+    it('sends the confirmation the server requires, then signs out releasing push', async () => {
       mockServer(200, { success: true });
 
       await dataExportService.deleteAccount();

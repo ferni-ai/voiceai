@@ -257,6 +257,7 @@ import { initTeamHuddleUI } from './ui/team-huddle.ui.js';
 import { initTeamIntro, showTeamIntro } from './ui/team-intro.ui.js';
 // Push Notifications
 import { initPushNotifications } from './services/push-notifications.service.js';
+import { watchPushOwnership } from './services/push-preference.js';
 // Outreach Schedule UI
 import { openOutreachSchedule } from './ui/outreach-schedule.ui.js';
 // Contact Settings UI
@@ -2172,7 +2173,7 @@ class VoiceAIApp {
       const { initNotificationSettingsUI } = await import('./ui/notification-settings.ui.js');
       await initNotificationSettingsUI();
     });
-    this.safeInit('PushNotifications', () => void initPushNotifications());
+    this.safeInit('PushNotifications', () => void initPushNotifications().then(watchPushOwnership));
 
     // 🔗 Integrations Settings - "Better than Human" connections (LinkedIn, Calendar, Health)
     this.safeInit('IntegrationsSettingsUI', () => {

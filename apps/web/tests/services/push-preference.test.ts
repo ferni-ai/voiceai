@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   browserUnsubscribe: vi.fn(),
   signOut: vi.fn(),
   calls: [] as string[],
+  uid: 'alice' as string | null,
 }));
 
 vi.mock('../../src/utils/platform.js', () => ({
@@ -25,13 +26,19 @@ vi.mock('../../src/utils/platform.js', () => ({
 }));
 vi.mock('../../src/utils/api.js', () => ({ apiPost: mocks.apiPost, apiGet: mocks.apiGet }));
 vi.mock('../../src/ui/whisper.ui.js', () => ({ toast: { error: mocks.toastError } }));
-vi.mock('../../src/services/firebase-auth.service.js', () => ({ signOut: mocks.signOut }));
+vi.mock('../../src/services/firebase-auth.service.js', () => ({
+  signOut: mocks.signOut,
+  getFirebaseUid: () => mocks.uid,
+  onAuthStateChange: vi.fn(),
+}));
 
 const ENDPOINT = 'https://fcm.googleapis.com/fcm/send/abc123';
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.resetModules();
+  localStorage.clear();
+  mocks.uid = 'alice';
   vi.stubGlobal('Notification', {
     permission: 'granted',
     requestPermission: vi.fn(() => Promise.resolve('granted')),
@@ -114,5 +121,72 @@ describe('applyPushPreference', () => {
 
     expect(mocks.calls).toEqual(['/api/push/unsubscribe', 'signOut']);
     expect(mocks.browserUnsubscribe).toHaveBeenCalled();
+  });
+
+  it('records which account the browser subscription belongs to', async () => {
+    mocks.apiPost.mockResolvedValue({ ok: true, data: { success: true } });
+
+    await enable(true);
+
+    expect(localStorage.getItem('ferni:push-owner')).toBe('alice');
+  });
+
+  describe('a different account signs in on this browser', () => {
+    async function signInAs(uid: string): Promise<void> {
+      const { initPushNotifications } =
+        await import('../../src/services/push-notifications.service.js');
+      await initPushNotifications();
+      const { syncPushOwner } = await import('../../src/services/push-preference.js');
+      await syncPushOwner(uid);
+    }
+
+    it('moves the subscription to the new account when they have notifications on', async () => {
+      localStorage.setItem('ferni:push-owner', 'alice');
+      mocks.apiPost.mockResolvedValue({ ok: true, data: { success: true } });
+
+      await signInAs('bob');
+
+      // Re-posting the same browser subscription (same keys) under bob's session.
+      expect(mocks.apiPost).toHaveBeenCalledWith('/api/push/subscribe', {
+        endpoint: ENDPOINT,
+        keys: { p256dh: 'p256dh-key', auth: 'auth-key' },
+        platform: 'web',
+      });
+      expect(mocks.browserUnsubscribe).not.toHaveBeenCalled();
+      expect(localStorage.getItem('ferni:push-owner')).toBe('bob');
+    });
+
+    it("kills the endpoint when the new account doesn't want notifications", async () => {
+      localStorage.setItem('ferni:push-owner', 'alice');
+      localStorage.setItem('ferni:notification-prefs', JSON.stringify({ enabled: false }));
+      mocks.apiPost.mockResolvedValue({ ok: true, data: { success: true } });
+
+      await signInAs('bob');
+
+      expect(mocks.apiPost).not.toHaveBeenCalledWith('/api/push/subscribe', expect.anything());
+      expect(mocks.browserUnsubscribe).toHaveBeenCalled();
+      expect(localStorage.getItem('ferni:push-owner')).toBeNull();
+    });
+
+    it('kills the endpoint when the server refuses the move', async () => {
+      localStorage.setItem('ferni:push-owner', 'alice');
+      mocks.apiPost.mockImplementation(async (path: string) =>
+        path === '/api/push/subscribe' ? { ok: false, status: 403 } : { ok: true, data: {} }
+      );
+
+      await signInAs('bob');
+
+      expect(mocks.browserUnsubscribe).toHaveBeenCalled();
+      expect(localStorage.getItem('ferni:push-owner')).toBeNull();
+    });
+
+    it('does nothing when the same account signs back in', async () => {
+      localStorage.setItem('ferni:push-owner', 'alice');
+
+      await signInAs('alice');
+
+      expect(mocks.apiPost).not.toHaveBeenCalled();
+      expect(mocks.browserUnsubscribe).not.toHaveBeenCalled();
+    });
   });
 });
