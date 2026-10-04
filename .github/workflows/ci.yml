@@ -226,11 +226,22 @@ jobs:
       # binding either, and the suite passes without it — so it is tolerated and is
       # deliberately not built here. rust-native.yml also notes sonata needs
       # pre-built pocket-voice cdylibs, which is a separate problem.
+      #
+      # The binding statically links pyke's prebuilt libonnxruntime.a, which needs
+      # glibc >= 2.38 (__isoc23_strtol & co). On an Ubuntu 22.04 runner (glibc 2.35)
+      # it builds fine but every dlopen fails, and ~65 native tests fail in 1 ms
+      # (run 37171889352). All runners are Ubuntu 24.04 (glibc 2.39), the same as
+      # production, so this builds exactly what ships. The check below turns any
+      # future mismatch into one clear failure with the real dlopen error.
       - name: Build @ferni/perf native binding
         working-directory: apps/rust-perf
         run: |
           pnpm install
           pnpm exec napi build --platform
+
+      # Fail here with the real dlopen error instead of 65 tests failing in 1 ms.
+      - name: Check @ferni/perf loads
+        run: node -e "require('./apps/rust-perf')"
 
       - name: Build @ferni/audio native binding
         working-directory: apps/rust-audio
@@ -322,6 +333,9 @@ jobs:
         run: |
           pnpm install
           pnpm exec napi build --platform
+
+      - name: Check @ferni/perf loads
+        run: node -e "require('./apps/rust-perf')"
 
       - name: Run integration tests
         # No `--`: pnpm would pass it through and vitest ignores every flag after it.
