@@ -3062,5 +3062,95 @@
       "off": "Esta vez te desviaste un poco.",
       "wayOff": "Esta vez, muy lejos. Ahora ya lo sabes."
     }
+  },
+  "trustDashboard": {
+    "together": {
+      "empty": "Cuando hayamos hablado unas cuantas veces, te diré cómo vamos.",
+      "startingTitle": "Apenas estamos empezando",
+      "startingMessage": "Habla conmigo unas cuantas veces más y tendré algo real que contarte.",
+      "scoreLabel": "Juntos",
+      "stages": {
+        "new": "Recién empezando",
+        "building": "Conociéndonos",
+        "established": "Encontrando nuestro ritmo",
+        "deep": "Nos entendemos de verdad",
+        "flourishing": "Algo especial"
+      },
+      "rhythm": {
+        "high": "Hablamos a menudo",
+        "mid": "Nos ponemos al día con regularidad",
+        "low": "Hablamos de vez en cuando",
+        "quiet": "Hace tiempo que no hablamos",
+        "detailNone": "Ninguno en el último mes",
+        "detailOne": "1 día en el último mes",
+        "detailOther": "{n} días en el último mes"
+      },
+      "promises": {
+        "high": "Cumplo lo que digo",
+        "mid": "Casi siempre cumplo lo que digo",
+        "low": "Se me han escapado algunas cosas",
+        "detail": "Cumplidas {kept} de {total}"
+      },
+      "lift": {
+        "high": "Nuestras charlas suelen aliviarte",
+        "mid": "Nuestras charlas te dan estabilidad",
+        "low": "Nuestras charlas han sido pesadas últimamente",
+        "detail": "Mejor al final en {lifted} de {days} días"
+      },
+      "mood": {
+        "up": "Te noto con más ánimo últimamente",
+        "steady": "Te noto estable últimamente",
+        "down": "Las cosas se han sentido más pesadas últimamente",
+        "detail": "Esta semana, frente a las anteriores"
+      }
+    },
+    "noticed": {
+      "empty": "Te contaré lo que noto cuando hayamos hablado un poco más.",
+      "notYet": "Todavía no destaca nada. Sigo escuchando.",
+      "daysTalked": "Días que hablamos",
+      "tabs": {
+        "week": "Esta semana",
+        "month": "Este mes"
+      },
+      "title": {
+        "week": "Lo que noté esta semana",
+        "month": "Lo que noté este mes"
+      },
+      "quiet": {
+        "week": "No hemos hablado esta semana. Aquí estoy cuando quieras.",
+        "month": "No hemos hablado este mes. Aquí estoy cuando quieras."
+      },
+      "moodShift": {
+        "lighter": {
+          "week": "Te noto con más ánimo que la semana pasada.",
+          "month": "Te noto con más ánimo que el mes pasado."
+        },
+        "heavier": {
+          "week": "Esta semana se sintió más pesada que la anterior. También estoy aquí para eso.",
+          "month": "Este mes se sintió más pesado que el anterior. También estoy aquí para eso."
+        }
+      },
+      "bounceBack": {
+        "nextDay": "El {date} fue un día difícil, y al día siguiente ya estabas mejor.",
+        "later": "El {date} fue un día difícil, y en {days} días ya estabas mejor."
+      },
+      "liftTopic": "Hablar de {topic} suele levantarte el ánimo.",
+      "brightest": "Sonabas más feliz el {date}.",
+      "timeOfDay": {
+        "morning": "Solemos hablar por la mañana.",
+        "afternoon": "Solemos hablar por la tarde.",
+        "evening": "Solemos hablar por la noche.",
+        "night": "Solemos hablar de madrugada."
+      },
+      "favoriteDay": "El {day} parece ser nuestro día.",
+      "cameUp": {
+        "one": "Me contaste algo que se acerca: {example}.",
+        "other": "Me contaste {n} cosas que se acercan, como: {example}."
+      },
+      "promisesKept": {
+        "all": "Cumplí todas las promesas que te hice.",
+        "some": "Cumplí {kept} de las {total} promesas que te hice."
+      }
+    }
   }
 }
