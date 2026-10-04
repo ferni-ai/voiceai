@@ -349,37 +349,12 @@ async function initializeGeminiClient(): Promise<unknown | null> {
   }
 }
 
-let cachedGlobalClient: unknown | null = null;
-
-/**
- * Vertex client on the `global` location. Gemini 3.1 models are served only
- * there (us-central1 returns 404). Null when Vertex is not configured: the
- * API-key client has no location, so getGeminiClient covers that case.
- */
-export async function getGlobalGeminiClient(): Promise<unknown | null> {
-  if (cachedGlobalClient) return cachedGlobalClient;
-  if (!USE_VERTEX_AI || !GOOGLE_CLOUD_PROJECT) return getGeminiClient();
-  try {
-    const { GoogleGenAI } = await import('@google/genai');
-    cachedGlobalClient = new GoogleGenAI({
-      vertexai: true,
-      project: GOOGLE_CLOUD_PROJECT,
-      location: 'global',
-    });
-    return cachedGlobalClient;
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to initialize global Gemini client');
-    return null;
-  }
-}
-
 /**
  * Reset the cached client (useful for testing or config changes)
  */
 export function resetGeminiClient(): void {
   cachedClient = null;
   clientInitPromise = null;
-  cachedGlobalClient = null;
 }
 
 /** Alias for backward compatibility */

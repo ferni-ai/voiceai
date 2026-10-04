@@ -120,14 +120,7 @@ import {
   processUserResponseForResonance,
 } from '../../integrations/better-than-human-integration.js';
 
-import {
-  applyClassifierVerdict,
-  detectCrisis,
-  guardFromDetection,
-  type CrisisDetectionResult,
-} from '../../safety/crisis-guard.js';
-import { startCrisisClassifier } from '../../../services/safety/crisis-classifier.js';
-import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../../safety/crisis-shadow.js';
+import { crisisSummary, hasCrisisSignal, startTurnCrisis } from './turn-crisis.js';
 
 import { fastCapture } from '../../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../../services/realtime-persistence.js';
@@ -205,39 +198,16 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   }
 
   // SAFETY FIRST: Crisis detection runs BEFORE anything else
-  const voiceEmotionForCrisis = toGuardVoiceEmotion(
-    userData?.voiceEmotion as ProsodyEmotionLike | undefined
-  );
+  // The classifier's verdict is awaited (turn-crisis.ts) before any LLM bypass and the result.
+  const turnCrisis = startTurnCrisis(userText, userData);
+  const crisisResult = turnCrisis.patterns;
 
-  const crisisResult = detectCrisis(userText, voiceEmotionForCrisis, {
-    recentMessages: userData?.recentTranscripts,
-  });
-  const preResponseGuard = guardFromDetection(crisisResult);
-
-  // Semantic second stage: started now so it overlaps the rest of the turn.
-  // In live mode its verdict is awaited (bounded) before any LLM bypass and
-  // before the final result; in shadow mode it only logs.
-  const crisisClassifier = startCrisisClassifier(
-    { latest: userText, earlier: userData?.recentTranscripts ?? [] },
-    { pattern: preResponseGuard.shouldBlock ? 'block' : crisisResult.isCrisis ? 'crisis' : 'none' }
-  );
-  let turnCrisis: CrisisDetectionResult | null = null;
-  const resolveTurnCrisis = async (): Promise<CrisisDetectionResult> => {
-    if (!turnCrisis) {
-      turnCrisis =
-        crisisClassifier?.mode === 'live'
-          ? applyClassifierVerdict(crisisResult, await crisisClassifier.verdict)
-          : crisisResult;
-    }
-    return turnCrisis;
-  };
-
-  if (crisisResult.isCrisis || crisisResult.severity > 0.3) {
+  if (hasCrisisSignal(crisisResult)) {
     diag.state('🚨 Crisis detection result', {
       isCrisis: crisisResult.isCrisis,
       severity: crisisResult.severity,
       indicators: crisisResult.indicators,
-      shouldOverride: preResponseGuard.shouldBlock,
+      shouldOverride: turnCrisis.shouldBlock,
     });
 
     if (userData.userId) {
@@ -769,17 +739,11 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   if (ftisRoutingPromise) {
     const ftisResult = await ftisRoutingPromise;
-    const ftisCrisis =
-      ftisResult.bypassLLM && ftisResult.toolResult ? await resolveTurnCrisis() : null;
-
-    // Never bypass the LLM on a turn with crisis signal: the bypass result
-    // carries no crisis, so the guard's response or guidance would be dropped.
+    // Never bypass the LLM on a crisis turn: the bypass result carries no crisis.
     if (
       ftisResult.bypassLLM &&
       ftisResult.toolResult &&
-      ftisCrisis &&
-      !ftisCrisis.isCrisis &&
-      ftisCrisis.severity <= 0.3
+      !hasCrisisSignal(await turnCrisis.resolve())
     ) {
       diag.state('🧠 FTIS: Direct tool execution complete', {
         tool: ftisResult.toolResult.toolId,
@@ -846,7 +810,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // SEMANTIC SHORT-CIRCUIT
   if (semanticRoutingPromise) {
-    const routedCrisis = await resolveTurnCrisis();
+    const routedCrisis = await turnCrisis.resolve();
     const shortCircuitResult = await checkSemanticShortCircuit(semanticRoutingPromise, {
       crisisDetected: routedCrisis.isCrisis,
       crisisSeverity: routedCrisis.severity,
@@ -1524,14 +1488,7 @@ If they're just conversing, respond naturally without the tool call.`,
     }
   }
 
-  const finalCrisis = await resolveTurnCrisis();
-  if (finalCrisis !== crisisResult) {
-    diag.state('🚨 Crisis classifier escalated the turn', {
-      severity: finalCrisis.severity,
-      indicators: finalCrisis.indicators,
-      shouldOverride: guardFromDetection(finalCrisis).shouldBlock,
-    });
-  }
+  const finalCrisis = await turnCrisis.resolve();
 
   // DEV TELEMETRY: Complete trace
   trace?.complete();
@@ -1558,15 +1515,7 @@ If they're just conversing, respond naturally without the tool call.`,
     easterEgg,
     valueCapture: valueCaptureResult,
     advancedHumanization,
-    crisis: {
-      isCrisis: finalCrisis.isCrisis,
-      severity: finalCrisis.severity,
-      indicators: finalCrisis.indicators,
-      suggestedResponse: finalCrisis.suggestedResponse,
-      shouldOverrideLLM: guardFromDetection(finalCrisis).shouldBlock,
-      subject: finalCrisis.subject,
-      language: finalCrisis.language,
-    },
+    crisis: crisisSummary(finalCrisis),
     trustContext: trustContextSummary,
     semanticRouting,
     resonanceCheck,

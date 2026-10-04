@@ -159,7 +159,7 @@ export function createGeminiCrisisGenerate(
   model: string = process.env.CRISIS_CLASSIFIER_MODEL || DEFAULT_CRISIS_CLASSIFIER_MODEL
 ): CrisisGenerateFn {
   return async (systemPrompt, userContent, signal) => {
-    const { getGlobalGeminiClient } = await import('../../config/gemini-config.js');
+    const { getGlobalGeminiClient } = await import('../../config/gemini-global-client.js');
     const client = (await getGlobalGeminiClient()) as {
       models: {
         generateContent: (req: unknown) => Promise<{ text?: string }>;

@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { llm } from '@livekit/agents';
-import { ReadableStream } from 'node:stream/web';
+import { ReadableStream, TransformStream } from 'node:stream/web';
 
 import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { TURN_CONTEXT_HEADER } from '../../multi-agent/turn-intelligence.js';
+import { buildCrisisGuidance, detectCrisis } from '../../safety/crisis-guard.js';
 import {
+  gatedReply,
   holdUntilCleared,
   startCrisisGate,
   textReply,
@@ -207,5 +209,91 @@ describe('holdUntilCleared', () => {
       holdUntilCleared(streamOf(['ok']) as never, Promise.reject(new Error('x')), async () => null)
     );
     expect(out).toEqual(['ok']);
+  });
+});
+
+describe('gatedReply', () => {
+  const session = { userData: undefined };
+  /** Marks every chunk it passes, so tests can see what went through it. */
+  const opener = {
+    wrap: (stream: ReadableStream<unknown>) =>
+      stream.pipeThrough(
+        new TransformStream<unknown, unknown>({
+          transform: (chunk, controller) => controller.enqueue(`~${String(chunk)}`),
+        })
+      ),
+  };
+  const modelSaying = (...replies: string[]) => {
+    const model = vi.fn(async (_ctx: llm.ChatContext) => streamOf([replies.shift() ?? '']));
+    return model;
+  };
+  const reply = async (
+    text: string,
+    model: ReturnType<typeof modelSaying>,
+    options: Parameters<typeof gatedReply>[4]
+  ) =>
+    collect(
+      (await gatedReply(
+        request(['user', text]),
+        session,
+        model as never,
+        opener as never,
+        options
+      )) as never
+    );
+
+  it('speaks the script without asking the model when the patterns replace', async () => {
+    const model = modelSaying('Sounds fun!');
+    const out = await reply('I want to kill myself tonight', model, { env: PATTERNS_ONLY });
+    expect(model).not.toHaveBeenCalled();
+    expect(out.join('')).toContain('988');
+    expect(out.join('')).not.toMatch(/^~/);
+  });
+
+  it('adds crisis guidance to the request when the patterns guide', async () => {
+    const ordinary = modelSaying('ok');
+    const guided = modelSaying('ok');
+    await reply('what should I cook tonight?', ordinary, { env: PATTERNS_ONLY });
+    await reply("I hope I don't wake up tomorrow", guided, { env: PATTERNS_ONLY });
+    const said = (model: ReturnType<typeof modelSaying>) =>
+      (model.mock.calls[0]![0].items.at(-1) as llm.ChatMessage).textContent ?? '';
+    const guidance = buildCrisisGuidance(detectCrisis("I hope I don't wake up tomorrow"));
+    expect(said(guided)).toContain(guidance);
+    expect(said(ordinary)).not.toContain(guidance);
+  });
+
+  it('passes the model reply through the opener gate unless it is off', async () => {
+    expect(
+      await reply('what should I cook tonight?', modelSaying('ok'), { env: PATTERNS_ONLY })
+    ).toEqual(['~ok']);
+    const off = { ...PATTERNS_ONLY, OPENER_GATE: 'off' };
+    expect(await reply('what should I cook tonight?', modelSaying('ok'), { env: off })).toEqual([
+      'ok',
+    ]);
+  });
+
+  it('drops the held reply for the 911-first script when the classifier escalates', async () => {
+    const model = modelSaying('Sounds peaceful!');
+    const out = await reply(
+      'im parked on the bridge, engine off, just sitting here deciding',
+      model,
+      {
+        env: LIVE,
+        generate: verdict('{"risk":"imminent","subject":"self"}'),
+      }
+    );
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(out.join('')).toContain('911');
+    expect(out.join('')).not.toContain('Sounds peaceful');
+  });
+
+  it('regenerates with guidance when the classifier finds a crisis the patterns missed', async () => {
+    const model = modelSaying('first', 'second');
+    const out = await reply('long day at work', model, {
+      env: LIVE,
+      generate: verdict('{"risk":"crisis","subject":"self"}'),
+    });
+    expect(model).toHaveBeenCalledTimes(2);
+    expect(out).toEqual(['~second']);
   });
 });

@@ -40,6 +40,8 @@ import {
   toGuardVoiceEmotion,
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
+import { withTurnReminder } from './turn-request.js';
+import { withTurnStyleReminder } from './turn-style.js';
 
 const log = createLogger({ module: 'CrisisGate' });
 
@@ -202,5 +204,37 @@ export function holdUntilCleared(
       dropped = true;
       await reader.cancel(reason).catch(() => undefined);
     },
+  });
+}
+
+/**
+ * One persona reply through the gate: the crisis script instead of the model,
+ * or the model asked with the turn reminder (plus crisis guidance when the
+ * patterns call for it) and held until the classifier clears it. The opener
+ * gate trims the model's words only, never a crisis script.
+ */
+export async function gatedReply(
+  chatCtx: llm.ChatContext,
+  session: { userData: unknown },
+  model: (ctx: llm.ChatContext) => Promise<ReadableStream<Chunk> | null>,
+  openerGate: { wrap(stream: ReadableStream<Chunk>): ReadableStream<Chunk> },
+  options: { env?: Record<string, string | undefined>; generate?: CrisisGenerateFn } = {}
+): Promise<ReadableStream<Chunk> | null> {
+  const { env = process.env } = options;
+  const gate = startCrisisGate(chatCtx, session.userData, options);
+  if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
+
+  let ctx = withTurnReminder(chatCtx, session);
+  if (gate?.decision.action === 'guide') ctx = withTurnStyleReminder(ctx, gate.decision.guidance);
+  const ask = async (request: llm.ChatContext): Promise<ReadableStream<Chunk> | null> => {
+    const stream = await model(request);
+    return stream && env.OPENER_GATE !== 'off' ? openerGate.wrap(stream) : stream;
+  };
+  const reply = await ask(ctx);
+  if (!reply || !gate?.escalation) return reply;
+  return holdUntilCleared(reply, gate.escalation, async (decision) => {
+    if (decision.action === 'replace') return textReply(decision.script);
+    if (decision.action === 'pass') return null;
+    return ask(withTurnStyleReminder(ctx, decision.guidance));
   });
 }

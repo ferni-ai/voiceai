@@ -32,10 +32,9 @@ import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
 import { filterCaptionStream } from './caption-filter.js';
-import { holdUntilCleared, startCrisisGate, textReply } from './crisis-gate.js';
+import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
-import { tapSpokenText, toolsForTurn, withTurnReminder } from './turn-request.js';
-import { withTurnStyleReminder } from './turn-style.js';
+import { tapSpokenText, toolsForTurn } from './turn-request.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -690,34 +689,17 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   }
 
   /**
-   * Every LLM request (preemptive or not) goes through here: gate it for crisis
-   * (crisis-gate.ts), add the turn reminder and director's notes to a copy of the
-   * context, and send this turn's tools. See turn-request.ts.
+   * Every LLM request (preemptive or not) goes through here, gated for crisis with
+   * the turn reminder and director's notes (crisis-gate.ts), with this turn's tools.
    */
   async llmNode(
     chatCtx: llm.ChatContext,
     toolCtx: llm.ToolContext,
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
-    type Reply = Awaited<ReturnType<voice.Agent<PersonaSessionData>['llmNode']>>;
-    const gate = startCrisisGate(chatCtx, this.session.userData);
-    if (gate?.decision.action === 'replace') return textReply(gate.decision.script) as unknown as Reply;
-
-    let ctx = withTurnReminder(chatCtx, this.session as object);
-    if (gate?.decision.action === 'guide') ctx = withTurnStyleReminder(ctx, gate.decision.guidance);
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
-    let stream = await super.llmNode(ctx, tools, modelSettings);
-    // The opener gate trims the model's reply only, never a crisis replacement.
-    if (stream && process.env.OPENER_GATE !== 'off') {
-      stream = this.openerGate.wrap(stream as never) as unknown as Reply;
-    }
-    if (!stream || !gate?.escalation) return stream;
-    return holdUntilCleared(stream as never, gate.escalation, async (decision) => {
-      if (decision.action === 'replace') return textReply(decision.script);
-      if (decision.action === 'pass') return null;
-      const guided = withTurnStyleReminder(ctx, decision.guidance);
-      return (await super.llmNode(guided, tools, modelSettings)) as never;
-    }) as unknown as Reply;
+    const model = async (ctx: llm.ChatContext) => super.llmNode(ctx, tools, modelSettings) as never;
+    return gatedReply(chatCtx, this.session, model, this.openerGate as never) as never;
   }
 
   private readonly turnTools = { loggedLockedHandoffs: false };
