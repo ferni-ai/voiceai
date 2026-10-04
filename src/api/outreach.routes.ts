@@ -36,6 +36,7 @@ import type { OutreachType, OutreachChannel } from '../services/outreach/llm-con
 import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { actingUserOrReply } from './acting-user.js';
 import { rateLimit, requireAuth, type AuthContext } from './auth-middleware.js';
 import { verifySchedulerRequest } from './scheduled-jobs/scheduler-auth.js';
 import { handleCorsPreflightIfNeeded, parseRequestBody, sendJsonResponse } from './helpers.js';
@@ -45,6 +46,8 @@ const log = getLogger().child({ module: 'outreach-handler' });
 
 // Route prefix for early bailout
 const OUTREACH_PREFIX = '/api/outreach';
+/** A client-named user in a request body; checked against the caller by actingUserOrReply. */
+type Named = { userId?: unknown };
 
 // Import persistent verification store
 import {
@@ -555,15 +558,9 @@ export async function handleOutreachRoutes(
     // POST /api/outreach/register
     if (route === '/register' && method === 'POST') {
       const body = await parseRequestBody(req);
-      const { userId, relationshipStartDate } = body as {
-        userId: string;
-        relationshipStartDate?: string;
-      };
-
-      if (!userId) {
-        sendJsonResponse(res, 400, { success: false, error: 'userId is required' });
-        return true;
-      }
+      const { relationshipStartDate } = body as { relationshipStartDate?: string };
+      const userId = actingUserOrReply(res, auth, (body as Named).userId); // 401/403 if not the caller
+      if (!userId) return true;
 
       registerUserForOutreach(
         userId,
@@ -580,8 +577,7 @@ export async function handleOutreachRoutes(
     // POST /api/outreach/context
     if (route === '/context' && method === 'POST') {
       const body = await parseRequestBody(req);
-      const { userId, context } = body as {
-        userId: string;
+      const { context } = body as {
         context: {
           emotionalState?: string;
           recentTopics?: string[];
@@ -592,11 +588,8 @@ export async function handleOutreachRoutes(
         };
       };
 
-      if (!userId) {
-        sendJsonResponse(res, 400, { success: false, error: 'userId is required' });
-        return true;
-      }
-
+      const userId = actingUserOrReply(res, auth, (body as Named).userId); // 401/403 if not the caller
+      if (!userId) return true;
       updateUserContext(userId, context);
       sendJsonResponse(res, 200, { success: true, message: 'Context updated' });
       return true;
@@ -716,15 +709,17 @@ export async function handleOutreachRoutes(
     // POST /api/outreach/verify-phone - Send verification code
     if (route === '/verify-phone' && method === 'POST') {
       const body = await parseRequestBody(req);
-      const { phone, userId } = body as { phone: string; userId?: string };
+      const { phone } = body as { phone: string };
 
       if (!phone) {
         sendJsonResponse(res, 400, { success: false, error: 'phone is required' });
         return true;
       }
 
-      // Use userId or phone as identifier
-      const identifier = userId || `phone:${phone}`;
+      // Keyed by the verified user when the client names one, else by phone
+      const named = actingUserOrReply(res, auth, (body as Named).userId);
+      if (!named) return true;
+      const identifier = (body as Named).userId ? named : `phone:${phone}`;
 
       try {
         // Create verification code in persistent store
@@ -750,15 +745,16 @@ export async function handleOutreachRoutes(
     // POST /api/outreach/verify-phone/confirm - Verify the code
     if (route === '/verify-phone/confirm' && method === 'POST') {
       const body = await parseRequestBody(req);
-      const { phone, code, userId } = body as { phone: string; code: string; userId?: string };
+      const { phone, code } = body as { phone: string; code: string };
 
       if (!phone || !code) {
         sendJsonResponse(res, 400, { success: false, error: 'phone and code are required' });
         return true;
       }
 
-      // Use userId or phone as identifier (same as when creating)
-      const identifier = userId || `phone:${phone}`;
+      const named = actingUserOrReply(res, auth, (body as Named).userId); // same key as when creating
+      if (!named) return true;
+      const identifier = (body as Named).userId ? named : `phone:${phone}`;
 
       try {
         // Verify using persistent store
@@ -788,19 +784,15 @@ export async function handleOutreachRoutes(
     // POST /api/outreach/contact - Set user contact info
     if (route === '/contact' && method === 'POST') {
       const body = await parseRequestBody(req);
-      const { userId, phone, email, preferredMethod, timezone } = body as {
-        userId: string;
+      const { phone, email, preferredMethod, timezone } = body as {
         phone?: string;
         email?: string;
         preferredMethod?: 'sms' | 'email' | 'call';
         timezone?: string;
       };
 
-      if (!userId) {
-        sendJsonResponse(res, 400, { success: false, error: 'userId is required' });
-        return true;
-      }
-
+      const userId = actingUserOrReply(res, auth, (body as Named).userId); // 401/403 if not the caller
+      if (!userId) return true;
       if (!phone && !email) {
         sendJsonResponse(res, 400, {
           success: false,
@@ -1011,18 +1003,16 @@ Whenever you're ready.`,
     // POST /api/outreach/test/send
     if (route === '/test/send' && method === 'POST') {
       const body = await parseRequestBody(req);
-      const { userId, channel, message, subject } = body as {
-        userId: string;
+      const { channel, message, subject } = body as {
         channel: 'sms' | 'email' | 'call';
         message: string;
         subject?: string;
       };
 
-      if (!userId || !channel || !message) {
-        sendJsonResponse(res, 400, {
-          success: false,
-          error: 'userId, channel, and message are required',
-        });
+      const userId = actingUserOrReply(res, auth, (body as Named).userId); // 401/403 if not the caller
+      if (!userId) return true;
+      if (!channel || !message) {
+        sendJsonResponse(res, 400, { success: false, error: 'channel and message are required' });
         return true;
       }
 
