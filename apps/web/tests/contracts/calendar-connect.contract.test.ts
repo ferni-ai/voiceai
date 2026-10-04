@@ -149,7 +149,12 @@ beforeAll(async () => {
   base = `http://127.0.0.1:${(http.address() as AddressInfo).port}`;
   Object.defineProperty(window, 'location', { value: mockLocation, writable: true });
   vi.stubGlobal('fetch', browserFetch);
-});
+  // The status route lazily imports its services (calendar, banking, social
+  // graph). Cold, the first request took 0.8 s idle and 2.6 s+ under load,
+  // pushing the first test past its 5 s budget; pay it here instead. user-B
+  // only reads and never connects in these tests.
+  expect(await panelCalendarStatus('tok-user-B')).toBe(false);
+}, 30_000);
 
 afterAll(async () => {
   vi.unstubAllGlobals();

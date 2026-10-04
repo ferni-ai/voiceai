@@ -112,7 +112,9 @@ describe('journal sync over the custom-agent REST route', () => {
     );
     window.dispatchEvent(new Event('focus'));
 
-    await vi.waitFor(() => expect(changes).toHaveLength(1));
+    // The focus-triggered fetch is the first request through a real server;
+    // waitFor's default 1 s missed it on a loaded machine.
+    await vi.waitFor(() => expect(changes).toHaveLength(1), { timeout: 4000 });
     expect(changes[0]).toEqual({ added: 1, removed: 0, ids: ['e1', 'e2'] });
     expect(requests).toEqual(['/api/custom-agents/agent-1/memories?type=journalEntry']);
 
