@@ -14,7 +14,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { requireUserId, sendJSON, parseBody } from '../helpers.js';
 import { resolveActingUser } from '../acting-user.js';
 import { rateLimit, requireAuth } from '../auth-middleware.js';
-import { LimitReachedError } from '../../services/social/shared-records.js';
+import { LimitReachedError } from '../../services/social/open-challenge-slots.js';
 import { challengeCreateLimit } from './challenge-limits.js';
 import { publicEntries } from './leaderboard-view.js';
 import type { GameMemory } from '../../types/user-profile.js';

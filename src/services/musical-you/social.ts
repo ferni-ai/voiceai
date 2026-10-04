@@ -11,12 +11,8 @@
 
 import { randomUUID } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  daysAfter,
-  LimitReachedError,
-  sharedRecords,
-  type ChallengeActor,
-} from '../social/shared-records.js';
+import { boundedChallenges, type ChallengeActor } from '../social/open-challenge-slots.js';
+import { daysAfter, sharedRecords } from '../social/shared-records.js';
 import type { MusicChallenge, Leaderboard, LeaderboardEntry, TasteMatch } from './types.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
@@ -34,6 +30,10 @@ const challenges = sharedRecords<MusicChallenge>('musical_challenges', {
   dateFields: ['createdAt', 'expiresAt', 'completedAt'],
   ttlAt: (c, now) => (c.status === 'pending' ? c.expiresAt : daysAfter(c.completedAt ?? now, 30)),
 });
+/** Open-challenge caps per sender and recipient, enforced in the create transaction. */
+const bounded = boundedChallenges(challenges, 'musical_open_challenge_slots');
+/** Each user's slots document, for account deletion. */
+export const musicalChallengeSlots = bounded.slots;
 const leaderboards = new Map<string, Leaderboard>();
 const tasteMatches = new Map<string, TasteMatch>();
 
@@ -41,14 +41,13 @@ const tasteMatches = new Map<string, TasteMatch>();
 // CHALLENGES
 // ============================================================================
 
-/** At most this many unanswered challenges per challenger (429 beyond). */
-export const OPEN_CHALLENGE_LIMIT = 50;
 /** Lists read at most this many records per direction from the store. */
 const LIST_LIMIT = 100;
 
 /**
- * Send a music challenge to a friend. Throws LimitReachedError when the
- * challenger already has OPEN_CHALLENGE_LIMIT unanswered challenges out.
+ * Send a music challenge to a friend. Throws LimitReachedError (from
+ * open-challenge-slots) when the sender has too many open challenges out, or
+ * the recipient too many waiting; the check and the write are one transaction.
  */
 export async function sendChallenge(
   challengerId: string,
@@ -59,13 +58,6 @@ export async function sendChallenge(
   challengerTime?: number
 ): Promise<MusicChallenge> {
   const now = new Date();
-  const open = await challenges.query(
-    { challengerId, status: 'pending' },
-    OPEN_CHALLENGE_LIMIT + 1
-  );
-  if (open.filter((c) => c.expiresAt > now).length >= OPEN_CHALLENGE_LIMIT) {
-    throw new LimitReachedError('Too many open challenges');
-  }
   const challenge: MusicChallenge = {
     id: `challenge-${randomUUID()}`,
     type: 'score-beat',
@@ -79,7 +71,7 @@ export async function sendChallenge(
     createdAt: now,
     expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days
   };
-  await challenges.put(challenge.id, challenge);
+  await bounded.create(challenge);
 
   log.info(
     { challengeId: challenge.id, challengerId, challengeeId, gameType, score: challengerScore },
@@ -141,7 +133,7 @@ export async function completeChallenge(
   challengeeTime?: number,
   challengeeName?: string
 ): Promise<MusicChallenge | null> {
-  const { current, written } = await challenges.update(challengeId, (challenge) => {
+  const { current, written } = await bounded.answer(challengeId, (challenge) => {
     if (!mayAnswer(challenge, actor)) return null;
     const done: MusicChallenge = {
       ...challenge,
@@ -179,7 +171,7 @@ export async function declineChallenge(
   challengeId: string,
   actor: ChallengeActor
 ): Promise<MusicChallenge | null> {
-  const { written } = await challenges.update(challengeId, (c) =>
+  const { written } = await bounded.answer(challengeId, (c) =>
     mayAnswer(c, actor)
       ? { ...c, status: 'declined', completedAt: new Date(), declinedBy: actor.userId }
       : null

@@ -45,10 +45,18 @@ interface Backend {
   ): Promise<Array<{ id: string; data: Json }>>;
   all(collection: string): Promise<Json[]>;
   remove(collection: string, id: string): Promise<void>;
+  /** Run `fn` as one transaction: reads first, then writes, all or nothing. */
+  transact<R>(fn: (tx: RawTx) => Promise<R>): Promise<R>;
+}
+
+interface RawTx {
+  get(collection: string, id: string): Promise<Json | null>;
+  set(collection: string, id: string, data: Json): void;
 }
 
 function memoryBackend(): Backend {
   const collections = new Map<string, Map<string, Json>>();
+  let lock: Promise<unknown> = Promise.resolve();
   const col = (name: string) => {
     let c = collections.get(name);
     if (!c) collections.set(name, (c = new Map()));
@@ -78,6 +86,22 @@ function memoryBackend(): Backend {
     },
     async remove(collection, id) {
       col(collection).delete(id);
+    },
+    async transact(fn) {
+      // One at a time, so a transaction's reads and writes can't interleave with another's.
+      const run = lock.then(async () => {
+        const pending: Array<[string, string, Json]> = [];
+        const result = await fn({
+          get: async (collection, id) => col(collection).get(id) ?? null,
+          set: (collection, id, data) => {
+            pending.push([collection, id, data]);
+          },
+        });
+        for (const [collection, id, data] of pending) col(collection).set(id, data);
+        return result;
+      });
+      lock = run.catch(() => undefined);
+      return run;
     },
   };
 }
@@ -121,6 +145,20 @@ function firestoreBackend(): Backend {
     async remove(collection, id) {
       await db().collection(collection).doc(id).delete();
     },
+    async transact(fn) {
+      const firestore = db();
+      return firestore.runTransaction(async (tx) =>
+        fn({
+          get: async (collection, id) => {
+            const snap = await tx.get(firestore.collection(collection).doc(id));
+            return snap.exists ? ((snap.data() as Json | undefined) ?? null) : null;
+          },
+          set: (collection, id, data) => {
+            tx.set(firestore.collection(collection).doc(id), data);
+          },
+        })
+      );
+    },
   };
 }
 
@@ -132,20 +170,6 @@ function getBackend(): Backend {
       ? firestoreBackend()
       : memoryBackend();
   return backend;
-}
-
-/** Who is acting on a record: the verified caller, and whether they are an admin. */
-export interface ChallengeActor {
-  userId: string;
-  isAdmin?: boolean;
-}
-
-/** A per-user bound was reached (e.g. too many open challenges): the route answers 429. */
-export class LimitReachedError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'LimitReachedError';
-  }
 }
 
 /** `days` after `from`, for ttlAt values. */
@@ -160,7 +184,31 @@ export interface SharedRecordsOptions<T> {
   ttlAt?: (record: T, now: Date) => Date;
 }
 
+/** A transaction over shared records (see sharedTransaction). */
+export interface SharedTx {
+  get<T>(records: SharedRecords<T>, id: string): Promise<T | null>;
+  set<T>(records: SharedRecords<T>, id: string, record: T): void;
+}
+
+/**
+ * Run `fn` as one transaction across any shared collections. Do every get
+ * before the first set (Firestore requires it). On Firestore, a conflicting
+ * write makes the whole function run again, so keep it free of side effects.
+ */
+export async function sharedTransaction<R>(fn: (tx: SharedTx) => Promise<R>): Promise<R> {
+  return getBackend().transact(async (raw) =>
+    fn({
+      get: async (records, id) => records.decode(await raw.get(records.collection, id)),
+      set: (records, id, record) => raw.set(records.collection, id, records.encode(record)),
+    })
+  );
+}
+
 export interface SharedRecords<T> {
+  readonly collection: string;
+  /** The stored form of a record (JSON, plus ttlAt), and back. For sharedTransaction. */
+  encode(record: T): Json;
+  decode(data: Json | null): T | null;
   get(id: string): Promise<T | null>;
   put(id: string, record: T): Promise<void>;
   /**
@@ -210,6 +258,9 @@ export function sharedRecords<T>(
       return next ? toJson(next) : null;
     };
   return {
+    collection,
+    encode: toJson,
+    decode: fromJson,
     async get(id) {
       return fromJson(await getBackend().get(collection, id));
     },

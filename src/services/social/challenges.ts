@@ -3,8 +3,9 @@
  * API instance sees them (see shared-records). Moved out of
  * multiplayer-games.ts, which re-exports these functions.
  *
- * Bounded: a challenger may have OPEN_CHALLENGE_LIMIT unanswered challenges
- * out, and every list reads at most LIST_LIMIT records from the store. State
+ * Bounded: a user may have 50 unanswered challenges out and 50 waiting
+ * (open-challenge-slots, checked and taken atomically), and every list reads at
+ * most LIST_LIMIT records from the store. State
  * changes are bound to the actor here, not only in the route: only the
  * challengee (or an admin, passed explicitly) may accept, complete or
  * decline, and who did it is recorded.
@@ -13,18 +14,12 @@
  */
 import { randomUUID, randomInt } from 'node:crypto';
 import { getLogger } from '../../utils/safe-logger.js';
-import {
-  daysAfter,
-  LimitReachedError,
-  sharedRecords,
-  type ChallengeActor,
-} from './shared-records.js';
+import { boundedChallenges, type ChallengeActor } from './open-challenge-slots.js';
+import { daysAfter, sharedRecords } from './shared-records.js';
 import type { Challenge, ChallengeType } from './multiplayer-games.js';
 
 const log = getLogger();
 
-/** At most this many unanswered challenges per challenger (429 beyond). */
-export const OPEN_CHALLENGE_LIMIT = 50;
 /** Lists read at most this many records per query. */
 const LIST_LIMIT = 100;
 
@@ -41,6 +36,11 @@ const challenges = sharedRecords<Challenge>('social_challenges', {
   },
 });
 
+/** Open-challenge caps per sender and recipient, enforced in the create transaction. */
+const bounded = boundedChallenges(challenges, 'social_open_challenge_slots');
+/** Each user's slots document, for account deletion. */
+export const socialChallengeSlots = bounded.slots;
+
 const newest = (a: Challenge, b: Challenge) => b.createdAt.getTime() - a.createdAt.getTime();
 
 function generateShareCode(): string {
@@ -55,8 +55,9 @@ const isChallengee = (c: Challenge, actor: ChallengeActor) =>
   c.challengeeId === actor.userId || actor.isAdmin === true;
 
 /**
- * Create a new challenge. Throws LimitReachedError when the challenger already
- * has OPEN_CHALLENGE_LIMIT unanswered challenges out.
+ * Create a new challenge. Throws LimitReachedError (from open-challenge-slots)
+ * when the challenger has too many open challenges out, or the challengee too
+ * many waiting; the check and the write are one transaction.
  */
 export async function createChallenge(
   type: ChallengeType,
@@ -67,13 +68,6 @@ export async function createChallenge(
   options?: { challengerScore?: number; challengerTimeMs?: number }
 ): Promise<Challenge> {
   const now = new Date();
-  const open = await challenges.query(
-    { challengerId, status: 'pending' },
-    OPEN_CHALLENGE_LIMIT + 1
-  );
-  if (open.filter((c) => c.expiresAt > now).length >= OPEN_CHALLENGE_LIMIT) {
-    throw new LimitReachedError('Too many open challenges');
-  }
   const challenge: Challenge = {
     id: `challenge_${randomUUID()}`,
     type,
@@ -88,7 +82,7 @@ export async function createChallenge(
     expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days
     shareCode: generateShareCode(),
   };
-  await challenges.put(challenge.id, challenge);
+  await bounded.create(challenge);
   log.info({ challengeId: challenge.id, type, gameType }, '🎮 Challenge created');
   return challenge;
 }
@@ -101,7 +95,7 @@ export async function acceptChallenge(
   actor: ChallengeActor,
   challengeeName: string
 ): Promise<Challenge | null> {
-  const { written } = await challenges.update(challengeId, (c) =>
+  const { written } = await bounded.answer(challengeId, (c) =>
     isChallengee(c, actor) && c.status === 'pending'
       ? {
           ...c,
@@ -165,7 +159,7 @@ export async function declineChallenge(
   challengeId: string,
   actor: ChallengeActor
 ): Promise<boolean> {
-  const { written } = await challenges.update(challengeId, (c) =>
+  const { written } = await bounded.answer(challengeId, (c) =>
     isChallengee(c, actor) && c.status === 'pending'
       ? { ...c, status: 'declined', completedAt: new Date(), declinedBy: actor.userId }
       : null

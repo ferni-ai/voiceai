@@ -82,6 +82,53 @@ const createSocial = async (from: string, to: string) =>
   });
 const idOf = (body: Json) => (body.challenge as { id: string }).id;
 
+const statuses = (results: Array<{ status: number }>) => ({
+  ok: results.filter((r) => r.status === 200).length,
+  limited: results.filter((r) => r.status === 429).length,
+});
+
+describe('caps hold under concurrency (one transaction per create)', () => {
+  it('social: 60 concurrent creates from one sender -> exactly 50 succeed, 10 get 429', async () => {
+    const results = await Promise.all(
+      Array.from({ length: 60 }, async (_, i) => createSocial('racer', `r${i}`))
+    );
+    expect(statuses(results)).toEqual({ ok: 50, limited: 10 });
+  });
+
+  it('musical: 60 concurrent sends from one sender -> exactly 50 succeed, 10 get 429', async () => {
+    const results = await Promise.all(
+      Array.from({ length: 60 }, async (_, i) => sendMusical('racer', `r${i}`))
+    );
+    expect(statuses(results)).toEqual({ ok: 50, limited: 10 });
+  });
+
+  it("3 attackers sending 30 each can't flood one victim: 50 land, the pending list stays bounded", async () => {
+    const results = await Promise.all(
+      ['a1', 'a2', 'a3'].flatMap((attacker) =>
+        Array.from({ length: 30 }, async () => createSocial(attacker, 'victim'))
+      )
+    );
+    expect(statuses(results)).toEqual({ ok: 50, limited: 40 });
+
+    fake.reads = 0;
+    const pending = await call(api.social, 'GET', '/api/social/challenges/pending', 'victim');
+    expect((pending.body.challenges as unknown[]).length).toBe(50);
+    expect(fake.reads).toBeLessThanOrEqual(100);
+  });
+
+  it('answering frees the slot: a declined challenge lets the sender send again', async () => {
+    const ids = [];
+    for (let i = 0; i < 50; i++) ids.push(idOf((await createSocial('full', `f${i}`)).body));
+    expect((await createSocial('full', 'one-more')).status).toBe(429);
+
+    const declined = await call(api.social, 'POST', '/api/social/challenges/decline', 'f0', {
+      challengeId: ids[0],
+    });
+    expect(declined.status).toBe(200);
+    expect((await createSocial('full', 'one-more')).status).toBe(200);
+  });
+});
+
 describe('bounds', () => {
   it('musical: the 51st open challenge from one sender is 429; others may still send', async () => {
     for (let i = 0; i < 50; i++) expect((await sendMusical('spammer', `u${i}`)).status).toBe(200);

@@ -129,7 +129,7 @@ export function createFakeFirestore(state: FakeFirestoreState) {
         set: (r: Ref, data: Json) => void;
       }) => Promise<T>
     ): Promise<T> {
-      for (let attempt = 0; attempt < 20; attempt++) {
+      for (let attempt = 0; attempt < 500; attempt++) {
         const read = new Map<string, number>();
         const pending: Array<[string, Json]> = [];
         const result = await fn({
