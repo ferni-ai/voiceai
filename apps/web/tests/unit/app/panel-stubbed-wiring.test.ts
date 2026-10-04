@@ -18,6 +18,9 @@ vi.mock('../../../src/ui/prediction-tracker.ui.js', () => ({
   getPredictionTrackerUI: () => trackerUI,
 }));
 
+const huddleUI = { showTeamHuddle: vi.fn() };
+vi.mock('../../../src/ui/team-huddle.ui.js', () => huddleUI);
+
 vi.mock('../../../src/services/engagement-demo-data.js', () => ({
   isDemoDataEnabled: () => false,
   getDemoTeamHuddle: vi.fn(),
@@ -102,5 +105,52 @@ describe('showPredictionTracker', () => {
 
     expect(trackerUI.show).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith("Couldn't load your predictions. Try again?");
+  });
+});
+
+describe('showTeamHuddle', () => {
+  // Body of POST /api/huddles/start as src/api/routes/team.ts sends it
+  // (src/tests/team-huddle-start-contract.test.ts runs the real handler).
+  const huddle = {
+    id: 'huddle_1759600000000_abc123def',
+    title: 'Team Check-in',
+    topic: 'Weekly check-in on your progress',
+    intro: 'The team wanted to share something with you.',
+    outro: "That's what we're seeing.",
+    participants: [
+      {
+        personaId: 'ferni',
+        name: 'Ferni',
+        initials: 'F',
+        comment: 'Every conversation we have teaches me something new about you.',
+        avatarColor: 'var(--persona-ferni-primary)',
+      },
+    ],
+    status: 'active',
+    startedAt: '2026-10-04T16:00:00.000Z',
+    type: 'weekly',
+    scheduledAt: '2026-10-04T16:00:00.000Z',
+  };
+
+  it('starts a real huddle via POST /api/huddles/start and shows it', async () => {
+    apiPost.mockResolvedValueOnce({ ok: true, status: 200, data: { success: true, huddle } });
+
+    await panels.showTeamHuddle();
+
+    expect(apiPost).toHaveBeenCalledWith('/api/huddles/start', {
+      topic: 'Weekly check-in on your progress',
+      type: 'weekly',
+    });
+    expect(huddleUI.showTeamHuddle).toHaveBeenCalledWith(huddle);
+    expect(toast.info).not.toHaveBeenCalled();
+  });
+
+  it('says the start failed instead of "isn\'t ready yet"', async () => {
+    apiPost.mockResolvedValueOnce({ ok: false, status: 500, error: 'boom' });
+
+    await panels.showTeamHuddle();
+
+    expect(huddleUI.showTeamHuddle).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith("Couldn't start a team huddle. Try again?");
   });
 });

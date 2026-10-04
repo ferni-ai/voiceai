@@ -7,7 +7,7 @@
  */
 
 import type { ScreenName } from '../services/app-context-tracking.service.js';
-import { getDemoTeamHuddle, isDemoDataEnabled } from '../services/engagement-demo-data.js';
+import { isDemoDataEnabled } from '../services/engagement-demo-data.js';
 import { getAnalyticsDashboardUI } from '../ui/analytics-dashboard.ui.js';
 import { getCognitiveInsightsUI } from '../ui/cognitive-insights.ui.js';
 import { getConversationHistoryUI } from '../ui/conversation-history.ui.js';
@@ -17,11 +17,11 @@ import {
   toPredictionTrackerData,
   type PredictionsResponse,
 } from '../services/prediction-tracker-data.js';
-import { showTeamHuddle as showTeamHuddleUI } from '../ui/team-huddle.ui.js';
+import { showTeamHuddle as showTeamHuddleUI, type TeamHuddleData } from '../ui/team-huddle.ui.js';
 import type { fetchVisualizationData, YourStoryData } from '../ui/visualizations/index.js';
 import { loadYourStory } from '../ui/lazy-screens.js';
 import { createLogger } from '../utils/logger.js';
-import { apiGet } from '../utils/api.js';
+import { apiGet, apiPost } from '../utils/api.js';
 
 // 🧠 Better Than Human: Track screen view for Voice ↔ App Sync
 async function trackScreen(screen: ScreenName): Promise<void> {
@@ -547,49 +547,31 @@ export async function showDataExport(): Promise<void> {
 // TEAM HUDDLE
 // ============================================================================
 
+/** Body of POST /api/huddles/start (src/api/routes/team.ts handleStartHuddle). */
+interface StartHuddleResponse {
+  success?: boolean;
+  huddle?: Omit<TeamHuddleData, 'type'> & { type?: string };
+}
+
 /**
- * Show team huddle panel.
- * Starts a new huddle via API, or shows demo data in development.
+ * Start a team huddle via POST /api/huddles/start and show it.
+ * A failed start says so; nothing is shown that the server didn't send.
  */
-export async function showTeamHuddle(_topic?: string): Promise<void> {
+export async function showTeamHuddle(topic?: string): Promise<void> {
   void trackScreen('team');
-
-  // TODO: Backend POST /api/huddles/start not implemented yet.
-  // When the handler exists, uncomment the fetch below.
-  // try {
-  //   const authHeaders = await getApiHeadersAsync(true);
-  //   const response = await fetch('/api/huddles/start', {
-  //     method: 'POST',
-  //     headers: authHeaders,
-  //     body: JSON.stringify({
-  //       topic: topic || 'Weekly check-in on your progress',
-  //       type: 'weekly',
-  //     }),
-  //   });
-  //   if (response.ok) {
-  //     const data = await response.json();
-  //     if (data.success && data.huddle) {
-  //       showTeamHuddleUI(data.huddle);
-  //       log.debug('Team huddle started via API');
-  //       return;
-  //     }
-  //   }
-  // } catch (err) {
-  //   log.debug('API fetch failed, checking for demo mode');
-  // }
-
-  // Fall back to demo data if enabled
-  if (isDemoDataEnabled()) {
-    const demoHuddle = getDemoTeamHuddle('weekly');
-    showTeamHuddleUI(demoHuddle);
-    log.debug('Team huddle shown (demo)');
+  const response = await apiPost<StartHuddleResponse>('/api/huddles/start', {
+    topic: topic || 'Weekly check-in on your progress',
+    type: 'weekly',
+  });
+  const huddle = response.ok ? response.data?.huddle : undefined;
+  if (!huddle) {
+    log.warn({ status: response.status }, 'Team huddle start failed');
+    const { toast } = await import('../ui/whisper.ui.js');
+    toast.error("Couldn't start a team huddle. Try again?");
     return;
   }
-
-  // Honest empty state — never fabricate a huddle in production
-  const { toast } = await import('../ui/whisper.ui.js');
-  toast.info("Team huddle isn't ready yet. Ask Ferni when you're in a conversation.");
-  log.debug('Team huddle unavailable (no API, demo disabled)');
+  const type = huddle.type === 'milestone' || huddle.type === 'special' ? huddle.type : 'weekly';
+  showTeamHuddleUI({ ...huddle, type });
 }
 
 // ============================================================================
