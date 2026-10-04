@@ -50,16 +50,59 @@ const tokenStore = createPersistenceStore<EncryptedTokenData>({
 
 const tokenCache = new Map<string, StoredGoogleCalendarTokens>();
 
+/**
+ * Most users never connect Google Calendar, and one context build asks for
+ * their tokens dozens of times (week overview, day overview, busy detection,
+ * ...). Without remembering the miss, each ask was a Firestore read: 47 reads
+ * for one Peter briefing. A miss is trusted for MISS_TTL_MS, so a calendar
+ * connected from another process (the API server) shows up within a minute;
+ * saveTokens/removeTokens in this process clear it at once.
+ */
+const MISS_TTL_MS = 60_000;
+const MAX_MISS_ENTRIES = 10_000;
+const missUntil = new Map<string, number>();
+const pendingLoads = new Map<string, Promise<StoredGoogleCalendarTokens | null>>();
+
+function rememberMiss(userId: string): void {
+  if (missUntil.size >= MAX_MISS_ENTRIES) {
+    const now = Date.now();
+    for (const [id, until] of missUntil) if (until <= now) missUntil.delete(id);
+    if (missUntil.size >= MAX_MISS_ENTRIES) missUntil.clear();
+  }
+  missUntil.set(userId, Date.now() + MISS_TTL_MS);
+}
+
+function isKnownMiss(userId: string): boolean {
+  const until = missUntil.get(userId);
+  if (until === undefined) return false;
+  if (until > Date.now()) return true;
+  missUntil.delete(userId);
+  return false;
+}
+
 /** Cached tokens only (no I/O). Null until getTokens has loaded them. */
 export function peekTokens(userId: string): StoredGoogleCalendarTokens | null {
   return tokenCache.get(userId) ?? null;
 }
 
-/** Tokens for a user, from cache or Firestore. Null when not connected. */
+/**
+ * Tokens for a user, from cache or Firestore. Null when not connected.
+ * Concurrent first callers share one read; a miss is remembered (see MISS_TTL_MS).
+ */
 export async function getTokens(userId: string): Promise<StoredGoogleCalendarTokens | null> {
   const cached = tokenCache.get(userId);
   if (cached) return cached;
+  if (isKnownMiss(userId)) return null;
 
+  const pending = pendingLoads.get(userId);
+  if (pending) return pending;
+
+  const load = loadTokens(userId).finally(() => pendingLoads.delete(userId));
+  pendingLoads.set(userId, load);
+  return load;
+}
+
+async function loadTokens(userId: string): Promise<StoredGoogleCalendarTokens | null> {
   try {
     const data = await tokenStore.get(userId);
     if (data?.encrypted) {
@@ -75,6 +118,10 @@ export async function getTokens(userId: string): Promise<StoredGoogleCalendarTok
       'Error loading Google Calendar tokens'
     );
   }
+  // A save that landed while this read was in flight wins over the miss.
+  const savedMeanwhile = tokenCache.get(userId);
+  if (savedMeanwhile) return savedMeanwhile;
+  rememberMiss(userId);
   return null;
 }
 
@@ -85,6 +132,7 @@ export async function saveTokens(
 ): Promise<void> {
   const withTimestamp = { ...tokens, updated_at: Date.now() };
   tokenCache.set(userId, withTimestamp);
+  missUntil.delete(userId);
 
   try {
     await tokenStore.setImmediate(userId, {
@@ -103,6 +151,7 @@ export async function saveTokens(
 /** Remove a user's tokens (disconnect). */
 export async function removeTokens(userId: string): Promise<void> {
   tokenCache.delete(userId);
+  missUntil.delete(userId);
   try {
     await tokenStore.delete(userId);
     log.info({ userId: userId.substring(0, 8) }, 'Removed Google Calendar tokens');
@@ -140,4 +189,5 @@ export async function listTokenUsers(): Promise<string[]> {
 export async function shutdownTokenStore(): Promise<void> {
   await tokenStore.shutdown();
   tokenCache.clear();
+  missUntil.clear();
 }
