@@ -37,6 +37,7 @@
 import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-auth.service.js';
 import { fetchWithRetry, isOffline, type FetchRetryOptions } from './fetch-retry.js';
 import { createLogger } from './logger.js';
+import { IDENTITY_KEYS } from '../config/storage-keys.js';
 
 const log = createLogger('API');
 
@@ -122,12 +123,10 @@ export function getUserId(): string | null {
   }
 }
 
-/**
- * Get device ID from localStorage.
- */
+/** Device ID, read from the same key app.state persists it under. */
 export function getDeviceId(): string | null {
   try {
-    return localStorage.getItem('ferni_device_id');
+    return localStorage.getItem(IDENTITY_KEYS.DEVICE_ID);
   } catch {
     return null;
   }

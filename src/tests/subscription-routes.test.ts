@@ -305,6 +305,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/checkout',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: { userId: 'user-123', tier: 'friend' },
       });
 
@@ -312,7 +313,7 @@ describe('Subscription Routes', () => {
       expect(response.body).toEqual({ error: 'Stripe is not configured' });
     });
 
-    it('should return 400 if userId is missing', async () => {
+    it('should return 401 when the caller is not signed in', async () => {
       const response = await handleSubscriptionRequest({
         method: 'POST',
         pathname: '/api/subscription/checkout',
@@ -321,8 +322,8 @@ describe('Subscription Routes', () => {
         body: { tier: 'friend' },
       });
 
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'userId and tier are required' });
+      expect(response.status).toBe(401);
+      expect(response.body).toEqual({ error: 'Authentication required' });
     });
 
     it('should return 400 if tier is missing', async () => {
@@ -331,11 +332,12 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/checkout',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: { userId: 'user-123' },
       });
 
       expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'userId and tier are required' });
+      expect(response.body).toEqual({ error: 'tier is required' });
     });
 
     it('should return 400 for invalid tier', async () => {
@@ -344,6 +346,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/checkout',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: { userId: 'user-123', tier: 'invalid' },
       });
 
@@ -360,6 +363,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/checkout',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: {
           userId: 'user-123',
           tier: 'friend',
@@ -387,6 +391,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/checkout',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: {
           userId: 'user-123',
           tier: 'partner',
@@ -411,6 +416,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/checkout',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: {
           userId: 'user-123',
           tier: 'friend',
@@ -436,6 +442,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/checkout',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: { userId: 'user-123', tier: 'friend' },
       });
 
@@ -457,6 +464,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/portal',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: { userId: 'user-123' },
       });
 
@@ -464,7 +472,7 @@ describe('Subscription Routes', () => {
       expect(response.body).toEqual({ error: 'Stripe is not configured' });
     });
 
-    it('should return 400 if userId is missing', async () => {
+    it('should return 401 when the caller is not signed in', async () => {
       const response = await handleSubscriptionRequest({
         method: 'POST',
         pathname: '/api/subscription/portal',
@@ -473,8 +481,8 @@ describe('Subscription Routes', () => {
         body: {},
       });
 
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'userId is required' });
+      expect(response.status).toBe(401);
+      expect(response.body).toEqual({ error: 'Authentication required' });
     });
 
     it('should create portal session for valid request', async () => {
@@ -486,6 +494,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/portal',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: { userId: 'user-123' },
       });
 
@@ -505,6 +514,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/portal',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: {
           userId: 'user-123',
           returnUrl: 'https://custom.com/return',
@@ -525,6 +535,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/portal',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: { userId: 'user-123' },
       });
 
@@ -538,7 +549,7 @@ describe('Subscription Routes', () => {
   // ============================================================================
 
   describe('POST /api/usage/conversation', () => {
-    it('should return 400 if userId is missing', async () => {
+    it('should return 401 when the caller is not signed in', async () => {
       const response = await handleSubscriptionRequest({
         method: 'POST',
         pathname: '/api/usage/conversation',
@@ -547,8 +558,8 @@ describe('Subscription Routes', () => {
         body: {},
       });
 
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'userId is required' });
+      expect(response.status).toBe(401);
+      expect(response.body).toEqual({ error: 'Authentication required' });
     });
 
     it('should record conversation with duration', async () => {
@@ -560,6 +571,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/usage/conversation',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: { userId: 'user-123', durationMinutes: 15 },
       });
 
@@ -576,6 +588,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/usage/conversation',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: { userId: 'user-123' },
       });
 
@@ -590,6 +603,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/usage/conversation',
         query: {},
         headers: {},
+        authUserId: 'user-123',
         body: { userId: 'user-123' },
       });
 

@@ -35,9 +35,7 @@ import {
 } from '../../../services/intelligence-publisher.js';
 import { updateUserContextForHandoff } from '../../../tools/handoff/index.js';
 import { safeFireAndForget } from '../../../utils/safe-fire-and-forget.js';
-import {
-  processConversationForLearning,
-} from '../../../intelligence/predictive/index.js';
+import { processConversationForLearning } from '../../../intelligence/predictive/index.js';
 
 import { shouldUseIntelligentRouting } from '../../../tools/semantic-router/advanced/intelligent/index.js';
 import {
@@ -70,16 +68,11 @@ import {
   recordTopicCovered,
   loadPreviousFollowUps,
 } from '../../../intelligence/conversation-planner.js';
-import {
-  loadUserModel,
-  updateFromConversation,
-} from '../../../intelligence/unified-user-model.js';
+import { loadUserModel, updateFromConversation } from '../../../intelligence/unified-user-model.js';
 
 import { getContextOutcomeTracker } from '../../../intelligence/context-outcome-tracker.js';
 
-import {
-  selectInjections as smartSelectInjections,
-} from '../../../intelligence/context-routing/index.js';
+import { selectInjections as smartSelectInjections } from '../../../intelligence/context-routing/index.js';
 
 import { getTimingState } from '../../../intelligence/context-builders/awareness/system-state-awareness.js';
 import { applyTimingAwareDegradation } from '../timing-aware-injection.js';
@@ -111,9 +104,7 @@ import { createTurnTrace } from '../../shared/dev-telemetry.js';
 import { initializeVoiceTracking, recordVoiceTurn } from '../../../intelligence/voice-signals.js';
 import { analyzeAndPreload } from '../../shared/performance/speculative-preloading.js';
 
-import {
-  recordMemoryResponse,
-} from '../../../intelligence/memory-intelligence/turn-processor-integration.js';
+import { recordMemoryResponse } from '../../../intelligence/memory-intelligence/turn-processor-integration.js';
 
 import {
   getNextResonanceCheck,
@@ -235,14 +226,19 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   }
 
   // USER CORRECTIONS: Auto-detect and record when user corrects Ferni (fire-and-forget)
-  if (services.userId && userText.trim().length > 0 && (userData.lastAgentResponse?.length ?? 0) > 0) {
+  if (
+    services.userId &&
+    userText.trim().length > 0 &&
+    (userData.lastAgentResponse?.length ?? 0) > 0
+  ) {
     const uid = services.userId;
     const prevFerni = userData.lastAgentResponse as string;
     const personaId = ctx.persona?.id;
     safeFireAndForget(
       async () => {
         try {
-          const { userCorrections } = await import('../../../services/superhuman/user-corrections.js');
+          const { userCorrections } =
+            await import('../../../services/superhuman/user-corrections.js');
           await userCorrections.autoRecord(uid, userText, prevFerni, personaId);
         } catch {
           // Non-blocking
@@ -324,11 +320,17 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       const recentTranscripts = userData.recentTranscripts || [];
       const avgLen =
         recentTranscripts.length > 1
-          ? recentTranscripts.slice(0, -1).reduce((s, t) => s + t.length, 0) / (recentTranscripts.length - 1)
+          ? recentTranscripts.slice(0, -1).reduce((s, t) => s + t.length, 0) /
+            (recentTranscripts.length - 1)
           : 100;
       const outcome: TurnOutcome = {
         userContinued: true,
-        responseEngagement: userText.length > avgLen * 1.3 ? 'high' : userText.length > avgLen * 0.7 ? 'medium' : 'low',
+        responseEngagement:
+          userText.length > avgLen * 1.3
+            ? 'high'
+            : userText.length > avgLen * 0.7
+              ? 'medium'
+              : 'low',
         sentimentDelta: (analysisResult.analysis.emotion?.intensity || 0.5) - 0.5,
         wasTopicShift: analysisResult.currentTopic !== userData.lastTopic,
         positiveFeedback: /thank|great|helpful|awesome|love|perfect|exactly/i.test(userText),
@@ -557,7 +559,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     safeFireAndForget(
       async () => {
         try {
-          const { captureTurn, isKnowledgeCaptureReady } =
+          const { queueTurnCapture, isKnowledgeCaptureReady } =
             await import('../../../memory/knowledge-graph/index.js');
 
           if (!isKnowledgeCaptureReady()) return;
@@ -569,7 +571,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
             return 0;
           };
 
-          const captureResult = await captureTurn({
+          // Runs with the next few turns of the session (knowledge-capture-batch.ts)
+          queueTurnCapture({
             userId: services.userId!,
             sessionId: services.sessionId,
             turnNumber: turnCount,
@@ -585,16 +588,6 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
             topic: analysisResult?.analysis?.topics?.detected?.[0],
             recentContext: undefined,
           });
-
-          if (captureResult.entities.created > 0 || captureResult.entities.updated > 0) {
-            diag.state('🧠 Knowledge graph updated', {
-              entitiesCreated: captureResult.entities.created,
-              entitiesUpdated: captureResult.entities.updated,
-              factsCount: captureResult.facts.count,
-              relationshipsCount: captureResult.relationships.count,
-              timeMs: captureResult.metrics.totalTimeMs,
-            });
-          }
         } catch (error) {
           diag.debug('Knowledge graph capture failed (non-blocking)', { error: String(error) });
         }
@@ -727,7 +720,10 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     };
 
     if (isIntelligentRouterInitialized() && shouldUseIntelligentRouting(routingUserId)) {
-      diag.debug('🧠 Using intelligent routing (A/B test)', { userId: routingUserId, mode: 'intelligent' });
+      diag.debug('🧠 Using intelligent routing (A/B test)', {
+        userId: routingUserId,
+        mode: 'intelligent',
+      });
       semanticRoutingPromise = startIntelligentRouting(userText, routingContext);
     } else {
       semanticRoutingPromise = startSemanticRouting(userText, routingContext);

@@ -459,6 +459,7 @@
     "text-to-speech"
   ],
   "dependencies": {
+    "@apple/app-store-server-library": "3.1.0",
     "@google-cloud/firestore": "^8.0.0",
     "@google-cloud/monitoring": "5.3.1",
     "@google-cloud/pubsub": "5.2.0",
@@ -506,7 +507,7 @@
     "twilio": "^5.10.7",
     "uuid": "14.0.2",
     "ws": "8.18.3",
-    "zod": "4.1.13"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

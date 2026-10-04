@@ -9,6 +9,7 @@
  * - Edge swipe navigation
  */
 
+import { isTeamMemberUnlocked } from '../services/team-unlock.service.js';
 import type { PersonaId } from '../types/persona.js';
 
 // ============================================================================
@@ -413,14 +414,27 @@ export function setCurrentPersona(personaId: PersonaId): void {
   if (currentPersonaIndex === -1) currentPersonaIndex = 0;
 }
 
-export function getNextPersona(): PersonaId {
-  const nextIndex = (currentPersonaIndex + 1) % PERSONA_ORDER.length;
-  return PERSONA_ORDER[nextIndex] ?? PERSONA_ORDER[0] ?? 'ferni';
+/**
+ * Step through the persona order, skipping members the user hasn't unlocked
+ * (the same check the team picker uses). Returns null when no other persona is
+ * available, so a swipe does nothing instead of opening a locked persona.
+ */
+function stepToUnlockedPersona(direction: 1 | -1): PersonaId | null {
+  const count = PERSONA_ORDER.length;
+  for (let step = 1; step < count; step++) {
+    const index = (currentPersonaIndex + direction * step + count * step) % count;
+    const candidate = PERSONA_ORDER[index];
+    if (candidate && isTeamMemberUnlocked(candidate)) return candidate;
+  }
+  return null;
 }
 
-export function getPreviousPersona(): PersonaId {
-  const prevIndex = (currentPersonaIndex - 1 + PERSONA_ORDER.length) % PERSONA_ORDER.length;
-  return PERSONA_ORDER[prevIndex] ?? PERSONA_ORDER[0] ?? 'ferni';
+export function getNextPersona(): PersonaId | null {
+  return stepToUnlockedPersona(1);
+}
+
+export function getPreviousPersona(): PersonaId | null {
+  return stepToUnlockedPersona(-1);
 }
 
 // ============================================================================
