@@ -1,4 +1,4 @@
-import { resolve } from 'path';
+import { basename, dirname, resolve } from 'path';
 import { defineConfig, loadEnv } from 'vite';
 
 // Stub for native Capacitor plugins that don't exist in web builds
@@ -149,6 +149,14 @@ export default defineConfig(({ mode }) => {
           globals: {
             gsap: 'gsap',
           },
+          // Rollup names a chunk after its module's file, so a lazily loaded
+          // foo/index.ts became index-*.js: indistinguishable from the entry in
+          // devtools, and counted as initial by the bundle ratchet. Use the folder.
+          chunkFileNames(chunk) {
+            const id = chunk.facadeModuleId ?? chunk.moduleIds.at(-1);
+            if (chunk.name === 'index' && id) return `assets/${basename(dirname(id))}-[hash].js`;
+            return 'assets/[name]-[hash].js';
+          },
           // Smart chunking strategy for optimal loading
           manualChunks(id) {
             // Vendor libraries - separate chunks for parallel loading
@@ -156,6 +164,12 @@ export default defineConfig(({ mode }) => {
               if (id.includes('@tsparticles')) return 'vendor-particles';
               if (id.includes('livekit-client')) return 'vendor-rtc';
               if (id.includes('@capacitor')) return 'vendor-capacitor';
+              // Only lazy screens use Firestore. In the catch-all below, every
+              // visitor downloaded it with the entry. It imports @firebase/app
+              // (in vendor); nothing in vendor imports it, so no chunk cycle.
+              // The regex also takes the firebase/firestore wrapper: left in
+              // vendor, it would import this chunk and close a cycle.
+              if (/\/@?firebase\/(firestore|webchannel-wrapper)\//.test(id)) return 'firestore';
               // Other node_modules go to vendor chunk
               return 'vendor';
             }

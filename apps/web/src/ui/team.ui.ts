@@ -36,7 +36,7 @@ import type { PersonaConfig, PersonaId } from '../types/persona.js';
 import { addClass, addListener, getElementById, removeClass } from '../utils/dom.js';
 import { createLogger } from '../utils/logger.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
-import { marketplaceUI } from './marketplace.ui.js';
+import { openMarketplace } from './lazy-screens.js';
 import { toast } from './whisper.ui.js';
 
 const log = createLogger('TeamUI');
@@ -1028,7 +1028,7 @@ function attachMarketplaceAgentListeners(
     trackedTimeout(() => element.classList.remove('team-member--clicked'), DURATION.SLOW);
 
     // Show marketplace modal with agent details
-    void marketplaceUI.open();
+    void openMarketplace();
   });
   cleanupFunctions.push(cleanup);
 
@@ -1419,7 +1419,7 @@ function addMarketplaceButton(): void {
   // Attach click listener directly (button is created dynamically)
   const cleanup = addListener(marketplaceBtn, 'click', (e) => {
     e.stopPropagation();
-    marketplaceUI.open();
+    void openMarketplace();
   });
   cleanupFunctions.push(cleanup);
 
@@ -1427,7 +1427,7 @@ function addMarketplaceButton(): void {
   const touchCleanup = addListener(marketplaceBtn, 'touchend', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    marketplaceUI.open();
+    void openMarketplace();
   });
   cleanupFunctions.push(touchCleanup);
 
