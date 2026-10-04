@@ -140,6 +140,24 @@ describe('startCrisisClassifier', () => {
     expect(generate).toHaveBeenCalledTimes(1);
   });
 
+  it('shares one call when the two callers pass the history differently (the turn pipeline includes the latest message, the chat context leaves it out)', async () => {
+    const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"none","subject":"self"}');
+    const env = { CRISIS_CLASSIFIER_MODE: 'live' };
+    const turnPipeline = { latest: "I'm tired of all of it", earlier: ['rough week', "I'm tired of all of it"] };
+    const chatContext = { latest: "I'm tired of all of it ", earlier: ['rough week'] };
+    await startCrisisClassifier(turnPipeline, { pattern: 'none', generate, env })?.verdict;
+    await startCrisisClassifier(chatContext, { pattern: 'none', generate, env })?.verdict;
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+
+  it('still calls again when the earlier context really differs', async () => {
+    const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"none","subject":"self"}');
+    const env = { CRISIS_CLASSIFIER_MODE: 'live' };
+    await startCrisisClassifier({ latest: 'ok', earlier: ['I want to disappear'] }, { pattern: 'none', generate, env })?.verdict;
+    await startCrisisClassifier({ latest: 'ok', earlier: ['great day at the park'] }, { pattern: 'none', generate, env })?.verdict;
+    expect(generate).toHaveBeenCalledTimes(2);
+  });
+
   it('calls again for a different message', async () => {
     const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"none","subject":"self"}');
     const env = { CRISIS_CLASSIFIER_MODE: 'live' };
