@@ -14,6 +14,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { requireUserId, sendJSON, parseBody } from '../helpers.js';
 import { resolveActingUser } from '../acting-user.js';
 import { requireAuth } from '../auth-middleware.js';
+import { publicEntries } from './leaderboard-view.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
 // Import Musical You services
@@ -363,16 +364,8 @@ export async function handleMusicalYouRoutes(
       const gameType = searchParams.get('gameType') || 'overall';
       const limit = parseInt(searchParams.get('limit') || '10', 10);
 
-      const entries = getTopEntries(type, gameType, Math.min(limit, 100));
-      const leaderboard = getLeaderboard(type, gameType);
-
-      sendJSON(res, {
-        success: true,
-        leaderboard: {
-          ...leaderboard,
-          entries,
-        },
-      });
+      const entries = publicEntries(getTopEntries(type, gameType, Math.min(limit, 100)), req);
+      sendJSON(res, { success: true, leaderboard: { ...getLeaderboard(type, gameType), entries } });
       return true;
     }
 

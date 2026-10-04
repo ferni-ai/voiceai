@@ -13,6 +13,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { claimedUserFor, type VerifiedCaller } from '../acting-user.js';
 import { requireAuth } from '../auth-middleware.js';
 import { parseBody } from '../helpers.js';
+import { publicEntries } from './leaderboard-view.js';
 import {
   createChallenge,
   acceptChallenge,
@@ -363,11 +364,10 @@ export async function handleSocialRoutes(
       const period = (searchParams.get('period') as LeaderboardPeriod) || 'weekly';
       const gameType = searchParams.get('gameType') || 'overall';
       const scope = (searchParams.get('scope') as LeaderboardScope) || 'global';
-      const userId = searchParams.get('userId') ?? undefined;
-
-      const leaderboard = getLeaderboard(period, gameType, scope, userId);
-
-      send(res, 200, { leaderboard });
+      const leaderboard = getLeaderboard(period, gameType, scope);
+      send(res, 200, {
+        leaderboard: { ...leaderboard, entries: publicEntries(leaderboard.entries, req) },
+      });
       return true;
     }
 
@@ -385,7 +385,7 @@ export async function handleSocialRoutes(
       const entries = getLeaderboardAroundUser(userId, period, gameType);
       const rank = getUserRank(userId, period, gameType);
 
-      send(res, 200, { entries, rank });
+      send(res, 200, { entries: publicEntries(entries, req), rank });
       return true;
     }
 
