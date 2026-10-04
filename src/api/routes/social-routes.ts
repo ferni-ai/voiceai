@@ -278,7 +278,8 @@ export async function handleSocialRoutes(
         return true;
       }
 
-      const session = createTasteMatchSession(host, hostDisplayName, rounds);
+      if (rateLimit(req, res, challengeCreateLimit('tastematch', host))) return true;
+      const session = await createTasteMatchSession(host, hostDisplayName, rounds);
 
       send(res, 200, { session });
       return true;
@@ -300,7 +301,7 @@ export async function handleSocialRoutes(
         return true;
       }
 
-      const session = joinTasteMatchSession(sessionId, joiner, displayName);
+      const session = await joinTasteMatchSession(sessionId, joiner, displayName);
 
       if (!session) {
         send(res, 404, { error: 'Session not found or full' });
@@ -321,7 +322,7 @@ export async function handleSocialRoutes(
 
       const participant = claimedUserFor(caller, userId, res);
       if (!participant) return true;
-      const session = setParticipantReady(sessionId, participant);
+      const session = await setParticipantReady(sessionId, participant);
 
       if (!session) {
         send(res, 404, { error: 'Session not found' });
@@ -344,7 +345,7 @@ export async function handleSocialRoutes(
 
       const player = claimedUserFor(caller, userId, res);
       if (!player) return true;
-      const session = submitTasteMatchAnswer(sessionId, player, answer, timeMs);
+      const session = await submitTasteMatchAnswer(sessionId, player, answer, timeMs);
 
       if (!session) {
         send(res, 404, { error: 'Session not found or not in progress' });
@@ -358,14 +359,14 @@ export async function handleSocialRoutes(
     // GET /api/social/tastematch/:sessionId
     if (pathname.match(/^\/api\/social\/tastematch\/[^/]+$/) && method === 'GET') {
       const sessionId = pathname.split('/').pop() || '';
-      const session = getTasteMatchSession(sessionId);
+      const session = await getTasteMatchSession(sessionId);
 
       if (!session) {
         send(res, 404, { error: 'Session not found' });
         return true;
       }
 
-      const currentQuestion = getCurrentQuestion(sessionId);
+      const currentQuestion = await getCurrentQuestion(sessionId);
 
       send(res, 200, { session, currentQuestion });
       return true;

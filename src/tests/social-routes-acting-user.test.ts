@@ -235,7 +235,7 @@ describe('other /api/social writes act on the verified caller', () => {
   });
 
   it("tastematch: alice can't host, join, ready or answer as bob", async () => {
-    const session = games.createTasteMatchSession('host-h', 'Host', 3);
+    const session = await games.createTasteMatchSession('host-h', 'Host', 3);
     for (const [path, body] of [
       ['/api/social/tastematch/create', { hostUserId: 'bob', hostDisplayName: 'Bob' }],
       ['/api/social/tastematch/join', { sessionId: session.id, userId: 'bob', displayName: 'B' }],
@@ -244,9 +244,9 @@ describe('other /api/social writes act on the verified caller', () => {
     ] as const) {
       expect((await post(path, body, 'alice')).status).toBe(403);
     }
-    expect(games.getTasteMatchSession(session.id)?.participants.map((p) => p.userId)).toEqual([
-      'host-h',
-    ]);
+    expect(
+      (await games.getTasteMatchSession(session.id))?.participants.map((p) => p.userId)
+    ).toEqual(['host-h']);
   });
 
   it('seed: a signed-in non-admin gets 403; an admin may seed', async () => {
