@@ -121,6 +121,19 @@ const ROUTERS: Router[] = [
     load: async () => (await import('../../../../api/your-story-routes.js')).handleYourStoryRoutes,
   },
   {
+    prefix: '/api/predictions',
+    mountedAs: 'handlePredictionsRoutes',
+    load: async () =>
+      (await import('../../../../api/routes/predictions.js')).handlePredictionsRoutes,
+  },
+  {
+    // GET /api/huddles/:id claims any one-segment path, so scope the
+    // negative control to the start route's own prefix.
+    prefix: '/api/huddles/start',
+    mountedAs: 'handleEngagementRoutes',
+    load: async () => (await import('../../../../api/engagement-routes.js')).handleEngagementRoutes,
+  },
+  {
     prefix: '/api/life-automation',
     mountedAs: 'handleLifeAutomationRoutes',
     load: async () =>
