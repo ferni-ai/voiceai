@@ -80,8 +80,8 @@ const VALID_API_KEYS = new Set((process.env.API_KEYS || '').split(',').filter(Bo
 /** Admin API keys with elevated privileges */
 const ADMIN_API_KEYS = new Set((process.env.ADMIN_API_KEYS || '').split(',').filter(Boolean));
 
-/** Whether we're in development mode */
-const IS_DEV = process.env.NODE_ENV !== 'production';
+/** Dev-mode bypasses only on a developer's machine: never staging or an unset NODE_ENV. */
+const IS_DEV = process.env.NODE_ENV === 'development';
 
 // SECURITY: Legacy X-User-Id auth has been REMOVED
 // This was a critical security vulnerability allowing auth bypass
@@ -135,9 +135,9 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
       };
     }
     if (VALID_API_KEYS.has(apiKey)) {
-      const userId = getHeader(req, 'X-User-Id') || 'api-user';
+      // The key authenticates a service, never a user named by the client's X-User-Id.
       return {
-        userId,
+        userId: 'api-user',
         isAdmin: false,
         isDevMode: false,
         authMethod: 'api_key',
