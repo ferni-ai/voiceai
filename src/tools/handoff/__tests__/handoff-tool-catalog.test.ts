@@ -1,8 +1,11 @@
 /**
- * Every handoff tool, built from the real persona bundles: no description is
- * missing text. Ferni's agent got "Transfer conversation to Peter Lynch, who
- * specializes in undefined." because the two Financial Legends bundles had no
- * role description.
+ * Every handoff tool, built from the real persona bundles: names are unique,
+ * each goes to the persona its name says, and no description is missing text.
+ *
+ * Peter John (Ferni's team) and Peter Lynch (Financial Legends) both produced
+ * handoffToPeter, so whichever was built last took the name; Ferni's agent got
+ * "Transfer conversation to Peter Lynch, who specializes in undefined." because
+ * the two Financial Legends bundles had no role description.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildHandoffTools, createHandoffTools } from '../handoff-factory.js';
@@ -18,6 +21,19 @@ describe('the handoff tool catalog', () => {
   afterEach(() => {
     if (saved !== undefined) process.env['BYPASS_TEAM_UNLOCKS'] = saved;
   });
+
+  it('gives every persona its own tool name', async () => {
+    const { tools } = await createHandoffTools();
+    const names = tools.map((t) => t.name);
+    expect(new Set(names).size).toBe(names.length);
+    expect(tools.length).toBeGreaterThanOrEqual(9);
+  }, 60_000);
+
+  it("keeps handoffToPeter for Ferni's Peter and names Peter Lynch in full", async () => {
+    const { toolsByName } = await createHandoffTools();
+    expect(toolsByName.get('handofftopeter')?.agentId).toBe('peter-john');
+    expect(toolsByName.get('handofftopeterlynch')?.agentId).toBe('peter-lynch');
+  }, 60_000);
 
   it('describes every handoff tool with real text', async () => {
     const { tools: definitions } = await createHandoffTools();

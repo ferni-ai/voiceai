@@ -24,7 +24,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team/team-availability.js';
 import { getToolDescription } from '../utils/tool-descriptions.js';
-import { specialtyOf } from './handoff-tool-naming.js';
+import { assignHandoffToolNames, specialtyOf } from './handoff-tool-naming.js';
 // FIX BUG #6: Import normalizeAgentIdSync for robust ID matching
 import { normalizeAgentIdSync } from '../../personas/agent-directory.js';
 import { isCoach } from '../../personas/persona-ids.js';
@@ -73,12 +73,7 @@ export interface HandoffToolSet {
 /**
  * Generate a handoff tool definition for an agent
  */
-function generateHandoffTool(agent: Agent, _coordinator: Agent): HandoffToolDefinition {
-  // Generate tool name from agent ID (e.g., 'nayan-patel' -> 'handoffToNayan')
-  // Sanitize the first name to remove non-alphanumeric characters
-  const firstName = agent.name.split(' ')[0].replace(/[^a-zA-Z]/g, '');
-  const toolName = `handoffTo${firstName}`;
-
+function generateHandoffTool(agent: Agent, toolName: string): HandoffToolDefinition {
   // Generate description - WHAT it does, not HOW to behave
   const specialty = specialtyOf(agent);
   const description = specialty
@@ -103,11 +98,10 @@ function generateHandoffTool(agent: Agent, _coordinator: Agent): HandoffToolDefi
 /**
  * Generate the "return to coordinator" tool
  */
-function generateReturnToCoordinatorTool(coordinator: Agent): HandoffToolDefinition {
-  // Sanitize the first name to remove non-alphanumeric characters
-  const firstName = coordinator.name.split(' ')[0].replace(/[^a-zA-Z]/g, '');
-  const toolName = `handoffTo${firstName}`;
-
+function generateReturnToCoordinatorTool(
+  coordinator: Agent,
+  toolName: string
+): HandoffToolDefinition {
   return {
     name: toolName,
     description: `Return conversation to ${coordinator.name}, the main coordinator.`,
@@ -169,11 +163,10 @@ export async function createHandoffTools(currentAgentId?: string): Promise<Hando
     const toolsByAgentId = new Map<string, HandoffToolDefinition>();
 
     // Generate tools for team members (not coordinator)
-    for (const agent of allAgents) {
-      if (agent.isCoordinator) continue;
-      if (!agent.enabled) continue;
-
-      const tool = generateHandoffTool(agent, coordinator);
+    const members = allAgents.filter((a) => !a.isCoordinator && a.enabled);
+    const toolNames = assignHandoffToolNames([coordinator, ...members], coordinator);
+    for (const agent of members) {
+      const tool = generateHandoffTool(agent, toolNames.get(agent.id) ?? '');
       tools.push(tool);
       toolsByName.set(tool.name.toLowerCase(), tool);
       toolsByAgentId.set(agent.id, tool);
@@ -182,7 +175,10 @@ export async function createHandoffTools(currentAgentId?: string): Promise<Hando
     }
 
     // Generate return-to-coordinator tool
-    const coordinatorTool = generateReturnToCoordinatorTool(coordinator);
+    const coordinatorTool = generateReturnToCoordinatorTool(
+      coordinator,
+      toolNames.get(coordinator.id) ?? ''
+    );
     tools.push(coordinatorTool);
     toolsByName.set(coordinatorTool.name.toLowerCase(), coordinatorTool);
     toolsByAgentId.set(coordinator.id, coordinatorTool);
