@@ -20,12 +20,26 @@ export const TRUST_TAB_PATHS: Readonly<Record<TrustTab, string>> = {
   insights: '/api/trust/insights',
 };
 
-export interface HealthData {
+export type Trend = 'improving' | 'stable' | 'declining';
+
+/** One factor of "how we're doing together"; `tone` picks its sentence. */
+export interface HealthFactor {
+  name: string;
+  tone: string;
   score: number;
-  stage: string;
-  stageName: string;
-  trend: string;
-  factors: Array<{ name: string; score: number; trend: string }>;
+  trend: Trend | null;
+  detail: Record<string, number>;
+}
+
+/** 'getting-started' has history but no score yet. */
+export interface HealthData {
+  state: 'getting-started' | 'ready';
+  score: number | null;
+  stage: string | null;
+  stageName: string | null;
+  trend: Trend | null;
+  daysTalked: number;
+  factors: HealthFactor[];
   alerts: Array<{ message: string; severity: string }>;
 }
 
@@ -64,12 +78,19 @@ export interface MediaData {
   }>;
 }
 
+export type NoticedPeriod = 'week' | 'month';
+
+/** One thing Ferni noticed, with the records it rests on. */
+export interface NoticedInsight {
+  kind: string;
+  variant: string;
+  params: Record<string, string | number>;
+  evidence: string[];
+}
+
 export interface InsightsData {
-  latest: {
-    summary: { headline: string; emoji: string; overallMood: string };
-    conversations: { totalSessions: number; totalMinutes: number };
-    wins: { totalWins: number; biggestWin?: string };
-  } | null;
+  period: NoticedPeriod;
+  latest: { period: NoticedPeriod; daysTalked: number; insights: NoticedInsight[] } | null;
 }
 
 export interface TrustTabData {
@@ -81,11 +102,33 @@ export interface TrustTabData {
   insights: InsightsData;
 }
 
+/** Where a tab's data lives; health and insights are read in the user's time zone. */
+export function trustTabUrl(
+  tab: TrustTab,
+  opts: { tz?: string; period?: NoticedPeriod } = {}
+): string {
+  const query = new URLSearchParams();
+  if (tab === 'insights' && opts.period) query.set('period', opts.period);
+  if ((tab === 'health' || tab === 'insights') && opts.tz) query.set('tz', opts.tz);
+  const qs = query.toString();
+  return qs ? `${TRUST_TAB_PATHS[tab]}?${qs}` : TRUST_TAB_PATHS[tab];
+}
+
+function isHealth(body: { state?: unknown; score?: unknown; factors?: unknown }): boolean {
+  if (!Array.isArray(body.factors)) return false;
+  if (body.state === 'getting-started') return true;
+  return body.state === 'ready' && typeof body.score === 'number';
+}
+
 /** The tab's data, or null when the server says there's nothing yet. */
 export function parseTrustTab<T extends TrustTab>(tab: T, body: unknown): TrustTabData[T] | null {
   if (typeof body !== 'object' || body === null) return null;
   if ((body as { hasData?: unknown }).hasData !== true) return null;
-  if (tab === 'health' && typeof (body as { score?: unknown }).score !== 'number') return null;
+  if (tab === 'health' && !isHealth(body as Record<string, unknown>)) return null;
+  if (tab === 'insights') {
+    const latest = (body as { latest?: { insights?: unknown } | null }).latest;
+    if (latest && !Array.isArray(latest.insights)) return null;
+  }
   return body as TrustTabData[T];
 }
 
