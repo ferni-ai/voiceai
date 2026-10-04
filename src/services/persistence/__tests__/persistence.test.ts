@@ -340,6 +340,32 @@ describe('PersistenceLayer', () => {
 
       expect(loaded).toBeNull();
     });
+
+    it('fresh: re-reads a clean cached entry that another process may have changed', async () => {
+      await store.setImmediate(testUserId, { name: 'stale', value: 1 });
+      mockDocRef.get.mockResolvedValueOnce({ exists: true, data: () => ({ name: 'new', value: 2 }) });
+
+      const loaded = await store.load(testUserId, { fresh: true });
+
+      expect(loaded).toMatchObject({ name: 'new', value: 2 });
+      expect(await store.get(testUserId)).toMatchObject({ name: 'new', value: 2 });
+    });
+
+    it('fresh: evicts the cache when the document is gone', async () => {
+      await store.setImmediate(testUserId, { name: 'gone', value: 1 });
+      mockDocRef.get.mockResolvedValueOnce({ exists: false });
+
+      expect(await store.load(testUserId, { fresh: true })).toBeNull();
+    });
+
+    it('fresh: unflushed local writes win over Firestore', async () => {
+      store.set(testUserId, { name: 'local', value: 3 });
+
+      const loaded = await store.load(testUserId, { fresh: true });
+
+      expect(loaded).toEqual({ name: 'local', value: 3 });
+      expect(mockDocRef.get).not.toHaveBeenCalled();
+    });
   });
 
   describe('setImmediate', () => {

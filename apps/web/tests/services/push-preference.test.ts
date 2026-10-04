@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   pushSubscribe: vi.fn(),
   getSubscription: vi.fn(),
   browserUnsubscribe: vi.fn(),
+  signOut: vi.fn(),
+  calls: [] as string[],
 }));
 
 vi.mock('../../src/utils/platform.js', () => ({
@@ -23,6 +25,7 @@ vi.mock('../../src/utils/platform.js', () => ({
 }));
 vi.mock('../../src/utils/api.js', () => ({ apiPost: mocks.apiPost, apiGet: mocks.apiGet }));
 vi.mock('../../src/ui/whisper.ui.js', () => ({ toast: { error: mocks.toastError } }));
+vi.mock('../../src/services/firebase-auth.service.js', () => ({ signOut: mocks.signOut }));
 
 const ENDPOINT = 'https://fcm.googleapis.com/fcm/send/abc123';
 
@@ -86,6 +89,25 @@ describe('applyPushPreference', () => {
     await enable(false);
 
     expect(mocks.apiPost).toHaveBeenCalledWith('/api/push/unsubscribe', { endpoint: ENDPOINT });
+    expect(mocks.browserUnsubscribe).toHaveBeenCalled();
+  });
+
+  it('signing out drops the push subscription first, while the token still works', async () => {
+    mocks.calls.length = 0;
+    mocks.apiPost.mockImplementation(async (path: string) => {
+      mocks.calls.push(path);
+      return { ok: true, data: { success: true } };
+    });
+    mocks.signOut.mockImplementation(async () => {
+      mocks.calls.push('signOut');
+    });
+    const { initPushNotifications } = await import('../../src/services/push-notifications.service.js');
+    await initPushNotifications();
+    const { signOutReleasingPush } = await import('../../src/services/push-preference.js');
+
+    await signOutReleasingPush();
+
+    expect(mocks.calls).toEqual(['/api/push/unsubscribe', 'signOut']);
     expect(mocks.browserUnsubscribe).toHaveBeenCalled();
   });
 });

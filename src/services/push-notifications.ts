@@ -13,6 +13,7 @@ import { AgentRole } from '../personas/index.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { loadWebPush } from './web-push-loader.js';
+import { claimEndpoint, getEndpointOwner, releaseEndpoint } from './push-endpoint-owners.js';
 
 // ============================================================================
 // TYPES
@@ -223,27 +224,26 @@ class PushNotificationsBackendService {
     }
   }
 
+  /** Fresh from Firestore: the API server writes subscriptions, other processes send. */
+  private async loadSubscriptions(userId: string): Promise<PushSubscription[]> {
+    const persisted = await this.subscriptionStore?.load(userId, { fresh: true });
+    return persisted?.subscriptions ?? [];
+  }
+
   /**
-   * Register a push subscription for a user
+   * Register a push subscription for a user. An endpoint belongs to one user,
+   * so whoever subscribed it before (e.g. another account on this browser) loses it.
    */
   async registerSubscription(subscription: PushSubscription): Promise<void> {
-    // Load existing subscriptions from persistence if not in memory
-    let userSubs = this.subscriptions.get(subscription.userId);
-    if (!userSubs) {
-      const persisted = await this.subscriptionStore?.get(subscription.userId);
-      userSubs = persisted?.subscriptions || [];
-      this.subscriptions.set(subscription.userId, userSubs);
-    }
+    const previousOwner = await claimEndpoint(subscription.endpoint, subscription.userId);
+    if (previousOwner) await this.removeSubscription(previousOwner, subscription.endpoint);
 
-    // Check if subscription already exists
-    const exists = userSubs.some((s) => s.endpoint === subscription.endpoint);
-    if (!exists) {
+    const userSubs = await this.loadSubscriptions(subscription.userId);
+    if (!userSubs.some((s) => s.endpoint === subscription.endpoint)) {
       userSubs.push(subscription);
       this.subscriptions.set(subscription.userId, userSubs);
-
       // Persist to Firestore now (not on the next batch), so other processes' senders see it
       await this.subscriptionStore?.setImmediate(subscription.userId, { subscriptions: userSubs });
-
       getLogger().info(
         { userId: subscription.userId, platform: subscription.platform },
         'Push subscription registered and persisted'
@@ -255,22 +255,15 @@ class PushNotificationsBackendService {
    * Remove a push subscription
    */
   async removeSubscription(userId: string, endpoint: string): Promise<void> {
-    // Load from persistence if not in memory
-    let userSubs = this.subscriptions.get(userId);
-    if (!userSubs) {
-      const persisted = await this.subscriptionStore?.get(userId);
-      userSubs = persisted?.subscriptions || [];
-    }
-
-    const filtered = userSubs.filter((s) => s.endpoint !== endpoint);
-
+    const filtered = (await this.loadSubscriptions(userId)).filter((s) => s.endpoint !== endpoint);
     if (filtered.length > 0) {
       this.subscriptions.set(userId, filtered);
-      this.subscriptionStore?.set(cleanForFirestore(userId), { subscriptions: filtered });
+      await this.subscriptionStore?.setImmediate(userId, { subscriptions: filtered });
     } else {
       this.subscriptions.delete(userId);
       await this.subscriptionStore?.delete(userId);
     }
+    await releaseEndpoint(endpoint, userId);
 
     getLogger().info({ userId }, 'Push subscription removed');
   }
@@ -279,17 +272,8 @@ class PushNotificationsBackendService {
    * Send a push notification to a user
    */
   async sendNotification(userId: string, payload: PushNotificationPayload): Promise<boolean> {
-    // Load from persistence if not in memory
-    let userSubs = this.subscriptions.get(userId);
-    if (!userSubs) {
-      const persisted = await this.subscriptionStore?.get(userId);
-      userSubs = persisted?.subscriptions;
-      if (userSubs) {
-        this.subscriptions.set(userId, userSubs);
-      }
-    }
-
-    if (!userSubs || userSubs.length === 0) {
+    const userSubs = await this.loadSubscriptions(userId);
+    if (userSubs.length === 0) {
       getLogger().debug({ userId }, 'No subscriptions for user');
       return false;
     }
@@ -301,7 +285,9 @@ class PushNotificationsBackendService {
     });
 
     let sent = false;
-    for (const sub of userSubs) {
+    // Never deliver to an endpoint that has since been claimed by someone else.
+    const owners = await Promise.all(userSubs.map((s) => getEndpointOwner(s.endpoint)));
+    for (const sub of userSubs.filter((_, i) => owners[i] === userId)) {
       try {
         if (sub.platform === 'web') {
           await this.sendWebPush(sub, notificationPayload);

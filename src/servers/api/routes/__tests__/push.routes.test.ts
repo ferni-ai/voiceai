@@ -76,6 +76,33 @@ function response(): ServerResponse & { statusCode: number } {
   return res as unknown as ServerResponse & { statusCode: number };
 }
 
+/** A sender in another process, recording which endpoints it pushed to. */
+async function newSender(): Promise<{
+  sender: PushNotificationsBackendService;
+  delivered: string[];
+}> {
+  const sender = new PushNotificationsBackendService();
+  await sender.initialize();
+  const delivered: string[] = [];
+  vi.spyOn(
+    sender as unknown as { sendWebPush: (s: { endpoint: string }) => Promise<void> },
+    'sendWebPush'
+  ).mockImplementation(async (sub) => {
+    delivered.push(sub.endpoint);
+  });
+  return { sender, delivered };
+}
+
+function subscribeAs(uid: string): Promise<boolean> {
+  return handlePushRoutes(
+    post('/api/push/subscribe', SUBSCRIPTION, { authorization: `Bearer verified-${uid}` }),
+    response(),
+    '/api/push/subscribe'
+  );
+}
+
+const NOTE = { title: 'Your therapy notes', body: 'private', type: 'ferni_checkin' as const };
+
 describe('push subscribe → sender lookup', () => {
   beforeEach(() => {
     // The route's singleton service keeps references to these maps; empty, don't replace.
@@ -160,5 +187,47 @@ describe('push subscribe → sender lookup', () => {
 
     // web-push is not a dependency of this repo, so the real sendWebPush can't deliver.
     expect(await sender.sendNotification('uid-4', { title: 't', body: 'b', type: 'general' })).toBe(false);
+  });
+
+  describe('one browser, two accounts', () => {
+    it("after B subscribes the same endpoint, A's notifications no longer reach it", async () => {
+      await subscribeAs('alice');
+      await subscribeAs('bob');
+      const { sender, delivered } = await newSender();
+
+      expect(await sender.sendNotification('alice', NOTE)).toBe(false);
+      expect(delivered).toEqual([]);
+
+      expect(await sender.sendNotification('bob', NOTE)).toBe(true);
+      expect(delivered).toEqual([SUBSCRIPTION.endpoint]);
+    });
+
+    it("a sender that cached A's subscriptions earlier doesn't keep using them", async () => {
+      await subscribeAs('alice');
+      const { sender, delivered } = await newSender();
+      expect(await sender.sendNotification('alice', NOTE)).toBe(true); // warms any cache
+
+      await subscribeAs('bob'); // the API server moves the endpoint
+      delivered.length = 0;
+
+      expect(await sender.sendNotification('alice', NOTE)).toBe(false);
+      expect(delivered).toEqual([]);
+    });
+
+    it("A's unsubscribe (sign-out) doesn't take the endpoint away from B", async () => {
+      await subscribeAs('alice');
+      await subscribeAs('bob');
+      await handlePushRoutes(
+        post('/api/push/unsubscribe', { endpoint: SUBSCRIPTION.endpoint }, {
+          authorization: 'Bearer verified-alice',
+        }),
+        response(),
+        '/api/push/unsubscribe'
+      );
+      const { sender, delivered } = await newSender();
+
+      expect(await sender.sendNotification('bob', NOTE)).toBe(true);
+      expect(delivered).toEqual([SUBSCRIPTION.endpoint]);
+    });
   });
 });
