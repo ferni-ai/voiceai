@@ -49,11 +49,12 @@ export default defineConfig(({ mode }) => {
         'gsap',
         // Node/agent SDK - not for browser; excluding avoids 504 Outdated Optimize Dep
         '@livekit/agents',
+        // LiveKit client - loaded via voice-engine.js UMD; no npm bundle needed
+        'livekit-client',
       ],
       // Pre-bundle these heavy dependencies on server start (not on first request)
       // This significantly speeds up the first page load
       include: [
-        'livekit-client',
         'firebase/app',
         'firebase/auth',
         'firebase/firestore',
@@ -128,6 +129,10 @@ export default defineConfig(({ mode }) => {
       sourcemap: process.env.SOURCE_MAP === 'true', // Only enable if explicitly requested
       minify: 'esbuild',
       target: 'es2022',
+      // dist/.vite/manifest.json: the chunk graph the bundle ratchet
+      // (apps/cli/src/commands/quality/ratchet.ts) reads to tell initial
+      // chunks from lazy ones. Firebase hosting skips dot-directories.
+      manifest: true,
       // Drop console logs and debugger in production
       esbuild: {
         drop: ['console', 'debugger'],
