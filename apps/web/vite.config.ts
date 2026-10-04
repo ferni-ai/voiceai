@@ -128,6 +128,10 @@ export default defineConfig(({ mode }) => {
       sourcemap: process.env.SOURCE_MAP === 'true', // Only enable if explicitly requested
       minify: 'esbuild',
       target: 'es2022',
+      // dist/.vite/manifest.json: the chunk graph the bundle ratchet
+      // (apps/cli/src/commands/quality/ratchet.ts) reads to tell initial
+      // chunks from lazy ones. Firebase hosting skips dot-directories.
+      manifest: true,
       // Drop console logs and debugger in production
       esbuild: {
         drop: ['console', 'debugger'],
