@@ -14,7 +14,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
-import { parseBody, sendError, getUserId as getUserIdFromRequest } from '../helpers.js';
+import { sendError, getUserId as getUserIdFromRequest } from '../helpers.js';
+import { readJsonBody } from './helpers.js';
 
 // Status handlers
 import {
@@ -85,7 +86,7 @@ export async function handleCalendarRoutes(
 
   if (req.method === 'POST') {
     try {
-      const body = await parseBody<Record<string, unknown>>(req);
+      const body = await readJsonBody<Record<string, unknown>>(req);
       userId =
         (body.userId as string) || (body.user_id as string) || getUserIdFromRequest(req, parsedUrl);
     } catch {
@@ -364,7 +365,7 @@ async function handleSetNotificationPreferences(
   userId: string
 ): Promise<void> {
   try {
-    const body = await parseBody<{ setting: string; enabled: boolean }>(req);
+    const body = await readJsonBody<{ setting: string; enabled: boolean }>(req);
     const { setting, enabled } = body;
 
     if (!setting || typeof enabled !== 'boolean') {

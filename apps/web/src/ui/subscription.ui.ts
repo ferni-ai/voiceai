@@ -30,6 +30,7 @@ import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { teamUnlockService } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { billingErrorMessage } from '../utils/billing.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { addTapListener, addTapListeners, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
@@ -868,12 +869,10 @@ async function handleUpgrade(tier: string): Promise<void> {
     if (response.ok && result.url) {
       // Redirect to Stripe checkout
       window.location.href = result.url;
-    } else if (result.error === 'Stripe is not configured') {
-      // Dev mode: simulate upgrade
-      await handleDevUpgrade(tier, deviceId);
+    } else if (import.meta.env.DEV && response.status === 503) {
+      await handleDevUpgrade(tier, deviceId); // Stripe not configured locally: simulate
     } else {
-      // Show warm error message
-      showUpgradeError();
+      showUpgradeError(response.status);
     }
   } catch (error) {
     log.error('Upgrade failed:', error);
@@ -900,8 +899,8 @@ function updateButtonLoadingState(tier: string, loading: boolean): void {
   }
 }
 
-function showUpgradeError(): void {
-  toast.error(t('toasts.somethingWentSidewaysWantToTryAgain'));
+function showUpgradeError(status?: number): void {
+  toast.error(billingErrorMessage(status));
   announceToScreenReader("Couldn't process that upgrade. Try again?");
 }
 

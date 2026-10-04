@@ -21,6 +21,7 @@ import { openImportContacts } from './import-contacts.ui.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getAllMockContacts, MOCK_NUDGES } from '../data/mock-contacts.ts';
 import { t } from '../i18n/index.js';
+import { parseNudgesResponse, type Nudge } from './your-people-nudges.js';
 
 const log = createLogger('YourPeopleUI');
 
@@ -47,16 +48,6 @@ interface Person {
   };
   needsAttention?: boolean;
   groups?: string[];
-}
-
-interface Nudge {
-  id: string;
-  contactId: string;
-  contactName: string;
-  type: 'reconnect' | 'birthday' | 'anniversary' | 'custom';
-  priority: 'high' | 'medium' | 'low';
-  message: string;
-  daysUntil?: number;
 }
 
 interface PersonGroup {
@@ -831,7 +822,7 @@ function renderNudges(): string {
     const query = state.searchQuery.toLowerCase();
     filteredNudges = filteredNudges.filter(nudge =>
       nudge.contactName.toLowerCase().includes(query) ||
-      nudge.message?.toLowerCase().includes(query)
+      nudge.reason.toLowerCase().includes(query)
     );
   }
   
@@ -844,11 +835,11 @@ function renderNudges(): string {
         ${ICONS.sparkles} Ferni suggests
       </div>
       ${visibleNudges.map(nudge => `
-        <div class="yp-nudge" data-contact-id="${nudge.contactId}" role="button" tabindex="0" aria-label="Contact ${escapeHtml(nudge.contactName)}. ${escapeHtml(nudge.message)}">
+        <div class="yp-nudge" data-contact-id="${nudge.contactId}" role="button" tabindex="0" aria-label="Contact ${escapeHtml(nudge.contactName)}. ${escapeHtml(nudge.reason)}">
           <div class="yp-nudge-avatar" aria-hidden="true">${getInitials(nudge.contactName)}</div>
           <div class="yp-nudge-content">
             <div class="yp-nudge-name">${escapeHtml(nudge.contactName)}</div>
-            <div class="yp-nudge-reason">${escapeHtml(nudge.message)}</div>
+            <div class="yp-nudge-reason">${escapeHtml(nudge.reason)}</div>
           </div>
           ${nudge.priority === 'high' ? `<span class="yp-nudge-badge high">Soon</span>` : ''}
           ${nudge.priority === 'medium' ? `<span class="yp-nudge-badge medium">Check in</span>` : ''}
@@ -1223,9 +1214,9 @@ async function loadPeopleData(): Promise<void> {
     // Load nudges
     const nudgesRes = await apiFetch('/api/contacts/nudges');
     if (nudgesRes.ok) {
-      state.nudges = await nudgesRes.json();
+      state.nudges = parseNudgesResponse(await nudgesRes.json());
     } else if (useMockData) {
-      state.nudges = MOCK_NUDGES as unknown as Nudge[];
+      state.nudges = parseNudgesResponse(MOCK_NUDGES);
       log.debug('Using mock nudge data');
     }
   } catch (error) {
@@ -1233,7 +1224,7 @@ async function loadPeopleData(): Promise<void> {
     // Use mock data in dev mode when API fails
     if (useMockData) {
       state.people = getAllMockContacts();
-      state.nudges = MOCK_NUDGES as unknown as Nudge[];
+      state.nudges = parseNudgesResponse(MOCK_NUDGES);
       log.debug('Using mock data due to API error');
     } else {
       // Production: set error state
