@@ -73,7 +73,11 @@ describe('directSpeech', () => {
   it('returns the very same streams when off', () => {
     const inner = new Recorder();
     const textStream = new ReadableStream<string>();
-    const directed = directSpeech(inner, { textStream, voiceId: VOICE, env: {} });
+    const directed = directSpeech(inner, {
+      textStream,
+      voiceId: VOICE,
+      env: { SPEECH_DIRECTOR: 'off' },
+    });
     expect(directed.reply).toBe(inner);
     expect(directed.textStream).toBe(textStream);
   });
