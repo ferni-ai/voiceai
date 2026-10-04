@@ -212,7 +212,7 @@ export async function purchase(productId: AppleProductId, userId: string): Promi
     }
 
     // 2. Verify receipt with backend
-    const verification = await verifyWithBackend(userId, result.transactionId!);
+    const verification = await verifyWithBackend(result.transactionId!);
 
     if (!verification.success) {
       return {
@@ -261,7 +261,7 @@ export async function restorePurchases(userId: string): Promise<{
 
     // Verify each transaction with backend
     for (const tx of result.transactions) {
-      await verifyWithBackend(userId, tx.transactionId);
+      await verifyWithBackend(tx.transactionId);
     }
 
     // Get current status
@@ -289,12 +289,11 @@ export async function restorePurchases(userId: string): Promise<{
  * Verify a transaction with our backend
  */
 async function verifyWithBackend(
-  userId: string,
   transactionId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // No userId: the server attaches the receipt to the Bearer-token user.
     const response = await apiPost<{ error?: string }>('/api/apple/verify', {
-      userId,
       receiptData: transactionId, // In StoreKit 2, we send transaction ID
     });
 

@@ -347,9 +347,7 @@ function showUpgradeSuccessCelebration(tier: string): void {
   trapFocus(container);
 
   // Announce to screen readers
-  announceToScreenReader(
-    `You've upgraded to ${tierName}. Thank you for supporting Ferni.`
-  );
+  announceToScreenReader(`You've upgraded to ${tierName}. Thank you for supporting Ferni.`);
 
   // Animate in (respecting reduced motion)
   requestAnimationFrame(() => {
@@ -379,8 +377,12 @@ function showUpgradeSuccessCelebration(tier: string): void {
   });
 
   // Event handlers (iOS-compatible)
-  addTapListener(container.querySelector('.subscription-backdrop'), () => closeCelebration(container));
-  addTapListener(container.querySelector('[data-action="start"]'), () => closeCelebration(container));
+  addTapListener(container.querySelector('.subscription-backdrop'), () =>
+    closeCelebration(container)
+  );
+  addTapListener(container.querySelector('[data-action="start"]'), () =>
+    closeCelebration(container)
+  );
 
   // Reload subscription status
   void loadStatus();
@@ -625,7 +627,7 @@ function createModal(prompt?: string): HTMLElement {
           ${prompt ? 'Help Us Build This' : 'Support Ferni'}
         </h2>
         <p id="subscription-subtitle" class="subscription-subtitle">
-          ${prompt || 'Ferni is free forever. If you believe in what we\'re building, chip in. As a thank you, we\'ll unlock some perks.'}
+          ${prompt || "Ferni is free forever. If you believe in what we're building, chip in. As a thank you, we'll unlock some perks."}
         </p>
       </div>
       
@@ -773,7 +775,7 @@ function createTierCard(tier: SubscriptionTier, index: number): string {
         aria-label="${isCurrentTier ? 'You are a Founder - thank you!' : isFree ? 'You are part of the community' : `Chip in ${priceText} as a ${tier.name}`}"
       >
         ${isLoading ? ICONS.loader : ''}
-        <span>${isCurrentTier ? 'You\'re Here 💚' : isFree ? 'Free Forever' : 'Chip In'}</span>
+        <span>${isCurrentTier ? "You're Here 💚" : isFree ? 'Free Forever' : 'Chip In'}</span>
       </button>
     </article>
   `;
@@ -853,16 +855,11 @@ async function handleUpgrade(tier: string): Promise<void> {
   sessionStorage.setItem('ferni_upgrade_tier', tier);
 
   try {
-    const response = await apiPost<{ url?: string; error?: string }>(
-      '/subscription/checkout',
-      {
-        userId: deviceId,
-        device_id: deviceId,
-        tier,
-        successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
-        cancelUrl: window.location.origin + '?upgrade=cancel',
-      }
-    );
+    const response = await apiPost<{ url?: string; error?: string }>('/subscription/checkout', {
+      tier,
+      successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
+      cancelUrl: window.location.origin + '?upgrade=cancel',
+    });
 
     const result = response.ok && response.data ? response.data : {};
 
@@ -914,11 +911,11 @@ async function handleDevUpgrade(tier: string, deviceId: string): Promise<void> {
     toast.error(t('toasts.thisFeatureIsOnlyAvailableInDevelopment'));
     return;
   }
-  
+
   try {
     // Get authenticated headers (includes X-User-Id and Firebase token)
     const headers = await getApiHeadersAsync();
-    
+
     const response = await fetch('/subscription/upgrade', {
       method: 'POST',
       headers,

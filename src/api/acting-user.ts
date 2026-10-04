@@ -4,9 +4,10 @@
  * A userId in a request body (or path) is written by the client, so it is a
  * claim, not an identity. Several routes used to act on whoever the body
  * named — often with no credentials at all — so one person could disconnect
- * another's calendar, overwrite their streaks, or run chat tools as them.
- * bindVerifiedIdentity (servers/api/request-identity.ts) already rewrites
- * ?userId= and x-user-id; it cannot see bodies, so routes check them here.
+ * another's calendar, open their billing portal, overwrite their streaks, or
+ * point their outreach at a different phone. bindVerifiedIdentity
+ * (servers/api/request-identity.ts) already rewrites ?userId= and x-user-id;
+ * it cannot see bodies, so routes check them here.
  *
  * The rule: act on the verified caller. A body that names the caller (or
  * nobody) is fine. One that names someone else gets 403, unless the caller is
@@ -26,20 +27,39 @@ const log = createLogger({ module: 'ActingUser' });
 /** The verified caller, as requireAuth returns it. */
 export type VerifiedCaller = Pick<AuthContext, 'userId' | 'isAdmin'>;
 
+export type ActingUserResult =
+  | { ok: true; userId: string }
+  | { ok: false; status: 401 | 403; error: string };
+
+/** The rule itself, with no I/O: whom may this caller act on? */
+export function decideActingUser(
+  callerId: string | null | undefined,
+  isAdmin: boolean | undefined,
+  claimed: unknown
+): ActingUserResult {
+  if (!callerId) return { ok: false, status: 401, error: 'Authentication required' };
+  if (claimed === undefined || claimed === null || claimed === '' || claimed === callerId) {
+    return { ok: true, userId: callerId };
+  }
+  if (isAdmin === true && typeof claimed === 'string') return { ok: true, userId: claimed };
+  return { ok: false, status: 403, error: 'Not authorized' };
+}
+
 /**
  * Check a client-named user against an already-verified caller.
- * Returns the user to act on, or null after sending 403.
+ * Returns the user to act on, or null after sending 401/403.
  */
 export function claimedUserFor(
   caller: VerifiedCaller,
   claimed: unknown,
   res: ServerResponse
 ): string | null {
-  if (claimed === undefined || claimed === null || claimed === '') return caller.userId;
-  if (claimed === caller.userId) return caller.userId;
-  if (caller.isAdmin && typeof claimed === 'string') return claimed;
-  log.warn({ callerId: caller.userId }, 'Refused a request that names a different user');
-  sendError(res, 'Not authorized', 403);
+  const result = decideActingUser(caller.userId, caller.isAdmin, claimed);
+  if (result.ok) return result.userId;
+  if (result.status === 403) {
+    log.warn({ callerId: caller.userId }, 'Refused a request that names a different user');
+  }
+  sendError(res, result.error, result.status);
   return null;
 }
 
