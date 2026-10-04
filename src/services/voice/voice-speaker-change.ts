@@ -247,8 +247,10 @@ export class SpeakerChangeDetector extends EventEmitter {
     const now = new Date();
 
     // A neural vector and a DSP vector live in different spaces: if the method
-    // changed (model came up, or fell back), start over from this voice.
+    // changed (model came up, or fell back), start over from this voice, and
+    // stop naming the previous speaker (unknown until someone says otherwise).
     if (this.state.currentMethod !== method) {
+      if (this.state.currentMethod !== null) this.state.currentSpeakerId = null;
       this.state.currentMethod = method;
       this.state.currentEmbedding = null;
       this.state.recentEmbeddings = [];

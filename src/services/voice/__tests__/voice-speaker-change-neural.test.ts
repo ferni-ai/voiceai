@@ -101,3 +101,16 @@ it('does not compare a neural vector with a DSP one (the method changed mid-call
 
   expect(changes).toHaveLength(0);
 });
+
+it('stops naming the previous speaker when the method changes mid-call', async () => {
+  mode.method = 'dsp';
+  await talk(detector, VOICE_A_HZ); // labelled user-1 (from start)
+  mode.method = 'neural'; // e.g. the worker died, or the model loaded late
+  await talk(detector, VOICE_A_HZ); // new reference; who it is is no longer known
+  await talk(detector, VOICE_B_HZ);
+  await talk(detector, VOICE_B_HZ);
+
+  expect(changes).toHaveLength(1);
+  expect(changes[0].previousSpeakerId).toBeNull();
+  expect(detector.getState().currentSpeakerId).toBeNull();
+});
