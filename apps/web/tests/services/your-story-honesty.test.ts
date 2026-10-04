@@ -98,6 +98,22 @@ describe('Your Story honesty', () => {
     expect(options).toBeUndefined();
   });
 
+  it('energy dimensions are only the ones the API measured, with no invented social score', async () => {
+    const story = emptyStory();
+    story.header.totalConversations = 3;
+    story.energy.emotional.score = 61;
+    story.energy.mental.score = 55;
+    story.energy.physical.score = 70;
+    apiGet.mockResolvedValue({ ok: true, status: 200, data: { success: true, data: story } });
+
+    const result = await fetchYourStory();
+
+    expect(result.status).toBe('ok');
+    const rings = (result as { data: { energyRings: { dimensions: Record<string, number> } } }).data
+      .energyRings;
+    expect(rings.dimensions).toEqual({ emotional: 61, mental: 55, physical: 70 });
+  });
+
   it('demo data appears only behind the demo flag, and always with the banner', async () => {
     demoEnabled = true;
     await showYourStoryDashboard();

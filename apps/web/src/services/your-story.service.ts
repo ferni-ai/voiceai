@@ -264,7 +264,7 @@ function transformApiResponse(
         emotional: api.energy.emotional.score,
         mental: api.energy.mental.score,
         physical: api.energy.physical.score,
-        social: 75, // Default - add to API if needed
+        // No social score: the API has no source for one, so none is shown.
       },
       trend: 'stable',
       recommendation: api.energy.recommendation,
