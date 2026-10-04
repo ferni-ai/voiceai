@@ -2516,13 +2516,13 @@ class VoiceAIApp {
       }
     }) as EventListener);
 
-    // 💬 Dev Panel transcript injection
+    // 💬 Live transcript (live-transcription.service) and dev panel injection
     this.addTrackedListener(window, 'ferni:transcript', ((e: CustomEvent) => {
-      const { type, text, isFinal } = e.detail;
+      const { type, text, isFinal } = e.detail as { type: string; text: string; isFinal?: boolean };
       // transcriptUI.show() handles both user and agent messages
-      // User messages are typically interim, agent messages are final
+      // User messages are interim until the final one; agent text defaults to final
       if (type === 'user') {
-        transcriptUI.updateInterim(text);
+        transcriptUI.show(text, isFinal ?? false);
       } else if (type === 'agent') {
         transcriptUI.show(text, isFinal ?? true);
       }
