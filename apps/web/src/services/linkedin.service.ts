@@ -13,6 +13,9 @@ import { toast } from '../ui/whisper.ui.js';
 import { t } from '../i18n/index.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { startOAuthConnect } from './oauth-connect.service.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('LinkedInService');
 
 // ============================================================================
 // TYPES
@@ -36,14 +39,20 @@ export interface LinkedInStatus {
 
 // ============================================================================
 // API CALLS
+// /api/linkedin/* (src/api/linkedin-routes.ts) requires a verified caller, so
+// every call goes through the authenticated api helpers (Bearer token).
 // ============================================================================
 
 /**
- * Get LinkedIn connection status (null when the server can't say).
+ * Get LinkedIn connection status, or null when it couldn't be loaded.
  */
 export async function getLinkedInStatus(): Promise<LinkedInStatus | null> {
   const response = await apiGet<LinkedInStatus>('/api/linkedin/status');
-  return response.ok && response.data ? response.data : null;
+  if (!response.ok || !response.data) {
+    log.warn({ status: response.status }, 'LinkedIn status request failed');
+    return null;
+  }
+  return response.data;
 }
 
 /**
@@ -68,6 +77,7 @@ export async function syncLinkedIn(): Promise<boolean> {
     toast.info(t('toasts.syncingLinkedIn'));
     return true;
   }
+  toast.error("Couldn't sync LinkedIn. Try again?");
   return false;
 }
 

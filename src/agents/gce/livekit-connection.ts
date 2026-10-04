@@ -17,7 +17,7 @@ import {
   WorkerStatus,
   type Job,
 } from '@livekit/protocol';
-import os from 'node:os';
+import { createProcessCpuLoadSampler, workerIsFull } from './cpu-load.js';
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { WebSocket } from 'ws';
 
@@ -99,19 +99,12 @@ let currentHandlers: WebSocketHandlers | null = null;
 let _config: LiveKitConfig;
 let _log: LogFn;
 
-// ============================================================================
-// CPU LOAD (matches official LiveKit SDK: os.getloadavg / os.cpu_count)
-// ============================================================================
-
-/**
- * Get normalized CPU load (0.0 - 1.0).
- * Matches the Python SDK: os.getloadavg()[0] / os.cpu_count()
- */
+// CPU LOAD: real process CPU against the container quota (os.loadavg() reads
+// 0 in the LiveKit Cloud container). Sampled on the 2.5 s status interval.
+const cpuLoadSampler = createProcessCpuLoadSampler();
+let lastCpuLoad = 0;
 function getCpuLoad(): number {
-  const loadAvg = os.loadavg()[0]; // 1-minute load average
-  const cpuCount = os.cpus().length;
-  if (cpuCount === 0) return 0;
-  return Math.min(loadAvg / cpuCount, 1.0);
+  return lastCpuLoad;
 }
 
 // ============================================================================
@@ -283,7 +276,7 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
         // Send UpdateWorkerStatus with current load + jobCount
         const jobs = getActiveJobs();
         const load = getCpuLoad();
-        const workerStatus = jobs >= 3 ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
+        const workerStatus = workerIsFull(jobs, load) ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
         const updateMsg = new WorkerMessage({
           message: {
             case: 'updateWorker',
@@ -305,8 +298,8 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       statusUpdateInterval = setInterval(() => {
         if (ws?.readyState === WebSocket.OPEN) {
           const jobs = getActiveJobs();
-          const load = getCpuLoad();
-          const status = jobs >= 3 ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
+          const load = (lastCpuLoad = cpuLoadSampler.sample());
+          const status = workerIsFull(jobs, load) ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
           const updateMsg = new WorkerMessage({
             message: {
               case: 'updateWorker',

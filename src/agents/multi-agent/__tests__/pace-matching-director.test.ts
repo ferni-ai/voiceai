@@ -32,4 +32,23 @@ describe('pace matching vs the speech director', () => {
     expect(session.on).not.toHaveBeenCalled();
     expect(cleanup).toHaveLength(0);
   });
+
+  it('keeps pacing when the director only observes (shadow)', async () => {
+    process.env.SPEECH_DIRECTOR = 'shadow';
+    const session = fakeSession();
+    await installPaceMatching(session as never, 's-shadow', []);
+    expect(session.on).toHaveBeenCalled();
+  });
+
+  it('keeps pacing when the director is live but its pacing lever is not', async () => {
+    process.env.SPEECH_DIRECTOR = 'live';
+    process.env.SPEECH_DIRECTOR_PACING = 'off';
+    try {
+      const session = fakeSession();
+      await installPaceMatching(session as never, 's-lever', []);
+      expect(session.on).toHaveBeenCalled();
+    } finally {
+      delete process.env.SPEECH_DIRECTOR_PACING;
+    }
+  });
 });

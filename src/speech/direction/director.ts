@@ -50,7 +50,7 @@ export interface DirectedLine {
 /** Writes a line from a prompt; injectable so tests need no model. */
 export type Actor = (system: string, prompt: string) => Promise<string | undefined>;
 
-const ACTOR_MODEL = () => process.env.DIRECTED_SPEECH_MODEL || 'gemini-2.5-flash-lite';
+const ACTOR_MODEL = () => process.env.DIRECTED_SPEECH_MODEL || 'gemini-3.5-flash-lite';
 
 const defaultActor: Actor = async (system, prompt) => {
   const model = await getGenerativeModel({

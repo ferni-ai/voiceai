@@ -29,7 +29,7 @@ const SRC_ROOT = path.join(process.cwd(), 'src');
  * Default test configuration
  */
 const DEFAULT_CONFIG: SemanticTestConfig = {
-  model: 'gemini-2.0-flash',
+  model: 'gemini-3.5-flash',
   passingThreshold: 70,
   categories: [
     'domain-naming',
@@ -288,7 +288,7 @@ Options:
   --category <name>    Run only specific category
                        (domain-naming, semantic-memory, integration-wiring, architectural-philosophy)
   --threshold <n>      Set passing threshold (default: 70)
-  --model <name>       LLM model (gemini-2.0-flash, gpt-4o)
+  --model <name>       LLM model (gemini-3.5-flash, gpt-4o)
   --quiet              Less verbose output
   --help               Show this help
 
