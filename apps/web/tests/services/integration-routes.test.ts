@@ -46,28 +46,34 @@ describe('biometrics.service', () => {
     const { connectBiometrics } = await import('../../src/services/biometrics.service.js');
     mockApiGet.mockResolvedValueOnce(wearablesStatus(false));
 
-    const result = await connectBiometrics('oura', 'device-1');
+    const result = await connectBiometrics('oura');
 
-    expect(mockApiGet).toHaveBeenCalledWith('/wearables/status', { user_id: 'device-1' });
+    expect(mockApiGet).toHaveBeenCalledWith('/wearables/status');
     expect(result).toEqual({ success: false, error: "Oura Ring isn't available yet" });
     expect(mockLocation.href).toBe('http://localhost:3004/');
   });
 
-  it('navigates to the server OAuth start route when the provider is configured', async () => {
+  it('starts the flow through POST /auth/oauth/start when the provider is configured', async () => {
     const { connectBiometrics } = await import('../../src/services/biometrics.service.js');
     mockApiGet.mockResolvedValueOnce(wearablesStatus(true));
+    mockApiPost.mockResolvedValueOnce(ok({ url: '/wearables/oura/login?state=s' }));
 
-    const result = await connectBiometrics('oura', 'device-1');
+    const result = await connectBiometrics('oura');
 
     expect(result).toEqual({ success: true });
-    expect(mockLocation.href).toBe('/wearables/oura/login?user_id=device-1&return_url=%2F');
+    expect(mockApiPost).toHaveBeenCalledWith(
+      '/auth/oauth/start',
+      { provider: 'oura', returnUrl: '/' },
+      { maxRetries: 0 }
+    );
+    expect(mockLocation.href).toBe('/wearables/oura/login?state=s');
   });
 
   it('says it could not reach the server instead of guessing', async () => {
     const { connectBiometrics } = await import('../../src/services/biometrics.service.js');
     mockApiGet.mockResolvedValueOnce({ ok: false, status: 500, error: 'boom' });
 
-    const result = await connectBiometrics('whoop', 'device-1');
+    const result = await connectBiometrics('whoop');
 
     expect(result.success).toBe(false);
     expect(result.error).toBe("Couldn't reach WHOOP. Try again?");
@@ -96,9 +102,9 @@ describe('biometrics.service', () => {
     mockApiPost.mockResolvedValueOnce(ok({ success: true }));
     mockApiDelete.mockResolvedValueOnce({ ok: false, status: 500 });
 
-    const result = await disconnectBiometrics('device-1', ['whoop']);
+    const result = await disconnectBiometrics(['whoop']);
 
-    expect(mockApiPost).toHaveBeenCalledWith('/wearables/whoop/unlink?user_id=device-1', {});
+    expect(mockApiPost).toHaveBeenCalledWith('/wearables/whoop/unlink', {});
     expect(mockApiDelete).toHaveBeenCalledWith('/api/v1/integrations/biometrics/disconnect');
     expect(result.success).toBe(false);
   });

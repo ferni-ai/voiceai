@@ -8,8 +8,8 @@
  *
  * @module ui/lazy-screens
  */
-import { appState } from '../state/app.state.js';
-import { toastInfo } from './whisper.ui.js';
+import { toast, toastInfo } from './whisper.ui.js';
+import { startOAuthConnect } from '../services/oauth-connect.service.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('LazyScreens');
@@ -27,11 +27,12 @@ async function loadScreen<T>(screen: string, importer: () => Promise<T>): Promis
 export async function openCalendarView(): Promise<void> {
   const m = await loadScreen('your calendar', () => import('./calendar-view.ui.js'));
   if (!m) return;
-  // The view's connect button starts Google's OAuth flow.
+  // The view's connect button starts Google's OAuth flow for the signed-in user.
   m.setCalendarViewCallbacks({
     onConnectCalendar: () => {
-      const userId = appState.get('deviceId') || 'anonymous';
-      window.location.href = `/auth/google/calendar?userId=${encodeURIComponent(userId)}`;
+      void startOAuthConnect('google_calendar').then((result) => {
+        if (!result.success) toast.error(result.error ?? "Couldn't connect. Try again?");
+      });
     },
   });
   m.showCalendarView();
@@ -52,8 +53,13 @@ export async function openGamePicker(): Promise<void> {
   m?.showGamePicker();
 }
 
-export async function openNotificationSettings(options?: { tab?: 'settings' | 'upcoming' }): Promise<void> {
-  const m = await loadScreen('notification settings', () => import('./notification-settings.ui.js'));
+export async function openNotificationSettings(options?: {
+  tab?: 'settings' | 'upcoming';
+}): Promise<void> {
+  const m = await loadScreen(
+    'notification settings',
+    () => import('./notification-settings.ui.js')
+  );
   m?.showNotificationSettings(options);
 }
 

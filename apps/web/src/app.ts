@@ -281,7 +281,7 @@ import { showOuraSettings } from './ui/oura-settings.ui.js';
 // Apple Health Settings UI - iOS HealthKit sync
 import { showAppleHealthSettings } from './ui/apple-health-settings.ui.js';
 // LinkedIn connection for career awareness (used as fallback)
-import { handleLinkedInCallback } from './services/linkedin.service.js';
+import { handleOAuthReturns } from './app/oauth-return.js';
 import { createIntegrationsCallbacks } from './app/integrations-callbacks.js';
 // Group Coaching UI - Multi-participant sessions
 import { showGroupCoaching } from './ui/group-coaching.ui.js';
@@ -2311,8 +2311,8 @@ class VoiceAIApp {
       }, 500);
     }
 
-    // 💼 Handle LinkedIn OAuth callback
-    handleLinkedInCallback();
+    // 💼 LinkedIn and wearable OAuth returns
+    handleOAuthReturns();
 
     // 📊 Dev Panel modal event listeners
     this.addTrackedListener(window, 'ferni:open-analytics', () => {
