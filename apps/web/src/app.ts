@@ -145,34 +145,6 @@ import { initMoodUI, moodUI } from './ui/mood.ui.js';
 // import { initSkeletonUI, skeletonUI } from './ui/skeleton.ui.js';
 import { initThinkingUI, thinkingUI } from './ui/thinking.ui.js';
 import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
-// Director Mode (Qwen3-Omni ensemble control)
-import { getDirectorConsole, toggleDirectorConsole } from './ui/director-console.ui.js';
-
-const DIRECTOR_TRIGGER_ID = 'directorConsoleTrigger';
-
-function ensureDirectorTriggerButton(): void {
-  let el = document.getElementById(DIRECTOR_TRIGGER_ID);
-  if (el) {
-    el.style.display = 'flex';
-    return;
-  }
-  const controls = document.querySelector('.controls');
-  if (!controls) return;
-  const btn = document.createElement('button');
-  btn.id = DIRECTOR_TRIGGER_ID;
-  btn.type = 'button';
-  btn.className = 'btn btn-secondary anticipate-btn';
-  btn.setAttribute('aria-label', t('app.openDirectorConsole'));
-  btn.textContent = t('app.director');
-  btn.style.marginLeft = 'var(--space-2, 8px)';
-  btn.addEventListener('click', () => toggleDirectorConsole());
-  controls.appendChild(btn);
-}
-
-function hideDirectorTriggerButton(): void {
-  const el = document.getElementById(DIRECTOR_TRIGGER_ID);
-  if (el) el.style.display = 'none';
-}
 import {
   getIntegrationsSettingsUI,
   showIntegrationsSettings,
@@ -764,16 +736,6 @@ class VoiceAIApp {
     // Check microphone permission and show helpful message if denied
     void this.checkMicrophoneStatus();
 
-    // Director Console: init with current session; open via menu (Director Console) or Cmd+Shift+E / Cmd+Shift+D
-    const roomState = connectionService.getRoomState();
-    if (roomState.roomName && roomState.localParticipantId) {
-      getDirectorConsole({
-        sessionId: roomState.roomName,
-        userId: roomState.localParticipantId,
-      });
-      // Director button removed from control bar; use menu (Settings → Director Console) or keyboard shortcut
-    }
-
     // 🎉 Dispatch conversation start event for all systems to track
     // This is the SINGLE SOURCE OF TRUTH for conversation tracking
     // All services listen to this event - no direct recordConversation() calls needed
@@ -922,8 +884,6 @@ class VoiceAIApp {
     void this.recordConversationUsage(sessionStart);
     void spotifyService.pause().catch((e) => log.warn('Spotify pause failed', e));
 
-    hideDirectorTriggerButton();
-
     // FIX BUG: Reset handoff service to clear stuck transition states
     handoffService.resetSession();
 
@@ -1056,19 +1016,6 @@ class VoiceAIApp {
         }
       }) as EventListener);
     }
-
-    // Director Console: Cmd+Shift+E / Ctrl+Shift+E (only when not typing)
-    this.addTrackedListener(document, 'keydown', ((e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key?.toLowerCase() === 'e') {
-        if (
-          document.activeElement?.tagName !== 'INPUT' &&
-          document.activeElement?.tagName !== 'TEXTAREA'
-        ) {
-          e.preventDefault();
-          toggleDirectorConsole();
-        }
-      }
-    }) as EventListener);
 
     // Listen for theme changes (for analytics or other systems)
     onThemeChange((_newTheme) => {

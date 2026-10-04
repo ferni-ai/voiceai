@@ -26,11 +26,11 @@ describe('openAuthedWebSocket', () => {
 
   it('offers the token as bearer.<token> next to ferni.v1, not in the URL', async () => {
     getAuthToken.mockResolvedValue('jwt.abc.def');
-    await openAuthedWebSocket('wss://app.test/ws/director?sessionId=s1&userId=u1&token=old');
+    await openAuthedWebSocket('wss://app.test/ws/insights?sessionId=s1&userId=u1&token=old');
 
     expect(opened).toHaveLength(1);
     expect(opened[0].protocols).toEqual(['ferni.v1', 'bearer.jwt.abc.def']);
-    expect(opened[0].url).toBe('wss://app.test/ws/director?sessionId=s1');
+    expect(opened[0].url).toBe('wss://app.test/ws/insights?sessionId=s1');
     expect(opened[0].url).not.toContain('jwt.abc.def');
   });
 
