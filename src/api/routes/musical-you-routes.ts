@@ -13,7 +13,9 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { requireUserId, sendJSON, parseBody } from '../helpers.js';
 import { resolveActingUser } from '../acting-user.js';
-import { requireAuth } from '../auth-middleware.js';
+import { rateLimit, requireAuth } from '../auth-middleware.js';
+import { LimitReachedError } from '../../services/social/shared-records.js';
+import { challengeCreateLimit } from './challenge-limits.js';
 import { publicEntries } from './leaderboard-view.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
@@ -86,6 +88,8 @@ const WARM_ERRORS = {
   missingUserId: "Hmm, I'm not sure who you are. Try refreshing?",
   noGameData: "Play a few music games first—then I'll know your musical soul!",
   challengeNotFound: "Can't find that challenge. It might have expired.",
+  alreadyAnswered: 'That challenge was already answered.',
+  tooManyOpen: 'You have lots of challenges waiting. Give friends a chance to answer first!',
   cardNotFound: "That card isn't available anymore.",
   spotifyNotConnected: 'Connect Spotify to unlock this feature!',
   internalError: 'Something went wrong on my end. Mind trying again?',
@@ -268,11 +272,11 @@ export async function handleMusicalYouRoutes(
       if (!challengerId) return true;
       const { challengerName, challengeeId, gameType, challengerScore, challengerTime } = body;
 
-      if (!challengerId || !challengeeId || !gameType || challengerScore === undefined) {
+      if (!challengeeId || !gameType || challengerScore === undefined) {
         sendJSON(res, { success: false, error: 'Missing required fields' }, 400);
         return true;
       }
-
+      if (rateLimit(req, res, challengeCreateLimit('musical', challengerId))) return true;
       const challenge = await sendMusicChallenge(
         challengerId,
         challengerName || 'Anonymous',
@@ -280,9 +284,12 @@ export async function handleMusicalYouRoutes(
         gameType,
         challengerScore,
         challengerTime
-      );
-
-      sendJSON(res, { success: true, challenge });
+      ).catch((error: unknown) => {
+        if (error instanceof LimitReachedError) return null;
+        throw error;
+      });
+      if (!challenge) sendJSON(res, { success: false, error: WARM_ERRORS.tooManyOpen }, 429);
+      else sendJSON(res, { success: true, challenge });
       return true;
     }
 
@@ -303,15 +310,9 @@ export async function handleMusicalYouRoutes(
 
     // GET /api/musical/challenge/:id
     if (pathname.match(/^\/api\/musical\/challenge\/[^/]+$/) && method === 'GET') {
-      const challengeId = pathname.split('/').pop()!;
-      const challenge = await getChallenge(challengeId);
-
-      if (!challenge) {
-        sendJSON(res, { success: false, error: WARM_ERRORS.challengeNotFound }, 404);
-        return true;
-      }
-
-      sendJSON(res, { success: true, challenge });
+      const challenge = await getChallenge(pathname.split('/').pop() ?? '');
+      if (!challenge) sendJSON(res, { success: false, error: WARM_ERRORS.challengeNotFound }, 404);
+      else sendJSON(res, { success: true, challenge });
       return true;
     }
 
@@ -334,23 +335,21 @@ export async function handleMusicalYouRoutes(
         sendJSON(res, { success: false, error: "That challenge isn't yours to answer." }, 403);
         return true;
       }
-      if (action === 'decline') {
-        sendJSON(res, { success: true, challenge: await declineChallenge(challengeId) });
-        return true;
-      }
-      const { score, time, name } = await parseBody<{
-        score?: number;
-        time?: number;
-        name?: string;
-      }>(req);
-      if (score === undefined) {
+      const body =
+        action === 'complete'
+          ? await parseBody<{ score?: number; time?: number; name?: string }>(req)
+          : {};
+      if (action === 'complete' && body.score === undefined) {
         sendJSON(res, { success: false, error: 'Missing score' }, 400);
         return true;
       }
-      sendJSON(res, {
-        success: true,
-        challenge: await completeChallenge(challengeId, score, time, name),
-      });
+      // The service checks the actor again and only answers a pending challenge.
+      const challenge =
+        body.score === undefined
+          ? await declineChallenge(challengeId, auth)
+          : await completeChallenge(challengeId, auth, body.score, body.time, body.name);
+      if (!challenge) sendJSON(res, { success: false, error: WARM_ERRORS.alreadyAnswered }, 409);
+      else sendJSON(res, { success: true, challenge });
       return true;
     }
 

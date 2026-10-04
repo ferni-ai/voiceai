@@ -11,7 +11,12 @@
 
 import { randomUUID } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import { daysAfter, sharedRecords } from '../social/shared-records.js';
+import {
+  daysAfter,
+  LimitReachedError,
+  sharedRecords,
+  type ChallengeActor,
+} from '../social/shared-records.js';
 import type { MusicChallenge, Leaderboard, LeaderboardEntry, TasteMatch } from './types.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
@@ -36,8 +41,14 @@ const tasteMatches = new Map<string, TasteMatch>();
 // CHALLENGES
 // ============================================================================
 
+/** At most this many unanswered challenges per challenger (429 beyond). */
+export const OPEN_CHALLENGE_LIMIT = 50;
+/** Lists read at most this many records per direction from the store. */
+const LIST_LIMIT = 100;
+
 /**
- * Send a music challenge to a friend
+ * Send a music challenge to a friend. Throws LimitReachedError when the
+ * challenger already has OPEN_CHALLENGE_LIMIT unanswered challenges out.
  */
 export async function sendChallenge(
   challengerId: string,
@@ -47,6 +58,14 @@ export async function sendChallenge(
   challengerScore: number,
   challengerTime?: number
 ): Promise<MusicChallenge> {
+  const now = new Date();
+  const open = await challenges.query(
+    { challengerId, status: 'pending' },
+    OPEN_CHALLENGE_LIMIT + 1
+  );
+  if (open.filter((c) => c.expiresAt > now).length >= OPEN_CHALLENGE_LIMIT) {
+    throw new LimitReachedError('Too many open challenges');
+  }
   const challenge: MusicChallenge = {
     id: `challenge-${randomUUID()}`,
     type: 'score-beat',
@@ -57,8 +76,8 @@ export async function sendChallenge(
     challengerTime,
     challengeeId,
     status: 'pending',
-    createdAt: new Date(),
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    createdAt: now,
+    expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days
   };
   await challenges.put(challenge.id, challenge);
 
@@ -70,15 +89,16 @@ export async function sendChallenge(
 }
 
 /**
- * Get challenges for a user (pending ones past their expiry read as expired)
+ * Get a user's challenges (at most LIST_LIMIT sent and LIST_LIMIT received;
+ * pending ones past their expiry read as expired)
  */
 export async function getUserChallenges(
   userId: string,
   type: 'sent' | 'received' | 'all' = 'all'
 ): Promise<MusicChallenge[]> {
   const [sent, received] = await Promise.all([
-    type === 'received' ? [] : challenges.where('challengerId', userId),
-    type === 'sent' ? [] : challenges.where('challengeeId', userId),
+    type === 'received' ? [] : challenges.query({ challengerId: userId }, LIST_LIMIT),
+    type === 'sent' ? [] : challenges.query({ challengeeId: userId }, LIST_LIMIT),
   ]);
   const now = new Date();
   return [...sent, ...received.filter((r) => !sent.some((s) => s.id === r.id))].map((c) =>
@@ -87,16 +107,16 @@ export async function getUserChallenges(
 }
 
 /**
- * Whether `otherId` has played with `userId`: sent them a challenge, or
- * answered (completed) one of theirs. Naming someone isn't enough to read
- * their game history; this is the relationship they chose to have.
+ * Whether `otherId` has played with `userId`, counting only what `otherId`
+ * did: they sent `userId` a challenge, or they completed one of `userId`'s.
+ * Nothing `userId` can do alone (sending, or answering for someone) counts.
  */
 export async function otherUserHasEngaged(userId: string, otherId: string): Promise<boolean> {
-  return (await getUserChallenges(userId, 'all')).some(
-    (c) =>
-      (c.challengerId === otherId && c.challengeeId === userId) ||
-      (c.challengeeId === otherId && c.challengerId === userId && c.status === 'completed')
-  );
+  const [theySent, theyAnswered] = await Promise.all([
+    challenges.query({ challengerId: otherId, challengeeId: userId }, 1),
+    challenges.query({ challengerId: userId, challengeeId: otherId, completedBy: otherId }, 1),
+  ]);
+  return theySent.length > 0 || theyAnswered.length > 0;
 }
 
 /**
@@ -106,17 +126,23 @@ export async function getChallenge(challengeId: string): Promise<MusicChallenge 
   return challenges.get(challengeId);
 }
 
+/** Only the challengee answers (an admin may, explicitly), and only while pending. */
+const mayAnswer = (c: MusicChallenge, actor: ChallengeActor) =>
+  c.status === 'pending' && (c.challengeeId === actor.userId || actor.isAdmin === true);
+
 /**
- * Accept and complete a challenge (only while it is pending)
+ * Complete a pending challenge as its challengee. Null when it doesn't exist,
+ * isn't pending, or `actor` isn't the challengee (or an admin).
  */
 export async function completeChallenge(
   challengeId: string,
+  actor: ChallengeActor,
   challengeeScore: number,
   challengeeTime?: number,
   challengeeName?: string
 ): Promise<MusicChallenge | null> {
   const { current, written } = await challenges.update(challengeId, (challenge) => {
-    if (challenge.status !== 'pending') return null;
+    if (!mayAnswer(challenge, actor)) return null;
     const done: MusicChallenge = {
       ...challenge,
       challengeeScore,
@@ -124,6 +150,7 @@ export async function completeChallenge(
       challengeeName,
       status: 'completed',
       completedAt: new Date(),
+      completedBy: actor.userId,
     };
     // Determine winner; on a tie the faster time wins
     if (challengeeScore > challenge.challengerScore) done.winnerId = challenge.challengeeId;
@@ -135,21 +162,28 @@ export async function completeChallenge(
     return done;
   });
 
-  if (current && !written) log.warn({ challengeId, status: current.status }, 'Not pending');
-  if (written) {
-    log.info(
-      { challengeId, challengeeScore, winnerId: written.winnerId },
-      '🏆 Challenge completed'
-    );
+  if (current && !written) {
+    log.warn({ challengeId, status: current.status, actor: actor.userId }, 'Refused to complete');
   }
-  return written ?? current;
+  if (written) {
+    log.info({ challengeId, winnerId: written.winnerId }, '🏆 Challenge completed');
+  }
+  return written;
 }
 
 /**
- * Decline a challenge
+ * Decline a pending challenge as its challengee. Null when it doesn't exist,
+ * isn't pending, or `actor` isn't the challengee (or an admin).
  */
-export async function declineChallenge(challengeId: string): Promise<MusicChallenge | null> {
-  const { written } = await challenges.update(challengeId, (c) => ({ ...c, status: 'declined' }));
+export async function declineChallenge(
+  challengeId: string,
+  actor: ChallengeActor
+): Promise<MusicChallenge | null> {
+  const { written } = await challenges.update(challengeId, (c) =>
+    mayAnswer(c, actor)
+      ? { ...c, status: 'declined', completedAt: new Date(), declinedBy: actor.userId }
+      : null
+  );
   if (written) log.info({ challengeId }, '❌ Challenge declined');
   return written;
 }

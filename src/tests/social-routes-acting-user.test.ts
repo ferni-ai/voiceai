@@ -18,6 +18,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 
 // The verifier: "Bearer <uid>" is a verified token for <uid>; "Bearer admin" is an admin.
 vi.mock('../api/auth-middleware.js', () => ({
+  rateLimit: vi.fn(() => false),
   requireAuth: vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
     const header = req.headers.authorization;
     if (!header?.startsWith('Bearer ')) {

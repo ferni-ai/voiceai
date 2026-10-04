@@ -20,16 +20,19 @@ export interface FakeFirestoreState {
   up: boolean;
   /** Every data object written, by path, in order (for asserting what was written). */
   writes: Array<{ path: string; data: Json }>;
+  /** Documents returned by queries so far (to prove a query was bounded). */
+  reads: number;
 }
 
 export function newFakeFirestoreState(): FakeFirestoreState {
-  return { docs: new Map(), versions: new Map(), up: true, writes: [] };
+  return { docs: new Map(), versions: new Map(), up: true, writes: [], reads: 0 };
 }
 
 export function resetFakeFirestore(state: FakeFirestoreState): void {
   state.docs.clear();
   state.versions.clear();
   state.writes.length = 0;
+  state.reads = 0;
   state.up = true;
 }
 
@@ -76,21 +79,37 @@ export function createFakeFirestore(state: FakeFirestoreState) {
     [...state.docs.keys()].filter(
       (p) => p.startsWith(`${name}/`) && !p.slice(name.length + 1).includes('/')
     );
-  const collection = (name: string) => ({
-    doc: (id: string) => ref(`${name}/${id}`),
+  interface QuerySpec {
+    filters: Array<[string, unknown]>;
+    order?: [string, 'asc' | 'desc'];
+    limit?: number;
+  }
+  /** A query: equality filters, one orderBy, a limit; counts documents read. */
+  const query = (name: string, spec: QuerySpec) => ({
+    where: (field: string, _op: '==', value: unknown) =>
+      query(name, { ...spec, filters: [...spec.filters, [field, value]] }),
+    orderBy: (field: string, direction: 'asc' | 'desc' = 'asc') =>
+      query(name, { ...spec, order: [field, direction] }),
+    limit: (n: number) => query(name, { ...spec, limit: n }),
     get: async () => {
       await tick();
-      return { docs: inCollection(name).map(snapshot) };
+      let paths = inCollection(name).filter((p) =>
+        spec.filters.every(([f, v]) => state.docs.get(p)?.[f] === v)
+      );
+      if (spec.order) {
+        const [f, dir] = spec.order;
+        const key = (p: string) => Number(state.docs.get(p)?.[f] ?? 0);
+        paths = paths.sort((a, b) => (dir === 'desc' ? key(b) - key(a) : key(a) - key(b)));
+      }
+      if (spec.limit !== undefined) paths = paths.slice(0, spec.limit);
+      state.reads += paths.length;
+      const docs = paths.map(snapshot);
+      return { empty: docs.length === 0, size: docs.length, docs };
     },
-    where: (field: string, _op: '==', value: unknown) => ({
-      get: async () => {
-        await tick();
-        const docs = inCollection(name)
-          .filter((p) => state.docs.get(p)?.[field] === value)
-          .map(snapshot);
-        return { empty: docs.length === 0, size: docs.length, docs };
-      },
-    }),
+  });
+  const collection = (name: string) => ({
+    doc: (id: string) => ref(`${name}/${id}`),
+    ...query(name, { filters: [] }),
   });
   const db = {
     collection,

@@ -74,6 +74,7 @@ vi.mock('../services/engagement/engagement-store.js', () => ({
 
 // The verifier: "Bearer <uid>" is a verified token for <uid>.
 vi.mock('../api/auth-middleware.js', () => ({
+  rateLimit: vi.fn(() => false),
   requireAuth: vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
     const header = req.headers.authorization;
     if (!header?.startsWith('Bearer ')) {
@@ -146,6 +147,7 @@ describe('Musical You writes act on the verified caller', () => {
     getProfile.mockReset();
     getProfile.mockResolvedValue({ gameMemory: { gamesPlayed: 3 } });
     svc.generateAppleMusicToken.mockResolvedValue('dev-token');
+    svc.sendMusicChallenge.mockResolvedValue({ id: 'challenge-1' }); // the service is async
     svc.syncAppleMusicLibrary.mockResolvedValue({
       libraryTrackCount: 3,
       topGenres: [],

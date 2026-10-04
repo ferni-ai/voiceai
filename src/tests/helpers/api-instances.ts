@@ -47,6 +47,7 @@ export async function call(
   req.method = method;
   req.url = path;
   req.headers = caller ? { authorization: `Bearer ${caller}`, 'x-firebase-uid': caller } : {};
+  Object.defineProperty(req, 'socket', { value: { remoteAddress: '127.0.0.1' } });
   stream.end(method === 'POST' ? JSON.stringify(body) : undefined);
   const out = { status: 200, raw: '', body: {} as Json };
   const res = {

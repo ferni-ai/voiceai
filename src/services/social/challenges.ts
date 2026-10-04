@@ -3,14 +3,30 @@
  * API instance sees them (see shared-records). Moved out of
  * multiplayer-games.ts, which re-exports these functions.
  *
+ * Bounded: a challenger may have OPEN_CHALLENGE_LIMIT unanswered challenges
+ * out, and every list reads at most LIST_LIMIT records from the store. State
+ * changes are bound to the actor here, not only in the route: only the
+ * challengee (or an admin, passed explicitly) may accept, complete or
+ * decline, and who did it is recorded.
+ *
  * @module services/social/challenges
  */
 import { randomUUID, randomInt } from 'node:crypto';
 import { getLogger } from '../../utils/safe-logger.js';
-import { daysAfter, sharedRecords } from './shared-records.js';
+import {
+  daysAfter,
+  LimitReachedError,
+  sharedRecords,
+  type ChallengeActor,
+} from './shared-records.js';
 import type { Challenge, ChallengeType } from './multiplayer-games.js';
 
 const log = getLogger();
+
+/** At most this many unanswered challenges per challenger (429 beyond). */
+export const OPEN_CHALLENGE_LIMIT = 50;
+/** Lists read at most this many records per query. */
+const LIST_LIMIT = 100;
 
 /**
  * Deletable (ttlAt) at expiry while pending, 30 days after expiry once accepted
@@ -34,8 +50,13 @@ function generateShareCode(): string {
   return code;
 }
 
+/** Only the challengee answers (an admin may, explicitly). */
+const isChallengee = (c: Challenge, actor: ChallengeActor) =>
+  c.challengeeId === actor.userId || actor.isAdmin === true;
+
 /**
- * Create a new challenge
+ * Create a new challenge. Throws LimitReachedError when the challenger already
+ * has OPEN_CHALLENGE_LIMIT unanswered challenges out.
  */
 export async function createChallenge(
   type: ChallengeType,
@@ -45,6 +66,14 @@ export async function createChallenge(
   challengeeId: string,
   options?: { challengerScore?: number; challengerTimeMs?: number }
 ): Promise<Challenge> {
+  const now = new Date();
+  const open = await challenges.query(
+    { challengerId, status: 'pending' },
+    OPEN_CHALLENGE_LIMIT + 1
+  );
+  if (open.filter((c) => c.expiresAt > now).length >= OPEN_CHALLENGE_LIMIT) {
+    throw new LimitReachedError('Too many open challenges');
+  }
   const challenge: Challenge = {
     id: `challenge_${randomUUID()}`,
     type,
@@ -55,8 +84,8 @@ export async function createChallenge(
     challengerTimeMs: options?.challengerTimeMs,
     challengeeId,
     status: 'pending',
-    createdAt: new Date(),
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    createdAt: now,
+    expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days
     shareCode: generateShareCode(),
   };
   await challenges.put(challenge.id, challenge);
@@ -65,16 +94,22 @@ export async function createChallenge(
 }
 
 /**
- * Accept a pending challenge as its challengee
+ * Accept a pending challenge. Null unless `actor` is its challengee (or an admin).
  */
 export async function acceptChallenge(
   challengeId: string,
-  challengeeId: string,
+  actor: ChallengeActor,
   challengeeName: string
 ): Promise<Challenge | null> {
   const { written } = await challenges.update(challengeId, (c) =>
-    c.challengeeId === challengeeId && c.status === 'pending'
-      ? { ...c, status: 'accepted', challengeeName, acceptedAt: new Date() }
+    isChallengee(c, actor) && c.status === 'pending'
+      ? {
+          ...c,
+          status: 'accepted',
+          challengeeName,
+          acceptedAt: new Date(),
+          acceptedBy: actor.userId,
+        }
       : null
   );
   if (written) log.info({ challengeId }, '🎮 Challenge accepted');
@@ -98,21 +133,24 @@ function decideWinner(c: Challenge): Pick<Challenge, 'winnerId' | 'tieBreaker'> 
 }
 
 /**
- * Complete an accepted challenge (submit the challengee's result)
+ * Complete an accepted challenge (submit the challengee's result). Null unless
+ * `actor` is its challengee (or an admin) and it is accepted.
  */
 export async function completeChallenge(
   challengeId: string,
+  actor: ChallengeActor,
   challengeeScore: number,
   challengeeTimeMs?: number
 ): Promise<Challenge | null> {
   const { written } = await challenges.update(challengeId, (c) => {
-    if (c.status !== 'accepted') return null;
+    if (!isChallengee(c, actor) || c.status !== 'accepted') return null;
     const done: Challenge = {
       ...c,
       challengeeScore,
       challengeeTimeMs,
       status: 'completed',
       completedAt: new Date(),
+      completedBy: actor.userId,
     };
     return { ...done, ...decideWinner(done) };
   });
@@ -121,14 +159,16 @@ export async function completeChallenge(
 }
 
 /**
- * Decline a pending challenge as its challengee
+ * Decline a pending challenge. False unless `actor` is its challengee (or an admin).
  */
 export async function declineChallenge(
   challengeId: string,
-  challengeeId: string
+  actor: ChallengeActor
 ): Promise<boolean> {
   const { written } = await challenges.update(challengeId, (c) =>
-    c.challengeeId === challengeeId && c.status === 'pending' ? { ...c, status: 'declined' } : null
+    isChallengee(c, actor) && c.status === 'pending'
+      ? { ...c, status: 'declined', completedAt: new Date(), declinedBy: actor.userId }
+      : null
   );
   return written !== null;
 }
@@ -144,26 +184,27 @@ export async function getChallenge(challengeId: string): Promise<Challenge | nul
  * Get challenge by share code
  */
 export async function getChallengeByShareCode(shareCode: string): Promise<Challenge | null> {
-  return (await challenges.where('shareCode', shareCode))[0] ?? null;
+  return (await challenges.query({ shareCode }, 1))[0] ?? null;
 }
 
 /**
- * Get pending, unexpired challenges sent to a user, newest first
+ * Get pending, unexpired challenges sent to a user, newest first (at most LIST_LIMIT read)
  */
 export async function getPendingChallenges(userId: string): Promise<Challenge[]> {
   const now = new Date();
-  return (await challenges.where('challengeeId', userId))
-    .filter((c) => c.status === 'pending' && c.expiresAt > now)
+  return (await challenges.query({ challengeeId: userId, status: 'pending' }, LIST_LIMIT))
+    .filter((c) => c.expiresAt > now)
     .sort(newest);
 }
 
 /**
- * Get a user's sent and received challenges, newest first
+ * Get a user's sent and received challenges, newest first (at most LIST_LIMIT
+ * of each read from the store)
  */
 export async function getChallengeHistory(userId: string, limit = 20): Promise<Challenge[]> {
   const [sent, received] = await Promise.all([
-    challenges.where('challengerId', userId),
-    challenges.where('challengeeId', userId),
+    challenges.query({ challengerId: userId }, LIST_LIMIT),
+    challenges.query({ challengeeId: userId }, LIST_LIMIT),
   ]);
   return [...sent, ...received.filter((r) => !sent.some((s) => s.id === r.id))]
     .sort(newest)

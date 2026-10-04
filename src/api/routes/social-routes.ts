@@ -11,8 +11,10 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
 import { claimedUserFor, type VerifiedCaller } from '../acting-user.js';
-import { requireAuth } from '../auth-middleware.js';
+import { rateLimit, requireAuth } from '../auth-middleware.js';
+import { LimitReachedError } from '../../services/social/shared-records.js';
 import { parseBody } from '../helpers.js';
+import { challengeCreateLimit } from './challenge-limits.js';
 import { publicEntries } from './leaderboard-view.js';
 import {
   createChallenge,
@@ -124,16 +126,21 @@ export async function handleSocialRoutes(
         return true;
       }
 
-      const challenge = await createChallenge(
-        type,
-        gameType,
-        challengerId,
-        challengerName,
-        challengeeId,
-        { challengerScore, challengerTimeMs }
-      );
-
-      send(res, 200, { challenge });
+      if (rateLimit(req, res, challengeCreateLimit('social', challengerId))) return true;
+      try {
+        const challenge = await createChallenge(
+          type,
+          gameType,
+          challengerId,
+          challengerName,
+          challengeeId,
+          { challengerScore, challengerTimeMs }
+        );
+        send(res, 200, { challenge });
+      } catch (error) {
+        if (!(error instanceof LimitReachedError)) throw error;
+        send(res, 429, { error: 'Too many open challenges. Wait for some answers first.' });
+      }
       return true;
     }
 
@@ -151,10 +158,9 @@ export async function handleSocialRoutes(
         return true;
       }
       if (!claimedUserFor(caller, challengeeId, res)) return true;
-      const mine = await challengeFor(caller, challengeId, res);
-      if (!mine) return true;
+      if (!(await challengeFor(caller, challengeId, res))) return true;
 
-      const challenge = await acceptChallenge(challengeId, mine.challengeeId, challengeeName);
+      const challenge = await acceptChallenge(challengeId, caller, challengeeName);
 
       if (!challenge) {
         send(res, 404, { error: 'Challenge not found or already processed' });
@@ -181,7 +187,12 @@ export async function handleSocialRoutes(
 
       if (!(await challengeFor(caller, challengeId, res))) return true;
 
-      const challenge = await completeChallenge(challengeId, challengeeScore, challengeeTimeMs);
+      const challenge = await completeChallenge(
+        challengeId,
+        caller,
+        challengeeScore,
+        challengeeTimeMs
+      );
 
       if (!challenge) {
         send(res, 404, { error: 'Challenge not found or not accepted' });
@@ -205,10 +216,9 @@ export async function handleSocialRoutes(
       };
 
       if (!claimedUserFor(caller, challengeeId, res)) return true;
-      const mine = await challengeFor(caller, challengeId, res);
-      if (!mine) return true;
+      if (!(await challengeFor(caller, challengeId, res))) return true;
 
-      send(res, 200, { success: await declineChallenge(challengeId, mine.challengeeId) });
+      send(res, 200, { success: await declineChallenge(challengeId, caller) });
       return true;
     }
 

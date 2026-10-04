@@ -22,6 +22,7 @@
  *
  * @module services/social/shared-records
  */
+import type { Query } from '@google-cloud/firestore';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 
 type Json = Record<string, unknown>;
@@ -36,10 +37,11 @@ interface Backend {
     id: string,
     decide: Decide
   ): Promise<{ current: Json | null; written: Json | null }>;
-  where(
+  /** Records matching every equality filter, at most `limit` of them (the store stops there). */
+  query(
     collection: string,
-    field: string,
-    value: string
+    filters: Record<string, string>,
+    limit: number
   ): Promise<Array<{ id: string; data: Json }>>;
   all(collection: string): Promise<Json[]>;
   remove(collection: string, id: string): Promise<void>;
@@ -65,9 +67,10 @@ function memoryBackend(): Backend {
       if (written) col(collection).set(id, written);
       return { current, written };
     },
-    async where(collection, field, value) {
+    async query(collection, filters, limit) {
       return [...col(collection)]
-        .filter(([, d]) => d[field] === value)
+        .filter(([, d]) => Object.entries(filters).every(([f, v]) => d[f] === v))
+        .slice(0, limit)
         .map(([id, data]) => ({ id, data }));
     },
     async all(collection) {
@@ -104,8 +107,11 @@ function firestoreBackend(): Backend {
         return { current, written };
       });
     },
-    async where(collection, field, value) {
-      const snap = await db().collection(collection).where(field, '==', value).get();
+    async query(collection, filters, limit) {
+      // Equality-only filters: Firestore serves these from single-field indexes.
+      let q: Query = db().collection(collection);
+      for (const [field, value] of Object.entries(filters)) q = q.where(field, '==', value);
+      const snap = await q.limit(limit).get();
       return snap.docs.map((d) => ({ id: d.id, data: d.data() as Json }));
     },
     async all(collection) {
@@ -126,6 +132,20 @@ function getBackend(): Backend {
       ? firestoreBackend()
       : memoryBackend();
   return backend;
+}
+
+/** Who is acting on a record: the verified caller, and whether they are an admin. */
+export interface ChallengeActor {
+  userId: string;
+  isAdmin?: boolean;
+}
+
+/** A per-user bound was reached (e.g. too many open challenges): the route answers 429. */
+export class LimitReachedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'LimitReachedError';
+  }
 }
 
 /** `days` after `from`, for ttlAt values. */
@@ -154,11 +174,14 @@ export interface SharedRecords<T> {
   ): Promise<{ current: T | null; written: T | null }>;
   /** Like update, but `change` also runs (with null) when there is no record yet. */
   upsert(id: string, change: (current: T | null) => T | null): Promise<T | null>;
-  /** Every record whose `field` equals `value`. */
-  where(field: keyof T & string, value: string): Promise<T[]>;
+  /**
+   * Records matching every equality filter. `limit` is applied by the store
+   * itself, so one user's thousands of records are never all read.
+   */
+  query(filters: Partial<Record<keyof T & string, string>>, limit: number): Promise<T[]>;
   /** Every record in the collection. */
   all(): Promise<T[]>;
-  /** Delete every record whose `field` equals `value`; resolves to how many. */
+  /** Delete every record whose `field` equals `value` (in pages); resolves to how many. */
   removeWhere(field: keyof T & string, value: string): Promise<number>;
 }
 
@@ -205,17 +228,21 @@ export function sharedRecords<T>(
       const result = await getBackend().update(collection, id, decideWith(change));
       return fromJson(result.written ?? result.current);
     },
-    async where(field, value) {
-      const rows = await getBackend().where(collection, field, value);
+    async query(filters, limit) {
+      const rows = await getBackend().query(collection, filters as Record<string, string>, limit);
       return rows.map((row) => fromJson(row.data) as T);
     },
     async all() {
       return (await getBackend().all(collection)).map((row) => fromJson(row) as T);
     },
     async removeWhere(field, value) {
-      const rows = await getBackend().where(collection, field, value);
-      await Promise.all(rows.map(async (row) => getBackend().remove(collection, row.id)));
-      return rows.length;
+      let removed = 0;
+      for (;;) {
+        const rows = await getBackend().query(collection, { [field]: value }, 200);
+        if (rows.length === 0) return removed;
+        await Promise.all(rows.map(async (row) => getBackend().remove(collection, row.id)));
+        removed += rows.length;
+      }
     },
   };
 }

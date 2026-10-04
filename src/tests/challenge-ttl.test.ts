@@ -31,6 +31,7 @@ vi.mock('../utils/firestore-utils.js', async (importOriginal) => {
 });
 
 vi.mock('../api/auth-middleware.js', () => ({
+  rateLimit: vi.fn(() => false),
   requireAuth: vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
     const header = req.headers.authorization;
     if (!header?.startsWith('Bearer ')) {

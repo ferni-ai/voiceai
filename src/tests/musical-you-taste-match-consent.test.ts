@@ -16,6 +16,7 @@ import { PassThrough } from 'stream';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 vi.mock('../api/auth-middleware.js', () => ({
+  rateLimit: vi.fn(() => false),
   requireAuth: vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
     const header = req.headers.authorization;
     if (!header?.startsWith('Bearer ')) {
@@ -96,14 +97,14 @@ describe('POST /api/musical/taste-match', () => {
 
   it('refuses when they declined it', async () => {
     const { id } = await sendMusicChallenge('alice', 'Alice', 'decliner', 'guess', 5);
-    await declineChallenge(id);
+    await declineChallenge(id, { userId: 'decliner' });
 
     expect((await tasteMatch('alice', 'decliner')).status).toBe(403);
   });
 
   it('compares once they completed a challenge from alice', async () => {
     const { id } = await sendMusicChallenge('alice', 'Alice', 'player', 'guess', 5);
-    await completeChallenge(id, 7);
+    await completeChallenge(id, { userId: 'player' }, 7);
 
     const res = await tasteMatch('alice', 'player');
 

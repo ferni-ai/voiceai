@@ -56,6 +56,11 @@ export interface Challenge {
 
   // For share/invite
   shareCode?: string;
+
+  // Who accepted, completed or declined it (the challengee, or an admin for them)
+  acceptedBy?: string;
+  completedBy?: string;
+  declinedBy?: string;
 }
 
 export interface TasteMatchSession {
