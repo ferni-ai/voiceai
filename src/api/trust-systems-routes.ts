@@ -27,14 +27,10 @@ import {
   addPersonalDate,
   // Phase 26: Seasonal
   buildSeasonalContext,
-  calculateHealthScore,
-  detectLifeEvents,
   generateCelebrations,
   generateDeliveryGuidance,
   generateFollowUpMessage,
   generateReminderMessage,
-  // Phase 28: Insights Reports
-  generateReport,
   // Phase 13: Conversation Starters
   generateStarters,
   // Phase 15: Response Tuning
@@ -55,15 +51,12 @@ import {
   getMomentumProfile,
   getMomentumSummary,
   getSeasonalProfile,
-  getStageDescription,
-  getStageName,
   getStyleSummary,
   getSuggestionsForMood,
   // Phase 14: Life Events
   getUpcomingEvents,
   recordEventOutcome,
   recordSuggestionFeedback,
-  saveEvent,
   updateHolidayPreference,
 } from '../services/trust-systems/index.js';
 
@@ -196,30 +189,6 @@ export async function handleTrustSystemsRoutes(
     // LIFE EVENTS (Phase 14)
     // ========================================================================
 
-    if (pathname === '/api/trust/life-events' && method === 'POST') {
-      const body = await parseBody<Record<string, unknown>>(req);
-      const detections = detectLifeEvents(validUserId, body.text as string);
-
-      for (const detection of detections) {
-        if (detection.detected && detection.event && detection.confidence > 0.5) {
-          saveEvent({
-            ...detection.event,
-            userId: validUserId,
-            id: `event-${Date.now()}`,
-            date: new Date(detection.event.date as Date),
-            type: detection.event.type || 'event',
-            importance: detection.event.importance || 'medium',
-            followUp: { beforeReminder: true, afterCheckIn: true },
-            tags: [],
-            context: { mentionedAt: new Date(), originalText: body.text as string },
-          } as Parameters<typeof saveEvent>[0]);
-        }
-      }
-
-      sendJson(res, 200, { detected: detections.length, events: detections });
-      return true;
-    }
-
     if (pathname === '/api/trust/life-events/reminders' && method === 'GET') {
       const reminders = getEventsNeedingReminders(validUserId);
       const withMessages = reminders.map((e) => ({
@@ -302,18 +271,6 @@ export async function handleTrustSystemsRoutes(
       const guidance = generateDeliveryGuidance(validUserId);
       const summary = getStyleSummary(validUserId);
       sendJson(res, 200, { profile, guidance, summary });
-      return true;
-    }
-
-    // ========================================================================
-    // INSIGHTS REPORTS (Phase 28)
-    // ========================================================================
-
-    if (pathname === '/api/trust/insights/generate' && method === 'POST') {
-      const body = await parseBody<Record<string, unknown>>(req);
-      const period = (body.period as 'week' | 'month' | 'quarter' | 'year') || 'month';
-      const report = generateReport(validUserId, period);
-      sendJson(res, 201, report);
       return true;
     }
 
@@ -432,39 +389,6 @@ export async function handleTrustSystemsRoutes(
 
       const message = generateFollowUpMessage(event);
       sendJson(res, 200, { message });
-      return true;
-    }
-
-    // ========================================================================
-    // HEALTH CALCULATION (Phase 12 - Extended)
-    // ========================================================================
-
-    if (pathname === '/api/trust/health/calculate' && method === 'POST') {
-      const body = await parseBody<Record<string, unknown>>(req);
-      const metrics = body.metrics as Record<string, number> | undefined;
-
-      // Calculate fresh health score with provided or default metrics
-      const health = calculateHealthScore(
-        validUserId,
-        metrics || {
-          boundaryRespect: 100,
-          emotionalAttunement: 50,
-          growthAcknowledgment: 50,
-          callbackSuccess: 50,
-          outreachReception: 50,
-          sessionDepth: 50,
-          consistency: 50,
-        }
-      );
-
-      sendJson(res, 200, {
-        score: health.overallScore,
-        stage: health.stage,
-        stageName: getStageName(health.stage),
-        stageDescription: getStageDescription(health.stage),
-        trend: health.overallTrend,
-        factors: health.factors,
-      });
       return true;
     }
 
