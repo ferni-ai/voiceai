@@ -12,7 +12,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { appleIAP, isAppleConfigured } from '../services/apple-iap.js';
-import { verifyAppleSignedJws } from '../services/billing/apple-jws-verify.js';
+import { claimAppleTransaction, getAppleVerifier } from '../services/billing/apple-signed-data.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { resolveActingUser } from './acting-user.js';
 import { optionalAuthAsync } from './auth-middleware.js';
@@ -81,17 +81,25 @@ async function verifyReceipt(ctx: RequestContext): Promise<ResponseContext> {
   }
 
   try {
-    const result = await appleIAP.verifyReceipt(body.receiptData, actor.userId);
-
+    // Verified with Apple's library, then bound to this user (first claim owns it).
+    const claim = await claimAppleTransaction(actor.userId, body.receiptData);
+    if (!claim.ok) {
+      return {
+        status: claim.status,
+        headers: { 'Content-Type': 'application/json' },
+        body: { error: claim.error },
+      };
+    }
+    const { productId, expiresDate, environment } = claim.transaction;
     return {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
       body: {
-        isValid: result.isValid,
-        tier: result.tier,
-        status: result.status,
-        expiresDate: result.expiresDate?.toISOString(),
-        environment: result.environment,
+        isValid: true,
+        tier: (productId && appleIAP.productToTier[productId]) || 'free',
+        status: expiresDate && expiresDate > Date.now() ? 'active' : 'expired',
+        expiresDate: expiresDate ? new Date(expiresDate).toISOString() : undefined,
+        environment,
       },
     };
   } catch (error) {
@@ -175,9 +183,18 @@ async function handleWebhook(ctx: RequestContext): Promise<ResponseContext> {
     };
   }
 
-  // Nothing in the payload is trusted until Apple's signature checks out.
+  // Nothing in the payload is trusted until Apple's library verifies it
+  // (signature chain to Apple's root, our bundle id, app and environment).
+  const verifier = getAppleVerifier();
+  if (!verifier) {
+    return {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: "Notifications can't be verified right now" },
+    };
+  }
   try {
-    await verifyAppleSignedJws(body.signedPayload);
+    await verifier.verifyAndDecodeNotification(body.signedPayload);
   } catch (error) {
     log.warn({ error: String(error) }, 'Rejected Apple webhook with an invalid signature');
     return {

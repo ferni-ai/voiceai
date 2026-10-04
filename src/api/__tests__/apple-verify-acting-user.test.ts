@@ -1,12 +1,12 @@
 /**
- * POST /api/apple/verify attaches the receipt to the verified caller.
+ * POST /api/apple/verify acts for the verified caller only.
  *
- * It took `body.userId` with no auth at all. The Apple service currently
- * ignores that id, so nothing was written to the wrong account yet; the route
- * now refuses a body naming another user anyway, so a later service change
- * cannot quietly turn this into a cross-account write. Real HTTP request, real
- * route and auth middleware; only Firebase verification and the Apple service
- * are mocked.
+ * It took `body.userId` with no auth at all. The route now authenticates,
+ * refuses a body naming another user (403), and hands the purchase to
+ * claimAppleTransaction for the caller. Apple verification and first-claim
+ * ownership are covered in services/billing/__tests__/apple-signed-data.test.ts.
+ * Here: real HTTP, real route and auth middleware; Firebase verification and
+ * the claim service are mocked.
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -18,12 +18,19 @@ vi.mock('../../services/identity/firebase-auth.js', () => ({
   ),
 }));
 
-const verifyReceipt = vi.hoisted(() =>
-  vi.fn(async () => ({ isValid: true, tier: 'friend', status: 'active', environment: 'Sandbox' }))
+const claimAppleTransaction = vi.hoisted(() =>
+  vi.fn(async () => ({
+    ok: true as const,
+    transaction: { productId: 'com.ferni.friend.monthly', environment: 'Sandbox' },
+  }))
 );
 vi.mock('../../services/apple-iap.js', () => ({
   isAppleConfigured: () => true,
-  appleIAP: { verifyReceipt },
+  appleIAP: { productToTier: { 'com.ferni.friend.monthly': 'friend' } },
+}));
+vi.mock('../../services/billing/apple-signed-data.js', () => ({
+  claimAppleTransaction,
+  getAppleVerifier: () => null,
 }));
 
 const { handleAppleRoutes } = await import('../apple-iap-routes.js');
@@ -59,18 +66,18 @@ describe('POST /api/apple/verify', () => {
   it('refuses user A attaching a receipt to user B', async () => {
     const res = await verify({ receiptData: 'tx-1', userId: 'uid-B' }, 'tok-A');
     expect(res.status).toBe(403);
-    expect(verifyReceipt).not.toHaveBeenCalled();
+    expect(claimAppleTransaction).not.toHaveBeenCalled();
   });
 
   it('refuses a request with no verified identity', async () => {
     const res = await verify({ receiptData: 'tx-1', userId: 'uid-B' });
     expect(res.status).toBe(401);
-    expect(verifyReceipt).not.toHaveBeenCalled();
+    expect(claimAppleTransaction).not.toHaveBeenCalled();
   });
 
   it('verifies for the signed-in caller (the web now sends no userId)', async () => {
     const res = await verify({ receiptData: 'tx-1' }, 'tok-A');
     expect(res.status).toBe(200);
-    expect(verifyReceipt).toHaveBeenCalledWith('tx-1', 'uid-A');
+    expect(claimAppleTransaction).toHaveBeenCalledWith('uid-A', 'tx-1');
   });
 });
