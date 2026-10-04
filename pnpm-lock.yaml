@@ -93,7 +93,7 @@ importers:
         version: 1.10.0
       '@google/genai':
         specifier: ^1.30.0
-        version: 1.34.0(@modelcontextprotocol/sdk@1.32.0(zod@4.1.13))
+        version: 1.34.0(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))
       '@google/generative-ai':
         specifier: 0.24.1
         version: 0.24.1
@@ -102,19 +102,19 @@ importers:
         version: 3.8.1
       '@livekit/agents':
         specifier: 1.5.1
-        version: 1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)
+        version: 1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/agents-plugin-cartesia':
         specifier: 1.5.1
-        version: 1.5.1(patch_hash=279ec7beb686209172dcfe2f257cf22d03a92522b4d2c686f7d65f15d50ac6dd)(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)
+        version: 1.5.1(patch_hash=279ec7beb686209172dcfe2f257cf22d03a92522b4d2c686f7d65f15d50ac6dd)(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.31)(zod@4.6.5)
       '@livekit/agents-plugin-google':
         specifier: 1.5.1
-        version: 1.5.1(patch_hash=0de21424e13107a1337281ed6de64913946c31c40975cf6ed645e84f0ffd5f67)(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(@modelcontextprotocol/sdk@1.32.0(zod@4.1.13))(ws@8.22.0)(zod@4.1.13)
+        version: 1.5.1(patch_hash=0de21424e13107a1337281ed6de64913946c31c40975cf6ed645e84f0ffd5f67)(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.31)(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(ws@8.22.0)(zod@4.6.5)
       '@livekit/agents-plugin-openai':
         specifier: 1.5.1
-        version: 1.5.1(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)
+        version: 1.5.1(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.31)(zod@4.6.5)
       '@livekit/agents-plugin-silero':
         specifier: 1.5.1
-        version: 1.5.1(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)
+        version: 1.5.1(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.31)
       '@livekit/noise-cancellation-node':
         specifier: ^0.1.9
         version: 0.1.9
@@ -126,7 +126,7 @@ importers:
         version: 0.13.31
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
-        version: 1.32.0(zod@4.1.13)
+        version: 1.32.0(zod@4.6.5)
       '@sendgrid/mail':
         specifier: ^8.1.6
         version: 8.1.6
@@ -186,7 +186,7 @@ importers:
         version: 1.20.1
       openai:
         specifier: 6.10.0
-        version: 6.10.0(ws@8.22.0)(zod@4.1.13)
+        version: 6.10.0(ws@8.22.0)(zod@4.6.5)
       pg:
         specifier: ^8.16.3
         version: 8.16.3
@@ -212,8 +212,8 @@ importers:
         specifier: ^8.21.0
         version: 8.22.0
       zod:
-        specifier: 4.1.13
-        version: 4.1.13
+        specifier: 4.6.5
+        version: 4.6.5
     devDependencies:
       '@axe-core/playwright':
         specifier: ^4.11.0
@@ -352,8 +352,8 @@ importers:
         specifier: ^13.0.0
         version: 13.1.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 4.6.5
+        version: 4.6.5
     devDependencies:
       '@types/express':
         specifier: 5.0.3
@@ -411,8 +411,8 @@ importers:
         specifier: ^13.0.0
         version: 13.1.3
       zod:
-        specifier: 3.24.4
-        version: 3.24.4
+        specifier: 4.6.5
+        version: 4.6.5
     devDependencies:
       '@types/express':
         specifier: 5.0.3
@@ -481,8 +481,8 @@ importers:
         specifier: ^2.0.0
         version: 2.16.1(@types/dom-mediacapture-record@1.0.22)
       zod:
-        specifier: ^3.23.0
-        version: 3.24.4
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@capacitor/cli':
         specifier: ^7.4.4
@@ -6997,11 +6997,8 @@ packages:
     peerDependencies:
       zod: ^3.25.28 || ^4
 
-  zod@3.24.4:
-    resolution: {integrity: sha512-OdqJE9UDRPwWsrHjLN2F8bPxvwJBK22EHLWtanu0LSYr5YqzsaaW3RMgmjwr8Rypg5k+meEJdSPXJZXE/yqOMg==}
-
-  zod@4.1.13:
-    resolution: {integrity: sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig==}
+  zod@4.6.5:
+    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
 
 snapshots:
 
@@ -8145,25 +8142,25 @@ snapshots:
       - encoding
       - supports-color
 
-  '@google/genai@1.34.0(@modelcontextprotocol/sdk@1.32.0(zod@4.1.13))':
+  '@google/genai@1.34.0(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))':
     dependencies:
       google-auth-library: 10.5.0
       ws: 8.22.0
     optionalDependencies:
-      '@modelcontextprotocol/sdk': 1.32.0(zod@4.1.13)
+      '@modelcontextprotocol/sdk': 1.32.0(zod@4.6.5)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
       - utf-8-validate
 
-  '@google/genai@1.52.0(@modelcontextprotocol/sdk@1.32.0(zod@4.1.13))':
+  '@google/genai@1.52.0(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))':
     dependencies:
       google-auth-library: 10.5.0
       p-retry: 4.6.2
       protobufjs: 7.6.6
       ws: 8.22.0
     optionalDependencies:
-      '@modelcontextprotocol/sdk': 1.32.0(zod@4.1.13)
+      '@modelcontextprotocol/sdk': 1.32.0(zod@4.6.5)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -8437,26 +8434,26 @@ snapshots:
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
-  '@livekit/agents-plugin-cartesia@1.5.1(patch_hash=279ec7beb686209172dcfe2f257cf22d03a92522b4d2c686f7d65f15d50ac6dd)(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)':
+  '@livekit/agents-plugin-cartesia@1.5.1(patch_hash=279ec7beb686209172dcfe2f257cf22d03a92522b4d2c686f7d65f15d50ac6dd)(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.31)(zod@4.6.5)':
     dependencies:
-      '@livekit/agents': 1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)
+      '@livekit/agents': 1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/rtc-node': 0.13.31
       ws: 8.22.0
-      zod: 4.1.13
+      zod: 4.6.5
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents-plugin-google@1.5.1(patch_hash=0de21424e13107a1337281ed6de64913946c31c40975cf6ed645e84f0ffd5f67)(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(@modelcontextprotocol/sdk@1.32.0(zod@4.1.13))(ws@8.22.0)(zod@4.1.13)':
+  '@livekit/agents-plugin-google@1.5.1(patch_hash=0de21424e13107a1337281ed6de64913946c31c40975cf6ed645e84f0ffd5f67)(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.31)(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(ws@8.22.0)(zod@4.6.5)':
     dependencies:
-      '@google/genai': 1.52.0(@modelcontextprotocol/sdk@1.32.0(zod@4.1.13))
-      '@livekit/agents': 1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)
+      '@google/genai': 1.52.0(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))
+      '@livekit/agents': 1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/mutex': 1.1.1
       '@livekit/rtc-node': 0.13.31
       '@types/json-schema': 7.0.15
       google-auth-library: 10.9.0
       json-schema: 0.4.0
-      openai: 6.10.0(ws@8.22.0)(zod@4.1.13)
+      openai: 6.10.0(ws@8.22.0)(zod@4.6.5)
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
       - bufferutil
@@ -8465,21 +8462,21 @@ snapshots:
       - ws
       - zod
 
-  '@livekit/agents-plugin-openai@1.5.1(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)(zod@4.1.13)':
+  '@livekit/agents-plugin-openai@1.5.1(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.31)(zod@4.6.5)':
     dependencies:
-      '@livekit/agents': 1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)
+      '@livekit/agents': 1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/mutex': 1.1.1
       '@livekit/rtc-node': 0.13.31
-      openai: 6.10.0(ws@8.22.0)(zod@4.1.13)
+      openai: 6.10.0(ws@8.22.0)(zod@4.6.5)
       ws: 8.22.0
-      zod: 4.1.13
+      zod: 4.6.5
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents-plugin-silero@1.5.1(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13))(@livekit/rtc-node@0.13.31)':
+  '@livekit/agents-plugin-silero@1.5.1(@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.31)':
     dependencies:
-      '@livekit/agents': 1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)
+      '@livekit/agents': 1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/rtc-node': 0.13.31
       onnxruntime-node: 1.24.3
       ws: 8.22.0
@@ -8487,7 +8484,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.1.13)':
+  '@livekit/agents@1.5.1(patch_hash=87f3e211d2865cce12fafb7c3397600bfcfd49d31f146b1afc9960ec729e890b)(@livekit/rtc-node@0.13.31)(typescript@5.9.3)(zod@4.6.5)':
     dependencies:
       '@bufbuild/protobuf': 1.10.1
       '@livekit/av': 7.1.501
@@ -8518,14 +8515,14 @@ snapshots:
       jsonrepair: 3.15.0
       livekit-server-sdk: 2.15.0
       ofetch: 1.5.1
-      openai: 6.10.0(ws@8.22.0)(zod@4.1.13)
+      openai: 6.10.0(ws@8.22.0)(zod@4.6.5)
       pidusage: 4.0.1
       pino: 8.21.0
       pino-pretty: 11.3.0
       sharp: 0.34.5
       ws: 8.22.0
-      zod: 4.1.13
-      zod-to-json-schema: 3.25.0(zod@4.1.13)
+      zod: 4.6.5
+      zod-to-json-schema: 3.25.0(zod@4.6.5)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -8683,7 +8680,7 @@ snapshots:
       '@types/react': 19.2.8
       react: 19.2.3
 
-  '@modelcontextprotocol/sdk@1.32.0(zod@4.1.13)':
+  '@modelcontextprotocol/sdk@1.32.0(zod@4.6.5)':
     dependencies:
       '@hono/node-server': 1.19.17(hono@4.13.12)
       ajv: 8.17.1
@@ -8700,8 +8697,8 @@ snapshots:
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
-      zod: 4.1.13
-      zod-to-json-schema: 3.25.2(zod@4.1.13)
+      zod: 4.6.5
+      zod-to-json-schema: 3.25.2(zod@4.6.5)
     transitivePeerDependencies:
       - supports-color
 
@@ -12718,10 +12715,10 @@ snapshots:
       is-docker: 2.2.1
       is-wsl: 2.2.0
 
-  openai@6.10.0(ws@8.22.0)(zod@4.1.13):
+  openai@6.10.0(ws@8.22.0)(zod@4.6.5):
     optionalDependencies:
       ws: 8.22.0
-      zod: 4.1.13
+      zod: 4.6.5
 
   optionator@0.9.4:
     dependencies:
@@ -14332,14 +14329,12 @@ snapshots:
 
   yocto-queue@1.2.2: {}
 
-  zod-to-json-schema@3.25.0(zod@4.1.13):
+  zod-to-json-schema@3.25.0(zod@4.6.5):
     dependencies:
-      zod: 4.1.13
+      zod: 4.6.5
 
-  zod-to-json-schema@3.25.2(zod@4.1.13):
+  zod-to-json-schema@3.25.2(zod@4.6.5):
     dependencies:
-      zod: 4.1.13
+      zod: 4.6.5
 
-  zod@3.24.4: {}
-
-  zod@4.1.13: {}
+  zod@4.6.5: {}
