@@ -15,6 +15,11 @@
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { EmotionalWeather, RitualStreak, UserRitualProfile } from '../daily-rituals.js';
+import {
+  averageRealAccuracy,
+  scorePrediction,
+  type PredictionScore,
+} from './prediction-scoring.js';
 
 // ============================================================================
 // TYPES
@@ -410,22 +415,26 @@ export class EngagementStore {
   }
 
   /**
-   * Update prediction with actuals
+   * Score a prediction against the actual values and save the result.
+   *
+   * Returns null when the prediction doesn't exist or can't be written, and
+   * 'no-matching-metric' when none of the actuals names a predicted metric
+   * (nothing to score, so nothing is saved).
    */
   async updatePredictionActuals(
     userId: string,
     predictionId: string,
     actuals: Record<string, number>
-  ): Promise<{ accuracy: number } | null> {
+  ): Promise<PredictionScore | 'no-matching-metric' | null> {
     if (!this.db) return null;
 
     try {
-      const doc = await this.db
+      const ref = this.db
         .collection(this.COLLECTION)
         .doc(userId)
         .collection('predictions')
-        .doc(predictionId)
-        .get();
+        .doc(predictionId);
+      const doc = await ref.get();
 
       if (!doc.exists) return null;
 
@@ -433,46 +442,27 @@ export class EngagementStore {
       if (!data) return null;
       const prediction = data as unknown as StoredPrediction;
 
-      // Calculate accuracy
-      let totalDiff = 0;
-      let count = 0;
-      for (const [key, actual] of Object.entries(actuals)) {
-        if (prediction.predictions[key] !== undefined) {
-          const predicted = prediction.predictions[key];
-          totalDiff += Math.abs(predicted - actual) / Math.max(predicted, actual, 1);
-          count++;
-        }
-      }
-      const accuracy = count > 0 ? Math.round((1 - totalDiff / count) * 100) : 0;
+      const score = scorePrediction(prediction.predictions ?? {}, actuals);
+      if (!score) return 'no-matching-metric';
 
-      // Update prediction
-      await this.db
-        .collection(this.COLLECTION)
-        .doc(userId)
-        .collection('predictions')
-        .doc(predictionId)
-        .set(
-          cleanForFirestore({
-            actuals,
-            accuracy,
-            completedAt: new Date().toISOString(),
-          }),
-          { merge: true }
-        );
+      await ref.set(
+        cleanForFirestore({
+          actuals,
+          accuracy: score.accuracy,
+          completedAt: new Date().toISOString(),
+        }),
+        { merge: true }
+      );
 
-      // Update profile accuracy
+      // Running accuracy counts only real scores (not the old unmatched 0s).
       const profile = await this.getProfile(userId);
-      const predictions = await this.getRecentPredictions(userId, 20);
-      const completedPredictions = predictions.filter((p) => p.accuracy !== undefined);
-      if (completedPredictions.length > 0) {
-        profile.stats.predictionAccuracy = Math.round(
-          completedPredictions.reduce((sum, p) => sum + (p.accuracy || 0), 0) /
-            completedPredictions.length
-        );
+      const average = averageRealAccuracy(await this.getRecentPredictions(userId, 20));
+      if (average !== null) {
+        profile.stats.predictionAccuracy = average;
         await this.saveProfile(profile);
       }
 
-      return { accuracy };
+      return score;
     } catch (error) {
       getLogger().warn({ error, userId, predictionId }, 'Failed to update prediction actuals');
       return null;

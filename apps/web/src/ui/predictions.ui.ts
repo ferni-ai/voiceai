@@ -20,8 +20,20 @@ import {
   escapeHtml,
   renderCloseButton,
 } from './engagement-components.js';
-import { engagementService, type PredictionData } from '../services/engagement.service.js';
-import { isDemoDataEnabled, getDemoPredictions, calculateDemoPredictionAccuracy } from '../services/engagement-demo-data.js';
+import { engagementService } from '../services/engagement.service.js';
+import {
+  scoredStreak,
+  toneBand,
+  type PredictionData,
+  type ResolutionScore,
+} from '../services/prediction-data.js';
+import { openResolutionModal } from './prediction-resolution-modal.js';
+import { metricLabel } from './prediction-resolution-copy.js';
+import {
+  isDemoDataEnabled,
+  getDemoPredictions,
+  calculateDemoPredictionAccuracy,
+} from '../services/engagement-demo-data.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { playMicroExpression } from './better-than-human.ui.js';
@@ -38,6 +50,12 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // ============================================================================
 // TYPES
 // ============================================================================
+
+/** Records actual values (keyed by metric name) and resolves to the server's score. */
+export type ResolutionSubmit = (
+  id: string,
+  actuals: Record<string, number>
+) => Promise<ResolutionScore>;
 
 export interface PredictionsUIData {
   predictions: PredictionData[];
@@ -79,7 +97,7 @@ export class PredictionsUI {
   private panelVisible: boolean = false;
   private styleElement: HTMLStyleElement | null = null;
   private currentPredictions: PredictionData[] = [];
-  private onResolutionSubmit: ((id: string, actual: number) => Promise<void>) | null = null;
+  private onResolutionSubmit: ResolutionSubmit | null = null;
   private hasDataLoaded: boolean = false;
 
   /**
@@ -129,10 +147,10 @@ export class PredictionsUI {
     // Bind events
     const backdrop = this.container.querySelector('.predictions-panel__backdrop');
     backdrop?.addEventListener('click', () => this.hide());
-    
+
     const closeBtn = this.container.querySelector('.engagement-close-btn');
     closeBtn?.addEventListener('click', () => this.hide());
-    
+
     // Close on escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.panelVisible) {
@@ -143,7 +161,7 @@ export class PredictionsUI {
 
   /**
    * Render empty state - beautiful preview of what predictions WILL look like
-   * 
+   *
    * Philosophy: Transform "No data yet" into "This is what you'll see"
    * Shows the value proposition through realistic preview data.
    */
@@ -236,7 +254,7 @@ export class PredictionsUI {
   /**
    * Set callback for resolution submissions
    */
-  setOnResolutionSubmit(callback: (id: string, actual: number) => Promise<void>): void {
+  setOnResolutionSubmit(callback: ResolutionSubmit): void {
     this.onResolutionSubmit = callback;
   }
 
@@ -264,13 +282,13 @@ export class PredictionsUI {
     sections.push(this.renderStatsHeader(data));
 
     // Pending predictions
-    const pending = data.predictions.filter(p => p.status === 'pending');
+    const pending = data.predictions.filter((p) => p.status === 'pending');
     if (pending.length > 0) {
       sections.push(this.renderPredictionGroup('Active Predictions', pending, true));
     }
 
     // Resolved predictions
-    const resolved = data.predictions.filter(p => p.status === 'resolved');
+    const resolved = data.predictions.filter((p) => p.status === 'resolved');
     if (resolved.length > 0) {
       sections.push(this.renderPredictionGroup('Recent Results', resolved.slice(0, 10), false));
     }
@@ -278,7 +296,7 @@ export class PredictionsUI {
     content.innerHTML = sections.join('');
 
     // Bind resolve buttons
-    content.querySelectorAll('.prediction-resolve-btn').forEach(btn => {
+    content.querySelectorAll('.prediction-resolve-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const predictionId = (e.currentTarget as HTMLElement).dataset.predictionId;
         if (predictionId) {
@@ -305,120 +323,32 @@ export class PredictionsUI {
   }
 
   /**
-   * Show resolution modal for a prediction
+   * Ask for the actual values of a prediction's metrics, then show the
+   * comparison the server scored.
    */
   private showResolutionModal(predictionId: string): void {
-    const prediction = this.currentPredictions.find(p => p.id === predictionId);
-    if (!prediction) return;
+    const prediction = this.currentPredictions.find((p) => p.id === predictionId);
+    const submit = this.onResolutionSubmit;
+    if (!prediction || !submit) return;
 
-    // Create modal overlay
-    const modal = document.createElement('div');
-    modal.className = 'prediction-resolution-modal';
-    modal.innerHTML = `
-      <div class="prediction-resolution-modal__backdrop"></div>
-      <div class="prediction-resolution-modal__card">
-        <header class="prediction-resolution-modal__header">
-          <h3>Record Actual Result</h3>
-          <button class="engagement-close-btn" aria-label="${t('common.close')}">
-            ${ICONS.close}
-          </button>
-        </header>
-        <div class="prediction-resolution-modal__content">
-          <p class="prediction-resolution-modal__question">${escapeHtml(prediction.question)}</p>
-          <p class="prediction-resolution-modal__prediction">You predicted: <strong>${prediction.userPrediction}</strong></p>
-          <div class="prediction-resolution-modal__input-group">
-            <label for="actual-result">What was the actual result?</label>
-            <input 
-              type="number" 
-              id="actual-result" 
-              class="prediction-resolution-modal__input"
-              placeholder="${t('placeholders.enterValue')}"
-              min="0"
-              max="100"
-            />
-          </div>
-        </div>
-        <footer class="prediction-resolution-modal__footer">
-          <button aria-label="${t('accessibility.cancel')}" class="prediction-resolution-modal__cancel">Cancel</button>
-          <button aria-label="${t('accessibility.saveResult')}" class="prediction-resolution-modal__submit engagement-btn-primary">Save Result</button>
-        </footer>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // Animate in
-    requestAnimationFrame(() => {
-      modal.classList.add('prediction-resolution-modal--visible');
+    openResolutionModal({
+      prediction,
+      submit: (actuals) => submit(predictionId, actuals),
+      onScored: (score) => this.triggerResolutionEQ(score.accuracy),
     });
-
-    // Bind events
-    const closeModal = () => {
-      modal.classList.remove('prediction-resolution-modal--visible');
-      trackedTimeout(() => modal.remove(), prefersReducedMotion() ? 0 : DURATION.NORMAL);
-    };
-
-    modal.querySelector('.prediction-resolution-modal__backdrop')?.addEventListener('click', closeModal);
-    modal.querySelector('.engagement-close-btn')?.addEventListener('click', closeModal);
-    modal.querySelector('.prediction-resolution-modal__cancel')?.addEventListener('click', closeModal);
-
-    const input = modal.querySelector('#actual-result') as HTMLInputElement;
-    const submitBtn = modal.querySelector('.prediction-resolution-modal__submit');
-
-    submitBtn?.addEventListener('click', () => {
-      void (async () => {
-        const actualValue = parseInt(input.value, 10);
-        if (isNaN(actualValue)) {
-          input.classList.add('prediction-resolution-modal__input--error');
-          return;
-        }
-
-        if (this.onResolutionSubmit) {
-          submitBtn.textContent = t('common.saving');
-          (submitBtn as HTMLButtonElement).disabled = true;
-
-          try {
-            await this.onResolutionSubmit(predictionId, actualValue);
-
-            // Trigger EQ response based on prediction accuracy
-            this.triggerResolutionEQ(prediction.userPrediction, actualValue);
-
-            closeModal();
-          } catch (err) {
-            submitBtn.textContent = t('common.errorRetry');
-            (submitBtn as HTMLButtonElement).disabled = false;
-          }
-        } else {
-          closeModal();
-        }
-      })();
-    });
-
-    // Focus input
-    input.focus();
   }
 
   /**
-   * Trigger EQ micro-expression based on prediction accuracy
+   * Trigger EQ micro-expression from the server's score for the resolution.
    * Better than Human: Celebrates self-awareness wins
    */
-  private triggerResolutionEQ(predicted: number, actual: number): void {
-    const error = Math.abs(predicted - actual);
-
-    // Priority 1: Very accurate prediction (within 10) → pride for calibrated intuition
-    if (error <= 10) {
-      trackedTimeout(() => playMicroExpression('pride_flash'), 200);
-      return;
-    }
-
-    // Priority 2: Close prediction (within 25) → warmth for effort
-    if (error <= 25) {
-      trackedTimeout(() => playMicroExpression('warmth_pulse'), 200);
-      return;
-    }
-
-    // Priority 3: Any resolution → understanding (engagement is valuable)
-    trackedTimeout(() => playMicroExpression('understanding'), 200);
+  private triggerResolutionEQ(accuracy: number): void {
+    const band = toneBand(accuracy);
+    // Close guess → pride for calibrated intuition; near → warmth for effort;
+    // anything else → understanding (engagement is valuable).
+    const expression =
+      band === 'spotOn' ? 'pride_flash' : band === 'close' ? 'warmth_pulse' : 'understanding';
+    trackedTimeout(() => playMicroExpression(expression), 200);
   }
 
   /**
@@ -446,8 +376,12 @@ export class PredictionsUI {
   /**
    * Render prediction group
    */
-  private renderPredictionGroup(title: string, predictions: PredictionData[], isPending: boolean): string {
-    const items = predictions.map(p => this.renderPredictionCard(p, isPending)).join('');
+  private renderPredictionGroup(
+    title: string,
+    predictions: PredictionData[],
+    isPending: boolean
+  ): string {
+    const items = predictions.map((p) => this.renderPredictionCard(p, isPending)).join('');
 
     return `
       <section class="predictions-group">
@@ -470,22 +404,37 @@ export class PredictionsUI {
     let statusClass = '';
     let resultHtml = '';
 
+    const metrics = prediction.metrics ?? [];
     if (!isPending && prediction.actualOutcome !== undefined) {
-      const error = Math.abs(prediction.userPrediction - prediction.actualOutcome);
-      statusClass = error <= 10 ? 'prediction-card--accurate' : error <= 25 ? 'prediction-card--close' : 'prediction-card--off';
+      // Status comes from the server's score; unscored results get no verdict.
+      const band = typeof prediction.accuracy === 'number' ? toneBand(prediction.accuracy) : null;
+      statusClass = band
+        ? `prediction-card--${band === 'spotOn' ? 'accurate' : band === 'close' ? 'close' : 'off'}`
+        : '';
+      const score =
+        typeof prediction.accuracy === 'number'
+          ? ` · ${escapeHtml(t('predictionResolution.scored', { accuracy: prediction.accuracy }))}`
+          : '';
       resultHtml = `
         <div class="prediction-card__result">
-          <span class="prediction-card__predicted">You predicted: ${prediction.userPrediction}%</span>
-          <span class="prediction-card__actual">Actual: ${prediction.actualOutcome}%</span>
+          <span class="prediction-card__predicted">${escapeHtml(t('predictionResolution.youGuessed', { value: prediction.userPrediction }))}</span>
+          <span class="prediction-card__actual">${escapeHtml(t('predictionResolution.actual', { value: prediction.actualOutcome }))}${score}</span>
         </div>
       `;
     } else if (isPending) {
+      const guesses =
+        metrics.length > 0
+          ? metrics.map((m) => `${metricLabel(m.key)}: ${m.predicted}`).join(' · ')
+          : t('predictionResolution.youGuessed', { value: prediction.userPrediction });
+      // Only predictions that carry their metric names can be scored.
+      const resolveBtn =
+        metrics.length > 0
+          ? `<button aria-label="${t('accessibility.recordActual')}" class="prediction-resolve-btn" data-prediction-id="${escapeHtml(prediction.id)}">${escapeHtml(t('predictionResolution.record'))}</button>`
+          : '';
       resultHtml = `
         <div class="prediction-card__pending">
-          <span class="prediction-card__predicted">Your prediction: ${prediction.userPrediction}</span>
-          <button aria-label="${t('accessibility.recordActual')}" class="prediction-resolve-btn" data-prediction-id="${escapeHtml(prediction.id)}">
-            Record Actual
-          </button>
+          <span class="prediction-card__predicted">${escapeHtml(guesses)}</span>
+          ${resolveBtn}
         </div>
       `;
     }
@@ -532,7 +481,7 @@ export class PredictionsUI {
       this.update({
         predictions: cachedPredictions,
         accuracy: engagementService.calculateAccuracy(),
-        totalResolved: cachedPredictions.filter(p => p.status === 'resolved').length,
+        totalResolved: cachedPredictions.filter((p) => p.status === 'resolved').length,
         currentStreak: this.calculateStreak(cachedPredictions),
       });
       this.hasDataLoaded = true;
@@ -548,7 +497,7 @@ export class PredictionsUI {
         this.update({
           predictions,
           accuracy: engagementService.calculateAccuracy(),
-          totalResolved: predictions.filter(p => p.status === 'resolved').length,
+          totalResolved: predictions.filter((p) => p.status === 'resolved').length,
           currentStreak: this.calculateStreak(predictions),
         });
         this.hasDataLoaded = true;
@@ -563,7 +512,7 @@ export class PredictionsUI {
       this.update({
         predictions: demoPredictions,
         accuracy: calculateDemoPredictionAccuracy(),
-        totalResolved: demoPredictions.filter(p => p.status === 'resolved').length,
+        totalResolved: demoPredictions.filter((p) => p.status === 'resolved').length,
         currentStreak: this.calculateStreak(demoPredictions),
       });
       this.hasDataLoaded = true;
@@ -578,27 +527,9 @@ export class PredictionsUI {
     }
   }
 
-  /**
-   * Calculate prediction streak from resolved predictions.
-   */
+  /** Consecutive well-scored predictions, from the server's scores. */
   private calculateStreak(predictions: PredictionData[]): number {
-    // Count consecutive accurate predictions (within 15% of actual)
-    const resolved = predictions
-      .filter(p => p.status === 'resolved' && p.actualOutcome !== undefined)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    
-    let streak = 0;
-    for (const pred of resolved) {
-      const accuracy = pred.actualOutcome !== undefined && pred.userPrediction > 0
-        ? 100 - Math.abs((pred.actualOutcome - pred.userPrediction) / pred.userPrediction * 100)
-        : 0;
-      if (accuracy >= 70) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-    return streak;
+    return scoredStreak(predictions);
   }
 
   /**
@@ -609,11 +540,14 @@ export class PredictionsUI {
 
     this.panelVisible = false;
     this.container.setAttribute('aria-hidden', 'true');
-    
+
     // Wait for animation before hiding
-    trackedTimeout(() => {
-      this.container?.classList.remove('predictions-panel--visible');
-    }, prefersReducedMotion() ? 0 : DURATION.NORMAL);
+    trackedTimeout(
+      () => {
+        this.container?.classList.remove('predictions-panel--visible');
+      },
+      prefersReducedMotion() ? 0 : DURATION.NORMAL
+    );
   }
 
   /**

@@ -3014,6 +3014,55 @@
       "legacy": "レガシー"
     }
   },
+  "predictionResolution": {
+    "title": "どうでしたか？",
+    "youGuessed": "予想：{value}",
+    "actual": "実際：{value}",
+    "scored": "的中率 {accuracy}%",
+    "record": "結果を記録",
+    "save": "予想を答え合わせ",
+    "saveFailed": "保存できませんでした。もう一度試しますか？",
+    "metrics": {
+      "deepWork": {
+        "label": "集中作業",
+        "question": "集中して作業できたのは何時間でしたか？",
+        "unit": "時間"
+      },
+      "exercise": {
+        "label": "運動",
+        "question": "運動したのは何回でしたか？",
+        "unit": "回"
+      },
+      "social": {
+        "label": "人と過ごした時間",
+        "question": "人と過ごしたのは何時間でしたか？",
+        "unit": "時間"
+      },
+      "screen": {
+        "label": "スクリーンタイム",
+        "question": "スクリーンタイムは何時間でしたか？",
+        "unit": "時間"
+      },
+      "mood": {
+        "label": "気分",
+        "question": "平均の気分は1〜10でいくつでしたか？",
+        "unit": "1〜10"
+      },
+      "generic": {
+        "question": "{label}の実際の値はいくつでしたか？"
+      }
+    },
+    "result": {
+      "line": "予想は{predicted}、実際は{actual}。{verdict}",
+      "overall": "今週の全体の的中率は{accuracy}%です。"
+    },
+    "tone": {
+      "spotOn": "ぴったり！",
+      "close": "かなり近い！",
+      "off": "今回は少しずれました。",
+      "wayOff": "今回は大きく外れました。でも、これで分かりましたね。"
+    }
+  },
   "trustDashboard": {
     "together": {
       "empty": "何度か話したら、私たちの関係がどうか伝えますね。",

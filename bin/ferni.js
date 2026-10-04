@@ -26,7 +26,7 @@ const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '..');
 
 // Path to the TypeScript CLI
-const cliPath = join(projectRoot, 'scripts', 'ferni.ts');
+const cliPath = join(projectRoot, 'apps', 'cli', 'src', 'index.ts');
 
 // Pass all arguments to the CLI
 const args = process.argv.slice(2);

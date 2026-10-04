@@ -40,12 +40,9 @@ describe('CrisisDetection', () => {
       it('should detect high severity suicidal ideation', () => {
         const highPhrases = [
           "I don't want to be here anymore",
-          'I want this to end',
-          "I can't do this anymore",
           'I wish I was dead',
           'everyone would be happier without me',
           "what's the point of living",
-          "there's no hope",
         ];
 
         for (const phrase of highPhrases) {
@@ -54,6 +51,26 @@ describe('CrisisDetection', () => {
           expect(result.primary?.type).toBe('suicidal_ideation');
           expect(['high', 'critical']).toContain(result.primary?.severity);
         }
+      });
+
+      it('tracks ambiguous hopelessness as medium, not an interruption', () => {
+        // Each also fits everyday frustration ("I can't do this anymore, this puzzle is impossible").
+        for (const phrase of ['I want this to end', "I can't do this anymore", "there's no hope"]) {
+          const result = detectCrisis(phrase);
+          expect(result.detected).toBe(true);
+          expect(result.primary?.type).toBe('suicidal_ideation');
+          expect(result.primary?.severity).toBe('medium');
+          expect(result.requiresImmediateAction).toBe(false);
+        }
+      });
+
+      it('does not flag protective statements or threats from others as suicidal', () => {
+        for (const phrase of ["I'm not going to kill myself, don't worry", 'I would never kill myself']) {
+          expect(detectCrisis(phrase).requiresImmediateAction).toBe(false);
+        }
+        expect(detectCrisis("he's going to kill me when he sees my grades").primary?.type).not.toBe(
+          'suicidal_ideation'
+        );
       });
 
       it('should detect medium severity suicidal ideation', () => {

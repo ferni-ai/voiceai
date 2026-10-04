@@ -130,8 +130,7 @@ async function callGeminiApi(
   model: string,
   retryCount = 0
 ): Promise<string> {
-  const modelId = model === 'gemini-2.0-flash' ? 'gemini-2.0-flash-exp' : model;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const response = await fetch(url, {
     method: 'POST',

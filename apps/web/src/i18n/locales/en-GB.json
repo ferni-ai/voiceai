@@ -3011,6 +3011,55 @@
       "legacy": "Legacy"
     }
   },
+  "predictionResolution": {
+    "title": "How did it go?",
+    "youGuessed": "You guessed {value}",
+    "actual": "Actual: {value}",
+    "scored": "{accuracy}% accurate",
+    "record": "Record what happened",
+    "save": "Check my guesses",
+    "saveFailed": "Couldn't save that. Try again?",
+    "metrics": {
+      "deepWork": {
+        "label": "Deep work",
+        "question": "How many hours of deep work did you get?",
+        "unit": "hours"
+      },
+      "exercise": {
+        "label": "Exercise",
+        "question": "How many times did you exercise?",
+        "unit": "sessions"
+      },
+      "social": {
+        "label": "Time with people",
+        "question": "How many hours did you spend with people?",
+        "unit": "hours"
+      },
+      "screen": {
+        "label": "Screen time",
+        "question": "How many hours of screen time did you have?",
+        "unit": "hours"
+      },
+      "mood": {
+        "label": "Mood",
+        "question": "What was your average mood, from 1 to 10?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "What was your actual {label}?"
+      }
+    },
+    "result": {
+      "line": "You guessed {predicted}. You got {actual}. {verdict}",
+      "overall": "{accuracy}% accurate overall this week."
+    },
+    "tone": {
+      "spotOn": "Nailed it!",
+      "close": "Pretty close!",
+      "off": "A little off this time.",
+      "wayOff": "Way off this time. Now you know."
+    }
+  },
   "trustDashboard": {
     "together": {
       "empty": "Once we've talked a few times, I'll tell you how we're doing.",

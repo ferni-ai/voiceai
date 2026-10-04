@@ -3014,6 +3014,55 @@
       "legacy": "Héritage"
     }
   },
+  "predictionResolution": {
+    "title": "Alors, comment ça s’est passé ?",
+    "youGuessed": "Votre estimation : {value}",
+    "actual": "Réel : {value}",
+    "scored": "Précision : {accuracy} %",
+    "record": "Noter ce qui s’est passé",
+    "save": "Vérifier mes estimations",
+    "saveFailed": "Impossible d’enregistrer. Réessayer ?",
+    "metrics": {
+      "deepWork": {
+        "label": "Travail concentré",
+        "question": "Combien d’heures de travail concentré avez-vous faites ?",
+        "unit": "heures"
+      },
+      "exercise": {
+        "label": "Sport",
+        "question": "Combien de fois avez-vous fait du sport ?",
+        "unit": "séances"
+      },
+      "social": {
+        "label": "Temps avec les autres",
+        "question": "Combien d’heures avez-vous passées avec d’autres personnes ?",
+        "unit": "heures"
+      },
+      "screen": {
+        "label": "Temps d’écran",
+        "question": "Combien d’heures d’écran avez-vous eues ?",
+        "unit": "heures"
+      },
+      "mood": {
+        "label": "Humeur",
+        "question": "Quelle a été votre humeur moyenne, de 1 à 10 ?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "Quelle a été votre valeur réelle pour {label} ?"
+      }
+    },
+    "result": {
+      "line": "Vous aviez estimé {predicted}. C’était {actual}. {verdict}",
+      "overall": "Précision globale cette semaine : {accuracy} %."
+    },
+    "tone": {
+      "spotOn": "En plein dans le mille !",
+      "close": "Pas loin du tout !",
+      "off": "Un peu à côté cette fois.",
+      "wayOff": "Loin du compte cette fois. Maintenant, vous savez."
+    }
+  },
   "trustDashboard": {
     "together": {
       "empty": "Quand nous aurons parlé quelques fois, je vous dirai comment ça va entre nous.",

@@ -26,9 +26,10 @@ export async function installPaceMatching(
   sessionId: string,
   cleanupFunctions: Cleanup
 ): Promise<{ onFinalTranscript(text: string): void }> {
-  // The speech director owns pacing when it's on (#180): one speed controller.
-  const { speechDirectorMode } = await import('../../speech/tts-gateway/director/index.js');
-  if (speechDirectorMode() !== 'off') return { onFinalTranscript: () => undefined };
+  // The speech director owns pacing when its pacing lever is live (#180): one speed
+  // controller. In shadow it only logs, so pace matching keeps the job.
+  const { leverModes } = await import('../../speech/tts-gateway/director/index.js');
+  if (leverModes().pacing === 'live') return { onFinalTranscript: () => undefined };
   const { getPaceMatcher, clearPaceMatcher } =
     await import('../../speech/output-control/pace-matching.js');
   const paceWords: string[] = [];
@@ -121,7 +122,8 @@ export async function installToolRetrieval(
     void dynamicToolLoader
       .loadAllDomains()
       .then(async (domains) => {
-        const { updateAgentTools, applyAfterReplyStarts } = await import('../shared/tool-updater.js');
+        const { updateAgentTools, applyAfterReplyStarts } =
+          await import('../shared/tool-updater.js');
         const tools = dynamicToolLoader.getCurrentTools();
         log.info(
           { sessionId, domains, tools: Object.keys(tools).length, ms: Date.now() - catalogStarted },

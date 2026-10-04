@@ -138,6 +138,33 @@ describe('Auth Middleware', () => {
       expect(auth?.isDevMode).toBe(true);
     });
 
+    it.each([['staging'], ['test'], [undefined]])(
+      'rejects the dev-mode admin key when NODE_ENV is %s (only development allows it)',
+      async (nodeEnv) => {
+        if (nodeEnv === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = nodeEnv;
+        vi.resetModules();
+        const { authenticate } = await import('../api/auth-middleware.js');
+        const req = createMockRequest({
+          headers: { 'x-admin-key': 'dev-mode', 'x-user-id': 'victim' },
+        });
+
+        expect(authenticate(req)).toBeNull();
+      }
+    );
+
+    it('never takes the user id from X-User-Id for a non-admin API key', async () => {
+      const { authenticate } = await import('../api/auth-middleware.js');
+      const req = createMockRequest({
+        headers: { 'x-api-key': 'test-api-key-1', 'x-user-id': 'victim' },
+      });
+
+      const auth = authenticate(req);
+
+      expect(auth?.authMethod).toBe('api_key');
+      expect(auth?.userId).toBe('api-user');
+    });
+
     it('should reject X-Admin-Key in production mode', async () => {
       process.env.NODE_ENV = 'production';
       vi.resetModules();
