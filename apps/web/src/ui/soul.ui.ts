@@ -119,7 +119,7 @@ function setupEventListeners(): void {
   });
 
   // Milestone achievements - celebrate!
-  window.addEventListener('ferni:milestone', () => {
+  document.addEventListener('ferni:milestone', () => {
     void celebrationBurst();
   });
 
@@ -129,7 +129,7 @@ function setupEventListeners(): void {
   });
 
   // Team unlock
-  window.addEventListener('ferni:team-unlock', () => {
+  document.addEventListener('ferni:team-unlock', () => {
     void celebrationBurst();
   });
 

@@ -567,10 +567,6 @@ function initHapticFeedback(): void {
     }
   }) as EventListener);
 
-  // Also listen for general speaking events
-  window.addEventListener('ferni:speaking-start', () => startHeartbeat());
-  window.addEventListener('ferni:speaking-end', () => stopHeartbeat());
-
   log.debug('Haptic feedback initialized');
 }
 

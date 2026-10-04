@@ -570,10 +570,10 @@ function setupEventListeners(): void {
   }) as EventListener);
 
   // Track transcript for sweet moments
-  window.addEventListener('ferni:transcript-update', ((e: CustomEvent) => {
-    const transcript = e.detail?.transcript;
-    if (transcript) {
-      analyzeTranscript(transcript);
+  window.addEventListener('ferni:transcript', ((e: CustomEvent) => {
+    const { type, text, isFinal } = e.detail ?? {};
+    if (type === 'user' && isFinal && typeof text === 'string' && text) {
+      analyzeTranscript(text);
     }
   }) as EventListener);
 

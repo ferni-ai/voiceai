@@ -327,7 +327,7 @@ function showUpgradeSuccessCelebration(tier: string): void {
         <h2 id="celebration-title" class="subscription-title">${t('subscription.youreOneOfUs')}</h2>
         <p id="celebration-message" class="celebration-message">
           You're not just supporting us — you're helping us build something we believe everyone deserves.<br/>
-          We're in this together. 💚
+          We're in this together.
         </p>
         <div class="celebration-tier" aria-label="${t('accessibility.yourNewPlan')}">
           <span class="tier-badge">${tierName}</span>
@@ -703,7 +703,7 @@ function createLimitModal(prompt: string, resetDate?: string): HTMLElement {
           <span>${t('subscription.becomeFoundingMember')}</span>
         </button>
         <button aria-label="${t('accessibility.next')}" class="limit-button limit-button--secondary" data-action="close">
-          See you next time 💚
+          See you next time
         </button>
       </div>
       
@@ -772,7 +772,7 @@ function createTierCard(tier: SubscriptionTier, index: number): string {
         aria-label="${isCurrentTier ? 'You are a Founder - thank you!' : isFree ? 'You are part of the community' : `Chip in ${priceText} as a ${tier.name}`}"
       >
         ${isLoading ? ICONS.loader : ''}
-        <span>${isCurrentTier ? "You're Here 💚" : isFree ? 'Free Forever' : t('subscription.chooseThis')}</span>
+        <span>${isCurrentTier ? t('subscription.currentPlan') : isFree ? t('subscription.freeForever') : t('subscription.chooseThis')}</span>
       </button>
     </article>
   `;

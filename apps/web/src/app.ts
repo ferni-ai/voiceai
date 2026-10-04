@@ -2226,8 +2226,6 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-team', () => {
       void showTeamIntro();
     });
-    this.addTrackedListener(window, 'ferni:open-music', () => void openMusicDashboard());
-    this.addTrackedListener(window, 'ferni:open-calendar', () => void openCalendarView());
     this.addTrackedListener(window, 'ferni:open-people', () => {
       void openYourPeople();
     });

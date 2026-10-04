@@ -501,7 +501,7 @@ export function initSeedsEconomy(): void {
   state = loadState();
 
   // Listen for conversation end events
-  document.addEventListener('ferni:conversation-end', () => {
+  window.addEventListener('ferni:conversation-end', () => {
     recordConversation();
   });
 
