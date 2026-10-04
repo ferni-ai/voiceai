@@ -55,17 +55,24 @@ function bearerFromProtocols(request: IncomingMessage): string | null {
   return null;
 }
 
+/** Who a verified upgrade belongs to. */
+export interface UpgradeCaller {
+  uid: string;
+  /** The Firebase custom claim `admin`, as auth-middleware reads it for HTTP. */
+  isAdmin: boolean;
+}
+
 /**
  * Verify the Firebase ID token on a WebSocket upgrade request.
- * Returns the verified uid, or null when there is no valid token. Never throws.
+ * Returns the verified caller, or null when there is no valid token. Never throws.
  */
-export async function verifyUpgradeIdentity(request: IncomingMessage): Promise<string | null> {
+export async function verifyUpgradeCaller(request: IncomingMessage): Promise<UpgradeCaller | null> {
   const token = bearerFromProtocols(request);
   if (!token) return null;
   try {
     const verified = await verifyFirebaseToken(token);
-    if (!verified || 'expired' in verified) return null;
-    return verified.uid || null;
+    if (!verified || 'expired' in verified || !verified.uid) return null;
+    return { uid: verified.uid, isAdmin: verified.claims?.admin === true };
   } catch (error) {
     // Verifier unavailable (e.g. Firebase not initialized in production).
     log.warn({ error: String(error) }, 'WebSocket token verification failed; rejecting');
@@ -73,10 +80,25 @@ export async function verifyUpgradeIdentity(request: IncomingMessage): Promise<s
   }
 }
 
-/** Refuse an upgrade that carries no verified identity. */
-export function rejectUpgrade(socket: Duplex): void {
+/**
+ * Verify the Firebase ID token on a WebSocket upgrade request.
+ * Returns the verified uid, or null when there is no valid token. Never throws.
+ */
+export async function verifyUpgradeIdentity(request: IncomingMessage): Promise<string | null> {
+  return (await verifyUpgradeCaller(request))?.uid ?? null;
+}
+
+const REFUSAL_REASONS = { 401: 'Unauthorized', 403: 'Forbidden' } as const;
+
+/**
+ * Refuse an upgrade: 401 when it carries no verified identity (the default),
+ * 403 when the identity is verified but not allowed on this socket.
+ */
+export function rejectUpgrade(socket: Duplex, status: 401 | 403 = 401): void {
   if (socket.writable) {
-    socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');
+    socket.write(
+      `HTTP/1.1 ${status} ${REFUSAL_REASONS[status]}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`
+    );
   }
   socket.destroy();
 }

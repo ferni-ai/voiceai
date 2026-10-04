@@ -242,8 +242,9 @@ import {
   getDemoEngagementData,
   getDemoPredictions,
 } from './services/engagement-demo-data.js';
+import { scoredStreak } from './services/prediction-data.js';
 // Environment detection
-import { apiGet, apiPost } from './utils/api.js';
+import { getApiHeadersAsync } from './utils/api.js';
 import { shouldUseDemoData } from './utils/environment.js';
 
 // New Feature UIs (v2)
@@ -278,7 +279,7 @@ import { watchPushOwnership } from './services/push-preference.js';
 // Calendar Analytics UI - Insights dashboard
 // Calendar analytics is now integrated into calendar-view.ui.ts
 // LinkedIn connection for career awareness (used as fallback)
-import { handleLinkedInCallback } from './services/linkedin.service.js';
+import { handleOAuthReturns } from './app/oauth-return.js';
 import { createIntegrationsCallbacks } from './app/integrations-callbacks.js';
 // Voice Enrollment UI
 import { initVoiceEnrollmentUI, showVoiceEnrollmentModal } from './ui/voice-enrollment.ui.js';
@@ -1684,44 +1685,14 @@ class VoiceAIApp {
       initializeEngagementUI();
       initializeInsightsView();
       initializePredictionsUI();
-      // Wire up prediction resolution callback
-      getPredictionsUI().setOnResolutionSubmit(async (predictionId, actualValue) => {
-        try {
-          // TODO: Backend POST /api/predictions/:id/actuals and GET /api/predictions not implemented yet.
-          const postResponse = await apiPost(`/api/predictions/${predictionId}/actuals`, {
-            actuals: { result: actualValue },
-          });
-          if (!postResponse.ok) throw new Error('Failed to save');
-
-          // Refresh predictions data using apiGet
-          const refreshResponse = await apiGet<{
-            predictions: Record<string, unknown>[];
-            stats?: { averageAccuracy?: number };
-          }>('/api/predictions');
-          if (refreshResponse.ok && refreshResponse.data) {
-            const predictions = refreshResponse.data.predictions || [];
-            getPredictionsUI().update({
-              predictions: predictions.map((p: Record<string, unknown>) => ({
-                id: p.id as string,
-                category: 'overall',
-                question: `Week of ${p.weekOf}`,
-                userPrediction: 50,
-                actualOutcome: p.accuracy as number | undefined,
-                status: p.completedAt ? ('resolved' as const) : ('pending' as const),
-                createdAt: p.createdAt as string,
-              })),
-              accuracy: refreshResponse.data.stats?.averageAccuracy || null,
-              totalResolved: predictions.filter((p: Record<string, unknown>) => p.completedAt)
-                .length,
-              currentStreak: 0,
-            });
-          }
-
-          messageUI.show('Result recorded! Nice work tracking your predictions.', 'success', 3000);
-        } catch (err) {
-          log.error('Failed to save prediction result', err);
-          throw err;
-        }
+      // Resolution: the modal shows the server's comparison; the refresh
+      // redraws the panel through engagementService's onPredictionsUpdate.
+      getPredictionsUI().setOnResolutionSubmit(async (predictionId, actuals) => {
+        const { submitPredictionActuals } =
+          await import('./services/prediction-actuals.service.js');
+        const score = await submitPredictionActuals(predictionId, actuals);
+        void engagementService.refreshPredictions();
+        return score;
       });
     });
     this.safeInit('EngagementTriggerUI', () =>
@@ -2169,26 +2140,6 @@ class VoiceAIApp {
         this.selectPersona(personaId as PersonaId);
       }
     }) as EventListener);
-    // 🎙️ Group Conversations - imported UI opens team roundtable or adds participant
-    this.addTrackedListener(window, 'ferni:start-roundtable', ((e: CustomEvent) => {
-      // Import dynamically to avoid circular deps
-      void import('./ui/group-conversation.ui.js').then((m) => {
-        void m.showTeamSelector(e.detail?.preselected);
-      });
-    }) as EventListener);
-    this.addTrackedListener(window, 'ferni:add-call-participant', () => {
-      void import('./ui/group-conversation.ui.js').then((m) => {
-        void m.showAddParticipant({
-          onAdd: (phoneNumber, name, relationship) => {
-            log.info({ phoneNumber, name, relationship }, 'Adding participant to call');
-            // TODO: Implement actual participant addition via connection service
-          },
-          onCancel: () => {
-            log.debug('Add participant cancelled');
-          },
-        });
-      });
-    });
 
     // 🌱 Handle garden payment result routes (Stripe redirects here)
     const gardenPathname = window.location.pathname;
@@ -2248,8 +2199,8 @@ class VoiceAIApp {
       }, 500);
     }
 
-    // 💼 Handle LinkedIn OAuth callback
-    handleLinkedInCallback();
+    // 💼 LinkedIn and wearable OAuth returns
+    handleOAuthReturns();
 
     // 📊 Dev Panel modal event listeners
     this.addTrackedListener(window, 'ferni:open-analytics', () => {
@@ -2730,9 +2681,8 @@ class VoiceAIApp {
    * Called after each conversation ends.
    */
   private async recordConversationUsage(sessionStart: number | null): Promise<void> {
-    const deviceId = appState.get('deviceId');
-    // Server contract: { userId, durationMinutes } (subscription-routes recordConversationUsage)
-    const body = buildConversationUsageBody(deviceId, sessionStart);
+    // Server contract: { durationMinutes } for the Bearer-token user (subscription-routes)
+    const body = buildConversationUsageBody(sessionStart);
     if (!body) return;
 
     // 🤝 Process any pending referral on first/early conversation
@@ -2752,7 +2702,7 @@ class VoiceAIApp {
     try {
       const response = await fetch('/usage/conversation', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getApiHeadersAsync(), // not under /api/, so the fetch hook adds no token
         body: JSON.stringify(body),
       });
 
@@ -3324,29 +3274,12 @@ class VoiceAIApp {
         const readyCount = predictions.filter((p) => p.status === 'resolved').length;
         engagementTriggerUI.updateBadges({ predictionsReady: readyCount > 0 ? readyCount : 0 });
 
-        // Update predictions panel
-        // Calculate prediction streak: consecutive accurate predictions (within 15% of actual)
-        const resolved = predictions
-          .filter((p) => p.status === 'resolved' && p.actualOutcome !== undefined)
-          .sort(
-            (a, b) => new Date(b.resolvedAt || 0).getTime() - new Date(a.resolvedAt || 0).getTime()
-          );
-
-        let predictionStreak = 0;
-        for (const p of resolved) {
-          const error = Math.abs(p.userPrediction - (p.actualOutcome ?? 0));
-          if (error <= 15) {
-            predictionStreak++;
-          } else {
-            break; // Streak broken
-          }
-        }
-
+        // Accuracy and streak come from the server's scores, not the raw numbers.
         getPredictionsUI().update({
           predictions,
           accuracy: engagementService.calculateAccuracy(),
           totalResolved: predictions.filter((p) => p.status === 'resolved').length,
-          currentStreak: predictionStreak,
+          currentStreak: scoredStreak(predictions),
         });
       },
 

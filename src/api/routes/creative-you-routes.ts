@@ -38,6 +38,7 @@ import {
 } from '../../services/creative-you/creative-dna.js';
 import { loadCreativeDNAView } from '../../services/creative-you/creative-dna-view.js';
 import { requireAuth } from '../auth-middleware.js';
+import { resolveActingUser } from '../acting-user.js';
 import {
   getIntelligentRecommendations,
   generateLearningTrackForUser,
@@ -170,7 +171,9 @@ export async function handleCreativeYouRoutes(
     // POST /api/creative/watch/start
     if (pathname === '/api/creative/watch/start' && method === 'POST') {
       const body = await parseBody<{ userId?: string; videoId?: string }>(req);
-      const userId = body.userId;
+      // Writes act on the verified caller; naming anyone else is a 403 (acting-user.ts).
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
       const videoId = body.videoId;
 
       if (!userId || !videoId) {
@@ -195,7 +198,8 @@ export async function handleCreativeYouRoutes(
     // POST /api/creative/watch/complete
     if (pathname === '/api/creative/watch/complete' && method === 'POST') {
       const body = await parseBody<{ userId?: string; sessionId?: string }>(req);
-      const userId = body.userId;
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
       const sessionId = body.sessionId;
 
       if (!userId || !sessionId) {
@@ -455,7 +459,8 @@ export async function handleCreativeYouRoutes(
     // POST /api/creative/intelligent/track - Generate personalized learning track
     if (pathname === '/api/creative/intelligent/track' && method === 'POST') {
       const body = await parseBody<{ userId?: string; topics?: string[] }>(req);
-      const userId = body.userId;
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
       const topics = body.topics || [];
 
       if (!userId || topics.length === 0) {
@@ -564,7 +569,8 @@ export async function handleCreativeYouRoutes(
         source?: InsightSource;
         tags?: string[];
       }>(req);
-      const userId = body.userId;
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
       const content = body.content;
       const source = body.source;
       const tags = body.tags || [];
@@ -575,12 +581,7 @@ export async function handleCreativeYouRoutes(
         return true;
       }
 
-      const insight = saveInsight(userId, {
-        userId,
-        content,
-        source,
-        tags,
-      });
+      const insight = saveInsight(userId, { userId, content, source, tags });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ insight }));

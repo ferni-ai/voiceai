@@ -10,6 +10,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
+import { resolveActingUser } from '../acting-user.js';
 import {
   getAvailableContent,
   getAvailableFeatures,
@@ -225,13 +226,9 @@ async function handleUpdatePreferences(
   res: ServerResponse
 ): Promise<boolean> {
   const body = await parseBody(req);
-  const userId = body.userId as string | undefined;
-  const { userId: _, ...updates } = body;
-
-  if (!userId) {
-    sendJSON(res, 400, { error: 'userId required' });
-    return true;
-  }
+  const { userId: named, ...updates } = body;
+  const userId = await resolveActingUser(req, res, named);
+  if (!userId) return true; // 401/403 sent
 
   const preferences = updateUserPreferences(userId, updates);
 
@@ -241,7 +238,8 @@ async function handleUpdatePreferences(
 
 async function handleRecordEngagement(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const body = await parseBody(req);
-  const userId = body.userId as string | undefined;
+  const userId = await resolveActingUser(req, res, body.userId);
+  if (!userId) return true; // 401/403 sent
   const contentId = body.contentId as string | undefined;
   const contentType = body.contentType as string | undefined;
   const watchedPercentage = body.watchedPercentage as number | undefined;
@@ -286,7 +284,8 @@ async function handleGetOurSongs(
 
 async function handleAddOurSong(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const body = await parseBody(req);
-  const userId = body.userId as string | undefined;
+  const userId = await resolveActingUser(req, res, body.userId);
+  if (!userId) return true; // 401/403 sent
   const trackName = body.trackName as string | undefined;
   const artistName = body.artistName as string | undefined;
   const topic = body.topic as string | undefined;
@@ -330,7 +329,8 @@ async function handleAddOurSong(req: IncomingMessage, res: ServerResponse): Prom
 
 async function handleDesignateOurSong(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const body = await parseBody(req);
-  const userId = body.userId as string | undefined;
+  const userId = await resolveActingUser(req, res, body.userId);
+  if (!userId) return true; // 401/403 sent
   const trackName = body.trackName as string | undefined;
   const artistName = body.artistName as string | undefined;
   const userNote = body.userNote as string | undefined;
@@ -446,7 +446,8 @@ async function handleGetOurSongCard(
 
 async function handleRecordSongPlayed(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const body = await parseBody(req);
-  const userId = body.userId as string | undefined;
+  const userId = await resolveActingUser(req, res, body.userId);
+  if (!userId) return true; // 401/403 sent
   const songId = body.songId as string | undefined;
 
   if (!userId || !songId) {

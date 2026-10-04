@@ -6,9 +6,13 @@
  * into the real server handlers (POST /usage/conversation, POST /api/conversations).
  */
 
-/** Body for POST /usage/conversation (server: subscription-routes recordConversationUsage). */
+/**
+ * Body for POST /usage/conversation (server: subscription-routes recordConversationUsage).
+ * No userId: the server bills the signed-in user from the Bearer token, and refuses
+ * a body that names anyone else. (It used to carry the local deviceId, which is
+ * not the account id.)
+ */
 export interface ConversationUsageBody {
-  userId: string;
   durationMinutes: number;
 }
 
@@ -18,13 +22,12 @@ export interface ConversationUsageBody {
  * A call that did start counts as at least one minute.
  */
 export function buildConversationUsageBody(
-  userId: string,
   startTime: number | null,
   now: number = Date.now()
 ): ConversationUsageBody | null {
-  if (!userId || !startTime) return null;
+  if (!startTime) return null;
   const durationMinutes = Math.max(1, Math.round((now - startTime) / 60000));
-  return { userId, durationMinutes };
+  return { durationMinutes };
 }
 
 /** The tracker's session shape that the history payload is built from. */
