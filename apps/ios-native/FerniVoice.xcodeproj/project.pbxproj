@@ -64,6 +64,7 @@
 		C3B0D026C4877C0FB9EEA0CA /* MockNetworking.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD6152E7829F8B3FC1535EEB /* MockNetworking.swift */; };
 		C4909C595E333E8852DDFD7B /* SessionWindowAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187E97C616ED5CF9BB291723 /* SessionWindowAvatar.swift */; };
 		D0DE478E4FA67CA03902966A /* HandoffProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 981DBC4242D7E38D88F4C69B /* HandoffProtocolTests.swift */; };
+		B2D0FEED0000000000000101 /* TeamUnlockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D0FEED0000000000000001 /* TeamUnlockTests.swift */; };
 		A1C0FFEE0000000000000003 /* SubscriptionAccountTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000000004 /* SubscriptionAccountTokenTests.swift */; };
 		D3C80696A4CDAD54CE9C0511 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32CEA5A26D2CF03C1DD0290C /* Assets.xcassets */; };
 		DABDAEFC261D7A2DF63FBD6D /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCC596556B7D8A8EC66681E8 /* Typography.swift */; };
@@ -186,6 +187,7 @@
 		93C4316F970663A7E610C95D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		981DBC4242D7E38D88F4C69B /* HandoffProtocolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandoffProtocolTests.swift; sourceTree = "<group>"; };
 		A1C0FFEE0000000000000004 /* SubscriptionAccountTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionAccountTokenTests.swift; sourceTree = "<group>"; };
+		B2D0FEED0000000000000001 /* TeamUnlockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamUnlockTests.swift; sourceTree = "<group>"; };
 		98E497A52D1874327EA2C4E8 /* FerniWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchApp.swift; sourceTree = "<group>"; };
 		9DE0DC542CA35F9D7A6EB679 /* client-sdk-swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "client-sdk-swift"; path = "../../vendor/client-sdk-swift"; sourceTree = SOURCE_ROOT; };
 		A621A2880FBC7F0E4BAE7443 /* E2EIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = E2EIntegrationTests.swift; sourceTree = "<group>"; };
@@ -443,6 +445,7 @@
 				057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */,
 				981DBC4242D7E38D88F4C69B /* HandoffProtocolTests.swift */,
 				A1C0FFEE0000000000000004 /* SubscriptionAccountTokenTests.swift */,
+				B2D0FEED0000000000000001 /* TeamUnlockTests.swift */,
 				9959BC2455D3EF9C77443775 /* TestHelpers */,
 			);
 			path = FerniVoiceiOSTests;
@@ -749,6 +752,7 @@
 				505ECFBDBD6E34C6DF676016 /* FerniVoiceiOSTests.swift in Sources */,
 				D0DE478E4FA67CA03902966A /* HandoffProtocolTests.swift in Sources */,
 				A1C0FFEE0000000000000003 /* SubscriptionAccountTokenTests.swift in Sources */,
+				B2D0FEED0000000000000101 /* TeamUnlockTests.swift in Sources */,
 				5C05BE8159C8AD8A815C7B68 /* MockDataChannel.swift in Sources */,
 				C3B0D026C4877C0FB9EEA0CA /* MockNetworking.swift in Sources */,
 			);
