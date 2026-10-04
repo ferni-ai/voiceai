@@ -8,7 +8,7 @@
  * @module api/group-conversation-routes
  */
 
-import { Router, type Request, type Response } from 'express';
+import { Router, json, urlencoded, type Request, type Response } from 'express';
 import { isCoach } from '../personas/persona-ids.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
@@ -22,6 +22,23 @@ import { generateAnswerTwiml } from '../agents/group-conversation/conference-cal
 
 const log = getLogger();
 const router = Router();
+
+// Bodies are parsed only under the paths this router answers: a /api/group
+// request it doesn't answer goes on to later raw handlers, which read the
+// stream themselves and must find it unread.
+const OWN_BODY_PATHS = ['/roundtable', '/call'];
+router.use(OWN_BODY_PATHS, json({ limit: '100kb' }), urlencoded({ extended: false }));
+
+// A body may name the caller (or nobody); naming anyone else is refused, not swapped.
+router.use(OWN_BODY_PATHS, (req: Request, res: Response, next: () => void) => {
+  const claimed: unknown = (req.body as { userId?: unknown } | undefined)?.userId;
+  const caller = getUserId(req);
+  if (caller && claimed !== undefined && claimed !== caller) {
+    res.status(403).json({ success: false, error: 'Not authorized' });
+    return;
+  }
+  next();
+});
 
 // ============================================================================
 // TYPES
@@ -56,18 +73,15 @@ interface GroupSessionRecord {
 // ============================================================================
 
 /**
- * Extract user ID from request (auth middleware should have set this)
- * SECURITY: Prioritizes Firebase auth (x-firebase-uid) over deprecated x-user-id
+ * The verified caller. bindVerifiedIdentity (servers/api/request-identity.ts)
+ * sets x-firebase-uid from a verified token and rewrites ?userId= to it (an
+ * admin keeps the user they name there). A body userId is only a claim.
  */
 function getUserId(req: Request): string | null {
-  // Check various auth patterns - prioritize Firebase auth
-  const userId =
-    (req as { userId?: string }).userId ||
-    (req.headers['x-firebase-uid'] as string) ||
-    (req.query.userId as string) ||
-    (req.body?.userId as string);
-
-  return userId ?? null;
+  const uid = req.headers['x-firebase-uid'];
+  if (typeof uid === 'string' && uid) return uid;
+  const fromQuery = req.query.userId;
+  return typeof fromQuery === 'string' && fromQuery ? fromQuery : null;
 }
 
 // ============================================================================
@@ -131,16 +145,9 @@ router.post('/roundtable/start', async (req: Request, res: Response) => {
       startedAt: new Date().toISOString(),
     };
 
-    // Save to Firestore
     const db = getFirestoreDb();
-    if (db) {
-      await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('group_sessions')
-        .doc(sessionId)
-        .set(cleanForFirestore(session));
-    }
+    if (!db) return res.status(503).json({ success: false, error: STORAGE_UNAVAILABLE });
+    await sessionsOf(db, userId).doc(sessionId).set(cleanForFirestore(session));
 
     log.info({ userId, sessionId, personas, topic }, '🎭 Team roundtable started');
 
@@ -171,21 +178,13 @@ router.post('/roundtable/end', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Session ID required' });
     }
 
-    // Update session in Firestore
     const db = getFirestoreDb();
-    if (db) {
-      await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('group_sessions')
-        .doc(sessionId)
-        .update(
-          cleanForFirestore({
-            status: 'ended',
-            endedAt: new Date().toISOString(),
-          })
-        );
+    if (!db) return res.status(503).json({ success: false, error: STORAGE_UNAVAILABLE });
+    const doc = sessionsOf(db, userId).doc(String(sessionId));
+    if (!(await doc.get()).exists) {
+      return res.status(404).json({ success: false, error: 'Session not found' });
     }
+    await doc.update(cleanForFirestore({ status: 'ended', endedAt: new Date().toISOString() }));
 
     log.info({ userId, sessionId }, '🎭 Team roundtable ended');
 
@@ -446,6 +445,16 @@ router.get('/sessions/:sessionId/transcript', async (req: Request, res: Response
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+const STORAGE_UNAVAILABLE = "Couldn't save that right now. Try again?";
+
+/** The caller's own roundtable records. */
+function sessionsOf(
+  db: FirebaseFirestore.Firestore,
+  userId: string
+): FirebaseFirestore.CollectionReference {
+  return db.collection('bogle_users').doc(userId).collection('group_sessions');
+}
 
 function getPersonaName(personaId: string): string {
   const names: Record<string, string> = {
