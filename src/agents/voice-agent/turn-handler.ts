@@ -23,6 +23,7 @@ import { getGracefulErrorResponse } from '../../intelligence/conversation-qualit
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { buildCrisisGuidance } from '../safety/crisis-guard.js';
 import type { SessionServices } from '../../services/index.js';
 import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
 import type { SessionStateManager } from '../session/session-state.js';
@@ -1368,18 +1369,7 @@ ${result.crisis.suggestedResponse}`,
 
       result.context.injections.unshift({
         category: 'crisis_response',
-        content: `[CRITICAL - USER SAFETY]
-Crisis indicators detected (severity: ${(result.crisis.severity * 100).toFixed(0)}%).
-Indicators: ${result.crisis.indicators.join(', ')}
-
-Your response MUST:
-1. Acknowledge their pain with genuine empathy
-2. Create space for them to share (without pressure)
-3. Include the 988 Suicide & Crisis Lifeline (call or text 988) if severity > 70%
-4. NEVER be dismissive or use platitudes like "it'll be okay"
-5. NEVER minimize their feelings
-
-You are their lifeline right now. Be fully present.`,
+        content: buildCrisisGuidance(result.crisis),
         priority: 100,
       });
     }
