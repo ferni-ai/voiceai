@@ -24,8 +24,7 @@
 export {};
 
 // Refuse to touch production data from a non-production process (no emulator, no opt-in).
-await import('dotenv/config');
-await import('./config/refuse-production-data.js');
+await import('./config/refuse-production-data.js'); // loads dotenv, then the guard
 
 // GCE-optimized worker with clean architecture
 await import('./agents/gce-voice-worker.js');
