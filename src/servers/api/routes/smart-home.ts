@@ -15,6 +15,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { createManagedInterval, type ManagedInterval } from '../../../utils/managed-interval.js';
+import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
 const log = createLogger({ module: 'smart-home-routes' });
 
@@ -61,22 +62,6 @@ interface HomeKitConfig {
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function getUserId(req: IncomingMessage): string | null {
-  // Check Authorization header
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.slice(7);
-  }
-
-  // Check X-User-ID header
-  const userIdHeader = req.headers['x-user-id'];
-  if (userIdHeader && typeof userIdHeader === 'string') {
-    return userIdHeader;
-  }
-
-  return null;
-}
 
 function getQueryParam(url: URL, key: string): string | null {
   return url.searchParams.get(key);

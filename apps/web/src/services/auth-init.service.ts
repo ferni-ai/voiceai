@@ -19,8 +19,10 @@
 import { STORAGE_KEYS } from '../config/index.js';
 import { getDeviceId, updateAuthState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
+import { installApiAuthFetch } from './api-auth-fetch.js';
 import {
   getAuthState,
+  getAuthToken,
   initAuth,
   onAuthStateChange,
   type AuthState,
@@ -131,6 +133,9 @@ export async function initializeAuth(): Promise<AuthState> {
 
   initPromise = (async () => {
     log.info('Initializing authentication');
+
+    // The API trusts only verified identity, so every /api call carries the token.
+    installApiAuthFetch(window, getAuthToken);
 
     // Initialize Firebase Auth
     const authState = await initAuth();

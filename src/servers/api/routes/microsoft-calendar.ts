@@ -9,6 +9,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createOAuthStateManager } from '../../../utils/ddos-protection.js';
 import { outlookCalendarProvider } from '../../../services/calendar/providers/outlook-provider.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { getVerifiedUserId } from '../request-identity.js';
 
 const log = createLogger({ module: 'MicrosoftCalendarRoutes' });
 
@@ -136,11 +137,11 @@ export async function handleMicrosoftCalendarRoutes(
 
   // Check Microsoft Calendar link status
   if (pathname === '/auth/microsoft/status') {
-    const userId = parsedUrl.searchParams.get('user_id');
+    const userId = getVerifiedUserId(req);
 
     if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required' }));
       return true;
     }
 
@@ -162,11 +163,11 @@ export async function handleMicrosoftCalendarRoutes(
 
   // Unlink Microsoft Calendar for a user
   if (pathname === '/auth/microsoft/unlink') {
-    const userId = parsedUrl.searchParams.get('user_id');
+    const userId = getVerifiedUserId(req);
 
     if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required' }));
       return true;
     }
 

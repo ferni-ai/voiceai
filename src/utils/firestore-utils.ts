@@ -242,6 +242,40 @@ function isPlainObject(value: object): boolean {
 }
 
 /**
+ * Make a string safe to use as a single Firestore document ID path segment.
+ *
+ * Firestore document IDs:
+ *  - must not contain a forward slash (it is the path separator — a name
+ *    like `doc(id)` built from free text that happens to contain "/" fails
+ *    with "Value for argument ... must point to a document, but was ...
+ *    Your path does not contain an even number of components.")
+ *  - must not be exactly "." or ".."
+ *  - must not be empty
+ *  - must be at most 1500 bytes (UTF-8)
+ *
+ * Free text used to build ids — an extracted fact's key, an entity name, a
+ * quoted phrase — can violate all of these. This maps any input to a safe
+ * id deterministically (the same input always produces the same output),
+ * so callers that read an id back or dedupe on it don't need a lookup
+ * table.
+ */
+export function sanitizeFirestoreDocId(input: string): string {
+  const MAX_BYTES = 1400; // comfortably under Firestore's 1500-byte limit
+  let safe = (input ?? '').replace(/\//g, '-').trim();
+
+  if (safe === '.' || safe === '..') {
+    safe = safe.replace(/\./g, '_dot_');
+  }
+  if (safe.length === 0) {
+    safe = '_';
+  }
+  if (Buffer.byteLength(safe, 'utf8') > MAX_BYTES) {
+    safe = Buffer.from(safe, 'utf8').subarray(0, MAX_BYTES).toString('utf8');
+  }
+  return safe;
+}
+
+/**
  * Clean an object for Firestore by:
  * 1. Removing undefined values
  * 2. Converting Date objects to ISO strings
