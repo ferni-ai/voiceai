@@ -84,6 +84,7 @@ import {
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
+import { buildEmergencyToolset } from './emergency-toolset.js';
 import { interruptionOverrides } from './interruption-config.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
@@ -794,45 +795,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
       );
 
       // Return emergency toolset - better than nothing!
-      return getEmergencyToolset(persona.id);
+      return buildEmergencyToolset(persona.id);
     }
-  };
-
-  // 🚨 EMERGENCY TOOLSET: Absolute last resort when all tool loading fails
-  // These are minimal handoff tools defined inline to guarantee availability
-  const getEmergencyToolset = (currentPersonaId: string): Record<string, unknown> => {
-    const personas = ['ferni', 'maya', 'peter-john', 'jordan', 'alex', 'nayan'];
-    const tools: Record<string, unknown> = {};
-
-    for (const targetId of personas) {
-      if (targetId === currentPersonaId) continue;
-
-      const toolName = `handoffTo${targetId.charAt(0).toUpperCase() + targetId.slice(1).replace('-', '')}`;
-      tools[toolName] = {
-        name: toolName,
-        description: `Transfer the conversation to ${targetId}`,
-        parameters: {
-          type: 'object',
-          properties: {
-            reason: { type: 'string', description: 'Why transferring' },
-          },
-        },
-      };
-    }
-
-    // Add endCall tool
-    tools.endCall = {
-      name: 'endCall',
-      description: 'End the conversation when the user wants to go',
-      parameters: { type: 'object', properties: {} },
-    };
-
-    log.warn(
-      { personaId: currentPersonaId, emergencyToolCount: Object.keys(tools).length },
-      '🚨 EMERGENCY TOOLS ACTIVE - Only handoffs + endCall available!'
-    );
-
-    return tools;
   };
 
   const loadToolsInner = async (): Promise<Record<string, unknown>> => {
