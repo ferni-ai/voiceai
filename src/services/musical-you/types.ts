@@ -306,18 +306,17 @@ export interface MusicChallenge {
   challengerName: string;
   challengerScore: number;
   challengerTime?: number;
-
   challengeeId: string;
   challengeeName?: string;
   challengeeScore?: number;
   challengeeTime?: number;
-
   status: 'pending' | 'accepted' | 'completed' | 'declined' | 'expired';
   winnerId?: string;
-
+  completedBy?: string; // who completed it (the challengee, or an admin for them)
+  declinedBy?: string;
   createdAt: Date;
   expiresAt: Date;
-  completedAt?: Date;
+  completedAt?: Date; // completed or declined
 }
 
 export interface Leaderboard {

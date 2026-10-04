@@ -20,26 +20,17 @@ import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendJSON } from './helpers.js';
+import { handleTrustDashboardRoute } from './trust-dashboard-routes.js';
 
 // Trust Systems imports
 import {
   addPersonalDate,
   // Phase 26: Seasonal
   buildSeasonalContext,
-  calculateHealthScore,
-  detectLifeEvents,
-  exportTimelineData,
   generateCelebrations,
   generateDeliveryGuidance,
   generateFollowUpMessage,
-  // Phase 29: Media Suggestions
-  generateMediaSuggestions,
-  // Phase 25: Journaling
-  generatePrompts,
   generateReminderMessage,
-  // Phase 28: Insights Reports
-  generateReport,
-  generateSituationalPrompt,
   // Phase 13: Conversation Starters
   generateStarters,
   // Phase 15: Response Tuning
@@ -51,34 +42,21 @@ import {
   getBestPrompt,
   getBestStarter,
   getBestSuggestion,
-  getCurrentMoodContext,
   getEventsNeedingReminders,
-  // Phase 12: Relationship Health
-  getHealthScore,
-  getInsightfulPatterns,
   getJournalingPatterns,
-  getLatestReport,
   // Phase 27: Learning Style
   getLearningProfile,
   getMediaPreferences,
   // Phase 16: Celebration Momentum
   getMomentumProfile,
   getMomentumSummary,
-  getRecentPeaksValleys,
-  getReportHistory,
   getSeasonalProfile,
-  getStageDescription,
-  getStageName,
   getStyleSummary,
   getSuggestionsForMood,
-  // Phase 17: Sentiment Timeline
-  getTimeline,
   // Phase 14: Life Events
   getUpcomingEvents,
-  isReportDue,
   recordEventOutcome,
   recordSuggestionFeedback,
-  saveEvent,
   updateHolidayPreference,
 } from '../services/trust-systems/index.js';
 
@@ -140,6 +118,9 @@ export async function handleTrustSystemsRoutes(
   const validUserId = auth.userId;
 
   try {
+    // The dashboard's six reads come from what the voice agent persisted.
+    if (await handleTrustDashboardRoute(pathname, method, validUserId, query, res)) return true;
+
     // ========================================================================
     // ANALYTICS METRICS (Admin - no userId required)
     // ========================================================================
@@ -205,60 +186,8 @@ export async function handleTrustSystemsRoutes(
     }
 
     // ========================================================================
-    // RELATIONSHIP HEALTH (Phase 12)
-    // ========================================================================
-
-    if (pathname === '/api/trust/health' && method === 'GET') {
-      const health = getHealthScore(validUserId);
-      if (!health) {
-        sendJson(res, 200, { score: null, message: 'No health data yet' });
-        return true;
-      }
-      sendJson(res, 200, {
-        score: health.overallScore,
-        stage: health.stage,
-        stageName: getStageName(health.stage),
-        stageDescription: getStageDescription(health.stage),
-        trend: health.overallTrend,
-        factors: health.factors,
-        alerts: health.alerts.filter((a) => !a.acknowledged),
-      });
-      return true;
-    }
-
-    // ========================================================================
     // LIFE EVENTS (Phase 14)
     // ========================================================================
-
-    if (pathname === '/api/trust/life-events' && method === 'GET') {
-      const events = getUpcomingEvents(validUserId);
-      sendJson(res, 200, events);
-      return true;
-    }
-
-    if (pathname === '/api/trust/life-events' && method === 'POST') {
-      const body = await parseBody<Record<string, unknown>>(req);
-      const detections = detectLifeEvents(validUserId, body.text as string);
-
-      for (const detection of detections) {
-        if (detection.detected && detection.event && detection.confidence > 0.5) {
-          saveEvent({
-            ...detection.event,
-            userId: validUserId,
-            id: `event-${Date.now()}`,
-            date: new Date(detection.event.date as Date),
-            type: detection.event.type || 'event',
-            importance: detection.event.importance || 'medium',
-            followUp: { beforeReminder: true, afterCheckIn: true },
-            tags: [],
-            context: { mentionedAt: new Date(), originalText: body.text as string },
-          } as Parameters<typeof saveEvent>[0]);
-        }
-      }
-
-      sendJson(res, 200, { detected: detections.length, events: detections });
-      return true;
-    }
 
     if (pathname === '/api/trust/life-events/reminders' && method === 'GET') {
       const reminders = getEventsNeedingReminders(validUserId);
@@ -290,53 +219,8 @@ export async function handleTrustSystemsRoutes(
     }
 
     // ========================================================================
-    // SENTIMENT TIMELINE (Phase 17)
-    // ========================================================================
-
-    if (pathname === '/api/trust/sentiment' && method === 'GET') {
-      const period = (query.get('period') as 'week' | 'month' | 'quarter') || 'month';
-      const timeline = getTimeline(validUserId);
-      const exported = exportTimelineData(validUserId, period);
-      const currentMood = getCurrentMoodContext(validUserId);
-      const peaks = getRecentPeaksValleys(validUserId);
-      const patterns = getInsightfulPatterns(validUserId);
-
-      sendJson(res, 200, {
-        currentMood,
-        peaks,
-        patterns,
-        timeline: exported,
-      });
-      return true;
-    }
-
-    // ========================================================================
     // JOURNALING (Phase 25)
     // ========================================================================
-
-    if (pathname === '/api/trust/journaling/prompts' && method === 'GET') {
-      const situation = query.get('situation') as
-        | 'morning_routine'
-        | 'evening_wind_down'
-        | 'processing_emotion'
-        | 'after_session'
-        | null;
-
-      if (situation) {
-        const prompt = generateSituationalPrompt(validUserId, situation);
-        sendJson(res, 200, { prompts: [prompt] });
-      } else {
-        const prompts = generatePrompts(
-          {
-            userId: validUserId,
-            timeOfDay: getTimeOfDay(),
-          },
-          3
-        );
-        sendJson(res, 200, { prompts });
-      }
-      return true;
-    }
 
     if (pathname === '/api/trust/journaling/patterns' && method === 'GET') {
       const patterns = getJournalingPatterns(validUserId);
@@ -391,45 +275,8 @@ export async function handleTrustSystemsRoutes(
     }
 
     // ========================================================================
-    // INSIGHTS REPORTS (Phase 28)
-    // ========================================================================
-
-    if (pathname === '/api/trust/insights' && method === 'GET') {
-      const period = (query.get('period') as 'week' | 'month' | 'quarter' | 'year') || 'month';
-      const latest = getLatestReport(validUserId, period);
-      const history = getReportHistory(validUserId);
-      const isDue = isReportDue(validUserId, period);
-
-      sendJson(res, 200, {
-        latest,
-        history: history.slice(-5),
-        isDue,
-      });
-      return true;
-    }
-
-    if (pathname === '/api/trust/insights/generate' && method === 'POST') {
-      const body = await parseBody<Record<string, unknown>>(req);
-      const period = (body.period as 'week' | 'month' | 'quarter' | 'year') || 'month';
-      const report = generateReport(validUserId, period);
-      sendJson(res, 201, report);
-      return true;
-    }
-
-    // ========================================================================
     // MEDIA SUGGESTIONS (Phase 29)
     // ========================================================================
-
-    if (pathname === '/api/trust/media/suggestions' && method === 'GET') {
-      const mood = query.get('mood') || 'neutral';
-      const suggestions = generateMediaSuggestions(validUserId, {
-        currentMood: mood,
-        moodIntensity: parseFloat(query.get('intensity') || '0.5'),
-        timeOfDay: getTimeOfDay(),
-      });
-      sendJson(res, 200, { suggestions });
-      return true;
-    }
 
     if (pathname === '/api/trust/media/best' && method === 'GET') {
       const mood = query.get('mood') || 'neutral';
@@ -542,39 +389,6 @@ export async function handleTrustSystemsRoutes(
 
       const message = generateFollowUpMessage(event);
       sendJson(res, 200, { message });
-      return true;
-    }
-
-    // ========================================================================
-    // HEALTH CALCULATION (Phase 12 - Extended)
-    // ========================================================================
-
-    if (pathname === '/api/trust/health/calculate' && method === 'POST') {
-      const body = await parseBody<Record<string, unknown>>(req);
-      const metrics = body.metrics as Record<string, number> | undefined;
-
-      // Calculate fresh health score with provided or default metrics
-      const health = calculateHealthScore(
-        validUserId,
-        metrics || {
-          boundaryRespect: 100,
-          emotionalAttunement: 50,
-          growthAcknowledgment: 50,
-          callbackSuccess: 50,
-          outreachReception: 50,
-          sessionDepth: 50,
-          consistency: 50,
-        }
-      );
-
-      sendJson(res, 200, {
-        score: health.overallScore,
-        stage: health.stage,
-        stageName: getStageName(health.stage),
-        stageDescription: getStageDescription(health.stage),
-        trend: health.overallTrend,
-        factors: health.factors,
-      });
       return true;
     }
 

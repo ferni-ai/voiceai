@@ -58,11 +58,13 @@
 		B8A057B12C22DFEC335D6D11 /* PersonaPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7209647670485E81A61C468 /* PersonaPickerSheet.swift */; };
 		B93B80BA369079B320F74101 /* ConnectingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C8E9F7817349C526B5FE3DC /* ConnectingView.swift */; };
 		BBC326381A4910D1163CD599 /* SubscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6969F36CB5C3BC8A19B81D38 /* SubscriptionService.swift */; };
+		A1C0FFEE0000000000000001 /* AppleAccountAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000000002 /* AppleAccountAPI.swift */; };
 		C340251A1D014037CC241AE5 /* MusicKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A87A7C7C965C1033A85462E9 /* MusicKitService.swift */; };
 		C3AA98D630D34C35BEAD3E35 /* SharedItemsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6C6980AD2DD079FCE318E81 /* SharedItemsService.swift */; };
 		C3B0D026C4877C0FB9EEA0CA /* MockNetworking.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD6152E7829F8B3FC1535EEB /* MockNetworking.swift */; };
 		C4909C595E333E8852DDFD7B /* SessionWindowAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187E97C616ED5CF9BB291723 /* SessionWindowAvatar.swift */; };
 		D0DE478E4FA67CA03902966A /* HandoffProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 981DBC4242D7E38D88F4C69B /* HandoffProtocolTests.swift */; };
+		A1C0FFEE0000000000000003 /* SubscriptionAccountTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000000004 /* SubscriptionAccountTokenTests.swift */; };
 		D3C80696A4CDAD54CE9C0511 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32CEA5A26D2CF03C1DD0290C /* Assets.xcassets */; };
 		DABDAEFC261D7A2DF63FBD6D /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCC596556B7D8A8EC66681E8 /* Typography.swift */; };
 		DCFABF9EE4A54F5003FD8FEF /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5A14EDF0CFC3A724B79B9969 /* GoogleService-Info.plist */; };
@@ -172,6 +174,7 @@
 		5F50555303ADF2940EFA244D /* FerniVoice.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FerniVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5FE38A50FB1F65540AB93C9A /* expressions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = expressions.json; sourceTree = "<group>"; };
 		6969F36CB5C3BC8A19B81D38 /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000000002 /* AppleAccountAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleAccountAPI.swift; sourceTree = "<group>"; };
 		73427B6F3CBC0A271A7D438C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		75739E78205CF9DE365E596F /* SiriShortcutsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiriShortcutsService.swift; sourceTree = "<group>"; };
 		76626BFFF99251B574EA46E0 /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
@@ -182,6 +185,7 @@
 		8D7222CEC31033F22CD392C9 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		93C4316F970663A7E610C95D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		981DBC4242D7E38D88F4C69B /* HandoffProtocolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandoffProtocolTests.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000000004 /* SubscriptionAccountTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionAccountTokenTests.swift; sourceTree = "<group>"; };
 		98E497A52D1874327EA2C4E8 /* FerniWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchApp.swift; sourceTree = "<group>"; };
 		A621A2880FBC7F0E4BAE7443 /* E2EIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = E2EIntegrationTests.swift; sourceTree = "<group>"; };
 		A7209647670485E81A61C468 /* PersonaPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaPickerSheet.swift; sourceTree = "<group>"; };
@@ -436,6 +440,7 @@
 				A621A2880FBC7F0E4BAE7443 /* E2EIntegrationTests.swift */,
 				057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */,
 				981DBC4242D7E38D88F4C69B /* HandoffProtocolTests.swift */,
+				A1C0FFEE0000000000000004 /* SubscriptionAccountTokenTests.swift */,
 				9959BC2455D3EF9C77443775 /* TestHelpers */,
 			);
 			path = FerniVoiceiOSTests;
@@ -494,6 +499,7 @@
 				B6C6980AD2DD079FCE318E81 /* SharedItemsService.swift */,
 				75739E78205CF9DE365E596F /* SiriShortcutsService.swift */,
 				6969F36CB5C3BC8A19B81D38 /* SubscriptionService.swift */,
+				A1C0FFEE0000000000000002 /* AppleAccountAPI.swift */,
 				55594305D2D8851704B9F42C /* TeamUnlockService.swift */,
 				DC10FE19043EFBE0C9F1FC86 /* WatchConnectivityService.swift */,
 			);
@@ -740,6 +746,7 @@
 				914A753EE576EC91DAD6C200 /* E2EIntegrationTests.swift in Sources */,
 				505ECFBDBD6E34C6DF676016 /* FerniVoiceiOSTests.swift in Sources */,
 				D0DE478E4FA67CA03902966A /* HandoffProtocolTests.swift in Sources */,
+				A1C0FFEE0000000000000003 /* SubscriptionAccountTokenTests.swift in Sources */,
 				5C05BE8159C8AD8A815C7B68 /* MockDataChannel.swift in Sources */,
 				C3B0D026C4877C0FB9EEA0CA /* MockNetworking.swift in Sources */,
 			);
@@ -797,6 +804,7 @@
 				572B046BC5DDAD8D64701737 /* SpeakingSystemIntegration.swift in Sources */,
 				38E526878C1ED96B7D5BBB97 /* SplashView.swift in Sources */,
 				BBC326381A4910D1163CD599 /* SubscriptionService.swift in Sources */,
+				A1C0FFEE0000000000000001 /* AppleAccountAPI.swift in Sources */,
 				A8D2096180D51DDFD9142D77 /* TeamUnlockService.swift in Sources */,
 				EB020B72B1AA4A8E51984708 /* TranscriptView.swift in Sources */,
 				DABDAEFC261D7A2DF63FBD6D /* Typography.swift in Sources */,
