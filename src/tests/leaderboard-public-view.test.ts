@@ -8,6 +8,8 @@
  * which only bindVerifiedIdentity sets, from a verified token).
  *
  * Real routes and real (in-memory) leaderboard services; nothing is mocked.
+ * (Leaderboards are cached 30 s per instance; each board here is first read
+ * after its writes.)
  */
 import { describe, it, expect, vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -51,8 +53,8 @@ type Row = { displayName: string; isCurrentUser: boolean; userId?: string };
 
 describe('GET /api/musical/leaderboard', () => {
   it('lists players by name with no uid, and flags the viewer', async () => {
-    updateLeaderboardEntry('weekly', 'overall', 'uid-secret-aaa', 'Ada', 90, 3, 2);
-    updateLeaderboardEntry('weekly', 'overall', 'uid-secret-bbb', 'Bo', 70, 2, 1);
+    await updateLeaderboardEntry('weekly', 'overall', 'uid-secret-aaa', 'Ada', 90, 3, 2);
+    await updateLeaderboardEntry('weekly', 'overall', 'uid-secret-bbb', 'Bo', 70, 2, 1);
 
     const res = await get(handleMusicalYouRoutes, '/api/musical/leaderboard', {}, 'uid-secret-bbb');
 
@@ -68,8 +70,8 @@ describe('GET /api/social/leaderboard', () => {
   const result = { score: 50, correctAnswers: 5, totalQuestions: 5, timeMs: 1, usedHints: false };
 
   it('lists players with no uid, and flags the viewer', async () => {
-    updateUserStats('uid-secret-ccc', 'guess', result);
-    updateUserStats('uid-secret-ddd', 'guess', { ...result, score: 80 });
+    await updateUserStats('uid-secret-ccc', 'guess', result);
+    await updateUserStats('uid-secret-ddd', 'guess', { ...result, score: 80 });
 
     const res = await get(handleSocialRoutes, '/api/social/leaderboard', {}, 'uid-secret-ccc');
 

@@ -61,11 +61,19 @@ async function post(
   return out;
 }
 
-/** A fresh pending challenge from alice to carol. */
+let previous: string | null = null;
+
+/**
+ * A fresh pending challenge from alice to carol. The tests share one store and
+ * a sender may have one open challenge per recipient, so the previous one is
+ * withdrawn first (declined as an admin; a no-op once it was answered).
+ */
 async function aliceChallengesCarol(): Promise<string> {
+  if (previous) await games.declineChallenge(previous, { userId: 'admin', isAdmin: true });
   const challenge = await games.createChallenge('score-beat', 'guess', 'alice', 'Alice', 'carol', {
     challengerScore: 5,
   });
+  previous = challenge.id;
   return challenge.id;
 }
 
@@ -204,7 +212,7 @@ describe('other /api/social writes act on the verified caller', () => {
         gameType: 'guess',
         challengerId: 'bob',
         challengerName: 'Bob',
-        challengeeId: 'carol',
+        challengeeId: 'cleo',
       },
       'alice'
     );
@@ -212,7 +220,7 @@ describe('other /api/social writes act on the verified caller', () => {
 
     const asAlice = await post(
       '/api/social/challenges/create',
-      { type: 'score-beat', gameType: 'guess', challengerName: 'Alice', challengeeId: 'carol' },
+      { type: 'score-beat', gameType: 'guess', challengerName: 'Alice', challengeeId: 'cleo' },
       'alice'
     );
     expect(asAlice.status).toBe(200);
@@ -220,7 +228,7 @@ describe('other /api/social writes act on the verified caller', () => {
   });
 
   it("stats/update: alice can't overwrite bob's stats", async () => {
-    const before = boards.getUserStats('bob-stats').totalGamesPlayed;
+    const before = (await boards.getUserStats('bob-stats')).totalGamesPlayed;
     const res = await post(
       '/api/social/stats/update',
       {
@@ -230,7 +238,7 @@ describe('other /api/social writes act on the verified caller', () => {
       },
       'alice'
     );
-    expect(boards.getUserStats('bob-stats').totalGamesPlayed).toBe(before);
+    expect((await boards.getUserStats('bob-stats')).totalGamesPlayed).toBe(before);
     expect(res.status).toBe(403);
   });
 
@@ -312,7 +320,7 @@ describe('GET /api/social/challenges/pending and /history', () => {
   });
 
   it('a real challenge id still resolves through /challenges/:id', async () => {
-    const id = (await games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'dana')).id;
+    const id = (await games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'dina')).id;
 
     const res = await get(`/api/social/challenges/${id}`, {}, null);
 

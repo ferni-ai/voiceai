@@ -102,11 +102,9 @@ describe('caps hold under concurrency (one transaction per create)', () => {
     expect(statuses(results)).toEqual({ ok: 50, limited: 10 });
   });
 
-  it("3 attackers sending 30 each can't flood one victim: 50 land, the pending list stays bounded", async () => {
+  it("90 senders at once can't flood one victim: 50 land, the pending list stays bounded", async () => {
     const results = await Promise.all(
-      ['a1', 'a2', 'a3'].flatMap((attacker) =>
-        Array.from({ length: 30 }, async () => createSocial(attacker, 'victim'))
-      )
+      Array.from({ length: 90 }, async (_, i) => createSocial(`a${i}`, 'victim'))
     );
     expect(statuses(results)).toEqual({ ok: 50, limited: 40 });
 
@@ -114,6 +112,20 @@ describe('caps hold under concurrency (one transaction per create)', () => {
     const pending = await call(api.social, 'GET', '/api/social/challenges/pending', 'victim');
     expect((pending.body.challenges as unknown[]).length).toBe(50);
     expect(fake.reads).toBeLessThanOrEqual(100);
+  });
+
+  it('one sender gets one open challenge per recipient, however many they send at once', async () => {
+    const social30 = await Promise.all(
+      Array.from({ length: 30 }, async () => createSocial('griefer', 'victim'))
+    );
+    expect(statuses(social30)).toEqual({ ok: 1, limited: 29 });
+    const musical30 = await Promise.all(
+      Array.from({ length: 30 }, async () => sendMusical('griefer', 'victim'))
+    );
+    expect(statuses(musical30)).toEqual({ ok: 1, limited: 29 });
+    // Others may still challenge the victim, and the griefer may challenge others.
+    expect((await createSocial('friend', 'victim')).status).toBe(200);
+    expect((await createSocial('griefer', 'someone-else')).status).toBe(200);
   });
 
   it('answering frees the slot: a declined challenge lets the sender send again', async () => {
@@ -224,5 +236,44 @@ describe('social service binds answers to the challengee', () => {
     const done = await social.completeChallenge(id, { userId: 'carol' }, 9);
     expect(done?.completedBy).toBe('carol');
     expect(done?.acceptedBy).toBe('carol');
+  });
+});
+
+describe('expired challenges free their slots', () => {
+  const DAY = 24 * 3600_000;
+  const slotsOf = (collection: string, uid: string) =>
+    fake.docs.get(`${collection}/${uid}`) as { sent: object; received: object };
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('social: answering an expired challenge marks it expired, frees both slots, allows a new one', async () => {
+    const first = idOf((await createSocial('sam', 'vic')).body);
+    expect((await createSocial('sam', 'vic')).status).toBe(429); // one open per pair
+
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.now() + 8 * DAY); // challenges expire after 7 days
+    const late = await call(api.social, 'POST', '/api/social/challenges/accept', 'vic', {
+      challengeId: first,
+      challengeeName: 'Vic',
+    });
+    expect(late.status).toBe(404);
+    expect((await social.getChallenge(first))?.status).toBe('expired');
+    expect(slotsOf('social_open_challenge_slots', 'vic').received).toEqual({});
+    expect(slotsOf('social_open_challenge_slots', 'sam').sent).toEqual({});
+    expect((await createSocial('sam', 'vic')).status).toBe(200);
+  });
+
+  it('musical: completing an expired challenge is refused and marks it expired', async () => {
+    const id = idOf((await sendMusical('sam', 'vic')).body);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.now() + 8 * DAY);
+
+    const late = await call(api.musical, 'POST', `/api/musical/challenge/${id}/complete`, 'vic', {
+      score: 9,
+    });
+    expect(late.status).toBe(409);
+    expect((await musical.getChallenge(id))?.status).toBe('expired');
+    expect(slotsOf('musical_open_challenge_slots', 'vic').received).toEqual({});
   });
 });

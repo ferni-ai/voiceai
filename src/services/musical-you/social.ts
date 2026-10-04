@@ -13,7 +13,14 @@ import { randomUUID } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { boundedChallenges, type ChallengeActor } from '../social/open-challenge-slots.js';
 import { daysAfter, sharedRecords } from '../social/shared-records.js';
-import type { MusicChallenge, Leaderboard, LeaderboardEntry, TasteMatch } from './types.js';
+import {
+  deleteMusicalLeaderboardEntries,
+  getLeaderboard,
+  getTopEntries,
+  getUserRank,
+  updateLeaderboardEntry,
+} from './leaderboard-store.js';
+import type { MusicChallenge, TasteMatch } from './types.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
 const log = createLogger({ module: 'MusicalYouSocial' });
@@ -34,7 +41,6 @@ const challenges = sharedRecords<MusicChallenge>('musical_challenges', {
 const bounded = boundedChallenges(challenges, 'musical_open_challenge_slots');
 /** Each user's slots document, for account deletion. */
 export const musicalChallengeSlots = bounded.slots;
-const leaderboards = new Map<string, Leaderboard>();
 const tasteMatches = new Map<string, TasteMatch>();
 
 // ============================================================================
@@ -185,107 +191,26 @@ export async function declineChallenge(
 // ============================================================================
 
 /**
- * Get or create a leaderboard
+ * Account deletion: the user's challenges (open ones resolved first, freeing
+ * the other party's slot), their slots document and their leaderboard entries.
  */
-export function getLeaderboard(
-  type: 'weekly' | 'monthly' | 'all-time',
-  gameType: string | 'overall' = 'overall'
-): Leaderboard {
-  const key = `${type}-${gameType}`;
-  let leaderboard = leaderboards.get(key);
-
-  if (!leaderboard) {
-    leaderboard = {
-      type,
-      gameType,
-      entries: [],
-      updatedAt: new Date(),
-    };
-    leaderboards.set(key, leaderboard);
-  }
-
-  return leaderboard;
+export async function eraseMusicalSocialData(
+  userId: string
+): Promise<{ challenges: number; boards: number }> {
+  const removed = await bounded.eraseUser(userId);
+  const boards = await deleteMusicalLeaderboardEntries(userId);
+  log.info({ userId, challenges: removed, boards }, 'Erased Musical You social records');
+  return { challenges: removed, boards };
 }
 
-/**
- * Update a user's leaderboard entry
- */
-export function updateLeaderboardEntry(
-  type: 'weekly' | 'monthly' | 'all-time',
-  gameType: string | 'overall',
-  userId: string,
-  displayName: string,
-  score: number,
-  gamesPlayed: number,
-  bestStreak: number,
-  avatarUrl?: string
-): LeaderboardEntry {
-  const leaderboard = getLeaderboard(type, gameType);
-
-  // Find or create entry
-  let entry = leaderboard.entries.find((e) => e.userId === userId);
-  const previousRank = entry?.rank || leaderboard.entries.length + 1;
-
-  if (entry) {
-    entry.score = Math.max(entry.score, score); // Keep best score
-    entry.gamesPlayed = gamesPlayed;
-    entry.bestStreak = Math.max(entry.bestStreak, bestStreak);
-    if (displayName) entry.displayName = displayName;
-    if (avatarUrl) entry.avatarUrl = avatarUrl;
-  } else {
-    entry = {
-      rank: 0, // Will be calculated
-      userId,
-      displayName,
-      score,
-      gamesPlayed,
-      bestStreak,
-      avatarUrl,
-      change: 0,
-    };
-    leaderboard.entries.push(entry);
-  }
-
-  // Re-sort and assign ranks
-  leaderboard.entries.sort((a, b) => b.score - a.score);
-  leaderboard.entries.forEach((e, index) => {
-    const newRank = index + 1;
-    if (e.userId === userId) {
-      e.change = previousRank - newRank;
-    }
-    e.rank = newRank;
-  });
-
-  leaderboard.updatedAt = new Date();
-
-  log.debug({ userId, type, gameType, rank: entry.rank }, '📊 Leaderboard updated');
-
-  return entry;
-}
-
-/**
- * Get user's rank on a leaderboard
- */
-export function getUserRank(
-  userId: string,
-  type: 'weekly' | 'monthly' | 'all-time' = 'weekly',
-  gameType: string | 'overall' = 'overall'
-): LeaderboardEntry | null {
-  const leaderboard = getLeaderboard(type, gameType);
-  return leaderboard.entries.find((e) => e.userId === userId) || null;
-}
-
-/**
- * Get top N entries from leaderboard
- */
-export function getTopEntries(
-  type: 'weekly' | 'monthly' | 'all-time',
-  gameType: string | 'overall',
-  limit = 10
-): LeaderboardEntry[] {
-  const leaderboard = getLeaderboard(type, gameType);
-  return leaderboard.entries.slice(0, limit);
-}
+// Leaderboards live in ./leaderboard-store.ts (shared by every API instance).
+export {
+  getLeaderboard,
+  updateLeaderboardEntry,
+  getUserRank,
+  getTopEntries,
+  deleteMusicalLeaderboardEntries,
+};
 
 // ============================================================================
 // TASTE MATCHING
@@ -425,7 +350,7 @@ export async function getUserSocialStats(userId: string): Promise<{
   const won = completed.filter((c) => c.winnerId === userId).length;
   const lost = completed.filter((c) => c.winnerId && c.winnerId !== userId).length;
 
-  const rank = getUserRank(userId, 'weekly', 'overall');
+  const rank = await getUserRank(userId, 'weekly', 'overall');
 
   // Count taste matches
   let tasteMatchCount = 0;

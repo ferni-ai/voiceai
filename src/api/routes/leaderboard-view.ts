@@ -9,8 +9,12 @@
  *
  * @module api/routes/leaderboard-view
  */
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { getVerifiedUserId } from '../../servers/api/request-identity.js';
+import { isValidGameType } from '../../services/social/user-stats.js';
+import { sendJSON } from '../helpers.js';
+
+const BOARD_TYPES = ['weekly', 'monthly', 'all-time'] as const;
 
 export type PublicEntry<T extends { userId: string }> = Omit<T, 'userId'> & {
   isCurrentUser: boolean;
@@ -26,4 +30,31 @@ export function publicEntries<T extends { userId: string }>(
     ...rest,
     isCurrentUser: viewer !== null && userId === viewer,
   }));
+}
+
+/** A game result's game type: a plain name (it becomes part of a board key), not 'overall'. */
+export function isRecordableGame(gameType: unknown): gameType is string {
+  return isValidGameType(gameType) && gameType !== 'overall';
+}
+
+/**
+ * The Musical You board a query names (type defaults to weekly, gameType to
+ * overall, limit to 10, at most 100), or null when type or gameType isn't one.
+ */
+export function boardFrom(query: URLSearchParams): {
+  type: (typeof BOARD_TYPES)[number];
+  game: string;
+  limit: number;
+} | null {
+  const type = BOARD_TYPES.find((t) => t === (query.get('type') || 'weekly'));
+  const gameType = query.get('gameType') || 'overall';
+  if (!type || (gameType !== 'overall' && !isValidGameType(gameType))) return null;
+  const limit = parseInt(query.get('limit') || '10', 10) || 10;
+  return { type, game: gameType, limit: Math.min(Math.max(limit, 1), 100) };
+}
+
+/** 400 for a board that doesn't exist; true, as route handlers return. */
+export function unknownBoard(res: ServerResponse): true {
+  sendJSON(res, { success: false, error: 'Unknown leaderboard' }, 400);
+  return true;
 }

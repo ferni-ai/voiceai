@@ -30,7 +30,8 @@ vi.mock('../api/auth-middleware.js', () => ({
 }));
 
 const { handleMusicalYouRoutes } = await import('../api/routes/musical-you-routes.js');
-const { sendMusicChallenge, getChallenge } = await import('../services/musical-you/index.js');
+const { sendMusicChallenge, getChallenge, declineChallenge } =
+  await import('../services/musical-you/index.js');
 
 async function post(
   path: string,
@@ -56,9 +57,17 @@ async function post(
   return status;
 }
 
-/** A fresh pending challenge from alice to carol. */
+let previous: string | null = null;
+
+/**
+ * A fresh pending challenge from alice to carol. The tests share one store and
+ * a sender may have one open challenge per recipient, so the previous one is
+ * withdrawn first (declined as an admin).
+ */
 async function aliceChallengesCarol(): Promise<string> {
-  return (await sendMusicChallenge('alice', 'Alice', 'carol', 'guess', 5)).id;
+  if (previous) await declineChallenge(previous, { userId: 'admin', isAdmin: true });
+  previous = (await sendMusicChallenge('alice', 'Alice', 'carol', 'guess', 5)).id;
+  return previous;
 }
 
 describe('answering a Musical You challenge', () => {

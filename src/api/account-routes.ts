@@ -13,6 +13,9 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getDefaultStore } from '../memory/index.js';
 import { deleteOAuthLinkStatesFor } from '../servers/token/oauth-link-state.js';
 import { tombstoneTransactionOwnersFor } from '../services/billing/apple-signed-data.js';
+import { eraseMusicalSocialData } from '../services/musical-you/social.js';
+import { eraseSocialChallengesFor } from '../services/social/challenges.js';
+import { deleteUserStats } from '../services/social/user-stats.js';
 import { deleteFirebaseUser, getFirebaseUser } from '../services/identity/firebase-auth.js';
 import { erasePushRecordsFor } from '../services/push-endpoint-owners.js';
 import { recordSecurityEvent } from '../services/security-events.js';
@@ -158,13 +161,17 @@ async function handleGetAccount(
 
 /**
  * Records about the user kept outside their own documents (keyed by an
- * endpoint hash, an OAuth state hash or an Apple transaction id), so the
- * deleteAllData sweep can't reach them.
+ * endpoint hash, an OAuth state hash, an Apple transaction id, a challenge id
+ * or a leaderboard), so the deleteAllData sweep can't reach them. Challenge
+ * sweeps also free the other party's open-challenge slot.
  */
 const LINKED_RECORDS: ReadonlyArray<readonly [string, (userId: string) => Promise<unknown>]> = [
   ['push_subscriptions', erasePushRecordsFor],
   ['oauth_link_states', deleteOAuthLinkStatesFor],
   ['apple_transaction_owners', tombstoneTransactionOwnersFor],
+  ['musical_challenges_and_leaderboards', eraseMusicalSocialData],
+  ['social_challenges', eraseSocialChallengesFor],
+  ['social_user_stats', deleteUserStats],
 ];
 
 /** Best effort: every sweep runs; returns the names of those that failed. */

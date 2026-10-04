@@ -22,155 +22,7 @@
  *
  * @module services/social/shared-records
  */
-import type { Query } from '@google-cloud/firestore';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
-
-type Json = Record<string, unknown>;
-type Decide = (current: Json | null) => Json | null;
-
-interface Backend {
-  get(collection: string, id: string): Promise<Json | null>;
-  put(collection: string, id: string, data: Json): Promise<void>;
-  /** Read, decide, write, in one step. `decide` returns the new data, or null to write nothing. */
-  update(
-    collection: string,
-    id: string,
-    decide: Decide
-  ): Promise<{ current: Json | null; written: Json | null }>;
-  /** Records matching every equality filter, at most `limit` of them (the store stops there). */
-  query(
-    collection: string,
-    filters: Record<string, string>,
-    limit: number
-  ): Promise<Array<{ id: string; data: Json }>>;
-  all(collection: string): Promise<Json[]>;
-  remove(collection: string, id: string): Promise<void>;
-  /** Run `fn` as one transaction: reads first, then writes, all or nothing. */
-  transact<R>(fn: (tx: RawTx) => Promise<R>): Promise<R>;
-}
-
-interface RawTx {
-  get(collection: string, id: string): Promise<Json | null>;
-  set(collection: string, id: string, data: Json): void;
-}
-
-function memoryBackend(): Backend {
-  const collections = new Map<string, Map<string, Json>>();
-  let lock: Promise<unknown> = Promise.resolve();
-  const col = (name: string) => {
-    let c = collections.get(name);
-    if (!c) collections.set(name, (c = new Map()));
-    return c;
-  };
-  return {
-    async get(collection, id) {
-      return col(collection).get(id) ?? null;
-    },
-    async put(collection, id, data) {
-      col(collection).set(id, data);
-    },
-    async update(collection, id, decide) {
-      const current = col(collection).get(id) ?? null;
-      const written = decide(current);
-      if (written) col(collection).set(id, written);
-      return { current, written };
-    },
-    async query(collection, filters, limit) {
-      return [...col(collection)]
-        .filter(([, d]) => Object.entries(filters).every(([f, v]) => d[f] === v))
-        .slice(0, limit)
-        .map(([id, data]) => ({ id, data }));
-    },
-    async all(collection) {
-      return [...col(collection).values()];
-    },
-    async remove(collection, id) {
-      col(collection).delete(id);
-    },
-    async transact(fn) {
-      // One at a time, so a transaction's reads and writes can't interleave with another's.
-      const run = lock.then(async () => {
-        const pending: Array<[string, string, Json]> = [];
-        const result = await fn({
-          get: async (collection, id) => col(collection).get(id) ?? null,
-          set: (collection, id, data) => {
-            pending.push([collection, id, data]);
-          },
-        });
-        for (const [collection, id, data] of pending) col(collection).set(id, data);
-        return result;
-      });
-      lock = run.catch(() => undefined);
-      return run;
-    },
-  };
-}
-
-function firestoreBackend(): Backend {
-  const db = () => {
-    const firestore = getFirestoreDb();
-    if (!firestore) throw new Error('Shared record store unavailable (no Firestore)');
-    return firestore;
-  };
-  return {
-    async get(collection, id) {
-      const snap = await db().collection(collection).doc(id).get();
-      return snap.exists ? ((snap.data() as Json | undefined) ?? null) : null;
-    },
-    async put(collection, id, data) {
-      await db().collection(collection).doc(id).set(data);
-    },
-    async update(collection, id, decide) {
-      const firestore = db();
-      const ref = firestore.collection(collection).doc(id);
-      return firestore.runTransaction(async (tx) => {
-        const snap = await tx.get(ref);
-        const current = snap.exists ? ((snap.data() as Json | undefined) ?? null) : null;
-        const written = decide(current);
-        if (written) tx.set(ref, written);
-        return { current, written };
-      });
-    },
-    async query(collection, filters, limit) {
-      // Equality-only filters: Firestore serves these from single-field indexes.
-      let q: Query = db().collection(collection);
-      for (const [field, value] of Object.entries(filters)) q = q.where(field, '==', value);
-      const snap = await q.limit(limit).get();
-      return snap.docs.map((d) => ({ id: d.id, data: d.data() as Json }));
-    },
-    async all(collection) {
-      const snap = await db().collection(collection).get();
-      return snap.docs.map((d) => d.data() as Json);
-    },
-    async remove(collection, id) {
-      await db().collection(collection).doc(id).delete();
-    },
-    async transact(fn) {
-      const firestore = db();
-      return firestore.runTransaction(async (tx) =>
-        fn({
-          get: async (collection, id) => {
-            const snap = await tx.get(firestore.collection(collection).doc(id));
-            return snap.exists ? ((snap.data() as Json | undefined) ?? null) : null;
-          },
-          set: (collection, id, data) => {
-            tx.set(firestore.collection(collection).doc(id), data);
-          },
-        })
-      );
-    },
-  };
-}
-
-let backend: Backend | null = null;
-
-function getBackend(): Backend {
-  backend ??=
-    process.env.K_SERVICE || process.env.CHALLENGE_STORE === 'firestore'
-      ? firestoreBackend()
-      : memoryBackend();
-  return backend;
-}
+import { getBackend, type Decide, type Json } from './shared-records-backend.js';
 
 /** `days` after `from`, for ttlAt values. */
 export function daysAfter(from: Date, days: number): Date {
@@ -188,6 +40,7 @@ export interface SharedRecordsOptions<T> {
 export interface SharedTx {
   get<T>(records: SharedRecords<T>, id: string): Promise<T | null>;
   set<T>(records: SharedRecords<T>, id: string, record: T): void;
+  remove<T>(records: SharedRecords<T>, id: string): void;
 }
 
 /**
@@ -200,6 +53,7 @@ export async function sharedTransaction<R>(fn: (tx: SharedTx) => Promise<R>): Pr
     fn({
       get: async (records, id) => records.decode(await raw.get(records.collection, id)),
       set: (records, id, record) => raw.set(records.collection, id, records.encode(record)),
+      remove: (records, id) => raw.remove(records.collection, id),
     })
   );
 }
@@ -227,8 +81,11 @@ export interface SharedRecords<T> {
    * itself, so one user's thousands of records are never all read.
    */
   query(filters: Partial<Record<keyof T & string, string>>, limit: number): Promise<T[]>;
-  /** Every record in the collection. */
-  all(): Promise<T[]>;
+  /** The `limit` records with the highest `field`, highest first (no filters). */
+  top(field: string, limit: number): Promise<T[]>;
+  /** How many records have `field` above `value` (a count aggregation). */
+  countAbove(field: string, value: number): Promise<number>;
+  remove(id: string): Promise<void>;
   /** Delete every record whose `field` equals `value` (in pages); resolves to how many. */
   removeWhere(field: keyof T & string, value: string): Promise<number>;
 }
@@ -283,8 +140,14 @@ export function sharedRecords<T>(
       const rows = await getBackend().query(collection, filters as Record<string, string>, limit);
       return rows.map((row) => fromJson(row.data) as T);
     },
-    async all() {
-      return (await getBackend().all(collection)).map((row) => fromJson(row) as T);
+    async top(field, limit) {
+      return (await getBackend().top(collection, field, limit)).map((row) => fromJson(row) as T);
+    },
+    async countAbove(field, value) {
+      return getBackend().countAbove(collection, field, value);
+    },
+    async remove(id) {
+      await getBackend().remove(collection, id);
     },
     async removeWhere(field, value) {
       let removed = 0;

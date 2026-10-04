@@ -168,6 +168,15 @@ export async function declineChallenge(
 }
 
 /**
+ * Account deletion: the user's challenges (open ones resolved first, freeing
+ * the other party's slot) and their slots document. Resolves to how many
+ * challenges were deleted.
+ */
+export async function eraseSocialChallengesFor(userId: string): Promise<number> {
+  return bounded.eraseUser(userId);
+}
+
+/**
  * Get challenge by ID
  */
 export async function getChallenge(challengeId: string): Promise<Challenge | null> {

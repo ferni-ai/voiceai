@@ -42,6 +42,7 @@ import {
   getUserRank,
   getLeaderboardAroundUser,
   seedLeaderboardData,
+  isValidGameType,
   type LeaderboardPeriod,
   type LeaderboardScope,
 } from '../../services/social/leaderboards.js';
@@ -200,8 +201,16 @@ export async function handleSocialRoutes(
       }
 
       // Record challenge results for both users
-      recordChallengeResult(challenge.challengerId, challenge.winnerId === challenge.challengerId);
-      recordChallengeResult(challenge.challengeeId, challenge.winnerId === challenge.challengeeId);
+      await Promise.all([
+        recordChallengeResult(
+          challenge.challengerId,
+          challenge.winnerId === challenge.challengerId
+        ),
+        recordChallengeResult(
+          challenge.challengeeId,
+          challenge.winnerId === challenge.challengeeId
+        ),
+      ]);
 
       send(res, 200, { challenge });
       return true;
@@ -381,7 +390,11 @@ export async function handleSocialRoutes(
       const period = (searchParams.get('period') as LeaderboardPeriod) || 'weekly';
       const gameType = searchParams.get('gameType') || 'overall';
       const scope = (searchParams.get('scope') as LeaderboardScope) || 'global';
-      const leaderboard = getLeaderboard(period, gameType, scope);
+      if (gameType !== 'overall' && !isValidGameType(gameType)) {
+        send(res, 400, { error: 'Unknown game type' });
+        return true;
+      }
+      const leaderboard = await getLeaderboard(period, gameType, scope);
       send(res, 200, {
         leaderboard: { ...leaderboard, entries: publicEntries(leaderboard.entries, req) },
       });
@@ -399,8 +412,8 @@ export async function handleSocialRoutes(
         return true;
       }
 
-      const entries = getLeaderboardAroundUser(userId, period, gameType);
-      const rank = getUserRank(userId, period, gameType);
+      const entries = await getLeaderboardAroundUser(userId, period, gameType);
+      const rank = await getUserRank(userId, period, gameType);
 
       send(res, 200, { entries: publicEntries(entries, req), rank });
       return true;
@@ -420,8 +433,8 @@ export async function handleSocialRoutes(
         return true;
       }
 
-      const stats = getUserStats(userId, displayName);
-      const weeklyRank = getUserRank(userId, 'weekly', 'overall');
+      const stats = await getUserStats(userId, displayName);
+      const weeklyRank = await getUserRank(userId, 'weekly', 'overall');
 
       send(res, 200, { stats, weeklyRank });
       return true;
@@ -444,12 +457,12 @@ export async function handleSocialRoutes(
 
       const statsUser = claimedUserFor(caller, userId, res);
       if (!statsUser) return true;
-      if (!gameType || !result) {
+      if (!isValidGameType(gameType) || !result) {
         send(res, 400, { error: 'Missing required fields' });
         return true;
       }
 
-      const stats = updateUserStats(statsUser, gameType, result);
+      const stats = await updateUserStats(statsUser, gameType, result);
 
       send(res, 200, { stats });
       return true;
@@ -461,8 +474,12 @@ export async function handleSocialRoutes(
         send(res, 403, { error: 'Not authorized' });
         return true;
       }
-      seedLeaderboardData();
-
+      try {
+        await seedLeaderboardData();
+      } catch {
+        send(res, 403, { error: 'Seeding is for development only' });
+        return true;
+      }
       send(res, 200, { success: true, message: 'Leaderboard seeded' });
       return true;
     }

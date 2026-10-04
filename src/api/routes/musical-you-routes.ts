@@ -16,7 +16,7 @@ import { resolveActingUser } from '../acting-user.js';
 import { rateLimit, requireAuth } from '../auth-middleware.js';
 import { LimitReachedError } from '../../services/social/open-challenge-slots.js';
 import { challengeCreateLimit } from './challenge-limits.js';
-import { publicEntries } from './leaderboard-view.js';
+import { boardFrom, isRecordableGame, publicEntries, unknownBoard } from './leaderboard-view.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
 // Import Musical You services
@@ -359,12 +359,12 @@ export async function handleMusicalYouRoutes(
 
     // GET /api/musical/leaderboard?type=weekly|monthly|all-time&gameType=overall
     if (pathname === '/api/musical/leaderboard' && method === 'GET') {
-      const type = (searchParams.get('type') || 'weekly') as 'weekly' | 'monthly' | 'all-time';
-      const gameType = searchParams.get('gameType') || 'overall';
-      const limit = parseInt(searchParams.get('limit') || '10', 10);
+      const board = boardFrom(searchParams);
+      if (!board) return unknownBoard(res);
 
-      const entries = publicEntries(getTopEntries(type, gameType, Math.min(limit, 100)), req);
-      sendJSON(res, { success: true, leaderboard: { ...getLeaderboard(type, gameType), entries } });
+      const entries = publicEntries(await getTopEntries(board.type, board.game, board.limit), req);
+      const leaderboard = { ...(await getLeaderboard(board.type, board.game)), entries };
+      sendJSON(res, { success: true, leaderboard });
       return true;
     }
 
@@ -376,10 +376,10 @@ export async function handleMusicalYouRoutes(
         return true;
       }
 
-      const type = (searchParams.get('type') || 'weekly') as 'weekly' | 'monthly' | 'all-time';
-      const gameType = searchParams.get('gameType') || 'overall';
+      const board = boardFrom(searchParams);
+      if (!board) return unknownBoard(res);
 
-      const rank = getUserRank(userId, type, gameType);
+      const rank = await getUserRank(userId, board.type, board.game);
 
       sendJSON(res, { success: true, rank });
       return true;
@@ -694,16 +694,16 @@ export async function handleMusicalYouRoutes(
       if (!userId) return true;
       const { displayName, gameType, score, gamesPlayed, bestStreak } = body;
 
-      if (!userId || !gameType || score === undefined) {
+      if (!userId || !isRecordableGame(gameType) || !Number.isFinite(score)) {
         sendJSON(res, { success: false, error: 'Missing required fields' }, 400);
         return true;
       }
 
-      recordGameResult(
+      await recordGameResult(
         userId,
         displayName || 'Player',
         gameType,
-        score,
+        score as number,
         gamesPlayed || 1,
         bestStreak || 0
       );

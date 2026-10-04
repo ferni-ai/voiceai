@@ -4,7 +4,8 @@
  *
  * Keep the state in the test file (vi.hoisted) and pass it in, so it survives
  * vi.resetModules. Covers what services/social/shared-records uses: doc
- * get/set/delete, collection get, where('==').get, and runTransaction with
+ * get/set/delete, collection queries (where '==' or '>', orderBy, limit,
+ * count), and runTransaction (get/set/delete) with
  * Firestore's optimistic concurrency: if a document a transaction read was
  * written by someone else before it commits, the transaction runs again. A
  * read-then-write outside a transaction gets no such protection, so racing
@@ -80,28 +81,47 @@ export function createFakeFirestore(state: FakeFirestoreState) {
       (p) => p.startsWith(`${name}/`) && !p.slice(name.length + 1).includes('/')
     );
   interface QuerySpec {
-    filters: Array<[string, unknown]>;
+    filters: Array<[string, '==' | '>', unknown]>;
     order?: [string, 'asc' | 'desc'];
     limit?: number;
   }
-  /** A query: equality filters, one orderBy, a limit; counts documents read. */
+  /** A field by dotted path ('gameStats.guess.totalScore'), as Firestore reads it. */
+  const at = (doc: Json | undefined, path: string): unknown =>
+    path.split('.').reduce<unknown>((v, k) => (v as Json | undefined)?.[k], doc);
+  const matching = (name: string, spec: QuerySpec) => {
+    let paths = inCollection(name).filter((p) =>
+      spec.filters.every(([f, op, v]) => {
+        const value = at(state.docs.get(p), f);
+        return op === '==' ? value === v : Number(value) > Number(v);
+      })
+    );
+    if (spec.order) {
+      const [f, dir] = spec.order;
+      const key = (p: string) => Number(at(state.docs.get(p), f));
+      // Like Firestore, orderBy leaves out documents without the field.
+      paths = paths
+        .filter((p) => at(state.docs.get(p), f) !== undefined)
+        .sort((x, y) => (dir === 'desc' ? key(y) - key(x) : key(x) - key(y)));
+    }
+    return spec.limit === undefined ? paths : paths.slice(0, spec.limit);
+  };
+  /** A query: filters (== or >), one orderBy, a limit, count(); counts documents read. */
   const query = (name: string, spec: QuerySpec) => ({
-    where: (field: string, _op: '==', value: unknown) =>
-      query(name, { ...spec, filters: [...spec.filters, [field, value]] }),
+    where: (field: string, op: '==' | '>', value: unknown) =>
+      query(name, { ...spec, filters: [...spec.filters, [field, op, value]] }),
     orderBy: (field: string, direction: 'asc' | 'desc' = 'asc') =>
       query(name, { ...spec, order: [field, direction] }),
     limit: (n: number) => query(name, { ...spec, limit: n }),
+    count: () => ({
+      get: async () => {
+        await tick();
+        const count = matching(name, spec).length;
+        return { data: () => ({ count }) };
+      },
+    }),
     get: async () => {
       await tick();
-      let paths = inCollection(name).filter((p) =>
-        spec.filters.every(([f, v]) => state.docs.get(p)?.[f] === v)
-      );
-      if (spec.order) {
-        const [f, dir] = spec.order;
-        const key = (p: string) => Number(state.docs.get(p)?.[f] ?? 0);
-        paths = paths.sort((a, b) => (dir === 'desc' ? key(b) - key(a) : key(a) - key(b)));
-      }
-      if (spec.limit !== undefined) paths = paths.slice(0, spec.limit);
+      const paths = matching(name, spec);
       state.reads += paths.length;
       const docs = paths.map(snapshot);
       return { empty: docs.length === 0, size: docs.length, docs };
@@ -127,11 +147,12 @@ export function createFakeFirestore(state: FakeFirestoreState) {
       fn: (tx: {
         get: (r: Ref) => Promise<ReturnType<typeof snapshot>>;
         set: (r: Ref, data: Json) => void;
+        delete: (r: Ref) => void;
       }) => Promise<T>
     ): Promise<T> {
       for (let attempt = 0; attempt < 500; attempt++) {
         const read = new Map<string, number>();
-        const pending: Array<[string, Json]> = [];
+        const pending: Array<[string, Json | null]> = [];
         const result = await fn({
           get: async (r) => {
             read.set(r.path, version(r.path));
@@ -140,6 +161,9 @@ export function createFakeFirestore(state: FakeFirestoreState) {
           },
           set: (r, data) => {
             pending.push([r.path, data]);
+          },
+          delete: (r) => {
+            pending.push([r.path, null]);
           },
         });
         if ([...read].every(([path, v]) => version(path) === v)) {
