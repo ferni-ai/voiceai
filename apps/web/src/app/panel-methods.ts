@@ -745,7 +745,9 @@ async function fetchRelationshipStage(_userId: string): Promise<YourStoryData['s
  */
 async function fetchRecentMilestones(_userId: string): Promise<YourStoryData['milestones']> {
   const response = await apiGet<{
-    data?: { milestones?: Array<{ id: string; title: string; completed: boolean; completedAt?: string }> };
+    data?: {
+      milestones?: Array<{ id: string; title: string; completed: boolean; completedAt?: string }>;
+    };
   }>('/api/your-story/section/relationship');
   if (!response.ok) {
     log.debug({ status: response.status }, 'Failed to fetch milestones');
@@ -776,9 +778,6 @@ export async function showWhatIDoForYou(): Promise<void> {
   showFerniCareDashboard();
 }
 
-// Backwards compatibility alias
-export const showLifeAutomation = showWhatIDoForYou;
-
 /**
  * Show routine ideas gallery.
  */
@@ -788,9 +787,6 @@ export async function showRoutineIdeas(): Promise<void> {
   const { showIdeasGallery } = await import('../ui/ferni-care/index.js');
   showIdeasGallery();
 }
-
-// Backwards compatibility alias
-export const showWorkflowTemplates = showRoutineIdeas;
 
 /**
  * Show routine builder.
@@ -802,5 +798,9 @@ export async function showRoutineCreator(): Promise<void> {
   showRoutineBuilder();
 }
 
-// Backwards compatibility alias
-export const showWorkflowCreator = showRoutineCreator;
+/** Show the Trust & Growth dashboard (health, timeline, events, journal, media, insights). */
+export async function showTrustDashboard(): Promise<void> {
+  void trackScreen('trust-dashboard');
+  const { showTrustDashboard: show } = await import('../ui/trust-dashboard.ui.js');
+  await show();
+}

@@ -788,6 +788,7 @@ class SettingsMenuUI {
                   expandedSections.has('understandingYou'),
                   `
             ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory') || 'Your Story')}
+            ${this.renderMenuItem('trust-dashboard', ICONS.wellbeing, t('menu.items.trustDashboard') || 'Trust & Growth')}
             ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane') || 'Memory Lane', t('common.new'))}
             ${this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights') || 'Your Patterns')}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
@@ -1301,7 +1302,11 @@ class SettingsMenuUI {
       case 'apple-health-settings':
         this.callbacks.onAppleHealthClick?.();
         break;
-      // trust-journey removed - consolidated into your-story
+      case 'trust-dashboard':
+        import('../app/panel-methods.js')
+          .then(async (m) => m.showTrustDashboard())
+          .catch((error: unknown) => log.error({ error }, "Couldn't open the trust dashboard"));
+        break;
       case 'music-dashboard':
         this.callbacks.onMusicDashboardClick?.();
         break;
@@ -1357,8 +1362,7 @@ class SettingsMenuUI {
         this.callbacks.onYourStoryClick?.();
         break;
       case 'activity':
-        // DEPRECATED: Activity is now integrated into Your Story.
-        // Redirect to Your Story dashboard instead.
+        // DEPRECATED: Activity is now part of Your Story; redirect there.
         log.info('Activity is deprecated - redirecting to Your Story');
         this.callbacks.onYourStoryClick?.();
         break;
@@ -1375,13 +1379,7 @@ class SettingsMenuUI {
         this.callbacks.onShareFerniClick?.();
         break;
       case 'support-ferni':
-        log.info('🎯 support-ferni action triggered - calling onSupportFerniClick callback');
-        if (this.callbacks.onSupportFerniClick) {
-          log.info('✅ onSupportFerniClick callback exists, invoking...');
-          this.callbacks.onSupportFerniClick();
-        } else {
-          log.error('❌ onSupportFerniClick callback is not defined!');
-        }
+        this.callbacks.onSupportFerniClick?.();
         break;
       case 'accent-settings':
         this.callbacks.onAccentSettingsClick?.();
