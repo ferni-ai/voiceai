@@ -3,7 +3,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { lineCount, lowered, measureBundle, regressions, type Measurement } from '../ratchet.js';
-import { findTerm, visibleCopy } from '../check-brand-compliance.js';
+import { findTerm, getAllRelevantFiles, visibleCopy } from '../check-brand-compliance.js';
 
 const base: Measurement = {
   oversized: { 'src/big.ts': 900, 'src/huge.ts': 2000 },
@@ -130,5 +130,24 @@ describe('brand copy check', () => {
     expect(findTerm('not your average bot.', 'bot')).toBeGreaterThan(-1);
     expect(findTerm('AI chatbots forget', 'chatbot')).toBeGreaterThan(-1);
     expect(findTerm('Unlimited Conversations!', 'Unlimited conversations')).toBe(0);
+  });
+
+  it('finds copy files under the copy paths only, top level included', () => {
+    const repo = mkdtempSync(join(tmpdir(), 'brand-files-'));
+    try {
+      for (const file of [
+        'apps/web/src/app.ts',
+        'apps/web/src/ui/menu.ui.ts',
+        'apps/web/src/node_modules/dep/index.ts',
+        '.claude/worktrees/other/apps/web/src/app.ts',
+        'src/services/billing.ts',
+      ]) {
+        mkdirSync(join(repo, file, '..'), { recursive: true });
+        writeFileSync(join(repo, file), '');
+      }
+      expect(getAllRelevantFiles(repo)).toEqual(['apps/web/src/app.ts', 'apps/web/src/ui/menu.ui.ts']);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
   });
 });

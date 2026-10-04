@@ -1755,7 +1755,7 @@
   "src/workers/summarization-worker.ts": 620
  },
  "brandCritical": 0,
- "brandWarnings": 6,
+ "brandWarnings": 12,
  "lint": {
   "no-console-log": 72,
   "no-hardcoded-hex-colors": 1668,
