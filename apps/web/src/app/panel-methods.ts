@@ -8,9 +8,15 @@
 
 import type { ScreenName } from '../services/app-context-tracking.service.js';
 import { getDemoTeamHuddle, isDemoDataEnabled } from '../services/engagement-demo-data.js';
-import { type AnalyticsDashboardData, getAnalyticsDashboardUI } from '../ui/analytics-dashboard.ui.js';
+import {
+  type AnalyticsDashboardData,
+  getAnalyticsDashboardUI,
+} from '../ui/analytics-dashboard.ui.js';
 import { type CognitiveInsightsData, getCognitiveInsightsUI } from '../ui/cognitive-insights.ui.js';
-import { type ConversationHistoryData, getConversationHistoryUI } from '../ui/conversation-history.ui.js';
+import {
+  type ConversationHistoryData,
+  getConversationHistoryUI,
+} from '../ui/conversation-history.ui.js';
 import { getDataExportUI } from '../ui/data-export.ui.js';
 import { getPredictionTrackerUI } from '../ui/prediction-tracker.ui.js';
 import { showTeamHuddle as showTeamHuddleUI } from '../ui/team-huddle.ui.js';
@@ -19,7 +25,6 @@ import { loadYourStory } from '../ui/lazy-screens.js';
 import { toast } from '../ui/whisper.ui.js';
 import { apiDelete, apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
-import { apiGet } from '../utils/api.js';
 
 // 🧠 Better Than Human: Track screen view for Voice ↔ App Sync
 async function trackScreen(screen: ScreenName): Promise<void> {
@@ -50,7 +55,10 @@ export async function showConversationHistory(): Promise<void> {
     getConversationHistoryUI().show(response.data);
     return;
   }
-  log.debug({ status: response.status, error: response.error }, 'Conversation history fetch failed');
+  log.debug(
+    { status: response.status, error: response.error },
+    'Conversation history fetch failed'
+  );
 
   // Fall back to demo data if enabled
   if (isDemoDataEnabled()) {
@@ -203,7 +211,10 @@ export async function deleteMemory(memoryId: string): Promise<void> {
   if (response.ok) {
     toast.success('Memory removed');
   } else {
-    log.error({ memoryId, status: response.status, error: response.error }, 'Failed to delete memory');
+    log.error(
+      { memoryId, status: response.status, error: response.error },
+      'Failed to delete memory'
+    );
     toast.error("Couldn't remove that memory. Try again?");
   }
   // Re-fetch either way so the list matches what the server actually has.
@@ -733,7 +744,9 @@ async function fetchRelationshipStage(_userId: string): Promise<YourStoryData['s
  */
 async function fetchRecentMilestones(_userId: string): Promise<YourStoryData['milestones']> {
   const response = await apiGet<{
-    data?: { milestones?: Array<{ id: string; title: string; completed: boolean; completedAt?: string }> };
+    data?: {
+      milestones?: Array<{ id: string; title: string; completed: boolean; completedAt?: string }>;
+    };
   }>('/api/your-story/section/relationship');
   if (!response.ok) {
     log.debug({ status: response.status }, 'Failed to fetch milestones');
