@@ -35,7 +35,7 @@ import {
   getLeaderboard,
   getUserRank,
   getLeaderboardAroundUser,
-  seedLeaderboardData,
+  isValidGameType,
   type LeaderboardPeriod,
   type LeaderboardScope,
 } from '../../services/social/leaderboards.js';
@@ -443,20 +443,16 @@ export async function handleSocialRoutes(
         res.end(JSON.stringify({ error: 'Missing required fields' }));
         return true;
       }
+      if (!isValidGameType(gameType)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unknown game type' }));
+        return true;
+      }
 
       const stats = updateUserStats(userId, gameType, result);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ stats }));
-      return true;
-    }
-
-    // POST /api/social/seed (development only)
-    if (pathname === '/api/social/seed' && method === 'POST') {
-      seedLeaderboardData();
-
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, message: 'Leaderboard seeded' }));
       return true;
     }
 
