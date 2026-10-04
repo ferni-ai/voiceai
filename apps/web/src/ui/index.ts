@@ -390,22 +390,6 @@ export {
   unmountNextCheckinWidget,
 } from './next-checkin.ui.js';
 
-// Trust Analytics Dashboard - Admin monitoring view
-export {
-  hideTrustAnalytics,
-  initTrustAnalyticsUI,
-  setTrustAnalyticsCallbacks,
-  showTrustAnalytics,
-  trustAnalyticsUI,
-} from './trust-analytics.ui.js';
-export type {
-  ABTestResult,
-  SystemHealth,
-  TrustAnalyticsCallbacks,
-  TrustAnalyticsData,
-  TrustMetrics,
-} from './trust-analytics.ui.js';
-
 // Trust Dashboard - Consolidated trust features UI (Phases 12-29)
 export {
   hideTrustDashboard,
@@ -568,10 +552,7 @@ export {
   showCalendarSelection,
   hideCalendarSelection,
 } from './calendar-selection.ui.js';
-export type {
-  CalendarItem,
-  CalendarProvider,
-} from './calendar-selection.ui.js';
+export type { CalendarItem, CalendarProvider } from './calendar-selection.ui.js';
 
 // Team Observations Panel - Cross-persona coordination visibility
 export {
@@ -581,10 +562,7 @@ export {
 } from './team-observations-panel.ui.js';
 
 // Agent Page Builder - Self-serve landing page creation
-export {
-  pageBuilder,
-  showPageBuilder,
-} from './agent-page-builder.ui.js';
+export { pageBuilder, showPageBuilder } from './agent-page-builder.ui.js';
 export type { PageBuilderCallbacks } from './agent-page-builder.ui.js';
 
 // Types
