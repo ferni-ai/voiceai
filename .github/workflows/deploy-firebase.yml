@@ -46,8 +46,8 @@ jobs:
   # ============================================================================
   deploy-app:
     name: Deploy App
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' || inputs.target == 'app' || inputs.target == 'both' }}
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.target == 'app' || inputs.target == 'both') }}
 
     steps:
       - name: Checkout
@@ -170,8 +170,8 @@ jobs:
   # ============================================================================
   deploy-landing:
     name: Deploy Landing
-    runs-on: ubuntu-latest
-    if: ${{ inputs.target == 'landing' || inputs.target == 'both' }}
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
+    if: ${{ github.ref == 'refs/heads/main' && (inputs.target == 'landing' || inputs.target == 'both') }}
 
     steps:
       - name: Checkout
@@ -248,7 +248,7 @@ jobs:
   # ============================================================================
   notify-failure:
     name: Notify Failure
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.DEPLOY_RUNNER || '"ubuntu-latest"') }}
     needs: [deploy-app, deploy-landing]
     if: failure()
     steps:

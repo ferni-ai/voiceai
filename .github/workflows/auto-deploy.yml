@@ -20,7 +20,7 @@ jobs:
   # Quick quality gate (fails fast, saves minutes)
   quality:
     name: Quick Quality Check
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v4
 

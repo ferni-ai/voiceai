@@ -504,6 +504,15 @@ metrics; don't give it project roles, and don't add a deploy runner to this VM.
 Jobs that hold deploy or publish credentials (`deploy-gce.yml`, `staging.yml` deploy/cleanup with `GCP_SA_KEY`,
 `design-system.yml` publish with `NPM_TOKEN`) are pinned to `ubuntu-latest` for the same reason.
 
+**Production deploys can run on a separate deploy runner VM** (added 2026-10-04, when the Actions budget was
+spent and hosted jobs stopped starting). `github-runner-deploy` (e2-standard-4, us-central1-a) runs one runner
+with the label `deploy`, as `github-runner-deploy@johnb-2025.iam.gserviceaccount.com` (logs and metrics only;
+deploy rights come from `GCP_SA_KEY` / `FIREBASE_SERVICE_ACCOUNT` at job time, never stored on the VM).
+`deploy-production.yml` and `deploy-firebase.yml` pick their runner from the `DEPLOY_RUNNER` repo variable
+(unset → `ubuntu-latest`; set to `["self-hosted","Linux","X64","deploy"]` to use the VM) and refuse any ref but
+`main`. Only those two workflows may target the `deploy` label: never point a PR-triggered workflow at it.
+If the VM is stopped, unset `DEPLOY_RUNNER` (`gh variable delete DEPLOY_RUNNER`) or deploys queue for 24h.
+
 VM-side config (not in the repo, re-create it if the VM is rebuilt):
 - **Workspace hook:** each runner's `.env` sets `ACTIONS_RUNNER_HOOK_JOB_STARTED=/opt/runner-hooks/reclaim-workspace.sh`,
   which hands root-owned files left by container actions (e.g. TruffleHog) back to the runner user before checkout;
