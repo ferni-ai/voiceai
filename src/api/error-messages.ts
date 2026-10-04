@@ -29,6 +29,7 @@ export const API_ERRORS = {
 
   // Conversations
   CONVERSATIONS_FETCH_FAILED: "Couldn't load your conversations right now. Mind trying again?",
+  CONVERSATION_SAVE_FAILED: "Couldn't save that conversation. We'll try again later.",
 
   // Data management
   DATA_EXPORT_FAILED: "Hmm, couldn't export your data. Mind trying again?",
