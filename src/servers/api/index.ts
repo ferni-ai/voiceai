@@ -117,7 +117,6 @@ import { handleConciergeRoutes } from '../../api/concierge-routes.js';
 import { handleProactiveRoutes } from '../../api/proactive-routes.js';
 import { handlePredictionsRoutes } from '../../api/routes/predictions.js';
 import { handleLLMContentRoutes } from '../../api/llm-content-routes.js';
-import { relationshipHealthRoutes } from '../../api/routes/relationship-health-routes.js';
 import { handleYearInReviewRoutes } from '../../api/year-in-review-routes.js';
 import { handleRelationshipRoutes } from '../../api/routes/relationship.js';
 import { handleVoiceHumanizationRoutes } from '../../api/voice-humanization-routes.js';
@@ -871,17 +870,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
-    // Relationship routes (progress & team-unlocks before health routes)
+    // Relationship routes (progress & team-unlocks)
     if (
       pathname === '/api/relationship/progress' ||
       pathname === '/api/relationship/team-unlocks'
     ) {
       const handled = await handleRelationshipRoutes(req, res, pathname, parsedUrl);
-      if (handled) return;
-    }
-
-    if (pathname.startsWith('/api/relationship/')) {
-      const handled = await relationshipHealthRoutes(req, res);
       if (handled) return;
     }
 

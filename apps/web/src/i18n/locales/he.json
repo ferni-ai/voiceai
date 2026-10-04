@@ -1115,6 +1115,7 @@
       "yourPlan": "התוכנית שלך",
       "insights": "[NEEDS_TRANSLATION] Understanding You",
       "yourStory": "[NEEDS_TRANSLATION] Your Story",
+      "trustDashboard": "אמון וצמיחה",
       "whatINotice": "[NEEDS_TRANSLATION] What I Notice",
       "teamSessions": "[NEEDS_TRANSLATION] Team Sessions",
       "conferenceCalls": "[NEEDS_TRANSLATION] Conference Calls",
@@ -2009,6 +2010,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "הסיפור שלך מתחיל כאן",
+      "body": "אחרי שנדבר כמה פעמים, הרגעים שחשובים לך יופיעו כאן."
+    },
+    "error": {
+      "title": "לא הצלחנו לטעון את הסיפור שלך",
+      "body": "משהו השתבש אצלנו. לנסות שוב?",
+      "retry": "לנסות שוב"
     }
   },
   "memoryBrowser": {
@@ -2253,7 +2263,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "חבר את Spotify בהגדרות כדי לשמוע שירים מלאים"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2318,7 +2329,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "חבר קודם את התאורה או את התרמוסטט",
+    "musicNeedsCall": "בקרת המוזיקה פועלת במהלך שיחה",
+    "couldNotChangeLights": "לא הצלחנו לשנות את התאורה. לנסות שוב?"
   },
   "ui": {
     "accountbutton": {
