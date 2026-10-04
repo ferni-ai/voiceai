@@ -58,7 +58,10 @@ describe('bindVerifiedIdentity', () => {
     optionalAuthAsync.mockImplementation(async () => {
       throw new Error('firebase down');
     });
-    const r = req('/api/export?userId=victim', { authorization: 'Bearer t', 'x-firebase-uid': 'victim' });
+    const r = req('/api/export?userId=victim', {
+      authorization: 'Bearer t',
+      'x-firebase-uid': 'victim',
+    });
     expect(await bindVerifiedIdentity(r, PROD)).toBeNull();
     expect(r.headers['x-firebase-uid']).toBeUndefined();
     expect(r.url).toBe('/api/export');

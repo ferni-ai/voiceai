@@ -42,10 +42,7 @@ export function isOwnApiRequest(input: RequestInfo | URL, origin: string): boole
  * Wrap host.fetch so same-origin /api/ calls carry `Authorization: Bearer <token>`.
  * Safe to call more than once.
  */
-export function installApiAuthFetch(
-  host: FetchHost,
-  getToken: () => Promise<string | null>
-): void {
+export function installApiAuthFetch(host: FetchHost, getToken: () => Promise<string | null>): void {
   if (installed.has(host)) return;
   installed.add(host);
   const original = host.fetch.bind(host);

@@ -40,7 +40,6 @@ const log = createLogger({ module: 'oura-routes' });
 // HELPERS
 // ============================================================================
 
-
 function sendJson(res: ServerResponse, statusCode: number, data: unknown): void {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));

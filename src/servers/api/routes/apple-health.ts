@@ -39,7 +39,6 @@ const log = createLogger({ module: 'apple-health-routes' });
 // HELPERS
 // ============================================================================
 
-
 function getSyncToken(req: IncomingMessage): string | null {
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Sync ')) {

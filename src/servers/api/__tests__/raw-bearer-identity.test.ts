@@ -18,7 +18,11 @@ const { handleAmbientModeRoutes } = await import('../routes/ambient-mode.js');
 const PROD = { NODE_ENV: 'production' };
 
 function req(headers: Record<string, string>): IncomingMessage {
-  return { url: '/api/ambient-mode/state', method: 'GET', headers: { ...headers } } as unknown as IncomingMessage;
+  return {
+    url: '/api/ambient-mode/state',
+    method: 'GET',
+    headers: { ...headers },
+  } as unknown as IncomingMessage;
 }
 function res() {
   const out = { status: 0, body: '' };
@@ -38,7 +42,12 @@ async function route(headers: Record<string, string>) {
   const q = req(headers);
   await bindVerifiedIdentity(q, PROD);
   const { r, out } = res();
-  await handleAmbientModeRoutes(q, r, '/api/ambient-mode/state', new URL('http://x/api/ambient-mode/state'));
+  await handleAmbientModeRoutes(
+    q,
+    r,
+    '/api/ambient-mode/state',
+    new URL('http://x/api/ambient-mode/state')
+  );
   return out;
 }
 

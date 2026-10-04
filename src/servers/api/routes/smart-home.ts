@@ -63,7 +63,6 @@ interface HomeKitConfig {
 // HELPERS
 // ============================================================================
 
-
 function getQueryParam(url: URL, key: string): string | null {
   return url.searchParams.get(key);
 }

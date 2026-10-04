@@ -51,10 +51,12 @@ export async function bindVerifiedIdentity(
 ): Promise<string | null> {
   delete req.headers['x-firebase-uid'];
   // A verification error counts as no identity (fail closed).
-  const auth = hasCredential(req) ? await optionalAuthAsync(req).catch((error: unknown) => {
+  const auth = hasCredential(req)
+    ? await optionalAuthAsync(req).catch((error: unknown) => {
         log.warn({ error: String(error) }, 'Credential verification failed; treating as anonymous');
         return null;
-      }) : null;
+      })
+    : null;
   const uid = auth?.userId ?? null;
   const url = new URL(req.url || '/', 'http://local');
 

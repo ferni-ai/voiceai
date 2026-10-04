@@ -24,7 +24,6 @@ const log = createLogger({ module: 'spotify-rooms-routes' });
 // HELPERS
 // ============================================================================
 
-
 async function parseBody<T>(req: IncomingMessage): Promise<T | null> {
   return new Promise((resolve) => {
     let body = '';
