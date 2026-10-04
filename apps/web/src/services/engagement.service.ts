@@ -9,8 +9,16 @@
  * - HTTP API (initial load and background sync)
  */
 
-import type { EngagementEvent, EngagementTriggerEvent, DailyCheckInRecordedEvent } from '../types/events.js';
-import { isEngagementMessage, isEngagementTriggerMessage, isDailyCheckInRecordedMessage } from '../types/events.js';
+import type {
+  EngagementEvent,
+  EngagementTriggerEvent,
+  DailyCheckInRecordedEvent,
+} from '../types/events.js';
+import {
+  isEngagementMessage,
+  isEngagementTriggerMessage,
+  isDailyCheckInRecordedMessage,
+} from '../types/events.js';
 import type { EngagementData, EmotionalWeatherData } from '../ui/engagement.ui.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
@@ -179,7 +187,7 @@ class EngagementService {
 
       // Update stats
       this.cachedData.lastEngagementAt = event.timestamp;
-      
+
       // Notify listeners to refresh UI
       this.callbacks.onEngagementUpdate?.(this.cachedData);
     }
@@ -221,10 +229,10 @@ class EngagementService {
         stats?: Record<string, unknown>;
         lastEngagementAt?: string;
       }>('/api/rituals', { userId });
-      
+
       if (result.ok && result.data) {
         const data = result.data;
-        
+
         // Transform to EngagementData format
         const engagementData: EngagementData = {
           ritualStreaks: (data.streaks || []).map((s: Record<string, unknown>) => ({
@@ -237,15 +245,19 @@ class EngagementService {
             dueToday: this.isDueToday(s.lastCompletedAt as string | null),
           })),
           weatherHistory: (data.weatherHistory || []).map((w: Record<string, unknown>) => ({
-            primary: ((w.weather as Record<string, string>)?.primary || 'cloudy') as EmotionalWeatherData['primary'],
-            energy: ((w.weather as Record<string, string>)?.energy || 'medium') as EmotionalWeatherData['energy'],
+            primary: ((w.weather as Record<string, string>)?.primary ||
+              'cloudy') as EmotionalWeatherData['primary'],
+            energy: ((w.weather as Record<string, string>)?.energy ||
+              'medium') as EmotionalWeatherData['energy'],
             note: w.weather ? (w.weather as Record<string, string>).note : undefined,
             recordedAt: w.date as string,
           })),
           stats: {
             totalRitualDays: (data.stats?.totalRitualDays as number) || 0,
             longestOverallStreak: (data.stats?.longestOverallStreak as number) || 0,
-            currentActiveStreaks: data.streaks?.filter((s: Record<string, unknown>) => (s.currentStreak as number) > 0).length || 0,
+            currentActiveStreaks:
+              data.streaks?.filter((s: Record<string, unknown>) => (s.currentStreak as number) > 0)
+                .length || 0,
             predictionAccuracy: data.stats?.predictionAccuracy as number | undefined,
             teamHuddlesAttended: (data.stats?.teamHuddlesAttended as number) || 0,
           },
@@ -254,7 +266,7 @@ class EngagementService {
 
         this.cachedData = engagementData;
         this.callbacks.onEngagementUpdate?.(engagementData);
-        log.info('Loaded engagement data from API', { 
+        log.info('Loaded engagement data from API', {
           streaks: engagementData.ritualStreaks.length,
           weather: engagementData.weatherHistory.length,
         });
@@ -314,19 +326,21 @@ class EngagementService {
       const result = await apiGet<{
         predictions?: Array<Record<string, unknown>>;
       }>('/api/predictions', { userId });
-      
+
       if (result.ok && result.data) {
         const data = result.data;
         // Transform from StoredPrediction to PredictionData format
-        const predictions: PredictionData[] = (data.predictions || []).map((p: Record<string, unknown>) => ({
-          id: p.id as string,
-          category: this.extractCategory(p.predictions as Record<string, number>),
-          question: `Week of ${p.weekOf}`,
-          userPrediction: this.extractMainValue(p.predictions as Record<string, number>),
-          actualOutcome: p.accuracy as number | undefined,
-          status: p.completedAt ? 'resolved' as const : 'pending' as const,
-          createdAt: p.createdAt as string,
-        }));
+        const predictions: PredictionData[] = (data.predictions || []).map(
+          (p: Record<string, unknown>) => ({
+            id: p.id as string,
+            category: this.extractCategory(p.predictions as Record<string, number>),
+            question: `Week of ${p.weekOf}`,
+            userPrediction: this.extractMainValue(p.predictions as Record<string, number>),
+            actualOutcome: p.accuracy as number | undefined,
+            status: p.completedAt ? ('resolved' as const) : ('pending' as const),
+            createdAt: p.createdAt as string,
+          })
+        );
         this.cachedPredictions = predictions;
         this.callbacks.onPredictionsUpdate?.(predictions);
         return predictions;
@@ -410,14 +424,14 @@ class EngagementService {
    * Get pending predictions (not yet resolved).
    */
   getPendingPredictions(): PredictionData[] {
-    return this.cachedPredictions.filter(p => p.status === 'pending');
+    return this.cachedPredictions.filter((p) => p.status === 'pending');
   }
 
   /**
    * Get resolved predictions.
    */
   getResolvedPredictions(): PredictionData[] {
-    return this.cachedPredictions.filter(p => p.status === 'resolved');
+    return this.cachedPredictions.filter((p) => p.status === 'resolved');
   }
 
   /**
@@ -446,4 +460,3 @@ class EngagementService {
 // ============================================================================
 
 export const engagementService = new EngagementService();
-
