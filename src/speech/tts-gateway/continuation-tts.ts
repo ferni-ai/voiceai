@@ -62,6 +62,23 @@ export function voiceStateTags(from: VoiceState, to: VoiceState): string {
 
 const MIN_CHUNK = 15;
 
+/**
+ * Ma: a beat of silence between sentences, so a reply breathes instead of
+ * running its sentences together. Written by code, between pieces that end a
+ * sentence, never by the model (the director keeps pause tags out of its
+ * text). CASCADE_SENTENCE_BREAK_MS tunes it; 0 turns it off.
+ */
+export const DEFAULT_SENTENCE_BREAK_MS = 300;
+export function sentenceBreakMs(env: Record<string, string | undefined> = process.env): number {
+  const raw = env.CASCADE_SENTENCE_BREAK_MS;
+  const ms = raw === undefined || raw === '' ? NaN : Number(raw);
+  return Number.isFinite(ms) && ms >= 0
+    ? Math.min(Math.round(ms), 2000)
+    : DEFAULT_SENTENCE_BREAK_MS;
+}
+// A full stop, ! or ?; not an ellipsis ("my window... reminds me" runs on).
+const ENDS_SENTENCE = /(?:[!?]|(?<!\.)\.)["'”’)\]]*$/;
+
 export interface ContinuationOptions {
   textStream: NodeReadableStream<string>;
   reply: ReplyStream;
@@ -86,6 +103,8 @@ export interface ContinuationOptions {
   baseSpeed?: number;
   toFrames(pcm: ArrayBuffer): Iterable<AudioFrame>;
   onFirstAudio(): void;
+  /** Pause between sentences in ms; defaults to sentenceBreakMs() (env). */
+  sentenceBreakMs?: number;
   /** Override FIRST_CHUNK_WAIT_MS (tests). */
   firstChunkWaitMs?: number;
   /** Timing marks for the first-audio log: first LLM text in, first text sent. */
@@ -124,6 +143,8 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
     let pushed = false;
     let heardText = false;
     let state: VoiceState = { speed: base, volume: 1 };
+    const breakMs = opts.sentenceBreakMs ?? sentenceBreakMs();
+    let afterSentence = false;
     const push = (raw: string): void => {
       const { text, prosody } = sanitize(raw);
       if (!text) return;
@@ -145,10 +166,14 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
       }
       // A new context starts from the defaults, so it gets the full state.
       const tags = first || shiftsEmotion ? openingTags(next) : voiceStateTags(state, next);
+      // No second pause where the reply already opens this piece with its own break.
+      const ownBreak = /^(?:<(?!break)[^>]*>)*<break/.test(`${tags}${text}`);
+      const pause = afterSentence && breakMs > 0 && !ownBreak ? `<break time="${breakMs}ms"/>` : '';
+      afterSentence = ENDS_SENTENCE.test(text);
       first = false;
       state = next;
       // Pieces are joined verbatim, so keep a space between sentences.
-      current.push(`${tags}${text} `);
+      current.push(`${pause}${tags}${text} `);
       if (!pushed) {
         pushed = true;
         opts.onStage?.('push');

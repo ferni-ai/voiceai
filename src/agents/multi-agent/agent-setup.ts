@@ -138,6 +138,7 @@ import {
   type VoiceHumanizationIntegration,
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
+import { endpointingDelays } from '../shared/turn-patience.js';
 
 const log = getLogger();
 
@@ -1262,10 +1263,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     turnHandling: { interruption: interruptionOverrides() },
     voiceOptions: {
       allowInterruptions: true,
-      // UPDATED Jan 2026: Ultra-tight delays for natural conversation
-      // Human turn-taking gaps are 200-400ms - we should match that
-      minEndpointingDelay: 150, // Was 250ms - be snappier
-      maxEndpointingDelay: 450, // Was 800ms - don't wait too long
+      ...endpointingDelays(), // waits through thinking pauses: see turn-patience.ts
       minInterruptionWords: 1,
       minInterruptionDuration: 150, // Was 200ms - faster interrupt detection
       preemptiveGeneration: true,
