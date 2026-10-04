@@ -11,6 +11,15 @@ import {
 import { fakeEmbedder } from './fake-embedder.js';
 import type { IntentManual } from '../tool-retriever.js';
 
+const logged = vi.hoisted(() => [] as Array<{ fields: Record<string, unknown>; msg: string }>);
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/safe-logger.js')>()),
+  createLogger: () => {
+    const rec = (fields: Record<string, unknown>, msg: string) => logged.push({ fields, msg });
+    return { info: rec, warn: rec, error: rec, debug: rec };
+  },
+}));
+
 const manual: IntentManual = {
   tools: {
     setTimer: {
@@ -151,6 +160,32 @@ describe('TurnToolRetrieval', () => {
     });
     expect(stats.embedMsP95).not.toBeNull();
     expect(JSON.stringify(stats)).not.toContain('rain');
+  });
+
+  it("never logs the user's or the model's words, only their lengths", async () => {
+    const { r, toolCtx } = await setup();
+    logged.length = 0;
+    r.observe('will it rain today', toolCtx);
+    await r.pick('will it rain today');
+    await r.selectLive('will it rain today', toolCtx, 50);
+    await r.find('countdown for the pasta');
+    r.onToolsExecuted(['getWeather']);
+    r.logSummary();
+    const events = logged.map((l) => l.msg);
+    expect(events).toEqual(
+      expect.arrayContaining([
+        'TOOL_RETRIEVAL_SHADOW',
+        'TOOL_RETRIEVAL_LIVE',
+        'TOOL_RETRIEVAL_FIND',
+        'TOOL_RETRIEVAL_COVERAGE',
+        'TOOL_RETRIEVAL_SUMMARY',
+      ])
+    );
+    const all = JSON.stringify(logged);
+    for (const word of ['rain', 'today', 'pasta', 'countdown']) expect(all).not.toContain(word);
+    const live = logged.find((l) => l.msg === 'TOOL_RETRIEVAL_LIVE')!.fields;
+    expect(live.textChars).toBe('will it rain today'.length);
+    expect(logged.find((l) => l.msg === 'TOOL_RETRIEVAL_FIND')!.fields.needChars).toBe(23);
   });
 
   it('counts a failed pick', async () => {

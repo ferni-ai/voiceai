@@ -294,9 +294,9 @@ export class TurnToolRetrieval {
     log.info(
       {
         sessionId: this.opts.sessionId,
-        text: text.slice(0, 200),
+        textChars: text.length,
         source,
-        pickedFor: pick && source === 'fallback' ? pick.text.slice(0, 200) : undefined,
+        pickedForChars: pick && source === 'fallback' ? pick.text.length : undefined,
         waitMs: Date.now() - started,
         toolsNow: Object.keys(toolCtx.functionTools).length,
         toolsSent: Object.keys(sent.functionTools).length,
@@ -385,7 +385,7 @@ export class TurnToolRetrieval {
     log.info(
       {
         sessionId: this.opts.sessionId,
-        need: need.slice(0, 200),
+        needChars: need.length,
         found: found.map((f) => f.name),
         ms: Date.now() - started,
       },
@@ -408,7 +408,7 @@ export class TurnToolRetrieval {
       log.info(
         {
           sessionId: this.opts.sessionId,
-          text: text.slice(0, 200),
+          textChars: text.length,
           picked: [...chosen],
           unavailable: p.tools
             .slice(0, this.k)
@@ -441,9 +441,9 @@ export class TurnToolRetrieval {
       const c = { tool: name, rank, via, covered: via !== 'missed' };
       const coverage: ToolCoverage = { ...c, liveCovered: isLiveCovered(c, this.k, mode) };
       this.stats.call(coverage);
-      const text = pick?.text.slice(0, 200) ?? null;
+      const textChars = pick?.text.length ?? null;
       log.info(
-        { sessionId: this.opts.sessionId, mode, text, ...coverage },
+        { sessionId: this.opts.sessionId, mode, textChars, ...coverage },
         'TOOL_RETRIEVAL_COVERAGE'
       );
       return coverage;
