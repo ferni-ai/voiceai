@@ -632,80 +632,65 @@ export async function showYourStoryDashboard(): Promise<void> {
 }
 
 /**
- * Aggregate story data from multiple sources.
- *
- * Combines:
- * - Visualization data (from Firestore)
- * - Analytics (from API)
- * - Relationship stage (from API)
- * - Recent milestones (from API)
+ * Aggregate story data: visualizations (Firestore) plus the header stats,
+ * relationship stage and milestones from GET /api/your-story/section/:section
+ * (src/api/your-story-routes.ts). A failed section throws, so the caller shows
+ * the error state rather than zeros or a made-up stage.
  */
 async function aggregateStoryData(
   userId: string,
   visualizationData: Awaited<ReturnType<typeof fetchVisualizationData>>
 ): Promise<YourStoryData> {
-  // Fetch additional data in parallel
-  const [analyticsData, stageData, milestonesData] = await Promise.all([
-    fetchAnalyticsStats(userId),
-    fetchRelationshipStage(userId),
-    fetchRecentMilestones(userId),
+  const [header, relationship] = await Promise.all([
+    fetchStorySection<StoryHeaderSection>('header'),
+    fetchStorySection<RelationshipSection>('relationship'),
   ]);
-
   return {
     ...visualizationData,
     userId,
     timestamp: new Date().toISOString(),
-    analytics: analyticsData,
-    stage: stageData,
-    milestones: milestonesData,
+    analytics: {
+      daysTogether: header.daysTogether,
+      conversations: header.totalConversations,
+      streak: header.currentStreak,
+    },
+    stage: {
+      name: relationship.stageLabel,
+      progress: relationship.progress,
+      tagline: relationship.tagline,
+    },
+    milestones: (relationship.milestones ?? [])
+      .filter((m) => m.completed)
+      .map((m) => ({
+        id: m.id,
+        name: m.title,
+        celebratedAt: m.completedAt ? new Date(m.completedAt).getTime() : 0,
+        category: 'relationship' as const,
+      })),
   };
 }
 
-/**
- * Fetch analytics stats for the story header.
- */
-async function fetchAnalyticsStats(_userId: string): Promise<YourStoryData['analytics']> {
-  // TODO: Backend GET /api/analytics/user not implemented yet.
-  // Re-enable fetch when handler exists.
-  return { daysTogether: 0, conversations: 0, streak: 0 };
+/** StoryHeader in src/api/your-story-routes.ts. */
+interface StoryHeaderSection {
+  daysTogether: number;
+  totalConversations: number;
+  currentStreak: number;
 }
 
-/**
- * Fetch relationship stage for the story header.
- */
-async function fetchRelationshipStage(_userId: string): Promise<YourStoryData['stage']> {
-  // TODO: Backend GET /api/journey/stage not implemented yet.
-  // Re-enable fetch when handler exists.
-  return {
-    name: 'Getting Started',
-    progress: 0,
-    tagline: 'Just beginning our journey',
-  };
+/** RelationshipProgress in src/api/your-story-routes.ts. */
+interface RelationshipSection {
+  stageLabel: string;
+  progress: number;
+  tagline: string;
+  milestones?: Array<{ id: string; title: string; completed: boolean; completedAt?: string }>;
 }
 
-/**
- * Fetch completed relationship milestones for the story.
- * Source: GET /api/your-story/section/relationship (src/api/your-story-routes.ts),
- * built from the relationship arc stored in Firestore.
- */
-async function fetchRecentMilestones(_userId: string): Promise<YourStoryData['milestones']> {
-  const response = await apiGet<{
-    data?: {
-      milestones?: Array<{ id: string; title: string; completed: boolean; completedAt?: string }>;
-    };
-  }>('/api/your-story/section/relationship');
-  if (!response.ok) {
-    log.debug({ status: response.status }, 'Failed to fetch milestones');
-    return [];
+async function fetchStorySection<T>(section: 'header' | 'relationship'): Promise<T> {
+  const response = await apiGet<{ data?: T }>(`/api/your-story/section/${section}`);
+  if (!response.ok || !response.data?.data) {
+    throw new Error(`Your Story ${section} failed (${response.status})`);
   }
-  return (response.data?.data?.milestones ?? [])
-    .filter((m) => m.completed)
-    .map((m) => ({
-      id: m.id,
-      name: m.title,
-      celebratedAt: m.completedAt ? new Date(m.completedAt).getTime() : 0,
-      category: 'relationship' as const,
-    }));
+  return response.data.data;
 }
 
 // ============================================================================
