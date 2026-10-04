@@ -301,7 +301,11 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
       ? `${userLocation.city}, ${userLocation.regionCode}`
       : userLocation.city
     : undefined;
-  setCurrentActiveSession(userId || 'anonymous', formattedLocation, sessionId);
+  setCurrentActiveSession({
+    sessionId,
+    userId: userId || 'anonymous',
+    location: formattedLocation,
+  });
 
   // Get tools
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -454,7 +458,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
       ? async (type: string, payload: Record<string, unknown>) => {
           try {
             const { getFrontendPublisher } = await import('../realtime/index.js');
-            const pub = getFrontendPublisher();
+            const pub = getFrontendPublisher(sessionId);
             if (pub?.isConnected()) await pub.sendData(type, payload ?? {});
           } catch { /* no-op */ }
         }
@@ -534,7 +538,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
         const sendDataMessageForQwen = async (type: string, payload: Record<string, unknown>) => {
           try {
             const { getFrontendPublisher } = await import('../realtime/index.js');
-            const pub = getFrontendPublisher();
+            const pub = getFrontendPublisher(sessionId);
             if (pub?.isConnected()) await pub.sendData(type, payload ?? {});
           } catch { /* no-op */ }
         };

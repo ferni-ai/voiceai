@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { getSessionId } from '../../utils/tool-helpers.js';
 
 const log = getLogger().child({ module: 'app-settings-tools' });
 
@@ -178,7 +179,7 @@ export const setAppLanguageDef: ToolDefinition = {
           ),
       }),
 
-      execute: async (params): Promise<string> => {
+      execute: async (params, run): Promise<string> => {
         const { language } = params;
 
         log.info({ userId: ctx.userId, language }, 'Changing app language');
@@ -204,7 +205,7 @@ export const setAppLanguageDef: ToolDefinition = {
         try {
           const { getFrontendPublisher } =
             await import('../../../agents/realtime/frontend-publisher.js');
-          const publisher = getFrontendPublisher();
+          const publisher = getFrontendPublisher(getSessionId(run));
 
           if (publisher.isConnected()) {
             await publisher.sendSetLanguage(locale);

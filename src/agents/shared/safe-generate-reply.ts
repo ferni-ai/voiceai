@@ -59,18 +59,35 @@ const MAX_CONTEXT_CHARS = 32000;
  */
 const CRITICAL_CONTEXT_CHARS = 48000;
 
-/** Track failures to implement circuit breaker behavior */
-const failureTracker = new FailureTracker({
-  windowMs: 60_000,
-  threshold: 3,
-});
+/**
+ * Circuit breaker, rate limit and mutex for one call. Kept per session: one
+ * worker runs several calls at once, and one caller's in-flight reply or
+ * failures must not pause another's.
+ */
+interface ReplyGuard {
+  failureTracker: FailureTracker;
+  /** Track last call time to prevent rapid-fire calls */
+  lastCallTime: number;
+  /** MUTEX: Prevent concurrent generateReply calls */
+  inProgress: boolean;
+  currentContext: string | null;
+}
 
-/** Track last call time to prevent rapid-fire calls */
-let lastCallTime = 0;
+const replyGuards = new WeakMap<object, ReplyGuard>();
 
-/** MUTEX: Prevent concurrent generateReply calls */
-let generateReplyInProgress = false;
-let currentContext: string | null = null;
+function guardFor(session: object): ReplyGuard {
+  let guard = replyGuards.get(session);
+  if (!guard) {
+    guard = {
+      failureTracker: new FailureTracker({ windowMs: 60_000, threshold: 3 }),
+      lastCallTime: 0,
+      inProgress: false,
+      currentContext: null,
+    };
+    replyGuards.set(session, guard);
+  }
+  return guard;
+}
 
 // ============================================================================
 // TYPES
@@ -120,6 +137,7 @@ function checkCircuitBreaker(
   context: string,
   sessionId?: string
 ): SafeGenerateReplyResult | null {
+  const { failureTracker } = guardFor(session);
   if (!failureTracker.shouldSkip()) {
     return null;
   }
@@ -154,9 +172,9 @@ function checkCircuitBreaker(
 // HELPER: Rate limiting
 // ============================================================================
 
-function checkRateLimit(context: string): SafeGenerateReplyResult | null {
+function checkRateLimit(guard: ReplyGuard, context: string): SafeGenerateReplyResult | null {
   const now = Date.now();
-  const timeSinceLastCall = now - lastCallTime;
+  const timeSinceLastCall = now - guard.lastCallTime;
 
   if (timeSinceLastCall < MIN_INTERVAL_MS) {
     logger.debug({ context, timeSinceLastCall }, '⚡ Rate limiting generateReply');
@@ -167,7 +185,7 @@ function checkRateLimit(context: string): SafeGenerateReplyResult | null {
     };
   }
 
-  lastCallTime = now;
+  guard.lastCallTime = now;
   return null;
 }
 
@@ -175,30 +193,30 @@ function checkRateLimit(context: string): SafeGenerateReplyResult | null {
 // HELPER: Mutual exclusion (prevent concurrent generateReply calls)
 // ============================================================================
 
-function checkMutualExclusion(context: string): SafeGenerateReplyResult | null {
-  if (generateReplyInProgress) {
+function checkMutualExclusion(guard: ReplyGuard, context: string): SafeGenerateReplyResult | null {
+  if (guard.inProgress) {
     logger.warn(
-      { context, currentContext },
+      { context, currentContext: guard.currentContext },
       '🔒 MUTEX: Skipping generateReply - another call in progress'
     );
     return {
       success: false,
       usedFallback: false,
       skippedConcurrent: true,
-      error: `Skipped: generateReply already in progress (${currentContext})`,
+      error: `Skipped: generateReply already in progress (${guard.currentContext})`,
     };
   }
   return null;
 }
 
-function acquireMutex(context: string): void {
-  generateReplyInProgress = true;
-  currentContext = context;
+function acquireMutex(guard: ReplyGuard, context: string): void {
+  guard.inProgress = true;
+  guard.currentContext = context;
 }
 
-function releaseMutex(): void {
-  generateReplyInProgress = false;
-  currentContext = null;
+function releaseMutex(guard: ReplyGuard): void {
+  guard.inProgress = false;
+  guard.currentContext = null;
 }
 
 // ============================================================================
@@ -288,7 +306,7 @@ function checkConnectionHealth(session: voice.AgentSession): { healthy: boolean;
     }
 
     // Additional heuristic: check recent failure rate
-    const failureCount = failureTracker.getFailureCount();
+    const failureCount = guardFor(session).failureTracker.getFailureCount();
     if (failureCount >= 2) {
       logger.debug({ failureCount }, '⚠️ Recent failures suggest connection issues');
       return { healthy: true, reason: `${failureCount} recent failures` };
@@ -476,11 +494,13 @@ export async function safeGenerateReply(
   }
 
   // SAFEGUARD 2: Check rate limit
-  const rateLimitResult = checkRateLimit(context);
+  const guard = guardFor(session);
+  const { failureTracker } = guard;
+  const rateLimitResult = checkRateLimit(guard, context);
   if (rateLimitResult) return rateLimitResult;
 
   // SAFEGUARD 3: Check mutual exclusion (prevent concurrent calls)
-  const mutexResult = checkMutualExclusion(context);
+  const mutexResult = checkMutualExclusion(guard, context);
   if (mutexResult) return mutexResult;
 
   // SAFEGUARD 4: Monitor context size
@@ -494,7 +514,7 @@ export async function safeGenerateReply(
   }
 
   // Acquire mutex before making the call
-  acquireMutex(context);
+  acquireMutex(guard, context);
 
   // Execute with timeout (SAFEGUARD 6)
   // If sessionId provided, delegates to centralized gateway which handles session readiness
@@ -590,7 +610,7 @@ export async function safeGenerateReply(
     };
   } finally {
     // CRITICAL: Always release mutex
-    releaseMutex();
+    releaseMutex(guard);
   }
 }
 
@@ -641,11 +661,16 @@ export async function safeSay(
 // CIRCUIT BREAKER STATUS
 // ============================================================================
 
-export function isCircuitOpen(): boolean {
-  return failureTracker.shouldSkip();
+export function isCircuitOpen(session: object): boolean {
+  return guardFor(session).failureTracker.shouldSkip();
 }
 
-export function getFailureStats(): { count: number; threshold: number; isOpen: boolean } {
+export function getFailureStats(session: object): {
+  count: number;
+  threshold: number;
+  isOpen: boolean;
+} {
+  const { failureTracker } = guardFor(session);
   return {
     count: failureTracker.getFailureCount(),
     threshold: 3,
@@ -653,8 +678,8 @@ export function getFailureStats(): { count: number; threshold: number; isOpen: b
   };
 }
 
-export function resetCircuitBreaker(): void {
-  failureTracker.recordSuccess();
+export function resetCircuitBreaker(session: object): void {
+  guardFor(session).failureTracker.recordSuccess();
   logger.info('Circuit breaker reset manually');
 }
 
@@ -687,8 +712,9 @@ export interface SafeGenerateReplyStatus {
  * Get full status report for diagnostics.
  * Useful for debugging why generateReply calls might be failing.
  */
-export function getFullStatus(): SafeGenerateReplyStatus {
+export function getFullStatus(session: object): SafeGenerateReplyStatus {
   const now = Date.now();
+  const { failureTracker, inProgress, currentContext, lastCallTime } = guardFor(session);
   return {
     circuitBreaker: {
       isOpen: failureTracker.shouldSkip(),
@@ -696,7 +722,7 @@ export function getFullStatus(): SafeGenerateReplyStatus {
       threshold: 3,
     },
     mutex: {
-      isLocked: generateReplyInProgress,
+      isLocked: inProgress,
       currentContext,
     },
     rateLimit: {
@@ -715,11 +741,12 @@ export function getFullStatus(): SafeGenerateReplyStatus {
  * Check if it's safe to call generateReply right now.
  * Returns null if safe, or an error message if not.
  */
-export function canGenerateReply(): string | null {
+export function canGenerateReply(session: object): string | null {
+  const { failureTracker, inProgress, currentContext, lastCallTime } = guardFor(session);
   if (failureTracker.shouldSkip()) {
     return 'Circuit breaker is open';
   }
-  if (generateReplyInProgress) {
+  if (inProgress) {
     return `Mutex locked by: ${currentContext}`;
   }
   const timeSinceLastCall = Date.now() - lastCallTime;
@@ -733,10 +760,14 @@ export function canGenerateReply(): string | null {
  * Force unlock the mutex (use only in emergency/cleanup scenarios).
  * WARNING: This could cause race conditions if called while a generateReply is actually in progress.
  */
-export function forceUnlockMutex(): void {
-  if (generateReplyInProgress) {
-    logger.warn({ currentContext }, '⚠️ Force unlocking mutex - use with caution');
-    releaseMutex();
+export function forceUnlockMutex(session: object): void {
+  const guard = guardFor(session);
+  if (guard.inProgress) {
+    logger.warn(
+      { currentContext: guard.currentContext },
+      '⚠️ Force unlocking mutex - use with caution'
+    );
+    releaseMutex(guard);
   }
 }
 

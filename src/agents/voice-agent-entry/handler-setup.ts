@@ -393,10 +393,19 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
         process.stderr.write(`[voice-agent-entry] ⏰ Idle timeout - disconnecting session ${sessionId}\n`);
         try {
           const { sendFrontendSignal } = await import('../../services/frontend-signal.js');
-          await sendFrontendSignal('conversation_end', { reason: 'idle_timeout', disconnectDelay: 0, timestamp: Date.now() });
-        } catch { /* Non-critical */ }
-        try { if (ctx.room.isConnected) await ctx.room.disconnect(); }
-        catch (disconnectErr) { process.stderr.write(`[voice-agent-entry] ⚠️ Error disconnecting: ${disconnectErr}\n`); }
+          await sendFrontendSignal(
+            'conversation_end',
+            { reason: 'idle_timeout', disconnectDelay: 0, timestamp: Date.now() },
+            sessionId
+          );
+        } catch {
+          /* Non-critical */
+        }
+        try {
+          if (ctx.room.isConnected) await ctx.room.disconnect();
+        } catch (disconnectErr) {
+          process.stderr.write(`[voice-agent-entry] ⚠️ Error disconnecting: ${disconnectErr}\n`);
+        }
       })();
     },
   });
@@ -521,7 +530,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   process.stderr.write(`[voice-agent-entry] 📡 Data channel handler set up\n`);
 
   // Frontend publisher + signals
-  await setupFrontendPublisher(ctx, sessionPersona, sessionId);
+  await setupFrontendPublisher(ctx, sessionPersona, sessionId, cleanupHandlers);
 
   // Async events, prosody bridge, bundle runtime, humanization
   await setupNonCriticalServices(ctx, sessionPersona, sessionId, userId, services, userData);
@@ -546,32 +555,38 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
 async function setupFrontendPublisher(
   ctx: JobContext,
   sessionPersona: PersonaConfig,
-  sessionId: string
+  sessionId: string,
+  cleanupHandlers: Array<() => void | Promise<void>>
 ): Promise<void> {
   try {
-    const { initializeFrontendPublisher, getFrontendPublisher } = await import('../realtime/index.js');
-    initializeFrontendPublisher(ctx.room);
+    const { initializeFrontendPublisher, releaseFrontendPublisher } =
+      await import('../realtime/index.js');
+    const publisher = initializeFrontendPublisher(sessionId, ctx.room);
+    cleanupHandlers.push(() => releaseFrontendPublisher(sessionId));
 
-    const { initFrontendSignal } = await import('../../services/frontend-signal.js');
-    initFrontendSignal(async (type, data) => {
-      const publisher = getFrontendPublisher();
+    const { initFrontendSignal, resetFrontendSignal } =
+      await import('../../services/frontend-signal.js');
+    initFrontendSignal(sessionId, async (type, data) => {
       if (publisher.isConnected()) await publisher.sendData(type, data ?? {});
     });
+    cleanupHandlers.push(() => resetFrontendSignal(sessionId));
     process.stderr.write(`[voice-agent-entry] 📤 Frontend publisher initialized\n`);
 
     try {
-      const { initHumanizationSignalEmitter } = await import('../../services/humanization/humanization-signal-emitter.js');
-      initHumanizationSignalEmitter(async (type, payload) => {
-        const publisher = getFrontendPublisher();
+      const { initHumanizationSignalEmitter, releaseHumanizationSignalEmitter } =
+        await import('../../services/humanization/humanization-signal-emitter.js');
+      initHumanizationSignalEmitter(sessionId, async (type, payload) => {
         if (publisher.isConnected()) await publisher.sendData(type, payload);
       });
+      cleanupHandlers.push(() => releaseHumanizationSignalEmitter(sessionId));
       process.stderr.write(`[voice-agent-entry] 🌉 Humanization signal emitter initialized\n`);
     } catch { /* Non-critical */ }
 
     try {
-      const { setSignalEmitter } = await import('../../services/trust-systems/trust-signal-emitter.js');
-      setSignalEmitter((signal) => {
-        const publisher = getFrontendPublisher();
+      const { setSignalEmitter, clearSignalEmitter } =
+        await import('../../services/trust-systems/trust-signal-emitter.js');
+      cleanupHandlers.push(() => clearSignalEmitter(sessionId));
+      setSignalEmitter(sessionId, (signal) => {
         if (publisher.isConnected()) {
           void publisher.sendData('trust_signal', {
             signalType: signal.type, title: signal.title, message: signal.message,

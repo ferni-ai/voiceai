@@ -18,6 +18,7 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 
 import {
   initHumanizationSignalEmitter,
+  releaseHumanizationSignalEmitter,
   setSignalEmitterEnabled,
   emitHumanizationSignal,
   emitMemoryCallback,
@@ -67,7 +68,8 @@ describe('HumanizationSignalEmitter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSendData = vi.fn().mockResolvedValue(undefined);
-    initHumanizationSignalEmitter(mockSendData);
+    releaseHumanizationSignalEmitter();
+    initHumanizationSignalEmitter('session-a', mockSendData);
     setSignalEmitterEnabled(true);
     usedSignalTypes = new Set();
   });
@@ -79,7 +81,7 @@ describe('HumanizationSignalEmitter', () => {
   describe('initHumanizationSignalEmitter', () => {
     it('should initialize with callback', () => {
       const callback = vi.fn();
-      initHumanizationSignalEmitter(callback);
+      initHumanizationSignalEmitter('session-a', callback);
 
       expect(() => signalBreakthrough()).not.toThrow();
     });
@@ -131,9 +133,7 @@ describe('HumanizationSignalEmitter', () => {
     });
 
     it('should not emit when no callback', async () => {
-      initHumanizationSignalEmitter(
-        null as unknown as (type: string, payload: Record<string, unknown>) => Promise<void>
-      );
+      releaseHumanizationSignalEmitter('session-a');
 
       await emitHumanizationSignal({
         signalType: 'breakthrough',
@@ -674,6 +674,29 @@ describe('HumanizationSignalEmitter', () => {
           phase: 'building',
         })
       );
+    });
+  });
+
+  describe('concurrent sessions', () => {
+    it('drops signals instead of guessing when several calls are live', async () => {
+      const otherSendData = vi.fn().mockResolvedValue(undefined);
+      initHumanizationSignalEmitter('session-b', otherSendData);
+
+      await emitHumanizationSignal({ signalType: 'mind_change' });
+
+      expect(mockSendData).not.toHaveBeenCalled();
+      expect(otherSendData).not.toHaveBeenCalled();
+    });
+
+    it('delivers to the remaining call once the other session ends', async () => {
+      const otherSendData = vi.fn().mockResolvedValue(undefined);
+      initHumanizationSignalEmitter('session-b', otherSendData);
+      releaseHumanizationSignalEmitter('session-a');
+
+      await emitHumanizationSignal({ signalType: 'mind_change' });
+
+      expect(mockSendData).not.toHaveBeenCalled();
+      expect(otherSendData).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -212,11 +212,15 @@ export async function triggerGracefulExit(sessionId: string): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, GRACEFUL_EXIT_TTS_WAIT_MS));
 
     const { sendFrontendSignal } = await import('../../../services/frontend-signal.js');
-    await sendFrontendSignal('conversation_end', {
-      reason: 'graceful_exit_failures',
-      disconnectDelay: DISCONNECT_DELAY_MS,
-      timestamp: Date.now(),
-    });
+    await sendFrontendSignal(
+      'conversation_end',
+      {
+        reason: 'graceful_exit_failures',
+        disconnectDelay: DISCONNECT_DELAY_MS,
+        timestamp: Date.now(),
+      },
+      sessionId
+    );
 
     log.info({ sessionId }, '👋 [GATEWAY] Graceful exit complete - frontend notified');
   } catch (err) {

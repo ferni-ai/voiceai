@@ -747,7 +747,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
           // Use the FrontendPublisher singleton to send data messages
           const { getFrontendPublisher } = await import('../realtime/frontend-publisher.js');
-          const publisher = getFrontendPublisher();
+          const publisher = getFrontendPublisher(sessionId);
 
           const sendDataMessage = async (type: string, payload: Record<string, unknown>) => {
             await publisher.sendData(type, payload);
@@ -1309,7 +1309,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           // (e.g., contemplative expression during reflective silence, concern during emotional silence)
           fireAndForget(async () => {
             const { getFrontendPublisher } = await import('../realtime/frontend-publisher.js');
-            const publisher = getFrontendPublisher();
+            const publisher = getFrontendPublisher(sessionId);
             await publisher.sendData('humanization_signal', {
               signalType: 'silence_analyzed',
               silenceType: silenceAnalysis!.type,

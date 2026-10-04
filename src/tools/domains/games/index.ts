@@ -31,6 +31,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getSessionId } from '../../utils/tool-helpers.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 const log = getLogger();
 
@@ -225,12 +226,13 @@ function transformStateForFrontend(
  * Broadcast game started event to frontend
  */
 async function broadcastGameStarted(
+  sessionId: string,
   gameType: string,
   gameData: Record<string, unknown>
 ): Promise<void> {
   try {
     const { getFrontendPublisher } = await import('../../../agents/realtime/frontend-publisher.js');
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
 
     if (publisher.isConnected()) {
       // Normalize game type to canonical form for frontend
@@ -258,13 +260,14 @@ async function broadcastGameStarted(
  * Broadcast game state update to frontend
  */
 async function broadcastGameState(
+  sessionId: string,
   gameType: string,
   status: 'active' | 'completed' | 'abandoned',
   gameData: Record<string, unknown>
 ): Promise<void> {
   try {
     const { getFrontendPublisher } = await import('../../../agents/realtime/frontend-publisher.js');
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
 
     if (publisher.isConnected()) {
       // Normalize game type to canonical form for frontend
@@ -286,10 +289,14 @@ async function broadcastGameState(
 /**
  * Broadcast game ended event to frontend
  */
-async function broadcastGameEnded(gameType: string, result?: string): Promise<void> {
+async function broadcastGameEnded(
+  sessionId: string,
+  gameType: string,
+  result?: string
+): Promise<void> {
   try {
     const { getFrontendPublisher } = await import('../../../agents/realtime/frontend-publisher.js');
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
 
     if (publisher.isConnected()) {
       // Normalize game type to canonical form for frontend
@@ -351,10 +358,11 @@ Use when user says things like:
               .describe('Which game to play'),
             rounds: z.number().optional().describe('Number of rounds (default varies by game)'),
           }),
-          execute: async ({ gameType, rounds }) => {
+          execute: async ({ gameType, rounds }, run) => {
             try {
               const personaId = ctx.agentId || 'ferni';
-              const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+              const sessionId =
+                getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
               const gameEngine = getSessionGameEngine(sessionId, personaId);
 
               const config = rounds ? { rounds } : undefined;
@@ -365,7 +373,7 @@ Use when user says things like:
 
               // Broadcast game started to frontend
               const state = gameEngine.getState();
-              await broadcastGameStarted(gameType, { ...state.gameData } as Record<
+              await broadcastGameStarted(sessionId, gameType, { ...state.gameData } as Record<
                 string,
                 unknown
               >);
@@ -400,9 +408,10 @@ Use when:
           parameters: z.object({
             answer: z.string().describe("The user's answer, choice, or input"),
           }),
-          execute: async ({ answer }) => {
+          execute: async ({ answer }, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId =
+              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
             const gameEngine = getSessionGameEngine(sessionId, personaId);
 
             if (!gameEngine.isGameActive()) {
@@ -416,7 +425,7 @@ Use when:
 
               // Broadcast state update to frontend
               const status = result.gameOver ? 'completed' : 'active';
-              await broadcastGameState(gameType, status, { ...state.gameData } as Record<
+              await broadcastGameState(sessionId, gameType, status, { ...state.gameData } as Record<
                 string,
                 unknown
               >);
@@ -432,7 +441,7 @@ Use when:
 
                 // Broadcast game ended
                 const resultSummary = `Final score: ${result.finalScore} points`;
-                await broadcastGameEnded(gameType, resultSummary);
+                await broadcastGameEnded(sessionId, gameType, resultSummary);
               }
 
               return response;
@@ -455,9 +464,10 @@ Use when user says "hint", "help", "I don't know", or seems stuck.`,
         llm.tool({
           description: getToolDescription('getGameHint'),
           parameters: z.object({}),
-          execute: async () => {
+          execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId =
+              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
             const gameEngine = getSessionGameEngine(sessionId, personaId);
 
             if (!gameEngine.isGameActive()) {
@@ -481,9 +491,10 @@ Use when user says "skip", "pass", "next", or wants to move on.`,
         llm.tool({
           description: getToolDescription('skipGameRound'),
           parameters: z.object({}),
-          execute: async () => {
+          execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId =
+              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
             const gameEngine = getSessionGameEngine(sessionId, personaId);
 
             if (!gameEngine.isGameActive()) {
@@ -512,9 +523,10 @@ Use when user says "stop", "quit", "end game", or wants to do something else.`,
         llm.tool({
           description: getToolDescription('endGame'),
           parameters: z.object({}),
-          execute: async () => {
+          execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId =
+              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
             const gameEngine = getSessionGameEngine(sessionId, personaId);
 
             if (!gameEngine.isGameActive()) {
@@ -528,7 +540,7 @@ Use when user says "stop", "quit", "end game", or wants to do something else.`,
             const session = gameEngine.endGame();
 
             // Broadcast game ended to frontend
-            await broadcastGameEnded(gameType, 'Game quit by user');
+            await broadcastGameEnded(sessionId, gameType, 'Game quit by user');
 
             return `Game over! You scored ${session.score} points in ${session.roundsPlayed} rounds.\n\nWant to play again or do something else?`;
           },
@@ -549,9 +561,10 @@ Use when user asks "what's the score?", "what round?", "how am I doing?"`,
         llm.tool({
           description: getToolDescription('getGameStatus'),
           parameters: z.object({}),
-          execute: async () => {
+          execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId =
+              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
             const gameEngine = getSessionGameEngine(sessionId, personaId);
             const state = gameEngine.getState();
 
@@ -580,9 +593,10 @@ Use when user asks "how many games have I played?", "what's my best score?"`,
         llm.tool({
           description: getToolDescription('getGameHistory'),
           parameters: z.object({}),
-          execute: async () => {
+          execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId =
+              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
             const gameEngine = getSessionGameEngine(sessionId, personaId);
             const history = gameEngine.getHistory();
 
@@ -711,10 +725,11 @@ Use when user says things like:
               .optional()
               .describe('AI difficulty level (default: medium)'),
           }),
-          execute: async ({ gameType, userGoesFirst, difficulty }) => {
+          execute: async ({ gameType, userGoesFirst, difficulty }, run) => {
             try {
               const personaId = ctx.agentId || 'ferni';
-              const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+              const sessionId =
+                getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
               const textGameEngine = getSessionTextGameEngine(sessionId, personaId);
 
               const config: Record<string, unknown> = {};
@@ -727,7 +742,7 @@ Use when user says things like:
 
               // Broadcast game started to frontend for visual board
               const state = textGameEngine.getState();
-              await broadcastGameStarted(gameType, { ...state.gameData } as Record<
+              await broadcastGameStarted(sessionId, gameType, { ...state.gameData } as Record<
                 string,
                 unknown
               >);
@@ -762,9 +777,10 @@ Use when:
           parameters: z.object({
             move: z.string().describe("The user's move (e.g., 'center', 'top left', '5')"),
           }),
-          execute: async ({ move }) => {
+          execute: async ({ move }, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId =
+              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
             const textGameEngine = getSessionTextGameEngine(sessionId, personaId);
 
             if (!textGameEngine.isGameActive()) {
@@ -778,7 +794,7 @@ Use when:
               const state = textGameEngine.getState();
               const gameType = state.gameType || 'unknown';
               const status = result.gameOver ? 'completed' : 'active';
-              await broadcastGameState(gameType, status, { ...state.gameData } as Record<
+              await broadcastGameState(sessionId, gameType, status, { ...state.gameData } as Record<
                 string,
                 unknown
               >);
@@ -786,7 +802,7 @@ Use when:
               // If game ended, also send game ended event with result
               if (result.gameOver) {
                 const resultSummary = result.winner ? `Winner: ${result.winner}` : 'Game complete';
-                await broadcastGameEnded(gameType, resultSummary);
+                await broadcastGameEnded(sessionId, gameType, resultSummary);
               }
 
               return result.message;
@@ -809,9 +825,10 @@ Use when user asks "what does the board look like?", "where are the pieces?", "s
         llm.tool({
           description: getToolDescription('getTextGameBoard'),
           parameters: z.object({}),
-          execute: async () => {
+          execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId =
+              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
             const textGameEngine = getSessionTextGameEngine(sessionId, personaId);
 
             if (!textGameEngine.isGameActive()) {
@@ -834,9 +851,10 @@ Use when user says "stop", "quit", "I give up", "end game", or wants to do somet
         llm.tool({
           description: getToolDescription('endTextGame'),
           parameters: z.object({}),
-          execute: async () => {
+          execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId = ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId =
+              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
             const textGameEngine = getSessionTextGameEngine(sessionId, personaId);
 
             if (!textGameEngine.isGameActive()) {
@@ -850,7 +868,7 @@ Use when user says "stop", "quit", "I give up", "end game", or wants to do somet
             textGameEngine.endGame();
 
             // Broadcast game ended to frontend
-            await broadcastGameEnded(gameType, 'Game quit by user');
+            await broadcastGameEnded(sessionId, gameType, 'Game quit by user');
 
             return 'Okay, game ended! Want to play again or do something else?';
           },
