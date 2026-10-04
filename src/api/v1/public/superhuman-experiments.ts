@@ -12,7 +12,7 @@
  *   POST /api/v1/public/superhuman/experiments/:id/convert        - Record conversion
  *   POST /api/v1/public/superhuman/experiments/route              - Semantic routing
  *
- * Admin Routes (require auth):
+ * Admin Routes (require a verified admin):
  *   POST /api/v1/public/superhuman/experiments                    - Create experiment
  *   PATCH /api/v1/public/superhuman/experiments/:id               - Update experiment
  *   POST /api/v1/public/superhuman/experiments/:id/graduate       - Graduate winner
@@ -47,7 +47,7 @@ import {
 } from '../../../services/experiments/contextual-selector.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody } from '../../helpers.js';
-import { requireAuth, optionalAuth } from '../../auth-middleware.js';
+import { requireAuth, optionalAuth, type AuthContext } from '../../auth-middleware.js';
 
 const log = createLogger({ module: 'SuperhumanExperimentsAPI' });
 
@@ -81,6 +81,18 @@ function extractContext(req: IncomingMessage, parsedUrl: URL): UserContext {
   }
 
   return extractContextFromRequest(headers, query);
+}
+
+/**
+ * Experiments are shared by every user, so changing one is an admin action.
+ * These routes used to accept any signed-in user. Sends 401 without
+ * credentials, 403 for a non-admin, before any body is read.
+ */
+async function requireExperimentAdmin(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<AuthContext | null> {
+  return requireAuth(req, res, { requireAdmin: true });
 }
 
 /**
@@ -303,12 +315,12 @@ export async function handleSuperhumanExperimentsRoutes(
     }
 
     // ============================================================
-    // ADMIN ROUTES (require auth)
+    // ADMIN ROUTES (require a verified admin)
     // ============================================================
 
     // POST /api/v1/public/superhuman/experiments - Create experiment
     if (pathname === BASE_PATH && method === 'POST') {
-      const auth = await requireAuth(req, res);
+      const auth = await requireExperimentAdmin(req, res);
       if (!auth) return true;
 
       const body = (await parseBody(req)) as {
@@ -361,7 +373,7 @@ export async function handleSuperhumanExperimentsRoutes(
     // PATCH /api/v1/public/superhuman/experiments/:id - Update experiment
     const updateMatch = pathname.match(/\/superhuman\/experiments\/([^\/]+)$/);
     if (updateMatch && method === 'PATCH') {
-      const auth = await requireAuth(req, res);
+      const auth = await requireExperimentAdmin(req, res);
       if (!auth) return true;
 
       const experimentId = updateMatch[1];
@@ -385,7 +397,7 @@ export async function handleSuperhumanExperimentsRoutes(
     // POST /api/v1/public/superhuman/experiments/:id/graduate - Graduate winner
     const graduateMatch = pathname.match(/\/superhuman\/experiments\/([^\/]+)\/graduate$/);
     if (graduateMatch && method === 'POST') {
-      const auth = await requireAuth(req, res);
+      const auth = await requireExperimentAdmin(req, res);
       if (!auth) return true;
 
       const experimentId = graduateMatch[1];
@@ -410,7 +422,7 @@ export async function handleSuperhumanExperimentsRoutes(
     // POST /api/v1/public/superhuman/experiments/:id/pause - Pause experiment
     const pauseMatch = pathname.match(/\/superhuman\/experiments\/([^\/]+)\/pause$/);
     if (pauseMatch && method === 'POST') {
-      const auth = await requireAuth(req, res);
+      const auth = await requireExperimentAdmin(req, res);
       if (!auth) return true;
 
       const experimentId = pauseMatch[1];
@@ -425,7 +437,7 @@ export async function handleSuperhumanExperimentsRoutes(
     // POST /api/v1/public/superhuman/experiments/:id/resume - Resume experiment
     const resumeMatch = pathname.match(/\/superhuman\/experiments\/([^\/]+)\/resume$/);
     if (resumeMatch && method === 'POST') {
-      const auth = await requireAuth(req, res);
+      const auth = await requireExperimentAdmin(req, res);
       if (!auth) return true;
 
       const experimentId = resumeMatch[1];

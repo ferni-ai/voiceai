@@ -16,7 +16,8 @@ import { getDeepExtractionWorker } from '../memory/dynamic/deep-extraction-worke
 import { getUnifiedMemoryService } from '../services/unified-memory-service.js';
 import { getFirestoreDb } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { optionalAuth, requireAuth } from './auth-middleware.js';
+import { resolveActingUser } from './acting-user.js';
+import { requireAuth } from './auth-middleware.js';
 import {
   handleCorsPreflightIfNeeded,
   parseBody,
@@ -132,9 +133,6 @@ export async function handleMemoryRoutes(
  * Records user feedback on a surfaced memory
  */
 async function handleFeedback(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
-  // Optional auth - we accept feedback from authenticated users (sync check)
-  const auth = optionalAuth(req);
-
   const body = await parseBody<MemoryFeedbackInput>(req);
 
   if (!body || !body.memoryId || !body.action) {
@@ -142,12 +140,11 @@ async function handleFeedback(req: IncomingMessage, res: ServerResponse): Promis
     return true;
   }
 
-  // Use auth userId if available, otherwise use body userId
-  const userId = auth?.userId || body.userId;
-  if (!userId) {
-    sendError(res, 'User ID required', 400);
-    return true;
-  }
+  // Feedback reinforces the user's memories, so it is the verified caller's;
+  // a body naming anyone else is refused (acting-user.ts). The old sync
+  // optionalAuth never verified Firebase tokens, so body.userId always won.
+  const userId = await resolveActingUser(req, res, body.userId);
+  if (!userId) return true;
 
   try {
     const unifiedMemory = getUnifiedMemoryService();

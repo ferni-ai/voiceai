@@ -243,7 +243,7 @@ import {
   getDemoPredictions,
 } from './services/engagement-demo-data.js';
 // Environment detection
-import { apiGet, apiPost } from './utils/api.js';
+import { apiGet, apiPost, getApiHeadersAsync } from './utils/api.js';
 import { shouldUseDemoData } from './utils/environment.js';
 
 // New Feature UIs (v2)
@@ -1696,7 +1696,6 @@ class VoiceAIApp {
       // Wire up prediction resolution callback
       getPredictionsUI().setOnResolutionSubmit(async (predictionId, actualValue) => {
         try {
-          // TODO: Backend POST /api/predictions/:id/actuals and GET /api/predictions not implemented yet.
           const postResponse = await apiPost(`/api/predictions/${predictionId}/actuals`, {
             actuals: { result: actualValue },
           });
@@ -2178,20 +2177,6 @@ class VoiceAIApp {
         this.selectPersona(personaId as PersonaId);
       }
     }) as EventListener);
-    // 🎙️ Group Conversations - imported UI adds a call participant
-    this.addTrackedListener(window, 'ferni:add-call-participant', () => {
-      void import('./ui/group-conversation.ui.js').then((m) => {
-        void m.showAddParticipant({
-          onAdd: (phoneNumber, name, relationship) => {
-            log.info({ phoneNumber, name, relationship }, 'Adding participant to call');
-            // TODO: Implement actual participant addition via connection service
-          },
-          onCancel: () => {
-            log.debug('Add participant cancelled');
-          },
-        });
-      });
-    });
 
     // 🌱 Handle garden payment result routes (Stripe redirects here)
     const gardenPathname = window.location.pathname;
@@ -2733,9 +2718,8 @@ class VoiceAIApp {
    * Called after each conversation ends.
    */
   private async recordConversationUsage(sessionStart: number | null): Promise<void> {
-    const deviceId = appState.get('deviceId');
-    // Server contract: { userId, durationMinutes } (subscription-routes recordConversationUsage)
-    const body = buildConversationUsageBody(deviceId, sessionStart);
+    // Server contract: { durationMinutes } for the Bearer-token user (subscription-routes)
+    const body = buildConversationUsageBody(sessionStart);
     if (!body) return;
 
     // 🤝 Process any pending referral on first/early conversation
@@ -2755,7 +2739,7 @@ class VoiceAIApp {
     try {
       const response = await fetch('/usage/conversation', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getApiHeadersAsync(), // not under /api/, so the fetch hook adds no token
         body: JSON.stringify(body),
       });
 

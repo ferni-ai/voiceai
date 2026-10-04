@@ -11,6 +11,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { claimedUserFor } from './acting-user.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { createLogger } from '../utils/safe-logger.js';
@@ -455,7 +456,9 @@ export async function handleChatRoutes(
         return true;
       }
 
-      const userId = body.userId || auth.userId;
+      // Tools run as this user (memories, calendar, email): only the caller may be named.
+      const userId = claimedUserFor(auth, body.userId, res);
+      if (!userId) return true;
       const personaId = body.personaId || 'ferni';
 
       log.info(
@@ -506,13 +509,11 @@ export async function handleChatRoutes(
         }
       }
 
-      const response: ChatResponse = {
+      sendJSON(res, {
         success: true,
         response: llmResult.response,
         toolCalls: executedTools.length > 0 ? executedTools : undefined,
-      };
-
-      sendJSON(res, response);
+      } satisfies ChatResponse);
       return true;
     }
 
@@ -525,8 +526,8 @@ export async function handleChatRoutes(
         return true;
       }
 
-      const userId = body.userId || auth.userId;
-
+      const userId = claimedUserFor(auth, body.userId, res);
+      if (!userId) return true;
       log.info({ userId, tool: body.fn }, 'Executing tool directly');
 
       const startTime = Date.now();
@@ -550,10 +551,9 @@ export async function handleChatRoutes(
 
     // GET /api/chat/tools - List available tools
     if (pathname === '/api/chat/tools' && req.method === 'GET') {
-      const { userId } = auth;
       const personaId = 'ferni'; // Could get from query params
 
-      const tools = await getToolDefinitionsForChat(userId, personaId);
+      const tools = await getToolDefinitionsForChat(auth.userId, personaId);
 
       sendJSON(res, {
         success: true,

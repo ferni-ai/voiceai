@@ -14,7 +14,6 @@ import { getLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
 import type {
-  AddParticipantRequest,
   RoundtableConfig,
   GroupConversationSummary,
 } from '../agents/group-conversation/types.js';
@@ -200,85 +199,30 @@ router.post('/roundtable/end', async (req: Request, res: Response) => {
 // ============================================================================
 
 /**
- * Add a participant to a conference call
- * POST /api/group/call/add
+ * Conference-call dial-out is not available from the API server.
+ *
+ * These routes used to answer `success: true, status: 'dialing'` (and
+ * "removed") without placing or ending any call: dialing lives in the voice
+ * agent's ConferenceCallManager (src/agents/group-conversation), which needs
+ * the live LiveKit room and Twilio credentials this process doesn't have. The
+ * router is also mounted without a body parser, so every request with a body
+ * ended in a 500. Until a real bridge exists they say so: 501, never a fake
+ * success.
  */
-router.post('/call/add', async (req: Request, res: Response) => {
-  try {
-    const userId = getUserId(req);
-    if (!userId) {
-      return res.status(401).json({ success: false, error: 'Authentication required' });
-    }
+const CALL_CONTROL_UNAVAILABLE = "Adding people to a call isn't available yet";
 
-    const { sessionId, phoneNumber, name, relationship, introduction } =
-      req.body as AddParticipantRequest & {
-        sessionId?: string;
-      };
-
-    if (!phoneNumber || !name) {
-      return res.status(400).json({ success: false, error: 'Phone number and name required' });
-    }
-
-    // Validate phone number format
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      return res.status(400).json({ success: false, error: 'Invalid phone number' });
-    }
-
-    // Generate call ID
-    const callId = `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const targetSessionId = sessionId ?? `group_${Date.now()}`;
-
-    log.info(
-      { userId, callId, phoneNumber: `***${cleanPhone.slice(-4)}`, name },
-      '📞 Adding participant to call'
-    );
-
-    // In a real implementation, this would:
-    // 1. Initiate Twilio call
-    // 2. Bridge to LiveKit via SIP
-    // For now, return simulated success
-
-    return res.json({
-      success: true,
-      callId,
-      sessionId: targetSessionId,
-      participantId: `ext_${callId}`,
-      status: 'dialing',
-    });
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to add conference participant');
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+function callControlUnavailable(req: Request, res: Response): Response {
+  if (!getUserId(req)) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
   }
-});
+  return res.status(501).json({ success: false, error: CALL_CONTROL_UNAVAILABLE });
+}
 
-/**
- * Remove a participant from a conference call
- * POST /api/group/call/remove
- */
-router.post('/call/remove', async (req: Request, res: Response) => {
-  try {
-    const userId = getUserId(req);
-    if (!userId) {
-      return res.status(401).json({ success: false, error: 'Authentication required' });
-    }
+/** POST /api/group/call/add */
+router.post('/call/add', callControlUnavailable);
 
-    const { sessionId, participantId, reason } = req.body;
-
-    if (!sessionId || !participantId) {
-      return res
-        .status(400)
-        .json({ success: false, error: 'Session ID and participant ID required' });
-    }
-
-    log.info({ userId, sessionId, participantId, reason }, '📞 Removing participant from call');
-
-    return res.json({ success: true, participantId });
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to remove conference participant');
-    return res.status(500).json({ success: false, error: 'Internal server error' });
-  }
-});
+/** POST /api/group/call/remove */
+router.post('/call/remove', callControlUnavailable);
 
 /**
  * TwiML webhook for when external participant answers
