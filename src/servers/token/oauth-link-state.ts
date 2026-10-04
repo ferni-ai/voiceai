@@ -50,6 +50,8 @@ export interface OAuthLinkStore {
   get(key: string): Promise<OAuthLinkRecord | null>;
   /** Read and delete in one step, so a record is used at most once. */
   take(key: string): Promise<OAuthLinkRecord | null>;
+  /** Delete every record started by `uid` (account deletion). Throws when it can't. */
+  deleteForUser(uid: string): Promise<number>;
 }
 
 function sha256(value: string): string {
@@ -73,6 +75,11 @@ function createMemoryStore(): OAuthLinkStore {
       const record = records.get(key) ?? null;
       records.delete(key);
       return record;
+    },
+    async deleteForUser(uid) {
+      const keys = [...records].filter(([, r]) => r.uid === uid).map(([k]) => k);
+      for (const k of keys) records.delete(k);
+      return keys.length;
     },
   };
 }
@@ -103,6 +110,18 @@ function createFirestoreStore(): OAuthLinkStore {
         return snap.data() as OAuthLinkRecord;
       });
     },
+    async deleteForUser(uid) {
+      const db = getFirestoreDb();
+      if (!db) throw new Error('Firestore unavailable');
+      const snap = await db.collection(FIRESTORE_COLLECTION).where('uid', '==', uid).get();
+      // A batch holds at most 500 writes; abandoned flows can pile up until a TTL sweep.
+      for (let i = 0; i < snap.docs.length; i += 400) {
+        const batch = db.batch();
+        for (const doc of snap.docs.slice(i, i + 400)) batch.delete(doc.ref);
+        await batch.commit();
+      }
+      return snap.docs.length;
+    },
   };
 }
 
@@ -119,6 +138,11 @@ function getStore(): OAuthLinkStore {
 /** Tests swap in a fresh store; null resets to the default. */
 export function setOAuthLinkStore(next: OAuthLinkStore | null): void {
   store = next;
+}
+
+/** Forget every link flow `uid` started (account deletion). Throws when it can't. */
+export async function deleteOAuthLinkStatesFor(uid: string): Promise<number> {
+  return getStore().deleteForUser(uid);
 }
 
 function readCookie(req: IncomingMessage, name: string): string | null {

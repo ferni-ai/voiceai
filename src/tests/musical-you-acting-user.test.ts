@@ -74,6 +74,7 @@ vi.mock('../services/engagement/engagement-store.js', () => ({
 
 // The verifier: "Bearer <uid>" is a verified token for <uid>.
 vi.mock('../api/auth-middleware.js', () => ({
+  rateLimit: vi.fn(() => false),
   requireAuth: vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
     const header = req.headers.authorization;
     if (!header?.startsWith('Bearer ')) {
@@ -118,19 +119,23 @@ const WRITES: Array<{ path: string; field: string; body: Record<string, unknown>
   {
     path: '/api/musical/challenge',
     field: 'challengerId',
-    body: { challengeeId: 'carol', gameType: 'guess', challengerScore: 5 },
+    body: { challengeeId: 'carol', gameType: 'name-that-tune', challengerScore: 5 },
   },
   { path: '/api/musical/taste-match', field: 'user1Id', body: { user2Id: 'carol' } },
   { path: '/api/musical/cards/dna', field: 'userId', body: {} },
   { path: '/api/musical/cards/island', field: 'userId', body: { picks: { songs: [] } } },
-  { path: '/api/musical/cards/victory', field: 'userId', body: { gameType: 'guess', score: 9 } },
+  {
+    path: '/api/musical/cards/victory',
+    field: 'userId',
+    body: { gameType: 'name-that-tune', score: 9 },
+  },
   { path: '/api/musical/spotify/sync', field: 'userId', body: { accessToken: 'tok' } },
   {
     path: '/api/musical/spotify/our-songs/add',
     field: 'userId',
     body: { song: { trackId: 't', trackName: 'n', artistName: 'a', reason: 'r' } },
   },
-  { path: '/api/musical/record', field: 'userId', body: { gameType: 'guess', score: 9 } },
+  { path: '/api/musical/record', field: 'userId', body: { gameType: 'name-that-tune', score: 9 } },
   { path: '/api/musical/apple/connect', field: 'userId', body: { userToken: 'mut' } },
   { path: '/api/musical/apple/sync', field: 'userId', body: { userToken: 'mut' } },
 ];
@@ -146,6 +151,7 @@ describe('Musical You writes act on the verified caller', () => {
     getProfile.mockReset();
     getProfile.mockResolvedValue({ gameMemory: { gamesPlayed: 3 } });
     svc.generateAppleMusicToken.mockResolvedValue('dev-token');
+    svc.sendMusicChallenge.mockResolvedValue({ id: 'challenge-1' }); // the service is async
     svc.syncAppleMusicLibrary.mockResolvedValue({
       libraryTrackCount: 3,
       topGenres: [],
@@ -174,12 +180,12 @@ describe('Musical You writes act on the verified caller', () => {
   it('alice recording her own game result still works', async () => {
     const status = await post(
       '/api/musical/record',
-      { userId: 'alice', gameType: 'guess', score: 9 },
+      { userId: 'alice', gameType: 'name-that-tune', score: 9 },
       'alice'
     );
 
     expect(status).toBe(200);
-    expect(svc.recordGameResult).toHaveBeenCalledWith('alice', 'Player', 'guess', 9, 1, 0);
+    expect(svc.recordGameResult).toHaveBeenCalledWith('alice', 'Player', 'name-that-tune', 9, 1, 0);
   });
 
   it('alice connecting her own Apple Music (as the web does) still works', async () => {
@@ -196,7 +202,7 @@ describe('Musical You writes act on the verified caller', () => {
   it('alice may still challenge someone else; the challenger is alice', async () => {
     const status = await post(
       '/api/musical/challenge',
-      { challengeeId: 'carol', gameType: 'guess', challengerScore: 5 },
+      { challengeeId: 'carol', gameType: 'name-that-tune', challengerScore: 5 },
       'alice'
     );
 

@@ -36,25 +36,41 @@ const store = vi.hoisted(() => ({
 }));
 vi.mock('../../../memory/store-factory.js', () => ({ getStore: async () => store }));
 
-/** In-memory stand-in for Firestore's create()/get() on one collection. */
-const owners = vi.hoisted(() => new Map<string, { userId: string }>());
+/** In-memory stand-in for Firestore's create()/get()/set()/where() on one collection. */
+const owners = vi.hoisted(() => new Map<string, Record<string, unknown>>());
 const firestore = vi.hoisted(() => ({ available: true }));
-vi.mock('../../../utils/firestore-utils.js', () => ({
-  getFirestoreDb: () =>
-    firestore.available
-      ? {
-          collection: () => ({
-            doc: (id: string) => ({
-              create: async (data: { userId: string }) => {
-                if (owners.has(id)) throw Object.assign(new Error('exists'), { code: 6 });
-                owners.set(id, data);
-              },
-              get: async () => ({ data: () => owners.get(id) }),
+vi.mock('../../../utils/firestore-utils.js', () => {
+  const doc = (id: string) => ({
+    create: async (data: Record<string, unknown>) => {
+      if (owners.has(id)) throw Object.assign(new Error('exists'), { code: 6 });
+      owners.set(id, data);
+    },
+    set: async (data: Record<string, unknown>) => {
+      owners.set(id, data);
+    },
+    delete: async () => {
+      owners.delete(id);
+    },
+    get: async () => ({ data: () => owners.get(id) }),
+  });
+  return {
+    getFirestoreDb: () =>
+      firestore.available
+        ? {
+            collection: () => ({
+              doc,
+              where: (field: string, _op: '==', value: unknown) => ({
+                get: async () => ({
+                  docs: [...owners]
+                    .filter(([, data]) => data[field] === value)
+                    .map(([id]) => ({ id, ref: doc(id) })),
+                }),
+              }),
             }),
-          }),
-        }
-      : null,
-}));
+          }
+        : null,
+  };
+});
 
 let handleAppleRoutes: typeof import('../../../api/apple-iap-routes.js').handleAppleRoutes;
 let signedData: typeof import('../apple-signed-data.js');
@@ -191,6 +207,63 @@ describe('claimAppleTransaction', () => {
     const buyer = await signedData.claimAppleTransaction('uid-A', boundToA, appleTestHelper);
     expect(buyer.ok).toBe(true);
     expect(owners.get('12345')?.userId).toBe('uid-A');
+  });
+
+  describe('after the owner deletes their account', () => {
+    /** A's purchase, claimed by A, then A's account deleted. */
+    async function claimedThenDeleted(): Promise<void> {
+      expect((await signedData.claimAppleTransaction('uid-A', purchase, appleTestHelper)).ok).toBe(
+        true
+      );
+      expect(await signedData.tombstoneTransactionOwnersFor('uid-A')).toBe(1);
+    }
+
+    it('keeps no raw uid in the record', async () => {
+      await claimedThenDeleted();
+      const record = owners.get('12345');
+      expect(record?.deletedAt).toEqual(expect.any(String));
+      expect(record?.userId).toBeNull();
+      expect(JSON.stringify(record)).not.toContain('uid-A');
+    });
+
+    it("refuses B's first claim of A's purchase without a token (403)", async () => {
+      await claimedThenDeleted();
+      const thief = await signedData.claimAppleTransaction('uid-B', purchase, appleTestHelper);
+      expect(thief).toMatchObject({ ok: false, status: 403 });
+      expect(owners.get('12345')?.userId).toBeNull();
+    });
+
+    it("lets the buyer's new account claim it with a token issued for that account", async () => {
+      await claimedThenDeleted();
+      const { privateKey } = await generateKeyPair('ES256');
+      const signFor = async (uid: string) =>
+        new CompactSign(
+          new TextEncoder().encode(
+            JSON.stringify({
+              ...SIGNED_TRANSACTION_MODEL,
+              appAccountToken: signedData.appAccountTokenFor(uid),
+            })
+          )
+        )
+          .setProtectedHeader({ alg: 'ES256' })
+          .sign(privateKey);
+
+      // A token for someone else proves nothing.
+      const wrong = await signedData.claimAppleTransaction(
+        'uid-A2',
+        await signFor('uid-X'),
+        appleTestHelper
+      );
+      expect(wrong).toMatchObject({ ok: false, status: 403 });
+
+      const buyer = await signedData.claimAppleTransaction(
+        'uid-A2',
+        await signFor('uid-A2'),
+        appleTestHelper
+      );
+      expect(buyer.ok).toBe(true);
+      expect(owners.get('12345')?.userId).toBe('uid-A2');
+    });
   });
 
   it('issues a stable, per-user appAccountToken', () => {

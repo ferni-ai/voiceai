@@ -560,8 +560,8 @@ export async function showDataExport(): Promise<void> {
     onDeleteAccount: async () => {
       try {
         toast.info('Deleting your account...');
-        await dataExportService.deleteAccount();
-        toast.success('Your account is deleted. Take care.');
+        const leftover = await dataExportService.deleteAccount();
+        toast[leftover ? 'warning' : 'success'](leftover ?? 'Your account is deleted. Take care.');
         setTimeout(() => {
           window.location.href = '/';
         }, 1500);
