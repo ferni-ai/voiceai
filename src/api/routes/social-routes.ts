@@ -10,6 +10,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
+import { claimedUserFor, type VerifiedCaller } from '../acting-user.js';
+import { requireAuth } from '../auth-middleware.js';
 import { parseBody } from '../helpers.js';
 import {
   createChallenge,
@@ -26,6 +28,7 @@ import {
   submitTasteMatchAnswer,
   getTasteMatchSession,
   getCurrentQuestion,
+  type Challenge,
   type ChallengeType,
 } from '../../services/social/multiplayer-games.js';
 import {
@@ -41,6 +44,20 @@ import {
 } from '../../services/social/leaderboards.js';
 
 const log = getLogger();
+
+function send(res: ServerResponse, status: number, body: unknown): void {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(body));
+}
+
+/** The challenge, if the caller is its challengee (or an admin); else sends 404/403. */
+function challengeFor(caller: VerifiedCaller, id: unknown, res: ServerResponse): Challenge | null {
+  const challenge = typeof id === 'string' ? getChallenge(id) : null;
+  if (!challenge) send(res, 404, { error: 'Challenge not found' });
+  else if (challenge.challengeeId === caller.userId || caller.isAdmin) return challenge;
+  else send(res, 403, { error: "That challenge isn't yours to answer" });
+  return null;
+}
 
 /**
  * Handle Social API routes
@@ -59,7 +76,7 @@ export async function handleSocialRoutes(
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -70,34 +87,35 @@ export async function handleSocialRoutes(
   const method = req.method || 'GET';
 
   try {
+    // Every write acts for the verified caller; users named in a body are checked against it.
+    const auth = method === 'POST' ? await requireAuth(req, res) : null;
+    if (method === 'POST' && !auth) return true;
+    // GET routes don't act for anyone; an empty caller would be refused (401) if they did.
+    const caller: VerifiedCaller = auth ?? { userId: '', isAdmin: false };
+
     // ========================================
     // CHALLENGE ROUTES
     // ========================================
 
     // POST /api/social/challenges/create
     if (pathname === '/api/social/challenges/create' && method === 'POST') {
-      const body = await parseBody(req);
-      const {
-        type,
-        gameType,
-        challengerId,
-        challengerName,
-        challengeeId,
-        challengerScore,
-        challengerTimeMs,
-      } = body as {
+      const body = await parseBody<{
         type: ChallengeType;
         gameType: string;
-        challengerId: string;
+        challengerId?: string;
         challengerName: string;
         challengeeId: string;
         challengerScore?: number;
         challengerTimeMs?: number;
-      };
+      }>(req);
+      const { type, gameType, challengerName, challengeeId, challengerScore, challengerTimeMs } =
+        body;
+      // The challenger is the caller; the challengee is legitimately someone else.
+      const challengerId = claimedUserFor(caller, body.challengerId, res);
+      if (!challengerId) return true;
 
-      if (!type || !gameType || !challengerId || !challengerName || !challengeeId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing required fields' }));
+      if (!type || !gameType || !challengerName || !challengeeId) {
+        send(res, 400, { error: 'Missing required fields' });
         return true;
       }
 
@@ -110,8 +128,7 @@ export async function handleSocialRoutes(
         { challengerScore, challengerTimeMs }
       );
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ challenge }));
+      send(res, 200, { challenge });
       return true;
     }
 
@@ -124,22 +141,22 @@ export async function handleSocialRoutes(
         challengeeName: string;
       };
 
-      if (!challengeId || !challengeeId || !challengeeName) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing required fields' }));
+      if (!challengeId || !challengeeName) {
+        send(res, 400, { error: 'Missing required fields' });
         return true;
       }
+      if (!claimedUserFor(caller, challengeeId, res)) return true;
+      const mine = challengeFor(caller, challengeId, res);
+      if (!mine) return true;
 
-      const challenge = acceptChallenge(challengeId, challengeeId, challengeeName);
+      const challenge = acceptChallenge(challengeId, mine.challengeeId, challengeeName);
 
       if (!challenge) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Challenge not found or already processed' }));
+        send(res, 404, { error: 'Challenge not found or already processed' });
         return true;
       }
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ challenge }));
+      send(res, 200, { challenge });
       return true;
     }
 
@@ -153,16 +170,16 @@ export async function handleSocialRoutes(
       };
 
       if (!challengeId || challengeeScore === undefined) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing required fields' }));
+        send(res, 400, { error: 'Missing required fields' });
         return true;
       }
+
+      if (!challengeFor(caller, challengeId, res)) return true;
 
       const challenge = completeChallenge(challengeId, challengeeScore, challengeeTimeMs);
 
       if (!challenge) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Challenge not found or not accepted' }));
+        send(res, 404, { error: 'Challenge not found or not accepted' });
         return true;
       }
 
@@ -170,8 +187,7 @@ export async function handleSocialRoutes(
       recordChallengeResult(challenge.challengerId, challenge.winnerId === challenge.challengerId);
       recordChallengeResult(challenge.challengeeId, challenge.winnerId === challenge.challengeeId);
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ challenge }));
+      send(res, 200, { challenge });
       return true;
     }
 
@@ -183,10 +199,11 @@ export async function handleSocialRoutes(
         challengeeId: string;
       };
 
-      const success = declineChallenge(challengeId, challengeeId);
+      if (!claimedUserFor(caller, challengeeId, res)) return true;
+      const mine = challengeFor(caller, challengeId, res);
+      if (!mine) return true;
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success }));
+      send(res, 200, { success: declineChallenge(challengeId, mine.challengeeId) });
       return true;
     }
 
@@ -201,13 +218,11 @@ export async function handleSocialRoutes(
       }
 
       if (!challenge) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Challenge not found' }));
+        send(res, 404, { error: 'Challenge not found' });
         return true;
       }
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ challenge }));
+      send(res, 200, { challenge });
       return true;
     }
 
@@ -216,15 +231,13 @@ export async function handleSocialRoutes(
       const userId = searchParams.get('userId');
 
       if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing userId' }));
+        send(res, 400, { error: 'Missing userId' });
         return true;
       }
 
       const challenges = getPendingChallenges(userId);
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ challenges }));
+      send(res, 200, { challenges });
       return true;
     }
 
@@ -234,15 +247,13 @@ export async function handleSocialRoutes(
       const limit = parseInt(searchParams.get('limit') || '20');
 
       if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing userId' }));
+        send(res, 400, { error: 'Missing userId' });
         return true;
       }
 
       const challenges = getChallengeHistory(userId, limit);
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ challenges }));
+      send(res, 200, { challenges });
       return true;
     }
 
@@ -259,16 +270,16 @@ export async function handleSocialRoutes(
         rounds?: number;
       };
 
-      if (!hostUserId || !hostDisplayName) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing required fields' }));
+      const host = claimedUserFor(caller, hostUserId, res);
+      if (!host) return true;
+      if (!hostDisplayName) {
+        send(res, 400, { error: 'Missing required fields' });
         return true;
       }
 
-      const session = createTasteMatchSession(hostUserId, hostDisplayName, rounds);
+      const session = createTasteMatchSession(host, hostDisplayName, rounds);
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ session }));
+      send(res, 200, { session });
       return true;
     }
 
@@ -281,22 +292,21 @@ export async function handleSocialRoutes(
         displayName: string;
       };
 
-      if (!sessionId || !userId || !displayName) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing required fields' }));
+      const joiner = claimedUserFor(caller, userId, res);
+      if (!joiner) return true;
+      if (!sessionId || !displayName) {
+        send(res, 400, { error: 'Missing required fields' });
         return true;
       }
 
-      const session = joinTasteMatchSession(sessionId, userId, displayName);
+      const session = joinTasteMatchSession(sessionId, joiner, displayName);
 
       if (!session) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Session not found or full' }));
+        send(res, 404, { error: 'Session not found or full' });
         return true;
       }
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ session }));
+      send(res, 200, { session });
       return true;
     }
 
@@ -308,16 +318,16 @@ export async function handleSocialRoutes(
         userId: string;
       };
 
-      const session = setParticipantReady(sessionId, userId);
+      const participant = claimedUserFor(caller, userId, res);
+      if (!participant) return true;
+      const session = setParticipantReady(sessionId, participant);
 
       if (!session) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Session not found' }));
+        send(res, 404, { error: 'Session not found' });
         return true;
       }
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ session }));
+      send(res, 200, { session });
       return true;
     }
 
@@ -331,16 +341,16 @@ export async function handleSocialRoutes(
         timeMs: number;
       };
 
-      const session = submitTasteMatchAnswer(sessionId, userId, answer, timeMs);
+      const player = claimedUserFor(caller, userId, res);
+      if (!player) return true;
+      const session = submitTasteMatchAnswer(sessionId, player, answer, timeMs);
 
       if (!session) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Session not found or not in progress' }));
+        send(res, 404, { error: 'Session not found or not in progress' });
         return true;
       }
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ session }));
+      send(res, 200, { session });
       return true;
     }
 
@@ -350,15 +360,13 @@ export async function handleSocialRoutes(
       const session = getTasteMatchSession(sessionId);
 
       if (!session) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Session not found' }));
+        send(res, 404, { error: 'Session not found' });
         return true;
       }
 
       const currentQuestion = getCurrentQuestion(sessionId);
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ session, currentQuestion }));
+      send(res, 200, { session, currentQuestion });
       return true;
     }
 
@@ -375,8 +383,7 @@ export async function handleSocialRoutes(
 
       const leaderboard = getLeaderboard(period, gameType, scope, userId);
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ leaderboard }));
+      send(res, 200, { leaderboard });
       return true;
     }
 
@@ -387,16 +394,14 @@ export async function handleSocialRoutes(
       const gameType = searchParams.get('gameType') || 'overall';
 
       if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing userId' }));
+        send(res, 400, { error: 'Missing userId' });
         return true;
       }
 
       const entries = getLeaderboardAroundUser(userId, period, gameType);
       const rank = getUserRank(userId, period, gameType);
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ entries, rank }));
+      send(res, 200, { entries, rank });
       return true;
     }
 
@@ -410,16 +415,14 @@ export async function handleSocialRoutes(
       const displayName = searchParams.get('displayName') || undefined;
 
       if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing userId' }));
+        send(res, 400, { error: 'Missing userId' });
         return true;
       }
 
       const stats = getUserStats(userId, displayName);
       const weeklyRank = getUserRank(userId, 'weekly', 'overall');
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ stats, weeklyRank }));
+      send(res, 200, { stats, weeklyRank });
       return true;
     }
 
@@ -438,25 +441,28 @@ export async function handleSocialRoutes(
         };
       };
 
-      if (!userId || !gameType || !result) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing required fields' }));
+      const statsUser = claimedUserFor(caller, userId, res);
+      if (!statsUser) return true;
+      if (!gameType || !result) {
+        send(res, 400, { error: 'Missing required fields' });
         return true;
       }
 
-      const stats = updateUserStats(userId, gameType, result);
+      const stats = updateUserStats(statsUser, gameType, result);
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ stats }));
+      send(res, 200, { stats });
       return true;
     }
 
-    // POST /api/social/seed (development only)
+    // POST /api/social/seed: fills the leaderboard with made-up players, so admins only.
     if (pathname === '/api/social/seed' && method === 'POST') {
+      if (!caller.isAdmin) {
+        send(res, 403, { error: 'Not authorized' });
+        return true;
+      }
       seedLeaderboardData();
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, message: 'Leaderboard seeded' }));
+      send(res, 200, { success: true, message: 'Leaderboard seeded' });
       return true;
     }
 
@@ -464,8 +470,7 @@ export async function handleSocialRoutes(
     return false;
   } catch (error) {
     log.error({ error, pathname }, '🎮 Social route error');
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Internal server error' }));
+    send(res, 500, { error: 'Internal server error' });
     return true;
   }
 }
