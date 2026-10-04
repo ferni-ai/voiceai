@@ -90,6 +90,16 @@ export async function createToken(options: TokenOptions): Promise<string> {
 }
 
 /**
+ * Outcome of creating a room and dispatching the voice agent into it.
+ * `agentDispatched: false` means no agent will join: the named agent is only
+ * ever sent by explicit dispatch, so callers must not report the call as ready.
+ */
+export interface RoomDispatchResult {
+  roomReady: boolean;
+  agentDispatched: boolean;
+}
+
+/**
  * Create room and dispatch agent
  */
 export async function createRoomWithAgent(
@@ -97,18 +107,14 @@ export async function createRoomWithAgent(
   metadata: RoomMetadata,
   emptyTimeout = 60,
   maxParticipants = 10
-): Promise<boolean> {
+): Promise<RoomDispatchResult> {
   try {
-    const roomService = getRoomService();
-
-    // Create the room
-    await roomService.createRoom({
+    await getRoomService().createRoom({
       name: roomName,
       emptyTimeout,
       maxParticipants,
       metadata: JSON.stringify(metadata),
     });
-
     log.info(
       {
         roomName,
@@ -117,30 +123,38 @@ export async function createRoomWithAgent(
       },
       'Room created'
     );
-
-    // Try to dispatch agent if available
-    const dispatch = getAgentDispatch();
-    if (dispatch) {
-      try {
-        await dispatch.createDispatch(roomName, AGENT_NAME, {
-          metadata: JSON.stringify(metadata),
-        });
-        log.info({ agentName: AGENT_NAME, roomName }, 'Agent dispatched');
-      } catch (dispatchError) {
-        const error = dispatchError as Error;
-        log.debug({ error: error.message }, 'Agent dispatch failed (may auto-dispatch)');
-      }
-    }
-
-    return true;
   } catch (error) {
     const err = error as Error;
-    // Room might already exist, which is fine
-    if (err.message?.includes('already exists')) {
-      log.debug({ roomName }, 'Room already exists');
-      return true;
+    // Room might already exist, which is fine: the agent still needs dispatching.
+    if (!err.message?.includes('already exists')) {
+      log.error({ error: err.message, roomName }, 'Error creating room');
+      return { roomReady: false, agentDispatched: false };
     }
-    log.error({ error: err.message, roomName }, 'Error creating room');
+    log.debug({ roomName }, 'Room already exists');
+  }
+
+  return { roomReady: true, agentDispatched: await dispatchAgent(roomName, metadata) };
+}
+
+/**
+ * Explicitly dispatch the voice agent. The worker registers with an agent name,
+ * so LiveKit never auto-dispatches it: a failure here means the caller hears silence.
+ */
+async function dispatchAgent(roomName: string, metadata: RoomMetadata): Promise<boolean> {
+  const dispatch = getAgentDispatch();
+  if (!dispatch) {
+    log.error({ roomName, agentName: AGENT_NAME }, 'Agent dispatch client unavailable');
+    return false;
+  }
+  try {
+    await dispatch.createDispatch(roomName, AGENT_NAME, { metadata: JSON.stringify(metadata) });
+    log.info({ agentName: AGENT_NAME, roomName }, 'Agent dispatched');
+    return true;
+  } catch (dispatchError) {
+    log.error(
+      { error: (dispatchError as Error).message, agentName: AGENT_NAME, roomName },
+      'Agent dispatch failed'
+    );
     return false;
   }
 }
@@ -152,7 +166,7 @@ export async function createDemoRoom(
   roomName: string,
   demoId: string,
   durationMinutes: number
-): Promise<boolean> {
+): Promise<RoomDispatchResult> {
   const metadata: RoomMetadata = {
     persona_id: 'ferni',
     device_id: demoId,
