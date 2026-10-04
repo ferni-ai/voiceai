@@ -71,6 +71,8 @@ export type AppleEntitlementChange =
       tier: SubscriptionTier;
       expiresAt?: Date;
       purchasedAt?: Date;
+      /** When Apple signed the transaction (orders late-arriving notifications). */
+      signedAt?: Date;
     }
   | { kind: 'grace'; originalTransactionId: string; until?: Date }
   | { kind: 'end'; originalTransactionId: string; reason: 'expired' | 'billing' | 'refund' };
@@ -102,6 +104,7 @@ export function changeFromTransaction(
     tier,
     expiresAt: tx.expiresDate !== undefined ? new Date(tx.expiresDate) : undefined,
     purchasedAt: tx.purchaseDate !== undefined ? new Date(tx.purchaseDate) : undefined,
+    signedAt: tx.signedDate !== undefined ? new Date(tx.signedDate) : undefined,
   };
 }
 
@@ -130,8 +133,20 @@ function appleHolds(sub: SubscriptionData, originalTransactionId: string): boole
 type Grant = Extract<AppleEntitlementChange, { kind: 'grant' }>;
 type End = Extract<AppleEntitlementChange, { kind: 'end' }>;
 
+/**
+ * A grant Apple signed before this purchase was refunded is stale (retries arrive
+ * out of order); a resubscription is signed after the refund, so it still applies.
+ */
+function signedBeforeRefund(current: SubscriptionData, change: Grant): boolean {
+  if (current.appleOriginalTransactionId !== change.originalTransactionId) return false;
+  const revokedAt = ms(current.revokedAt);
+  const signedAt = change.signedAt?.getTime();
+  return revokedAt !== undefined && signedAt !== undefined && signedAt <= revokedAt;
+}
+
 function granted(current: SubscriptionData, change: Grant, now: Date): SubscriptionData {
   const otx = change.originalTransactionId;
+  if (signedBeforeRefund(current, change)) return current;
   const stripeLive = hasLiveStripePlan(current);
   if (stripeLive && TIER_RANK[current.tier] >= TIER_RANK[change.tier]) {
     // Stripe already gives at least this much: record the purchase, change nothing else.

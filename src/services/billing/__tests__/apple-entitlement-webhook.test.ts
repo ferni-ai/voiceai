@@ -93,6 +93,22 @@ describe('POST /api/apple/webhook follows the subscription', () => {
     expect((await getSubscriptionInfo('alice')).billingSource).toBe('none');
   });
 
+  it('a renewal Apple signed before the refund (a late retry) does not re-grant', async () => {
+    await subscribed();
+    const signedBeforeRefund = Date.now() - 30_000;
+    const lateRenewal = await appStoreNotification('DID_RENEW', {
+      transaction: { signedDate: signedBeforeRefund },
+    });
+    await apple.webhook(await appStoreNotification('REFUND'));
+
+    expect(await apple.webhook(lateRenewal)).toBe(200);
+    expect(sub('alice')).toMatchObject({ tier: 'free', status: 'canceled' });
+
+    const resubscribed = await appStoreNotification('SUBSCRIBED', { subtype: 'RESUBSCRIBE' });
+    await apple.webhook(resubscribed);
+    expect(sub('alice')).toMatchObject({ tier: 'partner', status: 'active' });
+  });
+
   it('revocation (family sharing removed) drops to free at once', async () => {
     await subscribed();
     expect(await apple.webhook(await appStoreNotification('REVOKE'))).toBe(200);
