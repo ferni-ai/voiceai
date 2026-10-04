@@ -137,6 +137,15 @@
     "aria": {
       "close": "Close",
       "dashboard": "Our Story Together"
+    },
+    "empty": {
+      "title": "Your story starts here",
+      "body": "Once we've talked a few times, the moments that matter to you will show up here."
+    },
+    "error": {
+      "title": "Couldn't load your story",
+      "body": "Something went wrong on our end. Try again?",
+      "retry": "Try again"
     }
   },
   "menu": {
@@ -2291,7 +2300,8 @@
       "askFerni": "Or ask Ferni to play something",
       "play": "Play",
       "pause": "Pause",
-      "skip": "Skip"
+      "skip": "Skip",
+      "linkSpotify": "Link Spotify in Settings for full songs"
     },
     "volume": "Volume",
     "skipped": "Skipped",
@@ -2356,7 +2366,10 @@
       "step2": "Click \"Add Application\"",
       "step3": "Enter the PIN above",
       "pinExpires": "PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "Connect your lights or thermostat first",
+    "musicNeedsCall": "Music controls work during a conversation",
+    "couldNotChangeLights": "Couldn't change the lights. Try again?"
   },
   "ui": {
     "accountbutton": {

@@ -1115,7 +1115,7 @@
       "yourPlan": "خطتك",
       "insights": "[NEEDS_TRANSLATION] Understanding You",
       "yourStory": "[NEEDS_TRANSLATION] Your Story",
-      "trustDashboard": "[NEEDS_TRANSLATION] Trust & Growth",
+      "trustDashboard": "الثقة والنمو",
       "whatINotice": "[NEEDS_TRANSLATION] What I Notice",
       "teamSessions": "[NEEDS_TRANSLATION] Team Sessions",
       "conferenceCalls": "[NEEDS_TRANSLATION] Conference Calls",
@@ -2010,6 +2010,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "قصتك تبدأ هنا",
+      "body": "بعد أن نتحدث بضع مرات، ستظهر هنا اللحظات التي تهمك."
+    },
+    "error": {
+      "title": "تعذّر تحميل قصتك",
+      "body": "حدث خطأ من جهتنا. هل تريد المحاولة مجدداً؟",
+      "retry": "حاول مجدداً"
     }
   },
   "memoryBrowser": {
@@ -2254,7 +2263,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "اربط Spotify من الإعدادات لتشغيل الأغاني كاملة"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2319,7 +2329,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "صِل الأضواء أو منظم الحرارة أولاً",
+    "musicNeedsCall": "تعمل عناصر التحكم بالموسيقى أثناء المحادثة",
+    "couldNotChangeLights": "تعذّر تغيير الأضواء. هل تريد المحاولة مجدداً؟"
   },
   "ui": {
     "accountbutton": {

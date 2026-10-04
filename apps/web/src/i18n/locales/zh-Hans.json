@@ -1108,7 +1108,7 @@
       "insights": "我注意到的",
       "yourJourney": "我们的旅程",
       "yourStory": "我们的故事",
-      "trustDashboard": "[NEEDS_TRANSLATION] Trust & Growth",
+      "trustDashboard": "信任与成长",
       "yourYear": "在一起的这一年",
       "whatIllKnow": "我会学到的",
       "whatINotice": "我注意到的",
@@ -2010,6 +2010,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "你的故事从这里开始",
+      "body": "等我们聊过几次之后，对你重要的时刻会出现在这里。"
+    },
+    "error": {
+      "title": "无法加载你的故事",
+      "body": "我们这边出了点问题。要再试一次吗？",
+      "retry": "再试一次"
     }
   },
   "memoryBrowser": {
@@ -2254,7 +2263,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "在设置中关联 Spotify 即可播放完整歌曲"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2319,7 +2329,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "请先连接你的灯光或恒温器",
+    "musicNeedsCall": "音乐控制在对话期间可用",
+    "couldNotChangeLights": "无法更改灯光。要再试一次吗？"
   },
   "ui": {
     "accountbutton": {

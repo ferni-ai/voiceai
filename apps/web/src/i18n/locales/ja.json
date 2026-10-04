@@ -1108,7 +1108,7 @@
       "insights": "気づいていること",
       "yourJourney": "私たちの旅",
       "yourStory": "これまでの物語",
-      "trustDashboard": "[NEEDS_TRANSLATION] Trust & Growth",
+      "trustDashboard": "信頼と成長",
       "yourYear": "一緒に過ごした一年",
       "whatIllKnow": "私が学ぶこと",
       "whatINotice": "気づいていること",
@@ -2010,6 +2010,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "あなたの物語はここから始まります",
+      "body": "何度か話すうちに、あなたにとって大切な瞬間がここに表示されます。"
+    },
+    "error": {
+      "title": "あなたの物語を読み込めませんでした",
+      "body": "こちらで問題が発生しました。もう一度試しますか？",
+      "retry": "もう一度試す"
     }
   },
   "memoryBrowser": {
@@ -2254,7 +2263,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "曲をフルで聴くには、設定でSpotifyを連携してください"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2319,7 +2329,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "まず照明またはサーモスタットを接続してください",
+    "musicNeedsCall": "音楽の操作は会話中に使えます",
+    "couldNotChangeLights": "照明を変更できませんでした。もう一度試しますか？"
   },
   "ui": {
     "accountbutton": {
