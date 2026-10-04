@@ -31,9 +31,10 @@ import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
-import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js';
 import { filterCaptionStream } from './caption-filter.js';
+import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
+import { tapSpokenText, toolsForTurn } from './turn-request.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -82,7 +83,6 @@ interface PersonaSessionData {
   [key: string]: unknown;
 }
 
-// Tool context type from LiveKit - properly typed for function tools
 type ToolSet = llm.ToolContext<PersonaSessionData>;
 
 // Backwards compatibility type aliases
@@ -679,6 +679,34 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     return voice.Agent.default.sttNode(this, audioForStt, modelSettings);
   }
 
+  /** Captions are what the app shows: drop speech markup the TTS consumes. See caption-filter.ts. */
+  async transcriptionNode(
+    text: Parameters<voice.Agent<PersonaSessionData>['transcriptionNode']>[0],
+    modelSettings: voice.ModelSettings
+  ): ReturnType<voice.Agent<PersonaSessionData>['transcriptionNode']> {
+    const captions = tapSpokenText(filterCaptionStream(text), this.session as object);
+    return super.transcriptionNode(captions, modelSettings);
+  }
+
+  /**
+   * Every LLM request (preemptive or not) goes through here, gated for crisis with
+   * the turn reminder and director's notes (crisis-gate.ts), with this turn's tools.
+   */
+  async llmNode(
+    chatCtx: llm.ChatContext,
+    toolCtx: llm.ToolContext,
+    modelSettings: voice.ModelSettings
+  ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
+    const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
+    const model = async (ctx: llm.ChatContext) => super.llmNode(ctx, tools, modelSettings) as never;
+    return gatedReply(chatCtx, this.session, model, this.openerGate as never) as never;
+  }
+
+  private readonly turnTools = { loggedLockedHandoffs: false };
+
+  /** Limits stock reaction-word openers across this agent's replies. See opener-gate.ts. */
+  private readonly openerGate = new OpenerGate();
+
   /**
    * Override ttsNode to filter out JSON function calls BEFORE they reach TTS.
    *
@@ -697,44 +725,15 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
    *
    * @see ../shared/tts-wrapper.ts
    */
-  /** Captions are what the app shows: drop speech markup the TTS consumes. See caption-filter.ts. */
-  async transcriptionNode(
-    text: Parameters<voice.Agent<PersonaSessionData>['transcriptionNode']>[0],
-    modelSettings: voice.ModelSettings
-  ): ReturnType<voice.Agent<PersonaSessionData>['transcriptionNode']> {
-    return super.transcriptionNode(filterCaptionStream(text), modelSettings);
-  }
-
-  /**
-   * Every LLM request (preemptive or not) goes through here: add the
-   * turn-length reminder to a copy of the context. See turn-style.ts.
-   */
-  async llmNode(
-    chatCtx: llm.ChatContext,
-    toolCtx: llm.ToolContext,
-    modelSettings: voice.ModelSettings
-  ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
-    const ctx = turnStyleReminderEnabled() ? withTurnStyleReminder(chatCtx) : chatCtx;
-    const stream = await super.llmNode(ctx, toolCtx, modelSettings);
-    if (!stream || process.env.OPENER_GATE === 'off') return stream;
-    return this.openerGate.wrap(stream as never) as unknown as typeof stream;
-  }
-
-  /** Limits stock reaction-word openers across this agent's replies. See opener-gate.ts. */
-  private readonly openerGate = new OpenerGate();
-
   async ttsNode(
     text: NodeReadableStream<string>,
     modelSettings: voice.ModelSettings
   ): Promise<NodeReadableStream<AudioFrame> | null> {
-    // Get persona ID and turn count from session
     const userData = this.session.userData as Record<string, unknown> | undefined;
     const personaId = (userData?.personaId as string) || 'ferni';
     const turnCount = (userData?.turnCount as number) || 0;
 
-    // Use the shared TTS wrapper with explicit agent reference
-    // Pass session so tool results can be spoken via safeGenerateReply
-    // isFirstTurn enables more aggressive streaming optimization for faster first-audio
+    // The session lets tool results be spoken via safeGenerateReply.
     return wrappedTtsNode(this, text, modelSettings, {
       tools: this.toolCtx as unknown as Record<string, unknown> | undefined,
       sessionContext: extractTtsSessionContext(this, personaId),

@@ -17,7 +17,13 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { parseSSML, stripSSML, containsSSML, normalizeForCache } from '../ssml/index.js';
+import {
+  parseSSML,
+  stripSSML,
+  containsSSML,
+  normalizeForCache,
+  speakableText,
+} from '../ssml/index.js';
 import { createTTSGateway, resetTTSGateway } from '../gateway.js';
 import { createTTSCache } from '../../../services/tts/tts-cache.js';
 import type { ITTSProvider, SSMLProsodyConfig } from '../types.js';
@@ -118,11 +124,13 @@ describe('TTS Gateway E2E Validation', () => {
       const result = parseSSML(input);
 
       // Check that forbidden patterns are not in output
-      const forbidden = containsForbiddenLiteral(result.cleanText);
+      // Native break tags are consumed by Sonic, not spoken; check the rest.
+      const spoken = speakableText(result.cleanText);
+      const forbidden = containsForbiddenLiteral(spoken);
       expect(forbidden).toBeNull();
 
       // Check no XML-like tags remain
-      expect(containsSSML(result.cleanText)).toBe(false);
+      expect(containsSSML(spoken)).toBe(false);
     });
 
     it('never outputs "break" as spoken text', () => {
@@ -137,7 +145,7 @@ describe('TTS Gateway E2E Validation', () => {
 
       for (const input of inputs) {
         const result = parseSSML(input);
-        expect(result.cleanText.toLowerCase()).not.toContain('break');
+        expect(speakableText(result.cleanText).toLowerCase()).not.toContain('break');
       }
     });
 
@@ -145,10 +153,10 @@ describe('TTS Gateway E2E Validation', () => {
       const inputs = ['<break time="280ms"/>', '<break time="1500"/>', '<break time="2s"/>'];
 
       for (const input of inputs) {
-        const result = parseSSML(input);
-        expect(result.cleanText).not.toMatch(/\d+ms/i);
-        expect(result.cleanText).not.toMatch(/\d+s\b/i);
-        expect(result.cleanText.toLowerCase()).not.toContain('milliseconds');
+        const spoken = speakableText(parseSSML(input).cleanText);
+        expect(spoken).not.toMatch(/\d+ms/i);
+        expect(spoken).not.toMatch(/\d+s\b/i);
+        expect(spoken.toLowerCase()).not.toContain('milliseconds');
       }
     });
 

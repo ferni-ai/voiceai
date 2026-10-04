@@ -240,9 +240,10 @@ export async function analyzeConversation(
   });
 
   const engagement = getEngagementScorer(sessionId).recordResponse(context.text, {
-    lastAgentMessageTime: context.timeSinceAgentMessage
-      ? Date.now() - context.timeSinceAgentMessage
-      : undefined,
+    lastAgentMessageTime:
+      context.timeSinceAgentMessage !== undefined
+        ? Date.now() - context.timeSinceAgentMessage
+        : undefined,
     currentTopic: context.currentTopic,
   });
 

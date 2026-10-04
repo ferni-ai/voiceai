@@ -1,35 +1,51 @@
 # Dockerfile for Ferni Pub/Sub Worker Service
 #
-# Build: docker build -f Dockerfile.worker -t gcr.io/johnb-2025/ferni-worker .
-# Run locally: docker run -p 8080:8080 gcr.io/johnb-2025/ferni-worker
-# Deploy: gcloud run deploy ferni-worker --image gcr.io/johnb-2025/ferni-worker --region us-central1
+# Build: docker build -f Dockerfile.worker -t ferni-worker .
+# Deploy: .github/workflows/deploy-worker.yml (manual dispatch)
+#
+# The repo is a pnpm workspace: the root package.json depends on workspace:*
+# packages, which npm can't install, so this image installs with pnpm the way
+# docker/Dockerfile.ui does (it used `npm ci` against a stale package-lock.json
+# and could never build).
 
 FROM node:20-slim
 
+# curl for the healthcheck, git for git dependencies, pnpm via corepack
+RUN apt-get update && apt-get install -y --no-install-recommends curl git \
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable && corepack prepare pnpm@10.29.3 --activate
+
 WORKDIR /app
 
-# Install curl for healthcheck
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY patches/ ./patches/
+COPY apps/cli/package.json ./apps/cli/
+COPY apps/web/package.json ./apps/web/
+COPY apps/async/package.json ./apps/async/
+COPY apps/intelligence-worker/package.json ./apps/intelligence-worker/
+COPY packages/shared-types/package.json ./packages/shared-types/
 
-# Install dependencies
-COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
+# Stubs for workspace packages not in the image (native crates, design system)
+RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
+    echo '{"name":"@ferni/audio","version":"0.1.0"}' > apps/rust-audio/package.json && \
+    echo '{"name":"@ferni/perf","version":"0.1.0"}' > apps/rust-perf/package.json && \
+    echo '{"name":"@ferni/design-system","version":"1.0.0"}' > design-system/package.json
 
-# Copy source files
+# --no-frozen-lockfile: the stub package.json files differ from the lockfile's
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --prefer-offline --no-frozen-lockfile --ignore-scripts
+
 COPY tsconfig.json ./
 COPY src/ ./src/
 COPY design-system/ ./design-system/
 
-# Environment
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:8080/health || exit 1
 
 EXPOSE 8080
 
-# Start worker server using tsx (runtime TypeScript)
-CMD ["npx", "tsx", "src/services/pubsub/worker-main.ts"]
-
+# Runs TypeScript directly with tsx (a root devDependency, installed above)
+CMD ["pnpm", "exec", "tsx", "src/services/pubsub/worker-main.ts"]

@@ -23,6 +23,7 @@ import { getGracefulErrorResponse } from '../../intelligence/conversation-qualit
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { buildCrisisGuidance } from '../safety/crisis-guard.js';
 import type { SessionServices } from '../../services/index.js';
 import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
 import type { SessionStateManager } from '../session/session-state.js';
@@ -194,6 +195,8 @@ export interface TurnHandlerContext {
   turnCtx: llm.ChatContext;
   /** User message text */
   userText: string;
+  /** Build context only: no tool routing, commands or action approvals (background run). */
+  contextOnly?: boolean;
   /** Current persona config */
   persona: PersonaConfig;
   /** Bundle runtime (optional) */
@@ -455,6 +458,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   const {
     turnCtx,
     userText,
+    contextOnly,
     persona,
     bundleRuntime,
     services,
@@ -470,11 +474,13 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     return;
   }
 
-  // ================================================================
-  // PERFORMANCE: Start turn profiling
-  // ================================================================
+  // PERFORMANCE: profile the turn. A context-only run is the background build
+  // behind a reply that has already started (turn-intelligence.ts): its timings
+  // are not the reply's latency, so they must not warn as if they were.
+  // BACKGROUND_TURN_LATENCY_WARNINGS=on restores profiling it as the reply.
   const turnNumber = userData.turnCount || 1;
-  startTurnProfiling(services.sessionId, turnNumber);
+  const timesReply = !contextOnly || process.env.BACKGROUND_TURN_LATENCY_WARNINGS === 'on';
+  if (timesReply) startTurnProfiling(services.sessionId, turnNumber);
 
   // ================================================================
   // 🏥 SESSION HEALTH MONITOR: Initialize on first turn
@@ -523,7 +529,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   // EXTENSIBILITY: Slash command detection
   // ================================================================
   const trimmedText = userText.trim();
-  if (trimmedText.startsWith('/')) {
+  if (!contextOnly && trimmedText.startsWith('/')) {
     const slashResult = await handleSlashCommand({
       text: trimmedText,
       turnCtx,
@@ -540,7 +546,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   // If user is responding to a pending action ("yes", "do it", etc.),
   // handle it and skip normal turn processing
   // ================================================================
-  if (services.userId) {
+  if (services.userId && !contextOnly) {
     try {
       const approvalResult = await handleActionApprovalIntent(services.userId, userText);
       if (approvalResult.handled) {
@@ -566,6 +572,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     const turnContext = {
       turnCtx,
       userText,
+      contextOnly,
       persona,
       bundleRuntime,
       services,
@@ -859,7 +866,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
         clearInterval(fillerCheckInterval);
       }
       // Record turn latency for future adaptive calculations
-      completeTurnProfile(services.sessionId, turnNumber);
+      completeTurnProfile(services.sessionId, turnNumber, !timesReply);
     });
 
     // Get unified intelligence result (should be ready by now)
@@ -1362,31 +1369,14 @@ ${result.crisis.suggestedResponse}`,
 
       result.context.injections.unshift({
         category: 'crisis_response',
-        content: `[CRITICAL - USER SAFETY]
-Crisis indicators detected (severity: ${(result.crisis.severity * 100).toFixed(0)}%).
-Indicators: ${result.crisis.indicators.join(', ')}
-
-Your response MUST:
-1. Acknowledge their pain with genuine empathy
-2. Create space for them to share (without pressure)
-3. Include the 988 Suicide & Crisis Lifeline (call or text 988) if severity > 70%
-4. NEVER be dismissive or use platitudes like "it'll be okay"
-5. NEVER minimize their feelings
-
-You are their lifeline right now. Be fully present.`,
+        content: buildCrisisGuidance(result.crisis),
         priority: 100,
       });
     }
 
-    // ================================================================
-    // 🎯 SEMANTIC ROUTING / FTIS V2: Direct Tool Execution + Natural Response
-    // When router has high confidence, tools execute directly.
-    //
-    // CLEAN ARCHITECTURE (Jan 2026):
-    // Instead of injecting tool results into chat context (which can leak),
-    // we use generateReply with EPHEMERAL instructions that guide ONE response.
-    // The instructions are NOT stored in chat history, so they can't leak.
-    // ================================================================
+    // 🎯 Direct tool execution: a high-confidence router ran the tool, and one reply
+    // is generated with ephemeral instructions (never stored in chat history, so
+    // they can't leak). Never in a contextOnly run: routing is skipped there.
     if (result.semanticRouting?.bypassLLM && result.semanticRouting.toolResult) {
       const { toolResult, metrics, routingPath } = result.semanticRouting;
 
@@ -2734,10 +2724,7 @@ IMPORTANT:
       }
     }
 
-    // ================================================================
-    // PERFORMANCE: Complete turn profiling
-    // ================================================================
-    const turnMetrics = completeTurnProfiling(services.sessionId, turnNumber);
+    const turnMetrics = timesReply ? completeTurnProfiling(services.sessionId, turnNumber) : null;
     if (turnMetrics && (turnMetrics.tier === 'slow' || turnMetrics.tier === 'critical')) {
       diag.warn('Turn latency above threshold', {
         totalMs: turnMetrics.latencies.totalTurnMs,

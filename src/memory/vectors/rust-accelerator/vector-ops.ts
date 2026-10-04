@@ -31,54 +31,76 @@ export function normalizeVector(v: EmbeddingVector): number[] {
 
 /**
  * SIMD-optimized vector normalization for Float32Array.
- * @throws NativeRustAcceleratorUnavailableError if native module not available
+ * Uses JavaScript when the native module is not available.
  */
 export function normalizeVectorF32(v: Float32Array): Float32Array {
-  const perf = loadRustPerf();
-  if (!perf.normalizeVectorF32) {
-    throw new NativeRustAcceleratorUnavailableError('normalizeVectorF32 function not found');
-  }
-  return perf.normalizeVectorF32(v);
+  const perf = tryLoadRustPerf();
+  if (perf?.normalizeVectorF32) return perf.normalizeVectorF32(v);
+  return jsNormalize(v);
+}
+
+// JavaScript versions, used when @ferni/perf is not loaded (or is disabled
+// with DISABLE_RUST_ACCELERATOR=true). Semantic tool routing and memory search
+// call these on live turns, so a missing native module must mean slower, not
+// broken. Same semantics as the Rust functions: zero or non-finite norms leave
+// the vector unchanged; the centroid is the plain mean.
+function jsNormalize(v: Float32Array): Float32Array {
+  let sumSq = 0;
+  for (const x of v) sumSq += x * x;
+  const norm = Math.sqrt(sumSq);
+  if (norm === 0 || !Number.isFinite(norm)) return Float32Array.from(v);
+  return v.map((x) => x / norm);
+}
+
+function jsBatchCosine(query: number[], candidates: number[][]): number[] {
+  return candidates.map((c) => cosineSimilarity(query, c));
 }
 
 /**
  * Batch normalize multiple vectors with SIMD and parallel processing.
- * @throws NativeRustAcceleratorUnavailableError if native module not available
+ * Uses JavaScript when the native module is not available.
  */
 export function batchNormalizeVectorsF32(
   embeddings: Float32Array,
   embeddingCount: number
 ): Float32Array {
-  const perf = loadRustPerf();
-  if (!perf.batchNormalizeVectorsF32) {
-    throw new NativeRustAcceleratorUnavailableError('batchNormalizeVectorsF32 function not found');
+  const perf = tryLoadRustPerf();
+  if (perf?.batchNormalizeVectorsF32) return perf.batchNormalizeVectorsF32(embeddings, embeddingCount);
+  const dim = embeddings.length / embeddingCount;
+  const out = new Float32Array(embeddings.length);
+  for (let i = 0; i < embeddingCount; i++) {
+    out.set(jsNormalize(embeddings.subarray(i * dim, (i + 1) * dim)), i * dim);
   }
-  return perf.batchNormalizeVectorsF32(embeddings, embeddingCount);
+  return out;
 }
 
 /**
  * Compute L2 norm (magnitude) of a vector.
- * @throws NativeRustAcceleratorUnavailableError if native module not available
+ * Uses JavaScript when the native module is not available.
  */
 export function vectorNormF32(v: Float32Array): number {
-  const perf = loadRustPerf();
-  if (!perf.vectorNormF32) {
-    throw new NativeRustAcceleratorUnavailableError('vectorNormF32 function not found');
-  }
-  return perf.vectorNormF32(v);
+  const perf = tryLoadRustPerf();
+  if (perf?.vectorNormF32) return perf.vectorNormF32(v);
+  let sumSq = 0;
+  for (const x of v) sumSq += x * x;
+  return Math.sqrt(sumSq);
 }
 
 /**
  * Compute centroid (mean vector) of multiple embeddings.
  * Useful for clustering and averaging embeddings.
- * @throws NativeRustAcceleratorUnavailableError if native module not available
+ * Uses JavaScript when the native module is not available.
  */
 export function computeCentroidF32(embeddings: Float32Array, embeddingCount: number): Float32Array {
-  const perf = loadRustPerf();
-  if (!perf.computeCentroidF32) {
-    throw new NativeRustAcceleratorUnavailableError('computeCentroidF32 function not found');
+  const perf = tryLoadRustPerf();
+  if (perf?.computeCentroidF32) return perf.computeCentroidF32(embeddings, embeddingCount);
+  if (embeddingCount === 0) return new Float32Array(0);
+  const dim = embeddings.length / embeddingCount;
+  const centroid = new Float32Array(dim);
+  for (let i = 0; i < embeddingCount; i++) {
+    for (let j = 0; j < dim; j++) centroid[j] += embeddings[i * dim + j];
   }
-  return perf.computeCentroidF32(embeddings, embeddingCount);
+  return centroid.map((x) => x / embeddingCount);
 }
 
 
@@ -122,12 +144,13 @@ export function toFlatFloat32Array(embeddings: number[][]): Float32Array {
  * @param query - Query embedding (1536 floats for OpenAI)
  * @param candidates - Array of candidate embeddings
  * @returns Array of similarity scores in same order as candidates
- * @throws NativeRustAcceleratorUnavailableError if native module not available
+ * Falls back to JavaScript when the native module is not available.
  */
 export function batchCosineSimilarityOptimized(query: number[], candidates: number[][]): number[] {
   if (candidates.length === 0) return [];
 
-  const perf = loadRustPerf();
+  const perf = tryLoadRustPerf();
+  if (!perf) return jsBatchCosine(query, candidates);
 
   // Try F32 SIMD path (10-50x faster for batches)
   if (perf.batchCosineSimilarityF32 && candidates.length >= 5) {
@@ -149,7 +172,7 @@ export function batchCosineSimilarityOptimized(query: number[], candidates: numb
  * @param threshold - Minimum similarity threshold (0-1)
  * @param dim - Embedding dimension (default: 1536 for OpenAI)
  * @returns Array of similar pairs with indices and similarity scores
- * @throws NativeRustAcceleratorUnavailableError if native module not available
+ * Uses JavaScript when the native module is not available.
  */
 export function findSimilarPairs(
   embeddings: number[][],
@@ -158,10 +181,10 @@ export function findSimilarPairs(
 ): SimilarPairResult[] {
   if (embeddings.length < 2) return [];
 
-  const perf = loadRustPerf();
+  const perf = tryLoadRustPerf();
 
   // F32 SIMD path (60x faster for batches)
-  if (perf.findSimilarPairsF32 && embeddings.length >= 5) {
+  if (perf?.findSimilarPairsF32 && embeddings.length >= 5) {
     const flatEmbeddings = toFlatFloat32Array(embeddings);
     // Derive the dimension from the data: the `dim` default (1536) panics the
     // native module when embeddings come from a smaller model
@@ -191,7 +214,7 @@ export function findSimilarPairs(
  * @param k - Number of top results to return
  * @param minSimilarity - Minimum similarity threshold (default: 0)
  * @returns TopKResult with indices and similarity scores
- * @throws NativeRustAcceleratorUnavailableError if native module not available
+ * Uses JavaScript when the native module is not available.
  */
 export function topKSimilar(
   query: number[],
@@ -203,10 +226,10 @@ export function topKSimilar(
     return { indices: [], similarities: [] };
   }
 
-  const perf = loadRustPerf();
+  const perf = tryLoadRustPerf();
 
   // F32 SIMD path for larger batches
-  if (perf.topKSimilarF32 && candidates.length >= 5) {
+  if (perf?.topKSimilarF32 && candidates.length >= 5) {
     const queryF32 = toFloat32Array(query);
     const candidatesF32 = toFlatFloat32Array(candidates);
     return perf.topKSimilarF32(queryF32, candidatesF32, candidates.length, k, minSimilarity);

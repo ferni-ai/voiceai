@@ -14,7 +14,7 @@
  * @module agents/shared/conversational-audio-cache
  */
 
-import { getVoiceIdForPersona, CARTESIA_MODEL } from '../../config/voice-ids.js';
+import { getVoiceIdForPersona, CARTESIA_MODEL, cartesiaPronunciation } from '../../config/voice-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ConversationalAudioCache' });
@@ -208,7 +208,8 @@ const ARRIVING_BANTER: Record<string, string[]> = {
  * Most critical for latency - used during active listening.
  */
 const BACKCHANNELS: Record<string, string[]> = {
-  ferni: ['Mm', 'Yeah', 'Mhm', 'Right', 'I hear you', 'Mm-hmm', 'Oh'],
+  // 'Hmm' opens a reply to a question (turn-opening-sound.ts).
+  ferni: ['Mm', 'Hmm', 'Yeah', 'Mhm', 'Right', 'I hear you', 'Mm-hmm', 'Oh'],
   'maya-santos': ['Mm', 'Yeah', 'Mhm', 'Okay', 'I hear you', 'Oh', 'Right'],
   'peter-john': ['Mm', 'Yeah', 'Okay', 'Interesting', 'Oh!', 'Right'],
   'alex-chen': ['Mm', 'Yeah', 'Got it', 'Right', 'Okay', 'I see'],
@@ -248,6 +249,7 @@ async function generateAudio(text: string, voiceId: string): Promise<ArrayBuffer
       },
       body: JSON.stringify({
         model_id: CARTESIA_MODEL,
+        ...cartesiaPronunciation(),
         transcript: plainText, // Use stripped text
         voice: { mode: 'id', id: voiceId },
         output_format: {

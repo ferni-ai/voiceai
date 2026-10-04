@@ -4,12 +4,7 @@
  * Gives personas varying moods, energy levels, and even "off days."
  * This is what makes an AI feel alive rather than always "on."
  *
- * A friend isn't always at 100%. Sometimes they're:
- * - Reflective and slow
- * - Extra energized
- * - A bit tired but still present
- * - In a philosophical mood
- * - Feeling playful
+ * A friend isn't always at 100%: reflective, energized, tired, playful.
  *
  * The mood affects:
  * - Response length
@@ -21,6 +16,7 @@
 
 import type { PersonaConfig } from '../../../personas/types.js';
 import type { MoodState } from '../../../types/humanizing-types.js';
+import { scriptedHintLinesEnabled } from '../../scripted-hint-lines.js';
 
 // ============================================================================
 // TYPES
@@ -583,8 +579,8 @@ export function formatMoodForPrompt(mood: PersonaMood): string {
     sections.push(`Behaviors: ${behaviors.join('; ')}`);
   }
 
-  // Mood phrase hint
-  if (mood.moodPhrases.length > 0) {
+  // Mood phrase hint (a scripted aside; off unless FERNI_SCRIPTED_HINT_LINES=on)
+  if (mood.moodPhrases.length > 0 && scriptedHintLinesEnabled()) {
     const phrase = mood.moodPhrases[Math.floor(Math.random() * mood.moodPhrases.length)];
     sections.push(`If natural, you might say something like: "${phrase}"`);
   }

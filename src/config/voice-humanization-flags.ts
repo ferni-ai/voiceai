@@ -113,8 +113,13 @@ const DEFAULT_FLAGS: VoiceHumanizationFlags = {
   // Phase 6: Live Backchanneling - ENABLED for "Better than Human" active listening
   enableLiveBackchanneling: true, // Soft "mm-hmm" during user speech at breath pauses
 
-  // Phase 7: LLM-Based Backchannels - ENABLED for natural variation
-  enableLLMBackchannels: true, // Let LLM generate contextual backchannels (no repetition!)
+  // Phase 7: LLM-based backchannels - OFF since 2026-10-03. Each one was a
+  // full generateReply 4 s into the caller's speech, and the model answered
+  // the caller's previous turn again, over them (dev call: "It's hard to say."
+  // and "Why do you keep forgetting?" were each answered twice, the second
+  // time 8 s and 22 s later). The "mm-hmm" clips still play during speech.
+  // VOICE_HUMANIZATION_ENABLE_L_L_M_BACKCHANNELS=true turns them back on.
+  enableLLMBackchannels: false,
 
   // Rollout: 100% by default
   rolloutPercentage: 100,

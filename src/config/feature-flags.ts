@@ -94,7 +94,6 @@ export interface FeatureFlags {
     /** Native Rust audio processing (zero-allocation, lower GC pressure) */
     nativeAudioProcessing: boolean;
     /** Native Rust embedding operations (SIMD-accelerated cosine similarity) */
-    nativeEmbeddings: boolean;
     /** Pre-warm context builders at session start for faster first turn */
     contextBuilderPrewarm: boolean;
     /** Use worker threads for embedding operations */
@@ -270,7 +269,6 @@ const DEFAULT_FLAGS: FeatureFlags = {
     crossSessionThreading: true,
     proactiveInsights: true,
     nativeAudioProcessing: process.env.USE_NATIVE_AUDIO !== 'false', // Enabled by default, disable with USE_NATIVE_AUDIO=false
-    nativeEmbeddings: process.env.USE_NATIVE_EMBEDDINGS !== 'false', // Enabled by default, disable with USE_NATIVE_EMBEDDINGS=false
     /** Pre-warm context builders at session start for faster first turn */
     contextBuilderPrewarm: process.env.DISABLE_CONTEXT_PREWARM !== 'true', // Enabled by default
     /**

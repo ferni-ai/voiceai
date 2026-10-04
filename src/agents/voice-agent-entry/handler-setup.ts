@@ -393,7 +393,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
 
   // Session state handlers
   const { silenceContext } = setupSessionStateHandlers({
-    session, sessionPersona, conversationManager, userData, sessionId,
+    session, sessionPersona, conversationManager, userData, sessionId, services,
     room: ctx.room,
     onIdleTimeout: () => {
       void (async () => {
@@ -408,12 +408,12 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     },
   });
 
-  // Transcript handler
+  // Transcript handler. The tool loader is per session: a shared one mixed callers' tools.
   const { autoOptimizer } = await import('../../tools/optimization/auto-optimizer.js');
   const { patternAnalyzer } = await import('../../tools/optimization/pattern-analyzer.js');
   const { feedbackCollector } = await import('../../tools/optimization/feedback-collector.js');
-  const { dynamicToolLoader } = await import('../../tools/dynamic-loader.js');
-
+  const { createSessionToolLoader } = await import('../../tools/dynamic-loader/index.js');
+  const dynamicToolLoader = createSessionToolLoader({ enableAutoUnload: false });
   await dynamicToolLoader.initialize({
     userId: userId || 'anonymous',
     agentId: sessionPersona.id,

@@ -292,6 +292,34 @@ describe('Transcript Validator', () => {
         expect(result.reason).toBe('echo_detected');
       });
 
+      it('should not reject a user answer that reuses words from a full agent reply', () => {
+        // lastAgentUtterance now holds every committed LLM reply, so the user's
+        // answer often echoes its topic words. That must not read as echo.
+        const echoContext: ValidationContext = {
+          ...defaultContext,
+          timeSinceAgentSpoke: 800,
+          lastAgentUtterance:
+            "It sounds like the move has been a lot. What's been the hardest part of settling in?",
+        };
+
+        const result = validateTranscript(
+          'honestly the hardest part of settling in is not knowing anyone yet',
+          echoContext
+        );
+        expect(result.isValid).toBe(true);
+      });
+
+      it('should not reject a user reply that extends a short agent prompt', () => {
+        const echoContext: ValidationContext = {
+          ...defaultContext,
+          timeSinceAgentSpoke: 600,
+          lastAgentUtterance: 'Tell me more.',
+        };
+
+        const result = validateTranscript('tell me more about that', echoContext);
+        expect(result.isValid).toBe(true);
+      });
+
       it('should not reject different transcript during echo window', () => {
         const echoContext: ValidationContext = {
           ...defaultContext,

@@ -29,6 +29,11 @@ import {
 } from '../shared/generate-reply-gateway.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
+import { registerAgentReplyRecorder } from '../voice-agent/agent-reply-recorder.js';
+import {
+  createPreSTTFrameProcessor,
+  wantsPhonePreStt,
+} from '../integrations/pre-stt-frame-processor.js';
 import { getPrewarmGreetingPolicy, planFactoryPrewarm } from './prewarm-greeting-overlap.js';
 
 const log = getLogger();
@@ -153,6 +158,12 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
     });
     mark('setup_persona_agent_done');
 
+    // Record committed replies from the start: with deferred wiring the greeting
+    // is spoken before wireHandlers() runs, and would otherwise go unrecorded.
+    if (enableFullHandlers) {
+      registerAgentReplyRecorder(agentSetup.session, { sessionId, services, userData });
+    }
+
     // State for muting
     let isMuted = false;
 
@@ -198,9 +209,14 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
         '🎭 Starting agent session in room...'
       );
       mark('session_start_call');
+      // Phone callers: AGC + high-pass before STT (see pre-stt-frame-processor.ts).
+      const phoneInput = wantsPhonePreStt(context.userParticipant)
+        ? await createPreSTTFrameProcessor(sessionId)
+        : null;
       await agentSetup.session.start({
         room: context.room,
         agent: agentSetup.agent,
+        ...(phoneInput ? { inputOptions: { noiseCancellation: phoneInput } } : {}),
         // For handoffs, don't claim primary status - the old session may still be releasing
         // For initial agent, be primary (record: true is default)
         ...(context.isHandoff ? { record: false } : {}),

@@ -346,10 +346,30 @@ export declare function stripSsml(text: string): string
 export declare function analyzeSsml(text: string): NativeSsmlAnalysis
 /** Batch analyze multiple texts in parallel */
 export declare function batchAnalyzeSsml(texts: Array<string>): Array<NativeSsmlAnalysis>
-/** Extract break tags and their durations */
-export declare function extractBreaks(text: string): Array<number>
-/** Extract emotion tags */
-export declare function extractEmotions(text: string): Array<string>
+/** A break tag and where it is in the text (JS string indices). */
+export interface SsmlBreakTag {
+  durationMs: number
+  startPos: number
+  endPos: number
+}
+/** An emotion tag and where it is in the text (JS string indices). */
+export interface SsmlEmotionTag {
+  emotion: string
+  startPos: number
+  endPos: number
+}
+/** A speed tag and where it is in the text (JS string indices). */
+export interface SsmlSpeedTag {
+  speed: number
+  startPos: number
+  endPos: number
+}
+/** Extract break tags with their durations and positions */
+export declare function extractBreaks(text: string): Array<SsmlBreakTag>
+/** Extract emotion tags with their positions */
+export declare function extractEmotions(text: string): Array<SsmlEmotionTag>
+/** Extract speed tags with their ratios and positions */
+export declare function extractSpeeds(text: string): Array<SsmlSpeedTag>
 /** Insert break tag at specified position */
 export declare function insertBreak(text: string, position: number, durationMs: number): string
 /** Insert emotion tag at specified position */

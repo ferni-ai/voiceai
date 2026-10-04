@@ -503,7 +503,6 @@ export {
   addSharedMemory as addAdvancedSharedMemory,
   addSignificantDate as addAdvancedSignificantDate,
   cleanupAdvancedHumanization,
-  getClosingGuidance as getAdvancedClosingGuidance,
   getAdvancedHumanizationState,
   getResponseModifications as getAdvancedResponseModifications,
   initAdvancedHumanization,

@@ -30,7 +30,6 @@ import {
 import {
   cleanupAdvancedHumanization,
   getAdvancedHumanizationState,
-  getClosingGuidance,
   getResponseModifications,
   initAdvancedHumanization,
   processAdvancedTurn,
@@ -545,36 +544,6 @@ describe('Response Modifications', () => {
       a.includes('ENERGY')
     );
     expect(hasEnergyGuidance).toBe(true);
-  });
-});
-
-// ============================================================================
-// CLOSING GUIDANCE TESTS
-// ============================================================================
-
-describe('Closing Guidance', () => {
-  const sessionId = 'closing-test-session';
-  const userId = 'closing-test-user';
-
-  beforeEach(() => {
-    initAdvancedHumanization({ sessionId, userId });
-  });
-
-  afterEach(() => {
-    cleanupAdvancedHumanization(sessionId);
-  });
-
-  it('should provide closing guidance', () => {
-    // Have a few turns
-    processAdvancedTurn(sessionId, 'Hello');
-    processAdvancedTurn(sessionId, 'I want to discuss my goals');
-    processAdvancedTurn(sessionId, 'That helps, thank you');
-
-    const closing = getClosingGuidance(sessionId);
-
-    expect(closing).toBeDefined();
-    expect(closing?.phrase).toBeTruthy();
-    expect(typeof closing?.aftercareNeeded).toBe('boolean');
   });
 });
 
