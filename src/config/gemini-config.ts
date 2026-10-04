@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { realtimeModelOrFail } from './realtime-model.js';
 import { applyThinkingDefaults } from './thinking-defaults.js';
 
 const log = createLogger({ module: 'GeminiConfig' });
@@ -129,47 +130,12 @@ export const CONTENT_GENERATION_MODEL =
 export const LIGHT_MODEL = process.env.LLM_LIGHT_MODEL || 'gemini-3.5-flash-lite';
 
 /**
- * Model for realtime/voice applications (Vertex AI Live API)
- * NOTE: Google retired gemini-2.0-flash model line.
- * NOTE: The Gemini Live pipeline is LEGACY. Do NOT select it without explicitly setting
- *       LLM_REALTIME_MODEL to a Live API model you have confirmed Vertex AI serves.
+ * Model for realtime/voice applications (Vertex AI Live API). No default: see realtime-model.ts.
  * NOTE: Native-audio models (gemini-live-*-native-audio) do NOT work with TEXT modality!
  * NOTE: Do NOT fall back to GEMINI_MODEL — Live models break generateContent callers
  *       that use getDefaultModel()/GEMINI_MODEL. Keep the two env vars separate.
  */
-function getRealtimeModelOrFail(): string {
-  const providerId = (() => {
-    // Check if Gemini Live is being selected (copy of logic from model-provider-config.ts)
-    if (process.env.VOICE_PIPELINE === 'gemini-live') {
-      // Gemini Live pipeline is legacy; require explicit LLM_REALTIME_MODEL
-      if (!process.env.LLM_REALTIME_MODEL) {
-        const message = [
-          'Gemini Live voice pipeline is legacy. Google retired the gemini-2.0-flash model line.',
-          '',
-          'To use Gemini Live, set LLM_REALTIME_MODEL to a Live API model that Vertex AI',
-          'currently serves for your project (check the Vertex AI model list first).',
-          '',
-          'Or switch to the default pipeline (Cartesia cascade):',
-          '  • Unset VOICE_PIPELINE, or',
-          '  • export VOICE_PIPELINE="cartesia-cascade"',
-        ].join('\n');
-        throw new Error(message);
-      }
-      return 'gemini-live';
-    }
-    return null;
-  })();
-
-  // If Gemini Live is selected, user must have provided LLM_REALTIME_MODEL (checked above)
-  if (providerId === 'gemini-live') {
-    return process.env.LLM_REALTIME_MODEL!;
-  }
-
-  // For other pipelines, return explicit override or empty (not used by non-live providers)
-  return process.env.LLM_REALTIME_MODEL || '';
-}
-
-export const REALTIME_MODEL = getRealtimeModelOrFail();
+export const REALTIME_MODEL = realtimeModelOrFail();
 
 /**
  * OpenAI realtime model (for OpenAI realtime API)

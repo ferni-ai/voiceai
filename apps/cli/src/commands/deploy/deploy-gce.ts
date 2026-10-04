@@ -564,7 +564,6 @@ function deployToSlot(
     // Use Gemini Live model (not OpenAI Realtime)
     USE_OPENAI_REALTIME: 'false',
     // Split: Live API model vs generateContent-capable default
-    // gemini-2.0-flash is retired; pass through the operator's explicit choice (the agent fails fast if empty)
     LLM_REALTIME_MODEL: process.env.LLM_REALTIME_MODEL ?? '',
     GEMINI_MODEL: 'gemini-2.5-flash',
     // CARTESIA_MODEL unset: src/config/voice-ids.ts pins the snapshot Ferni's PVC is tuned on
@@ -634,7 +633,6 @@ function promoteSlot(slot: 'blue' | 'green', image: string, secrets: Record<stri
     // Use Gemini Live model (not OpenAI Realtime)
     USE_OPENAI_REALTIME: 'false',
     // Split: Live API model vs generateContent-capable default
-    // gemini-2.0-flash is retired; pass through the operator's explicit choice (the agent fails fast if empty)
     LLM_REALTIME_MODEL: process.env.LLM_REALTIME_MODEL ?? '',
     GEMINI_MODEL: 'gemini-2.5-flash',
     // CARTESIA_MODEL unset: src/config/voice-ids.ts pins the snapshot Ferni's PVC is tuned on
@@ -813,7 +811,6 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
   envVarsArray.push('PORT=8080');
   // Split: Live API model vs generateContent-capable default
   envVarsArray.push('USE_OPENAI_REALTIME=false');
-  // gemini-2.0-flash is retired; pass through the operator's explicit choice (the agent fails fast if empty)
   envVarsArray.push(`LLM_REALTIME_MODEL=${process.env.LLM_REALTIME_MODEL ?? ''}`);
   envVarsArray.push('GEMINI_MODEL=gemini-2.5-flash');
   envVarsArray.push('CARTESIA_MODEL=sonic-3-latest');
