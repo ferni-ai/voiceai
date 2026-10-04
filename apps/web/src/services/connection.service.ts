@@ -148,6 +148,8 @@ class ConnectionService {
   private lastFailure: ConnectFailure | null = null;
   /** Increments per connect() so a stale attempt never tears down a newer room. */
   private attemptSeq = 0;
+  /** Aborts the in-flight connect(): by its caller's signal, or by a hang-up (disconnect()). */
+  private attemptAbort: AbortController | null = null;
 
   /**
    * Register callbacks for connection events.
@@ -353,11 +355,19 @@ class ConnectionService {
     const { signal } = options;
     const attempt = ++this.attemptSeq;
     let room: LiveKitRoom | null = null;
+    const attemptAbort = new AbortController();
+    this.attemptAbort = attemptAbort;
     const throwIfAborted = (): void => {
-      if (signal?.aborted || attempt !== this.attemptSeq) throw new ConnectStepError('cancelled');
+      if (attemptAbort.signal.aborted || attempt !== this.attemptSeq) {
+        throw new ConnectStepError('cancelled');
+      }
     };
     // Closing the room makes a pending room.connect() reject instead of hanging.
-    const onAbort = (): void => void this.closeAttemptRoom(room);
+    const onAbort = (): void => {
+      attemptAbort.abort();
+      void this.closeAttemptRoom(room);
+    };
+    if (signal?.aborted) attemptAbort.abort();
     signal?.addEventListener('abort', onAbort, { once: true });
 
     try {
@@ -481,7 +491,7 @@ class ConnectionService {
         agentIdentity = await waitForAgent(
           room,
           dispatched ? AGENT_JOIN_TIMEOUT_MS : AGENT_JOIN_TIMEOUT_AFTER_FAILED_DISPATCH_MS,
-          signal
+          attemptAbort.signal
         );
       } catch (agentError) {
         const timedOut = agentError instanceof ConnectStepError && agentError.kind === 'agent_timeout';
@@ -547,6 +557,7 @@ class ConnectionService {
       return false;
     } finally {
       signal?.removeEventListener('abort', onAbort);
+      if (this.attemptAbort === attemptAbort) this.attemptAbort = null;
     }
   }
 
@@ -561,7 +572,11 @@ class ConnectionService {
    * Disconnect from the current room.
    */
   async disconnect(): Promise<void> {
-    if (!this.room) return;
+    // A hang-up also cancels a call still connecting, so it can't fail ~15 s later.
+    this.attemptAbort?.abort();
+    this.awaitingAgent = false;
+    const room = this.room;
+    if (!room) return;
 
     // Mark as intentional disconnect (for crash analytics)
     this.isDisconnecting = true;
@@ -580,10 +595,10 @@ class ConnectionService {
       });
       this.audioElements.clear();
 
-      // Disconnect
-      await this.room.disconnect();
+      // Disconnect (release our reference first so nothing else closes this room twice)
       this.room = null;
       this.useQwen3Omni = false;
+      await room.disconnect();
 
       this.updateState('disconnected');
     } catch (error) {

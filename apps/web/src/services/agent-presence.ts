@@ -25,8 +25,8 @@ export interface PresenceParticipant {
 
 export interface PresenceRoom {
   remoteParticipants: Map<string, PresenceParticipant>;
-  on(event: 'participantConnected', cb: (p: PresenceParticipant) => void): unknown;
-  off(event: 'participantConnected', cb: (p: PresenceParticipant) => void): unknown;
+  on(event: 'participantConnected' | 'disconnected', cb: (p: PresenceParticipant) => void): unknown;
+  off(event: 'participantConnected' | 'disconnected', cb: (p: PresenceParticipant) => void): unknown;
 }
 
 /**
@@ -54,6 +54,7 @@ export function findAgentParticipant(room: PresenceRoom): PresenceParticipant | 
 /**
  * Resolve with the agent's identity once it is in the room.
  * Rejects with ConnectStepError('agent_timeout') after `timeoutMs`,
+ * ConnectStepError('dropped') as soon as the room disconnects,
  * or ConnectStepError('cancelled') if `signal` aborts first.
  */
 export function waitForAgent(
@@ -70,6 +71,7 @@ export function waitForAgent(
     const finish = (): void => {
       if (timer) clearTimeout(timer);
       room.off('participantConnected', onJoin);
+      room.off('disconnected', onDrop);
       signal?.removeEventListener('abort', onAbort);
     };
     const onJoin = (participant: PresenceParticipant): void => {
@@ -81,12 +83,17 @@ export function waitForAgent(
       finish();
       reject(new ConnectStepError('cancelled'));
     };
+    const onDrop = (): void => {
+      finish();
+      reject(new ConnectStepError('dropped'));
+    };
 
     if (signal?.aborted) {
       reject(new ConnectStepError('cancelled'));
       return;
     }
     room.on('participantConnected', onJoin);
+    room.on('disconnected', onDrop);
     signal?.addEventListener('abort', onAbort, { once: true });
     timer = setTimeout(() => {
       finish();

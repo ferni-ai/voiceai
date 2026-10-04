@@ -170,6 +170,47 @@ describe('waiting for the agent', () => {
   });
 });
 
+describe('hang-up or drop while waiting for the agent', () => {
+  it('a hang-up cancels the attempt: no late agent_timeout, no error', async () => {
+    await load(false);
+    fetchMock.mockResolvedValue(tokenResponse());
+    vi.useFakeTimers();
+    const onError = vi.fn();
+    service.setCallbacks({ onError });
+
+    const pending = service.connect();
+    await vi.waitFor(() => expect(room.connect).toHaveBeenCalled());
+    await service.disconnect();
+    await vi.advanceTimersByTimeAsync(16_000);
+
+    await expect(pending).resolves.toBe(false);
+    expect(service.getLastFailure()?.kind).toBe('cancelled');
+    expect(setConnectionState).toHaveBeenLastCalledWith('disconnected');
+    expect(onError).not.toHaveBeenCalled();
+    expect(room.disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('a room drop fails the attempt at once as "dropped", not 15 s later', async () => {
+    await load(false);
+    fetchMock.mockResolvedValue(tokenResponse());
+    vi.useFakeTimers();
+    let settled = false;
+
+    const pending = service.connect();
+    void pending.then(() => {
+      settled = true;
+    });
+    await vi.waitFor(() => expect(room.connect).toHaveBeenCalled());
+    room.emit('disconnected', 'SIGNAL_CLOSE');
+    await vi.advanceTimersByTimeAsync(50);
+
+    expect(settled).toBe(true);
+    await expect(pending).resolves.toBe(false);
+    expect(service.getLastFailure()?.kind).toBe('dropped');
+    expect(service.getRoom()).toBeNull();
+  });
+});
+
 describe('classified failures', () => {
   it.each([
     [401, 'unauthorized'],
