@@ -3007,5 +3007,54 @@
       "professional": "專業",
       "legacy": "遺產"
     }
+  },
+  "predictionResolution": {
+    "title": "結果如何？",
+    "youGuessed": "你的預測：{value}",
+    "actual": "實際：{value}",
+    "scored": "準確率 {accuracy}%",
+    "record": "記錄實際情況",
+    "save": "核對我的預測",
+    "saveFailed": "沒能儲存。再試一次？",
+    "metrics": {
+      "deepWork": {
+        "label": "專注工作",
+        "question": "你專注工作了多少小時？",
+        "unit": "小時"
+      },
+      "exercise": {
+        "label": "運動",
+        "question": "你運動了幾次？",
+        "unit": "次"
+      },
+      "social": {
+        "label": "與人相處",
+        "question": "你和別人相處了多少小時？",
+        "unit": "小時"
+      },
+      "screen": {
+        "label": "螢幕時間",
+        "question": "你的螢幕時間是多少小時？",
+        "unit": "小時"
+      },
+      "mood": {
+        "label": "心情",
+        "question": "你的平均心情是幾分（1 到 10）？",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "你的實際{label}是多少？"
+      }
+    },
+    "result": {
+      "line": "你預測 {predicted}，實際是 {actual}。{verdict}",
+      "overall": "本週整體準確率 {accuracy}%。"
+    },
+    "tone": {
+      "spotOn": "完全猜中！",
+      "close": "非常接近！",
+      "off": "這次有點偏差。",
+      "wayOff": "這次差得挺遠。現在你知道了。"
+    }
   }
 }

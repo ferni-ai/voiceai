@@ -12,13 +12,10 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import type {
-  EngagementEvent,
-  EngagementTriggerEvent
-} from '../../../src/types/events.js';
+import type { EngagementEvent, EngagementTriggerEvent } from '../../../src/types/events.js';
 import type {
   PredictionData,
-  EngagementServiceCallbacks
+  EngagementServiceCallbacks,
 } from '../../../src/services/engagement.service.js';
 import type { EngagementData } from '../../../src/ui/engagement.ui.js';
 
@@ -125,20 +122,24 @@ describe('EngagementService', () => {
 
       const engagementMessage: EngagementEvent = {
         type: 'engagement',
-        ritualStreaks: [{
-          ritualId: 'ferni-sky-check',
-          ritualName: 'Morning Sky Check',
-          personaId: 'ferni',
-          currentStreak: 5,
-          longestStreak: 10,
-          lastCompletedAt: '2025-12-05',
-          dueToday: true,
-        }],
-        weatherHistory: [{
-          primary: 'sunny',
-          energy: 'high',
-          recordedAt: '2025-12-05',
-        }],
+        ritualStreaks: [
+          {
+            ritualId: 'ferni-sky-check',
+            ritualName: 'Morning Sky Check',
+            personaId: 'ferni',
+            currentStreak: 5,
+            longestStreak: 10,
+            lastCompletedAt: '2025-12-05',
+            dueToday: true,
+          },
+        ],
+        weatherHistory: [
+          {
+            primary: 'sunny',
+            energy: 'high',
+            recordedAt: '2025-12-05',
+          },
+        ],
         stats: {
           totalRitualDays: 50,
           longestOverallStreak: 15,
@@ -255,15 +256,17 @@ describe('EngagementService', () => {
 
       const engagementMessage: EngagementEvent = {
         type: 'engagement',
-        ritualStreaks: [{
-          ritualId: 'ferni-sky-check',
-          ritualName: 'Morning Sky Check',
-          personaId: 'ferni',
-          currentStreak: 7,
-          longestStreak: 7,
-          lastCompletedAt: '2025-12-06',
-          dueToday: false,
-        }],
+        ritualStreaks: [
+          {
+            ritualId: 'ferni-sky-check',
+            ritualName: 'Morning Sky Check',
+            personaId: 'ferni',
+            currentStreak: 7,
+            longestStreak: 7,
+            lastCompletedAt: '2025-12-06',
+            dueToday: false,
+          },
+        ],
         weatherHistory: [],
         stats: {
           totalRitualDays: 7,
@@ -296,15 +299,17 @@ describe('EngagementService', () => {
 
         const engagementMessage: EngagementEvent = {
           type: 'engagement',
-          ritualStreaks: [{
-            ritualId: 'ferni-sky-check',
-            ritualName: 'Morning Sky Check',
-            personaId: 'ferni',
-            currentStreak: count,
-            longestStreak: count,
-            lastCompletedAt: '2025-12-06',
-            dueToday: false,
-          }],
+          ritualStreaks: [
+            {
+              ritualId: 'ferni-sky-check',
+              ritualName: 'Morning Sky Check',
+              personaId: 'ferni',
+              currentStreak: count,
+              longestStreak: count,
+              lastCompletedAt: '2025-12-06',
+              dueToday: false,
+            },
+          ],
           weatherHistory: [],
           stats: {
             totalRitualDays: count,
@@ -333,15 +338,17 @@ describe('EngagementService', () => {
 
       const engagementMessage: EngagementEvent = {
         type: 'engagement',
-        ritualStreaks: [{
-          ritualId: 'ferni-sky-check',
-          ritualName: 'Morning Sky Check',
-          personaId: 'ferni',
-          currentStreak: 5, // Not a milestone
-          longestStreak: 10,
-          lastCompletedAt: '2025-12-06',
-          dueToday: false,
-        }],
+        ritualStreaks: [
+          {
+            ritualId: 'ferni-sky-check',
+            ritualName: 'Morning Sky Check',
+            personaId: 'ferni',
+            currentStreak: 5, // Not a milestone
+            longestStreak: 10,
+            lastCompletedAt: '2025-12-06',
+            dueToday: false,
+          },
+        ],
         weatherHistory: [],
         stats: {
           totalRitualDays: 5,
@@ -430,9 +437,11 @@ describe('EngagementService', () => {
 
       const result = await engagementService.fetchEngagementData('user123');
 
-      expect(result).toEqual(expect.objectContaining({
-        stats: cachedData.stats,
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          stats: cachedData.stats,
+        })
+      );
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
@@ -443,20 +452,23 @@ describe('EngagementService', () => {
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          streaks: [{
-            ritualId: 'ferni-sky-check',
-            personaId: 'ferni',
-            currentStreak: 3,
-            longestStreak: 10,
-            lastCompletedAt: '2025-12-05',
-          }],
-          weatherHistory: [],
-          stats: {
-            totalRitualDays: 15,
-            longestOverallStreak: 10,
-          },
-        }),
+        json: () =>
+          Promise.resolve({
+            streaks: [
+              {
+                ritualId: 'ferni-sky-check',
+                personaId: 'ferni',
+                currentStreak: 3,
+                longestStreak: 10,
+                lastCompletedAt: '2025-12-05',
+              },
+            ],
+            weatherHistory: [],
+            stats: {
+              totalRitualDays: 15,
+              longestOverallStreak: 10,
+            },
+          }),
       });
 
       const result = await engagementService.fetchEngagementData('user123');
@@ -536,30 +548,35 @@ describe('EngagementService', () => {
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          streaks: [{
-            ritualId: 'maya-habit-heartbeat',
-            personaId: 'maya',
-            currentStreak: 7,
-            longestStreak: 12,
-            lastCompletedAt: '2025-12-05T08:00:00Z',
-          }],
-          weatherHistory: [{
-            weather: {
-              primary: 'sunny',
-              energy: 'high',
-              note: 'Feeling great!',
+        json: () =>
+          Promise.resolve({
+            streaks: [
+              {
+                ritualId: 'maya-habit-heartbeat',
+                personaId: 'maya',
+                currentStreak: 7,
+                longestStreak: 12,
+                lastCompletedAt: '2025-12-05T08:00:00Z',
+              },
+            ],
+            weatherHistory: [
+              {
+                weather: {
+                  primary: 'sunny',
+                  energy: 'high',
+                  note: 'Feeling great!',
+                },
+                date: '2025-12-06',
+              },
+            ],
+            stats: {
+              totalRitualDays: 50,
+              longestOverallStreak: 20,
+              predictionAccuracy: 85,
+              teamHuddlesAttended: 3,
             },
-            date: '2025-12-06',
-          }],
-          stats: {
-            totalRitualDays: 50,
-            longestOverallStreak: 20,
-            predictionAccuracy: 85,
-            teamHuddlesAttended: 3,
-          },
-          lastEngagementAt: '2025-12-06T10:00:00Z',
-        }),
+            lastEngagementAt: '2025-12-06T10:00:00Z',
+          }),
       });
 
       const result = await engagementService.fetchEngagementData('user123');
@@ -578,9 +595,10 @@ describe('EngagementService', () => {
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          // Minimal response
-        }),
+        json: () =>
+          Promise.resolve({
+            // Minimal response
+          }),
       });
 
       const result = await engagementService.fetchEngagementData('user123');
@@ -601,11 +619,12 @@ describe('EngagementService', () => {
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          streaks: [],
-          weatherHistory: [],
-          stats: { totalRitualDays: 5 },
-        }),
+        json: () =>
+          Promise.resolve({
+            streaks: [],
+            weatherHistory: [],
+            stats: { totalRitualDays: 5 },
+          }),
       });
 
       await engagementService.fetchEngagementData('user123');
@@ -620,14 +639,16 @@ describe('EngagementService', () => {
 
       engagementService.clearCache();
 
-      const predictions: PredictionData[] = [{
-        id: 'pred-1',
-        category: 'mood',
-        question: 'Test',
-        userPrediction: 8,
-        status: 'pending',
-        createdAt: '2025-12-01',
-      }];
+      const predictions: PredictionData[] = [
+        {
+          id: 'pred-1',
+          category: 'mood',
+          question: 'Test',
+          userPrediction: 8,
+          status: 'pending',
+          createdAt: '2025-12-01',
+        },
+      ];
 
       // Set up cache via message
       const engagementMessage: EngagementEvent = {
@@ -659,16 +680,19 @@ describe('EngagementService', () => {
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          predictions: [{
-            id: 'pred-1',
-            predictions: {
-              'Mood average (1-10)': 7,
-            },
-            weekOf: 'Dec 1',
-            createdAt: '2025-12-01',
-          }],
-        }),
+        json: () =>
+          Promise.resolve({
+            predictions: [
+              {
+                id: 'pred-1',
+                predictions: {
+                  'Mood average (1-10)': 7,
+                },
+                weekOf: 'Dec 1',
+                createdAt: '2025-12-01',
+              },
+            ],
+          }),
       });
 
       const result = await engagementService.fetchPredictions('user123');
@@ -689,36 +713,40 @@ describe('EngagementService', () => {
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          predictions: [
-            {
-              id: 'pred-1',
-              predictions: {
-                'Mood average (1-10)': 7,
-                'Sleep hours': 8,
+        json: () =>
+          Promise.resolve({
+            predictions: [
+              {
+                id: 'pred-1',
+                predictions: {
+                  'Mood average (1-10)': 7,
+                  'Sleep hours': 8,
+                },
+                weekOf: 'Dec 1',
+                accuracy: 90,
+                completedAt: '2025-12-08',
+                createdAt: '2025-12-01',
               },
-              weekOf: 'Dec 1',
-              accuracy: 90,
-              completedAt: '2025-12-08',
-              createdAt: '2025-12-01',
-            },
-            {
-              id: 'pred-2',
-              predictions: {
-                'Deep work hours': 5,
+              {
+                id: 'pred-2',
+                predictions: {
+                  'Deep work hours': 5,
+                },
+                weekOf: 'Dec 8',
+                createdAt: '2025-12-08',
               },
-              weekOf: 'Dec 8',
-              createdAt: '2025-12-08',
-            },
-          ],
-        }),
+            ],
+          }),
       });
 
       const result = await engagementService.fetchPredictions('user123');
 
       expect(result).toHaveLength(2);
       expect(result[0].category).toBe('mood');
-      expect(result[0].actualOutcome).toBe(90);
+      // The score is the score; no actual value was recorded in this record.
+      expect(result[0].accuracy).toBe(90);
+      expect(result[0].actualOutcome).toBeUndefined();
+      expect(result[0].metrics?.map((m) => m.key)).toEqual(['Mood average (1-10)', 'Sleep hours']);
       expect(result[0].status).toBe('resolved');
       expect(result[1].category).toBe('productivity');
       expect(result[1].status).toBe('pending');
@@ -744,34 +772,35 @@ describe('EngagementService', () => {
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          predictions: [
-            {
-              id: 'pred-1',
-              predictions: { 'Mood average (1-10)': 7 },
-              weekOf: 'Dec 1',
-              createdAt: '2025-12-01',
-            },
-            {
-              id: 'pred-2',
-              predictions: { 'Deep work hours': 5 },
-              weekOf: 'Dec 1',
-              createdAt: '2025-12-01',
-            },
-            {
-              id: 'pred-3',
-              predictions: { 'Exercise sessions': 3 },
-              weekOf: 'Dec 1',
-              createdAt: '2025-12-01',
-            },
-            {
-              id: 'pred-4',
-              predictions: { 'Other metric': 10 },
-              weekOf: 'Dec 1',
-              createdAt: '2025-12-01',
-            },
-          ],
-        }),
+        json: () =>
+          Promise.resolve({
+            predictions: [
+              {
+                id: 'pred-1',
+                predictions: { 'Mood average (1-10)': 7 },
+                weekOf: 'Dec 1',
+                createdAt: '2025-12-01',
+              },
+              {
+                id: 'pred-2',
+                predictions: { 'Deep work hours': 5 },
+                weekOf: 'Dec 1',
+                createdAt: '2025-12-01',
+              },
+              {
+                id: 'pred-3',
+                predictions: { 'Exercise sessions': 3 },
+                weekOf: 'Dec 1',
+                createdAt: '2025-12-01',
+              },
+              {
+                id: 'pred-4',
+                predictions: { 'Other metric': 10 },
+                weekOf: 'Dec 1',
+                createdAt: '2025-12-01',
+              },
+            ],
+          }),
       });
 
       const result = await engagementService.fetchPredictions('user123');
@@ -782,31 +811,38 @@ describe('EngagementService', () => {
       expect(result[3].category).toBe('overall');
     });
 
-    it('should calculate main value as average', async () => {
+    it('should keep each metric guess instead of averaging across units', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
 
       engagementService.clearCache();
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          predictions: [{
-            id: 'pred-1',
-            predictions: {
-              'Metric A': 6,
-              'Metric B': 8,
-              'Metric C': 10,
-            },
-            weekOf: 'Dec 1',
-            createdAt: '2025-12-01',
-          }],
-        }),
+        json: () =>
+          Promise.resolve({
+            predictions: [
+              {
+                id: 'pred-1',
+                predictions: {
+                  'Metric A': 6,
+                  'Metric B': 8,
+                  'Metric C': 10,
+                },
+                weekOf: 'Dec 1',
+                createdAt: '2025-12-01',
+              },
+            ],
+          }),
       });
 
       const result = await engagementService.fetchPredictions('user123');
 
-      // Average of 6, 8, 10 = 8
-      expect(result[0].userPrediction).toBe(8);
+      expect(result[0].metrics).toEqual([
+        { key: 'Metric A', predicted: 6 },
+        { key: 'Metric B', predicted: 8 },
+        { key: 'Metric C', predicted: 10 },
+      ]);
+      expect(result[0].userPrediction).toBe(6); // the first metric's guess
     });
   });
 
@@ -932,11 +968,13 @@ describe('EngagementService', () => {
       expect(resolved[0].status).toBe('resolved');
     });
 
-    it('should calculate prediction accuracy', async () => {
+    it('should average the server scores for prediction accuracy', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
 
       engagementService.clearCache();
 
+      // Raw units differ per metric (hours vs 1-10 mood), so only the server's
+      // score is comparable: (88 + 100) / 2.
       const predictions: PredictionData[] = [
         {
           id: 'pred-1',
@@ -944,6 +982,7 @@ describe('EngagementService', () => {
           question: 'Test 1',
           userPrediction: 7,
           actualOutcome: 8,
+          accuracy: 88,
           status: 'resolved',
           createdAt: '2025-12-01',
         },
@@ -953,6 +992,7 @@ describe('EngagementService', () => {
           question: 'Test 2',
           userPrediction: 10,
           actualOutcome: 10,
+          accuracy: 100,
           status: 'resolved',
           createdAt: '2025-12-01',
         },
@@ -976,9 +1016,7 @@ describe('EngagementService', () => {
 
       const accuracy = engagementService.calculateAccuracy();
 
-      // Average error: (|7-8| + |10-10|) / 2 = 0.5
-      // Accuracy: 100 - 0.5 = 99.5 → rounded to 100
-      expect(accuracy).toBeGreaterThanOrEqual(99);
+      expect(accuracy).toBe(94);
     });
 
     it('should return null accuracy with no resolved predictions', async () => {

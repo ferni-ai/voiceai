@@ -213,6 +213,7 @@ export async function handleVerificationRoutes(
       embeddings: [],
       centroid: entry.centroid,
       threshold: entry.threshold,
+      embeddingMethod: entry.embeddingMethod,
       qualityScore: 1,
       verificationCount: 0,
       enrolledAt: new Date(),

@@ -536,8 +536,9 @@ async function handlePlantSeed(): Promise<void> {
   updateLoadingState(true);
 
   try {
+    // No userId: the server acts on the user the Bearer token (added by
+    // apiPost) verifies. The deviceId is a local id, never an account.
     const response = await apiPost<{ url?: string }>('/api/garden/plant', {
-      userId: deviceId,
       amountInCents: selectedTipAmount * 100,
       successUrl: window.location.origin + '?tip=success',
       cancelUrl: window.location.origin + '?tip=cancel',
