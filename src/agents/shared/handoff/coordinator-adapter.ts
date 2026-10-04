@@ -52,6 +52,7 @@ import { getVoiceManagerCached, getPersonaAsyncCached } from './cached-modules.j
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../../speech/coordination/index.js';
 import { getNextMessageSeqSync } from './session-state.js';
+import { buildHandoffUIMessage } from '../data-message-envelope.js';
 
 // ⚡ Conversational cache for instant handoff banter
 import { getCachedAudioForPersona } from '../conversational-audio-cache.js';
@@ -400,12 +401,8 @@ export class CoordinatorAdapter {
     const eventData = event as { type: string; data?: Record<string, unknown> };
 
     try {
-      const message = JSON.stringify({
-        ...eventData.data,
-        type: eventData.type,
-        seq: getNextMessageSeqSync(this.sessionId),
-        timestamp: Date.now(),
-      });
+      const seq = getNextMessageSeqSync(this.sessionId);
+      const message = JSON.stringify(buildHandoffUIMessage(eventData, seq));
 
       if (this.room.localParticipant) {
         this.room.localParticipant

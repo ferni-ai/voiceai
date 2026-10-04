@@ -69,6 +69,7 @@ import { reportDisconnect } from './disconnect-report.js';
 import { registerMicRestoreHandlers, type MicRoom } from './mic-restore.js';
 import { spotifyService } from './spotify.service.js';
 import { fetchConnectionToken } from './token-fetch.service.js';
+import { attachLiveTranscription } from './live-transcription.service.js';
 
 const log = createLogger('Connection');
 
@@ -927,9 +928,7 @@ class ConnectionService {
       }
     };
     this.room.on('trackMuted', onTrackMuted);
-    this.cleanupFunctions.push(() => {
-      this.room?.off('trackMuted', onTrackMuted);
-    });
+    this.cleanupFunctions.push(() => this.room?.off('trackMuted', onTrackMuted));
 
     const onTrackUnmuted = (publication: { kind: string }, participant: { isLocal?: boolean }) => {
       if (participant.isLocal && publication.kind === 'audio') {
@@ -937,9 +936,7 @@ class ConnectionService {
       }
     };
     this.room.on('trackUnmuted', onTrackUnmuted);
-    this.cleanupFunctions.push(() => {
-      this.room?.off('trackUnmuted', onTrackUnmuted);
-    });
+    this.cleanupFunctions.push(() => this.room?.off('trackUnmuted', onTrackUnmuted));
 
     // Data messages (handoff notifications, etc.)
     const onDataReceived = (payload: Uint8Array, _participant: unknown, _kind: unknown) => {
@@ -952,9 +949,10 @@ class ConnectionService {
       }
     };
     this.room.on('dataReceived', onDataReceived);
-    this.cleanupFunctions.push(() => {
-      this.room?.off('dataReceived', onDataReceived);
-    });
+    this.cleanupFunctions.push(() => this.room?.off('dataReceived', onDataReceived));
+    // Live transcripts arrive as lk.transcription text streams, not data messages.
+    const onTranscript = (message: DataMessage): void => this.callbacks.onDataMessage?.(message);
+    this.cleanupFunctions.push(attachLiveTranscription(this.room, onTranscript));
 
     // Disconnected: an unexpected drop is cleaned up like a hang-up, then reported
     const onDisconnected = (reason?: unknown) => {
