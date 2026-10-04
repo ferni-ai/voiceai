@@ -5,8 +5,10 @@
  * Connects to the InsightsBroadcast service and streams events to clients.
  *
  * Usage:
- * - Client connects to ws://localhost:8080/ws/insights
- * - Client sends { type: 'subscribe', userId: 'xxx' } to start receiving updates
+ * - Client connects to ws://localhost:8080/ws/insights, offering subprotocols
+ *   ['ferni.v1', 'bearer.<Firebase ID token>']
+ *   (no valid token: the upgrade is refused with 401)
+ * - Client sends { type: 'subscribe' } to receive updates for the verified user
  * - Server streams insight events as JSON
  * - Client can send ping messages to keep connection alive
  *
@@ -24,6 +26,12 @@ import {
   stopInsightMonitoring,
 } from './insights-broadcast.js';
 import { getProactiveInsights, generateTeamStatus } from '../cross-persona-insights.js';
+import {
+  rejectUpgrade,
+  selectWsProtocol,
+  upgradePath,
+  verifyUpgradeIdentity,
+} from '../identity/ws-identity.js';
 
 const log = getLogger();
 
@@ -33,6 +41,8 @@ const log = getLogger();
 
 interface ClientInfo {
   ws: WebSocket;
+  /** Verified at the upgrade; the only user this socket may read. */
+  uid: string;
   userId: string | null;
   subscribedAt: number | null;
 }
@@ -79,21 +89,19 @@ export function initInsightsWebSocket(httpServer: Server): WebSocketServer {
     noServer: true,
     // Disable per-message compression to fix "RSV1 must be clear" / "Invalid frame header" errors
     // This is a known compatibility issue with Node.js 24 and certain browser WebSocket clients
+    handleProtocols: selectWsProtocol,
     perMessageDeflate: false,
   });
 
   wssInstance = wss;
 
-  // Handle upgrade requests for /ws/insights path
+  // Other paths belong to other upgrade handlers: leave their sockets alone.
   httpServer.on('upgrade', (request, socket, head) => {
-    const { pathname } = new URL(request.url || '', `http://${request.headers.host}`);
-
-    if (pathname === '/ws/insights') {
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);
-      });
-    }
-    // Note: Don't destroy socket here - let other handlers process their paths
+    if (upgradePath(request) !== '/ws/insights') return;
+    void verifyUpgradeIdentity(request).then((uid) => {
+      if (!uid) return rejectUpgrade(socket);
+      wss.handleUpgrade(request, socket, head, (ws) => onConnection(ws, uid));
+    });
   });
 
   log.info('Insights WebSocket server initialized on /ws/insights');
@@ -107,13 +115,8 @@ export function initInsightsWebSocket(httpServer: Server): WebSocketServer {
     });
   });
 
-  wss.on('connection', (ws: WebSocket) => {
-    // Initialize client info
-    clients.set(ws, {
-      ws,
-      userId: null,
-      subscribedAt: null,
-    });
+  function onConnection(ws: WebSocket, uid: string): void {
+    clients.set(ws, { ws, uid, userId: null, subscribedAt: null });
 
     log.info({ clientCount: clients.size }, 'Insights WebSocket client connected');
 
@@ -139,7 +142,7 @@ export function initInsightsWebSocket(httpServer: Server): WebSocketServer {
       log.warn({ error }, 'Insights WebSocket client error');
       handleClientDisconnect(ws);
     });
-  });
+  }
 
   // Heartbeat to keep connections alive AND clean up stale connections
   registerInterval(
@@ -181,16 +184,16 @@ export function initInsightsWebSocket(httpServer: Server): WebSocketServer {
 }
 
 /**
- * Handle incoming message from client
+ * Handle incoming message from client. A userId in the message is ignored:
+ * subscribe and scan always act on the uid verified at the upgrade. We ignore
+ * rather than reject a mismatch because clients send whatever local id they
+ * hold; acting on the bound uid keeps them working and reads nobody else.
  */
-interface ClientMessage {
-  type: string;
-  userId?: string;
-}
-
 function handleClientMessage(ws: WebSocket, message: Buffer): void {
   try {
-    const data = JSON.parse(message.toString()) as ClientMessage;
+    const data = JSON.parse(message.toString()) as { type: string };
+    const uid = clients.get(ws)?.uid;
+    if (!uid) return;
 
     switch (data.type) {
       case 'ping':
@@ -198,9 +201,7 @@ function handleClientMessage(ws: WebSocket, message: Buffer): void {
         break;
 
       case 'subscribe':
-        if (data.userId) {
-          handleSubscribe(ws, data.userId);
-        }
+        handleSubscribe(ws, uid);
         break;
 
       case 'unsubscribe':
@@ -208,11 +209,9 @@ function handleClientMessage(ws: WebSocket, message: Buffer): void {
         break;
 
       case 'scan':
-        if (data.userId) {
-          handleScanRequest(ws, data.userId).catch((error: unknown) => {
-            log.error({ error, userId: data.userId }, 'Unhandled error in scan request');
-          });
-        }
+        handleScanRequest(ws, uid).catch((error: unknown) => {
+          log.error({ error, userId: uid }, 'Unhandled error in scan request');
+        });
         break;
 
       default:

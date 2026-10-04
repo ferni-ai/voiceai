@@ -14,6 +14,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
+import { openAuthedWebSocket } from './authed-websocket.service.js';
 
 const log = createLogger('LifeContext');
 
@@ -170,7 +171,7 @@ function scheduleReconnect(userId: string): void {
 
   reconnectTimeout = setTimeout(() => {
     if (isEnabled && currentUserId) {
-      connectToLifeContextStream(currentUserId);
+      void connectToLifeContextStream(currentUserId);
     }
   }, delay);
 }
@@ -178,7 +179,7 @@ function scheduleReconnect(userId: string): void {
 /**
  * Connect to the life context WebSocket for real-time updates
  */
-export function connectToLifeContextStream(userId: string): void {
+export async function connectToLifeContextStream(userId: string): Promise<void> {
   currentUserId = userId;
 
   if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
@@ -195,7 +196,7 @@ export function connectToLifeContextStream(userId: string): void {
   const wsUrl = `${protocol}//${window.location.host}/ws/life-context`;
 
   try {
-    wsConnection = new WebSocket(wsUrl);
+    wsConnection = await openAuthedWebSocket(wsUrl);
 
     wsConnection.onopen = () => {
       log.info('Connected to life context WebSocket');
@@ -203,7 +204,7 @@ export function connectToLifeContextStream(userId: string): void {
       stopLifeContextPolling();
 
       // Subscribe to updates for this user
-      wsConnection?.send(JSON.stringify({ type: 'subscribe', userId }));
+      wsConnection?.send(JSON.stringify({ type: 'subscribe' }));
     };
 
     wsConnection.onmessage = (event) => {
@@ -308,9 +309,10 @@ export async function startLifeContextPolling(userId: string): Promise<void> {
 
   const pollForContext = async () => {
     try {
-      const response = await apiGet<{ snapshot?: LifeContextSnapshot; triggers?: SynthesisTrigger[] }>(
-        `/api/life-context?userId=${userId}`
-      );
+      const response = await apiGet<{
+        snapshot?: LifeContextSnapshot;
+        triggers?: SynthesisTrigger[];
+      }>(`/api/life-context?userId=${userId}`);
       if (!response.ok || !response.data) return;
 
       if (response.data.snapshot) {
@@ -380,11 +382,13 @@ export function getTopTrigger(): SynthesisTrigger | null {
     low: 3,
   };
 
-  return [...currentTriggers].sort((a, b) => {
-    const pDiff = (priorityOrder[a.priority] ?? 99) - (priorityOrder[b.priority] ?? 99);
-    if (pDiff !== 0) return pDiff;
-    return b.confidence - a.confidence;
-  })[0] ?? null;
+  return (
+    [...currentTriggers].sort((a, b) => {
+      const pDiff = (priorityOrder[a.priority] ?? 99) - (priorityOrder[b.priority] ?? 99);
+      if (pDiff !== 0) return pDiff;
+      return b.confidence - a.confidence;
+    })[0] ?? null
+  );
 }
 
 /**
@@ -459,7 +463,7 @@ export function initLifeContext(userId: string): void {
     startLifeContextPolling(userId);
   } else {
     try {
-      connectToLifeContextStream(userId);
+      void connectToLifeContextStream(userId);
     } catch {
       log.info('WebSocket unavailable, using polling');
       startLifeContextPolling(userId);

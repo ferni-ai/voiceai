@@ -7,9 +7,14 @@
  * @module LifeContextUpdatesService
  */
 
-import { updateLifeContextDashboard, setLifeContextLoading, setLifeContextError } from '../ui/life-context-dashboard.ui.js';
+import {
+  updateLifeContextDashboard,
+  setLifeContextLoading,
+  setLifeContextError,
+} from '../ui/life-context-dashboard.ui.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { apiGet } from '../utils/api.js';
+import { openAuthedWebSocket } from './authed-websocket.service.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('LifeContextUpdates');
@@ -107,7 +112,12 @@ function mapSnapshotToFrontend(
   userId: string;
   timestamp: Date;
   stressIndicators: LifeContextSnapshot['stressIndicators'];
-  patterns: Array<{ pattern: string; severity: 'low' | 'medium' | 'high'; domains: string[]; insight: string }>;
+  patterns: Array<{
+    pattern: string;
+    severity: 'low' | 'medium' | 'high';
+    domains: string[];
+    insight: string;
+  }>;
   overallLoadScore: number;
   wellbeingScore: number;
   triggers: Array<{
@@ -156,8 +166,8 @@ let lastTriggers: SynthesisTrigger[] = [];
 
 // Exponential backoff configuration
 const RECONNECT_CONFIG = {
-  initialDelayMs: 2000,     // 2 seconds
-  maxDelayMs: 120000,       // 2 minutes max
+  initialDelayMs: 2000, // 2 seconds
+  maxDelayMs: 120000, // 2 minutes max
   multiplier: 2,
   maxAttempts: 8,
   jitterMs: 1000,
@@ -191,16 +201,18 @@ function scheduleReconnect(userId: string): void {
   const delay = getReconnectDelay();
   reconnectAttempts++;
 
-  log.info(`Scheduling reconnect attempt ${reconnectAttempts}/${RECONNECT_CONFIG.maxAttempts} in ${Math.round(delay)}ms`);
+  log.info(
+    `Scheduling reconnect attempt ${reconnectAttempts}/${RECONNECT_CONFIG.maxAttempts} in ${Math.round(delay)}ms`
+  );
 
   reconnectTimeout = setTimeout(() => {
     if (isEnabled && currentUserId) {
-      connectToLifeContextStream(currentUserId);
+      void connectToLifeContextStream(currentUserId);
     }
   }, delay);
 }
 
-export function connectToLifeContextStream(userId: string): void {
+export async function connectToLifeContextStream(userId: string): Promise<void> {
   currentUserId = userId;
 
   if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
@@ -214,10 +226,10 @@ export function connectToLifeContextStream(userId: string): void {
   }
 
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${protocol}//${window.location.host}/ws/life-context?userId=${userId}`;
+  const wsUrl = `${protocol}//${window.location.host}/ws/life-context`;
 
   try {
-    wsConnection = new WebSocket(wsUrl);
+    wsConnection = await openAuthedWebSocket(wsUrl);
 
     wsConnection.onopen = () => {
       log.info('Connected to life context WebSocket');
@@ -278,9 +290,10 @@ async function fetchLifeContext(userId: string): Promise<void> {
   try {
     setLifeContextLoading(true);
 
-    const response = await apiGet<{ snapshot?: LifeContextSnapshot; triggers?: SynthesisTrigger[] }>(
-      `/api/life-context?userId=${userId}`
-    );
+    const response = await apiGet<{
+      snapshot?: LifeContextSnapshot;
+      triggers?: SynthesisTrigger[];
+    }>(`/api/life-context?userId=${userId}`);
 
     if (!response.ok || !response.data) {
       throw new Error(`HTTP ${response.status}`);
@@ -356,12 +369,17 @@ function handleLifeContextEvent(event: LifeContextUpdateEvent): void {
         if (lastSnapshot) {
           // Map backend data to frontend types
           const mappedData = mapSnapshotToFrontend(event.userId, lastSnapshot, lastTriggers);
-          updateLifeContextDashboard(mappedData as Parameters<typeof updateLifeContextDashboard>[0]);
+          updateLifeContextDashboard(
+            mappedData as Parameters<typeof updateLifeContextDashboard>[0]
+          );
         }
 
         // Log high-priority triggers
         if (event.trigger.priority === 'urgent' || event.trigger.priority === 'high') {
-          log.info({ trigger: event.trigger.category, priority: event.trigger.priority }, 'High-priority trigger received');
+          log.info(
+            { trigger: event.trigger.category, priority: event.trigger.priority },
+            'High-priority trigger received'
+          );
         }
       }
       break;
@@ -400,7 +418,7 @@ export function initLifeContextUpdates(userId: string): void {
     void startPolling(userId);
   } else {
     try {
-      connectToLifeContextStream(userId);
+      void connectToLifeContextStream(userId);
     } catch {
       log.info('WebSocket unavailable, using polling');
       void startPolling(userId);
