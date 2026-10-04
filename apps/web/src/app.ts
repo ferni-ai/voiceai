@@ -325,6 +325,10 @@ import { growthJourneyService } from './services/growth-journey.service.js';
 import { getVoiceAuthService } from './services/voice-auth.service.js';
 // Toast for notifications (legacy - use moments.whisper() for new code)
 import { toast } from './ui/whisper.ui.js';
+import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
+import { connectWithTimeout } from './app/call-connect.js';
+import { connectFailure } from './services/connect-failure.js';
+import { buildConversationUsageBody } from './services/call-payloads.js';
 // Moments System - Unified feedback system (whisper, notice, celebration, milestone)
 import { initMomentsSystem } from './ui/moments/index.js';
 // Subscription UI - human-centered monetization
@@ -451,8 +455,6 @@ import {
 class VoiceAIApp {
   private isInitialized = false;
   private audioCleanup: (() => void) | null = null;
-  /** One automatic reconnect after mid-session errors; then honest retry copy */
-  private autoReconnectAttempted = false;
 
   // 🎵 Track connection/handoff time to filter out system sounds (stingers)
 
@@ -696,42 +698,23 @@ class VoiceAIApp {
     // Step 1: Joining room
     thinkingUI.showProgress(1);
 
-    // Connect to LiveKit with timeout
-    const CONNECTION_TIMEOUT = 30000; // 30 seconds
-    let success = false;
+    // Step 2: Connecting audio. Resolves once the agent is in the room;
+    // a 30s limit really cancels the attempt.
+    thinkingUI.showProgress(2);
+    messageUI.show('Almost there...', 'info', 30000);
+    clearCallNotice();
+    const outcome = await connectWithTimeout(connectionService);
 
-    try {
-      // Step 2: Connecting audio
-      thinkingUI.showProgress(2);
-      messageUI.show('Almost there...', 'info', 30000);
-
-      const connectionPromise = connectionService.connect();
-      const timeoutPromise = new Promise<boolean>((_, reject) => {
-        setTimeout(() => reject(new Error('Connection timeout')), CONNECTION_TIMEOUT);
-      });
-
-      success = await Promise.race([connectionPromise, timeoutPromise]);
-    } catch (error) {
-      log.error('Connection failed:', error);
+    if (!outcome.ok) {
+      log.error('Connection failed:', outcome.failure.kind);
       thinkingUI.hideProgress();
       thinkingUI.hide();
       waveformUI.setThinking(false);
+      messageUI.clear();
+      if (outcome.failure.kind === 'cancelled') return;
 
-      // Human-friendly error messages (not robotic!)
-      let errorMessage = "Hmm, couldn't connect. Let's try that again.";
-      if (error instanceof Error) {
-        if (error.message === 'Connection timeout') {
-          errorMessage = 'Taking longer than usual... check your internet connection?';
-        } else if (error.message.includes('permission') || error.message.includes('Permission')) {
-          errorMessage = "I'll need microphone access to hear you. Mind enabling it?";
-        } else if (error.message.includes('network') || error.message.includes('Network')) {
-          errorMessage = 'Having trouble reaching the server. Is your internet working?';
-        } else {
-          errorMessage = 'Something went wrong on our end. Try again in a moment?';
-        }
-      }
-
-      messageUI.show(errorMessage, 'error');
+      // One explanation with the action that fixes it (retry, sign in, allow mic)
+      showCallNotice(outcome.failure, { onRetry: () => void this.connect() });
       soundUI.play('disconnect');
 
       // Error recovery animation - shake the connect button
@@ -741,13 +724,6 @@ class VoiceAIApp {
         void connectBtn.offsetWidth; // Force reflow
         connectBtn.classList.add('error-shake');
         setTimeout(() => connectBtn.classList.remove('error-shake'), 400);
-      }
-
-      // Pulse the message for attention
-      const messageContainer = document.getElementById('messageContainer');
-      if (messageContainer) {
-        messageContainer.classList.add('error-pulse');
-        setTimeout(() => messageContainer.classList.remove('error-pulse'), 3000);
       }
       return;
     }
@@ -760,86 +736,80 @@ class VoiceAIApp {
     }, 300);
     waveformUI.setThinking(false);
 
-    if (success) {
-      // Start waveform and set persona
-      waveformUI.start();
-      waveformUI.setPersona(persona.id);
-      avatarFeedback.setPersona(persona.id);
+    // Start waveform and set persona
+    waveformUI.start();
+    waveformUI.setPersona(persona.id);
+    avatarFeedback.setPersona(persona.id);
 
-      // Particles disabled for cleaner professional look
-      // void agentParticlesUI.start(persona.id);
+    // Particles disabled for cleaner professional look
+    // void agentParticlesUI.start(persona.id);
 
-      // Update all UI systems
-      presenceUI.setConnected(true);
-      // keyboardUI.setConnected(true);
+    // Update all UI systems
+    presenceUI.setConnected(true);
+    // keyboardUI.setConnected(true);
 
-      // Connection quality indicator disabled for clean UI
-      // connectionQualityUI.show();
-      // connectionQualityUI.setQuality('good');
+    // Connection quality indicator disabled for clean UI
+    // connectionQualityUI.show();
+    // connectionQualityUI.setQuality('good');
 
-      // Start session stats
-      statsUI.startSession();
-      statsUI.setPersona(persona.name);
+    // Start session stats
+    statsUI.startSession();
+    statsUI.setPersona(persona.name);
 
-      // Update gesture system
-      gesturesUI.setCurrentPersona(persona.id);
+    // Update gesture system
+    gesturesUI.setCurrentPersona(persona.id);
 
-      // Show engagement triggers ONLY for returning users
-      // First conversation should be pure - just Ferni, nothing else
-      if (modalCoordinator.hasMinimumConversations(1)) {
-        setTimeout(() => engagementTriggerUI.show(), 500);
+    // Show engagement triggers ONLY for returning users
+    // First conversation should be pure - just Ferni, nothing else
+    if (modalCoordinator.hasMinimumConversations(1)) {
+      setTimeout(() => engagementTriggerUI.show(), 500);
+    }
+
+    // The "<persona> joined" message comes from onAgentConnected, now that the agent is really here.
+
+    // 📝 Start tracking this conversation for history
+    conversationTracker.startSession(persona.id, persona.name);
+
+    // Celebrate the connection! 🎉
+    delightService.celebrateConnection();
+    delightService.haptic('medium');
+
+    // First connection gets extra celebration
+    // Minimal, zen aesthetic - no celebration effects on connection
+    try {
+      if (!localStorage.getItem('voiceai_first_connection')) {
+        localStorage.setItem('voiceai_first_connection', 'true');
+        // First connection noted silently
       }
+    } catch {
+      // Private browsing - continue without celebration
+    }
 
-      // Show success message
-      messageUI.show(`Connected to ${persona.name}!`, 'success', 2000);
+    // Check microphone permission and show helpful message if denied
+    void this.checkMicrophoneStatus();
 
-      // 📝 Start tracking this conversation for history
-      conversationTracker.startSession(persona.id, persona.name);
+    // Director Console: init with current session; open via menu (Director Console) or Cmd+Shift+E / Cmd+Shift+D
+    const roomState = connectionService.getRoomState();
+    if (roomState.roomName && roomState.localParticipantId) {
+      getDirectorConsole({
+        sessionId: roomState.roomName,
+        userId: roomState.localParticipantId,
+      });
+      // Director button removed from control bar; use menu (Settings → Director Console) or keyboard shortcut
+    }
 
-      // Celebrate the connection! 🎉
-      delightService.celebrateConnection();
-      delightService.haptic('medium');
+    // 🎉 Dispatch conversation start event for all systems to track
+    // This is the SINGLE SOURCE OF TRUTH for conversation tracking
+    // All services listen to this event - no direct recordConversation() calls needed
+    window.dispatchEvent(new CustomEvent('ferni:conversation-start'));
 
-      // First connection gets extra celebration
-      // Minimal, zen aesthetic - no celebration effects on connection
-      try {
-        if (!localStorage.getItem('voiceai_first_connection')) {
-          localStorage.setItem('voiceai_first_connection', 'true');
-          // First connection noted silently
-        }
-      } catch {
-        // Private browsing - continue without celebration
-      }
-
-      // Check microphone permission and show helpful message if denied
-      void this.checkMicrophoneStatus();
-
-      // Director Console: init with current session; open via menu (Director Console) or Cmd+Shift+E / Cmd+Shift+D
-      const roomState = connectionService.getRoomState();
-      if (roomState.roomName && roomState.localParticipantId) {
-        getDirectorConsole({
-          sessionId: roomState.roomName,
-          userId: roomState.localParticipantId,
-        });
-        // Director button removed from control bar; use menu (Settings → Director Console) or keyboard shortcut
-      }
-
-      // 🎉 Dispatch conversation start event for all systems to track
-      // This is the SINGLE SOURCE OF TRUTH for conversation tracking
-      // All services listen to this event - no direct recordConversation() calls needed
-      window.dispatchEvent(new CustomEvent('ferni:conversation-start'));
-
-      // Check conversation milestones - zen aesthetic, no visual effects
-      const convCount = greetingUI.getConversationCount();
-      if ([5, 10, 25, 50, 100].includes(convCount)) {
-        setTimeout(() => {
-          const message = greetingUI.getMilestoneMessage('conversations', convCount);
-          messageUI.show(message, 'success', 4000);
-        }, 5000);
-      }
-    } else {
-      messageUI.show("Couldn't connect this time. Want to try again?", 'error');
-      soundUI.play('disconnect');
+    // Check conversation milestones - zen aesthetic, no visual effects
+    const convCount = greetingUI.getConversationCount();
+    if ([5, 10, 25, 50, 100].includes(convCount)) {
+      setTimeout(() => {
+        const message = greetingUI.getMilestoneMessage('conversations', convCount);
+        messageUI.show(message, 'success', 4000);
+      }, 5000);
     }
   }
 
@@ -924,6 +894,10 @@ class VoiceAIApp {
    * @param skipSound - If true, doesn't play disconnect sound (ceremony already played goodbye)
    */
   private async performStandardDisconnect(skipSound = false): Promise<void> {
+    // Close the room first so hang-up is instant; nothing below may block it.
+    clearCallNotice();
+    await connectionService.disconnect();
+
     // Stop waveform visualization
     waveformUI.stop();
 
@@ -949,9 +923,8 @@ class VoiceAIApp {
 
     // End session stats - get duration before ending
     const sessionStats = statsUI.getStats();
-    const durationMinutes = sessionStats.startTime
-      ? Math.round((Date.now() - sessionStats.startTime) / 60000)
-      : 0;
+    const sessionStart = sessionStats.startTime;
+    const durationMinutes = sessionStart ? Math.round((Date.now() - sessionStart) / 60000) : 0;
 
     statsUI.endSession();
 
@@ -966,17 +939,12 @@ class VoiceAIApp {
     // This gates popups/celebrations until user has had 2+ conversations
     modalCoordinator.incrementConversationCount();
 
-    // 📝 End conversation tracking and persist
-    await conversationTracker.endSession();
-
-    // 💰 Record conversation usage for subscription tracking
-    await this.recordConversationUsage();
-
-    // Pause Spotify if playing
-    await spotifyService.pause();
-
-    // Disconnect from LiveKit
-    await connectionService.disconnect();
+    // 📝 Persist history, 💰 record usage, pause Spotify: network work, never awaited by hang-up
+    void conversationTracker
+      .endSession()
+      .catch((e) => log.warn('Conversation history not saved', e));
+    void this.recordConversationUsage(sessionStart);
+    void spotifyService.pause().catch((e) => log.warn('Spotify pause failed', e));
 
     hideDirectorTriggerButton();
 
@@ -1371,6 +1339,11 @@ class VoiceAIApp {
     this.deferredInit('SoundUI', 100, async () => {
       initSoundUI();
     });
+    // ⌨️ Global shortcuts (M mute, R reconnect, Enter start/end call, ? help)
+    this.deferredInit('KeyboardShortcuts', 100, async () => {
+      const { initKeyboardShortcuts } = await import('./ui/keyboard-shortcuts.ui.js');
+      initKeyboardShortcuts();
+    });
     this.deferredInit('TranscriptUI', 100, async () => {
       initTranscriptUI();
     });
@@ -1539,6 +1512,7 @@ class VoiceAIApp {
           onPersonaSwipe: (direction) => {
             const persona =
               direction === 'left' ? gesturesUI.getNextPersona() : gesturesUI.getPreviousPersona();
+            if (!persona) return; // No other unlocked persona to swipe to
             this.selectPersona(persona);
             soundUI.play('switch');
           },
@@ -2579,11 +2553,16 @@ class VoiceAIApp {
       }
     });
 
+    this.addTrackedListener(window, 'ferni:reconnect', () => {
+      const connectionState = appState.get('connection');
+      if (connectionState === 'disconnected' || connectionState === 'error') void this.connect();
+    });
+
     this.addTrackedListener(window, 'ferni:toggle-call', () => {
       const connectionState = appState.get('connection');
       if (connectionState === 'connected') {
         void this.disconnect();
-      } else if (connectionState === 'disconnected') {
+      } else if (connectionState === 'disconnected' || connectionState === 'error') {
         void this.connect();
       }
     });
@@ -2630,11 +2609,13 @@ class VoiceAIApp {
     initGesturesUI({
       onSwipeLeft: () => {
         const next = gesturesUI.getNextPersona();
+        if (!next) return; // No other unlocked persona to swipe to
         this.selectPersona(next);
         soundUI.play('switch');
       },
       onSwipeRight: () => {
         const prev = gesturesUI.getPreviousPersona();
+        if (!prev) return;
         this.selectPersona(prev);
         soundUI.play('switch');
       },
@@ -2899,15 +2880,11 @@ class VoiceAIApp {
    * Record conversation usage for subscription tracking.
    * Called after each conversation ends.
    */
-  private async recordConversationUsage(): Promise<void> {
+  private async recordConversationUsage(sessionStart: number | null): Promise<void> {
     const deviceId = appState.get('deviceId');
-    if (!deviceId) return;
-
-    // Calculate session duration from stats
-    const stats = statsUI.getStats();
-    const startTime = stats?.startTime;
-    const durationMs = startTime ? Date.now() - startTime : 0;
-    const minutesTalked = Math.max(1, Math.round(durationMs / 60000));
+    // Server contract: { userId, durationMinutes } (subscription-routes recordConversationUsage)
+    const body = buildConversationUsageBody(deviceId, sessionStart);
+    if (!body) return;
 
     // 🤝 Process any pending referral on first/early conversation
     // This ensures referrer gets credit after new user completes a meaningful conversation
@@ -2927,19 +2904,18 @@ class VoiceAIApp {
       const response = await fetch('/usage/conversation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: deviceId,
-          minutesTalked,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
-        log.debug('Conversation usage recorded');
+        log.debug('Conversation usage recorded', { minutes: body.durationMinutes });
         // Refresh subscription badge to show updated count
         void subscriptionBadgeUI.refresh();
+      } else {
+        log.warn('Conversation usage not recorded', { status: response.status });
       }
     } catch (error) {
-      // Silent fail - don't interrupt user experience for tracking
+      // Don't interrupt the user for tracking, but don't hide it either
       log.warn('Failed to record conversation usage:', error);
     }
   }
@@ -3054,7 +3030,6 @@ class VoiceAIApp {
           // 🚀 Ferni EQ: Dispatch thinking state
           dispatchThinking(true);
         } else if (state === 'connected') {
-          this.autoReconnectAttempted = false;
           thinkingUI.hide();
           waveformUI.setThinking(false);
           // 🚀 Ferni EQ: Dispatch thinking state
@@ -3262,26 +3237,17 @@ class VoiceAIApp {
       //   connectionQualityUI.updateFromLatency(latencyMs);
       // },
 
+      // connect() reports a failed attempt itself (one classified notice), so this only logs.
       onError: (error) => {
         log.error('Connection error:', error);
-        thinkingUI.hide();
-        waveformUI.setThinking(false);
+      },
 
-        // Prefer one automatic reconnect with backoff, then honest copy + tap-to-retry
-        if (!this.autoReconnectAttempted) {
-          this.autoReconnectAttempted = true;
-          messageUI.show('Something went wrong. Reconnecting...', 'info');
-          const backoffMs = 1000;
-          setTimeout(() => {
-            void this.connect().catch((reconnectErr) => {
-              // connect() already shows an honest error; log here for diagnostics
-              log.error('Auto-reconnect failed:', reconnectErr);
-            });
-          }, backoffMs);
-          return;
-        }
-
-        messageUI.show("Couldn't connect. Tap to try again?", 'error');
+      // The call dropped on its own: same cleanup as hang-up, then offer to reconnect.
+      onUnexpectedDisconnect: (reason) => {
+        log.warn('Call dropped unexpectedly', { reason });
+        void this.performStandardDisconnect().then(() =>
+          showCallNotice(connectFailure('dropped'), { onRetry: () => void this.connect() })
+        );
       },
     });
 
