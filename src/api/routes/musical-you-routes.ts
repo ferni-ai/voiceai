@@ -41,6 +41,7 @@ import {
   getUserRank,
   calculateTasteMatch,
   describeTasteMatch,
+  otherUserHasEngaged,
   getUserSocialStats,
   // Cards
   generateDNACard,
@@ -403,35 +404,26 @@ export async function handleMusicalYouRoutes(
       const user1Id = await resolveActingUser(req, res, body.user1Id);
       if (!user1Id) return true;
       const { user2Id } = body;
-
-      if (!user1Id || !user2Id) {
+      if (!user2Id) {
         sendJSON(res, { success: false, error: 'Missing user IDs' }, 400);
+        return true;
+      }
+      // The match reveals user2's genres and decades, so user2 must have played with
+      // the caller: sent them a challenge or answered one of theirs.
+      if (!otherUserHasEngaged(user1Id, user2Id)) {
+        sendJSON(res, { success: false, error: 'Challenge them first to compare tastes.' }, 403);
         return true;
       }
 
       const user1Memory = await getUserGameMemory(user1Id);
       const user2Memory = await getUserGameMemory(user2Id);
-
       if (!user1Memory || !user2Memory) {
-        sendJSON(
-          res,
-          {
-            success: false,
-            error: 'Both users need to play some games first!',
-          },
-          400
-        );
+        sendJSON(res, { success: false, error: 'Both users need to play some games first!' }, 400);
         return true;
       }
 
       const tasteMatch = calculateTasteMatch(user1Id, user1Memory, user2Id, user2Memory);
-      const description = describeTasteMatch(tasteMatch);
-
-      sendJSON(res, {
-        success: true,
-        tasteMatch,
-        description,
-      });
+      sendJSON(res, { success: true, tasteMatch, description: describeTasteMatch(tasteMatch) });
       return true;
     }
 

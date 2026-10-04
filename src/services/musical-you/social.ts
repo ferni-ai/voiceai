@@ -86,6 +86,19 @@ export function getUserChallenges(
 }
 
 /**
+ * Whether `otherId` has played with `userId`: sent them a challenge, or
+ * answered (completed) one of theirs. Naming someone isn't enough to read
+ * their game history; this is the relationship they chose to have.
+ */
+export function otherUserHasEngaged(userId: string, otherId: string): boolean {
+  return getUserChallenges(userId, 'all').some(
+    (c) =>
+      (c.challengerId === otherId && c.challengeeId === userId) ||
+      (c.challengeeId === otherId && c.challengerId === userId && c.status === 'completed')
+  );
+}
+
+/**
  * Get a specific challenge
  */
 export function getChallenge(challengeId: string): MusicChallenge | null {

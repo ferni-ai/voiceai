@@ -67,6 +67,7 @@ import {
   getCachedTasteMatch,
   describeTasteMatch,
   getUserSocialStats,
+  otherUserHasEngaged,
 } from './social.js';
 
 import {
@@ -289,6 +290,7 @@ export {
   getCachedTasteMatch,
   describeTasteMatch,
   getUserSocialStats,
+  otherUserHasEngaged,
 };
 
 // ============================================================================
