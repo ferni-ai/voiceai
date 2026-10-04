@@ -31,6 +31,46 @@ describe('EngagementScorer', () => {
   });
 
   // --------------------------------------------------------------------------
+  // Response latency
+  // --------------------------------------------------------------------------
+
+  describe('Response latency', () => {
+    const answers = [
+      'I think the move went fine overall, mostly',
+      'The hardest part was finding a new routine for mornings',
+      'I have been walking by the water most evenings now',
+    ];
+
+    it('does not score unknown timing as a slow, distracted user', () => {
+      // No agent timing at all: latency must be left out, not measured from 0.
+      const unknown = getEngagementScorer('latency-unknown');
+      // 5s sits in the neutral band (4-6s), so it adds nothing either way.
+      const neutral = getEngagementScorer('latency-neutral');
+      let unknownScore = 0;
+      let neutralScore = 0;
+      for (const text of answers) {
+        unknownScore = unknown.recordResponse(text).score;
+        neutralScore = neutral.recordResponse(text, {
+          lastAgentMessageTime: Date.now() - 5_000,
+        }).score;
+      }
+      expect(unknownScore).toBe(neutralScore);
+    });
+
+    it('rewards a quick answer over a slow one', () => {
+      const quick = getEngagementScorer('latency-quick');
+      const slow = getEngagementScorer('latency-slow');
+      let quickScore = 0;
+      let slowScore = 0;
+      for (const text of answers) {
+        quickScore = quick.recordResponse(text, { lastAgentMessageTime: Date.now() - 800 }).score;
+        slowScore = slow.recordResponse(text, { lastAgentMessageTime: Date.now() - 9_000 }).score;
+      }
+      expect(quickScore).toBeGreaterThan(slowScore);
+    });
+  });
+
+  // --------------------------------------------------------------------------
   // Singleton Pattern
   // --------------------------------------------------------------------------
 

@@ -1,74 +1,262 @@
 diff --git a/dist/stt.cjs b/dist/stt.cjs
-index c571ee7effc7b57367e411d97fe80623def20372..2c83cf94cc36bc6f98274f76d9458d134a0e40d2 100644
+index c571ee7effc7b57367e411d97fe80623def20372..fabb9e92e93941146f4c4f6f5e6701f3240ef1fc 100644
 --- a/dist/stt.cjs
 +++ b/dist/stt.cjs
-@@ -47,7 +47,9 @@ function mergeSTTOptions(base, override) {
+@@ -47,7 +47,11 @@ function mergeSTTOptions(base, override) {
      model: override.model ?? base.model,
      sampleRate: override.sampleRate ?? base.sampleRate,
      audioChunkDurationMS: override.audioChunkDurationMS ?? base.audioChunkDurationMS,
 -    language: override.language !== void 0 ? (0, import_agents.normalizeLanguage)(override.language) : base.language
 +    language: override.language !== void 0 ? (0, import_agents.normalizeLanguage)(override.language) : base.language,
 +    // PATCHED(ferni): keyterms bias ink-2 toward names it would mishear
-+    keyterms: override.keyterms ?? base.keyterms
++    keyterms: override.keyterms ?? base.keyterms,
++    // PATCHED(ferni): ink-2 turn thresholds (turn_start/eager_end/end_threshold, turn_end_timeout_ms)
++    turnDetection: override.turnDetection ?? base.turnDetection
    };
  }
  function resolveSTTModel(language) {
-@@ -405,6 +407,8 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+@@ -59,7 +63,8 @@ class STT extends import_agents.stt.STT {
+     super({
+       streaming: true,
+       interimResults: true,
+-      alignedTranscript: false,
++      // PATCHED(ferni): chunk timings from the audio sent (see #trackVoice)
++      alignedTranscript: "chunk",
+       diarization: false
+     });
+     const apiKey = opts.apiKey ?? process.env.CARTESIA_API_KEY;
+@@ -103,6 +108,12 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+   #speaking = false;
+   #currentTranscript = "";
+   #speechDuration = 0;
++  // PATCHED(ferni): audio clock for transcript times (see stt.js).
++  #audioSec = 0;
++  #levels = [];
++  #lastVoicedSec = 0;
++  #onsetSec = null;
++  #turnEndSec = 0;
+   #closingWs = false;
+   constructor(sttInstance, opts, connOptions) {
+     super(sttInstance, opts.sampleRate, connOptions);
+@@ -205,7 +216,9 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+           frames.push(...audioBstream.write(data.data));
+         }
+         for (const frame of frames) {
+-          this.#speechDuration += (0, import_agents.calculateAudioDurationSeconds)(frame);
++          const frameSec = (0, import_agents.calculateAudioDurationSeconds)(frame);
++          this.#speechDuration += frameSec;
++          this.#trackVoice(frame, frameSec);
+           if (ws.readyState === import_ws.WebSocket.OPEN) {
+             ws.send(frame.data);
+           }
+@@ -369,6 +382,8 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+           });
+         this.#logger.debug("Cartesia STT END_OF_SPEECH");
+         this.#currentTranscript = "";
++        this.#onsetSec = null;
++        this.#turnEndSec = this.#audioSec;
+         if (this.#speechDuration > 0 && !this.queue.closed) {
+           this.queue.put({
+             type: import_agents.stt.SpeechEventType.RECOGNITION_USAGE,
+@@ -383,6 +398,22 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+         this.#logger.warn("received unexpected message from Cartesia STT", { data });
+     }
+   }
++  #trackVoice(frame, frameSec) {
++    const d = frame.data;
++    let sum = 0;
++    for (let i = 0; i < d.length; i++) sum += d[i] * d[i];
++    const rms = Math.sqrt(sum / Math.max(1, d.length));
++    const start = this.#audioSec;
++    this.#audioSec += frameSec;
++    this.#levels.push([rms, frameSec]);
++    let windowSec = this.#levels.reduce((a, [, s]) => a + s, 0);
++    while (windowSec > 1.5 && this.#levels.length > 1) windowSec -= this.#levels.shift()[1];
++    const floor = Math.min(...this.#levels.map(([r]) => r));
++    if (rms > 150 && rms > floor * 3.16) {
++      if (this.#onsetSec === null && start >= this.#turnEndSec) this.#onsetSec = start;
++      this.#lastVoicedSec = this.#audioSec;
++    }
++  }
+   #sendTranscriptEvent(eventType, transcript) {
+     if (this.queue.closed) return;
+     this.queue.put({
+@@ -392,8 +423,8 @@ class SpeechStream extends import_agents.stt.SpeechStream {
+         {
+           language: (0, import_agents.asLanguageCode)(this.#opts.language),
+           text: transcript,
+-          startTime: 0,
+-          endTime: 0,
++          startTime: this.startTimeOffset + (this.#onsetSec ?? this.#lastVoicedSec),
++          endTime: this.startTimeOffset + Math.max(this.#lastVoicedSec, this.#onsetSec ?? 0),
+           confidence: 0
+         }
+       ]
+@@ -405,6 +436,14 @@ class SpeechStream extends import_agents.stt.SpeechStream {
        sample_rate: this.#opts.sampleRate.toString(),
        encoding: import_models.AUDIO_ENCODING
      });
 +    // PATCHED(ferni): one repeated keyterm param per term (Cartesia caps 100 terms, 1200 chars)
 +    for (const term of this.#opts.keyterms ?? []) params.append("keyterm", term);
++    // PATCHED(ferni): documented query params for ink-2 turn detection
++    const td = this.#opts.turnDetection ?? {};
++    if (td.startThreshold !== void 0) params.set("turn_start_threshold", String(td.startThreshold));
++    if (td.eagerEndThreshold !== void 0) params.set("turn_eager_end_threshold", String(td.eagerEndThreshold));
++    if (td.endThreshold !== void 0) params.set("turn_end_threshold", String(td.endThreshold));
++    if (td.endTimeoutMs !== void 0) params.set("turn_end_timeout_ms", String(td.endTimeoutMs));
      const wsBase = this.#opts.baseUrl.replace(/^http/, "ws");
      return `${wsBase}/stt/turns/websocket?${params.toString()}`;
    }
 diff --git a/dist/stt.d.cts b/dist/stt.d.cts
-index 9fff59b2fa92f3875a830266aa7012963f01ab12..5104679cd4c69484bb2c89e82eec303c4b2fce17 100644
+index 9fff59b2fa92f3875a830266aa7012963f01ab12..470d9538ef34ea09216fcd234731075bf864a346 100644
 --- a/dist/stt.d.cts
 +++ b/dist/stt.d.cts
-@@ -7,6 +7,8 @@ export type STTOptions = {
+@@ -7,6 +7,15 @@ export type STTOptions = {
      baseUrl: string;
      audioChunkDurationMS: number;
      language: string;
 +    /** PATCHED(ferni): words/phrases to bias transcription toward (repeated keyterm param). */
 +    keyterms?: string[];
++    /** PATCHED(ferni): ink-2 turn detection thresholds (start > eagerEnd > end, 0-1) and end timeout */
++    turnDetection?: {
++        startThreshold?: number;
++        eagerEndThreshold?: number;
++        endThreshold?: number;
++        endTimeoutMs?: number;
++    };
  };
  /**
   * Cartesia speech to text.
 diff --git a/dist/stt.d.ts b/dist/stt.d.ts
-index 9fff59b2fa92f3875a830266aa7012963f01ab12..5104679cd4c69484bb2c89e82eec303c4b2fce17 100644
+index 9fff59b2fa92f3875a830266aa7012963f01ab12..470d9538ef34ea09216fcd234731075bf864a346 100644
 --- a/dist/stt.d.ts
 +++ b/dist/stt.d.ts
-@@ -7,6 +7,8 @@ export type STTOptions = {
+@@ -7,6 +7,15 @@ export type STTOptions = {
      baseUrl: string;
      audioChunkDurationMS: number;
      language: string;
 +    /** PATCHED(ferni): words/phrases to bias transcription toward (repeated keyterm param). */
 +    keyterms?: string[];
++    /** PATCHED(ferni): ink-2 turn detection thresholds (start > eagerEnd > end, 0-1) and end timeout */
++    turnDetection?: {
++        startThreshold?: number;
++        eagerEndThreshold?: number;
++        endThreshold?: number;
++        endTimeoutMs?: number;
++    };
  };
  /**
   * Cartesia speech to text.
 diff --git a/dist/stt.js b/dist/stt.js
-index af489c700e7d495d2358a4c11dee4e0c03fb94aa..e4a57183311730943e15237cdd79e711f5c6726d 100644
+index af489c700e7d495d2358a4c11dee4e0c03fb94aa..7b2652ac346026087d0f28561052e968cbbc644d 100644
 --- a/dist/stt.js
 +++ b/dist/stt.js
-@@ -33,7 +33,9 @@ function mergeSTTOptions(base, override) {
+@@ -33,7 +33,11 @@ function mergeSTTOptions(base, override) {
      model: override.model ?? base.model,
      sampleRate: override.sampleRate ?? base.sampleRate,
      audioChunkDurationMS: override.audioChunkDurationMS ?? base.audioChunkDurationMS,
 -    language: override.language !== void 0 ? normalizeLanguage(override.language) : base.language
 +    language: override.language !== void 0 ? normalizeLanguage(override.language) : base.language,
 +    // PATCHED(ferni): keyterms bias ink-2 toward names it would mishear
-+    keyterms: override.keyterms ?? base.keyterms
++    keyterms: override.keyterms ?? base.keyterms,
++    // PATCHED(ferni): ink-2 turn thresholds (turn_start/eager_end/end_threshold, turn_end_timeout_ms)
++    turnDetection: override.turnDetection ?? base.turnDetection
    };
  }
  function resolveSTTModel(language) {
-@@ -391,6 +393,8 @@ class SpeechStream extends stt.SpeechStream {
+@@ -45,7 +49,8 @@ class STT extends stt.STT {
+     super({
+       streaming: true,
+       interimResults: true,
+-      alignedTranscript: false,
++      // PATCHED(ferni): chunk timings from the audio sent (see #voicedTiming)
++      alignedTranscript: "chunk",
+       diarization: false
+     });
+     const apiKey = opts.apiKey ?? process.env.CARTESIA_API_KEY;
+@@ -89,6 +94,15 @@ class SpeechStream extends stt.SpeechStream {
+   #speaking = false;
+   #currentTranscript = "";
+   #speechDuration = 0;
++  // PATCHED(ferni): audio clock for transcript times. Ink-2's turns API sends
++  // no word timings; the SDK needs start/end times (seconds from the stream's
++  // input start) to tell a caller's "mm-hmm" apart while the agent talks
++  // (adaptive interruption). Times come from frame energy over a noise floor.
++  #audioSec = 0;
++  #levels = [];
++  #lastVoicedSec = 0;
++  #onsetSec = null;
++  #turnEndSec = 0;
+   #closingWs = false;
+   constructor(sttInstance, opts, connOptions) {
+     super(sttInstance, opts.sampleRate, connOptions);
+@@ -191,7 +205,9 @@ class SpeechStream extends stt.SpeechStream {
+           frames.push(...audioBstream.write(data.data));
+         }
+         for (const frame of frames) {
+-          this.#speechDuration += calculateAudioDurationSeconds(frame);
++          const frameSec = calculateAudioDurationSeconds(frame);
++          this.#speechDuration += frameSec;
++          this.#trackVoice(frame, frameSec);
+           if (ws.readyState === WebSocket.OPEN) {
+             ws.send(frame.data);
+           }
+@@ -355,6 +371,8 @@ class SpeechStream extends stt.SpeechStream {
+           });
+         this.#logger.debug("Cartesia STT END_OF_SPEECH");
+         this.#currentTranscript = "";
++        this.#onsetSec = null;
++        this.#turnEndSec = this.#audioSec;
+         if (this.#speechDuration > 0 && !this.queue.closed) {
+           this.queue.put({
+             type: stt.SpeechEventType.RECOGNITION_USAGE,
+@@ -369,6 +387,23 @@ class SpeechStream extends stt.SpeechStream {
+         this.#logger.warn("received unexpected message from Cartesia STT", { data });
+     }
+   }
++  #trackVoice(frame, frameSec) {
++    const d = frame.data;
++    let sum = 0;
++    for (let i = 0; i < d.length; i++) sum += d[i] * d[i];
++    const rms = Math.sqrt(sum / Math.max(1, d.length));
++    const start = this.#audioSec;
++    this.#audioSec += frameSec;
++    // Noise floor: the quietest frame of the last 1.5 s. Voiced: 10 dB above it.
++    this.#levels.push([rms, frameSec]);
++    let windowSec = this.#levels.reduce((a, [, s]) => a + s, 0);
++    while (windowSec > 1.5 && this.#levels.length > 1) windowSec -= this.#levels.shift()[1];
++    const floor = Math.min(...this.#levels.map(([r]) => r));
++    if (rms > 150 && rms > floor * 3.16) {
++      if (this.#onsetSec === null && start >= this.#turnEndSec) this.#onsetSec = start;
++      this.#lastVoicedSec = this.#audioSec;
++    }
++  }
+   #sendTranscriptEvent(eventType, transcript) {
+     if (this.queue.closed) return;
+     this.queue.put({
+@@ -378,8 +413,8 @@ class SpeechStream extends stt.SpeechStream {
+         {
+           language: asLanguageCode(this.#opts.language),
+           text: transcript,
+-          startTime: 0,
+-          endTime: 0,
++          startTime: this.startTimeOffset + (this.#onsetSec ?? this.#lastVoicedSec),
++          endTime: this.startTimeOffset + Math.max(this.#lastVoicedSec, this.#onsetSec ?? 0),
+           confidence: 0
+         }
+       ]
+@@ -391,6 +426,14 @@ class SpeechStream extends stt.SpeechStream {
        sample_rate: this.#opts.sampleRate.toString(),
        encoding: AUDIO_ENCODING
      });
 +    // PATCHED(ferni): one repeated keyterm param per term (Cartesia caps 100 terms, 1200 chars)
 +    for (const term of this.#opts.keyterms ?? []) params.append("keyterm", term);
++    // PATCHED(ferni): documented query params for ink-2 turn detection
++    const td = this.#opts.turnDetection ?? {};
++    if (td.startThreshold !== void 0) params.set("turn_start_threshold", String(td.startThreshold));
++    if (td.eagerEndThreshold !== void 0) params.set("turn_eager_end_threshold", String(td.eagerEndThreshold));
++    if (td.endThreshold !== void 0) params.set("turn_end_threshold", String(td.endThreshold));
++    if (td.endTimeoutMs !== void 0) params.set("turn_end_timeout_ms", String(td.endTimeoutMs));
      const wsBase = this.#opts.baseUrl.replace(/^http/, "ws");
      return `${wsBase}/stt/turns/websocket?${params.toString()}`;
    }

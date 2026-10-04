@@ -17,7 +17,6 @@ import {
 } from '../../types/monetization.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getUserValueCapture, saveValueEvent, type ValueCaptureRecord } from './persistence.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'ValueCapture' });
 
@@ -144,10 +143,9 @@ export async function detect(params: {
   const { userId, message, conversationId } = params;
 
   // Check each value type for matches
-  for (const [type, patterns] of Object.entries(VALUE_DETECTION_PATTERNS) as [
-    ValueType,
-    RegExp[],
-  ][]) {
+  for (const [type, patterns] of Object.entries(VALUE_DETECTION_PATTERNS) as Array<
+    [ValueType, RegExp[]]
+  >) {
     for (const pattern of patterns) {
       if (pattern.test(message)) {
         const estimatedValue = extractMonetaryValue(message);
@@ -157,10 +155,14 @@ export async function detect(params: {
           userId,
           type,
           description: message.slice(0, 200), // First 200 chars for context
-          estimatedValueCents: estimatedValue,
-          suggestedContributionCents: estimatedValue
-            ? Math.round(estimatedValue * 0.01) // Suggest 1% of quantifiable value
-            : undefined,
+          // Firestore rejects `undefined` values (including nested inside
+          // arrays like the `events` field this record lands in), so omit
+          // these keys entirely instead of setting them to `undefined` when
+          // no monetary value was detected.
+          ...(estimatedValue !== undefined ? { estimatedValueCents: estimatedValue } : {}),
+          ...(estimatedValue
+            ? { suggestedContributionCents: Math.round(estimatedValue * 0.01) } // Suggest 1% of quantifiable value
+            : {}),
           contributed: false,
           conversationId,
           createdAt: new Date(),
@@ -172,7 +174,9 @@ export async function detect(params: {
         const record: ValueCaptureRecord = {
           id: event.id,
           type: event.type,
-          estimatedValueCents: event.estimatedValueCents,
+          ...(event.estimatedValueCents !== undefined
+            ? { estimatedValueCents: event.estimatedValueCents }
+            : {}),
           status: 'detected',
           createdAt: event.createdAt.toISOString(),
         };
@@ -226,13 +230,18 @@ export async function recordContribution(params: {
   totalValueCapturedCents += amountCents;
   contributionCount++;
 
-  // Persist the update
+  // Persist the update. Omit optional fields entirely rather than setting
+  // them to `undefined` — Firestore rejects `undefined` anywhere in the
+  // document tree, including nested inside the `events` array this record
+  // lands in (see the `detect()` fix above for the same pattern).
   const record: ValueCaptureRecord = {
     id: event.id,
     type: event.type,
-    estimatedValueCents: event.estimatedValueCents,
+    ...(event.estimatedValueCents !== undefined
+      ? { estimatedValueCents: event.estimatedValueCents }
+      : {}),
     contributionCents: amountCents,
-    stripePaymentId,
+    ...(stripePaymentId !== undefined ? { stripePaymentId } : {}),
     status: 'contributed',
     createdAt: event.createdAt.toISOString(),
     contributedAt: event.contributedAt.toISOString(),

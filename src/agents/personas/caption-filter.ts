@@ -51,7 +51,7 @@ function clean(text: string): string {
   return text.replace(TAG, '').replace(CUE, '').replace(/ {2,}/g, ' ');
 }
 
-type Caption = string | voice.TimedString;
+export type Caption = string | voice.TimedString;
 
 /** Strip markup from a caption stream; timed chunks keep their timing. */
 export function filterCaptionStream(

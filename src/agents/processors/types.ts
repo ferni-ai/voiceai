@@ -17,6 +17,7 @@ import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationAnalysis, SessionServices } from '../../services/index.js';
 import type { UserData } from '../shared/types.js';
+import type { CrisisSubject } from '../safety/crisis-guard.js';
 import type { HolisticContextSummary } from '../../tools/semantic-router/types.js';
 // Import TrackedInjection from the feedback module (Phase 1 BTH)
 import type { TrackedInjection } from '../../intelligence/feedback/index.js';
@@ -36,6 +37,8 @@ export interface TurnContext {
   turnCtx: llm.ChatContext;
   /** The user's message text */
   userText: string;
+  /** Background run: build context only, never route or execute tools. */
+  contextOnly?: boolean;
   /** Current persona configuration */
   persona: PersonaConfig;
   /** Bundle runtime for rich persona behaviors */
@@ -225,6 +228,10 @@ export interface CrisisDetection {
   suggestedResponse?: string;
   /** Whether to override LLM response entirely */
   shouldOverrideLLM: boolean;
+  /** Who is at risk: the caller, or someone they are worried about */
+  subject?: CrisisSubject;
+  /** 'es' when the crisis language was Spanish */
+  language?: 'en' | 'es';
 }
 
 // ============================================================================

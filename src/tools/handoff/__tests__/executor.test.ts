@@ -542,6 +542,8 @@ describe('Unlock Validation', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('introduce you');
+    // Marks the refusal as permanent so the tool can tell the model not to retry.
+    expect(result.locked).toBe(true);
   });
 
   it('should allow handoffs to unlocked members', async () => {
@@ -559,6 +561,7 @@ describe('Unlock Validation', () => {
 
     expect(result.success).toBe(true);
     expect(result.targetAgent).toBe('peter-john');
+    expect(result.locked).toBeUndefined();
   });
 
   it('should always allow handoffs to coordinator (Ferni)', async () => {

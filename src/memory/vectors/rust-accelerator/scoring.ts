@@ -170,28 +170,6 @@ export function isBatchToolScoringNativeAvailable(): boolean {
 }
 
 /**
- * Check if the native path should be used for a given operation.
- */
-export function shouldUseNativePath(
-  operation: 'batch' | 'pairwise' | 'topk' | 'toolScoring',
-  itemCount: number
-): boolean {
-  if (!isRustAvailable()) return false;
-
-  const useNative = process.env.USE_NATIVE_EMBEDDINGS !== 'false';
-  if (!useNative) return false;
-
-  const thresholds: Record<string, number> = {
-    batch: 5,
-    pairwise: 10,
-    topk: 10,
-    toolScoring: 5,
-  };
-
-  return itemCount >= (thresholds[operation] ?? 5);
-}
-
-/**
  * Log accelerator status for debugging.
  */
 export function logAcceleratorStatus(): void {

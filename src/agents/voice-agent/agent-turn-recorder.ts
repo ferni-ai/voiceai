@@ -6,8 +6,8 @@
  * 2. On-behalf call transcript capture (superhuman analysis)
  * 3. Memory attribution tracking (recall quality metrics)
  *
- * Called today for cached responses (transcript handler). Normal LLM replies
- * are not yet recorded here.
+ * Agent turns arrive from agent-reply-recorder for every reply the session
+ * commits (LLM, cached, greeting).
  *
  * @module voice-agent/agent-turn-recorder
  */

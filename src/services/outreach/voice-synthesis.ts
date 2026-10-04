@@ -9,7 +9,7 @@
 
 import { Storage } from '@google-cloud/storage';
 import { getLogger } from '../../utils/safe-logger.js';
-import { CARTESIA_MODEL, CARTESIA_API_VERSION } from '../../config/voice-ids.js';
+import { CARTESIA_MODEL, CARTESIA_API_VERSION, VOICE_IDS } from '../../config/voice-ids.js';
 
 const log = getLogger().child({ module: 'outreach-voice-synthesis' });
 
@@ -45,10 +45,7 @@ export interface PersonaVoiceProfile {
 // These are the SAME voices used in the main voice agent
 const PERSONA_VOICES: Record<string, PersonaVoiceProfile> = {
   ferni: {
-    voiceId:
-      process.env.FERNI_VOICE_ID ||
-      process.env.JACK_B_VOICE_ID ||
-      'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+    voiceId: process.env.FERNI_VOICE_ID || process.env.JACK_B_VOICE_ID || VOICE_IDS.FERNI,
     speed: 0.95,
     emotion: 'warm',
   },

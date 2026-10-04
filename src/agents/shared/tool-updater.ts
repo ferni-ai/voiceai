@@ -21,7 +21,7 @@
  * @see https://docs.livekit.io/agents/logic-structure/tools/
  */
 
-import type { voice } from '@livekit/agents';
+import { voice } from '@livekit/agents';
 import { capToolsToLimit, getMaxTools, isMetaToolEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
@@ -218,4 +218,27 @@ export function getAgentToolCount(agent: voice.Agent<UserData>): number {
  */
 export function getAgentToolNames(agent: voice.Agent<UserData>): string[] {
   return Object.keys(asToolCapable(agent).toolCtx.functionTools);
+}
+
+/**
+ * Run `fn` once the agent starts speaking (or goes back to listening without
+ * speaking), whichever comes first, or after 8 s at the latest.
+ */
+export function applyAfterReplyStarts(
+  session: voice.AgentSession<UserData>,
+  fn: () => Promise<void>
+): void {
+  let done = false;
+  const run = (): void => {
+    if (done) return;
+    done = true;
+    session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+    clearTimeout(fallback);
+    void fn();
+  };
+  const onState = (ev: { newState: string }): void => {
+    if (ev.newState === 'speaking' || ev.newState === 'listening') run();
+  };
+  const fallback = setTimeout(run, 8000);
+  session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
 }

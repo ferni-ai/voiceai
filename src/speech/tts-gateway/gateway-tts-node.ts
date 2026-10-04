@@ -10,17 +10,14 @@
  * 4. E2E tracing - Full observability of TTS pipeline
  * 5. Cost tracking - Accurate FinOps for TTS calls
  *
- * Flow:
- * ```
- * Text Stream → Collect → Check Cache → Hit? → Split to Frames → Stream
- *                              ↓ Miss
- *                     Gateway.synthesize() → Cache → Split to Frames → Stream
- * ```
+ * Flow: Text Stream → Collect → Check Cache → Hit? → Split to Frames → Stream;
+ * on a miss Gateway.synthesize() → Cache → Split to Frames → Stream.
  *
  * @module speech/tts-gateway/gateway-tts-node
  */
 
 import type { AudioFrame } from '@livekit/rtc-node';
+import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { ReadableStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 
@@ -34,13 +31,16 @@ import {
 
 // ESM doesn't have global require, so we create one for dynamic imports
 const require = createRequire(import.meta.url);
-import { markCallStage, recordCallEvent } from '../../services/analytics/call-quality-monitor.js';
 import { getTTSCache } from '../../services/tts/index.js';
 import { getTTSProvider } from './providers/index.js';
 import { getSSMLProcessor } from './ssml/index.js';
 import { findChunkEnd } from './chunk-boundary.js';
+import { sessionSpeed } from '../output-control/pace-matching.js';
 import { createContinuationTTS } from './continuation-tts.js';
+import { createFirstAudioObserver, type FirstAudioObserver } from './first-audio-observer.js';
+import { directSpeech, leverModes, type TurnContext } from './director/index.js';
 import { prosodyTags } from './providers/cartesia.js';
+import { tagReplyAudioId } from './reply-audio-id.js';
 import type { SSMLProsodyConfig } from './types.js';
 
 // ============================================================================
@@ -96,40 +96,6 @@ function isTTSGatewayEnabled(): boolean {
 
 const log = createLogger({ module: 'GatewayTTSNode' });
 
-type FirstAudioObserver = () => void;
-
-interface FirstAudioObserverOptions {
-  sessionId?: string;
-  startTime: number;
-}
-
-function createFirstAudioObserver({
-  sessionId,
-  startTime,
-}: FirstAudioObserverOptions): FirstAudioObserver {
-  let hasMarkedFirstAudio = false;
-
-  return (): void => {
-    if (hasMarkedFirstAudio) return;
-    hasMarkedFirstAudio = true;
-    const ttfbMs = Date.now() - startTime;
-    log.info({ ttfbMs, sessionId }, `🔊 Gateway TTS TTFB: ${ttfbMs}ms`);
-    if (sessionId) {
-      try {
-        const firstAudioAtMs = Date.now();
-        markCallStage(sessionId, 'tts_first_frame', firstAudioAtMs);
-        recordCallEvent({
-          callId: sessionId,
-          timestamp: firstAudioAtMs,
-          type: 'first_response',
-        });
-      } catch {
-        // Non-fatal observability
-      }
-    }
-  };
-}
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -143,6 +109,8 @@ export interface GatewayTTSNodeConfig {
   personaId?: string;
   /** Initial emotion hint */
   emotion?: string;
+  /** The turn being answered (tts-wrapper's session context): keys the Stage 2 plan. */
+  turnContext?: TurnContext;
   /** Sample rate for audio frames (default: 24000) */
   sampleRate?: number;
   /** Frame duration in ms (default: 20) */
@@ -318,8 +286,6 @@ function createAudioFrameStream(
 // STREAMING OVERLAP: Start TTS on first phrase (target -100–200ms E2E)
 // ============================================================================
 
-// Sentence boundary: match sentence-ending punctuation followed by space or end-of-string.
-// Negative lookbehind avoids splitting on abbreviations (Dr. Mr. Ms. U.S. etc.) and decimals (3.5).
 const MIN_FIRST_CHUNK = 20;
 const MIN_CHUNK = 15;
 
@@ -344,6 +310,9 @@ interface StreamingOverlapOptions {
   sessionId?: string;
   personaId?: string;
   emotion?: string;
+  turnContext?: TurnContext;
+  /** Keys this reply's Stage 2 plan (review H2); see reply-audio-id.ts. */
+  replyId: string;
   sampleRate: number;
   frameDurationMs: number;
   enableCache: boolean;
@@ -405,18 +374,22 @@ async function createStreamingOverlapTTS(
     markFirstAudio,
   } = opts;
 
-  // One continuous generation per reply when the provider supports it: tone
-  // and pacing carry across sentences and there are no per-sentence gaps.
+  // One continuous generation per reply: tone and pacing carry across sentences.
   if (provider.openReplyStream && process.env.TTS_REPLY_CONTINUATIONS !== 'false') {
     metrics.gatewaySyntheses++;
+    const directed = directSpeech(provider.openReplyStream(voiceId), opts);
     return createContinuationTTS({
-      textStream,
-      reply: provider.openReplyStream(voiceId),
+      textStream: directed.textStream,
+      reply: directed.reply,
+      // New context per mid-reply emotion change; the director owns it when its emotion lever is live (#176).
+      openReply: leverModes().emotion !== 'live' ? () => provider.openReplyStream!(voiceId) : undefined,
       sanitize: (chunk) => sanitizeChunkForTTS(chunk, ssmlProcessor),
       openingTags: prosodyTags,
       emotion,
+      baseSpeed: sessionSpeed(sessionId),
       toFrames: (pcm) => splitIntoFrames(pcm, sampleRate, frameDurationMs),
       onFirstAudio: markFirstAudio,
+      onStage: markFirstAudio.stage,
       onError: (err, phase) =>
         log.warn({ err: String(err), phase, sessionId, personaId }, 'Continuous reply TTS failed'),
     });
@@ -709,6 +682,7 @@ export function createGatewayTTSNode(
     sessionId,
     personaId,
     emotion,
+    turnContext,
     sampleRate = 24000,
     frameDurationMs = 20,
     enableCache = true,
@@ -731,16 +705,19 @@ export function createGatewayTTSNode(
     const markFirstAudio = createFirstAudioObserver({ sessionId, startTime });
     metrics.totalRequests++;
 
-    // =========================================================================
     // STREAMING OVERLAP: Start TTS on first phrase (target -100–200ms E2E)
-    // =========================================================================
     if (enableStreamingOverlap) {
+      // One id per reply (review H2): keys this reply's Stage 2 plan so no
+      // other TTS stream in the same turn can take or discard it.
+      const replyId = randomUUID();
       return createStreamingOverlapTTS({
         textStream,
         voiceId,
         sessionId,
         personaId,
         emotion,
+        turnContext,
+        replyId,
         sampleRate,
         frameDurationMs,
         enableCache,
@@ -749,12 +726,13 @@ export function createGatewayTTSNode(
         provider,
         ssmlProcessor,
         markFirstAudio,
+      }).then((result) => {
+        if (result) tagReplyAudioId(result, replyId);
+        return result;
       });
     }
 
-    // =========================================================================
     // 1. COLLECT TEXT FROM STREAM (non-streaming path)
-    // =========================================================================
 
     let fullText = '';
     const reader = textStream.getReader();
@@ -787,9 +765,7 @@ export function createGatewayTTSNode(
       `🚀 Gateway TTS: Processing "${truncateForLog(fullText, 50)}"`
     );
 
-    // =========================================================================
     // 2. PARSE SSML AND EXTRACT PROSODY
-    // =========================================================================
 
     const ssmlResult = ssmlProcessor.parse(fullText);
     const cleanText = ssmlResult.cleanText;
@@ -804,9 +780,7 @@ export function createGatewayTTSNode(
       return createEmptyAudioStream();
     }
 
-    // =========================================================================
     // 2.5. FILTER JSON FUNCTION CALLS
-    // =========================================================================
 
     if (isJsonFunctionCall(cleanText)) {
       log.warn(
@@ -819,13 +793,10 @@ export function createGatewayTTSNode(
         },
         '🚫 Gateway TTS: Filtered JSON function call - NOT speaking this'
       );
-      // Return empty completed stream instead of null to avoid LiveKit SDK errors
-      return createEmptyAudioStream();
+      return createEmptyAudioStream(); // empty, not null: LiveKit SDK errors on null
     }
 
-    // =========================================================================
     // 2.6. STRIP INSTRUCTION BLOCKS
-    // =========================================================================
     // Final safety net: Strip instruction blocks like [TYPE: presence], [TONE: warm]
     // that Gemini sometimes echoes back from the prompt.
     //
@@ -884,9 +855,7 @@ export function createGatewayTTSNode(
       emotion: ssmlResult.prosody.emotion || emotion,
     };
 
-    // =========================================================================
     // 3. CHECK CACHE (with optional speculative synthesis)
-    // =========================================================================
 
     // Speculative synthesis: start both cache check and synthesis in parallel
     // This reduces latency on cache misses but wastes API calls on cache hits
@@ -955,9 +924,7 @@ export function createGatewayTTSNode(
       }
     }
 
-    // =========================================================================
     // 4. SYNTHESIZE VIA GATEWAY (CACHE MISS)
-    // =========================================================================
 
     metrics.cacheMisses++;
     metrics.gatewaySyntheses++;

@@ -67,10 +67,36 @@ const createMockFirestore = () => {
 
 const mockFirestoreDb = createMockFirestore();
 
+// True for a Firestore FieldValue sentinel (serverTimestamp(), increment(),
+// arrayUnion(), arrayRemove(), delete()). Mirrors the guard in
+// utils/firestore-utils.ts - this mock must preserve sentinels by identity
+// too, or any test writing one through the mocked cleanForFirestore would
+// see it silently turned into a plain `{}` (see PR #175 critic review).
+//
+// Deliberately duck-typed only (no `instanceof FieldValue`, no top-level
+// import of the real @google-cloud/firestore package here): this file is a
+// global setupFile loaded before every test file, and several test files
+// locally `vi.mock('@google-cloud/firestore', ...)` with their own fake
+// Firestore class. An eager real import here raced with those per-file
+// mocks and won often enough to make `persistence/index.ts`'s own
+// `new Firestore(...)` resolve to the (non-functional, in this test env)
+// real client instead of the local mock - silently no-op'ing every flush
+// in any OTHER file that ran in the same vitest invocation. Confirmed by
+// removing the import: the flakiness disappeared.
+const isFirestoreFieldValueImpl = (value: unknown): boolean => {
+  if (value === null || typeof value !== 'object') return false;
+  const ctorName = (value as { constructor?: { name?: string } }).constructor?.name;
+  const looksLikeTransform =
+    typeof ctorName === 'string' && (ctorName === 'FieldValue' || ctorName.endsWith('Transform'));
+  const hasIsEqual = typeof (value as { isEqual?: unknown }).isEqual === 'function';
+  return looksLikeTransform && hasIsEqual;
+};
+
 // Helper function to clean undefined values (matches real implementation)
 const cleanForFirestoreImpl = <T>(obj: T): T => {
   if (obj === null || obj === undefined) return obj;
   if (obj instanceof Date) return obj.toISOString() as T;
+  if (isFirestoreFieldValueImpl(obj)) return obj;
   if (Array.isArray(obj)) return obj.map((item) => cleanForFirestoreImpl(item)) as T;
   if (typeof obj === 'object') {
     const result: Record<string, unknown> = {};
@@ -78,6 +104,21 @@ const cleanForFirestoreImpl = <T>(obj: T): T => {
       if (value !== undefined) {
         result[key] = cleanForFirestoreImpl(value);
       }
+    }
+    return result as T;
+  }
+  return obj;
+};
+
+// Same as utils/firestore-utils.ts: walks plain objects and arrays only.
+const deepRemoveUndefinedImpl = <T>(obj: T): T => {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map((item) => deepRemoveUndefinedImpl(item)) as T;
+  const proto = typeof obj === 'object' ? (Object.getPrototypeOf(obj) as unknown) : undefined;
+  if (proto === Object.prototype || proto === null) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      if (value !== undefined) result[key] = deepRemoveUndefinedImpl(value);
     }
     return result as T;
   }
@@ -92,6 +133,18 @@ const removeUndefinedImpl = <T extends object>(obj: T): T => {
     }
   }
   return result as T;
+};
+
+// Mirrors utils/firestore-utils.ts's sanitizeFirestoreDocId.
+const sanitizeFirestoreDocIdImpl = (input: string): string => {
+  const MAX_BYTES = 1400;
+  let safe = (input ?? '').replace(/\//g, '-').trim();
+  if (safe === '.' || safe === '..') safe = safe.replace(/\./g, '_dot_');
+  if (safe.length === 0) safe = '_';
+  if (Buffer.byteLength(safe, 'utf8') > MAX_BYTES) {
+    safe = Buffer.from(safe, 'utf8').subarray(0, MAX_BYTES).toString('utf8');
+  }
+  return safe;
 };
 
 // Helper: Safely convert any timestamp-like value to Date
@@ -126,7 +179,10 @@ vi.mock('../utils/firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => mockFirestoreDb),
   cleanForFirestore: vi.fn((obj: unknown) => cleanForFirestoreImpl(obj)),
   removeUndefined: vi.fn((obj: unknown) => removeUndefinedImpl(obj as object)),
-  deepRemoveUndefined: vi.fn((obj: unknown) => cleanForFirestoreImpl(obj)),
+  // Not cleanForFirestore: that turns Dates into strings, which the real
+  // deepRemoveUndefined doesn't do.
+  deepRemoveUndefined: vi.fn((obj: unknown) => deepRemoveUndefinedImpl(obj)),
+  sanitizeFirestoreDocId: vi.fn((input: string) => sanitizeFirestoreDocIdImpl(input)),
   toSafeDate: vi.fn((value: unknown, fallback?: Date) => toSafeDateImpl(value, fallback)),
   toSafeDateOptional: vi.fn((value: unknown) => toSafeDateOptionalImpl(value)),
   recordDegradation: vi.fn(),

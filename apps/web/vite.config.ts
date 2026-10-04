@@ -135,6 +135,14 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         // Treat gsap as external - use window.gsap from CDN
         external: ['gsap'],
+        // A circular chunk is a runtime TDZ crash waiting for the right import
+        // order; it shipped once as a warning nobody read. Fail the build.
+        onwarn(warning, warn) {
+          if (warning.code === 'CIRCULAR_CHUNK') {
+            throw new Error(`[vite.config] ${warning.message}`);
+          }
+          warn(warning);
+        },
         output: {
           // Map gsap imports to the global
           globals: {
@@ -151,64 +159,14 @@ export default defineConfig(({ mode }) => {
               return 'vendor';
             }
 
-            // Admin portal - lazy loaded, separate chunk
-            if (id.includes('/admin/')) return 'admin';
-
-            // Dev panel - lazy loaded for 17KB gzipped savings
-            if (id.includes('dev-panel')) return 'dev-panel';
-
-            // Engagement features - heavy dashboards, lazy loaded
-            if (
-              id.includes('engagement') ||
-              id.includes('predictions') ||
-              id.includes('analytics-dashboard') ||
-              id.includes('prediction-tracker') ||
-              id.includes('team-huddle') ||
-              id.includes('cognitive-insights')
-            ) {
-              return 'ui-engagement';
-            }
-
-            // Premium effects - celebrations, particles, etc.
-            if (
-              id.includes('celebrations') ||
-              id.includes('easter-eggs') ||
-              id.includes('streak-celebrations') ||
-              id.includes('agent-particles') ||
-              id.includes('weather-effects')
-            ) {
-              return 'ui-premium';
-            }
-
-            // Secondary modals - lazy loaded
-            if (
-              id.includes('onboarding') ||
-              id.includes('conversation-history') ||
-              id.includes('ritual-builder') ||
-              id.includes('data-export') ||
-              id.includes('settings-menu') ||
-              id.includes('marketplace')
-            ) {
-              return 'ui-secondary';
-            }
-
-            // Animation systems
-            if (
-              id.includes('animation-orchestrator') ||
-              id.includes('micro-interactions') ||
-              id.includes('kinetic-typography') ||
-              id.includes('ambient-effects') ||
-              id.includes('loading-states') ||
-              id.includes('persona-transition')
-            ) {
-              return 'ui-animations';
-            }
-
-            // Services - split heavy from light
-            if (id.includes('/services/')) {
-              if (id.includes('spotify') || id.includes('music')) return 'services-music';
-              if (id.includes('engagement') || id.includes('ritual')) return 'services-engagement';
-            }
+            // App code is deliberately NOT hand-assigned. Name-based rules
+            // (includes('engagement'), '/admin/', ...) split modules that import
+            // each other eagerly into cyclic chunks; Rollup cannot order a chunk
+            // cycle, so a chunk ran its top-level code before a dependency's
+            // `const` was initialized ("Cannot access 'v' before initialization"
+            // in admin-*.js took down app.ferni.ai). Rollup's automatic chunking
+            // still splits at real dynamic-import() boundaries, and never cycles.
+            return undefined;
           },
         },
       },

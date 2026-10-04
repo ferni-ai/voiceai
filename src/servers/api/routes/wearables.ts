@@ -18,8 +18,14 @@ import crypto from 'crypto';
 import type { IncomingMessage, ServerResponse } from 'http';
 import * as wearables from '../../token/oauth/wearables.js';
 import type { WearableProvider } from '../../../services/wearable-integration/types.js';
-import { isValidId, sendInvalidIdError, getClientIp, sanitizeReturnUrl } from '../../token/validation.js';
+import {
+  isValidId,
+  sendInvalidIdError,
+  getClientIp,
+  sanitizeReturnUrl,
+} from '../../token/validation.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { getVerifiedUserId } from '../request-identity.js';
 
 const log = createLogger({ module: 'WearablesRoutes' });
 
@@ -60,11 +66,11 @@ export async function handleWearablesRoutes(
 
   // GET /wearables/status?user_id=X — all provider connection statuses
   if (pathname === '/wearables/status') {
-    const user_id = parsedUrl.searchParams.get('user_id');
+    const user_id = getVerifiedUserId(req);
 
     if (!user_id) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required' }));
       return true;
     }
 
@@ -180,16 +186,14 @@ export async function handleWearablesRoutes(
   }
 
   // GET /wearables/{provider}/token?user_id=X — get valid access token
-  const tokenMatch = pathname.match(
-    new RegExp(`^/wearables/(${OAUTH_PROVIDERS_PATTERN})/token$`)
-  );
+  const tokenMatch = pathname.match(new RegExp(`^/wearables/(${OAUTH_PROVIDERS_PATTERN})/token$`));
   if (tokenMatch) {
     const provider = tokenMatch[1] as Exclude<WearableProvider, 'apple_health'>;
-    const user_id = parsedUrl.searchParams.get('user_id');
+    const user_id = getVerifiedUserId(req);
 
     if (!user_id) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required' }));
       return true;
     }
 
@@ -217,11 +221,11 @@ export async function handleWearablesRoutes(
   );
   if (unlinkMatch) {
     const provider = unlinkMatch[1] as WearableProvider;
-    const user_id = parsedUrl.searchParams.get('user_id');
+    const user_id = getVerifiedUserId(req);
 
     if (!user_id) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required' }));
       return true;
     }
 

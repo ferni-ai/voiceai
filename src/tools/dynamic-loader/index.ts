@@ -13,9 +13,11 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { toolRegistry } from '../registry/index.js';
-import { loadToolDomain } from '../registry/loader.js';
+import { isDomainLoaded as isDomainRegistered, loadToolDomain } from '../registry/loader.js';
+import { getEssentialTools } from '../../config/tool-config.js';
+import { loadIntentManual } from '../retrieval/dense-index.js';
 import type { ToolDomain, ToolContext, Tool } from '../registry/types.js';
-import { EnvironmentServiceRegistry } from '../registry/types.js';
+import { ALL_TOOL_DOMAINS, EnvironmentServiceRegistry } from '../registry/types.js';
 
 import type {
   DynamicLoaderConfig,
@@ -23,7 +25,8 @@ import type {
   LoadedDomainState,
   TopicDetectionResult,
 } from './types.js';
-import { TOPIC_TO_DOMAINS, DOMAIN_PRIORITY, DEFAULT_ESSENTIAL_DOMAINS } from './topic-mappings.js';
+import { DOMAIN_PRIORITY, DEFAULT_ESSENTIAL_DOMAINS } from './topic-mappings.js';
+import { TOPIC_PATTERNS } from './topic-patterns.js';
 
 // Re-export types
 export type {
@@ -74,6 +77,7 @@ export class DynamicToolLoader {
     for (const domain of this.config.essentialDomains) {
       await this.loadDomain(domain, true);
     }
+    await this.registerEssentialTools();
 
     // Start auto-unload timer if enabled
     if (this.config.enableAutoUnload) {
@@ -113,9 +117,9 @@ export class DynamicToolLoader {
     const detectedTopics: string[] = [];
     const domainScores = new Map<ToolDomain, number>();
 
-    // Check each topic keyword
-    for (const [topic, domains] of Object.entries(TOPIC_TO_DOMAINS)) {
-      if (lowerMessage.includes(topic)) {
+    // Check each topic keyword, as a whole word
+    for (const [topic, domains, pattern] of TOPIC_PATTERNS) {
+      if (pattern.test(lowerMessage)) {
         detectedTopics.push(topic);
         for (const domain of domains) {
           const currentScore = domainScores.get(domain) || 0;
@@ -180,6 +184,57 @@ export class DynamicToolLoader {
       getLogger().warn({ domain, error }, '🔄 Failed to load domain');
       return false;
     }
+  }
+
+  private essentialToolIds(): readonly string[] {
+    return this.config.essentialToolIds ?? getEssentialTools();
+  }
+
+  /**
+   * Register the definitions of the essential tools whose domains aren't
+   * loaded. quickTimer and quickAlarm were on the "must survive any cap" list,
+   * but their domain (simple-utilities) loads only on keywords, and tools a
+   * turn's words load reach the agent after that turn's reply starts: asked
+   * for a 20 s tea timer, Ferni had none and said "I can't set a timer
+   * directly" (dev, 2026-09-30).
+   */
+  private async registerEssentialTools(): Promise<void> {
+    let domainOf = this.config.domainOfTool;
+    if (!domainOf) {
+      let manual: ReturnType<typeof loadIntentManual> | null = null;
+      try {
+        manual = loadIntentManual(); // read once: it parses the whole catalog
+      } catch (error) {
+        getLogger().warn({ error: String(error) }, 'Could not read the tool manual');
+      }
+      domainOf = (id) => manual?.tools[id]?.domain as ToolDomain | undefined;
+    }
+    const domains = new Set<ToolDomain>();
+    for (const id of this.essentialToolIds()) {
+      const domain = domainOf(id);
+      if (domain && !isDomainRegistered(domain)) domains.add(domain);
+    }
+    await Promise.all(
+      [...domains].map((domain) =>
+        loadToolDomain(domain).catch((error: unknown) =>
+          getLogger().warn({ domain, error: String(error) }, 'Could not register essential tools')
+        )
+      )
+    );
+  }
+
+  /**
+   * Load the whole catalog for this session, never unloaded. For per-turn
+   * tool retrieval, which sends each request only the tools its words need:
+   * retrieval can only send tools the agent has, and "keep an eye on the
+   * time" found setTimer and quickTimer but neither was loaded (dev,
+   * 2026-09-30). Building all ~1,160 tools takes ~50 ms and ~60 MB per
+   * session; the first session in a process also imports the domain modules
+   * (~2 s), so call this off the critical path.
+   */
+  async loadAllDomains(domains: readonly ToolDomain[] = ALL_TOOL_DOMAINS): Promise<number> {
+    const results = await Promise.all(domains.map((domain) => this.loadDomain(domain, true)));
+    return results.filter(Boolean).length;
   }
 
   /**
@@ -276,8 +331,11 @@ export class DynamicToolLoader {
 
     const loadedDomainList = Array.from(this.loadedDomains.keys());
 
-    // Build tools from loaded domains
-    const result = toolRegistry.buildToolSet({ domains: loadedDomainList }, this.toolContext);
+    // Build tools from loaded domains, plus the essential tools by id
+    const result = toolRegistry.buildToolSet(
+      { domains: loadedDomainList, optional: [...this.essentialToolIds()] },
+      this.toolContext
+    );
 
     return result.tools;
   }
@@ -408,8 +466,7 @@ export async function loadEssentialDomains(
   // Tools look services up through a ServiceRegistry (has/get). Callers on the
   // live path pass their SessionServices, which is a different shape; building
   // with it threw "services.has is not a function" and the call got no tools.
-  const isServiceRegistry =
-    typeof (services as { has?: unknown } | undefined)?.has === 'function';
+  const isServiceRegistry = typeof (services as { has?: unknown } | undefined)?.has === 'function';
   const ctx = {
     userId: userId || 'anonymous',
     agentId: 'ferni',

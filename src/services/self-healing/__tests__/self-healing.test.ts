@@ -6,21 +6,24 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// Mock logger
-vi.mock('../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
+// Mock logger. `child` is required: session-recovery.ts reaches the speech
+// coordinator, which statically pulls in the gateway TTS node and, through
+// it, the Speech Director (speech/adaptive-ssml/contextual-laughter.ts
+// calls `getLogger().child(...)` at module load) — a logger stub missing
+// `child` throws at import time, before any test runs.
+vi.mock('../../../utils/safe-logger.js', () => {
+  const logger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-  getLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+    child: vi.fn(() => logger),
+  };
+  return {
+    createLogger: () => logger,
+    getLogger: () => logger,
+  };
+});
 
 // Mock circuit alerting and metrics (to avoid side effects)
 vi.mock('../circuit-alerting.js', () => ({

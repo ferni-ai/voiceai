@@ -41,6 +41,8 @@ export interface RecordMessageOptions {
   sentiment?: 'positive' | 'neutral' | 'negative';
   /** Topics mentioned */
   topics?: string[];
+  /** Agent message cut short because the user started talking */
+  interrupted?: boolean;
   /** Tool calls made (for agent messages) */
   toolCalls?: string[];
 }
@@ -170,7 +172,7 @@ export async function recordUserMessage(options: RecordMessageOptions): Promise<
  * Call this when agent response is generated.
  */
 export async function recordAgentMessage(options: RecordMessageOptions): Promise<void> {
-  const { userId, sessionId, personaId, content, toolCalls } = options;
+  const { userId, sessionId, personaId, content, toolCalls, interrupted } = options;
 
   if (!content || content.trim().length === 0) {
     return; // Skip empty messages
@@ -201,6 +203,7 @@ export async function recordAgentMessage(options: RecordMessageOptions): Promise
       timestamp: new Date(),
       metadata: {
         toolCalls,
+        ...(interrupted ? { interrupted: true } : {}),
       },
     });
 

@@ -387,6 +387,45 @@ describe('TurnProfiler', () => {
     });
   });
 
+  describe('a Stage 2 opening breath/sigh is not first speech', () => {
+    // The opening plays during the Cartesia wait, so ttsFirstByte fires on the
+    // breath; the user hears words at ttsFirstSpeech. TTFA and the TTS TTFB
+    // measure speech, falling back to ttsFirstByte when there is no opening.
+    it('measures TTFA and TTS TTFB at the first speech frame', () => {
+      const t = Date.now();
+      vi.spyOn(Date, 'now')
+        .mockReturnValueOnce(t) // turnStart
+        .mockReturnValueOnce(t + 50) // ttsStart
+        .mockReturnValueOnce(t + 60) // ttsFirstByte (the breath)
+        .mockReturnValueOnce(t + 450) // ttsFirstSpeech
+        .mockReturnValue(t + 900); // turnComplete
+      startTurnProfiling('ttfs-test', 1);
+      markTurnCheckpoint('ttfs-test', 1, 'ttsStart');
+      markTurnCheckpoint('ttfs-test', 1, 'ttsFirstByte');
+      markTurnCheckpoint('ttfs-test', 1, 'ttsFirstSpeech');
+      const metrics = completeTurnProfiling('ttfs-test', 1);
+      vi.restoreAllMocks();
+      expect(metrics?.latencies.timeToFirstAudioMs).toBe(450);
+      expect(metrics?.latencies.ttsTtfbMs).toBe(400);
+    });
+
+    it('falls back to ttsFirstByte without a first-speech mark', () => {
+      const t = Date.now();
+      vi.spyOn(Date, 'now')
+        .mockReturnValueOnce(t)
+        .mockReturnValueOnce(t + 50)
+        .mockReturnValueOnce(t + 300)
+        .mockReturnValue(t + 900);
+      startTurnProfiling('ttfs-fallback', 1);
+      markTurnCheckpoint('ttfs-fallback', 1, 'ttsStart');
+      markTurnCheckpoint('ttfs-fallback', 1, 'ttsFirstByte');
+      const metrics = completeTurnProfiling('ttfs-fallback', 1);
+      vi.restoreAllMocks();
+      expect(metrics?.latencies.timeToFirstAudioMs).toBe(300);
+      expect(metrics?.latencies.ttsTtfbMs).toBe(250);
+    });
+  });
+
   describe('metrics storage limits', () => {
     it('should limit stored metrics per session', () => {
       // Create more than 100 turns

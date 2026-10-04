@@ -19,6 +19,7 @@ import type {
   TurnContext,
 } from '../types.js';
 import type { ContextInjectionsResult } from './types.js';
+import { responseStyleHints } from './response-style-hints.js';
 
 import { diag } from '../../../services/diagnostic-logger.js';
 import { createBuilderBudget } from './builder-budget.js';
@@ -43,7 +44,6 @@ import {
   buildPersonaSpecificContextInjections,
   buildSafetyInjections,
   buildScientificCoachingInjections,
-  buildSemanticIntelligenceInjection,
   buildServiceAvailabilityInjection,
   buildSessionDynamicsInjection,
   buildToolHistoryInjection,
@@ -51,7 +51,6 @@ import {
   buildUserHealthInjection,
   buildVisualMemoryInjections,
   type ConversationDynamicsResult as InjectionDynamicsResult,
-  type SemanticIntelligenceInjectionResult,
 } from '../injection-builders/index.js';
 
 import { buildLiveSuperhumanInjections } from '../live-superhuman-injections.js';
@@ -80,7 +79,6 @@ import {
 } from '../../../intelligence/context-builders/humanization/conversation-humanizing.js';
 
 import { getResponseEnhancements } from '../../../speech/response-naturalness.js';
-
 import { valueCapture } from '../../../services/monetization/value-capture.js';
 
 import { getBetterThanHuman } from '../../../conversation/superhuman/index.js';
@@ -370,7 +368,6 @@ export async function buildContextInjections(
     },
     processingTimeMs: 0,
   };
-  const semanticIntelligenceFallback: SemanticIntelligenceInjectionResult = { injection: null };
 
   const [tier2Results, tier3Results] = await Promise.all([
     // TIER 2: IMPORTANT BUILDERS
@@ -446,19 +443,6 @@ export async function buildContextInjections(
             'live-superhuman'
           ),
         superhumanFallback
-      ),
-      withTimeout(
-        buildSemanticIntelligenceInjection({
-          userId: services.userId || 'unknown',
-          sessionId: services.sessionId || 'unknown',
-          personaId: persona.id,
-          userText,
-          recentTools: userData?.conversationState?.getToolExecutionData?.()?.recentlyUsedTools,
-          recentTopics: currentTopic ? [currentTopic] : undefined,
-        }),
-        IMPORTANT_TIMEOUT_MS,
-        semanticIntelligenceFallback,
-        'semantic-intelligence'
       ),
       withTimeout(
         buildPersonaSpecificContextInjections({
@@ -537,7 +521,6 @@ export async function buildContextInjections(
     trustSystemsResult,
     boundaryInjections,
     liveSuperhumanResult,
-    semanticIntelligenceResult,
     personaSpecificInjections,
     serviceAvailabilityInjection,
   ] = tier2Results;
@@ -637,17 +620,8 @@ export async function buildContextInjections(
     }
   }
 
-  // SEMANTIC INTELLIGENCE
-  if (semanticIntelligenceResult?.injection) {
-    injections.push(semanticIntelligenceResult.injection);
-    diag.debug('🧠 Semantic intelligence injection added (tool hints, patterns)');
-  }
-
-  if (semanticIntelligenceResult?.prediction) {
-    userData.semanticPrediction = semanticIntelligenceResult.prediction;
-  } else {
-    userData.semanticPrediction = undefined;
-  }
+  // No semantic-intelligence builder: its hints served the retired JSON
+  // function-call workaround and misread statements as tool requests.
 
   // "BETTER THAN HUMAN" INJECTIONS (Legacy)
   if (userHealthInjection) {
@@ -1133,7 +1107,7 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
     }
   }
 
-  // 13. Response naturalness
+  // 13. Response naturalness (opener/catchphrase lines are gated in response-style-hints.ts)
   const turnCount = userData.turnCount || 0;
   const enhancements = getResponseEnhancements({
     personaId: persona.id,
@@ -1147,21 +1121,7 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
       analysis.emotion.primary === 'joy' || analysis.emotion.primary === 'anticipation',
   });
 
-  if (enhancements.prefix) {
-    injections.push({
-      category: 'response_prefix',
-      content: `[RESPONSE STYLE]\nStart your response with: "${enhancements.prefix.replace(/<[^>]+>/g, '')}"\nThen continue with your substantive response.\n\n⛔ NEVER SAY: "Good question", "Great question", "Well...", "That's a great point" - these are AI clichés. Just respond naturally.`,
-      priority: 15,
-    });
-  }
-
-  if (enhancements.suffix) {
-    injections.push({
-      category: 'catchphrase',
-      content: `[CATCHPHRASE MOMENT]\nIf appropriate, weave in this signature phrase naturally: "${enhancements.suffix.replace(/<[^>]+>/g, '')}"`,
-      priority: 12,
-    });
-  }
+  injections.push(...responseStyleHints(enhancements));
 
   // 14. Conversation state summary
   if (userData.conversationState) {
