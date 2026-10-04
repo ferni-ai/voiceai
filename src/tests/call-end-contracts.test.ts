@@ -66,23 +66,23 @@ function captureResponse(): { res: ServerResponse; status: () => number; body: (
 describe('POST /usage/conversation contract', () => {
   it('records the real call length the web app sends', async () => {
     const start = Date.parse('2026-10-03T10:00:00Z');
-    const body = buildConversationUsageBody('device-1', start, start + 12 * 60_000);
+    const body = buildConversationUsageBody(start, start + 12 * 60_000);
 
     const response = await handleSubscriptionRequest({
       method: 'POST',
       pathname: '/usage/conversation',
       query: {},
       headers: {},
-      authUserId: 'device-1', // the verified caller, as the UI server mount passes it
+      authUserId: 'uid-42', // the verified caller; the body carries no user id
       body,
     });
 
     expect(response.status).toBe(200);
-    expect(vi.mocked(recordConversation)).toHaveBeenCalledWith('device-1', 12);
+    expect(vi.mocked(recordConversation)).toHaveBeenCalledWith('uid-42', 12);
   });
 
   it('sends nothing for a call that never started', () => {
-    expect(buildConversationUsageBody('device-1', null)).toBeNull();
+    expect(buildConversationUsageBody(null)).toBeNull();
   });
 });
 

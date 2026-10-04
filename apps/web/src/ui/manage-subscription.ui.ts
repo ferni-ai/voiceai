@@ -2,7 +2,7 @@
  * Manage Subscription UI - Your Journey Together
  *
  * A warm, relationship-focused modal for viewing support status.
- * 
+ *
  * Philosophy: This isn't about "managing a subscription" - it's about
  * celebrating the partnership and making it easy to adjust if needed.
  * We lead with gratitude, not transaction details.
@@ -114,7 +114,7 @@ class ManageSubscriptionUI {
 
   /**
    * Create the modal DOM
-   * 
+   *
    * Design philosophy: Lead with gratitude, show impact, make changes easy.
    * Technical details are hidden behind warm, human language.
    */
@@ -168,10 +168,12 @@ class ManageSubscriptionUI {
     // Action buttons
     this.container
       .querySelector('[data-action="billing-portal"]')
-      ?.addEventListener('click', () => { void this.handleOpenBillingPortal(); });
-    this.container
-      .querySelector('[data-action="apple-manage"]')
-      ?.addEventListener('click', () => { void this.openAppleManagement(); });
+      ?.addEventListener('click', () => {
+        void this.handleOpenBillingPortal();
+      });
+    this.container.querySelector('[data-action="apple-manage"]')?.addEventListener('click', () => {
+      void this.openAppleManagement();
+    });
     this.container
       .querySelector('[data-action="upgrade"]')
       ?.addEventListener('click', () => this.handleUpgrade());
@@ -189,7 +191,7 @@ class ManageSubscriptionUI {
 
   /**
    * Render action buttons based on subscription provider
-   * 
+   *
    * Design: Primary action is always warm and inviting.
    * Secondary/management actions are subtle, not prominent.
    */
@@ -258,10 +260,8 @@ class ManageSubscriptionUI {
    * Open Stripe billing portal
    */
   private async handleOpenBillingPortal(): Promise<void> {
-    if (!this.userId) return;
-
-    // Use the consolidated billing utility (opens in same tab for redirect flow)
-    await openBillingPortal(this.userId, { openInNewTab: false });
+    // Portal for the Bearer-token user (same tab, for the redirect flow)
+    await openBillingPortal({ openInNewTab: false });
   }
 
   /**
@@ -372,7 +372,7 @@ class ManageSubscriptionUI {
 
   /**
    * Inject styles
-   * 
+   *
    * Design philosophy: Warm, centered modal with focus on gratitude.
    * Technical elements are subtle, relationship elements are prominent.
    */
