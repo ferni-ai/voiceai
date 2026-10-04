@@ -21,16 +21,20 @@ import { apiGet } from '../utils/api.js';
 import {
   escapeHtml as esc,
   parseTrustTab,
-  TRUST_TAB_PATHS,
+  trustTabUrl,
   type EventsData,
   type HealthData,
   type InsightsData,
   type JournalData,
   type MediaData,
+  type NoticedPeriod,
   type TimelineData,
   type TrustTab,
   type UpcomingEvent,
 } from './trust-dashboard-data.js';
+import { renderHealthTab, renderInsightsTab, TOGETHER_STYLES } from './trust-dashboard-together.js';
+
+export { renderHealthTab, renderInsightsTab };
 
 const log = createLogger('TrustDashboardUI');
 
@@ -75,6 +79,7 @@ const state: DashboardState = {
 
 let container: HTMLElement | null = null;
 let isInitialized = false;
+let insightsPeriod: NoticedPeriod = 'month';
 
 // ============================================================================
 // ICONS (Lucide)
@@ -239,77 +244,6 @@ function createDashboardHTML(): string {
 // TAB CONTENT RENDERERS
 // ============================================================================
 
-export function renderHealthTab(data: HealthData | null): string {
-  if (!data) {
-    return '<p class="empty-state">Start conversations to build your relationship health score.</p>';
-  }
-
-  const scoreColor =
-    data.score >= 70
-      ? 'var(--color-success)'
-      : data.score >= 40
-        ? 'var(--color-warning)'
-        : 'var(--color-error)';
-
-  return `
-    <div class="health-content">
-      <div class="health-score-ring">
-        <svg viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-border)" stroke-width="8"/>
-          <circle cx="50" cy="50" r="45" fill="none" stroke="${scoreColor}" stroke-width="8"
-            stroke-dasharray="${data.score * 2.83} 283"
-            stroke-linecap="round" transform="rotate(-90 50 50)"/>
-        </svg>
-        <div class="score-text">
-          <span class="score-number">${data.score}</span>
-          <span class="score-label">Health</span>
-        </div>
-      </div>
-      
-      <div class="health-stage">
-        <h3>${esc(data.stageName)}</h3>
-        <p class="trend ${esc(data.trend)}">${esc(data.trend)}</p>
-      </div>
-      
-      <div class="health-factors">
-        <h4>Factors</h4>
-        ${data.factors
-          .map(
-            (f) => `
-          <div class="factor-row">
-            <span class="factor-name">${esc(formatFactorName(f.name))}</span>
-            <div class="factor-bar">
-              <div class="factor-fill" style="width: ${f.score}%"></div>
-            </div>
-            <span class="factor-trend ${f.trend}">${f.trend === 'improving' ? '↑' : f.trend === 'declining' ? '↓' : '→'}</span>
-          </div>
-        `
-          )
-          .join('')}
-      </div>
-      
-      ${
-        data.alerts.length > 0
-          ? `
-        <div class="health-alerts">
-          <h4>Attention Needed</h4>
-          ${data.alerts
-            .map(
-              (a) => `
-            <div class="alert-item ${a.severity}">
-              <span>${esc(a.message)}</span>
-            </div>
-          `
-            )
-            .join('')}
-        </div>
-      `
-          : ''
-      }
-    </div>
-  `;
-}
-
 export function renderTimelineTab(data: TimelineData | null): string {
   if (!data) {
     return '<p class="empty-state">Your emotional timeline will appear here as we have more conversations.</p>';
@@ -451,51 +385,6 @@ export function renderMediaTab(data: MediaData | null): string {
   `;
 }
 
-export function renderInsightsTab(data: InsightsData | null): string {
-  if (!data?.latest) {
-    return '<p class="empty-state">Your first insights report will be ready after more conversations.</p>';
-  }
-
-  const { latest } = data;
-
-  return `
-    <div class="insights-content">
-      <div class="insights-summary">
-        <span class="insights-emoji">${latest.summary.emoji}</span>
-        <h3>${esc(latest.summary.headline)}</h3>
-        <span class="insights-mood">${esc(latest.summary.overallMood)}</span>
-      </div>
-      
-      <div class="insights-stats">
-        <div class="stat-item">
-          <span class="stat-number">${latest.conversations.totalSessions}</span>
-          <span class="stat-label">Conversations</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number">${latest.conversations.totalMinutes}</span>
-          <span class="stat-label">Minutes</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number">${latest.wins.totalWins}</span>
-          <span class="stat-label">Wins</span>
-        </div>
-      </div>
-      
-      ${
-        latest.wins.biggestWin
-          ? `
-        <div class="biggest-win">
-          <h4>Biggest Win</h4>
-          <p>${esc(latest.wins.biggestWin)}</p>
-        </div>
-      `
-          : ''
-      }
-      
-    </div>
-  `;
-}
-
 // ============================================================================
 // DATA LOADING
 // ============================================================================
@@ -507,7 +396,8 @@ async function loadTabData(tab: DashboardState['activeTab']): Promise<void> {
   renderContent();
 
   try {
-    const res = await apiGet<unknown>(TRUST_TAB_PATHS[tab]);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const res = await apiGet<unknown>(trustTabUrl(tab, { tz, period: insightsPeriod }));
     // A failed read is an error, not an empty tab.
     if (!res.ok) throw new Error(res.error ?? `HTTP ${res.status}`);
     (state.data as Record<TrustTab, unknown>)[tab] = parseTrustTab(tab, res.data);
@@ -597,6 +487,14 @@ function setupEventListeners(): void {
     loadTabData(state.activeTab);
   });
 
+  // Insights: this week / this month
+  container.querySelector('.trust-dashboard-content')?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('.noticed-period-btn');
+    if (!btn?.dataset.period) return;
+    insightsPeriod = btn.dataset.period === 'week' ? 'week' : 'month';
+    loadTabData('insights');
+  });
+
   // Escape key
   document.addEventListener('keydown', handleKeyDown);
 }
@@ -611,13 +509,6 @@ function handleKeyDown(e: KeyboardEvent): void {
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function formatFactorName(name: string): string {
-  return name
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (s) => s.toUpperCase())
-    .trim();
-}
 
 function getEventIcon(type: string): string {
   const iconMap: Record<string, string> = {
@@ -814,116 +705,6 @@ function addStyles(): void {
       color: var(--color-error);
     }
     
-    /* Health Tab */
-    .health-content {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-6);
-    }
-    
-    .health-score-ring {
-      position: relative;
-      width: min(150px, 100%);
-      height: 150px;
-      margin: 0 auto;
-    }
-    
-    .health-score-ring svg {
-      width: 100%;
-      height: 100%;
-    }
-    
-    .score-text {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .score-number {
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: var(--color-text-primary);
-    }
-    
-    .score-label {
-      font-size: 0.8rem;
-      color: var(--color-text-muted);
-    }
-    
-    .health-stage {
-      text-align: center;
-    }
-    
-    .health-stage h3 {
-      margin: 0 0 var(--space-2);
-      color: var(--color-text-primary);
-    }
-    
-    .trend {
-      font-size: 0.85rem;
-      padding: var(--space-1) var(--space-2);
-      border-radius: var(--radius-sm);
-    }
-    
-    .trend.improving { background: var(--color-success-bg); color: var(--color-success); }
-    .trend.stable { background: var(--color-background-hover); color: var(--color-text-muted); }
-    .trend.declining { background: var(--color-error-bg); color: var(--color-error); }
-    
-    .health-factors h4, .health-alerts h4 {
-      font-size: 0.9rem;
-      color: var(--color-text-muted);
-      margin-bottom: var(--space-3);
-    }
-    
-    .factor-row {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
-      margin-bottom: var(--space-2);
-    }
-    
-    .factor-name {
-      flex: 0 0 120px;
-      font-size: 0.85rem;
-      color: var(--color-text-secondary);
-    }
-    
-    .factor-bar {
-      flex: 1;
-      height: 6px;
-      background: var(--color-border);
-      border-radius: var(--radius-full);
-      overflow: hidden;
-    }
-    
-    .factor-fill {
-      height: 100%;
-      background: var(--persona-primary);
-      border-radius: var(--radius-full);
-      transition: width ${DURATION.SLOW}ms;
-    }
-    
-    .factor-trend {
-      width: 20px;
-      text-align: center;
-    }
-    
-    .factor-trend.improving { color: var(--color-success); }
-    .factor-trend.declining { color: var(--color-error); }
-    
-    .alert-item {
-      padding: var(--space-3);
-      border-radius: var(--radius-md);
-      margin-bottom: var(--space-2);
-      font-size: 0.9rem;
-    }
-    
-    .alert-item.warning { background: var(--color-warning-bg); color: var(--color-warning); }
-    .alert-item.concern { background: var(--color-error-bg); color: var(--color-error); }
-    
     /* Events Tab */
     .events-section {
       margin-bottom: var(--space-6);
@@ -1018,68 +799,6 @@ function addStyles(): void {
       margin-top: var(--space-2);
     }
     
-    /* Insights Tab */
-    .insights-summary {
-      text-align: center;
-      padding: var(--space-6);
-    }
-    
-    .insights-emoji {
-      font-size: 3rem;
-    }
-    
-    .insights-summary h3 {
-      margin: var(--space-3) 0;
-      color: var(--color-text-primary);
-    }
-    
-    .insights-mood {
-      padding: var(--space-1) var(--space-3);
-      background: var(--persona-tint);
-      border-radius: var(--radius-full);
-      color: var(--color-text-secondary);
-      font-size: 0.85rem;
-    }
-    
-    .insights-stats {
-      display: flex;
-      justify-content: center;
-      gap: var(--space-8);
-      padding: var(--space-6);
-    }
-    
-    .stat-item {
-      text-align: center;
-    }
-    
-    .stat-number {
-      display: block;
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--color-text-primary);
-    }
-    
-    .stat-label {
-      font-size: 0.8rem;
-      color: var(--color-text-muted);
-    }
-    
-    .biggest-win {
-      padding: var(--space-4);
-      background: var(--color-background-hover);
-      border-radius: var(--radius-lg);
-      margin-top: var(--space-4);
-    }
-    
-    .biggest-win h4 {
-      margin: 0 0 var(--space-2);
-    }
-    
-    .biggest-win p {
-      margin: 0;
-      color: var(--color-text-secondary);
-    }
-    
     /* Footer */
     .trust-dashboard-footer {
       padding: var(--space-4) var(--space-6);
@@ -1108,7 +827,7 @@ function addStyles(): void {
       width: 16px;
       height: 16px;
     }
-  `;
+  ${TOGETHER_STYLES}`;
   document.head.appendChild(style);
 }
 
