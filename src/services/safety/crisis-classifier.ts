@@ -13,8 +13,9 @@
  *
  * Modes (env CRISIS_CLASSIFIER_MODE):
  *   off     — never called (default under tests, so tests make no network calls)
- *   shadow  — called in the background, verdict logged, turn unaffected (DEFAULT)
- *   live    — awaited (bounded by CRISIS_CLASSIFIER_TIMEOUT_MS) and merged into the turn
+ *   shadow  — called in the background, verdict logged, turn unaffected
+ *   live    — merged into the turn, bounded by CRISIS_CLASSIFIER_TIMEOUT_MS (DEFAULT).
+ *             The voice reply is held until the verdict (personas/crisis-gate.ts).
  *
  * Privacy: logs carry the verdict, never the transcript text.
  *
@@ -48,10 +49,13 @@ export type CrisisGenerateFn = (
   signal: AbortSignal
 ) => Promise<string>;
 
-/** Gemini 3.1 Flash-Lite is served from the global endpoint only (us-central1 returns 404). */
-export const DEFAULT_CRISIS_CLASSIFIER_MODEL = 'gemini-3.1-flash-lite';
-/** Measured p50 ~820ms, p95 ~1.2s on the global endpoint; the call overlaps the rest of the turn. */
-export const DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS = 1500;
+/**
+ * Served from the global endpoint only (us-central1 returns 404). On the blind
+ * set: 100% recall, 0/60 false positives, 40/40 imminent, p50 535ms, p95 ~0.7s.
+ */
+export const DEFAULT_CRISIS_CLASSIFIER_MODEL = 'gemini-3.5-flash-lite';
+/** Above the measured p95; on voice the call overlaps the LLM's own first-token wait. */
+export const DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS = 1000;
 const MAX_EARLIER_MESSAGES = 5;
 
 export const CRISIS_CLASSIFIER_PROMPT = `You triage suicide and self-harm risk for a voice companion app. Read the caller's LATEST message, using EARLIER messages from the same conversation only as context, and classify the LATEST message.
@@ -87,7 +91,7 @@ export function resolveCrisisClassifierMode(
   const raw = env.CRISIS_CLASSIFIER_MODE?.trim().toLowerCase();
   if (raw === 'off' || raw === 'live' || raw === 'shadow') return raw;
   if (env.VITEST || env.NODE_ENV === 'test') return 'off';
-  return 'shadow';
+  return 'live';
 }
 
 export function resolveCrisisClassifierTimeoutMs(
@@ -194,6 +198,33 @@ export interface StartCrisisClassifierOptions {
 
 let defaultGenerate: CrisisGenerateFn | null = null;
 
+/**
+ * One turn can reach the classifier more than once: a preemptive LLM request
+ * and the final one, and the background turn handler. Identical input within
+ * RECENT_RUN_TTL_MS shares one call. In memory only.
+ */
+const RECENT_RUN_TTL_MS = 30_000;
+const RECENT_RUN_MAX = 32;
+const recentRuns = new Map<string, { at: number; run: CrisisClassifierRun }>();
+
+function cachedRun(key: string, now: number): CrisisClassifierRun | null {
+  for (const [k, v] of recentRuns) if (now - v.at > RECENT_RUN_TTL_MS) recentRuns.delete(k);
+  return recentRuns.get(key)?.run ?? null;
+}
+
+function rememberRun(key: string, now: number, run: CrisisClassifierRun): void {
+  if (recentRuns.size >= RECENT_RUN_MAX) {
+    const oldest = recentRuns.keys().next().value;
+    if (oldest !== undefined) recentRuns.delete(oldest);
+  }
+  recentRuns.set(key, { at: now, run });
+}
+
+/** For tests: forget shared runs. */
+export function resetCrisisClassifierCache(): void {
+  recentRuns.clear();
+}
+
 export function verdictOutcome(verdict: CrisisVerdict): PatternOutcome {
   if (verdict.risk === 'none') return 'none';
   return verdict.risk === 'imminent' && verdict.subject === 'self' ? 'block' : 'crisis';
@@ -214,8 +245,12 @@ export function startCrisisClassifier(
   if (mode === 'off') return null;
   if (mode === 'live' && options.pattern === 'block') return null;
 
-  const generate = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
   const startedAt = Date.now();
+  const key = JSON.stringify([input.latest.trim(), input.earlier.slice(-MAX_EARLIER_MESSAGES)]);
+  const shared = cachedRun(key, startedAt);
+  if (shared) return { mode, verdict: shared.verdict };
+
+  const generate = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
   const verdict = classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env)).then(
     (v) => {
       const classifier = v ? verdictOutcome(v) : null;
@@ -235,7 +270,9 @@ export function startCrisisClassifier(
       return v;
     }
   );
-  return { mode, verdict };
+  const run = { mode, verdict };
+  rememberRun(key, startedAt, run);
+  return run;
 }
 
 export default {

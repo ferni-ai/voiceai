@@ -1,19 +1,17 @@
 /**
- * Crisis Guard — shadow observer for the live voice path
+ * Crisis Guard — per-turn observation record for the live voice path
  *
- * The crisis guard (crisis-guard.ts) can replace the model's reply with a 988
- * script. Before it is allowed to do that to real callers, it runs in SHADOW:
- * on every final user transcript it computes what it WOULD do and logs the
- * decision, without touching the reply.
+ * On every final user transcript this computes the guard's decision and logs
+ * it. In live mode the reply itself is gated in the persona agent's llmNode
+ * (personas/crisis-gate.ts); this record is the audit trail either way.
  *
  * Modes (env CRISIS_GUARD_MODE):
  *   off     — no evaluation, zero cost
- *   shadow  — evaluate + log the would-be decision (DEFAULT)
+ *   shadow  — evaluate + log; the reply is untouched
+ *   live    — evaluate + log, and the reply is gated (DEFAULT)
  *
- * There is deliberately no "live" mode yet. Promotion to live is gated on the
- * shadow log: the would-block rate on real traffic must be reviewed for false
- * positives first. Any unrecognised value (including "live") resolves to shadow,
- * so a typo can never silently disable safety observation.
+ * Any unrecognised value resolves to live, so a typo can never silently
+ * disable the guard.
  *
  * Privacy: the record carries the decision and the transcript LENGTH, never the
  * transcript text. A caller in crisis must not end up quoted in log storage.
@@ -25,13 +23,13 @@ import {
   type VoiceEmotionContext,
 } from './crisis-guard.js';
 
-export type CrisisGuardMode = 'off' | 'shadow';
+export type CrisisGuardMode = 'off' | 'shadow' | 'live';
 
 export function resolveCrisisGuardMode(
   env: Record<string, string | undefined> = process.env
 ): CrisisGuardMode {
   const raw = env.CRISIS_GUARD_MODE?.trim().toLowerCase();
-  return raw === 'off' ? 'off' : 'shadow';
+  return raw === 'off' || raw === 'shadow' ? raw : 'live';
 }
 
 /** The subset of the prosody analyzer's result the guard can use. */

@@ -3,10 +3,12 @@
  * Every test uses a fake generate function; nothing touches the network.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CRISIS_CLASSIFIER_PROMPT,
+  DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS,
   classifyCrisis,
+  resetCrisisClassifierCache,
   parseClassifierReply,
   resolveCrisisClassifierMode,
   resolveCrisisClassifierTimeoutMs,
@@ -97,8 +99,8 @@ describe('classifyCrisis', () => {
 });
 
 describe('modes', () => {
-  it('defaults to shadow in production and off under tests', () => {
-    expect(resolveCrisisClassifierMode({})).toBe('shadow');
+  it('defaults to live in production and off under tests', () => {
+    expect(resolveCrisisClassifierMode({})).toBe('live');
     expect(resolveCrisisClassifierMode({ VITEST: 'true' })).toBe('off');
     expect(resolveCrisisClassifierMode({ NODE_ENV: 'test' })).toBe('off');
   });
@@ -115,14 +117,37 @@ describe('modes', () => {
 
   it('falls back to the default timeout for a bad value', () => {
     expect(resolveCrisisClassifierTimeoutMs({ CRISIS_CLASSIFIER_TIMEOUT_MS: '900' })).toBe(900);
-    expect(resolveCrisisClassifierTimeoutMs({ CRISIS_CLASSIFIER_TIMEOUT_MS: 'soon' })).toBe(1500);
-    expect(resolveCrisisClassifierTimeoutMs({ CRISIS_CLASSIFIER_TIMEOUT_MS: '-1' })).toBe(1500);
+    expect(resolveCrisisClassifierTimeoutMs({ CRISIS_CLASSIFIER_TIMEOUT_MS: 'soon' })).toBe(
+      DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS
+    );
+    expect(resolveCrisisClassifierTimeoutMs({ CRISIS_CLASSIFIER_TIMEOUT_MS: '-1' })).toBe(
+      DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS
+    );
   });
 });
 
 describe('startCrisisClassifier', () => {
   const input = { latest: 'x', earlier: [] };
   const imminent = replying('{"risk":"imminent","subject":"self"}');
+  beforeEach(() => resetCrisisClassifierCache());
+
+  it('shares one call between requests for the same turn', async () => {
+    const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"crisis","subject":"self"}');
+    const env = { CRISIS_CLASSIFIER_MODE: 'live' };
+    const first = startCrisisClassifier(input, { pattern: 'none', generate, env });
+    const second = startCrisisClassifier(input, { pattern: 'none', generate, env });
+    expect(await second?.verdict).toEqual(await first?.verdict);
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls again for a different message', async () => {
+    const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"none","subject":"self"}');
+    const env = { CRISIS_CLASSIFIER_MODE: 'live' };
+    await startCrisisClassifier(input, { pattern: 'none', generate, env })?.verdict;
+    await startCrisisClassifier({ latest: 'y', earlier: [] }, { pattern: 'none', generate, env })
+      ?.verdict;
+    expect(generate).toHaveBeenCalledTimes(2);
+  });
 
   it('does nothing when off', () => {
     const generate = vi.fn<CrisisGenerateFn>();
