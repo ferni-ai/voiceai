@@ -14,6 +14,7 @@
  * @module services/social/user-stats
  */
 import { getLogger } from '../../utils/safe-logger.js';
+import { isValidGameType } from './game-types.js';
 import { sharedRecords } from './shared-records.js';
 import { calculateLevel, XP_CONFIG } from './xp.js';
 import type { GameStats, UserStats } from './leaderboards.js';
@@ -28,17 +29,26 @@ const stats = sharedRecords<UserStats>('social_user_stats', {
   dateFields: ['lastPlayedAt', 'createdAt', 'updatedAt'],
 });
 
-/** Game types become Firestore field paths (gameStats.<type>), so keep them plain. */
-export function isValidGameType(gameType: unknown): gameType is string {
-  return typeof gameType === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(gameType);
+// The closed list of game types (they become Firestore field paths, gameStats.<type>).
+export { isValidGameType };
+
+/**
+ * A user's stats for one game type, if they have any: an own property only,
+ * so a key like "__proto__" can never reach Object.prototype.
+ */
+export function ownGameStats(stats: UserStats, gameType: string): GameStats | undefined {
+  return Object.hasOwn(stats.gameStats, gameType) ? stats.gameStats[gameType] : undefined;
 }
 
 /** Nested dates come back from the store as strings. */
 function revive(record: UserStats): UserStats {
-  const gameStats: Record<string, GameStats> = {};
-  for (const [type, g] of Object.entries(record.gameStats ?? {})) {
-    gameStats[type] = { ...g, lastPlayedAt: g.lastPlayedAt ? new Date(g.lastPlayedAt) : null };
-  }
+  // fromEntries defines own properties; assigning gameStats[type] would run the __proto__ setter.
+  const gameStats: Record<string, GameStats> = Object.fromEntries(
+    Object.entries(record.gameStats ?? {}).map(([type, g]) => [
+      type,
+      { ...g, lastPlayedAt: g.lastPlayedAt ? new Date(g.lastPlayedAt) : null },
+    ])
+  );
   return { ...record, gameStats };
 }
 
@@ -141,9 +151,9 @@ function applyGameResult(
   stats.lastPlayedAt = now;
   stats.updatedAt = now;
 
-  // Update game-specific stats
-  if (!stats.gameStats[gameType]) {
-    stats.gameStats[gameType] = {
+  // Update game-specific stats (own properties only; a computed key defines one)
+  const gameStats: GameStats = {
+    ...(ownGameStats(stats, gameType) ?? {
       gameType,
       gamesPlayed: 0,
       totalScore: 0,
@@ -151,10 +161,9 @@ function applyGameResult(
       averageScore: 0,
       accuracy: 0,
       lastPlayedAt: null,
-    };
-  }
-
-  const gameStats = stats.gameStats[gameType];
+    }),
+  };
+  stats.gameStats = { ...stats.gameStats, [gameType]: gameStats };
   gameStats.gamesPlayed++;
   gameStats.totalScore += result.score;
   gameStats.highScore = Math.max(gameStats.highScore, result.score);
@@ -188,6 +197,8 @@ export async function updateUserStats(
     usedHints: boolean;
   }
 ): Promise<UserStats> {
+  // Routes check this too; here it guards every other caller.
+  if (!isValidGameType(gameType)) throw new Error(`Unknown game type: ${gameType}`);
   let xpEarned = 0;
   const updated = await stats.upsert(userId, (current) => {
     const applied = applyGameResult(

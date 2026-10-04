@@ -68,7 +68,7 @@ afterEach(() => {
 });
 
 const good = { score: 50, correctAnswers: 4, totalQuestions: 5, timeMs: 900, usedHints: false };
-const statsUpdate = async (uid: string, result: Json, gameType = 'guess') =>
+const statsUpdate = async (uid: string, result: Json, gameType = 'name-that-tune') =>
   call(api.social, 'POST', '/api/social/stats/update', uid, { gameType, result });
 const totalScore = async (uid: string) => {
   const res = await call(api.social, 'GET', '/api/social/stats', null, {}, { userId: uid });
@@ -126,7 +126,10 @@ describe('POST /api/social/stats/update bounds the result', () => {
 
 describe('POST /api/musical/record bounds the score', () => {
   const record = async (body: Json) =>
-    call(api.musical, 'POST', '/api/musical/record', 'pat', { gameType: 'guess', ...body });
+    call(api.musical, 'POST', '/api/musical/record', 'pat', {
+      gameType: 'name-that-tune',
+      ...body,
+    });
 
   it('rejects a huge or negative score, and negative or fractional counts', async () => {
     for (const body of [
@@ -144,7 +147,7 @@ describe('POST /api/musical/record bounds the score', () => {
       null,
       {},
       {
-        gameType: 'guess',
+        gameType: 'name-that-tune',
       }
     );
     expect((board.body.leaderboard as { entries: unknown[] }).entries).toEqual([]);
@@ -168,7 +171,7 @@ describe('challenge scores, types and self-challenges', () => {
   const createSocial = async (from: string, body: Json) =>
     call(api.social, 'POST', '/api/social/challenges/create', from, {
       type: 'score-beat',
-      gameType: 'guess',
+      gameType: 'name-that-tune',
       challengerName: from,
       challengeeId: 'vic',
       challengerScore: 5,
@@ -177,7 +180,7 @@ describe('challenge scores, types and self-challenges', () => {
   const sendMusical = async (from: string, body: Json) =>
     call(api.musical, 'POST', '/api/musical/challenge', from, {
       challengeeId: 'vic',
-      gameType: 'guess',
+      gameType: 'name-that-tune',
       challengerScore: 5,
       ...body,
     });
@@ -267,15 +270,15 @@ describe('sibling routes check the same things', () => {
           }
         )
       ).status;
-    expect(await around({ gameType: 'guess.totalScore' })).toBe(400);
+    expect(await around({ gameType: 'name-that-tune.totalScore' })).toBe(400);
     expect(await around({ period: 'forever' })).toBe(400);
-    expect(await around({ gameType: 'guess' })).toBe(200);
+    expect(await around({ gameType: 'name-that-tune' })).toBe(200);
   });
 
   it("musical challenges list: only the caller's own, like social pending/history", async () => {
     await call(api.musical, 'POST', '/api/musical/challenge', 'sam', {
       challengeeId: 'bob',
-      gameType: 'guess',
+      gameType: 'name-that-tune',
       challengerScore: 5,
     });
     const list = async (caller: string | null) =>

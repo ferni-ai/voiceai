@@ -78,7 +78,7 @@ describe('challenges across API instances', () => {
   it('social: created on instance 1, answered by its challengee on instance 2, by no one else', async () => {
     const created = await call(one.social, 'POST', '/api/social/challenges/create', 'alice', {
       type: 'score-beat',
-      gameType: 'guess',
+      gameType: 'name-that-tune',
       challengerName: 'Alice',
       challengeeId: 'carol',
       challengerScore: 5,
@@ -114,7 +114,7 @@ describe('challenges across API instances', () => {
   it('musical: sent on instance 1, completed by its challengee on instance 2, by no one else', async () => {
     const sent = await call(one.musical, 'POST', '/api/musical/challenge', 'alice', {
       challengeeId: 'carol',
-      gameType: 'guess',
+      gameType: 'name-that-tune',
       challengerScore: 5,
     });
     expect(sent.status).toBe(200);
@@ -136,7 +136,7 @@ describe('challenges across API instances', () => {
     fake.up = false;
     const sent = await call(one.musical, 'POST', '/api/musical/challenge', 'alice', {
       challengeeId: 'carol',
-      gameType: 'guess',
+      gameType: 'name-that-tune',
       challengerScore: 5,
     });
     expect(sent.status).toBe(500);

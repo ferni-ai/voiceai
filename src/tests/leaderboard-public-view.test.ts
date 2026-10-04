@@ -70,8 +70,8 @@ describe('GET /api/social/leaderboard', () => {
   const result = { score: 50, correctAnswers: 5, totalQuestions: 5, timeMs: 1, usedHints: false };
 
   it('lists players with no uid, and flags the viewer', async () => {
-    await updateUserStats('uid-secret-ccc', 'guess', result);
-    await updateUserStats('uid-secret-ddd', 'guess', { ...result, score: 80 });
+    await updateUserStats('uid-secret-ccc', 'name-that-tune', result);
+    await updateUserStats('uid-secret-ddd', 'name-that-tune', { ...result, score: 80 });
 
     const res = await get(handleSocialRoutes, '/api/social/leaderboard', {}, 'uid-secret-ccc');
 

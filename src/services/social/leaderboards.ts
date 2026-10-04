@@ -15,7 +15,8 @@
  * - XP-based progression
  */
 
-import { deleteUserStats, topUserStats } from './user-stats.js';
+import { isValidGameType } from './game-types.js';
+import { deleteUserStats, ownGameStats, topUserStats } from './user-stats.js';
 
 // Stats and XP live in ./user-stats.ts and ./xp.ts (shared by every API instance).
 export {
@@ -109,7 +110,18 @@ export interface GameStats {
 const TOP_READ = 100;
 /** Each instance reuses a leaderboard for this long, then reads the store again. */
 const CACHE_MS = 30_000;
+/**
+ * At most this many cached boards per instance (oldest dropped first). Keys
+ * are period, game type and scope, all from closed lists, so this is a
+ * backstop rather than the bound.
+ */
+const CACHE_MAX = 200;
 const leaderboardCache = new Map<string, Leaderboard>();
+
+/** How many boards this instance has cached (for tests). */
+export function cachedLeaderboardCount(): number {
+  return leaderboardCache.size;
+}
 
 /**
  * Get a leaderboard, built from the shared stats store (cached CACHE_MS per instance)
@@ -121,6 +133,9 @@ export async function getLeaderboard(
   currentUserId?: string,
   friendIds?: string[]
 ): Promise<Leaderboard> {
+  if (gameType !== 'overall' && !isValidGameType(gameType)) {
+    throw new Error(`Unknown game type: ${gameType}`); // routes answer 400 before this
+  }
   const cacheKey = `${period}_${gameType}_${scope}`;
   const cached = leaderboardCache.get(cacheKey);
   if (cached && Date.now() - cached.lastUpdated.getTime() < CACHE_MS) {
@@ -157,7 +172,7 @@ export async function getLeaderboard(
           ? Math.round((stats.challengesWon / (stats.challengesWon + stats.challengesLost)) * 100)
           : 0;
     } else {
-      const gameStats = stats.gameStats[gameType];
+      const gameStats = ownGameStats(stats, gameType);
       if (!gameStats) continue;
       score = gameStats.totalScore;
       gamesPlayed = gameStats.gamesPlayed;
@@ -201,7 +216,12 @@ export async function getLeaderboard(
     periodEnd: end,
   };
 
+  leaderboardCache.delete(cacheKey); // re-inserted last, so the oldest is first to go
   leaderboardCache.set(cacheKey, leaderboard);
+  for (const key of leaderboardCache.keys()) {
+    if (leaderboardCache.size <= CACHE_MAX) break;
+    leaderboardCache.delete(key);
+  }
   return leaderboard;
 }
 

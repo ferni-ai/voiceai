@@ -66,7 +66,7 @@ let previous: string | null = null;
  */
 async function aliceChallengesCarol(): Promise<string> {
   if (previous) await declineChallenge(previous, { userId: 'admin', isAdmin: true });
-  previous = (await sendMusicChallenge('alice', 'Alice', 'carol', 'guess', 5)).id;
+  previous = (await sendMusicChallenge('alice', 'Alice', 'carol', 'name-that-tune', 5)).id;
   return previous;
 }
 

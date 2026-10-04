@@ -23,6 +23,7 @@
  *
  * @module services/musical-you/leaderboard-store
  */
+import { isValidGameType } from '../social/game-types.js';
 import { daysAfter, sharedRecords, sharedTransaction } from '../social/shared-records.js';
 import type { Leaderboard, LeaderboardEntry } from './types.js';
 
@@ -38,7 +39,27 @@ const KEEP_DAYS_AFTER_PERIOD = 90;
 const members = sharedRecords<{ boards: string[] }>('musical_leaderboard_members', {
   dateFields: [],
 });
+/**
+ * At most this many cached boards per instance, oldest dropped first. Keys
+ * include the week or month, so without a cap the map would grow for as long
+ * as the instance runs.
+ */
+const CACHE_MAX = 200;
 const cache = new Map<string, Leaderboard>();
+
+/** How many boards this instance has cached (for tests). */
+export function cachedBoardCount(): number {
+  return cache.size;
+}
+
+function remember(key: string, board: Leaderboard): void {
+  cache.delete(key); // re-inserted last, so the oldest is first to go
+  cache.set(key, board);
+  for (const old of cache.keys()) {
+    if (cache.size <= CACHE_MAX) break;
+    cache.delete(old);
+  }
+}
 
 /**
  * When a board's period ends: a week after its Monday ('2026-09-28'), the
@@ -69,6 +90,9 @@ const boardRecords = (key: string) => {
 
 /** The board document key for `type` and `gameType`, in the current period. */
 function boardKey(type: BoardType, gameType: string, now = new Date()): string {
+  if (gameType !== 'overall' && !isValidGameType(gameType)) {
+    throw new Error(`Unknown game type: ${gameType}`); // routes answer 400 before this
+  }
   let period = 'all';
   if (type === 'monthly') period = now.toISOString().slice(0, 7);
   if (type === 'weekly') {
@@ -76,8 +100,7 @@ function boardKey(type: BoardType, gameType: string, now = new Date()): string {
     monday.setUTCDate(now.getUTCDate() - ((now.getUTCDay() + 6) % 7));
     period = monday.toISOString().slice(0, 10);
   }
-  // Game types are validated by the routes; this keeps a bad one from leaving the path.
-  return `${type}_${period}_${gameType.replace(/[^A-Za-z0-9_-]/g, '-')}`;
+  return `${type}_${period}_${gameType}`; // game types come from a closed list
 }
 
 /** Rank on a board: 1 + how many entries scored higher. */
@@ -102,7 +125,7 @@ export async function getLeaderboard(
     entries: top.map(({ updatedAt: _u, ...e }, i) => ({ ...e, rank: i + 1 })),
     updatedAt: new Date(),
   };
-  cache.set(key, leaderboard);
+  remember(key, leaderboard);
   return leaderboard;
 }
 

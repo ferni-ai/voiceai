@@ -87,7 +87,7 @@ describe('POST /api/musical/taste-match', () => {
   });
 
   it('refuses when alice only sent them a challenge they never answered', async () => {
-    await sendMusicChallenge('alice', 'Alice', 'ignorer', 'guess', 5);
+    await sendMusicChallenge('alice', 'Alice', 'ignorer', 'name-that-tune', 5);
 
     const res = await tasteMatch('alice', 'ignorer');
 
@@ -96,14 +96,14 @@ describe('POST /api/musical/taste-match', () => {
   });
 
   it('refuses when they declined it', async () => {
-    const { id } = await sendMusicChallenge('alice', 'Alice', 'decliner', 'guess', 5);
+    const { id } = await sendMusicChallenge('alice', 'Alice', 'decliner', 'name-that-tune', 5);
     await declineChallenge(id, { userId: 'decliner' });
 
     expect((await tasteMatch('alice', 'decliner')).status).toBe(403);
   });
 
   it('compares once they completed a challenge from alice', async () => {
-    const { id } = await sendMusicChallenge('alice', 'Alice', 'player', 'guess', 5);
+    const { id } = await sendMusicChallenge('alice', 'Alice', 'player', 'name-that-tune', 5);
     await completeChallenge(id, { userId: 'player' }, 7);
 
     const res = await tasteMatch('alice', 'player');
@@ -113,7 +113,7 @@ describe('POST /api/musical/taste-match', () => {
   });
 
   it('compares with someone who challenged alice', async () => {
-    await sendMusicChallenge('challenger', 'C', 'alice', 'guess', 5);
+    await sendMusicChallenge('challenger', 'C', 'alice', 'name-that-tune', 5);
 
     expect((await tasteMatch('alice', 'challenger')).status).toBe(200);
   });

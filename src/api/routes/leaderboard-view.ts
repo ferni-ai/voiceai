@@ -11,7 +11,7 @@
  */
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getVerifiedUserId } from '../../servers/api/request-identity.js';
-import { isValidGameType } from '../../services/social/user-stats.js';
+import { isValidGameType } from '../../services/social/game-types.js';
 import { sendJSON } from '../helpers.js';
 
 const BOARD_TYPES = ['weekly', 'monthly', 'all-time'] as const;
@@ -34,9 +34,9 @@ export function publicEntries<T extends { userId: string }>(
   }));
 }
 
-/** A game result's game type: a plain name (it becomes part of a board key), not 'overall'. */
+/** A game result's game type: one that exists (services/social/game-types); never 'overall'. */
 export function isRecordableGame(gameType: unknown): gameType is string {
-  return isValidGameType(gameType) && gameType !== 'overall';
+  return isValidGameType(gameType);
 }
 
 /**

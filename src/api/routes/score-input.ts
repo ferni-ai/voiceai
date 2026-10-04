@@ -14,7 +14,7 @@
  *
  * @module api/routes/score-input
  */
-import { isValidGameType } from '../../services/social/user-stats.js';
+import { isValidGameType } from '../../services/social/game-types.js';
 
 export const MAX_SCORE = 100_000;
 export const MAX_TIME_MS = 60 * 60 * 1000;
@@ -37,8 +37,9 @@ export const isOptionalCount = (value: unknown, max = MAX_COUNT): boolean =>
   value === undefined || (Number.isInteger(value) && inRange(value, max));
 
 /**
- * A Musical You game record: a plain game type (not 'overall', which every
- * result also counts towards), a score in range, optional counts in range.
+ * A Musical You game record: a game type that exists (services/social/
+ * game-types; never 'overall', which every result also counts towards), a
+ * score in range, optional counts in range.
  */
 export function isValidGameRecord(record: {
   gameType?: unknown;
@@ -47,7 +48,7 @@ export function isValidGameRecord(record: {
   bestStreak?: unknown;
 }): boolean {
   const { gameType, score, gamesPlayed, bestStreak } = record;
-  if (!isValidGameType(gameType) || gameType === 'overall' || !isScore(score)) return false;
+  if (!isValidGameType(gameType) || !isScore(score)) return false;
   return isOptionalCount(gamesPlayed) && isOptionalCount(bestStreak);
 }
 
@@ -78,7 +79,7 @@ export function gameResultFrom(value: unknown): GameResult | null {
 }
 
 /**
- * Whether a new challenge's fields are usable: a plain game type, a score and
+ * Whether a new challenge's fields are usable: a game type that exists, a score and
  * time in range, and a challengee who isn't the challenger (self-challenges
  * farmed wins). Social challenges also need a known type and may omit the
  * score (speed-beat); Musical You challenges always carry a score.

@@ -65,7 +65,7 @@ describe('Leaderboards across API instances', () => {
     const record = async (api: ApiInstance, uid: string, name: string, score: number) =>
       call(api.musical, 'POST', '/api/musical/record', uid, {
         displayName: name,
-        gameType: 'guess',
+        gameType: 'name-that-tune',
         score,
       });
     const results = await Promise.all([
@@ -75,7 +75,7 @@ describe('Leaderboards across API instances', () => {
     expect(results.map((r) => r.status)).toEqual([200, 200]);
 
     for (const api of [one, two]) {
-      for (const gameType of ['overall', 'guess']) {
+      for (const gameType of ['overall', 'name-that-tune']) {
         const board = await call(
           api.musical,
           'GET',
@@ -113,7 +113,7 @@ describe('Leaderboards across API instances', () => {
     const updates = await Promise.all(
       Array.from({ length: 10 }, async (_, i) =>
         call(i % 2 ? two.social : one.social, 'POST', '/api/social/stats/update', 'uid-secret-cy', {
-          gameType: 'guess',
+          gameType: 'name-that-tune',
           result,
         })
       )
@@ -139,11 +139,11 @@ describe('Leaderboards across API instances', () => {
   it('social: the same leaderboard on both instances, without uids', async () => {
     const result = { score: 40, correctAnswers: 2, totalQuestions: 2, timeMs: 5, usedHints: false };
     await call(one.social, 'POST', '/api/social/stats/update', 'uid-secret-di', {
-      gameType: 'guess',
+      gameType: 'name-that-tune',
       result,
     });
     await call(two.social, 'POST', '/api/social/stats/update', 'uid-secret-ed', {
-      gameType: 'guess',
+      gameType: 'name-that-tune',
       result: { ...result, score: 60 },
     });
 
@@ -165,7 +165,7 @@ describe('Leaderboards across API instances', () => {
   it('weekly entries expire 90 days after their week ends; all-time entries never do', async () => {
     await call(one.musical, 'POST', '/api/musical/record', 'uid-secret-fy', {
       displayName: 'Fy',
-      gameType: 'guess',
+      gameType: 'name-that-tune',
       score: 5,
     });
     const entries = fake.writes.filter((w) => w.path.startsWith('musical_leaderboards/'));

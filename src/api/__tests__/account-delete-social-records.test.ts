@@ -120,16 +120,16 @@ describe('DELETE /api/account social game records', () => {
 
   it("removes A's challenges, slots, boards and stats, frees B's slots, keeps B's records", async () => {
     // Musical You: A challenges B, C challenges A (both open), B challenges C.
-    await musical.sendChallenge('alice', 'Al', 'bob', 'guess', 10);
-    await musical.sendChallenge('carol', 'Cy', 'alice', 'guess', 20);
-    const bobsOwn = await musical.sendChallenge('bob', 'Bo', 'carol', 'guess', 30);
+    await musical.sendChallenge('alice', 'Al', 'bob', 'name-that-tune', 10);
+    await musical.sendChallenge('carol', 'Cy', 'alice', 'name-that-tune', 20);
+    const bobsOwn = await musical.sendChallenge('bob', 'Bo', 'carol', 'name-that-tune', 30);
     // Social: A challenges B; stats and leaderboard entries for A and B.
-    await social.createChallenge('score-beat', 'guess', 'alice', 'Al', 'bob');
+    await social.createChallenge('score-beat', 'name-that-tune', 'alice', 'Al', 'bob');
     for (const uid of ['alice', 'bob']) {
-      await stats.updateUserStats(uid, 'guess', result);
+      await stats.updateUserStats(uid, 'name-that-tune', result);
       await musical.updateLeaderboardEntry(
         'weekly',
-        'guess',
+        'name-that-tune',
         uid,
         uid === 'bob' ? 'Bo' : 'Al',
         5,
@@ -170,7 +170,7 @@ describe('DELETE /api/account social game records', () => {
       bobsOwn.id,
     ]);
     expect((await stats.getUserStats('bob')).totalGamesPlayed).toBe(1);
-    expect((await musical.getUserRank('bob', 'weekly', 'guess'))?.rank).toBe(1);
+    expect((await musical.getUserRank('bob', 'weekly', 'name-that-tune'))?.rank).toBe(1);
     expect((await musical.getUserRank('bob', 'all-time', 'overall'))?.rank).toBe(1);
   });
 
@@ -179,10 +179,10 @@ describe('DELETE /api/account social game records', () => {
     try {
       // A plays in an early week; that board's ttlAt (week end + 90 days) then passes,
       // but Firestore TTL hasn't removed the entry yet. A plays again 120 days later.
-      await musical.updateLeaderboardEntry('weekly', 'guess', 'alice', 'Al', 5, 1, 1);
+      await musical.updateLeaderboardEntry('weekly', 'name-that-tune', 'alice', 'Al', 5, 1, 1);
       const oldWeek = [...fake.docs.keys()].find((p) => p.includes('/weekly_'));
       vi.setSystemTime(Date.now() + 120 * 24 * 3600_000);
-      await musical.updateLeaderboardEntry('weekly', 'guess', 'alice', 'Al', 7, 2, 1);
+      await musical.updateLeaderboardEntry('weekly', 'name-that-tune', 'alice', 'Al', 7, 2, 1);
       await musical.updateLeaderboardEntry('all-time', 'overall', 'alice', 'Al', 7, 2, 1);
       expect(oldWeek && fake.docs.has(oldWeek)).toBe(true);
 
@@ -199,8 +199,8 @@ describe('DELETE /api/account social game records', () => {
   });
 
   it("drops A from this instance's cached social leaderboard", async () => {
-    await stats.updateUserStats('alice', 'guess', result);
-    await stats.updateUserStats('bob', 'guess', result);
+    await stats.updateUserStats('alice', 'name-that-tune', result);
+    await stats.updateUserStats('bob', 'name-that-tune', result);
     const ids = async () =>
       (await boards.getLeaderboard('all-time')).entries.map((e) => e.userId).sort();
     expect(await ids()).toEqual(['alice', 'bob']); // now cached for 30 s

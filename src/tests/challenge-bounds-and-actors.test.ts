@@ -69,13 +69,13 @@ afterEach(() => {
 const sendMusical = async (from: string, to: string) =>
   call(api.musical, 'POST', '/api/musical/challenge', from, {
     challengeeId: to,
-    gameType: 'guess',
+    gameType: 'name-that-tune',
     challengerScore: 5,
   });
 const createSocial = async (from: string, to: string) =>
   call(api.social, 'POST', '/api/social/challenges/create', from, {
     type: 'score-beat',
-    gameType: 'guess',
+    gameType: 'name-that-tune',
     challengerName: from,
     challengeeId: to,
     challengerScore: 5,

@@ -70,9 +70,16 @@ let previous: string | null = null;
  */
 async function aliceChallengesCarol(): Promise<string> {
   if (previous) await games.declineChallenge(previous, { userId: 'admin', isAdmin: true });
-  const challenge = await games.createChallenge('score-beat', 'guess', 'alice', 'Alice', 'carol', {
-    challengerScore: 5,
-  });
+  const challenge = await games.createChallenge(
+    'score-beat',
+    'name-that-tune',
+    'alice',
+    'Alice',
+    'carol',
+    {
+      challengerScore: 5,
+    }
+  );
   previous = challenge.id;
   return challenge.id;
 }
@@ -209,7 +216,7 @@ describe('other /api/social writes act on the verified caller', () => {
       '/api/social/challenges/create',
       {
         type: 'score-beat',
-        gameType: 'guess',
+        gameType: 'name-that-tune',
         challengerId: 'bob',
         challengerName: 'Bob',
         challengeeId: 'cleo',
@@ -220,7 +227,12 @@ describe('other /api/social writes act on the verified caller', () => {
 
     const asAlice = await post(
       '/api/social/challenges/create',
-      { type: 'score-beat', gameType: 'guess', challengerName: 'Alice', challengeeId: 'cleo' },
+      {
+        type: 'score-beat',
+        gameType: 'name-that-tune',
+        challengerName: 'Alice',
+        challengeeId: 'cleo',
+      },
       'alice'
     );
     expect(asAlice.status).toBe(200);
@@ -233,7 +245,7 @@ describe('other /api/social writes act on the verified caller', () => {
       '/api/social/stats/update',
       {
         userId: 'bob-stats',
-        gameType: 'guess',
+        gameType: 'name-that-tune',
         result: { score: 999, correctAnswers: 9, totalQuestions: 9, timeMs: 1, usedHints: false },
       },
       'alice'
@@ -290,9 +302,12 @@ const ids = (body: Record<string, unknown>) =>
 
 describe('GET /api/social/challenges/pending and /history', () => {
   it("pending returns the caller's own incoming challenges, not someone else's", async () => {
-    const forDana = (await games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'dana')).id;
-    const forFrank = (await games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'frank'))
-      .id;
+    const forDana = (
+      await games.createChallenge('score-beat', 'name-that-tune', 'erin', 'Erin', 'dana')
+    ).id;
+    const forFrank = (
+      await games.createChallenge('score-beat', 'name-that-tune', 'erin', 'Erin', 'frank')
+    ).id;
 
     const res = await get('/api/social/challenges/pending', {}, 'dana');
 
@@ -302,10 +317,13 @@ describe('GET /api/social/challenges/pending and /history', () => {
   });
 
   it("history returns the caller's sent and received challenges", async () => {
-    const sent = (await games.createChallenge('score-beat', 'guess', 'gail', 'Gail', 'hank')).id;
-    const received = (await games.createChallenge('score-beat', 'guess', 'ivan', 'Ivan', 'gail'))
-      .id;
-    await games.createChallenge('score-beat', 'guess', 'ivan', 'Ivan', 'hank');
+    const sent = (
+      await games.createChallenge('score-beat', 'name-that-tune', 'gail', 'Gail', 'hank')
+    ).id;
+    const received = (
+      await games.createChallenge('score-beat', 'name-that-tune', 'ivan', 'Ivan', 'gail')
+    ).id;
+    await games.createChallenge('score-beat', 'name-that-tune', 'ivan', 'Ivan', 'hank');
 
     const res = await get('/api/social/challenges/history', {}, 'gail');
 
@@ -320,7 +338,8 @@ describe('GET /api/social/challenges/pending and /history', () => {
   });
 
   it('a real challenge id still resolves through /challenges/:id', async () => {
-    const id = (await games.createChallenge('score-beat', 'guess', 'erin', 'Erin', 'dina')).id;
+    const id = (await games.createChallenge('score-beat', 'name-that-tune', 'erin', 'Erin', 'dina'))
+      .id;
 
     const res = await get(`/api/social/challenges/${id}`, {}, null);
 

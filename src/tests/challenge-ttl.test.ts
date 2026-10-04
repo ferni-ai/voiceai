@@ -76,7 +76,7 @@ describe('challenge records carry a ttlAt Date on every write', () => {
     const send = async () =>
       call(api.musical, 'POST', '/api/musical/challenge', 'alice', {
         challengeeId: 'carol',
-        gameType: 'guess',
+        gameType: 'name-that-tune',
         challengerScore: 5,
       });
     const a = ((await send()).body.challenge as { id: string; expiresAt: string }) ?? {};
@@ -97,7 +97,7 @@ describe('challenge records carry a ttlAt Date on every write', () => {
     const create = async () =>
       call(api.social, 'POST', '/api/social/challenges/create', 'alice', {
         type: 'score-beat',
-        gameType: 'guess',
+        gameType: 'name-that-tune',
         challengerName: 'Alice',
         challengeeId: 'carol',
         challengerScore: 5,
@@ -128,7 +128,7 @@ describe('challenge records carry a ttlAt Date on every write', () => {
   it('never returns ttlAt to callers', async () => {
     const res = await call(api.musical, 'POST', '/api/musical/challenge', 'alice', {
       challengeeId: 'carol',
-      gameType: 'guess',
+      gameType: 'name-that-tune',
       challengerScore: 5,
     });
     const id = (res.body.challenge as { id: string }).id;
