@@ -19,6 +19,7 @@ import {
   type SubscriptionTier,
 } from '../../types/subscription.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { verifyAppleSignedJws } from './apple-jws-verify.js';
 
 const log = createLogger({ module: 'AppleIAP' });
 
@@ -606,16 +607,8 @@ export async function handleNotification(signedPayload: string): Promise<{
  * Decode the signed notification payload (JWS)
  */
 async function decodeSignedPayload(signedPayload: string): Promise<AppleNotificationPayload> {
-  // In production, verify the signature using Apple's public key
-  // For now, just decode the payload
-  const parts = signedPayload.split('.');
-  if (parts.length !== 3) {
-    throw new Error('Invalid JWS format');
-  }
-
-  const payloadBase64 = parts[1];
-  const payloadJson = Buffer.from(payloadBase64, 'base64url').toString('utf8');
-  return JSON.parse(payloadJson);
+  // Throws unless Apple signed it; the nested signed* fields ride inside this verified payload.
+  return verifyAppleSignedJws<AppleNotificationPayload>(signedPayload);
 }
 
 /**

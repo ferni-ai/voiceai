@@ -12,6 +12,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { appleIAP, isAppleConfigured } from '../services/apple-iap.js';
+import { verifyAppleSignedJws } from '../services/billing/apple-jws-verify.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { parseBody } from './helpers.js';
 
@@ -156,6 +157,18 @@ async function handleWebhook(ctx: RequestContext): Promise<ResponseContext> {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
       body: { error: 'signedPayload is required' },
+    };
+  }
+
+  // Nothing in the payload is trusted until Apple's signature checks out.
+  try {
+    await verifyAppleSignedJws(body.signedPayload);
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Rejected Apple webhook with an invalid signature');
+    return {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Invalid signature' },
     };
   }
 
