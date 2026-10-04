@@ -6,7 +6,7 @@
  * @module @ferni/config/__tests__/handoff-timing
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getPostSoundPause,
   getRateLimitCooldown,
@@ -195,6 +195,15 @@ describe('Handoff Timing', () => {
   });
 
   describe('isHandoffAllowed', () => {
+    // Freeze the clock: these cases sit 1 ms from a boundary, so a real clock
+    // ticking between the test's Date.now() and the function's flips the result.
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
     it('should return true if enough time has passed', () => {
       const oldTimestamp = Date.now() - 1000; // 1 second ago
       expect(isHandoffAllowed(oldTimestamp)).toBe(true);
@@ -217,6 +226,15 @@ describe('Handoff Timing', () => {
   });
 
   describe('getRateLimitCooldown', () => {
+    // Freeze the clock: these cases sit 1 ms from a boundary, so a real clock
+    // ticking between the test's Date.now() and the function's flips the result.
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
     it('should return 0 when handoff is allowed', () => {
       const oldTimestamp = Date.now() - 1000;
       expect(getRateLimitCooldown(oldTimestamp)).toBe(0);

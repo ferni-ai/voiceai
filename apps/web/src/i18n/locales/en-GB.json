@@ -2081,6 +2081,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "Your story starts here",
+      "body": "Once we've talked a few times, the moments that matter to you will show up here."
+    },
+    "error": {
+      "title": "Couldn't load your story",
+      "body": "Something went wrong on our end. Try again?",
+      "retry": "Try again"
     }
   },
   "settings": {
@@ -2293,7 +2302,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "Link Spotify in Settings for full songs"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2358,7 +2368,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "Connect your lights or thermostat first",
+    "couldNotChangeLights": "Couldn't change the lights. Try again?",
+    "musicNeedsCall": "Music controls work during a conversation"
   },
   "ui": {
     "accountbutton": {

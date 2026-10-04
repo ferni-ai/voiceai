@@ -6,8 +6,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
-import { parseBody, sendError } from '../helpers.js';
-import { sendJson, checkRateLimitAndApply } from './helpers.js';
+import { sendError } from '../helpers.js';
+import { sendJson, checkRateLimitAndApply, readJsonBody } from './helpers.js';
 import {
   getPendingConflicts,
   getConflictSummary,
@@ -55,7 +55,7 @@ export async function handleResolveConflict(
   if (checkRateLimitAndApply(res, userId, 'sync')) return;
 
   try {
-    const body = await parseBody<{ resolution?: ConflictResolution }>(req);
+    const body = await readJsonBody<{ resolution?: ConflictResolution }>(req);
     const resolution = body.resolution || 'newest-wins';
 
     const result = await resolveConflict(userId, conflictId, resolution, 'user');
@@ -104,7 +104,7 @@ export async function handleAutoResolve(
   if (checkRateLimitAndApply(res, userId, 'sync')) return;
 
   try {
-    const body = await parseBody<{ strategy?: ConflictResolution }>(req);
+    const body = await readJsonBody<{ strategy?: ConflictResolution }>(req);
     const strategy = body.strategy || 'newest-wins';
     const result = await autoResolveConflicts(userId, strategy);
 
@@ -128,7 +128,7 @@ export async function handleSetPreference(
   userId: string
 ): Promise<void> {
   try {
-    const body = await parseBody<{ strategy?: ConflictResolution }>(req);
+    const body = await readJsonBody<{ strategy?: ConflictResolution }>(req);
 
     if (!body.strategy) {
       sendError(res, 'strategy is required', 400);

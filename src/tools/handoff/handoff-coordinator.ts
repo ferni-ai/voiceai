@@ -337,6 +337,16 @@ export class HandoffCoordinator {
 
     const canonicalId = getCanonicalPersonaId(request.targetAgent);
     const displayName = getPersonaDisplayName(canonicalId);
+    // Progress heartbeat; the web handoff indicator reads target, elapsedMs and timeoutMs.
+    const emitProgress = (phase: string, progress: number): void =>
+      this.emitUIEvent('handoff_progress', {
+        traceId,
+        target: canonicalId,
+        phase,
+        progress,
+        elapsedMs: Date.now() - startTime,
+        timeoutMs: this.handoffTimeoutMs,
+      });
 
     log.info(
       {
@@ -419,7 +429,7 @@ export class HandoffCoordinator {
       // ====================================================================
       // PHASE 3: LOAD PERSONA DATA
       // ====================================================================
-      this.emitUIEvent('handoff_progress', { traceId, phase: 'loading_persona', progress: 0.2 });
+      emitProgress('loading_persona', 0.2);
 
       const personaConfig = await getPersonaAsyncCached(canonicalId);
       if (!personaConfig) {
@@ -429,7 +439,7 @@ export class HandoffCoordinator {
       // ====================================================================
       // PHASE 4: RESOLVE VOICE ID
       // ====================================================================
-      this.emitUIEvent('handoff_progress', { traceId, phase: 'resolving_voice', progress: 0.3 });
+      emitProgress('resolving_voice', 0.3);
 
       const voiceResult = resolveVoiceId(
         request.voiceIdInput || {
@@ -551,7 +561,6 @@ export class HandoffCoordinator {
       }
 
       // Convert warmth level to mode flags
-      const useFastMode = warmthLevel === 'fast';
       const skipSoftOpen = warmthLevel !== 'warm'; // Only warm gets soft open
       const asyncWelcome = warmthLevel === 'fast'; // Fast uses async, others block
 
@@ -575,7 +584,7 @@ export class HandoffCoordinator {
         tx.addStep({
           name: 'soft-open-banter',
           execute: async () => {
-            this.emitUIEvent('handoff_progress', { traceId, phase: 'soft_open', progress: 0.35 });
+            emitProgress('soft_open', 0.35);
             await this.onBeforeVoiceSwitch!(previousAgent, canonicalId, banterContext);
             // CRITICAL: Frontend expects 'target' (uses 'previousAgent' for from)
             this.emitUIEvent('soft_open_complete', { traceId, previousAgent, target: canonicalId });
@@ -591,11 +600,7 @@ export class HandoffCoordinator {
       tx.addStep({
         name: 'switch-voice',
         execute: async () => {
-          this.emitUIEvent('handoff_progress', {
-            traceId,
-            phase: 'switching_voice',
-            progress: useFastMode ? 0.5 : 0.5,
-          });
+          emitProgress('switching_voice', 0.5);
           await this.onVoiceSwitch(voiceResult.voiceId, canonicalId);
         },
         rollback: async () => {
@@ -610,11 +615,7 @@ export class HandoffCoordinator {
       tx.addStep({
         name: 'update-llm',
         execute: async () => {
-          this.emitUIEvent('handoff_progress', {
-            traceId,
-            phase: 'updating_llm',
-            progress: useFastMode ? 0.75 : 0.75,
-          });
+          emitProgress('updating_llm', 0.75);
           const instructions = await this.buildInstructions(canonicalId, personaConfig, request);
           await this.onLLMUpdate(canonicalId, instructions);
         },
@@ -663,11 +664,7 @@ export class HandoffCoordinator {
           tx.addStep({
             name: 'arriving-welcome-banter',
             execute: async () => {
-              this.emitUIEvent('handoff_progress', {
-                traceId,
-                phase: 'arriving_welcome',
-                progress: 0.6,
-              });
+              emitProgress('arriving_welcome', 0.6);
               await this.onAfterVoiceSwitch!(canonicalId, banterContext);
             },
             rollback: async () => {
@@ -682,7 +679,7 @@ export class HandoffCoordinator {
       tx.addStep({
         name: 'notify-ui',
         execute: async () => {
-          this.emitUIEvent('handoff_progress', { traceId, phase: 'finalizing', progress: 0.9 });
+          emitProgress('finalizing', 0.9);
         },
         rollback: async () => {
           // Nothing to rollback for notifications

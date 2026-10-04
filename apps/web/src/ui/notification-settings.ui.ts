@@ -15,6 +15,7 @@ import {
   getPushNotificationsService,
   type NotificationPreferences,
 } from '../services/push-notifications.service.js';
+import { applyPushPreference } from '../services/push-preference.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
@@ -897,14 +898,8 @@ class NotificationSettingsUI {
     const service = getPushNotificationsService();
     service.setPreferences(this.localPrefs);
 
-    // Request permission if enabling
-    if (this.localPrefs.enabled) {
-      void service.requestPermission().then((permission) => {
-        if (permission !== 'granted') {
-          log.warn('Permission not granted');
-        }
-      });
-    }
+    // Enabling subscribes this browser on the server; disabling removes it.
+    void applyPushPreference(this.localPrefs.enabled);
 
     // Save outreach preferences
     if (this.outreachPrefs) {
