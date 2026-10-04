@@ -10,16 +10,33 @@
  * dashboard's empty state — when there is nothing real to show, instead of a
  * default "Newcomer" profile that looks like something Ferni learned.
  *
+ * Learning style is only computed from watching/listening/saving activity;
+ * until there is some, it is null (the card leaves it out) rather than the
+ * initial "explorer" default. The personality label is likewise null while
+ * it is still the "The Newcomer" placeholder (fewer than 3 videos/podcasts).
+ *
  * @module services/creative-you/creative-dna-view
  */
 
-import { getCreativeDNA, type CreativeDNA } from './creative-dna.js';
+import { getCreativeDNA, type CreativeDNA, type LearningStyle } from './creative-dna.js';
 import { getCreativeYouPersistence } from './persistence.js';
 
 const MAX_TOPICS = 10;
+/** calculatePersonalityLabel's placeholder before there is enough activity. */
+const PLACEHOLDER_LABEL = 'The Newcomer';
+
+/** Creative DNA for display: style and label are null until activity has set them. */
+export type CreativeDNAView = Omit<
+  CreativeDNA,
+  'learningStyle' | 'personalityLabel' | 'personalityDescription'
+> & {
+  learningStyle: LearningStyle | null;
+  personalityLabel: string | null;
+  personalityDescription: string | null;
+};
 
 /** The user's Creative DNA with interests from persisted topics, or null when there is none. */
-export async function loadCreativeDNAView(userId: string): Promise<CreativeDNA | null> {
+export async function loadCreativeDNAView(userId: string): Promise<CreativeDNAView | null> {
   const history = await getCreativeYouPersistence().loadTopicHistory(userId);
   const dna = getCreativeDNA(userId);
   const activity = dna.totalVideosWatched + dna.totalPodcastsListened + dna.totalInsightsSaved;
@@ -40,5 +57,12 @@ export async function loadCreativeDNAView(userId: string): Promise<CreativeDNA |
   }
 
   const topTopics = [...scores.values()].sort((a, b) => b.score - a.score).slice(0, MAX_TOPICS);
-  return { ...dna, topTopics };
+  const learned = dna.personalityLabel !== PLACEHOLDER_LABEL;
+  return {
+    ...dna,
+    topTopics,
+    learningStyle: activity > 0 ? dna.learningStyle : null,
+    personalityLabel: learned ? dna.personalityLabel : null,
+    personalityDescription: learned ? dna.personalityDescription : null,
+  };
 }

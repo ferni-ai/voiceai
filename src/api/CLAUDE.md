@@ -263,7 +263,7 @@ See `error-messages.ts` for all constants:
 | `contacts-routes.ts` | `/api/contacts/*` | Contact management |
 | `subscription-routes.ts` | `/api/subscription/*` | Billing, plans |
 | `observability-routes.ts` | `/api/observability/*` | Metrics, health |
-| `custom-agent-routes.ts` | `/api/custom-agents/*` | Agent creation |
+| `custom-agent/index.ts` | `/api/custom-agents/*` | Agent creation |
 | `engagement-routes.ts` | `/api/engagement/*` | User engagement |
 | `gdpr-routes.ts` | `/api/gdpr/*` | Data export/deletion |
 | `trust-systems-routes.ts` | `/api/trust/*` | Trust building |

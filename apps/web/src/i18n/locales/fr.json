@@ -1108,6 +1108,7 @@
       "insights": "Ce que je remarque",
       "yourJourney": "Notre parcours",
       "yourStory": "Notre histoire jusqu'ici",
+      "trustDashboard": "Confiance et évolution",
       "yourYear": "Cette année ensemble",
       "whatIllKnow": "Ce que j'apprendrai",
       "whatINotice": "Ce que je remarque",
@@ -2011,12 +2012,12 @@
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
     },
     "empty": {
-      "title": "Ton histoire commence ici",
-      "body": "Après quelques conversations, les moments qui comptent pour toi apparaîtront ici."
+      "title": "Votre histoire commence ici",
+      "body": "Après quelques conversations, les moments qui comptent pour vous apparaîtront ici."
     },
     "error": {
-      "title": "Impossible de charger ton histoire",
-      "body": "Un problème est survenu de notre côté. On réessaie ?",
+      "title": "Impossible de charger votre histoire",
+      "body": "Un problème est survenu de notre côté. Réessayer ?",
       "retry": "Réessayer"
     }
   },
@@ -2263,7 +2264,7 @@
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
       "skip": "[NEEDS_TRANSLATION] Skip",
-      "linkSpotify": "Associe Spotify dans les Réglages pour écouter les titres en entier"
+      "linkSpotify": "Associez Spotify dans les Réglages pour écouter les morceaux en entier"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2329,9 +2330,9 @@
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
-    "connectDevicesFirst": "Connecte d'abord tes lumières ou ton thermostat",
-    "couldNotChangeLights": "Impossible de changer les lumières. On réessaie ?",
-    "musicNeedsCall": "Les commandes de musique fonctionnent pendant une conversation"
+    "connectDevicesFirst": "Connectez d'abord vos lumières ou votre thermostat",
+    "musicNeedsCall": "Les commandes musicales fonctionnent pendant une conversation",
+    "couldNotChangeLights": "Impossible de changer les lumières. Réessayer ?"
   },
   "ui": {
     "accountbutton": {
@@ -2463,7 +2464,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "Vos 7 derniers jours"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2566,6 +2568,10 @@
       "subtitle": "Appels, messages et engagements tenus",
       "empty": "Aucune action pour l'instant",
       "recent": "Récent"
+    },
+    "predictions": {
+      "title": "Là où vous allez",
+      "now": "Maintenant"
     }
   },
   "sleepSettings": {

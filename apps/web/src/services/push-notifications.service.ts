@@ -16,6 +16,7 @@ import { platform, isNative } from '../utils/platform.js';
 import { createLogger } from '../utils/logger.js';
 import { isDevelopment } from '../utils/environment.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { NativePush, type NativeNotification } from './native-push.js';
 
 const log = createLogger('PushNotify');
 
@@ -23,7 +24,7 @@ const log = createLogger('PushNotify');
 // TYPES
 // ============================================================================
 
-export type NotificationType = 
+export type NotificationType =
   | 'ritual_reminder'
   | 'streak_milestone'
   | 'prediction_result'
@@ -106,6 +107,7 @@ class PushNotificationsService {
   private preferences: NotificationPreferences = DEFAULT_PREFERENCES;
   private callbacks: Map<NotificationType | 'all', NotificationCallback[]> = new Map();
   private initialized = false;
+  private readonly native = new NativePush();
 
   /**
    * Initialize the push notification service
@@ -164,10 +166,7 @@ class PushNotificationsService {
    * Get current permission status
    */
   getPermissionStatus(): 'granted' | 'denied' | 'default' {
-    if (isNative()) {
-      // Will be updated by native callback
-      return 'default';
-    }
+    if (isNative()) return this.native.getPermission();
     return Notification.permission;
   }
 
@@ -227,15 +226,13 @@ class PushNotificationsService {
    */
   async scheduleNotification(notification: PushNotification): Promise<string> {
     const id = notification.id ?? `notif-${Date.now()}`;
-    
+
     if (isNative()) {
       await this.scheduleNativeNotification({ ...notification, id });
     } else {
       // Web doesn't support scheduled notifications, use setTimeout
-      const delay = notification.scheduledAt 
-        ? notification.scheduledAt.getTime() - Date.now()
-        : 0;
-      
+      const delay = notification.scheduledAt ? notification.scheduledAt.getTime() - Date.now() : 0;
+
       if (delay > 0) {
         setTimeout(() => {
           void this.showLocalNotification({ ...notification, id });
@@ -327,7 +324,7 @@ class PushNotificationsService {
 
     try {
       const vapidPublicKey = await this.getVapidPublicKey();
-      
+
       const pushSubscription = await this.swRegistration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey).buffer as ArrayBuffer,
@@ -401,94 +398,57 @@ class PushNotificationsService {
   // ============================================================================
 
   private async initializeNative(): Promise<void> {
+    const toNotification = (n: NativeNotification): PushNotification => ({
+      id: n.id,
+      type: (n.data?.type as NotificationType) ?? 'general',
+      title: n.title ?? '',
+      body: n.body ?? '',
+      data: n.data,
+    });
     try {
-      // Dynamic import to avoid Vite analysis - Capacitor only available in native builds
-      const { PushNotifications } = await import('@capacitor/push-notifications');
-
-      // Request permission
-      await PushNotifications.requestPermissions();
-
-      // Register for push
-      await PushNotifications.register();
-
-      // Listen for registration
-      await PushNotifications.addListener('registration', (token: { value: string }) => {
-        log.debug('[PushNotifications] Native registration:', token.value);
-        void this.sendNativeTokenToServer(token.value);
+      await this.native.initialize({
+        onReceived: (n) => this.triggerCallbacks(toNotification(n)),
+        onAction: (n) => this.handleNotificationClick(toNotification(n)),
       });
-
-      // Listen for notifications received while app is open
-      await PushNotifications.addListener('pushNotificationReceived', (notification: { id: string; title?: string; body?: string; data?: Record<string, unknown> }) => {
-        log.debug('[PushNotifications] Native notification received:', notification);
-        this.triggerCallbacks({
-          id: notification.id,
-          type: (notification.data?.type as NotificationType) ?? 'general',
-          title: notification.title ?? '',
-          body: notification.body ?? '',
-          data: notification.data,
-        });
-      });
-
-      // Listen for notification taps
-      await PushNotifications.addListener('pushNotificationActionPerformed', (action: { notification: { id: string; title?: string; body?: string; data?: Record<string, unknown> } }) => {
-        log.debug('[PushNotifications] Native notification action:', action);
-        this.handleNotificationClick({
-          id: action.notification.id,
-          type: (action.notification.data?.type as NotificationType) ?? 'general',
-          title: action.notification.title ?? '',
-          body: action.notification.body ?? '',
-          data: action.notification.data,
-        });
-      });
-
     } catch (error) {
       log.warn('[PushNotifications] Native push not available:', error);
     }
   }
 
-  private async requestNativePermission(): Promise<'granted' | 'denied' | 'default'> {
-    try {
-      const { PushNotifications } = await import('@capacitor/push-notifications');
-      const result = await PushNotifications.requestPermissions();
-      return result.receive === 'granted' ? 'granted' : 'denied';
-    } catch {
-      return 'denied';
-    }
+  private requestNativePermission(): Promise<'granted' | 'denied' | 'default'> {
+    return this.native.requestPermission();
   }
 
+  /** Registers the device token with the server for the signed-in user (see native-push). */
   private async subscribeNative(): Promise<PushSubscription | null> {
     try {
-      const { PushNotifications } = await import('@capacitor/push-notifications');
-      await PushNotifications.register();
-      // Token will be received via registration listener
-      return null; // Will be set asynchronously
-    } catch {
+      this.subscription = await this.native.subscribe(platform() === 'ios' ? 'ios' : 'android');
+      return this.subscription;
+    } catch (error) {
+      log.error('[PushNotifications] Native subscription failed:', error);
       return null;
     }
   }
 
   private async unsubscribeNative(): Promise<boolean> {
-    try {
-      const { PushNotifications } = await import('@capacitor/push-notifications');
-      await PushNotifications.removeAllListeners();
-      return true;
-    } catch {
-      return false;
-    }
+    this.subscription = null;
+    return this.native.unsubscribe();
   }
 
   private async showNativeNotification(notification: PushNotification): Promise<void> {
     try {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
-      
+
       await LocalNotifications.schedule({
-        notifications: [{
-          id: parseInt(notification.id.replace(/\D/g, '')) ?? Date.now(),
-          title: notification.title,
-          body: notification.body,
-          extra: notification.data,
-          sound: notification.sound !== false ? 'default' : undefined,
-        }],
+        notifications: [
+          {
+            id: parseInt(notification.id.replace(/\D/g, '')) ?? Date.now(),
+            title: notification.title,
+            body: notification.body,
+            extra: notification.data,
+            sound: notification.sound !== false ? 'default' : undefined,
+          },
+        ],
       });
     } catch (error) {
       log.warn('[PushNotifications] Local notification failed:', error);
@@ -498,16 +458,18 @@ class PushNotificationsService {
   private async scheduleNativeNotification(notification: PushNotification): Promise<void> {
     try {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
-      
+
       await LocalNotifications.schedule({
-        notifications: [{
-          id: parseInt(notification.id.replace(/\D/g, '')) ?? Date.now(),
-          title: notification.title,
-          body: notification.body,
-          extra: notification.data,
-          schedule: notification.scheduledAt ? { at: notification.scheduledAt } : undefined,
-          sound: notification.sound !== false ? 'default' : undefined,
-        }],
+        notifications: [
+          {
+            id: parseInt(notification.id.replace(/\D/g, '')) ?? Date.now(),
+            title: notification.title,
+            body: notification.body,
+            extra: notification.data,
+            schedule: notification.scheduledAt ? { at: notification.scheduledAt } : undefined,
+            sound: notification.sound !== false ? 'default' : undefined,
+          },
+        ],
       });
     } catch (error) {
       log.warn('[PushNotifications] Schedule notification failed:', error);
@@ -535,23 +497,13 @@ class PushNotificationsService {
     }
   }
 
-  private async sendNativeTokenToServer(token: string): Promise<void> {
-    const platformName = platform();
-    this.subscription = {
-      endpoint: token,
-      keys: { p256dh: '', auth: '' },
-      platform: platformName === 'ios' ? 'ios' : 'android',
-    };
-    await this.sendSubscriptionToServer(this.subscription);
-  }
-
   // ============================================================================
   // HELPER METHODS
   // ============================================================================
 
   private handleNotificationClick(notification: PushNotification): void {
     log.debug('[PushNotifications] Notification clicked:', notification);
-    
+
     // Trigger click callbacks
     this.triggerCallbacks(notification);
 
@@ -575,11 +527,11 @@ class PushNotificationsService {
   private triggerCallbacks(notification: PushNotification): void {
     // Type-specific callbacks
     const typeCallbacks = this.callbacks.get(notification.type) ?? [];
-    typeCallbacks.forEach(cb => cb(notification));
+    typeCallbacks.forEach((cb) => cb(notification));
 
     // Global callbacks
     const allCallbacks = this.callbacks.get('all') ?? [];
-    allCallbacks.forEach(cb => cb(notification));
+    allCallbacks.forEach((cb) => cb(notification));
   }
 
   private shouldShowNotification(type: NotificationType): boolean {
@@ -640,22 +592,23 @@ class PushNotificationsService {
 
   /**
    * Get VAPID public key for web push subscriptions.
-   * 
+   *
    * PRODUCTION BEHAVIOR:
    * - Fetches from /api/push/vapid-key endpoint
    * - Throws error if key is not available (push notifications won't work)
-   * 
+   *
    * DEVELOPMENT BEHAVIOR:
    * - Uses Vite's import.meta.env.VITE_VAPID_PUBLIC_KEY if set
    * - Falls back to demo key for local testing only
    */
   private async getVapidPublicKey(): Promise<string> {
     // Try environment variable first (works in both dev and prod builds)
-    const envKey = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_VAPID_PUBLIC_KEY;
+    const envKey = (import.meta as unknown as { env?: Record<string, string> }).env
+      ?.VITE_VAPID_PUBLIC_KEY;
     if (envKey) {
       return envKey;
     }
-    
+
     // In production, fetch from server
     if (!isDevelopment()) {
       try {
@@ -672,7 +625,7 @@ class PushNotificationsService {
         throw error;
       }
     }
-    
+
     // Development only - demo key for local testing
     // WARNING: This key is public and should NOT be used in production
     log.warn('Using demo VAPID key for development - push notifications are for testing only');
@@ -686,7 +639,7 @@ class PushNotificationsService {
   }
 
   private urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);
@@ -731,4 +684,3 @@ export async function scheduleNotification(notification: PushNotification): Prom
 }
 
 export default PushNotificationsService;
-

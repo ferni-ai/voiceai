@@ -1,5 +1,5 @@
 /**
- * The v1 integrations OAuth callbacks (biometrics, calendar) are unauthenticated
+ * The v1 integrations OAuth callback (biometrics) is unauthenticated
  * and used to take the user from an unsigned base64 state ({"userId": ...}), so
  * a request with a forged state and the attacker's own code linked the
  * attacker's provider account into any user's Ferni account. The state is now
@@ -7,6 +7,10 @@
  *
  * Real HTTP through the REAL handler and auth middleware; mocked: Firebase token
  * verification, the provider code exchange and token storage.
+ *
+ * (Google Calendar no longer has a v1 connect/callback: it connects only through
+ * /auth/oauth/start → /auth/google/*. See apps/web/tests/contracts/
+ * calendar-connect.contract.test.ts.)
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -26,15 +30,6 @@ const biometrics = vi.hoisted(() => ({
   syncBiometrics: vi.fn(async () => null),
 }));
 vi.mock('../../../../services/biometrics/index.js', () => biometrics);
-
-const calendar = vi.hoisted(() => ({
-  getCalendarAuthUrl: vi.fn((state: string) => `https://accounts.example/auth?state=${state}`),
-  fetchUpcomingEvents: vi.fn(async () => []),
-  exchangeCodeForTokens: vi.fn(async () => ({ access_token: 'x' })),
-  storeUserTokens: vi.fn(async (_uid: string, _tokens: unknown) => undefined),
-}));
-vi.mock('../../../../services/context-awareness/location-calendar.js', () => calendar);
-vi.mock('../../../../services/identity/google-calendar-oauth.js', () => calendar);
 
 const { handleIntegrationsRoutes } = await import('../handler.js');
 const { setOAuthLinkStore } = await import('../../../../servers/token/oauth-link-state.js');
@@ -82,13 +77,6 @@ describe.each([
     callbackPath: '/biometrics/callback/oura',
     otherCallback: '/biometrics/callback/whoop',
     savedFor: () => biometrics.exchangeCodeForTokens.mock.calls.map((c) => c[2]),
-  },
-  {
-    name: 'calendar',
-    connectPath: '/calendar/connect',
-    callbackPath: '/calendar/callback',
-    otherCallback: '/biometrics/callback/oura',
-    savedFor: () => calendar.storeUserTokens.mock.calls.map((c) => c[0]),
   },
 ])('$name OAuth state', ({ connectPath, callbackPath, otherCallback, savedFor }) => {
   const callback = (path: string, state: string, cookie = '') =>

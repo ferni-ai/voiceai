@@ -1928,7 +1928,10 @@ class VoiceAIApp {
         onFamilyCallersClick: () => void showFamilyIdentities(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
-        onLifeContextClick: () => void showLifeContextDashboard(),
+        onLifeContextClick: () =>
+          void import('./services/life-context-updates.service.js').then((m) =>
+            m.openLifeContextDashboard()
+          ),
         onTeamInsightsClick: () => teamInsightsUI.toggle(),
         onSupportFerniClick: () => void openSupportFerni(),
         onPersonalizeClick: () => void openPersonalize(),
@@ -3064,26 +3067,13 @@ class VoiceAIApp {
 
       // 🎬 Expression: Curious "thinking" expression during handoff
       ferniExpressions.contemplation(1500);
-
-      // Show handoff progress indicator
-      const handoffProgress = document.getElementById('handoffProgress');
-      const handoffTargetName = document.getElementById('handoffTargetName');
-      if (handoffProgress && handoffTargetName) {
-        const persona = getPersona(toPersona);
-        handoffTargetName.textContent = persona.name;
-        handoffProgress.classList.remove('hidden');
-        log.debug('Showing handoff progress for', persona.name);
-      } else {
-        log.warn('handoffProgress element not found!');
-      }
+      // The progress indicator itself is ui/handoff-presence.ui.ts (heartbeat-driven).
 
       // FIX BUG: Safety timeout - force hide UI after 20 seconds max
       if (handoffUITimeout) clearTimeout(handoffUITimeout);
       handoffUITimeout = setTimeout(() => {
         log.warn('Safety timeout - forcing handoff UI cleanup');
         waveformUI.setTransitioning(false);
-        const progress = document.getElementById('handoffProgress');
-        if (progress) progress.classList.add('hidden');
         thinkingUI.hide();
       }, 20000);
     });
@@ -3104,12 +3094,6 @@ class VoiceAIApp {
       // 🎬 Expression: New persona arrives with excited greeting
       ferniExpressions.heldPose('happy', 500);
 
-      // Hide handoff progress indicator
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-        log.debug('Hiding handoff progress');
-      }
       // Also make sure thinking is hidden
       thinkingUI.hide();
     });
@@ -3134,10 +3118,6 @@ class VoiceAIApp {
         this.updatePersonaTheme(rollbackTo);
       }
 
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-      }
       thinkingUI.hide();
       messageUI.show("Couldn't reach them right now. I'm still here though!", 'error', 3000);
     });
@@ -3152,36 +3132,7 @@ class VoiceAIApp {
       }
 
       waveformUI.setTransitioning(false);
-
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-      }
       thinkingUI.hide();
-    });
-
-    // FIX AUDIT GAP #3: Subscribe to handoff progress for waveform visual feedback
-    // This provides visual progress indication on the waveform/avatar even when team roster is hidden
-    handoffService.onHandoffProgress((targetPersona, elapsedMs, timeoutMs) => {
-      log.debug('onHandoffProgress:', { targetPersona, elapsedMs, timeoutMs });
-
-      // Calculate progress percentage (0-100)
-      const progress = Math.min(100, Math.round((elapsedMs / timeoutMs) * 100));
-
-      // Update waveform with progress indication
-      // The waveform shimmer intensity can vary based on progress
-      if (progress > 50) {
-        // After halfway, intensify the shimmer to show progress
-        // (waveformUI already handles transitioning state, but this adds visual variety)
-        log.debug('Handoff progress:', `${progress}%`);
-      }
-
-      // Update the handoff progress element if present
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        // Add a data attribute for CSS-based progress visualization
-        handoffProgress.setAttribute('data-progress', String(progress));
-      }
     });
 
     // Main handoff callback (plays sounds, updates UI)
@@ -3195,10 +3146,6 @@ class VoiceAIApp {
       // FIX BUG: Clean up any stuck transition UI state
       // This handles legacy single-message handoffs that don't have separate start/complete
       waveformUI.setTransitioning(false);
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-      }
       // Also hide thinking indicator in case it's stuck
       thinkingUI.hide();
 

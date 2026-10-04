@@ -24,7 +24,6 @@ import {
   type PredictionsResponse,
 } from '../services/prediction-tracker-data.js';
 import { showTeamHuddle as showTeamHuddleUI, type TeamHuddleData } from '../ui/team-huddle.ui.js';
-import type { fetchVisualizationData, YourStoryData } from '../ui/visualizations/index.js';
 import { loadYourStory } from '../ui/lazy-screens.js';
 import { toast } from '../ui/whisper.ui.js';
 import { apiDelete, apiGet, apiPost } from '../utils/api.js';
@@ -524,8 +523,8 @@ export async function showDataExport(): Promise<void> {
     onDeleteAccount: async () => {
       try {
         toast.info('Deleting your account...');
-        await dataExportService.deleteAccount();
-        toast.success('Your account is deleted. Take care.');
+        const leftover = await dataExportService.deleteAccount();
+        toast[leftover ? 'warning' : 'success'](leftover ?? 'Your account is deleted. Take care.');
         setTimeout(() => {
           window.location.href = '/';
         }, 1500);
@@ -585,9 +584,10 @@ export async function showTeamHuddle(topic?: string): Promise<void> {
  * - Analytics stats (days together, conversations, streak)
  * - Relationship stage and milestones
  *
- * Data sources (in priority order):
- * 1. Backend API (/api/your-story/full) - aggregates all services
- * 2. Direct Firestore fetch - when the API has nothing or fails
+ * Data source: the backend API (/api/your-story/full), which builds every
+ * section from persisted data. There is no in-browser fallback: the old one
+ * read Firestore collections the security rules deny to clients, under field
+ * names no writer uses, and filled the gaps with defaults.
  *
  * With no story yet it shows an empty state; when loading fails, an error
  * with a retry. Demo data appears only behind the explicit demo flag, and
@@ -612,84 +612,7 @@ export async function showYourStoryDashboard(): Promise<void> {
     return;
   }
 
-  let failed = result.status === 'error';
-  const userId = localStorage.getItem('ferni_user_id');
-  try {
-    if (userId) {
-      const visualizationData = await viz.fetchVisualizationData(userId);
-      if (viz.hasAnyVisualizationData(visualizationData)) {
-        dashboard.show(await aggregateStoryData(userId, visualizationData));
-        return;
-      }
-    }
-  } catch (err) {
-    log.warn({ err }, 'Your Story Firestore read failed');
-    failed = true;
-  }
-
-  dashboard.showStatus(failed ? 'error' : 'empty', () => void showYourStoryDashboard());
-}
-
-/**
- * Aggregate story data: visualizations (Firestore) plus the header stats,
- * relationship stage and milestones from GET /api/your-story/section/:section
- * (src/api/your-story-routes.ts). A failed section throws, so the caller shows
- * the error state rather than zeros or a made-up stage.
- */
-async function aggregateStoryData(
-  userId: string,
-  visualizationData: Awaited<ReturnType<typeof fetchVisualizationData>>
-): Promise<YourStoryData> {
-  const [header, relationship] = await Promise.all([
-    fetchStorySection<StoryHeaderSection>('header'),
-    fetchStorySection<RelationshipSection>('relationship'),
-  ]);
-  return {
-    ...visualizationData,
-    userId,
-    timestamp: new Date().toISOString(),
-    analytics: {
-      daysTogether: header.daysTogether,
-      conversations: header.totalConversations,
-      streak: header.currentStreak,
-    },
-    stage: {
-      name: relationship.stageLabel,
-      progress: relationship.progress,
-      tagline: relationship.tagline,
-    },
-    milestones: (relationship.milestones ?? [])
-      .filter((m) => m.completed)
-      .map((m) => ({
-        id: m.id,
-        name: m.title,
-        celebratedAt: m.completedAt ? new Date(m.completedAt).getTime() : 0,
-        category: 'relationship' as const,
-      })),
-  };
-}
-
-/** StoryHeader in src/api/your-story-routes.ts. */
-interface StoryHeaderSection {
-  daysTogether: number;
-  totalConversations: number;
-  currentStreak: number;
-}
-
-/** RelationshipProgress in src/api/your-story-routes.ts. */
-interface RelationshipSection {
-  stageLabel: string;
-  progress: number;
-  tagline: string;
-  milestones?: Array<{ id: string; title: string; completed: boolean; completedAt?: string }>;
-}
-
-async function fetchStorySection<T>(section: 'header' | 'relationship'): Promise<T> {
-  const response = await apiGet<{ data?: T }>(`/api/your-story/section/${section}`);
-  if (!response.ok || !response.data?.data) {
-    throw new Error(`Your Story ${section} failed (${response.status})`);
-  }
-  return response.data.data;
+  dashboard.showStatus(result.status, () => void showYourStoryDashboard());
 }
 
 // ============================================================================
@@ -707,9 +630,6 @@ export async function showWhatIDoForYou(): Promise<void> {
   showFerniCareDashboard();
 }
 
-// Backwards compatibility alias
-export const showLifeAutomation = showWhatIDoForYou;
-
 /**
  * Show routine ideas gallery.
  */
@@ -719,9 +639,6 @@ export async function showRoutineIdeas(): Promise<void> {
   const { showIdeasGallery } = await import('../ui/ferni-care/index.js');
   showIdeasGallery();
 }
-
-// Backwards compatibility alias
-export const showWorkflowTemplates = showRoutineIdeas;
 
 /**
  * Show routine builder.
@@ -733,5 +650,9 @@ export async function showRoutineCreator(): Promise<void> {
   showRoutineBuilder();
 }
 
-// Backwards compatibility alias
-export const showWorkflowCreator = showRoutineCreator;
+/** Show the Trust & Growth dashboard (health, timeline, events, journal, media, insights). */
+export async function showTrustDashboard(): Promise<void> {
+  void trackScreen('trust-dashboard');
+  const { showTrustDashboard: show } = await import('../ui/trust-dashboard.ui.js');
+  await show();
+}

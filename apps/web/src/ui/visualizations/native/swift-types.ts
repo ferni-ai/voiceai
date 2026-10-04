@@ -229,10 +229,9 @@
  * @swift
  * ```swift
  * struct EnergyRingsData: Codable {
- *     let emotional: Int
- *     let mental: Int
- *     let physical: Int
  *     let overall: Int
+ *     let label: String?
+ *     let recommendation: String?
  * }
  * ```
  */

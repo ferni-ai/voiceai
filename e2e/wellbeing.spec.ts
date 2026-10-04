@@ -5,7 +5,6 @@
  * - GET /api/wellbeing/dashboard - Full dashboard data
  * - GET /api/wellbeing/trends - Trend analysis over time
  * - GET /api/wellbeing/insights - Personalized insights
- * - POST /api/wellbeing/snapshot - Manual wellbeing check-in
  * - Dashboard UI visualization
  */
 
@@ -160,31 +159,6 @@ test.describe('Wellbeing Dashboard API', () => {
       // type should be pattern, suggestion, or celebration
       expect(['pattern', 'suggestion', 'celebration']).toContain(insight.type);
     }
-  });
-
-  test('POST /api/wellbeing/snapshot - creates a snapshot', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/wellbeing/snapshot`, {
-      headers: {
-        'X-User-ID': TEST_USER_ID,
-        'Content-Type': 'application/json',
-      },
-      data: {
-        userId: TEST_USER_ID,
-        mood: 0.7,
-        energy: 0.6,
-        anxiety: 0.3,
-        connection: 0.8,
-        purpose: 0.7,
-        sleep: 0.6,
-        note: 'E2E test snapshot',
-      },
-    });
-
-    // Should succeed with 200 or 201
-    expect([200, 201]).toContain(response.status());
-
-    const data = await response.json();
-    expect(data).toHaveProperty('success');
   });
 
   test('warnings have correct structure', async ({ request }) => {

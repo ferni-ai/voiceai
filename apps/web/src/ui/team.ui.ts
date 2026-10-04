@@ -36,6 +36,7 @@ import type { PersonaConfig, PersonaId, SpeakerId } from '../types/persona.js';
 import { addClass, addListener, getElementById, removeClass } from '../utils/dom.js';
 import { createLogger } from '../utils/logger.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
+import { initHandoffPresence } from './handoff-presence.ui.js';
 import { openMarketplace } from './lazy-screens.js';
 import { toast } from './whisper.ui.js';
 
@@ -395,27 +396,8 @@ export function initTeamUI(): void {
     });
     cleanupFunctions.push(unsubSoftOpen);
 
-    // Listen for progress heartbeat to update UI indicator.
-    // Only the data attribute: the `handoff-progress` class is the old pill's style
-    // (inline-styles.css) and would turn the avatar container into a pill.
-    const unsubProgress = handoffService.onHandoffProgress((_targetPersona, elapsedMs, timeoutMs) => {
-      const avatarContainer = document.querySelector('.avatar-container');
-      if (avatarContainer instanceof HTMLElement) {
-        // Calculate progress percentage (0-100)
-        const progress = Math.min(100, Math.round((elapsedMs / timeoutMs) * 100));
-        avatarContainer.dataset.handoffProgress = String(progress);
-      }
-    });
-    cleanupFunctions.push(unsubProgress);
-
-    // Clear progress on handoff complete
-    const unsubProgressClear = handoffService.onHandoffComplete(() => {
-      const avatarContainer = document.querySelector('.avatar-container');
-      if (avatarContainer instanceof HTMLElement) {
-        delete avatarContainer.dataset.handoffProgress;
-      }
-    });
-    cleanupFunctions.push(unsubProgressClear);
+    // Progress heartbeats: "Bringing in <Persona>…" on the avatar for slow handoffs.
+    cleanupFunctions.push(initHandoffPresence());
 
     // 🍴 Setup avatar as drop zone for "eating" marketplace agents
     avatarFeedback.setupDropZone(handleAgentDropped);

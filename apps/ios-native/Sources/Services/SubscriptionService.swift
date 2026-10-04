@@ -10,7 +10,10 @@
 //  - Purchase subscriptions
 //  - Restore purchases
 //  - Handle subscription changes
-//  - Sync with backend
+//  - Send verified transactions to the server (POST /api/apple/verify)
+//
+//  Every purchase carries the account's appAccountToken (see AppleAccountAPI),
+//  so the server can tell whose purchase it is. No token, no purchase.
 //
 
 import Foundation
@@ -115,13 +118,13 @@ final class SubscriptionService: ObservableObject {
     private let tierCacheKey = "cached_subscription_tier"
     private let expirationCacheKey = "cached_subscription_expiration"
     
-    // Backend sync
-    private var serverBaseUrl = "https://app.ferni.ai"
-    private var userId: String?
+    private let accountAPI: AppleAccountAPI
     
     // MARK: - Initialization
     
-    private init() {
+    /// `observeStore: false` skips the StoreKit listener and product fetch (tests).
+    init(accountAPI: AppleAccountAPI = FerniAppleAccountAPI(), observeStore: Bool = true) {
+        self.accountAPI = accountAPI
         // Load cached tier
         if let cachedTier = defaults.string(forKey: tierCacheKey),
            let tier = SubscriptionTier(rawValue: cachedTier) {
@@ -132,6 +135,8 @@ final class SubscriptionService: ObservableObject {
         if let expiration = defaults.object(forKey: expirationCacheKey) as? Date {
             subscriptionExpirationDate = expiration
         }
+        
+        guard observeStore else { return }
         
         // Start listening for transactions
         updateListenerTask = listenForTransactions()
@@ -145,15 +150,6 @@ final class SubscriptionService: ObservableObject {
     
     deinit {
         updateListenerTask?.cancel()
-    }
-    
-    // MARK: - Configuration
-    
-    func configure(userId: String, serverUrl: String? = nil) {
-        self.userId = userId
-        if let url = serverUrl {
-            self.serverBaseUrl = url
-        }
     }
     
     // MARK: - Load Products
@@ -174,12 +170,14 @@ final class SubscriptionService: ObservableObject {
     func checkSubscriptionStatus() async {
         var highestTier: SubscriptionTier = .free
         var latestExpiration: Date?
+        var signedTransactions: [String] = []
         
         // Check all current entitlements
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result else {
                 continue
             }
+            signedTransactions.append(result.jwsRepresentation)
             
             // Check if this is a subscription we care about
             let tier = ProductID.tier(for: transaction.productID)
@@ -198,32 +196,47 @@ final class SubscriptionService: ObservableObject {
         // Update state
         updateTier(highestTier, expiration: latestExpiration)
         
-        // Sync with backend
-        await syncWithBackend()
+        for jws in signedTransactions {
+            _ = await sendToServer(jws)
+        }
     }
     
     // MARK: - Purchase
     
-    func purchase(_ product: Product) async -> PurchaseResult {
+    func purchase(_ product: some PurchasableProduct) async -> PurchaseResult {
         purchaseInProgress = true
         defer { purchaseInProgress = false }
         
+        // The purchase must carry this account's token: if we can't get it, don't buy.
+        let options: Set<Product.PurchaseOption>
         do {
-            let result = try await product.purchase()
+            options = try await AccountBoundPurchase.options(from: accountAPI)
+        } catch {
+            logger.error("No appAccountToken, purchase not started: \(error.localizedDescription)")
+            let failure: SubscriptionError =
+                (error as? AppleAccountAPIError) == .notSignedIn ? .signInRequired : .accountUnavailable
+            lastError = failure
+            return .failed(failure)
+        }
+        
+        do {
+            let result = try await product.purchase(options: options)
             
             switch result {
             case .success(let verification):
                 switch verification {
                 case .verified(let transaction):
-                    // Successful purchase
-                    await transaction.finish()
-                    
                     let tier = ProductID.tier(for: transaction.productID)
                     updateTier(tier, expiration: transaction.expirationDate)
-                    
                     logger.info("Purchase successful: \(product.id)")
-                    await syncWithBackend()
                     
+                    // Finish only once the server has it; otherwise StoreKit
+                    // redelivers it through Transaction.updates and we retry.
+                    if await sendToServer(verification.jwsRepresentation) {
+                        await transaction.finish()
+                    } else {
+                        lastError = .serverSyncFailed
+                    }
                     return .success(tier)
                     
                 case .unverified(_, let error):
@@ -299,8 +312,9 @@ final class SubscriptionService: ObservableObject {
                         self.updateTier(tier, expiration: transaction.expirationDate)
                         self.logger.info("Transaction update: \(transaction.productID)")
                     }
-                    await transaction.finish()
-                    await self.syncWithBackend()
+                    if await self.sendToServer(result.jwsRepresentation) {
+                        await transaction.finish()
+                    }
                     
                 case .unverified(_, let error):
                     await MainActor.run {
@@ -335,45 +349,17 @@ final class SubscriptionService: ObservableObject {
         }
     }
     
-    // MARK: - Backend Sync
+    // MARK: - Server
     
-    private func syncWithBackend() async {
-        guard let userId = userId else { return }
-        
+    /// Send a verified transaction's JWS to the server. True when it accepted it.
+    private func sendToServer(_ jws: String) async -> Bool {
         do {
-            // Get latest receipt
-            guard let receiptURL = Bundle.main.appStoreReceiptURL,
-                  let receiptData = try? Data(contentsOf: receiptURL) else {
-                logger.warning("No receipt to sync")
-                return
-            }
-            
-            let receiptString = receiptData.base64EncodedString()
-            
-            // Send to backend
-            guard let url = URL(string: "\(serverBaseUrl)/api/subscription/verify-ios") else {
-                return
-            }
-            
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            
-            let body: [String: Any] = [
-                "userId": userId,
-                "receipt": receiptString,
-                "tier": currentTier.rawValue
-            ]
-            
-            request.httpBody = try JSONSerialization.data(withJSONObject: body)
-            
-            let (_, response) = try await URLSession.shared.data(for: request)
-            
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                logger.info("Subscription synced with backend")
-            }
+            try await accountAPI.submitSignedTransaction(jws)
+            logger.info("Purchase sent to the server")
+            return true
         } catch {
-            logger.error("Failed to sync with backend: \(error.localizedDescription)")
+            logger.error("Couldn't send the purchase to the server: \(error.localizedDescription)")
+            return false
         }
     }
     
@@ -434,6 +420,9 @@ enum SubscriptionError: Error, LocalizedError {
     case verificationFailed
     case restoreFailed
     case invalidProduct
+    case signInRequired
+    case accountUnavailable
+    case serverSyncFailed
     case unknown
     
     var errorDescription: String? {
@@ -450,6 +439,12 @@ enum SubscriptionError: Error, LocalizedError {
             return "Couldn't restore purchases"
         case .invalidProduct:
             return "Invalid product"
+        case .signInRequired:
+            return "Sign in to subscribe."
+        case .accountUnavailable:
+            return "Couldn't reach your account, so nothing was charged. Try again?"
+        case .serverSyncFailed:
+            return "You're subscribed, but we couldn't link it to your account yet. We'll keep trying."
         case .unknown:
             return "Something went wrong"
         }

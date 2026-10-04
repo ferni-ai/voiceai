@@ -265,12 +265,13 @@ async function handlePlantSeed(
     }
 
     if (!isStripeConfigured()) {
+      // 503, like /api/subscription/checkout: the web says "not set up", not "try again".
       log.warn({ userId }, 'Stripe not configured for seed payment');
       const response: PlantSeedResponse = {
         success: false,
         error: 'Payment system not configured',
       };
-      sendJSON(res, response);
+      sendJSON(res, response, 503);
       return;
     }
 
@@ -339,7 +340,7 @@ async function handleStartMonthly(
         success: false,
         error: 'Subscription system not configured',
       };
-      sendJSON(res, response);
+      sendJSON(res, response, 503);
       return;
     }
 
@@ -402,7 +403,7 @@ async function handleUpdateMonthly(
         success: false,
         error: 'Subscription system not configured',
       };
-      sendJSON(res, response);
+      sendJSON(res, response, 503);
       return;
     }
 
@@ -462,7 +463,7 @@ async function handleCancelMonthly(
         success: false,
         error: 'Subscription system not configured',
       };
-      sendJSON(res, response);
+      sendJSON(res, response, 503);
       return;
     }
 

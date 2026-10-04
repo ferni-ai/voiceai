@@ -226,8 +226,7 @@ function runValidation(): void {
   let errorCount = 0;
 
   for (const result of results) {
-    const icon =
-      result.status === 'ok' ? '✅' : result.status === 'warning' ? '⚠️' : '❌';
+    const icon = result.status === 'ok' ? '✅' : result.status === 'warning' ? '⚠️' : '❌';
 
     console.log(`${icon} ${result.feature}`);
     console.log(`   Component: ${result.component}`);
@@ -259,16 +258,9 @@ function checkTypeConsistency(): void {
   console.log('\n📋 Type Consistency Check');
   console.log('─'.repeat(60));
 
-  const apiTypePaths = [
-    'src/api/routes/conversation-threads.ts',
-    'src/api/custom-agent-routes.ts',
-    'src/api/memory-routes.ts',
-  ];
+  const apiTypePaths = ['src/api/routes/conversation-threads.ts', 'src/api/memory-routes.ts'];
 
-  const frontendTypePaths = [
-    'apps/web/src/types/api.ts',
-    'apps/web/src/types/index.ts',
-  ];
+  const frontendTypePaths = ['apps/web/src/types/api.ts', 'apps/web/src/types/index.ts'];
 
   // This is a basic check - in production you'd use ts-morph or similar
   console.log('   Checking for shared type definitions...');

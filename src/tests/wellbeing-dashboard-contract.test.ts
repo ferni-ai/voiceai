@@ -10,15 +10,17 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { Readable } from 'stream';
 import type { WellbeingProfile, WellbeingSnapshot } from '../services/wellbeing-tracking/index.js';
 
 const loadProfile = vi.fn();
 const loadSnapshots = vi.fn();
+const persistProfile = vi.fn(async () => true);
 vi.mock('../services/wellbeing-tracking/persistence.js', () => ({
   loadProfile: (...a: unknown[]) => loadProfile(...a),
   loadSnapshots: (...a: unknown[]) => loadSnapshots(...a),
   persistSnapshot: vi.fn(async () => true),
-  persistProfile: vi.fn(async () => true),
+  persistProfile: (...a: unknown[]) => persistProfile(...(a as [])),
 }));
 
 vi.mock('../api/auth-middleware.js', () => ({
@@ -150,5 +152,33 @@ describe('GET /api/wellbeing/trends', () => {
       purpose: null,
       sleep: null,
     });
+  });
+});
+
+describe('POST /api/wellbeing/snapshot (removed)', () => {
+  it('is not served, so it can never reset the persisted profile to a single snapshot', async () => {
+    // A user the voice agent has tracked for weeks.
+    const current = snapshot({ mood: 0.7 });
+    loadProfile.mockResolvedValue({ ...profileWith(current), totalSnapshots: 40 });
+    loadSnapshots.mockResolvedValue([current]);
+    persistProfile.mockClear();
+
+    const req = Readable.from([JSON.stringify({ mood: 0.4 })]) as unknown as IncomingMessage;
+    Object.assign(req, { method: 'POST', url: '/api/wellbeing/snapshot', headers: {} });
+    const res = {
+      headersSent: false,
+      setHeader: vi.fn(),
+      writeHead: vi.fn(),
+      end: vi.fn(),
+    } as unknown as ServerResponse;
+    const url = new URL('/api/wellbeing/snapshot', 'http://localhost');
+
+    const handled = await handleWellbeingRoutes(req, res, url.pathname, url);
+    await new Promise((r) => {
+      setTimeout(r, 0); // let any fire-and-forget persist run
+    });
+
+    expect(handled).toBe(false); // falls through to the API server's 404
+    expect(persistProfile).not.toHaveBeenCalled();
   });
 });
