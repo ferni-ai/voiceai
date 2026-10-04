@@ -57,13 +57,15 @@ async function getDetector(capability: string): Promise<CapabilityDetector | nul
         };
       }
       case 'crisis_detection': {
-        const { detectCrisis } = await import('../../superhuman/emotional-first-aid.js');
+        // The guard live turns run (turn-processor/process-turn.ts), so the
+        // benchmark measures what callers actually get.
+        const { detectCrisis } = await import('../../safety/crisis-guard.js');
         return (input: string) => {
           const result = detectCrisis(input);
           return {
-            detected: result !== null,
-            confidence: result?.confidence,
-            value: result?.severity,
+            detected: result.isCrisis,
+            confidence: result.severity,
+            value: result.severity,
           };
         };
       }
@@ -185,7 +187,7 @@ export async function runCapabilityBenchmark(
   let trueNegatives = 0;
   let falsePositives = 0;
   let falseNegatives = 0;
-  const gaps: Map<string, string[]> = new Map();
+  const gaps = new Map<string, string[]>();
 
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
