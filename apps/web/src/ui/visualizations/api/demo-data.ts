@@ -42,7 +42,8 @@ export interface YourStoryData extends VisualizationApiResponse {
   analytics: {
     daysTogether: number;
     conversations: number;
-    streak: number;
+    /** null when nothing records day-by-day conversations */
+    streak: number | null;
   };
   stage: {
     name: string;

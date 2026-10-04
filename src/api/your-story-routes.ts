@@ -47,8 +47,9 @@ export interface StoryHeader {
   tagline: string;
   daysTogether: number;
   totalConversations: number;
-  currentStreak: number;
-  longestStreak: number;
+  /** null: no per-day conversation history is persisted to compute one */
+  currentStreak: number | null;
+  longestStreak: number | null;
 }
 
 export interface RelationshipProgress {
@@ -92,39 +93,47 @@ export interface YourStoryData {
 // DATA FETCHERS
 // ============================================================================
 
+/** One shared lazy import: the header and the relationship section both read the arc. */
+let arcStorageModule: Promise<
+  typeof import('../intelligence/context-builders/relationship/arc/storage.js')
+> | null = null;
+const arcStorage = () =>
+  (arcStorageModule ??= import('../intelligence/context-builders/relationship/arc/storage.js'));
+
+/**
+ * Header counts from the relationship arc the voice agent saves at the end of
+ * every conversation (bogle_users/{uid}/relationship_arc/data, incremented by
+ * cleanup-handler's incrementSessionStats). The personal-journey rhythm stats
+ * live in the voice agent's memory, so read here they were always 0.
+ * Days together counts the first day as day 1. No per-day history is saved,
+ * so no streak is claimed.
+ */
 async function fetchStoryHeader(userId: string): Promise<StoryHeader> {
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const header = {
+    greeting,
+    tagline: "Here's your story so far",
+    currentStreak: null,
+    longestStreak: null,
+  };
   try {
-    const { getRhythmStats } = await import('../services/personal-journey/rhythm-awareness.js');
-
-    const stats = getRhythmStats(userId);
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-
-    return {
-      greeting,
-      tagline: "Here's your story so far",
-      daysTogether: stats.daysKnown,
-      totalConversations: stats.totalConversations,
-      currentStreak: stats.currentStreak,
-      longestStreak: stats.longestStreak,
-    };
+    const arc = await (await arcStorage()).loadRelationshipArcData(userId);
+    const total = arc?.totalSessions ?? 0;
+    const daysTogether =
+      total > 0 && arc?.firstSessionDate
+        ? Math.floor((Date.now() - arc.firstSessionDate) / (24 * 60 * 60 * 1000)) + 1
+        : 0;
+    return { ...header, daysTogether, totalConversations: total };
   } catch (error) {
-    log.warn({ error, userId }, 'Failed to fetch story header, using defaults');
-    return {
-      greeting: 'Hello',
-      tagline: "Here's your story so far",
-      daysTogether: 0,
-      totalConversations: 0,
-      currentStreak: 0,
-      longestStreak: 0,
-    };
+    log.warn({ error, userId }, 'Failed to load conversation count for the story header');
+    return { ...header, daysTogether: 0, totalConversations: 0 };
   }
 }
 
 async function fetchRelationshipProgress(userId: string): Promise<RelationshipProgress> {
   try {
-    const { loadRelationshipArcData, getCurrentStage } =
-      await import('../intelligence/context-builders/relationship/arc/storage.js');
+    const { loadRelationshipArcData, getCurrentStage } = await arcStorage();
 
     const stage = await getCurrentStage(userId);
     const arcData = await loadRelationshipArcData(userId);

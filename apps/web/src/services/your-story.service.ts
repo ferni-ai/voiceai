@@ -53,8 +53,9 @@ interface ApiStoryResponse {
       tagline: string;
       daysTogether: number;
       totalConversations: number;
-      currentStreak: number;
-      longestStreak: number;
+      /** null: no per-day history is saved to compute one */
+      currentStreak: number | null;
+      longestStreak: number | null;
     };
     relationship: {
       stage: string;
@@ -122,45 +123,6 @@ export async function fetchYourStory(): Promise<YourStoryResult> {
   } catch (error) {
     log.error({ error, userId }, 'Failed to fetch Your Story');
     return { status: 'error' };
-  }
-}
-
-/**
- * Fetch just the header/summary data (lighter weight).
- */
-export async function fetchYourStorySummary(): Promise<{
-  daysTogether: number;
-  conversations: number;
-  streak: number;
-  stage: string;
-}> {
-  const userId = getCurrentUserId();
-  if (!userId) {
-    return { daysTogether: 0, conversations: 0, streak: 0, stage: 'First Meeting' };
-  }
-
-  try {
-    const response = await apiGet<{
-      success: boolean;
-      data: {
-        header: ApiStoryResponse['data']['header'];
-        relationship: ApiStoryResponse['data']['relationship'];
-      };
-    }>('/api/your-story/summary');
-
-    if (!response.ok || !response.data?.success) {
-      return { daysTogether: 0, conversations: 0, streak: 0, stage: 'First Meeting' };
-    }
-
-    const { header, relationship } = response.data.data;
-    return {
-      daysTogether: header.daysTogether,
-      conversations: header.totalConversations,
-      streak: header.currentStreak,
-      stage: relationship.stageLabel,
-    };
-  } catch {
-    return { daysTogether: 0, conversations: 0, streak: 0, stage: 'First Meeting' };
   }
 }
 

@@ -312,7 +312,7 @@ class YourStoryUI {
       { icon: 'calendar', value: data.analytics.daysTogether, label: t('yourStory.stats.daysTogether') || 'days together' },
       { icon: 'chat', value: data.analytics.conversations, label: t('yourStory.stats.conversations') || 'conversations' },
       { icon: 'flame', value: data.analytics.streak, label: t('yourStory.stats.dayStreak') || 'day streak' },
-    ];
+    ].filter((item) => item.value !== null); // no streak is claimed without a day-by-day record
     for (const item of statItems) {
       const stat = el('div', 'your-story__stat');
       stat.appendChild(svg(item.icon));

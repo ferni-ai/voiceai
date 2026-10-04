@@ -33,17 +33,19 @@ const store = vi.hoisted(() => ({
   loops: [] as Array<Record<string, unknown>>,
 }));
 
-vi.mock('../../../../src/services/personal-journey/rhythm-awareness.js', () => ({
-  getRhythmStats: () => ({
-    totalConversations: store.conversations,
-    daysKnown: 9,
-    currentStreak: 2,
-    longestStreak: 4,
-  }),
-}));
+// The relationship arc the voice agent saves at the end of every conversation
+// (bogle_users/{uid}/relationship_arc/data). The in-memory rhythm stats are NOT
+// mocked: in the API process they are always empty, which is the bug.
 vi.mock('../../../../src/intelligence/context-builders/relationship/arc/storage.js', () => ({
   getCurrentStage: async () => 'friend',
-  loadRelationshipArcData: async () => ({ totalSessions: store.conversations }),
+  loadRelationshipArcData: async () =>
+    store.conversations > 0
+      ? {
+          totalSessions: store.conversations,
+          firstSessionDate: Date.now() - 20 * 24 * 60 * 60 * 1000,
+          lastSessionDate: Date.now() - 60 * 60 * 1000,
+        }
+      : null,
 }));
 vi.mock('../../../../src/services/superhuman/capacity-guardian.js', () => ({
   loadEnergyHistory: async () => store.energy,
@@ -143,6 +145,58 @@ async function renderStory(): Promise<{
 }
 
 const frame = (id: string) => document.getElementById(id);
+
+describe('Your Story header, real persisted conversation count', () => {
+  beforeEach(() => {
+    localStorage.setItem('ferni_user_id', 'u1');
+    apiGet.mockReset();
+    Object.assign(store, {
+      conversations: 7,
+      energy: [],
+      moods: [],
+      chapters: [],
+      arcs: [],
+      people: [],
+      opportunities: [],
+      loops: [],
+    });
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('a user with 7 saved conversations gets a 7-conversation header and a non-empty story', async () => {
+    const { story } = await renderStory();
+
+    expect(story.header).toMatchObject({ totalConversations: 7, daysTogether: 21 });
+    // No per-day record is persisted, so no streak is claimed.
+    expect(story.header).toMatchObject({ currentStreak: null, longestStreak: null });
+    const stats = document.querySelector('.your-story__stats')!.textContent!;
+    expect(stats).toContain('7');
+    expect(stats).toContain('21');
+    expect(stats).not.toMatch(/streak/i);
+  });
+
+  it('a user with no saved conversations has an empty story, not a fake count', async () => {
+    store.conversations = 0;
+    let payload = '';
+    const path = '/api/your-story/full';
+    await handleYourStoryRoutes(
+      { method: 'GET', url: path, headers: {} } as unknown as IncomingMessage,
+      {
+        headersSent: false,
+        setHeader: vi.fn(),
+        writeHead: vi.fn(),
+        end: (c?: string) => (payload = c ?? ''),
+      } as unknown as ServerResponse,
+      path,
+      new URL(path, 'http://x')
+    );
+    apiGet.mockResolvedValue({ ok: true, status: 200, data: JSON.parse(payload) });
+    expect((JSON.parse(payload) as { data: { header: unknown } }).data.header).toMatchObject({
+      totalConversations: 0,
+    });
+    expect(await fetchYourStory()).toEqual({ status: 'empty' });
+  });
+});
 
 describe('Your Story dashboard, real server output', () => {
   beforeEach(() => {
