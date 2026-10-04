@@ -469,7 +469,7 @@
     "@google-cloud/vertexai": "1.12.0",
     "@google/genai": "^1.30.0",
     "@google/generative-ai": "0.24.1",
-    "@huggingface/transformers": "3.8.1",
+    "@huggingface/transformers": "4.3.0",
     "@livekit/agents": "1.5.1",
     "@livekit/agents-plugin-cartesia": "1.5.1",
     "@livekit/agents-plugin-google": "1.5.1",
