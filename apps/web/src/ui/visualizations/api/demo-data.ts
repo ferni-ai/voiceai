@@ -253,7 +253,7 @@ function createDemoGrowthRadar(): GrowthRadarData {
  * Demo emotional arcs showing a recovery journey.
  */
 function createDemoEmotionalArcs(): EmotionalArcsData {
-  const phases: EmotionalArcPhase[] = [
+  const phases: Array<EmotionalArcPhase & { intensity: number }> = [
     { name: 'The Call', position: 0, intensity: 0.3, description: 'Something needed to change' },
     { name: 'The Descent', position: 0.25, intensity: 0.7, description: 'Facing what was hard' },
     { name: 'The Depths', position: 0.4, intensity: 0.9, description: 'Rock bottom became foundation' },

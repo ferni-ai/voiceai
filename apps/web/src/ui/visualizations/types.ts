@@ -101,7 +101,15 @@ export type MoodType =
   | 'stressed'
   | 'energized'
   | 'peaceful'
-  | 'uncertain';
+  | 'uncertain'
+  // The mood words the server records (superhuman/mood-calendar)
+  | 'content'
+  | 'neutral'
+  | 'sad'
+  | 'frustrated'
+  | 'overwhelmed'
+  | 'exhausted'
+  | 'hopeful';
 
 /**
  * Mood calendar data.
@@ -111,9 +119,10 @@ export interface MoodCalendarData {
   summary: {
     dominantMood: MoodType;
     calmDays: number;
-    trend: 'improving' | 'stable' | 'declining';
+    /** Only when there are enough days to tell */
+    trend?: 'improving' | 'stable' | 'declining';
   };
-  period: 'week' | 'month' | 'quarter';
+  period?: 'week' | 'month' | 'quarter';
 }
 
 /**
@@ -146,7 +155,8 @@ export interface TimelineChapter {
   startDate: string;
   endDate?: string;
   isActive: boolean;
-  progress: number; // 0-1
+  /** 0-1, only when something measures it */
+  progress?: number;
   summary?: string;
 }
 
@@ -185,7 +195,7 @@ export interface GrowthRadarData {
 export interface EmotionalArcPhase {
   name: string;
   position: number; // 0-1 along the arc
-  intensity: number; // 0-1
+  intensity?: number; // 0-1, when measured
   description?: string;
 }
 
@@ -193,9 +203,11 @@ export interface EmotionalArcPhase {
  * Emotional arcs data.
  */
 export interface EmotionalArcsData {
-  currentPhase: EmotionalArcPhase;
+  currentPhase: EmotionalArcPhase & { intensity: number };
   phases: EmotionalArcPhase[];
-  arcType: 'hero-journey' | 'growth' | 'recovery' | 'discovery';
+  /** What the arc is about, e.g. "work anxiety"; shown instead of arcType */
+  theme?: string;
+  arcType?: 'hero-journey' | 'growth' | 'recovery' | 'discovery';
 }
 
 /**
@@ -234,8 +246,9 @@ export interface Relationship {
   name: string;
   strength: number; // 0-1
   lastContact: string;
-  category: 'family' | 'friend' | 'colleague' | 'mentor' | 'other';
-  trend: 'deepening' | 'stable' | 'fading';
+  category: 'family' | 'partner' | 'friend' | 'colleague' | 'mentor' | 'other';
+  /** Only when something shows it */
+  trend?: 'deepening' | 'stable' | 'fading';
 }
 
 /**
@@ -267,7 +280,8 @@ export interface OpenLoopsData {
   loops: OpenLoop[];
   totalOpen: number;
   oldestLoop?: OpenLoop;
-  recentlyClosed: number;
+  /** Only when closed loops are tracked */
+  recentlyClosed?: number;
 }
 
 /**
@@ -358,7 +372,7 @@ export interface VisualizationColors {
   textSecondary: string;
   textMuted: string;
   borderSubtle: string;
-  moods: Record<MoodType, string>;
+  moods: Partial<Record<MoodType, string>>;
   energy: {
     emotional: string;
     mental: string;

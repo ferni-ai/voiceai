@@ -75,35 +75,12 @@ async function dashboardWith(prediction: unknown): Promise<void> {
       tagline: '',
     },
     energy: null,
-    // The other sections as the server sends them today, empty.
-    moodCalendar: {
-      month: 10,
-      year: 2026,
-      days: [],
-      summary: { calmDays: 0, dominantMood: 'neutral', trend: 'stable' },
-    },
-    growth: { overallScore: 0, dimensions: [], strongest: '', growthEdge: '', narrative: '' },
+    // The other sections as the server sends them with no data
+    moodCalendar: null,
     lifeChapters: [],
-    recoveryPath: {
-      currentPhase: '',
-      phaseLabel: '',
-      progress: 0,
-      emotionalIntensity: 0,
-      phases: [],
-    },
-    yourWorld: {
-      totalConnections: 0,
-      activeConnections: 0,
-      needsAttention: 0,
-      categories: [],
-      topConnections: [],
-    },
-    openLoops: {
-      total: 0,
-      closedThisWeek: 0,
-      byPriority: { high: 0, medium: 0, low: 0 },
-      items: [],
-    },
+    emotionalArc: null,
+    yourWorld: null,
+    openLoops: null,
     prediction,
     lastUpdated: '2026-10-04T00:00:00.000Z',
   };

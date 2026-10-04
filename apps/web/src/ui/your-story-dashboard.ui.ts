@@ -438,11 +438,13 @@ class YourStoryUI {
     row.appendChild(burnout);
     section.appendChild(row);
 
-    const insight = el('p', 'your-story__insight');
-    const dominantMood = data.moodCalendar?.summary?.dominantMood ?? 'calm';
-    const moodSummaryTemplate = t('yourStory.insights.moodSummary') || "You've been feeling mostly {mood} this week";
-    insight.textContent = moodSummaryTemplate.replace('{mood}', dominantMood);
-    section.appendChild(insight);
+    const dominantMood = data.moodCalendar?.summary?.dominantMood; // no mood data, no line
+    if (dominantMood) {
+      const insight = el('p', 'your-story__insight');
+      const moodSummaryTemplate = t('yourStory.insights.moodSummary') || "You've been feeling mostly {mood} this week";
+      insight.textContent = moodSummaryTemplate.replace('{mood}', dominantMood);
+      section.appendChild(insight);
+    }
 
     return section;
   }
@@ -469,12 +471,15 @@ class YourStoryUI {
     row.appendChild(arcs);
     section.appendChild(row);
 
-    const insight = el('p', 'your-story__insight');
-    const chapter = data.lifeTimeline?.currentChapter?.title ?? (t('yourStory.fallbacks.chapter') ?? 'Your Journey');
-    const focus = data.growthRadar?.focusArea ?? (t('yourStory.fallbacks.focus') ?? 'growth');
-    const chapterFocusTemplate = t('yourStory.insights.chapterFocus') || 'Current chapter: {chapter} | Focus area: {focus}';
-    insight.textContent = chapterFocusTemplate.replace('{chapter}', chapter).replace('{focus}', focus);
-    section.appendChild(insight);
+    // Only the parts that are known: a real chapter title, a real focus area
+    const chapter = data.lifeTimeline?.currentChapter?.title;
+    const focus = data.growthRadar?.focusArea;
+    if (chapter || focus) {
+      const insight = el('p', 'your-story__insight');
+      const both = t('yourStory.insights.chapterFocus') || 'Current chapter: {chapter} | Focus area: {focus}';
+      insight.textContent = chapter && focus ? both.replace('{chapter}', chapter).replace('{focus}', focus) : chapter ? `Current chapter: ${chapter}` : `Focus area: ${focus}`;
+      section.appendChild(insight);
+    }
 
     return section;
   }

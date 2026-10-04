@@ -366,7 +366,7 @@ async function fetchEmotionalArcs(
     if (!firstDoc) return undefined; // Guard for noUncheckedIndexedAccess
     const data = firstDoc.data();
 
-    const phases: EmotionalArcPhase[] = (data.phases || []).map((p: Record<string, unknown>, i: number, arr: unknown[]) => ({
+    const phases: Array<EmotionalArcPhase & { intensity: number }> = (data.phases || []).map((p: Record<string, unknown>, i: number, arr: unknown[]) => ({
       name: (p.name as string) || `Phase ${i + 1}`,
       position: (p.position as number) ?? i / arr.length,
       intensity: (p.intensity as number) ?? 0.5,
