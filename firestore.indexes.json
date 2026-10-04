@@ -684,7 +684,7 @@
     },
     {
       "collectionGroup": "entities",
-      "queryScope": "COLLECTION_GROUP",
+      "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "type", "order": "ASCENDING" },
         { "fieldPath": "lastMentioned", "order": "DESCENDING" },
