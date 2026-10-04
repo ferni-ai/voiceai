@@ -196,3 +196,6 @@ test_higgs_output.wav
 
 # Swift build caches: these captured env vars (incl. API keys) and leaked them in history
 **/.build/
+# Xcode build data: also captured shell env (PERPLEXITY_API_KEY, GEMINI key)
+apps/ios-native/build/
+**/XCBuildData/
