@@ -58,4 +58,38 @@ describe('Creative DNA card', () => {
     expect(dnaCard()?.getAttribute('data-loading')).toBe('false');
     expect(dnaCard()?.querySelector('.empty-dna')).not.toBeNull();
   });
+  // The shape GET /api/creative/dna returns (src/tests/creative-dna-dashboard.test.ts).
+  function dnaWith(learningStyle: string | null) {
+    return {
+      personalityLabel: 'The Newcomer',
+      personalityDescription: "You're just getting started.",
+      topTopics: [{ topic: 'gardening', score: 2 }],
+      totalVideosWatched: 0,
+      totalPodcastsListened: 0,
+      totalInsightsSaved: 0,
+      learningStyle,
+    };
+  }
+  const styleStat = () =>
+    [...(dnaCard()?.querySelectorAll('.dna-stats .stat') ?? [])].find(
+      (stat) => stat.querySelector('.stat-label')?.textContent === 'creativeYou.style'
+    );
+
+  it('leaves out Your Style when Ferni has not learned one', async () => {
+    apiGet.mockResolvedValue({ ok: true, status: 200, data: { dna: dnaWith(null) } });
+
+    await getCreativeYouDashboard('device-c').initialize();
+
+    expect(dnaCard()?.querySelector('.interest-name')?.textContent).toBe('gardening');
+    expect(styleStat()).toBeUndefined();
+    expect(dnaCard()?.textContent).not.toMatch(/explorer|null/i);
+  });
+
+  it('shows Your Style when it came from real activity', async () => {
+    apiGet.mockResolvedValue({ ok: true, status: 200, data: { dna: dnaWith('audio') } });
+
+    await getCreativeYouDashboard('device-d').initialize();
+
+    expect(styleStat()?.querySelector('.stat-value')?.textContent).toBe('audio');
+  });
 });

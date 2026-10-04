@@ -41,7 +41,8 @@ export interface CreativeDNA {
   totalVideosWatched: number;
   totalPodcastsListened: number;
   totalInsightsSaved: number;
-  learningStyle: string;
+  /** null until Ferni has learned a style from real activity */
+  learningStyle: string | null;
 }
 
 export interface LearningTrack {

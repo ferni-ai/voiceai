@@ -10,16 +10,25 @@
  * dashboard's empty state — when there is nothing real to show, instead of a
  * default "Newcomer" profile that looks like something Ferni learned.
  *
+ * Learning style is only computed from watching/listening/saving activity;
+ * until there is some, it is null (the card leaves it out) rather than the
+ * initial "explorer" default.
+ *
  * @module services/creative-you/creative-dna-view
  */
 
-import { getCreativeDNA, type CreativeDNA } from './creative-dna.js';
+import { getCreativeDNA, type CreativeDNA, type LearningStyle } from './creative-dna.js';
 import { getCreativeYouPersistence } from './persistence.js';
 
 const MAX_TOPICS = 10;
 
+/** Creative DNA for display: learningStyle is null until activity has set it. */
+export type CreativeDNAView = Omit<CreativeDNA, 'learningStyle'> & {
+  learningStyle: LearningStyle | null;
+};
+
 /** The user's Creative DNA with interests from persisted topics, or null when there is none. */
-export async function loadCreativeDNAView(userId: string): Promise<CreativeDNA | null> {
+export async function loadCreativeDNAView(userId: string): Promise<CreativeDNAView | null> {
   const history = await getCreativeYouPersistence().loadTopicHistory(userId);
   const dna = getCreativeDNA(userId);
   const activity = dna.totalVideosWatched + dna.totalPodcastsListened + dna.totalInsightsSaved;
@@ -40,5 +49,5 @@ export async function loadCreativeDNAView(userId: string): Promise<CreativeDNA |
   }
 
   const topTopics = [...scores.values()].sort((a, b) => b.score - a.score).slice(0, MAX_TOPICS);
-  return { ...dna, topTopics };
+  return { ...dna, topTopics, learningStyle: activity > 0 ? dna.learningStyle : null };
 }

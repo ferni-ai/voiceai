@@ -58,7 +58,7 @@ interface CreativeDNA {
   totalVideosWatched: number;
   totalPodcastsListened: number;
   totalInsightsSaved: number;
-  learningStyle: string;
+  learningStyle: string | null; // null until learned from real activity
 }
 
 interface LearningTrack {
@@ -595,10 +595,7 @@ export class CreativeYouDashboard {
           <span class="stat-value">${this.creativeDNA.totalInsightsSaved}</span>
           <span class="stat-label">${t('creativeYou.insights')}</span>
         </div>
-        <div class="stat">
-          <span class="stat-value">${this.creativeDNA.learningStyle}</span>
-          <span class="stat-label">${t('creativeYou.style')}</span>
-        </div>
+        ${this.creativeDNA.learningStyle ? `<div class="stat"><span class="stat-value">${this.creativeDNA.learningStyle}</span><span class="stat-label">${t('creativeYou.style')}</span></div>` : ''}
       </div>
 
       ${

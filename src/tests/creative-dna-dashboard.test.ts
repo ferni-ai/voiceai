@@ -28,6 +28,7 @@ vi.mock('../api/auth-middleware.js', () => ({
 }));
 
 const { handleCreativeYouRoutes } = await import('../api/routes/creative-you-routes.js');
+const { updateCreativeDNA } = await import('../services/creative-you/creative-dna.js');
 
 async function getDna(query = ''): Promise<{ status: number; body: Record<string, unknown> }> {
   const out = { status: 0, body: {} as Record<string, unknown> };
@@ -84,6 +85,25 @@ describe('GET /api/creative/dna', () => {
       { topic: 'marathon training', score: 5 },
       { topic: 'gardening', score: 2 },
     ]);
+  });
+
+  it('has no style when only conversation topics are known, instead of the default "explorer"', async () => {
+    loadTopicHistory.mockResolvedValue(history([{ topic: 'gardening', count: 2 }]));
+
+    const { body } = await getDna();
+
+    expect((body.dna as { learningStyle: unknown }).learningStyle).toBeNull();
+  });
+
+  it('keeps the style computed from real watching/listening activity', async () => {
+    authedUser = 'active-user';
+    for (let i = 0; i < 3; i++) updateCreativeDNA('active-user', { type: 'podcast_listened' });
+    loadTopicHistory.mockResolvedValue(history([]));
+
+    const { body } = await getDna();
+
+    // 3 podcasts, 0 videos: calculateLearningStyle says 'audio'
+    expect((body.dna as { learningStyle: unknown }).learningStyle).toBe('audio');
   });
 
   it('reads the signed-in user, ignoring a ?userId= for someone else', async () => {
