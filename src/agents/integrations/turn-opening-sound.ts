@@ -10,6 +10,12 @@
  * other turn at most, half the time) because the same sound on every turn is
  * a tic, the thing the opener gate removes from the text.
  *
+ * Off by default (TURN_OPENING_SOUND=on enables it). On a dev call
+ * (2026-10-04) every "Mm" was followed by the reply 20-250 ms later, so the
+ * clip landed on the start of Ferni's own sentence, which usually opens with
+ * an acknowledgement anyway ("Mm. Good to hear."). Fillers only help when the
+ * wait is long (around 4 s, arXiv 2507.22352); replies now start in about 1 s.
+ *
  * @module agents/integrations/turn-opening-sound
  */
 
@@ -24,6 +30,13 @@ export const TURN_OPENING = {
   /** No opening sound right after a backchannel: "mm ... mm". */
   afterBackchannelMs: 2500,
 } as const;
+
+/** Whether to attach the opening sound at all (opt-in, see module doc). */
+export function turnOpeningSoundEnabled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return env.TURN_OPENING_SOUND === 'on';
+}
 
 export interface TurnOpeningMoment {
   /** The user's final words for the turn. */

@@ -1,12 +1,27 @@
 import { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { attachTurnOpeningSound, turnOpeningClip } from '../turn-opening-sound.js';
+import {
+  attachTurnOpeningSound,
+  turnOpeningClip,
+  turnOpeningSoundEnabled,
+} from '../turn-opening-sound.js';
 
 const base = {
   transcript: 'My manager moved the deadline up.',
   playedLastTurn: false,
   sinceLastClipMs: 60_000,
 };
+
+describe('turnOpeningSoundEnabled', () => {
+  it('is off unless TURN_OPENING_SOUND=on: replies land on top of the clip', () => {
+    // dev call 2026-10-04: the reply was ready 20-250 ms after every "Mm", so
+    // the clip collided with the start of Ferni's own sentence
+    expect(turnOpeningSoundEnabled({})).toBe(false);
+    expect(turnOpeningSoundEnabled({ TURN_OPENING_SOUND: 'off' })).toBe(false);
+    expect(turnOpeningSoundEnabled({ TURN_OPENING_SOUND: 'yes' })).toBe(false);
+    expect(turnOpeningSoundEnabled({ TURN_OPENING_SOUND: 'on' })).toBe(true);
+  });
+});
 
 describe('turnOpeningClip', () => {
   it('says "Mm" to news and "Hmm" to a question', () => {
