@@ -5370,63 +5370,6 @@ body {
   align-items: center;
 }
 
-/* Handoff Progress Indicator - Apple-style pill */
-.handoff-progress {
-  background: var(--color-bg-elevated);
-  border-radius: var(--radius-full);
-  padding: 10px 20px;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--color-border-subtle);
-  opacity: 1;
-  transform: translateY(0);
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
-  margin-top: 8px;
-}
-
-.handoff-progress.hidden {
-  opacity: 0;
-  transform: translateY(-10px);
-  pointer-events: none;
-}
-
-.handoff-progress-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.handoff-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--color-border-medium);
-  border-top-color: var(--persona-primary);
-  border-radius: 50%;
-  animation: handoffSpin 0.8s linear infinite;
-}
-
-@keyframes handoffSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.handoff-text {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-#handoffTargetName {
-  color: var(--persona-primary);
-  font-weight: 600;
-  gap: 8px;
-
-  /* Invisible by default - children handle their own visibility */
-  pointer-events: none;
-}
-
 /* Context pill styles removed - thinking now integrated into avatar */
 
 /* ========================================================================

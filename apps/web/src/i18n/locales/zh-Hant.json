@@ -1115,6 +1115,7 @@
       "yourPlan": "您的方案",
       "insights": "[NEEDS_TRANSLATION] Understanding You",
       "yourStory": "[NEEDS_TRANSLATION] Your Story",
+      "trustDashboard": "信任與成長",
       "whatINotice": "[NEEDS_TRANSLATION] What I Notice",
       "teamSessions": "[NEEDS_TRANSLATION] Team Sessions",
       "conferenceCalls": "[NEEDS_TRANSLATION] Conference Calls",
@@ -2012,12 +2013,12 @@
     },
     "empty": {
       "title": "你的故事從這裡開始",
-      "body": "我們多聊幾次之後，對你重要的時刻會出現在這裡。"
+      "body": "等我們聊過幾次之後，對你重要的時刻會出現在這裡。"
     },
     "error": {
       "title": "無法載入你的故事",
-      "body": "我們這邊出了點問題。再試一次？",
-      "retry": "重試"
+      "body": "我們這邊出了點問題。要再試一次嗎？",
+      "retry": "再試一次"
     }
   },
   "memoryBrowser": {
@@ -2263,7 +2264,7 @@
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
       "skip": "[NEEDS_TRANSLATION] Skip",
-      "linkSpotify": "在設定中連結 Spotify 即可收聽完整歌曲"
+      "linkSpotify": "在設定中連結 Spotify 即可播放完整歌曲"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2329,9 +2330,9 @@
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
-    "connectDevicesFirst": "請先連接你的燈光或溫控器",
-    "couldNotChangeLights": "無法更改燈光。再試一次？",
-    "musicNeedsCall": "音樂控制在對話期間可用"
+    "connectDevicesFirst": "請先連接你的燈光或恆溫器",
+    "musicNeedsCall": "音樂控制在對話期間可用",
+    "couldNotChangeLights": "無法變更燈光。要再試一次嗎？"
   },
   "ui": {
     "accountbutton": {
@@ -2463,7 +2464,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "最近 7 天"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2566,6 +2568,10 @@
       "subtitle": "通話、訊息和信守的承諾",
       "empty": "還沒有操作",
       "recent": "最近"
+    },
+    "predictions": {
+      "title": "你的方向",
+      "now": "現在"
     }
   },
   "sleepSettings": {
@@ -3006,6 +3012,145 @@
       "fictional": "虛構",
       "professional": "專業",
       "legacy": "遺產"
+    }
+  },
+  "predictionResolution": {
+    "title": "結果如何？",
+    "youGuessed": "你的預測：{value}",
+    "actual": "實際：{value}",
+    "scored": "準確率 {accuracy}%",
+    "record": "記錄實際情況",
+    "save": "核對我的預測",
+    "saveFailed": "沒能儲存。再試一次？",
+    "metrics": {
+      "deepWork": {
+        "label": "專注工作",
+        "question": "你專注工作了多少小時？",
+        "unit": "小時"
+      },
+      "exercise": {
+        "label": "運動",
+        "question": "你運動了幾次？",
+        "unit": "次"
+      },
+      "social": {
+        "label": "與人相處",
+        "question": "你和別人相處了多少小時？",
+        "unit": "小時"
+      },
+      "screen": {
+        "label": "螢幕時間",
+        "question": "你的螢幕時間是多少小時？",
+        "unit": "小時"
+      },
+      "mood": {
+        "label": "心情",
+        "question": "你的平均心情是幾分（1 到 10）？",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "你的實際{label}是多少？"
+      }
+    },
+    "result": {
+      "line": "你預測 {predicted}，實際是 {actual}。{verdict}",
+      "overall": "本週整體準確率 {accuracy}%。"
+    },
+    "tone": {
+      "spotOn": "完全猜中！",
+      "close": "非常接近！",
+      "off": "這次有點偏差。",
+      "wayOff": "這次差得挺遠。現在你知道了。"
+    }
+  },
+  "trustDashboard": {
+    "together": {
+      "empty": "我們多聊幾次之後，我會告訴你我們相處得怎麼樣。",
+      "startingTitle": "我們才剛剛開始",
+      "startingMessage": "再和我聊幾次，我就能告訴你一些真實的東西。",
+      "scoreLabel": "一起",
+      "stages": {
+        "new": "剛剛開始",
+        "building": "正在相互了解",
+        "established": "找到了我們的節奏",
+        "deep": "我們真的懂彼此",
+        "flourishing": "特別的關係"
+      },
+      "rhythm": {
+        "high": "我們經常聊天",
+        "mid": "我們會定期聊聊",
+        "low": "我們偶爾聊聊",
+        "quiet": "我們有一陣子沒聊了",
+        "detailNone": "過去一個月沒有",
+        "detailOne": "過去一個月裡有 1 天",
+        "detailOther": "過去一個月裡有 {n} 天"
+      },
+      "promises": {
+        "high": "我說到做到",
+        "mid": "我大多說到做到",
+        "low": "有幾件事我沒做到",
+        "detail": "{total} 個中做到了 {kept} 個"
+      },
+      "lift": {
+        "high": "聊完之後你通常會輕鬆一些",
+        "mid": "我們的聊天讓你保持平穩",
+        "low": "最近我們的聊天有些沉重",
+        "detail": "{days} 天中有 {lifted} 天聊到最後更輕鬆"
+      },
+      "mood": {
+        "up": "你最近看起來輕鬆了些",
+        "steady": "你最近看起來挺平穩",
+        "down": "最近感覺更沉重一些",
+        "detail": "這週與之前幾週相比"
+      }
+    },
+    "noticed": {
+      "empty": "等我們再多聊一些，我會分享我注意到的事。",
+      "notYet": "暫時還沒有特別的發現。我還在聽。",
+      "daysTalked": "我們聊天的天數",
+      "tabs": {
+        "week": "本週",
+        "month": "本月"
+      },
+      "title": {
+        "week": "這週我注意到的事",
+        "month": "這個月我注意到的事"
+      },
+      "quiet": {
+        "week": "這週我們還沒聊過。你想聊的時候我都在。",
+        "month": "這個月我們還沒聊過。你想聊的時候我都在。"
+      },
+      "moodShift": {
+        "lighter": {
+          "week": "你看起來比上週輕鬆。",
+          "month": "你看起來比上個月輕鬆。"
+        },
+        "heavier": {
+          "week": "這週比上週更沉重一些。這種時候我也在。",
+          "month": "這個月比上個月更沉重一些。這種時候我也在。"
+        }
+      },
+      "bounceBack": {
+        "nextDay": "{date}那天很難熬，但第二天你就好些了。",
+        "later": "{date}那天很難熬，但 {days} 天之內你就好些了。"
+      },
+      "liftTopic": "聊到{topic}時，你的心情通常會變好。",
+      "brightest": "{date}那天你聽起來最開心。",
+      "timeOfDay": {
+        "morning": "我們大多在早上聊天。",
+        "afternoon": "我們大多在下午聊天。",
+        "evening": "我們大多在晚上聊天。",
+        "night": "我們大多在深夜聊天。"
+      },
+      "favoriteDay": "{day}似乎是我們的日子。",
+      "cameUp": {
+        "one": "你跟我說了一件快到的事：{example}。",
+        "other": "你跟我說了 {n} 件快到的事，比如：{example}。"
+      },
+      "promisesKept": {
+        "all": "我對你做的承諾，我都兌現了。",
+        "some": "我對你做的 {total} 個承諾中，我兌現了 {kept} 個。"
+      }
     }
   }
 }

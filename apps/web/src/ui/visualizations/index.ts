@@ -100,20 +100,6 @@ export {
   animate,
 } from './utils/dom.js';
 
-// API - data fetching and transformation
-export {
-  createInsightsClient,
-  createMockVisualizationData,
-  type InsightsClientOptions,
-  type InsightsResult,
-} from './api/insights-client.js';
-
-// Firestore - direct data access for real user data
-export {
-  fetchVisualizationData,
-  type FirestoreFetcherOptions,
-} from './api/firestore-fetcher.js';
-
 // Demo data - aspirational story data for new users
 export {
   createDemoStoryData,

@@ -245,6 +245,12 @@ export const weeklyPredictionDef: ToolDefinition = {
 
           const result = await store.updatePredictionActuals(userId, targetId, actuals);
 
+          if (result === 'no-matching-metric') {
+            return {
+              error: 'Actuals must use the same category names as the prediction',
+              instruction: 'Call get-pending to see the exact names, then record-actuals again',
+            };
+          }
           if (!result) {
             return { error: 'Prediction not found or already resolved' };
           }

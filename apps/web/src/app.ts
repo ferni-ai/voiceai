@@ -242,8 +242,9 @@ import {
   getDemoEngagementData,
   getDemoPredictions,
 } from './services/engagement-demo-data.js';
+import { scoredStreak } from './services/prediction-data.js';
 // Environment detection
-import { apiGet, apiPost, getApiHeadersAsync } from './utils/api.js';
+import { getApiHeadersAsync } from './utils/api.js';
 import { shouldUseDemoData } from './utils/environment.js';
 
 // New Feature UIs (v2)
@@ -343,7 +344,7 @@ import { initGSAP, promoteAllToGPU } from './utils/gsap-animations.js';
 import { getPersona } from './config/personas.js';
 
 // Platform Detection
-import { hideSplashScreen, initPlatform, isNative, platform } from './utils/platform.js';
+import { initPlatform, platform } from './utils/platform.js';
 
 // Magnetic hover effect
 import { initMagneticHover } from './ui/magnetic-hover.ui.js';
@@ -506,7 +507,7 @@ class VoiceAIApp {
       // Skip intro - take users straight to the app
       // The awakening can still be triggered manually if needed
 
-      // Initialize platform detection (Electron/iOS/Web)
+      // Initialize platform detection (Electron/Web)
       void initPlatform();
       log.info('Running on:', platform());
 
@@ -549,11 +550,6 @@ class VoiceAIApp {
       this.promptForUserName();
 
       this.isInitialized = true;
-
-      // Hide native splash screen on iOS/Android
-      if (isNative()) {
-        void hideSplashScreen(300);
-      }
 
       // Mark entrance complete immediately (no animations to wait for)
       const avatarContainerEl = document.querySelector('.avatar-container');
@@ -1693,43 +1689,14 @@ class VoiceAIApp {
       initializeEngagementUI();
       initializeInsightsView();
       initializePredictionsUI();
-      // Wire up prediction resolution callback
-      getPredictionsUI().setOnResolutionSubmit(async (predictionId, actualValue) => {
-        try {
-          const postResponse = await apiPost(`/api/predictions/${predictionId}/actuals`, {
-            actuals: { result: actualValue },
-          });
-          if (!postResponse.ok) throw new Error('Failed to save');
-
-          // Refresh predictions data using apiGet
-          const refreshResponse = await apiGet<{
-            predictions: Record<string, unknown>[];
-            stats?: { averageAccuracy?: number };
-          }>('/api/predictions');
-          if (refreshResponse.ok && refreshResponse.data) {
-            const predictions = refreshResponse.data.predictions || [];
-            getPredictionsUI().update({
-              predictions: predictions.map((p: Record<string, unknown>) => ({
-                id: p.id as string,
-                category: 'overall',
-                question: `Week of ${p.weekOf}`,
-                userPrediction: 50,
-                actualOutcome: p.accuracy as number | undefined,
-                status: p.completedAt ? ('resolved' as const) : ('pending' as const),
-                createdAt: p.createdAt as string,
-              })),
-              accuracy: refreshResponse.data.stats?.averageAccuracy || null,
-              totalResolved: predictions.filter((p: Record<string, unknown>) => p.completedAt)
-                .length,
-              currentStreak: 0,
-            });
-          }
-
-          messageUI.show('Result recorded! Nice work tracking your predictions.', 'success', 3000);
-        } catch (err) {
-          log.error('Failed to save prediction result', err);
-          throw err;
-        }
+      // Resolution: the modal shows the server's comparison; the refresh
+      // redraws the panel through engagementService's onPredictionsUpdate.
+      getPredictionsUI().setOnResolutionSubmit(async (predictionId, actuals) => {
+        const { submitPredictionActuals } =
+          await import('./services/prediction-actuals.service.js');
+        const score = await submitPredictionActuals(predictionId, actuals);
+        void engagementService.refreshPredictions();
+        return score;
       });
     });
     this.safeInit('EngagementTriggerUI', () =>
@@ -1965,7 +1932,10 @@ class VoiceAIApp {
         onFamilyCallersClick: () => void showFamilyIdentities(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
-        onLifeContextClick: () => void showLifeContextDashboard(),
+        onLifeContextClick: () =>
+          void import('./services/life-context-updates.service.js').then((m) =>
+            m.openLifeContextDashboard()
+          ),
         onTeamInsightsClick: () => teamInsightsUI.toggle(),
         onSupportFerniClick: () => void openSupportFerni(),
         onPersonalizeClick: () => void openPersonalize(),
@@ -2176,13 +2146,6 @@ class VoiceAIApp {
         log.info({ personaId }, '🔄 ferni:switch-persona event received, triggering selectPersona');
         this.selectPersona(personaId as PersonaId);
       }
-    }) as EventListener);
-    // 🎙️ Group Conversations - imported UI opens team roundtable
-    this.addTrackedListener(window, 'ferni:start-roundtable', ((e: CustomEvent) => {
-      // Import dynamically to avoid circular deps
-      void import('./ui/group-conversation.ui.js').then((m) => {
-        void m.showTeamSelector(e.detail?.preselected);
-      });
     }) as EventListener);
 
     // 🌱 Handle garden payment result routes (Stripe redirects here)
@@ -3108,26 +3071,13 @@ class VoiceAIApp {
 
       // 🎬 Expression: Curious "thinking" expression during handoff
       ferniExpressions.contemplation(1500);
-
-      // Show handoff progress indicator
-      const handoffProgress = document.getElementById('handoffProgress');
-      const handoffTargetName = document.getElementById('handoffTargetName');
-      if (handoffProgress && handoffTargetName) {
-        const persona = getPersona(toPersona);
-        handoffTargetName.textContent = persona.name;
-        handoffProgress.classList.remove('hidden');
-        log.debug('Showing handoff progress for', persona.name);
-      } else {
-        log.warn('handoffProgress element not found!');
-      }
+      // The progress indicator itself is ui/handoff-presence.ui.ts (heartbeat-driven).
 
       // FIX BUG: Safety timeout - force hide UI after 20 seconds max
       if (handoffUITimeout) clearTimeout(handoffUITimeout);
       handoffUITimeout = setTimeout(() => {
         log.warn('Safety timeout - forcing handoff UI cleanup');
         waveformUI.setTransitioning(false);
-        const progress = document.getElementById('handoffProgress');
-        if (progress) progress.classList.add('hidden');
         thinkingUI.hide();
       }, 20000);
     });
@@ -3148,12 +3098,6 @@ class VoiceAIApp {
       // 🎬 Expression: New persona arrives with excited greeting
       ferniExpressions.heldPose('happy', 500);
 
-      // Hide handoff progress indicator
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-        log.debug('Hiding handoff progress');
-      }
       // Also make sure thinking is hidden
       thinkingUI.hide();
     });
@@ -3178,10 +3122,6 @@ class VoiceAIApp {
         this.updatePersonaTheme(rollbackTo);
       }
 
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-      }
       thinkingUI.hide();
       messageUI.show("Couldn't reach them right now. I'm still here though!", 'error', 3000);
     });
@@ -3196,36 +3136,7 @@ class VoiceAIApp {
       }
 
       waveformUI.setTransitioning(false);
-
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-      }
       thinkingUI.hide();
-    });
-
-    // FIX AUDIT GAP #3: Subscribe to handoff progress for waveform visual feedback
-    // This provides visual progress indication on the waveform/avatar even when team roster is hidden
-    handoffService.onHandoffProgress((targetPersona, elapsedMs, timeoutMs) => {
-      log.debug('onHandoffProgress:', { targetPersona, elapsedMs, timeoutMs });
-
-      // Calculate progress percentage (0-100)
-      const progress = Math.min(100, Math.round((elapsedMs / timeoutMs) * 100));
-
-      // Update waveform with progress indication
-      // The waveform shimmer intensity can vary based on progress
-      if (progress > 50) {
-        // After halfway, intensify the shimmer to show progress
-        // (waveformUI already handles transitioning state, but this adds visual variety)
-        log.debug('Handoff progress:', `${progress}%`);
-      }
-
-      // Update the handoff progress element if present
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        // Add a data attribute for CSS-based progress visualization
-        handoffProgress.setAttribute('data-progress', String(progress));
-      }
     });
 
     // Main handoff callback (plays sounds, updates UI)
@@ -3239,10 +3150,6 @@ class VoiceAIApp {
       // FIX BUG: Clean up any stuck transition UI state
       // This handles legacy single-message handoffs that don't have separate start/complete
       waveformUI.setTransitioning(false);
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-      }
       // Also hide thinking indicator in case it's stuck
       thinkingUI.hide();
 
@@ -3318,29 +3225,12 @@ class VoiceAIApp {
         const readyCount = predictions.filter((p) => p.status === 'resolved').length;
         engagementTriggerUI.updateBadges({ predictionsReady: readyCount > 0 ? readyCount : 0 });
 
-        // Update predictions panel
-        // Calculate prediction streak: consecutive accurate predictions (within 15% of actual)
-        const resolved = predictions
-          .filter((p) => p.status === 'resolved' && p.actualOutcome !== undefined)
-          .sort(
-            (a, b) => new Date(b.resolvedAt || 0).getTime() - new Date(a.resolvedAt || 0).getTime()
-          );
-
-        let predictionStreak = 0;
-        for (const p of resolved) {
-          const error = Math.abs(p.userPrediction - (p.actualOutcome ?? 0));
-          if (error <= 15) {
-            predictionStreak++;
-          } else {
-            break; // Streak broken
-          }
-        }
-
+        // Accuracy and streak come from the server's scores, not the raw numbers.
         getPredictionsUI().update({
           predictions,
           accuracy: engagementService.calculateAccuracy(),
           totalResolved: predictions.filter((p) => p.status === 'resolved').length,
-          currentStreak: predictionStreak,
+          currentStreak: scoredStreak(predictions),
         });
       },
 

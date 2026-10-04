@@ -117,7 +117,6 @@ import { handleConciergeRoutes } from '../../api/concierge-routes.js';
 import { handleProactiveRoutes } from '../../api/proactive-routes.js';
 import { handlePredictionsRoutes } from '../../api/routes/predictions.js';
 import { handleLLMContentRoutes } from '../../api/llm-content-routes.js';
-import { relationshipHealthRoutes } from '../../api/routes/relationship-health-routes.js';
 import { handleYearInReviewRoutes } from '../../api/year-in-review-routes.js';
 import { handleRelationshipRoutes } from '../../api/routes/relationship.js';
 import { handleVoiceHumanizationRoutes } from '../../api/voice-humanization-routes.js';
@@ -234,7 +233,7 @@ import { handleMusicalYouRoutes } from '../../api/routes/musical-you-routes.js';
 import { handleGamesRoutes } from '../../api/routes/games.js';
 import { handleSocialRoutes } from '../../api/routes/social-routes.js';
 import { handlePremiumRoutes } from '../../api/routes/premium-routes.js';
-import { groupConversationRoutes } from '../../api/group-conversation-routes.js';
+import { handleGroupConversationRoutes } from '../../api/group-conversation-handler.js';
 
 // Life Automation (workflows, templates, integrations)
 import {
@@ -565,25 +564,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    // Group conversation routes (Team Roundtable, Conference Calls)
-    // TODO: TECHNICAL DEBT - This uses an Express Router pattern while everything else
-    // uses raw Node.js HTTP handlers. This creates unnecessary overhead (dynamic import,
-    // mock app creation) on every /api/group/ request. Should refactor
-    // group-conversation-routes.ts to use the standard handleXxxRoutes() pattern.
-    // See: src/api/CLAUDE.md for the standard pattern.
-    if (pathname.startsWith('/api/group/')) {
-      const express = await import('express');
-      const mockApp = express.default();
-      mockApp.use('/api/group', groupConversationRoutes);
-
-      // Forward request to express router
-      await new Promise<void>((resolve, reject) => {
-        mockApp(req as any, res as any, (err: any) => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
-      if (res.writableEnded) return;
+    // Group conversation routes (Team Roundtable, Conference Calls): an Express router
+    if (pathname.startsWith('/api/group/') && (await handleGroupConversationRoutes(req, res))) {
+      return;
     }
   } catch (err) {
     log.error({ error: String(err) }, 'Group conversation route error');
@@ -871,17 +854,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
-    // Relationship routes (progress & team-unlocks before health routes)
+    // Relationship routes (progress & team-unlocks)
     if (
       pathname === '/api/relationship/progress' ||
       pathname === '/api/relationship/team-unlocks'
     ) {
       const handled = await handleRelationshipRoutes(req, res, pathname, parsedUrl);
-      if (handled) return;
-    }
-
-    if (pathname.startsWith('/api/relationship/')) {
-      const handled = await relationshipHealthRoutes(req, res);
       if (handled) return;
     }
 

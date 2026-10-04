@@ -1,0 +1,76 @@
+/*
+ * Handoff presence (ui/handoff-presence.ui.ts): while one persona brings in
+ * another, a thin arc sweeps the avatar ring and a short caption floats in the
+ * thinking indicator's slot under the avatar. Shown only for handoffs slower
+ * than ~700 ms; never a pill under the connect button (removed in 8ad5a52b8).
+ */
+
+.handoff-presence-ring {
+  position: absolute;
+  inset: -10px; /* on top of #avatarRing */
+  border-radius: var(--radius-full);
+  border: 1.5px solid transparent;
+  border-top-color: var(--persona-primary);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-slow) var(--ease-gentle);
+}
+
+.avatar-container.is-handing-off .handoff-presence-ring {
+  opacity: 0.8;
+  animation: handoffPresenceSweep var(--duration-glacial) linear infinite;
+}
+
+@keyframes handoffPresenceSweep {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.handoff-presence-caption {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-background-elevated);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: var(--z-docked);
+  transition: opacity var(--duration-slow) var(--ease-gentle);
+}
+
+/* An empty caption is never drawn (it stays in the DOM as the live region). */
+.handoff-presence-caption:empty {
+  visibility: hidden;
+}
+
+.avatar-container.is-handing-off .handoff-presence-caption {
+  opacity: 1;
+}
+
+/* The caption takes the thinking indicator's slot while a handoff runs. */
+.avatar-container.is-handing-off .thinking-float {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .handoff-presence-ring,
+  .handoff-presence-caption {
+    transition: none;
+  }
+
+  /* No sweep: a steady, slightly stronger ring says "in progress" instead. */
+  .avatar-container.is-handing-off .handoff-presence-ring {
+    animation: none;
+    border-color: var(--persona-primary);
+    opacity: 0.45;
+  }
+}

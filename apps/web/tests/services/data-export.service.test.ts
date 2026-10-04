@@ -117,9 +117,9 @@ describe('dataExportService', () => {
 
   describe('deleteAccount', () => {
     it('sends the confirmation the server requires, then signs out releasing push', async () => {
-      mockServer(200, { success: true });
+      mockServer(200, { success: true, details: { failures: [] } });
 
-      await dataExportService.deleteAccount();
+      expect(await dataExportService.deleteAccount()).toBeNull();
 
       expect(calls[0].url).toBe('/api/account');
       expect(calls[0].init.method).toBe('DELETE');

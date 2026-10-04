@@ -1108,6 +1108,7 @@
       "insights": "알아차린 것들",
       "yourJourney": "우리의 여정",
       "yourStory": "지금까지의 이야기",
+      "trustDashboard": "신뢰와 성장",
       "yourYear": "함께한 1년",
       "whatIllKnow": "내가 알게 될 것",
       "whatINotice": "알아차린 것들",
@@ -2012,11 +2013,11 @@
     },
     "empty": {
       "title": "당신의 이야기는 여기서 시작돼요",
-      "body": "몇 번 대화를 나누고 나면, 당신에게 중요한 순간들이 여기에 나타나요."
+      "body": "몇 번 대화를 나누고 나면, 당신에게 소중한 순간들이 여기에 나타날 거예요."
     },
     "error": {
       "title": "이야기를 불러오지 못했어요",
-      "body": "저희 쪽에 문제가 생겼어요. 다시 시도할까요?",
+      "body": "저희 쪽에서 문제가 생겼어요. 다시 시도할까요?",
       "retry": "다시 시도"
     }
   },
@@ -2329,9 +2330,9 @@
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
     },
-    "connectDevicesFirst": "먼저 조명이나 온도 조절기를 연결해 주세요",
-    "couldNotChangeLights": "조명을 바꾸지 못했어요. 다시 시도할까요?",
-    "musicNeedsCall": "음악 컨트롤은 대화 중에 사용할 수 있어요"
+    "connectDevicesFirst": "먼저 조명이나 온도 조절기를 연결하세요",
+    "musicNeedsCall": "음악 조작은 대화 중에 사용할 수 있어요",
+    "couldNotChangeLights": "조명을 바꾸지 못했어요. 다시 시도할까요?"
   },
   "ui": {
     "accountbutton": {
@@ -2463,7 +2464,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "최근 7일"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2566,6 +2568,10 @@
       "subtitle": "전화, 메시지, 지킨 약속",
       "empty": "아직 작업 없음",
       "recent": "최근"
+    },
+    "predictions": {
+      "title": "앞으로의 방향",
+      "now": "지금"
     }
   },
   "sleepSettings": {
@@ -3006,6 +3012,145 @@
       "fictional": "가상",
       "professional": "전문가",
       "legacy": "레거시"
+    }
+  },
+  "predictionResolution": {
+    "title": "어땠어요?",
+    "youGuessed": "예상: {value}",
+    "actual": "실제: {value}",
+    "scored": "정확도 {accuracy}%",
+    "record": "결과 기록하기",
+    "save": "예상 맞춰 보기",
+    "saveFailed": "저장하지 못했어요. 다시 해 볼까요?",
+    "metrics": {
+      "deepWork": {
+        "label": "몰입 작업",
+        "question": "몰입해서 일한 시간은 몇 시간이었나요?",
+        "unit": "시간"
+      },
+      "exercise": {
+        "label": "운동",
+        "question": "운동은 몇 번 했나요?",
+        "unit": "회"
+      },
+      "social": {
+        "label": "사람들과 보낸 시간",
+        "question": "사람들과 보낸 시간은 몇 시간이었나요?",
+        "unit": "시간"
+      },
+      "screen": {
+        "label": "화면 사용 시간",
+        "question": "화면 사용 시간은 몇 시간이었나요?",
+        "unit": "시간"
+      },
+      "mood": {
+        "label": "기분",
+        "question": "평균 기분은 1부터 10 중 몇이었나요?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "실제 {label} 값은 얼마였나요?"
+      }
+    },
+    "result": {
+      "line": "예상은 {predicted}, 실제는 {actual}. {verdict}",
+      "overall": "이번 주 전체 정확도는 {accuracy}%예요."
+    },
+    "tone": {
+      "spotOn": "딱 맞혔어요!",
+      "close": "꽤 가까워요!",
+      "off": "이번엔 조금 빗나갔어요.",
+      "wayOff": "이번엔 많이 빗나갔어요. 이제 알게 됐네요."
+    }
+  },
+  "trustDashboard": {
+    "together": {
+      "empty": "몇 번 이야기를 나누고 나면, 우리가 어떻게 지내고 있는지 말해 줄게요.",
+      "startingTitle": "이제 막 시작했어요",
+      "startingMessage": "몇 번만 더 이야기해 주면, 진짜 의미 있는 이야기를 해 줄 수 있어요.",
+      "scoreLabel": "함께",
+      "stages": {
+        "new": "이제 막 시작",
+        "building": "서로 알아가는 중",
+        "established": "우리만의 리듬을 찾는 중",
+        "deep": "서로를 정말 이해해요",
+        "flourishing": "특별한 사이"
+      },
+      "rhythm": {
+        "high": "자주 이야기해요",
+        "mid": "꾸준히 안부를 나눠요",
+        "low": "가끔 이야기해요",
+        "quiet": "이야기한 지 꽤 됐어요",
+        "detailNone": "지난 한 달 동안 없음",
+        "detailOne": "지난 한 달 중 1일",
+        "detailOther": "지난 한 달 중 {n}일"
+      },
+      "promises": {
+        "high": "약속을 지켜요",
+        "mid": "대부분 약속을 지켜요",
+        "low": "몇 가지를 놓쳤어요",
+        "detail": "{total}개 중 {kept}개 지킴"
+      },
+      "lift": {
+        "high": "이야기를 마치면 대개 마음이 가벼워져요",
+        "mid": "우리 대화가 마음을 잡아 줘요",
+        "low": "요즘 대화가 무거웠어요",
+        "detail": "{days}일 중 {lifted}일은 끝에 더 가벼워졌어요"
+      },
+      "mood": {
+        "up": "요즘 한결 가벼워 보여요",
+        "steady": "요즘 안정적으로 보여요",
+        "down": "요즘 조금 무거워 보여요",
+        "detail": "이번 주와 그 전 몇 주를 비교했어요"
+      }
+    },
+    "noticed": {
+      "empty": "조금 더 이야기하고 나면 제가 알아챈 걸 알려 줄게요.",
+      "notYet": "아직 눈에 띄는 건 없어요. 계속 듣고 있을게요.",
+      "daysTalked": "이야기한 날",
+      "tabs": {
+        "week": "이번 주",
+        "month": "이번 달"
+      },
+      "title": {
+        "week": "이번 주에 알아챈 것들",
+        "month": "이번 달에 알아챈 것들"
+      },
+      "quiet": {
+        "week": "이번 주에는 이야기하지 못했네요. 언제든 여기 있을게요.",
+        "month": "이번 달에는 이야기하지 못했네요. 언제든 여기 있을게요."
+      },
+      "moodShift": {
+        "lighter": {
+          "week": "지난주보다 한결 가벼워 보여요.",
+          "month": "지난달보다 한결 가벼워 보여요."
+        },
+        "heavier": {
+          "week": "이번 주는 지난주보다 무거웠어요. 그럴 때도 제가 곁에 있을게요.",
+          "month": "이번 달은 지난달보다 무거웠어요. 그럴 때도 제가 곁에 있을게요."
+        }
+      },
+      "bounceBack": {
+        "nextDay": "{date}은 힘든 날이었지만, 다음 날에는 기분이 나아졌어요.",
+        "later": "{date}은 힘든 날이었지만, {days}일 안에 기분이 나아졌어요."
+      },
+      "liftTopic": "{topic} 이야기를 하면 기분이 좋아지는 것 같아요.",
+      "brightest": "{date}에 가장 행복해 보였어요.",
+      "timeOfDay": {
+        "morning": "주로 아침에 이야기해요.",
+        "afternoon": "주로 오후에 이야기해요.",
+        "evening": "주로 저녁에 이야기해요.",
+        "night": "주로 늦은 밤에 이야기해요."
+      },
+      "favoriteDay": "{day}이 우리의 날인 것 같아요.",
+      "cameUp": {
+        "one": "다가오는 일을 하나 알려 줬어요: {example}.",
+        "other": "다가오는 일을 {n}가지 알려 줬어요. 예를 들면: {example}."
+      },
+      "promisesKept": {
+        "all": "당신과 한 약속은 모두 지켰어요.",
+        "some": "당신과 한 약속 {total}개 중 {kept}개를 지켰어요."
+      }
     }
   }
 }
