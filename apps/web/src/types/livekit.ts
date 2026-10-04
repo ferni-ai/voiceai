@@ -19,7 +19,10 @@ export type {
   VideoTrack,
 } from 'livekit-client';
 
-export {
+// Type-only on purpose: a value export from 'livekit-client' pulls the whole
+// SDK (~420 KB) into the startup bundle. The runtime client comes from the
+// voice-engine.js UMD script (window.LiveKit, see services/connection.service.ts).
+export type {
   ConnectionState as LiveKitConnectionState,
   Track as LiveKitTrack,
   ParticipantEvent,

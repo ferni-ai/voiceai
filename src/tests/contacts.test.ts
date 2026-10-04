@@ -197,6 +197,24 @@ describe('Contacts Service', () => {
       const result = updateContact('non-existent', { displayName: 'Test' });
       expect(result).toBeNull();
     });
+
+    it('should not throw when the stored contact has no phones array (legacy/malformed data)', () => {
+      const contact = createContact(testUserId, {
+        displayName: 'Legacy Contact',
+        phone: '555-200-0000',
+      });
+
+      // Simulate a contact hydrated from storage without the `phones` array
+      // populated (e.g. an older schema, or a partial/external write) - the
+      // real "Background task failed: data-capture-storage" bug was
+      // `contact.phones.length` throwing here because `phones` was undefined.
+      expect(() =>
+        updateContact(contact.id, { phones: undefined, notes: 'reached out' })
+      ).not.toThrow();
+
+      const updated = updateContact(contact.id, { notes: 'reached out again' });
+      expect(updated?.notes).toBe('reached out again');
+    });
   });
 
   describe('deleteContact', () => {

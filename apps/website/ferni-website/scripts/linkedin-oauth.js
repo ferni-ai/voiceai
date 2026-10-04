@@ -15,10 +15,10 @@
  * https://www.linkedin.com/developers/apps/{app-id}/products
  */
 
-// Ferni Marketing app credentials
+// Ferni Marketing app credentials: set LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET in the environment
 const CONFIG = {
-  clientId: '86tmx8qezi0jz1',
-  clientSecret: 'WPL_AP1.FQQlhC4yNWsm3NUb.imS7jg==',
+  clientId: process.env.LINKEDIN_CLIENT_ID,
+  clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
   redirectUri: 'http://localhost:3000/callback',
   organizationId: '110229625', // Ferni company page
 

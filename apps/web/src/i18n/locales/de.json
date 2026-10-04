@@ -3013,5 +3013,54 @@
       "professional": "Beruflich",
       "legacy": "Erbe"
     }
+  },
+  "predictionResolution": {
+    "title": "Wie ist es gelaufen?",
+    "youGuessed": "Ihre Schätzung: {value}",
+    "actual": "Tatsächlich: {value}",
+    "scored": "{accuracy} % genau",
+    "record": "Ergebnis eintragen",
+    "save": "Schätzungen prüfen",
+    "saveFailed": "Das ließ sich nicht speichern. Erneut versuchen?",
+    "metrics": {
+      "deepWork": {
+        "label": "Konzentriertes Arbeiten",
+        "question": "Wie viele Stunden konzentriertes Arbeiten hatten Sie?",
+        "unit": "Stunden"
+      },
+      "exercise": {
+        "label": "Sport",
+        "question": "Wie oft haben Sie Sport gemacht?",
+        "unit": "Einheiten"
+      },
+      "social": {
+        "label": "Zeit mit anderen",
+        "question": "Wie viele Stunden haben Sie mit anderen Menschen verbracht?",
+        "unit": "Stunden"
+      },
+      "screen": {
+        "label": "Bildschirmzeit",
+        "question": "Wie viele Stunden Bildschirmzeit hatten Sie?",
+        "unit": "Stunden"
+      },
+      "mood": {
+        "label": "Stimmung",
+        "question": "Wie war Ihre durchschnittliche Stimmung, von 1 bis 10?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "Wie hoch war Ihr tatsächlicher Wert für {label}?"
+      }
+    },
+    "result": {
+      "line": "Sie haben {predicted} geschätzt. Es waren {actual}. {verdict}",
+      "overall": "Insgesamt {accuracy} % genau diese Woche."
+    },
+    "tone": {
+      "spotOn": "Volltreffer!",
+      "close": "Ziemlich nah dran!",
+      "off": "Diesmal etwas daneben.",
+      "wayOff": "Diesmal weit daneben. Jetzt wissen Sie es."
+    }
   }
 }

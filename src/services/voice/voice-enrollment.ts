@@ -18,6 +18,11 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { extractSpeakerEmbedding } from '../voice-memory-enhanced.js';
 // Centralized cosine similarity - SIMD-ready implementation
 import { cosineSimilarity } from '../../memory/rust-accelerator.js';
+import {
+  profileEmbeddingMethod,
+  voiceMatchRefusal,
+  type EmbeddingMethod,
+} from './voice-match-trust.js';
 
 const log = getLogger().child({ module: 'VoiceEnrollment' });
 
@@ -43,6 +48,8 @@ export interface VoiceProfile {
 
   /** Per-user verification threshold (adaptive) */
   threshold: number;
+  /** 'neural' only if every sample was; only neural profiles can verify (voice-match-trust) */
+  embeddingMethod?: EmbeddingMethod;
 
   /** Quality score of the enrollment (0-1) */
   qualityScore: number;
@@ -69,6 +76,8 @@ export interface VoiceProfile {
 export interface EnrollmentSample {
   /** Embedding vector */
   embedding: number[];
+  /** How it was computed (absent on samples from before this was recorded: DSP) */
+  method?: EmbeddingMethod;
 
   /** When this sample was collected */
   collectedAt: Date;
@@ -188,9 +197,6 @@ const MAX_THRESHOLD = 0.9;
 /** Minimum audio duration for enrollment (ms) */
 const MIN_AUDIO_DURATION_MS = 1000;
 
-/** Anomaly count before triggering speaker change */
-const SPEAKER_CHANGE_THRESHOLD = 3;
-
 // ============================================================================
 // Enrollment Functions
 // ============================================================================
@@ -258,6 +264,7 @@ export async function addEnrollmentSample(
     // Create sample
     const sample: EnrollmentSample = {
       embedding: Array.from(embedding.vector),
+      method: embedding.method,
       collectedAt: new Date(),
       durationMs,
       quality: {
@@ -356,6 +363,7 @@ export async function completeEnrollment(session: EnrollmentSession): Promise<{
       embeddings: session.samples,
       centroid,
       threshold,
+      embeddingMethod: profileEmbeddingMethod(session.samples),
       qualityScore,
       verificationCount: 0,
       enrolledAt: new Date(),
@@ -415,7 +423,15 @@ export async function verifyUser(
       };
     }
 
-    // Compare to centroid - use centralized SIMD-ready similarity
+    const refusal = voiceMatchRefusal(embedding.method, profile.embeddingMethod);
+    if (refusal) {
+      return {
+        verified: false,
+        confidence: 0,
+        reason: refusal,
+        processingTimeMs: Date.now() - startTime,
+      };
+    }
     const similarity = cosineSimilarity(Array.from(embedding.vector), profile.centroid);
 
     const verified = similarity >= profile.threshold;
@@ -466,10 +482,11 @@ export async function identifySpeaker(
       };
     }
 
-    // Compare to all profiles
+    // Only neural-to-neural comparisons can name anyone (voice-match-trust)
     const candidates: Array<{ userId: string; similarity: number }> = [];
 
     for (const profile of profiles) {
+      if (voiceMatchRefusal(embedding.method, profile.embeddingMethod)) continue;
       const similarity = cosineSimilarity(Array.from(embedding.vector), profile.centroid);
 
       if (similarity >= minThreshold) {
@@ -513,109 +530,8 @@ export async function identifySpeaker(
   }
 }
 
-// ============================================================================
-// Continuous Authentication
-// ============================================================================
-
-/**
- * Continuous authenticator for ongoing verification during a session.
- */
-export class ContinuousAuthenticator {
-  private profile: VoiceProfile;
-  private recentEmbeddings: Float32Array[] = [];
-  private anomalyCount = 0;
-  private lastStatus: AuthStatus;
-
-  constructor(profile: VoiceProfile) {
-    this.profile = profile;
-    this.lastStatus = {
-      status: 'unknown',
-      confidence: 0,
-      currentUserId: profile.userId,
-      anomalyCount: 0,
-    };
-  }
-
-  /**
-   * Process an audio chunk and update authentication status.
-   */
-  async processAudioChunk(audio: Float32Array): Promise<AuthStatus> {
-    try {
-      const embedding = await extractSpeakerEmbedding(audio);
-      if (!embedding) {
-        return this.lastStatus;
-      }
-
-      // Compare to enrolled profile - use centralized similarity
-      const similarity = cosineSimilarity(Array.from(embedding.vector), this.profile.centroid);
-
-      // Track recent embeddings for consistency
-      this.recentEmbeddings.push(embedding.vector);
-      if (this.recentEmbeddings.length > 10) {
-        this.recentEmbeddings.shift();
-      }
-
-      // Detect anomalies
-      if (similarity < this.profile.threshold * 0.9) {
-        this.anomalyCount++;
-
-        if (this.anomalyCount >= SPEAKER_CHANGE_THRESHOLD) {
-          this.lastStatus = {
-            status: 'speaker_changed',
-            confidence: similarity,
-            currentUserId: this.profile.userId,
-            anomalyCount: this.anomalyCount,
-            message: 'Different speaker detected',
-          };
-        } else {
-          this.lastStatus = {
-            status: 'suspicious',
-            confidence: similarity,
-            currentUserId: this.profile.userId,
-            anomalyCount: this.anomalyCount,
-            message: 'Voice inconsistency detected',
-          };
-        }
-      } else {
-        // Reset anomaly count on good match
-        this.anomalyCount = Math.max(0, this.anomalyCount - 1);
-
-        this.lastStatus = {
-          status: 'verified',
-          confidence: similarity,
-          currentUserId: this.profile.userId,
-          anomalyCount: this.anomalyCount,
-        };
-      }
-
-      return this.lastStatus;
-    } catch (error) {
-      log.error({ error }, 'Continuous auth processing failed');
-      return this.lastStatus;
-    }
-  }
-
-  /**
-   * Get current authentication status.
-   */
-  getStatus(): AuthStatus {
-    return this.lastStatus;
-  }
-
-  /**
-   * Reset the authenticator state.
-   */
-  reset(): void {
-    this.recentEmbeddings = [];
-    this.anomalyCount = 0;
-    this.lastStatus = {
-      status: 'unknown',
-      confidence: 0,
-      currentUserId: this.profile.userId,
-      anomalyCount: 0,
-    };
-  }
-}
+// Continuous authentication lives in voice-continuous-auth.ts (re-exported here)
+export { ContinuousAuthenticator } from './voice-continuous-auth.js';
 
 // ============================================================================
 // Profile Management
@@ -651,6 +567,7 @@ export async function updateProfile(
     embeddings: keptSamples,
     centroid,
     threshold,
+    embeddingMethod: profileEmbeddingMethod(keptSamples),
     qualityScore,
     updatedAt: new Date(),
     metadata: {
