@@ -13,6 +13,9 @@
  */
 
 import { execSync } from 'child_process';
+import { readdirSync, statSync, unlinkSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { SlackNotificationService, type NotificationType } from '../slack-notifications.js';
@@ -106,7 +109,6 @@ export interface WatchdogConfig {
 
   // Instance metadata
   instanceName: string;
-  zone: string;
 }
 
 // Parse number from env with fallback
@@ -136,8 +138,7 @@ const DEFAULT_CONFIG: WatchdogConfig = {
   slackEnabled: process.env.NODE_ENV !== 'development', // Disable Slack in local dev
   alertCooldownMs: 300_000, // 5 minutes between repeat alerts
 
-  instanceName: process.env.GCE_INSTANCE || 'voiceai-agent-gce',
-  zone: process.env.GCP_ZONE || 'us-central1-a',
+  instanceName: process.env.AGENT_INSTANCE_NAME || process.env.HOSTNAME || 'voice-agent',
 };
 
 // ============================================================================
@@ -366,6 +367,39 @@ interface CleanupResult {
   actions: string[];
 }
 
+const STALE_TEMP_PREFIX = 'ferni-';
+const STALE_TEMP_AGE_MS = 60 * 60 * 1000;
+
+/**
+ * Deletes the agent's own leftover temp files: `ferni-*` regular files older
+ * than an hour. Never the whole temp dir: it is shared with other processes
+ * (and, on a dev machine, the developer), and live calls use files under it.
+ * Directories are skipped because caches such as ferni-cache live in them.
+ *
+ * @returns the number of files removed
+ */
+export function removeStaleTempFiles(
+  dir: string = tmpdir(),
+  now: number = Date.now(),
+  maxAgeMs: number = STALE_TEMP_AGE_MS
+): number {
+  let removed = 0;
+  for (const name of readdirSync(dir)) {
+    if (!name.startsWith(STALE_TEMP_PREFIX)) continue;
+    const path = join(dir, name);
+    try {
+      const stats = statSync(path);
+      if (stats.isFile() && now - stats.mtimeMs > maxAgeMs) {
+        unlinkSync(path);
+        removed++;
+      }
+    } catch {
+      // Removed by its owner between readdir and stat/unlink
+    }
+  }
+  return removed;
+}
+
 function performCleanup(aggressive: boolean): CleanupResult {
   const result: CleanupResult = {
     success: true,
@@ -377,9 +411,8 @@ function performCleanup(aggressive: boolean): CleanupResult {
 
   try {
     // 1. Clean temp files
-    log.info('Cleaning temp files...');
-    execSync('rm -rf /tmp/* 2>/dev/null || true', { stdio: 'pipe' });
-    result.actions.push('Cleaned /tmp');
+    log.info('Removing stale agent temp files...');
+    result.actions.push(`Removed ${removeStaleTempFiles()} stale temp files`);
 
     // 2. Clear Node.js cache
     log.info('Clearing Node.js cache...');
