@@ -33,10 +33,6 @@
       "file": "src/tools/domains/information/relationships/index.ts",
       "_original": "Add an interest to a person"
     },
-    "addPhoneNumber": {
-      "description": "Add a new phone number to the current user profile so they can be recognized from multiple phones. Use when user mentions calling from a different number or wants to add a work/home phone.",
-      "file": "src/tools/domains/conversation/conversation-tools.ts"
-    },
     "addRelationship": {
       "description": "Add a new relationship/contact to track. Use this when the user mentions a friend,.",
       "file": "src/tools/domains/information/relationships/index.ts",
@@ -330,10 +326,6 @@
     "inviteFriendByCall": {
       "description": "Invite someone to Ferni by having Ferni call them personally. Use this when the user mentions a friend, family member, or colleague who might enjoy having someone to talk to. Ask for their name and phone number first. This creates a warm, personal introduction that feels like a friend recommending a friend.",
       "file": "src/tools/domains/referral/voice-referral.ts"
-    },
-    "linkPhoneToAccount": {
-      "description": "Link the current phone caller to an existing web/app account after user confirmation. This merges their conversation history and memories.",
-      "file": "src/tools/domains/conversation/conversation-tools.ts"
     },
     "listRelationships": {
       "description": "List all tracked relationships/contacts.",

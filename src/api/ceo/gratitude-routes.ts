@@ -7,6 +7,7 @@ import { Router, type Request, type Response } from 'express';
 import { createLogger } from '../../utils/safe-logger.js';
 import { addGratitude, getEntries, getRandom, getToday, getThisWeek, getByCategory, getCount, getStreak } from '../../services/ceo/gratitude.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { paramString } from '../param-string.js';
 
 const log = createLogger({ module: 'gratitude-routes' });
 const router = Router();
@@ -88,9 +89,12 @@ router.get('/random', async (req: Request, res: Response) => {
 router.get('/category/:category', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { category } = req.params;
+    const category = paramString(req.params.category);
+    if (!category) {
+      return res.status(400).json({ error: 'Invalid category' });
+    }
 
-    const entries = await getByCategory(userId, category ?? '');
+    const entries = await getByCategory(userId, category);
 
     return res.json(entries);
   } catch (error) {

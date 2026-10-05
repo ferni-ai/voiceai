@@ -197,7 +197,8 @@ describe('Conversations Routes', () => {
     });
 
     it('should return false for wrong HTTP method', async () => {
-      const req = createMockRequest({ method: 'POST' });
+      // POST is a real route now (records a call); PUT is still unsupported.
+      const req = createMockRequest({ method: 'PUT' });
       const { res } = createMockResponse();
       const url = new URL('http://localhost/api/conversations');
 
@@ -219,9 +220,25 @@ describe('Predictions Routes', () => {
       userId: 'test-user',
       stats: { totalPredictions: 10, predictionAccuracy: 75 },
     });
+    // Scored resolutions carry the actuals they were scored from.
+    const completedAt = new Date().toISOString();
     mockStore.getRecentPredictions.mockResolvedValue([
-      { id: 'pred-1', createdAt: new Date().toISOString(), accuracy: 80 },
-      { id: 'pred-2', createdAt: new Date().toISOString(), accuracy: 70 },
+      {
+        id: 'pred-1',
+        createdAt: completedAt,
+        predictions: { sleep: 8 },
+        actuals: { sleep: 6.4 },
+        accuracy: 80,
+        completedAt,
+      },
+      {
+        id: 'pred-2',
+        createdAt: completedAt,
+        predictions: { sleep: 7 },
+        actuals: { sleep: 10 },
+        accuracy: 70,
+        completedAt,
+      },
     ]);
   });
 
@@ -282,17 +299,17 @@ describe('Predictions Routes', () => {
   describe('POST /api/predictions/:id/actuals', () => {
     it('should update prediction actuals', async () => {
       mockStore.updatePredictionActuals.mockResolvedValue({
-        id: 'pred-123',
-        accuracy: 85,
-        actuals: { sleep: 7.5 },
+        accuracy: 94,
+        metrics: [{ key: 'sleep', predicted: 7, actual: 7.5, accuracy: 94 }],
       });
 
+      // Signed in as test-user (the mocked requireUserId reads ?userId=).
       const req = createMockRequest({
         method: 'POST',
-        body: JSON.stringify({ userId: 'test-user', actuals: { sleep: 7.5 } }),
+        body: JSON.stringify({ userId: 'test-user-123', actuals: { sleep: 7.5 } }),
       });
       const { res, getWrittenData } = createMockResponse();
-      const url = new URL('http://localhost/api/predictions/pred-123/actuals');
+      const url = new URL('http://localhost/api/predictions/pred-123/actuals?userId=test-user');
 
       const handled = await handlePredictionsRoutes(
         req,
@@ -302,7 +319,7 @@ describe('Predictions Routes', () => {
       );
 
       expect(handled).toBe(true);
-      expect(mockStore.updatePredictionActuals).toHaveBeenCalledWith('test-user', 'pred-123', {
+      expect(mockStore.updatePredictionActuals).toHaveBeenCalledWith('test-user-123', 'pred-123', {
         sleep: 7.5,
       });
       expect(getWrittenData().status).toBe(200);
@@ -313,10 +330,10 @@ describe('Predictions Routes', () => {
 
       const req = createMockRequest({
         method: 'POST',
-        body: JSON.stringify({ userId: 'test-user', actuals: { sleep: 7 } }),
+        body: JSON.stringify({ userId: 'test-user-123', actuals: { sleep: 7 } }),
       });
       const { res, getWrittenData } = createMockResponse();
-      const url = new URL('http://localhost/api/predictions/nonexistent/actuals');
+      const url = new URL('http://localhost/api/predictions/nonexistent/actuals?userId=test-user');
 
       await handlePredictionsRoutes(req, res, '/api/predictions/nonexistent/actuals', url);
 
@@ -377,7 +394,7 @@ describe('Rituals Routes', () => {
       const req = createMockRequest({
         method: 'POST',
         body: JSON.stringify({
-          userId: 'test-user',
+          userId: 'test-user-123',
           ritual: { personaId: 'ferni', name: 'Morning' },
         }),
       });
@@ -430,7 +447,7 @@ describe('Rituals Routes', () => {
     it('should complete a ritual and return success', async () => {
       const req = createMockRequest({
         method: 'POST',
-        body: JSON.stringify({ userId: 'test-user' }),
+        body: JSON.stringify({ userId: 'test-user-123' }),
       });
       const { res, getWrittenData } = createMockResponse();
       const url = new URL('http://localhost/api/rituals/ritual-1/complete');
@@ -455,7 +472,7 @@ describe('Rituals Routes', () => {
 
       const req = createMockRequest({
         method: 'POST',
-        body: JSON.stringify({ userId: 'test-user' }),
+        body: JSON.stringify({ userId: 'test-user-123' }),
       });
       const { res, getWrittenData } = createMockResponse();
       const url = new URL('http://localhost/api/rituals/ritual-1/complete');
@@ -471,7 +488,7 @@ describe('Rituals Routes', () => {
 
       const req = createMockRequest({
         method: 'POST',
-        body: JSON.stringify({ userId: 'test-user' }),
+        body: JSON.stringify({ userId: 'test-user-123' }),
       });
       const { res, getWrittenData } = createMockResponse();
       const url = new URL('http://localhost/api/rituals/unknown-custom-ritual/complete');
@@ -485,7 +502,7 @@ describe('Rituals Routes', () => {
       const req = createMockRequest({
         method: 'POST',
         body: JSON.stringify({
-          userId: 'test-user',
+          userId: 'test-user-123',
           weather: { primary: 'sunny', energy: 'high' },
         }),
       });
@@ -524,7 +541,7 @@ describe('Known Persona Rituals Auto-Activate', () => {
     const req = createMockRequest({
       method: 'POST',
       body: JSON.stringify({
-        userId: 'test-user',
+        userId: 'test-user-123',
         weather: { primary: 'sunny', energy: 'high' },
       }),
     });

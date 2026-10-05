@@ -2,8 +2,11 @@
  * Family Identities Management UI
  *
  * Manage sponsored identities for family members and friends who call
- * Ferni via phone. Allows adding, editing, viewing call history, and
- * approving pending self-registrations.
+ * Ferni via phone. Allows adding, editing, and viewing call history.
+ *
+ * Self-registered callers ("I'm Sam's mom") are not approved here yet: those
+ * pending approvals live in the voice agent's memory, which this API server
+ * can't read, so the UI doesn't pretend to list them.
  *
  * Design: Follows Ferni's warm, Apple-inspired aesthetic with
  * centered floating modal and proper accessibility.
@@ -48,31 +51,6 @@ export interface FamilyIdentitiesCallbacks {
   onIdentitySelect?: (identity: SponsoredIdentity) => void;
   onIdentityAdded?: (identity: SponsoredIdentity) => void;
   onIdentityRemoved?: (identityId: string) => void;
-}
-
-/**
- * Pending approval from family self-registration via phone call.
- * These are created when an unknown caller mentions a sponsor's name.
- */
-export interface PendingFamilyApproval {
-  id: string;
-  identityId: string;
-  callerName: string;
-  callerPhone: string;
-  relationship?: string;
-  notes?: string;
-  callTimestamp: string;
-  status: 'pending';
-}
-
-/**
- * Unified pending item that can come from either source.
- * source: 'sponsored_identity' = sponsor created but pending activation
- * source: 'family_approval' = caller self-registered, waiting approval
- */
-export interface UnifiedPendingItem extends SponsoredIdentity {
-  source: 'sponsored_identity' | 'family_approval';
-  approvalId?: string; // Only for family_approval source
 }
 
 // ============================================================================
@@ -124,10 +102,9 @@ const ICONS = {
 
 let modal: HTMLElement | null = null;
 let identities: SponsoredIdentity[] = [];
-let pendingIdentities: UnifiedPendingItem[] = [];
 let callbacks: FamilyIdentitiesCallbacks = {};
 let isLoading = false;
-let currentView: 'main' | 'add' | 'edit' | 'pending' = 'main';
+let currentView: 'main' | 'add' | 'edit' = 'main';
 let editingIdentity: SponsoredIdentity | null = null;
 
 // ============================================================================
@@ -201,7 +178,7 @@ const styles = `
   
   .family-modal__subtitle {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-top: var(--space-1, 4px);
   }
   
@@ -218,7 +195,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     transition: all var(--duration-fast, ${DURATION.FAST}ms) ${EASING.STANDARD};
   }
   
@@ -258,7 +235,7 @@ const styles = `
   
   .family-empty__text {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-bottom: var(--space-6, 24px);
     line-height: 1.5;
   }
@@ -315,7 +292,7 @@ const styles = `
   
   .family-item__relationship {
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .family-item__badges {
@@ -351,30 +328,6 @@ const styles = `
     color: var(--color-text-muted, #a99d96);
   }
   
-  /* Pending Badge */
-  .family-item--pending {
-    border-left: 3px solid var(--color-semantic-warning, #d4a574);
-  }
-  
-  .family-pending-badge {
-    background: var(--color-semantic-warning, #d4a574);
-    color: white;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: var(--radius-full, 9999px);
-  }
-  
-  /* Family referral (called you) - more prominent styling */
-  .family-item--referral {
-    border-left-color: var(--color-accent-primary, #4a6741);
-    background: var(--color-accent-tint, rgba(74, 103, 65, 0.04));
-  }
-  
-  .family-pending-badge--referral {
-    background: var(--color-accent-primary, #4a6741);
-  }
-  
   /* Form */
   .family-form {
     display: flex;
@@ -391,7 +344,7 @@ const styles = `
   .family-form__label {
     font-size: 13px;
     font-weight: 500;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .family-form__input,
@@ -505,53 +458,6 @@ const styles = `
     to { transform: rotate(360deg); }
   }
   
-  /* Tabs */
-  .family-tabs {
-    display: flex;
-    gap: var(--space-1, 4px);
-    margin-bottom: var(--space-4, 16px);
-    background: var(--color-bg-secondary, #FAF8F5);
-    padding: var(--space-1, 4px);
-    border-radius: var(--radius-full, 9999px);
-  }
-  
-  .family-tab {
-    flex: 1;
-    padding: var(--space-2, 8px) var(--space-3, 12px);
-    border: none;
-    background: transparent;
-    border-radius: var(--radius-full, 9999px);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--color-text-secondary, #70605a);
-    cursor: pointer;
-    transition: all var(--duration-fast, ${DURATION.FAST}ms);
-  }
-  
-  .family-tab:hover {
-    color: var(--color-text-primary, #2c2520);
-  }
-  
-  .family-tab--active {
-    background: white;
-    color: var(--color-text-primary, #2c2520);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  }
-  
-  .family-tab__badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-    background: var(--color-semantic-warning, #d4a574);
-    color: white;
-    font-size: 11px;
-    font-weight: 600;
-    border-radius: var(--radius-full, 9999px);
-    margin-left: var(--space-1, 4px);
-  }
 `;
 
 // ============================================================================
@@ -589,66 +495,16 @@ function formatMinutes(minutes: number): string {
 // API FUNCTIONS
 // ============================================================================
 
-async function loadIdentities(): Promise<void> {
-  try {
-    const response = await apiGet<{ identities: SponsoredIdentity[] }>('/api/sponsored-identities');
-    identities = response.data?.identities || [];
-  } catch (error) {
-    log.error('Failed to load identities', { error });
-    toast.error("Couldn't load your family");
-    identities = [];
-  }
+/** The api helpers resolve (not throw) on HTTP errors, so check `ok` explicitly. */
+function reportFailure(what: string, response: { ok: boolean; status?: number }): void {
+  log.error(`Failed to ${what}`, { status: response.status });
+  toast.error(`Couldn't ${what}. Try again?`);
 }
 
-async function loadPendingIdentities(): Promise<void> {
-  try {
-    // Load from both sources in parallel
-    const [sponsoredResponse, familyResponse] = await Promise.all([
-      apiGet<{ pending: SponsoredIdentity[] }>('/api/sponsored-identities/pending'),
-      apiGet<{ pending: PendingFamilyApproval[] }>('/api/family/pending'),
-    ]);
-
-    // Convert sponsored identities to unified format
-    const sponsoredPending: UnifiedPendingItem[] = (sponsoredResponse.data?.pending || []).map(
-      (si) => ({
-        ...si,
-        source: 'sponsored_identity' as const,
-      })
-    );
-
-    // Convert family approvals to unified format
-    const familyPending: UnifiedPendingItem[] = (familyResponse.data?.pending || []).map((fa) => ({
-      id: fa.identityId, // Use identityId as the main id for consistency
-      approvalId: fa.id, // Keep original approval id for API calls
-      displayName: fa.callerName,
-      phoneNumber: fa.callerPhone,
-      relationship: fa.relationship || 'referred',
-      status: 'pending' as const,
-      notes: fa.notes,
-      voiceEnrolled: false,
-      accessLevel: 'full' as const,
-      allowedPersonas: [],
-      createdAt: fa.callTimestamp,
-      updatedAt: fa.callTimestamp,
-      totalCalls: 0,
-      totalMinutes: 0,
-      source: 'family_approval' as const,
-    }));
-
-    // Combine and sort by creation date (newest first)
-    pendingIdentities = [...sponsoredPending, ...familyPending].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-
-    log.debug('Loaded pending identities', {
-      sponsored: sponsoredPending.length,
-      family: familyPending.length,
-      total: pendingIdentities.length,
-    });
-  } catch (error) {
-    log.error('Failed to load pending identities', { error });
-    pendingIdentities = [];
-  }
+async function loadIdentities(): Promise<void> {
+  const response = await apiGet<{ identities: SponsoredIdentity[] }>('/api/sponsored-identities');
+  if (!response.ok) reportFailure('load your family', response);
+  identities = response.data?.identities ?? [];
 }
 
 async function createIdentity(data: {
@@ -659,87 +515,33 @@ async function createIdentity(data: {
   notes?: string;
   accessLevel?: string;
 }): Promise<SponsoredIdentity | null> {
-  try {
-    const response = await apiPost<{ identity: SponsoredIdentity }>(
-      '/api/sponsored-identities',
-      data
-    );
-    return response.data?.identity ?? null;
-  } catch (error) {
-    log.error('Failed to create identity', { error });
-    toast.error("Couldn't add family member");
+  const response = await apiPost<{ identity: SponsoredIdentity }>('/api/sponsored-identities', data);
+  if (!response.ok || !response.data?.identity) {
+    reportFailure('add them', response);
     return null;
   }
+  return response.data.identity;
 }
 
 async function updateIdentity(
   id: string,
   data: Partial<SponsoredIdentity>
 ): Promise<SponsoredIdentity | null> {
-  try {
-    const response = await apiPut<{ identity: SponsoredIdentity }>(
-      `/api/sponsored-identities/${id}`,
-      data
-    );
-    return response.data?.identity ?? null;
-  } catch (error) {
-    log.error('Failed to update identity', { error });
-    toast.error("Couldn't update");
+  const response = await apiPut<{ identity: SponsoredIdentity }>(
+    `/api/sponsored-identities/${id}`,
+    data
+  );
+  if (!response.ok || !response.data?.identity) {
+    reportFailure('save that', response);
     return null;
   }
+  return response.data.identity;
 }
 
 async function deleteIdentity(id: string): Promise<boolean> {
-  try {
-    await apiDelete(`/api/sponsored-identities/${id}`);
-    return true;
-  } catch (error) {
-    log.error('Failed to delete identity', { error });
-    toast.error("Couldn't remove");
-    return false;
-  }
-}
-
-async function approveIdentity(id: string): Promise<SponsoredIdentity | null> {
-  try {
-    const response = await apiPost<{ identity: SponsoredIdentity }>(
-      `/api/sponsored-identities/${id}/approve`,
-      {}
-    );
-    return response.data?.identity ?? null;
-  } catch (error) {
-    log.error('Failed to approve identity', { error });
-    toast.error("Couldn't approve");
-    return null;
-  }
-}
-
-/**
- * Approve a family self-registration approval.
- */
-async function approveFamilyApproval(approvalId: string): Promise<boolean> {
-  try {
-    const response = await apiPost<{ success: boolean }>('/api/family/approve', { approvalId });
-    return response.data?.success ?? false;
-  } catch (error) {
-    log.error('Failed to approve family approval', { error });
-    toast.error("Couldn't approve");
-    return false;
-  }
-}
-
-/**
- * Reject a family self-registration approval.
- */
-async function rejectFamilyApproval(approvalId: string): Promise<boolean> {
-  try {
-    const response = await apiPost<{ success: boolean }>('/api/family/reject', { approvalId });
-    return response.data?.success ?? false;
-  } catch (error) {
-    log.error('Failed to reject family approval', { error });
-    toast.error("Couldn't decline");
-    return false;
-  }
+  const response = await apiDelete(`/api/sponsored-identities/${id}`);
+  if (!response.ok) reportFailure('remove them', response);
+  return response.ok;
 }
 
 // ============================================================================
@@ -760,31 +562,13 @@ function renderContent(): string {
       return renderAddForm();
     case 'edit':
       return renderEditForm();
-    case 'pending':
-      return renderPendingList();
     default:
       return renderMainView();
   }
 }
 
 function renderMainView(): string {
-  const hasPending = pendingIdentities.length > 0;
-
   return `
-    ${
-      hasPending
-        ? `
-      <div class="family-tabs">
-        <button class="family-tab family-tab--active" data-tab="main">Family</button>
-        <button class="family-tab" data-tab="pending">
-          Pending
-          <span class="family-tab__badge">${pendingIdentities.length}</span>
-        </button>
-      </div>
-    `
-        : ''
-    }
-    
     ${identities.length === 0 ? renderEmptyState() : renderIdentityList()}
     
     <div class="family-actions">
@@ -848,66 +632,6 @@ function renderIdentityItem(identity: SponsoredIdentity): string {
           ${ICONS.clock}
           ${identity.lastCallAt ? `Last: ${formatDate(identity.lastCallAt)}` : 'No calls yet'}
         </span>
-      </div>
-    </div>
-  `;
-}
-
-function renderPendingList(): string {
-  return `
-    <div class="family-tabs">
-      <button class="family-tab" data-tab="main">Family</button>
-      <button class="family-tab family-tab--active" data-tab="pending">
-        Pending
-        <span class="family-tab__badge">${pendingIdentities.length}</span>
-      </button>
-    </div>
-    
-    <div class="family-list">
-      ${pendingIdentities.map((identity) => renderPendingItem(identity)).join('')}
-    </div>
-  `;
-}
-
-function renderPendingItem(identity: UnifiedPendingItem): string {
-  const isFamilyApproval = identity.source === 'family_approval';
-  const badgeText = isFamilyApproval ? 'Called you' : 'Pending';
-  const relationship = identity.relationship
-    ? RELATIONSHIP_OPTIONS.find((r) => r.value === identity.relationship)?.label || identity.relationship
-    : '';
-
-  return `
-    <div class="family-item family-item--pending${isFamilyApproval ? ' family-item--referral' : ''}" data-pending-id="${identity.id}">
-      <div class="family-item__header">
-        <div class="family-item__avatar">${getInitials(identity.displayName)}</div>
-        <div class="family-item__info">
-          <div class="family-item__name">${identity.displayName}</div>
-          <div class="family-item__relationship">
-            ${relationship ? `${relationship} · ` : ''}${formatPhone(identity.phoneNumber)}
-          </div>
-        </div>
-        <span class="family-pending-badge${isFamilyApproval ? ' family-pending-badge--referral' : ''}">${badgeText}</span>
-      </div>
-      ${
-        identity.notes
-          ? `
-        <div class="family-item__stats">
-          <span class="family-item__stat" style="flex: 1;">
-            "${identity.notes}"
-          </span>
-        </div>
-      `
-          : ''
-      }
-      <div class="family-actions" style="margin-top: var(--space-3, 12px);">
-        <button class="family-btn family-btn--secondary family-btn--small" data-action="reject" data-id="${identity.id}">
-          ${ICONS.x}
-          Decline
-        </button>
-        <button class="family-btn family-btn--primary family-btn--small" data-action="approve" data-id="${identity.id}">
-          ${ICONS.check}
-          ${isFamilyApproval ? 'Add to Family' : 'Approve'}
-        </button>
       </div>
     </div>
   `;
@@ -1016,19 +740,6 @@ function handleClick(e: Event): void {
   // Backdrop click
   if (target.classList.contains('family-modal-backdrop')) {
     hide();
-    return;
-  }
-
-  // Tab click
-  const tab = target.closest('[data-tab]') as HTMLElement;
-  if (tab) {
-    const tabName = tab.dataset.tab;
-    if (tabName === 'pending') {
-      currentView = 'pending';
-    } else {
-      currentView = 'main';
-    }
-    refresh();
     return;
   }
 
@@ -1154,84 +865,6 @@ async function handleAction(action: string, target: HTMLElement): Promise<void> 
       break;
     }
 
-    case 'approve': {
-      const id = target.closest('[data-id]')?.getAttribute('data-id');
-      if (!id) return;
-
-      const pendingItem = pendingIdentities.find((i) => i.id === id);
-      if (!pendingItem) return;
-
-      isLoading = true;
-      refresh();
-
-      let success = false;
-      let approvedIdentity: SponsoredIdentity | null = null;
-
-      // Route to correct API based on source
-      if (pendingItem.source === 'family_approval' && pendingItem.approvalId) {
-        success = await approveFamilyApproval(pendingItem.approvalId);
-        if (success) {
-          // Create a basic identity object for the callback
-          approvedIdentity = {
-            ...pendingItem,
-            status: 'active',
-          } as SponsoredIdentity;
-        }
-      } else {
-        approvedIdentity = await approveIdentity(id);
-        success = !!approvedIdentity;
-      }
-
-      if (success && approvedIdentity) {
-        pendingIdentities = pendingIdentities.filter((i) => i.id !== id);
-        identities.push(approvedIdentity);
-        callbacks.onIdentityAdded?.(approvedIdentity);
-        toast.success(`${approvedIdentity.displayName} added!`);
-
-        if (pendingIdentities.length === 0) {
-          currentView = 'main';
-        }
-      }
-
-      isLoading = false;
-      refresh();
-      break;
-    }
-
-    case 'reject': {
-      const id = target.closest('[data-id]')?.getAttribute('data-id');
-      if (!id) return;
-
-      const pendingItem = pendingIdentities.find((i) => i.id === id);
-      if (!pendingItem) return;
-
-      if (confirm(`Decline ${pendingItem.displayName || 'this request'}?`)) {
-        isLoading = true;
-        refresh();
-
-        let success = false;
-
-        // Route to correct API based on source
-        if (pendingItem.source === 'family_approval' && pendingItem.approvalId) {
-          success = await rejectFamilyApproval(pendingItem.approvalId);
-        } else {
-          success = await deleteIdentity(id);
-        }
-
-        if (success) {
-          pendingIdentities = pendingIdentities.filter((i) => i.id !== id);
-          toast.info('Declined');
-
-          if (pendingIdentities.length === 0) {
-            currentView = 'main';
-          }
-        }
-
-        isLoading = false;
-        refresh();
-      }
-      break;
-    }
   }
 }
 
@@ -1293,7 +926,7 @@ export async function show(options: FamilyIdentitiesCallbacks = {}): Promise<voi
   });
 
   // Load data
-  await Promise.all([loadIdentities(), loadPendingIdentities()]);
+  await loadIdentities();
   isLoading = false;
   refresh();
 }
@@ -1309,7 +942,6 @@ export function hide(): void {
     modal?.remove();
     modal = null;
     identities = [];
-    pendingIdentities = [];
     editingIdentity = null;
     currentView = 'main';
   }, DURATION.NORMAL);

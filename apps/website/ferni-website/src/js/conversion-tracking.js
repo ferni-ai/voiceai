@@ -39,6 +39,7 @@
    */
   function trackConversion(goalId, value) {
     if (typeof window.FerniExperiments === 'undefined') {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[Tracking] FerniExperiments not loaded');
       return;
     }
@@ -59,6 +60,7 @@
    */
   function trackEvent(experimentId, goalId, value) {
     if (typeof window.FerniExperiments === 'undefined') {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[Tracking] FerniExperiments not loaded');
       return;
     }
@@ -80,10 +82,8 @@
 
         if (isAppLink) {
           trackConversion('cta_click', 1);
-          console.log('[Tracking] CTA click tracked');
         } else if (isPhoneLink) {
           trackConversion('phone_click', 1);
-          console.log('[Tracking] Phone click tracked');
         }
       });
     });
@@ -133,19 +133,16 @@
           if (scrollPercent >= 50 && !scrollMilestones[50]) {
             scrollMilestones[50] = true;
             trackConversion('scroll_50', 1);
-            console.log('[Tracking] Scroll 50% tracked');
           }
 
           if (scrollPercent >= 75 && !scrollMilestones[75]) {
             scrollMilestones[75] = true;
             trackConversion('scroll_75', 1);
-            console.log('[Tracking] Scroll 75% tracked');
           }
 
           if (scrollPercent >= 90 && !scrollMilestones[90]) {
             scrollMilestones[90] = true;
             trackConversion('scroll_90', 1);
-            console.log('[Tracking] Scroll 90% tracked');
           }
         }
       },
@@ -163,7 +160,6 @@
       if (!timeMilestones[30]) {
         timeMilestones[30] = true;
         trackConversion('time_30s', 1);
-        console.log('[Tracking] Time 30s tracked');
       }
     }, 30000);
 
@@ -172,7 +168,6 @@
       if (!timeMilestones[60]) {
         timeMilestones[60] = true;
         trackConversion('time_60s', 1);
-        console.log('[Tracking] Time 60s tracked');
       }
     }, 60000);
 
@@ -181,7 +176,6 @@
       if (!timeMilestones[120]) {
         timeMilestones[120] = true;
         trackConversion('time_120s', 1);
-        console.log('[Tracking] Time 120s tracked');
       }
     }, 120000);
   }
@@ -197,7 +191,6 @@
         var personaId = card.getAttribute('data-persona') || 'unknown';
         trackConversion('team_click', 1);
         trackEvent('team-showcase', 'team_click_' + personaId, 1);
-        console.log('[Tracking] Team click:', personaId);
       });
     });
 
@@ -207,7 +200,6 @@
         var tier = card.getAttribute('data-tier') || 'unknown';
         trackConversion('pricing_click', 1);
         trackEvent('pricing', 'pricing_click_' + tier, 1);
-        console.log('[Tracking] Pricing click:', tier);
       });
     });
 
@@ -215,7 +207,6 @@
     document.querySelectorAll('.faq-item, .accordion-item').forEach(function (item) {
       item.addEventListener('click', function () {
         trackConversion('faq_click', 1);
-        console.log('[Tracking] FAQ click');
       });
     });
 
@@ -239,7 +230,6 @@
         if (!hasInteracted) {
           hasInteracted = true;
           trackConversion('first_interaction', 1);
-          console.log('[Tracking] First interaction');
         }
       },
       { once: true }
@@ -272,7 +262,6 @@
     document.querySelectorAll('form[data-form="newsletter"]').forEach(function (form) {
       form.addEventListener('submit', function () {
         trackConversion('newsletter_signup', 1);
-        console.log('[Tracking] Newsletter signup');
       });
     });
 
@@ -289,7 +278,6 @@
         'focus',
         function () {
           trackConversion('email_focus', 1);
-          console.log('[Tracking] Email input focus');
         },
         { once: true }
       );
@@ -382,7 +370,6 @@
     initVisibilityTracking();
     initExitTracking();
 
-    console.log('%c📊 Ferni Conversion Tracking loaded', 'color: #4a6741; font-weight: bold;');
   }
 
   // Initialize on DOM ready

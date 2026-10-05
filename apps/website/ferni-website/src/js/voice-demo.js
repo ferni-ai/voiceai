@@ -487,6 +487,7 @@
   
   function logDebug(...args) {
     if (CONFIG.debugMode) {
+      // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
       console.log('[VoiceDemo]', ...args);
     }
   }

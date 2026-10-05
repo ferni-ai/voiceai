@@ -1,8 +1,6 @@
 import { basename, dirname, resolve } from 'path';
 import { defineConfig, loadEnv } from 'vite';
 
-// Stub for native Capacitor plugins that don't exist in web builds
-const capacitorStub = resolve(__dirname, 'src/stubs/capacitor-stub.ts');
 // Stub for Firebase when not configured (dev only)
 const firebaseStub = resolve(__dirname, 'src/stubs/firebase-stub.ts');
 
@@ -18,6 +16,10 @@ export default defineConfig(({ mode }) => {
   // Only stub Firebase in development when credentials aren't provided
   const shouldStubFirebase = mode === 'development' && !isFirebaseConfigured;
 
+  // The UI server the dev proxy forwards to. Set UI_SERVER_PORT for both this and
+  // `pnpm ui-server` to run a second checkout's stack beside one already on 3002.
+  const uiServer = `http://localhost:${env.UI_SERVER_PORT || '3002'}`;
+
   return {
     root: '.',
     publicDir: 'public',
@@ -30,11 +32,6 @@ export default defineConfig(({ mode }) => {
         '@design-system/tokens': resolve(__dirname, '../../design-system/dist/tokens.ts'),
         '@design-system/components': resolve(__dirname, '../../design-system/components/index.ts'),
         '@design-system': resolve(__dirname, '../../design-system/dist'),
-        // Stub native-only Capacitor plugins for web development
-        '@ferni/capacitor-purchases': capacitorStub,
-        '@capacitor/browser': capacitorStub,
-        '@capacitor/push-notifications': capacitorStub,
-        '@capacitor/local-notifications': capacitorStub,
         // Firebase stubs ONLY in development without credentials
         ...(shouldStubFirebase && {
           'firebase/app': firebaseStub,
@@ -49,18 +46,18 @@ export default defineConfig(({ mode }) => {
         'gsap',
         // Node/agent SDK - not for browser; excluding avoids 504 Outdated Optimize Dep
         '@livekit/agents',
+        // LiveKit client - loaded via voice-engine.js UMD; no npm bundle needed
+        'livekit-client',
       ],
       // Pre-bundle these heavy dependencies on server start (not on first request)
       // This significantly speeds up the first page load
       include: [
-        'livekit-client',
         'firebase/app',
         'firebase/auth',
         'firebase/firestore',
         '@tsparticles/engine',
         '@tsparticles/slim',
         'uuid',
-        'events',
       ],
     },
     // Warm up frequently used files for faster first load
@@ -76,23 +73,22 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3004,
       proxy: {
-        // UI server handles EVERYTHING (tokens, OAuth, APIs)
-        // Run with: PORT=3002 node ui-server.js
-        '/token': 'http://localhost:3002',
-        '/token-url': 'http://localhost:3002',
-        '/demo-token': 'http://localhost:3002',
-        '/spotify': 'http://localhost:3002',
-        '/wearables': 'http://localhost:3002',
-        '/auth': 'http://localhost:3002',
-        '/api': 'http://localhost:3002',
-        '/calendar': 'http://localhost:3002', // Calendar provider routes (Apple, Outlook)
-        '/subscription': 'http://localhost:3002',
-        '/usage': 'http://localhost:3002',
-        '/health': 'http://localhost:3002',
+        // UI server handles EVERYTHING (tokens, OAuth, APIs): `pnpm ui-server`
+        '/token': uiServer,
+        '/token-url': uiServer,
+        '/demo-token': uiServer,
+        '/spotify': uiServer,
+        '/wearables': uiServer,
+        '/auth': uiServer,
+        '/api': uiServer,
+        '/calendar': uiServer, // Calendar provider routes (Apple, Outlook)
+        '/subscription': uiServer,
+        '/usage': uiServer,
+        '/health': uiServer,
         // WebSocket for real-time team insights
         // Note: WebSocket proxy can be flaky in dev - failures are non-critical
         '/ws/insights': {
-          target: 'http://localhost:3002',
+          target: uiServer,
           ws: true,
           changeOrigin: true,
           configure: (proxy) => {
@@ -102,7 +98,7 @@ export default defineConfig(({ mode }) => {
           },
         },
         '/ws/life-context': {
-          target: 'http://localhost:3002',
+          target: uiServer,
           ws: true,
           changeOrigin: true,
           configure: (proxy) => {
@@ -112,7 +108,7 @@ export default defineConfig(({ mode }) => {
           },
         },
         '/ws/director': {
-          target: 'http://localhost:3002',
+          target: uiServer,
           ws: true,
           changeOrigin: true,
           configure: (proxy) => {
@@ -128,6 +124,10 @@ export default defineConfig(({ mode }) => {
       sourcemap: process.env.SOURCE_MAP === 'true', // Only enable if explicitly requested
       minify: 'esbuild',
       target: 'es2022',
+      // dist/.vite/manifest.json: the chunk graph the bundle ratchet
+      // (apps/cli/src/commands/quality/ratchet.ts) reads to tell initial
+      // chunks from lazy ones. Firebase hosting skips dot-directories.
+      manifest: true,
       // Drop console logs and debugger in production
       esbuild: {
         drop: ['console', 'debugger'],
@@ -162,7 +162,6 @@ export default defineConfig(({ mode }) => {
             if (id.includes('node_modules')) {
               if (id.includes('@tsparticles')) return 'vendor-particles';
               if (id.includes('livekit-client')) return 'vendor-rtc';
-              if (id.includes('@capacitor')) return 'vendor-capacitor';
               // Only lazy screens use Firestore. In the catch-all below, every
               // visitor downloaded it with the entry. It imports @firebase/app
               // (in vendor); nothing in vendor imports it, so no chunk cycle.

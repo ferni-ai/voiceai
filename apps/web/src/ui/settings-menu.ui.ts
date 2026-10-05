@@ -12,6 +12,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 // Relationship stage service - used for feature unlocking and progress display
 import {
@@ -30,14 +31,12 @@ import { showRoadmapPanel } from './roadmap-panel.ui.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
-// Milestones - for journey progress indicator
 // Seeds display for personalization economy
 import { renderSeedsSettingsCard } from './seeds-display.ui.js';
 // Transcript UI - for toggling live transcription
 import { transcriptUI } from './transcript.ui.js';
 // Sound effects service for UI feedback sounds
 import { soundUI } from './sound.ui.js';
-// i18n for translations
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -788,6 +787,8 @@ class SettingsMenuUI {
                   expandedSections.has('understandingYou'),
                   `
             ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory') || 'Your Story')}
+            ${this.renderMenuItem('trust-dashboard', ICONS.ring, t('menu.items.trustDashboard') || 'Trust & Growth')}
+            ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
             ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane') || 'Memory Lane', t('common.new'))}
             ${this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights') || 'Your Patterns')}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
@@ -1085,6 +1086,7 @@ class SettingsMenuUI {
       help: { icon: ICONS.help, label: t('menu.items.takeTour') },
       billing: { icon: ICONS.creditCard, label: t('menu.items.billingPortal') },
     };
+    if (!LINKEDIN_ENABLED) delete menuItems['linkedin-settings']; // config/linkedin.ts
 
     const pinnedItemsHtml = [...this.pinnedItems]
       .filter((action) => menuItems[action] && !this.isFeatureLocked(action))
@@ -1301,7 +1303,11 @@ class SettingsMenuUI {
       case 'apple-health-settings':
         this.callbacks.onAppleHealthClick?.();
         break;
-      // trust-journey removed - consolidated into your-story
+      case 'trust-dashboard':
+        import('../app/panel-methods.js')
+          .then(async (m) => m.showTrustDashboard())
+          .catch((error: unknown) => log.error({ error }, "Couldn't open the trust dashboard"));
+        break;
       case 'music-dashboard':
         this.callbacks.onMusicDashboardClick?.();
         break;
@@ -1357,8 +1363,7 @@ class SettingsMenuUI {
         this.callbacks.onYourStoryClick?.();
         break;
       case 'activity':
-        // DEPRECATED: Activity is now integrated into Your Story.
-        // Redirect to Your Story dashboard instead.
+        // DEPRECATED: Activity is now part of Your Story; redirect there.
         log.info('Activity is deprecated - redirecting to Your Story');
         this.callbacks.onYourStoryClick?.();
         break;
@@ -1375,13 +1380,7 @@ class SettingsMenuUI {
         this.callbacks.onShareFerniClick?.();
         break;
       case 'support-ferni':
-        log.info('🎯 support-ferni action triggered - calling onSupportFerniClick callback');
-        if (this.callbacks.onSupportFerniClick) {
-          log.info('✅ onSupportFerniClick callback exists, invoking...');
-          this.callbacks.onSupportFerniClick();
-        } else {
-          log.error('❌ onSupportFerniClick callback is not defined!');
-        }
+        this.callbacks.onSupportFerniClick?.();
         break;
       case 'accent-settings':
         this.callbacks.onAccentSettingsClick?.();
@@ -2595,14 +2594,14 @@ class SettingsMenuUI {
       
       /* Trigger button */
       [data-theme="midnight"] .settings-trigger {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
         border-color: var(--color-border-subtle, rgba(250, 246, 240, 0.1));
         color: var(--color-text-secondary, #f0ebe4);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
 
       [data-theme="midnight"] .settings-trigger:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-primary, #faf6f0);
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
       }
@@ -2613,15 +2612,15 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__card {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
         box-shadow: -8px 0 40px rgba(0, 0, 0, 0.4);
       }
 
       /* Header */
       [data-theme="midnight"] .settings-menu__header {
         background: linear-gradient(180deg, 
-          var(--color-background-elevated, #70605a) 0%,
-          var(--color-background-primary, #60504a) 100%
+          var(--color-background-elevated, #352e28) 0%,
+          var(--color-background-primary, #1e1a16) 100%
         );
         border-bottom-color: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
       }
@@ -2643,13 +2642,13 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.08));
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .settings-menu__close:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-primary, #faf6f0);
       }
 

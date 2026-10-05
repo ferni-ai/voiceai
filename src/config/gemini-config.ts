@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { realtimeModelOrFail } from './realtime-model.js';
 import { applyThinkingDefaults } from './thinking-defaults.js';
 
 const log = createLogger({ module: 'GeminiConfig' });
@@ -129,15 +130,12 @@ export const CONTENT_GENERATION_MODEL =
 export const LIGHT_MODEL = process.env.LLM_LIGHT_MODEL || 'gemini-3.5-flash-lite';
 
 /**
- * Model for realtime/voice applications (Vertex AI Live API)
- * Default: gemini-2.0-flash-live-preview-04-09 (supports TEXT modality)
- * NOTE: gemini-live-2.5-flash-preview also works but gemini-live-2.5-flash is private GA
+ * Model for realtime/voice applications (Vertex AI Live API). No default: see realtime-model.ts.
  * NOTE: Native-audio models (gemini-live-*-native-audio) do NOT work with TEXT modality!
  * NOTE: Do NOT fall back to GEMINI_MODEL — Live models break generateContent callers
  *       that use getDefaultModel()/GEMINI_MODEL. Keep the two env vars separate.
  */
-export const REALTIME_MODEL =
-  process.env.LLM_REALTIME_MODEL || 'gemini-2.0-flash-live-preview-04-09';
+export const REALTIME_MODEL = realtimeModelOrFail();
 
 /**
  * OpenAI realtime model (for OpenAI realtime API)

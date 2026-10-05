@@ -357,6 +357,7 @@
       animateSecondary();
       
     } catch (error) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.error('[Hero Sequence] Animation error:', error);
       showAllImmediately();
     }
@@ -429,7 +430,6 @@
     
     // Find elements
     if (!discoverElements()) {
-      console.log('[Hero Sequence] Hero elements not found, skipping');
       return;
     }
     
@@ -443,7 +443,6 @@
       setTimeout(playSequence, 50);
     });
     
-    console.log('%c✨ Hero Sequence loaded', 'color: #4a6741; font-weight: bold;');
   }
 
   // Start when DOM is ready

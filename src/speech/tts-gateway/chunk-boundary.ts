@@ -35,7 +35,8 @@ const GENERAL_WORDS = new Set(GENERAL_ABBREVIATIONS);
  * real sentence end, since the two characters before both periods are
  * ordinary lowercase letters.
  */
-const SENTENCE_END_CANDIDATE = /([.!?]+)(\s|$)/g;
+// A sentence end is followed by space, the end of the text, or a tag ("first.<break").
+const SENTENCE_END_CANDIDATE = /([.!?]+)(\s|$|(?=<))/g;
 
 /** The run of letters immediately before `index` in `text` (no trailing partial match). */
 function wordBefore(text: string, index: number): string {
@@ -157,8 +158,12 @@ function spokenLength(text: string): number {
   return text.replace(/<[^>]*>|\[[^\]]*\]/g, '').trim().length;
 }
 
-/** A clause break inside a sentence: , ; : or a dash or ellipsis, then whitespace. */
-const CLAUSE_END = /(?<![0-9])(,|;|:|—|–|\.\.\.|…)\s/g;
+/**
+ * A clause break inside a sentence: , ; : or a dash or ellipsis, then
+ * whitespace or the end of the buffer (the wrapper's chunker trims the space
+ * after "early,", which held the first audio for the next token).
+ */
+const CLAUSE_END = /(?<![0-9])(,|;|:|—|–|\.\.\.|…)(?:\s|$)/g;
 
 /**
  * Where to cut the FIRST piece of a reply on a continuation context. Waiting

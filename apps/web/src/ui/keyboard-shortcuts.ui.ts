@@ -54,48 +54,21 @@ const ICONS = {
 // DEFAULT SHORTCUTS
 // ============================================================================
 
+// Only shortcuts whose events the app actually handles. Esc is left to dialogs:
+// as a global shortcut it ended the live call when nothing was open.
 function getDefaultShortcuts(): Shortcut[] {
   return [
     // Navigation
     {
-      key: 'k',
-      cmd: true,
-      label: '⌘K',
-      description: 'Open command palette',
-      category: 'navigation',
-      action: () => window.dispatchEvent(new CustomEvent('ferni:toggle-command-palette')),
-      preventDefault: true,
-    },
-    {
-      key: '/',
-      label: '/',
-      description: 'Focus search',
-      category: 'navigation',
-      action: () => window.dispatchEvent(new CustomEvent('ferni:focus-search')),
-    },
-    {
       key: '?',
+      shift: true, // '?' is typed with Shift on most layouts
       label: '?',
       description: 'Show shortcuts',
       category: 'navigation',
       action: () => showShortcutsPanel(),
     },
-    {
-      key: 'Escape',
-      label: 'Esc',
-      description: 'Close modal / Cancel',
-      category: 'navigation',
-      action: () => window.dispatchEvent(new CustomEvent('ferni:escape')),
-    },
 
     // Actions
-    {
-      key: ' ',
-      label: 'Space',
-      description: 'Push to talk (hold)',
-      category: 'actions',
-      action: () => window.dispatchEvent(new CustomEvent('ferni:push-to-talk')),
-    },
     {
       key: 'm',
       label: 'M',
@@ -147,19 +120,6 @@ function getDefaultShortcuts(): Shortcut[] {
       description: 'Settings',
       category: 'navigation',
       action: () => window.dispatchEvent(new CustomEvent('ferni:open-settings')),
-      preventDefault: true,
-    },
-
-    // Dev shortcuts
-    {
-      key: 'd',
-      cmd: true,
-      shift: true,
-      label: '⌘⇧D',
-      description: 'Toggle dev panel',
-      category: 'dev',
-      devOnly: true,
-      action: () => window.dispatchEvent(new CustomEvent('ferni:toggle-dev-panel')),
       preventDefault: true,
     },
   ];
@@ -378,11 +338,11 @@ function injectStyles(): void {
     }
 
     [data-theme="midnight"] .shortcuts-panel__card {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
     }
 
     [data-theme="midnight"] .shortcuts-panel__key {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
 
     /* Reduced motion */
@@ -443,6 +403,13 @@ function isInputFocused(): boolean {
   return false;
 }
 
+/** Enter on a focused button or link must activate it, not start or end a call. */
+function isActivatableFocused(): boolean {
+  const active = document.activeElement;
+  if (!active || active === document.body) return false;
+  return active.matches('button, a[href], summary, [role="button"], [role="link"], [role="menuitem"], [tabindex]:not([tabindex="-1"])');
+}
+
 // ============================================================================
 // EVENT HANDLERS
 // ============================================================================
@@ -453,6 +420,7 @@ function handleKeydown(e: KeyboardEvent): void {
 
   // Skip if in input
   if (isInputFocused()) return;
+  if (e.key === 'Enter' && isActivatableFocused()) return;
 
   // Check dev mode
   const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV;

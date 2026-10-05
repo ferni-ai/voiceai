@@ -121,3 +121,71 @@ describe('loadRecallSnapshot', () => {
     expect(snap).toEqual({ facts: [], followUps: [] });
   });
 });
+
+// Memory with manners (dev, 2026-10-04): a scripted call's "she's pregnant",
+// stored as 63 undated rows, came back as "Since she's pregnant..." in
+// unrelated calls. Facts now carry their age, sensitive ones wait for the
+// caller to raise them, and one entity can't take the whole turn's budget.
+describe('memory with manners', () => {
+  const now = Date.parse('2026-10-05T12:00:00Z');
+  const daysAgo = (d: number) => new Date(now - d * 86_400_000).toISOString();
+
+  it('says how old each remembered fact is', () => {
+    const note = formatRecall(
+      [
+        { ...biscuitBreed, extractedAt: daysAgo(5) },
+        { ...austinJob, extractedAt: daysAgo(0.1) },
+      ],
+      [],
+      'Sam',
+      now
+    )!;
+    expect(note).toContain('- Biscuit: breed = golden retriever [said 5 days ago]');
+    expect(note).toContain('- Austin: job offer = new job in Austin [said today]');
+    // A date inside the value must not read as dated by the label (dev 2026-10-05).
+    expect(note).not.toMatch(/\(today\)|\(yesterday\)/);
+    expect(note).toContain('as of when it was said');
+  });
+
+  it('tells Ferni to check rather than assert, and to leave sensitive things to the caller', () => {
+    const note = formatRecall([biscuitBreed], [], 'Sam', now)!;
+    expect(note).toMatch(/check/i);
+    expect(note).toMatch(/health/i);
+    expect(note).toMatch(/unless they bring it up/i);
+  });
+
+  it('brings at most two facts about one entity to a turn', () => {
+    const sister = (key: string, value: string) => ({ entity: 'sister', key, value, confidence: 1 });
+    const snap: RecallSnapshot = {
+      facts: [
+        sister('pregnancy', 'Pregnant'),
+        sister('pregnancy', 'is pregnant'),
+        sister('pregnancy announcement', 'announced it on the trail'),
+        sister('likes', 'hiking'),
+        { entity: 'Sam', key: 'likes', value: 'old movies', confidence: 1 },
+      ],
+      followUps: [],
+    };
+    const got = recallForTurn(snap, "My sister's birthday is next week. She loves hiking and old movies.");
+    expect(got.filter((f) => f.entity === 'sister')).toHaveLength(2);
+  });
+
+  it('reads word confidences, drops low ones, and keeps the newest copy of a fact', async () => {
+    const snap = await loadRecallSnapshot(
+      {
+        facts: async () => [
+          { entityName: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 'high', extractedAt: daysAgo(9) },
+          { entityName: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 'high', extractedAt: daysAgo(2) },
+          { entityName: 'Biscuit', key: 'toy', value: 'tennis ball', confidence: 'low' },
+          { entityName: 'Biscuit', key: 'age', value: 'three' },
+        ],
+        summaries: async () => [],
+      },
+      'u1'
+    );
+    expect(snap.facts).toEqual([
+      { entity: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 0.9, extractedAt: daysAgo(2) },
+      { entity: 'Biscuit', key: 'age', value: 'three', confidence: 0.5 },
+    ]);
+  });
+});

@@ -5,8 +5,11 @@
  * Used for voice-to-UI communication like theme changes, navigation, etc.
  *
  * Usage:
- * - Client connects to ws://localhost:3002/ws/user-events?userId=xxx
- * - Server streams user events as JSON
+ * - Client connects to ws://localhost:3002/ws/user-events, offering subprotocols
+ *   ['ferni.v1', 'bearer.<Firebase ID token>']
+ *   (no valid token: the upgrade is refused with 401)
+ * - Server streams the verified user's events as JSON. A userId in the URL or in a
+ *   message is ignored: the socket is bound to the verified uid.
  * - Client updates UI based on event type
  *
  * @module services/user-events-websocket
@@ -16,6 +19,12 @@ import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'node:http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerUserEventBroadcast } from '../user-events/index.js';
+import {
+  rejectUpgrade,
+  selectWsProtocol,
+  upgradePath,
+  verifyUpgradeIdentity,
+} from '../identity/ws-identity.js';
 
 const log = createLogger({ module: 'UserEventsWebSocket' });
 
@@ -25,7 +34,8 @@ const log = createLogger({ module: 'UserEventsWebSocket' });
 
 interface ClientInfo {
   ws: WebSocket;
-  userId: string | null;
+  /** Verified at the upgrade; never changed by the client. */
+  userId: string;
   connectedAt: number;
 }
 
@@ -59,27 +69,19 @@ export function getUserEventsWebSocketServer(): WebSocketServer | null {
 export function initUserEventsWebSocket(httpServer: Server): WebSocketServer {
   const wss = new WebSocketServer({
     noServer: true,
+    handleProtocols: selectWsProtocol,
     perMessageDeflate: false,
   });
 
   wssInstance = wss;
 
-  // Handle upgrade requests for /ws/user-events path
+  // Other paths belong to other upgrade handlers: leave their sockets alone.
   httpServer.on('upgrade', (request, socket, head) => {
-    const url = new URL(request.url || '', `http://${request.headers.host}`);
-    const { pathname } = url;
-
-    if (pathname === '/ws/user-events') {
-      // Extract userId from query params
-      const userId = url.searchParams.get('userId');
-
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        // Store userId with the connection
-        (ws as WebSocket & { userId?: string }).userId = userId || undefined;
-        wss.emit('connection', ws, request);
-      });
-    }
-    // Don't destroy socket here - let other handlers process their paths
+    if (upgradePath(request) !== '/ws/user-events') return;
+    void verifyUpgradeIdentity(request).then((uid) => {
+      if (!uid) return rejectUpgrade(socket);
+      wss.handleUpgrade(request, socket, head, (ws) => onConnection(ws, uid));
+    });
   });
 
   log.info('User Events WebSocket server initialized on /ws/user-events');
@@ -95,23 +97,10 @@ export function initUserEventsWebSocket(httpServer: Server): WebSocketServer {
     }
   );
 
-  wss.on('connection', (ws: WebSocket) => {
-    const userId = (ws as WebSocket & { userId?: string }).userId || null;
-
-    // Initialize client info
-    clients.set(ws, {
-      ws,
-      userId,
-      connectedAt: Date.now(),
-    });
-
-    // Track by userId if present
-    if (userId) {
-      if (!userConnections.has(userId)) {
-        userConnections.set(userId, new Set());
-      }
-      userConnections.get(userId)!.add(ws);
-    }
+  function onConnection(ws: WebSocket, userId: string): void {
+    clients.set(ws, { ws, userId, connectedAt: Date.now() });
+    const conns = userConnections.get(userId) ?? new Set<WebSocket>();
+    userConnections.set(userId, conns.add(ws));
 
     log.info({ clientCount: clients.size, userId }, 'User Events WebSocket client connected');
 
@@ -138,7 +127,7 @@ export function initUserEventsWebSocket(httpServer: Server): WebSocketServer {
       log.warn({ error: String(error) }, 'User Events WebSocket client error');
       handleClientDisconnect(ws);
     });
-  });
+  }
 
   // Store unregister for cleanup
   (wss as WebSocketServer & { _unregister?: () => void })._unregister = unregister;
@@ -151,44 +140,28 @@ export function initUserEventsWebSocket(httpServer: Server): WebSocketServer {
  */
 function handleClientMessage(ws: WebSocket, message: Buffer): void {
   try {
-    const data = JSON.parse(message.toString()) as { type: string; userId?: string };
+    const data = JSON.parse(message.toString()) as { type: string };
 
     switch (data.type) {
       case 'ping':
         safeSend(ws, { type: 'pong', timestamp: new Date().toISOString() });
         break;
 
-      case 'subscribe':
-        // Update userId if provided
-        if (data.userId) {
-          const clientInfo = clients.get(ws);
-          if (clientInfo) {
-            // Remove from old userId tracking
-            if (clientInfo.userId && clientInfo.userId !== data.userId) {
-              const oldSet = userConnections.get(clientInfo.userId);
-              oldSet?.delete(ws);
-              if (oldSet?.size === 0) {
-                userConnections.delete(clientInfo.userId);
-              }
-            }
-
-            // Update to new userId
-            clientInfo.userId = data.userId;
-            if (!userConnections.has(data.userId)) {
-              userConnections.set(data.userId, new Set());
-            }
-            userConnections.get(data.userId)!.add(ws);
-
-            safeSend(ws, {
-              type: 'subscribed',
-              userId: data.userId,
-              timestamp: new Date().toISOString(),
-            });
-
-            log.info({ userId: data.userId }, 'Client subscribed to user events');
-          }
+      case 'subscribe': {
+        // The socket is already bound to its verified uid at the upgrade. A
+        // userId in the message is ignored rather than rejected: clients send
+        // whatever local id they hold, and re-binding is what let a socket
+        // read another user's events. Confirm the bound uid instead.
+        const clientInfo = clients.get(ws);
+        if (clientInfo) {
+          safeSend(ws, {
+            type: 'subscribed',
+            userId: clientInfo.userId,
+            timestamp: new Date().toISOString(),
+          });
         }
         break;
+      }
 
       default:
         log.debug({ type: data.type }, 'Unknown message type');
@@ -204,7 +177,7 @@ function handleClientMessage(ws: WebSocket, message: Buffer): void {
 function handleClientDisconnect(ws: WebSocket): void {
   const clientInfo = clients.get(ws);
 
-  if (clientInfo?.userId) {
+  if (clientInfo) {
     const conns = userConnections.get(clientInfo.userId);
     if (conns) {
       conns.delete(ws);

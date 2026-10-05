@@ -124,6 +124,17 @@ describe('Semantic Memory Cache', () => {
     });
   });
 
+  describe('empty queries (retrieval with no topic)', () => {
+    it('never embed a blank query, on lookup or store', async () => {
+      await storeInSemanticCache(testUserId, testQuery, testResult, mockEmbedding);
+      mockEmbed.mockClear();
+      expect((await findSimilarCached(testUserId, '  ')).hit).toBe(false);
+      await storeInSemanticCache(testUserId, '', testResult);
+      expect(mockEmbed).not.toHaveBeenCalled();
+      expect(getUserCacheInfo(testUserId).entryCount).toBe(1);
+    });
+  });
+
   describe('storeInSemanticCache', () => {
     it('should store a query with its result', async () => {
       await storeInSemanticCache(testUserId, testQuery, testResult, mockEmbedding);
@@ -354,15 +365,13 @@ describe('Semantic Memory Cache', () => {
       expect(result.hit).toBe(false);
     });
 
-    it('should handle empty query', async () => {
-      // Store entry (cache empty, so topKSimilar NOT called)
+    it('misses an empty query without embedding it (the real embed() throws on empty text)', async () => {
       await storeInSemanticCache(testUserId, '', testResult, mockEmbedding);
-
-      // Find it (cache has entry, topKSimilar IS called)
-      mockTopKSimilar.mockReturnValueOnce({ indices: [0], similarities: [0.9] });
       const result = await findSimilarCached(testUserId, '');
 
-      expect(result.hit).toBe(true);
+      expect(result.hit).toBe(false);
+      expect(mockEmbed).not.toHaveBeenCalled();
+      expect(mockTopKSimilar).not.toHaveBeenCalled();
     });
 
     it('should isolate caches between users', async () => {

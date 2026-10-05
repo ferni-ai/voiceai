@@ -21,6 +21,7 @@ import { openImportContacts } from './import-contacts.ui.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getAllMockContacts, MOCK_NUDGES } from '../data/mock-contacts.ts';
 import { t } from '../i18n/index.js';
+import { parseNudgesResponse, type Nudge } from './your-people-nudges.js';
 
 const log = createLogger('YourPeopleUI');
 
@@ -47,16 +48,6 @@ interface Person {
   };
   needsAttention?: boolean;
   groups?: string[];
-}
-
-interface Nudge {
-  id: string;
-  contactId: string;
-  contactName: string;
-  type: 'reconnect' | 'birthday' | 'anniversary' | 'custom';
-  priority: 'high' | 'medium' | 'low';
-  message: string;
-  daysUntil?: number;
 }
 
 interface PersonGroup {
@@ -226,7 +217,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
 
@@ -250,7 +241,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
 
@@ -274,7 +265,7 @@ function injectStyles(): void {
       left: var(--space-3, 0.75rem);
       top: 50%;
       transform: translateY(-50%);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       pointer-events: none;
     }
 
@@ -301,7 +292,7 @@ function injectStyles(): void {
     }
 
     .yp-search-input::placeholder {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     /* Filters */
@@ -318,13 +309,13 @@ function injectStyles(): void {
       background: transparent;
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .yp-filter:hover {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted, #352e28);
       color: var(--color-text-secondary, #5a4a42);
     }
 
@@ -448,7 +439,7 @@ function injectStyles(): void {
     }
 
     .yp-nudge-arrow {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     /* =========================================================================
@@ -473,7 +464,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -545,7 +536,7 @@ function injectStyles(): void {
 
     .yp-person-meta {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-0-5, 0.125rem);
       display: flex;
       align-items: center;
@@ -577,7 +568,7 @@ function injectStyles(): void {
     }
 
     .yp-person-arrow {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       flex-shrink: 0;
     }
 
@@ -594,7 +585,7 @@ function injectStyles(): void {
       width: 56px;
       height: 56px;
       margin: 0 auto var(--space-4, 1rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       opacity: 0.4;
     }
 
@@ -607,7 +598,7 @@ function injectStyles(): void {
 
     .yp-empty-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       line-height: 1.5;
       max-width: min(280px, 100%);
       margin: 0 auto;
@@ -624,7 +615,7 @@ function injectStyles(): void {
       border: 2px dashed var(--color-border, rgba(44, 37, 32, 0.15));
       border-radius: var(--radius-lg, 1rem);
       background: transparent;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
       cursor: pointer;
@@ -671,7 +662,7 @@ function injectStyles(): void {
     .yp-loading {
       text-align: center;
       padding: var(--space-10, 2.5rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-size: var(--text-sm, 0.875rem);
     }
 
@@ -691,7 +682,7 @@ function injectStyles(): void {
     }
 
     .yp-error-message {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-size: var(--text-sm, 0.875rem);
     }
 
@@ -831,7 +822,7 @@ function renderNudges(): string {
     const query = state.searchQuery.toLowerCase();
     filteredNudges = filteredNudges.filter(nudge =>
       nudge.contactName.toLowerCase().includes(query) ||
-      nudge.message?.toLowerCase().includes(query)
+      nudge.reason.toLowerCase().includes(query)
     );
   }
   
@@ -844,11 +835,11 @@ function renderNudges(): string {
         ${ICONS.sparkles} Ferni suggests
       </div>
       ${visibleNudges.map(nudge => `
-        <div class="yp-nudge" data-contact-id="${nudge.contactId}" role="button" tabindex="0" aria-label="Contact ${escapeHtml(nudge.contactName)}. ${escapeHtml(nudge.message)}">
+        <div class="yp-nudge" data-contact-id="${nudge.contactId}" role="button" tabindex="0" aria-label="Contact ${escapeHtml(nudge.contactName)}. ${escapeHtml(nudge.reason)}">
           <div class="yp-nudge-avatar" aria-hidden="true">${getInitials(nudge.contactName)}</div>
           <div class="yp-nudge-content">
             <div class="yp-nudge-name">${escapeHtml(nudge.contactName)}</div>
-            <div class="yp-nudge-reason">${escapeHtml(nudge.message)}</div>
+            <div class="yp-nudge-reason">${escapeHtml(nudge.reason)}</div>
           </div>
           ${nudge.priority === 'high' ? `<span class="yp-nudge-badge high">Soon</span>` : ''}
           ${nudge.priority === 'medium' ? `<span class="yp-nudge-badge medium">Check in</span>` : ''}
@@ -1223,9 +1214,9 @@ async function loadPeopleData(): Promise<void> {
     // Load nudges
     const nudgesRes = await apiFetch('/api/contacts/nudges');
     if (nudgesRes.ok) {
-      state.nudges = await nudgesRes.json();
+      state.nudges = parseNudgesResponse(await nudgesRes.json());
     } else if (useMockData) {
-      state.nudges = MOCK_NUDGES as unknown as Nudge[];
+      state.nudges = parseNudgesResponse(MOCK_NUDGES);
       log.debug('Using mock nudge data');
     }
   } catch (error) {
@@ -1233,7 +1224,7 @@ async function loadPeopleData(): Promise<void> {
     // Use mock data in dev mode when API fails
     if (useMockData) {
       state.people = getAllMockContacts();
-      state.nudges = MOCK_NUDGES as unknown as Nudge[];
+      state.nudges = parseNudgesResponse(MOCK_NUDGES);
       log.debug('Using mock data due to API error');
     } else {
       // Production: set error state

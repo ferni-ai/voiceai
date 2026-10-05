@@ -16,6 +16,8 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost, getUserId } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
+import { startOAuthConnect } from '../services/oauth-connect.service.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('CalendarViewUI');
 
@@ -401,7 +403,7 @@ class CalendarViewUI {
         this.isConnected = false;
         return;
       }
-      const statusRes = await apiGet<{ linked?: boolean }>(`/auth/google/status?user_id=${encodeURIComponent(userId)}`);
+      const statusRes = await apiGet<{ linked?: boolean }>('/auth/google/status'); // verified caller
       this.isConnected = statusRes?.data?.linked === true;
 
       // ALWAYS load calendar data - Ferni Calendar is always available!
@@ -1602,13 +1604,13 @@ class CalendarViewUI {
         switch (action) {
           case 'connect':
           case 'connect-google':
-            this.connectGoogle();
+            void this.startConnect('google_calendar');
             break;
           case 'connect-apple':
             this.connectApple();
             break;
           case 'connect-outlook':
-            this.connectOutlook();
+            void this.startConnect('microsoft_calendar');
             break;
           case 'open-settings':
             this.openFullSettings();
@@ -1643,11 +1645,6 @@ class CalendarViewUI {
     });
   }
 
-  private connectGoogle(): void {
-    const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
-    window.location.href = `/auth/google/login?user_id=${encodeURIComponent(userId)}`;
-  }
-
   private connectApple(): void {
     // Open the full settings to show Apple setup (requires credentials)
     this.hide();
@@ -1656,9 +1653,9 @@ class CalendarViewUI {
     }).catch((err) => log.error('Failed to open calendar settings', err));
   }
 
-  private connectOutlook(): void {
-    const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
-    window.location.href = `/auth/microsoft/login?user_id=${encodeURIComponent(userId)}`;
+  private async startConnect(provider: 'google_calendar' | 'microsoft_calendar'): Promise<void> {
+    const result = await startOAuthConnect(provider);
+    if (!result.success) toast.error(result.error ?? "Couldn't connect. Try again?");
   }
 
   private openFullSettings(): void {
@@ -1833,7 +1830,7 @@ class CalendarViewUI {
         border-radius: 50%;
         border: none;
         background: var(--color-background-secondary, rgba(44, 37, 32, 0.05));
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -1891,7 +1888,7 @@ class CalendarViewUI {
 
       .calendar-view__tab:hover {
         background: var(--color-background-secondary, rgba(44, 37, 32, 0.05));
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
       }
 
       .calendar-view__tab--active {
@@ -2274,7 +2271,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__settings-link:hover {
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
       }
 
       .calendar-view__settings-link:focus-visible {
@@ -2407,7 +2404,7 @@ class CalendarViewUI {
         background: transparent;
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         cursor: pointer;
         transition: all var(--duration-fast, 150ms) ease;
       }
@@ -2606,7 +2603,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__practice-day--today .calendar-view__practice-day-name {
-        color: var(--color-jordan, #c4856a);
+        color: color-mix(in srgb, var(--color-jordan, #c4856a) 70%, black);
       }
 
       .calendar-view__practice-day-num {
@@ -2616,7 +2613,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__practice-day--today .calendar-view__practice-day-num {
-        color: var(--color-jordan, #c4856a);
+        color: color-mix(in srgb, var(--color-jordan, #c4856a) 70%, black);
         font-weight: var(--font-weight-bold, 700);
       }
 
@@ -2778,7 +2775,7 @@ class CalendarViewUI {
 
       .calendar-view__practice-event-insight {
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         font-style: italic;
         padding-top: 4px;
       }
@@ -2848,7 +2845,7 @@ class CalendarViewUI {
 
       .calendar-view__practice-intention-insight {
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         font-style: italic;
       }
 
@@ -2878,7 +2875,7 @@ class CalendarViewUI {
       .calendar-view__practice-whisper-text {
         margin: 0;
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         font-style: italic;
         line-height: 1.5;
       }
@@ -3209,7 +3206,7 @@ class CalendarViewUI {
       .calendar-view__weekly-chart-title {
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         margin-bottom: var(--space-3, 12px);
       }
 
@@ -3291,7 +3288,7 @@ class CalendarViewUI {
 
       .calendar-view__pattern-description {
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         line-height: 1.4;
       }
 
@@ -3346,7 +3343,7 @@ class CalendarViewUI {
          DARK THEME
          ======================================================================== */
       [data-theme="midnight"] .calendar-view__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-view__header,
@@ -3381,12 +3378,12 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .calendar-view__close:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-primary, #faf6f0);
       }
 
@@ -3395,7 +3392,7 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__tab:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
@@ -3405,16 +3402,16 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__summary {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-view__event,
       [data-theme="midnight"] .calendar-view__day {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-view__event:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-view__day--today {
@@ -3437,18 +3434,18 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__btn--secondary {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-primary, #faf6f0);
       }
 
       [data-theme="midnight"] .calendar-view__provider-btn {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
         color: var(--color-text-primary, #faf6f0);
       }
 
       [data-theme="midnight"] .calendar-view__provider-btn:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         border-color: var(--color-alex-light, #8a9bb8);
       }
 
@@ -3475,7 +3472,7 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__month-btn:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-alex-light, #8a9bb8);
       }
 
@@ -3484,11 +3481,11 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__grid-cell {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-view__grid-cell:hover:not(.calendar-view__grid-cell--empty) {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-view__grid-cell--empty {
@@ -3519,7 +3516,7 @@ class CalendarViewUI {
 
       /* Sync status dark theme */
       [data-theme="midnight"] .calendar-view__sync-status {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
       }
 
@@ -3540,7 +3537,7 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__sync-toggle input[type="checkbox"] {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-view__sync-toggle input[type="checkbox"]:checked {

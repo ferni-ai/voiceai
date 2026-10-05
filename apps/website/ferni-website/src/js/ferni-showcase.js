@@ -31,7 +31,6 @@
   const smileCreaseRight = avatar?.querySelector('.smile-crease.crease-right');
   
   if (!avatar) {
-    console.log('🌟 Ferni Showcase: No avatar found');
     return;
   }
   
@@ -229,7 +228,6 @@
       maybePlayMicroExpression('noticing');
     }
     
-    console.log(`🎭 Ferni: ${mood}`);
   }
   
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -385,7 +383,6 @@
   // ═══════════════════════════════════════════════════════════════════════════════
   
   function init() {
-    console.log('🌟 Ferni Showcase initialized (eye-focused expressions)');
     
     // Enable natural behaviors
     avatar.classList.add('breathing', 'gazing', 'anticipation');

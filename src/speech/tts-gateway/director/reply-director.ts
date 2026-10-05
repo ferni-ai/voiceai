@@ -15,6 +15,7 @@
  * @module speech/tts-gateway/director/reply-director
  */
 
+import { readCallerProsody, type CallerProsody } from '../../audio-prosody/caller-prosody.js';
 import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 
 import { voiceHonorsProsodyTags } from '../../../config/voice-capabilities.js';
@@ -65,6 +66,16 @@ export interface PlanSummary {
   commasPer100Words: number;
   emotion?: string;
   emotionSource: string;
+  /** How the reply answered the caller's voice: reason, speed nudge, tone (prosody-response.ts). */
+  prosody: string;
+  prosodyNudge: number;
+  prosodyEmotion?: string;
+  /** The caller's voice this turn vs their baseline, to calibrate the thresholds from real calls. */
+  callerPitchRelSt?: number;
+  callerEnergyRelDb?: number;
+  callerRateRel?: number;
+  callerPitchSlope?: number;
+  callerVoicedMs?: number;
   speed: number;
   /** Stage 2 tempo planned for this turn (a voice that ignores <speed>). */
   tempo?: number;
@@ -158,6 +169,10 @@ class DirectedReply implements ReplyStream {
       renderTags: prosodyTags,
       stripProsody: this.stripProsody,
       userText: opts.turnContext?.userRequest,
+      callerProsody:
+        opts.sessionId && modes.prosody !== 'off'
+          ? readCallerProsody(opts.sessionId, wordCount(opts.turnContext?.userRequest))
+          : undefined,
       laughter: {
         sessionId: opts.sessionId,
         personaId: opts.personaId,
@@ -333,6 +348,10 @@ class DirectedReply implements ReplyStream {
         : 0,
       emotion: engine.emotion.emotion,
       emotionSource: engine.emotion.source,
+      prosody: engine.prosody.reason,
+      prosodyNudge: engine.prosody.speedNudge,
+      prosodyEmotion: engine.prosody.emotion,
+      ...callerReading(engine.callerProsody),
       speed: engine.speed,
       tempo: engine.tempo,
       tagsStripped: this.stripProsody,
@@ -380,4 +399,24 @@ export function directSpeech(
   );
   const directed = new DirectedReply(reply, mode, leverModes(opts.env), opts, cues);
   return { reply: directed, textStream };
+}
+
+/** Words in what the caller said, for their speaking rate. */
+function wordCount(text: string | undefined): number | undefined {
+  const n = text?.trim().split(/\s+/).filter(Boolean).length ?? 0;
+  return n > 0 ? n : undefined;
+}
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** The raw reading behind the prosody decision, rounded for the plan log. */
+function callerReading(p: CallerProsody | undefined): Partial<PlanSummary> {
+  if (!p) return {};
+  return {
+    callerPitchRelSt: round1(p.pitchRelSt),
+    callerEnergyRelDb: round1(p.energyRelDb),
+    callerRateRel: Math.round(p.rateRel * 100) / 100,
+    callerPitchSlope: round1(p.pitchSlopeStPerS),
+    callerVoicedMs: p.voicedMs,
+  };
 }

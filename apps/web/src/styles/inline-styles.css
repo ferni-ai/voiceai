@@ -48,20 +48,16 @@ body {
   --color-bg-tertiary: var(--color-background-tertiary);
   --color-bg-elevated: var(--color-background-elevated);
   --color-bg-glass: var(--color-background-glass);
-  --color-border-subtle: var(--color-border-subtle);
-  --color-border-medium: var(--color-border-medium);
 
-  --color-text-primary: var(--color-text-primary);
-  --color-text-secondary: var(--color-text-secondary);
-  --color-text-muted: var(--color-text-muted);
-  --color-text-dimmed: var(--color-text-dimmed);
+  /* --color-text-*, --color-border-subtle/-medium and --color-accent-hover/-glow
+     come straight from design-system tokens.css. Never alias one to itself here
+     (--x: var(--x)): a self-referencing custom property is invalid and erases
+     the token in every theme. */
 
   /* Ambient warmth - shifts based on time of day (set via JS) */
   --ambient-warmth: 0;
 
   --color-accent: var(--color-accent-primary);
-  --color-accent-hover: var(--color-accent-hover);
-  --color-accent-glow: var(--color-accent-glow);
 
   --color-success: var(--color-semantic-success);
   --color-error: var(--color-semantic-error);
@@ -1895,7 +1891,7 @@ html.theme-transitioning *::after {
 }
 
 .connection-step.active {
-  background: var(--color-accent-primary, #d4a84a);
+  background: var(--color-accent-primary, #8eae7a);
   transform: scale(1.3);
   box-shadow: 0 0 12px var(--color-accent-glow, rgba(212, 168, 74, 0.4));
 }
@@ -3859,7 +3855,7 @@ body {
 [data-theme='dark'] .avatar-lid-overlay .lid-bottom,
 [data-theme='dark'] .avatar-lid-overlay .brow-left,
 [data-theme='dark'] .avatar-lid-overlay .brow-right {
-  fill: var(--color-background-primary, #70605a);
+  fill: var(--color-background-primary, #352e28);
 }
 
 /* Reduced motion - disable lid transitions */
@@ -5372,63 +5368,6 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-/* Handoff Progress Indicator - Apple-style pill */
-.handoff-progress {
-  background: var(--color-bg-elevated);
-  border-radius: var(--radius-full);
-  padding: 10px 20px;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--color-border-subtle);
-  opacity: 1;
-  transform: translateY(0);
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
-  margin-top: 8px;
-}
-
-.handoff-progress.hidden {
-  opacity: 0;
-  transform: translateY(-10px);
-  pointer-events: none;
-}
-
-.handoff-progress-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.handoff-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--color-border-medium);
-  border-top-color: var(--persona-primary);
-  border-radius: 50%;
-  animation: handoffSpin 0.8s linear infinite;
-}
-
-@keyframes handoffSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.handoff-text {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-#handoffTargetName {
-  color: var(--persona-primary);
-  font-weight: 600;
-  gap: 8px;
-
-  /* Invisible by default - children handle their own visibility */
-  pointer-events: none;
 }
 
 /* Context pill styles removed - thinking now integrated into avatar */
@@ -6957,7 +6896,7 @@ body {
   inset-inline-end: -2px;
   width: 18px;
   height: 18px;
-  background: linear-gradient(135deg, var(--color-text-muted, #9a8a7a) 0%, var(--color-text-secondary, #70605a) 100%);
+  background: linear-gradient(135deg, var(--color-text-muted, #9a8a7a) 0%, var(--color-text-secondary, #352e28) 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -6987,7 +6926,7 @@ body {
   border-radius: var(--radius-md, 6px);
   font-size: 10px;
   font-weight: 500;
-  color: var(--color-text-secondary, #70605a);
+  color: var(--color-text-secondary, #a89b8c);
   white-space: nowrap;
   opacity: 0;
   visibility: hidden;
@@ -13294,12 +13233,12 @@ body.ambient-aurora {
    DARK THEME TEXT CONTRAST FIX - COMPREHENSIVE
 
    Problem: 127+ instances use persona colors (#4a6741, etc.) as text colors,
-   which have poor contrast (~2.1:1) on dark theme backgrounds (#70605a).
+   which have poor contrast (~2.1:1) on dark theme backgrounds (#352e28).
 
    Solution: Override ALL persona text colors with WCAG AA compliant variants.
    Each persona has a --*-text-on-dark color that maintains hue but is lighter.
 
-   Contrast ratios (on #70605a elevated background):
+   Contrast ratios (on #352e28 elevated background):
    - Ferni:  #a5c99a → 4.8:1 ✓
    - Peter:  #8bc4cf → 4.9:1 ✓
    - Alex:   #a8b8d8 → 4.7:1 ✓

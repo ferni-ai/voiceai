@@ -104,18 +104,20 @@ describe('Tool Analytics', () => {
       });
     });
 
-    it('should record duration', async () => {
-      const tracker = trackToolUsage('testTool', 'testDomain');
+    it('should record duration', () => {
+      // Fake timers also fake Date.now(), which the tracker measures with. A real
+      // 10ms setTimeout can read as 9ms at millisecond resolution and flake.
+      vi.useFakeTimers();
+      try {
+        const tracker = trackToolUsage('testTool', 'testDomain');
+        vi.advanceTimersByTime(10);
+        tracker.success();
 
-      // Wait a bit to ensure measurable duration
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 10);
-      });
-
-      tracker.success();
-
-      const events = exportEvents();
-      expect(events[0].durationMs).toBeGreaterThanOrEqual(10);
+        const events = exportEvents();
+        expect(events[0].durationMs).toBe(10);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 

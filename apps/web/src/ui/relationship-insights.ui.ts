@@ -211,7 +211,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
@@ -244,7 +244,7 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
@@ -299,7 +299,7 @@ function injectStyles(): void {
 
     .ri-loading-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     /* =========================================================================
@@ -329,7 +329,7 @@ function injectStyles(): void {
 
     .ri-stat-label {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-1, 0.25rem);
     }
 
@@ -365,7 +365,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -387,7 +387,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .ri-breakdown-icon svg {
@@ -420,7 +420,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -439,7 +439,7 @@ function injectStyles(): void {
     .ri-chart-bar-label {
       width: 60px;
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .ri-chart-bar-track {
@@ -509,7 +509,7 @@ function injectStyles(): void {
 
     .ri-insight-desc {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       line-height: 1.4;
     }
 
@@ -521,14 +521,14 @@ function injectStyles(): void {
     }
 
     .ri-insight-arrow {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       align-self: center;
     }
 
     .ri-empty {
       text-align: center;
       padding: var(--space-8, 2rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .ri-empty-icon {
@@ -549,7 +549,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -588,7 +588,7 @@ function injectStyles(): void {
       gap: var(--space-1, 0.25rem);
       margin-top: var(--space-2, 0.5rem);
       font-size: var(--text-xxs, 0.625rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .ri-activity-legend-cell {
@@ -773,7 +773,9 @@ function renderOverviewTab(): string {
     <div class="ri-strength-chart">
       <div class="ri-chart-title">Relationship Strength</div>
       <div class="ri-chart-bars">
-        ${strengthDistribution.map(item => `
+        ${strengthDistribution
+          .map(
+            (item) => `
           <div class="ri-chart-bar">
             <span class="ri-chart-bar-label">${item.label}</span>
             <div class="ri-chart-bar-track">
@@ -781,7 +783,9 @@ function renderOverviewTab(): string {
             </div>
             <span class="ri-chart-bar-value">${item.value}%</span>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
     </div>
   `;
@@ -802,7 +806,9 @@ function renderInsightsTab(): string {
 
   return `
     <div class="ri-insights">
-      ${insights.map(insight => `
+      ${insights
+        .map(
+          (insight) => `
         <div class="ri-insight" data-contact-id="${insight.contactId || ''}">
           <div class="ri-insight-priority" style="background: ${PRIORITY_COLORS[insight.priority]}"></div>
           <div class="ri-insight-content">
@@ -812,7 +818,9 @@ function renderInsightsTab(): string {
           </div>
           ${insight.contactId ? `<div class="ri-insight-arrow">${ICONS.chevronRight}</div>` : ''}
         </div>
-      `).join('')}
+      `
+        )
+        .join('')}
     </div>
   `;
 }
@@ -831,7 +839,9 @@ function renderActivityTab(): string {
     if (count > 2) level = 2;
     if (count > 4) level = 3;
     if (count > 6) level = 4;
-    cells.push(`<div class="ri-activity-cell level-${level}" title="${dayData?.date || ''}: ${count} interactions"></div>`);
+    cells.push(
+      `<div class="ri-activity-cell level-${level}" title="${dayData?.date || ''}: ${count} interactions"></div>`
+    );
   }
 
   return `
@@ -852,10 +862,15 @@ function renderActivityTab(): string {
     </div>
 
     <!-- Top insights from activity -->
-    ${state.data.insights.length > 0 ? `
+    ${
+      state.data.insights.length > 0
+        ? `
       <div class="ri-chart-title" style="margin-top: var(--space-6)">Based on Your Activity</div>
       <div class="ri-insights">
-        ${state.data.insights.slice(0, 3).map(_insight => `
+        ${state.data.insights
+          .slice(0, 3)
+          .map(
+            (_insight) => `
           <div class="ri-insight" data-contact-id="${_insight.contactId || ''}">
             <div class="ri-insight-priority" style="background: ${PRIORITY_COLORS[_insight.priority]}"></div>
             <div class="ri-insight-content">
@@ -863,9 +878,13 @@ function renderActivityTab(): string {
               <div class="ri-insight-desc">${escapeHtml(_insight.description)}</div>
             </div>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
-    ` : ''}
+    `
+        : ''
+    }
   `;
 }
 
@@ -878,10 +897,12 @@ function bindEvents(): void {
 
   // Close
   modalContainer.querySelector('.ri-close')?.addEventListener('click', closeRelationshipInsights);
-  modalContainer.querySelector('.relationship-insights-backdrop')?.addEventListener('click', closeRelationshipInsights);
+  modalContainer
+    .querySelector('.relationship-insights-backdrop')
+    ?.addEventListener('click', closeRelationshipInsights);
 
   // Tabs
-  modalContainer.querySelectorAll('.ri-tab').forEach(tab => {
+  modalContainer.querySelectorAll('.ri-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
       const tabId = tab.getAttribute('data-tab') as RelationshipInsightsState['activeTab'];
       if (tabId) {
@@ -892,7 +913,7 @@ function bindEvents(): void {
   });
 
   // Insight clicks
-  modalContainer.querySelectorAll('.ri-insight').forEach(el => {
+  modalContainer.querySelectorAll('.ri-insight').forEach((el) => {
     el.addEventListener('click', () => {
       const contactId = el.getAttribute('data-contact-id');
       if (contactId && callbacks.onSelectPerson) {
@@ -916,6 +937,11 @@ function handleEscapeKey(e: KeyboardEvent): void {
 // DATA LOADING
 // ============================================================================
 
+/**
+ * Load GET /api/contacts/insights, which sends exactly RelationshipInsightsData
+ * (src/services/contacts/relationship-insights-view.ts). A failure shows the
+ * error state; made-up people are never shown in place of the user's own.
+ */
 async function loadInsightsData(): Promise<void> {
   state.isLoading = true;
   state.error = null;
@@ -923,75 +949,15 @@ async function loadInsightsData(): Promise<void> {
 
   try {
     const response = await apiFetch('/api/contacts/insights');
-
-    if (!response.ok) {
-      throw new Error('Failed to load insights');
-    }
-
-    state.data = await response.json();
-    state.isLoading = false;
-    render();
+    if (!response.ok) throw new Error(`Insights request failed (${response.status})`);
+    state.data = (await response.json()) as RelationshipInsightsData;
   } catch (error) {
     log.error('Failed to load relationship insights:', error);
-    
-    // Use mock data for now
-    state.data = getMockData();
-    state.isLoading = false;
-    render();
+    state.data = null;
+    state.error = "Couldn't load your relationship insights. Try again?";
   }
-}
-
-function getMockData(): RelationshipInsightsData {
-  return {
-    stats: {
-      totalPeople: 12,
-      familyCount: 4,
-      friendCount: 5,
-      colleagueCount: 3,
-      averageStrength: 68,
-      upcomingDates: 2,
-      needsAttention: 3,
-    },
-    insights: [
-      {
-        id: '1',
-        type: 'nudge',
-        title: 'Reconnect with Sarah',
-        description: "It's been 3 weeks since you last talked. Maybe send a quick hello?",
-        contactId: 'sarah-123',
-        contactName: 'Sarah Johnson',
-        priority: 'high',
-      },
-      {
-        id: '2',
-        type: 'milestone',
-        title: "Mom's birthday is coming up",
-        description: 'In 5 days. Have you thought about what to get her?',
-        contactId: 'mom-456',
-        contactName: 'Mom',
-        priority: 'high',
-      },
-      {
-        id: '3',
-        type: 'pattern',
-        title: 'Great connection streak!',
-        description: "You've been in touch with family every week this month.",
-        priority: 'low',
-      },
-    ],
-    strengthDistribution: [
-      { label: 'Strong', value: 35, color: 'var(--persona-primary)' },
-      { label: 'Good', value: 40, color: 'var(--nayan-primary)' },
-      { label: 'Needs work', value: 25, color: 'var(--color-semantic-error)' },
-    ],
-    recentActivity: Array.from({ length: 28 }, (_, i) => {
-      const dateStr = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0] ?? '';
-      return {
-        date: dateStr,
-        count: Math.floor(Math.random() * 8),
-      };
-    }),
-  };
+  state.isLoading = false;
+  render();
 }
 
 // ============================================================================
@@ -1013,7 +979,7 @@ function escapeHtml(text: string): string {
  */
 export function openRelationshipInsights(options: RelationshipInsightsOptions = {}): void {
   closeRelationshipInsights();
-  
+
   injectStyles();
 
   state = {
@@ -1058,7 +1024,7 @@ export function closeRelationshipInsights(): void {
   setTimeout(() => {
     modalContainer?.remove();
     modalContainer = null;
-    
+
     if (callbacks.onClose) {
       callbacks.onClose();
     }
@@ -1075,4 +1041,3 @@ export const relationshipInsights = {
 };
 
 export default relationshipInsights;
-

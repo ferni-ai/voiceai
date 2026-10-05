@@ -704,6 +704,7 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
+    "dismiss": "Descartar",
     "maybeLater": "[NEEDS_TRANSLATION] Later"
   },
   "confirmModal": {
@@ -1027,6 +1028,7 @@
     "apple": {
       "instructionsTitle": "Para cancelar o cambiar tu plan:",
       "note": "Apple requiere que las suscripciones se gestionen a través de los Ajustes de iOS",
+      "source": "Te suscribiste a través de la App Store.",
       "step1": "Abre Ajustes en tu dispositivo",
       "step2": "Toca tu nombre en la parte superior",
       "step3": "Toca \"Suscripciones\"",
@@ -1043,6 +1045,7 @@
     "expiresLabel": "Acceso hasta",
     "freeNote": "Desbloquea sesiones ilimitadas, todo el equipo y personalización",
     "label": "SUSCRIPCIÓN",
+    "noBilling": "Tu plan no se cobra aquí, así que no hay nada que cambiar.",
     "renewsLabel": "Se renueva",
     "restore": {
       "failed": "Error al restaurar",
@@ -1123,6 +1126,7 @@
       "yourPlan": "Tu Plan",
       "insights": "[NEEDS_TRANSLATION] Understanding You",
       "yourStory": "[NEEDS_TRANSLATION] Your Story",
+      "trustDashboard": "Confianza y crecimiento",
       "whatINotice": "[NEEDS_TRANSLATION] What I Notice",
       "teamSessions": "[NEEDS_TRANSLATION] Team Sessions",
       "conferenceCalls": "[NEEDS_TRANSLATION] Conference Calls",
@@ -1384,8 +1388,34 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
+      "conversation": "Ten una conversación: +1 semilla",
+      "note": "¡Las semillas nos ayudan a decidir qué construir después!",
+      "streak30": "Racha de 30 días: +15 semillas",
+      "streak7": "Racha de 7 días: +5 semillas",
+      "vote": "Vota por funciones: de 1 a 10 semillas",
       "title": "How Seeds Work"
     },
+    "backToRoadmap": "Volver a la hoja de ruta",
+    "categories": {
+      "connect": "Conectar - Relaciones y comunicación",
+      "personalize": "Personalizar - Haz que Ferni sea tuyo",
+      "platform": "Plataforma - Nuevas capacidades"
+    },
+    "needMoreSeeds": "Necesitas al menos 5 semillas para enviar una sugerencia. ¡Conversa más para ganar semillas!",
+    "newIdea": "Nueva idea",
+    "noSeedsHint": "¡Conversa más para ganar semillas!",
+    "refund50": "reembolso del 50%",
+    "submitSuggestion": "Plantar esta semilla",
+    "submitting": "Plantando...",
+    "suggestionCategory": "Categoría",
+    "suggestionCost": "Enviarla cuesta 5 semillas (demuestra compromiso y evita el spam)",
+    "suggestionDescription": "Cuéntanos más (opcional)",
+    "suggestionDescriptionPlaceholder": "¿Por qué te sería útil? ¿Cómo lo usarías?",
+    "suggestionIntro": "¿Tienes una idea de algo que Ferni debería hacer? ¡Planta una semilla y deja que la comunidad la riegue!",
+    "suggestionPlanted": "¡Tu semilla está plantada!",
+    "suggestionThanks": "Gracias por compartir tu idea. ¡Ahora otros pueden regarla con sus semillas!",
+    "suggestionTitle": "¿Qué debería poder hacer Ferni?",
+    "suggestionTitlePlaceholder": "p. ej., recordar el nombre de mi mascota",
     "intro": "Toda gran relación tiene temporadas. Estas son semillas que plantamos juntos.",
     "learnMore": "Learn more",
     "loading": "Loading roadmap...",
@@ -2009,6 +2039,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "Tu historia empieza aquí",
+      "body": "Cuando hayamos hablado algunas veces, aquí aparecerán los momentos que te importan."
+    },
+    "error": {
+      "title": "No pudimos cargar tu historia",
+      "body": "Algo salió mal de nuestro lado. ¿Intentar de nuevo?",
+      "retry": "Intentar de nuevo"
     }
   },
   "memoryBrowser": {
@@ -2253,7 +2292,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "Vincula Spotify en Ajustes para escuchar canciones completas"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2292,7 +2332,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "Philips Hue o LIFX",
+      "hueOrLifxDesc": "Configúralo en los ajustes de \"Your Home\""
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2318,7 +2360,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "Primero conecta tus luces o tu termostato",
+    "musicNeedsCall": "Los controles de música funcionan durante una conversación",
+    "couldNotChangeLights": "No pudimos cambiar las luces. ¿Intentar de nuevo?"
   },
   "ui": {
     "accountbutton": {
@@ -2368,7 +2413,10 @@
     },
     "secondsRemaining": "Segundos restantes",
     "startExercise": "Comenzar ejercicio de respiración",
-    "changePattern": "Cambiar patrón de respiración"
+    "changePattern": "Cambiar patrón de respiración",
+    "hold": "Mantén",
+    "in": "Inhala",
+    "out": "Exhala"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2410,7 +2458,11 @@
     "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
     "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
     "rememberSuccess": "¡Listo! Te recordaré ahora.",
-    "account": "Cuenta"
+    "account": "Cuenta",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "rememberYouAs": "Te recordaré como",
+    "successMessage": "Ahora te recordaré. Vayas donde vayas, sabré quién eres."
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2450,7 +2502,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "Tus últimos 7 días"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2553,6 +2606,10 @@
       "subtitle": "Llamadas, mensajes y compromisos cumplidos",
       "empty": "Sin acciones aún",
       "recent": "Reciente"
+    },
+    "predictions": {
+      "title": "Hacia dónde vas",
+      "now": "Ahora"
     }
   },
   "sleepSettings": {
@@ -2687,7 +2744,11 @@
   },
   "voiceId": {
     "enrolledTitle": "[NEEDS_TRANSLATION] Voice ID enrolled - Ferni recognizes your voice",
-    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice"
+    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice",
+    "reenrollTitle": "He mejorado reconociendo voces",
+    "reenrollBody": "¿Te importa si aprendo la tuya otra vez? Tarda unos 20 segundos.",
+    "reenrollAccept": "Claro",
+    "reenrollLater": "Ahora no"
   },
   "languageSwitcher": {
     "label": "[NEEDS_TRANSLATION] Language",
@@ -2709,7 +2770,11 @@
     "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
     "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
     "sentSuccess": "¡Enviaste {sent} semillas! Ellos recibirán {received}",
-    "sendError": "No se pudo enviar el regalo. ¿Intentar de nuevo?"
+    "sendError": "No se pudo enviar el regalo. ¿Intentar de nuevo?",
+    "amount": "Cantidad",
+    "recipientPlaceholder": "Correo o nombre de usuario de tu amigo",
+    "sendGift": "Enviar regalo",
+    "sendTo": "Enviar a"
   },
   "teamIntro": {
     "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
@@ -2789,7 +2854,8 @@
       "onTheWay": "Vas muy bien! Más miembros del equipo se desbloquean mientras continuamos nuestro viaje.",
       "growing": "Tu equipo está creciendo. Solo faltan algunos hitos para desbloquear a todos.",
       "complete": "¡Has desbloqueado el equipo completo! Todos están aquí para apoyarte."
-    }
+    },
+    "added": "¡Añadido!"
   },
   "referral": {
     "share": {
@@ -2820,7 +2886,19 @@
       "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
     },
     "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
-    "copyError": "No se pudo copiar. ¿Intentar de nuevo?"
+    "copyError": "No se pudo copiar. ¿Intentar de nuevo?",
+    "bonusAmount": "Ambos recibirán {seeds} semillas",
+    "bonusWhen": "¡cuando se una!",
+    "garden": {
+      "earned": "Has ganado {seeds} semillas compartiendo",
+      "empty": "Las semillas crecen cuando se comparten. Empieza tu jardín hoy.",
+      "friendsGrowing": "{count} amigos creciendo",
+      "title": "Tu jardín:"
+    },
+    "quoteMessage": "\"Dales a alguien que lo recuerda todo, está ahí a las 2 de la madrugada y nunca juzga.\"",
+    "subtitle": "¿Conoces a alguien a quien le vendría bien un amigo así?",
+    "title": "Crecer juntos",
+    "yourLink": "Tu enlace:"
   },
   "conversationMemory": {
     "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
@@ -2983,7 +3061,14 @@
       "browse": "Explora nuestro mercado"
     },
     "creations": {
-      "noDescription": "Sin descripción"
+      "noDescription": "Sin descripción",
+      "createButton": "Crear un agente",
+      "emptyDescription": "Crea un agente con su propia personalidad y habilidades, y compártelo con la comunidad.",
+      "emptyTitle": "Aún no has creado ningún agente"
+    },
+    "agentCard": {
+      "install": "Instalar",
+      "uninstall": "Desinstalar"
     }
   },
   "agent": {
@@ -2993,6 +3078,145 @@
       "fictional": "Ficticio",
       "professional": "Profesional",
       "legacy": "Legado"
+    }
+  },
+  "predictionResolution": {
+    "title": "¿Cómo te fue?",
+    "youGuessed": "Tu apuesta: {value}",
+    "actual": "Real: {value}",
+    "scored": "{accuracy}% de acierto",
+    "record": "Anotar lo que pasó",
+    "save": "Comprobar mis apuestas",
+    "saveFailed": "No se pudo guardar. ¿Lo intentas de nuevo?",
+    "metrics": {
+      "deepWork": {
+        "label": "Trabajo profundo",
+        "question": "¿Cuántas horas de trabajo profundo hiciste?",
+        "unit": "horas"
+      },
+      "exercise": {
+        "label": "Ejercicio",
+        "question": "¿Cuántas veces hiciste ejercicio?",
+        "unit": "sesiones"
+      },
+      "social": {
+        "label": "Tiempo con gente",
+        "question": "¿Cuántas horas pasaste con otras personas?",
+        "unit": "horas"
+      },
+      "screen": {
+        "label": "Tiempo de pantalla",
+        "question": "¿Cuántas horas de pantalla tuviste?",
+        "unit": "horas"
+      },
+      "mood": {
+        "label": "Ánimo",
+        "question": "¿Cuál fue tu ánimo medio, del 1 al 10?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "¿Cuál fue tu valor real de {label}?"
+      }
+    },
+    "result": {
+      "line": "Apostaste {predicted}. Fue {actual}. {verdict}",
+      "overall": "{accuracy}% de acierto en total esta semana."
+    },
+    "tone": {
+      "spotOn": "¡Clavado!",
+      "close": "¡Muy cerca!",
+      "off": "Esta vez te desviaste un poco.",
+      "wayOff": "Esta vez, muy lejos. Ahora ya lo sabes."
+    }
+  },
+  "trustDashboard": {
+    "together": {
+      "empty": "Cuando hayamos hablado unas cuantas veces, te diré cómo vamos.",
+      "startingTitle": "Apenas estamos empezando",
+      "startingMessage": "Habla conmigo unas cuantas veces más y tendré algo real que contarte.",
+      "scoreLabel": "Juntos",
+      "stages": {
+        "new": "Recién empezando",
+        "building": "Conociéndonos",
+        "established": "Encontrando nuestro ritmo",
+        "deep": "Nos entendemos de verdad",
+        "flourishing": "Algo especial"
+      },
+      "rhythm": {
+        "high": "Hablamos a menudo",
+        "mid": "Nos ponemos al día con regularidad",
+        "low": "Hablamos de vez en cuando",
+        "quiet": "Hace tiempo que no hablamos",
+        "detailNone": "Ninguno en el último mes",
+        "detailOne": "1 día en el último mes",
+        "detailOther": "{n} días en el último mes"
+      },
+      "promises": {
+        "high": "Cumplo lo que digo",
+        "mid": "Casi siempre cumplo lo que digo",
+        "low": "Se me han escapado algunas cosas",
+        "detail": "Cumplidas {kept} de {total}"
+      },
+      "lift": {
+        "high": "Nuestras charlas suelen aliviarte",
+        "mid": "Nuestras charlas te dan estabilidad",
+        "low": "Nuestras charlas han sido pesadas últimamente",
+        "detail": "Mejor al final en {lifted} de {days} días"
+      },
+      "mood": {
+        "up": "Te noto con más ánimo últimamente",
+        "steady": "Te noto estable últimamente",
+        "down": "Las cosas se han sentido más pesadas últimamente",
+        "detail": "Esta semana, frente a las anteriores"
+      }
+    },
+    "noticed": {
+      "empty": "Te contaré lo que noto cuando hayamos hablado un poco más.",
+      "notYet": "Todavía no destaca nada. Sigo escuchando.",
+      "daysTalked": "Días que hablamos",
+      "tabs": {
+        "week": "Esta semana",
+        "month": "Este mes"
+      },
+      "title": {
+        "week": "Lo que noté esta semana",
+        "month": "Lo que noté este mes"
+      },
+      "quiet": {
+        "week": "No hemos hablado esta semana. Aquí estoy cuando quieras.",
+        "month": "No hemos hablado este mes. Aquí estoy cuando quieras."
+      },
+      "moodShift": {
+        "lighter": {
+          "week": "Te noto con más ánimo que la semana pasada.",
+          "month": "Te noto con más ánimo que el mes pasado."
+        },
+        "heavier": {
+          "week": "Esta semana se sintió más pesada que la anterior. También estoy aquí para eso.",
+          "month": "Este mes se sintió más pesado que el anterior. También estoy aquí para eso."
+        }
+      },
+      "bounceBack": {
+        "nextDay": "El {date} fue un día difícil, y al día siguiente ya estabas mejor.",
+        "later": "El {date} fue un día difícil, y en {days} días ya estabas mejor."
+      },
+      "liftTopic": "Hablar de {topic} suele levantarte el ánimo.",
+      "brightest": "Sonabas más feliz el {date}.",
+      "timeOfDay": {
+        "morning": "Solemos hablar por la mañana.",
+        "afternoon": "Solemos hablar por la tarde.",
+        "evening": "Solemos hablar por la noche.",
+        "night": "Solemos hablar de madrugada."
+      },
+      "favoriteDay": "El {day} parece ser nuestro día.",
+      "cameUp": {
+        "one": "Me contaste algo que se acerca: {example}.",
+        "other": "Me contaste {n} cosas que se acercan, como: {example}."
+      },
+      "promisesKept": {
+        "all": "Cumplí todas las promesas que te hice.",
+        "some": "Cumplí {kept} de las {total} promesas que te hice."
+      }
     }
   }
 }

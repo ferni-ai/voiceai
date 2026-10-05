@@ -30,7 +30,7 @@ import {
 const log = createLogger({ module: 'ThreadManager' });
 
 // ============================================================================
-// IN-MEMORY STORE (would be Firestore in production)
+// IN-MEMORY CACHE (Firestore is the store of record: thread-persistence.ts)
 // ============================================================================
 
 /** Active threads by user ID (most recent thread per user) */

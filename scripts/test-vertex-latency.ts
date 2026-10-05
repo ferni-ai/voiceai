@@ -1,8 +1,9 @@
 import { GoogleGenAI } from '@google/genai';
+import { GEMINI_LOCATION, GEMINI_MODEL } from '../src/config/gemini-config.js';
 
 const USE_VERTEX_AI = process.env.USE_VERTEX_AI !== 'false';
 const project = process.env.GOOGLE_CLOUD_PROJECT;
-const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+const location = GEMINI_LOCATION;
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
 async function testLatency() {
@@ -23,7 +24,7 @@ async function testLatency() {
   // Simple test
   const start1 = Date.now();
   const response1 = await client.models.generateContent({
-    model: 'gemini-2.0-flash-exp',
+    model: GEMINI_MODEL,
     contents: 'Say hello in 5 words.',
   });
   console.log(`\n✅ Simple test: ${Date.now() - start1}ms`);
@@ -33,7 +34,7 @@ async function testLatency() {
   const start2 = Date.now();
   const largePrompt = `You are Ferni, a warm life coach. ${'Remember this is important. '.repeat(500)} Now say hello briefly.`;
   const response2 = await client.models.generateContent({
-    model: 'gemini-2.0-flash-exp',
+    model: GEMINI_MODEL,
     contents: largePrompt,
   });
   console.log(`\n✅ Large prompt test (${largePrompt.length} chars): ${Date.now() - start2}ms`);

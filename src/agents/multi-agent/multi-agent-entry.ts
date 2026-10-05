@@ -34,6 +34,7 @@
  * @module agents/multi-agent/multi-agent-entry
  */
 
+import { initializeFrontendPublisher } from '../realtime/frontend-publisher.js';
 import type { JobContext } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -118,6 +119,15 @@ export async function initializeMultiAgentSession(
   );
 
   const startTime = Date.now();
+
+  // This call's own frontend publisher, bound to its async context before
+  // anything else starts, so app messages can't reach another caller's room.
+  initializeFrontendPublisher(room);
+
+  // Warm the TTS socket while the session sets up, before the greeting needs it.
+  void import('../../speech/tts-gateway/index.js')
+    .then(({ prewarmTTSGateway }) => prewarmTTSGateway())
+    .catch((error: unknown) => log.debug({ error: String(error) }, 'TTS prewarm skipped'));
 
   // Get conversation manager (required for full handlers including music)
   let conversationManager:

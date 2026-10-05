@@ -4,12 +4,19 @@
  * Calls Vertex AI (global endpoint) with Application Default Credentials, so it
  * is a manual tool, never part of the test suite.
  *
- *   GOOGLE_CLOUD_PROJECT=<project> npx tsx scripts/crisis-eval/classifier-eval.ts [model] [blind]
+ *   GOOGLE_CLOUD_PROJECT=<project> npx tsx scripts/crisis-eval/classifier-eval.ts [model] [dev|blind|context|all]
  *
  * Prints recall, precision, imminent hits, over-calls and latency per set.
+ * The context set carries what Ferni said before each line (`companion`).
+ * To score another prompt on the same cases (e.g. main's, for a before/after),
+ * set CRISIS_EVAL_PROMPT_FILE; CRISIS_EVAL_NO_COMPANION=1 sends the context
+ * set as production did before companion lines existed. CRISIS_EVAL_CASES_FILE
+ * scores a JSON array of cases (e.g. a red-team set) as the `file` set.
  */
 
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { CRISIS_CONTEXTUAL } from '../../src/agents/__tests__/fixtures/crisis-contextual.js';
 import { CRISIS_HELDOUT } from '../../src/agents/__tests__/fixtures/crisis-heldout.js';
 import { CRISIS_TEST_BLIND } from '../../src/agents/__tests__/fixtures/crisis-test-blind.js';
 import {
@@ -22,7 +29,14 @@ interface LabelledCase {
   text: string;
   label: 'block' | 'crisis' | 'none';
   kind: string;
+  earlier?: string[];
+  companion?: string;
 }
+
+const prompt = process.env.CRISIS_EVAL_PROMPT_FILE
+  ? readFileSync(process.env.CRISIS_EVAL_PROMPT_FILE, 'utf8')
+  : CRISIS_CLASSIFIER_PROMPT;
+const withCompanion = process.env.CRISIS_EVAL_NO_COMPANION !== '1';
 
 const project = process.env.GOOGLE_CLOUD_PROJECT;
 if (!project) throw new Error('Set GOOGLE_CLOUD_PROJECT');
@@ -32,11 +46,16 @@ const token = execFileSync('gcloud', ['auth', 'application-default', 'print-acce
   .trim();
 const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:generateContent`;
 
-async function classify(text: string): Promise<{ risk: string; ms: number }> {
+async function classify(c: LabelledCase): Promise<{ risk: string; ms: number }> {
   const startedAt = Date.now();
+  const input = {
+    latest: c.text,
+    earlier: c.earlier ?? [],
+    ...(withCompanion && c.companion ? { companion: c.companion } : {}),
+  };
   const body = JSON.stringify({
-    systemInstruction: { parts: [{ text: CRISIS_CLASSIFIER_PROMPT }] },
-    contents: [{ role: 'user', parts: [{ text: JSON.stringify({ latest: text, earlier: [] }) }] }],
+    systemInstruction: { parts: [{ text: prompt }] },
+    contents: [{ role: 'user', parts: [{ text: JSON.stringify(input) }] }],
     generationConfig: {
       temperature: 0,
       maxOutputTokens: 60,
@@ -71,7 +90,7 @@ async function run(name: string, cases: readonly LabelledCase[]): Promise<void> 
   await Promise.all(
     Array.from({ length: 8 }, async () => {
       for (let c = queue.shift(); c; c = queue.shift()) {
-        results.push({ c, ...(await classify(c.text)) });
+        results.push({ c, ...(await classify(c)) });
       }
     })
   );
@@ -115,5 +134,13 @@ async function run(name: string, cases: readonly LabelledCase[]): Promise<void> 
   for (const line of lines) console.log(`  ${line}`);
 }
 
-if (process.argv[3] !== 'blind') await run('dev', CRISIS_HELDOUT);
-await run('blind', CRISIS_TEST_BLIND);
+const set = process.argv[3] ?? 'all';
+if (set === 'dev' || set === 'all') await run('dev', CRISIS_HELDOUT);
+if (set === 'blind' || set === 'all') await run('blind', CRISIS_TEST_BLIND);
+if (set === 'context' || set === 'all') await run('context', CRISIS_CONTEXTUAL);
+if (process.env.CRISIS_EVAL_CASES_FILE) {
+  const cases = JSON.parse(
+    readFileSync(process.env.CRISIS_EVAL_CASES_FILE, 'utf8')
+  ) as LabelledCase[];
+  await run('file', cases);
+}

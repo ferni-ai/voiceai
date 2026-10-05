@@ -15,6 +15,7 @@ import {
   getPushNotificationsService,
   type NotificationPreferences,
 } from '../services/push-notifications.service.js';
+import { applyPushPreference } from '../services/push-preference.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
@@ -897,14 +898,8 @@ class NotificationSettingsUI {
     const service = getPushNotificationsService();
     service.setPreferences(this.localPrefs);
 
-    // Request permission if enabling
-    if (this.localPrefs.enabled) {
-      void service.requestPermission().then((permission) => {
-        if (permission !== 'granted') {
-          log.warn('Permission not granted');
-        }
-      });
-    }
+    // Enabling subscribes this browser on the server; disabling removes it.
+    void applyPushPreference(this.localPrefs.enabled);
 
     // Save outreach preferences
     if (this.outreachPrefs) {
@@ -1982,21 +1977,21 @@ class NotificationSettingsUI {
 
       /* Dark theme */
       [data-theme="midnight"] .notif-settings { background: var(--backdrop-page); }
-      [data-theme="midnight"] .notif-settings__card { background: var(--color-background-elevated, #70605a); }
+      [data-theme="midnight"] .notif-settings__card { background: var(--color-background-elevated, #352e28); }
       [data-theme="midnight"] .notif-settings__header h2,
       [data-theme="midnight"] .notif-settings__group h3,
       [data-theme="midnight"] .notif-settings__label { color: var(--color-text-primary, #faf6f0); }
       [data-theme="midnight"] .notif-settings__row--main,
-      [data-theme="midnight"] .notif-settings__upcoming-item { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .notif-settings__toggle-track { background: var(--color-background-tertiary, #685852); }
-      [data-theme="midnight"] .notif-settings__time-field input { background: var(--color-background-secondary, #60504a); color: var(--color-text-primary, #faf6f0); }
-      [data-theme="midnight"] .notif-settings__close { background: var(--color-background-tertiary, #685852); color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .notif-settings__upcoming-item { background: var(--color-background-secondary, #1e1a16); }
+      [data-theme="midnight"] .notif-settings__toggle-track { background: var(--color-background-tertiary, #2a241f); }
+      [data-theme="midnight"] .notif-settings__time-field input { background: var(--color-background-secondary, #1e1a16); color: var(--color-text-primary, #faf6f0); }
+      [data-theme="midnight"] .notif-settings__close { background: var(--color-background-tertiary, #2a241f); color: var(--color-text-secondary, #f0ebe4); }
       [data-theme="midnight"] .notif-settings__tab { color: var(--color-text-secondary, #f0ebe4); }
-      [data-theme="midnight"] .notif-settings__tab:hover { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .notif-settings__empty-tip { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .notif-settings__upcoming-btn { background: var(--color-background-tertiary, #685852); }
-      [data-theme="midnight"] .notif-settings__dialog { background: var(--color-background-elevated, #70605a); }
-      [data-theme="midnight"] .notif-settings__dialog-option { background: var(--color-background-secondary, #60504a); color: var(--color-text-primary, #faf6f0); }
+      [data-theme="midnight"] .notif-settings__tab:hover { background: var(--color-background-secondary, #1e1a16); }
+      [data-theme="midnight"] .notif-settings__empty-tip { background: var(--color-background-secondary, #1e1a16); }
+      [data-theme="midnight"] .notif-settings__upcoming-btn { background: var(--color-background-tertiary, #2a241f); }
+      [data-theme="midnight"] .notif-settings__dialog { background: var(--color-background-elevated, #352e28); }
+      [data-theme="midnight"] .notif-settings__dialog-option { background: var(--color-background-secondary, #1e1a16); color: var(--color-text-primary, #faf6f0); }
 
       /* Dark theme - New Better Than Human elements */
       [data-theme="midnight"] .notif-settings__hero-icon {
@@ -2016,7 +2011,7 @@ class NotificationSettingsUI {
         color: var(--persona-primary-dark, #8cb380);
       }
       [data-theme="midnight"] .notif-settings__capability-icon {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
       [data-theme="midnight"] .notif-settings__capability-icon--guardian { color: var(--persona-primary-dark, #8cb380); }
       [data-theme="midnight"] .notif-settings__capability-icon--ritual { color: #c9a99a; }
@@ -2024,11 +2019,11 @@ class NotificationSettingsUI {
       [data-theme="midnight"] .notif-settings__capability-icon--prediction { color: #6a9ba3; }
       [data-theme="midnight"] .notif-settings__capability-icon--team { color: #8a9bba; }
       [data-theme="midnight"] .notif-settings__row-icon {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--persona-primary-dark, #8cb380);
       }
       [data-theme="midnight"] .notif-settings__quiet-note {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
       [data-theme="midnight"] .notif-settings__quiet-note svg { color: var(--persona-primary-dark, #8cb380); }
       [data-theme="midnight"] .notif-settings__guardian-ring { border-color: var(--persona-primary-dark, #8cb380); }
@@ -2041,17 +2036,17 @@ class NotificationSettingsUI {
         color: var(--persona-primary-dark, #8cb380);
       }
       [data-theme="midnight"] .notif-settings__sample-checkin {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
       [data-theme="midnight"] .notif-settings__sample-checkins::after {
-        background: linear-gradient(to bottom, transparent, var(--color-background-elevated, #70605a));
+        background: linear-gradient(to bottom, transparent, var(--color-background-elevated, #352e28));
       }
       [data-theme="midnight"] .notif-settings__sample-reason {
         background: var(--persona-tint-dark, rgba(140, 179, 128, 0.15));
         color: var(--persona-primary-dark, #8cb380);
       }
       [data-theme="midnight"] .notif-settings__capability {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
       [data-theme="midnight"] .notif-settings__capability-badge {
         background: var(--persona-tint-dark, rgba(140, 179, 128, 0.2));

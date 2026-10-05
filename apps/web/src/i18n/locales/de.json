@@ -704,6 +704,7 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
+    "dismiss": "Ausblenden",
     "maybeLater": "[NEEDS_TRANSLATION] Later"
   },
   "confirmModal": {
@@ -1027,6 +1028,7 @@
     "apple": {
       "instructionsTitle": "Um Ihren Plan zu kündigen oder zu ändern:",
       "note": "Apple erfordert, dass Abonnements über iOS-Einstellungen verwaltet werden",
+      "source": "Sie haben über den App Store abonniert.",
       "step1": "Öffnen Sie Einstellungen auf Ihrem Gerät",
       "step2": "Tippen Sie oben auf Ihren Namen",
       "step3": "Tippen Sie auf \"Abos\"",
@@ -1043,6 +1045,7 @@
     "expiresLabel": "Zugriff bis",
     "freeNote": "Freischalten Sie unbegrenzte Sitzungen, das vollständige Team und Personalisierung",
     "label": "ABONNEMENT",
+    "noBilling": "Ihr Plan wird hier nicht abgerechnet, daher gibt es nichts zu ändern.",
     "renewsLabel": "Erneuert",
     "restore": {
       "failed": "Wiederherstellung fehlgeschlagen",
@@ -1123,6 +1126,7 @@
       "yourPlan": "Ihr Plan",
       "insights": "[NEEDS_TRANSLATION] Understanding You",
       "yourStory": "[NEEDS_TRANSLATION] Your Story",
+      "trustDashboard": "Vertrauen & Wachstum",
       "whatINotice": "[NEEDS_TRANSLATION] What I Notice",
       "teamSessions": "[NEEDS_TRANSLATION] Team Sessions",
       "conferenceCalls": "[NEEDS_TRANSLATION] Conference Calls",
@@ -1384,8 +1388,34 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
+      "conversation": "Ein Gespräch führen: +1 Samen",
+      "note": "Mit Ihren Samen entscheiden wir, was wir als Nächstes bauen!",
+      "streak30": "30-Tage-Serie: +15 Samen",
+      "streak7": "7-Tage-Serie: +5 Samen",
+      "vote": "Für Funktionen abstimmen: 1-10 Samen",
       "title": "How Seeds Work"
     },
+    "backToRoadmap": "Zurück zur Roadmap",
+    "categories": {
+      "connect": "Verbinden - Beziehungen & Kommunikation",
+      "personalize": "Personalisieren - Ferni ganz nach Ihren Wünschen",
+      "platform": "Plattform - Neue Fähigkeiten"
+    },
+    "needMoreSeeds": "Sie brauchen mindestens 5 Samen, um eine Idee einzureichen. Führen Sie weitere Gespräche, um Samen zu sammeln!",
+    "newIdea": "Neue Idee",
+    "noSeedsHint": "Führen Sie weitere Gespräche, um Samen zu sammeln!",
+    "refund50": "50 % Rückerstattung",
+    "submitSuggestion": "Diesen Samen pflanzen",
+    "submitting": "Wird gepflanzt...",
+    "suggestionCategory": "Kategorie",
+    "suggestionCost": "Das Einreichen kostet 5 Samen (zeigt Engagement, verhindert Spam)",
+    "suggestionDescription": "Erzählen Sie uns mehr (optional)",
+    "suggestionDescriptionPlaceholder": "Warum wäre das hilfreich? Wie würden Sie es nutzen?",
+    "suggestionIntro": "Haben Sie eine Idee, was Ferni können sollte? Pflanzen Sie einen Samen und lassen Sie die Community ihn gießen!",
+    "suggestionPlanted": "Ihr Samen ist gepflanzt!",
+    "suggestionThanks": "Danke, dass Sie Ihre Idee geteilt haben. Andere können sie jetzt mit ihren Samen gießen!",
+    "suggestionTitle": "Was sollte Ferni können?",
+    "suggestionTitlePlaceholder": "z. B. den Namen meines Haustiers merken",
     "intro": "Jede große Beziehung hat Jahreszeiten. Das sind Samen, die wir gemeinsam pflanzen.",
     "learnMore": "Learn more",
     "loading": "Loading roadmap...",
@@ -2009,6 +2039,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "Hier beginnt Ihre Geschichte",
+      "body": "Wenn wir ein paar Mal gesprochen haben, erscheinen hier die Momente, die Ihnen wichtig sind."
+    },
+    "error": {
+      "title": "Ihre Geschichte konnte nicht geladen werden",
+      "body": "Bei uns ist etwas schiefgelaufen. Erneut versuchen?",
+      "retry": "Erneut versuchen"
     }
   },
   "memoryBrowser": {
@@ -2253,7 +2292,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "Verbinden Sie Spotify in den Einstellungen für ganze Songs"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2292,7 +2332,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "Philips Hue oder LIFX",
+      "hueOrLifxDesc": "In den Einstellungen unter „Your Home“ einrichten"
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2318,7 +2360,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "Verbinden Sie zuerst Ihre Lampen oder Ihr Thermostat",
+    "musicNeedsCall": "Die Musiksteuerung funktioniert während eines Gesprächs",
+    "couldNotChangeLights": "Das Licht ließ sich nicht ändern. Erneut versuchen?"
   },
   "ui": {
     "accountbutton": {
@@ -2368,7 +2413,10 @@
     },
     "secondsRemaining": "Verbleibende Sekunden",
     "startExercise": "Atemübung starten",
-    "changePattern": "Atemmuster ändern"
+    "changePattern": "Atemmuster ändern",
+    "hold": "Halten",
+    "in": "Ein",
+    "out": "Aus"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2410,7 +2458,11 @@
     "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
     "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
     "rememberSuccess": "Verstanden! Ab jetzt erkenne ich dich wieder.",
-    "account": "Konto"
+    "account": "Konto",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "rememberYouAs": "Ich kenne Sie als",
+    "successMessage": "Ab jetzt erinnere ich mich an Sie. Wo auch immer Sie sind, ich erkenne Sie wieder."
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2450,7 +2502,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "Ihre letzten 7 Tage"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2553,6 +2606,10 @@
       "subtitle": "Anrufe, Nachrichten und eingehaltene Zusagen",
       "empty": "Noch keine Aktionen",
       "recent": "Kürzlich"
+    },
+    "predictions": {
+      "title": "Wohin Sie steuern",
+      "now": "Jetzt"
     }
   },
   "sleepSettings": {
@@ -2687,7 +2744,11 @@
   },
   "voiceId": {
     "enrolledTitle": "[NEEDS_TRANSLATION] Voice ID enrolled - Ferni recognizes your voice",
-    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice"
+    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice",
+    "reenrollTitle": "Ich erkenne Stimmen jetzt besser",
+    "reenrollBody": "Darf ich Ihre noch einmal kennenlernen? Das dauert etwa 20 Sekunden.",
+    "reenrollAccept": "Gern",
+    "reenrollLater": "Nicht jetzt"
   },
   "languageSwitcher": {
     "label": "[NEEDS_TRANSLATION] Language",
@@ -2709,7 +2770,11 @@
     "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
     "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
     "sentSuccess": "{sent} Samen gesendet! Sie erhalten {received}",
-    "sendError": "Geschenk konnte nicht gesendet werden. Erneut versuchen?"
+    "sendError": "Geschenk konnte nicht gesendet werden. Erneut versuchen?",
+    "amount": "Menge",
+    "recipientPlaceholder": "E-Mail-Adresse oder Benutzername eingeben",
+    "sendGift": "Geschenk senden",
+    "sendTo": "Senden an"
   },
   "teamIntro": {
     "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
@@ -2789,7 +2854,8 @@
       "onTheWay": "Du bist auf dem richtigen Weg! Mehr Teamkollegen werden freigeschaltet, während unsere Reise fortschreitet.",
       "growing": "Dein Team wächst. Es fehlen nur noch ein paar Meilensteine, um alle freizuschalten.",
       "complete": "Du hast das vollständige Team freigeschaltet! Jeder ist hier, um dich zu unterstützen."
-    }
+    },
+    "added": "Hinzugefügt!"
   },
   "referral": {
     "share": {
@@ -2820,7 +2886,19 @@
       "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
     },
     "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
-    "copyError": "Kopieren nicht möglich. Erneut versuchen?"
+    "copyError": "Kopieren nicht möglich. Erneut versuchen?",
+    "bonusAmount": "Sie beide erhalten {seeds} Samen",
+    "bonusWhen": "sobald sie dabei sind!",
+    "garden": {
+      "earned": "Sie haben durchs Teilen {seeds} Samen verdient",
+      "empty": "Samen wachsen, wenn man sie teilt. Legen Sie noch heute Ihren Garten an.",
+      "friendsGrowing": "{count} Freunde wachsen mit",
+      "title": "Ihr Garten:"
+    },
+    "quoteMessage": "„Schenken Sie ihnen jemanden, der sich an alles erinnert, auch um 2 Uhr nachts da ist und niemals urteilt.“",
+    "subtitle": "Kennen Sie jemanden, dem so ein Freund guttun würde?",
+    "title": "Gemeinsam wachsen",
+    "yourLink": "Ihr Link:"
   },
   "conversationMemory": {
     "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
@@ -2983,7 +3061,14 @@
       "browse": "Erkunde unseren Marketplace"
     },
     "creations": {
-      "noDescription": "Keine Beschreibung"
+      "noDescription": "Keine Beschreibung",
+      "createButton": "Agenten erstellen",
+      "emptyDescription": "Erstellen Sie einen Agenten mit eigener Persönlichkeit und eigenen Fähigkeiten und teilen Sie ihn mit der Community.",
+      "emptyTitle": "Sie haben noch keine Agenten erstellt"
+    },
+    "agentCard": {
+      "install": "Installieren",
+      "uninstall": "Deinstallieren"
     }
   },
   "agent": {
@@ -2993,6 +3078,145 @@
       "fictional": "Fiktiv",
       "professional": "Beruflich",
       "legacy": "Erbe"
+    }
+  },
+  "predictionResolution": {
+    "title": "Wie ist es gelaufen?",
+    "youGuessed": "Ihre Schätzung: {value}",
+    "actual": "Tatsächlich: {value}",
+    "scored": "{accuracy} % genau",
+    "record": "Ergebnis eintragen",
+    "save": "Schätzungen prüfen",
+    "saveFailed": "Das ließ sich nicht speichern. Erneut versuchen?",
+    "metrics": {
+      "deepWork": {
+        "label": "Konzentriertes Arbeiten",
+        "question": "Wie viele Stunden konzentriertes Arbeiten hatten Sie?",
+        "unit": "Stunden"
+      },
+      "exercise": {
+        "label": "Sport",
+        "question": "Wie oft haben Sie Sport gemacht?",
+        "unit": "Einheiten"
+      },
+      "social": {
+        "label": "Zeit mit anderen",
+        "question": "Wie viele Stunden haben Sie mit anderen Menschen verbracht?",
+        "unit": "Stunden"
+      },
+      "screen": {
+        "label": "Bildschirmzeit",
+        "question": "Wie viele Stunden Bildschirmzeit hatten Sie?",
+        "unit": "Stunden"
+      },
+      "mood": {
+        "label": "Stimmung",
+        "question": "Wie war Ihre durchschnittliche Stimmung, von 1 bis 10?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "Wie hoch war Ihr tatsächlicher Wert für {label}?"
+      }
+    },
+    "result": {
+      "line": "Sie haben {predicted} geschätzt. Es waren {actual}. {verdict}",
+      "overall": "Insgesamt {accuracy} % genau diese Woche."
+    },
+    "tone": {
+      "spotOn": "Volltreffer!",
+      "close": "Ziemlich nah dran!",
+      "off": "Diesmal etwas daneben.",
+      "wayOff": "Diesmal weit daneben. Jetzt wissen Sie es."
+    }
+  },
+  "trustDashboard": {
+    "together": {
+      "empty": "Wenn wir ein paar Mal gesprochen haben, sage ich Ihnen, wie es uns miteinander geht.",
+      "startingTitle": "Wir fangen gerade erst an",
+      "startingMessage": "Sprechen Sie noch ein paar Mal mit mir, dann kann ich Ihnen etwas Echtes sagen.",
+      "scoreLabel": "Gemeinsam",
+      "stages": {
+        "new": "Gerade erst angefangen",
+        "building": "Wir lernen uns kennen",
+        "established": "Wir finden unseren Rhythmus",
+        "deep": "Wir verstehen uns wirklich",
+        "flourishing": "Etwas Besonderes"
+      },
+      "rhythm": {
+        "high": "Wir sprechen oft",
+        "mid": "Wir melden uns regelmäßig",
+        "low": "Wir sprechen ab und zu",
+        "quiet": "Wir haben eine Weile nicht gesprochen",
+        "detailNone": "Nicht im letzten Monat",
+        "detailOne": "1 Tag im letzten Monat",
+        "detailOther": "{n} Tage im letzten Monat"
+      },
+      "promises": {
+        "high": "Ich halte Wort",
+        "mid": "Ich halte meistens Wort",
+        "low": "Mir ist einiges durchgerutscht",
+        "detail": "{kept} von {total} gehalten"
+      },
+      "lift": {
+        "high": "Nach unseren Gesprächen geht es Ihnen meist leichter",
+        "mid": "Unsere Gespräche geben Ihnen Halt",
+        "low": "Unsere Gespräche waren zuletzt schwer",
+        "detail": "An {lifted} von {days} Tagen am Ende leichter"
+      },
+      "mood": {
+        "up": "Sie wirken in letzter Zeit leichter",
+        "steady": "Sie wirken in letzter Zeit ausgeglichen",
+        "down": "Zuletzt war es schwerer für Sie",
+        "detail": "Diese Woche im Vergleich zu den Wochen davor"
+      }
+    },
+    "noticed": {
+      "empty": "Wenn wir etwas mehr gesprochen haben, erzähle ich Ihnen, was mir auffällt.",
+      "notYet": "Noch fällt nichts Besonderes auf. Ich höre weiter zu.",
+      "daysTalked": "Tage, an denen wir gesprochen haben",
+      "tabs": {
+        "week": "Diese Woche",
+        "month": "Dieser Monat"
+      },
+      "title": {
+        "week": "Was mir diese Woche aufgefallen ist",
+        "month": "Was mir diesen Monat aufgefallen ist"
+      },
+      "quiet": {
+        "week": "Wir haben diese Woche nicht gesprochen. Ich bin da, wann immer Sie möchten.",
+        "month": "Wir haben diesen Monat nicht gesprochen. Ich bin da, wann immer Sie möchten."
+      },
+      "moodShift": {
+        "lighter": {
+          "week": "Sie wirken leichter als letzte Woche.",
+          "month": "Sie wirken leichter als letzten Monat."
+        },
+        "heavier": {
+          "week": "Diese Woche war schwerer als die letzte. Auch dafür bin ich da.",
+          "month": "Dieser Monat war schwerer als der letzte. Auch dafür bin ich da."
+        }
+      },
+      "bounceBack": {
+        "nextDay": "Der {date} war ein schwerer Tag, und am nächsten Tag ging es Ihnen besser.",
+        "later": "Der {date} war ein schwerer Tag, und innerhalb von {days} Tagen ging es Ihnen besser."
+      },
+      "liftTopic": "Wenn wir über {topic} sprechen, hebt das Ihre Stimmung.",
+      "brightest": "Am {date} klangen Sie am glücklichsten.",
+      "timeOfDay": {
+        "morning": "Wir sprechen meistens morgens.",
+        "afternoon": "Wir sprechen meistens nachmittags.",
+        "evening": "Wir sprechen meistens abends.",
+        "night": "Wir sprechen meistens spät in der Nacht."
+      },
+      "favoriteDay": "Der {day} scheint unser Tag zu sein.",
+      "cameUp": {
+        "one": "Sie haben mir von etwas Bevorstehendem erzählt: {example}.",
+        "other": "Sie haben mir von {n} bevorstehenden Dingen erzählt, zum Beispiel: {example}."
+      },
+      "promisesKept": {
+        "all": "Ich habe jedes Versprechen gehalten, das ich Ihnen gegeben habe.",
+        "some": "Ich habe {kept} von {total} Versprechen gehalten, die ich Ihnen gegeben habe."
+      }
     }
   }
 }

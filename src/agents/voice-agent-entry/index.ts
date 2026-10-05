@@ -16,7 +16,7 @@
 
 import { isValidTimeZone } from '../shared/time-context.js';
 import type { JobContext } from '@livekit/agents';
-import type { RemoteParticipant } from '@livekit/rtc-node';
+import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 
 // Event cleanup registry for proper memory management
 import {
@@ -112,13 +112,6 @@ if (MULTI_AGENT_MODE) {
 
 let cachedVoiceDeps: VoiceDeps | null = null;
 
-interface ParticipantWaitResult {
-  participant: RemoteParticipant | null;
-  startedAt: number;
-  endedAt: number;
-  source: 'existing' | 'wait' | 'timeout' | 'error';
-}
-
 async function loadVoiceDeps(): Promise<void> {
   if (cachedVoiceDeps) return;
   cachedVoiceDeps = await loadVoiceDepsPhase();
@@ -132,62 +125,6 @@ function getVoiceDeps(): VoiceDeps {
     }
   }
   return cachedVoiceDeps;
-}
-
-function getExistingRemoteParticipant(ctx: JobContext): RemoteParticipant | null {
-  const iterator = ctx.room?.remoteParticipants?.values().next();
-  return iterator && !iterator.done ? iterator.value : null;
-}
-
-function waitForParticipantWithTimeout(
-  ctx: JobContext,
-  timeoutMs: number
-): Promise<ParticipantWaitResult> {
-  const startedAt = Date.now();
-  const existingParticipant = getExistingRemoteParticipant(ctx);
-  if (existingParticipant) {
-    return Promise.resolve({
-      participant: existingParticipant,
-      startedAt,
-      endedAt: Date.now(),
-      source: 'existing',
-    });
-  }
-
-  return new Promise<ParticipantWaitResult>((resolve) => {
-    let settled = false;
-    const finish = (
-      participant: RemoteParticipant | null,
-      source: ParticipantWaitResult['source']
-    ): void => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeout);
-      resolve({
-        participant,
-        startedAt,
-        endedAt: Date.now(),
-        source,
-      });
-    };
-
-    const timeout = setTimeout(() => {
-      process.stderr.write(
-        `[voice-agent-entry] 👤 Participant wait timed out after ${timeoutMs}ms (early path)\n`
-      );
-      finish(null, 'timeout');
-    }, timeoutMs);
-
-    ctx
-      .waitForParticipant()
-      .then((participant) => finish(participant, 'wait'))
-      .catch((err: unknown) => {
-        process.stderr.write(
-          `[voice-agent-entry] 👤 Participant wait failed (early path): ${String(err)}\n`
-        );
-        finish(null, 'error');
-      });
-  });
 }
 
 async function markCallStageSafe(
@@ -265,7 +202,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   let services: any = null;
   let userData: Record<string, unknown> = {};
   let sessionPersona: import('../../personas/types.js').PersonaConfig | null = null;
-  let voiceHumanization: { cleanup: (() => void) | undefined } | null = null;
+  const voiceHumanization: { cleanup: (() => void) | undefined } | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let patternAnalyzer: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -427,6 +364,15 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     userData = initResult.userData;
     // The caller's time zone (web client → token → dispatch metadata).
     if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
+    // The caller's IP-detected city (token → dispatch metadata), on both the
+    // multi-agent and single-agent paths: tools read it per call from userData.
+    if (userData && typeof metadata.city === 'string' && metadata.city) {
+      userData.userLocation = {
+        city: metadata.city,
+        regionCode: typeof metadata.regionCode === 'string' ? metadata.regionCode : undefined,
+        countryCode: typeof metadata.countryCode === 'string' ? metadata.countryCode : undefined,
+      };
+    }
     stopPeriodicSync = initResult.stopPeriodicSync ?? undefined;
 
     if (stopPeriodicSync) {
@@ -645,6 +591,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // =========================================================================
     let multiAgentActivatedEarly = false;
     let skipMultiAgentAttempt = false;
+    // Why the call ended (the session wait's reason), for call-quality metrics.
+    let sessionEndReason: string | undefined;
+    let roomClosedEarly = false;
 
     if (shouldUseMultiAgentEarlyPath) {
       skipMultiAgentAttempt = true;
@@ -680,11 +629,16 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         });
         if (multiAgentModeResult.activated) {
           multiAgentActivatedEarly = true;
+          sessionEndReason = multiAgentModeResult.endReason;
         } else if (multiAgentModeResult.error) {
           process.stderr.write(
             `[voice-agent-entry] 🎭 Multi-agent early path failed, falling back to single-agent: ${multiAgentModeResult.error}\n`
           );
         }
+      } else if (roomClosedBeforeParticipant(participantWaitResult, ctx.room?.isConnected === true)) {
+        roomClosedEarly = true;
+        sessionEndReason = 'room_closed_before_participant';
+        process.stderr.write(`[voice-agent-entry] 🚪 Room closed before a participant joined — ending job\n`);
       } else {
         process.stderr.write(
           `[voice-agent-entry] 🎭 No participant on early path — falling back to single-agent session\n`
@@ -695,7 +649,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     let handlersResult: HandlerSetupResult | null = null;
     let ranSingleAgentHandlers = false;
 
-    if (!multiAgentActivatedEarly) {
+    if (!multiAgentActivatedEarly && !roomClosedEarly) {
       // =========================================================================
       // STEP 5: CREATE SESSION (single-agent or multi-agent fallback)
       // =========================================================================
@@ -789,7 +743,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Multi-agent mode took over the session lifecycle (waited for disconnect
     // inside runMultiAgentMode). Still must close call-quality + run cleanup —
     // otherwise activeCalls leaks forever in production.
-    if (multiAgentActivatedEarly || (ranSingleAgentHandlers && !handlersResult)) {
+    if (multiAgentActivatedEarly || roomClosedEarly || (ranSingleAgentHandlers && !handlersResult)) {
       process.stderr.write(
         `[voice-agent-entry] 🎭 Multi-agent session returned — running shared cleanup\n`
       );
@@ -820,6 +774,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         const { handleSessionCleanup } = await import('../voice-agent/cleanup-handler.js');
         await handleSessionCleanup({
           sessionId,
+          endReason: sessionEndReason,
           userId: userId ?? undefined,
           services,
           sessionPersona,
@@ -915,6 +870,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       const finish = (reason: string): void => {
         if (settled) return;
         settled = true;
+        sessionEndReason = reason;
         for (const t of timers) clearInterval(t as ReturnType<typeof setInterval>);
         for (const t of timers) clearTimeout(t as ReturnType<typeof setTimeout>);
         process.stderr.write(`[voice-agent-entry] 🔌 Ending session wait (${reason})\n`);
@@ -1036,6 +992,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const { handleSessionCleanup } = await import('../voice-agent/cleanup-handler.js');
     await handleSessionCleanup({
       sessionId,
+      endReason: sessionEndReason,
       userId: userId ?? undefined,
       services,
       sessionPersona,

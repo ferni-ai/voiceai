@@ -71,7 +71,7 @@ describe('Director WebSocket protocol', () => {
     const req = createMockReq({ sessionId, userId: 'unknown-user' });
     const config = { authorizedDirectorIds: [userId] };
 
-    handleDirectorWebSocket(ws as unknown as import('ws').WebSocket, req, config);
+    handleDirectorWebSocket(ws as unknown as import('ws').WebSocket, req, config, 'unknown-user');
 
     expect(ws.send).toHaveBeenCalledWith(expect.stringContaining('"type":"error"'));
     expect(ws.send).toHaveBeenCalledWith(expect.stringContaining('Unauthorized'));
@@ -86,7 +86,7 @@ describe('Director WebSocket protocol', () => {
     const req = createMockReq({ sessionId: '', userId });
     const config = { authorizedDirectorIds: [userId] };
 
-    handleDirectorWebSocket(ws as unknown as import('ws').WebSocket, req, config);
+    handleDirectorWebSocket(ws as unknown as import('ws').WebSocket, req, config, userId);
 
     expect(ws.send).toHaveBeenCalledWith(expect.stringContaining('"type":"error"'));
     expect(ws.close).toHaveBeenCalledWith(4002, 'Missing sessionId');
@@ -98,7 +98,7 @@ describe('Director WebSocket protocol', () => {
     const req = createMockReq({ sessionId: 'nonexistent-session', userId });
     const config = { authorizedDirectorIds: [userId] };
 
-    handleDirectorWebSocket(ws as unknown as import('ws').WebSocket, req, config);
+    handleDirectorWebSocket(ws as unknown as import('ws').WebSocket, req, config, userId);
 
     expect(ws.send).toHaveBeenCalledWith(expect.stringContaining('"type":"error"'));
     expect(ws.close).toHaveBeenCalledWith(4003, 'Session not found');
@@ -111,7 +111,7 @@ describe('Director WebSocket protocol', () => {
     const req = createMockReq({ sessionId, userId });
     const config = { authorizedDirectorIds: [userId] };
 
-    handleDirectorWebSocket(ws as unknown as import('ws').WebSocket, req, config);
+    handleDirectorWebSocket(ws as unknown as import('ws').WebSocket, req, config, userId);
 
     expect(ws.send).toHaveBeenCalled();
     const stateCall = (ws.send as ReturnType<typeof vi.fn>).mock.calls.find((call: unknown[]) =>

@@ -28,6 +28,8 @@ export interface DataExportUICallbacks {
   onClose?: () => void;
   onExport?: (format: 'json' | 'csv', categories: string[]) => void;
   onDeleteData?: () => void;
+  /** Close the account itself: all data plus the sign-in. */
+  onDeleteAccount?: () => void;
 }
 
 // ============================================================================
@@ -129,6 +131,7 @@ class DataExportUI {
 
       <div class="data-export__footer">
         <p>Your data belongs to you. We respect your privacy.</p>
+        <button type="button" class="data-export__delete-account">Delete my account</button>
       </div>
     `;
 
@@ -162,6 +165,16 @@ class DataExportUI {
     this.wrapper.querySelector('.data-export__btn--danger')?.addEventListener('click', () => {
       if (confirm('Are you sure you want to delete all your data? This cannot be undone.')) {
         this.callbacks.onDeleteData?.();
+        this.hide();
+      }
+    });
+
+    this.wrapper.querySelector('.data-export__delete-account')?.addEventListener('click', () => {
+      const ok = confirm(
+        'Delete your Ferni account? This erases everything Ferni knows about you and signs you out for good. It cannot be undone.'
+      );
+      if (ok) {
+        this.callbacks.onDeleteAccount?.();
         this.hide();
       }
     });
@@ -382,6 +395,17 @@ class DataExportUI {
         text-align: center;
       }
 
+      .data-export__delete-account {
+        margin-top: var(--space-2, 8px);
+        background: none;
+        border: none;
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-semantic-error, #b5453a);
+        text-decoration: underline;
+        cursor: pointer;
+      }
+
       .data-export__footer p {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
@@ -391,13 +415,13 @@ class DataExportUI {
 
       /* Dark theme - WCAG AA Compliant */
       [data-theme="midnight"] .data-export { background: var(--backdrop-page); }
-      [data-theme="midnight"] .data-export__wrapper { background: var(--color-background-elevated, #70605a); }
+      [data-theme="midnight"] .data-export__wrapper { background: var(--color-background-elevated, #352e28); }
       [data-theme="midnight"] .data-export__header h2,
       [data-theme="midnight"] .data-export__category-name,
       [data-theme="midnight"] .data-export__format label { color: var(--color-text-primary, #faf6f0); }
-      [data-theme="midnight"] .data-export__format-btn { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .data-export__footer { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .data-export__close { background: var(--color-background-tertiary, #685852); color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .data-export__format-btn { background: var(--color-background-secondary, #1e1a16); }
+      [data-theme="midnight"] .data-export__footer { background: var(--color-background-secondary, #1e1a16); }
+      [data-theme="midnight"] .data-export__close { background: var(--color-background-tertiary, #2a241f); color: var(--color-text-secondary, #f0ebe4); }
       [data-theme="midnight"] .data-export__category-description,
       [data-theme="midnight"] .data-export__hint { color: var(--color-text-muted, #e8e2da); }
 

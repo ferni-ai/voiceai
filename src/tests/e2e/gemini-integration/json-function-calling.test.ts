@@ -30,12 +30,12 @@ import {
   detectsFunctionCallLeakage,
   containsToolCallLeakage,
 } from '../../../agents/shared/sanitizer/index.js';
+import { GEMINI_MODEL } from '../../../config/gemini-config.js';
 
 // ============================================================================
 // TEST CONFIG
 // ============================================================================
 
-const GEMINI_MODEL = 'gemini-2.0-flash-exp';
 const TIMEOUT_MS = 30000;
 
 // The system prompt that teaches Gemini our JSON format

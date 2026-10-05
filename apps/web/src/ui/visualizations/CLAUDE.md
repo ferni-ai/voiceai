@@ -250,9 +250,7 @@ visualizations/
 │   └── social-battery.ts  # Social battery gauge
 ├── api/                   # Data fetching
 │   ├── index.ts           # API exports
-│   ├── demo-data.ts       # Demo/mock data
-│   ├── firestore-fetcher.ts # Firestore data fetching
-│   └── insights-client.ts # Insights API client
+│   └── demo-data.ts       # Demo/mock data
 ├── native/                # Native platform renderers
 │   ├── index.ts           # Native exports
 │   ├── swift-types.ts     # iOS Swift type mappings

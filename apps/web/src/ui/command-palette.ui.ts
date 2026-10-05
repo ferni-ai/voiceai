@@ -469,13 +469,13 @@ function injectStyles(): void {
     }
 
     [data-theme="midnight"] .command-palette__container {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
       border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
     }
 
     [data-theme="midnight"] .command-palette__item:hover,
     [data-theme="midnight"] .command-palette__item--selected {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
 
     /* Reduced motion */

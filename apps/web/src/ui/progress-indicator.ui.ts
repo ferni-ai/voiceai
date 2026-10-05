@@ -720,7 +720,7 @@ function injectStyles(): void {
        DARK THEME
        ======================================================================== */
     [data-theme="midnight"] .progress-indicator {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
       box-shadow: 
         0 4px 16px rgba(0, 0, 0, 0.2),
         0 0 0 1px rgba(255, 255, 255, 0.1);
@@ -740,15 +740,15 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .progress-ring-bg {
-      stroke: var(--color-background-secondary, #60504a);
+      stroke: var(--color-background-secondary, #1e1a16);
     }
     
     [data-theme="midnight"] .progress-metrics {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
     
     [data-theme="midnight"] .progress-collapse-btn {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
     
     [data-theme="midnight"] .progress-collapse-btn:hover {

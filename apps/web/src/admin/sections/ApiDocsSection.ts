@@ -412,7 +412,6 @@ function getApiCategories(): ApiCategory[] {
         { method: 'POST', path: '/api/voice/enroll/sample', description: 'Add voice sample', auth: 'user' },
         { method: 'POST', path: '/api/voice/enroll/complete', description: 'Finalize enrollment', auth: 'user' },
         { method: 'POST', path: '/api/voice/verify', description: '1:1 verification', auth: 'user' },
-        { method: 'POST', path: '/api/voice/identify', description: '1:N identification', auth: 'user' },
       ],
     },
     {

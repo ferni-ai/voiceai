@@ -21,6 +21,7 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { startOAuthConnect } from '../services/oauth-connect.service.js';
 import { showCalendarConflicts } from './calendar-conflicts.ui.js';
 import { showCalendarSelection } from './calendar-selection.ui.js';
 import type { CalendarProvider } from './calendar-selection.ui.js';
@@ -720,12 +721,9 @@ class CalendarSettingsUI {
     this.isLoading = true;
 
     try {
-      // Redirect to Google OAuth flow
-      // Note: Backend expects snake_case user_id parameter
-      const userId = this.getUserId();
-      window.location.href = `/auth/google/login?user_id=${encodeURIComponent(userId)}`;
-    } catch {
-      this.renderError("Couldn't connect. Try again?");
+      // The server binds the flow to the signed-in user; the URL carries no user id
+      const result = await startOAuthConnect('google_calendar');
+      if (!result.success) this.renderError(result.error ?? "Couldn't connect. Try again?");
     } finally {
       this.isLoading = false;
     }
@@ -975,10 +973,8 @@ class CalendarSettingsUI {
     this.isLoading = true;
 
     try {
-      const userId = this.getUserId();
-      window.location.href = `/auth/microsoft/login?user_id=${encodeURIComponent(userId)}`;
-    } catch {
-      this.renderError("Couldn't connect. Try again?");
+      const result = await startOAuthConnect('microsoft_calendar');
+      if (!result.success) this.renderError(result.error ?? "Couldn't connect. Try again?");
     } finally {
       this.isLoading = false;
     }
@@ -1756,7 +1752,7 @@ class CalendarSettingsUI {
          DARK THEME
          ======================================================================== */
       [data-theme="midnight"] .calendar-settings__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-settings__title,
@@ -1771,20 +1767,20 @@ class CalendarSettingsUI {
       }
 
       [data-theme="midnight"] .calendar-settings__status--disconnected {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-settings__status-icon {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-settings__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .calendar-settings__services {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-settings__service-name {
@@ -1797,7 +1793,7 @@ class CalendarSettingsUI {
       }
 
       [data-theme="midnight"] .calendar-settings__btn--secondary {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-primary, #faf6f0);
       }
 
@@ -1920,7 +1916,7 @@ class CalendarSettingsUI {
       }
 
       [data-theme="midnight"] .calendar-settings__form-group input {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
         color: var(--color-text-primary, #faf6f0);
       }

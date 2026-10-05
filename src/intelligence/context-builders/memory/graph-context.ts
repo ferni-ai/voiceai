@@ -24,6 +24,8 @@ import {
   searchFactsAboutEntity,
   type FactDomain,
 } from '../../../memory/spanner-graph/index.js';
+import { whatDoWeKnowAbout } from '../../../memory/entity-store/entity-resolver.js';
+import { getFirestoreVectorStore } from '../../../memory/firestore-vector-store/index.js';
 import { detectEntities, extractEntityNames, type DetectedEntity } from '../../entity-detector.js';
 import {
   getSessionPronounContext,
@@ -167,6 +169,113 @@ function detectDomain(text: string): FactDomain | undefined {
   return undefined;
 }
 
+function summarizeEntityKnowledge(
+  name: string,
+  knowledge: Awaited<ReturnType<typeof whatDoWeKnowAbout>>
+): string | null {
+  if (!knowledge.entity) {
+    return null;
+  }
+
+  const factLines = knowledge.facts
+    .slice(0, 8)
+    .map((f) => `${f.key}: ${f.value}`)
+    .filter(Boolean);
+
+  const related = knowledge.relatedEntities
+    .slice(0, 4)
+    .map((e) => e.canonicalName)
+    .join(', ');
+
+  const parts = [
+    `About ${name} (${knowledge.entity.canonicalName}):`,
+    factLines.length > 0 ? factLines.join('; ') : null,
+    related ? `Related: ${related}` : null,
+  ].filter(Boolean);
+
+  return parts.join(' ');
+}
+
+/**
+ * When Spanner graph is unavailable, inject context from entity_store + vectors.
+ */
+async function buildFirestoreGraphFallback(
+  userId: string,
+  userText: string,
+  entityMentions: EntityMention[],
+  relationshipMentions: RelationshipMention[]
+): Promise<ContextInjection[]> {
+  const injections: ContextInjection[] = [];
+
+  for (const mention of relationshipMentions.slice(0, 1)) {
+    const [a, b] = await Promise.all([
+      whatDoWeKnowAbout(userId, mention.entity1),
+      whatDoWeKnowAbout(userId, mention.entity2),
+    ]);
+    if (a.entity && b.entity) {
+      const summary = `${mention.entity1} and ${mention.entity2} are both in your memory. ` +
+        `${summarizeEntityKnowledge(mention.entity1, a) ?? ''} ` +
+        `${summarizeEntityKnowledge(mention.entity2, b) ?? ''}`.trim();
+      if (summary.length > 20) {
+        injections.push(
+          createStandardInjection('relationship_context', summary, {
+            category: 'memory',
+            confidence: 0.65,
+          })
+        );
+      }
+    }
+  }
+
+  const mentions = entityMentions.slice(0, 2);
+  // allSettled: one failed lookup must not discard what the others found.
+  const lookups = await Promise.allSettled(
+    mentions.map((mention) => whatDoWeKnowAbout(userId, mention.name))
+  );
+  for (const [i, mention] of mentions.entries()) {
+    const lookup = lookups[i];
+    if (lookup.status === 'rejected') {
+      log.debug({ error: String(lookup.reason), userId }, 'Entity lookup failed in graph fallback');
+      continue;
+    }
+    const summary = summarizeEntityKnowledge(mention.name, lookup.value);
+    if (summary) {
+      injections.push(
+        createStandardInjection('entity_context', summary, {
+          category: 'memory',
+          confidence: 0.7,
+        })
+      );
+    }
+  }
+
+  if (injections.length === 0 && userText.trim().length > 0) {
+    try {
+      const vectorStore = getFirestoreVectorStore();
+      await vectorStore.initialize();
+      const hits = await vectorStore.search(userText, {
+        topK: 3,
+        filter: { userId },
+      });
+      const texts = hits
+        .map((h) => h.document?.text)
+        .filter((t): t is string => typeof t === 'string' && t.length > 0);
+      if (texts.length > 0) {
+        injections.push(
+          createStandardInjection('entity_context', texts.join(' | '), {
+            category: 'memory',
+            confidence: 0.6,
+          })
+        );
+      }
+    } catch (error) {
+      log.debug({ error: String(error), userId }, 'Firestore vector fallback search failed');
+    }
+  }
+
+  return injections;
+}
+
 // ============================================================================
 // CONTEXT BUILDER
 // ============================================================================
@@ -184,10 +293,23 @@ async function buildGraphContext(input: ContextBuilderInput): Promise<ContextInj
     return [];
   }
 
+  const entityMentionsEarly = detectEntityMentions(userText, undefined);
+  const relationshipMentionsEarly = detectRelationshipMentions(userText);
+
   // Check if Spanner is available
   if (!isSpannerReady()) {
-    log.debug('Spanner not ready, skipping graph context');
-    return [];
+    log.debug('Spanner not ready, using Firestore entity/vector graph fallback');
+    try {
+      return await buildFirestoreGraphFallback(
+        userId,
+        userText,
+        entityMentionsEarly,
+        relationshipMentionsEarly
+      );
+    } catch (error) {
+      log.warn({ error: String(error), userId }, 'Firestore graph fallback failed');
+      return [];
+    }
   }
 
   // Get pronoun context from previous turns

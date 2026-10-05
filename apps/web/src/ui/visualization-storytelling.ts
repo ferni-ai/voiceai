@@ -513,7 +513,7 @@ export function injectStorytellingStyles(): void {
 
     .narrative-stat__deeper {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-style: italic;
       max-width: 200px;
       opacity: 0;
@@ -559,7 +559,7 @@ export function injectStorytellingStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .temporal-story__narrative {
@@ -580,7 +580,7 @@ export function injectStorytellingStyles(): void {
     }
 
     .temporal-story__frame--past .temporal-story__narrative {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .temporal-story__frame--present .temporal-story__narrative {
@@ -617,7 +617,7 @@ export function injectStorytellingStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-2, 0.5rem);
     }
 
@@ -641,7 +641,7 @@ export function injectStorytellingStyles(): void {
       margin: var(--space-2, 0.5rem) 0 0;
       font-size: var(--text-xs, 0.75rem);
       font-style: italic;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .mirror-insight__divider {

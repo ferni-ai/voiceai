@@ -215,7 +215,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
@@ -247,7 +247,7 @@ function injectStyles(): void {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
       letter-spacing: 0.03em;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-2, 0.5rem);
       display: block;
     }
@@ -274,7 +274,7 @@ function injectStyles(): void {
     }
 
     .ap-input::placeholder {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .ap-input-sm {
@@ -306,7 +306,7 @@ function injectStyles(): void {
     }
 
     .ap-relationship:hover {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted, #352e28);
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.03));
     }
 
@@ -316,7 +316,7 @@ function injectStyles(): void {
     }
 
     .ap-relationship-icon {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: color ${DURATION.FAST}ms;
     }
 
@@ -332,7 +332,7 @@ function injectStyles(): void {
     .ap-relationship-label {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: color ${DURATION.FAST}ms;
     }
 
@@ -353,7 +353,7 @@ function injectStyles(): void {
       border: none;
       background: none;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       cursor: pointer;
       transition: color ${DURATION.FAST}ms;
     }

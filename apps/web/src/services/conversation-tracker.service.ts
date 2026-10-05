@@ -7,6 +7,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { apiPost } from '../utils/api.js';
+import { buildConversationHistoryBody } from './call-payloads.js';
 
 const log = createLogger('ConversationTracker');
 
@@ -176,39 +177,23 @@ class ConversationTrackerService {
   // ============================================================================
 
   private async persistSession(session: ConversationSession): Promise<void> {
-    // Calculate duration
-    const duration = this.getSessionDuration();
+    const { session: sessionData } = buildConversationHistoryBody(
+      session,
+      this.getSessionDuration()
+    );
 
-    // Prepare session data
-    const sessionData = {
-      id: session.id,
-      startTime: session.startTime,
-      endTime: session.endTime,
-      personaId: session.personaId,
-      personaName: session.personaName,
-      duration,
-      messageCount: session.messages.length,
-      // Only include transcripts for non-trivial conversations
-      transcript: session.messages.length > 3
-        ? session.messages.map(m => ({
-            role: m.role,
-            content: m.content,
-            timestamp: new Date(m.timestamp).toISOString(),
-          }))
-        : undefined,
-      insights: session.insights,
-      topicsDiscussed: session.topicsDiscussed,
-    };
-
-    // TODO: Backend POST /api/conversations not implemented yet. Falls back to local storage.
     try {
       const response = await apiPost('/api/conversations', { session: sessionData });
 
       if (response.ok) {
         log.info('Session persisted to backend', { sessionId: session.id });
-      } else {
-        log.warn('Failed to persist session', { status: response.status });
+      } else if (response.status === 0 || response.status >= 500) {
+        // Offline or server trouble: keep it for the next startup sync.
+        log.warn('Failed to persist session, will retry', { status: response.status });
         this.storeLocalSession(sessionData);
+      } else {
+        // 4xx won't succeed on retry (e.g. not signed in); don't queue it forever.
+        log.warn('Session rejected by backend', { status: response.status });
       }
     } catch (err) {
       log.warn('Network error persisting session', err);

@@ -746,7 +746,7 @@ class WearableSettingsUI {
 
       /* Dark Theme */
       [data-theme="midnight"] .wearable-settings__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .wearable-settings__title,
@@ -757,11 +757,11 @@ class WearableSettingsUI {
 
       [data-theme="midnight"] .wearable-settings__provider,
       [data-theme="midnight"] .wearable-settings__privacy {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .wearable-settings__provider-icon {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
         color: var(--color-text-secondary, #e8e2da);
       }
 

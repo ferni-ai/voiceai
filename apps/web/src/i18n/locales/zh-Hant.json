@@ -704,6 +704,7 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
+    "dismiss": "關閉",
     "maybeLater": "[NEEDS_TRANSLATION] Later"
   },
   "confirmModal": {
@@ -1027,6 +1028,7 @@
     "apple": {
       "instructionsTitle": "要取消或變更您的方案：",
       "note": "Apple要求透過iOS設定管理訂閱",
+      "source": "您是透過 App Store 訂閱的。",
       "step1": "在裝置上開啟設定",
       "step2": "點擊頂部的您的名字",
       "step3": "點擊「訂閱」",
@@ -1043,6 +1045,7 @@
     "expiresLabel": "存取直到",
     "freeNote": "解鎖無限會話、完整團隊和個人化",
     "label": "訂閱",
+    "noBilling": "您的方案不在這裡計費，所以沒有需要變更的內容。",
     "renewsLabel": "續訂",
     "restore": {
       "failed": "恢復失敗",
@@ -1115,6 +1118,7 @@
       "yourPlan": "您的方案",
       "insights": "[NEEDS_TRANSLATION] Understanding You",
       "yourStory": "[NEEDS_TRANSLATION] Your Story",
+      "trustDashboard": "信任與成長",
       "whatINotice": "[NEEDS_TRANSLATION] What I Notice",
       "teamSessions": "[NEEDS_TRANSLATION] Team Sessions",
       "conferenceCalls": "[NEEDS_TRANSLATION] Conference Calls",
@@ -1384,8 +1388,34 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
+      "conversation": "進行一次對話：+1顆種子",
+      "note": "種子幫助我們決定接下來要做什麼！",
+      "streak30": "連續30天：+15顆種子",
+      "streak7": "連續7天：+5顆種子",
+      "vote": "為功能投票：1-10顆種子",
       "title": "How Seeds Work"
     },
+    "backToRoadmap": "返回路線圖",
+    "categories": {
+      "connect": "連結 - 人際關係與溝通",
+      "personalize": "個人化 - 打造專屬於您的Ferni",
+      "platform": "平台 - 新能力"
+    },
+    "needMoreSeeds": "提交建議至少需要5顆種子。多聊聊天就能賺到種子！",
+    "newIdea": "新想法",
+    "noSeedsHint": "多聊聊天就能賺到種子！",
+    "refund50": "退還50%",
+    "submitSuggestion": "種下這顆種子",
+    "submitting": "正在種下...",
+    "suggestionCategory": "類別",
+    "suggestionCost": "提交需要5顆種子（表達誠意，防止垃圾訊息）",
+    "suggestionDescription": "多告訴我們一些（選填）",
+    "suggestionDescriptionPlaceholder": "這對您有什麼幫助？您會怎麼用？",
+    "suggestionIntro": "希望Ferni能做些什麼？種下一顆種子，讓社群一起來澆灌吧！",
+    "suggestionPlanted": "您的種子已種下！",
+    "suggestionThanks": "感謝分享您的想法。現在其他人可以用他們的種子來澆灌它了！",
+    "suggestionTitle": "您希望Ferni能做什麼？",
+    "suggestionTitlePlaceholder": "例如：記住我寵物的名字",
     "intro": "每段美好的關係都有四季。這些是我們一起播下的種子。",
     "learnMore": "Learn more",
     "loading": "Loading roadmap...",
@@ -2009,6 +2039,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "你的故事從這裡開始",
+      "body": "等我們聊過幾次之後，對你重要的時刻會出現在這裡。"
+    },
+    "error": {
+      "title": "無法載入你的故事",
+      "body": "我們這邊出了點問題。要再試一次嗎？",
+      "retry": "再試一次"
     }
   },
   "memoryBrowser": {
@@ -2253,7 +2292,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "在設定中連結 Spotify 即可播放完整歌曲"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2292,7 +2332,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "Philips Hue 或 LIFX",
+      "hueOrLifxDesc": "在「Your Home」設定中進行設定"
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2318,7 +2360,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "請先連接你的燈光或恆溫器",
+    "musicNeedsCall": "音樂控制在對話期間可用",
+    "couldNotChangeLights": "無法變更燈光。要再試一次嗎？"
   },
   "ui": {
     "accountbutton": {
@@ -2368,7 +2413,10 @@
     },
     "secondsRemaining": "剩餘秒數",
     "startExercise": "開始呼吸練習",
-    "changePattern": "更改呼吸模式"
+    "changePattern": "更改呼吸模式",
+    "hold": "屏息",
+    "in": "吸氣",
+    "out": "呼氣"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2410,7 +2458,11 @@
     "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
     "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
     "rememberSuccess": "明白了！我現在會記住你。",
-    "account": "帳戶"
+    "account": "帳戶",
+    "email": "電子郵件",
+    "password": "密碼",
+    "rememberYouAs": "我記得你是",
+    "successMessage": "我現在會記住你。無論你去哪裡，我都認得你。"
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2450,7 +2502,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "最近 7 天"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2553,6 +2606,10 @@
       "subtitle": "通話、訊息和信守的承諾",
       "empty": "還沒有操作",
       "recent": "最近"
+    },
+    "predictions": {
+      "title": "你的方向",
+      "now": "現在"
     }
   },
   "sleepSettings": {
@@ -2687,7 +2744,11 @@
   },
   "voiceId": {
     "enrolledTitle": "[NEEDS_TRANSLATION] Voice ID enrolled - Ferni recognizes your voice",
-    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice"
+    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice",
+    "reenrollTitle": "我現在更會認聲音了",
+    "reenrollBody": "可以讓我重新熟悉一下你的聲音嗎？大約 20 秒。",
+    "reenrollAccept": "好啊",
+    "reenrollLater": "以後再說"
   },
   "languageSwitcher": {
     "label": "[NEEDS_TRANSLATION] Language",
@@ -2709,7 +2770,11 @@
     "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
     "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
     "sentSuccess": "已發送{sent}顆種子！他們將獲得{received}",
-    "sendError": "無法發送禮物。重試？"
+    "sendError": "無法發送禮物。重試？",
+    "amount": "數量",
+    "recipientPlaceholder": "輸入好友的電子郵件或使用者名稱",
+    "sendGift": "送出禮物",
+    "sendTo": "傳送給"
   },
   "teamIntro": {
     "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
@@ -2789,7 +2854,8 @@
       "onTheWay": "你走在正確的道路上！隨著我們旅程的繼續，更多的團隊成員會被解鎖。",
       "growing": "你的團隊在成長。只需再經過幾個里程碑就能解鎖所有成員。",
       "complete": "你已解鎖完整團隊！每個人都在這裡支持你。"
-    }
+    },
+    "added": "已新增！"
   },
   "referral": {
     "share": {
@@ -2820,7 +2886,19 @@
       "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
     },
     "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
-    "copyError": "無法複製。重試？"
+    "copyError": "無法複製。重試？",
+    "bonusAmount": "你們倆都會獲得{seeds}顆種子",
+    "bonusWhen": "在對方加入後！",
+    "garden": {
+      "earned": "分享已為您賺得{seeds}顆種子",
+      "empty": "種子在分享中成長。今天就開始打造您的花園吧。",
+      "friendsGrowing": "{count}位朋友正在成長",
+      "title": "您的花園："
+    },
+    "quoteMessage": "「送他們一個什麼都記得、凌晨兩點也會陪著、從不評判的人。」",
+    "subtitle": "認識需要這樣一位朋友的人嗎？",
+    "title": "分享成長",
+    "yourLink": "您的連結："
   },
   "conversationMemory": {
     "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
@@ -2983,7 +3061,14 @@
       "browse": "瀏覽我們的市場"
     },
     "creations": {
-      "noDescription": "無描述"
+      "noDescription": "無描述",
+      "createButton": "建立代理",
+      "emptyDescription": "打造一個擁有獨特個性與技能的代理，然後與社群分享。",
+      "emptyTitle": "您還沒有建立任何代理"
+    },
+    "agentCard": {
+      "install": "安裝",
+      "uninstall": "解除安裝"
     }
   },
   "agent": {
@@ -2993,6 +3078,145 @@
       "fictional": "虛構",
       "professional": "專業",
       "legacy": "遺產"
+    }
+  },
+  "predictionResolution": {
+    "title": "結果如何？",
+    "youGuessed": "你的預測：{value}",
+    "actual": "實際：{value}",
+    "scored": "準確率 {accuracy}%",
+    "record": "記錄實際情況",
+    "save": "核對我的預測",
+    "saveFailed": "沒能儲存。再試一次？",
+    "metrics": {
+      "deepWork": {
+        "label": "專注工作",
+        "question": "你專注工作了多少小時？",
+        "unit": "小時"
+      },
+      "exercise": {
+        "label": "運動",
+        "question": "你運動了幾次？",
+        "unit": "次"
+      },
+      "social": {
+        "label": "與人相處",
+        "question": "你和別人相處了多少小時？",
+        "unit": "小時"
+      },
+      "screen": {
+        "label": "螢幕時間",
+        "question": "你的螢幕時間是多少小時？",
+        "unit": "小時"
+      },
+      "mood": {
+        "label": "心情",
+        "question": "你的平均心情是幾分（1 到 10）？",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "你的實際{label}是多少？"
+      }
+    },
+    "result": {
+      "line": "你預測 {predicted}，實際是 {actual}。{verdict}",
+      "overall": "本週整體準確率 {accuracy}%。"
+    },
+    "tone": {
+      "spotOn": "完全猜中！",
+      "close": "非常接近！",
+      "off": "這次有點偏差。",
+      "wayOff": "這次差得挺遠。現在你知道了。"
+    }
+  },
+  "trustDashboard": {
+    "together": {
+      "empty": "我們多聊幾次之後，我會告訴你我們相處得怎麼樣。",
+      "startingTitle": "我們才剛剛開始",
+      "startingMessage": "再和我聊幾次，我就能告訴你一些真實的東西。",
+      "scoreLabel": "一起",
+      "stages": {
+        "new": "剛剛開始",
+        "building": "正在相互了解",
+        "established": "找到了我們的節奏",
+        "deep": "我們真的懂彼此",
+        "flourishing": "特別的關係"
+      },
+      "rhythm": {
+        "high": "我們經常聊天",
+        "mid": "我們會定期聊聊",
+        "low": "我們偶爾聊聊",
+        "quiet": "我們有一陣子沒聊了",
+        "detailNone": "過去一個月沒有",
+        "detailOne": "過去一個月裡有 1 天",
+        "detailOther": "過去一個月裡有 {n} 天"
+      },
+      "promises": {
+        "high": "我說到做到",
+        "mid": "我大多說到做到",
+        "low": "有幾件事我沒做到",
+        "detail": "{total} 個中做到了 {kept} 個"
+      },
+      "lift": {
+        "high": "聊完之後你通常會輕鬆一些",
+        "mid": "我們的聊天讓你保持平穩",
+        "low": "最近我們的聊天有些沉重",
+        "detail": "{days} 天中有 {lifted} 天聊到最後更輕鬆"
+      },
+      "mood": {
+        "up": "你最近看起來輕鬆了些",
+        "steady": "你最近看起來挺平穩",
+        "down": "最近感覺更沉重一些",
+        "detail": "這週與之前幾週相比"
+      }
+    },
+    "noticed": {
+      "empty": "等我們再多聊一些，我會分享我注意到的事。",
+      "notYet": "暫時還沒有特別的發現。我還在聽。",
+      "daysTalked": "我們聊天的天數",
+      "tabs": {
+        "week": "本週",
+        "month": "本月"
+      },
+      "title": {
+        "week": "這週我注意到的事",
+        "month": "這個月我注意到的事"
+      },
+      "quiet": {
+        "week": "這週我們還沒聊過。你想聊的時候我都在。",
+        "month": "這個月我們還沒聊過。你想聊的時候我都在。"
+      },
+      "moodShift": {
+        "lighter": {
+          "week": "你看起來比上週輕鬆。",
+          "month": "你看起來比上個月輕鬆。"
+        },
+        "heavier": {
+          "week": "這週比上週更沉重一些。這種時候我也在。",
+          "month": "這個月比上個月更沉重一些。這種時候我也在。"
+        }
+      },
+      "bounceBack": {
+        "nextDay": "{date}那天很難熬，但第二天你就好些了。",
+        "later": "{date}那天很難熬，但 {days} 天之內你就好些了。"
+      },
+      "liftTopic": "聊到{topic}時，你的心情通常會變好。",
+      "brightest": "{date}那天你聽起來最開心。",
+      "timeOfDay": {
+        "morning": "我們大多在早上聊天。",
+        "afternoon": "我們大多在下午聊天。",
+        "evening": "我們大多在晚上聊天。",
+        "night": "我們大多在深夜聊天。"
+      },
+      "favoriteDay": "{day}似乎是我們的日子。",
+      "cameUp": {
+        "one": "你跟我說了一件快到的事：{example}。",
+        "other": "你跟我說了 {n} 件快到的事，比如：{example}。"
+      },
+      "promisesKept": {
+        "all": "我對你做的承諾，我都兌現了。",
+        "some": "我對你做的 {total} 個承諾中，我兌現了 {kept} 個。"
+      }
     }
   }
 }

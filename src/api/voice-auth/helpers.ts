@@ -5,8 +5,10 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import type { EnrollmentSession } from '../../services/voice/voice-enrollment.js';
-import type { ContinuousAuthenticator } from '../../services/voice/voice-enrollment.js';
+import type {
+  ContinuousAuthenticator,
+  EnrollmentSession,
+} from '../../services/voice/voice-enrollment.js';
 import { detectSpoofing } from '../../services/voice/voice-antispoofing.js';
 import { logLivenessFail, logSpoofDetected } from '../../services/voice/voice-audit-log.js';
 import { checkLiveness } from '../../services/voice/voice-liveness.js';
@@ -221,6 +223,18 @@ export function getUserId(req: IncomingMessage): string | null {
 }
 
 /**
+ * The signed-in caller for routes that touch voice prints: only the uid that
+ * bindVerifiedIdentity (servers/api/request-identity.ts) sets from a verified
+ * token. Never x-user-id, which an admin key may point at another user and a
+ * developer machine takes as given: a print is only ever compared with, read
+ * or changed by its own owner.
+ */
+export function getSignedInUserId(req: IncomingMessage): string | null {
+  const uid = req.headers['x-firebase-uid'];
+  return typeof uid === 'string' && uid ? uid : null;
+}
+
+/**
  * SECURITY: Get authenticated user ID with validation.
  */
 export function getVerifiedUserId(req: IncomingMessage): {
@@ -308,11 +322,14 @@ export function checkAndEnforceRateLimit(
 
 /**
  * Run security checks on audio (liveness + anti-spoofing).
+ * `livenessBlocks: false` still scores and audit-logs liveness but does not
+ * refuse the audio on it (enrollment: SECURITY_CONFIG.enrollmentLivenessBlocks).
  */
 export async function runSecurityChecks(
   audio: Float32Array,
   userId: string,
-  deviceInfo: DeviceInfo
+  deviceInfo: DeviceInfo,
+  { livenessBlocks = true }: { livenessBlocks?: boolean } = {}
 ): Promise<SecurityCheckResult> {
   const warnings: string[] = [];
   let livenessScore: number | undefined;
@@ -338,7 +355,7 @@ export async function runSecurityChecks(
         );
       }
 
-      if (!livenessResult.isLive) {
+      if (!livenessResult.isLive && livenessBlocks) {
         return { passed: false, warnings, livenessScore };
       }
     }

@@ -57,6 +57,17 @@ describe('unfinishedness', () => {
     expect(unfinishedTurnHoldMs("I don't say she goes")).toBe(UNPUNCTUATED_HOLD_MS);
   });
 
+  it('waits on a thinking filler even though it is also a backchannel word', () => {
+    // "um", "uh" and "yeah, um" are someone gathering a thought, not "go on":
+    // the backchannel check ran first and answered them at once.
+    for (const thinking of ['Um', 'uh', 'Yeah, um', 'Okay so um', 'I', 'So I']) {
+      expect(unfinishedness(thinking), thinking).toBe('dangling');
+    }
+    // a lone "yeah" or "mm-hmm" is still a whole turn
+    expect(unfinishedness('Yeah')).toBe('finished');
+    expect(unfinishedness('mm-hmm')).toBe('finished');
+  });
+
   it('installs on the session unless UNFINISHED_TURN_HOLD=off', () => {
     const on: { unfinishedTurnHoldMs?: unknown } = {};
     expect(installUnfinishedTurnHold(on, {})).toBe(true);

@@ -205,7 +205,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
@@ -269,7 +269,7 @@ function injectStyles(): void {
 
     .id-date-meta {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       display: flex;
       align-items: center;
       gap: var(--space-2, 0.5rem);
@@ -296,7 +296,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: all ${DURATION.FAST}ms;
     }
 
@@ -342,7 +342,7 @@ function injectStyles(): void {
     .id-form-label {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-1, 0.25rem);
       display: block;
     }
@@ -435,7 +435,7 @@ function injectStyles(): void {
       border: 2px dashed var(--color-border, rgba(44, 37, 32, 0.15));
       border-radius: var(--radius-lg, 1rem);
       background: transparent;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
       cursor: pointer;
@@ -460,7 +460,7 @@ function injectStyles(): void {
     .id-empty {
       text-align: center;
       padding: var(--space-8, 2rem) var(--space-4, 1rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .id-empty-icon {

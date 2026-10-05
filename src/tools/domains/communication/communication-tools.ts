@@ -297,9 +297,7 @@ async function sendVoiceMessageRealWithUserId(
 // REMINDER FUNCTIONS (Persistent + Scheduled)
 // ============================================================================
 
-/**
- * Schedule a reminder with automatic delivery
- */
+/** Schedule a reminder with automatic delivery, and record Ferni's promise to send it. */
 async function scheduleReminderReal(params: {
   userId: string;
   message: string;
@@ -357,7 +355,9 @@ async function scheduleReminderReal(params: {
       deliveryAddress,
       createdBy: 'alex',
     });
-
+    const promises =
+      await import('../../../services/superhuman/semantic-intelligence/promise-keeper.js');
+    await promises.recordReminderPromise(params.userId, reminder);
     const formattedTime = scheduledFor.toLocaleString('en-US', {
       weekday: 'long',
       month: 'long',
@@ -611,7 +611,8 @@ export function createCommunicationTools() {
       },
     }),
 
-    // Legacy scheduling tools (for backward compatibility with communication/index.ts)
+    // Older name (Alex's tool set, communication/index.ts). It used to say "I've set a
+    // reminder" without setting one; now it is setReminder under another name.
     scheduleReminder: llm.tool({
       description: getToolDescription('scheduleReminder'),
       parameters: z.object({
@@ -620,26 +621,16 @@ export function createCommunicationTools() {
         contactMethod: z.enum(['sms', 'email']).optional().describe('How to send reminder'),
         contact: z.string().optional().describe('Phone or email for the reminder'),
       }),
-      execute: async ({ reminderText, when, contactMethod, contact }) => {
-        const scheduledTime = parseScheduleTime(when);
-
-        if (!scheduledTime) {
-          return `I couldn't understand when you wanted that reminder. Could you be more specific? Like "next Tuesday" or "in 2 weeks"?`;
-        }
-
-        const formattedTime = scheduledTime.toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
+      execute: async ({ reminderText, when, contactMethod, contact }, { ctx }) => {
+        const userId = (ctx?.userData as { userId?: string } | undefined)?.userId;
+        if (!userId) return "I can't set that reminder right now. Want me to try again?";
+        return scheduleReminderReal({
+          userId,
+          message: reminderText,
+          when,
+          deliveryMethod: contactMethod,
+          contact,
         });
-
-        getLogger().info({ reminderText, scheduledTime, contactMethod }, 'Reminder scheduled');
-
-        return `Got it! I've set a reminder for ${formattedTime}: "${reminderText}". ${
-          contactMethod && contact
-            ? `I'll ${contactMethod === 'sms' ? 'text' : 'email'} you at ${contact}.`
-            : `I'll remind you when we talk.`
-        }`;
       },
     }),
 
@@ -818,16 +809,14 @@ export function createCommunicationTools() {
           minute: '2-digit',
         });
 
-        // Also set a reminder
         const userData = ctx?.userData as
-          | { userId?: string; userProfile?: { contactInfo?: { phone?: string } } }
-          | undefined;
+          { userId?: string; userProfile?: { contactInfo?: { phone?: string } } } | undefined;
         const userId = userData?.userId || 'unknown';
         const userPhone = userData?.userProfile?.contactInfo?.phone;
 
         if (userPhone) {
           const reminderTime = new Date(scheduledTime.getTime() - 15 * 60000); // 15 min before
-          await createReminder({
+          const reminder = await createReminder({
             userId,
             message: `Call with ${contact} in 15 minutes! Purpose: ${purpose}`,
             scheduledFor: reminderTime,
@@ -835,15 +824,15 @@ export function createCommunicationTools() {
             deliveryAddress: userPhone,
             createdBy: 'alex',
           });
+          // "I'll remind you 15 minutes before!" is a promise: the delivery job keeps or misses it.
+          const promises =
+            await import('../../../services/superhuman/semantic-intelligence/promise-keeper.js');
+          await promises.recordReminderPromise(userId, reminder);
         }
 
         let response = `📞 Call scheduled with ${contact} for ${timeStr} (${duration} min)\nPurpose: ${purpose}`;
-        if (notes) {
-          response += `\nTalking points: ${notes}`;
-        }
-        if (userPhone) {
-          response += `\nI'll remind you 15 minutes before!`;
-        }
+        if (notes) response += `\nTalking points: ${notes}`;
+        if (userPhone) response += `\nI'll remind you 15 minutes before!`;
 
         return response;
       },

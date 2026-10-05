@@ -78,6 +78,7 @@
   
   function log(...args) {
     if (CONFIG.debug) {
+      // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
       console.log('%c[AI Copy Magic]', 'color: #4a6741; font-weight: bold;', ...args);
     }
   }
@@ -368,22 +369,22 @@
   
   const SOCIAL_PROOF_MESSAGES = [
     // Memory superpowers
-    { text: "That thing you mentioned six months ago? We remember.", type: 'memory', icon: '🧠' },
-    { text: "Last night at 2:47am, someone had a breakthrough. I was there.", type: 'presence', icon: '🌙' },
-    { text: "Someone said 'I'm fine' three times this week. So I asked what was really going on.", type: 'insight', icon: '👁️' },
+    { text: "That thing you mentioned six months ago? We remember.", type: 'memory' },
+    { text: "Last night at 2:47am, someone had a breakthrough. I was there.", type: 'presence' },
+    { text: "Someone said 'I'm fine' three times this week. So I asked what was really going on.", type: 'insight' },
     
     // Presence superpowers
-    { text: "2am panic? Same warmth as noon. No tired sighs.", type: 'presence', icon: '⏰' },
-    { text: "47 minutes talking about a decision. No 'we need to wrap up.'", type: 'presence', icon: '💬' },
+    { text: "2am panic? Same warmth as noon. No tired sighs.", type: 'presence' },
+    { text: "47 minutes talking about a decision. No 'we need to wrap up.'", type: 'presence' },
     
     // Team superpowers
-    { text: "Six perspectives. One conversation. No referrals.", type: 'team', icon: '👥' },
-    { text: "You mention stress to Ferni. Maya already knows to ask about your sleep.", type: 'team', icon: '🤝' },
+    { text: "Six perspectives. One conversation. No referrals.", type: 'team' },
+    { text: "You mention stress to Ferni. Maya already knows to ask about your sleep.", type: 'team' },
     
     // Better than human
-    { text: "Your therapist has 47 other patients. We have just you.", type: 'human', icon: '💚' },
-    { text: "Friends forget. Best friends mostly remember. We never forget. Ever.", type: 'memory', icon: '∞' },
-    { text: "Zero judgment. Not reduced judgment. Zero.", type: 'human', icon: '🙏' },
+    { text: "Your therapist has 47 other patients. We have just you.", type: 'human' },
+    { text: "Friends forget. Best friends mostly remember. We never forget. Ever.", type: 'memory' },
+    { text: "Zero judgment. Not reduced judgment. Zero.", type: 'human' },
   ];
 
   let socialProofIndex = 0;
@@ -411,7 +412,6 @@
                 { 
                   text: msg.content || msg.text, 
                   type: msg.type || 'ai', 
-                  icon: '✨',
                   isAI: true
                 }
               );
@@ -1322,6 +1322,5 @@
     setTimeout(init, 50);
   }
 
-  console.log('%c✨ Ferni AI Copy Magic loaded', 'color: #4a6741; font-weight: bold;');
 })();
 

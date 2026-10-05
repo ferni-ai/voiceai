@@ -14,7 +14,7 @@
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { apiGet, apiPost, apiDelete, getApiHeadersAsync } from '../utils/api.js';
+import { apiGet, apiPost, apiDelete, getApiHeadersAsync, getUserId } from '../utils/api.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { toast } from './whisper.ui.js';
 
@@ -177,7 +177,7 @@ const styles = `
   
   .household-modal__subtitle {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-top: var(--space-1, 4px);
   }
   
@@ -194,7 +194,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     transition: all var(--duration-fast, ${DURATION.FAST}ms) ${EASING.STANDARD};
   }
   
@@ -282,7 +282,7 @@ const styles = `
     align-items: center;
     gap: var(--space-2, 8px);
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .household-member__role {
@@ -294,7 +294,7 @@ const styles = `
     border-radius: var(--radius-full, 9999px);
     font-size: 11px;
     font-weight: 500;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .household-member__role svg {
@@ -336,7 +336,7 @@ const styles = `
   .household-empty {
     text-align: center;
     padding: var(--space-8, 32px) var(--space-4, 16px);
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .household-empty__icon {
@@ -385,7 +385,7 @@ const styles = `
   
   .household-create-form__subtitle {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-bottom: var(--space-5, 20px);
   }
   
@@ -397,7 +397,7 @@ const styles = `
     display: block;
     font-size: 13px;
     font-weight: 500;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-bottom: var(--space-2, 8px);
     text-align: left;
   }
@@ -511,7 +511,7 @@ const styles = `
   
   .household-setting__description {
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-top: 2px;
   }
   
@@ -597,7 +597,7 @@ const styles = `
   
   .household-confirm__message {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-bottom: var(--space-5, 20px);
     line-height: 1.5;
   }
@@ -1332,11 +1332,11 @@ async function handleSettingChange(setting: keyof Household['settings'], value: 
   callbacks.onSettingsChanged?.(household.settings);
   log.debug('Setting changed:', setting, value);
 
-  // Persist to backend via PATCH /api/household/:userId/settings
+  // Persist via PATCH /api/household/:id/settings (the server keys by the authed uid, not :id)
   try {
-    const userId = localStorage.getItem('ferni_user_id');
+    const userId = getUserId();
     if (!userId) {
-      log.debug('No userId - settings saved locally only');
+      toast.error('Sign in to save household settings.');
       return;
     }
 
@@ -1358,11 +1358,11 @@ async function handleSettingChange(setting: keyof Household['settings'], value: 
 
     if (!response.ok) {
       log.warn('Failed to persist setting:', { setting, status: response.status });
-      // Settings are already applied locally - continue silently
+      toast.error("Couldn't save that setting. Try again?");
     }
   } catch (err) {
     log.warn('Error persisting setting:', err);
-    // Settings already applied locally - continue silently
+    toast.error("Couldn't save that setting. Try again?");
   }
 }
 

@@ -7,6 +7,7 @@ import { Router, type Request, type Response } from 'express';
 import { createLogger } from '../../utils/safe-logger.js';
 import { briefingService } from '../../services/ceo/briefing.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { paramString } from '../param-string.js';
 
 const log = createLogger({ module: 'briefing-routes' });
 const router = Router();
@@ -36,7 +37,10 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:date', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { date } = req.params;
+    const date = paramString(req.params.date);
+    if (!date) {
+      return res.status(400).json({ error: 'Invalid date format' });
+    }
 
     const targetDate = new Date(date);
     if (isNaN(targetDate.getTime())) {

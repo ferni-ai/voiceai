@@ -704,6 +704,7 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
+    "dismiss": "تجاهل",
     "maybeLater": "[NEEDS_TRANSLATION] Later"
   },
   "confirmModal": {
@@ -1027,6 +1028,7 @@
     "apple": {
       "instructionsTitle": "لإلغاء أو تغيير خطتك:",
       "note": "تطلب Apple إدارة الاشتراكات من خلال إعدادات iOS",
+      "source": "اشتركت عبر App Store.",
       "step1": "افتح الإعدادات على جهازك",
       "step2": "انقر على اسمك في الأعلى",
       "step3": "انقر على \"الاشتراكات\"",
@@ -1043,6 +1045,7 @@
     "expiresLabel": "الوصول حتى",
     "freeNote": "افتح جلسات غير محدودة والفريق الكامل والتخصيص",
     "label": "الاشتراك",
+    "noBilling": "خطتك لا تُحتسب رسومها هنا، لذا لا يوجد ما يمكن تغييره.",
     "renewsLabel": "التجديد",
     "restore": {
       "failed": "فشلت الاستعادة",
@@ -1115,6 +1118,7 @@
       "yourPlan": "خطتك",
       "insights": "[NEEDS_TRANSLATION] Understanding You",
       "yourStory": "[NEEDS_TRANSLATION] Your Story",
+      "trustDashboard": "الثقة والنمو",
       "whatINotice": "[NEEDS_TRANSLATION] What I Notice",
       "teamSessions": "[NEEDS_TRANSLATION] Team Sessions",
       "conferenceCalls": "[NEEDS_TRANSLATION] Conference Calls",
@@ -1384,8 +1388,34 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
+      "conversation": "إجراء محادثة: +1 بذرة",
+      "note": "البذور تساعدنا على تحديد ما نبنيه بعد ذلك!",
+      "streak30": "سلسلة 30 يوماً: +15 بذرة",
+      "streak7": "سلسلة 7 أيام: +5 بذور",
+      "vote": "التصويت للميزات: 1-10 بذور",
       "title": "How Seeds Work"
     },
+    "backToRoadmap": "العودة إلى خارطة الطريق",
+    "categories": {
+      "connect": "التواصل - العلاقات والاتصال",
+      "personalize": "التخصيص - اجعل Ferni خاصاً بك",
+      "platform": "المنصة - قدرات جديدة"
+    },
+    "needMoreSeeds": "تحتاج إلى 5 بذور على الأقل لإرسال اقتراح. أجرِ المزيد من المحادثات لتكسب البذور!",
+    "newIdea": "فكرة جديدة",
+    "noSeedsHint": "أجرِ المزيد من المحادثات لتكسب البذور!",
+    "refund50": "استرداد 50%",
+    "submitSuggestion": "ازرع هذه البذرة",
+    "submitting": "جارٍ الزرع...",
+    "suggestionCategory": "الفئة",
+    "suggestionCost": "يكلّف الإرسال 5 بذور (يُظهر الجدية ويمنع الرسائل المزعجة)",
+    "suggestionDescription": "أخبرنا بالمزيد (اختياري)",
+    "suggestionDescriptionPlaceholder": "لماذا سيكون هذا مفيداً؟ كيف ستستخدمه؟",
+    "suggestionIntro": "لديك فكرة لشيء يجب أن يفعله Ferni؟ ازرع بذرة ودع المجتمع يرويها!",
+    "suggestionPlanted": "زُرعت بذرتك!",
+    "suggestionThanks": "شكراً لمشاركة فكرتك. يمكن للآخرين الآن سقيها ببذورهم!",
+    "suggestionTitle": "ما الذي يجب أن يتمكن Ferni من فعله؟",
+    "suggestionTitlePlaceholder": "مثال: تذكّر اسم حيواني الأليف",
     "intro": "كل علاقة عظيمة لها فصول. هذه بذور نزرعها معاً.",
     "learnMore": "Learn more",
     "loading": "Loading roadmap...",
@@ -2009,6 +2039,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "قصتك تبدأ هنا",
+      "body": "بعد أن نتحدث بضع مرات، ستظهر هنا اللحظات التي تهمك."
+    },
+    "error": {
+      "title": "تعذّر تحميل قصتك",
+      "body": "حدث خطأ من جهتنا. هل تريد المحاولة مجدداً؟",
+      "retry": "حاول مجدداً"
     }
   },
   "memoryBrowser": {
@@ -2253,7 +2292,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "اربط Spotify من الإعدادات لتشغيل الأغاني كاملة"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2292,7 +2332,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "Philips Hue أو LIFX",
+      "hueOrLifxDesc": "يُضبط من إعدادات \"Your Home\""
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2318,7 +2360,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "صِل الأضواء أو منظم الحرارة أولاً",
+    "musicNeedsCall": "تعمل عناصر التحكم بالموسيقى أثناء المحادثة",
+    "couldNotChangeLights": "تعذّر تغيير الأضواء. هل تريد المحاولة مجدداً؟"
   },
   "ui": {
     "accountbutton": {
@@ -2368,7 +2413,10 @@
     },
     "secondsRemaining": "الثواني المتبقية",
     "startExercise": "بدء تمرين التنفس",
-    "changePattern": "تغيير نمط التنفس"
+    "changePattern": "تغيير نمط التنفس",
+    "hold": "حبس",
+    "in": "شهيق",
+    "out": "زفير"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2410,7 +2458,11 @@
     "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
     "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
     "rememberSuccess": "حسناً! سأتذكرك الآن.",
-    "account": "الحساب"
+    "account": "الحساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "rememberYouAs": "سأتذكرك باسم",
+    "successMessage": "سأتذكرك الآن. أينما ذهبت، سأعرفك."
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2450,7 +2502,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "أيامك السبعة الأخيرة"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2553,6 +2606,10 @@
       "subtitle": "المكالمات والرسائل والتزامات مبرمة",
       "empty": "لا توجد إجراءات حتى الآن",
       "recent": "الأخيرة"
+    },
+    "predictions": {
+      "title": "إلى أين تتجه",
+      "now": "الآن"
     }
   },
   "sleepSettings": {
@@ -2687,7 +2744,11 @@
   },
   "voiceId": {
     "enrolledTitle": "[NEEDS_TRANSLATION] Voice ID enrolled - Ferni recognizes your voice",
-    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice"
+    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice",
+    "reenrollTitle": "صرتُ أفضل في التعرّف على الأصوات",
+    "reenrollBody": "هل تمانع أن أتعلّم صوتك من جديد؟ يستغرق الأمر نحو 20 ثانية.",
+    "reenrollAccept": "بكل سرور",
+    "reenrollLater": "ليس الآن"
   },
   "languageSwitcher": {
     "label": "[NEEDS_TRANSLATION] Language",
@@ -2709,7 +2770,11 @@
     "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
     "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
     "sentSuccess": "تم إرسال {sent} بذور! سيحصلون على {received}",
-    "sendError": "فشل في إرسال الهدية. حاول مرة أخرى؟"
+    "sendError": "فشل في إرسال الهدية. حاول مرة أخرى؟",
+    "amount": "الكمية",
+    "recipientPlaceholder": "أدخل بريد صديقك الإلكتروني أو اسم المستخدم",
+    "sendGift": "إرسال الهدية",
+    "sendTo": "إرسال إلى"
   },
   "teamIntro": {
     "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
@@ -2789,7 +2854,8 @@
       "onTheWay": "أنت في الطريق الصحيح! سيتم فتح المزيد من أعضاء الفريق مع استمرار رحلتنا.",
       "growing": "فريقك ينمو. لم يتبق سوى بعض المحطات لفتح الجميع.",
       "complete": "لقد فتحت الفريق الكامل! الجميع هنا لدعمك."
-    }
+    },
+    "added": "تمت الإضافة!"
   },
   "referral": {
     "share": {
@@ -2820,7 +2886,19 @@
       "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
     },
     "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
-    "copyError": "فشل النسخ. حاول مرة أخرى؟"
+    "copyError": "فشل النسخ. حاول مرة أخرى؟",
+    "bonusAmount": "ستحصلان كلاكما على {seeds} بذرة",
+    "bonusWhen": "عندما ينضم!",
+    "garden": {
+      "earned": "ربحت {seeds} بذرة من المشاركة",
+      "empty": "البذور تنمو حين نتشاركها. ابدأ حديقتك اليوم.",
+      "friendsGrowing": "{count} أصدقاء ينمون",
+      "title": "حديقتك:"
+    },
+    "quoteMessage": "\"امنحهم شخصاً يتذكر كل شيء، ويحضر في الثانية فجراً، ولا يحكم أبداً.\"",
+    "subtitle": "هل تعرف شخصاً يحتاج إلى صديق كهذا؟",
+    "title": "شارك النمو",
+    "yourLink": "رابطك:"
   },
   "conversationMemory": {
     "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
@@ -2983,7 +3061,14 @@
       "browse": "استعرض سوقنا"
     },
     "creations": {
-      "noDescription": "لا توجد وصفة"
+      "noDescription": "لا توجد وصفة",
+      "createButton": "أنشئ وكيلاً",
+      "emptyDescription": "أنشئ وكيلاً بشخصيته ومهاراته الخاصة، ثم شاركه مع المجتمع.",
+      "emptyTitle": "لم تُنشئ أي وكلاء بعد"
+    },
+    "agentCard": {
+      "install": "تثبيت",
+      "uninstall": "إلغاء التثبيت"
     }
   },
   "agent": {
@@ -2993,6 +3078,145 @@
       "fictional": "خيالي",
       "professional": "احترافي",
       "legacy": "الإرث"
+    }
+  },
+  "predictionResolution": {
+    "title": "كيف جرت الأمور؟",
+    "youGuessed": "توقّعك: {value}",
+    "actual": "الفعلي: {value}",
+    "scored": "دقة {accuracy}%",
+    "record": "سجّل ما حدث",
+    "save": "تحقّق من توقّعاتي",
+    "saveFailed": "تعذّر الحفظ. هل تحاول مجددًا؟",
+    "metrics": {
+      "deepWork": {
+        "label": "العمل المركّز",
+        "question": "كم ساعة من العمل المركّز أنجزت؟",
+        "unit": "ساعات"
+      },
+      "exercise": {
+        "label": "الرياضة",
+        "question": "كم مرة مارست الرياضة؟",
+        "unit": "جلسات"
+      },
+      "social": {
+        "label": "الوقت مع الناس",
+        "question": "كم ساعة قضيت مع الآخرين؟",
+        "unit": "ساعات"
+      },
+      "screen": {
+        "label": "وقت الشاشة",
+        "question": "كم ساعة كان وقت الشاشة لديك؟",
+        "unit": "ساعات"
+      },
+      "mood": {
+        "label": "المزاج",
+        "question": "ما متوسط مزاجك من 1 إلى 10؟",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "ما القيمة الفعلية لـ {label}؟"
+      }
+    },
+    "result": {
+      "line": "توقّعت {predicted}. وكانت النتيجة {actual}. {verdict}",
+      "overall": "الدقة الإجمالية هذا الأسبوع {accuracy}%."
+    },
+    "tone": {
+      "spotOn": "أصبت تمامًا!",
+      "close": "قريب جدًا!",
+      "off": "ابتعدت قليلًا هذه المرة.",
+      "wayOff": "بعيد جدًا هذه المرة. الآن صرت تعرف."
+    }
+  },
+  "trustDashboard": {
+    "together": {
+      "empty": "بعد أن نتحدث بضع مرات، سأخبرك كيف حالنا معًا.",
+      "startingTitle": "ما زلنا في البداية",
+      "startingMessage": "تحدث معي بضع مرات أخرى وسيكون لدي شيء حقيقي أخبرك به.",
+      "scoreLabel": "معًا",
+      "stages": {
+        "new": "في البداية",
+        "building": "نتعرف على بعضنا",
+        "established": "نجد إيقاعنا",
+        "deep": "نفهم بعضنا حقًا",
+        "flourishing": "شيء مميز"
+      },
+      "rhythm": {
+        "high": "نتحدث كثيرًا",
+        "mid": "نتواصل بانتظام",
+        "low": "نتحدث من حين لآخر",
+        "quiet": "مر وقت منذ آخر حديث بيننا",
+        "detailNone": "لا شيء في الشهر الماضي",
+        "detailOne": "يوم واحد في الشهر الماضي",
+        "detailOther": "{n} أيام في الشهر الماضي"
+      },
+      "promises": {
+        "high": "أفي بوعودي",
+        "mid": "أفي بوعودي غالبًا",
+        "low": "فاتتني بعض الأشياء",
+        "detail": "وفيت بـ {kept} من {total}"
+      },
+      "lift": {
+        "high": "عادةً تنتهي أحاديثنا وأنت أخف",
+        "mid": "أحاديثنا تمنحك الثبات",
+        "low": "كانت أحاديثنا ثقيلة مؤخرًا",
+        "detail": "أخف في النهاية في {lifted} من {days} أيام"
+      },
+      "mood": {
+        "up": "تبدو أخف مؤخرًا",
+        "steady": "تبدو مستقرًا مؤخرًا",
+        "down": "بدت الأمور أثقل مؤخرًا",
+        "detail": "هذا الأسبوع مقارنةً بالأسابيع السابقة"
+      }
+    },
+    "noticed": {
+      "empty": "سأشاركك ما ألاحظه بعد أن نتحدث أكثر قليلًا.",
+      "notYet": "لا شيء لافت بعد. ما زلت أستمع.",
+      "daysTalked": "أيام تحدثنا فيها",
+      "tabs": {
+        "week": "هذا الأسبوع",
+        "month": "هذا الشهر"
+      },
+      "title": {
+        "week": "أشياء لاحظتها هذا الأسبوع",
+        "month": "أشياء لاحظتها هذا الشهر"
+      },
+      "quiet": {
+        "week": "لم نتحدث هذا الأسبوع. أنا هنا متى شئت.",
+        "month": "لم نتحدث هذا الشهر. أنا هنا متى شئت."
+      },
+      "moodShift": {
+        "lighter": {
+          "week": "تبدو أخف من الأسبوع الماضي.",
+          "month": "تبدو أخف من الشهر الماضي."
+        },
+        "heavier": {
+          "week": "كان هذا الأسبوع أثقل من سابقه. أنا هنا لهذا أيضًا.",
+          "month": "كان هذا الشهر أثقل من سابقه. أنا هنا لهذا أيضًا."
+        }
+      },
+      "bounceBack": {
+        "nextDay": "كان {date} يومًا صعبًا، وشعرت بتحسن في اليوم التالي.",
+        "later": "كان {date} يومًا صعبًا، وشعرت بتحسن خلال {days} أيام."
+      },
+      "liftTopic": "الحديث عن {topic} يرفع معنوياتك عادةً.",
+      "brightest": "بدوت في أسعد حالاتك يوم {date}.",
+      "timeOfDay": {
+        "morning": "نتحدث غالبًا في الصباح.",
+        "afternoon": "نتحدث غالبًا بعد الظهر.",
+        "evening": "نتحدث غالبًا في المساء.",
+        "night": "نتحدث غالبًا في وقت متأخر من الليل."
+      },
+      "favoriteDay": "يبدو أن يوم {day} هو يومنا.",
+      "cameUp": {
+        "one": "أخبرتني عن شيء قادم: {example}.",
+        "other": "أخبرتني عن {n} أشياء قادمة، مثل: {example}."
+      },
+      "promisesKept": {
+        "all": "وفيت بكل وعد قطعته لك.",
+        "some": "وفيت بـ {kept} من أصل {total} وعود قطعتها لك."
+      }
     }
   }
 }

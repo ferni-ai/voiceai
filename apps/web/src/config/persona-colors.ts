@@ -1,13 +1,13 @@
 /**
  * Persona Colors - Centralized Color System
- * 
+ *
  * 🎨 SINGLE SOURCE OF TRUTH: design-system/tokens/colors.json
- * 
+ *
  * This file imports generated colors from the design system and provides:
- * - ID alias mapping (peter-john ↔ peter-lynch)
+ * - ID alias mapping (peter-john ↔ peter, peter-lynch ↔ lynch)
  * - Runtime color registration for dynamic agents
  * - Fallback color generation for unknown agents
- * 
+ *
  * To add a new persona's colors:
  * 1. Add to design-system/tokens/colors.json under "personas"
  * 2. Run: npm run build:persona-colors
@@ -35,17 +35,20 @@ export type { PersonaColorConfig, ApiColorData, PersonalityForColors };
 const ID_ALIASES: Record<string, string> = {
   // Frontend → Design Tokens
   'peter-john': 'peter',
-  'peter-lynch': 'peter',
   'alex-chen': 'alex',
   'maya-santos': 'maya',
   'jordan-taylor': 'jordan',
   'nayan-patel': 'nayan',
+  // Financial Legends: their own tokens (Peter Lynch is not Peter John)
+  'peter-lynch': 'lynch',
+  'john-bogle': 'bogle',
+  'joel-dickson': 'joel',
   // Design Tokens → Frontend (for reverse lookup)
-  'peter': 'peter-john',
-  'alex': 'alex-chen',
-  'maya': 'maya-santos',
-  'jordan': 'jordan-taylor',
-  'nayan': 'nayan-patel',
+  peter: 'peter-john',
+  alex: 'alex-chen',
+  maya: 'maya-santos',
+  jordan: 'jordan-taylor',
+  nayan: 'nayan-patel',
 };
 
 /**
@@ -71,7 +74,7 @@ function normalizePersonaId(personaId: string): string {
  * 🌿 EARTHY COLOR PALETTE
  * Colors are imported from generated file (design-system/tokens/colors.json)
  * with additional runtime colors for dynamic agents.
- * 
+ *
  * Add additional hardcoded colors here that aren't in design tokens:
  */
 const ADDITIONAL_COLORS: Record<string, PersonaColorConfig> = {
@@ -96,12 +99,6 @@ const _baseColors: Record<string, PersonaColorConfig> = {
   ...ADDITIONAL_COLORS,
 };
 
-// Add peter-john alias only if peter-lynch exists
-const peterColors = GENERATED_PERSONA_COLORS['peter-lynch'] ?? ADDITIONAL_COLORS['peter-john'];
-if (peterColors) {
-  _baseColors['peter-john'] = peterColors;
-}
-
 export const PERSONA_COLORS: Record<string, PersonaColorConfig> = _baseColors;
 
 // ============================================================================
@@ -116,7 +113,7 @@ export function getPersonaColors(personaId: string): PersonaColorConfig {
   const normalized = normalizePersonaId(personaId);
   const colors = PERSONA_COLORS[normalized];
   if (colors) return colors;
-  
+
   // Generate colors for unknown personas instead of falling back to Ferni
   return generateColorForAgent(personaId);
 }
@@ -167,13 +164,13 @@ export function getColorsFromApiOrGenerate(
   if (apiColors?.primary) {
     return getOrGenerateColor(personaId, apiColors, personality);
   }
-  
+
   // Then try hardcoded colors
   const hardcoded = PERSONA_COLORS[personaId.toLowerCase()];
   if (hardcoded) {
     return hardcoded;
   }
-  
+
   // Finally generate from ID
   return generateColorForAgent(personaId, personality);
 }
@@ -185,10 +182,7 @@ const dynamicColorCache = new Map<string, PersonaColorConfig>();
  * Register colors for a dynamic agent (from API).
  * Call this when loading agents from the API.
  */
-export function registerDynamicColors(
-  personaId: string,
-  colors: PersonaColorConfig
-): void {
+export function registerDynamicColors(personaId: string, colors: PersonaColorConfig): void {
   dynamicColorCache.set(personaId.toLowerCase(), colors);
 }
 
@@ -205,11 +199,11 @@ export function clearDynamicColors(): void {
  */
 export function getPersonaColorsWithDynamic(personaId: string): PersonaColorConfig {
   const normalized = personaId.toLowerCase();
-  
+
   // Check dynamic cache first
   const dynamic = dynamicColorCache.get(normalized);
   if (dynamic) return dynamic;
-  
+
   // Fall back to standard lookup
   return getPersonaColors(personaId);
 }
@@ -244,8 +238,11 @@ export function getPersonaButtonGradient(personaId: string, angle: number = 145)
 function lightenColor(hex: string, percent: number): string {
   const num = parseInt(hex.replace('#', ''), 16);
   const r = Math.min(255, Math.floor((num >> 16) + (255 - (num >> 16)) * percent));
-  const g = Math.min(255, Math.floor(((num >> 8) & 0x00FF) + (255 - ((num >> 8) & 0x00FF)) * percent));
-  const b = Math.min(255, Math.floor((num & 0x0000FF) + (255 - (num & 0x0000FF)) * percent));
+  const g = Math.min(
+    255,
+    Math.floor(((num >> 8) & 0x00ff) + (255 - ((num >> 8) & 0x00ff)) * percent)
+  );
+  const b = Math.min(255, Math.floor((num & 0x0000ff) + (255 - (num & 0x0000ff)) * percent));
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
@@ -255,12 +252,12 @@ function lightenColor(hex: string, percent: number): string {
 
 /**
  * 📝 HOW TO ADD A NEW PERSONA'S COLORS:
- * 
+ *
  * 1. Choose colors that fit the earthy palette:
  *    - Consider what emotion/personality the color conveys
  *    - Use HSL to pick colors with similar saturation (30-45%)
  *    - Keep lightness in 35-55% range for accessibility
- * 
+ *
  * 2. Add to PERSONA_COLORS above:
  *    'new-persona-id': {
  *      primary: '#XXXXXX',      // Main color (button bg, avatar)
@@ -271,13 +268,13 @@ function lightenColor(hex: string, percent: number): string {
  *      gradient: 'linear-gradient(135deg, secondary 0%, primary 100%)',
  *      description: 'Short personality description',
  *    },
- * 
+ *
  * 3. Also add to design-system/tokens/colors.json personas section
- * 
+ *
  * 4. Run `npm run build:tokens` to regenerate CSS
- * 
+ *
  * 5. Add the persona to personas.ts config (name, subtitle, etc.)
- * 
+ *
  * Color Palette Guidelines:
  * - Greens: Wisdom, growth, nature
  * - Browns: Warmth, trust, stability
