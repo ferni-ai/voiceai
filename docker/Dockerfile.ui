@@ -10,11 +10,13 @@
 # - BuildKit 1.4 syntax enables parallel stage builds
 # - Cache mounts for pnpm store
 #
-# No neural speaker model here: the voice-auth API computes DSP voice features,
-# and DSP can never verify or identify anyone (voice-match-trust.ts), so voice
-# verification on this server fails closed. The model lives in the agent image
-# (Dockerfile.agent). No client calls the voice-auth API today; if one ever
-# needs neural verification here, fetch the model the way Dockerfile.agent does.
+# Neural speaker model: the same pinned ECAPA-TDNN as Dockerfile.agent. Web
+# enrollment (Settings > Voice ID, /api/voice/*) runs here, and a voice print
+# is only usable by the agent's verifier when both sides embed with the same
+# model: without it this server makes DSP prints, which never verify anyone
+# (voice-match-trust.ts). The worker thread costs ~200-270 MB RSS once a
+# voice request loads it, so the service needs more than 512Mi (see the
+# --memory flags of the john-bogle-ui deploys).
 #
 # Build:
 #   docker build -f docker/Dockerfile.ui -t ferni-ui .
@@ -139,6 +141,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl \
     && rm -rf /var/lib/apt/lists/* \
     && corepack enable && corepack prepare pnpm@10.29.3 --activate
+
+# Neural speaker model, fetched exactly as docker/Dockerfile.agent does (see
+# scripts/speaker/README.md): public object, so no credentials; a sha256
+# mismatch fails the build, and the speaker-embedding worker checks the digest
+# again at load and falls back to DSP features if it differs. Kill switch:
+# unset SPEAKER_MODEL_PATH. Before any app source, so the layer stays cached.
+ARG SPEAKER_MODEL_SHA256=93ccd596285b31d5debad84ab3f138d5dc1145f19c3f287b81ece65afa034fc9
+ARG SPEAKER_MODEL_URL=https://storage.googleapis.com/ferni-public-models/speaker/ecapa-tdnn-waveform-93ccd596.onnx
+RUN mkdir -p /models/speaker && \
+    curl -fsSL --retry 3 --retry-all-errors \
+      -o /models/speaker/ecapa-tdnn-waveform.onnx "$SPEAKER_MODEL_URL" && \
+    printf '%s  /models/speaker/ecapa-tdnn-waveform.onnx\n' "$SPEAKER_MODEL_SHA256" \
+      > /models/speaker/ecapa-tdnn-waveform.onnx.sha256 && \
+    sha256sum -c /models/speaker/ecapa-tdnn-waveform.onnx.sha256 && \
+    printf '%s\n' \
+      'ECAPA-TDNN speaker model from speechbrain/spkrec-ecapa-voxceleb (SpeechBrain), Apache-2.0.' \
+      'Modified: exported to ONNX with its feature front end (scripts/speaker/export-ecapa-onnx.py).' \
+      'License: https://www.apache.org/licenses/LICENSE-2.0' > /models/speaker/NOTICE
+ENV SPEAKER_MODEL_PATH=/models/speaker/ecapa-tdnn-waveform.onnx \
+    SPEAKER_MODEL_SHA256=${SPEAKER_MODEL_SHA256}
 
 # Copy package files from builder stage (has file: deps replaced with npm versions)
 COPY --from=backend-builder /app/package.json ./

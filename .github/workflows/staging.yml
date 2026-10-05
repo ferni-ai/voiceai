@@ -219,7 +219,7 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --memory 512Mi \
+            --memory 1Gi \
             --cpu 1 \
             --timeout 300 \
             --concurrency 20 \
@@ -227,6 +227,7 @@ jobs:
             --max-instances 2 \
             --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }},LIVEKIT_URL=wss://dev-8sm1ba0z.livekit.cloud,AGENT_NAME=voice-agent-dev" \
             --set-secrets "LIVEKIT_API_KEY=livekit-dev-api-key:latest,LIVEKIT_API_SECRET=livekit-dev-api-secret:latest"
+          # 1Gi, as in production: the neural speaker model adds ~200-270 MB RSS.
           # Previews talk to the DEV LiveKit project, never production. Without
           # LiveKit settings the server exits at startup ("Missing required
           # environment variables"), so every preview deploy failed.

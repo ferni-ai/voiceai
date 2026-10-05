@@ -445,6 +445,8 @@ jobs:
             NO_TRAFFIC_FLAG=""
           fi
 
+          # 1Gi: the neural speaker model (docker/Dockerfile.ui) adds ~200-270 MB RSS
+          # once a voice request loads it; prod ran at p50 ~60% of 512Mi without it.
           gcloud run deploy john-bogle-ui \
             --image ${{ env.UI_IMAGE }}:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
@@ -453,7 +455,7 @@ jobs:
             --tag green \
             --revision-suffix $REVISION_SUFFIX \
             --allow-unauthenticated \
-            --memory 512Mi \
+            --memory 1Gi \
             --cpu 1 \
             --timeout 300 \
             --concurrency 80 \
