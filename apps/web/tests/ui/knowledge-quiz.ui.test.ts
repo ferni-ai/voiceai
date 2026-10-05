@@ -75,6 +75,7 @@ describe('KnowledgeQuizUI', () => {
       ok: true,
       status: 200,
       data: {
+        quizId: 'quiz-123',
         questions: [
           {
             id: 'q1',
@@ -387,6 +388,7 @@ describe('KnowledgeQuizUI', () => {
       expect(mockApiPost).toHaveBeenCalledWith(
         '/api/quiz/knowledge/results',
         expect.objectContaining({
+          quizId: 'quiz-123', // so the server re-scores the quiz it served
           results: expect.any(Array),
           completedAt: expect.any(String),
         })

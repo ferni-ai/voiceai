@@ -44,10 +44,11 @@ interface QuizResult {
 
 interface QuizResponse {
   questions: QuizQuestion[];
-  totalKnown: number;
+  quizId?: string;
 }
 
 interface QuizState {
+  quizId?: string;
   questions: QuizQuestion[];
   currentIndex: number;
   results: QuizResult[];
@@ -104,7 +105,6 @@ export async function openKnowledgeQuiz(): Promise<void> {
     return;
   }
 
-  // Reset state
   state = {
     questions: [],
     currentIndex: 0,
@@ -112,13 +112,12 @@ export async function openKnowledgeQuiz(): Promise<void> {
     isComplete: false,
   };
 
-  // Fetch quiz questions
   try {
     const response = await apiGet<QuizResponse>('/api/quiz/knowledge');
     if (response.ok && response.data?.questions && response.data.questions.length > 0) {
       state.questions = response.data.questions;
+      state.quizId = response.data.quizId; // lets the server re-score this exact quiz
     } else {
-      // Use default questions if API fails
       state.questions = getDefaultQuestions();
     }
   } catch (err) {
@@ -477,6 +476,7 @@ function getWarmMessage(correct: number, total: number): string {
 async function submitResults(): Promise<void> {
   try {
     await apiPost('/api/quiz/knowledge/results', {
+      quizId: state.quizId,
       results: state.results,
       completedAt: new Date().toISOString(),
     });
