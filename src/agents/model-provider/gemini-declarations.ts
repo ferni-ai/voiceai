@@ -9,8 +9,8 @@
  * set does.
  *
  * DeclarationCache keeps the plugin's own conversion per tool set in a small
- * LRU, so an unchanged set costs no conversions. CachedDeclarationsLLM is the
- * plugin's LLM with that cache in front of it; the cascade's primary and
+ * LRU, so an unchanged set costs no conversions. createCachedDeclarationsLLM builds
+ * the plugin's LLM with that cache in front of it; the cascade's primary and
  * backup share one cache, so a hedge reuses the primary's declarations.
  *
  * @module agents/model-provider/gemini-declarations
@@ -139,32 +139,57 @@ export async function sharedDeclarationCache(): Promise<DeclarationCache | null>
 }
 
 type ChatOptions = Parameters<google.LLM['chat']>[0];
+type GeminiLLMOptions = ConstructorParameters<typeof google.LLM>[0];
+type CachedDeclarationsLLMClass = new (
+  opts: GeminiLLMOptions,
+  declarations: DeclarationCache
+) => google.LLM;
+
+let cachedDeclarationsLLMClass: CachedDeclarationsLLMClass | undefined;
+
+/**
+ * The subclass is built on first use, not at import. `extends google.LLM`
+ * reads the plugin's class when the class statement runs; at module scope that
+ * would happen for every importer of cartesia-cascade (most of the agent
+ * graph), and a plugin without a usable LLM export would fail all of those
+ * imports instead of only the cascade LLM that needs it.
+ */
+function cachedDeclarationsLLM(): CachedDeclarationsLLMClass {
+  cachedDeclarationsLLMClass ??= class CachedDeclarationsLLM extends google.LLM {
+    constructor(
+      opts: GeminiLLMOptions,
+      private readonly declarations: DeclarationCache
+    ) {
+      super(opts);
+    }
+
+    chat(opts: ChatOptions): google.LLMStream {
+      const toolCtx = llm.toToolContext(opts.toolCtx);
+      if (!toolCtx || Object.keys(toolCtx.functionTools).length === 0 || opts.geminiTools) {
+        return super.chat(opts);
+      }
+      const functionDeclarations = this.declarations.declarationsFor(toolCtx);
+      // With no tool context the plugin sends geminiTools as the request's only
+      // tool entry: [{ functionDeclarations }], the same request it builds from a
+      // tool context (pinned by gemini-declarations.test.ts). Its type leaves out
+      // functionDeclarations because it expects them from the tool context.
+      // Tool calls still run against the agent's own tool context; the stream's
+      // copy is not used for that.
+      return super.chat({
+        ...opts,
+        toolCtx: undefined,
+        geminiTools: { functionDeclarations } as unknown as google.LLMTools,
+      });
+    }
+  };
+  return cachedDeclarationsLLMClass;
+}
 
 /** The plugin's Gemini LLM, sending cached function declarations. */
-export class CachedDeclarationsLLM extends google.LLM {
-  constructor(
-    opts: ConstructorParameters<typeof google.LLM>[0],
-    private readonly declarations: DeclarationCache
-  ) {
-    super(opts);
-  }
-
-  chat(opts: ChatOptions): google.LLMStream {
-    const toolCtx = llm.toToolContext(opts.toolCtx);
-    if (!toolCtx || Object.keys(toolCtx.functionTools).length === 0 || opts.geminiTools) {
-      return super.chat(opts);
-    }
-    const functionDeclarations = this.declarations.declarationsFor(toolCtx);
-    // With no tool context the plugin sends geminiTools as the request's only
-    // tool entry: [{ functionDeclarations }], the same request it builds from a
-    // tool context (pinned by gemini-declarations.test.ts). Its type leaves out
-    // functionDeclarations because it expects them from the tool context.
-    // Tool calls still run against the agent's own tool context; the stream's
-    // copy is not used for that.
-    return super.chat({
-      ...opts,
-      toolCtx: undefined,
-      geminiTools: { functionDeclarations } as unknown as google.LLMTools,
-    });
-  }
+export function createCachedDeclarationsLLM(
+  opts: GeminiLLMOptions,
+  declarations: DeclarationCache
+): google.LLM {
+  const CachedDeclarationsLLM = cachedDeclarationsLLM();
+  return new CachedDeclarationsLLM(opts, declarations);
 }

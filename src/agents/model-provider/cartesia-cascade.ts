@@ -27,7 +27,7 @@ import { ThinkingLevel } from '@google/genai';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import * as google from '@livekit/agents-plugin-google';
 import { createLogger } from '../../utils/safe-logger.js';
-import { CachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
+import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
 import { HedgedLLM } from './hedged-llm.js';
 import type {
   AgentSessionTurnDetection,
@@ -303,7 +303,7 @@ export class CartesiaCascadeProvider implements ModelProvider {
     // primary's converted tool schemas.
     const declarations = await sharedDeclarationCache();
     const gemini = (o: CascadeLLMOptions): google.LLM =>
-      declarations ? new CachedDeclarationsLLM(o, declarations) : new google.LLM(o);
+      declarations ? createCachedDeclarationsLLM(o, declarations) : new google.LLM(o);
     const primary = gemini(opts);
     if (!hedge) return primary;
     const backup = gemini({ ...hedge.backup, temperature: config.temperature });

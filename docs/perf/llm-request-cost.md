@@ -59,8 +59,9 @@ not read; numbers are for the code defaults, plus `PROMPT_MODE=character`.
 
 `src/agents/model-provider/gemini-declarations.ts` keeps the plugin's own
 conversion per tool set (key: each tool's name, description and schema object)
-in an LRU of 32 sets shared by the process, and `CachedDeclarationsLLM` sends
-the cached declarations. The cascade's primary and hedge backup share it.
+in an LRU of 32 sets shared by the process, and `createCachedDeclarationsLLM`
+builds the plugin LLM that sends the cached declarations. The cascade's primary
+and hedge backup share it.
 
 |                                                                                      | Before          | After                            |
 | ------------------------------------------------------------------------------------ | --------------- | -------------------------------- |
