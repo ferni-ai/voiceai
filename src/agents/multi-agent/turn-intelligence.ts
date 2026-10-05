@@ -120,7 +120,8 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
 }
 
 /** Opens each pushed context note, so readers of the chat can tell it from the caller's words. */
-export const TURN_CONTEXT_HEADER = '[Context for your next reply, not something the user said]';
+export const TURN_CONTEXT_HEADER =
+  '[Background on what they said just above, not something the user said]';
 
 /** The key, in a pushed note's `extra`, of the caller's words it was built for. */
 export const TURN_CONTEXT_FOR = 'turnContextFor';
@@ -131,6 +132,7 @@ interface ChatItemView {
   role?: string;
   textContent?: string;
   extra?: Record<string, unknown>;
+  createdAt?: number;
 }
 
 const isTurnContext = (item: ChatItemView): boolean =>
@@ -144,15 +146,16 @@ const normalized = (text: unknown): string =>
     .trim();
 
 /**
- * The request for one reply without pushed context built for an earlier turn.
+ * The request for one reply without a pushed note that would read as being
+ * about the words it answers when it was built for others.
  *
- * The note is built in the background from the caller's turn and is ready
- * about 1.3 s after the reply to that turn has started, so it lands on the
- * reply to the NEXT turn while still describing the previous one. Dev call
- * 2026-10-03: the reply to "Why do you keep forgetting?" ("Maybe it's not about
- * making me human...") followed the previous turn, with the note sitting
- * just before the question. A note is kept only for a reply to the very words
- * it was built for. STALE_TURN_CONTEXT=keep sends every note, as before.
+ * Dev call 2026-10-03: a note built from the previous turn sat just before
+ * "Why do you keep forgetting?", and the reply ("Maybe it's not about making
+ * me human...") followed the previous turn. Notes are now placed right after
+ * the words they were built for (createTurnContextPusher), so one that sits in
+ * history, before a reply of Ferni's, is background and stays. Only a note in
+ * the unanswered tail that was built for other words is dropped.
+ * STALE_TURN_CONTEXT=keep sends every note.
  */
 export function withoutStaleTurnContext<T extends { items: ChatItemView[]; copy(): T }>(
   chatCtx: T,
@@ -163,27 +166,68 @@ export function withoutStaleTurnContext<T extends { items: ChatItemView[]; copy(
   if (!items.some(isTurnContext)) return chatCtx;
   // The caller's words this reply answers: their messages since Ferni last spoke.
   const said: string[] = [];
+  let tail = 0;
   for (let i = items.length - 1; i >= 0; i--) {
     const item = items[i];
     if (item.type !== 'message') continue;
-    if (item.role === 'assistant') break;
+    if (item.role === 'assistant') {
+      tail = i + 1;
+      break;
+    }
     if (item.role === 'user' && !isTurnContext(item)) said.unshift(item.textContent ?? '');
   }
   const answering = normalized(said.join(' '));
   const stale = new Set(
     items
-      .filter((item) => {
-        if (!isTurnContext(item)) return false;
+      .filter((item, i) => {
+        if (i < tail || !isTurnContext(item)) return false;
         const builtFor = normalized(item.extra?.[TURN_CONTEXT_FOR]);
         return !builtFor || builtFor !== answering;
       })
       .map((item) => item.id)
   );
   if (stale.size === 0) return chatCtx;
-  log.info({ answering: answering.slice(0, 60), dropped: stale.size }, 'STALE_TURN_CONTEXT_DROPPED');
+  log.info(
+    { answering: answering.slice(0, 60), dropped: stale.size },
+    'STALE_TURN_CONTEXT_DROPPED'
+  );
   const ctx = chatCtx.copy();
   ctx.items = ctx.items.filter((item) => !stale.has(item.id));
   return ctx;
+}
+
+/**
+ * Where a note goes: just after the caller's words it was built for and before
+ * what followed them (Ferni's reply), with a createdAt that keeps the context
+ * in time order. Undefined when those words aren't in the context yet or
+ * nothing follows them: the note then goes at the end, with its words.
+ */
+function afterTheirWords(
+  items: ChatItemView[],
+  builtFor: string
+): { index: number; createdAt: number } | undefined {
+  const want = normalized(builtFor);
+  const said = (item: ChatItemView | undefined) =>
+    item?.type === 'message' && item.role === 'user' && !isTurnContext(item);
+  for (let end = items.length - 1; end >= 0; end--) {
+    if (!said(items[end])) continue;
+    let start = end;
+    while (start > 0 && said(items[start - 1])) start--;
+    const span = normalized(
+      items
+        .slice(start, end + 1)
+        .map((i) => i.textContent ?? '')
+        .join(' ')
+    );
+    if (span === want) {
+      if (end + 1 >= items.length) return undefined;
+      const last = items[end].createdAt ?? 0;
+      const next = items[end + 1].createdAt ?? last;
+      return { index: end + 1, createdAt: next > last ? last + (next - last) / 2 : last };
+    }
+    end = start;
+  }
+  return undefined;
 }
 
 /** Keeps a pushed context note from growing the session's context unboundedly. */
@@ -192,11 +236,12 @@ const MAX_PUSHED_CONTEXT_CHARS = 2000;
 interface ContextAgent {
   readonly chatCtx: {
     copy(): {
-      items: Array<{ id: string }>;
+      items: ChatItemView[];
       addMessage(msg: {
         role: 'user';
         content: string;
         extra: Record<string, unknown>;
+        createdAt?: number;
       }): { id: string };
     };
   };
@@ -216,8 +261,13 @@ interface ContextAgent {
  * A push waits until Ferni is listening and the user is not speaking: one
  * that lands mid-speech would change the context under a preemptive
  * generation. Each push replaces the previous note, so notes never pile up.
- * Each note carries the caller's words it was built for (TURN_CONTEXT_FOR),
- * so withoutStaleTurnContext can keep it out of the reply to a later turn.
+ *
+ * A note is ready about 1.2 s after the reply to its turn has started (dev,
+ * 2026-10-05), so it can only inform the next reply. It goes right after the
+ * caller's words it was built for, before Ferni's reply to them, where it
+ * reads as background on that moment rather than as a note about the new
+ * question. Appended at the end, it was dropped as stale 122 times in 112 turns
+ * (some turns pushed twice): the per-turn context reached no reply.
  */
 export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent) {
   let pending: string | null = null;
@@ -237,7 +287,23 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
     try {
       const chatCtx = agent.chatCtx.copy();
       if (pushedId) chatCtx.items = chatCtx.items.filter((item) => item.id !== pushedId);
-      pushedId = chatCtx.addMessage({ role: 'user', content, extra }).id;
+      const place = afterTheirWords(chatCtx.items, extra[TURN_CONTEXT_FOR]);
+      const note = chatCtx.addMessage({
+        role: 'user',
+        content,
+        extra,
+        createdAt: place?.createdAt,
+      });
+      pushedId = note.id;
+      if (place) {
+        const rest = chatCtx.items.filter((item) => item.id !== note.id);
+        chatCtx.items = [
+          ...rest.slice(0, place.index),
+          note as ChatItemView,
+          ...rest.slice(place.index),
+        ];
+      }
+      log.debug({ placed: place ? 'history' : 'tail' }, 'Turn context pushed');
       await agent.updateChatCtx(chatCtx);
     } catch (error) {
       log.warn({ error: String(error) }, 'Could not push turn context');
