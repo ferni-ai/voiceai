@@ -186,15 +186,13 @@ describe('LinkedIn switched on (LINKEDIN_ENABLED=true + credentials): unchanged'
     expect(await res.json()).toEqual({ connected: false, profile: null, upcomingMilestones: [] });
   });
 
-  it('connect redirects to the LinkedIn authorize URL', async () => {
+  it('connect without a state goes through the usual state check, not "unavailable"', async () => {
+    // Since #273 a connect must carry a state from POST /auth/oauth/start; the full
+    // signed-in flow to LinkedIn is covered by src/tests/linkedin-connect-contract.test.ts.
     const res = await send('/api/linkedin/connect');
-    expect(res.status).toBe(302);
-    const location = new URL(res.headers.get('location') ?? '');
-    expect(location.origin + location.pathname).toBe(
-      'https://www.linkedin.com/oauth/v2/authorization'
-    );
-    expect(location.searchParams.get('client_id')).toBe('li-id');
-    expect(li.getLinkedInAuthUrl).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(401);
+    expect(res.headers.get('location') ?? '').not.toContain('linkedin=unavailable');
+    expect(li.getLinkedInAuthUrl).not.toHaveBeenCalled();
   });
 
   it('sync answers "not connected" and disconnect reaches the service', async () => {
@@ -212,9 +210,10 @@ describe('LinkedIn switched on (LINKEDIN_ENABLED=true + credentials): unchanged'
     expect(res.headers.get('location')).toBe('/settings?linkedin=error');
   });
 
-  it('POST /auth/oauth/start treats linkedin as before (not a known provider here)', async () => {
+  it('POST /auth/oauth/start hands back a LinkedIn connect URL with a state', async () => {
     const res = await send('/auth/oauth/start', 'POST', 'tok-A', { provider: 'linkedin' });
-    expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: 'Unknown provider' });
+    expect(res.status).toBe(200);
+    const { url } = (await res.json()) as { url: string };
+    expect(url).toMatch(/^\/api\/linkedin\/connect\?state=[^&]+$/);
   });
 });

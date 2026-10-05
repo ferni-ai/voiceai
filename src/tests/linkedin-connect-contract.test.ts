@@ -17,7 +17,11 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-Object.assign(process.env, { LINKEDIN_CLIENT_ID: 'li-id', LINKEDIN_CLIENT_SECRET: 'li-secret' });
+Object.assign(process.env, {
+  LINKEDIN_ENABLED: 'true',
+  LINKEDIN_CLIENT_ID: 'li-id',
+  LINKEDIN_CLIENT_SECRET: 'li-secret',
+});
 
 vi.mock('../services/identity/firebase-auth.js', () => ({
   verifyFirebaseToken: vi.fn(async (token: string) =>
@@ -111,6 +115,7 @@ beforeEach(() => {
   linkedin.connectedUids.length = 0;
   browser.href = '';
   browser.cookie = '';
+  process.env.LINKEDIN_ENABLED = 'true';
   process.env.LINKEDIN_CLIENT_ID = 'li-id';
   process.env.LINKEDIN_CLIENT_SECRET = 'li-secret';
   vi.stubGlobal('navigator', { onLine: true });
