@@ -61,7 +61,6 @@ export default defineConfig(({ mode }) => {
         '@tsparticles/engine',
         '@tsparticles/slim',
         'uuid',
-        'events',
       ],
     },
     // Warm up frequently used files for faster first load
