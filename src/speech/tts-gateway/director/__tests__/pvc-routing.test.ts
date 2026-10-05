@@ -1,5 +1,5 @@
 /**
- * Ferni's voice is a Professional Voice Clone (VOICE_IDS.FERNI). Cartesia
+ * Ferni's voice is a Professional Voice Clone (LESTER_PRO_V3_VOICE_ID). Cartesia
  * ignores <speed>, <emotion> and <volume> on a PVC (measured 2026-10-03), so
  * with the Director live those tags are taken off every push (they do nothing
  * but clutter the text) and the reply's pace goes to Stage 2 as a tempo for
@@ -9,7 +9,7 @@
 import { ReadableStream } from 'node:stream/web';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { VOICE_IDS } from '../../../../config/voice-ids.js';
+import { LESTER_PRO_V3_VOICE_ID } from '../../../../config/voice-ids.js';
 import { clearReplyAudioPlan, takeReplyAudioPlan } from '../../../reply-audio-plan.js';
 import type { ReplyStream } from '../../providers/cartesia-reply-stream.js';
 import { decideSpeed } from '../pacing.js';
@@ -54,7 +54,7 @@ async function run(opts: {
         c.close();
       },
     }),
-    voiceId: opts.voiceId ?? VOICE_IDS.FERNI,
+    voiceId: opts.voiceId ?? LESTER_PRO_V3_VOICE_ID,
     sessionId: SESSION,
     personaId: 'ferni',
     turnContext: { turnNumber: opts.turn ?? 4 },
@@ -132,7 +132,7 @@ describe('Director live on an instant clone', () => {
 
 describe('decideSpeed on a PVC', () => {
   it('still decides the pace (for Stage 2) but marks the tag unsupported', () => {
-    expect(decideSpeed({ valence: 'heavy', voiceId: VOICE_IDS.FERNI })).toEqual({
+    expect(decideSpeed({ valence: 'heavy', voiceId: LESTER_PRO_V3_VOICE_ID })).toEqual({
       speed: 0.97,
       supported: false,
     });

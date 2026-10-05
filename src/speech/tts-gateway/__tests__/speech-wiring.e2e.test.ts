@@ -6,7 +6,7 @@
  * socket that records each request and answers with a deterministic tone
  * (s16le, 24 kHz, a whole number of 20 ms frames per piece of text).
  *
- * Voice: VOICE_IDS.FERNI (Lester Pro V3, a Professional Voice Clone).
+ * Voice: LESTER_PRO_V3_VOICE_ID (Lester Pro V3, a Professional Voice Clone).
  *
  * Live (every director lever and both Stage 2 gates): no prosody tag reaches
  * Cartesia, stage directions and sigh cues never do, <spell> does; the plan
@@ -24,7 +24,7 @@ import { ReadableStream, type ReadableStream as NodeReadableStream } from 'node:
 import type { AudioFrame } from '@livekit/rtc-node';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { VOICE_IDS } from '../../../config/voice-ids.js';
+import { LESTER_PRO_V3_VOICE_ID } from '../../../config/voice-ids.js';
 import {
   PostTTSPresets,
   applyPostTTSEnhancement,
@@ -182,7 +182,7 @@ async function speak(
       }),
   });
   const node = createGatewayTTSNode({
-    voiceId: VOICE_IDS.FERNI,
+    voiceId: LESTER_PRO_V3_VOICE_ID,
     sessionId,
     personaId: 'ferni',
     turnContext: { turnNumber: turn, userRequest: 'my dad was just diagnosed with cancer' },
@@ -243,7 +243,7 @@ describe.skipIf(!hasNative())(
       // Stage 1: what reached Cartesia.
       const sent = pushes();
       const all = sent.join('');
-      expect(net.sent.every((s) => s.voiceId === VOICE_IDS.FERNI)).toBe(true);
+      expect(net.sent.every((s) => s.voiceId === LESTER_PRO_V3_VOICE_ID)).toBe(true);
       expect(all).not.toMatch(/<\/?(?:speed|emotion|volume)\b/);
       expect(all).not.toMatch(/\*|sigh|smiles/i);
       expect(all).toContain('<spell>K7Q2</spell>');
