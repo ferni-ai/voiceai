@@ -47,6 +47,7 @@
  * and ferni-menu base classes with component-specific modifiers.
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 
 // ============================================================================
@@ -86,38 +87,38 @@ export function getStaggerDelay(index: number, baseDelay: number = STAGGER_DELAY
 export const WEATHER_COPY = {
   sunny: {
     labelKey: 'engagement.moodBrightClear',
-    greeting: 'What a beautiful day ahead',
-    encouragement: 'Perfect energy for tackling something meaningful',
+    greetingKey: 'engagement.weather.sunny.greeting',
+    encouragementKey: 'engagement.weather.sunny.encouragement',
   },
   'partly-cloudy': {
     labelKey: 'engagement.moodMixedFeelings',
-    greeting: 'A bit of everything today',
-    encouragement: 'Room for both reflection and action',
+    greetingKey: 'engagement.weather.partlyCloudy.greeting',
+    encouragementKey: 'engagement.weather.partlyCloudy.encouragement',
   },
   cloudy: {
     labelKey: 'engagement.moodThoughtful',
-    greeting: 'A quieter kind of day',
-    encouragement: 'Good for gentle progress',
+    greetingKey: 'engagement.weather.cloudy.greeting',
+    encouragementKey: 'engagement.weather.cloudy.encouragement',
   },
   rainy: {
     labelKey: 'engagement.moodProcessing',
-    greeting: 'Taking time to work through things',
-    encouragement: 'Be gentle with yourself',
+    greetingKey: 'engagement.weather.rainy.greeting',
+    encouragementKey: 'engagement.weather.rainy.encouragement',
   },
   stormy: {
     labelKey: 'engagement.moodTurbulent',
-    greeting: 'Rough waters right now',
-    encouragement: 'This too shall pass. One small step.',
+    greetingKey: 'engagement.weather.stormy.greeting',
+    encouragementKey: 'engagement.weather.stormy.encouragement',
   },
   foggy: {
     labelKey: 'engagement.moodUncertain',
-    greeting: 'Finding your way through the mist',
-    encouragement: 'Clarity comes with patience',
+    greetingKey: 'engagement.weather.foggy.greeting',
+    encouragementKey: 'engagement.weather.foggy.encouragement',
   },
   rainbow: {
     labelKey: 'engagement.moodBreakthrough',
-    greeting: 'Something beautiful emerging',
-    encouragement: 'Celebrate how far you\'ve come',
+    greetingKey: 'engagement.weather.rainbow.greeting',
+    encouragementKey: 'engagement.weather.rainbow.encouragement',
   },
 } as const;
 
@@ -125,24 +126,24 @@ export const WEATHER_COPY = {
  * Energy level labels - supportive, not judgmental
  */
 export const ENERGY_COPY = {
-  high: { labelKey: 'engagement.moodEnergized', note: 'Channel it wisely' },
-  medium: { labelKey: 'engagement.moodBalanced', note: 'Steady as she goes' },
-  low: { labelKey: 'engagement.moodConserving', note: 'Honor what you need' },
+  high: { labelKey: 'engagement.moodEnergized', noteKey: 'engagement.energy.high.note' },
+  medium: { labelKey: 'engagement.moodBalanced', noteKey: 'engagement.energy.medium.note' },
+  low: { labelKey: 'engagement.moodConserving', noteKey: 'engagement.energy.low.note' },
 } as const;
 
 /**
  * Streak milestone messages - celebratory but not over-the-top
  */
 export const STREAK_MILESTONES: Record<number, string> = {
-  3: 'Three days strong. You\'re building momentum.',
-  7: 'A full week! This is becoming part of you.',
-  14: 'Two weeks of showing up. That takes real commitment.',
-  21: 'Three weeks. Scientists say habits form around now.',
-  30: 'A month! You\'ve proven something to yourself.',
-  60: 'Two months of dedication. Remarkable.',
-  90: 'A quarter year. This is who you are now.',
-  100: 'Triple digits. Extraordinary commitment.',
-  365: 'A full year. You\'ve changed your life.',
+  3: 'engagement.streakMilestones.day3',
+  7: 'engagement.streakMilestones.day7',
+  14: 'engagement.streakMilestones.day14',
+  21: 'engagement.streakMilestones.day21',
+  30: 'engagement.streakMilestones.day30',
+  60: 'engagement.streakMilestones.day60',
+  90: 'engagement.streakMilestones.day90',
+  100: 'engagement.streakMilestones.day100',
+  365: 'engagement.streakMilestones.day365',
 };
 
 /**
@@ -163,9 +164,7 @@ export const EMPTY_STATE_COPY = {
   },
 };
 
-// ============================================================================
-// SHARED ICONS (SVG)
-// ============================================================================
+// Shared icons (SVG)
 
 /**
  * Icon library for engagement UI
@@ -1011,7 +1010,8 @@ export function getStreakMilestoneMessage(count: number): string | null {
   const milestones = Object.keys(STREAK_MILESTONES).map(Number).sort((a, b) => b - a);
   for (const milestone of milestones) {
     if (count >= milestone) {
-      return STREAK_MILESTONES[milestone] ?? null;
+      const key = STREAK_MILESTONES[milestone];
+      return key ? t(key) : null;
     }
   }
   return null;

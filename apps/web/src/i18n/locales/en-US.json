@@ -45,7 +45,8 @@
     "you": "You",
     "dismiss": "Dismiss",
     "connected": "Connected",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "browse": "browse"
   },
   "buttons": {
     "signIn": "Sign In",
@@ -56,7 +57,8 @@
     "choose": "Chip In",
     "chipIn": "Chip In",
     "refresh": "Refresh",
-    "exportData": "Export Data"
+    "exportData": "Export Data",
+    "upgrade": "Upgrade"
   },
   "mobile": {
     "pullToConnect": "Pull to connect",
@@ -593,7 +595,20 @@
     "friend": "Friend",
     "closeFriend": "Close Friend",
     "confidant": "Confidant",
-    "soulmate": "Soulmate"
+    "soulmate": "Soulmate",
+    "milestoneReached": "Milestone reached",
+    "continueOurJourney": "Continue our journey",
+    "yourJourney": "Your journey",
+    "growingTogether": "Growing together",
+    "progressToNext": "Progress to next stage",
+    "conversations": "Conversations",
+    "daysTogether": "Days together",
+    "dayStreak": "Day streak",
+    "momentsShare": "Moments we share",
+    "all": "All",
+    "celebrationMilestones": "Milestones",
+    "streaks": "Streaks",
+    "celebrationInsights": "Insights"
   },
   "relationshipStages": {
     "names": {
@@ -874,6 +889,40 @@
     },
     "milestone": {
       "nextLabel": "Next Goal"
+    },
+    "connect": {
+      "title": "Connect Your Music",
+      "description": "Link your music library for personalized games and richer insights",
+      "games": "Games"
+    },
+    "sources": {
+      "title": "Your Music Sources",
+      "games": "Games",
+      "dnaConfidence": "DNA Confidence",
+      "dnaHint": "Connect more sources for richer insights about your musical personality"
+    },
+    "dailyChallenge": {
+      "title": "Today's Challenge"
+    },
+    "timeMachine": {
+      "title": "Your Musical Journey",
+      "intro": "When you discovered your strengths"
+    },
+    "socialStats": {
+      "title": "Social Stats",
+      "leaderboard": "Leaderboard",
+      "challengesWon": "Challenges Won",
+      "sent": "Sent",
+      "received": "Received"
+    },
+    "share": {
+      "title": "Share Your DNA",
+      "description": "Show off your musical personality!"
+    },
+    "appleMusic": {
+      "notAvailable": "Apple Music not available yet",
+      "connected": "Apple Music connected!",
+      "requirement": "Apple Music requires Safari or the Ferni app"
     }
   },
   "groupCoaching": {
@@ -2492,7 +2541,20 @@
     "recording": {
       "stopRecording": "Stop Recording",
       "startRecording": "Start Recording"
-    }
+    },
+    "yourDay": "Your Day with Ferni",
+    "subtitle": "Here's what your team has been up to",
+    "checkingIn": "Checking in with your team...",
+    "startConversation": "Start a Conversation",
+    "needsFollowUp": "Needs follow-up",
+    "whileAway": "While You Were Away",
+    "openConversations": "Open Conversations",
+    "onYourMind": "On Your Mind",
+    "thingsTracking": "Things your team is keeping track of for you",
+    "quickConnections": "Quick Connections",
+    "startWithAnyone": "Start a conversation with anyone on your team",
+    "allCaughtUp": "All caught up!",
+    "close": "Close"
   },
   "breathing": {
     "tapToBegin": "Tap to begin",
@@ -2822,7 +2884,17 @@
     "namePlaceholder": "What should we call them?",
     "displayNamePlaceholder": "e.g., 'Grandma Rose' or 'Dr. Marcus'",
     "descriptionPlaceholder": "Who are they? What makes them special?",
-    "previewVoice": "Preview {name}'s voice"
+    "previewVoice": "Preview {name}'s voice",
+    "stepTypeTitle": "Choose Type",
+    "stepTypeSubtitle": "What kind of agent?",
+    "stepInfoTitle": "Basic Info",
+    "stepInfoSubtitle": "Give them a name",
+    "stepVoiceTitle": "Voice",
+    "stepVoiceSubtitle": "How they sound",
+    "stepPersonalityTitle": "Personality",
+    "stepPersonalitySubtitle": "How they act",
+    "stepMemoriesTitle": "Memories",
+    "stepMemoriesSubtitle": "What they know"
   },
   "digitalTwin": {
     "chapterTitlePlaceholder": "Chapter title (e.g., 'College Years')",
@@ -2845,7 +2917,21 @@
     "passionsPlaceholder": "e.g., 'Photography', 'Cooking for friends', 'Technology', 'Music'...",
     "hobbiesPlaceholder": "e.g., 'Hiking', 'Reading', 'Gaming', 'Gardening'...",
     "favoriteTopicsPlaceholder": "e.g., 'Philosophy', 'Current events', 'Sports', 'Movies'...",
-    "avoidTopicsPlaceholder": "e.g., 'Politics', 'Work stress'..."
+    "avoidTopicsPlaceholder": "e.g., 'Politics', 'Work stress'...",
+    "title": "Your Voice, Your Story",
+    "recordTitle": "Record Daily Journals",
+    "recordDescription": "Speak your thoughts aloud. Your voice captures nuance that text never could.",
+    "talkTitle": "Talk to Your Past Self",
+    "talkDescription": "Your entries become a conversation partner, reflecting your growth over time.",
+    "patternsTitle": "Discover Patterns",
+    "patternsDescription": "See trends in your moods, track streaks, and gain insights from your own wisdom.",
+    "yourJournals": "Your Journals",
+    "captureTitle": "Capture Moments Automatically",
+    "autoCapture": "Auto-Capture Moments",
+    "loading": "Loading your journals...",
+    "journey": "Your Journey",
+    "voiceJournal": "Voice Journal",
+    "captureDescription": "Capture your thoughts, wisdom, and growth"
   },
   "forms": {
     "familyMemberName": "e.g., Mom",
@@ -3393,7 +3479,23 @@
     "response": {
       "label": "Response from creator:"
     },
-    "helpful": "found this helpful"
+    "helpful": "found this helpful",
+    "usageAndBilling": "Usage & Billing",
+    "trackUsage": "Track your marketplace tool usage",
+    "thisMonth": "This Month",
+    "executions": "Executions",
+    "unlimited": "Unlimited",
+    "timeUsed": "Time Used",
+    "dataTransfer": "Data Transfer",
+    "byTool": "By Tool",
+    "noUsageYet": "No usage yet",
+    "noUsageDescription": "Install and use marketplace tools to see your usage here",
+    "planFree": "Free",
+    "planFreeDesc": "Perfect for trying things out",
+    "planFriend": "Friend",
+    "planFriendDesc": "For regular users",
+    "planPartner": "Partner",
+    "planPartnerDesc": "Unlimited everything"
   },
   "agent": {
     "type": {
@@ -3541,7 +3643,24 @@
         "all": "I kept every promise I made you.",
         "some": "I kept {kept} of the {total} promises I made you."
       }
-    }
+    },
+    "journey": "YOUR JOURNEY",
+    "trustGrowth": "Trust & Growth",
+    "health": "Health",
+    "timeline": "Timeline",
+    "events": "Events",
+    "journal": "Journal",
+    "media": "Media",
+    "insights": "Insights",
+    "loading": "Loading...",
+    "refresh": "Refresh",
+    "emptyTimeline": "Your emotional timeline will appear here as we have more conversations.",
+    "currentMood": "Current Mood",
+    "peaksValleys": "Recent Peaks & Valleys",
+    "patternsNoticed": "Patterns Noticed",
+    "noEvents": "No upcoming events detected. Mention important dates in our conversations!",
+    "emptyJournal": "Journaling prompts will appear here based on your conversations.",
+    "emptyMedia": "Media suggestions based on your mood will appear here."
   },
   "outreachSchedule": {
     "rescheduleTitle": "Reschedule check-in",
@@ -6665,5 +6784,718 @@
     "yourPreferences": "Your preferences",
     "yourGoals": "Your goals",
     "connections": "Connections"
+  },
+  "routineBuilder": {
+    "titles": {
+      "new": "Tell me what you'd like",
+      "edit": "Make some changes",
+      "fromTemplate": "Setting up \"{name}\""
+    },
+    "sections": {
+      "name": "What should I call this?",
+      "namePlaceholder": "e.g., \"Morning check-in\" or \"Wind down\"",
+      "trigger": "When should I do this?",
+      "actions": "What should I do?",
+      "customize": "Make it yours"
+    },
+    "triggers": {
+      "time": "At a certain time",
+      "timeHint": "Every day at 7am, weekdays at 9am...",
+      "phrase": "When you say something",
+      "phraseHint": "\"Good morning Ferni\" or \"Start my day\"",
+      "location": "When you arrive or leave",
+      "locationHint": "Coming home, leaving work...",
+      "calendar": "Around calendar events",
+      "calendarHint": "Before meetings, after workouts..."
+    },
+    "triggerConfig": {
+      "time": {
+        "schedule": "What time?",
+        "schedulePlaceholder": "e.g., 7:00 AM",
+        "timezone": "Your timezone"
+      },
+      "phrase": {
+        "phrase": "What phrase triggers this?",
+        "phrasePlaceholder": "e.g., Good morning Ferni"
+      },
+      "location": {
+        "name": "What place?",
+        "namePlaceholder": "e.g., Home, Office, Gym",
+        "when": "Trigger when I...",
+        "enter": "Arrive",
+        "exit": "Leave",
+        "both": "Either"
+      }
+    },
+    "actions": {
+      "speak_message": "Say something",
+      "speak_message_hint": "I'll speak this to you",
+      "send_notification": "Send a notification",
+      "send_notification_hint": "A gentle nudge",
+      "add_reminder": "Set a reminder",
+      "add_reminder_hint": "I'll remind you later",
+      "log_habit": "Log a habit",
+      "log_habit_hint": "Track your progress",
+      "control_lights": "Adjust lights",
+      "control_lights_hint": "Set the mood",
+      "set_thermostat": "Set temperature",
+      "set_thermostat_hint": "Get comfortable",
+      "play_music": "Play music",
+      "play_music_hint": "Set the vibe"
+    },
+    "buttons": {
+      "cancel": "Never mind",
+      "save": "Start doing this for me",
+      "saveEdit": "Save changes",
+      "addAction": "Add something else"
+    },
+    "validation": {
+      "needsName": "Give it a name first"
+    },
+    "empty": {
+      "message": "Coming soon..."
+    },
+    "actionPicker": {
+      "title": "What should I do?"
+    },
+    "defaultMessage": "Good morning! Ready to start the day?"
+  },
+  "easterEggs": {
+    "achievements": {
+      "konami": {
+        "name": "Konami Master",
+        "description": "Entered the legendary code"
+      },
+      "disco": {
+        "name": "Disco King",
+        "description": "Turned on the disco lights"
+      },
+      "matrix": {
+        "name": "Neo",
+        "description": "Saw the Matrix"
+      },
+      "rainbow": {
+        "name": "Rainbow Walker",
+        "description": "Found all the colors"
+      },
+      "eyePoke": {
+        "name": "Curious One",
+        "description": "Discovered the eye"
+      },
+      "shake": {
+        "name": "Earthquake",
+        "description": "Shook the device like you meant it"
+      },
+      "tripleClick": {
+        "name": "Clicker",
+        "description": "Triple-clicked the avatar"
+      },
+      "petting": {
+        "name": "Gentle Soul",
+        "description": "Made Ferni feel loved"
+      },
+      "stretch": {
+        "name": "Stretchy",
+        "description": "Pulled Ferni like taffy"
+      },
+      "tilt": {
+        "name": "Tipsy",
+        "description": "Made Ferni slide around"
+      },
+      "nightOwl": {
+        "name": "Night Owl",
+        "description": "Chatted past midnight"
+      },
+      "earlyBird": {
+        "name": "Early Bird",
+        "description": "First chat of the day"
+      }
+    }
+  },
+  "commandPalette": {
+    "commands": {
+      "callFerni": {
+        "label": "Talk to Ferni",
+        "description": "Start a voice conversation"
+      },
+      "switchFerni": {
+        "label": "Switch to Ferni",
+        "description": "Your life coach"
+      },
+      "switchPeter": {
+        "label": "Switch to Peter",
+        "description": "Research & knowledge"
+      },
+      "switchMaya": {
+        "label": "Switch to Maya",
+        "description": "Habits & routines"
+      },
+      "switchAlex": {
+        "label": "Switch to Alex",
+        "description": "Communication coach"
+      },
+      "switchJordan": {
+        "label": "Switch to Jordan",
+        "description": "Event planning & milestones"
+      },
+      "switchNayan": {
+        "label": "Switch to Nayan",
+        "description": "Wisdom & philosophy"
+      },
+      "viewTeam": {
+        "label": "View your team",
+        "description": "See all team members"
+      },
+      "viewJourney": {
+        "label": "View your journey",
+        "description": "See your progress"
+      },
+      "viewCalendar": {
+        "label": "View calendar"
+      },
+      "settings": {
+        "label": "Settings"
+      },
+      "toggleTheme": {
+        "label": "Toggle dark mode"
+      },
+      "shortcuts": {
+        "label": "Keyboard shortcuts"
+      },
+      "help": {
+        "label": "Get help"
+      }
+    },
+    "placeholder": "Type a command or search...",
+    "empty": "No commands found",
+    "footer": {
+      "navigate": "navigate",
+      "select": "select",
+      "close": "close"
+    }
+  },
+  "insights": {
+    "forYou": "For you",
+    "whatNoticing": "What I'm Noticing",
+    "patternsSee": "Patterns I'm Seeing",
+    "currentChapter": "Your Current Chapter",
+    "holdingFor": "What I'm Holding For You",
+    "holdingIntro": "Things you've shared that I haven't forgotten.",
+    "journeyTogether": "Journey Together",
+    "learning": "I'm learning what to notice",
+    "learningDesc": "The patterns that matter to you. The things you might not see yourself.",
+    "perfectMemory": "Perfect Memory",
+    "memoryDesc": "That thing you mentioned months ago? I'll remember.",
+    "patternRecognition": "Pattern Recognition",
+    "gentleGrowth": "Gentle Growth Tracking",
+    "growthDesc": "Progress you might not notice yourself.",
+    "guardianPresence": "Guardian Presence",
+    "guardianDesc": "I catch what you're not saying.",
+    "whatMightLook": "What insights might look like",
+    "keepTalking": "Just keep talking. I'm always listening, always learning, always here.",
+    "betterThanMemory": "Better than human memory, working for you.",
+    "chapter": {
+      "default": {
+        "verb": "navigating",
+        "encouragement": "Something beautiful is taking shape."
+      },
+      "growth": {
+        "verb": "growing through",
+        "encouragement": "Something beautiful is taking shape."
+      },
+      "triumph": {
+        "verb": "celebrating",
+        "encouragement": "You did it. Take a moment to feel this."
+      },
+      "transition": {
+        "verb": "moving through",
+        "encouragement": "Change is hard. You have what you need."
+      },
+      "discovery": {
+        "verb": "discovering",
+        "encouragement": "New understanding is emerging."
+      },
+      "struggle": {
+        "encouragement": "This is hard, and you're doing it anyway."
+      }
+    }
+  },
+  "relationshipInsights": {
+    "health": "Relationship Health",
+    "yourPeople": "Your People Insights",
+    "analyzing": "Analyzing your relationships...",
+    "noData": "No data available",
+    "totalPeople": "Total People",
+    "needAttention": "Need Attention",
+    "upcomingDates": "Upcoming Dates",
+    "avgStrength": "Avg Strength",
+    "byRelationship": "By Relationship",
+    "family": "Family",
+    "friends": "Friends",
+    "colleagues": "Colleagues",
+    "strength": "Relationship Strength",
+    "noInsights": "No insights right now.",
+    "keepConnecting": "Keep connecting with your people!",
+    "less": "Less",
+    "more": "More",
+    "basedOnActivity": "Based on Your Activity"
+  },
+  "calendarConflicts": {
+    "syncConflicts": "Sync Conflicts",
+    "checking": "Checking for conflicts...",
+    "noConflicts": "No conflicts found",
+    "inSync": "Your calendars are in sync!",
+    "defaultResolution": "Default Resolution",
+    "howHandle": "How should future conflicts be handled automatically?",
+    "askEachTime": "Ask me each time",
+    "useFerni": "Always use Ferni's version",
+    "useProvider": "Always use provider's version",
+    "useNewest": "Keep the newest version",
+    "autoResolveAll": "Auto-resolve All",
+    "ferniCalendar": "Ferni Calendar",
+    "keepFerni": "Keep Ferni",
+    "dismiss": "Dismiss",
+    "resolving": "Resolving..."
+  },
+  "connectedLife": {
+    "superpowers": "SUPERPOWERS",
+    "subtitle": "Give Ferni awareness of your world",
+    "healthBody": "Health & Body",
+    "calendarWork": "Calendar & Work",
+    "yourVibe": "Your Vibe",
+    "appleHealthDesc": "Sleep, activity, and heart rate data",
+    "ouraDesc": "Sleep quality and readiness scores",
+    "eightSleepDesc": "Sleep tracking and temperature",
+    "wearablesDesc": "Fitbit, Garmin, Whoop, and more",
+    "calendarDesc": "Events, meetings, and availability",
+    "linkedInDesc": "Professional context and network",
+    "spotifyDesc": "Music, mood playlists, listening history",
+    "ecobeeDesc": "Home temperature and comfort",
+    "vibeControllerDesc": "Control music, lights, and more",
+    "connected": "Connected"
+  },
+  "yourPeople": {
+    "section": "Relationships",
+    "title": "Your People",
+    "searchPlaceholder": "Search your people...",
+    "filterAll": "All",
+    "filterAttention": "Needs attention",
+    "filterRecent": "Recent",
+    "ferniSuggests": "Ferni suggests",
+    "badgeSoon": "Soon",
+    "badgeCheckIn": "Check in",
+    "emptyTitle": "No one here yet",
+    "emptyDescription": "Add people you care about and we'll help you nurture those relationships.",
+    "addSomeone": "Add Someone",
+    "importFromGoogleCsv": "Import from Google or CSV",
+    "noMatchFilter": "No people match this filter",
+    "importContacts": "Import Contacts",
+    "contact": "Contact",
+    "loading": "Loading your people...",
+    "daysAgo": "{count}d ago"
+  },
+  "importContacts": {
+    "googleContacts": "Google Contacts",
+    "googleDescription": "Import from your Google account",
+    "csvFile": "CSV File",
+    "vcfDescription": "Import .vcf files from other apps",
+    "dragDrop": "Drag and drop your file here, or",
+    "selectAll": "Select All",
+    "title": "Import Contacts",
+    "subtitle": "Bring your network into Ferni",
+    "importSelected": "Import Selected"
+  },
+  "engagement": {
+    "moodBrightClear": "Bright & clear",
+    "moodMixedFeelings": "Mixed feelings",
+    "moodThoughtful": "Thoughtful",
+    "moodProcessing": "Processing",
+    "moodTurbulent": "Turbulent",
+    "moodUncertain": "Uncertain",
+    "moodBreakthrough": "Breakthrough",
+    "moodEnergized": "Energized",
+    "moodBalanced": "Balanced",
+    "moodConserving": "Conserving",
+    "journeyTitle": "Your journey begins",
+    "journeyDescription": "Start a conversation to create your first practice",
+    "feelingQuestion": "How are you feeling?",
+    "feelingDescription": "Share your emotional weather to track patterns over time",
+    "buildingTitle": "Building your story",
+    "buildingDescription": "Your progress will appear here as you engage",
+    "weather": {
+      "sunny": {
+        "greeting": "What a beautiful day ahead",
+        "encouragement": "Perfect energy for tackling something meaningful"
+      },
+      "partlyCloudy": {
+        "greeting": "A bit of everything today",
+        "encouragement": "Room for both reflection and action"
+      },
+      "cloudy": {
+        "greeting": "A quieter kind of day",
+        "encouragement": "Good for gentle progress"
+      },
+      "rainy": {
+        "greeting": "Taking time to work through things",
+        "encouragement": "Be gentle with yourself"
+      },
+      "stormy": {
+        "greeting": "Rough waters right now",
+        "encouragement": "This too shall pass. One small step."
+      },
+      "foggy": {
+        "greeting": "Finding your way through the mist",
+        "encouragement": "Clarity comes with patience"
+      },
+      "rainbow": {
+        "greeting": "Something beautiful emerging",
+        "encouragement": "Celebrate how far you've come"
+      }
+    },
+    "energy": {
+      "high": {
+        "note": "Channel it wisely"
+      },
+      "medium": {
+        "note": "Steady as she goes"
+      },
+      "low": {
+        "note": "Honor what you need"
+      }
+    },
+    "streakMilestones": {
+      "day3": "Three days strong. You're building momentum.",
+      "day7": "A full week! This is becoming part of you.",
+      "day14": "Two weeks of showing up. That takes real commitment.",
+      "day21": "Three weeks. Scientists say habits form around now.",
+      "day30": "A month! You've proven something to yourself.",
+      "day60": "Two months of dedication. Remarkable.",
+      "day90": "A quarter year. This is who you are now.",
+      "day100": "Triple digits. Extraordinary commitment.",
+      "day365": "A full year. You've changed your life."
+    }
+  },
+  "predictions": {
+    "promise": "Promise",
+    "title": "Your Crystal Ball",
+    "description": "I'll learn to anticipate what you need before you ask.",
+    "preview": "Preview",
+    "accurate": "Accurate",
+    "exampleStress": "You mentioned stress on Tuesday",
+    "watching": "Watching",
+    "checkIn": "I'll check in with you",
+    "accuracy": "Prediction accuracy",
+    "keepTalking": "Keep talking. We're building something.",
+    "accuracyLabel": "Accuracy",
+    "resolved": "Resolved",
+    "streak": "Streak"
+  },
+  "feedbackInsights": {
+    "timeMorning": "in the morning",
+    "timeAfternoon": "in the afternoon",
+    "timeEvening": "in the evening",
+    "timeNight": "late at night",
+    "depthShallow": "light and supportive",
+    "depthMedium": "balanced depth",
+    "depthDeep": "thoughtful and deep",
+    "eyebrow": "Conversation Insights",
+    "heading": "How we're connecting",
+    "loading": "Loading insights...",
+    "loadError": "Couldn't load data.",
+    "tryAgain": "Try again?",
+    "emptyNew": "Keep chatting! After a few conversations, I'll share insights about what's resonating.",
+    "emptyNoData": "Not enough data yet. Keep sharing feedback during our chats!",
+    "resonates": "{name}'s guidance resonates {percentage} of the time",
+    "sectionLanding": "What's landing",
+    "sectionSweetSpots": "Your sweet spots",
+    "sectionStyle": "Your style",
+    "sectionBestTimes": "Best times",
+    "sectionExplore": "Areas to explore",
+    "sectionConnection": "Our connection",
+    "topicsHelpful": "Conversations about {topics} tend to feel most helpful",
+    "prefersDepth": "You seem to prefer conversations that are {depth}",
+    "landsBetter": "Our conversations tend to land better {time}",
+    "takeSlower": "When we touch on {topics}, it might help to take it slower",
+    "sharedFeedback": {
+      "one": "You've shared feedback {count} time, engaging {percentage} of the time",
+      "other": "You've shared feedback {count} times, engaging {percentage} of the time"
+    }
+  },
+  "founders": {
+    "seasons": {
+      "springName": "Spring Growth",
+      "springMetaphor": "Seeds awakening",
+      "springDescription": "A time of new beginnings and fresh starts",
+      "summerName": "Summer Bloom",
+      "summerMetaphor": "Full flourishing",
+      "summerDescription": "The garden is alive with possibility",
+      "fallName": "Autumn Harvest",
+      "fallMetaphor": "Gathering wisdom",
+      "fallDescription": "Celebrating the fruits of our journey",
+      "winterName": "Winter Reflection",
+      "winterMetaphor": "Deep roots",
+      "winterDescription": "Quiet strength beneath the surface"
+    },
+    "milestones": {
+      "first10Title": "First 10 Believers",
+      "first10Celebration": "Our founding circle. The ones who believed before anyone else.",
+      "founders50Title": "50 Founding Members",
+      "founders50Celebration": "Proof that this matters. Thank you for being here.",
+      "conversations1kTitle": "1,000 Real Conversations",
+      "conversations1kCelebration": "A thousand moments when someone had support they needed.",
+      "founders100Title": "100 Founding Members",
+      "founders100Celebration": "With your help, we can keep Ferni free for everyone."
+    },
+    "badges": {
+      "ogLabel": "OG",
+      "ogDescription": "One of our first 50 believers",
+      "championLabel": "Champion",
+      "championDescription": "Top tier supporter",
+      "believerLabel": "Believer",
+      "believerDescription": "6+ month streak"
+    }
+  },
+  "engagementPanel": {
+    "title": "Daily Check-in",
+    "yourWeek": "Your Week",
+    "weatherTrend": "Emotional weather trend",
+    "howYouFeel": "How you're feeling",
+    "energyLabel": "{energy} energy",
+    "readyForYou": {
+      "one": "{count} ready for you",
+      "other": "{count} ready for you"
+    },
+    "yourRituals": "Your Rituals",
+    "noRitualsMessage": "Small daily rituals lead to big transformations.",
+    "noRitualsCta": "Ask Ferni to help you start one.",
+    "personalBest": "Personal best!",
+    "streakDays": {
+      "one": "{count} day",
+      "other": "{count} days"
+    },
+    "totalDays": "Total days",
+    "bestStreak": "Best streak",
+    "activeRituals": "Active rituals"
+  },
+  "earnSeeds": {
+    "dailyTitle": "Daily Conversations",
+    "dailyDescription": "Chat with Ferni each day to earn 5 seeds. Just show up, we're happy to see you.",
+    "dailyReward": "+5 seeds/day",
+    "streakTitle": "Keep Your Streak",
+    "streakDescription": "Talk for 7 days straight? That's 25 bonus seeds. 30 days? 100 seeds. Consistency matters.",
+    "streakReward": "Up to +500 seeds",
+    "inviteTitle": "Invite Friends",
+    "inviteDescription": "Share Ferni with someone who could use a friend. You both get 25 seeds when they join.",
+    "inviteReward": "+25 seeds each",
+    "shareTitle": "Share Seeds",
+    "shareDescription": "Send seeds to a friend and love multiplies. They get up to 40% extra!",
+    "shareReward": "+40% bonus",
+    "gardenTitle": "Grow Your Garden",
+    "gardenDescription": "As your referrals grow, you earn passive seeds each week. Plant once, harvest forever.",
+    "gardenReward": "Up to +7/week/friend",
+    "ariaLabel": "How to earn seeds",
+    "title": "Grow Your Seeds",
+    "subtitle": "Seeds grow naturally from your time with Ferni.",
+    "note": "No grinding required. Just be yourself."
+  },
+  "accentSettings": {
+    "americanLabel": "American English",
+    "americanDescription": "Standard American accent, warm and familiar",
+    "britishLabel": "British English",
+    "britishDescription": "Received Pronunciation, elegant and clear",
+    "australianLabel": "Australian English",
+    "australianDescription": "Friendly Australian accent, relaxed and approachable",
+    "indianLabel": "Indian English",
+    "indianDescription": "Indian English accent, melodic and expressive",
+    "detected": "We detected you might prefer {accent}",
+    "eyebrow": "Voice Preferences",
+    "title": "How should Ferni sound?",
+    "subtitle": "Choose your preferred English accent. Ferni will speak to you in a voice that feels like home.",
+    "autoDetect": "Auto-detect from location",
+    "updatedLive": "Accent updated! The voice will change on the next response.",
+    "savedNextConversation": "Your preference is saved. The voice will update when you start a new conversation.",
+    "savedNextSession": "Your accent preference has been saved! Ferni will use this voice in your next conversation."
+  },
+  "voiceJournal": {
+    "moodAnxious": "Anxious",
+    "moodGrateful": "Grateful",
+    "moodTired": "Tired",
+    "moodHopeful": "Hopeful",
+    "moodOverwhelmed": "Overwhelmed",
+    "moodReflective": "Reflective",
+    "selectMood": "Select mood: {mood}"
+  },
+  "conversationHistory": {
+    "loadError": "Couldn't load data.",
+    "tryAgain": "Try again?",
+    "ariaLabel": "Conversation history",
+    "sessions": "Sessions",
+    "totalTime": "Total Time",
+    "mostConnectedWith": "Most connected with",
+    "noInsights": "No insights recorded",
+    "yourFavorite": "Your favorite",
+    "minutes": "{count} min",
+    "messageCount": {
+      "one": "{count} message",
+      "other": "{count} messages"
+    },
+    "insightCount": {
+      "one": "{count} insight",
+      "other": "{count} insights"
+    },
+    "durationMinutes": "{minutes}m",
+    "durationHoursMinutes": "{hours}h {minutes}m",
+    "durationHours": "{hours}h"
+  },
+  "outreachPrefs": {
+    "eyebrow": "Stay in touch",
+    "title": "Check-in Settings",
+    "proactive": "Proactive check-ins",
+    "proactiveDescription": "Let Ferni reach out when something comes to mind",
+    "howReach": "How should I reach you?",
+    "channelAny": "Any",
+    "channelPush": "Push",
+    "howOften": "How often?",
+    "perDay": "Per day",
+    "perWeek": "Per week",
+    "quietHours": "Quiet hours (no notifications)",
+    "to": "to",
+    "quietDays": "Quiet days (no notifications)"
+  },
+  "dataExportService": {
+    "signInToDownload": "Sign in to download your data.",
+    "signInToDeleteData": "Sign in to delete your data.",
+    "signInToDeleteAccount": "Sign in to delete your account.",
+    "exportFailed": "Couldn't export your data. Try again?",
+    "deleteDataFailed": "Couldn't delete your data. Nothing was removed. Try again?",
+    "deleteAccountFailed": "Couldn't delete your account. Try again?",
+    "accountDeletedPartial": "Your account is deleted, but a few records didn't clear. Contact us to finish.",
+    "categoryConversations": "All conversation transcripts and metadata",
+    "categoryInsights": "What Ferni has learned about you",
+    "categoryRituals": "Daily practice history and streaks",
+    "categoryPredictions": "Your predictions and outcomes",
+    "categoryMoodHistory": "Emotional weather records",
+    "categoryProfile": "Your profile and preferences",
+    "categoryContacts": "Your people and relationships",
+    "categoryTrustJourney": "Your growth, boundaries, and shared moments",
+    "categoryWellbeing": "Wellness snapshots and trends",
+    "categoryHabits": "Maya's habit coaching data",
+    "categoryProductivity": "Tasks, notes, and journal entries"
+  },
+  "healthDashboard": {
+    "sleep": "Sleep",
+    "steps": "Steps",
+    "hrv": "HRV",
+    "activeCal": "Active Cal",
+    "restingHr": "Resting HR",
+    "hours": "{hours}h",
+    "hoursMinutes": "{hours}h {minutes}m",
+    "never": "Never",
+    "deviceLastSync": "{device} • Last sync: {time}",
+    "connectPrompt": "Connect your iPhone to sync health data",
+    "connectTitle": "Connect Apple Health",
+    "connectText": "Open the Ferni app on your iPhone to sync your health data. I'll help you understand how sleep, activity, and stress affect your wellbeing.",
+    "sleepPoor": "poor",
+    "sleepFair": "fair",
+    "sleepGood": "good",
+    "sleepExcellent": "excellent",
+    "hrvImproving": "Improving",
+    "hrvBelowBaseline": "Below baseline",
+    "hrvStable": "Stable",
+    "thisWeek": "This Week",
+    "lastSynced": "Last synced {time}",
+    "loading": "Loading health data...",
+    "title": "Health",
+    "subtitle": "Apple Health data"
+  },
+  "intelligenceInsights": {
+    "loading": "Loading insights...",
+    "empty": "No insights available yet. Keep chatting!",
+    "noneYet": "None yet",
+    "discovering": "Discovering...",
+    "tryIt": "Try it",
+    "noSuggestions": "No suggestions right now",
+    "outreachFallback": "We have something to share with you!",
+    "title": "What I've Learned",
+    "yourInterests": "Your Interests",
+    "readyForYou": "Ready for You",
+    "suggestions": "Suggestions"
+  },
+  "keyboardShortcuts": {
+    "showShortcuts": "Show shortcuts",
+    "toggleMute": "Toggle mute",
+    "reconnect": "Reconnect",
+    "toggleCall": "Start/end call",
+    "talkToFerni": "Talk to Ferni",
+    "viewTeam": "View team",
+    "viewJourney": "View journey",
+    "settings": "Settings",
+    "title": "Keyboard Shortcuts",
+    "categoryNavigation": "Navigation",
+    "categoryActions": "Actions",
+    "categoryMedia": "Media",
+    "categoryDev": "Dev",
+    "footerHint": "Press {key} anytime to see shortcuts",
+    "panelOpened": "Keyboard shortcuts panel opened",
+    "panelClosed": "Keyboard shortcuts panel closed"
+  },
+  "passwordReset": {
+    "eyebrow": "ACCOUNT RECOVERY",
+    "title": "Reset Your Password",
+    "tagline": "We'll send you a link to create a new password.",
+    "emailAddress": "Email Address",
+    "sending": "Sending...",
+    "checkEmailTitle": "Check Your Email",
+    "checkEmailMessage": "We've sent a password reset link to your email address."
+  },
+  "seedsEconomy": {
+    "dailyConversation": "First conversation of the day",
+    "streak7": "7-day conversation streak",
+    "streak14": "2-week conversation streak",
+    "streak30": "Month-long streak",
+    "streak60": "2-month streak",
+    "streak100": "100-day milestone",
+    "firstConversation": "Your first conversation",
+    "conversations10": "10 conversations milestone",
+    "conversations50": "50 conversations",
+    "conversations100": "100 conversations",
+    "goalAchieved": "Achieved a personal goal",
+    "referral": "Friend signed up with your code",
+    "contributionSeed": "Planted a seed 🌱",
+    "contributionConversation": "Sponsored a conversation 💚",
+    "contributionGetStarted": "Helped someone get started 🌿",
+    "contributionMission": "Supported the mission 🌳",
+    "foundingMemberBonus": "Monthly Founding Member bonus",
+    "foundingPatronBonus": "Monthly Founding Patron bonus",
+    "conversations": {
+      "one": "{count} conversation",
+      "other": "{count} conversations"
+    },
+    "alreadyClaimedToday": "Already claimed today",
+    "dailyRewardNotConfigured": "Daily reward not configured"
+  },
+  "sendMessage": {
+    "eyebrow": "Reach Out",
+    "noPhone": "No phone",
+    "noEmail": "No email",
+    "callHint": "Tap the button below to call {name}",
+    "subject": "Subject",
+    "callName": "Call {name}",
+    "sendText": "Send Text",
+    "sendEmail": "Send Email",
+    "opening": "Opening..."
+  },
+  "languageNames": {
+    "enUS": "English (US)",
+    "enGB": "English (UK)",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "zhHans": "Chinese (Simplified)",
+    "zhHant": "Chinese (Traditional)",
+    "ar": "Arabic",
+    "he": "Hebrew"
   }
 }

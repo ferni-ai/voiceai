@@ -88,41 +88,41 @@ export interface InsightData {
 // BRAND COMPLIANT: Using Lucide SVG icons, NOT emoji
 interface ChapterCopy {
   icon: string;
-  verb: string;
-  encouragement: string;
+  verbKey: string;
+  encouragementKey: string;
 }
 
 const DEFAULT_CHAPTER_COPY: ChapterCopy = {
   icon: CHAPTER_ICONS.growth,
-  verb: 'growing through',
-  encouragement: 'Something beautiful is taking shape.',
+  verbKey: 'insights.chapter.default.verb',
+  encouragementKey: 'insights.chapter.default.encouragement',
 };
 
 const CHAPTER_COPY: Record<string, ChapterCopy> = {
   struggle: {
     icon: CHAPTER_ICONS.struggle,
-    verb: 'navigating',
-    encouragement: "This is hard, and you're doing it anyway.",
+    verbKey: 'insights.chapter.default.verb',
+    encouragementKey: 'insights.chapter.struggle.encouragement',
   },
   growth: {
     icon: CHAPTER_ICONS.growth,
-    verb: 'growing through',
-    encouragement: 'Something beautiful is taking shape.',
+    verbKey: 'insights.chapter.growth.verb',
+    encouragementKey: 'insights.chapter.growth.encouragement',
   },
   triumph: {
     icon: CHAPTER_ICONS.triumph,
-    verb: 'celebrating',
-    encouragement: 'You did it. Take a moment to feel this.',
+    verbKey: 'insights.chapter.triumph.verb',
+    encouragementKey: 'insights.chapter.triumph.encouragement',
   },
   transition: {
     icon: CHAPTER_ICONS.transition,
-    verb: 'moving through',
-    encouragement: 'Change is hard. You have what you need.',
+    verbKey: 'insights.chapter.transition.verb',
+    encouragementKey: 'insights.chapter.transition.encouragement',
   },
   discovery: {
     icon: CHAPTER_ICONS.discovery,
-    verb: 'discovering',
-    encouragement: 'New understanding is emerging.',
+    verbKey: 'insights.chapter.discovery.verb',
+    encouragementKey: 'insights.chapter.discovery.encouragement',
   },
 };
 
@@ -246,11 +246,11 @@ export class InsightsView {
             ${icon}
           </div>
           <div class="insights-presence__content">
-            <span class="insights-presence__label">${escapeHtml(weatherCopy.label)}</span>
-            <span class="insights-presence__energy">${escapeHtml(energyCopy.label)} energy</span>
+            <span class="insights-presence__label">${escapeHtml(t(weatherCopy.labelKey))}</span>
+            <span class="insights-presence__energy">${t('engagementPanel.energyLabel', { energy: escapeHtml(t(energyCopy.labelKey)) })}</span>
           </div>
         </div>
-        <p class="insights-presence__message">${escapeHtml(weatherCopy.encouragement)}</p>
+        <p class="insights-presence__message">${escapeHtml(t(weatherCopy.encouragementKey))}</p>
         ${presence.note ? `<p class="insights-presence__note">"${escapeHtml(presence.note)}"</p>` : ''}
       </section>
     `;
@@ -295,11 +295,11 @@ export class InsightsView {
         <h3 class="insights-section__title">${t('insights.currentChapter')}</h3>
         <div class="insights-chapter">
           <div class="insights-chapter__header">
-            <span class="insights-chapter__badge">${copy.verb}</span>
+            <span class="insights-chapter__badge">${t(copy.verbKey)}</span>
             ${chapter.duration ? `<span class="insights-chapter__duration">${escapeHtml(chapter.duration)}</span>` : ''}
           </div>
           <h4 class="insights-chapter__title">${escapeHtml(chapter.title)}</h4>
-          <p class="insights-chapter__encouragement">${escapeHtml(copy.encouragement)}</p>
+          <p class="insights-chapter__encouragement">${escapeHtml(t(copy.encouragementKey))}</p>
           ${chapter.arcSummary ? `<p class="insights-chapter__arc">${escapeHtml(chapter.arcSummary)}</p>` : ''}
         </div>
       </section>

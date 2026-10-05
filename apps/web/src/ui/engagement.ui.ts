@@ -224,7 +224,7 @@ export class EngagementUI {
       const icon = ICONS[day.primary as IconName] || ICONS.cloudy;
       
       return `
-        <div class="weather-trend__point" style="--index: ${index}; --bottom: ${bottom}px" title="${dayName}: ${WEATHER_COPY[day.primary]?.label || day.primary}">
+        <div class="weather-trend__point" style="--index: ${index}; --bottom: ${bottom}px" title="${dayName}: ${WEATHER_COPY[day.primary] ? t(WEATHER_COPY[day.primary].labelKey) : day.primary}">
           <span class="weather-trend__icon">${icon}</span>
           <span class="weather-trend__day">${dayName}</span>
         </div>
@@ -284,11 +284,11 @@ export class EngagementUI {
             ${icon}
           </div>
           <div class="engagement-weather__info">
-            <span class="engagement-weather__label">${escapeHtml(copy.label)}</span>
-            <span class="engagement-weather__energy">${t('engagementPanel.energyLabel', { energy: escapeHtml(energyCopy.label) })}</span>
+            <span class="engagement-weather__label">${escapeHtml(t(copy.labelKey))}</span>
+            <span class="engagement-weather__energy">${t('engagementPanel.energyLabel', { energy: escapeHtml(t(energyCopy.labelKey)) })}</span>
           </div>
         </div>
-        <p class="engagement-weather__encouragement">${escapeHtml(copy.encouragement)}</p>
+        <p class="engagement-weather__encouragement">${escapeHtml(t(copy.encouragementKey))}</p>
         ${weather.note ? `<p class="engagement-weather__note">"${escapeHtml(weather.note)}"</p>` : ''}
       </section>
     `;
