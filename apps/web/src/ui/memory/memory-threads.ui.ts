@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
-import { t } from '../../i18n/index.js';
+import { getLocale, t } from '../../i18n/index.js';
 import {
   QUIZ_ICONS,
   GROWTH_ICONS,
@@ -30,12 +30,12 @@ const THREAD_TYPE_ICONS: Record<ThreadType, string> = {
 };
 
 // Memory node type icons with labels
-const NODE_TYPE_ICONS: Record<MemoryNode['type'], { icon: string; label: string }> = {
-  fact: { icon: GROWTH_ICONS.journal, label: 'Fact' },
-  emotion: { icon: EMOTION_ICONS.reflective, label: 'Emotion' },
-  event: { icon: ANALYTICS_ICONS.calendar, label: 'Event' },
-  commitment: { icon: QUIZ_ICONS.correct, label: 'Commitment' },
-  milestone: { icon: GROWTH_ICONS.celebration, label: 'Milestone' },
+const NODE_TYPE_ICONS: Record<MemoryNode['type'], { icon: string; labelKey: string }> = {
+  fact: { icon: GROWTH_ICONS.journal, labelKey: 'memoryThreads.nodeTypes.fact' },
+  emotion: { icon: EMOTION_ICONS.reflective, labelKey: 'memoryThreads.nodeTypes.emotion' },
+  event: { icon: ANALYTICS_ICONS.calendar, labelKey: 'memoryThreads.nodeTypes.event' },
+  commitment: { icon: QUIZ_ICONS.correct, labelKey: 'memoryThreads.nodeTypes.commitment' },
+  milestone: { icon: GROWTH_ICONS.celebration, labelKey: 'memoryThreads.nodeTypes.milestone' },
 };
 
 // Link icon for threads visualization
@@ -397,7 +397,7 @@ function renderMemoryNode(node: MemoryNode): HTMLElement {
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2);">
       <span class="node-type-label" style="display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--font-size-sm); color: var(--color-text-secondary);">
         <span class="node-icon" style="display: inline-flex; align-items: center; width: 14px; height: 14px;">${nodeTypeInfo.icon}</span>
-        ${nodeTypeInfo.label}
+        ${t(nodeTypeInfo.labelKey)}
       </span>
       <span style="font-size: var(--font-size-sm); color: var(--color-text-muted);">
         ${timeAgo}
@@ -426,13 +426,14 @@ function renderMemoryNode(node: MemoryNode): HTMLElement {
  */
 function getTimeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  const rtf = new Intl.RelativeTimeFormat(getLocale(), { numeric: 'auto' });
 
-  if (seconds < 60) return 'Just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
-  if (seconds < 2592000) return `${Math.floor(seconds / 604800)} weeks ago`;
-  return `${Math.floor(seconds / 2592000)} months ago`;
+  if (seconds < 60) return t('time.justNow');
+  if (seconds < 3600) return rtf.format(-Math.floor(seconds / 60), 'minute');
+  if (seconds < 86400) return rtf.format(-Math.floor(seconds / 3600), 'hour');
+  if (seconds < 604800) return rtf.format(-Math.floor(seconds / 86400), 'day');
+  if (seconds < 2592000) return rtf.format(-Math.floor(seconds / 604800), 'week');
+  return rtf.format(-Math.floor(seconds / 2592000), 'month');
 }
 
 // ============================================================================
