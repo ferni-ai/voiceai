@@ -1,6 +1,7 @@
 /**
  * Asked for a teammate who isn't on the caller's team, Ferni says so instead
- * of promising a transfer (locked-teammates.ts).
+ * of promising a transfer, and never brings locked teammates up unprompted
+ * (locked-teammates.ts).
  *
  * Built the way a dev call builds it, with only Ferni and Peter unlocked: the
  * first agent's tools from buildEssentialToolSet, capped like agent-setup.ts,
@@ -23,6 +24,7 @@ import { toolsForTurn, withTurnReminder } from '../../../agents/personas/turn-re
 import { capToolsToLimit, getMaxTools } from '../../../config/tool-config.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { executeHandoff } from '../executor.js';
+import { ASK_FOR_TEAMMATE_DESCRIPTION } from '../locked-teammates.js';
 
 const profile = { subscription: { tier: 'free' } } as unknown as UserProfile;
 const userDataFor = (personaId = 'ferni') => ({ personaId, services: { userProfile: profile } });
@@ -117,11 +119,15 @@ describe('teammates the caller has not unlocked (only Ferni and Peter)', () => {
     process.env['BYPASS_TEAM_UNLOCKS'] = 'peter-john';
   });
 
-  it("tells the model, on the caller's turn, that Maya isn't on their team", () => {
+  it("names who isn't on the caller's team, and says not to bring them up unprompted", () => {
     const text = reminderFor();
     expect(text).toContain("Not on this caller's team yet: Maya, Alex, Jordan and Nayan.");
-    expect(text).toMatch(/never offer, promise or start a transfer/);
+    expect(text).toContain("Don't bring them up yourself, not even to say they aren't available");
+    expect(text).toContain('only if the caller asks for one by name');
+    expect(text).toMatch(/Never offer, promise or start a transfer/);
     expect(text).not.toMatch(/Not on this caller's team yet:[^.]*Peter/);
+    expect(ASK_FOR_TEAMMATE_DESCRIPTION).toContain('Never bring those teammates up yourself');
+    expect(ASK_FOR_TEAMMATE_DESCRIPTION).toContain("don't call this unless the caller named one");
   });
 
   it("sends the agent's own askForTeammate, and Peter as the only handoff", async () => {

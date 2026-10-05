@@ -14,7 +14,8 @@
  * So every request carries the lock state, from the same unlock view that
  * filters the handoff tools (turn-request.ts):
  * - teamStatusNote(): one line on the caller's turn naming who isn't on their
- *   team yet, so Ferni neither offers them nor promises a transfer;
+ *   team yet. Ferni never brings them up unprompted (even "she's not on your
+ *   team yet" is an upsell nudge) and never promises a transfer;
  * - askForTeammate: one tool, not a handoff per locked teammate (tool count is
  *   request cost, docs/perf/llm-request-cost.md), for when the caller asks for
  *   one anyway. Its result is the warm decline; it connects no one.
@@ -106,9 +107,9 @@ export function teamStatusNote(view: UnlockView): string {
   if (locked.length === 0) return '';
   const names = nameList(locked);
   return (
-    `Not on this caller's team yet: ${names}. You can't bring ${locked.length > 1 ? 'them' : names} in, ` +
-    "so never offer, promise or start a transfer to them and don't mention them as if they were available. " +
-    "If the caller asks for one, say warmly and briefly that they aren't on their team yet and help them yourself."
+    `Not on this caller's team yet: ${names}. You can't bring ${locked.length > 1 ? 'them' : names} in. ` +
+    "Don't bring them up yourself, not even to say they aren't available; talk about them only if the caller asks for one by name. " +
+    "Then say warmly and briefly that they aren't on the caller's team yet and help them yourself. Never offer, promise or start a transfer to them."
   );
 }
 
@@ -154,14 +155,14 @@ export async function answerTeammateRequest(
       `${displayName} isn't on this caller's team yet, so nobody is being connected. ` +
       `Tell them that warmly in a sentence, without saying you're getting or connecting ${displayName}, ` +
       'and offer to help with it yourself right now. Say how they would meet ' +
-      `${displayName} only if it fits naturally; no pushing.`,
+      `${displayName} only if they ask; no pushing.`,
     ...(member ? { how_to_meet: howToMeet(member, view) } : {}),
   };
 }
 
 export const ASK_FOR_TEAMMATE_DESCRIPTION =
-  "Call when the caller asks to talk to, or be transferred to, a teammate who has no handoff tool here because they aren't on the caller's team yet. " +
-  'It never connects anyone; it says how to answer.';
+  "Call when the caller asks by name to talk to, or be transferred to, a teammate who has no handoff tool here because they aren't on the caller's team yet. " +
+  "It never connects anyone; it says how to answer. Never bring those teammates up yourself, and don't call this unless the caller named one.";
 
 /**
  * The executable askForTeammate. Anonymous, so it can sit in a tools record
