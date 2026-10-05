@@ -20,6 +20,8 @@ import {
   type VoiceProfile,
 } from '../../services/voice/voice-enrollment.js';
 import { isNeuralEmbeddingAvailable } from '../../services/voice-memory-enhanced.js';
+import { getSpeakerEmbeddingMethod } from '../../services/voice/speaker-embedding-worker.js';
+import { needsNeuralReenrollment } from '../../services/voice/voice-match-trust.js';
 import {
   deleteVoiceProfile,
   getVoiceProfileStats,
@@ -390,6 +392,11 @@ export async function handleVerificationRoutes(
       verificationCount: stats.verificationCount,
       sampleCount: stats.sampleCount,
       needsReEnrollment: stats.needsReEnrollment,
+      // The profile can't verify anyone, and enrolling again here would fix that.
+      needsReenrollment: needsNeuralReenrollment(
+        stats.embeddingMethod,
+        await getSpeakerEmbeddingMethod()
+      ),
     });
     return true;
   }
