@@ -146,11 +146,11 @@ const MEMORY_ICONS: Record<string, string> = {
 // ============================================================================
 
 const TYPE_LABELS: Record<string, string> = {
-  fact: 'Facts about you',
-  preference: 'Your preferences',
-  goal: 'Your goals',
-  pattern: "Patterns I've noticed",
-  relationship: 'Connections',
+  fact: t('cognitive.factsAboutYou'),
+  preference: t('cognitive.yourPreferences'),
+  goal: t('cognitive.yourGoals'),
+  pattern: t('cognitive.patternsIveNoticed'),
+  relationship: t('cognitive.connections'),
 };
 
 // ============================================================================

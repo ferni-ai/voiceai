@@ -76,14 +76,14 @@ export interface DashboardData {
 
 /** Human-friendly dimension names (exported for UI display) */
 export const DIMENSION_NAMES: Record<string, string> = {
-  mood: 'Mood',
-  energy: 'Energy',
+  mood: t('wellbeing.mood'),
+  energy: t('wellbeing.energy'),
   worry: 'Worry',
-  loneliness: 'Connection',
-  hopefulness: 'Hope',
-  sleepQuality: 'Sleep',
+  loneliness: t('wellbeing.connection'),
+  hopefulness: t('wellbeing.hope'),
+  sleepQuality: t('wellbeing.sleep'),
   motivation: 'Motivation',
-  meaningfulness: 'Purpose',
+  meaningfulness: t('wellbeing.purpose'),
 };
 
 // ============================================================================
@@ -1317,12 +1317,12 @@ function transformApiResponse(
   // Build dimension cards
   // Only dimensions the user actually talked about get a card
   const measured = [
-    { dimension: 'mood', displayName: 'Mood', currentScore: currentState.mood },
-    { dimension: 'energy', displayName: 'Energy', currentScore: currentState.energy },
+    { dimension: 'mood', displayName: t('wellbeing.mood'), currentScore: currentState.mood },
+    { dimension: 'energy', displayName: t('wellbeing.energy'), currentScore: currentState.energy },
     { dimension: 'anxiety', displayName: 'Anxiety', currentScore: currentState.anxiety },
-    { dimension: 'connection', displayName: 'Connection', currentScore: currentState.connection },
-    { dimension: 'purpose', displayName: 'Purpose', currentScore: currentState.purpose },
-    { dimension: 'sleep', displayName: 'Sleep', currentScore: currentState.sleep },
+    { dimension: 'connection', displayName: t('wellbeing.connection'), currentScore: currentState.connection },
+    { dimension: 'purpose', displayName: t('wellbeing.purpose'), currentScore: currentState.purpose },
+    { dimension: 'sleep', displayName: t('wellbeing.sleep'), currentScore: currentState.sleep },
   ].filter((dim): dim is typeof dim & { currentScore: number } => dim.currentScore !== null);
   const dimensions: DimensionCard[] = measured.map((dim) => {
     // Determine trend for this dimension
@@ -1572,12 +1572,12 @@ function createModal(): void {
 function renderEmptyState(): string {
   // Preview dimensions to show what they'll track - now with hex fallbacks for glow
   const previewDimensions = [
-    { name: 'Mood', icon: ICONS.smile, color: 'var(--color-ferni)', hex: '#4a6741' },
-    { name: 'Energy', icon: ICONS.sun, color: 'var(--color-jack)', hex: '#c4a84a' },
-    { name: 'Connection', icon: ICONS.users, color: 'var(--color-peter)', hex: '#3a6b73' },
-    { name: 'Sleep', icon: ICONS.moon, color: 'var(--color-alex)', hex: '#5a6b8a' },
-    { name: 'Purpose', icon: ICONS.compass, color: 'var(--color-nayan)', hex: '#b8956a' },
-    { name: 'Hope', icon: ICONS.sunrise, color: 'var(--color-maya)', hex: '#a67a6a' },
+    { name: t('wellbeing.mood'), icon: ICONS.smile, color: 'var(--color-ferni)', hex: '#4a6741' },
+    { name: t('wellbeing.energy'), icon: ICONS.sun, color: 'var(--color-jack)', hex: '#c4a84a' },
+    { name: t('wellbeing.connection'), icon: ICONS.users, color: 'var(--color-peter)', hex: '#3a6b73' },
+    { name: t('wellbeing.sleep'), icon: ICONS.moon, color: 'var(--color-alex)', hex: '#5a6b8a' },
+    { name: t('wellbeing.purpose'), icon: ICONS.compass, color: 'var(--color-nayan)', hex: '#b8956a' },
+    { name: t('wellbeing.hope'), icon: ICONS.sunrise, color: 'var(--color-maya)', hex: '#a67a6a' },
   ];
 
   // Generate calendar preview cells (28 days = 4 weeks)
