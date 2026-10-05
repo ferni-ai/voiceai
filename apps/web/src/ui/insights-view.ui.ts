@@ -14,7 +14,7 @@
  * @module ui/insights-view
  */
 
-import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js'; import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import {
   ICONS,
   WEATHER_COPY,
@@ -177,8 +177,8 @@ export class InsightsView {
       <div class="insights-view__card">
         <header class="insights-view__header">
           <div class="insights-view__header-content">
-            <span class="insights-view__eyebrow">For you</span>
-            <h2 class="insights-view__title">What I'm Noticing</h2>
+            <span class="insights-view__eyebrow">${t('insights.forYou')}</span>
+            <h2 class="insights-view__title">${t('insights.whatNoticing')}</h2>
           </div>
           ${renderCloseButton('Close')}
         </header>
@@ -278,7 +278,7 @@ export class InsightsView {
       <section class="insights-section insights-section--noticing">
         <h3 class="insights-section__title">
           <span class="insights-section__icon">${INSIGHT_ICONS.pattern}</span>
-          Patterns I'm Seeing
+          ${t('insights.patternsSee')}
         </h3>
         <div class="insights-notices">
           ${items}
@@ -292,7 +292,7 @@ export class InsightsView {
 
     return `
       <section class="insights-section insights-section--chapter">
-        <h3 class="insights-section__title">Your Current Chapter</h3>
+        <h3 class="insights-section__title">${t('insights.currentChapter')}</h3>
         <div class="insights-chapter">
           <div class="insights-chapter__header">
             <span class="insights-chapter__badge">${copy.verb}</span>
@@ -354,9 +354,9 @@ export class InsightsView {
       <section class="insights-section insights-section--holding">
         <h3 class="insights-section__title">
           <span class="insights-section__icon">${INSIGHT_ICONS.memory}</span>
-          What I'm Holding For You
+          ${t('insights.holdingFor')}
         </h3>
-        <p class="insights-holding__intro">Things you've shared that I haven't forgotten.</p>
+        <p class="insights-holding__intro">${t('insights.holdingIntro')}</p>
         <div class="insights-holding__list">
           ${items.join('')}
         </div>
@@ -382,7 +382,7 @@ export class InsightsView {
     return `
       <section class="insights-section insights-section--milestone">
         <div class="insights-milestone">
-          <span class="insights-milestone__badge">Journey Together</span>
+          <span class="insights-milestone__badge">${t('insights.journeyTogether')}</span>
           <p class="insights-milestone__text">${escapeHtml(relationship.milestone || '')}</p>
           <div class="insights-milestone__stats">
             <span>${relationship.daysTogether} days</span>
@@ -411,9 +411,9 @@ export class InsightsView {
               ${INSIGHT_ICONS.pattern}
             </div>
           </div>
-          <h3 class="insights-empty__title">I'm learning what to notice</h3>
+          <h3 class="insights-empty__title">${t('insights.learning')}</h3>
           <p class="insights-empty__subtitle">
-            The patterns that matter to you. The things you might not see yourself.
+            ${t('insights.learningDesc')}
           </p>
         </div>
 
@@ -424,8 +424,8 @@ export class InsightsView {
               ${INSIGHT_ICONS.memory}
             </div>
             <div class="insights-empty__cap-content">
-              <span class="insights-empty__cap-title">Perfect Memory</span>
-              <span class="insights-empty__cap-desc">That thing you mentioned months ago? I'll remember.</span>
+              <span class="insights-empty__cap-title">${t('insights.perfectMemory')}</span>
+              <span class="insights-empty__cap-desc">${t('insights.memoryDesc')}</span>
             </div>
           </div>
           
@@ -434,7 +434,7 @@ export class InsightsView {
               ${INSIGHT_ICONS.pattern}
             </div>
             <div class="insights-empty__cap-content">
-              <span class="insights-empty__cap-title">Pattern Recognition</span>
+              <span class="insights-empty__cap-title">${t('insights.patternRecognition')}</span>
               <span class="insights-empty__cap-desc">"Sunday evenings seem hard for you..."</span>
             </div>
           </div>
@@ -444,8 +444,8 @@ export class InsightsView {
               ${INSIGHT_ICONS.growth}
             </div>
             <div class="insights-empty__cap-content">
-              <span class="insights-empty__cap-title">Gentle Growth Tracking</span>
-              <span class="insights-empty__cap-desc">Progress you might not notice yourself.</span>
+              <span class="insights-empty__cap-title">${t('insights.gentleGrowth')}</span>
+              <span class="insights-empty__cap-desc">${t('insights.growthDesc')}</span>
             </div>
           </div>
           
@@ -454,8 +454,8 @@ export class InsightsView {
               ${INSIGHT_ICONS.concern}
             </div>
             <div class="insights-empty__cap-content">
-              <span class="insights-empty__cap-title">Guardian Presence</span>
-              <span class="insights-empty__cap-desc">I catch what you're not saying.</span>
+              <span class="insights-empty__cap-title">${t('insights.guardianPresence')}</span>
+              <span class="insights-empty__cap-desc">${t('insights.guardianDesc')}</span>
             </div>
           </div>
         </div>
@@ -464,7 +464,7 @@ export class InsightsView {
         <div class="insights-empty__sample">
           <div class="insights-empty__sample-label">
             <span class="insights-empty__sample-dot"></span>
-            What insights might look like
+            ${t('insights.whatMightLook')}
           </div>
           <div class="insights-empty__sample-card">
             <div class="insights-empty__sample-icon">${INSIGHT_ICONS.pattern}</div>
@@ -478,11 +478,11 @@ export class InsightsView {
         <!-- Warm Invitation -->
         <div class="insights-empty__invitation">
           <p class="insights-empty__invitation-text">
-            Just keep talking. I'm always listening, always learning, always here.
+            ${t('insights.keepTalking')}
           </p>
           <div class="insights-empty__invitation-footer">
             <span class="insights-empty__invitation-icon">✨</span>
-            Better than human memory, working for you.
+            ${t('insights.betterThanMemory')}
           </div>
         </div>
       </div>

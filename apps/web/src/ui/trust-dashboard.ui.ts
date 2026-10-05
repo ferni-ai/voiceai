@@ -188,8 +188,8 @@ function createDashboardHTML(): string {
     <div class="trust-dashboard-modal">
       <header class="trust-dashboard-header">
         <div class="header-left">
-          <span class="eyebrow">YOUR JOURNEY</span>
-          <h2>Trust & Growth</h2>
+          <span class="eyebrow">${t('trustDashboard.journey')}</span>
+          <h2>${t('trustDashboard.trustGrowth')}</h2>
         </div>
         <button class="close-btn" aria-label="${t('common.close')}">
           ${ICONS.close}
@@ -197,43 +197,43 @@ function createDashboardHTML(): string {
       </header>
       
       <nav class="trust-dashboard-tabs">
-        <button aria-label="${t('accessibility.health')}" class="tab-btn active" data-tab="health">
+        <button aria-label="${t('trustDashboard.health')}" class="tab-btn active" data-tab="health">
           ${ICONS.heart}
-          <span>Health</span>
+          <span>${t('trustDashboard.health')}</span>
         </button>
-        <button aria-label="${t('accessibility.timeline')}" class="tab-btn" data-tab="timeline">
+        <button aria-label="${t('trustDashboard.timeline')}" class="tab-btn" data-tab="timeline">
           ${ICONS.timeline}
-          <span>Timeline</span>
+          <span>${t('trustDashboard.timeline')}</span>
         </button>
-        <button aria-label="${t('accessibility.events')}" class="tab-btn" data-tab="events">
+        <button aria-label="${t('trustDashboard.events')}" class="tab-btn" data-tab="events">
           ${ICONS.calendar}
-          <span>Events</span>
+          <span>${t('trustDashboard.events')}</span>
         </button>
-        <button aria-label="${t('accessibility.journal')}" class="tab-btn" data-tab="journal">
+        <button aria-label="${t('trustDashboard.journal')}" class="tab-btn" data-tab="journal">
           ${ICONS.journal}
-          <span>Journal</span>
+          <span>${t('trustDashboard.journal')}</span>
         </button>
-        <button aria-label="${t('accessibility.media')}" class="tab-btn" data-tab="media">
+        <button aria-label="${t('trustDashboard.media')}" class="tab-btn" data-tab="media">
           ${ICONS.music}
-          <span>Media</span>
+          <span>${t('trustDashboard.media')}</span>
         </button>
-        <button aria-label="${t('accessibility.insights')}" class="tab-btn" data-tab="insights">
+        <button aria-label="${t('trustDashboard.insights')}" class="tab-btn" data-tab="insights">
           ${ICONS.chart}
-          <span>Insights</span>
+          <span>${t('trustDashboard.insights')}</span>
         </button>
       </nav>
       
       <main class="trust-dashboard-content">
         <div class="content-loading">
           <div class="spinner"></div>
-          <p>Loading...</p>
+          <p>${t('trustDashboard.loading')}</p>
         </div>
       </main>
-      
+
       <footer class="trust-dashboard-footer">
-        <button aria-label="${t('accessibility.refresh')}" class="refresh-btn">
+        <button aria-label="${t('trustDashboard.refresh')}" class="refresh-btn">
           ${ICONS.refresh}
-          <span>Refresh</span>
+          <span>${t('trustDashboard.refresh')}</span>
         </button>
       </footer>
     </div>
@@ -246,13 +246,13 @@ function createDashboardHTML(): string {
 
 export function renderTimelineTab(data: TimelineData | null): string {
   if (!data) {
-    return '<p class="empty-state">Your emotional timeline will appear here as we have more conversations.</p>';
+    return `<p class="empty-state">${t('trustDashboard.emptyTimeline')}</p>`;
   }
 
   return `
     <div class="timeline-content">
       <div class="current-mood">
-        <h4>Current Mood</h4>
+        <h4>${t('trustDashboard.currentMood')}</h4>
         <p>${esc(data.currentMood || 'Not detected yet')}</p>
       </div>
       
@@ -260,7 +260,7 @@ export function renderTimelineTab(data: TimelineData | null): string {
         data.peaks.length > 0
           ? `
         <div class="peaks-valleys">
-          <h4>Recent Peaks & Valleys</h4>
+          <h4>${t('trustDashboard.peaksValleys')}</h4>
           ${data.peaks
             .map(
               (p) => `
@@ -281,7 +281,7 @@ export function renderTimelineTab(data: TimelineData | null): string {
         data.patterns.length > 0
           ? `
         <div class="patterns">
-          <h4>Patterns Noticed</h4>
+          <h4>${t('trustDashboard.patternsNoticed')}</h4>
           ${data.patterns
             .map(
               (p) => `
@@ -303,7 +303,7 @@ export function renderTimelineTab(data: TimelineData | null): string {
 export function renderEventsTab(data: EventsData | null): string {
   const later = data ? [...data.nextWeek, ...data.thisMonth] : [];
   if (!data || data.today.length + data.thisWeek.length + later.length === 0) {
-    return '<p class="empty-state">No upcoming events detected. Mention important dates in our conversations!</p>';
+    return `<p class="empty-state">${t('trustDashboard.noEvents')}</p>`;
   }
 
   const section = (title: string, events: UpcomingEvent[]): string =>
@@ -335,7 +335,7 @@ export function renderEventsTab(data: EventsData | null): string {
 
 export function renderJournalTab(data: JournalData | null): string {
   if (!data || data.prompts.length === 0) {
-    return '<p class="empty-state">Journaling prompts will appear here based on your conversations.</p>';
+    return `<p class="empty-state">${t('trustDashboard.emptyJournal')}</p>`;
   }
 
   return `
@@ -359,7 +359,7 @@ export function renderJournalTab(data: JournalData | null): string {
 
 export function renderMediaTab(data: MediaData | null): string {
   if (!data || data.suggestions.length === 0) {
-    return '<p class="empty-state">Media suggestions based on your mood will appear here.</p>';
+    return `<p class="empty-state">${t('trustDashboard.emptyMedia')}</p>`;
   }
 
   return `
