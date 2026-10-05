@@ -1099,7 +1099,7 @@ function renderHeader(): string {
       <button class="rc-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       
       <div class="rc-person">
-        <label class="rc-avatar" for="rc-avatar-input" title="Click to change photo">
+        <label class="rc-avatar" for="rc-avatar-input" title="${t('relationshipCard.clickToChangePhoto')}">
           ${person.photo 
             ? `<img src="${escapeHtml(person.photo)}" alt="${escapeHtml(person.name)}">`
             : initials
@@ -1161,11 +1161,11 @@ function renderNotices(): string {
 
 function renderTabs(): string {
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: ICONS.heart },
-    { id: 'timeline', label: 'Timeline', icon: ICONS.clock },
-    { id: 'gifts', label: 'Gifts', icon: ICONS.gift },
-    { id: 'events', label: 'Events', icon: ICONS.calendar },
-    { id: 'notes', label: 'Notes', icon: ICONS.fileText },
+    { id: 'overview', label: t('relationshipCard.overview'), icon: ICONS.heart },
+    { id: 'timeline', label: t('relationshipCard.timeline'), icon: ICONS.clock },
+    { id: 'gifts', label: t('relationshipCard.gifts'), icon: ICONS.gift },
+    { id: 'events', label: t('relationshipCard.events'), icon: ICONS.calendar },
+    { id: 'notes', label: t('relationshipCard.notes'), icon: ICONS.fileText },
   ];
 
   return `
@@ -1257,10 +1257,10 @@ function renderOverviewTab(): string {
     
     <div class="rc-section">
       <div class="rc-section-title">${ICONS.clock} Recent Activity</div>
-      ${recentTimeline.length > 0 ? 
+      ${recentTimeline.length > 0 ?
         recentTimeline.map(item => renderTimelineItem(item)).join('') :
         `<div class="rc-empty">
-          <p class="rc-empty-text">No activity recorded yet. Log your first moment together!</p>
+          <p class="rc-empty-text">${t('relationshipCard.noActivityRecorded')}</p>
         </div>`
       }
       ${state.timeline.length > 5 ? `
@@ -1285,15 +1285,15 @@ function renderOverviewTab(): string {
 
 function renderTimelineTab(): string {
   if (state.isLoadingSection) {
-    return '<div class="rc-loading">Loading your story together...</div>';
+    return `<div class="rc-loading">${t('relationshipCard.loadingYourStory')}</div>`;
   }
 
   if (state.timeline.length === 0) {
     return `
       <div class="rc-empty">
         <div class="rc-empty-icon">${ICONS.clock}</div>
-        <div class="rc-empty-title">No moments recorded</div>
-        <p class="rc-empty-text">Every call, text, coffee date, and hangout becomes part of your story together.</p>
+        <div class="rc-empty-title">${t('relationshipCard.noMomentsRecorded')}</div>
+        <p class="rc-empty-text">${t('relationshipCard.everyCallBecomesPart')}</p>
       </div>
       <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-interaction">
         ${ICONS.plus} Log a Moment
@@ -1346,7 +1346,7 @@ function renderTimelineItem(item: TimelineItem): string {
 
 function renderGiftsTab(): string {
   if (state.isLoadingSection) {
-    return '<div class="rc-loading">Loading gift history...</div>';
+    return `<div class="rc-loading">${t('relationshipCard.loadingGiftHistory')}</div>`;
   }
 
   const givenGifts = state.gifts.filter(g => g.direction === 'given');
@@ -1356,8 +1356,8 @@ function renderGiftsTab(): string {
     return `
       <div class="rc-empty">
         <div class="rc-empty-icon">${ICONS.gift}</div>
-        <div class="rc-empty-title">No gifts recorded</div>
-        <p class="rc-empty-text">Track what you give and receive. Never repeat a gift or forget a reaction.</p>
+        <div class="rc-empty-title">${t('relationshipCard.noGiftsRecorded')}</div>
+        <p class="rc-empty-text">${t('relationshipCard.trackWhatYouGive')}</p>
       </div>
       <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-gift">
         ${ICONS.plus} Record a Gift
@@ -1368,14 +1368,14 @@ function renderGiftsTab(): string {
   return `
     ${givenGifts.length > 0 ? `
       <div class="rc-section">
-        <div class="rc-section-title">Gifts You've Given</div>
+        <div class="rc-section-title">${t('relationshipCard.giftsYouveGiven')}</div>
         ${givenGifts.map(gift => renderGiftItem(gift)).join('')}
       </div>
     ` : ''}
-    
+
     ${receivedGifts.length > 0 ? `
       <div class="rc-section">
-        <div class="rc-section-title">Gifts You've Received</div>
+        <div class="rc-section-title">${t('relationshipCard.giftsYouveReceived')}</div>
         ${receivedGifts.map(gift => renderGiftItem(gift)).join('')}
       </div>
     ` : ''}
@@ -1414,7 +1414,7 @@ function renderGiftItem(gift: Gift): string {
 
 function renderEventsTab(): string {
   if (state.isLoadingSection) {
-    return '<div class="rc-loading">Loading events...</div>';
+    return `<div class="rc-loading">${t('relationshipCard.loadingEvents')}</div>`;
   }
 
   const person = state.person!;
@@ -1442,7 +1442,7 @@ function renderEventsTab(): string {
           `;
         }).join('')}
       ` : `
-        <p class="rc-empty-inline">No important dates yet</p>
+        <p class="rc-empty-inline">${t('relationshipCard.noImportantDates')}</p>
       `}
       <button aria-label="${t('accessibility.edit')}" class="rc-add-btn" data-action="manage-dates">
         ${ICONS.edit} ${importantDates.length > 0 ? 'Manage Dates' : 'Add Birthday, Anniversary...'}
@@ -1459,7 +1459,7 @@ function renderEventsTab(): string {
     
     ${pastEvents.length > 0 ? `
       <div class="rc-section">
-        <div class="rc-section-title">Past Events</div>
+        <div class="rc-section-title">${t('relationshipCard.pastEvents')}</div>
         ${pastEvents.map(event => renderEventItem(event)).join('')}
       </div>
     ` : ''}
@@ -1520,7 +1520,7 @@ function renderNotesTab(): string {
     
     ${person.sensitiveTopics && person.sensitiveTopics.length > 0 ? `
       <div class="rc-notes-section">
-        <div class="rc-notes-label">Things to avoid</div>
+        <div class="rc-notes-label">${t('relationshipCard.thingsToAvoid')}</div>
         <div class="rc-interests">
           ${person.sensitiveTopics.map(t => `<span class="rc-sensitive-tag">${escapeHtml(t)}</span>`).join('')}
         </div>

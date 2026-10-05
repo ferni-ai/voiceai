@@ -419,101 +419,101 @@ function render(): void {
     <!-- Reminder Timing -->
     <div class="br-section">
       <h3 class="br-section-title">${ICONS.bell} Reminder Timing</h3>
-      
+
       <div class="br-setting">
         <div class="br-setting-info">
-          <div class="br-setting-label">Birthday reminders</div>
-          <div class="br-setting-desc">How many days before birthdays</div>
+          <div class="br-setting-label">${t('birthdayReminders.title')}</div>
+          <div class="br-setting-desc">${t('birthdayReminders.description')}</div>
         </div>
         <select class="br-select" id="br-birthday-days">
-          ${[1, 3, 7, 14, 30].map(d => 
+          ${[1, 3, 7, 14, 30].map(d =>
             `<option value="${d}" ${state.settings.birthdayReminderDays === d ? 'selected' : ''}>${d} day${d > 1 ? 's' : ''}</option>`
           ).join('')}
         </select>
       </div>
-      
+
       <div class="br-setting">
         <div class="br-setting-info">
-          <div class="br-setting-label">Anniversary reminders</div>
-          <div class="br-setting-desc">How many days before anniversaries</div>
+          <div class="br-setting-label">${t('birthdayReminders.anniversaryTitle')}</div>
+          <div class="br-setting-desc">${t('birthdayReminders.anniversaryDescription')}</div>
         </div>
         <select class="br-select" id="br-anniversary-days">
-          ${[1, 3, 7, 14, 30].map(d => 
+          ${[1, 3, 7, 14, 30].map(d =>
             `<option value="${d}" ${state.settings.anniversaryReminderDays === d ? 'selected' : ''}>${d} day${d > 1 ? 's' : ''}</option>`
           ).join('')}
         </select>
       </div>
-      
+
       <div class="br-setting">
         <div class="br-setting-info">
-          <div class="br-setting-label">Reminder time</div>
-          <div class="br-setting-desc">When to send reminders</div>
+          <div class="br-setting-label">${t('birthdayReminders.reminderTimeTitle')}</div>
+          <div class="br-setting-desc">${t('birthdayReminders.reminderTimeDescription')}</div>
         </div>
         <select class="br-select" id="br-time">
-          ${['07:00', '08:00', '09:00', '10:00', '12:00', '17:00', '19:00'].map(t => 
+          ${['07:00', '08:00', '09:00', '10:00', '12:00', '17:00', '19:00'].map(t =>
             `<option value="${t}" ${state.settings.reminderTime === t ? 'selected' : ''}>${formatTime(t)}</option>`
           ).join('')}
         </select>
       </div>
     </div>
-    
+
     <!-- Notification Channels -->
     <div class="br-section">
       <h3 class="br-section-title">${ICONS.message} How We Remind You</h3>
-      
+
       <div class="br-setting">
         <div class="br-setting-info">
-          <div class="br-setting-label">In conversation</div>
-          <div class="br-setting-desc">Ferni mentions upcoming dates naturally</div>
+          <div class="br-setting-label">${t('birthdayReminders.inConversation')}</div>
+          <div class="br-setting-desc">${t('birthdayReminders.inConversationDesc')}</div>
         </div>
         <div class="br-toggle ${state.settings.enableVoiceReminders ? 'active' : ''}" role="button" tabindex="0" id="br-voice-toggle"></div>
       </div>
-      
+
       <div class="br-setting">
         <div class="br-setting-info">
-          <div class="br-setting-label">Push notifications</div>
-          <div class="br-setting-desc">Get notified on your device</div>
+          <div class="br-setting-label">${t('birthdayReminders.pushNotifications')}</div>
+          <div class="br-setting-desc">${t('birthdayReminders.pushNotificationsDesc')}</div>
         </div>
         <div class="br-toggle ${state.settings.enablePushNotifications ? 'active' : ''}" role="button" tabindex="0" id="br-push-toggle"></div>
       </div>
-      
+
       <div class="br-setting">
         <div class="br-setting-info">
-          <div class="br-setting-label">Email reminders</div>
-          <div class="br-setting-desc">Receive email notifications</div>
+          <div class="br-setting-label">${t('birthdayReminders.emailReminders')}</div>
+          <div class="br-setting-desc">${t('birthdayReminders.emailRemindersDesc')}</div>
         </div>
         <div class="br-toggle ${state.settings.enableEmailReminders ? 'active' : ''}" role="button" tabindex="0" id="br-email-toggle"></div>
       </div>
     </div>
-    
+
     <!-- AI Suggestions -->
     <div class="br-section">
       <h3 class="br-section-title">${ICONS.gift} Smart Suggestions</h3>
-      
+
       <div class="br-setting">
         <div class="br-setting-info">
-          <div class="br-setting-label">Gift ideas</div>
-          <div class="br-setting-desc">Get personalized gift suggestions</div>
+          <div class="br-setting-label">${t('birthdayReminders.giftIdeas')}</div>
+          <div class="br-setting-desc">${t('birthdayReminders.giftIdeasDesc')}</div>
         </div>
         <div class="br-toggle ${state.settings.suggestGifts ? 'active' : ''}" role="button" tabindex="0" id="br-gifts-toggle"></div>
       </div>
-      
+
       <div class="br-setting">
         <div class="br-setting-info">
-          <div class="br-setting-label">Message drafts</div>
-          <div class="br-setting-desc">Get suggested birthday messages</div>
+          <div class="br-setting-label">${t('birthdayReminders.messageDrafts')}</div>
+          <div class="br-setting-desc">${t('birthdayReminders.messageDraftsDesc')}</div>
         </div>
         <div class="br-toggle ${state.settings.suggestMessages ? 'active' : ''}" role="button" tabindex="0" id="br-messages-toggle"></div>
       </div>
     </div>
-    
+
     <!-- Upcoming Dates -->
     <div class="br-section">
       <h3 class="br-section-title">${ICONS.calendar} Coming Up</h3>
       <div class="br-upcoming">
-        ${state.upcomingDates.length > 0 ? 
+        ${state.upcomingDates.length > 0 ?
           state.upcomingDates.map(date => renderUpcomingDate(date)).join('') :
-          `<div class="br-upcoming-empty">No upcoming dates in the next 30 days</div>`
+          `<div class="br-upcoming-empty">${t('birthdayReminders.noUpcomingDates')}</div>`
         }
       </div>
     </div>
@@ -755,17 +755,17 @@ export function openBirthdayReminders(): void {
     <div class="br-backdrop"></div>
     <div class="br-modal" role="dialog" aria-modal="true" aria-labelledby="br-title">
       <div class="br-header">
-        <div class="br-eyebrow">Never Forget</div>
+        <div class="br-eyebrow">${t('birthdayReminders.neverForget')}</div>
         <h2 class="br-title" id="br-title">${ICONS.cake} Important Dates</h2>
-        <p class="br-subtitle">We remember so you don't have to</p>
+        <p class="br-subtitle">${t('birthdayReminders.weRemember')}</p>
         <button class="br-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
       <div class="br-content">
-        <div style="text-align: center; padding: var(--space-8); color: var(--color-text-muted);">Loading...</div>
+        <div style="text-align: center; padding: var(--space-8); color: var(--color-text-muted);">${t('birthdayReminders.loading')}</div>
       </div>
       <div class="br-footer">
-        <button aria-label="${t('accessibility.cancel')}" class="br-btn br-btn-secondary" id="br-cancel">Cancel</button>
-        <button aria-label="${t('accessibility.settings')}" class="br-btn br-btn-primary" id="br-save">Save Settings</button>
+        <button aria-label="${t('accessibility.cancel')}" class="br-btn br-btn-secondary" id="br-cancel">${t('birthdayReminders.cancel')}</button>
+        <button aria-label="${t('accessibility.settings')}" class="br-btn br-btn-primary" id="br-save">${t('birthdayReminders.saveSettings')}</button>
       </div>
     </div>
   `;
