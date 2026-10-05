@@ -4,7 +4,7 @@
  * Serves the frontend UI, provides API routes, and handles integrations.
  */
 
-import 'dotenv/config';
+import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
 import http from 'http';
 import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';

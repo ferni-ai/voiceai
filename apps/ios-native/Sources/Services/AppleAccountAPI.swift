@@ -88,6 +88,8 @@ struct FerniAppleAccountAPI: AppleAccountAPI {
         guard let token = await idToken() else { throw AppleAccountAPIError.notSignedIn }
         var request = URLRequest(url: baseURL.appendingPathComponent(path))
         request.httpMethod = method
+        // The purchase button waits on this: fail in seconds, not URLSession's minute.
+        request.timeoutInterval = 15
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         return request
     }

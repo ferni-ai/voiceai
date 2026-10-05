@@ -30,6 +30,7 @@ import { trackBackchannelEvent } from './speech-metrics-integration.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import { decideBackchannel, pickBackchannel } from './backchannel-policy.js';
+import { backchannelsEnabled } from '../../config/voice-humanization-flags.js';
 
 const log = getLogger().child({ module: 'LiveBackchannelingIntegration' });
 
@@ -117,7 +118,7 @@ export function initializeLiveBackchanneling<T>(
   isAgentSpeakingFn: () => boolean,
   config: Partial<LiveBackchannelConfig> = {}
 ): LiveBackchannelIntegration {
-  const cfg = { ...DEFAULT_CONFIG, ...config };
+  const cfg = { ...DEFAULT_CONFIG, enabled: backchannelsEnabled(), ...config };
 
   // Get session-scoped services
   const breathDetector = getBreathPauseDetector(sessionId);

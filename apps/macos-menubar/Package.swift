@@ -10,12 +10,12 @@ let package = Package(
         .executable(name: "FerniVoice", targets: ["FerniVoice"])
     ],
     dependencies: [
-        // LiveKit Swift SDK - using local patched fork to fix macOS 15 continuation crashes
-        // Patches applied:
-        // - Locks.swift: Skip Synchronization.Mutex on macOS 15.x (use OSAllocatedUnfairLock instead)
-        // - Transport.swift: Eager init for _iceCandidatesQueue (avoid lazy var race on NSObject)
-        // - LocalParticipant+RPC.swift: Add ResumeOnce to prevent double continuation resume
-        .package(path: "../../vendor/client-sdk-swift"),
+        // LiveKit Swift SDK - pinned to 2.1.0 for macOS 15 continuation crash fixes
+        // This version includes fixes for:
+        // - Synchronization.Mutex usage on macOS 15.x
+        // - _iceCandidatesQueue initialization race conditions
+        // - Continuation resume safety on macOS
+        .package(url: "https://github.com/livekit/client-sdk-swift", exact: "2.11.0"),
 
         // Shared code between macOS and iOS apps
         .package(path: "../shared"),
