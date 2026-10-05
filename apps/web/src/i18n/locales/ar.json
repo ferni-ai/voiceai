@@ -11226,7 +11226,8 @@
     "failed": "لم نتمكن من الربط. لنحاول مجدداً؟"
   },
   "entrance": {
-    "helper": "المرشد الشخصي"
+    "helper": "المرشد الشخصي",
+    "connectToTalk": "تواصل"
   },
   "teamHuddle": {
     "typeWeekly": "اطمئنان أسبوعي",

@@ -10870,7 +10870,8 @@
     "failed": "No logré conectarlo. ¿Quieres intentarlo de nuevo?"
   },
   "entrance": {
-    "helper": "Tu guía personal"
+    "helper": "Tu guía personal",
+    "connectToTalk": "Hablar"
   },
   "teamHuddle": {
     "typeWeekly": "Registro semanal",

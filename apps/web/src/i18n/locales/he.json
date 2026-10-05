@@ -10869,7 +10869,8 @@
     "failed": "לא הצלחנו להתחבר. לנסות שוב?"
   },
   "entrance": {
-    "helper": "ליווי אישי צמוד"
+    "helper": "ליווי אישי צמוד",
+    "connectToTalk": "להתחבר"
   },
   "teamHuddle": {
     "typeWeekly": "צ'ק-אין שבועי",

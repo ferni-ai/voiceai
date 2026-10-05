@@ -92,6 +92,13 @@ describe('i18n keys', () => {
     expect(unfilledPlaceholders()).toEqual([]);
   });
 
+  it('every data-i18n key in index.html exists in en-US', () => {
+    const html = readFileSync(join(SRC, '..', 'index.html'), 'utf8');
+    const keys = [...html.matchAll(/data-i18n(?:-[a-z-]+)?="([^"]+)"/g)].map((m) => m[1]);
+    expect(keys.length).toBeGreaterThan(5);
+    expect(keys.filter((key) => !hasKey(key))).toEqual([]);
+  });
+
   it('interpolates params into the fallback text', () => {
     expect(t('test.missing.key', { seeds: 5 }, "You'll both get {seeds} seeds")).toBe("You'll both get 5 seeds");
   });

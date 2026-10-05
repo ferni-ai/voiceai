@@ -10750,7 +10750,8 @@
     "failed": "Das hat leider nicht geklappt. Versuchst du es nochmal?"
   },
   "entrance": {
-    "helper": "Dein persönlicher Wegbegleiter"
+    "helper": "Dein persönlicher Wegbegleiter",
+    "connectToTalk": "Verbinden"
   },
   "teamHuddle": {
     "typeWeekly": "Wöchentlicher Check-in",

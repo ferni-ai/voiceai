@@ -10750,7 +10750,8 @@
     "failed": "연결하지 못했어요. 다시 시도해 볼까요?"
   },
   "entrance": {
-    "helper": "나만을 위한 다정한 가이드"
+    "helper": "나만을 위한 다정한 가이드",
+    "connectToTalk": "대화해요"
   },
   "teamHuddle": {
     "typeWeekly": "주간 체크인",

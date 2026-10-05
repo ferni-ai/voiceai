@@ -10870,7 +10870,8 @@
     "failed": "Je n'ai pas pu me connecter. Tu veux réessayer ?"
   },
   "entrance": {
-    "helper": "Ton guide personnel"
+    "helper": "Ton guide personnel",
+    "connectToTalk": "Discuter"
   },
   "teamHuddle": {
     "typeWeekly": "Check-in hebdomadaire",

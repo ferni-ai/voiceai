@@ -10750,7 +10750,8 @@
     "failed": "連携できませんでした。もう一度試してみますか？"
   },
   "entrance": {
-    "helper": "あなた専属のガイド"
+    "helper": "あなた専属のガイド",
+    "connectToTalk": "お話する"
   },
   "teamHuddle": {
     "typeWeekly": "週に一度のチェックイン",

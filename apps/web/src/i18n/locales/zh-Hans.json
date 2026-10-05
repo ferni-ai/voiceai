@@ -10750,7 +10750,8 @@
     "failed": "无法连接。要再试一次吗？"
   },
   "entrance": {
-    "helper": "你的专属向导"
+    "helper": "你的专属向导",
+    "connectToTalk": "连线"
   },
   "teamHuddle": {
     "typeWeekly": "每周记录",
