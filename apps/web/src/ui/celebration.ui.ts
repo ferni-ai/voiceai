@@ -8,6 +8,8 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { getFerniAudioEngine } from '../services/ferni-audio.service.js';
 import { getGlowController } from '../services/glow-controller.service.js';
 import { getHapticsService } from '../services/haptics.service.js';
@@ -54,10 +56,6 @@ interface ConfettiParticle {
   size: number;
   element: HTMLElement;
 }
-
-// ============================================================================
-// CELEBRATION PRESETS
-// ============================================================================
 
 // ============================================================================
 // ZEN CELEBRATION PRESETS - Warm, human, not game-like
@@ -220,16 +218,16 @@ export class CelebrationUI {
   async streak(count: number): Promise<void> {
     await this.celebrate({
       type: 'streak',
-      title: `${count} day streak!`,
-      subtitle: "You're on a roll!",
+      title: tp('celebration.streakTitle', count),
+      subtitle: t('celebration.streakSubtitle'),
     });
   }
 
   async teamUnlock(personaName: string): Promise<void> {
     await this.celebrate({
       type: 'team_unlock',
-      title: `Meet ${personaName}!`,
-      subtitle: 'A new friend has joined your team',
+      title: t('celebration.teamUnlockTitle', { name: personaName }),
+      subtitle: t('celebration.teamUnlockSubtitle'),
     });
   }
 

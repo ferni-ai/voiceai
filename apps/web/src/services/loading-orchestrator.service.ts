@@ -15,6 +15,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants';
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger';
 
 const log = createLogger('LoadingOrchestrator');
@@ -103,10 +104,7 @@ export function startLoading(id: string, options: LoadingOptions = {}): void {
  * @param id The task identifier.
  * @param state The final state ('success' or 'error').
  */
-export function completeLoading(
-  id: string,
-  state: 'success' | 'error' = 'success'
-): Promise<void> {
+export function completeLoading(id: string, state: 'success' | 'error' = 'success'): Promise<void> {
   const task = tasks.get(id);
   if (!task) {
     log.warn('Attempted to complete unknown loading task:', id);
@@ -173,7 +171,7 @@ export function isLoading(ids?: string[]): boolean {
   if (ids) {
     return ids.some((id) => tasks.get(id)?.state === 'loading');
   }
-  return Array.from(tasks.values()).some((t) => t.state === 'loading');
+  return Array.from(tasks.values()).some((task) => task.state === 'loading');
 }
 
 // ============================================================================
@@ -463,7 +461,7 @@ export async function withLoading<T>(
  */
 export function createLoadingButton(
   button: HTMLButtonElement,
-  loadingText: string = 'Loading...'
+  loadingText: string = t('common.loading')
 ): { start: () => void; complete: (success?: boolean) => void } {
   const originalText = button.textContent;
   const originalDisabled = button.disabled;

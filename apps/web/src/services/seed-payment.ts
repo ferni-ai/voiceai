@@ -14,6 +14,7 @@
 
 import type { PlantSeedResponse, SubscriptionResponse } from '../types/seed-fund.types.js';
 import { apiFetch } from '../utils/api-helpers.js';
+import { t } from '../i18n/index.js';
 import { billingErrorMessage } from '../utils/billing.js';
 import { createLogger } from '../utils/logger.js';
 import { collectCardPayment, type StripeForCard } from '../ui/seed-payment-form.ui.js';
@@ -92,6 +93,6 @@ export async function startMonthlyGift(amountDollars: number): Promise<SeedPayme
 /** The toast for a gift that went wrong, or null when there is nothing to say. */
 export function seedPaymentFailureMessage(outcome: SeedPaymentOutcome): string | null {
   if (outcome.status === 'not-configured') return billingErrorMessage(503);
-  if (outcome.status === 'failed') return "Payment didn't go through. Try again?";
+  if (outcome.status === 'failed') return t('toasts.paymentFailed');
   return null; // confirmed, redirected, or cancelled by the user
 }
