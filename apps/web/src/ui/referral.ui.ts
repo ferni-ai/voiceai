@@ -181,7 +181,7 @@ function createModal(): void {
         <span class="referral-link-url">${shortUrl}</span>
       </div>
 
-      <div class="referral-actions" role="button" tabindex="0">
+      <div class="referral-actions">
         <button aria-label="${t('accessibility.share')}" class="referral-btn referral-btn--primary" data-action="share">
           ${ICONS.share}
           <span>${t('referral.buttons.share', 'Share')}</span>
@@ -475,8 +475,8 @@ function injectStyles(): void {
 
     .referral-actions {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: var(--space-3, 12px);
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-2, 8px);
       margin-bottom: var(--space-4, 16px);
     }
 
@@ -506,15 +506,14 @@ function injectStyles(): void {
     }
 
     .referral-btn--primary {
-      grid-column: span 2;
+      grid-column: 1 / -1;
       background: var(--persona-primary, #4a6741);
       border-color: var(--persona-primary, #4a6741);
       color: white;
     }
 
-    .referral-btn--primary:hover {
-      background: var(--persona-secondary, #3d5a35);
-    }
+    .referral-btn--primary:hover { background: var(--persona-secondary, #3d5a35); }
+    .referral-btn:not(.referral-btn--primary) { flex-direction: column; gap: 4px; padding: var(--space-3, 12px) 6px; text-align: center; }
 
     .referral-btn svg {
       width: 18px;
