@@ -368,7 +368,7 @@ describe('Biometrics', () => {
         wakeTime: new Date(),
       };
 
-      expect(validSleep.deepSleepPercent + validSleep.remSleepPercent).toBeLessThanOrEqual(100);
+      expect((validSleep.deepSleepPercent ?? 0) + (validSleep.remSleepPercent ?? 0)).toBeLessThanOrEqual(100);
     });
 
     it('should validate HRV is in reasonable range (0-200ms)', () => {
