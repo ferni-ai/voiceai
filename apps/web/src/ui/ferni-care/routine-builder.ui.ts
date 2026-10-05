@@ -7,6 +7,7 @@
  * Design: Floating modal with conversational, friendly flow.
  */
 
+import { t } from '../../i18n/index.js';
 import { createLogger } from '../../utils/logger.js';
 import {
   getLifeAutomationService,
@@ -31,63 +32,63 @@ const log = createLogger('RoutineBuilder');
 
 const COPY = {
   titles: {
-    new: 'Tell me what you\'d like',
-    edit: 'Make some changes',
+    new: 'routineBuilder.titles.new',
+    edit: 'routineBuilder.titles.edit',
     fromTemplate: (name: string) => `Setting up "${name}"`,
   },
 
   sections: {
-    name: 'What should I call this?',
-    namePlaceholder: 'e.g., "Morning check-in" or "Wind down"',
-    trigger: 'When should I do this?',
-    actions: 'What should I do?',
-    customize: 'Make it yours',
+    name: 'routineBuilder.sections.name',
+    namePlaceholder: 'routineBuilder.sections.namePlaceholder',
+    trigger: 'routineBuilder.sections.trigger',
+    actions: 'routineBuilder.sections.actions',
+    customize: 'routineBuilder.sections.customize',
   },
 
   triggers: [
-    { type: 'time', label: 'At a certain time', icon: ANALYTICS_ICONS.sunrise, hint: 'Every day at 7am, weekdays at 9am...' },
-    { type: 'phrase', label: 'When you say something', icon: ANALYTICS_ICONS.microphone, hint: '"Good morning Ferni" or "Start my day"' },
-    { type: 'location', label: 'When you arrive or leave', icon: ANALYTICS_ICONS.mapPin, hint: 'Coming home, leaving work...' },
-    { type: 'calendar', label: 'Around calendar events', icon: ANALYTICS_ICONS.calendar, hint: 'Before meetings, after workouts...' },
+    { type: 'time', labelKey: 'routineBuilder.triggers.time', icon: ANALYTICS_ICONS.sunrise, hintKey: 'routineBuilder.triggers.timeHint' },
+    { type: 'phrase', labelKey: 'routineBuilder.triggers.phrase', icon: ANALYTICS_ICONS.microphone, hintKey: 'routineBuilder.triggers.phraseHint' },
+    { type: 'location', labelKey: 'routineBuilder.triggers.location', icon: ANALYTICS_ICONS.mapPin, hintKey: 'routineBuilder.triggers.locationHint' },
+    { type: 'calendar', labelKey: 'routineBuilder.triggers.calendar', icon: ANALYTICS_ICONS.calendar, hintKey: 'routineBuilder.triggers.calendarHint' },
   ],
 
   triggerConfig: {
     time: {
-      schedule: 'What time?',
-      schedulePlaceholder: 'e.g., 7:00 AM',
-      timezone: 'Your timezone',
+      scheduleKey: 'routineBuilder.triggerConfig.time.schedule',
+      schedulePlaceholder: 'routineBuilder.triggerConfig.time.schedulePlaceholder',
+      timezone: 'routineBuilder.triggerConfig.time.timezone',
     },
     phrase: {
-      phrase: 'What phrase triggers this?',
-      phrasePlaceholder: 'e.g., Good morning Ferni',
+      phraseKey: 'routineBuilder.triggerConfig.phrase.phrase',
+      phrasePlaceholder: 'routineBuilder.triggerConfig.phrase.phrasePlaceholder',
     },
     location: {
-      name: 'What place?',
-      namePlaceholder: 'e.g., Home, Office, Gym',
-      when: 'Trigger when I...',
-      options: { enter: 'Arrive', exit: 'Leave', both: 'Either' },
+      nameKey: 'routineBuilder.triggerConfig.location.name',
+      namePlaceholder: 'routineBuilder.triggerConfig.location.namePlaceholder',
+      whenKey: 'routineBuilder.triggerConfig.location.when',
+      options: { enterKey: 'routineBuilder.triggerConfig.location.enter', exitKey: 'routineBuilder.triggerConfig.location.exit', bothKey: 'routineBuilder.triggerConfig.location.both' },
     },
   },
 
   actions: [
-    { type: 'speak_message', label: 'Say something', icon: ANALYTICS_ICONS.messageCircle, hint: 'I\'ll speak this to you' },
-    { type: 'send_notification', label: 'Send a notification', icon: ANALYTICS_ICONS.bell, hint: 'A gentle nudge' },
-    { type: 'add_reminder', label: 'Set a reminder', icon: ANALYTICS_ICONS.alarm, hint: 'I\'ll remind you later' },
-    { type: 'log_habit', label: 'Log a habit', icon: QUIZ_ICONS.correct, hint: 'Track your progress' },
-    { type: 'control_lights', label: 'Adjust lights', icon: GROWTH_ICONS.insight, hint: 'Set the mood' },
-    { type: 'set_thermostat', label: 'Set temperature', icon: ANALYTICS_ICONS.thermometer, hint: 'Get comfortable' },
-    { type: 'play_music', label: 'Play music', icon: ANALYTICS_ICONS.music, hint: 'Set the vibe' },
+    { type: 'speak_message', labelKey: 'routineBuilder.actions.speak_message', icon: ANALYTICS_ICONS.messageCircle, hintKey: 'routineBuilder.actions.speak_message_hint' },
+    { type: 'send_notification', labelKey: 'routineBuilder.actions.send_notification', icon: ANALYTICS_ICONS.bell, hintKey: 'routineBuilder.actions.send_notification_hint' },
+    { type: 'add_reminder', labelKey: 'routineBuilder.actions.add_reminder', icon: ANALYTICS_ICONS.alarm, hintKey: 'routineBuilder.actions.add_reminder_hint' },
+    { type: 'log_habit', labelKey: 'routineBuilder.actions.log_habit', icon: QUIZ_ICONS.correct, hintKey: 'routineBuilder.actions.log_habit_hint' },
+    { type: 'control_lights', labelKey: 'routineBuilder.actions.control_lights', icon: GROWTH_ICONS.insight, hintKey: 'routineBuilder.actions.control_lights_hint' },
+    { type: 'set_thermostat', labelKey: 'routineBuilder.actions.set_thermostat', icon: ANALYTICS_ICONS.thermometer, hintKey: 'routineBuilder.actions.set_thermostat_hint' },
+    { type: 'play_music', labelKey: 'routineBuilder.actions.play_music', icon: ANALYTICS_ICONS.music, hintKey: 'routineBuilder.actions.play_music_hint' },
   ],
 
   buttons: {
-    cancel: 'Never mind',
-    save: 'Start doing this for me',
-    saveEdit: 'Save changes',
-    addAction: 'Add something else',
+    cancel: 'routineBuilder.buttons.cancel',
+    save: 'routineBuilder.buttons.save',
+    saveEdit: 'routineBuilder.buttons.saveEdit',
+    addAction: 'routineBuilder.buttons.addAction',
   },
 
   validation: {
-    needsName: 'Give it a name first',
+    needsName: 'routineBuilder.validation.needsName',
   },
 };
 
@@ -617,39 +618,39 @@ export class RoutineBuilder {
 
   private render(): string {
     const title = this.editingWorkflow
-      ? COPY.titles.edit
+      ? t(COPY.titles.edit)
       : this.template
-        ? COPY.titles.fromTemplate(this.template.name)
-        : COPY.titles.new;
+        ? t(COPY.titles.fromTemplate(this.template.name))
+        : t(COPY.titles.new);
 
-    const saveLabel = this.editingWorkflow ? COPY.buttons.saveEdit : COPY.buttons.save;
+    const saveLabel = this.editingWorkflow ? t(COPY.buttons.saveEdit) : t(COPY.buttons.save);
 
     return `
       <div class="routine-builder-backdrop" data-action="close"></div>
       <div class="routine-builder" role="dialog" aria-modal="true">
         <div class="routine-builder__header">
           <h2 class="routine-builder__title">${title}</h2>
-          <button class="routine-builder__close" data-action="close" aria-label="Close">
+          <button class="routine-builder__close" data-action="close" aria-label="${t('common.close')}">
             ${ICONS.close}
           </button>
         </div>
-        
+
         <div class="routine-builder__content">
           <div class="rb-section">
-            <label class="rb-section__label">${COPY.sections.name}</label>
-            <input type="text" class="rb-input rb-input--lg" id="rb-name" value="${this.escapeHtml(this.name)}" placeholder="${COPY.sections.namePlaceholder}">
+            <label class="rb-section__label">${t(COPY.sections.name)}</label>
+            <input type="text" class="rb-input rb-input--lg" id="rb-name" value="${this.escapeHtml(this.name)}" placeholder="${t(COPY.sections.namePlaceholder)}">
           </div>
-          
+
           <div class="rb-section">
-            <label class="rb-section__label">${COPY.sections.trigger}</label>
+            <label class="rb-section__label">${t(COPY.sections.trigger)}</label>
             <div class="rb-triggers">
               ${COPY.triggers
                 .map(
-                  (t) => `
-                <button class="rb-trigger ${this.triggerType === t.type ? 'selected' : ''}" data-trigger="${t.type}">
-                  <div class="rb-trigger__icon">${t.icon}</div>
-                  <div class="rb-trigger__label">${t.label}</div>
-                  <div class="rb-trigger__hint">${t.hint}</div>
+                  (trig) => `
+                <button class="rb-trigger ${this.triggerType === trig.type ? 'selected' : ''}" data-trigger="${trig.type}">
+                  <div class="rb-trigger__icon">${trig.icon}</div>
+                  <div class="rb-trigger__label">${t(trig.labelKey)}</div>
+                  <div class="rb-trigger__hint">${t(trig.hintKey)}</div>
                 </button>
               `
                 )
@@ -657,25 +658,25 @@ export class RoutineBuilder {
             </div>
             ${this.renderTriggerConfig()}
           </div>
-          
+
           <div class="rb-section">
-            <label class="rb-section__label">${COPY.sections.actions}</label>
+            <label class="rb-section__label">${t(COPY.sections.actions)}</label>
             <div class="rb-actions">
               ${this.actions.map((action, i) => this.renderActionItem(action, i)).join('')}
               <button class="rb-add-action" data-action="add-action">
                 ${ICONS.plus}
-                ${COPY.buttons.addAction}
+                ${t(COPY.buttons.addAction)}
               </button>
             </div>
           </div>
-          
+
           ${this.template && this.template.variables.length > 0 ? this.renderVariables() : ''}
         </div>
-        
+
         ${this.renderActionPicker()}
-        
+
         <div class="routine-builder__footer">
-          <button class="rb-btn rb-btn--secondary" data-action="cancel">${COPY.buttons.cancel}</button>
+          <button class="rb-btn rb-btn--secondary" data-action="cancel">${t(COPY.buttons.cancel)}</button>
           <button class="rb-btn rb-btn--primary" data-action="save" ${!this.name ? 'disabled' : ''}>
             ${saveLabel}
           </button>
@@ -692,37 +693,37 @@ export class RoutineBuilder {
       case 'time':
         fields = `
           <div class="rb-field">
-            <label class="rb-field__label">${cfg.time.schedule}</label>
-            <input type="text" class="rb-input" id="rb-schedule" value="${this.triggerConfig.schedule || '7:00 AM'}" placeholder="${cfg.time.schedulePlaceholder}">
+            <label class="rb-field__label">${t(cfg.time.scheduleKey)}</label>
+            <input type="text" class="rb-input" id="rb-schedule" value="${this.triggerConfig.schedule || '7:00 AM'}" placeholder="${t(cfg.time.schedulePlaceholder)}">
           </div>
         `;
         break;
       case 'phrase':
         fields = `
           <div class="rb-field">
-            <label class="rb-field__label">${cfg.phrase.phrase}</label>
-            <input type="text" class="rb-input" id="rb-phrase" value="${(this.triggerConfig.phrases as string[])?.[0] || ''}" placeholder="${cfg.phrase.phrasePlaceholder}">
+            <label class="rb-field__label">${t(cfg.phrase.phraseKey)}</label>
+            <input type="text" class="rb-input" id="rb-phrase" value="${(this.triggerConfig.phrases as string[])?.[0] || ''}" placeholder="${t(cfg.phrase.phrasePlaceholder)}">
           </div>
         `;
         break;
       case 'location':
         fields = `
           <div class="rb-field">
-            <label class="rb-field__label">${cfg.location.name}</label>
-            <input type="text" class="rb-input" id="rb-location-name" value="${this.triggerConfig.locationName || ''}" placeholder="${cfg.location.namePlaceholder}">
+            <label class="rb-field__label">${t(cfg.location.nameKey)}</label>
+            <input type="text" class="rb-input" id="rb-location-name" value="${this.triggerConfig.locationName || ''}" placeholder="${t(cfg.location.namePlaceholder)}">
           </div>
           <div class="rb-field">
-            <label class="rb-field__label">${cfg.location.when}</label>
+            <label class="rb-field__label">${t(cfg.location.whenKey)}</label>
             <select class="rb-input" id="rb-location-trigger">
-              <option value="enter" ${this.triggerConfig.triggerOn === 'enter' ? 'selected' : ''}>${cfg.location.options.enter}</option>
-              <option value="exit" ${this.triggerConfig.triggerOn === 'exit' ? 'selected' : ''}>${cfg.location.options.exit}</option>
-              <option value="both" ${this.triggerConfig.triggerOn === 'both' ? 'selected' : ''}>${cfg.location.options.both}</option>
+              <option value="enter" ${this.triggerConfig.triggerOn === 'enter' ? 'selected' : ''}>${t(cfg.location.options.enterKey)}</option>
+              <option value="exit" ${this.triggerConfig.triggerOn === 'exit' ? 'selected' : ''}>${t(cfg.location.options.exitKey)}</option>
+              <option value="both" ${this.triggerConfig.triggerOn === 'both' ? 'selected' : ''}>${t(cfg.location.options.bothKey)}</option>
             </select>
           </div>
         `;
         break;
       default:
-        fields = '<p style="color: var(--color-text-muted); font-size: 13px;">Coming soon...</p>';
+        fields = `<p style="color: var(--color-text-muted); font-size: 13px;">${t('routineBuilder.empty.message')}</p>`;
     }
 
     return `<div class="rb-trigger-config">${fields}</div>`;
@@ -735,7 +736,7 @@ export class RoutineBuilder {
       <div class="rb-action-item">
         <div class="rb-action-item__icon">${actionDef?.icon || '⚙️'}</div>
         <div class="rb-action-item__content">
-          <div class="rb-action-item__name">${this.escapeHtml(action.name)}</div>
+          <div class="rb-action-item__name">${this.escapeHtml(action.name || (actionDef ? t(actionDef.labelKey) : ''))}</div>
           <div class="rb-action-item__hint">${this.getActionSummary(action)}</div>
         </div>
         <button class="rb-action-item__remove" data-action="remove-action" data-index="${index}">
@@ -756,7 +757,7 @@ export class RoutineBuilder {
     return `
       <div class="rb-action-picker ${this.showActionPicker ? 'visible' : ''}">
         <div class="rb-action-picker__header">
-          <h3 class="rb-action-picker__title">What should I do?</h3>
+          <h3 class="rb-action-picker__title">${t('routineBuilder.actionPicker.title')}</h3>
           <button class="routine-builder__close" data-action="close-picker">
             ${ICONS.close}
           </button>
@@ -767,8 +768,8 @@ export class RoutineBuilder {
               (a) => `
             <button class="rb-action-picker__item" data-add-action="${a.type}">
               <div class="rb-action-picker__item-icon">${a.icon}</div>
-              <div class="rb-action-picker__item-label">${a.label}</div>
-              <div class="rb-action-picker__item-hint">${a.hint}</div>
+              <div class="rb-action-picker__item-label">${t(a.labelKey)}</div>
+              <div class="rb-action-picker__item-hint">${t(a.hintKey)}</div>
             </button>
           `
             )
@@ -886,7 +887,7 @@ export class RoutineBuilder {
     const newAction: WorkflowAction = {
       id: `action_${Date.now()}`,
       type,
-      name: actionDef.label,
+      name: t(actionDef.labelKey),
       params: this.getDefaultParams(type),
     };
 

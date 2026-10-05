@@ -7,6 +7,7 @@
  * @module @ferni/command-palette
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { trapFocus, announce } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
@@ -74,8 +75,8 @@ function getDefaultCommands(): Command[] {
   return [
     {
       id: 'call-ferni',
-      label: 'Talk to Ferni',
-      description: 'Start a voice conversation',
+      label: t('commandPalette.commands.callFerni.label'),
+      description: t('commandPalette.commands.callFerni.description'),
       icon: ICONS.phone,
       shortcut: 'Enter',
       category: 'actions',
@@ -86,8 +87,8 @@ function getDefaultCommands(): Command[] {
     },
     {
       id: 'switch-ferni',
-      label: 'Switch to Ferni',
-      description: 'Your life coach',
+      label: t('commandPalette.commands.switchFerni.label'),
+      description: t('commandPalette.commands.switchFerni.description'),
       icon: ICONS.user,
       category: 'team',
       keywords: ['ferni', 'coach', 'life'],
@@ -97,8 +98,8 @@ function getDefaultCommands(): Command[] {
     },
     {
       id: 'switch-peter',
-      label: 'Switch to Peter',
-      description: 'Research & knowledge',
+      label: t('commandPalette.commands.switchPeter.label'),
+      description: t('commandPalette.commands.switchPeter.description'),
       icon: ICONS.user,
       category: 'team',
       keywords: ['peter', 'research', 'knowledge', 'facts'],
@@ -108,8 +109,8 @@ function getDefaultCommands(): Command[] {
     },
     {
       id: 'switch-maya',
-      label: 'Switch to Maya',
-      description: 'Habits & routines',
+      label: t('commandPalette.commands.switchMaya.label'),
+      description: t('commandPalette.commands.switchMaya.description'),
       icon: ICONS.user,
       category: 'team',
       keywords: ['maya', 'habits', 'routines', 'wellness'],
@@ -119,8 +120,8 @@ function getDefaultCommands(): Command[] {
     },
     {
       id: 'switch-alex',
-      label: 'Switch to Alex',
-      description: 'Communication coach',
+      label: t('commandPalette.commands.switchAlex.label'),
+      description: t('commandPalette.commands.switchAlex.description'),
       icon: ICONS.user,
       category: 'team',
       keywords: ['alex', 'communication', 'social'],
@@ -130,8 +131,8 @@ function getDefaultCommands(): Command[] {
     },
     {
       id: 'switch-jordan',
-      label: 'Switch to Jordan',
-      description: 'Event planning & milestones',
+      label: t('commandPalette.commands.switchJordan.label'),
+      description: t('commandPalette.commands.switchJordan.description'),
       icon: ICONS.user,
       category: 'team',
       keywords: ['jordan', 'events', 'planning', 'milestones'],
@@ -141,8 +142,8 @@ function getDefaultCommands(): Command[] {
     },
     {
       id: 'switch-nayan',
-      label: 'Switch to Nayan',
-      description: 'Wisdom & philosophy',
+      label: t('commandPalette.commands.switchNayan.label'),
+      description: t('commandPalette.commands.switchNayan.description'),
       icon: ICONS.user,
       category: 'team',
       keywords: ['nayan', 'wisdom', 'philosophy', 'meaning'],
@@ -152,8 +153,8 @@ function getDefaultCommands(): Command[] {
     },
     {
       id: 'view-team',
-      label: 'View your team',
-      description: 'See all team members',
+      label: t('commandPalette.commands.viewTeam.label'),
+      description: t('commandPalette.commands.viewTeam.description'),
       icon: ICONS.users,
       category: 'navigation',
       keywords: ['team', 'members', 'personas'],
@@ -163,8 +164,8 @@ function getDefaultCommands(): Command[] {
     },
     {
       id: 'view-journey',
-      label: 'View your journey',
-      description: 'See your progress',
+      label: t('commandPalette.commands.viewJourney.label'),
+      description: t('commandPalette.commands.viewJourney.description'),
       icon: ICONS.map,
       category: 'navigation',
       keywords: ['journey', 'progress', 'history', 'milestones'],
@@ -174,7 +175,7 @@ function getDefaultCommands(): Command[] {
     },
     {
       id: 'view-calendar',
-      label: 'View calendar',
+      label: t('commandPalette.commands.viewCalendar.label'),
       icon: ICONS.calendar,
       category: 'navigation',
       keywords: ['calendar', 'schedule', 'events'],
@@ -184,7 +185,7 @@ function getDefaultCommands(): Command[] {
     },
     {
       id: 'settings',
-      label: 'Settings',
+      label: t('commandPalette.commands.settings.label'),
       icon: ICONS.settings,
       shortcut: ',',
       category: 'navigation',
@@ -195,7 +196,7 @@ function getDefaultCommands(): Command[] {
     },
     {
       id: 'toggle-theme',
-      label: 'Toggle dark mode',
+      label: t('commandPalette.commands.toggleTheme.label'),
       icon: ICONS.moon,
       category: 'settings',
       keywords: ['dark', 'light', 'theme', 'mode', 'color'],
@@ -205,7 +206,7 @@ function getDefaultCommands(): Command[] {
     },
     {
       id: 'shortcuts',
-      label: 'Keyboard shortcuts',
+      label: t('commandPalette.commands.shortcuts.label'),
       icon: ICONS.keyboard,
       shortcut: '?',
       category: 'settings',
@@ -216,7 +217,7 @@ function getDefaultCommands(): Command[] {
     },
     {
       id: 'help',
-      label: 'Get help',
+      label: t('commandPalette.commands.help.label'),
       icon: ICONS.help,
       category: 'settings',
       keywords: ['help', 'support', 'faq', 'contact'],
@@ -243,7 +244,7 @@ let focusTrapCleanup: (() => void) | null = null;
 let previousActiveElement: HTMLElement | null = null;
 
 const options: CommandPaletteOptions = {
-  placeholder: 'Type a command or search...',
+  placeholder: t('commandPalette.placeholder'),
   maxResults: 8,
 };
 
@@ -560,7 +561,7 @@ function createPalette(): HTMLElement {
         <input
           type="text"
           class="command-palette__input"
-          placeholder="${options.placeholder}"
+          placeholder="${options.placeholder || ''}"
           autocomplete="off"
           spellcheck="false"
         />
@@ -569,9 +570,9 @@ function createPalette(): HTMLElement {
       <div class="command-palette__results" role="listbox"></div>
       <div class="command-palette__footer">
         <div class="command-palette__footer-hints">
-          <span class="command-palette__footer-hint"><kbd>↑↓</kbd> navigate</span>
-          <span class="command-palette__footer-hint"><kbd>↵</kbd> select</span>
-          <span class="command-palette__footer-hint"><kbd>esc</kbd> close</span>
+          <span class="command-palette__footer-hint"><kbd>↑↓</kbd> ${t('commandPalette.footer.navigate')}</span>
+          <span class="command-palette__footer-hint"><kbd>↵</kbd> ${t('commandPalette.footer.select')}</span>
+          <span class="command-palette__footer-hint"><kbd>esc</kbd> ${t('commandPalette.footer.close')}</span>
         </div>
       </div>
     </div>
@@ -584,7 +585,7 @@ function renderResults(): void {
   if (!resultsContainer) return;
 
   if (filteredCommands.length === 0) {
-    resultsContainer.innerHTML = `<div class="command-palette__empty">No commands found</div>`;
+    resultsContainer.innerHTML = `<div class="command-palette__empty">${t('commandPalette.empty')}</div>`;
     return;
   }
 
