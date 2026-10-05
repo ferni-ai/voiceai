@@ -348,7 +348,6 @@
     "deploy:evolution": "pnpm ferni deploy evolution",
     "deploy:all": "pnpm ferni deploy all",
     "deploy:help": "pnpm ferni deploy --help",
-    "deploy:speaker": "gcloud builds submit --config=cloudbuild-speaker.yaml",
     "warmup:agent": "bash scripts/warmup-agent.sh",
     "deploy:workers": "bash infrastructure/scripts/deploy-workers.sh",
     "deploy:context": "bash infrastructure/scripts/deploy-context.sh",
@@ -548,7 +547,6 @@
     "@ferni/audio": "workspace:*",
     "@ferni/perf": "workspace:*",
     "@ferni/sonata": "workspace:*",
-    "ferni-speaker": "github:sethdford/ferni-speaker#v0.1.0",
     "node-pty": "1.1.0"
   },
   "engines": {
@@ -617,7 +615,6 @@
       "@tsparticles/engine",
       "canvas",
       "esbuild",
-      "ferni-speaker",
       "node-pty",
       "onnxruntime-node",
       "protobufjs",
