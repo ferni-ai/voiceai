@@ -247,7 +247,7 @@ export function sanitizeExtractionResult(
       name: entity.name.trim(),
       type: entity.type ?? 'thing',
       attributes,
-      confidence: typeof entity.confidence === 'number' ? entity.confidence : 0.5,
+      confidence: confidenceNumber(entity.confidence),
     });
   }
 
@@ -267,7 +267,7 @@ export function sanitizeExtractionResult(
       factType: fact.factType ?? 'attribute',
       key: fact.key.trim(),
       value: String(fact.value),
-      confidence: typeof fact.confidence === 'number' ? fact.confidence : 0.5,
+      confidence: confidenceNumber(fact.confidence),
       temporalContext: fact.temporalContext,
     });
   }
@@ -317,4 +317,12 @@ export function buildExtractionVectorDocuments(
     ...buildFactDocs(userId, sanitized.facts, job, timestamp, log),
     ...buildRelationshipDocs(userId, sanitized.relationships, job, timestamp, log),
   ];
+}
+
+/** The extractor sometimes writes "high"/"medium"/"low" instead of a number. */
+const WORD_CONFIDENCE: Record<string, number> = { high: 0.9, medium: 0.6, low: 0.3 };
+function confidenceNumber(raw: unknown): number {
+  if (typeof raw === 'number') return raw;
+  if (typeof raw === 'string') return WORD_CONFIDENCE[raw.trim().toLowerCase()] ?? 0.5;
+  return 0.5;
 }
