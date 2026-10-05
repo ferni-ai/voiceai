@@ -25,6 +25,8 @@ import {
 import { notifyDDoSAlert } from '../../services/slack-notifications.js';
 import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
 import { bindVerifiedIdentity } from './request-identity.js';
+import { respondOnRejection } from './request-failure.js';
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { parseRawBody } from '../../api/helpers.js';
 
 // Local routes
@@ -263,7 +265,8 @@ if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
 /**
  * Create the HTTP server
  */
-const server = http.createServer(async (req, res) => {
+const server = http.createServer((req, res) => respondOnRejection(res, handleRequest(req, res)));
+async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   addRequestId(req, res); // request ID for tracing
 
   setSecurityHeaders(res); // HSTS, CSP, X-Frame-Options, etc.
@@ -1490,7 +1493,7 @@ const server = http.createServer(async (req, res) => {
   // STATIC FILES (fallback)
   // ============================================================================
   handleStaticRoutes(req, res, pathname);
-});
+}
 
 // Harden server with DDoS protection
 hardenServer(server);
@@ -1526,7 +1529,8 @@ registerDDoSAlertCallback(async (details) => {
 const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 
 // Start the server
-server.listen(PORT, '0.0.0.0', async () => {
+server.listen(PORT, '0.0.0.0', () => fireAndForget(startBackgroundServices, 'api-startup'));
+async function startBackgroundServices(): Promise<void> {
   log.info(
     {
       port: PORT,
@@ -1547,11 +1551,11 @@ server.listen(PORT, '0.0.0.0', async () => {
     log.info('🍎 Apple Calendar polling service started');
 
     // Google Calendar webhook renewal (watches expire after 7 days)
-    startGoogleWebhookRenewal();
+    fireAndForget(startGoogleWebhookRenewal, 'google-webhook-renewal');
     log.info('📅 Google Calendar webhook renewal service started');
 
     // Outlook subscription renewal (subscriptions expire after hours)
-    startOutlookSubscriptionRenewal();
+    fireAndForget(startOutlookSubscriptionRenewal, 'outlook-subscription-renewal');
     log.info('📧 Outlook Calendar subscription renewal service started');
   } catch (error) {
     log.warn({ error: String(error) }, 'Calendar sync services failed to start (non-blocking)');
@@ -1592,7 +1596,7 @@ server.listen(PORT, '0.0.0.0', async () => {
   } catch (error) {
     log.warn({ error: String(error) }, 'Twilio Stream Bridge failed to start (non-blocking)');
   }
-});
+}
 
 // ============================================================================
 // GRACEFUL SHUTDOWN
@@ -1628,7 +1632,7 @@ async function gracefulShutdown(): Promise<void> {
       shutdownTokenRoutes(),
       shutdownGoogleCalendar(),
       shutdownSpotifyOAuth(),
-      shutdownApplePolling(),
+      Promise.resolve(shutdownApplePolling()),
       Promise.resolve(shutdownWearablesRoutes()),
     ]);
     log.info('Services shutdown complete');
