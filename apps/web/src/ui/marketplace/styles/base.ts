@@ -269,6 +269,7 @@ export function getBaseStyles(): string {
 
     .marketplace-content {
       position: relative;
+      isolation: isolate;
       flex: 1;
       overflow-y: auto;
       padding: var(--space-lg);
@@ -287,6 +288,7 @@ export function getBaseStyles(): string {
       background: var(--gradient-sunbeam);
       opacity: 0.6;
       pointer-events: none;
+      z-index: -1;
     }
 
     .marketplace-loading,

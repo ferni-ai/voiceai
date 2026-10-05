@@ -20,6 +20,7 @@ import {
   canStartConversation,
   createCheckoutSession,
   createPortalSession,
+  getStripeCustomerId,
   getSubscriptionInfo,
   handleWebhookEvent,
   isStripeConfigured,
@@ -76,15 +77,30 @@ function adminKeyMatches(presented: unknown, expected: string | undefined): bool
   return timingSafeEqual(digest(presented), digest(expected));
 }
 
+function json(status: number, body: unknown): ResponseContext {
+  return { status, headers: { 'Content-Type': 'application/json' }, body };
+}
+
 /** The user a body-named action may touch: the verified caller (admins may name another). */
 function actingUser(ctx: RequestContext, named: unknown): { userId: string } | ResponseContext {
   const r = decideActingUser(ctx.authUserId, ctx.isAdmin, named);
-  if (r.ok) return { userId: r.userId };
-  return {
-    status: r.status,
-    headers: { 'Content-Type': 'application/json' },
-    body: { error: r.error },
-  };
+  return r.ok ? { userId: r.userId } : json(r.status, { error: r.error });
+}
+
+/**
+ * The user a read serves: the verified caller only. ?userId= is a client claim,
+ * so it is ignored unless the caller is a verified admin. No caller → 401.
+ */
+function readUser(ctx: RequestContext): { userId: string } | ResponseContext {
+  if (!ctx.authUserId) {
+    return {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Authentication required' },
+    };
+  }
+  const named = ctx.query.userId;
+  return { userId: ctx.isAdmin && named ? String(named) : ctx.authUserId };
 }
 
 // ============================================================================
@@ -101,34 +117,16 @@ function actingUser(ctx: RequestContext, named: unknown): { userId: string } | R
 async function getStatus(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
   // Admin users can access other users' data
-  const requestedUserId = ctx.query.userId;
-  const userId =
-    ctx.isAdmin && requestedUserId
-      ? String(requestedUserId)
-      : ctx.authUserId || String(requestedUserId || '');
-
-  if (!userId) {
-    return {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Authentication required' },
-    };
-  }
+  const reader = readUser(ctx);
+  if (!('userId' in reader)) return reader;
+  const { userId } = reader;
 
   try {
-    const info = await getSubscriptionInfo(userId);
-    return {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: info,
-    };
+    // Includes billingSource ('stripe' | 'app_store' | 'none'), from the profile's billing records.
+    return json(200, await getSubscriptionInfo(userId));
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get subscription status');
-    return {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Failed to get subscription status' },
-    };
+    return json(500, { error: 'Failed to get subscription status' });
   }
 }
 
@@ -140,19 +138,9 @@ async function getStatus(ctx: RequestContext): Promise<ResponseContext> {
  */
 async function checkCanStart(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
-  const requestedUserId = ctx.query.userId;
-  const userId =
-    ctx.isAdmin && requestedUserId
-      ? String(requestedUserId)
-      : ctx.authUserId || String(requestedUserId || '');
-
-  if (!userId) {
-    return {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Authentication required' },
-    };
-  }
+  const reader = readUser(ctx);
+  if (!('userId' in reader)) return reader;
+  const { userId } = reader;
 
   try {
     const result = await canStartConversation(userId);
@@ -250,43 +238,26 @@ async function createCheckout(ctx: RequestContext): Promise<ResponseContext> {
 
 /**
  * POST /api/subscription/portal
- * Create a Stripe billing portal session
+ * Create a Stripe billing portal session. 409 when the caller has no Stripe
+ * customer (e.g. they subscribed through the App Store): there's nothing for
+ * Stripe's portal to manage.
  */
 async function createBillingPortal(ctx: RequestContext): Promise<ResponseContext> {
-  if (!isStripeConfigured()) {
-    return {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Stripe is not configured' },
-    };
-  }
+  if (!isStripeConfigured()) return json(503, { error: 'Stripe is not configured' });
 
-  const body = ctx.body as {
-    userId?: string;
-    returnUrl?: string;
-  };
-
+  const body = ctx.body as { userId?: string; returnUrl?: string };
   const actor = actingUser(ctx, body.userId);
   if (!('userId' in actor)) return actor;
 
   try {
-    const session = await createPortalSession(
-      actor.userId,
-      body.returnUrl || 'https://ferni.ai/settings'
-    );
-
-    return {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: session,
-    };
+    if (!(await getStripeCustomerId(actor.userId))) {
+      return json(409, { error: 'No Stripe billing for this account', code: 'no_stripe_customer' });
+    }
+    const returnUrl = body.returnUrl || 'https://ferni.ai/settings';
+    return json(200, await createPortalSession(actor.userId, returnUrl));
   } catch (error) {
     log.error({ error: String(error), userId: actor.userId }, 'Failed to create portal session');
-    return {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Failed to create portal session' },
-    };
+    return json(500, { error: 'Failed to create portal session' });
   }
 }
 
@@ -499,20 +470,10 @@ async function handleStripeWebhook(ctx: RequestContext): Promise<ResponseContext
  */
 async function getTrialStatus(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
-  const requestedUserId = ctx.query.userId;
-  const userId =
-    ctx.isAdmin && requestedUserId
-      ? String(requestedUserId)
-      : ctx.authUserId || String(requestedUserId || '');
+  const reader = readUser(ctx);
+  if (!('userId' in reader)) return reader;
+  const { userId } = reader;
   const currentSessionTimeMs = parseInt(ctx.query.sessionTime as string) || 0;
-
-  if (!userId) {
-    return {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Authentication required' },
-    };
-  }
 
   try {
     const status = await checkTrialStatus(userId, currentSessionTimeMs);
@@ -636,21 +597,15 @@ async function recordTrialTimeEndpoint(ctx: RequestContext): Promise<ResponseCon
 async function verifyCheckoutSession(ctx: RequestContext): Promise<ResponseContext> {
   const sessionId = ctx.query.session_id;
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
-  const userId = ctx.authUserId || ctx.query.userId;
+  const reader = readUser(ctx);
+  if (!('userId' in reader)) return reader;
+  const { userId } = reader;
 
   if (!sessionId) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
       body: { error: 'session_id is required' },
-    };
-  }
-
-  if (!userId) {
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId is required' },
     };
   }
 

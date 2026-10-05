@@ -11,7 +11,7 @@
 import { ReadableStream } from 'node:stream/web';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { VOICE_IDS } from '../../../../config/voice-ids.js';
+import { LESTER_PRO_V3_VOICE_ID } from '../../../../config/voice-ids.js';
 import { clearReplyAudioPlan, takeReplyAudioPlan } from '../../../reply-audio-plan.js';
 import type { ReplyStream } from '../../providers/cartesia-reply-stream.js';
 import { createSSMLProcessor } from '../../ssml/processor.js';
@@ -29,7 +29,7 @@ const LONG_USER_TURN = Array.from({ length: 30 }, (_, i) => `word${i}`).join(' '
 const base = (over: Partial<OpeningInput> = {}): OpeningInput => ({
   openingText: 'Okay, that makes sense.',
   opensWithSigh: false,
-  voiceId: VOICE_IDS.FERNI,
+  voiceId: LESTER_PRO_V3_VOICE_ID,
   carry: {},
   ...over,
 });
@@ -155,7 +155,7 @@ async function reply(
         c.close();
       },
     }),
-    voiceId: VOICE_IDS.FERNI,
+    voiceId: LESTER_PRO_V3_VOICE_ID,
     sessionId: SESSION,
     personaId: 'ferni',
     turnContext: { turnNumber: turn, userRequest },

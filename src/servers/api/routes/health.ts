@@ -8,6 +8,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import * as spotifyService from '../services/spotify.js';
 import * as plaidService from '../services/plaid.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { parseRawBody } from '../../../api/helpers.js';
 import { getAllStats as getPersistenceStats } from '../../../services/persistence/index.js';
 import { persistenceMetrics } from '../../../services/analytics/persistence-metrics.js';
 
@@ -455,9 +456,7 @@ export async function handleHealthRoutes(
       const ttl = await import('../../../services/data-layer/ttl-cleanup.js');
 
       // Parse request body for options
-      let body = '';
-      req.on('data', (chunk) => (body += chunk));
-      await new Promise((resolve) => req.on('end', resolve));
+      const body = await parseRawBody(req);
 
       let options: { dryRun?: boolean; collections?: string[] } = {};
       if (body) {

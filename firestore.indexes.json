@@ -619,6 +619,14 @@
       ]
     },
     {
+      "collectionGroup": "ferni_commitments",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "outcome", "order": "ASCENDING" },
+        { "fieldPath": "dueBy", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "scheduled_actions",
       "queryScope": "COLLECTION_GROUP",
       "fields": [

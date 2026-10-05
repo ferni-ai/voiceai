@@ -51,8 +51,8 @@ import {
   buildNarrativeContextString,
   buildNarrativeContext,
 } from '../../../services/superhuman/life-narrative.js';
-
 import { detectConflict, loadUserValues } from '../../../services/superhuman/values-alignment.js';
+import { recordCheckInPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 
 const log = createLogger({ module: 'proactive-tools' });
 
@@ -600,10 +600,10 @@ const scheduleFollowUpDef: ToolDefinition = {
       }),
       execute: async ({ topic, when, urgency = 'gentle' }) => {
         log.info({ agentId: ctx.agentId, topic, when }, 'Scheduling follow-up');
-
-        // In a real implementation, this would create a scheduled task
-        // For now, we acknowledge the intent
-
+        // A promise: kept when she asks about it in a call by then (a day's slack), else missed.
+        const days = { tomorrow: 2, 'few-days': 5, week: 9, month: 35 }[when];
+        const dueBy = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+        await recordCheckInPromise(ctx.userId ?? '', { topic, dueBy });
         const timeframes: Record<string, string> = {
           tomorrow: 'tomorrow',
           'few-days': 'in a few days',

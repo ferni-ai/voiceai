@@ -26,6 +26,7 @@ import { capToolsToLimit, getMaxTools, isMetaToolEnabled } from '../../config/to
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import type { UserData } from './types.js';
+import { resolveInitialToolLimit } from '../multi-agent/initial-tools.js';
 
 const log = createLogger({ module: 'ToolUpdater' });
 
@@ -108,11 +109,14 @@ export async function updateAgentTools(
       );
     }
 
-    let merged: Record<string, unknown> = { ...existing, ...newTools };
-    const configLimit = getMaxTools();
-    if (configLimit > 0) {
-      merged = capToolsToLimit(merged, configLimit);
-    }
+    // The tools just asked for come first, so the cap evicts the oldest
+    // non-essential ones, not them. Same cap as the first agent (64 when
+    // TOOL_LIMIT is unset): uncapped, a dev call grew 64 -> 160 -> 213 tools,
+    // ~9.5k prompt tokens on every turn.
+    const merged = capToolsToLimit(
+      { ...newTools, ...existing, ...newTools },
+      resolveInitialToolLimit(getMaxTools())
+    );
 
     await target.updateTools(merged);
 

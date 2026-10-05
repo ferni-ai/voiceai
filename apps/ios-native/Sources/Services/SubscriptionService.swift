@@ -56,6 +56,13 @@ enum SubscriptionTier: String, CaseIterable {
         }
     }
     
+    /// The first paid plan that brings this teammate in (nil for Ferni, who's always here).
+    static func plan(including personaId: String) -> SubscriptionTier? {
+        let id = personaId.lowercased()
+        guard !SubscriptionTier.free.availablePersonas.contains(id) else { return nil }
+        return [SubscriptionTier.friend, .partner].first { $0.availablePersonas.contains(id) }
+    }
+
     /// Monthly conversation limit (nil = unlimited)
     var conversationLimit: Int? {
         switch self {
@@ -206,15 +213,21 @@ final class SubscriptionService: ObservableObject {
     func purchase(_ product: some PurchasableProduct) async -> PurchaseResult {
         purchaseInProgress = true
         defer { purchaseInProgress = false }
-        
+        lastError = nil  // so a stale error isn't read as this purchase's outcome
+
         // The purchase must carry this account's token: if we can't get it, don't buy.
         let options: Set<Product.PurchaseOption>
         do {
             options = try await AccountBoundPurchase.options(from: accountAPI)
         } catch {
             logger.error("No appAccountToken, purchase not started: \(error.localizedDescription)")
-            let failure: SubscriptionError =
-                (error as? AppleAccountAPIError) == .notSignedIn ? .signInRequired : .accountUnavailable
+            let failure: SubscriptionError
+            switch error as? AppleAccountAPIError {
+            case .notSignedIn: failure = .signInRequired
+            // 503: the server can't record App Store purchases yet, so don't take any.
+            case .badStatus(503): failure = .purchasesUnavailable
+            default: failure = .accountUnavailable
+            }
             lastError = failure
             return .failed(failure)
         }
@@ -263,38 +276,33 @@ final class SubscriptionService: ObservableObject {
         }
     }
     
-    /// Purchase by tier (finds the monthly product)
-    func purchase(tier: SubscriptionTier) async -> PurchaseResult {
+    /// The monthly App Store product for a paid tier, once products have loaded.
+    func monthlyProduct(for tier: SubscriptionTier) -> Product? {
         let productId: String
         switch tier {
-        case .friend:
-            productId = ProductID.friendMonthly
-        case .partner:
-            productId = ProductID.partnerMonthly
-        case .free:
-            return .failed(.invalidProduct)
+        case .friend: productId = ProductID.friendMonthly
+        case .partner: productId = ProductID.partnerMonthly
+        case .free: return nil
         }
-        
-        guard let product = availableProducts.first(where: { $0.id == productId }) else {
-            lastError = .productNotFound
-            return .failed(.productNotFound)
-        }
-        
-        return await purchase(product)
+        return availableProducts.first { $0.id == productId }
     }
-    
+
     // MARK: - Restore Purchases
-    
-    func restorePurchases() async {
+
+    /// Re-sync with the App Store. Returns the tier afterwards, or nil if it failed.
+    @discardableResult
+    func restorePurchases() async -> SubscriptionTier? {
         logger.info("Restoring purchases...")
-        
+
         do {
             try await AppStore.sync()
             await checkSubscriptionStatus()
             logger.info("Purchases restored")
+            return currentTier
         } catch {
             logger.error("Failed to restore purchases: \(error.localizedDescription)")
             lastError = .restoreFailed
+            return nil
         }
     }
     
@@ -415,116 +423,35 @@ enum PurchaseResult {
 
 enum SubscriptionError: Error, LocalizedError {
     case productLoadFailed
-    case productNotFound
     case purchaseFailed
     case verificationFailed
     case restoreFailed
-    case invalidProduct
     case signInRequired
     case accountUnavailable
+    case purchasesUnavailable
     case serverSyncFailed
     case unknown
-    
+
     var errorDescription: String? {
         switch self {
         case .productLoadFailed:
-            return "Couldn't load subscription options"
-        case .productNotFound:
-            return "Subscription not found"
+            return "Couldn't load the plans. Try again?"
         case .purchaseFailed:
-            return "Purchase failed"
+            return "That didn't go through. Try again?"
         case .verificationFailed:
-            return "Couldn't verify purchase"
+            return "Couldn't confirm that purchase. Try again?"
         case .restoreFailed:
-            return "Couldn't restore purchases"
-        case .invalidProduct:
-            return "Invalid product"
+            return "Couldn't restore purchases. Try again?"
         case .signInRequired:
             return "Sign in to subscribe."
         case .accountUnavailable:
-            return "Couldn't reach your account, so nothing was charged. Try again?"
+            return "Couldn't start that right now. Try again?"
+        case .purchasesUnavailable:
+            return "Purchases aren't available yet."
         case .serverSyncFailed:
             return "You're subscribed, but we couldn't link it to your account yet. We'll keep trying."
         case .unknown:
-            return "Something went wrong"
+            return "That didn't work. Try again?"
         }
-    }
-}
-
-// MARK: - Subscription View Model (for UI)
-
-@MainActor
-final class SubscriptionViewModel: ObservableObject {
-    @Published var products: [Product] = []
-    @Published var currentTier: SubscriptionTier = .free
-    @Published var isLoading: Bool = false
-    @Published var errorMessage: String?
-    @Published var showSuccessAlert: Bool = false
-    
-    private let service = SubscriptionService.shared
-    private var cancellables = Set<AnyCancellable>()
-    
-    init() {
-        // Bind to service
-        service.$availableProducts
-            .assign(to: &$products)
-        
-        service.$currentTier
-            .assign(to: &$currentTier)
-        
-        service.$purchaseInProgress
-            .assign(to: &$isLoading)
-        
-        service.$lastError
-            .map { $0?.localizedDescription }
-            .assign(to: &$errorMessage)
-    }
-    
-    func purchase(_ product: Product) async {
-        let result = await service.purchase(product)
-        
-        switch result {
-        case .success:
-            showSuccessAlert = true
-        case .failed(let error):
-            errorMessage = error.localizedDescription
-        default:
-            break
-        }
-    }
-    
-    func restore() async {
-        await service.restorePurchases()
-    }
-    
-    func manageSubscription() async {
-        await service.manageSubscription()
-    }
-    
-    // MARK: - Formatted Prices
-    
-    func formattedPrice(for product: Product) -> String {
-        return product.displayPrice
-    }
-    
-    func monthlyEquivalent(for product: Product) -> String? {
-        // If yearly, show monthly equivalent
-        if product.id.contains("yearly") {
-            let monthly = product.price / 12
-            return "$\(monthly.formatted(.number.precision(.fractionLength(2))))/mo"
-        }
-        return nil
-    }
-    
-    func savingsPercentage(for product: Product) -> Int? {
-        // Calculate savings for yearly vs monthly
-        guard product.id.contains("yearly") else { return nil }
-        
-        let tier = ProductID.tier(for: product.id)
-        let monthlyPrice = tier.monthlyPrice
-        let yearlyMonthly = product.price / 12
-        
-        let savings = ((monthlyPrice - yearlyMonthly) / monthlyPrice) * 100
-        return Int(truncating: NSDecimalNumber(decimal: savings).rounding(accordingToBehavior: nil))
     }
 }

@@ -12,6 +12,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { appleIAP, isAppleConfigured } from '../services/apple-iap.js';
+import { applyAppleChange, changeFromTransaction } from '../services/billing/apple-entitlement.js';
 import {
   appAccountTokenFor,
   claimAppleTransaction,
@@ -94,6 +95,16 @@ async function verifyReceipt(ctx: RequestContext): Promise<ResponseContext> {
         headers: { 'Content-Type': 'application/json' },
         body: { error: claim.error },
       };
+    }
+    // The bound owner's profile gets what they paid for (the web reads the profile).
+    const change = changeFromTransaction(claim.transaction);
+    if (change) {
+      try {
+        await applyAppleChange(actor.userId, change, { create: true });
+      } catch (error) {
+        log.error({ error: String(error), userId: actor.userId }, 'Could not apply a purchase');
+        return jsonError(503, "Your purchase is verified but couldn't be applied yet. Try again?");
+      }
     }
     const { productId, expiresDate, environment } = claim.transaction;
     return {
@@ -218,8 +229,9 @@ async function handleWebhook(ctx: RequestContext): Promise<ResponseContext> {
 
     if (!result.success) {
       log.warn({ error: result.error }, 'Apple webhook processing failed');
-      // Still return 200 to acknowledge receipt
-      // Apple will retry if we return error status
+      // A transient failure gets a non-2xx so Apple retries (handling is idempotent);
+      // anything else is acknowledged so Apple doesn't retry what can't succeed.
+      if (result.retry) return jsonError(503, 'Try again later');
     }
 
     log.info(
@@ -247,6 +259,9 @@ async function handleWebhook(ctx: RequestContext): Promise<ResponseContext> {
  * GET /api/apple/account-token
  * The appAccountToken for the signed-in user. The iOS app passes it to StoreKit
  * at purchase, which binds the purchase to this account (see apple-signed-data).
+ * 503 while the server can't verify purchases (POST /api/apple/verify would
+ * refuse them): the app buys only with this token, so nobody is charged for a
+ * purchase we can't record.
  */
 // eslint-disable-next-line @typescript-eslint/require-await
 async function getAccountToken(ctx: RequestContext): Promise<ResponseContext> {
@@ -256,6 +271,9 @@ async function getAccountToken(ctx: RequestContext): Promise<ResponseContext> {
       headers: { 'Content-Type': 'application/json' },
       body: { error: 'Authentication required' },
     };
+  }
+  if (!isAppleConfigured() || !getAppleVerifier()) {
+    return jsonError(503, "Purchases aren't available yet");
   }
   return {
     status: 200,

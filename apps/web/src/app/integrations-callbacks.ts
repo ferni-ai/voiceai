@@ -12,6 +12,7 @@ import {
   type IntegrationsUICallbacks,
 } from '../ui/integrations-settings.ui.js';
 import { connectLinkedIn, disconnectLinkedIn } from '../services/linkedin.service.js';
+import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import { startOAuthConnect } from '../services/oauth-connect.service.js';
 import { apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
@@ -25,12 +26,15 @@ function refreshPanel(): void {
 
 export function createIntegrationsCallbacks(): IntegrationsUICallbacks {
   return {
-    onConnectLinkedIn: () => {
-      void connectLinkedIn();
-    },
-    onDisconnectLinkedIn: () => {
-      void disconnectLinkedIn();
-    },
+    // LinkedIn is switched off (config/linkedin.ts): no callbacks, nothing to click.
+    ...(LINKEDIN_ENABLED && {
+      onConnectLinkedIn: () => {
+        void connectLinkedIn();
+      },
+      onDisconnectLinkedIn: () => {
+        void disconnectLinkedIn();
+      },
+    }),
     // Google Calendar connects and disconnects through /auth/google/*, the
     // flow whose token store every calendar feature (and the status) reads.
     onConnectCalendar: () => {

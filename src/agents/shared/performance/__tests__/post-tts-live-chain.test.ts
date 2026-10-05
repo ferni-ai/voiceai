@@ -11,7 +11,7 @@
 
 import { ReadableStream } from 'node:stream/web';
 import { AudioFrame } from '@livekit/rtc-node';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   applyPostTTSEnhancement,
   PostTTSPresets,
@@ -92,7 +92,12 @@ const concat = (frames: AudioFrame[]): Int16Array => {
 const rms = (x: Int16Array): number => Math.sqrt(x.reduce((a, v) => a + v * v, 0) / x.length);
 
 describe.runIf(native)('post-TTS live chain (native)', () => {
-  afterEach(() => vi.restoreAllMocks());
+  // The chain is opt-in (postTtsChainEnabled); these tests are about the chain itself.
+  beforeEach(() => vi.stubEnv('POST_TTS_ENHANCEMENT_ENABLED', 'true'));
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
 
   it('runs every frame through the native processor, same count and format out', async () => {
     const spy = vi.spyOn(native!.NativePostTtsProcessor!.prototype, 'processFrame');

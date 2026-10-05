@@ -46,5 +46,6 @@ export function leverModes(env: Env = process.env): LeverModes {
     pacing: lower('pacing'),
     nonverbal: lower('nonverbal', 'off'),
     laughter: lower('laughter', 'off'),
+    prosody: lower('prosody', 'shadow'),
   };
 }
