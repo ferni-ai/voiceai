@@ -435,7 +435,7 @@
     "ferni:health": "npx tsx apps/cli/src/index.ts health",
     "ferni:binary": "npx tsx apps/cli/src/commands/build/build-cli-binary.ts",
     "ferni:binary:release": "npx tsx apps/cli/src/commands/build/build-cli-binary.ts --release",
-    "ui-server": "PORT=3002 npx tsx src/servers/api/index.ts",
+    "ui-server": "PORT=${UI_SERVER_PORT:-3002} npx tsx src/servers/api/index.ts",
     "gateway": "npx tsx src/servers/gateway.ts",
     "dev:full": "npm run ui-server & npm run dev",
     "ci:review": "npx tsx apps/cli/src/index.ts review full",

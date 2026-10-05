@@ -18,6 +18,10 @@ export default defineConfig(({ mode }) => {
   // Only stub Firebase in development when credentials aren't provided
   const shouldStubFirebase = mode === 'development' && !isFirebaseConfigured;
 
+  // The UI server the dev proxy forwards to. Set UI_SERVER_PORT for both this and
+  // `pnpm ui-server` to run a second checkout's stack beside one already on 3002.
+  const uiServer = `http://localhost:${env.UI_SERVER_PORT || '3002'}`;
+
   return {
     root: '.',
     publicDir: 'public',
@@ -76,23 +80,22 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3004,
       proxy: {
-        // UI server handles EVERYTHING (tokens, OAuth, APIs)
-        // Run with: PORT=3002 node ui-server.js
-        '/token': 'http://localhost:3002',
-        '/token-url': 'http://localhost:3002',
-        '/demo-token': 'http://localhost:3002',
-        '/spotify': 'http://localhost:3002',
-        '/wearables': 'http://localhost:3002',
-        '/auth': 'http://localhost:3002',
-        '/api': 'http://localhost:3002',
-        '/calendar': 'http://localhost:3002', // Calendar provider routes (Apple, Outlook)
-        '/subscription': 'http://localhost:3002',
-        '/usage': 'http://localhost:3002',
-        '/health': 'http://localhost:3002',
+        // UI server handles EVERYTHING (tokens, OAuth, APIs): `pnpm ui-server`
+        '/token': uiServer,
+        '/token-url': uiServer,
+        '/demo-token': uiServer,
+        '/spotify': uiServer,
+        '/wearables': uiServer,
+        '/auth': uiServer,
+        '/api': uiServer,
+        '/calendar': uiServer, // Calendar provider routes (Apple, Outlook)
+        '/subscription': uiServer,
+        '/usage': uiServer,
+        '/health': uiServer,
         // WebSocket for real-time team insights
         // Note: WebSocket proxy can be flaky in dev - failures are non-critical
         '/ws/insights': {
-          target: 'http://localhost:3002',
+          target: uiServer,
           ws: true,
           changeOrigin: true,
           configure: (proxy) => {
@@ -102,7 +105,7 @@ export default defineConfig(({ mode }) => {
           },
         },
         '/ws/life-context': {
-          target: 'http://localhost:3002',
+          target: uiServer,
           ws: true,
           changeOrigin: true,
           configure: (proxy) => {
@@ -112,7 +115,7 @@ export default defineConfig(({ mode }) => {
           },
         },
         '/ws/director': {
-          target: 'http://localhost:3002',
+          target: uiServer,
           ws: true,
           changeOrigin: true,
           configure: (proxy) => {
