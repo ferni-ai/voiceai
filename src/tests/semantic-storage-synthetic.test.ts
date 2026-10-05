@@ -15,13 +15,18 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Import systems under test
-import { embed, cosineSimilarity, getEmbeddingProvider } from '../memory/embeddings.js';
+import { embed, cosineSimilarity } from '../memory/embeddings.js';
 import {
   findSimilarCached,
   storeInSemanticCache,
   clearUserSemanticCache,
   getSemanticCacheStats,
 } from '../memory/semantic-memory-cache.js';
+import {
+  HAS_EMBEDDING_API_KEY,
+  useApiKeyEmbeddings,
+  useLocalEmbeddings,
+} from './helpers/embedding-provider.js';
 
 // ============================================================================
 // TEST CONFIGURATION
@@ -31,13 +36,9 @@ const USE_LLM = !!process.env.GOOGLE_API_KEY;
 const LLM_TIMEOUT = 30000;
 const SIMILARITY_THRESHOLD = 0.85; // What we consider "semantically similar"
 
-// Check if we have real embeddings (not local random vectors)
-const USE_REAL_EMBEDDINGS = !!process.env.GOOGLE_API_KEY || !!process.env.OPENAI_API_KEY;
-
-function isUsingLocalEmbeddings(): boolean {
-  const provider = getEmbeddingProvider();
-  return provider.model === 'local-random';
-}
+// Gated tests get the API key's provider, never Vertex AI (see the helper).
+const USE_REAL_EMBEDDINGS = HAS_EMBEDDING_API_KEY;
+useApiKeyEmbeddings();
 
 import { TEST_LLM_MODEL } from './test-llm-config.js';
 
@@ -549,6 +550,8 @@ describe('Memory Retrieval Relevance', () => {
 
 describe('Edge Cases & Robustness', () => {
   describe('Ambiguous Queries', () => {
+    useLocalEmbeddings();
+
     const AMBIGUOUS_CASES = [
       {
         query: 'How is it going?',
@@ -613,6 +616,8 @@ describe('Edge Cases & Robustness', () => {
   });
 
   describe('Empty and Invalid Inputs', () => {
+    useLocalEmbeddings();
+
     it('should reject empty and whitespace-only input', async () => {
       // embed() guards against empty text rather than returning a zero vector,
       // which would silently poison every similarity comparison.
