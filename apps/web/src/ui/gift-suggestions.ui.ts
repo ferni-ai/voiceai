@@ -606,8 +606,8 @@ function render(): void {
         <div class="gs-header-title">
           <span class="gs-icon">${ICONS.sparkles}</span>
           <div>
-            <div class="gs-eyebrow">Gift Ideas</div>
-            <h2 class="gs-title">For ${escapeHtml(state.contactName)}</h2>
+            <div class="gs-eyebrow">${t('gifts.giftIdeas')}</div>
+            <h2 class="gs-title">${escapeHtml(t('gifts.forContact', { name: state.contactName }))}</h2>
           </div>
         </div>
         <button class="gs-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
@@ -639,9 +639,9 @@ function render(): void {
     
     ${state.hasGenerated && state.suggestions.length > 0 ? `
       <div class="gs-footer">
-        <span class="gs-footer-hint">Tap a gift to record it</span>
+        <span class="gs-footer-hint">${t('gifts.tapGiftToRecord')}</span>
         <button aria-label="${t('accessibility.refresh')}" class="gs-regenerate-btn" id="gs-regenerate">
-          ${ICONS.refresh} New ideas
+          ${ICONS.refresh} ${t('gifts.newIdeas')}
         </button>
       </div>
     ` : ''}
@@ -655,7 +655,7 @@ function renderContent(): string {
     return `
       <div class="gs-loading">
         <div class="gs-loading-icon">${ICONS.loader}</div>
-        <p class="gs-loading-text">Finding perfect gift ideas...</p>
+        <p class="gs-loading-text">${t('gifts.findingIdeas')}</p>
       </div>
     `;
   }
@@ -665,7 +665,7 @@ function renderContent(): string {
       <div class="gs-error">
         <p class="gs-error-text">${escapeHtml(state.error)}</p>
         <button aria-label="${t('accessibility.refresh')}" class="gs-retry-btn" id="gs-retry">
-          ${ICONS.refresh} Try again
+          ${ICONS.refresh} ${t('common.retry')}
         </button>
       </div>
     `;
@@ -675,13 +675,10 @@ function renderContent(): string {
     return `
       <div class="gs-initial">
         <div class="gs-initial-icon">${ICONS.gift}</div>
-        <h3 class="gs-initial-title">Find the perfect gift</h3>
-        <p class="gs-initial-text">
-          Based on ${escapeHtml(state.contactName)}'s interests and your relationship,
-          Ferni will suggest thoughtful gift ideas.
-        </p>
+        <h3 class="gs-initial-title">${t('gifts.findPerfect')}</h3>
+        <p class="gs-initial-text">${escapeHtml(t('gifts.basedOnInterests', { name: state.contactName }))}</p>
         <button aria-label="${t('accessibility.generateIdeas')}" class="gs-generate-btn" id="gs-generate">
-          ${ICONS.sparkles} Generate Ideas
+          ${ICONS.sparkles} ${t('accessibility.generateIdeas')}
         </button>
       </div>
     `;
@@ -691,8 +688,8 @@ function renderContent(): string {
     return `
       <div class="gs-initial">
         <div class="gs-initial-icon">${ICONS.gift}</div>
-        <h3 class="gs-initial-title">No suggestions yet</h3>
-        <p class="gs-initial-text">Try adjusting the occasion or budget.</p>
+        <h3 class="gs-initial-title">${t('gifts.noSuggestions')}</h3>
+        <p class="gs-initial-text">${t('gifts.tryAdjustingFilters')}</p>
       </div>
     `;
   }
@@ -712,8 +709,8 @@ function renderContent(): string {
           </div>
           ${suggestion.personalTouch ? `
             <div class="gs-personal-touch">
-              <div class="gs-personal-touch-label">Personal touch</div>
-              <div class="gs-personal-touch-text">"${escapeHtml(suggestion.personalTouch)}"</div>
+              <div class="gs-personal-touch-label">${t('gifts.personalTouch')}</div>
+              <div class="gs-personal-touch-text">${t('gifts.personalTouchQuote', { text: escapeHtml(suggestion.personalTouch) })}</div>
             </div>
           ` : ''}
         </div>
@@ -821,7 +818,7 @@ async function generateSuggestions(): Promise<void> {
         description: s.reason,
         priceRange: s.priceRange,
         reasoning: s.reason,
-        category: 'general',
+        category: t('gifts.categoryGeneral'),
       }));
       state.hasGenerated = true;
       state.isLoading = false;
@@ -831,7 +828,7 @@ async function generateSuggestions(): Promise<void> {
       return;
     }
     
-    state.error = 'Could not generate suggestions. Try again?';
+    state.error = t('gifts.generateError');
     state.isLoading = false;
     render();
   }

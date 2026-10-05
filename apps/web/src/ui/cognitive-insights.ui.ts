@@ -17,7 +17,8 @@
  *   - Ability to edit/delete memories
  */
 
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet } from '../utils/api.js';
@@ -145,12 +146,12 @@ const MEMORY_ICONS: Record<string, string> = {
 // HUMANIZED TYPE LABELS
 // ============================================================================
 
-const TYPE_LABELS: Record<string, string> = {
-  fact: t('cognitive.factsAboutYou'),
-  preference: t('cognitive.yourPreferences'),
-  goal: t('cognitive.yourGoals'),
-  pattern: t('cognitive.patternsIveNoticed'),
-  relationship: t('cognitive.connections'),
+const TYPE_LABEL_KEYS: Record<string, string> = {
+  fact: 'cognitive.factsAboutYou',
+  preference: 'cognitive.yourPreferences',
+  goal: 'cognitive.yourGoals',
+  pattern: 'cognitive.patternsIveNoticed',
+  relationship: 'cognitive.connections',
 };
 
 // ============================================================================
@@ -193,7 +194,7 @@ class CognitiveInsightsUI {
     if (!this.panel) return;
     const content = this.panel.querySelector('#cognitive-content');
     if (content) {
-      content.innerHTML = '<div class="cognitive-insights__loading" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Loading...</div>';
+      content.innerHTML = `<div class="cognitive-insights__loading" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('cognitive.loading')}</div>`;
     }
     this.panel.classList.add('cognitive-insights--visible');
     this.isVisible = true;
@@ -204,7 +205,7 @@ class CognitiveInsightsUI {
     if (!this.panel) return;
     const content = this.panel.querySelector('#cognitive-content');
     if (content) {
-      content.innerHTML = '<div class="cognitive-insights__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn\'t load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>';
+      content.innerHTML = `<div class="cognitive-insights__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('cognitive.loadError')} <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('cognitive.tryAgain')}</button></div>`;
       const retryBtn = content.querySelector('button');
       if (retryBtn && onRetry) {
         retryBtn.addEventListener('click', onRetry);
@@ -241,17 +242,17 @@ class CognitiveInsightsUI {
     this.panel.className = 'cognitive-insights';
     this.panel.setAttribute('role', 'dialog');
     this.panel.setAttribute('aria-modal', 'true');
-    this.panel.setAttribute('aria-label', "What I've learned about you");
+    this.panel.setAttribute('aria-label', t('cognitive.ariaLabel'));
 
     this.panel.innerHTML = `
       <div class="cognitive-insights__backdrop"></div>
       <div class="cognitive-insights__card">
         <header class="cognitive-insights__header">
-          <h2 class="cognitive-insights__title">What I've Learned</h2>
-          ${renderCloseButton('Close')}
+          <h2 class="cognitive-insights__title">${t('cognitive.whatIveLearned')}</h2>
+          ${renderCloseButton(t('accessibility.close'))}
         </header>
         <div class="cognitive-insights__content" id="cognitive-content">
-          <div class="cognitive-insights__loading">Loading insights...</div>
+          <div class="cognitive-insights__loading">${t('cognitive.loadingInsights')}</div>
         </div>
       </div>
     `;
@@ -286,8 +287,8 @@ class CognitiveInsightsUI {
           <span>${data.knowledgeScore}%</span>
         </div>
         <div class="cognitive-insights__score-info">
-          <span class="cognitive-insights__score-label">Understanding</span>
-          <span class="cognitive-insights__score-detail">${data.totalInteractions} conversations</span>
+          <span class="cognitive-insights__score-label">${t('cognitive.understanding')}</span>
+          <span class="cognitive-insights__score-detail">${tp('cognitive.conversationsCount', data.totalInteractions)}</span>
         </div>
       </div>
 
@@ -305,12 +306,10 @@ class CognitiveInsightsUI {
         <div class="cognitive-insights__superhuman">
           <div class="cognitive-insights__superhuman-header">
             <span class="cognitive-insights__superhuman-icon">${MEMORY_ICONS['growth_celebration']}</span>
-            <h3 class="cognitive-insights__superhuman-title">Things I Want to Remember</h3>
-            <span class="cognitive-insights__superhuman-badge">Proactive</span>
+            <h3 class="cognitive-insights__superhuman-title">${t('cognitive.thingsIWantToRemember')}</h3>
+            <span class="cognitive-insights__superhuman-badge">${t('cognitive.proactive')}</span>
           </div>
-          <p class="cognitive-insights__superhuman-intro">
-            Here are some things I'm keeping in mind for our next conversation:
-          </p>
+          <p class="cognitive-insights__superhuman-intro">${t('cognitive.superhumanIntro')}</p>
           <div class="cognitive-insights__superhuman-list">
             ${data.superhumanInsights.map((insight) => this.renderSuperhumanInsight(insight)).join('')}
           </div>
@@ -326,11 +325,9 @@ class CognitiveInsightsUI {
         <div class="cognitive-insights__patterns">
           <div class="cognitive-insights__patterns-header">
             <span class="cognitive-insights__patterns-icon">${MEMORY_ICONS['pattern']}</span>
-            <h3 class="cognitive-insights__patterns-title">Patterns I've Noticed</h3>
+            <h3 class="cognitive-insights__patterns-title">${t('cognitive.patternsIveNoticed')}</h3>
           </div>
-          <p class="cognitive-insights__patterns-intro">
-            Based on our conversations, here are some things I've observed about you:
-          </p>
+          <p class="cognitive-insights__patterns-intro">${t('cognitive.patternsIntro')}</p>
           ${this.renderPatternsByCategory(data.patterns)}
         </div>
       `
@@ -339,11 +336,11 @@ class CognitiveInsightsUI {
         <div class="cognitive-insights__patterns cognitive-insights__patterns--empty">
           <div class="cognitive-insights__patterns-header">
             <span class="cognitive-insights__patterns-icon">${MEMORY_ICONS['pattern']}</span>
-            <h3 class="cognitive-insights__patterns-title">Patterns I've Noticed</h3>
+            <h3 class="cognitive-insights__patterns-title">${t('cognitive.patternsIveNoticed')}</h3>
           </div>
           <div class="cognitive-insights__patterns-empty">
-            <p>As we continue talking, I'll start to notice patterns in what matters to you.</p>
-            <span class="cognitive-insights__patterns-hint">Keep sharing - the best insights come over time.</span>
+            <p>${t('cognitive.asContinueTalking')}</p>
+            <span class="cognitive-insights__patterns-hint">${t('cognitive.keepSharing')}</span>
           </div>
         </div>
       `
@@ -375,7 +372,8 @@ class CognitiveInsightsUI {
 
   private renderMemorySection(type: string, memories: CognitiveMemory[]): string {
     const icon = MEMORY_ICONS[type] || MEMORY_ICONS['fact'];
-    const title = TYPE_LABELS[type] || type.charAt(0).toUpperCase() + type.slice(1) + 's';
+    const labelKey = TYPE_LABEL_KEYS[type];
+    const title = labelKey ? t(labelKey) : type;
 
     return `
       <section class="cognitive-insights__section">
@@ -393,8 +391,7 @@ class CognitiveInsightsUI {
 
   private renderMemory(memory: CognitiveMemory, index: number): string {
     const confidence = Math.round(memory.confidence * 100);
-    const date = new Date(memory.learnedAt);
-    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const dateStr = formatDate(new Date(memory.learnedAt), { month: 'short', day: 'numeric' });
     const delay = index * STAGGER_DELAYS.MICRO;
 
     return `
@@ -404,7 +401,7 @@ class CognitiveInsightsUI {
           <div class="cognitive-insights__memory-meta">
             <span>${dateStr}</span>
             <span class="cognitive-insights__memory-confidence">
-              ${confidence}% sure
+              ${t('cognitive.percentSure', { percent: confidence })}
             </span>
           </div>
         </div>
@@ -418,12 +415,11 @@ class CognitiveInsightsUI {
   private renderPattern(pattern: LearningPattern): string {
     // Confidence indicator based on frequency
     const confidence = pattern.frequency >= 5 ? 'high' : pattern.frequency >= 3 ? 'medium' : 'low';
-    const confidenceLabel =
-      pattern.frequency >= 5
-        ? 'Strong pattern'
-        : pattern.frequency >= 3
-          ? 'Emerging pattern'
-          : 'Early observation';
+    const confidenceLabelKeys = {
+      high: 'cognitive.patternStrong',
+      medium: 'cognitive.patternEmerging',
+      low: 'cognitive.patternEarly',
+    } as const;
 
     return `
       <div class="cognitive-insights__pattern cognitive-insights__pattern--${confidence}">
@@ -447,8 +443,8 @@ class CognitiveInsightsUI {
           }
         </div>
         <div class="cognitive-insights__pattern-meta">
-          <span class="cognitive-insights__pattern-confidence">${confidenceLabel}</span>
-          <span class="cognitive-insights__pattern-freq">Observed ${pattern.frequency}x</span>
+          <span class="cognitive-insights__pattern-confidence">${t(confidenceLabelKeys[confidence])}</span>
+          <span class="cognitive-insights__pattern-freq">${t('cognitive.observedTimes', { count: pattern.frequency })}</span>
         </div>
       </div>
     `;
@@ -466,12 +462,12 @@ class CognitiveInsightsUI {
           ? 'superhuman-insight--medium'
           : '';
 
-    const typeLabels: Record<string, string> = {
-      date_reminder: 'Important Date',
-      growth_celebration: 'Growth Moment',
-      inside_joke: 'Shared Memory',
-      topic_absence: 'Check-in',
-      comfort_application: 'How to Help',
+    const typeLabelKeys: Record<string, string> = {
+      date_reminder: 'cognitive.insightDateReminder',
+      growth_celebration: 'cognitive.insightGrowthCelebration',
+      inside_joke: 'cognitive.insightInsideJoke',
+      topic_absence: 'cognitive.insightTopicAbsence',
+      comfort_application: 'cognitive.insightComfortApplication',
     };
 
     // Use SVG icons instead of emojis (brand-compliant)
@@ -490,7 +486,7 @@ class CognitiveInsightsUI {
         </div>
         <div class="cognitive-insights__superhuman-insight-content">
           <div class="cognitive-insights__superhuman-insight-header">
-            <span class="cognitive-insights__superhuman-insight-type">${typeLabels[insight.type] || insight.type}</span>
+            <span class="cognitive-insights__superhuman-insight-type">${typeLabelKeys[insight.type] ? t(typeLabelKeys[insight.type]!) : insight.type}</span>
             <span class="cognitive-insights__superhuman-insight-tone">${toneIcons[insight.tone] || ''}</span>
           </div>
           <p class="cognitive-insights__superhuman-insight-phrase">${escapeHtml(insight.naturalPhrase)}</p>
@@ -501,79 +497,79 @@ class CognitiveInsightsUI {
 
   private renderPatternsByCategory(patterns: LearningPattern[]): string {
     // Category configuration
-    const CATEGORY_CONFIG: Record<string, { label: string; icon: string; order: number }> = {
+    const CATEGORY_CONFIG: Record<string, { labelKey: string; icon: string; order: number }> = {
       relationship: {
-        label: 'Our Relationship',
+        labelKey: 'cognitive.ourRelationship',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
         order: 1,
       },
       communication: {
-        label: 'How You Communicate',
+        labelKey: 'cognitive.howYouCommunicate',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
         order: 2,
       },
       interests: {
-        label: 'What Excites You',
+        labelKey: 'cognitive.whatExcitesYou',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
         order: 3,
       },
       engagement: {
-        label: 'How You Engage',
+        labelKey: 'cognitive.howYouEngage',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
         order: 4,
       },
       timing: {
-        label: "When You're Around",
+        labelKey: 'cognitive.whenYoureAround',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
         order: 5,
       },
       goals: {
-        label: "What You're Working Toward",
+        labelKey: 'cognitive.whatYoureWorkingToward',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
         order: 6,
       },
       achievements: {
-        label: "What You've Accomplished",
+        labelKey: 'cognitive.whatYouveAccomplished',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
         order: 7,
       },
       voice: {
-        label: 'How You Speak',
+        labelKey: 'cognitive.howYouSpeak',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
         order: 8,
       },
       life: {
-        label: 'Where You Are in Life',
+        labelKey: 'cognitive.whereYouAreInLife',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
         order: 9,
       },
       boundaries: {
-        label: "What I'm Mindful Of",
+        labelKey: 'cognitive.whatImMindfulOf',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
         order: 10,
       },
       emotional: {
-        label: 'How You Feel',
+        labelKey: 'cognitive.howYouFeel',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
         order: 11,
       },
       knowledge: {
-        label: 'What You Know',
+        labelKey: 'cognitive.whatYouKnow',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
         order: 12,
       },
       preferences: {
-        label: 'What You Prefer',
+        labelKey: 'cognitive.whatYouPrefer',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
         order: 13,
       },
       continuity: {
-        label: "What We're Continuing",
+        labelKey: 'cognitive.whatWereContinuing',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
         order: 14,
       },
       relationships: {
-        label: 'People in Your Life',
+        labelKey: 'cognitive.peopleInYourLife',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
         order: 15,
       },
@@ -615,7 +611,7 @@ class CognitiveInsightsUI {
         <div class="cognitive-insights__pattern-category">
           <div class="cognitive-insights__pattern-category-header">
             <span class="cognitive-insights__pattern-category-icon">${config.icon}</span>
-            <h4 class="cognitive-insights__pattern-category-title">${escapeHtml(config.label)}</h4>
+            <h4 class="cognitive-insights__pattern-category-title">${escapeHtml(t(config.labelKey))}</h4>
           </div>
           <div class="cognitive-insights__patterns-list">
             ${categoryPatterns.map((p) => this.renderPattern(p)).join('')}
@@ -630,7 +626,7 @@ class CognitiveInsightsUI {
         <div class="cognitive-insights__pattern-category">
           <div class="cognitive-insights__pattern-category-header">
             <span class="cognitive-insights__pattern-category-icon">${MEMORY_ICONS['pattern']}</span>
-            <h4 class="cognitive-insights__pattern-category-title">Other Observations</h4>
+            <h4 class="cognitive-insights__pattern-category-title">${t('cognitive.otherObservations')}</h4>
           </div>
           <div class="cognitive-insights__patterns-list">
             ${uncategorized.map((p) => this.renderPattern(p)).join('')}
