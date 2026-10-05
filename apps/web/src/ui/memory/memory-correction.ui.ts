@@ -10,6 +10,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { t } from '../../i18n/index.js';
 
 const log = createLogger('MemoryCorrectionUI');
 
@@ -83,33 +84,35 @@ export interface CorrectionModalState {
 // CONSTANTS
 // ============================================================================
 
-const CORRECTION_TYPES: Array<{ type: CorrectionType; label: string; description: string }> = [
-  {
-    type: 'wrong',
-    label: 'This is wrong',
-    description: 'This information is incorrect',
-  },
-  {
-    type: 'outdated',
-    label: 'This is outdated',
-    description: 'This was true before, but not anymore',
-  },
-  {
-    type: 'partial',
-    label: 'This is partially correct',
-    description: 'Some parts are right, some need fixing',
-  },
-  {
-    type: 'misattributed',
-    label: 'Wrong person/topic',
-    description: "This is about someone or something else",
-  },
-  {
-    type: 'delete',
-    label: 'Please forget this',
-    description: 'I\'d prefer you don\'t remember this',
-  },
-];
+function getCorrectionTypes(): Array<{ type: CorrectionType; label: string; description: string }> {
+  return [
+    {
+      type: 'wrong',
+      label: t('memoryCorrection.wrongLabel'),
+      description: t('memoryCorrection.wrongDescription'),
+    },
+    {
+      type: 'outdated',
+      label: t('memoryCorrection.outdatedLabel'),
+      description: t('memoryCorrection.outdatedDescription'),
+    },
+    {
+      type: 'partial',
+      label: t('memoryCorrection.partialLabel'),
+      description: t('memoryCorrection.partialDescription'),
+    },
+    {
+      type: 'misattributed',
+      label: t('memoryCorrection.misattributedLabel'),
+      description: t('memoryCorrection.misattributedDescription'),
+    },
+    {
+      type: 'delete',
+      label: t('memoryCorrection.deleteLabel'),
+      description: t('memoryCorrection.deleteDescription'),
+    },
+  ];
+}
 
 // ============================================================================
 // STATE
@@ -243,10 +246,10 @@ function renderModalContent(): void {
   card.innerHTML = `
     <div style="margin-bottom: var(--space-4);">
       <h2 style="font-size: var(--font-size-xl); font-weight: 600; color: var(--color-text-primary); margin: 0 0 var(--space-1);">
-        Correct This Memory
+        ${t('memoryCorrection.modalTitle')}
       </h2>
       <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
-        Help me understand what's not quite right
+        ${t('memoryCorrection.modalSubtitle')}
       </p>
     </div>
   `;
@@ -261,7 +264,7 @@ function renderModalContent(): void {
   `;
   currentMemory.innerHTML = `
     <p style="font-size: var(--font-size-sm); color: var(--color-text-muted); margin: 0 0 var(--space-1);">
-      What I thought:
+      ${t('memoryCorrection.currentMemory')}
     </p>
     <p style="color: var(--color-text-primary); margin: 0;">
       ${modalState.memory.content}
@@ -274,11 +277,11 @@ function renderModalContent(): void {
   typeSection.style.cssText = `margin-bottom: var(--space-4);`;
   typeSection.innerHTML = `
     <label style="display: block; font-weight: 500; color: var(--color-text-primary); margin-bottom: var(--space-2);">
-      What's the issue?
+      ${t('memoryCorrection.correctionTypeLabel')}
     </label>
   `;
 
-  for (const option of CORRECTION_TYPES) {
+  for (const option of getCorrectionTypes()) {
     const optionEl = createCorrectionTypeOption(option);
     typeSection.appendChild(optionEl);
   }
@@ -293,7 +296,7 @@ function renderModalContent(): void {
   `;
   correctionInput.innerHTML = `
     <label style="display: block; font-weight: 500; color: var(--color-text-primary); margin-bottom: var(--space-2);">
-      What's correct?
+      ${t('memoryCorrection.correctedContentLabel')}
     </label>
     <textarea
       id="corrected-content"
@@ -307,7 +310,7 @@ function renderModalContent(): void {
         font-size: var(--font-size-base);
         resize: vertical;
       "
-      placeholder="Enter the correct information..."
+      placeholder="${t('memoryCorrection.correctedContentPlaceholder')}"
     >${modalState.correctedContent}</textarea>
   `;
   card.appendChild(correctionInput);
@@ -317,7 +320,7 @@ function renderModalContent(): void {
   explanationSection.style.cssText = `margin-bottom: var(--space-4);`;
   explanationSection.innerHTML = `
     <label style="display: block; font-weight: 500; color: var(--color-text-primary); margin-bottom: var(--space-2);">
-      Anything else? (optional)
+      ${t('memoryCorrection.explanationLabel')}
     </label>
     <textarea
       id="correction-explanation"
@@ -331,7 +334,7 @@ function renderModalContent(): void {
         font-size: var(--font-size-base);
         resize: vertical;
       "
-      placeholder="Help me understand what happened..."
+      placeholder="${t('memoryCorrection.explanationPlaceholder')}"
     >${modalState.explanation}</textarea>
   `;
   card.appendChild(explanationSection);
@@ -345,7 +348,7 @@ function renderModalContent(): void {
   `;
 
   const cancelBtn = document.createElement('button');
-  cancelBtn.textContent = 'Cancel';
+  cancelBtn.textContent = t('memoryCorrection.cancelButton');
   cancelBtn.style.cssText = `
     padding: var(--space-2) var(--space-4);
     border: 1px solid var(--color-border);
@@ -358,7 +361,7 @@ function renderModalContent(): void {
   buttons.appendChild(cancelBtn);
 
   const submitBtn = document.createElement('button');
-  submitBtn.textContent = 'Submit Correction';
+  submitBtn.textContent = t('memoryCorrection.submitButton');
   submitBtn.style.cssText = `
     padding: var(--space-2) var(--space-4);
     border: none;
