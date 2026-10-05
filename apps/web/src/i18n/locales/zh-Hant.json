@@ -621,7 +621,18 @@
     "zen": "Zen",
     "quietHoursEnd": "安靜時間結束時間",
     "quietHoursStart": "安靜時間開始時間",
-    "verifyPhone": "驗證電話號碼"
+    "verifyPhone": "驗證電話號碼",
+    "toggleTheme": "切換主題",
+    "toggleThemeShortcut": "切換主題 (T)",
+    "muteMicrophone": "靜音麥克風",
+    "unmuteMicrophone": "取消靜音麥克風",
+    "muteShortcut": "靜音 (M)",
+    "tapForFunReaction": "點擊看看有趣的反應",
+    "analyticsDashboard": "分析儀表板",
+    "integrationSettings": "整合設定",
+    "whatFerniIsNoticing": "Ferni 注意到的事",
+    "shareSeedsWithFriend": "與朋友分享種子",
+    "shareFerniWithFriend": "與朋友分享 Ferni"
   },
   "addPerson": {
     "addMoreDetails": "新增更多細節",
@@ -706,7 +717,8 @@
     "dismiss": "知道了",
     "connected": "已連結",
     "unknown": "未知",
-    "browse": "瀏覽"
+    "browse": "瀏覽",
+    "initializing": "正在為你準備中..."
   },
   "confirmModal": {
     "cancel": "取消",
@@ -5313,7 +5325,20 @@
     "rescheduleCheckin": "重新安排自我檢視",
     "inOneHour": "1 小時後",
     "inThreeHours": "3 小時後",
-    "tomorrowMorning": "明天早上"
+    "tomorrowMorning": "明天早上",
+    "heroDesc": "朋友可能會忘記，但我不會。我會注意到你自己都沒發現的規律，並在最剛好的時刻來找你自我檢視。",
+    "guardianCheckinsDesc": "在你開口之前，我就會注意到你需要支持的時刻",
+    "dailyRemindersDesc": "在最適合你的時間給予溫柔提醒——我會漸漸了解你什麼時候最能聽進去",
+    "streakMilestonesDesc": "慶祝你的持之以恆——我記得你旅程中的每一步",
+    "to": "至",
+    "quietNote": "如果你在凌晨兩點醒來並找我，我也會像中午一樣，隨時在這裡陪伴你。",
+    "sampleFriday": "星期五 {time}",
+    "sampleOverwhelmed": "「你昨天提到覺得有些招架不住。你現在還好嗎？」",
+    "sampleMeditation": "「你的冥想連續天數已經達到 6 天囉！準備好迎接第 7 天了嗎？」",
+    "samplePresentation": "「那場重要的簡報快到了。想一起準備一下嗎？」",
+    "guardianDesc": "全天候守護著你",
+    "emptyCta": "繼續和我聊聊吧。每一次的對話，都能幫助我更了解該在什麼時候、用什麼方式給予你最好的支持。",
+    "emptyTip": "在設定中啟用「{feature}」來解鎖主動支持"
   },
   "trophyRoom": {
     "yourJourney": "你的旅程",
@@ -6878,7 +6903,11 @@
     "peopleTracked": "已追蹤人數",
     "relationshipInsights": "人際關係洞察",
     "connected": "已連結",
-    "notConnected": "未連結"
+    "notConnected": "未連結",
+    "bankConnected": "銀行已連線",
+    "privacyCalendar": "我們只會讀取活動的時間和標題，絕不會讀取內容或與會者詳情。",
+    "privacyLinkedin": "我們只會讀取你的個人檔案和工作經歷來慶祝里程碑。我們絕不會代表你發布貼文或傳送訊息。",
+    "privacyBanking": "由 Plaid 提供技術支援——採用與 Venmo 及各大銀行同等級的安全防護。我們絕不會取得你的登入憑證。"
   },
   "recordGift": {
     "title": "記錄禮物",
@@ -10717,5 +10746,262 @@
     "signInFirst": "先登入，再連結吧",
     "unavailable": "{provider} 目前無法使用",
     "failed": "無法連結。要再試一次嗎？"
+  },
+  "entrance": {
+    "helper": "你的貼心嚮導"
+  },
+  "teamHuddle": {
+    "typeWeekly": "每週自我檢視",
+    "typeMilestone": "里程碑慶祝",
+    "typeSpecial": "特別時刻"
+  },
+  "analyticsDashboard": {
+    "title": "你的旅程",
+    "loading": "正在載入你的進度...",
+    "errorHint": "請稍後再試",
+    "moodOverTime": "心情變化趨勢",
+    "streakProgress": "連續天數進度",
+    "predictionAccuracyTrend": "預測準確度趨勢",
+    "insights": "洞察",
+    "noMoodData": "目前還沒有心情資料",
+    "noMoodHint": "與 Ferni 進行一次晨空自我檢視來開始記錄吧",
+    "noStreaks": "目前還沒有連續天數",
+    "noStreaksHint": "每天完成儀式來累積連續天數吧",
+    "noPredictionData": "目前還沒有預測資料",
+    "average": "平均",
+    "range": "範圍",
+    "insightsEmpty": "持續練習來解鎖洞察",
+    "insightsEmptyHint": "完成幾次天空自我檢視和儀式，就能看見漸漸浮現的規律囉",
+    "bestDay": "最棒的一天",
+    "mostConsistent": "最持之以恆",
+    "growthEmpty": "繼續加油！隨著規律漸漸浮現，成長洞察就會出現囉。",
+    "yourGrowth": "你的成長",
+    "growthScore": "成長分數",
+    "totalInsights": "累計洞察",
+    "resonated": "引起共鳴",
+    "topGrowthAreas": "主要成長領域",
+    "recentGrowth": "近期成長",
+    "daysActive": "活躍天數",
+    "ritualsCompleted": "已完成儀式",
+    "longestStreak": "最長連續天數",
+    "predictionAccuracy": "預測準確度",
+    "accuracyOverall": "整體 {accuracy}%",
+    "noData": "無資料",
+    "confidenceTitle": "{confidence}% 信心度",
+    "loadError": "無法載入你的進度",
+    "insightCount": {
+      "other": "{count} 個洞察",
+      "one": "{count} 個洞察"
+    },
+    "streakDays": {
+      "other": "連續 {count} 天",
+      "one": "連續 {count} 天"
+    }
+  },
+  "avatarTapReactions": {
+    "tickles": "呵呵，好癢喔！"
+  },
+  "storytelling": {
+    "stage": {
+      "default": {
+        "narrative": "每個故事都有個起點",
+        "deeper": "你來到這裡這件事本身就很重要。因為大多數人甚至從未開始。"
+      },
+      "gettingStarted": {
+        "narrative": "你持續地出現",
+        "deeper": "持之以恆是信任的基石。我都注意到了。"
+      },
+      "buildingTrust": {
+        "narrative": "走入更深的心房",
+        "deeper": "你分享了那些需要勇氣才能說出口的事。這建立了真正的連結。"
+      },
+      "established": {
+        "narrative": "屬於我們的默契與節奏",
+        "deeper": "這就是信任的感覺——自然而然地出現在彼此身邊。"
+      },
+      "deepPartnership": {
+        "narrative": "難能可貴的默契",
+        "deeper": "很少有關係能達到這樣的深度。這是你一手建立起來的。"
+      }
+    },
+    "daysTogether": "一起度過了 {count} 天。",
+    "weekTogether": "一起度過的第 {week} 週。",
+    "prediction": {
+      "empty": {
+        "narrative": "讓我們一起來看看你有多了解自己吧",
+        "deeper": "預測能展現你的自我覺察。大多數人都會感到驚訝。"
+      },
+      "deep": {
+        "narrative": "你非常了解自己",
+        "deeper": "這種程度的自我覺察非常難得。你看到了別人忽略的模式。"
+      },
+      "strong": {
+        "narrative": "你的直覺很敏銳",
+        "deeper": "你能察覺到自己的模式。這種覺察是成長的第一步。"
+      },
+      "learning": {
+        "narrative": "正在學習掌握自己的節奏",
+        "deeper": "預測與現實之間的差距能讓我們學習。繼續探索吧。"
+      },
+      "surprising": {
+        "narrative": "常常讓自己感到驚喜",
+        "deeper": "你比自己想像的還要複雜。這不是缺點，而是深度。"
+      }
+    },
+    "onARoll": "{narrative} — 漸入佳境",
+    "matchLabel": "{narrative}（{percent}% 吻合）",
+    "turningPoint": {
+      "firstConversation": "每段旅程都有起點。這就是你的第一步。",
+      "vulnerability": "你分享了真實的感受。這需要勇氣。",
+      "milestone": "進步並不總是顯而易見，但它是真實存在的。",
+      "pattern": "覺察是改變的第一步。",
+      "growth": "微小的時刻會累積。這一步至關重要。",
+      "default": "每一次互動都會留下印記。"
+    },
+    "dated": "{when}：{description}",
+    "network": {
+      "empty": {
+        "narrative": "你的故事正等待著被書寫",
+        "deeper": "連結始於一次簡單的對話。"
+      },
+      "attention": {
+        "narrative": "有些關係需要你的關注",
+        "deeper": "人際關係需要悉心呵護。哪一個正在呼喚你？"
+      },
+      "strong": {
+        "narrative": "關係緊密，呵護有加",
+        "deeper": "你在人際關係中投入了心力。這顯而易見。"
+      },
+      "count": {
+        "narrative": "你的圈子裡有 {count} 個連結",
+        "deeper": "這裡的每個人對你都很重要。這很有意義。"
+      }
+    },
+    "temporal": {
+      "newTerritory": "這是全新的領域",
+      "startedAt": "開始於 {value}",
+      "everyStartingPoint": "每個起點都有其意義。成長可以從任何地方開始。",
+      "wereAt": "你之前在 {value}",
+      "nowGrowing": "現在在 {value} — 持續成長中",
+      "currentlyAt": "目前在 {value}",
+      "nowLabel": "現在：{value}",
+      "growthPercent": "這代表了 {percent}% 的成長。微小的勝利會累積。",
+      "stability": "穩定本身就很有價值。",
+      "onTrackFor": "朝著 {value} 穩步前進",
+      "keepItUp": "只要保持下去，美好的事情即將發生。",
+      "reset": "重新開始的機會",
+      "dip": "每一次低谷，都是了解什麼才是真正重要的契機。",
+      "steady": "穩步前進",
+      "consistency": "持之以恆的價值常被低估。你正在建立真實的改變。"
+    },
+    "invitation": "我在想，是不是 {subtext}"
+  },
+  "teaserPreview": {
+    "wellbeing": {
+      "title": "你的身心健康儀表板",
+      "message": "持續追蹤你的精力、心情和壓力模式。",
+      "score": "身心健康分數",
+      "trend": "本週呈上升趨勢"
+    },
+    "patterns": {
+      "title": "你的模式",
+      "message": "我會注意到一些你可能自己都沒發現的事。",
+      "behavioral": "行為表現",
+      "insightAnxious": "「我注意到你在週日晚上容易感到焦慮。通常到了週一下午就會好轉。」",
+      "insightRoutine": "「當你對工作感到壓力時，往往會忽略早晨的例行習慣。」",
+      "insightReading": "「你狀態最好的日子，似乎都出現在睡前有閱讀的隔天。」",
+      "observed": {
+        "other": "已觀察到 {count} 次",
+        "one": "已觀察到 {count} 次"
+      }
+    },
+    "trust": {
+      "title": "我對你的觀察",
+      "message": "我們聊得越深，我就越能理解你的成長。",
+      "growthMoments": "成長時刻",
+      "winsCelebrated": "慶祝的勝利",
+      "boundariesHonored": "堅守的界線",
+      "howYouveGrown": "你的成長軌跡",
+      "tagEmotions": "更好地管理情緒",
+      "tagBoundaries": "建立界線",
+      "tagHelp": "主動尋求協助"
+    },
+    "life": {
+      "title": "你的世界",
+      "message": "我會理解你的生活背景——工作、人際關係與壓力。",
+      "moderateStress": "中度壓力",
+      "feelingConnected": "感到與人連結",
+      "roomToGrow": "成長空間",
+      "insight": "「你的精力在週中會有所下降。週三似乎是你最難熬的一天。」"
+    },
+    "predictions": {
+      "title": "我的預測",
+      "message": "我會學著在你開口前，就預判你的需求。",
+      "guessOverwhelmed": "「你這週可能會感到有些吃不消」",
+      "resultStress": "你在週二和週四提到了壓力",
+      "guessGym": "「去健身房的習慣可能會遇到瓶頸」",
+      "guessSunday": "「週日晚上會感覺有些沉重」",
+      "resultCheckIn": "我會找你進行自我檢視",
+      "skipped": {
+        "other": "你這週跳過了 {count} 次對話",
+        "one": "你這週跳過了 {count} 次對話"
+      }
+    },
+    "team": {
+      "title": "我們的觀察",
+      "message": "你的整個團隊都會分享他們的觀察，來幫助你成長。",
+      "insightMaya": "「你早晨習慣的連續天數與更好的心情分數息息相關。Peter 也注意到了這一點。」",
+      "insightPeter": "「你在咖啡上的花費與你的壓力水平相關。Jordan 或許能幫你找到其他替代方案。」",
+      "insightNayan": "「這感覺像是一個全新篇章的開始……」"
+    },
+    "memories": {
+      "title": "我們的回憶",
+      "message": "我會記住所有的一切——不論是重要的大時刻，還是日常的小瞬間。",
+      "win": "突破",
+      "contentPerfectionism": "「你意識到自己的完美主義阻礙了你跨出第一步」",
+      "contentManager": "「你和主管進行了那場不容易的對話」",
+      "contentMom": "「你答應了每個星期天都要打電話給媽媽」"
+    },
+    "people": {
+      "title": "你身邊的人",
+      "message": "我會記住對你重要的每個人，以及你對他們的感受。",
+      "sarah": "Sarah",
+      "mom": "媽媽",
+      "david": "David",
+      "lastMentioned": "{relation} • 上次提及：{when}",
+      "joy": "帶給你快樂",
+      "complex": "複雜的感受",
+      "reconnect": "值得重新聯絡？",
+      "mentioned": {
+        "other": "{relation} • 提及 {count} 次",
+        "one": "{relation} • 提及 {count} 次"
+      }
+    },
+    "growth": {
+      "title": "你的成長軌跡",
+      "message": "用視覺化的方式，呈現你隨著時間累積的進步。",
+      "week": "第 {number} 週",
+      "consistency": "持續力",
+      "followThrough": "執行力"
+    },
+    "habits": {
+      "title": "你的習慣",
+      "message": "記錄你正在建立的習慣，看著前進的動力不斷累積。",
+      "morningWalk": "晨間散步",
+      "readBeforeBed": "睡前閱讀",
+      "meditation": "冥想"
+    },
+    "ariaLabel": "預覽：{title}",
+    "unlockTomorrow": "明天，這一切都將成真",
+    "unlockDays": {
+      "other": "再過 {count} 天，這就是你的了",
+      "one": "再過 {count} 天，這就是你的了"
+    }
+  },
+  "x": "朋友 • 提及 12 次",
+  "insightsView": {
+    "samplePattern": "「星期天晚上對你來說似乎特別不容易……」",
+    "sampleInsight": "「你這週提到了 8 次感到疲憊。這份疲倦似乎與你在工作上建立界線的挑戰有關。」",
+    "sampleEvidence": "基於 {count} 次對話"
   }
 }

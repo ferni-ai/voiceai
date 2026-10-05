@@ -173,7 +173,7 @@ class IntegrationsSettingsUI {
     this.panel = document.createElement('div');
     this.panel.className = 'integrations-settings';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Integration settings');
+    this.panel.setAttribute('aria-label', t('accessibility.integrationSettings'));
 
     document.body.appendChild(this.panel);
 
@@ -240,7 +240,7 @@ class IntegrationsSettingsUI {
 
             ${this.status.biometrics.connected ? `
               <div class="integrations-settings__connected-info">
-                <span class="integrations-settings__platform-name">${this.status.biometrics.platform || 'Connected'}</span>
+                <span class="integrations-settings__platform-name">${this.status.biometrics.platform || t('integrationsSettings.connected')}</span>
                 <button aria-label="${t('accessibility.disconnect')}" class="integrations-settings__disconnect-btn" data-action="disconnect-biometrics">
                   ${ICONS.unlink}
                   <span>${t('integrationsSettings.disconnect')}</span>
@@ -302,7 +302,7 @@ class IntegrationsSettingsUI {
               </button>
               <p class="integrations-settings__privacy-note">
                 ${ICONS.shield}
-                We only read event times and titles, never content or attendee details.
+                ${t('integrationsSettings.privacyCalendar')}
               </p>
             `}
           </section>
@@ -343,7 +343,7 @@ class IntegrationsSettingsUI {
               </button>
               <p class="integrations-settings__privacy-note">
                 ${ICONS.shield}
-                We only read your profile and job history to celebrate milestones. We never post or message on your behalf.
+                ${t('integrationsSettings.privacyLinkedin')}
               </p>
             `}
           </section>` : ''}
@@ -360,7 +360,7 @@ class IntegrationsSettingsUI {
 
             ${this.status.banking.connected ? `
               <div class="integrations-settings__connected-info">
-                <span class="integrations-settings__platform-name">${this.status.banking.institution || 'Bank Connected'}</span>
+                <span class="integrations-settings__platform-name">${this.status.banking.institution || t('integrationsSettings.bankConnected')}</span>
                 <button aria-label="${t('accessibility.disconnect')}" class="integrations-settings__disconnect-btn" data-action="disconnect-banking">
                   ${ICONS.unlink}
                   <span>${t('integrationsSettings.disconnect')}</span>
@@ -376,7 +376,7 @@ class IntegrationsSettingsUI {
               </button>
               <p class="integrations-settings__privacy-note">
                 ${ICONS.shield}
-                Powered by Plaid - the same security used by Venmo and major banks. Your credentials are never shared with us.
+                ${t('integrationsSettings.privacyBanking')}
               </p>
             `}
           </section>

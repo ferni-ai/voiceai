@@ -621,7 +621,18 @@
     "zen": "Zen",
     "quietHoursEnd": "クワイエットアワーの終了時刻",
     "quietHoursStart": "クワイエットアワーの開始時刻",
-    "verifyPhone": "電話番号を認証"
+    "verifyPhone": "電話番号を認証",
+    "toggleTheme": "テーマを切り替える",
+    "toggleThemeShortcut": "テーマを切り替える (T)",
+    "muteMicrophone": "マイクをミュートにする",
+    "unmuteMicrophone": "マイクのミュートを解除する",
+    "muteShortcut": "ミュート (M)",
+    "tapForFunReaction": "タップして楽しいリアクションを見る",
+    "analyticsDashboard": "分析ダッシュボード",
+    "integrationSettings": "連携設定",
+    "whatFerniIsNoticing": "Ferniが気づいたこと",
+    "shareSeedsWithFriend": "友達にタネをシェアする",
+    "shareFerniWithFriend": "友達にFerniをシェアする"
   },
   "addPerson": {
     "addMoreDetails": "詳細を追加する",
@@ -706,7 +717,8 @@
     "dismiss": "閉じる",
     "connected": "連携済み",
     "unknown": "不明",
-    "browse": "探す"
+    "browse": "探す",
+    "initializing": "準備しています..."
   },
   "confirmModal": {
     "cancel": "キャンセル",
@@ -5313,7 +5325,20 @@
     "rescheduleCheckin": "チェックインを再設定",
     "inOneHour": "1時間後",
     "inThreeHours": "3時間後",
-    "tomorrowMorning": "明日の朝"
+    "tomorrowMorning": "明日の朝",
+    "heroDesc": "友達は忘れてしまうこともありますが、私は忘れません。あなた自身では気づかないパターンに気づき、ぴったりのタイミングでチェックインします。",
+    "guardianCheckinsDesc": "あなたがサポートを必要としている時に、言われる前に気づいてチェックインします",
+    "dailyRemindersDesc": "最適なタイミングで優しくお声がけします。あなたが一番受け入れやすい時間帯を学習していきます",
+    "streakMilestonesDesc": "ストリークをお祝いしましょう。あなたの道のりの一歩一歩をすべて覚えています",
+    "to": "〜まで",
+    "quietNote": "もし夜中の2時に目が覚めて話しかけてくれても、お昼の12時と同じようにいつでもここにいますよ。",
+    "sampleFriday": "金曜日の{time}",
+    "sampleOverwhelmed": "「昨日、いっぱいいっぱいになっているとおっしゃっていましたね。その後、調子はいかがですか？」",
+    "sampleMeditation": "「瞑想のストリークが6日間に達しました！7日目の準備はできていますか？」",
+    "samplePresentation": "「大事なプレゼンが近づいていますね。一緒に準備しませんか？」",
+    "guardianDesc": "24時間365日、あなたを見守っています",
+    "emptyCta": "これからもお話を続けましょう。お話をするたびに、いつ、どのようにあなたをサポートするのがベストなのか、理解が深まっていきます。",
+    "emptyTip": "設定で「{feature}」を有効にすると、先回りのサポートを受け取れるようになります"
   },
   "trophyRoom": {
     "yourJourney": "あなたの道のり",
@@ -6878,7 +6903,11 @@
     "peopleTracked": "登録された人数",
     "relationshipInsights": "人間関係の気づき",
     "connected": "連携済み",
-    "notConnected": "未連携"
+    "notConnected": "未連携",
+    "bankConnected": "銀行口座が連携されました",
+    "privacyCalendar": "読み取るのは予定の日時とタイトルのみで、内容や参加者の詳細を読み取ることはありません。",
+    "privacyLinkedin": "マイルストーンをお祝いするためにプロフィールと職歴のみを読み取ります。あなたに代わって投稿やメッセージ送信を行うことはありません。",
+    "privacyBanking": "Plaidによって保護されています。これはVenmoや大手銀行と同じセキュリティ基準です。ログイン情報が弊社に共有されることはありません。"
   },
   "recordGift": {
     "title": "ギフトを記録する",
@@ -10717,5 +10746,262 @@
     "signInFirst": "まずはサインインをしてから、連携してくださいね。",
     "unavailable": "ただいま{provider}はご利用いただけないようです。",
     "failed": "連携できませんでした。もう一度試してみますか？"
+  },
+  "entrance": {
+    "helper": "あなた専属のガイド"
+  },
+  "teamHuddle": {
+    "typeWeekly": "週に一度のチェックイン",
+    "typeMilestone": "マイルストーンのお祝い",
+    "typeSpecial": "特別な瞬間"
+  },
+  "analyticsDashboard": {
+    "title": "あなたの道のり",
+    "loading": "進捗を読み込んでいます...",
+    "errorHint": "しばらく経ってからもう一度お試しください",
+    "moodOverTime": "気分の推移",
+    "streakProgress": "ストリークの進捗",
+    "predictionAccuracyTrend": "予測精度の推移",
+    "insights": "気づき",
+    "noMoodData": "気分のデータがまだありません",
+    "noMoodHint": "Ferniと「朝の空チェック」をして、記録を始めましょう",
+    "noStreaks": "ストリークがまだありません",
+    "noStreaksHint": "毎日リチュアルを完了して、ストリークを伸ばしましょう",
+    "noPredictionData": "予測データがまだありません",
+    "average": "平均",
+    "range": "範囲",
+    "insightsEmpty": "プラクティスを重ねると気づきがアンロックされます",
+    "insightsEmptyHint": "空チェックやリチュアルをいくつか完了して、パターンが見えてくるのを待ちましょう",
+    "bestDay": "最も調子が良かった日",
+    "mostConsistent": "最も継続できた日",
+    "growthEmpty": "その調子です！パターンが見えてくると、成長の気づきが表示されます。",
+    "yourGrowth": "あなたの成長",
+    "growthScore": "成長スコア",
+    "totalInsights": "気づきの総数",
+    "resonated": "心に響いたもの",
+    "topGrowthAreas": "主な成長分野",
+    "recentGrowth": "最近の成長",
+    "daysActive": "アクティブな日数",
+    "ritualsCompleted": "完了したリチュアル",
+    "longestStreak": "最長ストリーク",
+    "predictionAccuracy": "予測精度",
+    "accuracyOverall": "全体で{accuracy}%",
+    "noData": "データなし",
+    "confidenceTitle": "信頼度{confidence}%",
+    "loadError": "進捗を読み込めませんでした",
+    "insightCount": {
+      "other": "{count}個の気づき",
+      "one": "{count}個の気づき"
+    },
+    "streakDays": {
+      "other": "{count}日",
+      "one": "{count}日"
+    }
+  },
+  "avatarTapReactions": {
+    "tickles": "ふふっ、くすぐったいよ！"
+  },
+  "storytelling": {
+    "stage": {
+      "default": {
+        "narrative": "どんな物語も、どこかから始まります",
+        "deeper": "あなたがここにいること自体に意味があります。多くの人は始めることすらしないのですから。"
+      },
+      "gettingStarted": {
+        "narrative": "あなたは歩みを止めません",
+        "deeper": "続けることは信頼の土台になります。私はちゃんと気づいていますよ。"
+      },
+      "buildingTrust": {
+        "narrative": "表面的な関係を超えて",
+        "deeper": "勇気のいることを打ち明けてくれていますね。それが本当のつながりを築いていきます。"
+      },
+      "established": {
+        "narrative": "私たちだけのリズム",
+        "deeper": "これこそが信頼の形です。意識することなく、自然とここにやって来られること。"
+      },
+      "deepPartnership": {
+        "narrative": "かけがえのないもの",
+        "deeper": "ここまで深い関係を築けることは滅多にありません。あなたがこれを築き上げたのです。"
+      }
+    },
+    "daysTogether": "一緒に過ごして{count}日。",
+    "weekTogether": "一緒に過ごして{week}週目。",
+    "prediction": {
+      "empty": {
+        "narrative": "あなたがどれだけ自分自身のことを知っているか、一緒に見てみましょう",
+        "deeper": "予測はあなたの自己認識を映し出します。多くの人がその結果に驚かれます。"
+      },
+      "deep": {
+        "narrative": "自分自身を深く理解していますね",
+        "deeper": "これほど深い自己認識はとても貴重です。他の人が見落としがちなパターンに気づけています。"
+      },
+      "strong": {
+        "narrative": "直感がとても鋭いです",
+        "deeper": "自分のパターンを感覚的に捉えていますね。その気づきこそが、成長への第一歩です。"
+      },
+      "learning": {
+        "narrative": "自分のリズムを学んでいるところです",
+        "deeper": "予測と現実のギャップが、私たちに教えてくれることがあります。このまま探求を続けましょう。"
+      },
+      "surprising": {
+        "narrative": "自分自身に驚かされることが多いですね",
+        "deeper": "あなたは自分が思っている以上に奥深い存在です。それは欠点ではなく、人間としての深みなのです。"
+      }
+    },
+    "onARoll": "{narrative} — 絶好調ですね",
+    "matchLabel": "{narrative}（一致度 {percent}%）",
+    "turningPoint": {
+      "firstConversation": "すべての道のりには最初の一歩があります。これがあなたの第一歩でした。",
+      "vulnerability": "ありのままの気持ちを分かち合ってくれましたね。それには勇気が必要です。",
+      "milestone": "進歩はいつも目に見えるとは限りません。でも、確かに進んでいます。",
+      "pattern": "気づくことが、変化への第一歩です。",
+      "growth": "小さな瞬間の積み重ねが大きな力になります。この瞬間も大切な一歩でした。",
+      "default": "すべての関わりが、心に温かな足跡を残します。"
+    },
+    "dated": "{when}：{description}",
+    "network": {
+      "empty": {
+        "narrative": "あなたの物語は、これから紡がれていきます",
+        "deeper": "つながりは、たった一度のお話から始まります。"
+      },
+      "attention": {
+        "narrative": "少し気にかけてあげたいつながりがあります",
+        "deeper": "人間関係には育む時間が必要です。今、どのつながりが気になりますか？"
+      },
+      "strong": {
+        "narrative": "大切に育まれた、強い絆",
+        "deeper": "あなたが人間関係を大切にしていることが、よく伝わってきます。"
+      },
+      "count": {
+        "narrative": "あなたの輪の中に {count} つのつながりがあります",
+        "deeper": "ここにいる一人ひとりが、あなたにとって大切な存在。その気持ちが何より素敵です。"
+      }
+    },
+    "temporal": {
+      "newTerritory": "ここは新しい領域です",
+      "startedAt": "{value} からスタートしました",
+      "everyStartingPoint": "どんなスタート地点も素晴らしいものです。どこからでも成長は始まります。",
+      "wereAt": "以前は {value} でした",
+      "nowGrowing": "現在は {value} — 成長中ですね",
+      "currentlyAt": "現在は {value} です",
+      "nowLabel": "現在：{value}",
+      "growthPercent": "{percent}% の成長です。小さな一歩の積み重ねですね。",
+      "stability": "安定していること自体に、とても大きな価値があります。",
+      "onTrackFor": "{value} に向けて順調に進んでいます",
+      "keepItUp": "この調子で進めば、きっと素敵な未来が待っています。",
+      "reset": "リセットする良い機会です",
+      "dip": "落ち込む瞬間は、何が本当に大切なのかを理解するチャンスです。",
+      "steady": "焦らず、着実に進んでいます",
+      "consistency": "続けることは、思っている以上に素晴らしいことです。あなたは確かなものを築いています。"
+    },
+    "invitation": "もしかしたら {subtext} なのかもしれませんね"
+  },
+  "teaserPreview": {
+    "wellbeing": {
+      "title": "あなたのウェルビーイング・ダッシュボード",
+      "message": "エネルギー、気分、ストレスのパターンを長期的に記録しましょう。",
+      "score": "ウェルビーイング・スコア",
+      "trend": "今週は上昇傾向にあります"
+    },
+    "patterns": {
+      "title": "あなたのパターン",
+      "message": "あなた自身も気づいていないような一面に、私がそっと気づいてお伝えします。",
+      "behavioral": "行動パターン",
+      "insightAnxious": "「日曜日の夜に不安を感じやすいようですね。でも、月曜日の午後には和らいでいくことが多いみたいです」",
+      "insightRoutine": "「仕事でストレスを感じているとき、朝のルーティンをお休みしがちになるようです」",
+      "insightReading": "「寝る前に本を読んだ翌日は、とても良い一日を過ごせているようですよ」",
+      "observed": {
+        "other": "{count}回現れました",
+        "one": "{count}回現れました"
+      }
+    },
+    "trust": {
+      "title": "あなたについて気づいたこと",
+      "message": "お話を重ねるほど、あなたの成長がより深く見えてきます。",
+      "growthMoments": "成長の瞬間",
+      "winsCelebrated": "お祝いした小さな成功",
+      "boundariesHonored": "大切にできた境界線",
+      "howYouveGrown": "あなたのこれまでの歩み",
+      "tagEmotions": "感情と上手に付き合う",
+      "tagBoundaries": "境界線を引く",
+      "tagHelp": "助けを求める"
+    },
+    "life": {
+      "title": "あなたの世界",
+      "message": "仕事、人間関係、ストレスなど、あなたの暮らしを取り巻く環境を理解します。",
+      "moderateStress": "穏やかなストレス",
+      "feelingConnected": "つながりを感じている",
+      "roomToGrow": "伸びしろ",
+      "insight": "「週の半ばにエネルギーが下がりやすいようです。水曜日が一番踏ん張りどころかもしれませんね」"
+    },
+    "predictions": {
+      "title": "私の予測",
+      "message": "あなたが言葉にする前に、今必要としていることをそっと先回りしてサポートします。",
+      "guessOverwhelmed": "「今週は少しキャパオーバーになりそう」",
+      "resultStress": "火曜日と木曜日にストレスについてお話しされていました",
+      "guessGym": "「ジムに行く習慣が少し途切れそう」",
+      "guessSunday": "「日曜日の夜は少し心が重くなりそう」",
+      "resultCheckIn": "様子を伺うためにチェックインしますね",
+      "skipped": {
+        "other": "今週はセッションを{count}回お休みしました",
+        "one": "今週はセッションを{count}回お休みしました"
+      }
+    },
+    "team": {
+      "title": "私たちが気づいたこと",
+      "message": "チーム全員がそれぞれの気づきを持ち寄り、あなたの成長をサポートします。",
+      "insightMaya": "「朝のルーティンのストリークが続くほど、気分のスコアも良くなっているみたい。Peterも同じことに気づいていたよ」",
+      "insightPeter": "「コーヒーにかけるお金とストレスレベルには相関があるようだね。Jordanなら、代わりにリフレッシュできる方法を提案できるかもしれないよ」",
+      "insightNayan": "「新しいチャプターが始まる予感がするね…」"
+    },
+    "memories": {
+      "title": "私たちの思い出",
+      "message": "大切な瞬間も、何気ない日常も、すべて覚えておきますね。",
+      "win": "できたこと",
+      "contentPerfectionism": "「完璧主義のせいで、なかなか一歩を踏み出せずにいたことに気づきましたね」",
+      "contentManager": "「マネージャーと、あの少し難しいお話をしましたね」",
+      "contentMom": "「毎週日曜日に、お母さんに電話すると約束しましたね」"
+    },
+    "people": {
+      "title": "あなたの大切な人たち",
+      "message": "あなたにとって大切な人たちのこと、そしてあなたがその人たちに抱いている気持ちを、しっかり覚えておきますね。",
+      "sarah": "Sarah",
+      "mom": "お母さん",
+      "david": "David",
+      "lastMentioned": "{relation} • 最後に話に出た：{when}",
+      "joy": "喜びをくれる存在",
+      "complex": "複雑な気持ち",
+      "reconnect": "また連絡してみる？",
+      "mentioned": {
+        "other": "{relation} • {count}回お話に登場しました",
+        "one": "{relation} • {count}回お話に登場しました"
+      }
+    },
+    "growth": {
+      "title": "あなたの成長の道のり",
+      "message": "これまでの歩みと成長を、目に見える形でお届けします。",
+      "week": "{number}週目",
+      "consistency": "継続力",
+      "followThrough": "やり抜く力"
+    },
+    "habits": {
+      "title": "あなたの習慣",
+      "message": "積み重ねている習慣を記録して、その勢いを実感しましょう。",
+      "morningWalk": "朝の散歩",
+      "readBeforeBed": "寝る前の読書",
+      "meditation": "瞑想"
+    },
+    "ariaLabel": "プレビュー：{title}",
+    "unlockTomorrow": "明日には、これがあなたの日常に",
+    "unlockDays": {
+      "other": "あと{count}日で、あなたのものになります",
+      "one": "あと{count}日で、あなたのものになります"
+    }
+  },
+  "x": "友達 • 12回お話に登場",
+  "insightsView": {
+    "samplePattern": "「日曜日の夜は、少し心が重くなるようですね…」",
+    "sampleInsight": "「今週は『疲れた』とお話しされたのが8回ありました。その疲れは、仕事での境界線（バウンダリー）の引き方に悩んでいることと関係しているかもしれません」",
+    "sampleEvidence": "{count}回のお話に基づく"
   }
 }

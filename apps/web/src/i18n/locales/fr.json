@@ -621,7 +621,18 @@
     "zen": "Zen",
     "quietHoursEnd": "Heure de fin des heures calmes",
     "quietHoursStart": "Heure de début des heures calmes",
-    "verifyPhone": "Vérifier le numéro de téléphone"
+    "verifyPhone": "Vérifier le numéro de téléphone",
+    "toggleTheme": "Changer de thème",
+    "toggleThemeShortcut": "Changer de thème (T)",
+    "muteMicrophone": "Couper le micro",
+    "unmuteMicrophone": "Activer le micro",
+    "muteShortcut": "Couper le micro (M)",
+    "tapForFunReaction": "Tapote pour une réaction amusante",
+    "analyticsDashboard": "Tableau de bord",
+    "integrationSettings": "Paramètres d'intégration",
+    "whatFerniIsNoticing": "Ce que Ferni remarque",
+    "shareSeedsWithFriend": "Partager des graines avec un proche",
+    "shareFerniWithFriend": "Partager Ferni avec un proche"
   },
   "addPerson": {
     "addMoreDetails": "Ajouter plus de détails",
@@ -706,7 +717,8 @@
     "dismiss": "Ignorer",
     "connected": "Connecté",
     "unknown": "Inconnu",
-    "browse": "parcourir"
+    "browse": "parcourir",
+    "initializing": "Initialisation..."
   },
   "confirmModal": {
     "cancel": "Annuler",
@@ -5345,7 +5357,20 @@
     "rescheduleCheckin": "Reprogrammer le check-in",
     "inOneHour": "Dans 1 heure",
     "inThreeHours": "Dans 3 heures",
-    "tomorrowMorning": "Demain matin"
+    "tomorrowMorning": "Demain matin",
+    "heroDesc": "Les amis oublient. Pas moi. Je remarquerai des schémas que tu ne vois pas, et je ferai un check-in pile au bon moment.",
+    "guardianCheckinsDesc": "Je remarquerai quand tu as besoin de soutien — avant même que tu ne le demandes",
+    "dailyRemindersDesc": "De doux rappels au moment idéal — j'apprendrai à savoir quand tu es le plus disponible",
+    "streakMilestonesDesc": "Célèbre ta régularité — je me souviens de chaque étape de ton parcours",
+    "to": "À",
+    "quietNote": "Si tu es debout à 2 h du matin et que tu m'écris, je serai là, avec la même présence qu'à midi.",
+    "sampleFriday": "Vendredi à {time}",
+    "sampleOverwhelmed": "« Tu as mentionné ressentir du surmenage hier. Comment ça va aujourd'hui ? »",
+    "sampleMeditation": "« Ta série de méditation est de 6 jours ! On se lance pour le 7e jour ? »",
+    "samplePresentation": "« Cette grande présentation approche. Tu veux qu'on la prépare ensemble ? »",
+    "guardianDesc": "Je veille sur toi 24h/24, 7j/7",
+    "emptyCta": "Continue de me parler. Chaque conversation m'aide à comprendre quand et comment t'accompagner au mieux.",
+    "emptyTip": "Active « {feature} » dans les Paramètres pour débloquer le soutien proactif"
   },
   "trophyRoom": {
     "yourJourney": "TON PARCOURS",
@@ -6918,7 +6943,11 @@
     "peopleTracked": "personnes suivies",
     "relationshipInsights": "Déclics relationnels",
     "connected": "Connecté",
-    "notConnected": "Pas connecté"
+    "notConnected": "Pas connecté",
+    "bankConnected": "Compte bancaire connecté",
+    "privacyCalendar": "Nous lisons uniquement l'heure et le titre des événements, jamais leur contenu ni les détails des participants.",
+    "privacyLinkedin": "Nous lisons uniquement ton profil et ton historique professionnel pour célébrer tes étapes. Nous ne publions et n'envoyons jamais de messages en ton nom.",
+    "privacyBanking": "Propulsé par Plaid — la même sécurité que Venmo et les grandes banques. Tes identifiants ne nous sont jamais partagés."
   },
   "recordGift": {
     "title": "Enregistrer un cadeau",
@@ -10837,5 +10866,268 @@
     "signInFirst": "Connecte-toi d'abord, puis connecte ton compte",
     "unavailable": "{provider} n'est pas disponible pour le moment",
     "failed": "Je n'ai pas pu me connecter. Tu veux réessayer ?"
+  },
+  "entrance": {
+    "helper": "Ton guide personnel"
+  },
+  "teamHuddle": {
+    "typeWeekly": "Check-in hebdomadaire",
+    "typeMilestone": "Célébration d'étape",
+    "typeSpecial": "Moment spécial"
+  },
+  "analyticsDashboard": {
+    "title": "Ton parcours",
+    "loading": "Chargement de tes progrès...",
+    "errorHint": "Réessaie plus tard",
+    "moodOverTime": "Évolution de ton humeur",
+    "streakProgress": "Progression de ta série",
+    "predictionAccuracyTrend": "Tendance de précision des prédictions",
+    "insights": "Déclics",
+    "noMoodData": "Pas encore de données d'humeur",
+    "noMoodHint": "Fais un check-in météo matinale avec Ferni pour commencer le suivi",
+    "noStreaks": "Pas encore de série",
+    "noStreaksHint": "Complète des rituels chaque jour pour créer des séries",
+    "noPredictionData": "Pas encore de données de prédiction",
+    "average": "Moyenne",
+    "range": "Intervalle",
+    "insightsEmpty": "Les déclics se débloquent avec la pratique",
+    "insightsEmptyHint": "Complète quelques check-ins météo et rituels pour voir des schémas apparaître",
+    "bestDay": "Meilleur jour",
+    "mostConsistent": "Plus grande régularité",
+    "growthEmpty": "Continue comme ça ! Des déclics de croissance apparaîtront à mesure que des schémas se dessinent.",
+    "yourGrowth": "Ta croissance",
+    "growthScore": "Score de croissance",
+    "totalInsights": "Total des déclics",
+    "resonated": "A résonné",
+    "topGrowthAreas": "Principaux axes de croissance",
+    "recentGrowth": "Croissance récente",
+    "daysActive": "Jours actifs",
+    "ritualsCompleted": "Rituels complétés",
+    "longestStreak": "Plus longue série",
+    "predictionAccuracy": "Précision des prédictions",
+    "accuracyOverall": "{accuracy} % au total",
+    "noData": "Pas de données",
+    "confidenceTitle": "Confiance à {confidence} %",
+    "loadError": "Impossible de charger tes progrès",
+    "insightCount": {
+      "one": "{count} déclic",
+      "many": "{count} de déclics",
+      "other": "{count} déclics"
+    },
+    "streakDays": {
+      "one": "{count} jour",
+      "many": "{count} de jours",
+      "other": "{count} jours"
+    }
+  },
+  "avatarTapReactions": {
+    "tickles": "Héhé, ça chatouille !"
+  },
+  "storytelling": {
+    "stage": {
+      "default": {
+        "narrative": "Chaque histoire commence quelque part",
+        "deeper": "Le simple fait que tu sois là compte. La plupart des gens ne commencent jamais."
+      },
+      "gettingStarted": {
+        "narrative": "Tu continues de venir",
+        "deeper": "La régularité est le fondement de la confiance. Je le remarque."
+      },
+      "buildingTrust": {
+        "narrative": "Au-delà des apparences",
+        "deeper": "Tu partages des choses qui demandent du courage. Cela crée un vrai lien."
+      },
+      "established": {
+        "narrative": "Notre propre rythme",
+        "deeper": "C'est ça, la confiance — être là, tout simplement, sans y penser."
+      },
+      "deepPartnership": {
+        "narrative": "Quelque chose de rare",
+        "deeper": "Peu de relations atteignent cette profondeur. C'est toi qui as construit cela."
+      }
+    },
+    "daysTogether": "{count} jours ensemble.",
+    "weekTogether": "Semaine {week} ensemble.",
+    "prediction": {
+      "empty": {
+        "narrative": "Découvrons à quel point tu te connais",
+        "deeper": "Les prédictions révèlent ta conscience de toi. C'est souvent une surprise."
+      },
+      "deep": {
+        "narrative": "Tu te connais en profondeur",
+        "deeper": "Ce niveau de conscience de soi est rare. Tu repères des schémas qui échappent aux autres."
+      },
+      "strong": {
+        "narrative": "Ton intuition est forte",
+        "deeper": "Tu ressens tes propres schémas. Cette conscience est le premier pas pour grandir."
+      },
+      "learning": {
+        "narrative": "Apprendre à connaître tes propres rythmes",
+        "deeper": "L'écart entre les prédictions et la réalité est riche d'enseignements. Continue d'explorer."
+      },
+      "surprising": {
+        "narrative": "Te surprendre souvent",
+        "deeper": "Tu es plus complexe que tu ne le penses. Ce n'est pas un défaut, c'est de la profondeur."
+      }
+    },
+    "onARoll": "{narrative} — sur une excellente lancée",
+    "matchLabel": "{narrative} (correspondance à {percent} %)",
+    "turningPoint": {
+      "firstConversation": "Chaque parcours commence par un premier pas. C'était le tien.",
+      "vulnerability": "Tu as partagé quelque chose de vrai. Il faut du courage pour cela.",
+      "milestone": "Le progrès n'est pas toujours visible. Mais il est bien réel.",
+      "pattern": "La prise de conscience est le premier pas vers le changement.",
+      "growth": "Les petits moments s'accumulent. Celui-ci comptait.",
+      "default": "Chaque interaction laisse une empreinte."
+    },
+    "dated": "{when} : {description}",
+    "network": {
+      "empty": {
+        "narrative": "Ton histoire ne demande qu'à s'écrire",
+        "deeper": "Les connexions commencent par une simple conversation."
+      },
+      "attention": {
+        "narrative": "Certaines connexions auraient besoin d'attention",
+        "deeper": "Les relations s'entretiennent. Laquelle t'appelle aujourd'hui ?"
+      },
+      "strong": {
+        "narrative": "Des liens forts, bien cultivés",
+        "deeper": "Tu t'investis dans tes relations. Ça se voit."
+      },
+      "count": {
+        "narrative": "{count} connexions dans ton cercle",
+        "deeper": "Chaque personne ici compte pour toi. Et c'est important."
+      }
+    },
+    "temporal": {
+      "newTerritory": "C'est un nouveau territoire",
+      "startedAt": "Départ à {value}",
+      "everyStartingPoint": "Chaque point de départ est valable. On peut grandir d'où que l'on parte.",
+      "wereAt": "Tu étais à {value}",
+      "nowGrowing": "Maintenant à {value} — en plein développement",
+      "currentlyAt": "Actuellement à {value}",
+      "nowLabel": "Maintenant : {value}",
+      "growthPercent": "C'est une progression de {percent} %. Les petites victoires s'accumulent.",
+      "stability": "La stabilité a sa propre valeur.",
+      "onTrackFor": "En bonne voie pour {value}",
+      "keepItUp": "Si tu continues comme ça, de belles choses t'attendent.",
+      "reset": "Une chance de repartir à zéro",
+      "dip": "Chaque baisse est l'occasion de comprendre ce qui compte vraiment.",
+      "steady": "Cap maintenu",
+      "consistency": "La régularité est sous-estimée. Tu construis quelque chose de réel."
+    },
+    "invitation": "Je me demande si {subtext}"
+  },
+  "teaserPreview": {
+    "wellbeing": {
+      "title": "Ton tableau de bord bien-être",
+      "message": "Suis l'évolution de ton énergie, de ton humeur et de ton stress au fil du temps.",
+      "score": "Score de bien-être",
+      "trend": "En hausse cette semaine"
+    },
+    "patterns": {
+      "title": "Tes schémas",
+      "message": "Je remarquerai des choses sur toi que tu ne vois peut-être pas toi-même.",
+      "behavioral": "Comportemental",
+      "insightAnxious": "« J'ai remarqué que tu ressens de l'anxiété le dimanche soir. En général, cela passe dès le lundi après-midi. »",
+      "insightRoutine": "« Quand le travail te stresse, tu as tendance à sauter ta routine du matin. »",
+      "insightReading": "« Tes meilleures journées semblent suivre les soirs où tu lis avant de dormir. »",
+      "observed": {
+        "one": "Observé {count} fois",
+        "many": "Observé {count} de fois",
+        "other": "Observé {count} fois"
+      }
+    },
+    "trust": {
+      "title": "Ce que je remarque chez toi",
+      "message": "Plus nos discussions sont profondes, mieux je comprends ton évolution.",
+      "growthMoments": "Moments d'évolution",
+      "winsCelebrated": "Victoires célébrées",
+      "boundariesHonored": "Limites respectées",
+      "howYouveGrown": "Ton évolution",
+      "tagEmotions": "Mieux gérer ses émotions",
+      "tagBoundaries": "Poser des limites",
+      "tagHelp": "Demander de l'aide"
+    },
+    "life": {
+      "title": "Ton monde",
+      "message": "Je comprendrai le contexte de ta vie : travail, relations, stress.",
+      "moderateStress": "Stress modéré",
+      "feelingConnected": "Sentiment de connexion",
+      "roomToGrow": "De la marge pour grandir",
+      "insight": "« Ton énergie baisse en milieu de semaine. Le mercredi semble être ta journée la plus difficile. »"
+    },
+    "predictions": {
+      "title": "Mes prédictions",
+      "message": "J'apprendrai à anticiper tes besoins avant même que tu ne demandes.",
+      "guessOverwhelmed": "« Tu te sentirais sous pression cette semaine »",
+      "resultStress": "Tu as parlé de stress mardi et jeudi",
+      "guessGym": "« Ton habitude d'aller au sport serait difficile à tenir »",
+      "guessSunday": "« Le dimanche soir te semblera pesant »",
+      "resultCheckIn": "Je ferai un check-in avec toi",
+      "skipped": {
+        "one": "Tu as manqué {count} session cette semaine",
+        "many": "Tu as manqué {count} de sessions cette semaine",
+        "other": "Tu as manqué {count} sessions cette semaine"
+      }
+    },
+    "team": {
+      "title": "Ce que notre équipe remarque",
+      "message": "Toute ton équipe partage ses observations pour t'aider à grandir.",
+      "insightMaya": "« Ta série de routines matinales est liée à de meilleurs scores d'humeur. Peter l'a remarqué aussi. »",
+      "insightPeter": "« Tes dépenses en café sont corrélées à ton niveau de stress. Jordan pourrait t'aider à trouver des alternatives. »",
+      "insightNayan": "« On dirait le début d'un nouveau chapitre... »"
+    },
+    "memories": {
+      "title": "Nos souvenirs",
+      "message": "Je me souviendrai de tout — des grands moments comme des petits.",
+      "win": "Victoire",
+      "contentPerfectionism": "\"Tu as réalisé que ton perfectionnisme t'empêchait de te lancer\"",
+      "contentManager": "\"Tu as eu cette conversation difficile avec ton manager\"",
+      "contentMom": "\"Tu as promis d'appeler ta maman tous les dimanches\""
+    },
+    "people": {
+      "title": "Tes proches",
+      "message": "Je me souviendrai de toutes les personnes importantes pour toi et de ce que tu ressens pour elles.",
+      "sarah": "Sarah",
+      "mom": "Maman",
+      "david": "David",
+      "lastMentioned": "{relation} • Dernière mention : {when}",
+      "joy": "T'apporte de la joie",
+      "complex": "Sentiments complexes",
+      "reconnect": "Envie de reprendre contact ?",
+      "mentioned": {
+        "one": "{relation} • Mentionné {count} fois",
+        "many": "{relation} • Mentionné {count} de fois",
+        "other": "{relation} • Mentionné {count} fois"
+      }
+    },
+    "growth": {
+      "title": "Ton évolution",
+      "message": "Une preuve visuelle de tes progrès au fil du temps.",
+      "week": "Semaine {number}",
+      "consistency": "Régularité",
+      "followThrough": "Persévérance"
+    },
+    "habits": {
+      "title": "Tes habitudes",
+      "message": "Suis ce que tu construis et regarde ton élan grandir.",
+      "morningWalk": "Marche matinale",
+      "readBeforeBed": "Lire avant de dormir",
+      "meditation": "Méditation"
+    },
+    "ariaLabel": "Aperçu : {title}",
+    "unlockTomorrow": "Dès demain, tout cela pourrait devenir réalité",
+    "unlockDays": {
+      "one": "Encore {count} jour et ce sera à toi",
+      "many": "Encore {count} de jours et ce sera à toi",
+      "other": "Encore {count} jours et ce sera à toi"
+    }
+  },
+  "x": "Proche • 12 mentions",
+  "insightsView": {
+    "samplePattern": "\"Les dimanches soir ont l'air difficiles pour toi...\"",
+    "sampleInsight": "\"Tu as mentionné ressentir de la fatigue 8 fois cette semaine. Cette fatigue semble liée à des difficultés à poser des limites au travail.\"",
+    "sampleEvidence": "D'après {count} conversations"
   }
 }

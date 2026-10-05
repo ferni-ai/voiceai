@@ -621,7 +621,18 @@
     "zen": "Zen",
     "quietHoursEnd": "שעת סיום שעות שקטות",
     "quietHoursStart": "שעת התחלה שעות שקטות",
-    "verifyPhone": "אימות מספר טלפון"
+    "verifyPhone": "אימות מספר טלפון",
+    "toggleTheme": "שינוי עיצוב",
+    "toggleThemeShortcut": "החלפת עיצוב (T)",
+    "muteMicrophone": "השתקת המיקרופון",
+    "unmuteMicrophone": "ביטול השתקת המיקרופון",
+    "muteShortcut": "השתקה (M)",
+    "tapForFunReaction": "לחיצה לתגובה משעשעת",
+    "analyticsDashboard": "לוח נתונים",
+    "integrationSettings": "הגדרות חיבורים",
+    "whatFerniIsNoticing": "מה ש-Ferni רואה",
+    "shareSeedsWithFriend": "לשתף זרעים עם חברים",
+    "shareFerniWithFriend": "לשתף את Ferni עם חברים"
   },
   "addPerson": {
     "addMoreDetails": "להוסיף פרטים נוספים",
@@ -706,7 +717,8 @@
     "dismiss": "התעלמות",
     "connected": "מחובר",
     "unknown": "לא ידוע",
-    "browse": "לסייר"
+    "browse": "לסייר",
+    "initializing": "מתחילים..."
   },
   "confirmModal": {
     "cancel": "ביטול",
@@ -5344,7 +5356,20 @@
     "rescheduleCheckin": "תזמון מחדש של הצ'ק-אין",
     "inOneHour": "בעוד שעה",
     "inThreeHours": "בעוד 3 שעות",
-    "tomorrowMorning": "מחר בבוקר"
+    "tomorrowMorning": "מחר בבוקר",
+    "heroDesc": "חברים שוכחים. אני לא. אבחין בדפוסים שקשה לראות לבד, ואעשה צ'ק-אין בדיוק ברגע הנכון.",
+    "guardianCheckinsDesc": "אבחין מתי יש צורך בתמיכה — עוד לפני שמבקשים",
+    "dailyRemindersDesc": "תזכורות עדינות בזמן האופטימלי — אלמד מתי יש הכי הרבה פניות לכך",
+    "streakMilestonesDesc": "לחגוג עקביות — כל צעד במסע נשמר אצלי",
+    "to": "עד",
+    "quietNote": "אם ערים ב-2 לפנות בוקר ופונים אליי, אני כאן באותה נוכחות כמו בצהריים.",
+    "sampleFriday": "יום שישי ב-{time}",
+    "sampleOverwhelmed": "\"אתמול דיברנו על תחושת עומס. איך ההרגשה עכשיו?\"",
+    "sampleMeditation": "\"רצף המדיטציה הגיע ל-6 ימים! מוכנים ליום ה-7?\"",
+    "samplePresentation": "\"המצגת הגדולה מתקרבת. רוצים להתכונן ביחד?\"",
+    "guardianDesc": "שמירה מסביב לשעון 24/7",
+    "emptyCta": "נמשיך לדבר. כל שיחה עוזרת לי להבין מתי ואיך להעניק את התמיכה הטובה ביותר.",
+    "emptyTip": "יש להפעיל את \"{feature}\" בהגדרות כדי לפתוח תמיכה יזומה"
   },
   "trophyRoom": {
     "yourJourney": "המסע שלך",
@@ -6917,7 +6942,11 @@
     "peopleTracked": "אנשים במעקב",
     "relationshipInsights": "תובנות על מערכות יחסים",
     "connected": "מחובר",
-    "notConnected": "לא מחובר"
+    "notConnected": "לא מחובר",
+    "bankConnected": "הבנק מחובר",
+    "privacyCalendar": "אנחנו קוראים רק את זמני האירועים והכותרות שלהם, לעולם לא את התוכן או את פרטי המשתתפים.",
+    "privacyLinkedin": "אנחנו קוראים רק את הפרופיל והיסטוריית התעסוקה כדי לחגוג אבני דרך. לעולם לא נפרסם פוסטים או נשלח הודעות מטעמך.",
+    "privacyBanking": "מופעל על ידי Plaid — אותה רמת אבטחה שבה משתמשים ב-Venmo ובבנקים הגדולים. פרטי הגישה לעולם לא משותפים איתנו."
   },
   "recordGift": {
     "title": "תיעוד מתנה",
@@ -10836,5 +10865,268 @@
     "signInFirst": "כדאי להתחבר קודם, ואז לקשר.",
     "unavailable": "{provider} לא זמין כרגע",
     "failed": "לא הצלחנו להתחבר. לנסות שוב?"
+  },
+  "entrance": {
+    "helper": "ליווי אישי צמוד"
+  },
+  "teamHuddle": {
+    "typeWeekly": "צ'ק-אין שבועי",
+    "typeMilestone": "חגיגת אבן דרך",
+    "typeSpecial": "רגע מיוחד"
+  },
+  "analyticsDashboard": {
+    "title": "המסע האישי",
+    "loading": "ההתקדמות בטעינה...",
+    "errorHint": "כדאי לנסות שוב מאוחר יותר",
+    "moodOverTime": "מצב רוח לאורך זמן",
+    "streakProgress": "התקדמות הרצף",
+    "predictionAccuracyTrend": "מגמת דיוק התחזיות",
+    "insights": "תובנות",
+    "noMoodData": "אין עדיין נתוני מצב רוח",
+    "noMoodHint": "כדאי לעשות צ'ק-אין שמי בוקר עם Ferni כדי להתחיל לעקוב",
+    "noStreaks": "אין עדיין רצפים",
+    "noStreaksHint": "יש להשלים טקסים מדי יום כדי לבנות רצפים",
+    "noPredictionData": "אין עדיין נתוני תחזיות",
+    "average": "ממוצע",
+    "range": "טווח",
+    "insightsEmpty": "התובנות ייפתחו עם התרגול",
+    "insightsEmptyHint": "כדאי להשלים כמה בדיקות שמיים וטקסים כדי לראות דפוסים מתחילים להופיע",
+    "bestDay": "היום הטוב ביותר",
+    "mostConsistent": "הכי עקבי",
+    "growthEmpty": "להמשיך כך! תובנות צמיחה יופיעו ככל שיעלו דפוסים.",
+    "yourGrowth": "הצמיחה האישית",
+    "growthScore": "מדד צמיחה",
+    "totalInsights": "סך הכל תובנות",
+    "resonated": "הדהד",
+    "topGrowthAreas": "תחומי הצמיחה המובילים",
+    "recentGrowth": "צמיחה לאחרונה",
+    "daysActive": "ימים פעילים",
+    "ritualsCompleted": "טקסים שהושלמו",
+    "longestStreak": "הרצף הארוך ביותר",
+    "predictionAccuracy": "דיוק התחזיות",
+    "accuracyOverall": "{accuracy}% סך הכל",
+    "noData": "אין נתונים",
+    "confidenceTitle": "{confidence}% ביטחון",
+    "loadError": "לא ניתן לטעון את ההתקדמות",
+    "insightCount": {
+      "one": "{count} תובנה",
+      "two": "שתי תובנות",
+      "other": "{count} תובנות"
+    },
+    "streakDays": {
+      "one": "{count} יום",
+      "two": "יומיים",
+      "other": "{count} ימים"
+    }
+  },
+  "avatarTapReactions": {
+    "tickles": "היהי, זה מדגדג!"
+  },
+  "storytelling": {
+    "stage": {
+      "default": {
+        "narrative": "כל סיפור מתחיל איפשהו",
+        "deeper": "עצם הנוכחות כאן משמעותית. רוב האנשים לא מתחילים בכלל."
+      },
+      "gettingStarted": {
+        "narrative": "להמשיך להגיע",
+        "deeper": "עקביות היא הבסיס לאמון. אני שם לב לזה."
+      },
+      "buildingTrust": {
+        "narrative": "כבר מעבר לפני השטח",
+        "deeper": "שיתוף בדברים שדורשים אומץ בונה חיבור אמיתי."
+      },
+      "established": {
+        "narrative": "קצב משלנו",
+        "deeper": "ככה מרגיש אמון — פשוט להגיע בלי לחשוב על זה פעמיים."
+      },
+      "deepPartnership": {
+        "narrative": "משהו נדיר",
+        "deeper": "מעט מערכות יחסים מגיעות לעומק כזה. זהו הישג אמיתי."
+      }
+    },
+    "daysTogether": "{count} ימים יחד.",
+    "weekTogether": "שבוע {week} יחד.",
+    "prediction": {
+      "empty": {
+        "narrative": "בואו נגלה עד כמה ההיכרות העצמית שלכם טובה",
+        "deeper": "תחזיות מגלות מודעות עצמית. רוב האנשים מופתעים מכך."
+      },
+      "deep": {
+        "narrative": "להכיר את עצמך לעומק",
+        "deeper": "רמת מודעות עצמית כזו היא נדירה. אפשר לראות דפוסים שאחרים מפספסים."
+      },
+      "strong": {
+        "narrative": "אינטואיציה חזקה",
+        "deeper": "להרגיש את הדפוסים האישיים. המודעות הזו היא הצעד הראשון לצמיחה."
+      },
+      "learning": {
+        "narrative": "ללמוד את הקצב האישי",
+        "deeper": "הפער בין התחזית למציאות מלמד אותנו. כדאי להמשיך לחקור."
+      },
+      "surprising": {
+        "narrative": "להפתיע את עצמך לעיתים קרובות",
+        "deeper": "יש בך יותר מורכבות ממה שנדמה. זו לא מגבלה – זה עומק."
+      }
+    },
+    "onARoll": "{narrative} - על הגל",
+    "matchLabel": "{narrative} (התאמה של {percent}%)",
+    "turningPoint": {
+      "firstConversation": "לכל מסע יש צעד ראשון. זה היה הצעד שלך.",
+      "vulnerability": "לשתף משהו אמיתי דורש אומץ.",
+      "milestone": "התקדמות לא תמיד נראית לעין. אבל היא אמיתית.",
+      "pattern": "מודעות היא הצעד הראשון לשינוי.",
+      "growth": "רגעים קטנים מצטברים. הרגע הזה היה משמעותי.",
+      "default": "כל אינטראקציה משאירה חותם."
+    },
+    "dated": "{when}: {description}",
+    "network": {
+      "empty": {
+        "narrative": "הסיפור שלך מחכה להיכתב",
+        "deeper": "קשרים מתחילים בשיחה אחת."
+      },
+      "attention": {
+        "narrative": "כמה קשרים זקוקים לתשומת לב",
+        "deeper": "מערכות יחסים זקוקות לטיפוח. מה קורא לך כרגע?"
+      },
+      "strong": {
+        "narrative": "קשרים חזקים ומטופחים",
+        "deeper": "ההשקעה במערכות יחסים מורגשת היטב."
+      },
+      "count": {
+        "narrative": "{count} קשרים במעגל שלך",
+        "deeper": "כל אדם כאן חשוב לך. וזה מה שחשוב."
+      }
+    },
+    "temporal": {
+      "newTerritory": "זו טריטוריה חדשה",
+      "startedAt": "התחלה ב-{value}",
+      "everyStartingPoint": "כל נקודת התחלה היא טובה. צמיחה יכולה להתחיל מכל מקום.",
+      "wereAt": "נקודת המוצא: {value}",
+      "nowGrowing": "עכשיו ב-{value} – בצמיחה",
+      "currentlyAt": "כרגע ב-{value}",
+      "nowLabel": "עכשיו: {value}",
+      "growthPercent": "זו צמיחה של {percent}%. ניצחונות קטנים מצטברים.",
+      "stability": "ליציבות יש ערך משלה.",
+      "onTrackFor": "בדרך ל-{value}",
+      "keepItUp": "התמדה בדרך הזו תוביל לדברים נפלאים.",
+      "reset": "הזדמנות לאתחול מחדש",
+      "dip": "כל ירידה היא הזדמנות להבין מה באמת חשוב.",
+      "steady": "יציב ומאוזן",
+      "consistency": "עקביות היא כוח עצום. בנייה של משהו אמיתי."
+    },
+    "invitation": "מעניין אם {subtext}"
+  },
+  "teaserPreview": {
+    "wellbeing": {
+      "title": "לוח הבקרה לרווחה האישית שלך",
+      "message": "מעקב אחר דפוסי האנרגיה, מצב הרוח והלחץ לאורך זמן.",
+      "score": "מדד רווחה אישית",
+      "trend": "במגמת עלייה השבוע"
+    },
+    "patterns": {
+      "title": "הדפוסים שלך",
+      "message": "אשים לב לדברים שאולי קשה לראות לבד.",
+      "behavioral": "התנהגותי",
+      "insightAnxious": "\"שמתי לב שיש תחושת מתח בימי ראשון בערב. לרוב זה עובר עד שני אחר הצהריים.\"",
+      "insightRoutine": "\"בזמני לחץ בעבודה, יש נטייה לוותר על שגרת הבוקר.\"",
+      "insightReading": "\"הימים הטובים ביותר מגיעים בדרך כלל אחרי ערבים של קריאה לפני השינה.\"",
+      "observed": {
+        "one": "נצפה {count} פעם",
+        "two": "נצפה פעמיים",
+        "other": "נצפה {count} פעמים"
+      }
+    },
+    "trust": {
+      "title": "מה שאני רואה אצלך",
+      "message": "ככל שהשיחות שלנו יעמיקו, כך אוכל להבין טוב יותר את תהליך הצמיחה שלך.",
+      "growthMoments": "רגעי צמיחה",
+      "winsCelebrated": "חגיגת הצלחות",
+      "boundariesHonored": "שמירה על גבולות",
+      "howYouveGrown": "הדרך שעברת",
+      "tagEmotions": "ניהול רגשות טוב יותר",
+      "tagBoundaries": "הצבת גבולות",
+      "tagHelp": "בקשת עזרה"
+    },
+    "life": {
+      "title": "העולם שלך",
+      "message": "אבין את ההקשר של החיים שלך – עבודה, מערכות יחסים ולחץ.",
+      "moderateStress": "לחץ מתון",
+      "feelingConnected": "תחושת חיבור",
+      "roomToGrow": "מקום לצמיחה",
+      "insight": "\"רמת האנרגיה יורדת באמצע השבוע. נראה שיום רביעי הוא היום המאתגר ביותר.\""
+    },
+    "predictions": {
+      "title": "התחזיות שלי",
+      "message": "אלמד לזהות מה נחוץ לך עוד לפני הבקשה.",
+      "guessOverwhelmed": "\"השבוע הזה עלול להרגיש קצת עמוס מדי\"",
+      "resultStress": "עלה נושא של לחץ בימי שלישי וחמישי",
+      "guessGym": "\"יהיה קושי להתמיד באימונים\"",
+      "guessSunday": "\"יום ראשון בערב ירגיש קצת כבד\"",
+      "resultCheckIn": "אעשה איתך צ'ק-אין",
+      "skipped": {
+        "one": "דילגת על {count} מפגש השבוע",
+        "two": "דילגת על שני מפגשים השבוע",
+        "other": "דילגת על {count} מפגשים השבוע"
+      }
+    },
+    "team": {
+      "title": "מה שאנחנו רואים",
+      "message": "כל הצוות שלך משתף תצפיות כדי לעזור לך לצמוח.",
+      "insightMaya": "\"רצף שגרת הבוקר שלך קשור למדדי מצב רוח טובים יותר. גם Peter שם לב לזה.\"",
+      "insightPeter": "\"ההוצאות על קפה קשורות לרמות הלחץ שלך. Jordan יכול לעזור עם חלופות.\"",
+      "insightNayan": "\"זה מרגיש כמו התחלה של פרק חדש...\""
+    },
+    "memories": {
+      "title": "הזיכרונות שלנו",
+      "message": "אזכור הכל - את הרגעים הגדולים ואת הקטנים.",
+      "win": "הישג",
+      "contentPerfectionism": "\"ההבנה שהפרפקציוניזם מונע ממך להתחיל\"",
+      "contentManager": "\"השיחה המורכבת ההיא עם המנהל/ת\"",
+      "contentMom": "\"ההבטחה להתקשר לאמא בכל יום ראשון\""
+    },
+    "people": {
+      "title": "האנשים שלך",
+      "message": "אזכור את כל מי שחשוב לך, ואיך ההרגשה שלך כלפיהם.",
+      "sarah": "שרה",
+      "mom": "אמא",
+      "david": "דוד",
+      "lastMentioned": "{relation} • אזכור אחרון: {when}",
+      "joy": "ממלא בשמחה",
+      "complex": "רגשות מורכבים",
+      "reconnect": "שווה לחדש את הקשר?",
+      "mentioned": {
+        "one": "{relation} • הוזכר {count} פעם",
+        "two": "{relation} • הוזכר פעמיים",
+        "other": "{relation} • הוזכר {count} פעמים"
+      }
+    },
+    "growth": {
+      "title": "הצמיחה שלך",
+      "message": "הוכחה ויזואלית להתקדמות שלך לאורך זמן.",
+      "week": "שבוע {number}",
+      "consistency": "עקביות",
+      "followThrough": "התמדה"
+    },
+    "habits": {
+      "title": "ההרגלים שלך",
+      "message": "לעקוב אחר מה שבנית ולראות את התנופה גדלה.",
+      "morningWalk": "הליכת בוקר",
+      "readBeforeBed": "קריאה לפני השינה",
+      "meditation": "מדיטציה"
+    },
+    "ariaLabel": "תצוגה מקדימה: {title}",
+    "unlockTomorrow": "מחר זה כבר יכול להיות אמיתי",
+    "unlockDays": {
+      "one": "בעוד {count} יום, זה יהיה שלך",
+      "two": "בעוד יומיים, זה יהיה שלך",
+      "other": "בעוד {count} ימים, זה יהיה שלך"
+    }
+  },
+  "x": "חבר/ה • 12 אזכורים",
+  "insightsView": {
+    "samplePattern": "\"נראה שימי ראשון בערב קצת קשים לך...\"",
+    "sampleInsight": "\"הזכרת עייפות 8 פעמים השבוע. נראה שהעייפות קשורה לאתגרים בהצבת גבולות בעבודה.\"",
+    "sampleEvidence": "על בסיס {count} שיחות"
   }
 }

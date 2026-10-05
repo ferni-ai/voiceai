@@ -124,7 +124,7 @@ function createModal(): void {
   modal = document.createElement('div');
   modal.className = 'gift-seeds-modal';
   modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-label', 'Share seeds with a friend');
+  modal.setAttribute('aria-label', t('accessibility.shareSeedsWithFriend'));
 
   renderModalContent();
   injectStyles();
@@ -432,7 +432,7 @@ function injectStyles(): void {
     .gift-seeds-close {
       position: absolute;
       top: var(--space-4, 16px);
-      right: var(--space-4, 16px);
+      inset-inline-end: var(--space-4, 16px);
       background: none;
       border: none;
       padding: var(--space-2, 8px);

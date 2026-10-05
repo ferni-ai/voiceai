@@ -11,7 +11,8 @@
  *   - Accessible color contrast throughout
  */
 
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { playMicroExpression } from './better-than-human.ui.js';
@@ -207,7 +208,7 @@ class AnalyticsDashboardUI {
 
     this.wrapper.innerHTML = `
       <header class="analytics__header">
-        <h2 class="analytics__title">Your Journey</h2>
+        <h2 class="analytics__title">${t('analyticsDashboard.title')}</h2>
         <div class="analytics__actions" role="button" tabindex="0">
           <button class="analytics__close" aria-label="${t('accessibility.closeDashboard')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -219,7 +220,7 @@ class AnalyticsDashboardUI {
       </header>
       <div class="analytics__loading">
         <div class="analytics__loading-spinner"></div>
-        <p class="analytics__loading-text">Loading your progress...</p>
+        <p class="analytics__loading-text">${t('analyticsDashboard.loading')}</p>
       </div>
     `;
 
@@ -231,13 +232,13 @@ class AnalyticsDashboardUI {
   /**
    * Show error state if data fetch fails
    */
-  showError(message = 'Unable to load your progress'): void {
+  showError(message = t('analyticsDashboard.loadError')): void {
     this.initialize();
     if (!this.panel || !this.wrapper) return;
 
     this.wrapper.innerHTML = `
       <header class="analytics__header">
-        <h2 class="analytics__title">Your Journey</h2>
+        <h2 class="analytics__title">${t('analyticsDashboard.title')}</h2>
         <div class="analytics__actions" role="button" tabindex="0">
           <button class="analytics__close" aria-label="${t('accessibility.closeDashboard')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -256,7 +257,7 @@ class AnalyticsDashboardUI {
           </svg>
         </div>
         <p class="analytics__error-title">${message}</p>
-        <p class="analytics__error-hint">Please try again later</p>
+        <p class="analytics__error-hint">${t('analyticsDashboard.errorHint')}</p>
       </div>
     `;
 
@@ -295,7 +296,7 @@ class AnalyticsDashboardUI {
     this.panel = document.createElement('div');
     this.panel.className = 'analytics';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Analytics Dashboard');
+    this.panel.setAttribute('aria-label', t('accessibility.analyticsDashboard'));
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'analytics__wrapper';
@@ -314,7 +315,7 @@ class AnalyticsDashboardUI {
 
     this.wrapper.innerHTML = `
       <header class="analytics__header">
-        <h2 class="analytics__title">Your Journey</h2>
+        <h2 class="analytics__title">${t('analyticsDashboard.title')}</h2>
         <div class="analytics__actions" role="button" tabindex="0">
           <button class="analytics__export" aria-label="${t('accessibility.exportData')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -333,20 +334,20 @@ class AnalyticsDashboardUI {
       </header>
 
       <div class="analytics__overview">
-        ${this.renderOverviewCard('Days Active', data.totalDays.toString(), 'calendar')}
-        ${this.renderOverviewCard('Rituals Completed', data.totalRituals.toString(), 'check')}
-        ${this.renderOverviewCard('Longest Streak', `${data.currentLongestStreak} days`, 'flame')}
-        ${this.renderOverviewCard('Prediction Accuracy', data.predictionAccuracy ? `${data.predictionAccuracy}%` : '—', 'target')}
+        ${this.renderOverviewCard(t('analyticsDashboard.daysActive'), data.totalDays.toString(), 'calendar')}
+        ${this.renderOverviewCard(t('analyticsDashboard.ritualsCompleted'), data.totalRituals.toString(), 'check')}
+        ${this.renderOverviewCard(t('analyticsDashboard.longestStreak'), tp('analyticsDashboard.streakDays', data.currentLongestStreak), 'flame')}
+        ${this.renderOverviewCard(t('analyticsDashboard.predictionAccuracy'), data.predictionAccuracy ? `${data.predictionAccuracy}%` : '—', 'target')}
       </div>
 
       <div class="analytics__charts">
         <section class="analytics__chart-section">
-          <h3>Mood Over Time</h3>
+          <h3>${t('analyticsDashboard.moodOverTime')}</h3>
           ${this.renderMoodChart(data.moodTrends)}
         </section>
 
         <section class="analytics__chart-section">
-          <h3>Streak Progress</h3>
+          <h3>${t('analyticsDashboard.streakProgress')}</h3>
           ${this.renderStreakChart(data.streakTrends)}
         </section>
       </div>
@@ -357,8 +358,8 @@ class AnalyticsDashboardUI {
         <div class="analytics__prediction-section">
           <section class="analytics__chart-section analytics__chart-section--full">
             <div class="analytics__section-header">
-              <h3>Prediction Accuracy Trend</h3>
-              <span class="analytics__accuracy-badge">${data.predictionAccuracy !== null ? `${data.predictionAccuracy}% overall` : 'No data'}</span>
+              <h3>${t('analyticsDashboard.predictionAccuracyTrend')}</h3>
+              <span class="analytics__accuracy-badge">${data.predictionAccuracy !== null ? t('analyticsDashboard.accuracyOverall', { accuracy: data.predictionAccuracy }) : t('analyticsDashboard.noData')}</span>
             </div>
             ${this.renderPredictionTrendChart(data.predictionTrends)}
           </section>
@@ -370,7 +371,7 @@ class AnalyticsDashboardUI {
       ${data.growthSummary ? this.renderGrowthSection(data.growthSummary, data.growthInsights) : ''}
 
       <div class="analytics__insights">
-        <h3>Insights</h3>
+        <h3>${t('analyticsDashboard.insights')}</h3>
         ${this.renderInsightsList(data)}
       </div>
     `;
@@ -424,8 +425,8 @@ class AnalyticsDashboardUI {
               <line x1="15" y1="9" x2="15.01" y2="9"/>
             </svg>
           </div>
-          <p class="analytics__empty-title">No mood data yet</p>
-          <p class="analytics__empty-hint">Do a Morning Sky Check with Ferni to start tracking</p>
+          <p class="analytics__empty-title">${t('analyticsDashboard.noMoodData')}</p>
+          <p class="analytics__empty-hint">${t('analyticsDashboard.noMoodHint')}</p>
         </div>
       `;
     }
@@ -441,9 +442,7 @@ class AnalyticsDashboardUI {
             const value = MOOD_VALUES[t.mood] ?? 3;
             const height = (value / maxValue) * 100;
             const color = MOOD_COLORS[t.mood] ?? 'var(--color-text-muted)';
-            const day = new Date(t.date)
-              .toLocaleDateString('en-US', { weekday: 'short' })
-              .slice(0, 1);
+            const day = formatDate(new Date(t.date), { weekday: 'narrow' });
 
             return `
             <div class="analytics__mood-bar" style="--bar-height: ${height}%; --bar-color: ${color}; --bar-delay: ${i * 30}ms">
@@ -466,8 +465,8 @@ class AnalyticsDashboardUI {
               <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
             </svg>
           </div>
-          <p class="analytics__empty-title">No streaks yet</p>
-          <p class="analytics__empty-hint">Complete rituals daily to build streaks</p>
+          <p class="analytics__empty-title">${t('analyticsDashboard.noStreaks')}</p>
+          <p class="analytics__empty-hint">${t('analyticsDashboard.noStreaksHint')}</p>
         </div>
       `;
     }
@@ -486,9 +485,7 @@ class AnalyticsDashboardUI {
         ${dates
           .map(([date, count], i) => {
             const height = (count / maxValue) * 100;
-            const day = new Date(date)
-              .toLocaleDateString('en-US', { weekday: 'short' })
-              .slice(0, 1);
+            const day = formatDate(new Date(date), { weekday: 'narrow' });
 
             return `
             <div class="analytics__streak-bar" style="--bar-height: ${height}%; --bar-delay: ${i * 30}ms">
@@ -504,7 +501,7 @@ class AnalyticsDashboardUI {
 
   private renderPredictionTrendChart(trends: PredictionAccuracyTrend[]): string {
     if (trends.length === 0) {
-      return '<div class="analytics__chart-empty">No prediction data yet</div>';
+      return `<div class="analytics__chart-empty">${t('analyticsDashboard.noPredictionData')}</div>`;
     }
 
     // Take last 14 days
@@ -559,11 +556,11 @@ class AnalyticsDashboardUI {
         <div class="analytics__prediction-summary">
           <div class="analytics__prediction-avg">
             <span class="analytics__prediction-avg-value">${avgAccuracy}%</span>
-            <span class="analytics__prediction-avg-label">Average</span>
+            <span class="analytics__prediction-avg-label">${t('analyticsDashboard.average')}</span>
           </div>
           <div class="analytics__prediction-range">
             <span>${Math.min(...recent.map((t) => t.accuracy))}% - ${Math.max(...recent.map((t) => t.accuracy))}%</span>
-            <span class="analytics__prediction-range-label">Range</span>
+            <span class="analytics__prediction-range-label">${t('analyticsDashboard.range')}</span>
           </div>
         </div>
       </div>
@@ -584,8 +581,8 @@ class AnalyticsDashboardUI {
               <path d="M12 8h.01"/>
             </svg>
           </div>
-          <p class="analytics__empty-title">Insights unlock with practice</p>
-          <p class="analytics__empty-hint">Complete a few sky checks and rituals to see patterns emerge</p>
+          <p class="analytics__empty-title">${t('analyticsDashboard.insightsEmpty')}</p>
+          <p class="analytics__empty-hint">${t('analyticsDashboard.insightsEmptyHint')}</p>
         </div>
       `;
     }
@@ -614,7 +611,7 @@ class AnalyticsDashboardUI {
       items.push(`<li class="analytics__insight-item">
         <div class="analytics__insight-icon-wrapper">${icons.calendar}</div>
         <div class="analytics__insight-content">
-          <span class="analytics__insight-label">Best day</span>
+          <span class="analytics__insight-label">${t('analyticsDashboard.bestDay')}</span>
           <span class="analytics__insight-value">${this.escapeHtml(data.bestDay)}</span>
         </div>
       </li>`);
@@ -624,7 +621,7 @@ class AnalyticsDashboardUI {
       items.push(`<li class="analytics__insight-item">
         <div class="analytics__insight-icon-wrapper">${icons.flame}</div>
         <div class="analytics__insight-content">
-          <span class="analytics__insight-label">Most consistent</span>
+          <span class="analytics__insight-label">${t('analyticsDashboard.mostConsistent')}</span>
           <span class="analytics__insight-value">${this.escapeHtml(data.mostConsistentRitual)}</span>
         </div>
       </li>`);
@@ -669,7 +666,7 @@ class AnalyticsDashboardUI {
         (area) => `
         <div class="analytics__growth-area">
           <span class="analytics__growth-area-name">${this.escapeHtml(area.area)}</span>
-          <span class="analytics__growth-area-count">${area.count} insight${area.count !== 1 ? 's' : ''}</span>
+          <span class="analytics__growth-area-count">${tp('analyticsDashboard.insightCount', area.count)}</span>
         </div>
       `
       )
@@ -692,7 +689,7 @@ class AnalyticsDashboardUI {
                 <span class="analytics__growth-after">${this.escapeHtml(insight.after)}</span>
               </div>
             </div>
-            <div class="analytics__growth-insight-confidence" title="${insight.confidence}% confidence">
+            <div class="analytics__growth-insight-confidence" title="${t('analyticsDashboard.confidenceTitle', { confidence: insight.confidence })}">
               ${Math.round(insight.confidence)}%
             </div>
           </div>
@@ -700,16 +697,16 @@ class AnalyticsDashboardUI {
             )
             .join('')
         : `<div class="analytics__growth-empty">
-            <p>Keep going! Growth insights will appear as patterns emerge.</p>
+            <p>${t('analyticsDashboard.growthEmpty')}</p>
           </div>`;
 
     return `
       <div class="analytics__growth-section">
         <div class="analytics__section-header">
-          <h3>Your Growth</h3>
+          <h3>${t('analyticsDashboard.yourGrowth')}</h3>
           <div class="analytics__growth-score" style="--score-color: ${scoreColor}">
             <span class="analytics__growth-score-value">${summary.growthScore}</span>
-            <span class="analytics__growth-score-label">Growth Score</span>
+            <span class="analytics__growth-score-label">${t('analyticsDashboard.growthScore')}</span>
           </div>
         </div>
 
@@ -717,12 +714,12 @@ class AnalyticsDashboardUI {
           <div class="analytics__growth-stat">
             <div class="analytics__growth-stat-icon">${growthIcon}</div>
             <div class="analytics__growth-stat-value">${summary.totalInsights}</div>
-            <div class="analytics__growth-stat-label">Total Insights</div>
+            <div class="analytics__growth-stat-label">${t('analyticsDashboard.totalInsights')}</div>
           </div>
           <div class="analytics__growth-stat">
             <div class="analytics__growth-stat-icon">${trendIcon}</div>
             <div class="analytics__growth-stat-value">${summary.resonatedInsights}</div>
-            <div class="analytics__growth-stat-label">Resonated</div>
+            <div class="analytics__growth-stat-label">${t('analyticsDashboard.resonated')}</div>
           </div>
         </div>
 
@@ -730,7 +727,7 @@ class AnalyticsDashboardUI {
           summary.topGrowthAreas.length > 0
             ? `
           <div class="analytics__growth-areas">
-            <h4>Top Growth Areas</h4>
+            <h4>${t('analyticsDashboard.topGrowthAreas')}</h4>
             ${topAreas}
           </div>
         `
@@ -738,7 +735,7 @@ class AnalyticsDashboardUI {
         }
 
         <div class="analytics__growth-recent">
-          <h4>Recent Growth</h4>
+          <h4>${t('analyticsDashboard.recentGrowth')}</h4>
           ${recentInsightsList}
         </div>
       </div>

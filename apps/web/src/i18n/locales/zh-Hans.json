@@ -621,7 +621,18 @@
     "zen": "Zen",
     "quietHoursEnd": "安静时间结束时间",
     "quietHoursStart": "安静时间开始时间",
-    "verifyPhone": "验证手机号"
+    "verifyPhone": "验证手机号",
+    "toggleTheme": "切换主题",
+    "toggleThemeShortcut": "切换主题 (T)",
+    "muteMicrophone": "静音麦克风",
+    "unmuteMicrophone": "取消静音麦克风",
+    "muteShortcut": "静音 (M)",
+    "tapForFunReaction": "轻点一下，看看好玩的反应",
+    "analyticsDashboard": "数据分析仪表盘",
+    "integrationSettings": "集成设置",
+    "whatFerniIsNoticing": "Ferni 注意到了什么",
+    "shareSeedsWithFriend": "与朋友分享种子",
+    "shareFerniWithFriend": "与朋友分享 Ferni"
   },
   "addPerson": {
     "addMoreDetails": "添加更多细节",
@@ -706,7 +717,8 @@
     "dismiss": "知道了",
     "connected": "已连接",
     "unknown": "未知",
-    "browse": "浏览"
+    "browse": "浏览",
+    "initializing": "正在初始化..."
   },
   "confirmModal": {
     "cancel": "取消",
@@ -5313,7 +5325,20 @@
     "rescheduleCheckin": "重新安排记录时间",
     "inOneHour": "1 小时后",
     "inThreeHours": "3 小时后",
-    "tomorrowMorning": "明天早上"
+    "tomorrowMorning": "明天早上",
+    "heroDesc": "朋友会忘记，但我不会。我会发现你自己都没察觉的规律，并在最合适的时刻向你发起记录。",
+    "guardianCheckinsDesc": "在你开口之前，我就会察觉到你需要支持的时刻",
+    "dailyRemindersDesc": "在最适合你的时间给你温柔的提醒——我会慢慢了解你什么时候最容易接受",
+    "streakMilestonesDesc": "庆祝你的坚持——我记得你旅程中的每一步",
+    "to": "至",
+    "quietNote": "如果你在凌晨两点醒来并联系我，我依然会像中午一样，温和地陪伴在你身边。",
+    "sampleFriday": "周五 {time}",
+    "sampleOverwhelmed": "“你昨天提到感觉压力很大。现在好些了吗？”",
+    "sampleMeditation": "“你的冥想连续天数已经达到 6 天啦！准备好迎接第 7 天了吗？”",
+    "samplePresentation": "“那场重要的演示快到了。想一起准备一下吗？”",
+    "guardianDesc": "全天候守护着你",
+    "emptyCta": "继续和我聊聊吧。每一次对话都能帮我更好地理解何时以及如何给你最贴心的支持。",
+    "emptyTip": "在设置中开启“{feature}”，解锁主动支持"
   },
   "trophyRoom": {
     "yourJourney": "你的旅程",
@@ -6878,7 +6903,11 @@
     "peopleTracked": "位已记录的联系人",
     "relationshipInsights": "人际关系感悟",
     "connected": "已连接",
-    "notConnected": "未连接"
+    "notConnected": "未连接",
+    "bankConnected": "银行已连接",
+    "privacyCalendar": "我们只读取日程的时间和标题，绝不读取具体内容或参与者详情。",
+    "privacyLinkedin": "我们只读取你的个人档案和工作经历来庆祝里程碑。我们绝不会代表你发布任何内容或发送消息。",
+    "privacyBanking": "由 Plaid 提供技术支持——采用与 Venmo 及各大银行相同的安全标准。我们绝不会获取你的登录凭证。"
   },
   "recordGift": {
     "title": "记录一份礼物",
@@ -10717,5 +10746,262 @@
     "signInFirst": "请先登录，然后再进行连接",
     "unavailable": "{provider}目前不可用",
     "failed": "无法连接。要再试一次吗？"
+  },
+  "entrance": {
+    "helper": "你的专属向导"
+  },
+  "teamHuddle": {
+    "typeWeekly": "每周记录",
+    "typeMilestone": "里程碑庆祝",
+    "typeSpecial": "特别时刻"
+  },
+  "analyticsDashboard": {
+    "title": "你的旅程",
+    "loading": "正在加载你的进度...",
+    "errorHint": "请稍后再试",
+    "moodOverTime": "心情变化趋势",
+    "streakProgress": "连续天数进度",
+    "predictionAccuracyTrend": "预测准确率趋势",
+    "insights": "感悟",
+    "noMoodData": "暂无心情数据",
+    "noMoodHint": "与 Ferni 进行一次“晨空记录”，开始追踪吧",
+    "noStreaks": "暂无连续天数",
+    "noStreaksHint": "每天完成仪式来积累连续天数",
+    "noPredictionData": "暂无预测数据",
+    "average": "平均",
+    "range": "范围",
+    "insightsEmpty": "通过练习解锁感悟",
+    "insightsEmptyHint": "完成几次天空记录和仪式，就能看到规律显现",
+    "bestDay": "状态最好的一天",
+    "mostConsistent": "最持之以恒",
+    "growthEmpty": "继续加油！随着规律显现，成长感悟就会出现。",
+    "yourGrowth": "你的成长",
+    "growthScore": "成长评分",
+    "totalInsights": "感悟总数",
+    "resonated": "产生共鸣",
+    "topGrowthAreas": "主要成长领域",
+    "recentGrowth": "近期成长",
+    "daysActive": "活跃天数",
+    "ritualsCompleted": "已完成的仪式",
+    "longestStreak": "最长连续天数",
+    "predictionAccuracy": "预测准确率",
+    "accuracyOverall": "总体 {accuracy}%",
+    "noData": "暂无数据",
+    "confidenceTitle": "{confidence}% 把握",
+    "loadError": "无法加载你的进度",
+    "insightCount": {
+      "other": "{count} 条感悟",
+      "one": "{count} 条感悟"
+    },
+    "streakDays": {
+      "other": "{count} 天",
+      "one": "{count} 天"
+    }
+  },
+  "avatarTapReactions": {
+    "tickles": "嘿嘿，好痒呀！"
+  },
+  "storytelling": {
+    "stage": {
+      "default": {
+        "narrative": "每个故事都有一个起点",
+        "deeper": "你能来到这里，这本身就很重要。因为大多数人甚至从未开始。"
+      },
+      "gettingStarted": {
+        "narrative": "你一直在坚持出现",
+        "deeper": "坚持是信任的基石。我都注意到了。"
+      },
+      "buildingTrust": {
+        "narrative": "现在我们走得更深了",
+        "deeper": "你正在分享那些需要勇气才能说出口的事。这建立了真正的连接。"
+      },
+      "established": {
+        "narrative": "属于我们自己的节奏",
+        "deeper": "这就是信任的感觉——自然而然地出现，无需多虑。"
+      },
+      "deepPartnership": {
+        "narrative": "弥足珍贵的关系",
+        "deeper": "很少有关系能达到这样的深度。是你亲手建立了这一切。"
+      }
+    },
+    "daysTogether": "共同度过了 {count} 天。",
+    "weekTogether": "共同度过的第 {week} 周。",
+    "prediction": {
+      "empty": {
+        "narrative": "让我们来看看你有多了解自己",
+        "deeper": "预测能展现出你的自我觉察。大多数人都会感到惊讶。"
+      },
+      "deep": {
+        "narrative": "你对自己有着深刻的了解",
+        "deeper": "这种程度的自我觉察非常难得。你看到了别人忽略的模式。"
+      },
+      "strong": {
+        "narrative": "你的直觉很敏锐",
+        "deeper": "你能察觉到自己的模式。这种觉察是成长的第一步。"
+      },
+      "learning": {
+        "narrative": "正在了解你自己的节奏",
+        "deeper": "预测与现实之间的差距能带给我们启发。继续探索吧。"
+      },
+      "surprising": {
+        "narrative": "经常给自己带来惊喜",
+        "deeper": "你比自己想象的要复杂得多。这不是缺点，而是深度。"
+      }
+    },
+    "onARoll": "{narrative} —— 渐入佳境",
+    "matchLabel": "{narrative}（{percent}% 吻合）",
+    "turningPoint": {
+      "firstConversation": "每段旅程都有第一步。这就是你的起点。",
+      "vulnerability": "你分享了真实的心声。这需要勇气。",
+      "milestone": "进步并不总是显而易见，但它确实存在。",
+      "pattern": "觉察是改变的第一步。",
+      "growth": "微小的瞬间会产生复利效应。这一刻至关重要。",
+      "default": "每次互动都会留下印记。"
+    },
+    "dated": "{when}：{description}",
+    "network": {
+      "empty": {
+        "narrative": "你的故事正等待着被书写",
+        "deeper": "连结始于一次简单的对话。"
+      },
+      "attention": {
+        "narrative": "有些连结需要你的关注",
+        "deeper": "关系需要悉心呵护。哪一个在呼唤你？"
+      },
+      "strong": {
+        "narrative": "紧密的纽带，用心的呵护",
+        "deeper": "你在人际关系中倾注了心力。这显而易见。"
+      },
+      "count": {
+        "narrative": "你的圈子里有 {count} 个连结",
+        "deeper": "这里的每个人对你都很重要。这本身就很有意义。"
+      }
+    },
+    "temporal": {
+      "newTerritory": "这是全新的领域",
+      "startedAt": "开始于 {value}",
+      "everyStartingPoint": "每一个起点都有其价值。成长可以从任何地方开始。",
+      "wereAt": "你曾处于 {value}",
+      "nowGrowing": "现在处于 {value} —— 正在成长",
+      "currentlyAt": "目前处于 {value}",
+      "nowLabel": "现在：{value}",
+      "growthPercent": "增长了 {percent}%。微小的胜利会产生复利效应。",
+      "stability": "稳定本身就有其独特的价值。",
+      "onTrackFor": "正在朝着 {value} 稳步迈进",
+      "keepItUp": "如果你保持下去，美好的事情即将发生。",
+      "reset": "一个重新开始的机会",
+      "dip": "每次低谷都是一次了解什么才是真正重要的机会。",
+      "steady": "稳步前行",
+      "consistency": "坚持往往被低估了。你正在建立一些真实而持久的东西。"
+    },
+    "invitation": "我在想，是否 {subtext}"
+  },
+  "teaserPreview": {
+    "wellbeing": {
+      "title": "你的身心健康仪表盘",
+      "message": "持续追踪你的精力、心情和压力模式。",
+      "score": "身心健康评分",
+      "trend": "本周呈上升趋势"
+    },
+    "patterns": {
+      "title": "你的模式",
+      "message": "我会注意到一些你可能自己都没发现的细节。",
+      "behavioral": "行为模式",
+      "insightAnxious": "“我注意到你在周日晚上会感到焦虑。通常到周一下午就会好转。”",
+      "insightRoutine": "“当工作压力大时，你往往会漏掉早晨的例行仪式。”",
+      "insightReading": "“你状态最好的日子，似乎都紧接着睡前阅读的夜晚。”",
+      "observed": {
+        "other": "观察到 {count} 次",
+        "one": "观察到 {count} 次"
+      }
+    },
+    "trust": {
+      "title": "我对你的观察",
+      "message": "我们聊得越深，我就越能理解你的成长。",
+      "growthMoments": "成长瞬间",
+      "winsCelebrated": "庆祝过的胜利",
+      "boundariesHonored": "坚守的边界",
+      "howYouveGrown": "你是如何成长的",
+      "tagEmotions": "更好地管理情绪",
+      "tagBoundaries": "设定边界",
+      "tagHelp": "寻求帮助"
+    },
+    "life": {
+      "title": "你的世界",
+      "message": "我会理解你的生活背景——工作、人际关系和压力。",
+      "moderateStress": "中度压力",
+      "feelingConnected": "感到与人连结",
+      "roomToGrow": "成长空间",
+      "insight": "“你的精力在周中会下降。周三似乎是你最难熬的一天。”"
+    },
+    "predictions": {
+      "title": "我的预测",
+      "message": "我会学会预测你的需求，在你开口之前就准备好。",
+      "guessOverwhelmed": "“你这周会感到有些不堪重负”",
+      "resultStress": "你在周二和周四提到了压力",
+      "guessGym": "“去健身房的习惯可能会遇到阻碍”",
+      "guessSunday": "“周日晚上会感觉有些沉重”",
+      "resultCheckIn": "我会找你记录一下",
+      "skipped": {
+        "other": "你本周跳过了 {count} 次",
+        "one": "你本周跳过了 {count} 次"
+      }
+    },
+    "team": {
+      "title": "我们的观察",
+      "message": "你的整个团队都会分享他们的观察，来帮助你成长。",
+      "insightMaya": "“你早晨仪式的连续天数与更好的心情评分息息相关。Peter 也注意到了这一点。”",
+      "insightPeter": "“你在咖啡上的消费与你的压力水平相关。Jordan 或许能帮你找到替代方案。”",
+      "insightNayan": "“这感觉像是一个新篇章的开始……”"
+    },
+    "memories": {
+      "title": "我们的记忆",
+      "message": "我会记住一切——无论是那些重要时刻，还是细微的点滴。",
+      "win": "小胜利",
+      "contentPerfectionism": "“你意识到自己的完美主义阻碍了你迈出第一步”",
+      "contentManager": "“你和经理进行了一次艰难的对话”",
+      "contentMom": "“你答应了每个周日都给妈妈打电话”"
+    },
+    "people": {
+      "title": "身边的人",
+      "message": "我会记住对你重要的每一个人，以及你对他们的感受。",
+      "sarah": "Sarah",
+      "mom": "妈妈",
+      "david": "David",
+      "lastMentioned": "{relation} • 最近提及：{when}",
+      "joy": "给你带来快乐",
+      "complex": "复杂的感受",
+      "reconnect": "值得重新联系吗？",
+      "mentioned": {
+        "other": "{relation} • 提及 {count} 次",
+        "one": "{relation} • 提及 {count} 次"
+      }
+    },
+    "growth": {
+      "title": "你的成长",
+      "message": "用直观的方式，见证你随着时间推移取得的进步。",
+      "week": "第 {number} 周",
+      "consistency": "坚持",
+      "followThrough": "说到做到"
+    },
+    "habits": {
+      "title": "你的习惯",
+      "message": "记录你正在培养的习惯，看着动力不断积蓄。",
+      "morningWalk": "晨间散步",
+      "readBeforeBed": "睡前阅读",
+      "meditation": "冥想"
+    },
+    "ariaLabel": "预览：{title}",
+    "unlockTomorrow": "明天，这就会变成现实",
+    "unlockDays": {
+      "other": "再过 {count} 天，这就属于你啦",
+      "one": "再过 {count} 天，这就属于你啦"
+    }
+  },
+  "x": "朋友 • 提及 12 次",
+  "insightsView": {
+    "samplePattern": "“周日的傍晚对你来说似乎有些难熬……”",
+    "sampleInsight": "“这周你提到了 8 次感到疲惫。这种疲惫似乎与你在工作中难以划定界限有关。”",
+    "sampleEvidence": "基于 {count} 次对话"
   }
 }

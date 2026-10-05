@@ -163,7 +163,7 @@ export class InsightsView {
     this.container.className = 'insights-view';
     this.container.setAttribute('role', 'dialog');
     this.container.setAttribute('aria-modal', 'true');
-    this.container.setAttribute('aria-label', 'What Ferni is noticing');
+    this.container.setAttribute('aria-label', t('accessibility.whatFerniIsNoticing'));
     this.container.setAttribute('aria-hidden', 'true');
 
     this.container.innerHTML = this.renderView();
@@ -181,7 +181,7 @@ export class InsightsView {
             <span class="insights-view__eyebrow">${t('insights.forYou')}</span>
             <h2 class="insights-view__title">${t('insights.whatNoticing')}</h2>
           </div>
-          ${renderCloseButton('Close')}
+          ${renderCloseButton(t('common.close'))}
         </header>
         <div class="insights-view__content" id="insights-content">
           ${this.renderContent()}
@@ -435,7 +435,7 @@ export class InsightsView {
             </div>
             <div class="insights-empty__cap-content">
               <span class="insights-empty__cap-title">${t('insights.patternRecognition')}</span>
-              <span class="insights-empty__cap-desc">"Sunday evenings seem hard for you..."</span>
+              <span class="insights-empty__cap-desc">${t('insightsView.samplePattern')}</span>
             </div>
           </div>
           
@@ -469,8 +469,8 @@ export class InsightsView {
           <div class="insights-empty__sample-card">
             <div class="insights-empty__sample-icon">${INSIGHT_ICONS.pattern}</div>
             <div class="insights-empty__sample-content">
-              <p class="insights-empty__sample-text">"You've mentioned feeling tired 8 times this week. The tiredness seems connected to boundary-setting challenges at work."</p>
-              <span class="insights-empty__sample-evidence">Based on 23 conversations</span>
+              <p class="insights-empty__sample-text">${t('insightsView.sampleInsight')}</p>
+              <span class="insights-empty__sample-evidence">${t('insightsView.sampleEvidence', { count: 23 })}</span>
             </div>
           </div>
         </div>

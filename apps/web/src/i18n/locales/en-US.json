@@ -2019,7 +2019,13 @@
     "toggleThemeShortcut": "Switch theme (T)",
     "muteMicrophone": "Mute microphone",
     "unmuteMicrophone": "Unmute microphone",
-    "muteShortcut": "Mute (M)"
+    "muteShortcut": "Mute (M)",
+    "tapForFunReaction": "Tap for a fun reaction",
+    "analyticsDashboard": "Analytics Dashboard",
+    "integrationSettings": "Integration settings",
+    "whatFerniIsNoticing": "What Ferni is noticing",
+    "shareSeedsWithFriend": "Share seeds with a friend",
+    "shareFerniWithFriend": "Share Ferni with a friend"
   },
   "support": {
     "eyebrow": "From Us to You",
@@ -5319,7 +5325,20 @@
     "rescheduleCheckin": "Reschedule check-in",
     "inOneHour": "In 1 hour",
     "inThreeHours": "In 3 hours",
-    "tomorrowMorning": "Tomorrow morning"
+    "tomorrowMorning": "Tomorrow morning",
+    "heroDesc": "Friends forget. I don't. I'll notice patterns you can't see yourself, and check in at exactly the right moment.",
+    "guardianCheckinsDesc": "I'll notice when you need support—before you ask",
+    "dailyRemindersDesc": "Gentle nudges at your optimal time—I'll learn when you're most receptive",
+    "streakMilestonesDesc": "Celebrate consistency—I remember every step of your journey",
+    "to": "To",
+    "quietNote": "If you're awake at 2am and reach out, I'm here with the same presence as noon.",
+    "sampleFriday": "Friday at {time}",
+    "sampleOverwhelmed": "\"You mentioned feeling overwhelmed yesterday. How are you holding up?\"",
+    "sampleMeditation": "\"Your meditation streak is at 6 days! Ready for day 7?\"",
+    "samplePresentation": "\"That big presentation is coming up. Want to prep together?\"",
+    "guardianDesc": "Watching out for you 24/7",
+    "emptyCta": "Keep talking with me. Every conversation helps me understand when and how to support you best.",
+    "emptyTip": "Enable \"{feature}\" in Settings to unlock proactive support"
   },
   "trophyRoom": {
     "yourJourney": "YOUR JOURNEY",
@@ -6884,7 +6903,11 @@
     "peopleTracked": "people tracked",
     "relationshipInsights": "Relationship insights",
     "connected": "Connected",
-    "notConnected": "Not connected"
+    "notConnected": "Not connected",
+    "bankConnected": "Bank Connected",
+    "privacyCalendar": "We only read event times and titles, never content or attendee details.",
+    "privacyLinkedin": "We only read your profile and job history to celebrate milestones. We never post or message on your behalf.",
+    "privacyBanking": "Powered by Plaid - the same security used by Venmo and major banks. Your credentials are never shared with us."
   },
   "recordGift": {
     "title": "Record a Gift",
@@ -10726,5 +10749,259 @@
   },
   "entrance": {
     "helper": "Your personal guide"
+  },
+  "teamHuddle": {
+    "typeWeekly": "Weekly Check-in",
+    "typeMilestone": "Milestone Celebration",
+    "typeSpecial": "Special Moment"
+  },
+  "analyticsDashboard": {
+    "title": "Your Journey",
+    "loading": "Loading your progress...",
+    "errorHint": "Please try again later",
+    "moodOverTime": "Mood Over Time",
+    "streakProgress": "Streak Progress",
+    "predictionAccuracyTrend": "Prediction Accuracy Trend",
+    "insights": "Insights",
+    "noMoodData": "No mood data yet",
+    "noMoodHint": "Do a Morning Sky Check with Ferni to start tracking",
+    "noStreaks": "No streaks yet",
+    "noStreaksHint": "Complete rituals daily to build streaks",
+    "noPredictionData": "No prediction data yet",
+    "average": "Average",
+    "range": "Range",
+    "insightsEmpty": "Insights unlock with practice",
+    "insightsEmptyHint": "Complete a few sky checks and rituals to see patterns emerge",
+    "bestDay": "Best day",
+    "mostConsistent": "Most consistent",
+    "growthEmpty": "Keep going! Growth insights will appear as patterns emerge.",
+    "yourGrowth": "Your Growth",
+    "growthScore": "Growth Score",
+    "totalInsights": "Total Insights",
+    "resonated": "Resonated",
+    "topGrowthAreas": "Top Growth Areas",
+    "recentGrowth": "Recent Growth",
+    "daysActive": "Days Active",
+    "ritualsCompleted": "Rituals Completed",
+    "longestStreak": "Longest Streak",
+    "predictionAccuracy": "Prediction Accuracy",
+    "streakDays": {
+      "one": "{count} day",
+      "other": "{count} days"
+    },
+    "accuracyOverall": "{accuracy}% overall",
+    "noData": "No data",
+    "insightCount": {
+      "one": "{count} insight",
+      "other": "{count} insights"
+    },
+    "confidenceTitle": "{confidence}% confidence",
+    "loadError": "Unable to load your progress"
+  },
+  "avatarTapReactions": {
+    "tickles": "Hehe, that tickles!"
+  },
+  "storytelling": {
+    "stage": {
+      "default": {
+        "narrative": "Every story starts somewhere",
+        "deeper": "The fact that you're here matters. Most people never start."
+      },
+      "gettingStarted": {
+        "narrative": "You keep showing up",
+        "deeper": "Consistency is the foundation of trust. I notice."
+      },
+      "buildingTrust": {
+        "narrative": "Past the surface now",
+        "deeper": "You're sharing things that take courage. That builds real connection."
+      },
+      "established": {
+        "narrative": "A rhythm of our own",
+        "deeper": "This is what trust feels like - showing up without thinking about it."
+      },
+      "deepPartnership": {
+        "narrative": "Something rare",
+        "deeper": "Few relationships reach this depth. You built this."
+      }
+    },
+    "daysTogether": "{count} days together.",
+    "weekTogether": "Week {week} together.",
+    "prediction": {
+      "empty": {
+        "narrative": "Let's discover how well you know yourself",
+        "deeper": "Predictions reveal your self-awareness. Most people are surprised."
+      },
+      "deep": {
+        "narrative": "You know yourself deeply",
+        "deeper": "This level of self-awareness is rare. You see patterns others miss."
+      },
+      "strong": {
+        "narrative": "Your intuition is strong",
+        "deeper": "You sense your patterns. That awareness is the first step to growth."
+      },
+      "learning": {
+        "narrative": "Learning your own rhythms",
+        "deeper": "The gap between prediction and reality teaches us. Keep exploring."
+      },
+      "surprising": {
+        "narrative": "Surprising yourself often",
+        "deeper": "You're more complex than you think. That's not a flaw - it's depth."
+      }
+    },
+    "onARoll": "{narrative} - on a roll",
+    "matchLabel": "{narrative} ({percent}% match)",
+    "turningPoint": {
+      "firstConversation": "Every journey has a first step. This was yours.",
+      "vulnerability": "You shared something real. That takes courage.",
+      "milestone": "Progress isn't always visible. But it's real.",
+      "pattern": "Awareness is the first step to change.",
+      "growth": "Small moments compound. This one mattered.",
+      "default": "Every interaction leaves an impression."
+    },
+    "dated": "{when}: {description}",
+    "network": {
+      "empty": {
+        "narrative": "Your story is waiting to be written",
+        "deeper": "Connections start with a single conversation."
+      },
+      "attention": {
+        "narrative": "Some connections could use attention",
+        "deeper": "Relationships need nurturing. Which one calls to you?"
+      },
+      "strong": {
+        "narrative": "Strong bonds, well-tended",
+        "deeper": "You invest in your relationships. It shows."
+      },
+      "count": {
+        "narrative": "{count} connections in your circle",
+        "deeper": "Every person here matters to you. That matters."
+      }
+    },
+    "temporal": {
+      "newTerritory": "This is new territory",
+      "startedAt": "Started at {value}",
+      "everyStartingPoint": "Every starting point is valid. Growth happens from anywhere.",
+      "wereAt": "You were at {value}",
+      "nowGrowing": "Now at {value} - growing",
+      "currentlyAt": "Currently at {value}",
+      "nowLabel": "Now: {value}",
+      "growthPercent": "That's {percent}% growth. Small wins compound.",
+      "stability": "Stability has its own value.",
+      "onTrackFor": "On track for {value}",
+      "keepItUp": "If you keep this up, great things are coming.",
+      "reset": "A chance to reset",
+      "dip": "Every dip is a chance to understand what matters.",
+      "steady": "Steady as she goes",
+      "consistency": "Consistency is underrated. You're building something real."
+    },
+    "invitation": "I wonder if {subtext}"
+  },
+  "teaserPreview": {
+    "wellbeing": {
+      "title": "Your Wellbeing Dashboard",
+      "message": "Track your energy, mood, and stress patterns over time.",
+      "score": "Wellbeing Score",
+      "trend": "Trending upward this week"
+    },
+    "patterns": {
+      "title": "Your Patterns",
+      "message": "I'll notice things about you that you might not see yourself.",
+      "behavioral": "Behavioral",
+      "insightAnxious": "\"I've noticed you feel anxious on Sunday evenings. It usually passes by Monday afternoon.\"",
+      "insightRoutine": "\"When you're stressed about work, you tend to skip your morning routine.\"",
+      "insightReading": "\"Your best days seem to follow evenings when you read before bed.\"",
+      "observed": {
+        "one": "Observed {count} time",
+        "other": "Observed {count} times"
+      }
+    },
+    "trust": {
+      "title": "What I Notice About You",
+      "message": "The deeper we talk, the more I understand your growth.",
+      "growthMoments": "Growth moments",
+      "winsCelebrated": "Wins celebrated",
+      "boundariesHonored": "Boundaries honored",
+      "howYouveGrown": "How you've grown",
+      "tagEmotions": "Managing emotions better",
+      "tagBoundaries": "Setting boundaries",
+      "tagHelp": "Asking for help"
+    },
+    "life": {
+      "title": "Your World",
+      "message": "I'll understand the context of your life - work, relationships, stress.",
+      "moderateStress": "Moderate stress",
+      "feelingConnected": "Feeling connected",
+      "roomToGrow": "Room to grow",
+      "insight": "\"Your energy dips mid-week. Wednesday seems to be your hardest day.\""
+    },
+    "predictions": {
+      "title": "My Predictions",
+      "message": "I'll learn to anticipate what you need before you ask.",
+      "guessOverwhelmed": "\"You'd feel overwhelmed this week\"",
+      "resultStress": "You mentioned stress on Tuesday and Thursday",
+      "guessGym": "\"The gym habit would struggle\"",
+      "skipped": {
+        "one": "You skipped {count} session this week",
+        "other": "You skipped {count} sessions this week"
+      },
+      "guessSunday": "\"Sunday evening will feel heavy\"",
+      "resultCheckIn": "I'll check in with you"
+    },
+    "team": {
+      "title": "What We Notice",
+      "message": "Your whole team shares observations to help you grow.",
+      "insightMaya": "\"Your morning routine streak is connected to better mood scores. Peter noticed it too.\"",
+      "insightPeter": "\"Spending on coffee correlates with your stress levels. Jordan might help with alternatives.\"",
+      "insightNayan": "\"This feels like the start of a new chapter...\""
+    },
+    "memories": {
+      "title": "Our Memories",
+      "message": "I'll remember everything - the big moments and the small ones.",
+      "win": "Win",
+      "contentPerfectionism": "\"You realized your perfectionism was holding you back from starting\"",
+      "contentManager": "\"You had that difficult conversation with your manager\"",
+      "contentMom": "\"You promised to call your mom every Sunday\""
+    },
+    "people": {
+      "title": "Your People",
+      "message": "I'll remember everyone important to you and how you feel about them.",
+      "sarah": "Sarah",
+      "mom": "Mom",
+      "david": "David",
+      "mentioned": {
+        "one": "{relation} • Mentioned {count} time",
+        "other": "{relation} • Mentioned {count} times"
+      },
+      "lastMentioned": "{relation} • Last mentioned: {when}",
+      "joy": "Brings you joy",
+      "complex": "Complex feelings",
+      "reconnect": "Worth reconnecting?"
+    },
+    "growth": {
+      "title": "How You're Growing",
+      "message": "Visual proof of your progress over time.",
+      "week": "Week {number}",
+      "consistency": "Consistency",
+      "followThrough": "Follow-through"
+    },
+    "habits": {
+      "title": "Your Habits",
+      "message": "Track what you're building and watch momentum grow.",
+      "morningWalk": "Morning walk",
+      "readBeforeBed": "Read before bed",
+      "meditation": "Meditation"
+    },
+    "ariaLabel": "Preview: {title}",
+    "unlockTomorrow": "Tomorrow this could be real",
+    "unlockDays": {
+      "one": "After {count} more day, this will be yours",
+      "other": "After {count} more days, this will be yours"
+    }
+  },
+  "x": "Friend • Mentioned 12 times",
+  "insightsView": {
+    "samplePattern": "\"Sunday evenings seem hard for you...\"",
+    "sampleInsight": "\"You've mentioned feeling tired 8 times this week. The tiredness seems connected to boundary-setting challenges at work.\"",
+    "sampleEvidence": "Based on {count} conversations"
   }
 }
