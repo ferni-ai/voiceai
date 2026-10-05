@@ -14,8 +14,8 @@ import { Firestore, FieldValue, Timestamp } from '@google-cloud/firestore';
 const db = new Firestore();
 
 // Slack webhook URLs - set via environment variables or Cloud Run secrets
-const SLACK_ALERTS_URL = process.env.SLACK_ALERTS_WEBHOOK_URL || 'https://hooks.slack.com/services/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';
-const SLACK_REPORTS_URL = process.env.SLACK_WEBHOOK_URL || 'https://hooks.slack.com/services/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';
+const SLACK_ALERTS_URL = process.env.SLACK_ALERTS_WEBHOOK_URL ?? '';
+const SLACK_REPORTS_URL = process.env.SLACK_WEBHOOK_URL ?? '';
 
 // ============================================================================
 // TYPES

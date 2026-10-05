@@ -11,7 +11,7 @@
  * @module personas/__tests__/cognitive-quirks.test
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   getCognitiveQuirks,
   getActiveQuirk,
@@ -84,25 +84,20 @@ describe('Cognitive Quirks', () => {
 
   describe('Active Quirk Detection', () => {
     it('should detect quirk when trigger word is present', () => {
-      // Ferni has quirks triggered by certain words
-      const ferniQuirkList = ferniQuirks.quirks;
-      if (ferniQuirkList.length > 0) {
-        const firstQuirk = ferniQuirkList[0];
-        if (firstQuirk.triggers.length > 0) {
-          const trigger = firstQuirk.triggers[0];
-          // Note: getActiveQuirk has randomness, so we test multiple times
-          let found = false;
-          for (let i = 0; i < 20; i++) {
-            const activeQuirk = getActiveQuirk('ferni', `This is about ${trigger}`);
-            if (activeQuirk) {
-              found = true;
-              break;
-            }
-          }
-          // With frequency < 1, we may not always get a quirk, but over 20 tries
-          // we should see one if the trigger is valid
-          expect(found || firstQuirk.frequency < 0.1).toBe(true);
-        }
+      // getActiveQuirk gates each matching quirk on Math.random() < frequency.
+      // Pin the roll below any non-zero frequency so this tests trigger
+      // matching, not luck (the old 20-try loop failed CI intermittently).
+      const firstQuirk = ferniQuirks.quirks[0];
+      expect(firstQuirk).toBeDefined();
+      expect(firstQuirk.triggers.length).toBeGreaterThan(0);
+      expect(firstQuirk.frequency).toBeGreaterThan(0);
+
+      const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+      try {
+        const active = getActiveQuirk('ferni', `This is about ${firstQuirk.triggers[0]}`);
+        expect(active?.name).toBe(firstQuirk.name);
+      } finally {
+        random.mockRestore();
       }
     });
 

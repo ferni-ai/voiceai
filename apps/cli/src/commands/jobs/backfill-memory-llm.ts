@@ -18,6 +18,7 @@
 
 import { Firestore } from '@google-cloud/firestore';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { CLI_GEMINI_MODEL } from '../../features/ai/gemini-model.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -48,7 +49,7 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey);
 const model = genAI.getGenerativeModel({
-  model: 'gemini-2.0-flash', // Updated model name (Jan 2026)
+  model: CLI_GEMINI_MODEL,
   generationConfig: {
     temperature: 0.1, // Low for structured extraction
     maxOutputTokens: 4000,

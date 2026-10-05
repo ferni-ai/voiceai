@@ -6249,7 +6249,7 @@ function injectStyles(): void {
     /* Dev Indicator - VISIBLE! */
     .dev-indicator {
       position: fixed;
-      bottom: var(--space-4, 16px);
+      top: var(--space-4, 16px);
       left: var(--space-4, 16px);
       display: flex;
       align-items: center;

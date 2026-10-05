@@ -87,6 +87,22 @@ function actingUser(ctx: RequestContext, named: unknown): { userId: string } | R
   return r.ok ? { userId: r.userId } : json(r.status, { error: r.error });
 }
 
+/**
+ * The user a read serves: the verified caller only. ?userId= is a client claim,
+ * so it is ignored unless the caller is a verified admin. No caller → 401.
+ */
+function readUser(ctx: RequestContext): { userId: string } | ResponseContext {
+  if (!ctx.authUserId) {
+    return {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Authentication required' },
+    };
+  }
+  const named = ctx.query.userId;
+  return { userId: ctx.isAdmin && named ? String(named) : ctx.authUserId };
+}
+
 // ============================================================================
 // ROUTE HANDLERS
 // ============================================================================
@@ -101,13 +117,9 @@ function actingUser(ctx: RequestContext, named: unknown): { userId: string } | R
 async function getStatus(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
   // Admin users can access other users' data
-  const requestedUserId = ctx.query.userId;
-  const userId =
-    ctx.isAdmin && requestedUserId
-      ? String(requestedUserId)
-      : ctx.authUserId || String(requestedUserId || '');
-
-  if (!userId) return json(401, { error: 'Authentication required' });
+  const reader = readUser(ctx);
+  if (!('userId' in reader)) return reader;
+  const { userId } = reader;
 
   try {
     // Includes billingSource ('stripe' | 'app_store' | 'none'), from the profile's billing records.
@@ -126,19 +138,9 @@ async function getStatus(ctx: RequestContext): Promise<ResponseContext> {
  */
 async function checkCanStart(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
-  const requestedUserId = ctx.query.userId;
-  const userId =
-    ctx.isAdmin && requestedUserId
-      ? String(requestedUserId)
-      : ctx.authUserId || String(requestedUserId || '');
-
-  if (!userId) {
-    return {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Authentication required' },
-    };
-  }
+  const reader = readUser(ctx);
+  if (!('userId' in reader)) return reader;
+  const { userId } = reader;
 
   try {
     const result = await canStartConversation(userId);
@@ -468,20 +470,10 @@ async function handleStripeWebhook(ctx: RequestContext): Promise<ResponseContext
  */
 async function getTrialStatus(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
-  const requestedUserId = ctx.query.userId;
-  const userId =
-    ctx.isAdmin && requestedUserId
-      ? String(requestedUserId)
-      : ctx.authUserId || String(requestedUserId || '');
+  const reader = readUser(ctx);
+  if (!('userId' in reader)) return reader;
+  const { userId } = reader;
   const currentSessionTimeMs = parseInt(ctx.query.sessionTime as string) || 0;
-
-  if (!userId) {
-    return {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Authentication required' },
-    };
-  }
 
   try {
     const status = await checkTrialStatus(userId, currentSessionTimeMs);
@@ -605,21 +597,15 @@ async function recordTrialTimeEndpoint(ctx: RequestContext): Promise<ResponseCon
 async function verifyCheckoutSession(ctx: RequestContext): Promise<ResponseContext> {
   const sessionId = ctx.query.session_id;
   // SECURITY: Use authenticated userId, not from query/headers (prevents IDOR)
-  const userId = ctx.authUserId || ctx.query.userId;
+  const reader = readUser(ctx);
+  if (!('userId' in reader)) return reader;
+  const { userId } = reader;
 
   if (!sessionId) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
       body: { error: 'session_id is required' },
-    };
-  }
-
-  if (!userId) {
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId is required' },
     };
   }
 

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 import FerniShared
 
 // MARK: - Team Unlock Service
@@ -34,7 +35,7 @@ public class TeamUnlockService: ObservableObject {
             teaserMessage: ""
         ),
         TeamMemberConfig(
-            id: "maya-santos",
+            id: "maya",
             displayName: "Maya",
             role: "Habits Coach",
             description: "Helps you build habits that stick.",
@@ -43,7 +44,7 @@ public class TeamUnlockService: ObservableObject {
             teaserMessage: "I have a friend who's amazing at habits... once we talk more, I'll introduce you."
         ),
         TeamMemberConfig(
-            id: "peter-john",
+            id: "peter",
             displayName: "Peter",
             role: "The Quant",
             description: "Spots patterns nobody else sees.",
@@ -52,7 +53,7 @@ public class TeamUnlockService: ObservableObject {
             teaserMessage: "Peter can show you incredible patterns, but I need to know you better first."
         ),
         TeamMemberConfig(
-            id: "alex-chen",
+            id: "alex",
             displayName: "Alex",
             role: "Chief of Staff",
             description: "Communication coach. Helps you say what you mean.",
@@ -61,7 +62,7 @@ public class TeamUnlockService: ObservableObject {
             teaserMessage: "There's someone who can transform your communication... keep talking to me."
         ),
         TeamMemberConfig(
-            id: "jordan-taylor",
+            id: "jordan",
             displayName: "Jordan",
             role: "Lifetime Planner",
             description: "Turns vague dreams into lived experiences.",
@@ -70,7 +71,7 @@ public class TeamUnlockService: ObservableObject {
             teaserMessage: "I know someone who can help you plan your whole life... soon."
         ),
         TeamMemberConfig(
-            id: "nayan-patel",
+            id: "nayan",
             displayName: "Nayan",
             role: "The Sage",
             description: "Small, consistent actions create extraordinary results.",
@@ -82,10 +83,14 @@ public class TeamUnlockService: ObservableObject {
     ]
     
     // MARK: - Initialization
-    
+
+    /// The plan's tier: a teammate on the plan is on the team whatever the stage.
+    private var planTier: SubscriptionTier = .free
+    private var cancellables = Set<AnyCancellable>()
+
     private init() {
         evaluateUnlocks()
-        
+
         // Listen for relationship changes
         NotificationCenter.default.addObserver(
             self,
@@ -93,6 +98,18 @@ public class TeamUnlockService: ObservableObject {
             name: NSNotification.Name("RelationshipStageChanged"),
             object: nil
         )
+
+        // Joining (or leaving) a plan changes who's on the team.
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            SubscriptionService.shared.$currentTier
+                .removeDuplicates()
+                .sink { [weak self] tier in
+                    self?.planTier = tier
+                    self?.evaluateUnlocks()
+                }
+                .store(in: &self.cancellables)
+        }
     }
     
     // MARK: - Public API
@@ -133,32 +150,50 @@ public class TeamUnlockService: ObservableObject {
     }
     
     private func evaluateUnlocks() {
-        let currentStage = relationshipService.currentStage
+        let result = Self.evaluate(
+            stage: relationshipService.currentStage,
+            stageProgress: relationshipService.stageProgress,
+            plan: planTier
+        )
+
+        DispatchQueue.main.async {
+            self.unlockedMembers = result.unlocked
+            self.memberStatuses = result.statuses
+        }
+    }
+
+    /// Who's on the team: everyone the relationship has reached, plus everyone
+    /// the plan includes. Ids are PersonaRegistry ids ("maya", not "maya-santos").
+    static func evaluate(
+        stage currentStage: RelationshipStage,
+        stageProgress: Double,
+        plan: SubscriptionTier
+    ) -> (unlocked: Set<String>, statuses: [String: MemberUnlockStatus]) {
         var newUnlocked: Set<String> = []
         var newStatuses: [String: MemberUnlockStatus] = [:]
-        
-        for member in Self.allMembers {
+
+        for member in allMembers {
             let stageReached = currentStage.ordinal >= member.unlocksAt.ordinal
-            let isUnlocked = stageReached
-            
+            let isUnlocked = stageReached || plan.availablePersonas.contains(member.id)
+
             if isUnlocked {
                 newUnlocked.insert(member.id)
             }
-            
+
             // Calculate progress toward unlock
             let progress: Double
             if isUnlocked {
                 progress = 1.0
             } else if member.unlocksAt.ordinal == currentStage.ordinal + 1 {
                 // Next to unlock - show actual progress
-                progress = relationshipService.stageProgress
+                progress = stageProgress
             } else {
                 progress = 0.0
             }
-            
+
             let lockReason = isUnlocked ? nil : getLockReason(member: member, currentStage: currentStage)
             let unlockHint = isUnlocked ? nil : getUnlockHint(member: member, currentStage: currentStage)
-            
+
             newStatuses[member.id] = MemberUnlockStatus(
                 unlocked: isUnlocked,
                 progress: progress,
@@ -166,21 +201,17 @@ public class TeamUnlockService: ObservableObject {
                 unlockHint: unlockHint
             )
         }
-        
-        DispatchQueue.main.async {
-            self.unlockedMembers = newUnlocked
-            self.memberStatuses = newStatuses
-        }
+        return (newUnlocked, newStatuses)
     }
-    
-    private func getLockReason(member: TeamMemberConfig, currentStage: RelationshipStage) -> String {
+
+    private static func getLockReason(member: TeamMemberConfig, currentStage: RelationshipStage) -> String {
         if member.isPremium && member.unlocksAt.ordinal > currentStage.ordinal {
             return "Partner tier or \(member.unlocksAt.title)"
         }
         return "Unlocks at \(member.unlocksAt.title)"
     }
     
-    private func getUnlockHint(member: TeamMemberConfig, currentStage: RelationshipStage) -> String {
+    private static func getUnlockHint(member: TeamMemberConfig, currentStage: RelationshipStage) -> String {
         let stagesAway = member.unlocksAt.ordinal - currentStage.ordinal
         if stagesAway == 1 {
             return "Almost there! Keep talking to Ferni."

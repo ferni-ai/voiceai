@@ -95,6 +95,10 @@ export default [
         FirebaseFirestore: 'readonly',
         // Node.js 17+ globals
         structuredClone: 'readonly',
+        AbortController: 'readonly',
+        crypto: 'readonly',
+        Response: 'readonly',
+        RequestInit: 'readonly',
       },
     },
     plugins: {
@@ -154,7 +158,7 @@ export default [
       
       // Async/await safety
       '@typescript-eslint/no-floating-promises': 'error',
-      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/no-misused-promises': ['error', { checksConditionals: true }],
       '@typescript-eslint/await-thenable': 'error',
       '@typescript-eslint/require-await': 'warn',
       '@typescript-eslint/promise-function-async': 'warn',
@@ -280,7 +284,8 @@ export default [
       // 'import/no-duplicates': 'error',
       // 'import/no-cycle': ['warn', { maxDepth: 3 }],
       // 'import/no-self-import': 'error',
-      'no-duplicate-imports': 'error', // Basic duplicate import check
+      // Separate `import type` lines are what consistent-type-imports' fixer writes.
+      'no-duplicate-imports': ['error', { allowSeparateTypeImports: true }],
       
       // ========================================================================
       // 🚫 BANNED PATTERNS & ANTI-PATTERNS
@@ -517,6 +522,28 @@ export default [
           },
         ],
       }],
+    },
+  },
+
+  // ============================================================================
+  // HTTP HANDLERS - UNAWAITED PROMISES ARE AUTH HOLES
+  // `const auth = requireAdmin(req, res); if (!auth) return;` never returns: a
+  // Promise is always truthy, so the handler ran unauthenticated (PR #295, 11
+  // sites). Last in the file so no later block can relax it for route code.
+  // `pnpm lint` must list these globs: an unquoted src/**/*.ts in an npm script
+  // is expanded by sh, where ** means *, and never reached src/api/v1/admin/.
+  // ============================================================================
+  {
+    files: ['src/api/**/*.ts', 'src/servers/**/*.ts'],
+    ignores: ['**/*.test.ts', '**/*.spec.ts', '**/tests/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.json',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-misused-promises': ['error', { checksConditionals: true }],
+      '@typescript-eslint/no-floating-promises': 'error',
     },
   },
 ];

@@ -303,10 +303,7 @@ async function handleTriggerOutreach(req: IncomingMessage, res: ServerResponse):
     }
 
     // Trigger the outreach
-    const result = await intelligence.triggerProactiveOutreach(
-      userId,
-      enhancement.proactiveOutreach
-    );
+    const result = intelligence.triggerProactiveOutreach(userId, enhancement.proactiveOutreach);
 
     sendJSON(res, {
       triggered: result.triggered,

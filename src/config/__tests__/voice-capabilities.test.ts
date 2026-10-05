@@ -12,7 +12,12 @@ import {
   voiceHonorsVolumeTag,
   voiceMedianF0Hz,
 } from '../voice-capabilities.js';
-import { DEFAULT_CARTESIA_MODEL, LEGACY_FERNI_IVC_VOICE_ID, VOICE_IDS } from '../voice-ids.js';
+import {
+  DEFAULT_CARTESIA_MODEL,
+  LEGACY_FERNI_IVC_VOICE_ID,
+  LESTER_PRO_V3_VOICE_ID,
+  VOICE_IDS,
+} from '../voice-ids.js';
 
 const LESTER_PRO = [
   'a83a1291-2e22-4af5-ac02-945e7d008c19',
@@ -32,8 +37,13 @@ describe('voiceHonorsProsodyTags', () => {
     expect(voiceHonorsProsodyTags(id)).toBe(false);
   });
 
-  it("returns false for Ferni's current voice (Lester Pro V3)", () => {
-    expect(voiceHonorsProsodyTags(VOICE_IDS.FERNI)).toBe(false);
+  it("returns false for Lester Pro V3 (Ferni's voice 2026-10-03/04)", () => {
+    expect(voiceHonorsProsodyTags(LESTER_PRO_V3_VOICE_ID)).toBe(false);
+  });
+
+  it("returns true for Ferni's voice, so <emotion> and <speed> reach the render", () => {
+    expect(VOICE_IDS.FERNI).toBe(LEGACY_FERNI_IVC_VOICE_ID);
+    expect(voiceHonorsProsodyTags(VOICE_IDS.FERNI)).toBe(true);
   });
 
   it('returns true for the legacy Ferni instant clone', () => {
@@ -71,9 +81,9 @@ describe('Ferni PVC + pinned Cartesia model', () => {
     vi.resetModules();
   });
 
-  it('VOICE_IDS.FERNI is a Professional Voice Clone with measured fine-tunes', () => {
-    expect(isProVoiceClone(VOICE_IDS.FERNI)).toBe(true);
-    expect(pvcFineTunedModels(VOICE_IDS.FERNI)).toEqual([
+  it('LESTER_PRO_V3_VOICE_ID is a Professional Voice Clone with measured fine-tunes', () => {
+    expect(isProVoiceClone(LESTER_PRO_V3_VOICE_ID)).toBe(true);
+    expect(pvcFineTunedModels(LESTER_PRO_V3_VOICE_ID)).toEqual([
       'sonic-3.6-2026-08-27',
       'sonic-3.5-2026-05-04',
     ]);
@@ -81,7 +91,7 @@ describe('Ferni PVC + pinned Cartesia model', () => {
 
   it('the default model is a dated snapshot the Ferni PVC was fine-tuned on', () => {
     expect(DEFAULT_CARTESIA_MODEL).toMatch(/^sonic-[\d.]+-\d{4}-\d{2}-\d{2}$/);
-    expect(pvcFineTunedModels(VOICE_IDS.FERNI)).toContain(DEFAULT_CARTESIA_MODEL);
+    expect(pvcFineTunedModels(LESTER_PRO_V3_VOICE_ID)).toContain(DEFAULT_CARTESIA_MODEL);
   });
 
   it('CARTESIA_MODEL resolves to the pinned snapshot when the env var is unset', async () => {
@@ -89,7 +99,7 @@ describe('Ferni PVC + pinned Cartesia model', () => {
     vi.resetModules();
     const fresh = await import('../voice-ids.js');
     expect(fresh.CARTESIA_MODEL).toBe('sonic-3.6-2026-08-27');
-    expect(pvcFineTunedModels(fresh.VOICE_IDS.FERNI)).toContain(fresh.CARTESIA_MODEL);
+    expect(pvcFineTunedModels(fresh.LESTER_PRO_V3_VOICE_ID)).toContain(fresh.CARTESIA_MODEL);
   });
 
   it('non-PVC voices are not Pro clones and have no fine-tune list', () => {
@@ -100,8 +110,8 @@ describe('Ferni PVC + pinned Cartesia model', () => {
 
 describe('voiceMedianF0Hz', () => {
   it("gives Ferni's voice (Lester Pro V3) its median f0 for Stage 2 sighs", () => {
-    expect(voiceMedianF0Hz(VOICE_IDS.FERNI)).toBe(111);
-    expect(voiceMedianF0Hz(` ${VOICE_IDS.FERNI.toUpperCase()} `)).toBe(111);
+    expect(voiceMedianF0Hz(LESTER_PRO_V3_VOICE_ID)).toBe(111);
+    expect(voiceMedianF0Hz(` ${LESTER_PRO_V3_VOICE_ID.toUpperCase()} `)).toBe(111);
   });
 
   it('is undefined for a voice nobody measured (the renderer keeps its default)', () => {

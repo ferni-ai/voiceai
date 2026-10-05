@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { realtimeModelOrFail } from './realtime-model.js';
 import { applyThinkingDefaults } from './thinking-defaults.js';
 
 const log = createLogger({ module: 'GeminiConfig' });
@@ -30,6 +31,15 @@ export const { GOOGLE_CLOUD_PROJECT } = process.env;
 /** Google Cloud Location (default: us-central1) */
 export const GOOGLE_CLOUD_LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
 
+/** Vertex location for Gemini calls (default: global; Gemini 3.5 404s on us-central1) */
+export const GEMINI_LOCATION = process.env.GEMINI_LOCATION || 'global';
+
+/** Init options for the legacy @google-cloud/vertexai SDK, which can't derive the global host. */
+export function vertexOptions(project: string, location = GEMINI_LOCATION) {
+  const region = location === 'global' ? '' : `${location}-`;
+  return { project, location, apiEndpoint: `${region}aiplatform.googleapis.com` };
+}
+
 /** Gemini API Key (for non-Vertex AI usage) */
 export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
@@ -41,7 +51,7 @@ export const GOOGLE_API_KEY = GEMINI_API_KEY;
 // ============================================================================
 
 /** Default Gemini model (from .env or fallback) */
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 
 /** Default temperature for generation (0.0 - 2.0) */
 export const GEMINI_TEMPERATURE = parseFloat(process.env.GEMINI_TEMPERATURE || '0.8');
@@ -80,9 +90,8 @@ export const GEMINI_LANGUAGE = process.env.GEMINI_LANGUAGE || 'en-US';
 /**
  * Model for fast extraction tasks (entity, fact, relationship extraction)
  * Optimized for: Speed, structured output, low cost
- * Default: gemini-2.5-flash (fast, stable, good reasoning)
  */
-export const EXTRACTION_MODEL = process.env.LLM_EXTRACTION_MODEL || 'gemini-2.5-flash';
+export const EXTRACTION_MODEL = process.env.LLM_EXTRACTION_MODEL || 'gemini-3.5-flash';
 
 /**
  * Model for embedding generation
@@ -98,42 +107,35 @@ export const OPENAI_FALLBACK_MODEL = process.env.LLM_OPENAI_FALLBACK_MODEL || 'g
 
 /**
  * Model for evaluation tasks (coherence, quality scoring)
- * Default: gemini-2.5-flash (gemini-2.0-flash is retired: 404 on Vertex)
  */
-export const EVALUATION_MODEL = process.env.LLM_EVALUATION_MODEL || 'gemini-2.5-flash';
+export const EVALUATION_MODEL = process.env.LLM_EVALUATION_MODEL || 'gemini-3.5-flash';
 
 /**
  * Model for classification/routing tasks
  * Optimized for: Consistency, low latency
- * Default: gemini-2.5-flash-lite (gemini-1.5-flash is retired: 404 on Vertex)
  */
-export const CLASSIFICATION_MODEL = process.env.LLM_CLASSIFICATION_MODEL || 'gemini-2.5-flash-lite';
+export const CLASSIFICATION_MODEL = process.env.LLM_CLASSIFICATION_MODEL || 'gemini-3.5-flash-lite';
 
 /**
  * Model for content generation (marketing, outreach)
  * Optimized for: Quality, creativity
- * Default: gemini-2.5-flash (stable, good quality)
  */
 export const CONTENT_GENERATION_MODEL =
-  process.env.LLM_CONTENT_GENERATION_MODEL || 'gemini-2.5-flash';
+  process.env.LLM_CONTENT_GENERATION_MODEL || 'gemini-3.5-flash';
 
 /**
  * Model for light/fast tasks (humanization, expressions)
  * Optimized for: Ultra-low latency, minimal cost
- * Default: gemini-2.5-flash-lite (gemini-2.0-flash-lite is retired: 404 on Vertex)
  */
-export const LIGHT_MODEL = process.env.LLM_LIGHT_MODEL || 'gemini-2.5-flash-lite';
+export const LIGHT_MODEL = process.env.LLM_LIGHT_MODEL || 'gemini-3.5-flash-lite';
 
 /**
- * Model for realtime/voice applications (Vertex AI Live API)
- * Default: gemini-2.0-flash-live-preview-04-09 (supports TEXT modality)
- * NOTE: gemini-live-2.5-flash-preview also works but gemini-live-2.5-flash is private GA
+ * Model for realtime/voice applications (Vertex AI Live API). No default: see realtime-model.ts.
  * NOTE: Native-audio models (gemini-live-*-native-audio) do NOT work with TEXT modality!
  * NOTE: Do NOT fall back to GEMINI_MODEL — Live models break generateContent callers
  *       that use getDefaultModel()/GEMINI_MODEL. Keep the two env vars separate.
  */
-export const REALTIME_MODEL =
-  process.env.LLM_REALTIME_MODEL || 'gemini-2.0-flash-live-preview-04-09';
+export const REALTIME_MODEL = realtimeModelOrFail();
 
 /**
  * OpenAI realtime model (for OpenAI realtime API)
@@ -276,7 +278,7 @@ export function getGeminiConfigStatus(): string {
     if (!GOOGLE_CLOUD_PROJECT) {
       return 'Vertex AI enabled but GOOGLE_CLOUD_PROJECT not set';
     }
-    return `Vertex AI (${GOOGLE_CLOUD_PROJECT} @ ${GOOGLE_CLOUD_LOCATION})`;
+    return `Vertex AI (${GOOGLE_CLOUD_PROJECT} @ ${GEMINI_LOCATION})`;
   }
   if (!GEMINI_API_KEY) {
     return 'Gemini API disabled (no API key)';
@@ -329,10 +331,10 @@ async function initializeGeminiClient(): Promise<unknown | null> {
       cachedClient = new GoogleGenAI({
         vertexai: true,
         project: GOOGLE_CLOUD_PROJECT,
-        location: GOOGLE_CLOUD_LOCATION,
+        location: GEMINI_LOCATION,
       });
       log.info(
-        { project: GOOGLE_CLOUD_PROJECT, location: GOOGLE_CLOUD_LOCATION },
+        { project: GOOGLE_CLOUD_PROJECT, location: GEMINI_LOCATION },
         '🔷 Gemini client initialized with Vertex AI'
       );
     } else {
@@ -385,7 +387,6 @@ export function getShortLLMTimeout(): number {
 
 /**
  * Get model for extraction tasks (entity, fact, relationship extraction)
- * Use this instead of hardcoding 'gemini-1.5-flash'
  */
 export function getExtractionModel(): string {
   return EXTRACTION_MODEL;
@@ -409,7 +410,6 @@ export function getOpenAIFallbackModel(): string {
 
 /**
  * Get model for evaluation tasks
- * Use this instead of hardcoding 'gemini-2.0-flash'
  */
 export function getEvaluationModel(): string {
   return EVALUATION_MODEL;
@@ -417,7 +417,6 @@ export function getEvaluationModel(): string {
 
 /**
  * Get model for classification/routing tasks
- * Use this instead of hardcoding 'gemini-1.5-flash'
  */
 export function getClassificationModel(): string {
   return CLASSIFICATION_MODEL;
@@ -425,7 +424,6 @@ export function getClassificationModel(): string {
 
 /**
  * Get model for content generation (marketing, outreach)
- * Use this instead of hardcoding 'gemini-2.5-flash'
  */
 export function getContentGenerationModel(): string {
   return CONTENT_GENERATION_MODEL;
@@ -433,7 +431,6 @@ export function getContentGenerationModel(): string {
 
 /**
  * Get model for light/fast tasks (humanization, expressions)
- * Use this instead of hardcoding 'gemini-2.0-flash-lite'
  */
 export function getLightModel(): string {
   return LIGHT_MODEL;
@@ -541,7 +538,7 @@ if (process.env.NODE_ENV !== 'test') {
     {
       useVertexAI: USE_VERTEX_AI,
       project: GOOGLE_CLOUD_PROJECT || '(not set)',
-      location: GOOGLE_CLOUD_LOCATION,
+      location: GEMINI_LOCATION,
       model: GEMINI_MODEL,
       temperature: GEMINI_TEMPERATURE,
       timeoutMs: LLM_TIMEOUT_MS,

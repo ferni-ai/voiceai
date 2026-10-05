@@ -17,12 +17,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock dependencies before imports
-vi.mock('../../src/config/animation-constants.js', () => ({
-  EASING: {
-    GENTLE: 'ease-out',
-    SPRING: 'cubic-bezier(0.5, 1.5, 0.5, 1)',
-  },
-}));
+vi.mock('../../src/config/animation-constants.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/config/animation-constants.js')>();
+  return {
+    ...actual,
+    EASING: { ...actual.EASING, GENTLE: 'ease-out', SPRING: 'cubic-bezier(0.5, 1.5, 0.5, 1)' },
+  };
+});
 
 vi.mock('../../src/emotion/emotion-state.js', () => ({
   emotionState: {

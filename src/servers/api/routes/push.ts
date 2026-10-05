@@ -11,6 +11,7 @@ import { EndpointOwnedError } from '../../../services/push-endpoint-owners.js';
 import { getPushNotificationsService } from '../../../services/push-notifications.js';
 import { isWebPushDeliverable } from '../../../services/web-push-loader.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { onBodyEnd } from '../request-failure.js';
 
 const log = createLogger({ module: 'PushRoutes' });
 
@@ -135,7 +136,7 @@ export async function handlePushRoutes(
   // POST /api/push/send - Send a push notification (ADMIN ONLY)
   if (pathname === '/api/push/send' && req.method === 'POST') {
     // SECURITY: Require admin auth
-    const auth = requireAdmin(req, res);
+    const auth = await requireAdmin(req, res);
     if (!auth) return true; // 401/403 already sent
 
     // Rate limit
@@ -157,7 +158,7 @@ export async function handlePushRoutes(
         resolve(true);
       });
 
-      req.on('end', async () => {
+      onBodyEnd(req, res, resolve, async () => {
         try {
           const {
             userId,

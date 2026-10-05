@@ -37,6 +37,7 @@ import {
   generateGiftSuggestions,
   getGiftSuggestionInsight,
 } from './insights.js';
+import { withAuthenticatedUserId } from './with-authenticated-user-id.js';
 
 const log = getLogger();
 
@@ -428,7 +429,6 @@ export function createRelationshipTools() {
  */
 export function getRelationshipToolDefinitions(): ToolDefinition[] {
   const tools = createRelationshipTools();
-
   return [
     {
       id: 'addRelationship',
@@ -437,7 +437,7 @@ export function getRelationshipToolDefinitions(): ToolDefinition[] {
         'Add a new relationship/contact to track. Use this when the user mentions a friend, family member, or important person they want to remember.',
       domain: 'information',
       tags: ['relationships', 'contacts', 'add', 'family', 'friends'],
-      create: (_ctx: ToolContext) => tools.addRelationship,
+      create: (ctx: ToolContext) => withAuthenticatedUserId(tools.addRelationship, ctx),
     },
     {
       id: 'getRelationshipInfo',
@@ -445,7 +445,7 @@ export function getRelationshipToolDefinitions(): ToolDefinition[] {
       description: 'Get information about a specific relationship/contact.',
       domain: 'information',
       tags: ['relationships', 'contacts', 'info'],
-      create: (_ctx: ToolContext) => tools.getRelationshipInfo,
+      create: (ctx: ToolContext) => withAuthenticatedUserId(tools.getRelationshipInfo, ctx),
     },
     {
       id: 'recordContact',
@@ -454,7 +454,7 @@ export function getRelationshipToolDefinitions(): ToolDefinition[] {
         'Record that the user had contact with someone. Use this when they mention they talked to, called, or met with someone.',
       domain: 'information',
       tags: ['relationships', 'contacts', 'record', 'communication'],
-      create: (_ctx: ToolContext) => tools.recordContact,
+      create: (ctx: ToolContext) => withAuthenticatedUserId(tools.recordContact, ctx),
     },
     {
       id: 'listRelationships',
@@ -462,7 +462,7 @@ export function getRelationshipToolDefinitions(): ToolDefinition[] {
       description: 'List all tracked relationships/contacts.',
       domain: 'information',
       tags: ['relationships', 'contacts', 'list'],
-      create: (_ctx: ToolContext) => tools.listRelationships,
+      create: (ctx: ToolContext) => withAuthenticatedUserId(tools.listRelationships, ctx),
     },
     {
       id: 'getUpcomingBirthdays',
@@ -471,7 +471,7 @@ export function getRelationshipToolDefinitions(): ToolDefinition[] {
         'Get upcoming birthdays from tracked relationships. "Better than human" - we never forget a birthday!',
       domain: 'information',
       tags: ['relationships', 'birthdays', 'reminders', 'better-than-human'],
-      create: (_ctx: ToolContext) => tools.getUpcomingBirthdays,
+      create: (ctx: ToolContext) => withAuthenticatedUserId(tools.getUpcomingBirthdays, ctx),
     },
     {
       id: 'getContactReminders',
@@ -480,7 +480,7 @@ export function getRelationshipToolDefinitions(): ToolDefinition[] {
         'Get reminders about people the user hasn\'t contacted in a while. "Better than human" - we never forget to check in!',
       domain: 'information',
       tags: ['relationships', 'reminders', 'contacts', 'better-than-human'],
-      create: (_ctx: ToolContext) => tools.getContactReminders,
+      create: (ctx: ToolContext) => withAuthenticatedUserId(tools.getContactReminders, ctx),
     },
     {
       id: 'getGiftSuggestions',
@@ -489,7 +489,7 @@ export function getRelationshipToolDefinitions(): ToolDefinition[] {
         'Get gift suggestions for a person based on their interests. Use when user needs gift ideas for birthdays, holidays, or special occasions.',
       domain: 'information',
       tags: ['relationships', 'gifts', 'suggestions', 'birthdays'],
-      create: (_ctx: ToolContext) => tools.getGiftSuggestions,
+      create: (ctx: ToolContext) => withAuthenticatedUserId(tools.getGiftSuggestions, ctx),
     },
     {
       id: 'getRelationshipInsights',
@@ -498,7 +498,7 @@ export function getRelationshipToolDefinitions(): ToolDefinition[] {
         'Get all relationship insights - birthdays, contact reminders, team updates. Use this for a comprehensive relationship check-in.',
       domain: 'information',
       tags: ['relationships', 'insights', 'overview', 'better-than-human'],
-      create: (_ctx: ToolContext) => tools.getRelationshipInsights,
+      create: (ctx: ToolContext) => withAuthenticatedUserId(tools.getRelationshipInsights, ctx),
     },
     {
       id: 'addInterestToRelationship',
@@ -507,7 +507,7 @@ export function getRelationshipToolDefinitions(): ToolDefinition[] {
         "Add an interest to a person's profile. Helps with gift suggestions and conversation topics.",
       domain: 'information',
       tags: ['relationships', 'interests', 'add'],
-      create: (_ctx: ToolContext) => tools.addInterest,
+      create: (ctx: ToolContext) => withAuthenticatedUserId(tools.addInterest, ctx),
     },
     {
       id: 'addFavoriteTeamToRelationship',
@@ -516,7 +516,7 @@ export function getRelationshipToolDefinitions(): ToolDefinition[] {
         'Add a favorite sports team to a person\'s profile. Enables "Your friend\'s team won!" notifications.',
       domain: 'information',
       tags: ['relationships', 'sports', 'teams', 'add'],
-      create: (_ctx: ToolContext) => tools.addFavoriteTeam,
+      create: (ctx: ToolContext) => withAuthenticatedUserId(tools.addFavoriteTeam, ctx),
     },
   ];
 }
