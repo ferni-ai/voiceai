@@ -27,9 +27,7 @@ const EASING = EASING_GENERATED;
 
 const log = createLogger('ActivityUI');
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// Types
 
 type ActionType = 'call' | 'text' | 'email' | 'calendar' | 'reminder';
 type ActionStatus = 'requested' | 'in_progress' | 'completed' | 'failed' | 'cancelled';

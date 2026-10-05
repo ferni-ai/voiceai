@@ -17,9 +17,7 @@ import { t } from '../i18n/index.js';
 
 const log = createLogger('AgentPageBuilder');
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// Types
 
 export interface AgentConfig {
   id: string;

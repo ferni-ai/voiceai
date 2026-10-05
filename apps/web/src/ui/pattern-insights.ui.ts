@@ -28,9 +28,7 @@ import { t } from '../i18n/index.js';
 
 const log = createLogger('PatternInsights');
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// Types
 
 interface PatternInsight {
   id: string;

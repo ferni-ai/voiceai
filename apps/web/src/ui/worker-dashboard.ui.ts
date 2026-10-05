@@ -18,6 +18,7 @@ import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 
 const log = createLogger('WorkerDashboard');
 
@@ -63,9 +64,7 @@ const ICONS = {
   </svg>`,
 };
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// Types
 
 interface WorkerStats {
   messagesReceived: number;
@@ -310,9 +309,6 @@ function renderDashboard(): string {
       : stats.status === 'degraded'
         ? ICONS.alertTriangle
         : ICONS.xCircle;
-  const toggleRefreshTitle = t('workerDashboard.toggleRefresh');
-  const refreshNowTitle = t('workerDashboard.refreshNow');
-  const flushEventsTitle = t('workerDashboard.flushEvents');
 
   return `
     <div class="worker-dashboard">
@@ -323,10 +319,10 @@ function renderDashboard(): string {
         </div>
         <div class="worker-header-actions">
           <button class="worker-btn ${state.autoRefresh ? 'worker-btn--active' : ''}"
-                  data-action="toggle-refresh" title="${toggleRefreshTitle}">
+                  data-action="toggle-refresh" title="${t('workerDashboard.toggleRefresh')}">
             ${ICONS.zap} Auto
           </button>
-          <button class="worker-btn" data-action="refresh" title="${refreshNowTitle}">
+          <button class="worker-btn" data-action="refresh" title="${t('workerDashboard.refreshNow')}">
             ${ICONS.refresh} Refresh
           </button>
         </div>
@@ -368,7 +364,7 @@ function renderDashboard(): string {
         <h2>Admin Actions</h2>
         <div class="worker-admin-actions">
           <button class="worker-btn worker-btn--danger" data-action="flush"
-                  title="${flushEventsTitle}">
+                  title="${t('workerDashboard.flushEvents')}">
             ${ICONS.trash} Flush Queue
           </button>
           <p class="worker-admin-hint">
@@ -994,7 +990,7 @@ function attachEventListeners(): void {
 
       try {
         const result = await flushAsyncEvents();
-        toast.success(t('workerDashboard.toastFlushed', { count: result.flushed }));
+        toast.success(tp('workerDashboard.toastFlushed', result.flushed));
         void refreshStats();
       } catch (err) {
         toast.error(t('workerDashboard.errorFlush'));

@@ -99,6 +99,7 @@ describe('KnowledgeQuizUI', () => {
 
     // Reset module state by re-importing
     vi.resetModules();
+    await (await import('../../src/i18n/index.js')).setLocale('en-US', { reload: false });
     const module = await import('../../src/ui/knowledge-quiz.ui.js');
     initKnowledgeQuizUI = module.initKnowledgeQuizUI;
     openKnowledgeQuiz = module.openKnowledgeQuiz;

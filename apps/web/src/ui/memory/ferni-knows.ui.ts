@@ -100,17 +100,15 @@ export interface FerniKnowsState {
 // CONSTANTS
 // ============================================================================
 
-function getCategoryConfig(): Record<KnowledgeCategory, { label: string; icon: string }> {
-  return {
-    about_you: { label: t('ferniKnows.aboutYou'), icon: QUIZ_ICONS.personality },
-    relationships: { label: t('ferniKnows.people'), icon: QUIZ_ICONS.relationships },
-    preferences: { label: t('ferniKnows.preferences'), icon: GROWTH_ICONS.heart },
-    goals: { label: t('ferniKnows.goals'), icon: ANALYTICS_ICONS.target },
-    commitments: { label: t('ferniKnows.commitments'), icon: QUIZ_ICONS.correct },
-    milestones: { label: t('ferniKnows.milestones'), icon: GROWTH_ICONS.celebration },
-    emotions: { label: t('ferniKnows.emotionalPatterns'), icon: EMOTION_ICONS.reflective },
-  };
-}
+const CATEGORY_CONFIG: Record<KnowledgeCategory, { labelKey: string; icon: string }> = {
+  about_you: { labelKey: 'ferniKnows.aboutYou', icon: QUIZ_ICONS.personality },
+  relationships: { labelKey: 'ferniKnows.people', icon: QUIZ_ICONS.relationships },
+  preferences: { labelKey: 'ferniKnows.preferences', icon: GROWTH_ICONS.heart },
+  goals: { labelKey: 'ferniKnows.goals', icon: ANALYTICS_ICONS.target },
+  commitments: { labelKey: 'ferniKnows.commitments', icon: QUIZ_ICONS.correct },
+  milestones: { labelKey: 'ferniKnows.milestones', icon: GROWTH_ICONS.celebration },
+  emotions: { labelKey: 'ferniKnows.emotionalPatterns', icon: EMOTION_ICONS.reflective },
+};
 
 // ============================================================================
 // STATE
@@ -323,16 +321,15 @@ function groupByCategory(knowledge: KnowledgeItem[]): KnowledgeSummary[] {
     groups[item.category].push(item);
   }
 
-  const categoryConfig = getCategoryConfig();
   return Object.entries(groups)
     .filter(([_, items]) => items.length > 0)
     .map(([category, items]) => {
-      const config = categoryConfig[category as KnowledgeCategory];
+      const config = CATEGORY_CONFIG[category as KnowledgeCategory];
       const avgConfidence = items.reduce((sum, i) => sum + i.confidence, 0) / items.length;
 
       return {
         category: category as KnowledgeCategory,
-        label: config.label,
+        label: t(config.labelKey),
         icon: config.icon,
         count: items.length,
         items: items.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()),

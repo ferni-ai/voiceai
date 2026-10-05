@@ -18,8 +18,7 @@ import {
   describeArc,
 } from '../utils/dom.js';
 import { t } from '../../../i18n/index.js';
-import type { DeviceContext, VisualizationResult } from '../types.js';
-import { DEFAULT_COLORS } from '../types.js';
+import { DEFAULT_COLORS, type DeviceContext, type VisualizationResult } from '../types.js';
 
 export interface SocialBatteryData {
   currentLevel: number; // 0-100

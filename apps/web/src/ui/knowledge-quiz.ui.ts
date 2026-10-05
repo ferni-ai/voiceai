@@ -25,9 +25,7 @@ import { t } from '../i18n/index.js';
 
 const log = createLogger('KnowledgeQuiz');
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// Types
 
 interface QuizQuestion {
   id: string;

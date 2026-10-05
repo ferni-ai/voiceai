@@ -29,9 +29,7 @@ import { t } from '../i18n/index.js';
 
 const log = createLogger('MemoryLane');
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// Types
 
 type TabId = 'highlights' | 'on-this-day' | 'timeline';
 

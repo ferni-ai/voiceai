@@ -44,7 +44,7 @@ export interface FeedbackPromptEvent {
 interface ReactionConfig {
   id: FeedbackReaction;
   icon: string;
-  label: string;
+  labelKey: string;
   color: string;
 }
 
@@ -86,38 +86,34 @@ const REACTION_ICONS: Record<string, string> = {
   `),
 };
 
-// ============================================================================
-// REACTION CONFIGS
-// ============================================================================
+// Reaction configs (labels are i18n keys, resolved when rendered)
 
-function getReactions(): ReactionConfig[] {
-  return [
-    {
-      id: 'resonated',
-      icon: REACTION_ICONS.resonated ?? '',
-      label: t('contextualFeedback.reactions.resonated'),
-      color: 'var(--persona-primary, #4a6741)',
-    },
-    {
-      id: 'helpful',
-      icon: REACTION_ICONS.helpful ?? '',
-      label: t('contextualFeedback.reactions.helpful'),
-      color: 'var(--color-semantic-success, #4a6741)',
-    },
-    {
-      id: 'too_much',
-      icon: REACTION_ICONS.too_much ?? '',
-      label: t('contextualFeedback.reactions.tooMuch'),
-      color: 'var(--color-semantic-warning, #a6854a)',
-    },
-    {
-      id: 'off_track',
-      icon: REACTION_ICONS.off_track ?? '',
-      label: t('contextualFeedback.reactions.offTrack'),
-      color: 'var(--color-text-muted, #8a7a6a)',
-    },
-  ];
-}
+const REACTIONS: ReactionConfig[] = [
+  {
+    id: 'resonated',
+    icon: REACTION_ICONS.resonated ?? '',
+    labelKey: 'contextualFeedback.reactions.resonated',
+    color: 'var(--persona-primary, #4a6741)',
+  },
+  {
+    id: 'helpful',
+    icon: REACTION_ICONS.helpful ?? '',
+    labelKey: 'contextualFeedback.reactions.helpful',
+    color: 'var(--color-semantic-success, #4a6741)',
+  },
+  {
+    id: 'too_much',
+    icon: REACTION_ICONS.too_much ?? '',
+    labelKey: 'contextualFeedback.reactions.tooMuch',
+    color: 'var(--color-semantic-warning, #a6854a)',
+  },
+  {
+    id: 'off_track',
+    icon: REACTION_ICONS.off_track ?? '',
+    labelKey: 'contextualFeedback.reactions.offTrack',
+    color: 'var(--color-text-muted, #8a7a6a)',
+  },
+];
 
 // ============================================================================
 // STATE
@@ -337,12 +333,12 @@ function createContainer(): void {
   const reactionsDiv = document.createElement('div');
   reactionsDiv.className = 'contextual-feedback__reactions';
 
-  getReactions().forEach((reaction) => {
+  REACTIONS.forEach((reaction) => {
     const btn = document.createElement('button');
     btn.className = 'contextual-feedback__btn';
     btn.setAttribute('type', 'button');
-    btn.setAttribute('title', reaction.label);
-    btn.setAttribute('aria-label', reaction.label);
+    btn.setAttribute('title', t(reaction.labelKey));
+    btn.setAttribute('aria-label', t(reaction.labelKey));
     btn.dataset.reactionId = reaction.id;
     btn.innerHTML = reaction.icon;
 
