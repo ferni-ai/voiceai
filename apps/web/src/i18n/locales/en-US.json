@@ -46,7 +46,8 @@
     "dismiss": "Dismiss",
     "connected": "Connected",
     "unknown": "Unknown",
-    "browse": "browse"
+    "browse": "browse",
+    "initializing": "Initializing..."
   },
   "buttons": {
     "signIn": "Sign In",
@@ -2013,7 +2014,12 @@
     "yourTeam": "Your Team",
     "yourTrackedDreams": "Your tracked dreams",
     "zap": "Zap",
-    "zen": "Zen"
+    "zen": "Zen",
+    "toggleTheme": "Toggle theme",
+    "toggleThemeShortcut": "Switch theme (T)",
+    "muteMicrophone": "Mute microphone",
+    "unmuteMicrophone": "Unmute microphone",
+    "muteShortcut": "Mute (M)"
   },
   "support": {
     "eyebrow": "From Us to You",
@@ -10717,5 +10723,8 @@
     "signInFirst": "Sign in first, then connect",
     "unavailable": "{provider} isn't available right now",
     "failed": "Couldn't connect. Try again?"
+  },
+  "entrance": {
+    "helper": "Your personal guide"
   }
 }

@@ -233,6 +233,7 @@ import {
 } from './services/speech-event-dispatcher.js';
 // I18n - Internationalization and localization
 import { initI18n, t } from './i18n/index.js';
+import { bindStaticDom } from './i18n/static-dom.js';
 import { tp } from './i18n/plural.js';
 // Mood Context - Time-based persona mood for "Better than Human"
 import { disposeMoodContext } from './services/mood-context.service.js';
@@ -515,9 +516,8 @@ class VoiceAIApp {
       // Initialize theme system first (affects all UI)
       this.initializeTheme();
 
-      // Initialize i18n (internationalization) - must await before UI init
-      await initI18n();
-
+      await initI18n(); // before any UI renders
+      bindStaticDom(); // index.html text marked with data-i18n
       // Check authentication - require sign-in before proceeding
       // This matches iOS behavior where users must sign in with Apple/Google
       // IMPORTANT: Must await auth initialization to restore any existing session
