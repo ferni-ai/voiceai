@@ -10,7 +10,8 @@
  *   missed, and Ferni owns it once in her next conversation;
  * - released: the user let Ferni off (cancelled or deleted the reminder);
  * - unknown: made before outcomes were tracked, so nobody can say (see
- *   legacy-promises.ts). Not counted by Trust, never owned as a miss.
+ *   legacy-promises.ts), or an invitation ("let me know how it goes") that
+ *   lapsed (promise-kinds.ts). Not counted by Trust, never owned as a miss.
  *
  * Trust's "I follow through" factor counts only kept and missed.
  *
@@ -21,6 +22,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../firestore-utils.js';
 import { MISSED_AFTER_MS } from '../../scheduling/reminder-delivery-job.js';
 import { settleLegacyPromises, type LegacyPassResult } from './legacy-promises.js';
+import { isInvitation } from './promise-kinds.js';
 import {
   clearCommitmentCache,
   createCommitment,
@@ -172,6 +174,8 @@ async function verdictFor(
 ): Promise<[Outcome, string]> {
   // Adopted from before outcomes were tracked: part of its window went unwatched.
   if (data.legacy === true) return ['unknown', 'made before promise outcomes were tracked'];
+  // "Let me know how it goes" invited the user to share; nobody broke anything.
+  if (isInvitation(data.type)) return ['unknown', 'an invitation to share that lapsed'];
   if (data.type !== 'remind' || typeof data.reminderId !== 'string') {
     return ['missed', 'due time passed without a follow-up'];
   }
@@ -262,6 +266,7 @@ export async function getMissesToOwn(
     .filter(
       (c) =>
         c.outcome === 'missed' &&
+        !isInvitation(c.type) && // marked missed before invitations were told apart
         !c.ownOfferedAt &&
         c.violatedAt !== undefined &&
         now.getTime() - new Date(c.violatedAt).getTime() < OWN_WINDOW_MS
