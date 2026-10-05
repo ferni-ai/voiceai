@@ -13,6 +13,9 @@ vi.mock('../../../../memory/spanner-graph/index.js', () => ({
 
 vi.mock('../../../../memory/entity-store/entity-resolver.js', () => ({
   whatDoWeKnowAbout: vi.fn(async (_userId: string, query: string) => {
+    if (query.toLowerCase() === 'dana') {
+      throw new Error('entity store unavailable');
+    }
     if (query.toLowerCase() === 'mike') {
       // Slower than Sarah, so lookups for several people finish out of order.
       await new Promise((resolve) => {
@@ -110,5 +113,24 @@ describe('buildGraphContext Firestore fallback', () => {
     expect(entity[0]).not.toMatch(/Google/);
     expect(entity[1]).toMatch(/Sarah/);
     expect(entity[1]).toMatch(/Google/);
+  });
+
+  it("still injects what it found when another person's lookup fails", async () => {
+    vi.mocked(detectEntities).mockReturnValueOnce([
+      { name: 'Dana', type: 'person', confidence: 0.9 },
+      { name: 'Sarah', type: 'person', confidence: 0.9 },
+    ] as never);
+
+    const injections = await buildGraphContext({
+      userText: 'Dana texted me, then Sarah called.',
+      services: { userId: 'user-1', sessionId: 'sess-1' },
+    } as never);
+
+    // The createStandardInjection mock above returns { type, content, meta }.
+    const mocked = injections as unknown as Array<{ type: string; content: string }>;
+    const entity = mocked.filter((i) => i.type === 'entity_context').map((i) => i.content);
+    expect(entity).toHaveLength(1);
+    expect(entity[0]).toMatch(/Sarah/);
+    expect(entity[0]).toMatch(/Google/);
   });
 });
