@@ -926,7 +926,6 @@ async function handleStartEnrollment(): Promise<void> {
   const voiceAuth = getVoiceAuthService();
 
   try {
-    // Start enrollment session
     const result = await voiceAuth.startEnrollment(5);
     if (!result.success) {
       setState('error', result.error || 'Failed to start enrollment');
@@ -936,31 +935,31 @@ async function handleStartEnrollment(): Promise<void> {
     const requiredSamples = result.requiredSamples ?? 5;
     progress = { collected: 0, required: requiredSamples, quality: 0, status: 'collecting' };
 
-    // Record samples one by one
+    // Record samples one by one; a sample refused three times in a row ends the attempt
+    let refusals = 0;
     for (let i = 0; i < requiredSamples; i++) {
       setState('recording', { sampleIndex: i, total: requiredSamples });
-
-      // Record with progress callback
       const sampleResult = await voiceAuth.recordEnrollmentSample(3, (elapsed, level) => {
         updateRecordingUI(elapsed, level, 3);
       });
 
       if (!sampleResult.success) {
-        // Show error but allow retry
+        if (++refusals >= 3) {
+          void voiceAuth.cancelEnrollment();
+          setState('error', "I couldn't learn your voice just now. Try again later?");
+          return;
+        }
         toast.warning(sampleResult.message || "Didn't catch that. One more time?");
         i--; // Retry this sample
         continue;
       }
-
+      refusals = 0;
       progress = sampleResult.progress ?? progress;
-
-      // Update progress dots
       const dotsContainer = modal?.querySelector('#progress-dots');
       if (dotsContainer) {
         dotsContainer.innerHTML = renderProgressDots(progress.collected, progress.required);
       }
 
-      // Small delay between samples
       if (i < requiredSamples - 1) {
         await new Promise<void>((resolve) => setTimeout(resolve, 500));
       }
