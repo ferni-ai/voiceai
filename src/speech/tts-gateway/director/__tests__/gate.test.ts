@@ -34,6 +34,8 @@ describe('leverModes', () => {
       // Opt-in levers stay off until set (stream D).
       nonverbal: 'off',
       laughter: 'off',
+      // Answering the caller's voice is logged, not applied, until a listening test.
+      prosody: 'shadow',
     });
   });
 

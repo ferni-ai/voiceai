@@ -119,6 +119,11 @@ export async function initializeMultiAgentSession(
 
   const startTime = Date.now();
 
+  // Warm the TTS socket while the session sets up, before the greeting needs it.
+  void import('../../speech/tts-gateway/index.js')
+    .then(({ prewarmTTSGateway }) => prewarmTTSGateway())
+    .catch((error: unknown) => log.debug({ error: String(error) }, 'TTS prewarm skipped'));
+
   // Get conversation manager (required for full handlers including music)
   let conversationManager:
     | import('../../services/conversation-manager.js').ConversationManager
