@@ -39,7 +39,11 @@ describe('speech markup in the live Ferni prompts', () => {
     expect(base).toContain('No ellipses');
     expect(base).not.toContain('genuinely shifts');
     expect(base).toContain('Never write pause, speed or volume tags');
-    expect(base).not.toMatch(/<speed|\[laughter\]/);
+    expect(base).not.toMatch(/<speed/);
+    // Laughter is the model's call (it knows what's funny), within limits: the
+    // Director's keyword rules never fired on a call (dev, 2026-10-04).
+    expect(base).toContain('The one sound you can make is [laughter]');
+    expect(base).toMatch(/never when they're upset or the topic is heavy/);
     // Cartesia reads all-caps words as initialisms ("NUH-yun" came out as N-U-H).
     expect(base).toContain('Never write words in capitals for emphasis');
     expect(system.length).toBeGreaterThan(1000);

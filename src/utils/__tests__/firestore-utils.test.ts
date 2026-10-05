@@ -99,6 +99,18 @@ describe('Firestore Utils', () => {
       });
     });
 
+    it('strips undefined nested inside arrays for Firestore writes', () => {
+      const payload = cleanForFirestore({
+        tags: ['ok', undefined, 'also-ok'],
+        nested: [{ a: 1, b: undefined }],
+      });
+      expect(JSON.stringify(payload)).not.toContain('undefined');
+      expect(payload).toEqual({
+        tags: ['ok', 'also-ok'],
+        nested: [{ a: 1 }],
+      });
+    });
+
     it('should handle null', () => {
       expect(deepRemoveUndefined(null)).toBeNull();
     });

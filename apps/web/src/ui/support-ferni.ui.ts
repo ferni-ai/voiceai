@@ -18,6 +18,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { formatCurrency, t } from '../i18n/index.js';
+import { openSubscriptionManagement } from '../services/apple-iap.service.js';
 import { payForSeed, seedPaymentFailureMessage } from '../services/seed-payment.js';
 import { appState } from '../state/app.state.js';
 import { apiPost } from '../utils/api.js';
@@ -80,7 +81,6 @@ const ICONS = {
 
 let overlay: HTMLElement | null = null;
 let styleElement: HTMLStyleElement | null = null;
-let _isLoading = false;
 let selectedTipAmount = 0;
 let previouslyFocusedElement: HTMLElement | null = null;
 
@@ -267,7 +267,7 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
         ${renderPlantASeed()}
 
         <!-- Billing Link -->
-        ${currentTier !== 'free' ? renderBillingLink() : ''}
+        ${currentTier !== 'free' ? renderBillingLink(status?.billingSource) : ''}
       </div>
 
       <footer class="support-ferni-footer">
@@ -312,9 +312,11 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
   const plantBtn = container.querySelector('[data-action="plant-seed"]');
   plantBtn?.addEventListener('click', () => void handlePlantSeed());
 
-  // Billing portal link
-  const billingLink = container.querySelector('[data-action="billing"]');
-  billingLink?.addEventListener('click', () => void handleOpenBillingPortal());
+  // Billing: Stripe's portal (new tab) for a Stripe plan, Apple's page for an App Store one
+  const billingBtn = container.querySelector('[data-action="billing"]');
+  billingBtn?.addEventListener('click', () => void openBillingPortal({ openInNewTab: true }));
+  const appleBtn = container.querySelector('[data-action="apple-manage"]');
+  appleBtn?.addEventListener('click', () => openSubscriptionManagement());
 
   // Vision journey button
   const visionBtn = container.querySelector('[data-action="see-vision"]');
@@ -452,12 +454,16 @@ function renderPlantASeed(): string {
   `;
 }
 
-function renderBillingLink(): string {
+/** Only a Stripe plan gets Stripe's portal; an App Store plan is changed with Apple. */
+function renderBillingLink(source: SubscriptionStatus['billingSource']): string {
+  if (source !== 'stripe' && source !== 'app_store') return '';
+  const apple = source === 'app_store';
   return `
     <section class="support-ferni-section support-ferni-billing">
-      <button aria-label="${t('accessibility.edit')}" class="support-ferni-billing-btn" data-action="billing">
+      ${apple ? `<p class="support-ferni-tip-desc">${t('manageSubscription.apple.source')}</p>` : ''}
+      <button aria-label="${t('accessibility.edit')}" class="support-ferni-billing-btn" data-action="${apple ? 'apple-manage' : 'billing'}">
         ${ICONS.creditCard}
-        <span>${t('support.manageBilling')}</span>
+        <span>${apple ? t('manageSubscription.buttons.manageApple') : t('support.manageBilling')}</span>
         ${ICONS.externalLink}
       </button>
     </section>
@@ -497,7 +503,6 @@ async function handleUpgrade(tier: string): Promise<void> {
     return;
   }
 
-  _isLoading = true;
   updateLoadingState(true);
 
   try {
@@ -516,7 +521,6 @@ async function handleUpgrade(tier: string): Promise<void> {
     log.error('Upgrade failed:', error);
     toast.error(t('support.errorTryAgain'));
   } finally {
-    _isLoading = false;
     updateLoadingState(false);
   }
 }
@@ -530,7 +534,6 @@ async function handlePlantSeed(): Promise<void> {
     return;
   }
 
-  _isLoading = true;
   updateLoadingState(true);
 
   try {
@@ -546,14 +549,8 @@ async function handlePlantSeed(): Promise<void> {
     log.error('Plant seed failed:', error);
     toast.error(t('support.errorTryAgain'));
   } finally {
-    _isLoading = false;
     updateLoadingState(false);
   }
-}
-
-async function handleOpenBillingPortal(): Promise<void> {
-  // Use the consolidated billing utility (opens in new tab by default)
-  await openBillingPortal({ openInNewTab: true });
 }
 
 function updateLoadingState(loading: boolean): void {

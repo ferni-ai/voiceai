@@ -32,6 +32,7 @@ import {
 import { getToolGateway } from '../../tools/gateway/index.js';
 import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
 import { modelConfig } from '../../services/model-config.js';
+import { endpointingDelays } from '../shared/turn-patience.js';
 
 // ============================================================================
 // VAD CACHING (Worker-Level Singleton)
@@ -436,8 +437,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
 
   const voiceOptions = {
     allowInterruptions: true,
-    minEndpointingDelay: 150,
-    maxEndpointingDelay: 450,
+    ...endpointingDelays(), // turn patience: see turn-patience.ts
     minInterruptionWords: 1,
     minInterruptionDuration: 150,
     preemptiveGeneration: true,

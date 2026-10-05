@@ -13,6 +13,6 @@ export function createMockSnapshot(userId: string, platform: BiometricPlatform):
     sleep: null,
     activity: null,
     recovery: null,
-    stressLevel: 'moderate',
+    stressLevel: 'unknown',
   };
 }

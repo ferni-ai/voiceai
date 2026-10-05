@@ -17,6 +17,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import { apiGet } from '../utils/api.js';
 import {
   fetchWearableProviders,
@@ -306,7 +307,7 @@ class IntegrationsSettingsUI {
             `}
           </section>
 
-          <!-- LinkedIn Section -->
+          ${LINKEDIN_ENABLED ? `<!-- LinkedIn Section (off: config/linkedin.ts) -->
           <section class="integrations-settings__section">
             <div class="integrations-settings__section-header">
               <span class="integrations-settings__section-icon">${ICONS.linkedin}</span>
@@ -345,8 +346,7 @@ class IntegrationsSettingsUI {
                 We only read your profile and job history to celebrate milestones. We never post or message on your behalf.
               </p>
             `}
-          </section>
-
+          </section>` : ''}
           <!-- Banking Section -->
           <section class="integrations-settings__section">
             <div class="integrations-settings__section-header">

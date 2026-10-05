@@ -1135,7 +1135,8 @@
       "step1": "Abre la Configuración en tu dispositivo",
       "step2": "Pulsa tu nombre en la parte superior",
       "step3": "Pulsa \"Suscripciones\"",
-      "step4": "Busca Ferni"
+      "step4": "Busca Ferni",
+      "source": "Te suscribiste a través de la App Store."
     },
     "billedThrough": "Facturado a través de",
     "buttons": {
@@ -1163,7 +1164,8 @@
     "stripe": {
       "note": "Puedes actualizar o cambiar lo que quieras en cualquier momento"
     },
-    "title": "Estamos en esto de la mano"
+    "title": "Estamos en esto de la mano",
+    "noBilling": "Tu plan no se factura aquí, así que no hay nada que cambiar."
   },
   "menu": {
     "greeting": {

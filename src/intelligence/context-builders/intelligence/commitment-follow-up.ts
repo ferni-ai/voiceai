@@ -24,9 +24,12 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import {
   processCommitments,
   generateFollowUpPhrase,
-  recordFollowUp,
   type Commitment,
 } from '../../../services/trust-systems/commitment-tracking.js';
+import {
+  noteFollowUpOffered,
+  type FollowUpAnswer,
+} from '../../../services/trust-systems/commitment-follow-through.js';
 
 const log = createLogger({ module: 'CommitmentFollowUp' });
 
@@ -58,7 +61,7 @@ async function buildCommitmentFollowUpContext(
   if (!userId) return [];
 
   // Process user's message for new commitments and progress
-  const { newCommitments, progressUpdates, followUpsDue } = await processCommitments(
+  const { newCommitments, progressUpdates, followUpsDue, answers } = await processCommitments(
     userId,
     userText,
     {
@@ -67,7 +70,7 @@ async function buildCommitmentFollowUpContext(
     }
   );
 
-  const injections: ContextInjection[] = [];
+  const injections: ContextInjection[] = answers.flatMap(answerGuidance);
 
   // 1. If user made a new commitment, acknowledge it internally
   if (newCommitments.length > 0) {
@@ -116,7 +119,7 @@ async function buildCommitmentFollowUpContext(
       injections.push(
         createStandardInjection(
           'commitment_follow_up',
-          `[FOLLOW-UP OPPORTUNITY] You've been tracking that they said they'd "${followUp.content}". Consider naturally checking in with something like: "${phrase}" - but only if it fits the conversation. If they seem stressed or the topic doesn't fit, skip it. They haven't mentioned it in a while.`,
+          `[FOLLOW-UP OPPORTUNITY] They told you they'd "${followUp.content}". If it fits, ask once, warmly, by name - e.g. "You were going to ${followUp.content}. How did it go?" or "${phrase}". This is the only time you'll ask. If they seem stressed or the topic doesn't fit, skip it.`,
           { category: 'trust', confidence: 0.7 }
         )
       );
@@ -124,8 +127,9 @@ async function buildCommitmentFollowUpContext(
       // Track that we surfaced this
       sessionFollowUps.set(sessionId || '', (sessionFollowUps.get(sessionId || '') || 0) + 1);
 
-      // Record the follow-up attempt (will be updated based on their response)
-      void recordFollowUp(userId, followUp.id, 'neutral');
+      // Whether Ferni actually asked is read from her reply (follow-through.ts);
+      // until then nothing is recorded and nothing is rescheduled.
+      noteFollowUpOffered(userId, followUp);
 
       log.info(
         {
@@ -144,6 +148,20 @@ async function buildCommitmentFollowUpContext(
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+/** How to take the answer they just gave to Ferni's one follow-up. */
+function answerGuidance(answer: FollowUpAnswer): ContextInjection[] {
+  const what = `"${answer.content}"`;
+  const text: Partial<Record<FollowUpAnswer['outcome'], string>> = {
+    done: `[THEY FOLLOWED THROUGH] They just told you they did ${what}. Be glad with them, briefly and genuinely.`,
+    not_done: `[NOT YET] They didn't get to ${what}. No judgment and no pep talk unless they want one. Don't ask about it again.`,
+    deflected: `[LET IT GO] They'd rather not talk about ${what}. Let it go warmly and don't bring it up again.`,
+  };
+  const guidance = text[answer.outcome];
+  return guidance
+    ? [createStandardInjection('commitment_answer', guidance, { category: 'trust' })]
+    : [];
+}
 
 /**
  * Prioritize which follow-up to surface

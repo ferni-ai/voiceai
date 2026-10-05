@@ -1132,7 +1132,8 @@
       "step1": "Öffne die Einstellungen auf deinem Gerät",
       "step2": "Tippe oben auf deinen Namen",
       "step3": "Tippe auf „Abonnements“",
-      "step4": "Suche nach Ferni"
+      "step4": "Suche nach Ferni",
+      "source": "Du hast dein Abo über den App Store abgeschlossen."
     },
     "billedThrough": "Abgerechnet über",
     "buttons": {
@@ -1160,7 +1161,8 @@
     "stripe": {
       "note": "Du kannst deine Einstellungen jederzeit anpassen oder ändern"
     },
-    "title": "Wir gehen diesen Weg gemeinsam"
+    "title": "Wir gehen diesen Weg gemeinsam",
+    "noBilling": "Dein Abo wird nicht hier abgerechnet, also gibt es hier nichts zu ändern."
   },
   "menu": {
     "greeting": {

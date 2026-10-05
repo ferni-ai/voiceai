@@ -1132,7 +1132,8 @@
       "step1": "打开你设备上的“设置”",
       "step2": "轻点顶部你的名字",
       "step3": "轻点“订阅”",
-      "step4": "找到 Ferni"
+      "step4": "找到 Ferni",
+      "source": "你是通过 App Store 订阅的。"
     },
     "billedThrough": "计费截止至",
     "buttons": {
@@ -1160,7 +1161,8 @@
     "stripe": {
       "note": "你可以随时更新或更改"
     },
-    "title": "我们携手同行"
+    "title": "我们携手同行",
+    "noBilling": "你的方案不在这里计费，所以没有什么需要修改的。"
   },
   "menu": {
     "title": "我们今天做点什么呢？",

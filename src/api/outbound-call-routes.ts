@@ -16,6 +16,7 @@ import {
   type OutboundCallContext,
   type CallResult,
 } from '../services/outreach/conversational-calls.js';
+import { paramString } from './param-string.js';
 
 const log = getLogger().child({ module: 'outbound-call-routes' });
 
@@ -75,7 +76,11 @@ async function healthCheck(_req: Request, res: Response): Promise<void> {
  * Handle Twilio status callback
  */
 async function handleStatusCallback(req: Request, res: Response): Promise<void> {
-  const { callId } = req.params;
+  const callId = paramString(req.params.callId);
+  if (!callId) {
+    res.status(400).send('Invalid call ID');
+    return;
+  }
   const { CallStatus, CallSid, Duration, CallDuration, AnsweredBy } = req.body;
 
   log.debug({ callId, CallStatus, CallSid }, 'Received status callback');
@@ -102,7 +107,11 @@ async function handleStatusCallback(req: Request, res: Response): Promise<void> 
  * Handle Twilio machine detection (voicemail)
  */
 async function handleMachineDetection(req: Request, res: Response): Promise<void> {
-  const { callId } = req.params;
+  const callId = paramString(req.params.callId);
+  if (!callId) {
+    res.status(400).send('Invalid call ID');
+    return;
+  }
   const { AnsweredBy } = req.body;
 
   log.debug({ callId, AnsweredBy }, 'Received machine detection');
@@ -197,7 +206,11 @@ async function getActiveCalls(_req: Request, res: Response): Promise<void> {
  * Get a specific call
  */
 async function getCall(req: Request, res: Response): Promise<void> {
-  const { callId } = req.params;
+  const callId = paramString(req.params.callId);
+  if (!callId) {
+    res.status(400).json({ error: 'Invalid call ID' });
+    return;
+  }
 
   try {
     const service = getConversationalCallService();
@@ -239,7 +252,11 @@ async function getCall(req: Request, res: Response): Promise<void> {
  * End an active call
  */
 async function endCall(req: Request, res: Response): Promise<void> {
-  const { callId } = req.params;
+  const callId = paramString(req.params.callId);
+  if (!callId) {
+    res.status(400).json({ error: 'Invalid call ID' });
+    return;
+  }
   const { reason } = req.body;
 
   try {
@@ -265,7 +282,11 @@ async function endCall(req: Request, res: Response): Promise<void> {
  * future context injection - so Ferni can naturally mention how the call went.
  */
 async function updateSummary(req: Request, res: Response): Promise<void> {
-  const { callId } = req.params;
+  const callId = paramString(req.params.callId);
+  if (!callId) {
+    res.status(400).json({ error: 'Invalid call ID' });
+    return;
+  }
   const { conversationSummary, followUpActions, userMood, keyTopics, receptivity } = req.body;
 
   if (!conversationSummary) {

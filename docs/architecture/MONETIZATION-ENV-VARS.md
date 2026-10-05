@@ -106,12 +106,14 @@ The monetization system uses the following Firestore collections:
 
 Required for iOS subscriptions via StoreKit.
 
-| Variable            | Description                              | Example                                                       |
-| ------------------- | ---------------------------------------- | ------------------------------------------------------------- |
-| `APPLE_ISSUER_ID`   | App Store Connect Issuer ID              | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`                        |
-| `APPLE_KEY_ID`      | App Store Connect Key ID                 | `XXXXXXXXXX`                                                  |
-| `APPLE_BUNDLE_ID`   | iOS app bundle identifier                | `com.ferni.app`                                               |
-| `APPLE_PRIVATE_KEY` | Private key from App Store Connect (.p8) | `-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----` |
+| Variable             | Description                                                                                                                                        | Example                                                       |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `APPLE_ISSUER_ID`    | App Store Connect Issuer ID                                                                                                                        | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`                        |
+| `APPLE_KEY_ID`       | App Store Connect Key ID                                                                                                                           | `XXXXXXXXXX`                                                  |
+| `APPLE_BUNDLE_ID`    | iOS app bundle identifier (default: the app's, `com.sethdford.ferni`)                                                                              | `com.sethdford.ferni`                                         |
+| `APPLE_PRIVATE_KEY`  | Private key from App Store Connect (.p8)                                                                                                           | `-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----` |
+| `APPLE_APP_APPLE_ID` | The app's Apple ID (App Store Connect → App Information). **Required in production**: without it nothing App Store-signed is accepted              | `6739614203`                                                  |
+| `APPLE_ENVIRONMENT`  | `Production` or `Sandbox`; the server accepts only that environment's purchases and notifications (default: Production when `NODE_ENV=production`) | `Production`                                                  |
 
 **Getting Apple Credentials:**
 
@@ -124,19 +126,26 @@ Required for iOS subscriptions via StoreKit.
 
 Configure these products in App Store Connect:
 
-| Product ID                  | Tier    | Duration | Price   |
-| --------------------------- | ------- | -------- | ------- |
-| `com.ferni.friend.monthly`  | Friend  | Monthly  | $9.99   |
-| `com.ferni.friend.annual`   | Friend  | Annual   | $99.90  |
-| `com.ferni.partner.monthly` | Partner | Monthly  | $19.99  |
-| `com.ferni.partner.annual`  | Partner | Annual   | $199.90 |
+| Product ID                               | Tier    | Duration |
+| ---------------------------------------- | ------- | -------- |
+| `com.ferni.subscription.friend.monthly`  | Friend  | Monthly  |
+| `com.ferni.subscription.friend.yearly`   | Friend  | Annual   |
+| `com.ferni.subscription.partner.monthly` | Partner | Monthly  |
+| `com.ferni.subscription.partner.yearly`  | Partner | Annual   |
+
+These are what the iOS app sells (`apps/ios-native/Ferni.storekit`). The server also maps the
+older names `com.ferni.{friend,partner}.{monthly,annual}`. A product it doesn't map grants nothing.
 
 **Apple Webhook:**
 
 Set up App Store Server Notifications in App Store Connect:
 
-- URL: `https://app.ferni.ai/api/apple/webhook`
+- URL: `https://app.ferni.ai/api/apple/webhook` (not `/api/apple/notifications`, which is Sign in with Apple)
 - Version: V2
+
+The webhook keeps the buyer's profile in step (renewals, upgrades, grace periods, expiry,
+refunds); `/api/apple/verify` grants the tier at purchase. Both only accept data Apple signed
+for `APPLE_BUNDLE_ID`, `APPLE_APP_APPLE_ID` and `APPLE_ENVIRONMENT`.
 
 ## Local Development
 

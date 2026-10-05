@@ -1132,7 +1132,8 @@
       "step1": "Open Settings on your device",
       "step2": "Tap your name at the top",
       "step3": "Tap \"Subscriptions\"",
-      "step4": "Find Ferni"
+      "step4": "Find Ferni",
+      "source": "You subscribed through the App Store."
     },
     "billedThrough": "Billed through",
     "buttons": {
@@ -1160,7 +1161,8 @@
     "stripe": {
       "note": "You can update or change things anytime"
     },
-    "title": "We're in This Together"
+    "title": "We're in This Together",
+    "noBilling": "Your plan isn't billed here, so there's nothing to change."
   },
   "menu": {
     "title": "What shall we do?",
@@ -9990,7 +9992,7 @@
     "seedsToShare": "seeds to share",
     "daysInARow": "days in a row",
     "myGarden": "My Garden",
-    "bringAFriend": "Bring a Friend",
+    "bringAFriend": "Bring a friend",
     "alreadyClaimed": "Already claimed today",
     "untilBonus": {
       "one": "{count} day until {goal}-day streak bonus",

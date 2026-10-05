@@ -1135,7 +1135,8 @@
       "step1": "Ouvre les Réglages de ton appareil",
       "step2": "Appuie sur ton nom tout en haut",
       "step3": "Appuie sur « Abonnements »",
-      "step4": "Cherche Ferni"
+      "step4": "Cherche Ferni",
+      "source": "Tu as souscrit ton abonnement via l'App Store."
     },
     "billedThrough": "Facturé via",
     "buttons": {
@@ -1163,7 +1164,8 @@
     "stripe": {
       "note": "Tu peux modifier ou mettre à jour tes infos à tout moment"
     },
-    "title": "On fait équipe"
+    "title": "On fait équipe",
+    "noBilling": "Ton abonnement n'est pas facturé ici, il n'y a donc rien à modifier."
   },
   "menu": {
     "title": "Qu'allons-nous faire ?",

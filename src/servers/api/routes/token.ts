@@ -12,6 +12,7 @@ import { createToken, createRoomWithAgent, getLiveKitUrl } from '../../token/liv
 import type { RoomMetadata } from '../../shared/types.js';
 import { prewarmContent, type ContentType } from '../../../services/llm-dynamic-content.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { onBodyEnd } from '../request-failure.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
 
@@ -335,7 +336,7 @@ export async function handleTokenRoutes(
         resolve(true);
       });
 
-      req.on('end', async () => {
+      onBodyEnd(req, res, resolve, async () => {
         try {
           const { claim_token, firebase_uid } = JSON.parse(body) as {
             claim_token: string;
@@ -398,7 +399,7 @@ export async function handleTokenRoutes(
         resolve(true);
       });
 
-      req.on('end', async () => {
+      onBodyEnd(req, res, resolve, async () => {
         try {
           const data = JSON.parse(body) as { room_name: string; conversation: unknown };
           const { room_name, conversation } = data;

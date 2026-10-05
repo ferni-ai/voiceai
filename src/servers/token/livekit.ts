@@ -86,7 +86,7 @@ export async function createToken(options: TokenOptions): Promise<string> {
     canPublishData: true,
   });
 
-  return await token.toJwt();
+  return token.toJwt();
 }
 
 /**

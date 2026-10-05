@@ -44,4 +44,22 @@ describe('updateAgentTools on a real SDK agent', () => {
     expect(await updateAgentTools(agent, { playMusic: tools.playMusic })).toBe(true);
     expect(getAgentToolNames(agent)).toEqual(['playMusic']);
   });
+
+  it('stays at the initial cap mid-call and keeps the tools just asked for', async () => {
+    // With TOOL_LIMIT unset the update was uncapped: a dev call went
+    // 64 -> 160 -> 213 tools (~9.5k prompt tokens, every turn).
+    const old = Object.fromEntries(
+      Array.from({ length: 64 }, (_, i) => [`oldTool${i}`, makeTool(`o${i}`)])
+    );
+    const agent = makeAgent(old);
+    const fresh = Object.fromEntries(
+      Array.from({ length: 10 }, (_, i) => [`newsTool${i}`, makeTool(`n${i}`)])
+    );
+
+    expect(await updateAgentTools(agent, fresh)).toBe(true);
+
+    const names = getAgentToolNames(agent);
+    expect(names).toHaveLength(64);
+    for (const name of Object.keys(fresh)) expect(names).toContain(name);
+  });
 });
