@@ -111,7 +111,7 @@ const DEFAULT_FLAGS: VoiceHumanizationFlags = {
   cacheConfidenceThreshold: 0.55, // 55% confidence (lowered for more cache hits, faster response)
 
   // Phase 6: Live Backchanneling - ENABLED for "Better than Human" active listening
-  enableLiveBackchanneling: true, // Soft "mm-hmm" during user speech at breath pauses
+  enableLiveBackchanneling: backchannelsEnabled(), // opt-in: BACKCHANNELS=on (see below)
 
   // Phase 7: LLM-based backchannels - OFF since 2026-10-03. Each one was a
   // full generateReply 4 s into the caller's speech, and the model answered
@@ -365,3 +365,16 @@ export const voiceHumanizationFlags = new Proxy({} as VoiceHumanizationFlags, {
     return getFlags()[prop];
   },
 });
+
+/**
+ * Backchannels during the caller's speech ("mm-hmm", "right", "yeah"): the
+ * clips and the spoken fallback alike. Off unless BACKCHANNELS=on. They were
+ * single words rendered out of context, fired at loudness-only pauses on a
+ * coin flip, and a caller heard them as fake (dev call 2026-10-04): none
+ * beats a wrong one until they are cued from prosody and in Ferni's own voice.
+ */
+export function backchannelsEnabled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return env.BACKCHANNELS === 'on';
+}
