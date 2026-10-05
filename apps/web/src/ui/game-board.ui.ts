@@ -18,9 +18,9 @@
 import { gsap } from '../utils/gsap-setup.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('GameBoard');
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -137,7 +137,6 @@ type GameType =
   | 'one-word-checkin'
   | 'tiny-win-tracker'
   | 'fortune-cookie';
-
 interface GameState {
   gameType: GameType;
   status: 'active' | 'completed' | 'abandoned';
@@ -157,14 +156,12 @@ interface GameState {
     | TinyWinTrackerState
     | FortuneCookieState;
 }
-
 interface GameStartEvent {
   gameId: string;
   gameType: string;
   gameName: string;
   category?: string;
 }
-
 // ============================================================================
 // CONFIGURATION (Configurable values instead of hardcoded)
 // ============================================================================
@@ -179,7 +176,6 @@ const CONFIG = {
   /** Tic-tac-toe grid size */
   ticTacToeGridSize: 9,
 };
-
 // ============================================================================
 // STATE
 // ============================================================================
@@ -918,7 +914,7 @@ export function initGameBoard(): void {
   container = document.createElement('div');
   container.className = 'game-board-container';
   container.setAttribute('role', 'region');
-  container.setAttribute('aria-label', 'Game board');
+  container.setAttribute('aria-label', t('gameBoard.ariaLabels.gameBoard'));
   container.setAttribute('aria-live', 'polite');
   document.body.appendChild(container);
 
@@ -1059,7 +1055,7 @@ function handleDisconnected(): void {
   container.classList.remove('stale');
 
   // Show disconnection banner
-  showConnectionBanner('error', 'Connection lost. Game state may be stale.');
+  showConnectionBanner('error', t('gameBoard.connectionMessages.error'));
 
   log.warn('Game board: Connection lost');
 }
@@ -1086,7 +1082,7 @@ function checkStaleState(): void {
   const timeSinceUpdate = Date.now() - lastUpdateTimestamp;
   if (timeSinceUpdate > CONFIG.staleTimeoutMs) {
     container?.classList.add('stale');
-    showConnectionBanner('warning', 'No updates received. Game state may be outdated.');
+    showConnectionBanner('warning', t('gameBoard.connectionMessages.warning'));
     log.warn({ timeSinceUpdate }, 'Game board: State appears stale');
   }
 }
@@ -1270,7 +1266,7 @@ function createHeader(title: string, status: string): HTMLElement {
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'game-board-close';
-  closeBtn.setAttribute('aria-label', 'Close game board');
+  closeBtn.setAttribute('aria-label', t('gameBoard.closeButton'));
   closeBtn.appendChild(createCloseIcon());
   closeBtn.addEventListener('click', () => {
     hideBoard();
@@ -1286,18 +1282,18 @@ function createHeader(title: string, status: string): HTMLElement {
 
 function getGameName(gameType: GameType): string {
   const names: Record<GameType, string> = {
-    'tic-tac-toe': 'Tic-Tac-Toe',
-    '20-questions': '20 Questions',
-    'word-association': 'Word Association',
-    'story-builder': 'Story Builder',
-    'would-you-rather': 'Would You Rather',
-    'three-word-day': 'Three Word Day',
-    'headline-writer': 'Headline Writer',
-    'emoji-story': 'Emoji Story',
-    'values-card-sort': 'Values Card Sort',
-    'one-word-checkin': 'One Word Check-in',
-    'tiny-win-tracker': 'Tiny Win Tracker',
-    'fortune-cookie': 'Fortune Cookie',
+    'tic-tac-toe': t('gameBoard.gameNames.ticTacToe'),
+    '20-questions': t('gameBoard.gameNames.twentyQuestions'),
+    'word-association': t('gameBoard.gameNames.wordAssociation'),
+    'story-builder': t('gameBoard.gameNames.storyBuilder'),
+    'would-you-rather': t('gameBoard.gameNames.wouldYouRather'),
+    'three-word-day': t('gameBoard.gameNames.threeWordDay'),
+    'headline-writer': t('gameBoard.gameNames.headlineWriter'),
+    'emoji-story': t('gameBoard.gameNames.emojiStory'),
+    'values-card-sort': t('gameBoard.gameNames.valuesCardSort'),
+    'one-word-checkin': t('gameBoard.gameNames.oneWordCheckin'),
+    'tiny-win-tracker': t('gameBoard.gameNames.tinyWinTracker'),
+    'fortune-cookie': t('gameBoard.gameNames.fortuneCookie'),
   };
   return names[gameType] || gameType;
 }
@@ -1306,7 +1302,7 @@ function renderEmptyState(gameType: GameType, gameName: string): void {
   if (!container) return;
 
   clearContainer();
-  container.appendChild(createHeader(gameName, 'Starting...'));
+  container.appendChild(createHeader(gameName, t('gameBoard.statuses.starting')));
 
   switch (gameType) {
     case 'tic-tac-toe':
@@ -1353,7 +1349,7 @@ function renderGameState(state: GameState): void {
 
   clearContainer();
   const gameName = getGameName(state.gameType);
-  const status = state.status === 'active' ? 'Playing' : state.status;
+  const status = state.status === 'active' ? t('gameBoard.statuses.playing') : state.status;
   container.appendChild(createHeader(gameName, status));
 
   switch (state.gameType) {
@@ -1403,51 +1399,51 @@ function getCompletionMessage(state: GameState): string {
   switch (state.gameType) {
     case 'tic-tac-toe': {
       const tttState = state.gameData as TicTacToeState;
-      if (tttState.winner === 'draw') return "It's a draw! Well played.";
-      if (tttState.winner === tttState.userSymbol) return 'You won! Great strategy.';
-      return 'Ferni won! Good game.';
+      if (tttState.winner === 'draw') return t('gameBoard.completionMessages.ticTacToeDraw');
+      if (tttState.winner === tttState.userSymbol) return t('gameBoard.completionMessages.ticTacToeWin');
+      return t('gameBoard.completionMessages.ticTacToeLose');
     }
     case '20-questions': {
       const twentyQ = state.gameData as TwentyQuestionsState;
-      return twentyQ.guessedCorrectly ? 'You guessed it! Well done.' : "Time's up! Better luck next time.";
+      return twentyQ.guessedCorrectly ? t('gameBoard.completionMessages.twentyQuestionsWin') : t('gameBoard.completionMessages.twentyQuestionsLose');
     }
     case 'word-association': {
       const wordState = state.gameData as WordAssociationState;
       const chainLength = wordState.chain?.length || 0;
-      return chainLength > 5 ? `Amazing chain of ${chainLength} words!` : 'Nice word chain!';
+      return chainLength > 5 ? t('gameBoard.completionMessages.wordAssociationLong', { count: chainLength }) : t('gameBoard.completionMessages.wordAssociationShort');
     }
     case 'story-builder': {
       const storyState = state.gameData as StoryBuilderState;
       const chapters = storyState.chapters?.length || 0;
-      return chapters > 3 ? 'Epic tale complete!' : 'Story complete!';
+      return chapters > 3 ? t('gameBoard.completionMessages.storyBuilderLong') : t('gameBoard.completionMessages.storyBuilderShort');
     }
     case 'would-you-rather': {
       const wyrState = state.gameData as WouldYouRatherState;
       const rounds = wyrState.roundNumber || 0;
-      return rounds > 5 ? 'Great choices revealed!' : 'Interesting choices!';
+      return rounds > 5 ? t('gameBoard.completionMessages.wouldYouRatherLong') : t('gameBoard.completionMessages.wouldYouRatherShort');
     }
     case 'three-word-day':
-      return 'Your three words captured. Time for reflection.';
+      return t('gameBoard.completionMessages.threeWordDay');
     case 'headline-writer':
-      return 'Future headlines written! What story awaits?';
+      return t('gameBoard.completionMessages.headlineWriter');
     case 'emoji-story':
-      return 'Your emoji story is complete!';
+      return t('gameBoard.completionMessages.emojiStory');
     case 'values-card-sort': {
       const valuesState = state.gameData as ValuesCardSortState;
       const topFive = valuesState.topFive?.length || 0;
-      return topFive >= 5 ? 'Your core values identified!' : 'Values exploration complete.';
+      return topFive >= 5 ? t('gameBoard.completionMessages.valuesCardSortLong') : t('gameBoard.completionMessages.valuesCardSortShort');
     }
     case 'one-word-checkin':
-      return 'Check-in complete. How do you feel now?';
+      return t('gameBoard.completionMessages.oneWordCheckin');
     case 'tiny-win-tracker': {
       const winsState = state.gameData as TinyWinTrackerState;
       const wins = winsState.wins?.length || 0;
-      return wins > 0 ? `${wins} wins celebrated! Keep going.` : 'Session complete!';
+      return wins > 0 ? t('gameBoard.completionMessages.tinyWinTrackerMultiple', { wins }) : t('gameBoard.completionMessages.tinyWinTrackerDefault');
     }
     case 'fortune-cookie':
-      return 'May your fortune guide you.';
+      return t('gameBoard.completionMessages.fortuneCookie');
     default:
-      return 'Game complete!';
+      return t('gameBoard.completionMessages.gameDefault');
   }
 }
 
@@ -1456,7 +1452,7 @@ function renderCompleteState(state: GameState): void {
 
   clearContainer();
   const gameName = getGameName(state.gameType);
-  container.appendChild(createHeader(gameName, 'Complete'));
+  container.appendChild(createHeader(gameName, t('gameBoard.statuses.complete')));
 
   const message = getCompletionMessage(state);
 
@@ -1492,7 +1488,7 @@ function renderAbandonedState(state: GameState): void {
 
   clearContainer();
   const gameName = getGameName(state.gameType);
-  container.appendChild(createHeader(gameName, 'Ended'));
+  container.appendChild(createHeader(gameName, t('gameBoard.statuses.ended')));
 
   const abandonedEl = document.createElement('div');
   abandonedEl.className = 'game-abandoned';
@@ -1509,13 +1505,13 @@ function renderAbandonedState(state: GameState): void {
   // Main text
   const textEl = document.createElement('div');
   textEl.className = 'game-abandoned-text';
-  textEl.textContent = 'Game ended early';
+  textEl.textContent = t('gameBoard.abandonedState.title');
   abandonedEl.appendChild(textEl);
 
   // Subtext
   const subtextEl = document.createElement('div');
   subtextEl.className = 'game-abandoned-subtext';
-  subtextEl.textContent = 'You can start a new game anytime!';
+  subtextEl.textContent = t('gameBoard.abandonedState.subtitle');
   abandonedEl.appendChild(subtextEl);
 
   container.appendChild(abandonedEl);
@@ -1578,7 +1574,7 @@ function renderEmptyTicTacToe(): HTMLElement {
   const grid = document.createElement('div');
   grid.className = 'ttt-grid';
   grid.setAttribute('role', 'grid');
-  grid.setAttribute('aria-label', 'Tic-tac-toe board');
+  grid.setAttribute('aria-label', t('gameBoard.ariaLabels.ticTacToeBoard'));
 
   for (let i = 0; i < CONFIG.ticTacToeGridSize; i++) {
     const cell = document.createElement('div');
@@ -1590,7 +1586,7 @@ function renderEmptyTicTacToe(): HTMLElement {
 
   const turn = document.createElement('div');
   turn.className = 'ttt-turn-indicator';
-  turn.textContent = 'Waiting for game to start...';
+  turn.textContent = t('gameBoard.inProgressMessages.ticTacToeWaiting');
 
   wrapper.appendChild(grid);
   wrapper.appendChild(turn);
@@ -1605,7 +1601,7 @@ function renderTicTacToe(state: TicTacToeState): HTMLElement {
   const grid = document.createElement('div');
   grid.className = 'ttt-grid';
   grid.setAttribute('role', 'grid');
-  grid.setAttribute('aria-label', 'Tic-tac-toe board');
+  grid.setAttribute('aria-label', t('gameBoard.ariaLabels.ticTacToeBoard'));
 
   state.board.forEach((cell, i) => {
     const isWinning = winningCells.includes(i);
@@ -1635,15 +1631,15 @@ function renderTicTacToe(state: TicTacToeState): HTMLElement {
 
   if (state.winner) {
     if (state.winner === 'draw') {
-      turn.textContent = "It's a draw!";
+      turn.textContent = t('gameBoard.inProgressMessages.ticTacToeDraw');
     } else if (state.winner === state.userSymbol) {
-      turn.textContent = 'You won!';
+      turn.textContent = t('gameBoard.inProgressMessages.ticTacToeWin');
     } else {
-      turn.textContent = 'Ferni won!';
+      turn.textContent = t('gameBoard.inProgressMessages.ticTacToeLose');
     }
   } else {
     const strong = document.createElement('strong');
-    strong.textContent = state.currentPlayer === state.userSymbol ? 'Your turn' : "Ferni's turn";
+    strong.textContent = state.currentPlayer === state.userSymbol ? t('gameBoard.inProgressMessages.ticTacToeTurnYou') : t('gameBoard.inProgressMessages.ticTacToeTurnFerni');
     turn.appendChild(strong);
   }
 
@@ -1711,11 +1707,11 @@ function renderEmpty20Questions(): HTMLElement {
 
   const history = document.createElement('div');
   history.className = 'twenty-q-history';
-  history.setAttribute('aria-label', 'Answer history');
+  history.setAttribute('aria-label', t('gameBoard.ariaLabels.answerHistory'));
 
   const hint = document.createElement('span');
   hint.style.cssText = 'color: var(--color-text-muted); font-size: var(--text-sm);';
-  hint.textContent = 'Ask yes/no questions to guess what Ferni is thinking of!';
+  hint.textContent = t('gameBoard.inProgressMessages.twentyQuestionsHint');
   history.appendChild(hint);
 
   wrapper.appendChild(progress);
@@ -1755,12 +1751,12 @@ function render20Questions(state: TwentyQuestionsState): HTMLElement {
 
   const history = document.createElement('div');
   history.className = 'twenty-q-history';
-  history.setAttribute('aria-label', 'Answer history');
+  history.setAttribute('aria-label', t('gameBoard.ariaLabels.answerHistory'));
 
   if (state.answers.length === 0) {
     const empty = document.createElement('span');
     empty.style.cssText = 'color: var(--color-text-muted);';
-    empty.textContent = 'No questions asked yet';
+    empty.textContent = t('gameBoard.inProgressMessages.twentyQuestionsNoAnswers');
     history.appendChild(empty);
   } else {
     state.answers.forEach((answer, i) => {
@@ -1803,16 +1799,16 @@ function renderEmptyWordAssociation(): HTMLElement {
 
   const chain = document.createElement('div');
   chain.className = 'word-chain';
-  chain.setAttribute('aria-label', 'Word chain');
+  chain.setAttribute('aria-label', t('gameBoard.ariaLabels.wordChain'));
 
   const hint = document.createElement('span');
   hint.style.cssText = 'color: var(--color-text-muted); font-size: var(--text-sm);';
-  hint.textContent = 'Say a word related to the previous one!';
+  hint.textContent = t('gameBoard.inProgressMessages.wordAssociationHint');
   chain.appendChild(hint);
 
   const turn = document.createElement('div');
   turn.className = 'word-turn';
-  turn.textContent = 'Waiting for the first word...';
+  turn.textContent = t('gameBoard.inProgressMessages.wordAssociationWaiting');
 
   wrapper.appendChild(chain);
   wrapper.appendChild(turn);
@@ -1826,12 +1822,12 @@ function renderWordAssociation(state: WordAssociationState): HTMLElement {
 
   const chain = document.createElement('div');
   chain.className = 'word-chain';
-  chain.setAttribute('aria-label', 'Word chain');
+  chain.setAttribute('aria-label', t('gameBoard.ariaLabels.wordChain'));
 
   if (state.chain.length === 0) {
     const empty = document.createElement('span');
     empty.style.cssText = 'color: var(--color-text-muted);';
-    empty.textContent = 'Chain is empty';
+    empty.textContent = t('gameBoard.inProgressMessages.wordAssociationEmpty');
     chain.appendChild(empty);
   } else {
     state.chain.forEach((word, i) => {
@@ -1858,7 +1854,8 @@ function renderWordAssociation(state: WordAssociationState): HTMLElement {
   const turn = document.createElement('div');
   turn.className = 'word-turn';
   turn.setAttribute('aria-live', 'polite');
-  turn.textContent = `${state.isUserTurn ? 'Your turn!' : "Ferni's turn..."} (Turn ${state.turnCount})`;
+  const turnText = state.isUserTurn ? t('gameBoard.inProgressMessages.wordAssociationTurnYou') : t('gameBoard.inProgressMessages.wordAssociationTurnFerni');
+  turn.textContent = `${turnText} ${t('gameBoard.inProgressMessages.wordAssociationTurnCount', { count: state.turnCount })}`;
 
   wrapper.appendChild(chain);
   wrapper.appendChild(turn);
@@ -1876,11 +1873,11 @@ function renderEmptyStoryBuilder(): HTMLElement {
 
   const chapter = document.createElement('div');
   chapter.className = 'story-chapter';
-  chapter.setAttribute('aria-label', 'Story content');
+  chapter.setAttribute('aria-label', t('gameBoard.ariaLabels.storyContent'));
 
   const hint = document.createElement('span');
   hint.style.cssText = 'color: var(--color-text-muted);';
-  hint.textContent = 'Build a story together! Take turns adding to the narrative.';
+  hint.textContent = t('gameBoard.inProgressMessages.storyBuilderHint');
   chapter.appendChild(hint);
 
   const progress = document.createElement('div');
@@ -1888,7 +1885,7 @@ function renderEmptyStoryBuilder(): HTMLElement {
   progress.appendChild(createBookIcon());
 
   const chapterText = document.createElement('span');
-  chapterText.textContent = 'Chapter 1';
+  chapterText.textContent = t('gameBoard.inProgressMessages.storyBuilderDefaultChapter');
   progress.appendChild(chapterText);
 
   wrapper.appendChild(chapter);
@@ -1911,7 +1908,7 @@ function renderStoryBuilder(state: StoryBuilderState): HTMLElement {
 
   const chapter = document.createElement('div');
   chapter.className = 'story-chapter';
-  chapter.setAttribute('aria-label', 'Current story chapter');
+  chapter.setAttribute('aria-label', t('gameBoard.ariaLabels.currentChapter'));
 
   const currentText = state.chapters[state.currentChapter - 1] || '';
   if (currentText) {
@@ -1919,7 +1916,7 @@ function renderStoryBuilder(state: StoryBuilderState): HTMLElement {
   } else {
     const empty = document.createElement('span');
     empty.style.cssText = 'color: var(--color-text-muted);';
-    empty.textContent = 'Story is just beginning...';
+    empty.textContent = t('gameBoard.inProgressMessages.storyBuilderEmpty');
     chapter.appendChild(empty);
   }
 
@@ -1928,13 +1925,16 @@ function renderStoryBuilder(state: StoryBuilderState): HTMLElement {
   progress.appendChild(createBookIcon());
 
   const chapterText = document.createElement('span');
-  chapterText.textContent = `Chapter ${state.currentChapter}${state.genre ? ` | ${state.genre}` : ''}`;
+  const chapterDisplay = state.genre
+    ? t('gameBoard.inProgressMessages.storyBuilderChapterWithGenre', { chapter: state.currentChapter, genre: state.genre })
+    : t('gameBoard.inProgressMessages.storyBuilderChapter', { chapter: state.currentChapter });
+  chapterText.textContent = chapterDisplay;
   progress.appendChild(chapterText);
 
   const turn = document.createElement('div');
   turn.className = 'word-turn';
   turn.setAttribute('aria-live', 'polite');
-  turn.textContent = state.isUserTurn ? 'Your turn to add to the story!' : "Ferni's turn...";
+  turn.textContent = state.isUserTurn ? t('gameBoard.inProgressMessages.storyBuilderTurnYou') : t('gameBoard.inProgressMessages.storyBuilderTurnFerni');
 
   wrapper.appendChild(chapter);
   wrapper.appendChild(progress);
@@ -1959,18 +1959,18 @@ function renderEmptyWouldYouRather(): HTMLElement {
   optionA.className = 'wyr-option';
   const hintA = document.createElement('span');
   hintA.style.cssText = 'color: var(--color-text-muted);';
-  hintA.textContent = 'Option A will appear here';
+  hintA.textContent = t('gameBoard.inProgressMessages.wouldYouRatherOptionA');
   optionA.appendChild(hintA);
 
   const or = document.createElement('div');
   or.className = 'wyr-or';
-  or.textContent = 'or';
+  or.textContent = t('gameBoard.inProgressMessages.wouldYouRatherOr');
 
   const optionB = document.createElement('div');
   optionB.className = 'wyr-option';
   const hintB = document.createElement('span');
   hintB.style.cssText = 'color: var(--color-text-muted);';
-  hintB.textContent = 'Option B will appear here';
+  hintB.textContent = t('gameBoard.inProgressMessages.wouldYouRatherOptionB');
   optionB.appendChild(hintB);
 
   options.appendChild(optionA);
@@ -1979,7 +1979,7 @@ function renderEmptyWouldYouRather(): HTMLElement {
 
   const round = document.createElement('div');
   round.className = 'wyr-round';
-  round.textContent = 'Waiting for question...';
+  round.textContent = t('gameBoard.inProgressMessages.wouldYouRatherWaiting');
 
   wrapper.appendChild(options);
   wrapper.appendChild(round);
@@ -1999,7 +1999,7 @@ function renderWouldYouRather(state: WouldYouRatherState): HTMLElement {
 
   const options = document.createElement('div');
   options.className = 'wyr-options';
-  options.setAttribute('aria-label', 'Would you rather options');
+  options.setAttribute('aria-label', t('gameBoard.ariaLabels.wouldYouRatherOptions'));
 
   const optionA = document.createElement('div');
   optionA.className = 'wyr-option';
@@ -2008,7 +2008,7 @@ function renderWouldYouRather(state: WouldYouRatherState): HTMLElement {
 
   const or = document.createElement('div');
   or.className = 'wyr-or';
-  or.textContent = 'or';
+  or.textContent = t('gameBoard.inProgressMessages.wouldYouRatherOr');
 
   const optionB = document.createElement('div');
   optionB.className = 'wyr-option';
@@ -2022,7 +2022,7 @@ function renderWouldYouRather(state: WouldYouRatherState): HTMLElement {
   const round = document.createElement('div');
   round.className = 'wyr-round';
   round.setAttribute('aria-live', 'polite');
-  round.textContent = `Round ${state.roundNumber}`;
+  round.textContent = t('gameBoard.inProgressMessages.wouldYouRatherRound', { round: state.roundNumber });
 
   wrapper.appendChild(options);
   wrapper.appendChild(round);
@@ -2040,7 +2040,7 @@ function renderEmptyThreeWordDay(): HTMLElement {
 
   const prompt = document.createElement('div');
   prompt.className = 'generic-game-prompt';
-  prompt.textContent = 'Think of three words to describe your day...';
+  prompt.textContent = t('gameBoard.inProgressMessages.threeWordDayHint');
 
   wrapper.appendChild(prompt);
   return wrapper;
@@ -2054,7 +2054,7 @@ function renderThreeWordDay(state: ThreeWordDayState): HTMLElement {
   if (state.words && state.words.length > 0) {
     const wordsEl = document.createElement('div');
     wordsEl.className = 'word-chain';
-    wordsEl.setAttribute('aria-label', 'Words describing your day');
+    wordsEl.setAttribute('aria-label', t('gameBoard.ariaLabels.wordsDayDescription'));
 
     state.words.forEach((word, i) => {
       if (i > 0) {
@@ -2079,11 +2079,11 @@ function renderThreeWordDay(state: ThreeWordDayState): HTMLElement {
   const phaseEl = document.createElement('div');
   phaseEl.className = 'generic-game-status';
   if (state.explorationPhase === 'complete') {
-    phaseEl.textContent = 'Reflection complete';
+    phaseEl.textContent = t('gameBoard.inProgressMessages.threeWordDayComplete');
   } else if (typeof state.explorationPhase === 'number') {
-    phaseEl.textContent = `Exploring word ${state.explorationPhase} of ${state.words.length}`;
+    phaseEl.textContent = t('gameBoard.inProgressMessages.threeWordDayExploring', { phase: state.explorationPhase, total: state.words.length });
   } else {
-    phaseEl.textContent = 'Share your three words...';
+    phaseEl.textContent = t('gameBoard.inProgressMessages.threeWordDayShare');
   }
 
   wrapper.appendChild(phaseEl);
@@ -2100,7 +2100,7 @@ function renderEmptyHeadlineWriter(): HTMLElement {
 
   const prompt = document.createElement('div');
   prompt.className = 'generic-game-prompt';
-  prompt.textContent = 'Write a headline about your future...';
+  prompt.textContent = t('gameBoard.inProgressMessages.headlineWriterHint');
 
   wrapper.appendChild(prompt);
   return wrapper;
@@ -2140,8 +2140,8 @@ function renderHeadlineWriter(state: HeadlineWriterState): HTMLElement {
 
   const statusEl = document.createElement('span');
   statusEl.textContent = state.currentTimeframe
-    ? `Writing for: ${state.currentTimeframe}`
-    : 'Thinking about the future...';
+    ? t('gameBoard.inProgressMessages.headlineWriterCurrentTimeframe', { timeframe: state.currentTimeframe })
+    : t('gameBoard.inProgressMessages.headlineWriterThinking');
   phaseEl.appendChild(statusEl);
 
   wrapper.appendChild(phaseEl);
@@ -2158,7 +2158,7 @@ function renderEmptyEmojiStory(): HTMLElement {
 
   const prompt = document.createElement('div');
   prompt.className = 'generic-game-prompt';
-  prompt.textContent = 'Tell your story with emojis...';
+  prompt.textContent = t('gameBoard.inProgressMessages.emojiStoryHint');
 
   wrapper.appendChild(prompt);
   return wrapper;
@@ -2172,7 +2172,7 @@ function renderEmojiStory(state: EmojiStoryState): HTMLElement {
   if (state.emojis && state.emojis.length > 0) {
     const emojisEl = document.createElement('div');
     emojisEl.className = 'word-chain';
-    emojisEl.setAttribute('aria-label', 'Emojis in your story');
+    emojisEl.setAttribute('aria-label', t('gameBoard.ariaLabels.emojisStory'));
     emojisEl.style.fontSize = 'var(--text-xl)';
 
     state.emojis.forEach((emoji) => {
@@ -2190,11 +2190,11 @@ function renderEmojiStory(state: EmojiStoryState): HTMLElement {
   const phaseEl = document.createElement('div');
   phaseEl.className = 'generic-game-status';
   if (state.currentPhase === 'complete' && state.storyNarrative) {
-    phaseEl.textContent = 'Story complete!';
+    phaseEl.textContent = t('gameBoard.inProgressMessages.emojiStoryComplete');
   } else if (state.currentPhase === 'interpreting') {
-    phaseEl.textContent = 'Interpreting your story...';
+    phaseEl.textContent = t('gameBoard.inProgressMessages.emojiStoryInterpreting');
   } else {
-    phaseEl.textContent = 'Share your emojis...';
+    phaseEl.textContent = t('gameBoard.inProgressMessages.emojiStoryShare');
   }
 
   wrapper.appendChild(phaseEl);
@@ -2211,7 +2211,7 @@ function renderEmptyValuesCardSort(): HTMLElement {
 
   const prompt = document.createElement('div');
   prompt.className = 'generic-game-prompt';
-  prompt.textContent = 'Discover your core values...';
+  prompt.textContent = t('gameBoard.inProgressMessages.valuesCardSortHint');
 
   wrapper.appendChild(prompt);
   return wrapper;
@@ -2246,13 +2246,13 @@ function renderValuesCardSort(state: ValuesCardSortState): HTMLElement {
   const progressEl = document.createElement('div');
   progressEl.className = 'generic-game-status';
   if (state.phase === 'complete' && state.topFive.length > 0) {
-    progressEl.textContent = `Top values: ${state.topFive.map((v) => v.name).join(', ')}`;
+    progressEl.textContent = t('gameBoard.inProgressMessages.valuesCardSortComplete', { values: state.topFive.map((v) => v.name).join(', ') });
   } else if (state.phase === 'ranking') {
-    progressEl.textContent = 'Ranking your top values...';
+    progressEl.textContent = t('gameBoard.inProgressMessages.valuesCardSortRanking');
   } else if (state.phase === 'narrowing') {
-    progressEl.textContent = `Narrowing down from ${state.importantCount} important values`;
+    progressEl.textContent = t('gameBoard.inProgressMessages.valuesCardSortNarrowing', { count: state.importantCount });
   } else {
-    progressEl.textContent = `${state.importantCount} marked as important`;
+    progressEl.textContent = t('gameBoard.inProgressMessages.valuesCardSortMarked', { count: state.importantCount });
   }
 
   wrapper.appendChild(progressEl);
@@ -2269,7 +2269,7 @@ function renderEmptyOneWordCheckin(): HTMLElement {
 
   const prompt = document.createElement('div');
   prompt.className = 'generic-game-prompt';
-  prompt.textContent = 'One word to describe how you feel...';
+  prompt.textContent = t('gameBoard.inProgressMessages.oneWordCheckinHint');
 
   wrapper.appendChild(prompt);
   return wrapper;
@@ -2294,11 +2294,11 @@ function renderOneWordCheckin(state: OneWordCheckinState): HTMLElement {
   const phaseEl = document.createElement('div');
   phaseEl.className = 'generic-game-status';
   if (state.phase === 'complete') {
-    phaseEl.textContent = 'Check-in complete';
+    phaseEl.textContent = t('gameBoard.inProgressMessages.oneWordCheckinComplete');
   } else if (state.phase === 'exploring') {
-    phaseEl.textContent = 'Exploring what that means...';
+    phaseEl.textContent = t('gameBoard.inProgressMessages.oneWordCheckinExploring');
   } else {
-    phaseEl.textContent = 'Share one word...';
+    phaseEl.textContent = t('gameBoard.inProgressMessages.oneWordCheckinShare');
   }
 
   wrapper.appendChild(phaseEl);
@@ -2315,7 +2315,7 @@ function renderEmptyTinyWinTracker(): HTMLElement {
 
   const prompt = document.createElement('div');
   prompt.className = 'generic-game-prompt';
-  prompt.textContent = 'Celebrate your small victories...';
+  prompt.textContent = t('gameBoard.inProgressMessages.tinyWinTrackerHint');
 
   wrapper.appendChild(prompt);
   return wrapper;
@@ -2354,9 +2354,9 @@ function renderTinyWinTracker(state: TinyWinTrackerState): HTMLElement {
   if (state.celebrationMessage) {
     statusEl.textContent = state.celebrationMessage;
   } else if (state.phase === 'celebrating') {
-    statusEl.textContent = 'Celebrating your wins!';
+    statusEl.textContent = t('gameBoard.inProgressMessages.tinyWinTrackerCelebrating');
   } else {
-    statusEl.textContent = `${state.wins?.length || 0} wins captured`;
+    statusEl.textContent = t('gameBoard.inProgressMessages.tinyWinTrackerCaptured', { count: state.wins?.length || 0 });
   }
 
   wrapper.appendChild(statusEl);
@@ -2373,7 +2373,7 @@ function renderEmptyFortuneCookie(): HTMLElement {
 
   const prompt = document.createElement('div');
   prompt.className = 'generic-game-prompt';
-  prompt.textContent = 'Opening your fortune...';
+  prompt.textContent = t('gameBoard.inProgressMessages.fortuneCookieHint');
 
   wrapper.appendChild(prompt);
   return wrapper;
@@ -2390,7 +2390,7 @@ function renderFortuneCookie(state: FortuneCookieState): HTMLElement {
     fortuneEl.className = 'story-chapter';
     fortuneEl.style.fontStyle = 'italic';
     fortuneEl.style.fontSize = 'var(--text-md)';
-    fortuneEl.textContent = `"${state.fortune}"`;
+    fortuneEl.textContent = t('gameBoard.inProgressMessages.fortuneCookieFortuneText', { fortune: state.fortune });
     wrapper.appendChild(fortuneEl);
   }
 
@@ -2398,11 +2398,11 @@ function renderFortuneCookie(state: FortuneCookieState): HTMLElement {
   const phaseEl = document.createElement('div');
   phaseEl.className = 'generic-game-status';
   if (state.phase === 'complete') {
-    phaseEl.textContent = 'Fortune reflected upon';
+    phaseEl.textContent = t('gameBoard.inProgressMessages.fortuneCookieComplete');
   } else if (state.phase === 'reflecting') {
-    phaseEl.textContent = 'Reflecting on your fortune...';
+    phaseEl.textContent = t('gameBoard.inProgressMessages.fortuneCookieReflecting');
   } else {
-    phaseEl.textContent = 'Receiving your fortune...';
+    phaseEl.textContent = t('gameBoard.inProgressMessages.fortuneCookieReceiving');
   }
 
   wrapper.appendChild(phaseEl);
