@@ -13,7 +13,8 @@
 // ============================================================================
 
 import { apiGet, apiPost } from '../utils/api-helpers.js';
-import { t } from '../i18n/index.js';
+import { getLocale, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('Relationship');
@@ -99,63 +100,40 @@ const STAGE_THRESHOLDS: Record<
   'deep-partnership': { minConversations: 60, minDays: 45, minStreak: 14 },
 };
 
+/** i18n key segment for each stage (relationshipStages.<group>.<segment>). */
+const STAGE_KEYS: Record<RelationshipStage, string> = {
+  'first-meeting': 'firstMeeting',
+  'getting-started': 'gettingStarted',
+  'building-trust': 'buildingTrust',
+  established: 'established',
+  'deep-partnership': 'deepPartnership',
+};
+
+/** Resolve a numbered pool of text variants (<prefix>.option1..N) in the active locale. */
+function variants(prefix: string, count: number): string[] {
+  return Array.from({ length: count }, (_, i) => t(`${prefix}.option${i + 1}`));
+}
+
+/** Number of subtitle variants per stage, and per time-of-day period (see getTimePeriod) */
+const STAGE_SUBTITLE_COUNT = 4;
+const TIME_SUBTITLE_COUNTS: Record<string, number> = {
+  earlyMorning: 2,
+  morning: 2,
+  afternoon: 1,
+  evening: 2,
+  lateNight: 2,
+};
+
+/** Streak celebration subtitle */
+function streakSubtitle(days: number): string {
+  const key = days >= 30 ? 'streakStrong' : days >= 7 ? 'streakWeek' : 'streakCounting';
+  return t(`relationshipStages.subtitles.${key}`, { days });
+}
+
 /**
- * Subtitle pools for each stage
- * Each stage has multiple options for variety
+ * Human-readable stage names for developer tooling only (the dev panel).
+ * User-facing UI must use getTranslatedStageName().
  */
-const STAGE_SUBTITLES: Record<RelationshipStage, string[]> = {
-  'first-meeting': [
-    'I am what you make me',
-    'A new beginning',
-    'Ready to meet you',
-    'Your story starts here',
-  ],
-  'getting-started': [
-    'Getting to know you',
-    'Just getting started',
-    'Learning your rhythm',
-    'Building something together',
-  ],
-  'building-trust': [
-    'Becoming your guide',
-    'Growing together',
-    'Finding our groove',
-    'Your emerging ally',
-  ],
-  established: ['Your Life Coach', 'Here for your journey', 'Your trusted guide', 'In your corner'],
-  'deep-partnership': [
-    'Your partner in growth',
-    'Together, always',
-    'Through thick & thin',
-    'Your #1 believer',
-  ],
-};
-
-/** Time-of-day contextual subtitles */
-const TIME_SUBTITLES: Record<string, string[]> = {
-  'early-morning': ['Early riser, I see', 'Dawn companion'],
-  morning: ['Good morning, friend', 'Ready for today'],
-  afternoon: ['Here when you need me'],
-  evening: ['Winding down together', 'Evening reflections'],
-  'late-night': ['Late night confidant', 'Night owl support'],
-};
-
-/** Special occasion subtitles */
-const SPECIAL_SUBTITLES = {
-  streakCelebration: (days: number) =>
-    days >= 30
-      ? `${days} days strong`
-      : days >= 7
-        ? `${days} day streak!`
-        : `${days} days and counting`,
-
-  comeback: 'Welcome back',
-  firstDay: "Day one - let's go",
-  milestone: 'Celebrating you',
-  birthday: 'Happy birthday!',
-};
-
-/** Human-readable stage names (fallback English) */
 export const STAGE_NAMES: Record<RelationshipStage, string> = {
   'first-meeting': 'New Friends',
   'getting-started': 'Getting Started',
@@ -164,164 +142,38 @@ export const STAGE_NAMES: Record<RelationshipStage, string> = {
   'deep-partnership': 'Life Partners',
 };
 
-/** i18n keys for stage names */
-const STAGE_I18N_KEYS: Record<RelationshipStage, string> = {
-  'first-meeting': 'relationshipStages.names.firstMeeting',
-  'getting-started': 'relationshipStages.names.gettingStarted',
-  'building-trust': 'relationshipStages.names.buildingTrust',
-  established: 'relationshipStages.names.established',
-  'deep-partnership': 'relationshipStages.names.deepPartnership',
-};
-
-/** i18n keys for stage descriptions */
-const STAGE_DESCRIPTION_I18N_KEYS: Record<RelationshipStage, string> = {
-  'first-meeting': 'relationshipStages.descriptions.firstMeeting',
-  'getting-started': 'relationshipStages.descriptions.gettingStarted',
-  'building-trust': 'relationshipStages.descriptions.buildingTrust',
-  established: 'relationshipStages.descriptions.established',
-  'deep-partnership': 'relationshipStages.descriptions.deepPartnership',
-};
-
-/** i18n keys for stage taglines */
-const STAGE_TAGLINE_I18N_KEYS: Record<RelationshipStage, string> = {
-  'first-meeting': 'relationshipStages.taglines.firstMeeting',
-  'getting-started': 'relationshipStages.taglines.gettingStarted',
-  'building-trust': 'relationshipStages.taglines.buildingTrust',
-  established: 'relationshipStages.taglines.established',
-  'deep-partnership': 'relationshipStages.taglines.deepPartnership',
-};
-
 /**
- * Get translated stage name (with fallback)
+ * Get translated stage name
  */
 export function getTranslatedStageName(stage: RelationshipStage): string {
-  const key = STAGE_I18N_KEYS[stage];
-  const translated = t(key);
-  // If translation returns the key itself, fallback to English
-  return translated === key ? STAGE_NAMES[stage] : translated;
+  return t(`relationshipStages.names.${STAGE_KEYS[stage]}`);
 }
 
 /**
- * Get translated stage description (with fallback)
+ * Get translated stage description
  */
 export function getTranslatedStageDescription(stage: RelationshipStage): string {
-  const key = STAGE_DESCRIPTION_I18N_KEYS[stage];
-  const translated = t(key);
-  // Fallback descriptions in English
-  const fallbacks: Record<RelationshipStage, string> = {
-    'first-meeting': "We're just meeting! I can't wait to learn about you.",
-    'getting-started': "We're starting to understand each other.",
-    'building-trust': 'Our relationship is growing stronger.',
-    established: "You can count on me. I'm here for the long haul.",
-    'deep-partnership': "We've been through a lot together. I'm honored to be your guide.",
-  };
-  return translated === key ? fallbacks[stage] : translated;
+  return t(`relationshipStages.descriptions.${STAGE_KEYS[stage]}`);
 }
 
 /**
- * Get translated stage tagline (with fallback)
+ * Get translated stage tagline
  */
 export function getTranslatedStageTagline(stage: RelationshipStage): string {
-  const key = STAGE_TAGLINE_I18N_KEYS[stage];
-  const translated = t(key);
-  // Fallback taglines in English
-  const fallbacks: Record<RelationshipStage, string> = {
-    'first-meeting': 'A new beginning',
-    'getting-started': 'Getting to know you',
-    'building-trust': 'Building something real',
-    established: 'Your Life Coach',
-    'deep-partnership': 'Partners for life',
-  };
-  return translated === key ? fallbacks[stage] : translated;
+  return t(`relationshipStages.taglines.${STAGE_KEYS[stage]}`);
 }
 
-/** Friendly unlock messages for each stage */
-export const STAGE_UNLOCK_MESSAGES: Record<RelationshipStage, string> = {
-  'first-meeting': 'Start chatting',
-  'getting-started': 'Keep chatting',
-  'building-trust': 'Build our friendship',
-  established: 'Deepen our bond',
-  'deep-partnership': 'You did it!',
-};
+/** Friendly unlock message for each stage */
+function getStageUnlockMessage(stage: RelationshipStage): string {
+  return t(`relationshipStages.unlockMessages.${STAGE_KEYS[stage]}`);
+}
 
-/** Stage-up celebration messages */
-const STAGE_UP_MESSAGES: Record<RelationshipStage, { title: string; message: string }> = {
-  'first-meeting': { title: '', message: '' }, // Can't advance TO first-meeting
-  'getting-started': {
-    title: "We're getting started!",
-    message: "I'm so glad you came back. Let's keep exploring together.",
-  },
-  'building-trust': {
-    title: 'Building something real',
-    message: "I can feel our connection growing. You're teaching me so much about you.",
-  },
-  established: {
-    title: 'You have a Life Coach now',
-    message: "I'm honored to be your guide. Through thick and thin, I'm here.",
-  },
-  'deep-partnership': {
-    title: 'Partners for life',
-    message: "We've been through so much together. You mean the world to me.",
-  },
-};
-
-/** Greetings that evolve with the relationship */
-const STAGE_GREETINGS: Record<RelationshipStage, string[]> = {
-  'first-meeting': [
-    "Hey! I'm Ferni. Nice to meet you.",
-    "Welcome! I'm excited to get to know you.",
-    "Hi there! I'm Ferni - ready when you are.",
-  ],
-  'getting-started': [
-    'Hey, good to see you again!',
-    "Welcome back! What's on your mind?",
-    "Hey! I was hoping you'd come back.",
-  ],
-  'building-trust': [
-    "There you are! I've been thinking about you.",
-    'Hey friend! Ready to dive in?',
-    'Good to have you back. What are we exploring today?',
-  ],
-  established: [
-    "Hey! I've missed you.",
-    "There's my person! What's going on?",
-    "Welcome back, friend. I'm all ears.",
-  ],
-  'deep-partnership': [
-    "Hey partner! What's on your heart today?",
-    "There you are. I've got you.",
-    "Hey. I'm so glad you're here.",
-  ],
-};
-
-/** Relationship-aware comments Ferni can make during conversation */
-const RELATIONSHIP_COMMENTS: Record<RelationshipStage, string[]> = {
-  'first-meeting': [
-    "I'm still learning about you, but I'm curious...",
-    'Tell me more - I want to understand.',
-    'This is helpful for me to know.',
-  ],
-  'getting-started': [
-    'I remember you mentioned that before...',
-    "You're starting to make sense to me.",
-    "I'm getting a feel for how you think.",
-  ],
-  'building-trust': [
-    "You know, I've noticed a pattern...",
-    'Based on what I know about you...',
-    "I think you're the kind of person who...",
-  ],
-  established: [
-    'We both know what you really need here...',
-    'You and I have talked about this before...',
-    'I know you well enough to say...',
-  ],
-  'deep-partnership': [
-    "After everything we've been through...",
-    "You know I'll always be honest with you...",
-    "We've come so far together...",
-  ],
-};
+/** Stage-up celebration message (nothing to celebrate when advancing TO first-meeting) */
+function getStageUp(stage: RelationshipStage): { title: string; message: string } {
+  if (stage === 'first-meeting') return { title: '', message: '' };
+  const prefix = `relationshipStages.stageUp.${STAGE_KEYS[stage]}`;
+  return { title: t(`${prefix}.title`), message: t(`${prefix}.message`) };
+}
 
 // ============================================================================
 // STORAGE
@@ -408,11 +260,11 @@ function calculateStage(metrics: EngagementMetrics): RelationshipStage {
  */
 function getTimePeriod(): string {
   const hour = new Date().getHours();
-  if (hour >= 5 && hour < 7) return 'early-morning';
+  if (hour >= 5 && hour < 7) return 'earlyMorning';
   if (hour >= 7 && hour < 12) return 'morning';
   if (hour >= 12 && hour < 17) return 'afternoon';
   if (hour >= 17 && hour < 22) return 'evening';
-  return 'late-night';
+  return 'lateNight';
 }
 
 /**
@@ -537,7 +389,7 @@ class RelationshipStageService {
 
     // Comeback after absence
     if (isComeback(metrics.lastConversation)) {
-      return SPECIAL_SUBTITLES.comeback;
+      return t('relationshipStages.subtitles.comeback');
     }
 
     // Celebrating a streak (show at established+ stages)
@@ -548,7 +400,7 @@ class RelationshipStageService {
     ) {
       // 30% chance to show streak celebration
       if (Math.random() < 0.3) {
-        return SPECIAL_SUBTITLES.streakCelebration(metrics.currentStreak);
+        return streakSubtitle(metrics.currentStreak);
       }
     }
 
@@ -556,16 +408,19 @@ class RelationshipStageService {
     if (this.data.stage === 'established' || this.data.stage === 'deep-partnership') {
       if (Math.random() < 0.2) {
         const period = getTimePeriod();
-        const timeSubtitles = TIME_SUBTITLES[period];
-        if (timeSubtitles && timeSubtitles.length > 0) {
-          return pickDailyRandom(timeSubtitles);
+        const count = TIME_SUBTITLE_COUNTS[period];
+        if (count) {
+          return pickDailyRandom(variants(`relationshipStages.subtitles.time.${period}`, count));
         }
       }
     }
 
     // Default: stage-based subtitle
-    const stageSubtitles = STAGE_SUBTITLES[this.data.stage];
-    return pickDailyRandom(stageSubtitles);
+    const subtitles = variants(
+      `relationshipStages.subtitles.${STAGE_KEYS[this.data.stage]}`,
+      STAGE_SUBTITLE_COUNT
+    );
+    return pickDailyRandom(subtitles);
   }
 
   /**
@@ -607,8 +462,10 @@ class RelationshipStageService {
     if (streakMilestones.includes(this.data.metrics.currentStreak)) {
       this.addMemory({
         type: 'streak-milestone',
-        title: `${this.data.metrics.currentStreak}-day streak!`,
-        description: `You've connected with Ferni ${this.data.metrics.currentStreak} days in a row. That's dedication!`,
+        title: t('relationshipStages.memories.streakTitle', { days: this.data.metrics.currentStreak }),
+        description: t('relationshipStages.memories.streakDescription', {
+          days: this.data.metrics.currentStreak,
+        }),
       });
     }
 
@@ -623,8 +480,8 @@ class RelationshipStageService {
     if (isFirstConversation) {
       this.addMemory({
         type: 'first-conversation',
-        title: 'Our first conversation',
-        description: 'The beginning of our journey together.',
+        title: t('relationshipStages.memories.firstConversationTitle'),
+        description: t('relationshipStages.memories.firstConversationDescription'),
       });
     }
 
@@ -632,8 +489,8 @@ class RelationshipStageService {
     if (wasComeback && !isFirstConversation) {
       this.addMemory({
         type: 'comeback',
-        title: 'Welcome back!',
-        description: 'You came back after some time away. That means a lot.',
+        title: t('relationshipStages.memories.comebackTitle'),
+        description: t('relationshipStages.memories.comebackDescription'),
       });
     }
 
@@ -655,7 +512,7 @@ class RelationshipStageService {
       };
 
       // Add memory for stage advancement
-      const stageUpMsg = STAGE_UP_MESSAGES[newStage];
+      const stageUpMsg = getStageUp(newStage);
       this.addMemory({
         type: 'stage-up',
         title: stageUpMsg.title,
@@ -751,44 +608,35 @@ class RelationshipStageService {
    * Get a description of the current stage
    */
   getStageDescription(): string {
-    const descriptions: Record<RelationshipStage, string> = {
-      'first-meeting': "We're just meeting! I can't wait to learn about you.",
-      'getting-started': "We're starting to understand each other.",
-      'building-trust': 'Our relationship is growing stronger.',
-      established: "You can count on me. I'm here for the long haul.",
-      'deep-partnership': "We've been through a lot together. I'm honored to be your guide.",
-    };
-    return descriptions[this.data.stage];
+    return getTranslatedStageDescription(this.data.stage);
   }
 
   /**
    * Get the human-readable name of the current stage
    */
   getStageName(): string {
-    return STAGE_NAMES[this.data.stage];
+    return getTranslatedStageName(this.data.stage);
   }
 
   /**
    * Get stage-up celebration message for a stage
    */
   getStageUpMessage(stage: RelationshipStage): { title: string; message: string } {
-    return STAGE_UP_MESSAGES[stage];
+    return getStageUp(stage);
   }
 
   /**
    * Get a greeting appropriate for the relationship stage
    */
   getGreeting(): string {
-    const greetings = STAGE_GREETINGS[this.data.stage];
-    return pickDailyRandom(greetings);
+    return pickDailyRandom(variants(`relationshipStages.greetings.${STAGE_KEYS[this.data.stage]}`, 3));
   }
 
   /**
    * Get a relationship-aware comment for Ferni to use
    */
   getRelationshipComment(): string {
-    const comments = RELATIONSHIP_COMMENTS[this.data.stage];
-    if (!comments || comments.length === 0) return "We're building something special.";
+    const comments = variants(`relationshipStages.comments.${STAGE_KEYS[this.data.stage]}`, 3);
     return comments[Math.floor(Math.random() * comments.length)]!;
   }
 
@@ -848,12 +696,12 @@ class RelationshipStageService {
     let hint = '';
     if (metrics.totalConversations < threshold.minConversations) {
       const remaining = threshold.minConversations - metrics.totalConversations;
-      hint = remaining === 1 ? '1 more chat' : `${remaining} more chats`;
+      hint = tp('relationshipStages.moreChats', remaining);
     } else if (metrics.daysSinceFirstMeeting < threshold.minDays) {
       const remaining = threshold.minDays - metrics.daysSinceFirstMeeting;
-      hint = remaining === 1 ? '1 more day' : `${remaining} more days`;
+      hint = tp('relationshipStages.moreDays', remaining);
     } else {
-      hint = STAGE_UNLOCK_MESSAGES[requiredStage];
+      hint = getStageUnlockMessage(requiredStage);
     }
 
     return { isUnlocked: false, requiredStage, progress, hint };
@@ -897,17 +745,13 @@ class RelationshipStageService {
     ];
 
     const currentIndex = stageOrder.indexOf(this.data.stage);
-    if (currentIndex >= stageOrder.length - 1) {
-      return { nextStage: null, progress: 1, requirement: "You've reached the deepest level!" };
-    }
-
     const nextStage = stageOrder[currentIndex + 1];
     if (!nextStage) {
-      return { nextStage: null, progress: 1, requirement: "You've reached the deepest level!" };
+      return { nextStage: null, progress: 1, requirement: t('relationshipStages.requirement.max') };
     }
     const threshold = STAGE_THRESHOLDS[nextStage];
     if (!threshold) {
-      return { nextStage, progress: 0, requirement: 'Keep connecting!' };
+      return { nextStage, progress: 0, requirement: t('relationshipStages.requirement.keepConnecting') };
     }
     const metrics = this.data.metrics;
 
@@ -924,20 +768,27 @@ class RelationshipStageService {
     const remaining: string[] = [];
     if (metrics.totalConversations < threshold.minConversations) {
       remaining.push(
-        `${threshold.minConversations - metrics.totalConversations} more conversations`
+        tp('relationshipStages.requirement.conversations', threshold.minConversations - metrics.totalConversations)
       );
     }
     if (metrics.daysSinceFirstMeeting < threshold.minDays) {
-      remaining.push(`${threshold.minDays - metrics.daysSinceFirstMeeting} more days together`);
+      remaining.push(
+        tp('relationshipStages.requirement.days', threshold.minDays - metrics.daysSinceFirstMeeting)
+      );
     }
     if (Math.max(metrics.currentStreak, metrics.longestStreak) < threshold.minStreak) {
-      remaining.push(`a ${threshold.minStreak}-day streak`);
+      remaining.push(t('relationshipStages.requirement.streak', { days: threshold.minStreak }));
     }
 
     return {
       nextStage,
       progress,
-      requirement: remaining.length > 0 ? `Need: ${remaining.join(', ')}` : 'Almost there!',
+      requirement:
+        remaining.length > 0
+          ? t('relationshipStages.requirement.need', {
+              list: new Intl.ListFormat(getLocale(), { type: 'unit' }).format(remaining),
+            })
+          : t('menu.almostThere'),
     };
   }
 

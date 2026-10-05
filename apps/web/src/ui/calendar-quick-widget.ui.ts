@@ -14,7 +14,8 @@
 import { createLogger } from '../utils/logger.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 
 const log = createLogger('CalendarQuickWidget');
 
@@ -411,7 +412,7 @@ function render(): void {
   if (state.isLoading) {
     widgetContainer.innerHTML = `
       <div class="cqw-card" style="display: block;">
-        <div class="cqw-loading">Loading...</div>
+        <div class="cqw-loading">${t('common.loading')}</div>
       </div>
     `;
     return;
@@ -433,7 +434,7 @@ function renderPill(): string {
     return `
       <div class="cqw-pill">
         <span class="cqw-pill-icon">${ICONS.calendar}</span>
-        <span class="cqw-pill-text">${state.todayMeetingCount} meetings today</span>
+        <span class="cqw-pill-text">${tp('calendarQuickWidget.meetingsToday', state.todayMeetingCount)}</span>
         <span class="cqw-pill-expand">${ICONS.chevronUp}</span>
       </div>
     `;
@@ -460,13 +461,13 @@ function renderCard(): string {
       <div class="cqw-header">
         <div class="cqw-header-title">
           ${ICONS.calendar}
-          Today's Calendar
+          ${t('calendarQuickWidget.todaysCalendar')}
         </div>
         <button class="cqw-collapse-btn" aria-label="${t('accessibility.collapse')}">${ICONS.chevronDown}</button>
       </div>
 
       <div class="cqw-next-meeting">
-        <div class="cqw-next-label">Next Up</div>
+        <div class="cqw-next-label">${t('calendarQuickWidget.nextUp')}</div>
         ${meeting ? `
           <div class="cqw-meeting-title">${escapeHtml(meeting.title)}</div>
           <div class="cqw-meeting-time">
@@ -487,17 +488,17 @@ function renderCard(): string {
               ${meeting.attendees && meeting.attendees.length > 0 ? `
                 <span class="cqw-meta-item">
                   ${ICONS.users}
-                  ${meeting.attendees.length} attendee${meeting.attendees.length !== 1 ? 's' : ''}
+                  ${tp('calendarQuickWidget.attendees', meeting.attendees.length)}
                 </span>
               ` : ''}
             </div>
           ` : ''}
         ` : `
-          <div class="cqw-no-meeting">No more meetings today</div>
+          <div class="cqw-no-meeting">${t('calendarQuickWidget.noMoreMeetings')}</div>
           <div class="cqw-no-meeting-sub">
             ${state.focusTimeAvailable > 0 
-              ? `${Math.round(state.focusTimeAvailable / 60)}h focus time available`
-              : 'Enjoy your free time!'}
+              ? t('calendarQuickWidget.focusTimeAvailable', { hours: Math.round(state.focusTimeAvailable / 60) })
+              : t('calendarQuickWidget.enjoyFreeTime')}
           </div>
         `}
       </div>
@@ -505,18 +506,18 @@ function renderCard(): string {
       <div class="cqw-stats">
         <div class="cqw-stat">
           <div class="cqw-stat-value">${state.todayMeetingCount}</div>
-          <div class="cqw-stat-label">Meetings</div>
+          <div class="cqw-stat-label">${t('calendarQuickWidget.meetings')}</div>
         </div>
         <div class="cqw-stat">
-          <div class="cqw-stat-value">${Math.round(state.focusTimeAvailable / 60)}h</div>
-          <div class="cqw-stat-label">Focus Time</div>
+          <div class="cqw-stat-value">${t('calendarQuickWidget.hoursShort', { hours: Math.round(state.focusTimeAvailable / 60) })}</div>
+          <div class="cqw-stat-label">${t('calendarQuickWidget.focusTime')}</div>
         </div>
       </div>
 
       <div class="cqw-actions" role="button" tabindex="0">
         <button aria-label="${t('accessibility.blockFocusTime')}" class="cqw-action-btn" data-action="block-focus">
           ${ICONS.focus}
-          Block Focus Time
+          ${t('accessibility.blockFocusTime')}
         </button>
       </div>
     </div>
@@ -570,7 +571,7 @@ async function fetchCalendarData(): Promise<void> {
       const next = data.upcomingMeetings[0];
       state.nextMeeting = {
         id: next.event?.id || 'unknown',
-        title: next.event?.title || 'Meeting',
+        title: next.event?.title || t('calendarQuickWidget.meetingFallbackTitle'),
         startTime: new Date(next.event?.startTime || Date.now()),
         minutesUntil: next.minutesUntil || 0,
         location: next.event?.location,
@@ -601,7 +602,7 @@ async function blockFocusTime(): Promise<void> {
     document.dispatchEvent(new CustomEvent('ferni:voice-command', {
       detail: { 
         command: 'block-focus-time',
-        text: 'Block an hour of focus time for me today',
+        text: t('calendarQuickWidget.blockFocusCommand'),
       }
     }));
 
@@ -626,7 +627,7 @@ async function blockFocusTime(): Promise<void> {
   } catch (error) {
     log.error('Failed to block focus time:', error);
     const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't block focus time");
+    toast.error(t('calendarQuickWidget.blockFocusError'));
   }
 }
 
@@ -676,30 +677,26 @@ function startCountdownTimer(): void {
 // ============================================================================
 
 function formatCountdown(minutes: number): string {
-  if (minutes <= 0) return 'Now!';
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes <= 0) return t('calendarQuickWidget.countdown.now');
+  if (minutes < 60) return t('calendarQuickWidget.countdown.minutes', { minutes });
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  return mins > 0
+    ? t('calendarQuickWidget.countdown.hoursMinutes', { hours, minutes: mins })
+    : t('calendarQuickWidget.countdown.hours', { hours });
 }
 
 function formatCountdownLarge(minutes: number): string {
-  if (minutes <= 0) return 'Starting now!';
-  if (minutes === 1) return 'In 1 minute';
-  if (minutes < 60) return `In ${minutes} minutes`;
+  if (minutes <= 0) return t('calendarQuickWidget.startingNow');
+  if (minutes < 60) return tp('calendarQuickWidget.inMinutes', minutes);
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  if (hours === 1 && mins === 0) return 'In 1 hour';
-  if (mins === 0) return `In ${hours} hours`;
-  return `In ${hours}h ${mins}m`;
+  if (mins === 0) return tp('calendarQuickWidget.inHours', hours);
+  return t('calendarQuickWidget.inHoursMinutes', { hours, minutes: mins });
 }
 
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
+  return formatDate(date, { hour: 'numeric', minute: '2-digit' });
 }
 
 function truncateTitle(title: string, maxLength: number): string {
