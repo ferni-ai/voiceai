@@ -70,6 +70,46 @@ export function fakeFirestoreModule() {
   return { getFirestoreDb: () => (state.firestoreUp ? { collection } : null) };
 }
 
+/** Documents of the fake Firestore SDK client below, by "collection/id". */
+export const firestoreDocs = new Map<string, Record<string, unknown>>();
+
+/**
+ * The Firestore SDK with an in-memory Firestore client, for running the real
+ * FirestoreStore: set(data, { merge: true }) merges nested maps, a field left
+ * out survives and null is stored, as in Firestore.
+ */
+export function fakeFirestoreSdkModule(original: object) {
+  type Doc = Record<string, unknown>;
+  const isMap = (v: unknown): v is Doc =>
+    typeof v === 'object' && v !== null && !Array.isArray(v) && !(v instanceof Date);
+  const merge = (into: Doc, data: Doc): Doc => {
+    for (const [k, v] of Object.entries(data)) {
+      into[k] = isMap(v) && isMap(into[k]) ? merge(into[k], v) : structuredClone(v);
+    }
+    return into;
+  };
+  const doc = (path: string) => ({
+    id: path.split('/').pop(),
+    set: async (data: Doc, opts?: { merge?: boolean }) => {
+      const prev = opts?.merge ? structuredClone(firestoreDocs.get(path) ?? {}) : {};
+      firestoreDocs.set(path, merge(prev, data));
+    },
+    get: async () => {
+      const data = firestoreDocs.get(path);
+      return {
+        id: path.split('/').pop(),
+        exists: !!data,
+        data: () => data && structuredClone(data),
+      };
+    },
+  });
+  class Firestore {
+    collection = (name: string) => ({ doc: (id: string) => doc(`${name}/${id}`) });
+    terminate = async () => undefined;
+  }
+  return { ...original, Firestore };
+}
+
 /** Bearer tok-<uid> is a verified Firebase token for <uid>. */
 export function fakeFirebaseAuthModule() {
   return {

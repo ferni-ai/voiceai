@@ -561,16 +561,12 @@ export interface SubscriptionData {
 
   /** When subscription started */
   subscribedAt?: Date;
-
   /** Current period end (for canceled subscriptions) */
   currentPeriodEnd?: Date;
-
   /** Grace period end date (for Apple billing retry) */
   gracePeriodEnd?: Date;
-
   /** Whether this is in trial */
   inTrial: boolean;
-
   /** Trial end date if applicable */
   trialEndDate?: Date;
 
@@ -587,6 +583,10 @@ export interface SubscriptionData {
   revokedAt?: Date;
   /** A live Stripe tier that a higher App Store plan covers; restored when that plan ends. */
   stripeTierUnderApple?: SubscriptionTier;
+  /** A live App Store tier under a Stripe plan at least as high; restored when Stripe ends. */
+  appleTierUnderStripe?: SubscriptionTier;
+  /** When that App Store plan expires (its expiry while Stripe holds the profile). */
+  appleExpiresUnderStripe?: Date;
 }
 
 /**
