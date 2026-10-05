@@ -12,6 +12,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import {
   CAPABILITIES,
   getCapabilitiesByCategory,
@@ -395,14 +396,14 @@ const state: HubState = {
 // TABS CONFIGURATION
 // ============================================================================
 
-const TABS: Array<{ id: TabId; label: string; icon: string }> = [
-  { id: 'all', label: 'All Support', icon: 'heart' },
-  { id: 'life-coaching', label: 'Life Events', icon: 'heart' },
-  { id: 'emotional-support', label: 'Emotions', icon: 'shield' },
-  { id: 'growth', label: 'Growth', icon: 'trending-up' },
-  { id: 'relationships', label: 'Relationships', icon: 'users' },
-  { id: 'practical', label: 'Everyday', icon: 'sparkles' },
-  { id: 'superhuman', label: 'Better Than Human', icon: 'sparkles' },
+const TABS: Array<{ id: TabId; labelKey: string; icon: string }> = [
+  { id: 'all', labelKey: 'lifeCoachingHub.tabs.all', icon: 'heart' },
+  { id: 'life-coaching', labelKey: 'lifeCoachingHub.tabs.lifeEvents', icon: 'heart' },
+  { id: 'emotional-support', labelKey: 'lifeCoachingHub.tabs.emotions', icon: 'shield' },
+  { id: 'growth', labelKey: 'lifeCoachingHub.tabs.growth', icon: 'trending-up' },
+  { id: 'relationships', labelKey: 'lifeCoachingHub.tabs.relationships', icon: 'users' },
+  { id: 'practical', labelKey: 'lifeCoachingHub.tabs.everyday', icon: 'sparkles' },
+  { id: 'superhuman', labelKey: 'lifeCoachingHub.tabs.betterThanHuman', icon: 'sparkles' },
 ];
 
 // ============================================================================
@@ -450,8 +451,8 @@ function renderContent(): void {
     content.innerHTML = `
       <div class="life-coaching-hub__empty">
         <div class="life-coaching-hub__empty-icon">${ICONS.search}</div>
-        <p>No results for "${state.searchQuery}"</p>
-        <p style="font-size: 13px; color: var(--color-text-muted); margin-top: 8px;">Try saying what you need - I understand natural language</p>
+        <p>${t('lifeCoachingHub.noResults', { query: state.searchQuery })}</p>
+        <p style="font-size: 13px; color: var(--color-text-muted); margin-top: 8px;">${t('lifeCoachingHub.noResultsHint')}</p>
       </div>
     `;
     return;
@@ -463,6 +464,7 @@ function renderContent(): void {
   // Group by priority
   const highPriority = capabilities.filter(c => c.priority === 'high' || c.priority === 'essential');
   const otherPriority = capabilities.filter(c => c.priority === 'medium' || c.priority === 'low');
+  const bthCount = capabilities.filter(c => c.isBetterThanHuman).length;
   
   let html = '';
   
@@ -471,15 +473,14 @@ function renderContent(): void {
     html += `
       <div class="life-coaching-hub__intro">
         <p class="life-coaching-hub__intro-text">
-          This is everything I can help you with. Browse the categories, search for what you need, 
-          or just <strong>click any card</strong> to start a conversation about it.
+          ${t('lifeCoachingHub.introText', { clickAnyCard: `<strong>${t('lifeCoachingHub.introClickAnyCard')}</strong>` })}
         </p>
         <div class="life-coaching-hub__intro-stats">
           <span class="life-coaching-hub__stat">
-            <strong>${capabilities.length}</strong> ways I can help
+            ${tp('lifeCoachingHub.waysToHelp', capabilities.length, { count: `<strong>${capabilities.length}</strong>` })}
           </span>
           <span class="life-coaching-hub__stat">
-            <strong>${capabilities.filter(c => c.isBetterThanHuman).length}</strong> "Better Than Human" features
+            ${tp('lifeCoachingHub.bthFeatures', bthCount, { count: `<strong>${bthCount}</strong>` })}
           </span>
         </div>
       </div>
@@ -487,9 +488,7 @@ function renderContent(): void {
   }
   
   if (highPriority.length > 0) {
-    const title = state.activeTab === 'superhuman' 
-      ? 'What Makes Ferni Better Than Human'
-      : 'Most Used Support';
+    const title = t(state.activeTab === 'superhuman' ? 'lifeCoachingHub.sectionBetterThanHuman' : 'lifeCoachingHub.sectionMostUsed');
     
     html += `
       <div class="life-coaching-hub__section">
@@ -507,7 +506,7 @@ function renderContent(): void {
       <div class="life-coaching-hub__section">
         <h3 class="life-coaching-hub__section-title">
           ${ICONS.heart}
-          More Support Available
+          ${t('lifeCoachingHub.sectionMore')}
         </h3>
         <div class="life-coaching-hub__grid" id="other-priority-grid"></div>
       </div>
@@ -517,10 +516,10 @@ function renderContent(): void {
   // CTA
   html += `
     <div class="life-coaching-hub__cta">
-      <p class="life-coaching-hub__cta-text">Just start talking - I'll understand what you need</p>
+      <p class="life-coaching-hub__cta-text">${t('lifeCoachingHub.ctaText')}</p>
       <div class="life-coaching-hub__cta-trigger">
         ${ICONS.mic}
-        <span>"Hey Ferni, I need help with..."</span>
+        <span>${t('lifeCoachingHub.ctaTrigger')}</span>
       </div>
     </div>
   `;
@@ -566,7 +565,7 @@ function renderTabs(): void {
       data-tab="${tab.id}"
     >
       ${ICONS[tab.icon as keyof typeof ICONS] || ''}
-      ${tab.label}
+      ${t(tab.labelKey)}
     </button>
   `).join('');
   
@@ -599,21 +598,21 @@ export function show(): void {
       <div class="life-coaching-hub">
         <div class="life-coaching-hub__header">
           <div class="life-coaching-hub__header-top">
-            <span class="life-coaching-hub__eyebrow">Ferni Can Help</span>
-            <button class="life-coaching-hub__close" aria-label="Close">
+            <span class="life-coaching-hub__eyebrow">${t('lifeCoachingHub.eyebrow')}</span>
+            <button class="life-coaching-hub__close" aria-label="${t('common.close')}">
               ${ICONS.close}
             </button>
           </div>
-          <h2 class="life-coaching-hub__title">What do you need support with?</h2>
+          <h2 class="life-coaching-hub__title">${t('lifeCoachingHub.title')}</h2>
           <p class="life-coaching-hub__subtitle">
-            I'm here for the big stuff - grief, transitions, difficult emotions, and everything in between.
+            ${t('lifeCoachingHub.subtitle')}
           </p>
           <div class="life-coaching-hub__search">
             <span class="life-coaching-hub__search-icon">${ICONS.search}</span>
             <input 
               type="text" 
               class="life-coaching-hub__search-input" 
-              placeholder="Search for support..."
+              placeholder="${t('lifeCoachingHub.searchPlaceholder')}"
             >
           </div>
         </div>

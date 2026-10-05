@@ -17,6 +17,7 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost } from '../utils/api.js';
@@ -44,6 +45,16 @@ const log = createLogger('MusicDashboard');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
+
+const CHALLENGE_TYPE_KEYS: Record<string, string> = {
+  'speed-round': 'musicDashboard.challengeTypes.speedRound',
+  'theme-day': 'musicDashboard.challengeTypes.themeDay',
+  wildcard: 'musicDashboard.challengeTypes.wildcard',
+  throwback: 'musicDashboard.challengeTypes.throwback',
+  'mood-match': 'musicDashboard.challengeTypes.moodMatch',
+  'social-challenge': 'musicDashboard.challengeTypes.socialChallenge',
+  reflection: 'musicDashboard.challengeTypes.reflection',
+};
 
 // ============================================================================
 // MUSIC DASHBOARD UI CLASS
@@ -105,19 +116,16 @@ class MusicDashboardUI {
           this.animateIn();
         }
       } else {
-        this.showError('Unable to load your music insights');
+        this.showError(t('musicDashboard.error.loadFailed'));
       }
     } catch (error) {
       log.error('Failed to fetch music insights', error);
-      this.showError('Unable to load your music insights');
+      this.showError(t('musicDashboard.error.loadFailed'));
     }
   }
 
-  showLoading(): void {
-    this.initialize();
-    if (!this.panel || !this.wrapper) return;
-
-    this.wrapper.innerHTML = `
+  private renderHeader(): string {
+    return `
       <header class="music-dashboard__header">
         <div class="music-dashboard__header-content">
           <span class="music-dashboard__icon">${ICONS.music}</span>
@@ -125,6 +133,15 @@ class MusicDashboardUI {
         </div>
         <button class="music-dashboard__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
+    `;
+  }
+
+  showLoading(): void {
+    this.initialize();
+    if (!this.panel || !this.wrapper) return;
+
+    this.wrapper.innerHTML = `
+      ${this.renderHeader()}
       <div class="music-dashboard__loading">
         <div class="music-dashboard__loading-spinner"></div>
         <p>${t('musicDashboard.loading')}</p>
@@ -142,13 +159,7 @@ class MusicDashboardUI {
     if (!this.wrapper) return;
 
     this.wrapper.innerHTML = `
-      <header class="music-dashboard__header">
-        <div class="music-dashboard__header-content">
-          <span class="music-dashboard__icon">${ICONS.music}</span>
-          <h2 class="music-dashboard__title">${t('musicDashboard.title')}</h2>
-        </div>
-        <button class="music-dashboard__close" aria-label="${t('common.close')}">${ICONS.close}</button>
-      </header>
+      ${this.renderHeader()}
       <div class="music-dashboard__error">
         <div class="music-dashboard__error-icon">${ICONS.music}</div>
         <p class="music-dashboard__error-title">${message}</p>
@@ -188,13 +199,7 @@ class MusicDashboardUI {
     }
 
     this.wrapper.innerHTML = `
-      <header class="music-dashboard__header">
-        <div class="music-dashboard__header-content">
-          <span class="music-dashboard__icon">${ICONS.music}</span>
-          <h2 class="music-dashboard__title">${t('musicDashboard.title')}</h2>
-        </div>
-        <button class="music-dashboard__close" aria-label="${t('common.close')}">${ICONS.close}</button>
-      </header>
+      ${this.renderHeader()}
 
       <div class="music-dashboard__scroll">
         ${this.renderPersonality(insights.personality)}
@@ -227,13 +232,7 @@ class MusicDashboardUI {
     const emptyStateEl = createEmptyState('music-dashboard');
 
     this.wrapper.innerHTML = `
-      <header class="music-dashboard__header">
-        <div class="music-dashboard__header-content">
-          <span class="music-dashboard__icon">${ICONS.music}</span>
-          <h2 class="music-dashboard__title">${t('musicDashboard.title')}</h2>
-        </div>
-        <button class="music-dashboard__close" aria-label="${t('common.close')}">${ICONS.close}</button>
-      </header>
+      ${this.renderHeader()}
 
       <div class="music-dashboard__scroll">
         <div class="music-dashboard__empty-intro" id="music-empty-state-container">
@@ -274,29 +273,29 @@ class MusicDashboardUI {
     const gamesPlayed = sources?.games?.gamesPlayed || 0;
 
     const spotifyStatus = sources?.spotify?.connected
-      ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} Connected</span>`
-      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} Connect</button>`;
+      ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${t('common.connected')}</span>`
+      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} ${t('common.connect')}</button>`;
 
     const appleMusicStatus = sources?.appleMusic?.connected
-      ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} Connected</span>`
-      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} Connect</button>`;
+      ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${t('common.connected')}</span>`
+      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} ${t('common.connect')}</button>`;
 
     return `
       <section class="music-sources music-sources--compact">
         <h3 class="music-dashboard__section-title">
           <span class="music-dashboard__section-icon">${ICONS.link}</span>
-          Connect Your Music
+          ${t('musicDashboard.connect.title')}
         </h3>
         <p class="music-sources__intro">
-          Link your music library for personalized games and richer insights
+          ${t('musicDashboard.connect.description')}
         </p>
 
         <div class="music-sources__grid">
           <div class="music-sources__item music-sources__item--games">
             <span class="music-sources__icon">${ICONS.gamepad}</span>
             <div class="music-sources__info">
-              <span class="music-sources__name">t("musicDashboard.connect.games")</span>
-              <span class="music-sources__detail">${gamesPlayed} plays</span>
+              <span class="music-sources__name">${t('musicDashboard.connect.games')}</span>
+              <span class="music-sources__detail">${tp('musicDashboard.sources.plays', gamesPlayed)}</span>
             </div>
             <span class="music-sources__status">${ICONS.check}</span>
           </div>
@@ -305,7 +304,7 @@ class MusicDashboardUI {
             <span class="music-sources__icon music-sources__icon--spotify">${ICONS.spotify}</span>
             <div class="music-sources__info">
               <span class="music-sources__name">Spotify</span>
-              <span class="music-sources__detail">${sources?.spotify?.connected ? 'Library synced' : 'Use your library'}</span>
+              <span class="music-sources__detail">${sources?.spotify?.connected ? t('musicDashboard.sources.librarySynced') : t('musicDashboard.sources.useYourLibrary')}</span>
             </div>
             ${spotifyStatus}
           </div>
@@ -314,7 +313,7 @@ class MusicDashboardUI {
             <span class="music-sources__icon music-sources__icon--apple">${ICONS.apple}</span>
             <div class="music-sources__info">
               <span class="music-sources__name">Apple Music</span>
-              <span class="music-sources__detail">${sources?.appleMusic?.connected ? 'Library synced' : 'Use your library'}</span>
+              <span class="music-sources__detail">${sources?.appleMusic?.connected ? t('musicDashboard.sources.librarySynced') : t('musicDashboard.sources.useYourLibrary')}</span>
             </div>
             ${appleMusicStatus}
           </div>
@@ -412,36 +411,36 @@ class MusicDashboardUI {
     // Cap at 100
     confidence = Math.min(100, confidence);
 
-    const confidenceLabel =
+    const confidenceKey =
       confidence >= 80
-        ? 'Excellent'
+        ? 'excellent'
         : confidence >= 60
-          ? 'High'
+          ? 'high'
           : confidence >= 40
-            ? 'Medium'
-            : 'Low';
+            ? 'medium'
+            : 'low';
 
     const spotifyStatus = sources?.spotify?.connected
-      ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${sources.spotify.trackCount || 0} tracks</span>`
-      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} Connect</button>`;
+      ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${tp('musicDashboard.sources.tracks', sources.spotify.trackCount || 0)}</span>`
+      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} ${t('common.connect')}</button>`;
 
     const appleMusicStatus = sources?.appleMusic?.connected
-      ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${sources.appleMusic.trackCount || 0} tracks</span>`
-      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} Connect</button>`;
+      ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${tp('musicDashboard.sources.tracks', sources.appleMusic.trackCount || 0)}</span>`
+      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} ${t('common.connect')}</button>`;
 
     return `
       <section class="music-dashboard__section music-sources">
         <h3 class="music-dashboard__section-title">
           <span class="music-dashboard__section-icon">${ICONS.music}</span>
-          Your Music Sources
+          ${t('musicDashboard.sources.title')}
         </h3>
         
         <div class="music-sources__grid">
           <div class="music-sources__item music-sources__item--games">
             <span class="music-sources__icon">${ICONS.gamepad}</span>
             <div class="music-sources__info">
-              <span class="music-sources__name">t("musicDashboard.connect.games")</span>
-              <span class="music-sources__detail">${gamesPlayed} plays</span>
+              <span class="music-sources__name">${t('musicDashboard.connect.games')}</span>
+              <span class="music-sources__detail">${tp('musicDashboard.sources.plays', gamesPlayed)}</span>
             </div>
             <span class="music-sources__status music-sources__status--connected">${ICONS.check}</span>
           </div>
@@ -450,7 +449,7 @@ class MusicDashboardUI {
             <span class="music-sources__icon music-sources__icon--spotify">${ICONS.spotify}</span>
             <div class="music-sources__info">
               <span class="music-sources__name">Spotify</span>
-              <span class="music-sources__detail">${sources?.spotify?.connected ? 'Library synced' : 'Not connected'}</span>
+              <span class="music-sources__detail">${sources?.spotify?.connected ? t('musicDashboard.sources.librarySynced') : t('connections.status.notConnected')}</span>
             </div>
             ${spotifyStatus}
           </div>
@@ -459,7 +458,7 @@ class MusicDashboardUI {
             <span class="music-sources__icon music-sources__icon--apple">${ICONS.apple}</span>
             <div class="music-sources__info">
               <span class="music-sources__name">Apple Music</span>
-              <span class="music-sources__detail">${sources?.appleMusic?.connected ? 'Library synced' : 'Not connected'}</span>
+              <span class="music-sources__detail">${sources?.appleMusic?.connected ? t('musicDashboard.sources.librarySynced') : t('connections.status.notConnected')}</span>
             </div>
             ${appleMusicStatus}
           </div>
@@ -467,8 +466,8 @@ class MusicDashboardUI {
         
         <div class="music-sources__confidence">
           <div class="music-sources__confidence-header">
-            <span class="music-sources__confidence-label">DNA Confidence</span>
-            <span class="music-sources__confidence-value">${confidence}% ${confidenceLabel}</span>
+            <span class="music-sources__confidence-label">${t('musicDashboard.sources.dnaConfidence')}</span>
+            <span class="music-sources__confidence-value">${t(`musicDashboard.sources.confidence.${confidenceKey}`, { percent: confidence })}</span>
           </div>
           <div class="music-sources__confidence-bar">
             <div class="music-sources__confidence-fill" style="width: ${confidence}%"></div>
@@ -477,7 +476,7 @@ class MusicDashboardUI {
             confidence < 70
               ? `
             <p class="music-sources__confidence-hint">
-              Connect more sources for richer insights about your musical personality
+              ${t('musicDashboard.sources.dnaHint')}
             </p>
           `
               : ''
@@ -671,7 +670,7 @@ class MusicDashboardUI {
         (s) => `
       <div class="music-dashboard__persona-stat">
         <span class="music-dashboard__persona-name">${s.displayName}</span>
-        <span class="music-dashboard__persona-games">${s.gamesPlayed} games</span>
+        <span class="music-dashboard__persona-games">${tp('musicDashboard.personaGames', s.gamesPlayed)}</span>
       </div>
     `
       )
@@ -697,33 +696,34 @@ class MusicDashboardUI {
 
     const challenge = this.profileData.dailyChallenge;
     const stats = this.profileData.challengeStats;
+    const typeKey = CHALLENGE_TYPE_KEYS[challenge.type];
 
     return `
       <section class="music-dashboard__section music-dashboard__daily-challenge">
         <h3 class="music-dashboard__section-title">
           <span class="music-dashboard__section-icon">${ICONS.calendar}</span>
-          Today's Challenge
+          ${t('musicDashboard.dailyChallenge.title')}
         </h3>
         <div class="music-dashboard__challenge-card">
           <div class="music-dashboard__challenge-header">
-            <span class="music-dashboard__challenge-type">${challenge.type.replace('-', ' ')}</span>
-            <span class="music-dashboard__challenge-xp">+${challenge.xpReward} XP</span>
+            <span class="music-dashboard__challenge-type">${typeKey ? t(typeKey) : challenge.type.replace('-', ' ')}</span>
+            <span class="music-dashboard__challenge-xp">${t('musicDashboard.dailyChallenge.xpReward', { xp: challenge.xpReward })}</span>
           </div>
           <h4 class="music-dashboard__challenge-title">${challenge.title}</h4>
           <p class="music-dashboard__challenge-desc">${challenge.description}</p>
           <div class="music-dashboard__challenge-meta">
-            <span>${Math.round(challenge.completionRate * 100)}% completion</span>
-            <span>${challenge.participantCount} playing</span>
+            <span>${t('musicDashboard.dailyChallenge.completion', { percent: Math.round(challenge.completionRate * 100) })}</span>
+            <span>${t('musicDashboard.dailyChallenge.playing', { count: challenge.participantCount })}</span>
           </div>
           <button aria-label="${t('accessibility.play')}" class="music-dashboard__challenge-btn" data-challenge-id="${challenge.id}">
-            ${ICONS.play} Start Challenge
+            ${ICONS.play} ${t('musicDashboard.dailyChallenge.start')}
           </button>
         </div>
         ${
           stats.currentStreak > 0
             ? `
           <div class="music-dashboard__streak-badge">
-            ${ICONS.flame} ${stats.currentStreak} day streak!
+            ${ICONS.flame} ${tp('musicDashboard.dailyChallenge.dayStreak', stats.currentStreak)}
           </div>
         `
             : ''
@@ -758,9 +758,9 @@ class MusicDashboardUI {
       <section class="music-dashboard__section music-dashboard__time-machine">
         <h3 class="music-dashboard__section-title">
           <span class="music-dashboard__section-icon">${ICONS.clock}</span>
-          Your Musical Journey
+          ${t('musicDashboard.timeMachine.title')}
         </h3>
-        <p class="music-dashboard__time-intro">When you discovered your strengths</p>
+        <p class="music-dashboard__time-intro">${t('musicDashboard.timeMachine.intro')}</p>
         <div class="music-dashboard__time-entries">${entriesHtml}</div>
       </section>
     `;
@@ -779,7 +779,7 @@ class MusicDashboardUI {
       <section class="music-dashboard__section music-dashboard__social">
         <h3 class="music-dashboard__section-title">
           <span class="music-dashboard__section-icon">${ICONS.users}</span>
-          Social Stats
+          ${t('musicDashboard.socialStats.title')}
         </h3>
         <div class="music-dashboard__social-grid">
           ${
@@ -787,7 +787,7 @@ class MusicDashboardUI {
               ? `
             <div class="music-dashboard__social-stat music-dashboard__social-stat--rank">
               <span class="music-dashboard__social-value">#${rank.rank}</span>
-              <span class="music-dashboard__social-label">Leaderboard</span>
+              <span class="music-dashboard__social-label">${t('musicDashboard.socialStats.leaderboard')}</span>
               ${
                 rank.change !== 0
                   ? `
@@ -803,19 +803,19 @@ class MusicDashboardUI {
           }
           <div class="music-dashboard__social-stat">
             <span class="music-dashboard__social-value">${stats.challengesWon}</span>
-            <span class="music-dashboard__social-label">Challenges Won</span>
+            <span class="music-dashboard__social-label">${t('musicDashboard.socialStats.challengesWon')}</span>
           </div>
           <div class="music-dashboard__social-stat">
             <span class="music-dashboard__social-value">${stats.challengesSent}</span>
-            <span class="music-dashboard__social-label">t("musicDashboard.socialStats.sent")</span>
+            <span class="music-dashboard__social-label">${t('musicDashboard.socialStats.sent')}</span>
           </div>
           <div class="music-dashboard__social-stat">
             <span class="music-dashboard__social-value">${stats.challengesReceived}</span>
-            <span class="music-dashboard__social-label">t("musicDashboard.socialStats.received")</span>
+            <span class="music-dashboard__social-label">${t('musicDashboard.socialStats.received')}</span>
           </div>
         </div>
         <button aria-label="${t('accessibility.viewLeaderboard')}" class="music-dashboard__leaderboard-btn">
-          ${ICONS.trophy} View Leaderboard
+          ${ICONS.trophy} ${t('musicDashboard.socialStats.viewLeaderboard')}
         </button>
       </section>
     `;
@@ -826,15 +826,15 @@ class MusicDashboardUI {
       <section class="music-dashboard__section music-dashboard__share">
         <h3 class="music-dashboard__section-title">
           <span class="music-dashboard__section-icon">${ICONS.share}</span>
-          Share Your DNA
+          ${t('musicDashboard.share.title')}
         </h3>
-        <p class="music-dashboard__share-intro">Show off your musical personality!</p>
+        <p class="music-dashboard__share-intro">${t('musicDashboard.share.description')}</p>
         <div class="music-dashboard__share-buttons" role="button" tabindex="0">
           <button aria-label="${t('accessibility.musicalDnaCard')}" class="music-dashboard__share-btn" data-card-type="musical-dna">
-            ${ICONS.sparkles} Musical DNA Card
+            ${ICONS.sparkles} ${t('accessibility.musicalDnaCard')}
           </button>
           <button aria-label="${t('accessibility.desertIslandCard')}" class="music-dashboard__share-btn" data-card-type="desert-island">
-            ${ICONS.heart} Desert Island Card
+            ${ICONS.heart} ${t('accessibility.desertIslandCard')}
           </button>
         </div>
       </section>
@@ -887,7 +887,7 @@ class MusicDashboardUI {
         log.warn('Apple Music not configured on server');
         window.dispatchEvent(
           new CustomEvent('ferni:toast', {
-            detail: { message: 'Apple Music not available yet', type: 'info' },
+            detail: { message: t('musicDashboard.appleMusic.notAvailable'), type: 'info' },
           })
         );
         return;
@@ -922,7 +922,7 @@ class MusicDashboardUI {
         if (connectResult.success) {
           window.dispatchEvent(
             new CustomEvent('ferni:toast', {
-              detail: { message: 'Apple Music connected!', type: 'success' },
+              detail: { message: t('musicDashboard.appleMusic.connected'), type: 'success' },
             })
           );
           // Refresh the dashboard
@@ -934,7 +934,7 @@ class MusicDashboardUI {
         // MusicKit not loaded - show message
         window.dispatchEvent(
           new CustomEvent('ferni:toast', {
-            detail: { message: 'Apple Music requires Safari or the Ferni app', type: 'info' },
+            detail: { message: t('musicDashboard.appleMusic.requirement'), type: 'info' },
           })
         );
       }
@@ -942,7 +942,7 @@ class MusicDashboardUI {
       log.error('Failed to connect Apple Music', error);
       window.dispatchEvent(
         new CustomEvent('ferni:toast', {
-          detail: { message: "Couldn't connect Apple Music. Try again?", type: 'error' },
+          detail: { message: t('musicDashboard.appleMusic.connectFailed'), type: 'error' },
         })
       );
     }
@@ -971,7 +971,7 @@ class MusicDashboardUI {
     this.panel = document.createElement('div');
     this.panel.className = 'music-dashboard';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Musical You Dashboard');
+    this.panel.setAttribute('aria-label', t('accessibility.musicalYouDashboard'));
 
     // Backdrop
     const backdrop = document.createElement('div');
