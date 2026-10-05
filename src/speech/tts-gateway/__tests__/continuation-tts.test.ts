@@ -155,6 +155,28 @@ describe('createContinuationTTS', () => {
     );
   });
 
+  // The session emotion is the CALLER's detected mood (turn-handler sets
+  // userData.currentEmotion). Ferni answers it; he does not mirror it.
+  it.each([
+    ['a sad caller gets a sympathetic Ferni', 'sad', 'That sounds like a really long week.', 'sympathetic'],
+    ['an anxious caller gets a sympathetic Ferni', 'anxious', 'Okay, let us take it one step at a time.', 'sympathetic'],
+    ['a happy caller gets a content Ferni', 'happy', 'Tell me everything.', 'content'],
+    ['words veto a mood they contradict', 'happy', "Oh no, I'm so sorry to hear that.", 'sympathetic'],
+    ['an unmapped mood leaves it to the words', 'trust', 'Congratulations, that is amazing!', 'content'],
+  ])('%s', async (_name, callerMood, line, expected) => {
+    const reply = new FakeReply([4]);
+    const { stream } = run([line], reply, callerMood);
+    await drain(stream as unknown as ReadableStream<AudioFrame>);
+    expect(reply.pushes[0].startsWith(`<emotion value="${expected}"/>`)).toBe(true);
+  });
+
+  it('adds no emotion when neither the mood nor the words call for one', async () => {
+    const reply = new FakeReply([4]);
+    const { stream } = run(['I went to the store today.'], reply, 'trust');
+    await drain(stream as unknown as ReadableStream<AudioFrame>);
+    expect(reply.pushes[0]).not.toContain('<emotion');
+  });
+
   it('keeps a reply softer and slower until the reply changes it', async () => {
     // The humanization layer's pace and volume used to survive only the first
     // sentence; now they hold, and a later tag (e.g. the end of an interrupt
