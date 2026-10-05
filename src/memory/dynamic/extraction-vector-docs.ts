@@ -29,13 +29,13 @@ function isNonEmptyString(value: unknown): value is string {
 }
 
 /** Narrows an unknown item to `ExtractedEntity` — requires a non-empty `name`. */
-function isValidEntity(entity: unknown): entity is ExtractedEntity {
+export function isValidEntity(entity: unknown): entity is ExtractedEntity {
   if (entity === null || typeof entity !== 'object') return false;
   return isNonEmptyString((entity as ExtractedEntity).name);
 }
 
 /** Narrows an unknown item to `ExtractedFact` — requires `entityName`, `key`, and a defined `value`. */
-function isValidFact(fact: unknown): fact is ExtractedFact {
+export function isValidFact(fact: unknown): fact is ExtractedFact {
   if (fact === null || typeof fact !== 'object') return false;
   const f = fact as ExtractedFact;
   return (
@@ -47,7 +47,7 @@ function isValidFact(fact: unknown): fact is ExtractedFact {
 }
 
 /** Narrows an unknown item to `ExtractedRelationship` — requires `source` and `target`. */
-function isValidRelationship(rel: unknown): rel is ExtractedRelationship {
+export function isValidRelationship(rel: unknown): rel is ExtractedRelationship {
   if (rel === null || typeof rel !== 'object') return false;
   const r = rel as ExtractedRelationship;
   return isNonEmptyString(r.source) && isNonEmptyString(r.target);
@@ -214,6 +214,96 @@ function buildRelationshipDocs(
  * occurrence with LLM JSON output) are dropped and logged at debug level —
  * this function never throws on malformed input.
  */
+export interface SanitizedExtractionSlice {
+  entities: ExtractedEntity[];
+  facts: ExtractedFact[];
+  relationships: ExtractedRelationship[];
+  dropped: { entities: number; facts: number; relationships: number };
+}
+
+/**
+ * Validate and normalize extraction items before any Firestore write.
+ * Malformed LLM JSON is dropped with a debug log (same rules as vector docs).
+ */
+export function sanitizeExtractionResult(
+  result: Pick<ExtractionResult, 'entities' | 'facts' | 'relationships'>,
+  userId: string,
+  log: DebugLogger
+): SanitizedExtractionSlice {
+  const entities: ExtractedEntity[] = [];
+  let droppedEntities = 0;
+  for (const entity of result.entities) {
+    if (!isValidEntity(entity)) {
+      droppedEntities++;
+      log.debug(
+        { userId, entity },
+        '🧠 [MEMORY-AUDIT] Dropping malformed extracted entity (missing name)'
+      );
+      continue;
+    }
+    const attributes =
+      typeof entity.attributes === 'object' && entity.attributes !== null ? entity.attributes : {};
+    entities.push({
+      name: entity.name.trim(),
+      type: entity.type ?? 'thing',
+      attributes,
+      confidence: typeof entity.confidence === 'number' ? entity.confidence : 0.5,
+    });
+  }
+
+  const facts: ExtractedFact[] = [];
+  let droppedFacts = 0;
+  for (const fact of result.facts) {
+    if (!isValidFact(fact)) {
+      droppedFacts++;
+      log.debug(
+        { userId, fact },
+        '🧠 [MEMORY-AUDIT] Dropping malformed extracted fact (missing entityName/key/value)'
+      );
+      continue;
+    }
+    facts.push({
+      entityName: fact.entityName.trim(),
+      factType: fact.factType ?? 'attribute',
+      key: fact.key.trim(),
+      value: String(fact.value),
+      confidence: typeof fact.confidence === 'number' ? fact.confidence : 0.5,
+      temporalContext: fact.temporalContext,
+    });
+  }
+
+  const relationships: ExtractedRelationship[] = [];
+  let droppedRelationships = 0;
+  for (const rel of result.relationships) {
+    if (!isValidRelationship(rel)) {
+      droppedRelationships++;
+      log.debug(
+        { userId, rel },
+        '🧠 [MEMORY-AUDIT] Dropping malformed extracted relationship (missing source/target)'
+      );
+      continue;
+    }
+    relationships.push({
+      source: rel.source.trim(),
+      target: rel.target.trim(),
+      type: typeof rel.type === 'string' ? rel.type : 'related_to',
+      strength: typeof rel.strength === 'number' ? rel.strength : 0.5,
+      bidirectional: Boolean(rel.bidirectional),
+    });
+  }
+
+  return {
+    entities,
+    facts,
+    relationships,
+    dropped: {
+      entities: droppedEntities,
+      facts: droppedFacts,
+      relationships: droppedRelationships,
+    },
+  };
+}
+
 export function buildExtractionVectorDocuments(
   userId: string,
   result: Pick<ExtractionResult, 'entities' | 'facts' | 'relationships'>,
@@ -221,9 +311,10 @@ export function buildExtractionVectorDocuments(
   timestamp: Date,
   log: DebugLogger
 ): VectorDocument[] {
+  const sanitized = sanitizeExtractionResult(result, userId, log);
   return [
-    ...buildEntityDocs(userId, result.entities, job, timestamp, log),
-    ...buildFactDocs(userId, result.facts, job, timestamp, log),
-    ...buildRelationshipDocs(userId, result.relationships, job, timestamp, log),
+    ...buildEntityDocs(userId, sanitized.entities, job, timestamp, log),
+    ...buildFactDocs(userId, sanitized.facts, job, timestamp, log),
+    ...buildRelationshipDocs(userId, sanitized.relationships, job, timestamp, log),
   ];
 }

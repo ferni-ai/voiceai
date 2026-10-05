@@ -322,7 +322,9 @@ export function cleanForFirestore<T>(obj: T): T {
   }
 
   if (Array.isArray(obj)) {
-    return obj.map((item) => cleanForFirestore(item)) as T;
+    return obj
+      .filter((item) => item !== undefined)
+      .map((item) => cleanForFirestore(item)) as T;
   }
 
   if (typeof obj === 'object') {
