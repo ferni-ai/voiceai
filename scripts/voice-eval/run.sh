@@ -1,8 +1,12 @@
 #!/bin/zsh
-# Run one scripted conversation against a LiveKit Cloud agent and score it.
+# Run one scripted conversation against a LiveKit agent and score it.
 #
-# usage: scripts/voice-eval/run.sh <dev|prod> <scenario> [label] [user_id]
+# usage: scripts/voice-eval/run.sh <dev|prod|local> <scenario> [label] [user_id]
 #   scenario: a name under scenarios/ (long-day, story, playful)
+#   local: a worker started from a checkout on the dev project, e.g.
+#     AGENT_NAME=voice-agent-local pnpm dev   (EVAL_AGENT overrides the name)
+#   EVAL_CITY / EVAL_REGION: the caller's location, as the token server's geo
+#     lookup would send it (weather and local tools use it)
 # Output: scripts/voice-eval/out/<scenario>-<label>.{json,*.wav,score.json}
 set -euo pipefail
 HERE=${0:A:h}
@@ -10,6 +14,8 @@ ROOT=${HERE:h:h}
 env=$1; scenario=$2; label=${3:-$(date +%H%M%S)}; uid=${4:-voice-eval-sam}
 if [[ $env == prod ]]; then
   project=ferni-prod; agent=voice-agent; url=wss://test-rvg91u1z.livekit.cloud
+elif [[ $env == local ]]; then
+  project=ferni-dev; agent=${EVAL_AGENT:-voice-agent-local}; url=wss://dev-8sm1ba0z.livekit.cloud
 else
   project=ferni-dev; agent=voice-agent-lkcloud; url=wss://dev-8sm1ba0z.livekit.cloud
 fi
@@ -33,8 +39,12 @@ grep -v '^#' $HERE/scenarios/$scenario.txt | grep -v '^[[:space:]]*$' | while IF
 done > $out/audio/$scenario/turns.list
 turns=(${(f)"$(<$out/audio/$scenario/turns.list)"})
 room="eval-$scenario-$label-$(date +%H%M%S)"
+geo=""
+if [[ -n ${EVAL_CITY:-} ]]; then
+  geo=",\"city\":\"$EVAL_CITY\",\"regionCode\":\"${EVAL_REGION:-}\""
+fi
 tok=$(lk token create --project $project --join --room $room --identity eval-user --name Sam \
-  --agent $agent --job-metadata "{\"user_id\":\"$uid\",\"user_name\":\"Sam\",\"timezone\":\"${EVAL_TZ:-America/New_York}\"}" --valid-for 20m 2>/dev/null \
+  --agent $agent --job-metadata "{\"user_id\":\"$uid\",\"user_name\":\"Sam\",\"timezone\":\"${EVAL_TZ:-America/New_York}\"$geo}" --valid-for 20m 2>/dev/null \
   | grep -Eo 'eyJ[A-Za-z0-9._-]+' | head -1)
 json=$out/$scenario-$label.json
 (cd $ROOT && node $HERE/converse.mjs $url "$tok" $json $turns)
