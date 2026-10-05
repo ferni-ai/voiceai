@@ -295,7 +295,7 @@ class MusicDashboardUI {
           <div class="music-sources__item music-sources__item--games">
             <span class="music-sources__icon">${ICONS.gamepad}</span>
             <div class="music-sources__info">
-              <span class="music-sources__name">Games</span>
+              <span class="music-sources__name">t("musicDashboard.connect.games")</span>
               <span class="music-sources__detail">${gamesPlayed} plays</span>
             </div>
             <span class="music-sources__status">${ICONS.check}</span>
@@ -440,7 +440,7 @@ class MusicDashboardUI {
           <div class="music-sources__item music-sources__item--games">
             <span class="music-sources__icon">${ICONS.gamepad}</span>
             <div class="music-sources__info">
-              <span class="music-sources__name">Games</span>
+              <span class="music-sources__name">t("musicDashboard.connect.games")</span>
               <span class="music-sources__detail">${gamesPlayed} plays</span>
             </div>
             <span class="music-sources__status music-sources__status--connected">${ICONS.check}</span>
@@ -807,11 +807,11 @@ class MusicDashboardUI {
           </div>
           <div class="music-dashboard__social-stat">
             <span class="music-dashboard__social-value">${stats.challengesSent}</span>
-            <span class="music-dashboard__social-label">Sent</span>
+            <span class="music-dashboard__social-label">t("musicDashboard.socialStats.sent")</span>
           </div>
           <div class="music-dashboard__social-stat">
             <span class="music-dashboard__social-value">${stats.challengesReceived}</span>
-            <span class="music-dashboard__social-label">Received</span>
+            <span class="music-dashboard__social-label">t("musicDashboard.socialStats.received")</span>
           </div>
         </div>
         <button aria-label="${t('accessibility.viewLeaderboard')}" class="music-dashboard__leaderboard-btn">
