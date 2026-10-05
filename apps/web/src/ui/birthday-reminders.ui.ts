@@ -166,7 +166,7 @@ function injectStyles(): void {
     
     .br-subtitle {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
       margin-top: var(--space-1, 0.25rem);
     }
     
@@ -376,7 +376,7 @@ function injectStyles(): void {
     .br-btn-secondary {
       background: var(--tonal-surface-2);
       border: none;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
     }
 
     .br-btn-secondary:hover {

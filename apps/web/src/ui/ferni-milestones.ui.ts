@@ -1313,12 +1313,12 @@ function injectMilestoneStyles(): void {
     .ferni-milestone__subtitle {
       margin: var(--space-1, 4px) 0 0;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     /* Dark theme */
     [data-theme="midnight"] .ferni-milestone__content {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
     }
 
     [data-theme="midnight"] .ferni-milestone__message {

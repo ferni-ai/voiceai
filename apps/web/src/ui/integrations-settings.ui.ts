@@ -1080,17 +1080,17 @@ class IntegrationsSettingsUI {
       }
 
       [data-theme="midnight"] .integrations-settings__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .integrations-settings__close:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-primary, #faf6f0);
       }
 
       [data-theme="midnight"] .integrations-settings__section-icon {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-accent-secondary, #7cb36b);
       }
 
@@ -1103,12 +1103,12 @@ class IntegrationsSettingsUI {
       }
 
       [data-theme="midnight"] .integrations-settings__status--disconnected {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-muted, #e8e2da);
       }
 
       [data-theme="midnight"] .integrations-settings__connected-info {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .integrations-settings__platform-name {
@@ -1120,12 +1120,12 @@ class IntegrationsSettingsUI {
       }
 
       [data-theme="midnight"] .integrations-settings__platform-btn {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-primary, #faf6f0);
       }
 
       [data-theme="midnight"] .integrations-settings__platform-btn:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .integrations-settings__connect-btn {
@@ -1137,17 +1137,17 @@ class IntegrationsSettingsUI {
       }
 
       [data-theme="midnight"] .integrations-settings__privacy-note {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-muted, #e8e2da);
       }
 
       [data-theme="midnight"] .integrations-settings__capability {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-muted, #e8e2da);
       }
 
       [data-theme="midnight"] .integrations-settings__social-info {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .integrations-settings__stat-label,

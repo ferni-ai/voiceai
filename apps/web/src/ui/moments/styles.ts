@@ -344,7 +344,7 @@ const MOMENT_STYLES = `
 .moment-celebration__subtitle {
   font-family: var(--font-body, 'Inter');
   font-size: clamp(14px, 3.5vw, 16px);
-  color: var(--color-text-secondary, #70605a);
+  color: var(--color-text-secondary, #a89b8c);
   margin: 0;
 }
 

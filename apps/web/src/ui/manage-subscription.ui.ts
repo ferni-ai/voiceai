@@ -623,7 +623,7 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__card {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
         border-color: rgba(255, 255, 255, 0.06);
       }
 
@@ -632,7 +632,7 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
@@ -647,7 +647,7 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__plan-badge {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
@@ -656,7 +656,7 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__instructions {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .manage-sub__instructions-title {
@@ -664,12 +664,12 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__btn--subtle {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .manage-sub__btn--subtle:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-primary, #faf6f0);
       }
 

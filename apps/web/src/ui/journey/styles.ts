@@ -92,7 +92,7 @@ function getJourneyStyles(): string {
 
     .journey-subtitle {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin: var(--space-2, 8px) 0 0;
     }
 
@@ -102,7 +102,7 @@ function getJourneyStyles(): string {
       padding: var(--space-2, 8px);
       margin: calc(var(--space-2, 8px) * -1);
       cursor: pointer;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       border-radius: var(--radius-full, 9999px);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
@@ -258,7 +258,7 @@ function getJourneyStyles(): string {
     .journey-map__label {
       font-size: var(--text-2xs, 9px);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-2, 8px);
       text-align: center;
       max-width: 60px;
@@ -311,7 +311,7 @@ function getJourneyStyles(): string {
     /* Hint text */
     .journey-map__hint {
       font-size: var(--text-xs, 11px);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       text-align: center;
       margin: var(--space-3, 12px) 0 0;
       font-style: italic;
@@ -401,7 +401,7 @@ function getJourneyStyles(): string {
 
     .journey-progress-ring__label {
       font-size: 11px;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: 2px;
     }
 
@@ -421,7 +421,7 @@ function getJourneyStyles(): string {
 
     .journey-stage-description {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin: 0 0 var(--space-4, 16px);
       font-style: italic;
       line-height: 1.5;
@@ -445,7 +445,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-stat__icon {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: 2px;
     }
 
@@ -464,7 +464,7 @@ function getJourneyStyles(): string {
 
     .journey-stat__label {
       font-size: 11px;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       text-align: center;
     }
     
@@ -474,7 +474,7 @@ function getJourneyStyles(): string {
     }
     
     .journey-stat__value--loading {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-size: var(--text-sm, 0.875rem);
     }
     
@@ -499,7 +499,7 @@ function getJourneyStyles(): string {
     .journey-next-stage__req {
       display: block;
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-1, 4px);
       line-height: 1.4;
     }
@@ -568,14 +568,14 @@ function getJourneyStyles(): string {
 
     .journey-milestones-count {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       background: var(--color-background-subtle, rgba(0, 0, 0, 0.05));
       padding: var(--space-1, 4px) var(--space-2, 8px);
       border-radius: var(--radius-full, 9999px);
     }
 
     .journey-milestones-toggle {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: transform ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
@@ -626,7 +626,7 @@ function getJourneyStyles(): string {
 
     .journey-category__count {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       background: var(--color-background-subtle, rgba(0, 0, 0, 0.05));
       padding: var(--space-1, 4px) var(--space-2, 8px);
       border-radius: var(--radius-full, 9999px);
@@ -684,8 +684,8 @@ function getJourneyStyles(): string {
     }
 
     .journey-milestone--locked .journey-milestone__status {
-      border-color: var(--color-text-muted, #70605a);
-      color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted, #352e28);
+      color: var(--color-text-muted, #a89b8c);
       opacity: 0.5;
     }
 
@@ -702,7 +702,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-milestone--locked .journey-milestone__name {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .journey-milestone__message {
@@ -714,7 +714,7 @@ function getJourneyStyles(): string {
 
     .journey-milestone--locked .journey-milestone__message {
       font-style: italic;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .journey-milestone__progress {
@@ -741,13 +741,13 @@ function getJourneyStyles(): string {
       right: 0;
       top: calc(100% + 4px);
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .journey-milestone__date {
       display: block;
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     /* ===================================================================
@@ -806,7 +806,7 @@ function getJourneyStyles(): string {
     /* Mystery image for locked milestones */
     .journey-polaroid__image--mystery {
       background: linear-gradient(135deg, 
-        var(--color-text-muted, #70605a) 0%,
+        var(--color-text-muted, #352e28) 0%,
         var(--color-background-subtle, rgba(0, 0, 0, 0.2)) 100%
       );
     }
@@ -869,7 +869,7 @@ function getJourneyStyles(): string {
 
     .journey-polaroid__date {
       font-size: var(--text-2xs, 8px);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .journey-polaroid__persona {
@@ -880,7 +880,7 @@ function getJourneyStyles(): string {
     .journey-polaroid__hint {
       display: block;
       font-size: var(--text-2xs, 9px);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-style: italic;
       margin-top: var(--space-1, 4px);
     }
@@ -910,7 +910,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-polaroid--locked .journey-polaroid__title {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     /* Celebrated polaroid - warm glow effect */
@@ -982,7 +982,7 @@ function getJourneyStyles(): string {
 
     .journey-footer p {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin: 0;
     }
 
@@ -1122,10 +1122,10 @@ function getJourneyStyles(): string {
     /* Disconnected state - muted gray */
     .journey-connection--disconnected {
       background: var(--connection-bg-disconnected, linear-gradient(135deg,
-        color-mix(in srgb, var(--color-text-muted, #70605a) 8%, transparent) 0%,
-        color-mix(in srgb, var(--color-text-muted, #70605a) 2%, transparent) 100%
+        color-mix(in srgb, var(--color-text-muted, #352e28) 8%, transparent) 0%,
+        color-mix(in srgb, var(--color-text-muted, #352e28) 2%, transparent) 100%
       ));
-      border: 1px solid var(--connection-border-disconnected, color-mix(in srgb, var(--color-text-muted, #70605a) 15%, transparent));
+      border: 1px solid var(--connection-border-disconnected, color-mix(in srgb, var(--color-text-muted, #352e28) 15%, transparent));
     }
     
     @supports not (background: color-mix(in srgb, red 50%, blue)) {
@@ -1252,7 +1252,7 @@ function getJourneyStyles(): string {
     }
 
     .journey-insights-toggle {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: transform ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
 
@@ -1300,7 +1300,7 @@ function getJourneyStyles(): string {
 
     .journey-insights-loading-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-3, 12px);
     }
 
@@ -1338,7 +1338,7 @@ function getJourneyStyles(): string {
 
     .journey-insights-empty__text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       line-height: 1.5;
       max-width: min(280px, 100%);
       margin: 0 auto;
@@ -1382,7 +1382,7 @@ function getJourneyStyles(): string {
 
     .journey-trust-stat__label {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-1, 4px);
     }
 
@@ -1464,7 +1464,7 @@ function getJourneyStyles(): string {
 
     .journey-win-item__desc {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin: var(--space-1, 4px) 0 0;
       line-height: 1.4;
     }
@@ -1493,7 +1493,7 @@ function getJourneyStyles(): string {
 
     .journey-timeline-item__date {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       white-space: nowrap;
       min-width: 80px;
     }
