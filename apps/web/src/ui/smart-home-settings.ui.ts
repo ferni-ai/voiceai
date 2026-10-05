@@ -1564,7 +1564,7 @@ async function connectEcobee(_apiKey: string): Promise<void> {
     }
 
     // Show PIN to user
-    toast.info(t('toasts.yourPinResponsedatapin'));
+    toast.info(t('toasts.yourPin', { pin: response.data.pin }));
 
     // Open Ecobee authorization page
     window.open('https://www.ecobee.com/consumerportal/index.html#/my-apps/add/new', '_blank');
@@ -1887,7 +1887,7 @@ export async function showSmartHomeSettings(cbs?: SmartHomeCallbacks): Promise<v
   const smartHomeResult = urlParams.get('smart_home');
   if (smartHomeResult === 'success') {
     const integration = urlParams.get('integration');
-    toast.success(t('toasts.integrationConnected'));
+    toast.success(t('toasts.integrationNowConnected', { integration: integration ?? '' }));
     callbacks.onConnected?.(integration || '');
     // Clean URL
     const url = new URL(window.location.href);

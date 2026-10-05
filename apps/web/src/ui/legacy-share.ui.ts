@@ -628,7 +628,7 @@ async function handleSendInvite(): Promise<void> {
   // For now, we'll simulate the success
   log.info('Sending invite to:', email, nameInput?.value, messageInput?.value);
 
-  toast.success(t('toasts.inviteSentToEmail'));
+  toast.success(t('toasts.inviteSentTo', { email }));
   closeLegacyShare();
 }
 

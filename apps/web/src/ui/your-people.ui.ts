@@ -21,8 +21,8 @@ import { openImportContacts } from './import-contacts.ui.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getAllMockContacts, MOCK_NUDGES } from '../data/mock-contacts.ts';
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { parseNudgesResponse, type Nudge } from './your-people-nudges.js';
-
 const log = createLogger('YourPeopleUI');
 
 // ============================================================================
@@ -1086,7 +1086,7 @@ function bindEvents(): void {
     btn.addEventListener('click', () => {
       openImportContacts({
         onSuccess: (count) => {
-          toast.success(t('toasts.importedCountContacts'));
+          toast.success(tp('toasts.contactsImported', count));
           loadPeopleData();
         },
       });

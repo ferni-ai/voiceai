@@ -14,7 +14,7 @@ import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getMockGiftSuggestions } from '../data/mock-contacts.js';
 import { t } from '../i18n/index.js';
-
+import { tp } from '../i18n/plural.js';
 const log = createLogger('GiftSuggestionsUI');
 
 // ============================================================================
@@ -807,7 +807,7 @@ async function generateSuggestions(): Promise<void> {
     render();
 
     if (state.suggestions.length > 0) {
-      toast.success(t('toasts.statesuggestionslengthIdeasFound'));
+      toast.success(tp('toasts.giftIdeasFound', state.suggestions.length));
     }
   } catch (error) {
     log.error('Failed to generate gift suggestions:', error);
@@ -827,7 +827,7 @@ async function generateSuggestions(): Promise<void> {
       state.isLoading = false;
       render();
       log.debug('Using mock gift suggestions');
-      toast.success(t('toasts.statesuggestionslengthIdeasFoundMock'));
+      toast.success(tp('toasts.giftIdeasFoundDemo', state.suggestions.length));
       return;
     }
     

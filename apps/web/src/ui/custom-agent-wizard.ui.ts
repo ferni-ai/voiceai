@@ -1433,7 +1433,7 @@ async function createAgent(): Promise<void> {
     clearAgentDraft();
     
     // Success!
-    toast.success(t('toasts.draftdisplaynameDraftnameCreated'));
+    toast.success(t('toasts.agentCreated', { name: draft.displayName || draft.name || '' }));
     soundUI.play('success');
     
     // Dispatch event

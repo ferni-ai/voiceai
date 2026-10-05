@@ -377,7 +377,7 @@ function celebrateMilestone(milestone: CommunityMilestone): void {
   log.info('Celebrating milestone', milestone.id);
 
   // Show a special celebration toast
-  toast.success(t('toasts.Milestonetitle'));
+  toast.success(t('toasts.milestoneReached', { title: milestone.title }));
 
   // Dispatch event for other components to react
   document.dispatchEvent(

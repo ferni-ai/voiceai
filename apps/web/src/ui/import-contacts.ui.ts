@@ -13,7 +13,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { t } from '../i18n/index.js';
-
+import { tp } from '../i18n/plural.js';
 const log = createLogger('ImportContactsUI');
 
 // ============================================================================
@@ -808,7 +808,7 @@ async function startImport(): Promise<void> {
       render();
     }
 
-    toast.success(t('toasts.importedStateimportedContacts'));
+    toast.success(tp('toasts.contactsImported', state.imported));
     callbacks.onSuccess?.(state.imported);
     
     setTimeout(() => {

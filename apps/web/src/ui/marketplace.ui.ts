@@ -1909,12 +1909,12 @@ async function handleRosterAction(action: 'add' | 'remove', personaId: string): 
   if (action === 'add') {
     rosterPreferences.addMember(personaId as RosterTeamMemberId);
     soundUI.play('success');
-    toast.success(t('toasts.nameAddedToYourTeam'));
+    toast.success(t('toasts.addedToTeam', { name }));
     log.info('Added team member to roster from marketplace:', personaId);
   } else {
     rosterPreferences.removeMember(personaId as RosterTeamMemberId);
     soundUI.play('click');
-    toast.info(t('toasts.nameRemovedFromTeam'));
+    toast.info(t('toasts.removedFromTeam', { name }));
     log.info('Removed team member from roster from marketplace:', personaId);
   }
 

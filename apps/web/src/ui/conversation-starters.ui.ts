@@ -14,7 +14,7 @@ import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getMockConversationStarters } from '../data/mock-contacts.js';
 import { t } from '../i18n/index.js';
-
+import { tp } from '../i18n/plural.js';
 const log = createLogger('ConversationStartersUI');
 
 // ============================================================================
@@ -717,7 +717,7 @@ async function generateStarters(): Promise<void> {
     render();
 
     if (state.starters.length > 0) {
-      toast.success(t('toasts.statestarterslengthIdeasReady'));
+      toast.success(tp('toasts.conversationIdeasReady', state.starters.length));
     }
   } catch (error) {
     log.error('Failed to generate conversation starters:', error);
@@ -741,7 +741,7 @@ async function generateStarters(): Promise<void> {
       
       render();
       log.debug('Using mock conversation starters');
-      toast.success(t('toasts.statestarterslengthIdeasReadyMock'));
+      toast.success(tp('toasts.conversationIdeasReadyDemo', state.starters.length));
       return;
     }
     

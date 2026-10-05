@@ -8,7 +8,7 @@
  * - See recent outreach history
  */
 
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION } from '../config/animation-constants.js';
@@ -1037,23 +1037,23 @@ async function showReschedule(outreachId: string): Promise<void> {
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(9, 0, 0, 0);
-
+  const clock = (d: Date) => formatDate(d, { hour: 'numeric', minute: '2-digit' });
   reschedule.innerHTML = `
     <div class="outreach-preview-backdrop"></div>
     <div class="outreach-reschedule-modal">
-      <h3 class="outreach-reschedule-title">Reschedule check-in</h3>
+      <h3 class="outreach-reschedule-title">${t('outreachSchedule.rescheduleTitle')}</h3>
       <div class="outreach-reschedule-options">
-        <button aria-label="${t('accessibility.in1Hour')}" class="outreach-reschedule-option" data-time="${in1Hour.toISOString()}">
-          In 1 hour (${in1Hour.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })})
+        <button class="outreach-reschedule-option" data-time="${in1Hour.toISOString()}">
+          ${t('outreachSchedule.inOneHour', { time: clock(in1Hour) })}
         </button>
-        <button aria-label="${t('accessibility.in3Hours')}" class="outreach-reschedule-option" data-time="${in3Hours.toISOString()}">
-          In 3 hours (${in3Hours.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })})
+        <button class="outreach-reschedule-option" data-time="${in3Hours.toISOString()}">
+          ${t('outreachSchedule.inThreeHours', { time: clock(in3Hours) })}
         </button>
-        <button aria-label="${t('accessibility.tomorrowMorning900Am')}" class="outreach-reschedule-option" data-time="${tomorrow.toISOString()}">
-          Tomorrow morning (9:00 AM)
+        <button class="outreach-reschedule-option" data-time="${tomorrow.toISOString()}">
+          ${t('outreachSchedule.tomorrowMorning', { time: clock(tomorrow) })}
         </button>
       </div>
-      <button aria-label="${t('accessibility.cancel')}" class="outreach-reschedule-cancel">Cancel</button>
+      <button class="outreach-reschedule-cancel">${t('common.cancel')}</button>
     </div>
   `;
 

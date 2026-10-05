@@ -10,6 +10,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { getSeedBalance } from '../services/cosmetics.service.js';
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import {
   claimDailyBonus,
   getCurrentStreak,
@@ -22,7 +23,6 @@ import { moments } from './moments/index.js';
 import { openGardenDashboard } from './garden-dashboard.ui.js';
 import { openGiftSeeds } from './gift-seeds.ui.js';
 import { openReferral } from './referral.ui.js';
-
 const log = createLogger('SeedsDisplay');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
@@ -479,7 +479,7 @@ function handleDailyBonusClick(e: Event): void {
 
   const result = claimDailyBonus();
   if (result.claimed) {
-    moments.whisper(t('toasts.resultamountSeeds'), { type: 'success' });
+    moments.whisper(tp('toasts.seedsEarned', result.amount ?? 0), { type: 'success' });
     updateSeedsDisplay();
 
     // Re-render the card to remove the bonus button

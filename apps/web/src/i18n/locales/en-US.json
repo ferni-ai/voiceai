@@ -1283,8 +1283,6 @@
     "idle": "Idle",
     "importantDates": "Important dates",
     "importSelected": "Import Selected",
-    "in1Hour": "In 1 hour ()})",
-    "in3Hours": "In 3 hours ()})",
     "increase": "Increase",
     "info": "Info",
     "insights": "Insights",
@@ -1566,7 +1564,6 @@
     "toggle": "Toggle",
     "toggleQuietHours": "Toggle quiet hours",
     "toggleVisualization": "Toggle Visualization",
-    "tomorrowMorning900Am": "Tomorrow morning (9:00 AM)",
     "tough": "Tough",
     "trendingUp": "Trending Up",
     "trophy": "Trophy",
@@ -2015,9 +2012,7 @@
     "appleHealthDisconnected": "Apple Health disconnected",
     "audioSaved": "Audio saved!",
     "backstoryUpdated": "Backstory updated!",
-    "bedSetToLevelLevel": "Bed set to level ${level}",
     "bridgeFound": "Bridge found!",
-    "capitalizeinsightsourceInsightsummary": "${capitalize(insight.source)}: ${insight.summary}",
     "catchphraseAdded": "Catchphrase added!",
     "copied": "Copied!",
     "copiedToClipboard": "Copied to clipboard!",
@@ -2074,12 +2069,9 @@
     "datesSaved": "Dates saved!",
     "deleted": "Deleted",
     "disconnected": "Disconnected",
-    "displaynameAdded": "${displayName} added!",
-    "displaynameAddedVoiceEnrollmentNeeded": "${displayName} added! Voice enrollment needed.",
     "domainAdded": "Domain added!",
     "domainRemoved": "Domain removed",
     "domainUpdated": "Domain updated!",
-    "draftdisplaynameDraftnameCreated": "${draft.displayName || draft.name} created!",
     "ecobeeConnected": "Ecobee connected!",
     "editNotesComingSoon": "Edit notes coming soon",
     "eightSleepDisconnected": "Eight Sleep disconnected",
@@ -2101,18 +2093,13 @@
     "hmmmTryAgain": "Hmm, that didn't work. Want to try again?",
     "homeKitConnected": "HomeKit is connected!",
     "homeKitNotConnected": "HomeKit not connected yet. Open the iOS app first.",
-    "householdnameCreated": "${household.name} created!",
     "hueConnected": "Hue connected!",
     "imageMustBeLessThan5mb": "Image must be less than 5MB",
-    "importedCountContacts": "Imported ${count} contacts!",
-    "importedStateimportedContacts": "Imported ${state.imported} contacts!",
     "importFailed": "Import failed",
     "infoChangesSaved": "Changes saved",
     "insightsUpdated": "Insights updated!",
-    "integrationConnected": "${integration} connected!",
     "invalidToken": "Invalid token. Check and try again.",
     "invalidTokenCheckAndTryAgain": "Invalid token. Check and try again.",
-    "inviteSentToEmail": "Invite sent to ${email}!",
     "itemApproved": "Item approved!",
     "journalExported": "Journal exported!",
     "justAMoment": "Just a moment...",
@@ -2120,14 +2107,9 @@
     "linkedinAlreadyConnected": "LinkedIn already connected!",
     "linkedinConnectionCancelled": "LinkedIn connection cancelled",
     "linkedInDisconnected": "LinkedIn disconnected",
-    "membernameRemoved": "${memberName} removed",
     "memoryAdded": "Memory added",
     "memoryDeleted": "Memory deleted",
-    "Milestonetitle": "🎉 ${milestone.title}",
     "momentSaved": "Moment saved!",
-    "nameAddedToYourTeam": "${name} added to your team",
-    "nameRemovedFromTeam": "${name} removed from team",
-    "nameSubmittedForReview": "${name} submitted for review!",
     "newEntrySynced": "New entry synced",
     "noContactInfoAvailable": "No contact info available",
     "noEntriesToExport": "No entries to export",
@@ -2137,14 +2119,11 @@
     "openingPhone": "Opening phone...",
     "ouraDisconnected": "Oura disconnected",
     "ouraRingConnected": "Oura Ring connected!",
-    "participantnameJoined": "${participant.name} joined!",
-    "participantnameLeft": "${participant.name} left",
     "paymentFailed": "Payment didn't go through. Try again?",
     "personAdded": "{name} added!",
     "personRemoved": "{name} removed",
     "photoUpdated": "Photo updated!",
     "pickADate": "Pick a date",
-    "pleaseFillInMissingrequiredlabel": "Please fill in: ${missingRequired.label}",
     "pleaseSelectAnImageFile": "Please select an image file",
     "pressLinkButton": "Press the link button and try again",
     "principleAdded": "Principle added!",
@@ -2157,7 +2136,6 @@
     "relationshipAdded": "Relationship added!",
     "removed": "Removed",
     "resetToFirstTime": "Reset to first-time user. Reload the page to test.",
-    "resultamountSeeds": "+${result.amount} seeds!",
     "sampleDeleted": "Sample deleted",
     "samplesSavedCloningFailed": "Samples saved, but cloning failed. You can retry later.",
     "saved": "Saved!",
@@ -2178,10 +2156,6 @@
     "somethingWentSidewaysWantToTryAgain": "Something went sideways. Want to try again?",
     "somethingWentWrong": "Something went wrong. Try again?",
     "sonosConnected": "Sonos connected!",
-    "statestarterslengthIdeasReady": "${state.starters.length} ideas ready!",
-    "statestarterslengthIdeasReadyMock": "${state.starters.length} ideas ready! (mock)",
-    "statesuggestionslengthIdeasFound": "${state.suggestions.length} ideas found!",
-    "statesuggestionslengthIdeasFoundMock": "${state.suggestions.length} ideas found! (mock)",
     "storySaved": "Story saved!",
     "stripeDevMode": "Stripe not configured. Using dev mode.",
     "syncingLinkedIn": "Syncing LinkedIn...",
@@ -2208,7 +2182,47 @@
     "webhookDeleted": "Webhook deleted",
     "webhookWorks": "Webhook works!",
     "wisdomCaptured": "Wisdom captured!",
-    "yourPinResponsedatapin": "Your PIN: ${response.data.pin}"
+    "bedSetToLevel": "Bed set to level {level}",
+    "teamInsight": "{source}: {summary}",
+    "householdMemberAdded": "{name} added!",
+    "householdMemberAddedNeedsVoice": "{name} added! Voice enrollment needed.",
+    "agentCreated": "{name} created!",
+    "householdCreated": "{name} created!",
+    "contactsImported": {
+      "one": "Imported {count} contact!",
+      "other": "Imported {count} contacts!"
+    },
+    "integrationNowConnected": "{integration} connected!",
+    "inviteSentTo": "Invite sent to {email}!",
+    "householdMemberRemoved": "{name} removed",
+    "milestoneReached": "🎉 {title}",
+    "addedToTeam": "{name} added to your team",
+    "removedFromTeam": "{name} removed from team",
+    "submittedForReview": "{name} submitted for review!",
+    "participantJoined": "{name} joined!",
+    "participantLeft": "{name} left",
+    "fillInRequiredField": "Please fill in: {field}",
+    "seedsEarned": {
+      "one": "+{count} seed!",
+      "other": "+{count} seeds!"
+    },
+    "conversationIdeasReady": {
+      "one": "{count} idea ready!",
+      "other": "{count} ideas ready!"
+    },
+    "conversationIdeasReadyDemo": {
+      "one": "{count} idea ready! (demo)",
+      "other": "{count} ideas ready! (demo)"
+    },
+    "giftIdeasFound": {
+      "one": "{count} idea found!",
+      "other": "{count} ideas found!"
+    },
+    "giftIdeasFoundDemo": {
+      "one": "{count} idea found! (demo)",
+      "other": "{count} ideas found! (demo)"
+    },
+    "yourPin": "Your PIN: {pin}"
   },
   "subscriptionFeatures": {
     "community": {
@@ -3204,5 +3218,11 @@
         "some": "I kept {kept} of the {total} promises I made you."
       }
     }
+  },
+  "outreachSchedule": {
+    "rescheduleTitle": "Reschedule check-in",
+    "inOneHour": "In 1 hour ({time})",
+    "inThreeHours": "In 3 hours ({time})",
+    "tomorrowMorning": "Tomorrow morning ({time})"
   }
 }
