@@ -64,7 +64,7 @@ function ensureModalExists(): HTMLElement {
         <div class="editor-header-content">
           <div class="editor-avatar" id="editor-avatar"></div>
           <div class="editor-header-text">
-            <h2 class="editor-title" id="editor-title">Edit Agent</h2>
+            <h2 class="editor-title" id="editor-title">${t('customAgentEditor.title')}</h2>
             <span class="editor-subtitle" id="editor-subtitle"></span>
           </div>
         </div>
@@ -86,7 +86,7 @@ function ensureModalExists(): HTMLElement {
             <line x1="12" y1="16" x2="12" y2="12"/>
             <line x1="12" y1="8" x2="12.01" y2="8"/>
           </svg>
-          Info
+          ${t('customAgentEditor.tabInfo')}
         </button>
         <button aria-label="${t('accessibility.personality')}" class="editor-tab" data-tab="personality" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -95,21 +95,21 @@ function ensureModalExists(): HTMLElement {
             <line x1="9" y1="9" x2="9.01" y2="9"/>
             <line x1="15" y1="9" x2="15.01" y2="9"/>
           </svg>
-          Personality
+          ${t('customAgentEditor.tabPersonality')}
         </button>
         <button aria-label="${t('accessibility.voice')}" class="editor-tab" data-tab="voice" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
           </svg>
-          Voice
+          ${t('customAgentEditor.tabVoice')}
         </button>
         <button aria-label="${t('accessibility.memories')}" class="editor-tab" data-tab="memories" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
           </svg>
-          Memories
+          ${t('customAgentEditor.tabMemories')}
         </button>
       </nav>
 
@@ -118,20 +118,20 @@ function ensureModalExists(): HTMLElement {
       </main>
 
       <footer class="editor-footer">
-        <button aria-label="${t('accessibility.delete')}" class="editor-btn editor-btn--danger" data-action="delete">
+        <button aria-label="${t('accessibility.deleteMemory')}" class="editor-btn editor-btn--danger" data-action="delete">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 6h18"/>
             <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
             <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
           </svg>
-          Delete Agent
+          ${t('customAgentEditor.deleteAgent')}
         </button>
         <div class="editor-footer-actions" role="button" tabindex="0">
           <button aria-label="${t('accessibility.cancel')}" class="editor-btn editor-btn--secondary" data-action="cancel">
-            Cancel
+            ${t('customAgentEditor.cancel')}
           </button>
           <button aria-label="${t('accessibility.saveChanges')}" class="editor-btn editor-btn--primary" data-action="save" id="save-btn">
-            Save Changes
+            ${t('customAgentEditor.saveChanges')}
           </button>
         </div>
       </footer>
@@ -197,8 +197,8 @@ export async function closeAgentEditor(): Promise<void> {
   if (hasUnsavedChanges) {
     const { confirm } = await import('./confirm-modal.ui.js');
     const discard = await confirm({
-      title: 'Discard changes?',
-      message: 'You have unsaved changes. Are you sure you want to close?',
+      title: t('customAgentEditor.discardChangesTitle'),
+      message: t('customAgentEditor.discardChangesMessage'),
       confirmText: 'Discard',
       cancelText: 'Keep Editing',
       icon: 'warning',
@@ -298,67 +298,67 @@ function renderInfoTab(): string {
   return `
     <div class="editor-tab-content">
       <div class="editor-section">
-        <h3 class="editor-section-title">Basic Information</h3>
-        
+        <h3 class="editor-section-title">${t('customAgentEditor.basicInformation')}</h3>
+
         <div class="editor-field">
-          <label class="editor-field-label" for="agent-name">Name</label>
-          <input 
-            type="text" 
-            class="editor-field-input" 
+          <label class="editor-field-label" for="agent-name">${t('customAgentEditor.fieldName')}</label>
+          <input
+            type="text"
+            class="editor-field-input"
             id="agent-name"
             value="${currentAgent.name}"
-            placeholder="Agent name"
+            placeholder="${t('customAgentEditor.fieldNamePlaceholder')}"
           />
         </div>
 
         <div class="editor-field">
-          <label class="editor-field-label" for="agent-display-name">Display Name</label>
-          <input 
-            type="text" 
-            class="editor-field-input" 
+          <label class="editor-field-label" for="agent-display-name">${t('customAgentEditor.fieldDisplayName')}</label>
+          <input
+            type="text"
+            class="editor-field-input"
             id="agent-display-name"
             value="${currentAgent.displayName || ''}"
-            placeholder="How they introduce themselves"
+            placeholder="${t('customAgentEditor.fieldDisplayNamePlaceholder')}"
           />
         </div>
 
         <div class="editor-field">
-          <label class="editor-field-label" for="agent-description">Description</label>
-          <textarea 
-            class="editor-field-textarea" 
+          <label class="editor-field-label" for="agent-description">${t('customAgentEditor.fieldDescription')}</label>
+          <textarea
+            class="editor-field-textarea"
             id="agent-description"
-            placeholder="Who is this agent?"
+            placeholder="${t('customAgentEditor.fieldDescriptionPlaceholder')}"
             rows="4"
           >${currentAgent.description}</textarea>
         </div>
       </div>
 
       <div class="editor-section">
-        <h3 class="editor-section-title">Status</h3>
+        <h3 class="editor-section-title">${t('customAgentEditor.fieldStatus')}</h3>
         <div class="editor-status-toggle" role="button" tabindex="0">
-          <button aria-label="${t('accessibility.draft')}" 
+          <button aria-label="${t('accessibility.draft')}"
             class="status-option ${currentAgent.status === 'draft' ? 'status-option--active' : ''}"
             data-status="draft"
           >
             <span class="status-dot status-dot--draft"></span>
-            Draft
+            ${t('customAgentEditor.statusDraft')}
           </button>
-          <button aria-label="${t('accessibility.active')}" 
+          <button aria-label="${t('accessibility.active')}"
             class="status-option ${currentAgent.status === 'active' ? 'status-option--active' : ''}"
             data-status="active"
           >
             <span class="status-dot status-dot--active"></span>
-            Active
+            ${t('customAgentEditor.statusActive')}
           </button>
-          <button aria-label="${t('accessibility.pause')}" 
+          <button aria-label="${t('accessibility.pause')}"
             class="status-option ${currentAgent.status === 'paused' ? 'status-option--active' : ''}"
             data-status="paused"
           >
             <span class="status-dot status-dot--paused"></span>
-            Paused
+            ${t('customAgentEditor.statusPaused')}
           </button>
         </div>
-        <p class="editor-hint">Active agents can be used in conversations.</p>
+        <p class="editor-hint">${t('customAgentEditor.statusHint')}</p>
       </div>
     </div>
   `;
@@ -376,7 +376,7 @@ function renderPersonalityTab(): string {
   return `
     <div class="editor-tab-content">
       <div class="editor-section">
-        <h3 class="editor-section-title">Communication Style</h3>
+        <h3 class="editor-section-title">${t('customAgentEditor.communicationStyle')}</h3>
         
         ${renderSlider('warmth', 'Warmth', personality.warmth, 'Professional', 'Warm & Friendly')}
         ${renderSlider('humorLevel', 'Humor', personality.humorLevel, 'Serious', 'Playful')}
@@ -386,7 +386,7 @@ function renderPersonalityTab(): string {
       </div>
 
       <div class="editor-section">
-        <h3 class="editor-section-title">Personality Traits</h3>
+        <h3 class="editor-section-title">${t('customAgentEditor.personalityTraits')}</h3>
         <div class="editor-traits">
           ${traits.map((trait) => `
             <button aria-label="${t('accessibility.edit')}" 
@@ -399,9 +399,9 @@ function renderPersonalityTab(): string {
       </div>
 
       <div class="editor-section">
-        <h3 class="editor-section-title">Cognitive Style</h3>
+        <h3 class="editor-section-title">${t('customAgentEditor.cognitiveStyle')}</h3>
         <div class="editor-profiles">
-          <button aria-label="${t('accessibility.empathetic')}" 
+          <button aria-label="${t('accessibility.empathetic')}"
             class="editor-profile ${personality.cognitiveProfile === 'empathetic' ? 'editor-profile--selected' : ''}"
             data-profile="empathetic"
           >
@@ -410,9 +410,9 @@ function renderPersonalityTab(): string {
                 <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
               </svg>
             </span>
-            <span class="profile-name">Empathetic</span>
+            <span class="profile-name">${t('customAgentEditor.empathetic')}</span>
           </button>
-          <button aria-label="${t('accessibility.analytical')}" 
+          <button aria-label="${t('accessibility.analytical')}"
             class="editor-profile ${personality.cognitiveProfile === 'analytical' ? 'editor-profile--selected' : ''}"
             data-profile="analytical"
           >
@@ -423,9 +423,9 @@ function renderPersonalityTab(): string {
                 <line x1="12" y1="17" x2="12.01" y2="17"/>
               </svg>
             </span>
-            <span class="profile-name">Analytical</span>
+            <span class="profile-name">${t('customAgentEditor.analytical')}</span>
           </button>
-          <button aria-label="${t('accessibility.balanced')}" 
+          <button aria-label="${t('accessibility.balanced')}"
             class="editor-profile ${personality.cognitiveProfile === 'balanced' ? 'editor-profile--selected' : ''}"
             data-profile="balanced"
           >
@@ -437,7 +437,7 @@ function renderPersonalityTab(): string {
                 <path d="M12 3v18"/>
               </svg>
             </span>
-            <span class="profile-name">Balanced</span>
+            <span class="profile-name">${t('customAgentEditor.balanced')}</span>
           </button>
         </div>
       </div>
@@ -477,7 +477,7 @@ function renderVoiceTab(): string {
   return `
     <div class="editor-tab-content">
       <div class="editor-section">
-        <h3 class="editor-section-title">Current Voice</h3>
+        <h3 class="editor-section-title">${t('customAgentEditor.currentVoice')}</h3>
         <div class="editor-voice-current">
           <div class="voice-status voice-status--${voice.status}">
             <span class="voice-status-dot"></span>
@@ -491,8 +491,8 @@ function renderVoiceTab(): string {
       </div>
 
       <div class="editor-section">
-        <h3 class="editor-section-title">Voice Library</h3>
-        <p class="editor-hint">Select a pre-made voice from our library</p>
+        <h3 class="editor-section-title">${t('customAgentEditor.voiceLibrary')}</h3>
+        <p class="editor-hint">${t('customAgentEditor.voiceLibraryHint')}</p>
         <div class="editor-voice-grid">
           ${voices.map((v) => `
             <button aria-label="${t('accessibility.moreInformation')}" 
@@ -515,7 +515,7 @@ function renderVoiceTab(): string {
       </div>
 
       <div class="editor-section">
-        <h3 class="editor-section-title">Voice Settings</h3>
+        <h3 class="editor-section-title">${t('customAgentEditor.voiceSettings')}</h3>
         ${renderSlider('speed', 'Speed', (voice.settings.speed - 0.5) / 1, 'Slower', 'Faster')}
         ${renderSlider('stability', 'Stability', voice.settings.stability, 'Variable', 'Stable')}
       </div>
@@ -544,7 +544,7 @@ function renderMemoriesTab(): string {
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            Add Memory
+            ${t('customAgentEditor.addMemory')}
           </button>
         </div>
 
@@ -554,8 +554,8 @@ function renderMemoriesTab(): string {
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
               <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
             </svg>
-            <p>No memories yet</p>
-            <p class="editor-empty-hint">Add stories, wisdom, or shared moments</p>
+            <p>${t('customAgentEditor.noMemoriesYet')}</p>
+            <p class="editor-empty-hint">${t('customAgentEditor.noMemoriesHint')}</p>
           </div>
         ` : `
           <div class="editor-memories-list">
