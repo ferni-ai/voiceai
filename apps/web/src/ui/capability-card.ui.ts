@@ -14,6 +14,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import type { Capability } from '../services/capability-registry.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('CapabilityCard');
 
@@ -281,27 +282,29 @@ export function createCapabilityCard(
   card.className = `capability-card${compact ? ' capability-card--compact' : ''}`;
   card.setAttribute('role', 'button');
   card.setAttribute('tabindex', '0');
-  card.setAttribute('aria-label', `${capability.name}: ${capability.description}`);
-  
+  const capabilityName = t(capability.nameKey);
+  const capabilityDescription = t(capability.descriptionKey);
+  card.setAttribute('aria-label', `${capabilityName}: ${capabilityDescription}`);
+
   // Get icon SVG
   const iconSvg = ICONS[capability.icon] || ICONS.heart;
-  
+
   // Build card HTML
   let html = `
     <div class="capability-card__header">
       <div class="capability-card__icon">${iconSvg}</div>
       <div class="capability-card__content">
-        <h3 class="capability-card__name">${capability.name}</h3>
-        <p class="capability-card__description">${capability.description}</p>
+        <h3 class="capability-card__name">${capabilityName}</h3>
+        <p class="capability-card__description">${capabilityDescription}</p>
       </div>
     </div>
   `;
-  
+
   // Better than Human badge
   if (showBthBadge && capability.isBetterThanHuman) {
     html += `<div class="capability-card__bth-badge">Better than Human</div>`;
   }
-  
+
   // Voice trigger
   if (showVoiceTrigger && capability.voiceTriggers.length > 0 && !compact) {
     html += `
@@ -311,12 +314,13 @@ export function createCapabilityCard(
       </div>
     `;
   }
-  
+
   // Human limitation
-  if (showHumanLimitation && capability.humanLimitation && !compact) {
+  if (showHumanLimitation && capability.humanLimitationKey && !compact) {
+    const humanLimitation = t(capability.humanLimitationKey);
     html += `
       <div class="capability-card__human-limitation">
-        ${capability.humanLimitation}
+        ${humanLimitation}
       </div>
     `;
   }

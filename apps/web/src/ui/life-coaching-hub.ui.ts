@@ -424,7 +424,7 @@ function getCapabilitiesForTab(tabId: TabId): Capability[] {
 }
 
 function handleCapabilityClick(capability: Capability): void {
-  log.info('Capability clicked', { id: capability.id, name: capability.name });
+  log.info('Capability clicked', { id: capability.id });
   
   // Dispatch event to trigger voice conversation
   window.dispatchEvent(new CustomEvent('ferni:speak-trigger', {
