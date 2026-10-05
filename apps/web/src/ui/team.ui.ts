@@ -32,10 +32,11 @@ import {
 } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
 import type { NormalizedHandoff } from '../types/events.js';
-import type { PersonaConfig, PersonaId } from '../types/persona.js';
+import type { PersonaConfig, PersonaId, SpeakerId } from '../types/persona.js';
 import { addClass, addListener, getElementById, removeClass } from '../utils/dom.js';
 import { createLogger } from '../utils/logger.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
+import { initHandoffPresence } from './handoff-presence.ui.js';
 import { openMarketplace } from './lazy-screens.js';
 import { toast } from './whisper.ui.js';
 
@@ -46,7 +47,7 @@ const log = createLogger('TeamUI');
 // ============================================================================
 
 let rosterContainer: HTMLElement | null = null;
-const teamMemberElements: Map<PersonaId, HTMLElement> = new Map();
+const teamMemberElements: Map<SpeakerId, HTMLElement> = new Map();
 const cleanupFunctions: (() => void)[] = [];
 
 // FIX BUG: Track all setTimeout IDs for cleanup to prevent memory leaks
@@ -395,27 +396,8 @@ export function initTeamUI(): void {
     });
     cleanupFunctions.push(unsubSoftOpen);
 
-    // Listen for progress heartbeat to update UI indicator.
-    // Only the data attribute: the `handoff-progress` class is the old pill's style
-    // (inline-styles.css) and would turn the avatar container into a pill.
-    const unsubProgress = handoffService.onHandoffProgress((_targetPersona, elapsedMs, timeoutMs) => {
-      const avatarContainer = document.querySelector('.avatar-container');
-      if (avatarContainer instanceof HTMLElement) {
-        // Calculate progress percentage (0-100)
-        const progress = Math.min(100, Math.round((elapsedMs / timeoutMs) * 100));
-        avatarContainer.dataset.handoffProgress = String(progress);
-      }
-    });
-    cleanupFunctions.push(unsubProgress);
-
-    // Clear progress on handoff complete
-    const unsubProgressClear = handoffService.onHandoffComplete(() => {
-      const avatarContainer = document.querySelector('.avatar-container');
-      if (avatarContainer instanceof HTMLElement) {
-        delete avatarContainer.dataset.handoffProgress;
-      }
-    });
-    cleanupFunctions.push(unsubProgressClear);
+    // Progress heartbeats: "Bringing in <Persona>…" on the avatar for slow handoffs.
+    cleanupFunctions.push(initHandoffPresence());
 
     // 🍴 Setup avatar as drop zone for "eating" marketplace agents
     avatarFeedback.setupDropZone(handleAgentDropped);
@@ -1736,7 +1718,7 @@ function celebrateMemberUnlock(personaId: PersonaId): void {
  * Clear the visual switching feedback states.
  * Called when handoff fails, times out, or is cancelled.
  */
-function clearSwitchingFeedback(targetPersonaId: PersonaId): void {
+function clearSwitchingFeedback(targetPersonaId: SpeakerId): void {
   log.debug('Clearing switching feedback for:', targetPersonaId);
 
   // Clear switching-to from target
@@ -1764,7 +1746,7 @@ function clearSwitchingFeedback(targetPersonaId: PersonaId): void {
  * Apple-style: optimistic UI - show the change before server confirms.
  * 🎬 Pixar-style energy transfer animation between team members.
  */
-function showSwitchingFeedback(fromId: PersonaId, toId: PersonaId): void {
+function showSwitchingFeedback(fromId: SpeakerId, toId: PersonaId): void {
   const fromElement = teamMemberElements.get(fromId);
   const toElement = teamMemberElements.get(toId);
 
@@ -2080,9 +2062,9 @@ function updateActiveTeamMember(persona: PersonaConfig): void {
  * FIX BUG #56: Updates aria-pressed for screen reader accessibility.
  * 🎬 Now with Pixar step-forward animation!
  */
-export function setActiveTeamMember(personaId: PersonaId): void {
+export function setActiveTeamMember(personaId: SpeakerId): void {
   // Track previous active for step-back animation
-  let previousActiveId: PersonaId | null = null;
+  let previousActiveId: SpeakerId | null = null;
 
   // Activate the matching team member, deactivate others
   for (const [id, element] of teamMemberElements.entries()) {
@@ -2273,7 +2255,7 @@ function updateMagneticPull(element: HTMLElement, event: MouseEvent): void {
  * which distorts avatar shapes. The CSS breathing animation handles the
  * active state, so we should reset transform to allow CSS to take over.
  */
-export function playStepForward(personaId: PersonaId): void {
+export function playStepForward(personaId: SpeakerId): void {
   const element = teamMemberElements.get(personaId);
   if (!element) return;
 
@@ -2315,7 +2297,7 @@ export function playStepForward(personaId: PersonaId): void {
 /**
  * 🎬 Play step-back animation when persona loses focus.
  */
-export function playStepBack(personaId: PersonaId): void {
+export function playStepBack(personaId: SpeakerId): void {
   const element = teamMemberElements.get(personaId);
   if (!element) return;
 
@@ -2353,8 +2335,8 @@ export function playStepBack(personaId: PersonaId): void {
  * 🎬 Play supporting cheer animation on other team members.
  * Like characters celebrating a teammate's success.
  */
-export function playTeamCheer(selectedId: PersonaId): void {
-  // Check for reduced motion
+export function playTeamCheer(selectedId: SpeakerId): void {
+  if (!teamMemberElements.has(selectedId)) return; // a Legend speaking: a guest, no team cheer
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     return;
   }

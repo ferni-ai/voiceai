@@ -29,7 +29,7 @@ const GOOGLE_CLOUD_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025';
 const GOOGLE_CLOUD_LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
 
 // Default model to test
-const DEFAULT_MODEL = 'gemini-2.0-flash-live-001';
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 
 // Timeout for generateReply (same as SDK default)
 const GENERATE_REPLY_TIMEOUT_MS = 15000;

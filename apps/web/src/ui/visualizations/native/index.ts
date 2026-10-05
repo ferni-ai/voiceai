@@ -126,12 +126,11 @@ export const visualizationSchemas = {
 
   EnergyRingsData: {
     type: 'object',
-    required: ['emotional', 'mental', 'physical', 'overall'],
+    required: ['overall'],
     properties: {
-      emotional: { type: 'integer', minimum: 0, maximum: 100 },
-      mental: { type: 'integer', minimum: 0, maximum: 100 },
-      physical: { type: 'integer', minimum: 0, maximum: 100 },
       overall: { type: 'integer', minimum: 0, maximum: 100 },
+      label: { type: 'string' },
+      recommendation: { type: 'string' },
     },
   },
 } as const;

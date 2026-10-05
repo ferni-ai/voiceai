@@ -22,7 +22,7 @@
 import { createRequire } from 'node:module';
 import { ReadableStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 import type { AudioFrame } from '@livekit/rtc-node';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { VOICE_IDS } from '../../../config/voice-ids.js';
 import {
@@ -218,6 +218,13 @@ function rms(frames: AudioFrame[]): number {
 const pushes = (): string[] => net.sent.filter((s) => s.transcript).map((s) => s.transcript);
 
 let session = 0;
+// These pin exact pushes from before the sentence pause; it has its own test.
+beforeEach(() => {
+  process.env.CASCADE_SENTENCE_BREAK_MS = '0';
+});
+afterEach(() => {
+  delete process.env.CASCADE_SENTENCE_BREAK_MS;
+});
 afterEach(() => {
   for (const k of ENV_KEYS) delete process.env[k];
   net.sent.length = 0;

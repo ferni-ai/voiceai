@@ -47,6 +47,14 @@ const MOOD_CSS_VARS: Record<MoodType, string> = {
   energized: 'var(--viz-mood-energized)',
   peaceful: 'var(--viz-mood-peaceful)',
   uncertain: 'var(--viz-mood-uncertain)',
+  // Server mood words share the nearest existing mood color
+  content: 'var(--viz-mood-peaceful)',
+  neutral: 'var(--viz-mood-uncertain)',
+  sad: 'var(--viz-mood-reflective)',
+  frustrated: 'var(--viz-mood-stressed)',
+  overwhelmed: 'var(--viz-mood-stressed)',
+  exhausted: 'var(--viz-mood-tired)',
+  hopeful: 'var(--viz-mood-energized)',
 };
 
 // ============================================================================
@@ -231,7 +239,7 @@ function buildMobile(
   // Screen reader summary
   container.appendChild(
     createScreenReaderLabel(
-      `Mood calendar for the past week. Dominant mood: ${data.summary.dominantMood}. Trend: ${data.summary.trend}.`
+      `Mood calendar for the past week. Dominant mood: ${data.summary.dominantMood}.${trendText(data)}`
     )
   );
 
@@ -325,7 +333,9 @@ function buildTablet(
   const stats = [
     { label: t('visualizations.moodCalendar.calmDaysLabel', 'Calm Days'), value: data.summary.calmDays },
     { label: t('visualizations.moodCalendar.dominant', 'Dominant'), value: capitalize(data.summary.dominantMood) },
-    { label: t('visualizations.moodCalendar.trend', 'Trend'), value: capitalize(data.summary.trend) },
+    ...(data.summary.trend
+      ? [{ label: t('visualizations.moodCalendar.trend', 'Trend'), value: capitalize(data.summary.trend) }]
+      : []),
   ];
 
   stats.forEach((stat) => {
@@ -348,7 +358,7 @@ function buildTablet(
   // Screen reader summary
   container.appendChild(
     createScreenReaderLabel(
-      `Monthly mood calendar with ${data.summary.calmDays} calm days and ${data.summary.trend} trend`
+      `Monthly mood calendar with ${data.summary.calmDays} calm days.${trendText(data)}`
     )
   );
 
@@ -356,7 +366,7 @@ function buildTablet(
     element: container,
     type: 'mood-calendar',
     device: 'tablet',
-    ariaLabel: `Monthly mood calendar with ${data.summary.calmDays} calm days and ${data.summary.trend} trend`,
+    ariaLabel: `Monthly mood calendar with ${data.summary.calmDays} calm days.${trendText(data)}`,
   };
 }
 
@@ -425,28 +435,6 @@ function buildSmallMultiples(
     padding: 'var(--viz-space-breath)',
   });
 
-  // Calculate shared scale if needed (Tufte: essential for honest comparison)
-  let globalMoodCounts: Record<MoodType, number> | undefined;
-  if (sharedScale) {
-    // Initialize all MoodType values to 0
-    globalMoodCounts = {
-      calm: 0,
-      joyful: 0,
-      anxious: 0,
-      tired: 0,
-      focused: 0,
-      reflective: 0,
-      stressed: 0,
-      energized: 0,
-      peaceful: 0,
-      uncertain: 0,
-    };
-    datasets.forEach(dataset => {
-      dataset.entries.forEach(entry => {
-        globalMoodCounts![entry.mood]++;
-      });
-    });
-  }
 
   // Render each panel
   datasets.forEach((dataset, index) => {
@@ -684,17 +672,20 @@ function detectPattern(entries: MoodEntry[]): string | null {
 
   if (maxAnxietyCount >= 2) {
     const dayNames = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
-    return `${dayNames[maxAnxietyDay]} show highest anxiety. Your mood tends to dip mid-week.`;
+    return `${dayNames[maxAnxietyDay]} show the most anxiety.`;
   }
 
   return null;
 }
 
-/**
- * Capitalize first letter.
- */
+/** Capitalize first letter. */
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/** " Trend: improving." when the server had enough days to tell, else "". */
+function trendText(data: MoodCalendarData): string {
+  return data.summary.trend ? ` Trend: ${data.summary.trend}.` : '';
 }
 
 // ============================================================================

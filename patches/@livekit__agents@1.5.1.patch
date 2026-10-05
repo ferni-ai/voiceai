@@ -93,7 +93,7 @@ index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..2cca481c5497f486940e59bc903f1565
 +// PATCHED(ferni): words that on their own say "go on", not "my turn"
 +const __FERNI_BACKCHANNEL = new Set(["m", "mm", "mmm", "mhm", "mmhm", "mmhmm", "hmm", "hm", "uh", "huh", "uhhuh", "ah", "oh", "yeah", "yep", "yup", "yes", "ok", "okay", "right", "sure", "gotcha", "totally", "exactly", "wow", "cool", "nice", "true", "ha", "haha"]);
 +function __ferniIsBackchannel(text) {
-+  const words = String(text ?? "").toLowerCase().replace(/-/g, "").split(/[^a-z']+/).map((w) => w.replace(/'/g, "")).filter(Boolean);
++  const __hook = globalThis.__FERNI_IS_BACKCHANNEL; if (typeof __hook === "function") return __hook(String(text ?? "")); const words = String(text ?? "").toLowerCase().replace(/-/g, "").split(/[^a-z']+/).map((w) => w.replace(/'/g, "")).filter(Boolean);
 +  return words.length > 0 && words.length <= 4 && words.every((w) => __FERNI_BACKCHANNEL.has(w));
 +}
  class AgentActivity {
@@ -143,12 +143,12 @@ index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..2cca481c5497f486940e59bc903f1565
 +    // PATCHED(ferni): "mm-hmm" over Ferni's reply paused it; the adaptive model
 +    // already let it through as a backchannel, but ink still transcribed it and
 +    // it was committed as a turn that cut the reply off mid-sentence (dev,
-+    // 2026-09-30). Drop it and resume the reply now: with the default 2 s timer
-+    // the caller had already moved on before Ferni picked the sentence back up.
++    // 2026-09-30). Drop it and resume 350 ms on, once the caller is quiet: the
++    // 2 s default was too late, 0 ms talked over "Yeah, so..." (resume waits).
 +    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(info.newTranscript)) {
 +      this.cancelPreemptiveGeneration();
 +      this.logger.info({ user_input: info.newTranscript }, "BACKCHANNEL_NOT_A_TURN");
-+      this.startFalseInterruptionTimer(0);
++      const __resume = (tries) => { if (!this.pausedSpeech || this.pausedSpeech.handle.interrupted) return; if (this.agentSession.userState === "speaking" && tries < 20) { this.__ferniResumeTimer = setTimeout(() => __resume(tries + 1), 150); return; } this.startFalseInterruptionTimer(0); }; clearTimeout(this.__ferniResumeTimer); this.__ferniResumeTimer = setTimeout(() => __resume(0), 350);
 +      return true;
 +    }
 +    // PATCHED(ferni): hold a turn that sounds unfinished ("We don't get", then
@@ -203,7 +203,7 @@ index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..1b4e1d3dd1060239feea594b2a239e77
 +// PATCHED(ferni): words that on their own say "go on", not "my turn"
 +const __FERNI_BACKCHANNEL = new Set(["m", "mm", "mmm", "mhm", "mmhm", "mmhmm", "hmm", "hm", "uh", "huh", "uhhuh", "ah", "oh", "yeah", "yep", "yup", "yes", "ok", "okay", "right", "sure", "gotcha", "totally", "exactly", "wow", "cool", "nice", "true", "ha", "haha"]);
 +function __ferniIsBackchannel(text) {
-+  const words = String(text ?? "").toLowerCase().replace(/-/g, "").split(/[^a-z']+/).map((w) => w.replace(/'/g, "")).filter(Boolean);
++  const __hook = globalThis.__FERNI_IS_BACKCHANNEL; if (typeof __hook === "function") return __hook(String(text ?? "")); const words = String(text ?? "").toLowerCase().replace(/-/g, "").split(/[^a-z']+/).map((w) => w.replace(/'/g, "")).filter(Boolean);
 +  return words.length > 0 && words.length <= 4 && words.every((w) => __FERNI_BACKCHANNEL.has(w));
 +}
  class AgentActivity {
@@ -253,12 +253,12 @@ index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..1b4e1d3dd1060239feea594b2a239e77
 +    // PATCHED(ferni): "mm-hmm" over Ferni's reply paused it; the adaptive model
 +    // already let it through as a backchannel, but ink still transcribed it and
 +    // it was committed as a turn that cut the reply off mid-sentence (dev,
-+    // 2026-09-30). Drop it and resume the reply now: with the default 2 s timer
-+    // the caller had already moved on before Ferni picked the sentence back up.
++    // 2026-09-30). Drop it and resume 350 ms on, once the caller is quiet: the
++    // 2 s default was too late, 0 ms talked over "Yeah, so..." (resume waits).
 +    if (this.pausedSpeech && !this.pausedSpeech.handle.interrupted && __ferniIsBackchannel(info.newTranscript)) {
 +      this.cancelPreemptiveGeneration();
 +      this.logger.info({ user_input: info.newTranscript }, "BACKCHANNEL_NOT_A_TURN");
-+      this.startFalseInterruptionTimer(0);
++      const __resume = (tries) => { if (!this.pausedSpeech || this.pausedSpeech.handle.interrupted) return; if (this.agentSession.userState === "speaking" && tries < 20) { this.__ferniResumeTimer = setTimeout(() => __resume(tries + 1), 150); return; } this.startFalseInterruptionTimer(0); }; clearTimeout(this.__ferniResumeTimer); this.__ferniResumeTimer = setTimeout(() => __resume(0), 350);
 +      return true;
 +    }
 +    // PATCHED(ferni): hold a turn that sounds unfinished ("We don't get", then

@@ -13,6 +13,7 @@ import { isCoach } from '../personas/persona-ids.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
+import { paramString } from './param-string.js';
 import type {
   RoundtableConfig,
   GroupConversationSummary,
@@ -311,7 +312,10 @@ router.get('/sessions/:sessionId', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
-    const { sessionId } = req.params;
+    const sessionId = paramString(req.params.sessionId);
+    if (!sessionId) {
+      return res.status(400).json({ success: false, error: 'Invalid session ID' });
+    }
 
     const db = getFirestoreDb();
     if (!db) {
@@ -347,7 +351,10 @@ router.get('/sessions/:sessionId/transcript', async (req: Request, res: Response
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
-    const { sessionId } = req.params;
+    const sessionId = paramString(req.params.sessionId);
+    if (!sessionId) {
+      return res.status(400).json({ success: false, error: 'Invalid session ID' });
+    }
     const { format = 'json' } = req.query;
 
     const db = getFirestoreDb();

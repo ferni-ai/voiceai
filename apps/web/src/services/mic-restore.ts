@@ -2,8 +2,8 @@
  * Mic Restore
  *
  * Re-enables the microphone after things that silently take it away: a LiveKit
- * reconnect, the tab coming back to the foreground, or the native app resuming
- * (phone call, background). Never re-enables it while the user has muted.
+ * reconnect or the tab coming back to the foreground. Never re-enables it while
+ * the user has muted.
  * Split out of connection.service.ts.
  */
 
@@ -62,31 +62,14 @@ export function registerMicRestoreHandlers(room: MicRoom): () => void {
     }
   };
 
-  const onAppState = async (event: Event): Promise<void> => {
-    const { isActive } = (event as CustomEvent<{ isActive: boolean }>).detail;
-    if (!isActive || room.state !== 'connected') return;
-    if (isUserMuted() || !room.localParticipant) return;
-    try {
-      // Longer delay for native: the iOS audio session needs time to restore
-      await delay(300);
-      await room.localParticipant.setMicrophoneEnabled(true);
-      log.info('🎤 Microphone restored after native app state change');
-    } catch (err) {
-      log.warn('Failed to restore mic on app state change:', err);
-    }
-  };
-
   const reconnected = (): void => void onReconnected();
   const visibility = (): void => void onVisibilityChange();
-  const appStateChange = (event: Event): void => void onAppState(event);
 
   room.on('reconnected', reconnected);
   document.addEventListener('visibilitychange', visibility);
-  document.addEventListener('ferni:app-state', appStateChange);
 
   return () => {
     room.off('reconnected', reconnected);
     document.removeEventListener('visibilitychange', visibility);
-    document.removeEventListener('ferni:app-state', appStateChange);
   };
 }

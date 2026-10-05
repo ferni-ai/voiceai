@@ -421,18 +421,17 @@ async function processTerraDataWebhook(
       const sleepData = terraData.sleep_durations_data as Record<string, unknown>;
       const asleepData = sleepData.asleep as { duration_asleep_state_seconds?: number } | undefined;
       const durationHours = (asleepData?.duration_asleep_state_seconds || 0) / 3600;
-      const qualityScore = (sleepData.sleep_efficiency as number) || 70;
+      const qualityScore = sleepData.sleep_efficiency as number | undefined;
 
-      const existingSleep = snapshot.sleep;
-      snapshot.sleep = {
-        duration: durationHours,
-        deepSleepPercent: existingSleep?.deepSleepPercent ?? 20,
-        remSleepPercent: existingSleep?.remSleepPercent ?? 22,
-        disturbances: existingSleep?.disturbances ?? 2,
-        qualityScore,
-        bedtime: existingSleep?.bedtime ?? new Date(),
-        wakeTime: existingSleep?.wakeTime ?? new Date(),
-      };
+      // Only set sleep data if we have duration; do not fabricate missing fields
+      if (durationHours > 0) {
+        snapshot.sleep = {
+          duration: durationHours,
+          qualityScore, // Include quality score if available; omit if not
+          // Terra webhook does not provide deep/REM breakdown, disturbances, bedtime, wakeTime
+          // These remain undefined rather than invented
+        };
+      }
     }
 
     if (dataType === 'activity' && terraData.active_durations_data) {
@@ -860,10 +859,9 @@ async function fetchOuraData(userId: string, accessToken: string): Promise<Biome
         duration: s.total_sleep_duration / 3600,
         deepSleepPercent: (s.deep_sleep_duration / s.total_sleep_duration) * 100,
         remSleepPercent: (s.rem_sleep_duration / s.total_sleep_duration) * 100,
-        disturbances: Math.round(s.awake_time / 300), // Rough estimate
+        disturbances: Math.round(s.awake_time / 300), // Rough estimate from awake time
         qualityScore: s.score,
-        bedtime: new Date(), // Would parse from actual data
-        wakeTime: new Date(),
+        // Oura API does not provide exact bedtime/wakeTime; leave undefined
       };
     }
   }
@@ -1022,33 +1020,35 @@ async function fetchTerraData(userId: string, terraUserId: string): Promise<Biom
     if (data.data?.[0]) {
       const d = data.data[0];
 
-      if (d.sleep_data) {
+      if (d.sleep_data && d.sleep_data.sleep_duration_in_hours) {
         sleepData = {
-          duration: d.sleep_data.sleep_duration_in_hours || 0,
-          qualityScore: d.sleep_data.sleep_score || 50,
+          duration: d.sleep_data.sleep_duration_in_hours,
+          qualityScore: d.sleep_data.sleep_score,
+          // Terra API does not provide deep/REM breakdown, disturbances, or exact bedtime/wakeTime
+          // These remain undefined rather than fabricated
           deepSleepPercent:
-            ((d.sleep_data.deep_sleep_duration_hours || 0) /
-              (d.sleep_data.sleep_duration_in_hours || 1)) *
-            100,
+            d.sleep_data.deep_sleep_duration_hours && d.sleep_data.sleep_duration_in_hours
+              ? (d.sleep_data.deep_sleep_duration_hours / d.sleep_data.sleep_duration_in_hours) *
+                100
+              : undefined,
           remSleepPercent:
-            ((d.sleep_data.rem_sleep_duration_hours || 0) /
-              (d.sleep_data.sleep_duration_in_hours || 1)) *
-            100,
-          disturbances: 0,
-          bedtime: new Date(),
-          wakeTime: new Date(),
+            d.sleep_data.rem_sleep_duration_hours && d.sleep_data.sleep_duration_in_hours
+              ? (d.sleep_data.rem_sleep_duration_hours / d.sleep_data.sleep_duration_in_hours) *
+                100
+              : undefined,
         };
       }
 
       if (d.activity_data) {
+        // Terra API provides real activity counts; use them rather than fabricated defaults
         activityData = {
-          steps: d.activity_data.steps || 0,
+          steps: d.activity_data.steps ?? 0,
           activeMinutes: Math.round(
-            (d.activity_data.active_durations_data?.activity_seconds || 0) / 60
+            (d.activity_data.active_durations_data?.activity_seconds ?? 0) / 60
           ),
-          caloriesBurned: d.activity_data.calories_data?.total_burned_calories || 0,
-          hoursSinceActivity: 0,
-          standingHours: 0,
+          caloriesBurned: d.activity_data.calories_data?.total_burned_calories ?? 0,
+          hoursSinceActivity: 0, // Not provided by Terra API
+          standingHours: 0, // Not provided by Terra API
         };
       }
 
@@ -1085,7 +1085,7 @@ async function fetchTerraData(userId: string, terraUserId: string): Promise<Biom
 // ============================================================================
 
 function calculateStressLevel(hrv: HRVData | null): StressLevel {
-  if (!hrv) return 'moderate';
+  if (!hrv) return 'unknown';
 
   // HRV deviation from baseline indicates stress
   if (hrv.deviationPercent <= -30) return 'elevated';
@@ -1102,11 +1102,11 @@ function calculateStressFromOura(
   sleep: SleepData | null,
   recovery: RecoveryData | null
 ): StressLevel {
-  if (!sleep && !recovery) return 'moderate';
+  if (!sleep && !recovery) return 'unknown';
 
   let stressScore = 50; // Neutral
 
-  if (sleep) {
+  if (sleep && sleep.qualityScore !== undefined) {
     if (sleep.qualityScore < 50) stressScore += 20;
     else if (sleep.qualityScore < 70) stressScore += 10;
     if (sleep.duration < 6) stressScore += 15;
@@ -1145,7 +1145,7 @@ function checkForEvents(userId: string, snapshot: BiometricSnapshot): void {
   }
 
   // Check poor sleep
-  if (snapshot.sleep && snapshot.sleep.qualityScore < 60) {
+  if (snapshot.sleep && snapshot.sleep.qualityScore !== undefined && snapshot.sleep.qualityScore < 60) {
     events.push({
       type: 'poor_sleep',
       severity: snapshot.sleep.qualityScore < 40 ? 'alert' : 'warning',
@@ -1215,7 +1215,7 @@ export function getCurrentBiometrics(userId: string): BiometricSnapshot | null {
  * Get current stress level
  */
 export function getStressLevel(userId: string): StressLevel {
-  return userBiometrics.get(userId)?.snapshot?.stressLevel ?? 'moderate';
+  return userBiometrics.get(userId)?.snapshot?.stressLevel ?? 'unknown';
 }
 
 /**
