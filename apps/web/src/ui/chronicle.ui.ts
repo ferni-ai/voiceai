@@ -979,37 +979,37 @@ function createContainer(): HTMLElement {
     <div class="chronicle-container">
       <header class="chronicle-header">
         <div class="chronicle-header-content">
-          <p class="chronicle-eyebrow">YOUR CHRONICLE</p>
-          <h2 class="chronicle-title">Your Story</h2>
-          <p class="chronicle-subtitle">Capture your thoughts, wisdom, and growth</p>
+          <p class="chronicle-eyebrow">${t('chronicle.eyebrow')}</p>
+          <h2 class="chronicle-title">${t('chronicle.title')}</h2>
+          <p class="chronicle-subtitle">${t('chronicle.subtitle')}</p>
         </div>
-        <button class="chronicle-close" aria-label="Close">
+        <button class="chronicle-close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>
       <div class="chronicle-content" id="chronicle-content">
         <div class="chronicle-loading">
           <div class="chronicle-loading-spinner"></div>
-          <p>Loading your chronicle...</p>
+          <p>${t('chronicle.loading')}</p>
         </div>
       </div>
       
       <!-- Capture Panel (slides in) -->
       <div class="chronicle-capture-panel" id="chronicle-capture-panel">
         <div class="chronicle-capture-header">
-          <button class="chronicle-back-btn" id="capture-back" aria-label="Back">
+          <button class="chronicle-back-btn" id="capture-back" aria-label="${t('chronicle.backButton')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
           </button>
-          <h3 class="chronicle-capture-title">Capture a Thought</h3>
+          <h3 class="chronicle-capture-title">${t('chronicle.captureThought')}</h3>
         </div>
         <div class="chronicle-capture-content">
           <div class="chronicle-capture-prompt" id="capture-prompt">
-            What's on your mind right now?
+            ${t('chronicle.capturePlaceholder')}
           </div>
-          <textarea 
-            class="chronicle-capture-textarea" 
+          <textarea
+            class="chronicle-capture-textarea"
             id="capture-textarea"
-            placeholder="Write freely. No one will see this but you..."
+            placeholder="${t('chronicle.captureTextPlaceholder')}"
           ></textarea>
         </div>
         <div class="chronicle-capture-footer">
@@ -1020,7 +1020,7 @@ function createContainer(): HTMLElement {
             </button>
           </div>
           <button class="chronicle-save-btn" id="save-entry" disabled>
-            Save Entry
+            ${t('chronicle.saveEntry')}
           </button>
         </div>
       </div>
@@ -1028,7 +1028,7 @@ function createContainer(): HTMLElement {
       <!-- Converse Panel (slides in) -->
       <div class="chronicle-converse-panel" id="chronicle-converse-panel">
         <div class="chronicle-converse-header">
-          <button class="chronicle-back-btn" id="converse-back" aria-label="Back">
+          <button class="chronicle-back-btn" id="converse-back" aria-label="${t('chronicle.backButton')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
           </button>
           <div class="chronicle-converse-identity">
@@ -1036,8 +1036,8 @@ function createContainer(): HTMLElement {
               ${ICONS.user}
             </div>
             <div class="chronicle-converse-info">
-              <h3>Your Past Self</h3>
-              <p>Reflecting from your journal entries</p>
+              <h3>${t('chronicle.yourPastSelf')}</h3>
+              <p>${t('chronicle.pastSelfDescription')}</p>
             </div>
           </div>
         </div>
@@ -1046,17 +1046,17 @@ function createContainer(): HTMLElement {
         </div>
         <div class="chronicle-converse-footer">
           <div class="chronicle-chat-input-row">
-            <textarea 
-              class="chronicle-chat-input" 
+            <textarea
+              class="chronicle-chat-input"
               id="converse-input"
-              placeholder="Ask your past self something..."
+              placeholder="${t('chronicle.conversationPlaceholder')}"
               rows="1"
             ></textarea>
             <button class="chronicle-chat-send" id="converse-send">
               ${ICONS.send}
             </button>
           </div>
-          <p class="chronicle-chat-hint">Speak with the perspective you've captured in your journals</p>
+          <p class="chronicle-chat-hint">${t('chronicle.conversationHint')}</p>
         </div>
       </div>
     </div>
@@ -1292,38 +1292,38 @@ function render(): void {
         <div class="chronicle-stat-icon">${ICONS.flame}</div>
         <div>
           <div class="chronicle-stat-value">${streak}</div>
-          <div class="chronicle-stat-label">Day Streak</div>
+          <div class="chronicle-stat-label">${t('chronicle.dayStreak')}</div>
         </div>
       </div>
       <div class="chronicle-stat">
         <div class="chronicle-stat-icon">${ICONS.book}</div>
         <div>
           <div class="chronicle-stat-value">${totalEntries}</div>
-          <div class="chronicle-stat-label">Entries</div>
+          <div class="chronicle-stat-label">${t('chronicle.entries')}</div>
         </div>
       </div>
     </div>
-    
+
     <!-- Action Cards -->
     <div class="chronicle-actions">
       <button class="chronicle-action-card" id="action-capture">
         <div class="chronicle-action-icon">${ICONS.pen}</div>
-        <h3 class="chronicle-action-title">Capture a Thought</h3>
-        <p class="chronicle-action-description">Write freely. Text captures what you might never say aloud.</p>
+        <h3 class="chronicle-action-title">${t('chronicle.captureActionTitle')}</h3>
+        <p class="chronicle-action-description">${t('chronicle.captureActionDescription')}</p>
       </button>
       <button class="chronicle-action-card" id="action-converse">
         <div class="chronicle-action-icon">${ICONS.messageCircle}</div>
-        <h3 class="chronicle-action-title">Talk to Past Self</h3>
-        <p class="chronicle-action-description">Have a conversation with who you were.</p>
+        <h3 class="chronicle-action-title">${t('chronicle.talkToPastSelf')}</h3>
+        <p class="chronicle-action-description">${t('chronicle.talkToPastSelfDescription')}</p>
       </button>
     </div>
-    
+
     <!-- Insights Section -->
     ${insights.length > 0 ? `
       <section class="chronicle-section">
         <div class="chronicle-section-header">
           <span class="chronicle-section-icon">${ICONS.sparkles}</span>
-          <h3 class="chronicle-section-title">Patterns I Notice</h3>
+          <h3 class="chronicle-section-title">${t('chronicle.patternsINotice')}</h3>
         </div>
         <div class="chronicle-insights-grid">
           ${insights.map((insight) => renderInsightCard(insight)).join('')}
@@ -1336,7 +1336,7 @@ function render(): void {
       <section class="chronicle-section">
         <div class="chronicle-section-header">
           <span class="chronicle-section-icon">${ICONS.heart}</span>
-          <h3 class="chronicle-section-title">From Your Past</h3>
+          <h3 class="chronicle-section-title">${t('chronicle.fromYourPast')}</h3>
         </div>
         ${renderMemoryCard(memories[0])}
       </section>
@@ -1352,41 +1352,41 @@ function renderEmptyState(greeting: string): string {
       <div class="chronicle-empty-icon">${ICONS.book}</div>
       <h3 class="chronicle-empty-title">${greeting}</h3>
       <p class="chronicle-empty-description">
-        Your chronicle is empty, but every great story starts somewhere. 
+        Your chronicle is empty, but every great story starts somewhere.
         Capture your first thought, and watch your wisdom grow.
       </p>
     </div>
-    
+
     <!-- Action Cards -->
     <div class="chronicle-actions">
       <button class="chronicle-action-card" id="action-capture">
         <div class="chronicle-action-icon">${ICONS.pen}</div>
-        <h3 class="chronicle-action-title">Capture a Thought</h3>
-        <p class="chronicle-action-description">Write freely. Text captures what you might never say aloud.</p>
+        <h3 class="chronicle-action-title">${t('chronicle.captureActionTitle')}</h3>
+        <p class="chronicle-action-description">${t('chronicle.captureActionDescription')}</p>
       </button>
       <button class="chronicle-action-card" id="action-voice">
         <div class="chronicle-action-icon">${ICONS.mic}</div>
-        <h3 class="chronicle-action-title">Speak Your Mind</h3>
-        <p class="chronicle-action-description">Your voice captures nuance that text never could.</p>
+        <h3 class="chronicle-action-title">${t('chronicle.speakYourMind')}</h3>
+        <p class="chronicle-action-description">${t('chronicle.speakYourMindDescription')}</p>
       </button>
     </div>
-    
+
     <!-- Tips -->
     <section class="chronicle-section">
       <div class="chronicle-section-header">
         <span class="chronicle-section-icon">${ICONS.sparkles}</span>
-        <h3 class="chronicle-section-title">Two Paths, One Story</h3>
+        <h3 class="chronicle-section-title">${t('chronicle.twoPathsOneStory')}</h3>
       </div>
       <div class="chronicle-insights-grid">
         <div class="chronicle-insight-card">
           <div class="chronicle-insight-icon">${ICONS.pen}</div>
-          <h4 class="chronicle-insight-title">Text Captures Reflection</h4>
-          <p class="chronicle-insight-description">Writing helps you process. The act of finding words for feelings transforms them.</p>
+          <h4 class="chronicle-insight-title">${t('chronicle.textCapturesReflection')}</h4>
+          <p class="chronicle-insight-description">${t('chronicle.textCapturesDescription')}</p>
         </div>
         <div class="chronicle-insight-card">
           <div class="chronicle-insight-icon">${ICONS.mic}</div>
-          <h4 class="chronicle-insight-title">Voice Captures Emotion</h4>
-          <p class="chronicle-insight-description">Speaking reveals what writing filters. The pauses, the tone, the spontaneity.</p>
+          <h4 class="chronicle-insight-title">${t('chronicle.voiceCapturesEmotion')}</h4>
+          <p class="chronicle-insight-description">${t('chronicle.voiceCapturesDescription')}</p>
         </div>
       </div>
     </section>
