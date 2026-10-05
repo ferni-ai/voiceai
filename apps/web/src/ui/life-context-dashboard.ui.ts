@@ -965,7 +965,7 @@ function renderPattern(pattern: CrossDomainPattern): string {
       </div>
       <div class="life-context-pattern__insight">${pattern.insight}</div>
       <div class="life-context-pattern__domains">
-        ${pattern.domains.map((d) => `<span class="life-context-pattern__domain-tag">${DOMAIN_CONFIG[d]?.name || d}</span>`).join('')}
+        ${pattern.domains.map((d) => `<span class="life-context-pattern__domain-tag">${DOMAIN_CONFIG[d] ? t(DOMAIN_CONFIG[d].nameKey) : d}</span>`).join('')}
       </div>
     </div>
   `;

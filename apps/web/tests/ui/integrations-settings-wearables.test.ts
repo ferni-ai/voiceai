@@ -54,8 +54,9 @@ function routeApi(
 }
 
 describe('IntegrationsSettingsUI wearables', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
+    await (await import('../../src/i18n/index.js')).setLocale('en-US', { reload: false });
     mockApiGet.mockReset();
     document.body.innerHTML = '';
   });

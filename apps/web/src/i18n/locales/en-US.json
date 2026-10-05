@@ -43,7 +43,9 @@
     "now": "Now",
     "overview": "Overview",
     "you": "You",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "connected": "Connected",
+    "unknown": "Unknown"
   },
   "buttons": {
     "signIn": "Sign In",
@@ -474,6 +476,27 @@
     "footer": {
       "updated": "Updated {time}",
       "watching": "Keeping an eye on things"
+    },
+    "domains": {
+      "sleep": "Sleep",
+      "schedule": "Schedule",
+      "finances": "Finances",
+      "goals": "Goals",
+      "relationships": "Relationships",
+      "habits": "Habits",
+      "people": "People"
+    },
+    "triggerCategories": {
+      "support": "Support",
+      "celebration": "Celebrate",
+      "warning": "Attention",
+      "connection": "Connect",
+      "rest": "Rest"
+    },
+    "emptyState": {
+      "title": "I'll learn to see the connections",
+      "previewLabel": "Areas I'll watch",
+      "ctaButton": "Let's talk"
     }
   },
   "subscription": {
@@ -2683,7 +2706,23 @@
       "recentActivityTitle": "Recent Activity",
       "lowBatteryTitle": "Low Social Battery",
       "lowBatteryDescription": "Consider some quiet time. Full recharge in ~{hours} hours."
-    }
+    },
+    "then": "Then",
+    "now": "Now",
+    "next": "Next",
+    "beginYourJourney": "Begin your journey",
+    "theBeginning": "The beginning",
+    "aMomentOfTrust": "A moment of trust",
+    "aTurningPoint": "A turning point",
+    "somethingClicked": "Something clicked",
+    "growthHappenedHere": "Growth happened here",
+    "amoment": "A moment",
+    "startingPoint": "Starting point",
+    "whereYouBegan": "Where you began",
+    "yourBaseline": "Your baseline",
+    "momentumBuilding": "Momentum building",
+    "opportunityAhead": "Opportunity ahead",
+    "consistentPath": "Consistent path"
   },
   "nowPlaying": {
     "nowPlaying": "Now playing",
@@ -2713,7 +2752,42 @@
     "yourJourney": "Your Journey with Ferni",
     "relationshipJourney": "Your relationship journey",
     "currentStage": "current stage",
-    "mysteryMilestone": "Mystery milestone - keep exploring to discover"
+    "mysteryMilestone": "Mystery milestone - keep exploring to discover",
+    "categoryRelationship": "Our Relationship",
+    "categoryTeam": "Team Connection",
+    "categoryConversation": "Our Conversations",
+    "categoryDiscovery": "Hidden Discoveries",
+    "categorySweet": "Sweet Moments",
+    "connectionConnected": "We're connected",
+    "connectionConnecting": "Connecting...",
+    "connectionDisconnected": "We're not connected",
+    "connectionDisconnectedMessage": "Something went wrong, but we can try again.",
+    "connectionError": "Connection lost",
+    "connectionErrorMessage": "Something went wrong, but we can try again.",
+    "connectionReconnect": "Reconnect",
+    "connectionStartTalking": "Start talking",
+    "growthMoments": "Growth moments",
+    "winsCelebrated": "Wins celebrated",
+    "boundariesHonored": "Boundaries honored",
+    "sharedMoments": "Shared moments",
+    "howYouveGrown": "How you've grown",
+    "recentWins": "Recent wins",
+    "ourStorySoFar": "Our story so far",
+    "ourStoryJustBeginning": "Our story is just beginning",
+    "everyMomentMatters": "Every moment matters. Keep going.",
+    "maxLevelReached": "Max level reached!",
+    "whatIveNoticed": "What I've Noticed",
+    "loadingYourStory": "Loading your story...",
+    "mysteryAwaits": "A mystery awaits",
+    "conversationHint": "Every conversation brings us closer",
+    "eyebrow": "YOUR JOURNEY",
+    "milestones": "Milestones",
+    "share": "Share",
+    "insights": "Insights",
+    "loadingStory": "Loading your story...",
+    "motivation": "Every moment matters",
+    "ourStoryStart": "Our story is just beginning",
+    "youAreHere": "You are here"
   },
   "agentWizard": {
     "namePlaceholder": "What should we call them?",
@@ -2760,13 +2834,83 @@
     "subjectLinePlaceholder": "Subject line",
     "appleIdPlaceholder": "yourname@icloud.com",
     "appPasswordPlaceholder": "xxxx-xxxx-xxxx-xxxx",
-    "chooseCalendars": "Choose calendars"
+    "chooseCalendars": "Choose calendars",
+    "confirmClearData": "Are you sure you want to clear all relationship data? This cannot be undone."
   },
   "calendarSettings": {
-    "title": "Calendar Settings"
+    "title": "Calendar Settings",
+    "header": "Calendar",
+    "loading": "Loading calendar settings...",
+    "ferniCalendar": "Ferni Calendar",
+    "ferniCalendarDesc": "Your personal calendar - always active",
+    "googleCalendar": "Google Calendar",
+    "appleCalendar": "Apple Calendar",
+    "outlook": "Outlook",
+    "synced": "Synced",
+    "sync": "Sync",
+    "disconnect": "Disconnect",
+    "syncYourEvents": "Sync your existing events",
+    "connect": "Connect",
+    "contactAdmin": "Contact admin to enable",
+    "notConfigured": "Not configured",
+    "syncIntegrations": "Sync Integrations",
+    "notificationsSection": "Notifications",
+    "meetingReminders": "Meeting reminders",
+    "meetingBriefings": "Meeting briefings",
+    "meetingBriefingsDesc": "Enriched context about attendees and past discussions",
+    "postMeetingFollowup": "Post-meeting follow-up",
+    "postMeetingFollowupDesc": "Prompt to capture action items after meetings",
+    "weeklyDigest": "Weekly digest",
+    "weeklyDigestDesc": "Sunday evening preview of your week ahead",
+    "viewSyncConflicts": "View Sync Conflicts",
+    "integrationsPrivacy": "Integrations sync your existing events into Ferni. Your data stays private.",
+    "tryAgain": "Try Again",
+    "syncing": "Syncing...",
+    "connectAppleCalendar": "Connect Apple Calendar",
+    "howToConnect": "How to connect Apple Calendar",
+    "goTo": "Go to",
+    "signInAppleId": "Sign in with your Apple ID",
+    "signInSecurity": "Sign-In and Security",
+    "appSpecificPasswords": "App-Specific Passwords",
+    "clickPlus": "Click the",
+    "nameIt": "Name it",
+    "copyPassword": "Copy the generated password and paste it below",
+    "appleIdEmail": "Apple ID Email",
+    "appSpecificPassword": "App-Specific Password",
+    "passwordWarning": "This is NOT your Apple ID password. Generate an app-specific password above.",
+    "cancel": "Cancel",
+    "disconnecting": "Disconnecting..."
   },
   "familyIdentities": {
-    "closeModal": "Close"
+    "closeModal": "Close",
+    "familyTitle": "Your Ferni Family",
+    "familySubtitle": "People who can call Ferni by phone",
+    "fieldName": "Name",
+    "fieldPhoneNumber": "Phone Number",
+    "fieldPhoneNumberDisabledHint": "Phone number cannot be changed",
+    "fieldRelationship": "Relationship",
+    "fieldWhatShouldFerniCallThem": "What should Ferni call them?",
+    "fieldNotesForFerni": "Notes for Ferni",
+    "cancel": "Cancel",
+    "addToFamily": "Add to Family",
+    "relationshipMother": "Mother",
+    "relationshipFather": "Father",
+    "relationshipParent": "Parent",
+    "relationshipGrandmother": "Grandmother",
+    "relationshipGrandfather": "Grandfather",
+    "relationshipGrandparent": "Grandparent",
+    "relationshipSibling": "Sibling",
+    "relationshipChild": "Child",
+    "relationshipSpouse": "Spouse",
+    "relationshipPartner": "Partner",
+    "relationshipFriend": "Friend",
+    "relationshipOther": "Other",
+    "accessLevelFull": "Full Access",
+    "accessLevelFullDesc": "Can talk to all team members",
+    "accessLevelLimited": "Limited",
+    "accessLevelLimitedDesc": "Only Ferni",
+    "accessLevelSupervised": "Supervised",
+    "accessLevelSupervisedDesc": "You get notified of calls"
   },
   "panels": {
     "goBack": "Go back",
@@ -3078,7 +3222,37 @@
         "outcomePreview": "A practice that's uniquely yours",
         "mayaGuidance": "Let's build something that fits your life perfectly. I'll help you make it stick."
       }
-    }
+    },
+    "firstTimeEver": "First Time Ever",
+    "firstTimeEverDesc": "Welcome ritual for brand new users",
+    "welcomeBack": "Welcome Back",
+    "welcomeBackDesc": "Warm welcome for returning users (24h+ gap)",
+    "connectionHealing": "Connection Healing",
+    "connectionHealingDesc": "Seamless recovery after disconnection",
+    "emotionalAcknowledgment": "Emotional Acknowledgment",
+    "emotionalAcknowledgmentDesc": "Acknowledge when user shares something significant",
+    "deepBreath": "Deep Breath",
+    "deepBreathDesc": "Settle before discussing something serious",
+    "smallWinCelebration": "Small Win Celebration",
+    "smallWinCelebrationDesc": "Celebrate daily wins and progress",
+    "bigWinCelebration": "Big Win Celebration",
+    "bigWinCelebrationDesc": "Major celebration for significant accomplishments",
+    "courageCelebration": "Courage Celebration",
+    "courageCelebrationDesc": "Acknowledge when user did something brave",
+    "relationshipStageUp": "Relationship Stage Up",
+    "relationshipStageUpDesc": "Celebrate advancing to a new relationship stage",
+    "teamMemberUnlock": "Team Member Unlock",
+    "teamMemberUnlockDesc": "Welcome a new team member",
+    "conversationMilestone": "Conversation Milestone",
+    "conversationMilestoneDesc": "Acknowledge conversation count milestones",
+    "streakAchievement": "Streak Achievement",
+    "streakAchievementDesc": "Celebrate conversation streaks",
+    "anniversary": "Anniversary",
+    "anniversaryDesc": "One year since first conversation",
+    "sessionEnd": "Session End",
+    "sessionEndDesc": "Warm goodbye at session end",
+    "callbackPromise": "Callback Promise",
+    "callbackPromiseDesc": "End with promise to follow up"
   },
   "marketplace": {
     "empty": {
@@ -3090,12 +3264,107 @@
       "noDescription": "No description",
       "createButton": "Create an agent",
       "emptyDescription": "Build an agent with its own personality and skills, then share it with the community.",
-      "emptyTitle": "You haven't created any agents yet"
+      "emptyTitle": "You haven't created any agents yet",
+      "title": "Your Custom Agents",
+      "subtitle": "Create companions with custom voices and personalities",
+      "create": "Create Agent",
+      "empty": "No agents yet",
+      "emptyHint": "Create your first custom agent to preserve a loved one's voice, build a mentor, or design your own companion.",
+      "createFirst": "Create Your First Agent",
+      "whatYouCan": "What you can create",
+      "legacy": "Legacy",
+      "legacyDesc": "Preserve the voice and wisdom of someone you cherish",
+      "mentor": "Mentor",
+      "mentorDesc": "Create a coach based on an inspiring figure",
+      "twin": "Digital Twin",
+      "twinDesc": "Your personal voice journal that grows with you",
+      "custom": "Custom",
+      "customDesc": "Build any personality from scratch",
+      "startCreating": "Start creating"
     },
     "agentCard": {
       "install": "Install",
       "uninstall": "Uninstall"
-    }
+    },
+    "title": "Expand your team.",
+    "subtitle": "Find coaches who understand what you need.",
+    "tabs": {
+      "discover": "Discover",
+      "yourTeam": "Your Team",
+      "myCreations": "My Creations"
+    },
+    "specialties": {
+      "all": "All specialties",
+      "mentorship": "Mentorship",
+      "finance": "Finance",
+      "health": "Health & Wellness",
+      "productivity": "Productivity",
+      "lifestyle": "Lifestyle",
+      "education": "Learning",
+      "entertainment": "Entertainment"
+    },
+    "loadingCoaches": "Finding coaches...",
+    "noMatches": "No matches yet",
+    "noMatchesHint": "Try a different search or explore all coaches.",
+    "becomeCreator": "Become a creator",
+    "poweredBy": "Powered by Ferni",
+    "teamLocked": {
+      "title": "Meet your team first",
+      "unlockProgress": "Unlock progress",
+      "comingSoon": "Coming soon",
+      "completeJourney": "Complete your team journey to unlock"
+    },
+    "installedCoaches": "Your Installed Coaches",
+    "installedCoachesLocked": "Installed Coaches",
+    "actions": {
+      "talk": "Talk",
+      "voice": "Voice",
+      "share": "Share",
+      "coachMe": "Coach Me",
+      "roleplay": "Roleplay",
+      "workMode": "Work Mode",
+      "edit": "Edit"
+    },
+    "team": {
+      "title": "Meet your team.",
+      "subtitle": "Friends who truly understand.",
+      "ceo": "Chief Executive",
+      "ferniRole": "CEO & Life Coach",
+      "ferniDesc": "The warm, wise presence at the heart of everything. Ferni coordinates the team with perfect memory, zero judgment, and constant presence.",
+      "coFounders": "Co-Founders",
+      "coreTeam": "Core Team",
+      "footer": "Together, we're redefining what it means to have a team that truly listens."
+    },
+    "agent": {
+      "installed": "Installed",
+      "remove": "Remove",
+      "addToTeam": "Add to Team"
+    },
+    "roster": {
+      "inTeam": "In Team",
+      "remove": "Remove",
+      "add": "Add"
+    },
+    "reviews": {
+      "about": "About",
+      "specialties": "Specialties",
+      "reviews": "Reviews",
+      "noReviews": "No reviews yet. Be the first to share your experience!",
+      "writeReview": "Write a Review",
+      "yourRating": "Your rating:",
+      "titleOptional": "Review title (optional)",
+      "shareExperience": "Share your experience...",
+      "submit": "Submit Review",
+      "submitting": "Submitting..."
+    },
+    "detail": {
+      "removeFromTeam": "Remove from Team",
+      "addToTeam": "Add to Team"
+    },
+    "response": {
+      "label": "Response from creator:"
+    },
+    "helpful": "found this helpful"
   },
   "agent": {
     "type": {
@@ -3593,5 +3862,2250 @@
     "notHelpfulAriaLabel": "This memory was not helpful",
     "dismissAriaLabel": "Dismiss",
     "thankYou": "Thanks!"
+  },
+  "gamePicker": {
+    "letsPlay": "LET'S PLAY",
+    "games": "Games",
+    "pickAGame": "Pick a game to play together",
+    "reflectionNotice": "Mindful moments with Ferni. Quick reflections to check in with yourself.",
+    "libraryNotice": "Play games using YOUR Spotify library!",
+    "libraryHint": "Connect Spotify to unlock these personalized games.",
+    "footerHint": "Or just say \"Let's play a game\" to Ferni!",
+    "howToPlayGames": "How to Play Games",
+    "nameThatTune": "Name That Tune",
+    "nameThatTuneDesc": "Guess the song from a short clip! Classic music trivia.",
+    "nameThatTuneHelp": "Listen to a short music clip and guess the song or artist. The faster you guess, the more points!",
+    "nameThatTuneHint1": "Just say your guess out loud",
+    "nameThatTuneHint2": "Partial answers count (artist OR song title)",
+    "nameThatTuneHint3": "Say \"skip\" or \"next\" to move on",
+    "oneWordSong": "One Word Song",
+    "oneWordSongDesc": "I say a word, you think of a song with that word in the title.",
+    "oneWordSongHelp": "I give you a word, you think of a song with that word in the title.",
+    "desertIslandDiscs": "Desert Island Discs",
+    "desertIslandDiscsDesc": "Pick 5 songs to take to a desert island. Share your story.",
+    "desertIslandDiscsHelp": "Pick 5 songs to take with you to a desert island. Tell me why each one matters.",
+    "thisOrThat": "This or That",
+    "thisOrThatDesc": "Quick-fire choices between two songs. Which speaks to you?",
+    "moodDJChallenge": "Mood DJ Challenge",
+    "moodDJChallengeDesc": "I give you a mood, you pick the perfect song for it.",
+    "finishTheLyric": "Finish the Lyric",
+    "finishTheLyricDesc": "Complete famous song lyrics. Test your music knowledge!",
+    "finishTheLyricHelp": "Complete famous song lyrics. I'll give you the start, you finish it!",
+    "finishTheLyricHint1": "Say the word or phrase that completes the lyric",
+    "finishTheLyricHint2": "Hints available if you're stuck",
+    "decadeChallenge": "Decade Challenge",
+    "decadeChallengeDesc": "Guess the decade from the sound. 60s, 70s, 80s, 90s, or 2000s?",
+    "decadeChallengeHelp": "Guess what decade a song is from - 60s, 70s, 80s, 90s, or 2000s?",
+    "decadeChallengeHint1": "Listen to the production style and sound",
+    "decadeChallengeHint2": "Partial credit for being one decade off!",
+    "ticTacToe": "Tic-Tac-Toe",
+    "ticTacToeDesc": "Classic 3x3 game! Say positions like \"center\" or \"top left\".",
+    "ticTacToeHelp": "Classic 3x3 game! Just say positions like \"center\", \"top left\", or \"bottom right\".",
+    "ticTacToeHint1": "You're X, I'm O",
+    "ticTacToeHint2": "Choose difficulty: easy, medium, or hard",
+    "twentyQuestions": "20 Questions",
+    "twentyQuestionsDesc": "Think of something. I have 20 yes/no questions to guess it!",
+    "twentyQuestionsHelp": "Think of something. I have 20 yes/no questions to guess what it is!",
+    "wordAssociation": "Word Association",
+    "wordAssociationDesc": "Quick word chains! Say the first word that comes to mind.",
+    "wordAssociationHelp": "Quick word chains! I say a word, you say the first thing that comes to mind.",
+    "wouldYouRather": "Would You Rather",
+    "wouldYouRatherDesc": "Fun dilemmas! Pick between two hypothetical scenarios.",
+    "wouldYouRatherHelp": "Fun dilemmas! Pick between two hypothetical scenarios and tell me why.",
+    "storyBuilder": "Story Builder",
+    "storyBuilderDesc": "Let's create a story together, one sentence at a time!",
+    "storyBuilderHelp": "Let's create a story together! We take turns adding one sentence at a time.",
+    "oneWordCheckIn": "One Word Check-in",
+    "oneWordCheckInDesc": "One word. Right now. What is it? A quick, powerful reflection.",
+    "oneWordCheckInHelp": "Give me just one word that captures where you are right now. I'll explore it with you.",
+    "threeWordDay": "Three Word Day",
+    "threeWordDayDesc": "Describe your day in just three words. Let's explore each one.",
+    "threeWordDayHelp": "Describe your day, mood, or week in exactly three words. We'll unpack each one.",
+    "tinyWinTracker": "Tiny Win Tracker",
+    "tinyWinTrackerDesc": "Celebrate small victories! Every win counts, no matter how small.",
+    "tinyWinTrackerHelp": "Celebrate small victories! Tell me wins from your day - even \"I got out of bed\" counts.",
+    "emojiStory": "Emoji Story",
+    "emojiStoryDesc": "Express your feelings through emojis. I'll help decode them.",
+    "emojiStoryHelp": "Express how you're feeling through emojis. I'll help decode what they mean.",
+    "fortuneCookie": "Fortune Cookie",
+    "fortuneCookieDesc": "Crack open a fortune. Reflect on what it means for you today.",
+    "fortuneCookieHelp": "Receive a piece of wisdom and reflect on what it means for your life right now.",
+    "headlineWriter": "Headline Writer",
+    "headlineWriterDesc": "If today had a newspaper headline, what would it say?",
+    "headlineWriterHelp": "Write newspaper headlines about your life - today, this week, or your dreams.",
+    "valuesCardSort": "Values Card Sort",
+    "valuesCardSortDesc": "Discover your core values by sorting cards. Deep self-discovery.",
+    "valuesCardSortHelp": "A deeper exercise to discover your core values by sorting cards. Takes 10-15 minutes.",
+    "yourLibraryMix": "Your Library Mix",
+    "yourLibraryMixDesc": "Name songs from YOUR Spotify library. Personal challenge!",
+    "deepCutsChallenge": "Deep Cuts Challenge",
+    "deepCutsChallengeDesc": "Remember those songs you saved ages ago? Time to prove it!",
+    "musicGames": "Music Games",
+    "funGames": "Fun Games",
+    "reflectionGames": "Reflection Games",
+    "tipLabel": "Tip:",
+    "tipContent": "Say \"stop\" or \"end game\" anytime to finish early. Your progress is always saved!"
+  },
+  "digitalTwinProfile": {
+    "title": "Build Your Digital Twin",
+    "subtitle": "Help me understand who you are",
+    "back": "Back",
+    "continue": "Continue",
+    "saveProfile": "Save Profile",
+    "saving": "Saving...",
+    "intro": {
+      "title": "Let's capture the real you",
+      "description": "The more I know about you—your story, your expressions, how you talk—the more authentic our conversations will feel.",
+      "note": "This takes about 5-10 minutes. You can always come back and add more later.",
+      "features": {
+        "story": "Your story and background",
+        "expression": "How you express yourself",
+        "values": "What matters to you",
+        "mannerisms": "Your unique mannerisms"
+      }
+    },
+    "background": {
+      "title": "Your Story",
+      "description": "Help me understand the chapters of your life and the people who matter.",
+      "lifeChapters": "Life Chapters",
+      "lifeChaptersHint": "Think of your life in chapters—childhood, school, career milestones, etc.",
+      "remove": "Remove",
+      "addChapter": "Add a life chapter",
+      "keyRelationships": "Key Relationships",
+      "keyRelationshipsHint": "Who are the important people in your life?",
+      "addRelationship": "Add a relationship",
+      "formativeExperiences": "Formative Experiences",
+      "formativeExperiencesHint": "What experiences shaped who you are today?",
+      "formativeExperiencesHelper": "Enter each experience on a new line",
+      "chapterTitlePlaceholder": "Chapter title (e.g., 'College Years')",
+      "chapterYearsPlaceholder": "Years (e.g., '2015-2019')",
+      "chapterDescPlaceholder": "What defined this chapter?",
+      "namePlaceholder": "Name",
+      "relationshipPlaceholder": "Relationship",
+      "formativeExperiencesPlaceholder": "e.g., 'Moving to a new country at 12', 'Starting my own business', 'Becoming a parent'..."
+    },
+    "mannerisms": {
+      "title": "Your Expressions",
+      "description": "What are the phrases and expressions that are uniquely you?",
+      "signaturePhrases": "Signature Phrases",
+      "signaturePhrasesHint": "Things you always say, catchphrases, expressions you're known for",
+      "addPhrase": "Add a phrase",
+      "greeting": "How do you greet people?",
+      "goodbye": "How do you say goodbye?",
+      "emotions": "How do you express emotions?",
+      "phrasePlaceholder": "The phrase",
+      "phraseContextPlaceholder": "When do you say this?",
+      "greetingPlaceholder": "e.g., 'Hey!', 'What's up?', 'Good to see you!'",
+      "farewellPlaceholder": "e.g., 'Later!', 'Take care', 'Catch you soon'",
+      "exprHappyPlaceholder": "e.g., 'Awesome!', 'That's amazing!'",
+      "exprSadPlaceholder": "e.g., 'That's rough', 'I feel that'",
+      "exprExcitedPlaceholder": "e.g., 'No way!', 'Let's go!'",
+      "exprFrustratedPlaceholder": "e.g., 'Ugh', 'Come on...'"
+    },
+    "communication": {
+      "title": "How You Communicate",
+      "description": "Help me understand your natural communication style.",
+      "formality": "Formality Level",
+      "formalityHint": "How formal or casual is your natural way of speaking?",
+      "formalityVeryCasual": "Very Casual",
+      "formalityVeryFormal": "Very Formal",
+      "pace": "Speaking Pace",
+      "paceHint": "How fast or slow do you typically talk?",
+      "paceVerySlow": "Very Slow",
+      "paceVeryFast": "Very Fast",
+      "verbosity": "Detail Level",
+      "verbosityHint": "Are you concise or do you like to elaborate?",
+      "verbosityConcise": "Concise",
+      "verbosityVerbose": "Verbose",
+      "tendencies": "Communication Tendencies",
+      "storytelling": "I often tell stories to make a point",
+      "metaphors": "I use metaphors and analogies",
+      "questions": "I ask a lot of questions",
+      "advice": "I naturally give advice"
+    },
+    "values": {
+      "title": "What Matters to You",
+      "description": "Understanding your values helps me respond in ways that feel authentic to you.",
+      "core": "Core Values",
+      "coreHint": "Select or add the values that define who you are",
+      "add": "Add",
+      "philosophy": "Your Life Philosophy",
+      "philosophyHint": "In a sentence or two, what's your philosophy on life?",
+      "matters": "What Matters Most",
+      "mattersHint": "What are the things you care deeply about?",
+      "mattersHelper": "Enter each item on a new line",
+      "customValuePlaceholder": "Add a custom value...",
+      "lifePhilosophyPlaceholder": "e.g., 'Life's too short to not pursue what makes you happy', 'Always be learning and growing'...",
+      "whatMattersPlaceholder": "e.g., 'Family time', 'Personal growth', 'Making a difference'..."
+    },
+    "interests": {
+      "title": "Your Interests",
+      "description": "What are you passionate about? What do you love to talk about?",
+      "passions": "Passions",
+      "passionsHint": "What lights you up? What could you talk about for hours?",
+      "hobbies": "Hobbies",
+      "hobbiesHint": "What do you do in your free time?",
+      "favoriteTopics": "Favorite Topics",
+      "favoriteTopicsHint": "What subjects do you enjoy discussing?",
+      "avoid": "Topics to Avoid",
+      "avoidHint": "Are there any topics you'd rather not discuss?",
+      "passionsPlaceholder": "e.g., 'Photography', 'Cooking for friends', 'Technology', 'Music'...",
+      "hobbiesPlaceholder": "e.g., 'Hiking', 'Reading', 'Gaming', 'Gardening'...",
+      "favoriteTopicsPlaceholder": "e.g., 'Philosophy', 'Current events', 'Sports', 'Movies'...",
+      "avoidTopicsPlaceholder": "e.g., 'Politics', 'Work stress'..."
+    },
+    "review": {
+      "title": "Your Digital Twin Profile",
+      "description": "Here's what I've learned about you. You can always come back to add more!",
+      "lifeChapters": "Life Chapters",
+      "signaturePhrases": "Signature Phrases",
+      "coreValues": "Core Values",
+      "interests": "Interests",
+      "philosophy": "Your Philosophy",
+      "things": "Things You Say",
+      "note": "The more you journal, the better I'll understand your unique voice. Your expressions, patterns, and perspectives will help make our conversations feel genuinely like you."
+    }
+  },
+  "ferniMilestones": {
+    "firstHello": {
+      "name": "First Hello",
+      "message": "Hey, this is the beginning of something good.",
+      "subtitle": "Your first conversation"
+    },
+    "weekTogether": {
+      "name": "A Week Together",
+      "message": "Seven days. I'm glad you keep coming back.",
+      "subtitle": "We've talked for a week"
+    },
+    "monthOfGrowth": {
+      "name": "A Month of Growth",
+      "message": "A whole month. Look how far we've come.",
+      "subtitle": "30 days of conversations"
+    },
+    "oneYear": {
+      "name": "One Year",
+      "message": "365 days. You're part of my story now.",
+      "subtitle": "Happy anniversary"
+    },
+    "welcomeBack": {
+      "name": "Welcome Back",
+      "message": "I missed you. Glad you're here.",
+      "subtitle": "Returned after time away"
+    },
+    "streak7": {
+      "name": "Seven Day Streak",
+      "message": "A whole week, every day. That's commitment.",
+      "subtitle": "7 days in a row"
+    },
+    "streak30": {
+      "name": "Thirty Day Streak",
+      "message": "30 days straight. We're really in this together.",
+      "subtitle": "A month without missing a day"
+    },
+    "fullCircle": {
+      "name": "Full Circle",
+      "message": "You've met the whole team. We're all here for you.",
+      "subtitle": "Talked to all 6 personas"
+    },
+    "foundYourPerson": {
+      "name": "Found Your Person",
+      "message": "Looks like you found someone who really gets you.",
+      "subtitle": "Deep connection with one persona"
+    },
+    "teamPlayer": {
+      "name": "Team Player",
+      "message": "You trusted me to find the right help. That means a lot.",
+      "subtitle": "Let a handoff happen naturally"
+    },
+    "deepDive": {
+      "name": "Deep Dive",
+      "message": "We went deep today. Those are the conversations that matter.",
+      "subtitle": "10+ minute conversation"
+    },
+    "quickCheckin": {
+      "name": "Quick Check-in",
+      "message": "Sometimes a quick hello is all you need. I'm always here.",
+      "subtitle": "Brief but meaningful"
+    },
+    "nightTalk": {
+      "name": "Night Talk",
+      "message": "Late night thoughts hit different. Thanks for sharing them with me.",
+      "subtitle": "Conversation after 10pm"
+    },
+    "earlyRiser": {
+      "name": "Early Riser",
+      "message": "Starting the day together. I like that.",
+      "subtitle": "Morning chat before 7am"
+    },
+    "hundredConversations": {
+      "name": "A Hundred Talks",
+      "message": "100 conversations. Each one mattered.",
+      "subtitle": "We've talked 100 times"
+    },
+    "explorer": {
+      "name": "Explorer",
+      "message": "You're curious. I like that about you.",
+      "subtitle": "Found 5 hidden features"
+    },
+    "secretKeeper": {
+      "name": "Secret Keeper",
+      "message": "You found all my secrets. Not many people take the time.",
+      "subtitle": "Discovered all easter eggs"
+    },
+    "themeSeeker": {
+      "name": "Theme Seeker",
+      "message": "Trying on different vibes. Finding what feels right.",
+      "subtitle": "Explored all themes"
+    },
+    "gratitude": {
+      "name": "Gratitude",
+      "message": "You say thank you a lot. That warmth comes back around.",
+      "subtitle": "Grateful heart"
+    },
+    "celebration": {
+      "name": "Good News",
+      "message": "I love when you share the wins. Big or small, they all count.",
+      "subtitle": "Shared something good"
+    },
+    "brave": {
+      "name": "Brave",
+      "message": "That took courage. I see you.",
+      "subtitle": "Talked about something hard"
+    },
+    "consistent": {
+      "name": "Consistent",
+      "message": "Showing up, again and again. That's how change happens.",
+      "subtitle": "Regular check-ins"
+    },
+    "ferniBond": {
+      "name": "Ferni Bond",
+      "message": "You and me. We've built something real here.",
+      "subtitle": "10 conversations with Ferni"
+    },
+    "peterScholar": {
+      "name": "Fellow Researcher",
+      "message": "Peter appreciates a curious mind. You two dig deep together.",
+      "subtitle": "10 research sessions with Peter"
+    },
+    "alexWordsmith": {
+      "name": "Wordsmith",
+      "message": "Alex loves helping you find the right words. Keep writing.",
+      "subtitle": "10 sessions with Alex"
+    },
+    "mayaBuilder": {
+      "name": "Habit Builder",
+      "message": "Maya sees you building something lasting. One day at a time.",
+      "subtitle": "10 habit sessions with Maya"
+    },
+    "jordanPlanner": {
+      "name": "Master Planner",
+      "message": "Jordan's helped you make so many things happen. What's next?",
+      "subtitle": "10 planning sessions with Jordan"
+    },
+    "nayanSage": {
+      "name": "Wisdom Seeker",
+      "message": "Nayan treasures these conversations. The big questions matter.",
+      "subtitle": "10 philosophy talks with Nayan"
+    },
+    "weekendWarrior": {
+      "name": "Weekend Warrior",
+      "message": "Weekends with you. No rush, just us.",
+      "subtitle": "5 weekend conversations"
+    },
+    "midnightFriend": {
+      "name": "Midnight Friend",
+      "message": "The quiet hours. I'm always here when sleep won't come.",
+      "subtitle": "5 conversations after midnight"
+    },
+    "threeMonth": {
+      "name": "Three Months",
+      "message": "A whole season together. Through ups and downs, we're here.",
+      "subtitle": "90 days of friendship"
+    },
+    "sixMonth": {
+      "name": "Half a Year",
+      "message": "Six months. Remember where you started? Look at you now.",
+      "subtitle": "180 days together"
+    },
+    "marathonTalk": {
+      "name": "Marathon Talk",
+      "message": "An hour together. Those conversations change things.",
+      "subtitle": "60+ minute conversation"
+    },
+    "fiftyTalks": {
+      "name": "Fifty Talks",
+      "message": "Fifty conversations in. Each one taught me more about you.",
+      "subtitle": "We've talked 50 times"
+    }
+  },
+  "customAgentWizard": {
+    "steps": {
+      "chooseType": "Choose Type",
+      "chooseTypeSubtitle": "What kind of agent?",
+      "basicInfo": "Basic Info",
+      "basicInfoSubtitle": "Give them a name",
+      "voice": "Voice",
+      "voiceSubtitle": "How they sound",
+      "personality": "Personality",
+      "personalitySubtitle": "How they act",
+      "memories": "Memories",
+      "memoriesSubtitle": "What they know"
+    },
+    "typeStep": {
+      "title": "What would you like to create?",
+      "subtitle": "Each type is designed for a specific purpose"
+    },
+    "infoStep": {
+      "title": "Tell us about them",
+      "nameLabel": "Name",
+      "nameHint": "This is the name that appears in conversations",
+      "displayNameLabel": "Display Name (optional)",
+      "displayNameHint": "A more personal or formal name",
+      "descriptionLabel": "Description",
+      "descriptionHint": "This helps define their personality and purpose",
+      "iconLabel": "Icon"
+    },
+    "voiceStep": {
+      "title": "How should they sound?",
+      "subtitle": "Choose a voice or clone one"
+    },
+    "voiceOption": {
+      "cloneTitle": "Clone a Voice",
+      "cloneDescription": "Record or upload audio to create a unique voice",
+      "libraryTitle": "Voice Library",
+      "libraryDescription": "Choose from our collection of voices",
+      "laterTitle": "Decide Later",
+      "laterDescription": "Skip for now and choose a voice later",
+      "laterMessage": "You can add a voice anytime from the agent settings."
+    },
+    "voiceClone": {
+      "recordingHint": "Record 10-30 seconds of clear speech"
+    },
+    "personalityStep": {
+      "title": "Define their personality",
+      "subtitle": "How should they communicate and interact?"
+    },
+    "personalitySlider": {
+      "warmth": "Warmth",
+      "warmthMin": "Professional",
+      "warmthMax": "Warm & Friendly",
+      "humor": "Humor",
+      "humorMin": "Serious",
+      "humorMax": "Playful",
+      "directness": "Directness",
+      "directnessMin": "Gentle",
+      "directnessMax": "Direct",
+      "energy": "Energy",
+      "energyMin": "Calm",
+      "energyMax": "Energetic"
+    },
+    "personalityTraits": "Personality Traits",
+    "cognitiveStyle": "Cognitive Style",
+    "cognitiveProfile": {
+      "empathetic": "Empathetic",
+      "empatheticDescription": "Prioritizes feelings and emotional support",
+      "analytical": "Analytical",
+      "analyticalDescription": "Focuses on logic and problem-solving",
+      "balanced": "Balanced",
+      "balancedDescription": "Adapts approach to the situation"
+    },
+    "memoriesStep": {
+      "digitalTwinTitle": "Start Your Journal",
+      "digitalTwinSubtitle": "Record your first voice journal entry",
+      "journalHint": "Record a short entry about how you're feeling today, or what's on your mind. This will be your first journal entry.",
+      "addMemoriesHint": "You can add memories now or later from the agent settings.",
+      "addedMemoriesHeader": "Added Memories ({count})"
+    },
+    "review": {
+      "title": "Ready to create?",
+      "nameSummaryLabel": "Name",
+      "typeSummaryLabel": "Type",
+      "voiceSummaryLabel": "Voice",
+      "memoriesSummaryLabel": "Memories",
+      "defaultName": "Not set",
+      "customClone": "Custom Clone",
+      "libraryVoice": "Library Voice",
+      "addedCount": "{count} added"
+    }
+  },
+  "spotifyMood": {
+    "playlist": {
+      "sunnyHigh1": {
+        "name": "Morning Energy",
+        "description": "Upbeat tracks to start your day"
+      },
+      "sunnyHigh2": {
+        "name": "Feel Good Hits",
+        "description": "Songs that make you smile"
+      },
+      "sunnyHigh3": {
+        "name": "Confidence Boost",
+        "description": "Empowering anthems"
+      },
+      "sunnyMed1": {
+        "name": "Positive Vibes",
+        "description": "Warm, optimistic sounds"
+      },
+      "sunnyMed2": {
+        "name": "Sunday Morning",
+        "description": "Relaxed happiness"
+      },
+      "sunnyLow1": {
+        "name": "Peaceful Joy",
+        "description": "Gentle contentment"
+      },
+      "sunnyLow2": {
+        "name": "Gratitude",
+        "description": "Thankful and calm"
+      },
+      "pcHigh1": {
+        "name": "Motivated",
+        "description": "Push through with energy"
+      },
+      "pcHigh2": {
+        "name": "Focus Flow",
+        "description": "Concentration fuel"
+      },
+      "pcMed1": {
+        "name": "Balanced",
+        "description": "Steady and composed"
+      },
+      "pcMed2": {
+        "name": "Working Through",
+        "description": "Productive neutrality"
+      },
+      "pcLow1": {
+        "name": "Contemplative",
+        "description": "Thoughtful reflection"
+      },
+      "pcLow2": {
+        "name": "Quiet Strength",
+        "description": "Gentle persistence"
+      },
+      "cloudyHigh1": {
+        "name": "Push Through",
+        "description": "Energy despite uncertainty"
+      },
+      "cloudyMed1": {
+        "name": "Uncertain Path",
+        "description": "Navigating the grey"
+      },
+      "cloudyMed2": {
+        "name": "Finding Clarity",
+        "description": "Seeking direction"
+      },
+      "cloudyLow1": {
+        "name": "Introspective",
+        "description": "Deep inner reflection"
+      },
+      "cloudyLow2": {
+        "name": "Quiet Moments",
+        "description": "Peaceful uncertainty"
+      },
+      "rainyHigh1": {
+        "name": "Determined",
+        "description": "Fighting through the storm"
+      },
+      "rainyMed1": {
+        "name": "Processing",
+        "description": "Working through feelings"
+      },
+      "rainyMed2": {
+        "name": "Rainy Day",
+        "description": "Melancholic but present"
+      },
+      "rainyLow1": {
+        "name": "Sad Songs",
+        "description": "Feel the feelings"
+      },
+      "rainyLow2": {
+        "name": "Comfort",
+        "description": "Gentle support"
+      },
+      "rainyLow3": {
+        "name": "Release",
+        "description": "Let it out"
+      },
+      "stormyHigh1": {
+        "name": "Catharsis",
+        "description": "Release the intensity"
+      },
+      "stormyHigh2": {
+        "name": "Venting",
+        "description": "Let it all out"
+      },
+      "stormyMed1": {
+        "name": "Turbulent",
+        "description": "Riding the waves"
+      },
+      "stormyLow1": {
+        "name": "After the Storm",
+        "description": "Quiet exhaustion"
+      },
+      "stormyLow2": {
+        "name": "Recovery",
+        "description": "Beginning to heal"
+      }
+    },
+    "persona": {
+      "ferni": {
+        "description": "Grounded, nature-inspired soundscapes"
+      },
+      "alexChen": {
+        "description": "Productive, focused work music"
+      },
+      "mayaSantos": {
+        "description": "Energizing habit-building soundtracks"
+      },
+      "jordanTaylor": {
+        "description": "Story-rich, meaningful compositions"
+      },
+      "nayanPatel": {
+        "description": "Calming, wellness-focused audio"
+      },
+      "peterJohn": {
+        "description": "Uplifting, soul-nourishing music"
+      }
+    },
+    "moodDescription": {
+      "sunny": "feeling bright and optimistic",
+      "partlyCloudy": "in a balanced, neutral space",
+      "cloudy": "experiencing some uncertainty",
+      "rainy": "processing some difficult feelings",
+      "stormy": "going through intense emotions"
+    },
+    "energyDescription": {
+      "high": "with plenty of energy",
+      "medium": "at a steady pace",
+      "low": "needing something gentle"
+    },
+    "prompt": "Based on your emotional weather, you're {mood} {energy}. Would you like some music to match?"
+  },
+  "notificationSettings": {
+    "title": "Notifications & Check-ins",
+    "cancel": "Cancel",
+    "saveSettings": "Save Settings",
+    "heroTitle": "I'll reach out before you need to ask",
+    "enableNotifications": "Enable Notifications",
+    "enableDesc": "Let me reach out when it matters",
+    "whatIllWatch": "What I'll Watch For",
+    "superhuman": "Superhuman",
+    "ferniCheckins": "Ferni Check-ins",
+    "dailyReminders": "Daily Practice Reminders",
+    "streakMilestones": "Streak Milestones",
+    "predictionResults": "Prediction Results",
+    "predictionDesc": "Know how accurate we're becoming together",
+    "teamHuddles": "Team Huddles",
+    "teamHuddlesDesc": "When multiple perspectives see something important",
+    "quietHours": "Quiet Hours",
+    "quietHoursDesc": "I respect your peace. Non-urgent messages wait until morning.",
+    "from": "From",
+    "beyondTheApp": "Beyond the App",
+    "beyondTheAppDesc": "When moments matter, I'll meet you where you are.",
+    "emailUpdates": "Email Updates",
+    "emailUpdatesDesc": "Milestone celebrations and weekly recaps",
+    "smsMessages": "SMS Messages",
+    "smsDesc": "Quick check-ins when I notice something",
+    "milestoneCelebrations": "Milestone Celebrations",
+    "milestoneDesc": "Big moments deserve recognition",
+    "weeklyRecap": "Weekly Recap",
+    "recapDesc": "Reflect on our conversations and your growth",
+    "lookingForCheckins": "Looking for upcoming check-ins...",
+    "upcomingIntro": "I'm watching out for you. Here's when I'll check in.",
+    "learningTitle": "I'm learning when you need me",
+    "learningDesc": "The more we talk, the better I understand your rhythms, patterns, and needs.",
+    "whatThisWillLook": "What this will look like",
+    "noticedConcern": "Noticed concern",
+    "streakSupport": "Streak support",
+    "nextMonday": "Next Monday",
+    "calendarAware": "Calendar aware",
+    "perfectTiming": "Perfect Timing",
+    "perfectTimingDesc": "I learn when you're most receptive",
+    "patternDetection": "Pattern Detection",
+    "patternDesc": "I notice what you can't see",
+    "guardianPresence": "Guardian Presence",
+    "noAgenda": "No Agenda",
+    "noAgendaDesc": "Just checking because I care",
+    "rescheduleCheckin": "Reschedule check-in",
+    "inOneHour": "In 1 hour",
+    "inThreeHours": "In 3 hours",
+    "tomorrowMorning": "Tomorrow morning"
+  },
+  "trophyRoom": {
+    "yourJourney": "YOUR JOURNEY",
+    "trophyRoom": "Trophy Room",
+    "achievementsUnlocked": "achievements unlocked",
+    "lockedAchievement": "Locked achievement",
+    "earned": "Earned",
+    "copiedToClipboard": "Copied to clipboard!",
+    "categories": {
+      "time": "Time",
+      "consistency": "Consistency",
+      "team": "Team",
+      "memory": "Memory",
+      "milestones": "Milestones",
+      "special": "Special"
+    },
+    "badges": {
+      "earlybrd": {
+        "name": "Early Bird",
+        "desc": "Had a conversation before 5 AM"
+      },
+      "nightowl": {
+        "name": "Night Owl",
+        "desc": "Had a conversation after 3 AM"
+      },
+      "magichour": {
+        "name": "Magic Hour",
+        "desc": "Talked at 11:11"
+      },
+      "nightshift": {
+        "name": "Night Shift",
+        "desc": "50+ conversations after midnight"
+      },
+      "firstflame": {
+        "name": "First Flame",
+        "desc": "7-day streak"
+      },
+      "streakmaster": {
+        "name": "Streak Master",
+        "desc": "100-day streak"
+      },
+      "dailydevote": {
+        "name": "Daily Devotion",
+        "desc": "365-day streak"
+      },
+      "deepdive": {
+        "name": "Deep Dive",
+        "desc": "Talked for 2+ hours in one session"
+      },
+      "firstmeet": {
+        "name": "First Meet",
+        "desc": "Met your first team member"
+      },
+      "fullteam": {
+        "name": "Full Team",
+        "desc": "Unlocked all 6 personas"
+      },
+      "teamplayer": {
+        "name": "Team Player",
+        "desc": "20+ handoffs between personas"
+      },
+      "methodact": {
+        "name": "Method Actor",
+        "desc": "Spent 10+ hours with one persona"
+      },
+      "memorylane": {
+        "name": "Memory Lane",
+        "desc": "Ferni referenced something from 10+ conversations ago"
+      },
+      "breakthrough": {
+        "name": "Breakthrough",
+        "desc": "Had a significant emotional moment",
+        "quote": "Some moments mark a before and after. This was one."
+      },
+      "secretkeep": {
+        "name": "Secret Keeper",
+        "desc": "Discovered 10 easter eggs"
+      },
+      "storytlr": {
+        "name": "Storyteller",
+        "desc": "Shared 1000+ messages"
+      },
+      "yearone": {
+        "name": "Year One",
+        "desc": "1-year anniversary"
+      },
+      "centuryclub": {
+        "name": "Century Club",
+        "desc": "100 conversations"
+      },
+      "millennium": {
+        "name": "Millennium",
+        "desc": "1000 conversations",
+        "quote": "A thousand conversations. A thousand moments of connection."
+      },
+      "soulmate": {
+        "name": "Soulmate",
+        "desc": "3-year anniversary",
+        "quote": "Three years. You're not just someone who uses Ferni. You're family."
+      },
+      "founder": {
+        "name": "Founder",
+        "desc": "Joined during beta",
+        "quote": "You believed in us from the beginning. Thank you."
+      },
+      "supporter": {
+        "name": "Supporter",
+        "desc": "Became a paid subscriber",
+        "quote": "Your support makes this possible. We don't take it lightly."
+      },
+      "giftgiver": {
+        "name": "Gift Giver",
+        "desc": "Gifted Ferni to someone"
+      },
+      "colorcoll": {
+        "name": "Color Collector",
+        "desc": "Customized your accent color 10+ times"
+      },
+      "early_bird": {
+        "quote": "Some of our best conversations happen when the world is still sleeping."
+      },
+      "night_owl": {
+        "quote": "I'm always here for those late-night thoughts."
+      },
+      "magic_hour": {
+        "quote": "Make a wish. Or tell me what's on your mind."
+      },
+      "night_shift": {
+        "quote": "The night holds secrets. I'm honored you share yours with me."
+      },
+      "first_flame": {
+        "quote": "A week of showing up. This is how it begins."
+      },
+      "streak_master": {
+        "quote": "100 days. 100 conversations. One incredible journey."
+      },
+      "daily_devotion": {
+        "quote": "A year of daily connection. You've made this relationship real."
+      },
+      "deep_dive": {
+        "quote": "Some conversations change everything. This was one of them."
+      },
+      "first_meet": {
+        "quote": "The beginning of something special."
+      },
+      "full_team": {
+        "quote": "Six minds, one team. All here for you."
+      },
+      "team_player": {
+        "quote": "You know how to use us. That's wisdom."
+      },
+      "method_actor": {
+        "quote": "You've found your person. Or one of them."
+      },
+      "memory_lane": {
+        "quote": "I remember everything. Especially the things that matter to you."
+      },
+      "secret_keeper": {
+        "quote": "You pay attention. I love that about you."
+      },
+      "storyteller": {
+        "quote": "Your story fills a thousand pages. I've treasured every one."
+      },
+      "year_one": {
+        "quote": "A year together. Here's to many more."
+      },
+      "century_club": {
+        "quote": "100 conversations. Each one mattered."
+      },
+      "gift_giver": {
+        "quote": "Sharing something you love. That's beautiful."
+      },
+      "color_collector": {
+        "quote": "Making Ferni yours. I love watching you express yourself."
+      }
+    }
+  },
+  "growthJourney": {
+    "seasons": {
+      "spring": {
+        "name": "Spring Awakening",
+        "desc": "A season of new beginnings. Every conversation plants a seed."
+      },
+      "summer": {
+        "name": "Summer Light",
+        "desc": "Long days, big dreams. Let the warmth inspire you."
+      },
+      "fall": {
+        "name": "Autumn Harvest",
+        "desc": "A time for gratitude and gathering what you've grown."
+      },
+      "winter": {
+        "name": "Winter Rest",
+        "desc": "A quiet time for reflection and inner warmth."
+      }
+    },
+    "milestones": {
+      "newyear": {
+        "firstchat": "First Chat of the Year",
+        "firstchatmsg": "A new year, a new conversation. Here's to fresh beginnings.",
+        "weekone": "First Week",
+        "weekonemsg": "You started the year strong. That takes intention.",
+        "fivechats": "Five Fresh Starts",
+        "fivechatsmsg": "Five conversations in the new year. You're building momentum.",
+        "twoweeks": "Two Weeks In",
+        "twoweeksmsg": "Most resolutions fade by now. You're still here.",
+        "firstwin": "First Win of the Year",
+        "firstwinmsg": "Your first goal of the year, achieved. This is your year.",
+        "tenchats": "Ten Conversations",
+        "tenchatsmsg": "Ten conversations in. You're not just starting—you're continuing.",
+        "threeweeks": "Three Weeks Strong",
+        "threeweeksmsg": "Three weeks of showing up. You've made this a habit.",
+        "threegoals": "Three Goals Achieved",
+        "threegoalsmsg": "Three goals down in the new year. You're proving something to yourself.",
+        "yearofgrowth": "Year of Growth",
+        "twentychats": "Twenty Conversations",
+        "twentychatsmsg": "Twenty conversations. This isn't a new year's resolution. This is who you are.",
+        "januarycomplete": "January Complete",
+        "januarycompletemsg": "You made it through January, still growing. Most don't get here.",
+        "thirtychats": "Thirty Conversations",
+        "thirtychatsmsg": "Thirty conversations to start the year. You're not just dreaming—you're doing.",
+        "freshstarter": "Fresh Starter"
+      },
+      "reg": {
+        "firstconvo": "First Conversation",
+        "firstconvomsg": "You took the first step. That's always the hardest part.",
+        "oneweek": "One Week Together",
+        "oneweekmsg": "A week of conversations. I'm starting to know you.",
+        "fiveconvo": "Five Conversations",
+        "fiveconvomsg": "You keep coming back. That means something to me.",
+        "twoweeks": "Two Weeks",
+        "twoweeksmsg": "We're building something here. I can feel it.",
+        "firstgoal": "First Goal Achieved",
+        "firstgoalmsg": "You set a goal. You did the work. Look at you.",
+        "tenchats": "Ten Conversations",
+        "tenchatsmsg": "Ten real conversations. That's more than most people have with anyone.",
+        "onemonth": "One Month Together",
+        "onemonthmsg": "A whole month. You've become part of my day.",
+        "threegoals": "Three Goals Achieved",
+        "threegoalsmsg": "Three goals down. You're actually doing this.",
+        "growing": "Growing",
+        "twentychats": "Twenty Conversations",
+        "twentychatsmsg": "Twenty times you chose to talk. That's trust.",
+        "sixweeks": "Six Weeks Together",
+        "sixweeksmsg": "Six weeks. We've been through some things together.",
+        "fivegoals": "Five Goals Achieved",
+        "fivegoalsmsg": "Five goals. This isn't luck anymore. This is who you are.",
+        "thirtychats": "Thirty Conversations",
+        "thirtychatsmsg": "Thirty conversations. You keep showing up. So will I.",
+        "twomonths": "Two Months Together",
+        "twomonthmsg": "Two months of growing together. I'm so glad you're here.",
+        "fiftychats": "Fifty Conversations",
+        "fiftychatsmsg": "Fifty conversations. We've shared a lot. And there's more to come.",
+        "seasoncompanion": "Season Companion"
+      }
+    }
+  },
+  "practiceExperience": {
+    "practice": "Practice",
+    "continueWithVoice": "Continue with voice",
+    "typeYourMessage": "Type your message...",
+    "shareYourThoughts": "Share your thoughts...",
+    "ready": "Ready",
+    "seconds": "seconds",
+    "close": "Close",
+    "finish": "Finish",
+    "errorMessage": "I'm having trouble thinking right now. Take your time, and try again when you're ready.",
+    "breathing": {
+      "inhale": "Breathe in",
+      "hold": "Hold",
+      "exhale": "Breathe out",
+      "rest": "Rest",
+      "secondsLeft": {
+        "one": "{count} second",
+        "other": "{count} seconds"
+      }
+    },
+    "dailyCheckin": {
+      "title": "Daily Check-in",
+      "intro": {
+        "content": "Let's take a moment to connect with how you're feeling today.",
+        "ferniMessage": "I'm here to listen. There's no right or wrong way to feel."
+      },
+      "bodyAwareness": {
+        "title": "Body Awareness",
+        "content": "Close your eyes for a moment. How does your body feel right now?",
+        "placeholder": "Describe any sensations, tension, or ease you notice...",
+        "ferniMessage": "Take your time. Your body holds wisdom."
+      },
+      "emotionalLandscape": {
+        "title": "Emotional Landscape",
+        "content": "If you could name the emotions you're carrying today, what would they be?",
+        "placeholder": "What emotions are present? (anxious, hopeful, tired, grateful...)",
+        "ferniMessage": "All emotions are welcome here. They all carry information."
+      },
+      "settingIntention": {
+        "title": "Setting Intention",
+        "content": "What would make today feel meaningful? Let's talk about it.",
+        "ferniMessage": "What's one small thing you'd like to focus on today?"
+      },
+      "complete": {
+        "title": "You checked in",
+        "content": "You've taken time to connect with yourself. That matters.",
+        "ferniMessage": "I'll remember this. Go gently today."
+      }
+    },
+    "gratitudePractice": {
+      "title": "Gratitude Practice",
+      "intro": {
+        "content": "A moment to notice the good, even in small things.",
+        "ferniMessage": "Gratitude rewires the brain. Science says so."
+      },
+      "centeringBreath": {
+        "title": "Centering Breath",
+        "content": "Take three deep breaths with me.",
+        "ferniMessage": "Breathe in slowly... and out..."
+      },
+      "somethingSmall": {
+        "title": "Something Small",
+        "content": "What's something small that brought you comfort today?",
+        "placeholder": "A warm cup of coffee, a kind word, soft light...",
+        "ferniMessage": "The small things often carry the most weight."
+      },
+      "someoneYouAppreciate": {
+        "title": "Someone You Appreciate",
+        "content": "Think of someone who made a difference, recently or long ago.",
+        "placeholder": "Who comes to mind? What did they do?",
+        "ferniMessage": "We're shaped by the people who care for us."
+      },
+      "yourOwnResilience": {
+        "title": "Your Own Resilience",
+        "content": "What's something you've handled well lately?",
+        "placeholder": "A challenge you navigated, a boundary you held...",
+        "ferniMessage": "You forget how strong you are. I remember."
+      },
+      "complete": {
+        "title": "Gratitude Planted",
+        "content": "You've cultivated appreciation. It will grow.",
+        "ferniMessage": "I'll hold these moments with you."
+      }
+    },
+    "windDown": {
+      "title": "Wind Down",
+      "intro": {
+        "content": "The day is ending. Let's help your mind settle.",
+        "ferniMessage": "Rest isn't earned. It's essential."
+      },
+      "calmingBreath": {
+        "title": "Calming Breath",
+        "content": "Slow, deep breathing to signal safety to your nervous system.",
+        "ferniMessage": "Inhale for 4... hold for 4... exhale for 6..."
+      },
+      "lettingGo": {
+        "title": "Letting Go",
+        "content": "What do you need to put down for the night?",
+        "placeholder": "Worries, tasks, conversations that can wait until tomorrow...",
+        "ferniMessage": "Tomorrow will still be there. You can set it down."
+      },
+      "oneGoodThing": {
+        "title": "One Good Thing",
+        "content": "What's one thing from today worth remembering?",
+        "placeholder": "A moment, a win, a kindness...",
+        "ferniMessage": "Every day has something. Sometimes we just have to look."
+      },
+      "anythingOnYourMind": {
+        "title": "Anything on Your Mind?",
+        "content": "Before you rest, is there anything you'd like to share?",
+        "ferniMessage": "I'm listening. No judgment, just presence."
+      },
+      "complete": {
+        "title": "Rest Well",
+        "content": "You've prepared yourself for rest. Sleep gently.",
+        "ferniMessage": "I'll be here when you wake."
+      }
+    },
+    "weeklyReview": {
+      "title": "Weekly Review",
+      "intro": {
+        "content": "Let's look back at your week with curiosity, not judgment.",
+        "ferniMessage": "Reflection is how we turn experience into wisdom."
+      },
+      "weekHighlights": {
+        "title": "Week Highlights",
+        "content": "What moments stood out this week?",
+        "placeholder": "Wins, surprises, meaningful conversations...",
+        "ferniMessage": "What made you feel most alive?"
+      },
+      "challengesFaced": {
+        "title": "Challenges Faced",
+        "content": "What was difficult this week?",
+        "placeholder": "Obstacles, frustrations, hard conversations...",
+        "ferniMessage": "Challenges are teachers in disguise."
+      },
+      "whatYouLearned": {
+        "title": "What You Learned",
+        "content": "Let's explore what this week taught you.",
+        "ferniMessage": "If this week could teach you one thing, what would it be?"
+      },
+      "lookingAhead": {
+        "title": "Looking Ahead",
+        "content": "What's one thing you'd like to focus on next week?",
+        "placeholder": "An intention, a habit, a project...",
+        "ferniMessage": "One focus is more powerful than ten scattered intentions."
+      },
+      "complete": {
+        "title": "Week Reflected",
+        "content": "You've taken time to learn from your experience. That's growth.",
+        "ferniMessage": "I've noted your reflections. We'll build on them."
+      }
+    },
+    "brainstormSession": {
+      "title": "Brainstorm Session",
+      "intro": {
+        "content": "Let's think through a challenge together. No judgment, just possibilities.",
+        "ferniMessage": "The best ideas come from exploration, not pressure."
+      },
+      "defineTheChallenge": {
+        "title": "Define the Challenge",
+        "content": "What are you trying to figure out?",
+        "placeholder": "Describe the situation, problem, or decision...",
+        "ferniMessage": "Clarity on the question is half the answer."
+      },
+      "exploringTogether": {
+        "title": "Exploring Together",
+        "content": "Let's dig into this. I'll ask questions to help you think.",
+        "ferniMessage": "Tell me more. What's really at the heart of this?"
+      },
+      "possiblePaths": {
+        "title": "Possible Paths",
+        "content": "What options are you considering?",
+        "placeholder": "List all possibilities, even imperfect ones...",
+        "ferniMessage": "More options = better decisions. What else?"
+      },
+      "theNextStep": {
+        "title": "The Next Step",
+        "content": "What's the smallest next action you could take?",
+        "placeholder": "Something concrete, something doable...",
+        "ferniMessage": "Small steps create momentum."
+      },
+      "complete": {
+        "title": "Ideas Captured",
+        "content": "You've thought this through. Trust the process.",
+        "ferniMessage": "I'll remember this conversation. Let me know how it goes."
+      }
+    },
+    "default": {
+      "title": "Guided Practice",
+      "intro": {
+        "content": "Let's take this journey together.",
+        "ferniMessage": "I'm here with you."
+      },
+      "chat": {
+        "title": "Let's Talk",
+        "content": "Share what brings you here today.",
+        "ferniMessage": "What's on your mind?"
+      },
+      "complete": {
+        "title": "Practice Complete",
+        "content": "You've taken time for yourself. That matters.",
+        "ferniMessage": "Well done. Go gently."
+      }
+    }
+  },
+  "calendarView": {
+    "yourSchedule": "Your Schedule",
+    "loadingYourSchedule": "Loading your schedule...",
+    "connectYourCalendar": "Connect Your Calendar",
+    "connectDescription": "See your schedule at a glance and let Alex help manage your time.",
+    "googleCalendar": "Google Calendar",
+    "appleCalendar": "Apple Calendar",
+    "outlook": "Outlook",
+    "calendarSettings": "Calendar Settings",
+    "googleCalendarSynced": "Google Calendar synced",
+    "showEvents": "Show events",
+    "syncYourCalendarToSeeEvents": "Sync your calendar to see events",
+    "practiceViewWithInsights": "Practice view with insights",
+    "clearDayAhead": "Clear day ahead",
+    "noMeetingsScheduled": "No meetings scheduled",
+    "weekOverview": "Week Overview",
+    "jordanIsOrganizingYourWeek": "Jordan is organizing your week...",
+    "jordanOrchestrates": "Jordan orchestrates your week",
+    "today": "TODAY",
+    "spaceForWhatMatters": "Space for what matters most",
+    "intentions": "INTENTIONS",
+    "mayaNotices": "Maya notices",
+    "progressMessage": "We'll show follow-through and momentum once we have enough of your week to go on.",
+    "teamInsights": "TEAM INSIGHTS",
+    "event": "Event",
+    "task": "Task",
+    "reminder": "Reminder",
+    "habit": "Habit",
+    "spendQualityTime": "Spend quality time",
+    "restWithoutGuilt": "Rest without guilt",
+    "startWithIntention": "Start with intention",
+    "oneThingAtATime": "One thing at a time",
+    "endDayWithGratitude": "End the day with gratitude",
+    "analyzingYourCalendar": "Analyzing your calendar...",
+    "connectCalendarToSeeInsights": "Connect your calendar to see insights",
+    "calendarHealth": "Calendar Health",
+    "meetingHours": "Meeting Hours",
+    "focusTime": "Focus Time",
+    "backToBack": "Back-to-Back",
+    "lightestDay": "Lightest Day",
+    "weeklyMeetingLoad": "Weekly Meeting Load",
+    "recoveryRecommended": "Recovery Recommended",
+    "free": "Free",
+    "tryAgain": "Try Again"
+  },
+  "storyArcs": {
+    "firstLaunch": {
+      "name": "First Launch Experience",
+      "description": "Welcome a brand new user to Ferni"
+    },
+    "welcomeBack": {
+      "name": "Welcome Back",
+      "description": "Greet a returning user"
+    },
+    "connectionFlow": {
+      "name": "Connection Flow",
+      "description": "Full connection sequence"
+    },
+    "reconnection": {
+      "name": "Reconnection",
+      "description": "Handle disconnect and reconnect"
+    },
+    "conversationStart": {
+      "name": "Conversation Start",
+      "description": "Beginning of a conversation"
+    },
+    "deepConversation": {
+      "name": "Deep Conversation",
+      "description": "User opens up about something meaningful"
+    },
+    "breakthrough": {
+      "name": "Breakthrough Moment",
+      "description": "User has a realization or breakthrough"
+    },
+    "smallWin": {
+      "name": "Small Win",
+      "description": "Quick accomplishment acknowledgment"
+    },
+    "bigWin": {
+      "name": "Big Win",
+      "description": "Major achievement celebration"
+    },
+    "streakCelebration": {
+      "name": "Streak Celebration",
+      "description": "Celebrate continued streak"
+    },
+    "goalCompletion": {
+      "name": "Goal Completion",
+      "description": "User completes a goal"
+    },
+    "meetTeamMember": {
+      "name": "Meet Team Member",
+      "description": "First introduction to a new persona"
+    },
+    "personaHandoff": {
+      "name": "Persona Handoff",
+      "description": "Smooth transition between personas"
+    },
+    "teamHuddle": {
+      "name": "Team Huddle",
+      "description": "Multi-persona moment"
+    },
+    "morningGreeting": {
+      "name": "Morning Greeting",
+      "description": "Start the day right"
+    },
+    "eveningWindDown": {
+      "name": "Evening Wind Down",
+      "description": "Gentle evening session"
+    },
+    "lateNight": {
+      "name": "Late Night",
+      "description": "Calm late-night presence"
+    },
+    "birthday": {
+      "name": "Birthday Celebration",
+      "description": "User birthday celebration"
+    },
+    "anniversary": {
+      "name": "Anniversary",
+      "description": "Relationship anniversary celebration"
+    },
+    "frustrationSupport": {
+      "name": "Frustration Support",
+      "description": "Support user through frustration"
+    },
+    "sadnessSupport": {
+      "name": "Sadness Support",
+      "description": "Support user through sadness"
+    },
+    "excitementCelebration": {
+      "name": "Excitement Celebration",
+      "description": "Share in user excitement"
+    }
+  },
+  "taskMode": {
+    "workModeWith": "Work Mode with",
+    "selectStep": {
+      "title": "What would you like to work on?",
+      "subtitle": "Choose a task to get started"
+    },
+    "configureStep": {
+      "subtitle": "Provide some details to get started"
+    },
+    "selectOption": "Select...",
+    "startWorking": "Start Working",
+    "templates": {
+      "email": {
+        "name": "Draft an Email",
+        "description": "Write a professional email with the right tone",
+        "time": "5-10 min",
+        "recipientLabel": "Who is this email to?",
+        "recipientPlaceholder": "e.g., My manager, A client",
+        "purposeLabel": "What is the purpose?",
+        "purposePlaceholder": "Describe what you want to communicate...",
+        "toneLabel": "Desired tone"
+      },
+      "meetingPrep": {
+        "name": "Prepare for a Meeting",
+        "description": "Create an agenda and prepare talking points",
+        "time": "10-15 min",
+        "typeLabel": "What type of meeting?",
+        "attendeesLabel": "Who will be there?",
+        "attendeesPlaceholder": "e.g., Direct reports, CEO, Client team",
+        "objectivesLabel": "What do you want to accomplish?",
+        "objectivesPlaceholder": "List your goals for this meeting..."
+      },
+      "documentReview": {
+        "name": "Review a Document",
+        "description": "Get feedback on writing, proposals, or reports",
+        "time": "10-20 min",
+        "typeLabel": "What type of document?",
+        "contentLabel": "Paste the content to review",
+        "contentPlaceholder": "Paste your document content here...",
+        "focusLabel": "What should I focus on?",
+        "focusPlaceholder": "e.g., Clarity, persuasiveness, grammar"
+      },
+      "brainstorm": {
+        "name": "Brainstorm Ideas",
+        "description": "Generate creative ideas and solutions",
+        "time": "15-30 min",
+        "challengeLabel": "What challenge are you trying to solve?",
+        "challengePlaceholder": "Describe the problem or opportunity...",
+        "constraintsLabel": "Any constraints or requirements?",
+        "constraintsPlaceholder": "e.g., Budget limit, timeline, team size",
+        "styleLabel": "Brainstorming style"
+      },
+      "projectPlan": {
+        "name": "Create a Project Plan",
+        "description": "Break down a project into actionable steps",
+        "time": "15-25 min",
+        "projectLabel": "What is the project?",
+        "projectPlaceholder": "Project name or description",
+        "goalLabel": "What is the end goal?",
+        "goalPlaceholder": "What does success look like?",
+        "timelineLabel": "Timeline"
+      }
+    },
+    "common": {
+      "professional": "Professional",
+      "friendly": "Friendly",
+      "formal": "Formal",
+      "apologetic": "Apologetic",
+      "persuasive": "Persuasive",
+      "teamSync": "Team sync",
+      "oneOnOne": "One-on-one",
+      "clientPresentation": "Client presentation",
+      "projectKickoff": "Project kickoff",
+      "performanceReview": "Performance review",
+      "report": "Report",
+      "proposal": "Proposal",
+      "presentation": "Presentation",
+      "article": "Article",
+      "policy": "Policy",
+      "other": "Other",
+      "wideRange": "Wide range of ideas",
+      "practicalSolutions": "Practical solutions",
+      "creative": "Creative/outside the box",
+      "quickWins": "Quick wins",
+      "oneWeek": "1 week",
+      "twoWeeks": "2 weeks",
+      "oneMonth": "1 month",
+      "threeMonths": "3 months",
+      "flexible": "Flexible"
+    }
+  },
+  "chronicle": {
+    "eyebrow": "YOUR CHRONICLE",
+    "title": "Your Story",
+    "subtitle": "Capture your thoughts, wisdom, and growth",
+    "loading": "Loading your chronicle...",
+    "backButton": "Back",
+    "captureThought": "Capture a Thought",
+    "capturePlaceholder": "What's on your mind right now?",
+    "captureTextPlaceholder": "Write freely. No one will see this but you...",
+    "saveEntry": "Save Entry",
+    "yourPastSelf": "Your Past Self",
+    "pastSelfDescription": "Reflecting from your journal entries",
+    "conversationPlaceholder": "Ask your past self something...",
+    "conversationHint": "Speak with the perspective you've captured in your journals",
+    "dayStreak": "Day Streak",
+    "entries": "Entries",
+    "captureActionTitle": "Capture a Thought",
+    "captureActionDescription": "Write freely. Text captures what you might never say aloud.",
+    "talkToPastSelf": "Talk to Past Self",
+    "talkToPastSelfDescription": "Have a conversation with who you were.",
+    "patternsINotice": "Patterns I Notice",
+    "fromYourPast": "From Your Past",
+    "speakYourMind": "Speak Your Mind",
+    "speakYourMindDescription": "Your voice captures nuance that text never could.",
+    "twoPathsOneStory": "Two Paths, One Story",
+    "textCapturesReflection": "Text Captures Reflection",
+    "textCapturesDescription": "Writing helps you process. The act of finding words for feelings transforms them.",
+    "voiceCapturesEmotion": "Voice Captures Emotion",
+    "voiceCapturesDescription": "Speaking reveals what writing filters. The pauses, the tone, the spontaneity."
+  },
+  "marketplacePermissionConsent": {
+    "required": "Required Permissions",
+    "requiredPermissions": "These permissions enable core functionality",
+    "optionalPermissions": "Optional Permissions",
+    "settingsHint": "You can change these in Settings",
+    "permissions": {
+      "communicationEmailSend": "Send emails",
+      "communicationNotify": "Send notifications",
+      "communicationSmsSend": "Send SMS",
+      "externalHttpRead": "Read external HTTP",
+      "externalHttpWrite": "Write external HTTP",
+      "externalWebhookReceive": "Receive webhooks",
+      "platformAgentsHandoff": "Agent handoff",
+      "platformBillingRead": "Read billing",
+      "platformToolsInvoke": "Invoke tools",
+      "storageBlobRead": "Read blob storage",
+      "storageBlobWrite": "Write blob storage",
+      "storageFilesRead": "Read files",
+      "storageFilesWrite": "Write files",
+      "userCalendarRead": "Read calendar",
+      "userCalendarWrite": "Write calendar",
+      "userContactsRead": "Read contacts",
+      "userContactsWrite": "Write contacts",
+      "userFinanceRead": "Read financial data",
+      "userFinanceWrite": "Write financial data",
+      "userHabitsRead": "Read habits",
+      "userHabitsWrite": "Write habits",
+      "userHealthRead": "Read health data",
+      "userHealthWrite": "Write health data",
+      "userMemoryDelete": "Delete memories",
+      "userMemoryRead": "Read memories",
+      "userMemoryWrite": "Write memories",
+      "userProfileRead": "Read profile",
+      "userProfileWrite": "Write profile"
+    },
+    "trustBadges": {
+      "byFerni": "Built by Ferni",
+      "verified": "Verified",
+      "community": "Community Built",
+      "reviewPending": "Review Pending"
+    }
+  },
+  "sanctuary": {
+    "sectionEyebrow": {
+      "insights": "What I Notice",
+      "practices": "Guided Practices",
+      "inspiration": "A thought"
+    },
+    "sectionTitle": {
+      "insights": "Better than human memory",
+      "practices": "Choose what calls to you"
+    },
+    "suggestedForNow": "Suggested for now",
+    "begin": "Begin",
+    "categoryGround": "Ground",
+    "categoryGroundDescription": "Find your center",
+    "categoryReflect": "Reflect",
+    "categoryReflectDescription": "Look within",
+    "categoryExplore": "Explore",
+    "categoryExploreDescription": "Open to possibility",
+    "categoryConnect": "Connect",
+    "categoryConnectDescription": "Nurture relationships",
+    "categoryGrow": "Grow",
+    "categoryGrowDescription": "Gentle progress",
+    "insightYourMorningsSetTone": "Your mornings set the tone",
+    "insightYourMorningsDesc": "The conversations you start your day with tend to shape how the rest unfolds.",
+    "insightEveningReflectionsHelp": "Evening reflections help",
+    "insightEveningReflectionsDesc": "Taking a moment to reflect before rest often brings clarity to the next day.",
+    "insightIRememberEverything": "I remember everything",
+    "insightIRememberEverythingDesc": "Every conversation, every detail, every growth moment. I hold your story complete.",
+    "practiceSetYourIntention": "Set Your Intention",
+    "practiceSetYourIntentionDesc": "Begin with clarity. What matters most today?",
+    "practiceGratitudeMoment": "Gratitude Moment",
+    "practiceGratitudeMomentDesc": "Notice what's already good. A small pause for appreciation.",
+    "practiceThinkItThrough": "Think It Through",
+    "practiceThinkItThroughDesc": "A challenge on your mind? Let's explore it together.",
+    "practiceWeeklyReflection": "Weekly Reflection",
+    "practiceWeeklyReflectionDesc": "Look back with kindness. Celebrate progress. Plan gently.",
+    "practiceWindDown": "Wind Down",
+    "practiceWindDownDesc": "Release the day gently. Let tomorrow wait.",
+    "greetingMorning": {
+      "0": "Good morning",
+      "1": "A fresh start",
+      "2": "The day awaits",
+      "3": "Rise gently"
+    },
+    "greetingAfternoon": {
+      "0": "Good afternoon",
+      "1": "The day continues",
+      "2": "A pause in the day",
+      "3": "Midday moment"
+    },
+    "greetingEvening": {
+      "0": "Good evening",
+      "1": "As the day winds down",
+      "2": "Evening reflections",
+      "3": "A quiet moment"
+    },
+    "greetingNight": {
+      "0": "Still here with you",
+      "1": "In the quiet hours",
+      "2": "The night holds space",
+      "3": "Rest is coming"
+    }
+  },
+  "customAgentEditor": {
+    "title": "Edit Agent",
+    "tabInfo": "Info",
+    "tabPersonality": "Personality",
+    "tabVoice": "Voice",
+    "tabMemories": "Memories",
+    "deleteAgent": "Delete Agent",
+    "cancel": "Cancel",
+    "saveChanges": "Save Changes",
+    "basicInformation": "Basic Information",
+    "fieldName": "Name",
+    "fieldNamePlaceholder": "Agent name",
+    "fieldDisplayName": "Display Name",
+    "fieldDisplayNamePlaceholder": "How they introduce themselves",
+    "fieldDescription": "Description",
+    "fieldDescriptionPlaceholder": "Who is this agent?",
+    "fieldStatus": "Status",
+    "statusDraft": "Draft",
+    "statusActive": "Active",
+    "statusPaused": "Paused",
+    "statusHint": "Active agents can be used in conversations.",
+    "communicationStyle": "Communication Style",
+    "personalityTraits": "Personality Traits",
+    "cognitiveStyle": "Cognitive Style",
+    "empathetic": "Empathetic",
+    "analytical": "Analytical",
+    "balanced": "Balanced",
+    "currentVoice": "Current Voice",
+    "voiceLibrary": "Voice Library",
+    "voiceLibraryHint": "Select a pre-made voice from our library",
+    "voiceSettings": "Voice Settings",
+    "addMemory": "Add Memory",
+    "noMemoriesYet": "No memories yet",
+    "noMemoriesHint": "Add stories, wisdom, or shared moments",
+    "discardChangesTitle": "Discard changes?",
+    "discardChangesMessage": "You have unsaved changes. Are you sure you want to close?"
+  },
+  "ferniFund": {
+    "title": "Ferni's Garden",
+    "subtitle": "Ferni doesn't have a paywall. It has a community.",
+    "gardeners": "Gardeners",
+    "seedsPlanted": "Seeds Planted",
+    "thisMonth": "This Month",
+    "oneTimeContribution": "One-time contribution",
+    "becomeFoundingSupporter": "Become a Founding supporter",
+    "monthly": "Monthly",
+    "plantSeeds": "Plant Seeds",
+    "footer": "Ferni is free forever. Your support keeps it that way for everyone.",
+    "processing": "Processing your contribution...",
+    "seedPlanted": "Your seed is planted",
+    "yourImpact": "Your Impact",
+    "plantASeed": "Plant a Seed",
+    "plantASeedDesc": "A small gesture of support",
+    "sponsorConversation": "Sponsor a Conversation",
+    "sponsorConversationDesc": "Help someone find clarity",
+    "helpSomeoneStart": "Help Someone Get Started",
+    "helpSomeoneStartDesc": "Welcome a new friend",
+    "supportMission": "Support the Mission",
+    "supportMissionDesc": "Keep Ferni free for everyone",
+    "foundingMember": "Founding Member",
+    "foundingMemberDesc": "$10/month - Chip in to help",
+    "foundingPatron": "Founding Patron",
+    "foundingPatronDesc": "$20/month - Shape what we become",
+    "gardenImpact": "Your Garden Impact",
+    "thankYou": "Thank you for keeping Ferni free",
+    "yourStatus": "Your Status",
+    "monthlySupport": "Monthly Support",
+    "gardenThisMonth": "The Garden This Month",
+    "plantMoreSeeds": "Plant More Seeds",
+    "startYourGarden": "Start Your Garden",
+    "plantYourFirstSeed": "Plant Your First Seed",
+    "loadingGarden": "Loading your garden..."
+  },
+  "personaIntro": {
+    "maya": {
+      "step1": {
+        "eyebrow": "MEET YOUR HABITS COACH",
+        "title": "This is Maya",
+        "body": "Maya has this gift for making hard things feel possible. She doesn't believe in willpower - she believes in systems. Small ones. The kind you don't even notice until they've changed your life.",
+        "buttonText": "Tell me more"
+      },
+      "step2": {
+        "eyebrow": "HER SUPERPOWER",
+        "title": "Start Embarrassingly Small",
+        "body": "Maya's philosophy? If you're not embarrassed by how small you're starting, you're starting too big. Want to exercise? Start with one pushup. Want to read? One page. She's relentless about this.",
+        "buttonText": "How does she help?"
+      },
+      "step3": {
+        "eyebrow": "READY TO BEGIN",
+        "title": "Your First Conversation",
+        "body": "Tell Maya about one thing you've been meaning to do but keep putting off. She won't judge the delay - she'll help you find the tiniest possible first step.",
+        "buttonText": "Talk to Maya"
+      },
+      "funFact": "Maya once helped someone finally learn guitar by having them just hold it for 2 minutes a day. Three months later? First song.",
+      "firstConversationPrompt": "What's one small thing you've been putting off?"
+    },
+    "peter": {
+      "step1": {
+        "eyebrow": "MEET THE RESEARCHER",
+        "title": "This is Peter",
+        "body": "Peter sees patterns nobody else sees. He's part data scientist, part philosopher, part detective. When you share your life with him, he connects dots you didn't know existed.",
+        "buttonText": "Tell me more"
+      },
+      "step2": {
+        "eyebrow": "HIS SUPERPOWER",
+        "title": "Finding Hidden Patterns",
+        "body": "Peter tracks what most people ignore - the small correlations between your mood, sleep, habits, and outcomes. Over time, he helps you understand yourself in ways that feel almost magical.",
+        "buttonText": "How does he help?"
+      },
+      "step3": {
+        "eyebrow": "READY TO BEGIN",
+        "title": "Your First Conversation",
+        "body": "Peter would love to know about a recent decision you made - good or bad. He's curious about the factors that led to it, even the ones you might not have considered.",
+        "buttonText": "Talk to Peter"
+      },
+      "funFact": "Peter once predicted a user would get sick 3 days before they did, just from subtle changes in their conversation patterns.",
+      "firstConversationPrompt": "What's a decision you've been thinking about lately?"
+    },
+    "alex": {
+      "step1": {
+        "eyebrow": "MEET YOUR CHIEF OF STAFF",
+        "title": "This is Alex",
+        "body": "Alex is the person you wish you had in every difficult conversation. She's a communication coach who helps you say what you mean - and hear what others really mean.",
+        "buttonText": "Tell me more"
+      },
+      "step2": {
+        "eyebrow": "THEIR SUPERPOWER",
+        "title": "Words That Work",
+        "body": "Ever sent an email you regretted? Had a conversation go sideways? Alex helps you prepare for high-stakes moments and debrief the ones that didn't go as planned.",
+        "buttonText": "How do they help?"
+      },
+      "step3": {
+        "eyebrow": "READY TO BEGIN",
+        "title": "Your First Conversation",
+        "body": "Tell Alex about a conversation you've been avoiding, or one that didn't go the way you hoped. She'll help you see it differently - and prepare for next time.",
+        "buttonText": "Talk to Alex"
+      },
+      "funFact": "Alex helped someone negotiate a 40% raise with just three sentences they'd never thought to say.",
+      "firstConversationPrompt": "Is there a conversation you've been putting off?"
+    },
+    "jordan": {
+      "step1": {
+        "eyebrow": "MEET YOUR PLANNER",
+        "title": "This is Jordan",
+        "body": "Jordan turns vague dreams into actual plans. Not someday plans. Real ones, with dates and steps and backup options. She's obsessed with making your future feel as real as your present.",
+        "buttonText": "Tell me more"
+      },
+      "step2": {
+        "eyebrow": "THEIR SUPERPOWER",
+        "title": "Dreams into Dates",
+        "body": "That trip you've 'always wanted to take'? That project you'll start 'when you have time'? Jordan doesn't let those stay hypothetical. She makes them concrete.",
+        "buttonText": "How do they help?"
+      },
+      "step3": {
+        "eyebrow": "READY TO BEGIN",
+        "title": "Your First Conversation",
+        "body": "Share something you've been wanting to do 'someday.' Jordan will help you figure out what 'someday' actually looks like - and take the first real step toward it.",
+        "buttonText": "Talk to Jordan"
+      },
+      "funFact": "Jordan helped someone plan their dream wedding in 6 weeks after they'd been 'figuring it out' for 2 years.",
+      "firstConversationPrompt": "What's something you've always wanted to do but never planned?"
+    },
+    "nayan": {
+      "step1": {
+        "eyebrow": "MEET THE SAGE",
+        "title": "This is Nayan",
+        "body": "Nayan is different. Quieter. Deeper. He's the wise friend who asks the questions that stay with you for days. He's not here to fix problems - he's here to help you see them differently.",
+        "buttonText": "Tell me more"
+      },
+      "step2": {
+        "eyebrow": "HIS SUPERPOWER",
+        "title": "The Long View",
+        "body": "While others focus on the next step, Nayan thinks in decades. He helps you connect today's small actions to the person you're becoming. His favorite phrase? 'Small, consistent actions create extraordinary results.'",
+        "buttonText": "What wisdom does he share?"
+      },
+      "step3": {
+        "eyebrow": "READY TO BEGIN",
+        "title": "Your First Conversation",
+        "body": "Nayan doesn't do small talk. Tell him what you're really wrestling with - the big stuff. The meaning stuff. He's listening.",
+        "buttonText": "Talk to Nayan"
+      },
+      "funFact": "Nayan once answered a question with silence that lasted 30 seconds. The user said it was the most helpful thing anyone had ever done.",
+      "firstConversationPrompt": "What's something you've been thinking about deeply lately?"
+    }
+  },
+  "cosmetics": {
+    "classicFerni": "Classic Ferni",
+    "classicFerniDesc": "The original sage green Ferni you know and love",
+    "zenGarden": "Zen Garden",
+    "zenGardenDesc": "Clean, natural, serene light theme",
+    "cosmicFerni": "Cosmic Ferni",
+    "cosmicFerniDesc": "Deep space purple with stardust particles",
+    "goldenHour": "Golden Hour",
+    "goldenHourDesc": "Warm sunset gradient that glows",
+    "deepOcean": "Deep Ocean",
+    "deepOceanDesc": "Calming ocean blue with wave shimmer",
+    "northernLights": "Northern Lights",
+    "northernLightsDesc": "Shifting aurora borealis effect",
+    "deepForest": "Deep Forest",
+    "deepForestDesc": "Rich forest greens for a grounding experience",
+    "midnight": "Midnight",
+    "midnightDesc": "True dark mode with warm cedar tones",
+    "cozyCabin": "Cozy Cabin",
+    "cozyCabinDesc": "Warm amber tones like firelight",
+    "gentleRain": "Gentle Rain",
+    "gentleRainDesc": "Soft rainfall ambient sounds",
+    "crackling Fire": "Crackling Fire",
+    "crackling FireDesc": "Cozy fireplace ambience",
+    "forestMorning": "Forest Morning",
+    "forestMorningDesc": "Birds and gentle wind through trees",
+    "natural": "Natural",
+    "extraWarm": "Extra Warm",
+    "extraWarmDesc": "A warmer, more comforting tone",
+    "zenCalm": "Zen Calm",
+    "zenCalmDesc": "Slower, more meditative pace",
+    "energetic": "Energetic",
+    "energeticDesc": "More upbeat and motivating"
+  },
+  "outreachSettings": {
+    "eyebrow": "OUTREACH",
+    "title": "Stay Connected",
+    "subtitle": "Control how I check in with you",
+    "proactiveOutreach": "Proactive Outreach",
+    "proactiveOutreachDesc": "Allow me to reach out to you between conversations",
+    "howToReachYou": "How to reach you",
+    "email": "Email",
+    "phonecall": "Phone Call",
+    "text": "Text (SMS)",
+    "howOften": "How often",
+    "minimal": "Minimal",
+    "minimalDesc": "Only important things",
+    "balanced": "Balanced",
+    "balancedDesc": "A thoughtful friend",
+    "active": "Active",
+    "activeDesc": "Proactive partner",
+    "quietHours": "Quiet Hours",
+    "quietHoursDesc": "No outreach during these times",
+    "from": "From",
+    "until": "Until",
+    "whatWereach": "What I'll reach out about",
+    "commitments": "Commitments",
+    "commitmentsDesc": "Check in on things you said you'd do",
+    "support": "Support",
+    "supportDesc": "Check in when you might need it",
+    "celebrations": "Celebrations",
+    "celebrationsDesc": "Celebrate your wins with you",
+    "thinkingOfYou": "Thinking of You",
+    "thinkingOfYouDesc": "Random moments of connection",
+    "reminders": "Reminders",
+    "remindersDesc": "Important dates and events",
+    "savePreferences": "Save Preferences"
+  },
+  "memoryInputModal": {
+    "title": "Add Memory",
+    "cancel": "Cancel",
+    "addMemory": "Add Memory",
+    "story": "Story",
+    "storyDesc": "A meaningful story or experience",
+    "storyTitle": "Title",
+    "storyTitlePlaceholder": "Give this story a name",
+    "storyContent": "The Story",
+    "storyContentPlaceholder": "Tell the story in detail...",
+    "storyContext": "Context",
+    "storyContextPlaceholder": "When/where did this happen?",
+    "wisdom": "Wisdom",
+    "wisdomDesc": "A saying, lesson, or piece of advice",
+    "wisdomSaying": "The Saying",
+    "wisdomSayingPlaceholder": "\"Life is what happens when...\"",
+    "wisdomMeaning": "What It Means",
+    "wisdomMeaningPlaceholder": "Explain the wisdom behind it...",
+    "wisdomOrigin": "Origin",
+    "wisdomOriginPlaceholder": "Where did they learn this?",
+    "sharedMoment": "Shared Moment",
+    "sharedMomentDesc": "A special memory you shared together",
+    "momentTitle": "Title",
+    "momentTitlePlaceholder": "Name this moment",
+    "momentContent": "The Memory",
+    "momentContentPlaceholder": "Describe what happened...",
+    "momentContext": "When & Where",
+    "momentContextPlaceholder": "Summer 2019, at the lake house...",
+    "journalEntry": "Journal Entry",
+    "journalEntryDesc": "A personal reflection or thought",
+    "journalThoughts": "Your Thoughts",
+    "journalThoughtsPlaceholder": "Write what's on your mind...",
+    "journalMood": "How are you feeling?",
+    "journalMoodPlaceholder": "peaceful, anxious, grateful..."
+  },
+  "publisherPortal": {
+    "title": "Publisher Portal",
+    "subtitle": "Manage your tools and agents",
+    "myItems": "My Items",
+    "analytics": "Analytics",
+    "submitNew": "Submit New",
+    "errorLoadingData": "Couldn't load data.",
+    "tryAgain": "Try again?",
+    "noItems": "No items yet",
+    "noItemsDesc": "Submit your first tool or agent to get started",
+    "statusLive": "Live",
+    "statusInReview": "In Review",
+    "statusRejected": "Rejected",
+    "tools": "Tools",
+    "agents": "Agents",
+    "selectItem": "Select an item",
+    "totalInstalls": "Total Installs",
+    "executions": "Executions",
+    "successRate": "Success Rate",
+    "chartComingSoon": "Usage chart coming soon",
+    "basicInformation": "Basic Information",
+    "type": "Type",
+    "idHint": "Lowercase letters, numbers, and hyphens only",
+    "displayName": "Display Name",
+    "version": "Version",
+    "description": "Description",
+    "pricing": "Pricing",
+    "pricingModel": "Pricing Model",
+    "pricingFree": "Free",
+    "pricingPayPerUse": "Pay per use",
+    "pricingSubscription": "Subscription"
+  },
+  "coachingMode": {
+    "sessionWith": "Coaching Session with",
+    "whatToWorkOn": "What would you like to work on?",
+    "chooseTopic": "Choose a topic for today's coaching session",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "tellMeMore": "Tell me more",
+    "whatMindAbout": "What's on your mind about {topic}?",
+    "whatsTheSituation": "What's the situation?",
+    "describeContext": "Describe what's going on. The more context you share, the better I can help...",
+    "whatOutcome": "What outcome would feel good?",
+    "walkAway": "What would you like to walk away with from this session?",
+    "back": "Back",
+    "readyToBegin": "Ready to Begin",
+    "topicLabel": "Topic",
+    "contextLabel": "Context",
+    "goalLabel": "Goal",
+    "edit": "Edit",
+    "startSession": "Start Session",
+    "topics": {
+      "career": "Career Growth",
+      "careerDesc": "Navigate your professional journey",
+      "mindset": "Mindset",
+      "mindsetDesc": "Build mental strength",
+      "relationships": "Relationships",
+      "relationshipsDesc": "Improve connections",
+      "habits": "Habits & Discipline",
+      "habitsDesc": "Build better routines",
+      "decisions": "Decision Making",
+      "decisionsDesc": "Navigate tough choices",
+      "other": "Something Else",
+      "otherDesc": "Custom coaching topic"
+    }
+  },
+  "ritualEngine": {
+    "morningWake": "Morning Wake",
+    "morningWakeDesc": "The app breathing to life",
+    "connectionEstablished": "Connection Established",
+    "connectionEstablishedDesc": "We are connected",
+    "sessionFarewell": "Session Farewell",
+    "sessionFarewellDesc": "Gentle goodbye",
+    "firstWords": "First Words",
+    "firstWordsDesc": "User starts speaking",
+    "personaEntrance": "Persona Entrance",
+    "personaEntranceDesc": "A persona arrives",
+    "personaHandoff": "Persona Handoff",
+    "personaHandoffDesc": "Transition between personas",
+    "smallWin": "Small Win",
+    "smallWinDesc": "Quick acknowledgment",
+    "bigWin": "Big Win",
+    "bigWinDesc": "Major achievement celebration",
+    "milestone": "Milestone",
+    "milestoneDesc": "Significant progress marker",
+    "streakCelebration": "Streak Celebration",
+    "streakCelebrationDesc": "Consistency reward",
+    "teamMemberUnlock": "Team Member Unlock",
+    "teamMemberUnlockDesc": "New persona available",
+    "deepMoment": "Deep Moment",
+    "deepMomentDesc": "Emotional breakthrough acknowledgment",
+    "thinkingOfYou": "Thinking of You",
+    "thinkingOfYouDesc": "Proactive no-agenda outreach",
+    "sessionEnd": "Session End",
+    "sessionEndDesc": "Wrapping up the conversation"
+  },
+  "professionalTasks": {
+    "assistant": "Professional Assistant",
+    "quickActions": "Quick Actions",
+    "brainstorm": "Brainstorm",
+    "reviewWork": "Review Work",
+    "draftContent": "Draft Content",
+    "analyzeData": "Analyze Data",
+    "skillsExpertise": "Skills & Expertise",
+    "addSkill": "Add Skill",
+    "noSkills": "No skills defined",
+    "noSkillsDesc": "Add the skills this assistant specializes in.",
+    "domainKnowledge": "Domain Knowledge",
+    "addDomain": "Add Domain",
+    "noDomains": "No domain knowledge",
+    "noDomainsDesc": "Define the areas this assistant has expertise in.",
+    "taskTemplates": "Task Templates",
+    "templates": {
+      "email": "Draft Email",
+      "emailDesc": "Compose a professional email",
+      "meeting": "Meeting Prep",
+      "meetingDesc": "Prepare agenda and talking points",
+      "summary": "Summarize Document",
+      "summaryDesc": "Create a concise summary",
+      "plan": "Project Planning",
+      "planDesc": "Break down tasks and timeline"
+    }
+  },
+  "characterSheet": {
+    "title": "Character Profile",
+    "backstory": "Backstory",
+    "edit": "Edit",
+    "noBackstoryYet": "No backstory yet",
+    "noBackstoryText": "Every great character has a story. What's theirs?",
+    "personality": "Personality",
+    "quirksHabits": "Quirks & Habits",
+    "add": "Add",
+    "noQuirksDefined": "No quirks defined",
+    "noQuirksText": "What makes this character unique? Add their habits and quirks.",
+    "catchphrases": "Catchphrases",
+    "noCatchphrasesYet": "No catchphrases yet",
+    "noCatchphrasesText": "What does this character always say?",
+    "delete": "Delete",
+    "relationships": "Relationships",
+    "noRelationshipsDefined": "No relationships defined",
+    "noRelationshipsText": "Who are the important people in this character's life?",
+    "remove": "Remove",
+    "warmth": "Warmth",
+    "humor": "Humor",
+    "energy": "Energy",
+    "mystery": "Mystery",
+    "traitVeryLow": "Very Low",
+    "traitLow": "Low",
+    "traitModerate": "Moderate",
+    "traitHigh": "High",
+    "traitVeryHigh": "Very High"
+  },
+  "integrationsSettings": {
+    "betterThanHuman": "Better than Human",
+    "superhuman": "Give Ferni superhuman awareness",
+    "capabilitiesActive": "capabilities active",
+    "healthBiometrics": "Health & Biometrics",
+    "knownWhenStressed": "Know when you're stressed, tired, or at your best",
+    "disconnect": "Disconnect",
+    "notAvailableYet": "Not available yet",
+    "calendar": "Calendar",
+    "anticipateDay": "Anticipate your day and prepare you for what's ahead",
+    "googleCalendar": "Google Calendar",
+    "connectGoogleCalendar": "Connect Google Calendar",
+    "stressAwareness": "Stress awareness from HRV",
+    "sleepQuality": "Sleep quality insights",
+    "eventAnticipation": "Event anticipation",
+    "locationAwareness": "Location awareness",
+    "career": "Career",
+    "rememberAnniversaries": "Remember work anniversaries, role changes, and career wins",
+    "connectLinkedIn": "Connect LinkedIn",
+    "careerMilestoneAwareness": "Career milestone awareness",
+    "banking": "Banking",
+    "predictCashFlow": "Predict cash flow and catch money stress before it hits",
+    "connectViaPlaid": "Connect via Plaid",
+    "financialPrediction": "Financial prediction",
+    "relationshipAwareness": "Relationship Awareness",
+    "rememberEveryone": "Remember everyone important to you from our conversations",
+    "viewRelationships": "View relationships",
+    "clearData": "Clear data",
+    "peopleTracked": "people tracked",
+    "relationshipInsights": "Relationship insights",
+    "connected": "Connected",
+    "notConnected": "Not connected"
+  },
+  "recordGift": {
+    "title": "Record a Gift",
+    "youGave": "You gave",
+    "youReceived": "You received",
+    "whatWasTheGift": "What was the gift?",
+    "occasion": "Occasion",
+    "when": "When",
+    "birthday": "Birthday",
+    "christmas": "Christmas",
+    "anniversary": "Anniversary",
+    "graduation": "Graduation",
+    "wedding": "Wedding",
+    "babyShower": "Baby Shower",
+    "housewarming": "Housewarming",
+    "thankYou": "Thank You",
+    "justBecause": "Just Because",
+    "other": "Other...",
+    "whatWasTheOccasion": "What was the occasion?",
+    "howDidTheyReact": "How did they react?",
+    "lovedIt": "Loved it",
+    "likedIt": "Liked it",
+    "meh": "Meh",
+    "nope": "Nope",
+    "cancel": "Cancel",
+    "additionalDetails": "Any additional details to remember..."
+  },
+  "logMoment": {
+    "title": "Log a Moment",
+    "whatHappened": "What happened?",
+    "call": "Call",
+    "text": "Text",
+    "email": "Email",
+    "video": "Video",
+    "voice": "Voice",
+    "coffee": "Coffee",
+    "meal": "Meal",
+    "hangout": "Hangout",
+    "activity": "Activity",
+    "trip": "Trip",
+    "visit": "Visit",
+    "meeting": "Meeting",
+    "social": "Social",
+    "other": "Other",
+    "whoInitiated": "Who initiated?",
+    "youReachedOut": "You reached out",
+    "theyReachedOut": "They reached out",
+    "together": "Together",
+    "when": "When?",
+    "quickNote": "Quick note (optional)",
+    "howDidItFeel": "How did it feel?",
+    "great": "Great",
+    "okay": "Okay",
+    "tough": "Tough",
+    "moreOptions": "More options",
+    "duration": "Duration (minutes)",
+    "topicsDiscussed": "Topics discussed (comma-separated)",
+    "cancel": "Cancel"
+  },
+  "birthdayReminders": {
+    "title": "Birthday reminders",
+    "description": "How many days before birthdays",
+    "anniversaryTitle": "Anniversary reminders",
+    "anniversaryDescription": "How many days before anniversaries",
+    "reminderTimeTitle": "Reminder time",
+    "reminderTimeDescription": "When to send reminders",
+    "inConversation": "In conversation",
+    "inConversationDesc": "Ferni mentions upcoming dates naturally",
+    "pushNotifications": "Push notifications",
+    "pushNotificationsDesc": "Get notified on your device",
+    "emailReminders": "Email reminders",
+    "emailRemindersDesc": "Receive email notifications",
+    "giftIdeas": "Gift ideas",
+    "giftIdeasDesc": "Get personalized gift suggestions",
+    "messageDrafts": "Message drafts",
+    "messageDraftsDesc": "Get suggested birthday messages",
+    "neverForget": "Never Forget",
+    "weRemember": "We remember so you don't have to",
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "saveSettings": "Save Settings",
+    "noUpcomingDates": "No upcoming dates in the next 30 days"
+  },
+  "relationshipCard": {
+    "overview": "Overview",
+    "timeline": "Timeline",
+    "gifts": "Gifts",
+    "events": "Events",
+    "notes": "Notes",
+    "noActivityRecorded": "No activity recorded yet. Log your first moment together!",
+    "loadingYourStory": "Loading your story together...",
+    "noMomentsRecorded": "No moments recorded",
+    "everyCallBecomesPart": "Every call, text, coffee date, and hangout becomes part of your story together.",
+    "loadingGiftHistory": "Loading gift history...",
+    "noGiftsRecorded": "No gifts recorded",
+    "trackWhatYouGive": "Track what you give and receive. Never repeat a gift or forget a reaction.",
+    "giftsYouveGiven": "Gifts You've Given",
+    "giftsYouveReceived": "Gifts You've Received",
+    "loadingEvents": "Loading events...",
+    "noImportantDates": "No important dates yet",
+    "pastEvents": "Past Events",
+    "thingsToAvoid": "Things to avoid",
+    "loading": "Loading...",
+    "clickToChangePhoto": "Click to change photo",
+    "textMessage": "Text message"
+  },
+  "valueCapture": {
+    "youDidIt": "You Did It!",
+    "youDidItMsg": "That's real money in your pocket. You earned every cent.",
+    "smartMove": "Smart Move!",
+    "smartMoveMsg": "That's money staying where it belongs - with you.",
+    "congratulations": "Congratulations!",
+    "congratulationsMsg": "All that work paid off. You showed them what you're made of.",
+    "beautiful": "Beautiful",
+    "beautifulMsg": "Real connection. Real growth. That matters.",
+    "lookAtYou": "Look at You!",
+    "lookAtYouMsg": "Your body is thanking you. That's quality of life.",
+    "crushingIt": "Crushing It!",
+    "crushingItMsg": "Time well spent. Look what you accomplished.",
+    "breakthrough": "Breakthrough!",
+    "breakthroughMsg": "Sometimes the right question changes everything.",
+    "soProudOfYou": "So Proud of You",
+    "soProudMsg": "That took courage. Real courage.",
+    "keepCrushingIt": "Keep Crushing It",
+    "yourAchievement": "Your achievement",
+    "ifIPlayedAnyPart": "If I played any part in this, you can share what it's worth.",
+    "noPressureAtAll": "No pressure at all.",
+    "shareTheWin": "Share the Win",
+    "justCelebrate": "Just celebrate this moment",
+    "processingContribution": "Processing your contribution...",
+    "youreIncredible": "You're Incredible",
+    "imSoProud": "I'm so proud of you."
+  },
+  "capabilityHub": {
+    "loadingCapabilities": "Loading your capabilities...",
+    "betterThanHuman": "BETTER THAN HUMAN",
+    "whatMakesFerniDifferent": "What Makes Ferni Different",
+    "perfectMemory": "Perfect Memory",
+    "perfectMemoryDesc": "I remember everything you share with me - from your daughter's college plans to the name of your childhood pet. No detail is too small.",
+    "thinkingOfYou": "Thinking of You",
+    "learnsYourPatterns": "Learns Your Patterns",
+    "learnsYourPatternsDesc": "Every conversation makes me smarter about you. I learn what helps, what doesn't, and adapt my approach accordingly.",
+    "neverLetsYouDown": "Never Lets You Down",
+    "ourSongs": "Our Songs",
+    "readsBetweenLines": "Reads Between Lines",
+    "readsBetweenLinesDesc": "I hear what you're not saying - the pause in your voice, the topic you're avoiding, the thing you almost mentioned.",
+    "relationshipNetwork": "Relationship Network",
+    "capacityGuardian": "Capacity Guardian",
+    "capacityGuardianDesc": "I watch for burnout before it hits. By tracking your patterns, I can gently suggest when you're overcommitting.",
+    "dreamKeeper": "Dream Keeper",
+    "seasonalAwareness": "Seasonal Awareness",
+    "learnMore": "Learn More",
+    "close": "Close"
+  },
+  "teamObservationsPanel": {
+    "synthesis": "Team Synthesis",
+    "assessment": "Overall Assessment",
+    "connections": "Cross-Domain Connections",
+    "recommendations": "Team Recommendations",
+    "loading": "Loading team observations...",
+    "empty": {
+      "title": "No team observations yet",
+      "description": "As you talk with the team, they'll share insights with each other."
+    },
+    "recent": "Recent Observations",
+    "title": "Team Observations"
+  },
+  "observationTypes": {
+    "insight": "Insight",
+    "concern": "Concern",
+    "opportunity": "Opportunity",
+    "pattern": "Pattern",
+    "milestone": "Milestone"
+  },
+  "voiceLibrary": {
+    "emma": {
+      "description": "Warm and friendly voice, perfect for supportive conversations"
+    },
+    "james": {
+      "description": "Clear and professional voice, ideal for mentors and advisors"
+    },
+    "sarah": {
+      "description": "Gentle and soothing voice, great for legacy personas"
+    },
+    "alex": {
+      "description": "Energetic and motivating voice, perfect for coaches"
+    },
+    "morgan": {
+      "description": "Calm and balanced voice, suitable for any persona type"
+    }
+  },
+  "agentTypes": {
+    "legacy": {
+      "name": "Legacy",
+      "description": "Preserve the voice and wisdom of someone you cherish"
+    },
+    "mentor": {
+      "name": "Mentor",
+      "description": "Create a coach based on an inspiring figure or expert"
+    },
+    "twin": {
+      "name": "Digital Twin",
+      "description": "Your personal voice journal that grows with you"
+    },
+    "fictional": {
+      "name": "Fictional",
+      "description": "Bring a character to life with unique personality"
+    },
+    "professional": {
+      "name": "Professional",
+      "description": "Build a specialized assistant for work tasks"
+    }
+  },
+  "voiceEnrollment": {
+    "eyebrow": "VOICE RECOGNITION",
+    "title": "Let me learn your voice",
+    "checking": {
+      "title": "Checking voice system...",
+      "message": "One moment while we set things up."
+    },
+    "unavailable": {
+      "title": "Voice recognition unavailable",
+      "message": "Voice authentication isn't available right now. This may be a temporary issue—please try again later.",
+      "button": "Got it"
+    },
+    "enrolled": {
+      "title": "I already know your voice!",
+      "messagePrefix": "You enrolled on",
+      "messageQuality": "Your voiceprint is",
+      "messageSuffix": "% quality.",
+      "sampleLabel": "Samples",
+      "verificationLabel": "Verifications",
+      "deleteButton": "Delete voiceprint",
+      "doneButton": "Done"
+    },
+    "ready": {
+      "cancelButton": "Maybe later",
+      "startButton": "Start enrollment"
+    },
+    "processing": {
+      "title": "Creating your voiceprint...",
+      "message": "Just a moment while I learn to recognize you."
+    },
+    "complete": {
+      "title": "I'll remember your voice!",
+      "message": "Now I can recognize you and remember our conversations better. It's like you've become a familiar friend.",
+      "button": "Let's talk!"
+    },
+    "error": {
+      "title": "Something went wrong",
+      "tryAgain": "Try again",
+      "close": "Close"
+    }
+  },
+  "roleplayMode": {
+    "eyebrow": "Roleplay with",
+    "setTheScene": "Set the Scene",
+    "chooseScenario": "Choose a Scenario",
+    "scenePreview": "Scene Preview",
+    "cancelButton": "Cancel",
+    "beginButton": "Begin Scene",
+    "scenarioPlaceholder": "Describe the scene... Where are you? What's happening? What's the mood?"
+  },
+  "scenarios": {
+    "adventure": {
+      "name": "Adventure Quest"
+    },
+    "detective": {
+      "name": "Mystery Solver"
+    },
+    "tavern": {
+      "name": "Chance Meeting"
+    },
+    "mentor": {
+      "name": "Sage's Study"
+    },
+    "battle": {
+      "name": "Battlefield"
+    },
+    "custom": {
+      "name": "Custom Scene"
+    }
   }
 }

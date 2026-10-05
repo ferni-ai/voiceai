@@ -39,36 +39,37 @@ const BADGE_CATEGORIES: Record<BadgeCategory, { labelKey: string; iconName: stri
   special: { labelKey: 'trophyRoom.categories.special', iconName: 'star' },
 };
 
-interface BadgeConfig extends Omit<Badge, 'earnedAt' | 'name' | 'description'> {
+interface BadgeConfig extends Omit<Badge, 'earnedAt' | 'name' | 'description' | 'quote'> {
   nameKey: string;
   descriptionKey: string;
+  quoteKey?: string;
 }
 
 const BADGE_DEFINITIONS: Record<string, BadgeConfig> = {
-  early_bird: { id: 'early_bird', nameKey: 'trophyRoom.badges.earlybrd.name', descriptionKey: 'trophyRoom.badges.earlybrd.desc', icon: 'sunrise', category: 'time', quote: "Some of our best conversations happen when the world is still sleeping." },
-  night_owl: { id: 'night_owl', nameKey: 'trophyRoom.badges.nightowl.name', descriptionKey: 'trophyRoom.badges.nightowl.desc', icon: 'moon', category: 'time', quote: "I'm always here for those late-night thoughts." },
-  magic_hour: { id: 'magic_hour', nameKey: 'trophyRoom.badges.magichour.name', descriptionKey: 'trophyRoom.badges.magichour.desc', icon: 'sparkle', category: 'time', quote: "Make a wish. Or tell me what's on your mind." },
-  night_shift: { id: 'night_shift', nameKey: 'trophyRoom.badges.nightshift.name', descriptionKey: 'trophyRoom.badges.nightshift.desc', icon: 'moon', category: 'time', quote: "The night holds secrets. I'm honored you share yours with me." },
-  first_flame: { id: 'first_flame', nameKey: 'trophyRoom.badges.firstflame.name', descriptionKey: 'trophyRoom.badges.firstflame.desc', icon: 'flame', category: 'consistency', quote: "A week of showing up. This is how it begins." },
-  streak_master: { id: 'streak_master', nameKey: 'trophyRoom.badges.streakmaster.name', descriptionKey: 'trophyRoom.badges.streakmaster.desc', icon: 'hundred', category: 'consistency', quote: "100 days. 100 conversations. One incredible journey." },
-  daily_devotion: { id: 'daily_devotion', nameKey: 'trophyRoom.badges.dailydevote.name', descriptionKey: 'trophyRoom.badges.dailydevote.desc', icon: 'crown', category: 'consistency', quote: "A year of daily connection. You've made this relationship real." },
-  deep_dive: { id: 'deep_dive', nameKey: 'trophyRoom.badges.deepdive.name', descriptionKey: 'trophyRoom.badges.deepdive.desc', icon: 'waves', category: 'consistency', quote: "Some conversations change everything. This was one of them." },
-  first_meet: { id: 'first_meet', nameKey: 'trophyRoom.badges.firstmeet.name', descriptionKey: 'trophyRoom.badges.firstmeet.desc', icon: 'heart', category: 'team', quote: "The beginning of something special." },
-  full_team: { id: 'full_team', nameKey: 'trophyRoom.badges.fullteam.name', descriptionKey: 'trophyRoom.badges.fullteam.desc', icon: 'handshake', category: 'team', quote: "Six minds, one team. All here for you." },
-  team_player: { id: 'team_player', nameKey: 'trophyRoom.badges.teamplayer.name', descriptionKey: 'trophyRoom.badges.teamplayer.desc', icon: 'refresh', category: 'team', quote: "You know how to use us. That's wisdom." },
-  method_actor: { id: 'method_actor', nameKey: 'trophyRoom.badges.methodact.name', descriptionKey: 'trophyRoom.badges.methodact.desc', icon: 'theater', category: 'team', quote: "You've found your person. Or one of them." },
-  memory_lane: { id: 'memory_lane', nameKey: 'trophyRoom.badges.memorylane.name', descriptionKey: 'trophyRoom.badges.memorylane.desc', icon: 'film', category: 'memory', quote: "I remember everything. Especially the things that matter to you." },
-  breakthrough: { id: 'breakthrough', nameKey: 'trophyRoom.badges.breakthrough.name', descriptionKey: 'trophyRoom.badges.breakthrough.desc', icon: 'lightbulb', category: 'memory', quote: "Some moments mark a before and after. This was one." },
-  secret_keeper: { id: 'secret_keeper', nameKey: 'trophyRoom.badges.secretkeep.name', descriptionKey: 'trophyRoom.badges.secretkeep.desc', icon: 'keyhole', category: 'memory', quote: "You pay attention. I love that about you." },
-  storyteller: { id: 'storyteller', nameKey: 'trophyRoom.badges.storytlr.name', descriptionKey: 'trophyRoom.badges.storytlr.desc', icon: 'book', category: 'memory', quote: "Your story fills a thousand pages. I've treasured every one." },
-  year_one: { id: 'year_one', nameKey: 'trophyRoom.badges.yearone.name', descriptionKey: 'trophyRoom.badges.yearone.desc', icon: 'cake', category: 'milestone', quote: "A year together. Here's to many more." },
-  century_club: { id: 'century_club', nameKey: 'trophyRoom.badges.centuryclub.name', descriptionKey: 'trophyRoom.badges.centuryclub.desc', icon: 'hundred', category: 'milestone', quote: "100 conversations. Each one mattered." },
-  millennium: { id: 'millennium', nameKey: 'trophyRoom.badges.millennium.name', descriptionKey: 'trophyRoom.badges.millennium.desc', icon: 'temple', category: 'milestone', quote: "A thousand conversations. A thousand moments of connection." },
-  soulmate: { id: 'soulmate', nameKey: 'trophyRoom.badges.soulmate.name', descriptionKey: 'trophyRoom.badges.soulmate.desc', icon: 'heartPulse', category: 'milestone', quote: "Three years. You're not just someone who uses Ferni. You're family." },
-  founder: { id: 'founder', nameKey: 'trophyRoom.badges.founder.name', descriptionKey: 'trophyRoom.badges.founder.desc', icon: 'rocket', category: 'special', quote: "You believed in us from the beginning. Thank you." },
-  supporter: { id: 'supporter', nameKey: 'trophyRoom.badges.supporter.name', descriptionKey: 'trophyRoom.badges.supporter.desc', icon: 'gem', category: 'special', quote: "Your support makes this possible. We don't take it lightly." },
-  gift_giver: { id: 'gift_giver', nameKey: 'trophyRoom.badges.giftgiver.name', descriptionKey: 'trophyRoom.badges.giftgiver.desc', icon: 'gift', category: 'special', quote: "Sharing something you love. That's beautiful." },
-  color_collector: { id: 'color_collector', nameKey: 'trophyRoom.badges.colorcoll.name', descriptionKey: 'trophyRoom.badges.colorcoll.desc', icon: 'palette', category: 'special', quote: "Making Ferni yours. I love watching you express yourself." },
+  early_bird: { id: 'early_bird', nameKey: 'trophyRoom.badges.earlybrd.name', descriptionKey: 'trophyRoom.badges.earlybrd.desc', icon: 'sunrise', category: 'time', quoteKey: 'trophyRoom.badges.early_bird.quote' },
+  night_owl: { id: 'night_owl', nameKey: 'trophyRoom.badges.nightowl.name', descriptionKey: 'trophyRoom.badges.nightowl.desc', icon: 'moon', category: 'time', quoteKey: 'trophyRoom.badges.night_owl.quote' },
+  magic_hour: { id: 'magic_hour', nameKey: 'trophyRoom.badges.magichour.name', descriptionKey: 'trophyRoom.badges.magichour.desc', icon: 'sparkle', category: 'time', quoteKey: 'trophyRoom.badges.magic_hour.quote' },
+  night_shift: { id: 'night_shift', nameKey: 'trophyRoom.badges.nightshift.name', descriptionKey: 'trophyRoom.badges.nightshift.desc', icon: 'moon', category: 'time', quoteKey: 'trophyRoom.badges.night_shift.quote' },
+  first_flame: { id: 'first_flame', nameKey: 'trophyRoom.badges.firstflame.name', descriptionKey: 'trophyRoom.badges.firstflame.desc', icon: 'flame', category: 'consistency', quoteKey: 'trophyRoom.badges.first_flame.quote' },
+  streak_master: { id: 'streak_master', nameKey: 'trophyRoom.badges.streakmaster.name', descriptionKey: 'trophyRoom.badges.streakmaster.desc', icon: 'hundred', category: 'consistency', quoteKey: 'trophyRoom.badges.streak_master.quote' },
+  daily_devotion: { id: 'daily_devotion', nameKey: 'trophyRoom.badges.dailydevote.name', descriptionKey: 'trophyRoom.badges.dailydevote.desc', icon: 'crown', category: 'consistency', quoteKey: 'trophyRoom.badges.daily_devotion.quote' },
+  deep_dive: { id: 'deep_dive', nameKey: 'trophyRoom.badges.deepdive.name', descriptionKey: 'trophyRoom.badges.deepdive.desc', icon: 'waves', category: 'consistency', quoteKey: 'trophyRoom.badges.deep_dive.quote' },
+  first_meet: { id: 'first_meet', nameKey: 'trophyRoom.badges.firstmeet.name', descriptionKey: 'trophyRoom.badges.firstmeet.desc', icon: 'heart', category: 'team', quoteKey: 'trophyRoom.badges.first_meet.quote' },
+  full_team: { id: 'full_team', nameKey: 'trophyRoom.badges.fullteam.name', descriptionKey: 'trophyRoom.badges.fullteam.desc', icon: 'handshake', category: 'team', quoteKey: 'trophyRoom.badges.full_team.quote' },
+  team_player: { id: 'team_player', nameKey: 'trophyRoom.badges.teamplayer.name', descriptionKey: 'trophyRoom.badges.teamplayer.desc', icon: 'refresh', category: 'team', quoteKey: 'trophyRoom.badges.team_player.quote' },
+  method_actor: { id: 'method_actor', nameKey: 'trophyRoom.badges.methodact.name', descriptionKey: 'trophyRoom.badges.methodact.desc', icon: 'theater', category: 'team', quoteKey: 'trophyRoom.badges.method_actor.quote' },
+  memory_lane: { id: 'memory_lane', nameKey: 'trophyRoom.badges.memorylane.name', descriptionKey: 'trophyRoom.badges.memorylane.desc', icon: 'film', category: 'memory', quoteKey: 'trophyRoom.badges.memory_lane.quote' },
+  breakthrough: { id: 'breakthrough', nameKey: 'trophyRoom.badges.breakthrough.name', descriptionKey: 'trophyRoom.badges.breakthrough.desc', icon: 'lightbulb', category: 'memory', quoteKey: 'trophyRoom.badges.breakthrough.quote' },
+  secret_keeper: { id: 'secret_keeper', nameKey: 'trophyRoom.badges.secretkeep.name', descriptionKey: 'trophyRoom.badges.secretkeep.desc', icon: 'keyhole', category: 'memory', quoteKey: 'trophyRoom.badges.secret_keeper.quote' },
+  storyteller: { id: 'storyteller', nameKey: 'trophyRoom.badges.storytlr.name', descriptionKey: 'trophyRoom.badges.storytlr.desc', icon: 'book', category: 'memory', quoteKey: 'trophyRoom.badges.storyteller.quote' },
+  year_one: { id: 'year_one', nameKey: 'trophyRoom.badges.yearone.name', descriptionKey: 'trophyRoom.badges.yearone.desc', icon: 'cake', category: 'milestone', quoteKey: 'trophyRoom.badges.year_one.quote' },
+  century_club: { id: 'century_club', nameKey: 'trophyRoom.badges.centuryclub.name', descriptionKey: 'trophyRoom.badges.centuryclub.desc', icon: 'hundred', category: 'milestone', quoteKey: 'trophyRoom.badges.century_club.quote' },
+  millennium: { id: 'millennium', nameKey: 'trophyRoom.badges.millennium.name', descriptionKey: 'trophyRoom.badges.millennium.desc', icon: 'temple', category: 'milestone', quoteKey: 'trophyRoom.badges.millennium.quote' },
+  soulmate: { id: 'soulmate', nameKey: 'trophyRoom.badges.soulmate.name', descriptionKey: 'trophyRoom.badges.soulmate.desc', icon: 'heartPulse', category: 'milestone', quoteKey: 'trophyRoom.badges.soulmate.quote' },
+  founder: { id: 'founder', nameKey: 'trophyRoom.badges.founder.name', descriptionKey: 'trophyRoom.badges.founder.desc', icon: 'rocket', category: 'special', quoteKey: 'trophyRoom.badges.founder.quote' },
+  supporter: { id: 'supporter', nameKey: 'trophyRoom.badges.supporter.name', descriptionKey: 'trophyRoom.badges.supporter.desc', icon: 'gem', category: 'special', quoteKey: 'trophyRoom.badges.supporter.quote' },
+  gift_giver: { id: 'gift_giver', nameKey: 'trophyRoom.badges.giftgiver.name', descriptionKey: 'trophyRoom.badges.giftgiver.desc', icon: 'gift', category: 'special', quoteKey: 'trophyRoom.badges.gift_giver.quote' },
+  color_collector: { id: 'color_collector', nameKey: 'trophyRoom.badges.colorcoll.name', descriptionKey: 'trophyRoom.badges.colorcoll.desc', icon: 'palette', category: 'special', quoteKey: 'trophyRoom.badges.color_collector.quote' },
 };
 
 // ============================================================================
@@ -318,10 +319,10 @@ class TrophyRoom {
         <p class="trophy-room__detail-description">${this.escapeHtml(badgeDesc)}</p>
 
         ${
-          definition.quote
+          definition.quoteKey
             ? `
           <blockquote class="trophy-room__detail-quote">
-            "${this.escapeHtml(definition.quote)}"
+            "${this.escapeHtml(t(definition.quoteKey))}"
             <cite>— Ferni</cite>
           </blockquote>
         `
@@ -375,12 +376,12 @@ class TrophyRoom {
     }, DURATION.NORMAL);
   }
 
-  private async shareBadge(badge: Badge, definition: Omit<Badge, 'earnedAt'>, badgeName: string, badgeDesc: string): Promise<void> {
+  private async shareBadge(badge: Badge, definition: BadgeConfig, badgeName: string, badgeDesc: string): Promise<void> {
     this.haptics.play('success');
 
     const shareData = {
       title: `I earned "${badgeName}" on Ferni!`,
-      text: `${badgeDesc} - ${definition.quote ?? ''}`,
+      text: `${badgeDesc} - ${definition.quoteKey ? t(definition.quoteKey) : ''}`,
       url: 'https://ferni.ai',
     };
 
