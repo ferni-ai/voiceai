@@ -84,9 +84,9 @@ export const FEATURE_HINTS: FeatureHint[] = [
     id: 'team-huddle-intro',
     type: 'spotlight',
     targetSelector: '[data-feature="team-huddle"], .engagement-trigger',
-    title: 'Team Huddles are here!',
-    message: 'Now that we know each other better, you can hear from multiple team members at once.',
-    ctaText: 'Try a huddle',
+    title: t('featureHints.teamHuddlesTitle'),
+    message: t('featureHints.teamHuddlesMessage'),
+    ctaText: t('featureHints.teamHuddlesCta'),
     minStage: 'building-trust',
     showOnce: true,
     priority: 10,
@@ -97,9 +97,9 @@ export const FEATURE_HINTS: FeatureHint[] = [
     id: 'custom-rituals-intro',
     type: 'card',
     targetSelector: '[data-feature="rituals"], .ritual-builder-trigger',
-    title: 'Create your own rituals',
-    message: 'You can now create custom daily practices. What small habit would help you most?',
-    ctaText: 'Create a ritual',
+    title: t('featureHints.createRitualsTitle'),
+    message: t('featureHints.createRitualsMessage'),
+    ctaText: t('featureHints.createRitualsCta'),
     minStage: 'getting-started',
     showOnce: true,
     showAfterDelay: 2000,
@@ -111,8 +111,8 @@ export const FEATURE_HINTS: FeatureHint[] = [
     id: 'memory-timeline-intro',
     type: 'tooltip',
     targetSelector: '[data-feature="journey"], .journey-trigger, .relationship-progress',
-    title: 'See our journey',
-    message: "Tap here to see the meaningful moments we've shared.",
+    title: t('featureHints.journeyTitle'),
+    message: t('featureHints.journeyMessage'),
     minStage: 'building-trust',
     showOnce: true,
     priority: 7,
@@ -123,10 +123,9 @@ export const FEATURE_HINTS: FeatureHint[] = [
     id: 'trust-journey-intro',
     type: 'spotlight',
     targetSelector: '[data-feature="trust-journey"]',
-    title: 'Your Trust Journey',
-    message:
-      "See how our relationship has grown - your growth moments, boundaries I've respected, and wins we've celebrated.",
-    ctaText: 'Explore',
+    title: t('featureHints.trustJourneyTitle'),
+    message: t('featureHints.trustJourneyMessage'),
+    ctaText: t('featureHints.trustJourneyExplore'),
     minStage: 'established',
     showOnce: true,
     priority: 9,
@@ -137,8 +136,8 @@ export const FEATURE_HINTS: FeatureHint[] = [
     id: 'settings-intro',
     type: 'tooltip',
     targetSelector: '.settings-trigger, [data-feature="settings"]',
-    title: 'Customize your experience',
-    message: 'Adjust themes, sounds, and more.',
+    title: t('featureHints.customizeTitle'),
+    message: t('featureHints.customizeMessage'),
     minStage: 'getting-started',
     showOnce: true,
     showAfterDelay: 5000,
@@ -150,9 +149,9 @@ export const FEATURE_HINTS: FeatureHint[] = [
     id: 'spotify-intro',
     type: 'card',
     targetSelector: '[data-feature="spotify"], .spotify-trigger',
-    title: 'Connect Spotify',
-    message: 'Link your Spotify to set the mood during our conversations.',
-    ctaText: 'Connect',
+    title: t('featureHints.spotifyTitle'),
+    message: t('featureHints.spotifyMessage'),
+    ctaText: t('featureHints.spotifyConnect'),
     minStage: 'getting-started',
     showOnce: true,
     priority: 5,
@@ -503,7 +502,7 @@ function createSpotlightHint(hint: FeatureHint, _target: Element): HTMLElement {
       `
           : ''
       }
-      <button aria-label="${t('accessibility.maybeLater')}" class="hint-dismiss-text">Maybe later</button>
+      <button aria-label="${t('featureHints.maybeLater')}" class="hint-dismiss-text">${t('featureHints.maybeLater')}</button>
     </div>
   `;
 

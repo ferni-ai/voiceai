@@ -306,7 +306,7 @@ function showUpgradeSuccessCelebration(tier: string): void {
   saveFocus();
 
   const tierNames: Record<string, string> = {
-    friend: 'Founding Member',
+    friend: t('subscription.becomeFoundingMember'),
     partner: 'Founding Patron',
   };
 
@@ -326,8 +326,8 @@ function showUpgradeSuccessCelebration(tier: string): void {
         <div class="celebration-icon" aria-hidden="true">
           ${ICONS.sparkles}
         </div>
-        <span class="subscription-eyebrow" aria-hidden="true">WELCOME, FOUNDER</span>
-        <h2 id="celebration-title" class="subscription-title">You're One of Us Now</h2>
+        <span class="subscription-eyebrow" aria-hidden="true">${t('subscription.welcomeFounder')}</span>
+        <h2 id="celebration-title" class="subscription-title">${t('subscription.youreOneOfUs')}</h2>
         <p id="celebration-message" class="celebration-message">
           You're not just supporting us — you're helping us build something we believe everyone deserves.<br/>
           We're in this together. 💚
@@ -335,9 +335,9 @@ function showUpgradeSuccessCelebration(tier: string): void {
         <div class="celebration-tier" aria-label="${t('accessibility.yourNewPlan')}">
           <span class="tier-badge">${tierName}</span>
         </div>
-        <button aria-label="${t('accessibility.letSTalk')}" class="celebration-button" data-action="start" autofocus>
+        <button aria-label="${t('subscription.letsTalk')}" class="celebration-button" data-action="start" autofocus>
           ${ICONS.heart}
-          <span>Let's Talk</span>
+          <span>${t('subscription.letsTalk')}</span>
         </button>
       </div>
     </div>
@@ -622,7 +622,7 @@ function createModal(prompt?: string): HTMLElement {
       </button>
       
       <div class="subscription-header">
-        <span class="subscription-eyebrow" aria-hidden="true">FOUNDERS FUND</span>
+        <span class="subscription-eyebrow" aria-hidden="true">${t('subscription.foundersFund')}</span>
         <h2 id="subscription-title" class="subscription-title">
           ${prompt ? 'Help Us Build This' : 'Support Ferni'}
         </h2>
@@ -636,7 +636,7 @@ function createModal(prompt?: string): HTMLElement {
       </div>
       
       <p class="subscription-footer" aria-live="polite">
-        Not ready? That's totally fine. Ferni is here for you either way.
+        ${t('subscription.notReady')}
       </p>
     </div>
   `;
@@ -691,19 +691,19 @@ function createLimitModal(prompt: string, resetDate?: string): HTMLElement {
       
       <div class="subscription-header">
         <div class="limit-icon" aria-hidden="true">${ICONS.heart}</div>
-        <span class="subscription-eyebrow" aria-hidden="true">LET'S PAUSE HERE</span>
-        <h2 id="limit-title" class="subscription-title">See You Soon</h2>
+        <span class="subscription-eyebrow" aria-hidden="true">${t('subscription.pauseHere')}</span>
+        <h2 id="limit-title" class="subscription-title">${t('subscription.seeYouSoon')}</h2>
         <p id="limit-description" class="subscription-subtitle">
-          Our conversation time is limited to keep Ferni sustainable.<br/>
+          ${t('subscription.pauseMessage')}<br/>
           Want to talk longer? Founding Members get unlimited time — and they help keep Ferni free for everyone.
         </p>
-        ${resetDate ? `<p class="reset-date">Sessions reset on <strong>${formattedDate}</strong></p>` : ''}
+        ${resetDate ? `<p class="reset-date">${t('subscription.sessionsResetOn')} <strong>${formattedDate}</strong></p>` : ''}
       </div>
       
       <div class="limit-actions" role="group" aria-label="${t('accessibility.options')}">
-        <button aria-label="${t('accessibility.becomeAFoundingMember')}" class="limit-button limit-button--primary" data-action="upgrade">
+        <button aria-label="${t('subscription.becomeFoundingMember')}" class="limit-button limit-button--primary" data-action="upgrade">
           ${ICONS.heart}
-          <span>Become a Founding Member</span>
+          <span>${t('subscription.becomeFoundingMember')}</span>
         </button>
         <button aria-label="${t('accessibility.next')}" class="limit-button limit-button--secondary" data-action="close">
           See you next time 💚
@@ -711,7 +711,7 @@ function createLimitModal(prompt: string, resetDate?: string): HTMLElement {
       </div>
       
       <p class="subscription-footer">
-        Your memories are safe. I'll remember everything when you're back.
+        ${t('subscription.memoriesSafe')}
       </p>
     </div>
   `;
@@ -753,8 +753,8 @@ function createTierCard(tier: SubscriptionTier, index: number): string {
       aria-labelledby="tier-${tier.id}-name"
       aria-describedby="tier-${tier.id}-desc"
     >
-      ${isPopular ? `<div class="tier-badge" role="status">${ICONS.star} <span>Most Popular</span></div>` : ''}
-      ${isCurrentTier ? '<div class="tier-badge tier-badge--current" role="status">Current Plan</div>' : ''}
+      ${isPopular ? `<div class="tier-badge" role="status">${ICONS.star} <span>${t('subscription.mostPopular')}</span></div>` : ''}
+      ${isCurrentTier ? `<div class="tier-badge tier-badge--current" role="status">${t('subscription.currentPlan')}</div>` : ''}
 
       <h3 id="tier-${tier.id}-name" class="tier-name">${tier.name}</h3>
       <p id="tier-${tier.id}-desc" class="tier-description">${tier.description}</p>
@@ -768,14 +768,14 @@ function createTierCard(tier: SubscriptionTier, index: number): string {
         ${tier.features.map((f) => `<li>${ICONS.check} <span>${f}</span></li>`).join('')}
       </ul>
       
-      <button 
-        class="tier-button ${isCurrentTier ? 'tier-button--current' : ''}" 
+      <button
+        class="tier-button ${isCurrentTier ? 'tier-button--current' : ''}"
         data-tier="${tier.id}"
         ${isCurrentTier || isFree ? 'disabled aria-disabled="true"' : ''}
         aria-label="${isCurrentTier ? 'You are a Founder - thank you!' : isFree ? 'You are part of the community' : `Chip in ${priceText} as a ${tier.name}`}"
       >
         ${isLoading ? ICONS.loader : ''}
-        <span>${isCurrentTier ? "You're Here 💚" : isFree ? 'Free Forever' : 'Chip In'}</span>
+        <span>${isCurrentTier ? "You're Here 💚" : isFree ? 'Free Forever' : t('subscription.chooseThis')}</span>
       </button>
     </article>
   `;
@@ -888,10 +888,10 @@ function updateButtonLoadingState(tier: string, loading: boolean): void {
     button.classList.toggle('tier-button--loading', loading);
     if (loading) {
       button.setAttribute('aria-busy', 'true');
-      button.innerHTML = `${ICONS.loader} <span>Processing...</span>`;
+      button.innerHTML = `${ICONS.loader} <span>${t('subscription.processing')}</span>`;
     } else {
       button.removeAttribute('aria-busy');
-      button.innerHTML = '<span>Choose This</span>';
+      button.innerHTML = `<span>${t('subscription.chooseThis')}</span>`;
     }
   }
 }

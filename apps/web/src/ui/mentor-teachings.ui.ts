@@ -360,7 +360,7 @@ function render(): string {
       <div class="mentor-teachings-modal" role="dialog" aria-labelledby="mentor-title">
         <header class="mentor-teachings-header">
           <div class="mentor-teachings-title">
-            <span class="mentor-teachings-eyebrow">Learning From</span>
+            <span class="mentor-teachings-eyebrow">${t('mentorTeachings.learningFrom')}</span>
             <h2 class="mentor-teachings-name" id="mentor-title">${currentAgent.displayName || currentAgent.name}</h2>
           </div>
           <button class="mentor-close-btn" aria-label="${t('accessibility.closeTeachings')}">
@@ -380,14 +380,14 @@ function render(): string {
                   <path d="m8 3 4 8 5-5 5 15H2L8 3z"/>
                   <path d="m5 21 5-10"/>
                 </svg>
-                Core Principles
+                ${t('mentorTeachings.corePrinciples')}
               </h3>
-              <button aria-label="${t('accessibility.addPrinciple')}" class="mentor-add-btn" data-action="add-principle">
+              <button aria-label="${t('mentorTeachings.addPrinciple')}" class="mentor-add-btn" data-action="add-principle">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                Add Principle
+                ${t('mentorTeachings.addPrinciple')}
               </button>
             </div>
             ${principles.length === 0 ? `
@@ -398,8 +398,8 @@ function render(): string {
                     <path d="m5 21 5-10"/>
                   </svg>
                 </div>
-                <h4 class="mentor-empty-title">No principles yet</h4>
-                <p class="mentor-empty-text">Add the core principles that define this mentor's philosophy.</p>
+                <h4 class="mentor-empty-title">${t('mentorTeachings.noPrinciples')}</h4>
+                <p class="mentor-empty-text">${t('mentorTeachings.noPrinciplesDesc')}</p>
               </div>
             ` : principles.map((p, i) => `
               <div class="mentor-principle-card" data-index="${i}">
@@ -426,14 +426,14 @@ function render(): string {
                   <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21c0 1 0 1 1 1z"/>
                   <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
                 </svg>
-                Key Quotes
+                ${t('mentorTeachings.keyQuotes')}
               </h3>
-              <button aria-label="${t('accessibility.addQuote')}" class="mentor-add-btn" data-action="add-quote">
+              <button aria-label="${t('mentorTeachings.addQuote')}" class="mentor-add-btn" data-action="add-quote">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                Add Quote
+                ${t('mentorTeachings.addQuote')}
               </button>
             </div>
             ${quotes.length === 0 ? `
@@ -444,8 +444,8 @@ function render(): string {
                     <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
                   </svg>
                 </div>
-                <h4 class="mentor-empty-title">No quotes yet</h4>
-                <p class="mentor-empty-text">Capture their most impactful and memorable sayings.</p>
+                <h4 class="mentor-empty-title">${t('mentorTeachings.noQuotes')}</h4>
+                <p class="mentor-empty-text">${t('mentorTeachings.noQuotesDesc')}</p>
               </div>
             ` : quotes.map((q, i) => `
               <div class="mentor-quote-card" data-index="${i}">
@@ -474,11 +474,11 @@ function render(): string {
                   <path d="M12 16v-4"/>
                   <path d="M12 8h.01"/>
                 </svg>
-                Teaching Style
+                ${t('mentorTeachings.teachingStyle')}
               </h3>
             </div>
             <div class="mentor-teaching-style">
-              <div class="mentor-style-label">How They Teach</div>
+              <div class="mentor-style-label">${t('mentorTeachings.howTheyTeach')}</div>
               <div class="mentor-style-value">
                 ${describeMentorStyle(teachingStyle)}
               </div>

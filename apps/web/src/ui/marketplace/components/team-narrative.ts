@@ -6,6 +6,7 @@
  * @module marketplace/components/team-narrative
  */
 
+import { t } from '../../../i18n/index.js';
 import {
   getMemberStatus,
   isTeamMemberUnlocked,
@@ -78,15 +79,15 @@ export function renderEmployeeCard(
           <svg class="roster-icon roster-icon--minus" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          <span class="roster-label">In Team</span>
-          <span class="roster-label roster-label--hover">Remove</span>
+          <span class="roster-label">${t('teamNarrative.inTeam')}</span>
+          <span class="roster-label roster-label--hover">${t('teamNarrative.remove')}</span>
         </button>`
         : `<button class="employee-roster-action employee-roster-action--add" data-roster-action="add" data-persona-id="${personaId}" aria-label="Add ${name} to team">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          <span>Add</span>
+          <span>${t('teamNarrative.add')}</span>
         </button>`
       : '';
 
@@ -112,21 +113,21 @@ export function renderTeamNarrative(): string {
   return `
     <section class="team-narrative">
       <div class="team-narrative-header">
-        <h3 class="team-narrative-title">Meet your team.</h3>
-        <p class="team-narrative-subtitle">Friends who truly understand.</p>
+        <h3 class="team-narrative-title">${t('teamNarrative.meetTeam')}</h3>
+        <p class="team-narrative-subtitle">${t('teamNarrative.friendsUnderstand')}</p>
       </div>
-      
+
       <div class="team-leadership">
         <div class="leadership-section">
-          <span class="leadership-label">Chief Executive</span>
+          <span class="leadership-label">${t('teamNarrative.chiefExecutive')}</span>
           <div class="leadership-grid ceo">
             <div class="leader-card ceo-card">
               <div class="leader-avatar" data-persona="ferni" style="${getAvatarStyle('ferni')}">
                 FN
               </div>
               <div class="leader-info">
-                <h4 class="leader-name">Ferni</h4>
-                <span class="leader-title">CEO & Life Coach</span>
+                <h4 class="leader-name">${t('teamNarrative.ferni')}</h4>
+                <span class="leader-title">${t('teamNarrative.ferniRole')}</span>
                 <p class="leader-bio">The warm, wise presence at the heart of everything. Ferni coordinates the team with perfect memory, zero judgment, and constant presence.</p>
               </div>
             </div>
@@ -134,7 +135,7 @@ export function renderTeamNarrative(): string {
         </div>
         
         <div class="leadership-section">
-          <span class="leadership-label">Co-Founders</span>
+          <span class="leadership-label">${t('teamNarrative.coFounders')}</span>
           <div class="leadership-grid cofounders">
             <div class="leader-card cofounder">
               <div class="leader-avatar cofounder-avatar" data-persona="claude" style="${getAvatarStyle('claude')}">
@@ -158,7 +159,7 @@ export function renderTeamNarrative(): string {
         </div>
         
         <div class="leadership-section">
-          <span class="leadership-label">Core Team</span>
+          <span class="leadership-label">${t('teamNarrative.coreTeam')}</span>
           <div class="leadership-grid employees">
             ${renderEmployeeCard('peter-john', 'PJ', 'Peter', 'Research')}
             ${renderEmployeeCard('alex-chen', 'AC', 'Alex', 'Communication')}
@@ -170,7 +171,7 @@ export function renderTeamNarrative(): string {
       </div>
       
       <p class="team-narrative-footer">
-        Together, we're redefining what it means to have a team that truly listens.
+        ${t('teamNarrative.tagline')}
       </p>
     </section>
   `;
