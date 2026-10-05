@@ -8,9 +8,11 @@
  * - missed: its due time passed without that, found by sweepOverduePromises,
  *   which the every-minute deliver-reminders job runs. A missed promise stays
  *   missed, and Ferni owns it once in her next conversation;
- * - released: the user let Ferni off (cancelled or deleted the reminder).
+ * - released: the user let Ferni off (cancelled or deleted the reminder);
+ * - unknown: made before outcomes were tracked, so nobody can say (see
+ *   legacy-promises.ts). Not counted by Trust, never owned as a miss.
  *
- * Trust's "I follow through" factor reads exactly these outcomes.
+ * Trust's "I follow through" factor counts only kept and missed.
  *
  * @module services/superhuman/semantic-intelligence/promise-keeper
  */
@@ -18,6 +20,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../firestore-utils.js';
 import { MISSED_AFTER_MS } from '../../scheduling/reminder-delivery-job.js';
+import { settleLegacyPromises, type LegacyPassResult } from './legacy-promises.js';
 import {
   clearCommitmentCache,
   createCommitment,
@@ -30,7 +33,7 @@ import {
 
 const log = createLogger({ module: 'promise-keeper' });
 
-type Outcome = 'kept' | 'missed' | 'released';
+type Outcome = 'kept' | 'missed' | 'released' | 'unknown';
 type Db = NonNullable<ReturnType<typeof getFirestoreDb>>;
 type Ref = FirebaseFirestore.DocumentReference;
 
@@ -47,6 +50,7 @@ function settlement(outcome: Outcome, how: string, now: Date): Record<string, un
   const at = now.toISOString();
   if (outcome === 'kept') return { outcome, fulfilled: true, fulfilledAt: at, fulfilledHow: how };
   if (outcome === 'missed') return { outcome, violated: true, violatedAt: at, missedReason: how };
+  if (outcome === 'unknown') return { outcome, unknownAt: at, unknownReason: how };
   return { outcome, releasedAt: at, releasedHow: how };
 }
 
@@ -119,6 +123,8 @@ async function verdictFor(
   owner: string,
   data: Record<string, unknown>
 ): Promise<[Outcome, string]> {
+  // Adopted from before outcomes were tracked: part of its window went unwatched.
+  if (data.legacy === true) return ['unknown', 'made before promise outcomes were tracked'];
   if (data.type !== 'remind' || typeof data.reminderId !== 'string') {
     return ['missed', 'due time passed without a follow-up'];
   }
@@ -140,6 +146,10 @@ export interface PromiseSweepResult {
   kept: number;
   missed: number;
   released: number;
+  unknown: number;
+  /** This run's page of the one-time legacy pass (absent once it has finished). */
+  legacy?: LegacyPassResult;
+  legacyError?: string;
 }
 
 /**
@@ -161,7 +171,13 @@ export async function sweepOverduePromises(
     .orderBy('dueBy')
     .limit(opts.limit ?? 100)
     .get();
-  const result: PromiseSweepResult = { overdue: snap.size, kept: 0, missed: 0, released: 0 };
+  const result: PromiseSweepResult = {
+    overdue: snap.size,
+    kept: 0,
+    missed: 0,
+    released: 0,
+    unknown: 0,
+  };
   for (const doc of snap.docs) {
     // Owner from the path, never the doc's userId field (data, not identity).
     const owner = doc.ref.parent.parent?.id;
@@ -170,6 +186,14 @@ export async function sweepOverduePromises(
     if (!(await settle(db, doc.ref, outcome, how, now))) continue;
     result[outcome]++;
     clearCommitmentCache(owner);
+  }
+  // Promises from before outcomes existed: one page a run until the pass is done.
+  try {
+    const legacy = await settleLegacyPromises(db, now);
+    if (legacy) result.legacy = legacy;
+  } catch (error) {
+    result.legacyError = String(error);
+    log.error({ error: String(error) }, 'Legacy promise pass failed; the next run retries');
   }
   if (result.overdue > 0) log.info(result, 'Overdue promises settled');
   return result;

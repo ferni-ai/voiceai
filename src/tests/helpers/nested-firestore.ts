@@ -1,8 +1,9 @@
 /**
  * An in-memory Firestore for tests that walk real document paths:
  * db.collection('bogle_users').doc(uid).collection('reminders').doc(id), plus
- * collectionGroup queries, where ('==', '<=', 'in'), orderBy, limit, doc
- * get/set(merge)/update, and runTransaction (get/update). A ref knows its
+ * collectionGroup queries, where ('==', '<=', 'in'), orderBy (a field, or
+ * '__name__' for document path order), startAfter (a document path, with
+ * '__name__' order), limit, doc get/set(merge)/update, and runTransaction (get/update). A ref knows its
  * parent chain (ref.parent.parent.id is the owning user), like the real SDK.
  *
  * Use one shared instance per test file (import it from a vi.mock factory)
@@ -68,18 +69,25 @@ export function createNestedFirestore() {
     inScope: (path: string) => boolean,
     filters: Array<[string, Op, unknown]> = [],
     order?: [string, 'asc' | 'desc'],
-    max = Infinity
+    max = Infinity,
+    after?: string
   ) {
     return {
       where: (f: string, op: Op, v: unknown) =>
-        query(inScope, [...filters, [f, op, v]], order, max),
-      orderBy: (f: string, dir: 'asc' | 'desc' = 'asc') => query(inScope, filters, [f, dir], max),
-      limit: (n: number) => query(inScope, filters, order, n),
+        query(inScope, [...filters, [f, op, v]], order, max, after),
+      orderBy: (f: string, dir: 'asc' | 'desc' = 'asc') =>
+        query(inScope, filters, [f, dir], max, after),
+      limit: (n: number) => query(inScope, filters, order, n, after),
+      startAfter: (path: string) => query(inScope, filters, order, max, path),
       get: async () => {
         let rows = [...store.entries()]
           .filter(([p]) => inScope(p))
           .filter(([, d]) => filters.every(([f, op, v]) => matches(d[f], op, v)));
-        if (order) {
+        if (order?.[0] === '__name__') {
+          rows = rows
+            .sort(([a], [b]) => cmp(a, b))
+            .filter(([p]) => after === undefined || p > after);
+        } else if (order) {
           const [f, dir] = order;
           rows = rows
             .filter(([, d]) => d[f] !== undefined)
