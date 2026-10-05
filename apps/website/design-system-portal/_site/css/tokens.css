@@ -1,56 +1,56 @@
 /**
- * Ferni Design Tokens - Cedar Night (Dark Theme)
+ * Ferni Design Tokens - Night Ink (Dark Theme)
  * For developer-facing portals
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-01-15T13:51:54.356Z
+ * Generated: 2026-10-05T10:43:35.746Z
  */
 
 :root {
   /* ========================================
-     COLORS - Cedar Night Theme
+     COLORS - Night Ink Theme
      ======================================== */
 
   /* Backgrounds */
-  --bg-primary: #584840;
-  --bg-secondary: #60504a;
-  --bg-tertiary: #685852;
-  --bg-elevated: #70605a;
-  --bg-glass: rgba(230, 195, 160, 0.08);
-  --bg-overlay: rgba(88, 72, 64, 0.95);
-  --bg-code: #2a2420;
-  --bg-code-inline: rgba(230, 195, 160, 0.12);
+  --bg-primary: #14110e;
+  --bg-secondary: #1e1a16;
+  --bg-tertiary: #2a241f;
+  --bg-elevated: #352e28;
+  --bg-glass: rgba(244, 239, 230, 0.06);
+  --bg-overlay: rgba(20, 17, 14, 0.92);
+  --bg-code: #0e0c0a;
+  --bg-code-inline: rgba(244, 239, 230, 0.08);
 
   /* Text */
-  --text-primary: #faf6f0;
-  --text-secondary: #f0ebe4;
-  --text-muted: #e8e2da;
-  --text-dimmed: #e0d8ce;
-  --text-inverse: #2a2420;
+  --text-primary: #f4efe6;
+  --text-secondary: #cfc3b4;
+  --text-muted: #a89b8c;
+  --text-dimmed: #a89888;
+  --text-inverse: #14110e;
 
-  /* Accent - Gold */
-  --accent-primary: #d4a84a;
-  --accent-hover: #e0bc6a;
-  --accent-pressed: #c49a3a;
-  --accent-glow: rgba(212, 168, 74, 0.22);
-  --accent-subtle: rgba(212, 168, 74, 0.08);
-  --accent-text: #e8c870;
+  /* Accent - Sage */
+  --accent-primary: #8eae7a;
+  --accent-hover: #a4c48f;
+  --accent-pressed: #6f8f5c;
+  --accent-glow: rgba(142, 174, 122, 0.28);
+  --accent-subtle: rgba(142, 174, 122, 0.12);
+  --accent-text: #8eae7a;
 
   /* Borders */
-  --border-subtle: rgba(215, 185, 145, 0.12);
-  --border-medium: rgba(215, 185, 145, 0.20);
-  --border-strong: rgba(215, 185, 145, 0.30);
+  --border-subtle: rgba(244, 239, 230, 0.10);
+  --border-medium: rgba(244, 239, 230, 0.16);
+  --border-strong: rgba(244, 239, 230, 0.24);
 
   /* Semantic */
   --success: #6bc48f;
   --success-glow: rgba(107, 196, 143, 0.22);
-  --error: #e07575;
-  --error-glow: rgba(224, 117, 117, 0.22);
+  --error: #e7a39a;
+  --error-glow: rgba(231, 163, 154, 0.22);
   --warning: #e0b860;
   --warning-glow: rgba(224, 184, 96, 0.22);
-  --info: #7da6cf;
-  --info-glow: rgba(125, 166, 207, 0.22);
+  --info: #9ec8c4;
+  --info-glow: rgba(158, 200, 196, 0.22);
 
   /* Personas */
   --persona-ferni: #4a6741;
@@ -67,6 +67,8 @@
   --persona-jordan-glow: rgba(196, 133, 106, 0.28);
   --persona-nayan: #b8956a;
   --persona-nayan-glow: rgba(184, 149, 106, 0.28);
+  --persona-joel: #9A0718;
+  --persona-joel-glow: rgba(154, 7, 24, 0.28);
   --persona-eli: #6B5B95;
   --persona-eli-glow: rgba(107, 91, 149, 0.28);
   --persona-marcus: #2D5A4A;

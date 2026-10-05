@@ -36,6 +36,7 @@
     "start:jack-b": "PERSONA_ID=jack-b node --max-old-space-size=3072 dist/agent.js start",
     "start:peter": "PERSONA_ID=peter-john node --max-old-space-size=3072 dist/agent.js start",
     "test": "vitest run",
+    "test:memory:resolver": "vitest run src/memory/entity-store/__tests__/entity-resolver.test.ts",
     "test:unit": "vitest run --config vitest.config.unit.ts",
     "test:memory:recall": "vitest run src/memory/__tests__/memory-recall-golden.test.ts",
     "test:frontend": "cd apps/web && vitest run",

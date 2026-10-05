@@ -18,7 +18,7 @@ const catalogue = JSON.parse(readFileSync(`${OUT}/tools.json`, 'utf8'));
 const only = arg('tools') ? new Set(JSON.parse(readFileSync(arg('tools'), 'utf8'))) : null;
 const tools = catalogue.filter((t) => !only || only.has(t.name));
 const per = Number(arg('per', mode === 'manual' ? 6 : 2));
-const model = mode === 'manual' ? 'gemini-3.5-flash' : 'gemini-3-flash-preview';
+const model = mode === 'manual' ? 'gemini-3.5-flash' : 'gemini-3.5-flash-lite';
 const ai = new GoogleGenAI({
   vertexai: true,
   project: process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025',

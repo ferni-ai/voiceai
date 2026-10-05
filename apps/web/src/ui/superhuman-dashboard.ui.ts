@@ -191,7 +191,7 @@ const styles = `
   
   .superhuman-dashboard__subtitle {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin: 0;
   }
   
@@ -358,7 +358,7 @@ const styles = `
   
   .superhuman-dashboard__list-desc {
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin: 0;
   }
   
@@ -445,7 +445,7 @@ const styles = `
   
   .superhuman-dashboard__welcome-text {
     font-size: 15px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin: 0 auto var(--space-6, 24px);
     max-width: 400px;
     line-height: 1.5;
@@ -513,7 +513,7 @@ const styles = `
   
   .superhuman-dashboard__unlock-item p {
     font-size: 12px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin: 0;
     line-height: 1.4;
   }

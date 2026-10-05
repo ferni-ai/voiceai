@@ -415,13 +415,13 @@ class DataExportUI {
 
       /* Dark theme - WCAG AA Compliant */
       [data-theme="midnight"] .data-export { background: var(--backdrop-page); }
-      [data-theme="midnight"] .data-export__wrapper { background: var(--color-background-elevated, #70605a); }
+      [data-theme="midnight"] .data-export__wrapper { background: var(--color-background-elevated, #352e28); }
       [data-theme="midnight"] .data-export__header h2,
       [data-theme="midnight"] .data-export__category-name,
       [data-theme="midnight"] .data-export__format label { color: var(--color-text-primary, #faf6f0); }
-      [data-theme="midnight"] .data-export__format-btn { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .data-export__footer { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .data-export__close { background: var(--color-background-tertiary, #685852); color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .data-export__format-btn { background: var(--color-background-secondary, #1e1a16); }
+      [data-theme="midnight"] .data-export__footer { background: var(--color-background-secondary, #1e1a16); }
+      [data-theme="midnight"] .data-export__close { background: var(--color-background-tertiary, #2a241f); color: var(--color-text-secondary, #f0ebe4); }
       [data-theme="midnight"] .data-export__category-description,
       [data-theme="midnight"] .data-export__hint { color: var(--color-text-muted, #e8e2da); }
 

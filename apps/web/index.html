@@ -1,10 +1,25 @@
 <!doctype html>
 <html lang="en-US" data-theme="zen">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="theme-color" content="#fafaf9" />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('voiceai-theme');
+          var theme = stored === 'midnight' || stored === 'zen'
+            ? stored
+            : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'midnight' : 'zen');
+          document.documentElement.setAttribute('data-theme', theme);
+          var color = theme === 'zen' ? '#fafaf9' : '#14110e';
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', color);
+        } catch (e) {}
+      })();
+    </script>
     <link rel="stylesheet" href="/design-system/tokens.css" />
     <link rel="stylesheet" href="/design-system/components.css" />
     <link rel="stylesheet" href="/design-system/app-components.css" />
-    <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
@@ -13,7 +28,6 @@
       name="description"
       content="Ferni - Better than human. Your personal life coaching team that never forgets, never judges, and shows up at 2am with the same presence as noon."
     />
-    <meta name="theme-color" content="#584840" />
 
     <!-- iOS Safari specific -->
     <meta name="apple-mobile-web-app-capable" content="yes" />

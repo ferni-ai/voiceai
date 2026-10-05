@@ -120,7 +120,7 @@ vi.mock('../../firestore-vector-store/index.js', () => ({
 
 // Mock Gemini config
 vi.mock('../../../config/gemini-config.js', () => ({
-  getExtractionModel: vi.fn(() => 'gemini-1.5-flash'),
+  getExtractionModel: vi.fn(() => 'gemini-3.5-flash'),
 }));
 
 // ============================================================================

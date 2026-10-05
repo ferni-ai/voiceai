@@ -10,6 +10,12 @@
 # - BuildKit 1.4 syntax enables parallel stage builds
 # - Cache mounts for pnpm store
 #
+# No neural speaker model here: the voice-auth API computes DSP voice features,
+# and DSP can never verify or identify anyone (voice-match-trust.ts), so voice
+# verification on this server fails closed. The model lives in the agent image
+# (Dockerfile.agent). No client calls the voice-auth API today; if one ever
+# needs neural verification here, fetch the model the way Dockerfile.agent does.
+#
 # Build:
 #   docker build -f docker/Dockerfile.ui -t ferni-ui .
 #

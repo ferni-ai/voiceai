@@ -69,12 +69,13 @@ export function voiceStateTags(from: VoiceState, to: VoiceState): string {
 const MIN_CHUNK = 15;
 
 /**
- * Ma: a beat of silence between sentences, so a reply breathes instead of
- * running its sentences together. Written by code, between pieces that end a
- * sentence, never by the model (the director keeps pause tags out of its
- * text). CASCADE_SENTENCE_BREAK_MS tunes it; 0 turns it off.
+ * A beat of silence between sentences, written by code between pieces that end
+ * a sentence. Off by default: Cartesia splits the generation at every <break>
+ * (sonic-3 SSML docs), and with one after each sentence a dev call heard the
+ * reply break up between sentences (2026-10-04). Sonic already pauses at a
+ * full stop. CASCADE_SENTENCE_BREAK_MS turns it on for listening tests.
  */
-export const DEFAULT_SENTENCE_BREAK_MS = 300;
+export const DEFAULT_SENTENCE_BREAK_MS = 0;
 export function sentenceBreakMs(env: Record<string, string | undefined> = process.env): number {
   const raw = env.CASCADE_SENTENCE_BREAK_MS;
   const ms = raw === undefined || raw === '' ? NaN : Number(raw);

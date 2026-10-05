@@ -490,14 +490,14 @@ class PredictionTrackerUI {
 
       /* Dark Theme - WCAG AA Compliant */
       [data-theme="midnight"] .pred-tracker { background: var(--backdrop-page); }
-      [data-theme="midnight"] .pred-tracker__wrapper { background: var(--color-background-elevated, #70605a); }
+      [data-theme="midnight"] .pred-tracker__wrapper { background: var(--color-background-elevated, #352e28); }
       [data-theme="midnight"] .pred-tracker__header h2,
       [data-theme="midnight"] .pred-tracker__stat-value,
       [data-theme="midnight"] .pred-tracker__ring-value,
       [data-theme="midnight"] .pred-tracker__categories h3,
       [data-theme="midnight"] .pred-tracker__trend h3 { color: var(--color-text-primary, #faf6f0); }
-      [data-theme="midnight"] .pred-tracker__ring::before { background: var(--color-background-elevated, #70605a); }
-      [data-theme="midnight"] .pred-tracker__close { background: var(--color-background-tertiary, #685852); color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .pred-tracker__ring::before { background: var(--color-background-elevated, #352e28); }
+      [data-theme="midnight"] .pred-tracker__close { background: var(--color-background-tertiary, #2a241f); color: var(--color-text-secondary, #f0ebe4); }
       [data-theme="midnight"] .pred-tracker__stat-label,
       [data-theme="midnight"] .pred-tracker__ring-label,
       [data-theme="midnight"] .pred-tracker__trend-day { color: var(--color-text-muted, #e8e2da); }

@@ -1,0 +1,19 @@
+ecapa-tdnn-waveform-93ccd596.onnx
+
+ECAPA-TDNN speaker-embedding model from SpeechBrain,
+https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb
+(revision 0f99f2d0ebe89ac095bcc5903c4dd8f72b367286), trained on VoxCeleb 1+2.
+Copyright SpeechBrain contributors. Licensed under the Apache License,
+Version 2.0 (the "License"); you may not use this file except in compliance
+with the License. You may obtain a copy of the License at
+https://www.apache.org/licenses/LICENSE-2.0
+
+Modified by Ferni: converted to ONNX with SpeechBrain's Fbank front end (STFT
+written as an equivalent conv1d DFT) and sentence mean normalization inside the
+graph, and an L2-normalized output (scripts/speaker/export-ecapa-onnx.py).
+
+ECAPA-TDNN: B. Desplanques, J. Thienpondt, K. Demuynck, "ECAPA-TDNN: Emphasized
+Channel Attention, Propagation and Aggregation in TDNN Based Speaker
+Verification", Interspeech 2020.
+SpeechBrain: M. Ravanelli et al., "SpeechBrain: A General-Purpose Speech
+Toolkit", arXiv:2106.04624, 2021.

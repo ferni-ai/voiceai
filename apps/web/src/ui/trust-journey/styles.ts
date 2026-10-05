@@ -726,7 +726,7 @@ function getStyles(): string {
     }
     
     [data-theme="midnight"] .trust-journey-card {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
     }
     
     [data-theme="midnight"] .trust-journey-title,
@@ -753,7 +753,7 @@ function getStyles(): string {
     [data-theme="midnight"] .trust-journey-action-btn,
     [data-theme="midnight"] .timeline-load-more-btn,
     [data-theme="midnight"] .timeline-filter-tab {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
       border-color: var(--color-border-subtle, rgba(255,255,255,0.1));
     }
     
@@ -779,11 +779,11 @@ function getStyles(): string {
     }
     
     [data-theme="midnight"] .trust-stat-icon {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
     }
     
     [data-theme="midnight"] .trust-strength-bg {
-      stroke: var(--color-background-secondary, #60504a);
+      stroke: var(--color-background-secondary, #1e1a16);
     }
     
     [data-theme="midnight"] .trust-journey-eyebrow,
@@ -796,7 +796,7 @@ function getStyles(): string {
     [data-theme="midnight"] .skeleton-ring,
     [data-theme="midnight"] .skeleton-text,
     [data-theme="midnight"] .skeleton-stat {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
     
     /* ========================================================================

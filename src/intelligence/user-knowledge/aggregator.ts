@@ -14,7 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from './firestore-access.js';
+import { getFirestoreDb } from './firestore.js';
 import type {
   UserKnowledge,
   IdentityKnowledge,
@@ -689,6 +689,23 @@ async function aggregateBoundaries(userId: string): Promise<BoundaryKnowledge> {
     ferniCommitments: [],
   };
 
+  // Get Ferni's commitments (things Ferni promised to avoid or remember).
+  // The commitments service has its own storage access and cache, so load it
+  // separately: a missing or failing profile db must not hide Ferni's promises.
+  try {
+    const { getPendingCommitments } =
+      await import('../../services/superhuman/semantic-intelligence/ferni-commitments.js');
+    const commitments = await getPendingCommitments(userId);
+
+    boundaries.ferniCommitments = commitments.map((c) => ({
+      description: c.commitment,
+      status: c.fulfilled ? ('completed' as const) : ('pending' as const),
+      createdAt: c.madeAt ? new Date(c.madeAt) : undefined,
+    }));
+  } catch (error) {
+    log.debug({ error: String(error), userId }, 'Failed to load Ferni commitments');
+  }
+
   try {
     const db = await getFirestoreDb();
     if (!db) return boundaries;
@@ -699,17 +716,6 @@ async function aggregateBoundaries(userId: string): Promise<BoundaryKnowledge> {
       const data = profileDoc.data();
       boundaries.avoidTopics = (data?.avoidTopics as string[]) || [];
     }
-
-    // Get Ferni's commitments (things Ferni promised to avoid or remember)
-    const { getPendingCommitments } =
-      await import('../../services/superhuman/semantic-intelligence/ferni-commitments.js');
-    const commitments = await getPendingCommitments(userId);
-
-    boundaries.ferniCommitments = commitments.map((c) => ({
-      description: c.commitment,
-      status: c.fulfilled ? ('completed' as const) : ('pending' as const),
-      createdAt: c.madeAt ? new Date(c.madeAt) : undefined,
-    }));
 
     // Get sensitivities from protective memory
     const protectiveDoc = await db
