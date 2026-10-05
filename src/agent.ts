@@ -23,5 +23,8 @@
 // Make this file a module for top-level await
 export {};
 
+// Refuse to touch production data from a non-production process (no emulator, no opt-in).
+await import('./config/refuse-production-data.js'); // loads dotenv, then the guard
+
 // GCE-optimized worker with clean architecture
 await import('./agents/gce-voice-worker.js');

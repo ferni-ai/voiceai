@@ -20,6 +20,7 @@
 import { llm } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { DenseToolIndex, Embedder } from './dense-index.js';
+import { RetrievalStats, isLiveCovered } from './retrieval-stats.js';
 import type { RetrievedTool } from './tool-retriever.js';
 
 const log = createLogger({ module: 'TurnToolRetrieval' });
@@ -77,6 +78,8 @@ export interface ToolCoverage {
   rank: number;
   via: 'retrieved' | 'core' | 'sticky' | 'missed';
   covered: boolean;
+  /** Core, sticky, or in the top k of the whole index (see retrieval-stats.ts). */
+  liveCovered: boolean;
 }
 
 interface Pick {
@@ -136,6 +139,7 @@ export class TurnToolRetrieval {
   private readonly logged = new WeakSet<object>();
   /** The agent's full tool set as of the last request (what findTools can offer). */
   private available: Record<string, { description?: string }> | null = null;
+  private readonly stats = new RetrievalStats();
 
   constructor(private readonly opts: TurnToolRetrievalOptions) {
     this.k = opts.k ?? 20;
@@ -227,8 +231,10 @@ export class TurnToolRetrieval {
           speculative,
         };
         this.lastPick = pick;
+        this.stats.pick(pick.embedMs);
         return pick;
       } catch (error) {
+        this.stats.pick(null);
         log.warn({ sessionId: this.opts.sessionId, error: String(error) }, 'tool retrieval failed');
         return null;
       }
@@ -288,9 +294,9 @@ export class TurnToolRetrieval {
     log.info(
       {
         sessionId: this.opts.sessionId,
-        text: text.slice(0, 200),
+        textChars: text.length,
         source,
-        pickedFor: pick && source === 'fallback' ? pick.text.slice(0, 200) : undefined,
+        pickedForChars: pick && source === 'fallback' ? pick.text.length : undefined,
         waitMs: Date.now() - started,
         toolsNow: Object.keys(toolCtx.functionTools).length,
         toolsSent: Object.keys(sent.functionTools).length,
@@ -379,7 +385,7 @@ export class TurnToolRetrieval {
     log.info(
       {
         sessionId: this.opts.sessionId,
-        need: need.slice(0, 200),
+        needChars: need.length,
         found: found.map((f) => f.name),
         ms: Date.now() - started,
       },
@@ -402,7 +408,7 @@ export class TurnToolRetrieval {
       log.info(
         {
           sessionId: this.opts.sessionId,
-          text: text.slice(0, 200),
+          textChars: text.length,
           picked: [...chosen],
           unavailable: p.tools
             .slice(0, this.k)
@@ -431,13 +437,24 @@ export class TurnToolRetrieval {
             ? 'sticky'
             : 'missed';
       this.sticky.set(name, this.turn);
-      const coverage: ToolCoverage = { tool: name, rank, via, covered: via !== 'missed' };
+      const mode = toolRetrievalMode();
+      const c = { tool: name, rank, via, covered: via !== 'missed' };
+      const coverage: ToolCoverage = { ...c, liveCovered: isLiveCovered(c, this.k, mode) };
+      this.stats.call(coverage);
+      const textChars = pick?.text.length ?? null;
       log.info(
-        { sessionId: this.opts.sessionId, text: pick?.text.slice(0, 200) ?? null, ...coverage },
+        { sessionId: this.opts.sessionId, mode, textChars, ...coverage },
         'TOOL_RETRIEVAL_COVERAGE'
       );
       return coverage;
     });
+  }
+
+  /** Session end: one line of counts for shadow-to-live promotion. Never text. */
+  logSummary(): void {
+    const { sessionId } = this.opts;
+    const counts = { turns: this.turn, k: this.k, ...this.stats.summary() };
+    log.info({ sessionId, mode: toolRetrievalMode(), ...counts }, 'TOOL_RETRIEVAL_SUMMARY');
   }
 }
 

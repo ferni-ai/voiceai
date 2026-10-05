@@ -11,8 +11,8 @@ let package = Package(
         .library(name: "FerniVoiceiOS", targets: ["FerniVoiceiOS"])
     ],
     dependencies: [
-        // LiveKit Swift SDK - using local patched fork to fix continuation crashes
-        .package(path: "../../vendor/client-sdk-swift"),
+        // LiveKit Swift SDK - pinned to 2.1.0 for macOS 15 compatibility
+        .package(url: "https://github.com/livekit/client-sdk-swift", exact: "2.11.0"),
 
         // Shared code between macOS and iOS apps
         .package(path: "../shared"),

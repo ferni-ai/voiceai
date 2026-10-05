@@ -14,7 +14,14 @@
 
 import crypto from 'node:crypto';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import {
+  getTokens,
+  saveTokens,
+  removeTokens,
+  peekTokens,
+  listTokenUsers,
+  type StoredGoogleCalendarTokens,
+} from './google-calendar-token-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getRateLimiter } from '../../tools/rate-limiter.js';
 
@@ -103,46 +110,20 @@ export class TokenPermanentlyInvalidError extends Error {
 }
 
 // ============================================================================
-// FIRESTORE SETUP
+// TOKEN STORAGE: the one encrypted store (google-calendar-token-store.ts),
+// shared with the /auth/google/* connect flow. Mapped to this module's shape.
 // ============================================================================
 
-import type { Firestore as FirestoreType } from '@google-cloud/firestore';
-
-let db: FirestoreType | null = null;
-// FIX: Promise-based singleton to prevent race condition
-let dbInitPromise: Promise<FirestoreType | null> | null = null;
-const OAUTH_TOKENS_COLLECTION = 'google_calendar_tokens';
-
-async function getFirestore(): Promise<FirestoreType | null> {
-  if (db) return db;
-  if (dbInitPromise) return dbInitPromise;
-
-  dbInitPromise = initializeFirestore();
-  return dbInitPromise;
+function toGoogleTokens(stored: StoredGoogleCalendarTokens): GoogleTokens {
+  return {
+    access_token: stored.access_token,
+    refresh_token: stored.refresh_token || undefined,
+    expires_in: Math.max(0, Math.round((stored.expires_at - Date.now()) / 1000)),
+    token_type: 'Bearer',
+    scope: stored.scope,
+    expiry_date: stored.expires_at,
+  };
 }
-
-async function initializeFirestore(): Promise<FirestoreType | null> {
-  try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-    });
-    getLogger().info('Google Calendar OAuth Firestore initialized');
-    return db;
-  } catch (error) {
-    getLogger().warn({ error }, 'Firestore not available for OAuth tokens, using in-memory only');
-    dbInitPromise = null; // Allow retry
-    return null;
-  }
-}
-
-// ============================================================================
-// TOKEN STORAGE (In-memory cache with Firestore persistence)
-// ============================================================================
-
-const userTokens = new Map<string, GoogleTokens>();
-const loadedTokenUsers = new Set<string>();
 
 // ============================================================================
 // FAILED TOKEN TRACKING - Prevents spam when tokens are permanently invalid
@@ -187,82 +168,34 @@ export function clearFailedTokenStatus(userId: string): void {
 }
 
 /**
- * Store tokens for a user
+ * Store tokens for a user (keeps the stored refresh token if none is given)
  */
 export async function storeUserTokens(userId: string, tokens: GoogleTokens): Promise<void> {
-  // Calculate expiry date if not present
-  if (!tokens.expiry_date && tokens.expires_in) {
-    tokens.expiry_date = Date.now() + tokens.expires_in * 1000;
-  }
-  userTokens.set(userId, tokens);
-
-  // Persist to Firestore
-  const firestore = await getFirestore();
-  if (firestore) {
-    try {
-      await firestore
-        .collection(OAUTH_TOKENS_COLLECTION)
-        .doc(userId)
-        .set(
-          removeUndefined({
-            ...tokens,
-            updatedAt: new Date(),
-          })
-        );
-      getLogger().info(
-        { userId, hasRefreshToken: !!tokens.refresh_token },
-        'Stored Google tokens in Firestore'
-      );
-    } catch (err) {
-      getLogger().warn({ err, userId }, 'Failed to persist Google tokens to Firestore');
-    }
-  } else {
-    getLogger().info(
-      { userId, hasRefreshToken: !!tokens.refresh_token },
-      'Stored Google tokens (in-memory only)'
-    );
-  }
+  const expiresAt = tokens.expiry_date ?? Date.now() + tokens.expires_in * 1000;
+  const refreshToken = tokens.refresh_token || (await getTokens(userId))?.refresh_token || '';
+  await saveTokens(userId, {
+    access_token: tokens.access_token,
+    refresh_token: refreshToken,
+    expires_at: expiresAt,
+    scope: tokens.scope,
+  });
 }
 
 /**
  * Get tokens for a user
  */
 export async function getUserTokens(userId: string): Promise<GoogleTokens | undefined> {
-  // Check cache first
-  if (userTokens.has(userId)) {
-    return userTokens.get(userId);
-  }
-
-  // Try loading from Firestore
-  if (!loadedTokenUsers.has(userId)) {
-    const firestore = await getFirestore();
-    if (firestore) {
-      try {
-        const doc = await firestore.collection(OAUTH_TOKENS_COLLECTION).doc(userId).get();
-        if (doc.exists) {
-          const data = doc.data() as GoogleTokens;
-          userTokens.set(userId, data);
-          loadedTokenUsers.add(userId);
-          return data;
-        }
-      } catch (err) {
-        getLogger().warn({ err, userId }, 'Failed to load Google tokens from Firestore');
-      }
-    }
-    loadedTokenUsers.add(userId);
-  }
-
-  return userTokens.get(userId);
+  const stored = await getTokens(userId);
+  return stored ? toGoogleTokens(stored) : undefined;
 }
 
 /**
- * Get tokens synchronously (returns cached value only)
- * Use getUserTokens for guaranteed data
+ * Get tokens synchronously (cached value only; starts a load in the background)
  */
 export function getUserTokensSync(userId: string): GoogleTokens | undefined {
-  // Trigger async load in background
-  void getUserTokens(userId);
-  return userTokens.get(userId);
+  const cached = peekTokens(userId);
+  if (!cached) void getUserTokens(userId);
+  return cached ? toGoogleTokens(cached) : undefined;
 }
 
 /**
@@ -725,21 +658,7 @@ export function isOAuthConfigured(): boolean {
  * Delete user tokens (for disconnect)
  */
 export async function deleteUserTokens(userId: string): Promise<void> {
-  // Remove from cache
-  userTokens.delete(userId);
-  loadedTokenUsers.delete(userId);
-
-  // Remove from Firestore
-  const firestore = await getFirestore();
-  if (firestore) {
-    try {
-      const docRef = firestore.collection('calendar_tokens').doc(userId);
-      await docRef.delete();
-      getLogger().info({ userId }, 'Calendar tokens deleted');
-    } catch (error) {
-      getLogger().warn({ error, userId }, 'Failed to delete calendar tokens from Firestore');
-    }
-  }
+  await removeTokens(userId);
 }
 
 /**
@@ -748,29 +667,7 @@ export async function deleteUserTokens(userId: string): Promise<void> {
  * Used by maintenance scheduler to sync calendar events for outreach timing.
  */
 export async function getAllCalendarUsers(): Promise<string[]> {
-  const userIds: string[] = [];
-
-  // First add all cached users
-  for (const userId of userTokens.keys()) {
-    userIds.push(userId);
-  }
-
-  // Then check Firestore for any not in cache
-  const firestore = await getFirestore();
-  if (firestore) {
-    try {
-      const snapshot = await firestore.collection(OAUTH_TOKENS_COLLECTION).get();
-      for (const doc of snapshot.docs) {
-        if (!userIds.includes(doc.id)) {
-          userIds.push(doc.id);
-        }
-      }
-    } catch (error) {
-      getLogger().warn({ error }, 'Failed to get calendar users from Firestore');
-    }
-  }
-
-  return userIds;
+  return listTokenUsers();
 }
 
 // ============================================================================

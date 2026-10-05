@@ -13,7 +13,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { isCoach } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { requireUserId, sendJSON, sendJSONCached } from '../helpers.js';
+import { parseBody, requireUserId, sendJSON, sendJSONCached } from '../helpers.js';
 import type { AnyRecord } from './types.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
@@ -178,14 +178,7 @@ interface UserEngagementInsights {
 
   // Mood patterns (includes all EmotionalWeather types)
   recentMood:
-    | 'sunny'
-    | 'partly-cloudy'
-    | 'cloudy'
-    | 'rainy'
-    | 'stormy'
-    | 'foggy'
-    | 'rainbow'
-    | null;
+    'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'foggy' | 'rainbow' | null;
   moodTrend: 'improving' | 'stable' | 'declining' | 'unknown';
   averageEnergy: 'high' | 'medium' | 'low' | null;
 
@@ -563,8 +556,7 @@ function generateDataDrivenComment(
 function getStaticPersonaComment(personaId: string, topic: string): string {
   const scripts = TEAM_HUDDLE_SCRIPTS.personaComments;
   const personaScripts = scripts[personaId as keyof typeof scripts] as
-    | Record<string, string[]>
-    | undefined;
+    Record<string, string[]> | undefined;
 
   if (!personaScripts) {
     return "I'm glad to be part of this discussion.";
@@ -759,16 +751,7 @@ async function handleStartHuddle(
   if (!userId) return;
 
   try {
-    // Parse request body
-    const body = await new Promise<string>((resolve) => {
-      let data = '';
-      req.on('data', (chunk) => {
-        data += chunk;
-      });
-      req.on('end', () => resolve(data));
-    });
-
-    const parsed = JSON.parse(body || '{}');
+    const parsed = await parseBody<{ topic?: string; type?: string }>(req);
     const topic = parsed.topic || 'General discussion';
     const type = parsed.type || 'weekly';
 
@@ -853,16 +836,34 @@ async function handleStartHuddle(
 }
 
 /**
+ * The caller's own huddle, or null once a 401/404 is sent. Another user's
+ * huddle answers 404, exactly like a missing one, so ids don't leak.
+ */
+function requireOwnHuddle(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL,
+  huddleId: string
+): TeamHuddle | null {
+  const userId = requireUserId(req, res, parsedUrl);
+  if (!userId) return null;
+  const huddle = activeHuddles.get(huddleId);
+  if (huddle?.userId === userId) return huddle;
+  sendJSON(res, { error: 'Huddle not found' }, 404);
+  return null;
+}
+
+/**
  * GET /api/huddles/:id - Get specific huddle
  */
-async function handleGetHuddle(res: ServerResponse, huddleId: string): Promise<void> {
-  const huddle = activeHuddles.get(huddleId);
-
-  if (!huddle) {
-    sendJSON(res, { error: 'Huddle not found' }, 404);
-    return;
-  }
-
+function handleGetHuddle(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL,
+  id: string
+): void {
+  const huddle = requireOwnHuddle(req, res, parsedUrl, id);
+  if (!huddle) return;
   sendJSON(res, {
     huddle: {
       id: huddle.id,
@@ -884,14 +885,14 @@ async function handleGetHuddle(res: ServerResponse, huddleId: string): Promise<v
 /**
  * GET /api/huddles/:id/participants - Get huddle participants
  */
-async function handleGetParticipants(res: ServerResponse, huddleId: string): Promise<void> {
-  const huddle = activeHuddles.get(huddleId);
-
-  if (!huddle) {
-    sendJSON(res, { error: 'Huddle not found' }, 404);
-    return;
-  }
-
+function handleGetParticipants(
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL,
+  id: string
+): void {
+  const huddle = requireOwnHuddle(req, res, url, id);
+  if (!huddle) return;
   sendJSON(res, {
     participants: huddle.participantDetails.map((p) => ({
       ...p,
@@ -903,26 +904,20 @@ async function handleGetParticipants(res: ServerResponse, huddleId: string): Pro
 /**
  * POST /api/huddles/:id/complete - Complete a huddle
  */
-async function handleCompleteHuddle(
+function handleCompleteHuddle(
   req: IncomingMessage,
   res: ServerResponse,
-  huddleId: string
-): Promise<void> {
-  const huddle = activeHuddles.get(huddleId);
-
-  if (!huddle) {
-    sendJSON(res, { error: 'Huddle not found' }, 404);
-    return;
-  }
-
+  url: URL,
+  id: string
+): void {
+  const huddle = requireOwnHuddle(req, res, url, id);
+  if (!huddle) return;
   // Generate recommendations based on the topic and participants
   huddle.recommendations = generateRecommendations(huddle.topic, huddle.participants);
   huddle.status = 'completed';
   huddle.completedAt = new Date();
 
-  activeHuddles.set(huddleId, huddle);
-
-  log.info({ huddleId, userId: huddle.userId }, 'Team huddle completed');
+  log.info({ huddleId: id, userId: huddle.userId }, 'Team huddle completed');
 
   sendJSON(res, {
     success: true,
@@ -962,21 +957,21 @@ export async function handleTeamRoutes(
   // GET /api/huddles/:id
   const huddleMatch = pathname.match(/^\/api\/huddles\/([^/]+)$/);
   if (huddleMatch && req.method === 'GET') {
-    await handleGetHuddle(res, huddleMatch[1]);
+    handleGetHuddle(req, res, parsedUrl, huddleMatch[1]);
     return true;
   }
 
   // GET /api/huddles/:id/participants
   const participantsMatch = pathname.match(/^\/api\/huddles\/([^/]+)\/participants$/);
   if (participantsMatch && req.method === 'GET') {
-    await handleGetParticipants(res, participantsMatch[1]);
+    handleGetParticipants(req, res, parsedUrl, participantsMatch[1]);
     return true;
   }
 
   // POST /api/huddles/:id/complete
   const completeMatch = pathname.match(/^\/api\/huddles\/([^/]+)\/complete$/);
   if (completeMatch && req.method === 'POST') {
-    await handleCompleteHuddle(req, res, completeMatch[1]);
+    handleCompleteHuddle(req, res, parsedUrl, completeMatch[1]);
     return true;
   }
 

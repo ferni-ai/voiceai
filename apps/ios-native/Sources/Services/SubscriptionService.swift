@@ -10,7 +10,10 @@
 //  - Purchase subscriptions
 //  - Restore purchases
 //  - Handle subscription changes
-//  - Sync with backend
+//  - Send verified transactions to the server (POST /api/apple/verify)
+//
+//  Every purchase carries the account's appAccountToken (see AppleAccountAPI),
+//  so the server can tell whose purchase it is. No token, no purchase.
 //
 
 import Foundation
@@ -53,6 +56,13 @@ enum SubscriptionTier: String, CaseIterable {
         }
     }
     
+    /// The first paid plan that brings this teammate in (nil for Ferni, who's always here).
+    static func plan(including personaId: String) -> SubscriptionTier? {
+        let id = personaId.lowercased()
+        guard !SubscriptionTier.free.availablePersonas.contains(id) else { return nil }
+        return [SubscriptionTier.friend, .partner].first { $0.availablePersonas.contains(id) }
+    }
+
     /// Monthly conversation limit (nil = unlimited)
     var conversationLimit: Int? {
         switch self {
@@ -115,13 +125,13 @@ final class SubscriptionService: ObservableObject {
     private let tierCacheKey = "cached_subscription_tier"
     private let expirationCacheKey = "cached_subscription_expiration"
     
-    // Backend sync
-    private var serverBaseUrl = "https://app.ferni.ai"
-    private var userId: String?
+    private let accountAPI: AppleAccountAPI
     
     // MARK: - Initialization
     
-    private init() {
+    /// `observeStore: false` skips the StoreKit listener and product fetch (tests).
+    init(accountAPI: AppleAccountAPI = FerniAppleAccountAPI(), observeStore: Bool = true) {
+        self.accountAPI = accountAPI
         // Load cached tier
         if let cachedTier = defaults.string(forKey: tierCacheKey),
            let tier = SubscriptionTier(rawValue: cachedTier) {
@@ -132,6 +142,8 @@ final class SubscriptionService: ObservableObject {
         if let expiration = defaults.object(forKey: expirationCacheKey) as? Date {
             subscriptionExpirationDate = expiration
         }
+        
+        guard observeStore else { return }
         
         // Start listening for transactions
         updateListenerTask = listenForTransactions()
@@ -145,15 +157,6 @@ final class SubscriptionService: ObservableObject {
     
     deinit {
         updateListenerTask?.cancel()
-    }
-    
-    // MARK: - Configuration
-    
-    func configure(userId: String, serverUrl: String? = nil) {
-        self.userId = userId
-        if let url = serverUrl {
-            self.serverBaseUrl = url
-        }
     }
     
     // MARK: - Load Products
@@ -174,12 +177,14 @@ final class SubscriptionService: ObservableObject {
     func checkSubscriptionStatus() async {
         var highestTier: SubscriptionTier = .free
         var latestExpiration: Date?
+        var signedTransactions: [String] = []
         
         // Check all current entitlements
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result else {
                 continue
             }
+            signedTransactions.append(result.jwsRepresentation)
             
             // Check if this is a subscription we care about
             let tier = ProductID.tier(for: transaction.productID)
@@ -198,32 +203,53 @@ final class SubscriptionService: ObservableObject {
         // Update state
         updateTier(highestTier, expiration: latestExpiration)
         
-        // Sync with backend
-        await syncWithBackend()
+        for jws in signedTransactions {
+            _ = await sendToServer(jws)
+        }
     }
     
     // MARK: - Purchase
     
-    func purchase(_ product: Product) async -> PurchaseResult {
+    func purchase(_ product: some PurchasableProduct) async -> PurchaseResult {
         purchaseInProgress = true
         defer { purchaseInProgress = false }
+        lastError = nil  // so a stale error isn't read as this purchase's outcome
+
+        // The purchase must carry this account's token: if we can't get it, don't buy.
+        let options: Set<Product.PurchaseOption>
+        do {
+            options = try await AccountBoundPurchase.options(from: accountAPI)
+        } catch {
+            logger.error("No appAccountToken, purchase not started: \(error.localizedDescription)")
+            let failure: SubscriptionError
+            switch error as? AppleAccountAPIError {
+            case .notSignedIn: failure = .signInRequired
+            // 503: the server can't record App Store purchases yet, so don't take any.
+            case .badStatus(503): failure = .purchasesUnavailable
+            default: failure = .accountUnavailable
+            }
+            lastError = failure
+            return .failed(failure)
+        }
         
         do {
-            let result = try await product.purchase()
+            let result = try await product.purchase(options: options)
             
             switch result {
             case .success(let verification):
                 switch verification {
                 case .verified(let transaction):
-                    // Successful purchase
-                    await transaction.finish()
-                    
                     let tier = ProductID.tier(for: transaction.productID)
                     updateTier(tier, expiration: transaction.expirationDate)
-                    
                     logger.info("Purchase successful: \(product.id)")
-                    await syncWithBackend()
                     
+                    // Finish only once the server has it; otherwise StoreKit
+                    // redelivers it through Transaction.updates and we retry.
+                    if await sendToServer(verification.jwsRepresentation) {
+                        await transaction.finish()
+                    } else {
+                        lastError = .serverSyncFailed
+                    }
                     return .success(tier)
                     
                 case .unverified(_, let error):
@@ -250,38 +276,33 @@ final class SubscriptionService: ObservableObject {
         }
     }
     
-    /// Purchase by tier (finds the monthly product)
-    func purchase(tier: SubscriptionTier) async -> PurchaseResult {
+    /// The monthly App Store product for a paid tier, once products have loaded.
+    func monthlyProduct(for tier: SubscriptionTier) -> Product? {
         let productId: String
         switch tier {
-        case .friend:
-            productId = ProductID.friendMonthly
-        case .partner:
-            productId = ProductID.partnerMonthly
-        case .free:
-            return .failed(.invalidProduct)
+        case .friend: productId = ProductID.friendMonthly
+        case .partner: productId = ProductID.partnerMonthly
+        case .free: return nil
         }
-        
-        guard let product = availableProducts.first(where: { $0.id == productId }) else {
-            lastError = .productNotFound
-            return .failed(.productNotFound)
-        }
-        
-        return await purchase(product)
+        return availableProducts.first { $0.id == productId }
     }
-    
+
     // MARK: - Restore Purchases
-    
-    func restorePurchases() async {
+
+    /// Re-sync with the App Store. Returns the tier afterwards, or nil if it failed.
+    @discardableResult
+    func restorePurchases() async -> SubscriptionTier? {
         logger.info("Restoring purchases...")
-        
+
         do {
             try await AppStore.sync()
             await checkSubscriptionStatus()
             logger.info("Purchases restored")
+            return currentTier
         } catch {
             logger.error("Failed to restore purchases: \(error.localizedDescription)")
             lastError = .restoreFailed
+            return nil
         }
     }
     
@@ -299,8 +320,9 @@ final class SubscriptionService: ObservableObject {
                         self.updateTier(tier, expiration: transaction.expirationDate)
                         self.logger.info("Transaction update: \(transaction.productID)")
                     }
-                    await transaction.finish()
-                    await self.syncWithBackend()
+                    if await self.sendToServer(result.jwsRepresentation) {
+                        await transaction.finish()
+                    }
                     
                 case .unverified(_, let error):
                     await MainActor.run {
@@ -335,45 +357,17 @@ final class SubscriptionService: ObservableObject {
         }
     }
     
-    // MARK: - Backend Sync
+    // MARK: - Server
     
-    private func syncWithBackend() async {
-        guard let userId = userId else { return }
-        
+    /// Send a verified transaction's JWS to the server. True when it accepted it.
+    private func sendToServer(_ jws: String) async -> Bool {
         do {
-            // Get latest receipt
-            guard let receiptURL = Bundle.main.appStoreReceiptURL,
-                  let receiptData = try? Data(contentsOf: receiptURL) else {
-                logger.warning("No receipt to sync")
-                return
-            }
-            
-            let receiptString = receiptData.base64EncodedString()
-            
-            // Send to backend
-            guard let url = URL(string: "\(serverBaseUrl)/api/subscription/verify-ios") else {
-                return
-            }
-            
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            
-            let body: [String: Any] = [
-                "userId": userId,
-                "receipt": receiptString,
-                "tier": currentTier.rawValue
-            ]
-            
-            request.httpBody = try JSONSerialization.data(withJSONObject: body)
-            
-            let (_, response) = try await URLSession.shared.data(for: request)
-            
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                logger.info("Subscription synced with backend")
-            }
+            try await accountAPI.submitSignedTransaction(jws)
+            logger.info("Purchase sent to the server")
+            return true
         } catch {
-            logger.error("Failed to sync with backend: \(error.localizedDescription)")
+            logger.error("Couldn't send the purchase to the server: \(error.localizedDescription)")
+            return false
         }
     }
     
@@ -429,107 +423,35 @@ enum PurchaseResult {
 
 enum SubscriptionError: Error, LocalizedError {
     case productLoadFailed
-    case productNotFound
     case purchaseFailed
     case verificationFailed
     case restoreFailed
-    case invalidProduct
+    case signInRequired
+    case accountUnavailable
+    case purchasesUnavailable
+    case serverSyncFailed
     case unknown
-    
+
     var errorDescription: String? {
         switch self {
         case .productLoadFailed:
-            return "Couldn't load subscription options"
-        case .productNotFound:
-            return "Subscription not found"
+            return "Couldn't load the plans. Try again?"
         case .purchaseFailed:
-            return "Purchase failed"
+            return "That didn't go through. Try again?"
         case .verificationFailed:
-            return "Couldn't verify purchase"
+            return "Couldn't confirm that purchase. Try again?"
         case .restoreFailed:
-            return "Couldn't restore purchases"
-        case .invalidProduct:
-            return "Invalid product"
+            return "Couldn't restore purchases. Try again?"
+        case .signInRequired:
+            return "Sign in to subscribe."
+        case .accountUnavailable:
+            return "Couldn't start that right now. Try again?"
+        case .purchasesUnavailable:
+            return "Purchases aren't available yet."
+        case .serverSyncFailed:
+            return "You're subscribed, but we couldn't link it to your account yet. We'll keep trying."
         case .unknown:
-            return "Something went wrong"
+            return "That didn't work. Try again?"
         }
-    }
-}
-
-// MARK: - Subscription View Model (for UI)
-
-@MainActor
-final class SubscriptionViewModel: ObservableObject {
-    @Published var products: [Product] = []
-    @Published var currentTier: SubscriptionTier = .free
-    @Published var isLoading: Bool = false
-    @Published var errorMessage: String?
-    @Published var showSuccessAlert: Bool = false
-    
-    private let service = SubscriptionService.shared
-    private var cancellables = Set<AnyCancellable>()
-    
-    init() {
-        // Bind to service
-        service.$availableProducts
-            .assign(to: &$products)
-        
-        service.$currentTier
-            .assign(to: &$currentTier)
-        
-        service.$purchaseInProgress
-            .assign(to: &$isLoading)
-        
-        service.$lastError
-            .map { $0?.localizedDescription }
-            .assign(to: &$errorMessage)
-    }
-    
-    func purchase(_ product: Product) async {
-        let result = await service.purchase(product)
-        
-        switch result {
-        case .success:
-            showSuccessAlert = true
-        case .failed(let error):
-            errorMessage = error.localizedDescription
-        default:
-            break
-        }
-    }
-    
-    func restore() async {
-        await service.restorePurchases()
-    }
-    
-    func manageSubscription() async {
-        await service.manageSubscription()
-    }
-    
-    // MARK: - Formatted Prices
-    
-    func formattedPrice(for product: Product) -> String {
-        return product.displayPrice
-    }
-    
-    func monthlyEquivalent(for product: Product) -> String? {
-        // If yearly, show monthly equivalent
-        if product.id.contains("yearly") {
-            let monthly = product.price / 12
-            return "$\(monthly.formatted(.number.precision(.fractionLength(2))))/mo"
-        }
-        return nil
-    }
-    
-    func savingsPercentage(for product: Product) -> Int? {
-        // Calculate savings for yearly vs monthly
-        guard product.id.contains("yearly") else { return nil }
-        
-        let tier = ProductID.tier(for: product.id)
-        let monthlyPrice = tier.monthlyPrice
-        let yearlyMonthly = product.price / 12
-        
-        let savings = ((monthlyPrice - yearlyMonthly) / monthlyPrice) * 100
-        return Int(truncating: NSDecimalNumber(decimal: savings).rounding(accordingToBehavior: nil))
     }
 }

@@ -4,13 +4,29 @@
  * Shared helper functions for calendar API routes.
  */
 
-import type { ServerResponse } from 'http';
-import { sendJSON } from '../helpers.js';
+import type { IncomingMessage, ServerResponse } from 'http';
+import { parseBody, sendJSON } from '../helpers.js';
 import {
   checkCalendarRateLimit,
   getCalendarRateLimitStatus,
 } from '../../services/calendar/utils/rate-limiter.js';
 import type { CalendarEvent } from '../../services/calendar/calendar-service.js';
+
+const parsedBodies = new WeakMap<IncomingMessage, Promise<unknown>>();
+
+/**
+ * Read a request's JSON body once and share it. The router reads the body to
+ * find the user, then the handler reads it again; a second read of the same
+ * stream never sees 'end', so the request hung (Apple connect, preference saves).
+ */
+export function readJsonBody<T>(req: IncomingMessage): Promise<T> {
+  let body = parsedBodies.get(req);
+  if (!body) {
+    body = parseBody<unknown>(req);
+    parsedBodies.set(req, body);
+  }
+  return body as Promise<T>;
+}
 
 /**
  * Legacy wrapper for sendJSON with (res, data, status) signature.

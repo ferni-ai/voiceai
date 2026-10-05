@@ -6,6 +6,7 @@
  * to detect emotional state from the user's voice.
  */
 
+import { getCallerProsodyTracker } from './caller-prosody.js';
 import { isExperimentalEnabled } from '../../config/feature-flags.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { AudioFrame } from '@livekit/rtc-node';
@@ -109,7 +110,8 @@ export class AudioProsodyAnalyzer {
 
       // If using native Rust processor, feed it directly with Int16 (zero-copy)
       if (this.useNativeProcessor && this.sessionId) {
-        processNativeFrame(this.sessionId, frame.data as unknown as Int16Array, now);
+        const reading = processNativeFrame(this.sessionId, frame.data as unknown as Int16Array, now);
+        if (reading) getCallerProsodyTracker(this.sessionId).addFrame(reading, now);
         this.lastFrameTimestamp = now;
       }
 

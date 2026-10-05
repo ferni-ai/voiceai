@@ -67,10 +67,11 @@ export const CARTESIA_API_URL = process.env.CARTESIA_API_URL || 'https://api.car
  * Bundle manifests are the primary source of truth.
  */
 export const VOICE_IDS = {
-  // Ferni (life coach) - "Lester Nare (Pro) - V3" Cartesia Professional Voice
-  // Clone, switched 2026-10-03. Pro clones ignore <speed>/<emotion> tags — see
-  // config/voice-capabilities.ts before relying on prosody tags for this voice.
-  FERNI: 'ebaf7477-b6ae-417e-be54-19e6176777ea',
+  // Ferni (life coach) - "First Principal 2", a Cartesia instant clone. Back from
+  // Lester's Pro clone (2026-10-03 to 10-04): the Pro clone ignores <emotion> and
+  // <speed>, so the reply's tone could not follow the conversation; the founder
+  // picked this voice with emotion tags in a side-by-side listen (2026-10-04).
+  FERNI: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
 
   // Peter John (insights quant) - Synced from .env Dec 2024
   PETER_JOHN: '3f04e815-3260-4f50-8fd9-af9c657be4c2',
@@ -106,6 +107,9 @@ export const VOICE_IDS = {
  * to Lester's Professional Voice Clone.
  */
 export const LEGACY_FERNI_IVC_VOICE_ID = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
+
+/** Lester Nare (Pro) V3, Ferni's voice 2026-10-03 to 10-04: a PVC that ignores <emotion>/<speed>. */
+export const LESTER_PRO_V3_VOICE_ID = 'ebaf7477-b6ae-417e-be54-19e6176777ea';
 
 /**
  * Alias for backwards compatibility with cartesia-core.ts

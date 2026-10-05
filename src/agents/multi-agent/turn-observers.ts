@@ -111,6 +111,7 @@ export async function installToolRetrieval(
     session.off(voice.AgentSessionEventTypes.FunctionToolsExecuted, toolsExecutedHandler);
     session.off(voice.AgentSessionEventTypes.AgentStateChanged, retrievalTurnHandler);
     setTurnToolRetrieval(session, null);
+    retrieval.logSummary();
   });
   log.info({ sessionId, mode: toolRetrievalMode() }, 'tool retrieval on');
   // Live tool retrieval can only send tools the agent has, so load the whole

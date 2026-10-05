@@ -1168,7 +1168,7 @@ class NowPlayingUI {
           <button class="now-playing__btn now-playing__btn--volume" aria-label="${t('nowPlaying.volume', 'Volume')}" title="${t('nowPlaying.adjustVolume', 'Adjust volume')}">
             ${ICONS.volume}
           </button>
-          <input type="range" class="now-playing__volume-slider" min="0" max="100" value="70" aria-label="${t('nowPlaying.volumeSlider', 'Volume slider')}" />
+          <input type="range" class="now-playing__volume-slider" min="0" max="100" value="100" aria-label="${t('nowPlaying.volumeSlider', 'Volume slider')}" />
         </div>
         <button class="now-playing__btn now-playing__btn--history" aria-label="${t('nowPlaying.recentlyPlayed', 'Recently played')}" title="${t('nowPlaying.viewRecentlyPlayed', 'View recently played')}">
           ${ICONS.history}
@@ -1290,7 +1290,7 @@ class NowPlayingUI {
 
     // Volume mute toggle
     if (volumeBtn && volumeSlider) {
-      let lastVolume = 70;
+      let lastVolume = 100;
       volumeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const currentVolume = parseInt(volumeSlider.value, 10);

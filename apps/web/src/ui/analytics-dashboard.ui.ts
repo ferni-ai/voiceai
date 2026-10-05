@@ -615,7 +615,7 @@ class AnalyticsDashboardUI {
         <div class="analytics__insight-icon-wrapper">${icons.calendar}</div>
         <div class="analytics__insight-content">
           <span class="analytics__insight-label">Best day</span>
-          <span class="analytics__insight-value">${data.bestDay}</span>
+          <span class="analytics__insight-value">${this.escapeHtml(data.bestDay)}</span>
         </div>
       </li>`);
     }
@@ -625,7 +625,7 @@ class AnalyticsDashboardUI {
         <div class="analytics__insight-icon-wrapper">${icons.flame}</div>
         <div class="analytics__insight-content">
           <span class="analytics__insight-label">Most consistent</span>
-          <span class="analytics__insight-value">${data.mostConsistentRitual}</span>
+          <span class="analytics__insight-value">${this.escapeHtml(data.mostConsistentRitual)}</span>
         </div>
       </li>`);
     }

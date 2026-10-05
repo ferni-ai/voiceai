@@ -8,9 +8,11 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 import { apiGet } from '../utils/api.js';
+import { getDeviceId } from '../state/app.state.js';
 
 const log = createLogger('ConnectedLife');
 
@@ -146,13 +148,11 @@ class ConnectedLifeUI {
           biometrics?: { connected: boolean; platform?: string };
           calendar?: { connected: boolean };
           linkedin?: { connected: boolean };
-          spotify?: { connected: boolean };
         };
       }>('/api/v1/integrations/status');
 
       if (response.ok && response.data?.integrations) {
         const { integrations } = response.data;
-        
         // Map API response to our statuses
         if (integrations.biometrics?.connected) {
           // Determine which biometric platform is connected
@@ -175,15 +175,11 @@ class ConnectedLifeUI {
         if (integrations.linkedin?.connected) {
           this.integrationStatuses.linkedin = 'connected';
         }
-        
-        if (integrations.spotify?.connected) {
-          this.integrationStatuses.spotify = 'connected';
-        }
       }
       
-      // Also check Spotify status separately (it has its own endpoint)
+      // Spotify link status is per device (without device_id the server reports SDK config)
       try {
-        const spotifyResponse = await apiGet<{ linked: boolean }>('/spotify/status');
+        const spotifyResponse = await apiGet<{ linked: boolean }>('/spotify/status', { device_id: getDeviceId() });
         if (spotifyResponse.ok && spotifyResponse.data?.linked) {
           this.integrationStatuses.spotify = 'connected';
         }
@@ -193,8 +189,8 @@ class ConnectedLifeUI {
       
       // Check calendar status separately
       try {
-        const calendarResponse = await apiGet<{ providers?: Array<{ connected: boolean }> }>('/api/calendar/providers');
-        if (calendarResponse.ok && calendarResponse.data?.providers?.some(p => p.connected)) {
+        const calendarResponse = await apiGet<{ providers?: Record<string, { connected: boolean }> }>('/api/calendar/providers/status');
+        if (calendarResponse.ok && Object.values(calendarResponse.data?.providers ?? {}).some(p => p.connected)) {
           this.integrationStatuses.googleCalendar = 'connected';
         }
       } catch {
@@ -308,13 +304,13 @@ class ConnectedLifeUI {
           status: this.integrationStatuses.googleCalendar,
           description: 'Events, meetings, and availability',
         },
-        {
+        ...(LINKEDIN_ENABLED ? [{ // no tile while LinkedIn is off (config/linkedin.ts)
           id: 'linkedin',
           name: t('menu.items.linkedin'),
           icon: ICONS.linkedin,
           status: this.integrationStatuses.linkedin,
           description: 'Professional context and network',
-        },
+        }] : []),
       ],
       vibe: [
         {

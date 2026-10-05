@@ -368,6 +368,16 @@ describe('VibeService', () => {
       expect(result.errors.some((e) => e.includes('Lights'))).toBe(true);
     });
 
+    it('should not report music applied when no Sonos is connected', async () => {
+      const { getUserSmartHomeCredentials } = await import('../../smart-home/user-credentials.js');
+      (getUserSmartHomeCredentials as ReturnType<typeof vi.fn>).mockResolvedValueOnce({});
+
+      const result = await activateVibe(testUserId, 'focus');
+
+      // Nothing played, so the UI must not be told music was set
+      expect(result.applied.music).toBe(false);
+    });
+
     it('should handle temperature failure', async () => {
       const { setTemperature } = await import('../../identity/ecobee-api.js');
       (setTemperature as ReturnType<typeof vi.fn>).mockResolvedValueOnce({

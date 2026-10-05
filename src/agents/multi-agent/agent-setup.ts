@@ -129,6 +129,7 @@ import {
 import { timeContext } from '../shared/time-context.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
+import { createDataMessageSender } from '../shared/data-message-envelope.js';
 // WAVE 2: Voice humanization (micro-interrupt/barge-in recovery) + live backchanneling
 import { getEmotionalArcTracker } from '../../conversation/index.js';
 import {
@@ -138,6 +139,7 @@ import {
   type VoiceHumanizationIntegration,
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
+import { endpointingDelays } from '../shared/turn-patience.js';
 
 const log = getLogger();
 
@@ -1262,10 +1264,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     turnHandling: { interruption: interruptionOverrides() },
     voiceOptions: {
       allowInterruptions: true,
-      // UPDATED Jan 2026: Ultra-tight delays for natural conversation
-      // Human turn-taking gaps are 200-400ms - we should match that
-      minEndpointingDelay: 150, // Was 250ms - be snappier
-      maxEndpointingDelay: 450, // Was 800ms - don't wait too long
+      ...endpointingDelays(), // waits through thinking pauses: see turn-patience.ts
       minInterruptionWords: 1,
       minInterruptionDuration: 150, // Was 200ms - faster interrupt detection
       preemptiveGeneration: true,
@@ -1819,18 +1818,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     try {
       // Handler imports now hoisted to module level for faster startup
       // Create sendDataMessage helper for frontend signaling
-      const sendDataMessage = async (
-        type: string,
-        payload: Record<string, unknown>
-      ): Promise<void> => {
-        try {
-          const message = JSON.stringify({ type, ...payload });
-          const data = new TextEncoder().encode(message);
-          await room.localParticipant?.publishData(data, { reliable: true });
-        } catch {
-          // Non-critical - silently ignore errors
-        }
-      };
+      const sendDataMessage = createDataMessageSender(room);
 
       // TRANSCRIPT HANDLER
       if (conversationManager) {

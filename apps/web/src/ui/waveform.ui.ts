@@ -22,7 +22,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import type { VoiceEmotion } from '../types/events.js';
-import type { PersonaId } from '../types/persona.js';
+import type { SpeakerId } from '../types/persona.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -367,7 +367,7 @@ export function setVolume(volume: number): void {
   }
 }
 
-export function setPersona(personaId: PersonaId): void {
+export function setPersona(personaId: SpeakerId): void {
   currentConfig = getWaveformProfile(personaId);
   // Color is read from CSS --persona-primary variable (set by design system)
   // Use requestAnimationFrame to ensure CSS has updated

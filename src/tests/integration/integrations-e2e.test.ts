@@ -279,7 +279,7 @@ describe('Biometrics Integration API', () => {
       const platforms = ['googlefit', 'oura', 'whoop'] as const;
 
       for (const platform of platforms) {
-        const authUrl = getAuthorizationUrl(platform, testUserId);
+        const authUrl = getAuthorizationUrl(platform, testUserId, 'opaque-state');
         expect(typeof authUrl).toBe('string');
         expect(authUrl.length).toBeGreaterThan(0);
       }

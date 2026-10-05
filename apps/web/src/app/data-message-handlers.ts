@@ -35,7 +35,6 @@ import { setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/i
 import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { delightService } from '../services/delight.service.js';
-// 🌱 Smart Vote Prompts - Track user mentions for feature recommendations
 import { engagementService, handoffService, moodService } from '../services/index.js';
 import { handleVoiceEventDataMessage } from '../services/voice-events.service.js';
 import { smartPromptTracker } from '../services/roadmap.service.js';
@@ -45,11 +44,20 @@ import { celebrationsUI } from '../ui/celebrations.ui.js';
 import { coachUI } from '../ui/coach.ui.js';
 import { engagementTriggerUI } from '../ui/engagement-trigger.ui.js';
 import { messageUI } from '../ui/message.ui.js';
+import { showSpeakerCheck } from '../ui/speaker-change-indicator.ui.js';
 import { moodUI } from '../ui/mood.ui.js';
 import { presenceUI } from '../ui/presence.ui.js';
 import { soundUI } from '../ui/sound.ui.js';
 import { waveformUI } from '../ui/waveform.ui.js';
 import { createLogger } from '../utils/logger.js';
+import {
+  handleAvatarCue,
+  handleCrisisDetected,
+  handleEmotionalIntervention,
+  handleTrustSignal,
+  type AvatarCueEvent,
+  type TrustSignalEvent,
+} from './live-signal-handlers.js';
 // 🎬 Ferni Expressions - Character-level avatar expressions
 import { ferniExpressions, type EmotionalExpression } from '../ui/ferni-expressions.ui.js';
 // 🎭 Luxo Expressions - 100+ expression system from design tokens
@@ -264,8 +272,8 @@ export function handleDataMessage(message: DataMessage): void {
 
   // Handle other message types
   switch (message.type) {
-    case 'spotify':
-      // Spotify-related message
+    case 'speaker_changed':
+      showSpeakerCheck(); // "Someone new?" (the agent already gated it)
       break;
 
     case 'status':
@@ -378,8 +386,16 @@ export function handleDataMessage(message: DataMessage): void {
       break;
 
     case 'trust_signal':
-      // 💚 Trust Signal: "Ferni noticed..." UI cards from backend trust systems
+      // 💚 Trust Signal: "Ferni noticed..." cards and avatar hints
       handleTrustSignal(message as TrustSignalEvent);
+      break;
+
+    case 'crisis_detected':
+      handleCrisisDetected(message);
+      break;
+
+    case 'emotional_intervention':
+      handleEmotionalIntervention(message);
       break;
 
     case 'breath_sync':
@@ -592,56 +608,6 @@ function handlePartialTranscript(event: PartialTranscriptEvent): void {
 }
 
 // ============================================================================
-// TRUST SIGNAL HANDLER - "Ferni noticed..." UI Cards
-// ============================================================================
-
-/**
- * Trust signal event from backend trust systems
- */
-interface TrustSignalEvent extends DataMessage {
-  type: 'trust_signal';
-  signalType:
-    | 'growth'
-    | 'boundary'
-    | 'callback'
-    | 'small_win'
-    | 'thinking_of_you'
-    | 'reading_lines';
-  title: string;
-  message: string;
-  personaId?: string;
-  timing: 'immediate' | 'after_response' | 'end_of_turn';
-  metadata?: Record<string, unknown>;
-}
-
-/**
- * Handle trust signal from backend
- *
- * Dispatches a custom event that the trust-signals.ui.ts listens for.
- * This creates the "Ferni noticed..." floating cards.
- */
-function handleTrustSignal(event: TrustSignalEvent): void {
-  log.info('💚 Trust signal received', {
-    type: event.signalType,
-    title: event.title,
-    timing: event.timing,
-  });
-
-  // Dispatch custom event for the trust signals UI
-  // The progressive-features.service.ts listens for 'ferni:backend-trust-signal'
-  window.dispatchEvent(
-    new CustomEvent('ferni:backend-trust-signal', {
-      detail: {
-        type: event.signalType,
-        title: event.title,
-        message: event.message,
-        personaId: event.personaId,
-      },
-    })
-  );
-}
-
-// ============================================================================
 // VOICE PROSODY HANDLER - Ferni EQ "Better Than Human"
 // ============================================================================
 
@@ -660,86 +626,6 @@ interface VoiceProsodyEvent extends DataMessage {
   speechRate?: number;
   voiceQuality?: number;
   breathiness?: number;
-}
-
-// ============================================================================
-// AVATAR CUE HANDLER - Anticipatory Emotional Intelligence
-// ============================================================================
-
-/**
- * Avatar cue event from anticipatory trigger engine
- *
- * Sent when the Speech Orchestrator predicts emotion BEFORE the user finishes
- * speaking. This is the "reading the future" capability.
- */
-interface AvatarCueEvent extends DataMessage {
-  type: 'avatar_cue';
-  /** Always 'anticipatory_response' from anticipation engine */
-  anticipatoryType: 'anticipatory_response';
-  /** Expression to show: soften, concern, warmth, excitement, attentive, neutral */
-  expression: 'soften' | 'concern' | 'warmth' | 'excitement' | 'attentive' | 'neutral';
-  /** Gesture hint: micro-nod, lean-in, open-hands, gentle-smile, none */
-  gesture: 'micro-nod' | 'lean-in' | 'open-hands' | 'gentle-smile' | 'none';
-  /** Eye contact mode */
-  eyeContact: 'maintain' | 'soften' | 'give-space';
-  /** What the engine predicted (for debugging/analytics) */
-  anticipatedOutcome?: string;
-}
-
-/**
- * Handle avatar cue from anticipatory trigger engine
- *
- * BETTER THAN HUMAN: This is the "reading the future" capability - showing
- * empathy BEFORE the user finishes speaking. Maps backend cues to frontend
- * micro-expressions for subliminal trust building.
- */
-function handleAvatarCue(event: AvatarCueEvent): void {
-  log.info('🔮 Avatar cue received (anticipatory)', {
-    expression: event.expression,
-    gesture: event.gesture,
-    anticipatedOutcome: event.anticipatedOutcome,
-  });
-
-  const { playMicroExpression } = ferni;
-
-  // Map backend expressions to frontend micro-expressions
-  switch (event.expression) {
-    case 'concern':
-      playMicroExpression('concern_flash');
-      break;
-    case 'warmth':
-      playMicroExpression('warmth_pulse');
-      break;
-    case 'soften':
-      playMicroExpression('warmth_pulse'); // soften maps to warmth
-      break;
-    case 'excitement':
-      playMicroExpression('interest_flash');
-      break;
-    case 'attentive':
-      playMicroExpression('protective'); // attentive = protective presence
-      break;
-    case 'neutral':
-      playMicroExpression('noticing'); // subtle acknowledgment
-      break;
-  }
-
-  // Handle gestures - these enhance the expression
-  if (event.gesture === 'lean-in') {
-    playMicroExpression('curious_lean');
-  } else if (event.gesture === 'gentle-smile') {
-    playMicroExpression('warmth_pulse');
-  } else if (event.gesture === 'micro-nod') {
-    // Micro-nods handled by active listening system
-    ferni.onUserSpeechPause(200); // Simulates pause that triggers nod
-  }
-
-  // Track for analytics (anticipation worked!)
-  log.debug('🔮 Anticipatory avatar cue triggered', {
-    expression: event.expression,
-    gesture: event.gesture,
-    outcome: event.anticipatedOutcome,
-  });
 }
 
 /**
@@ -957,30 +843,6 @@ function handleVoiceBiomarkers(message: DataMessage): void {
   if (intervention) {
     log.info('🩺 Biomarker intervention:', intervention);
   }
-}
-
-/**
- * Handle emotional intervention - high-stakes emotional moment
- * Dispatches for EQ system concern mode
- */
-function handleEmotionalIntervention(message: DataMessage): void {
-  document.dispatchEvent(new CustomEvent('ferni:emotional-intervention', { detail: message }));
-}
-
-/**
- * Handle crisis detection signal
- * Dispatches for gentle UI state and protective presence
- */
-function handleCrisisDetected(message: DataMessage): void {
-  document.dispatchEvent(new CustomEvent('ferni:crisis-detected', { detail: message }));
-}
-
-/**
- * Handle naturalness adjustments - pacing adjustments from backend
- * Affects avatar animation timing
- */
-function handleNaturalnessAdjustments(message: DataMessage): void {
-  document.dispatchEvent(new CustomEvent('ferni:naturalness-adjustments', { detail: message }));
 }
 
 // ============================================================================
@@ -2224,6 +2086,8 @@ export function handleMusic(event: MusicEvent): void {
       // 🎚️ Set up music control callbacks
       // NO optimistic updates - wait for backend music_state confirmation via MusicStateManager
       nowPlayingUI.setCallbacks({
+        // Volume/mute is the listener's level, applied in the browser right away
+        onVolumeChange: (volume) => getMusicAudioController().setListenerVolume(volume),
         onPause: () => {
           log.info('🎵 User clicked pause button');
           const room = connectionService.getRoom();

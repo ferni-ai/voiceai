@@ -153,6 +153,21 @@ describe('findFirstChunkEnd', () => {
     expect(findFirstChunkEnd('Oh, I see what you', 12)).toBeNull();
   });
 
+  // The wrapper's chunker trims trailing whitespace, so a ready clause arrives
+  // as "...early," with nothing after it; requiring a space held the first
+  // audio ~150-640 ms for the next token (dev talk-over calls, 2026-10-04).
+  it('takes a clause that ends the buffer', async () => {
+    const { findFirstChunkEnd } = await import('../chunk-boundary.js');
+    const text = 'We could start the morning early,';
+    expect(findFirstChunkEnd(text, 12)).toBe(text.length);
+  });
+
+  it('takes a sentence that ends right before a tag', async () => {
+    const { findFirstChunkEnd } = await import('../chunk-boundary.js');
+    const text = 'That is a great first idea.<break time="80ms"/>';
+    expect(text.slice(0, findFirstChunkEnd(text, 12)!)).toMatch(/^That is a great first idea\./);
+  });
+
   it('never cuts inside markup', async () => {
     const { findFirstChunkEnd } = await import('../chunk-boundary.js');
     const text = '<emotion value="calm"/>Take a breath, okay? We can sort it';

@@ -30,6 +30,7 @@ import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { teamUnlockService } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { billingErrorMessage } from '../utils/billing.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { addTapListener, addTapListeners, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
@@ -89,12 +90,9 @@ export interface SubscriptionStatus {
   approaching?: boolean;
   upgradePrompt?: string | null;
   canUpgrade?: boolean;
-  prices?: Array<{
-    tier: string;
-    name: string;
-    priceInCents: number;
-    description: string;
-  }>;
+  prices?: Array<{ tier: string; name: string; priceInCents: number; description: string }>;
+  /** Where the plan is billed (server-derived); only 'stripe' can use the Stripe portal. */
+  billingSource?: 'stripe' | 'app_store' | 'none';
 }
 
 export interface SubscriptionConfig {
@@ -346,9 +344,7 @@ function showUpgradeSuccessCelebration(tier: string): void {
   trapFocus(container);
 
   // Announce to screen readers
-  announceToScreenReader(
-    `You've upgraded to ${tierName}. Thank you for supporting Ferni.`
-  );
+  announceToScreenReader(`You've upgraded to ${tierName}. Thank you for supporting Ferni.`);
 
   // Animate in (respecting reduced motion)
   requestAnimationFrame(() => {
@@ -378,8 +374,12 @@ function showUpgradeSuccessCelebration(tier: string): void {
   });
 
   // Event handlers (iOS-compatible)
-  addTapListener(container.querySelector('.subscription-backdrop'), () => closeCelebration(container));
-  addTapListener(container.querySelector('[data-action="start"]'), () => closeCelebration(container));
+  addTapListener(container.querySelector('.subscription-backdrop'), () =>
+    closeCelebration(container)
+  );
+  addTapListener(container.querySelector('[data-action="start"]'), () =>
+    closeCelebration(container)
+  );
 
   // Reload subscription status
   void loadStatus();
@@ -624,7 +624,7 @@ function createModal(prompt?: string): HTMLElement {
           ${prompt ? 'Help Us Build This' : 'Support Ferni'}
         </h2>
         <p id="subscription-subtitle" class="subscription-subtitle">
-          ${prompt || 'Ferni is free forever. If you believe in what we\'re building, chip in. As a thank you, we\'ll unlock some perks.'}
+          ${prompt || "Ferni is free forever. If you believe in what we're building, chip in. As a thank you, we'll unlock some perks."}
         </p>
       </div>
       
@@ -772,7 +772,7 @@ function createTierCard(tier: SubscriptionTier, index: number): string {
         aria-label="${isCurrentTier ? 'You are a Founder - thank you!' : isFree ? 'You are part of the community' : `Chip in ${priceText} as a ${tier.name}`}"
       >
         ${isLoading ? ICONS.loader : ''}
-        <span>${isCurrentTier ? 'You\'re Here 💚' : isFree ? 'Free Forever' : 'Chip In'}</span>
+        <span>${isCurrentTier ? "You're Here 💚" : isFree ? 'Free Forever' : 'Chip In'}</span>
       </button>
     </article>
   `;
@@ -852,28 +852,21 @@ async function handleUpgrade(tier: string): Promise<void> {
   sessionStorage.setItem('ferni_upgrade_tier', tier);
 
   try {
-    const response = await apiPost<{ url?: string; error?: string }>(
-      '/subscription/checkout',
-      {
-        userId: deviceId,
-        device_id: deviceId,
-        tier,
-        successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
-        cancelUrl: window.location.origin + '?upgrade=cancel',
-      }
-    );
+    const response = await apiPost<{ url?: string; error?: string }>('/subscription/checkout', {
+      tier,
+      successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
+      cancelUrl: window.location.origin + '?upgrade=cancel',
+    });
 
     const result = response.ok && response.data ? response.data : {};
 
     if (response.ok && result.url) {
       // Redirect to Stripe checkout
       window.location.href = result.url;
-    } else if (result.error === 'Stripe is not configured') {
-      // Dev mode: simulate upgrade
-      await handleDevUpgrade(tier, deviceId);
+    } else if (import.meta.env.DEV && response.status === 503) {
+      await handleDevUpgrade(tier, deviceId); // Stripe not configured locally: simulate
     } else {
-      // Show warm error message
-      showUpgradeError();
+      showUpgradeError(response.status);
     }
   } catch (error) {
     log.error('Upgrade failed:', error);
@@ -900,8 +893,8 @@ function updateButtonLoadingState(tier: string, loading: boolean): void {
   }
 }
 
-function showUpgradeError(): void {
-  toast.error(t('toasts.somethingWentSidewaysWantToTryAgain'));
+function showUpgradeError(status?: number): void {
+  toast.error(billingErrorMessage(status));
   announceToScreenReader("Couldn't process that upgrade. Try again?");
 }
 
@@ -915,11 +908,11 @@ async function handleDevUpgrade(tier: string, deviceId: string): Promise<void> {
     toast.error(t('toasts.thisFeatureIsOnlyAvailableInDevelopment'));
     return;
   }
-  
+
   try {
     // Get authenticated headers (includes X-User-Id and Firebase token)
     const headers = await getApiHeadersAsync();
-    
+
     const response = await fetch('/subscription/upgrade', {
       method: 'POST',
       headers,

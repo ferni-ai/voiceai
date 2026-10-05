@@ -182,10 +182,11 @@ describe('Vibe Service', () => {
       expect(result.message).toContain('Focus');
     });
 
-    it('should set music when preset has music', async () => {
+    it('should not claim music when the preset has music but no Sonos is connected', async () => {
+      // Nothing can play without a speaker, so the UI must not be told music was set.
       const result = await activateVibe('test-user', 'focus');
 
-      expect(result.applied.music).toBe(true);
+      expect(result.applied.music).toBe(false);
     });
 
     it('should not set lights when no lights connected', async () => {
