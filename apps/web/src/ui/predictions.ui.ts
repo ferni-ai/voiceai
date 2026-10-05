@@ -133,7 +133,7 @@ export class PredictionsUI {
       <div class="predictions-panel__backdrop"></div>
       <div class="predictions-panel__card">
         <header class="predictions-panel__header">
-          <h2 class="predictions-panel__title">Predictions</h2>
+          <h2 class="predictions-panel__title">${t('titles.predictions')}</h2>
           ${renderCloseButton('Close panel')}
         </header>
         <div class="predictions-panel__content" id="predictions-content">
@@ -177,9 +177,9 @@ export class PredictionsUI {
               <path d="M12 6v6l4 2"/>
             </svg>
           </div>
-          <h3 class="predictions-empty__title">Your Crystal Ball</h3>
+          <h3 class="predictions-empty__title">${t('predictions.title')}</h3>
           <p class="predictions-empty__subtitle">
-            I'll learn to anticipate what you need before you ask.
+            ${t('predictions.description')}
           </p>
         </div>
 
@@ -189,7 +189,7 @@ export class PredictionsUI {
             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
-          <span>Preview</span>
+          <span>${t('predictions.preview')}</span>
         </div>
 
         <!-- Sample Predictions (shows what it WILL look like) -->
@@ -199,10 +199,10 @@ export class PredictionsUI {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Accurate
+              ${t('predictions.accurate')}
             </div>
             <p class="predictions-empty__sample-text">"You'd feel overwhelmed this week"</p>
-            <span class="predictions-empty__sample-result">You mentioned stress on Tuesday</span>
+            <span class="predictions-empty__sample-result">${t('predictions.exampleStress')}</span>
           </div>
 
           <div class="predictions-empty__sample predictions-empty__sample--accurate">
@@ -210,7 +210,7 @@ export class PredictionsUI {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Accurate
+              ${t('predictions.accurate')}
             </div>
             <p class="predictions-empty__sample-text">"The gym habit would struggle"</p>
             <span class="predictions-empty__sample-result">You skipped 2 sessions</span>
@@ -222,10 +222,10 @@ export class PredictionsUI {
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12 6 12 12 16 14"/>
               </svg>
-              Watching
+              ${t('predictions.watching')}
             </div>
             <p class="predictions-empty__sample-text">"Sunday evening will feel heavy"</p>
-            <span class="predictions-empty__sample-result">I'll check in with you</span>
+            <span class="predictions-empty__sample-result">${t('predictions.checkIn')}</span>
           </div>
         </div>
 
@@ -359,15 +359,15 @@ export class PredictionsUI {
       <div class="predictions-stats">
         <div class="predictions-stat">
           <span class="predictions-stat__value">${data.accuracy !== null ? data.accuracy + '%' : '--'}</span>
-          <span class="predictions-stat__label">Accuracy</span>
+          <span class="predictions-stat__label">${t('predictions.accuracyLabel')}</span>
         </div>
         <div class="predictions-stat">
           <span class="predictions-stat__value">${data.totalResolved}</span>
-          <span class="predictions-stat__label">Resolved</span>
+          <span class="predictions-stat__label">${t('predictions.resolved')}</span>
         </div>
         <div class="predictions-stat">
           <span class="predictions-stat__value">${data.currentStreak}</span>
-          <span class="predictions-stat__label">Streak</span>
+          <span class="predictions-stat__label">${t('predictions.streak')}</span>
         </div>
       </div>
     `;

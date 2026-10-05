@@ -471,24 +471,24 @@ function renderSourceSelection(): string {
       <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'google' ? 'selected' : ''}" data-source="google">
         <div class="ic-source-icon">${ICONS.google}</div>
         <div class="ic-source-info">
-          <div class="ic-source-name">Google Contacts</div>
-          <div class="ic-source-desc">Import from your Google account</div>
+          <div class="ic-source-name">${t('importContacts.googleContacts')}</div>
+          <div class="ic-source-desc">${t('importContacts.googleDescription')}</div>
         </div>
       </button>
-      
+
       <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'csv' ? 'selected' : ''}" data-source="csv">
         <div class="ic-source-icon">${ICONS.csv}</div>
         <div class="ic-source-info">
-          <div class="ic-source-name">CSV File</div>
+          <div class="ic-source-name">${t('importContacts.csvFile')}</div>
           <div class="ic-source-desc">Import from a spreadsheet (Outlook, LinkedIn)</div>
         </div>
       </button>
-      
+
       <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'vcard' ? 'selected' : ''}" data-source="vcard">
         <div class="ic-source-icon">${ICONS.vcard}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">vCard File</div>
-          <div class="ic-source-desc">Import .vcf files from other apps</div>
+          <div class="ic-source-desc">${t('importContacts.vcfDescription')}</div>
         </div>
       </button>
     </div>
@@ -497,7 +497,7 @@ function renderSourceSelection(): string {
       <div class="ic-drop-zone" id="ic-drop-zone">
         <div class="ic-drop-icon">${ICONS.upload}</div>
         <p class="ic-drop-text">
-          Drag and drop your file here, or <span class="ic-drop-browse" id="ic-browse">browse</span>
+          ${t('importContacts.dragDrop')} <span class="ic-drop-browse" id="ic-browse">${t('common.browse')}</span>
         </p>
       </div>
       <input type="file" class="ic-file-input" id="ic-file-input" accept="${state.source === 'csv' ? '.csv' : '.vcf'}">
@@ -527,7 +527,7 @@ function renderPreview(): string {
     <div class="ic-preview-section">
       <div class="ic-preview-header">
         <span class="ic-preview-title">${state.selectedCount} of ${state.preview.length} selected</span>
-        <button aria-label="${t('accessibility.selectAll')}" class="ic-select-all" id="ic-select-all">Select All</button>
+        <button aria-label="${t('accessibility.selectAll')}" class="ic-select-all" id="ic-select-all">${t('importContacts.selectAll')}</button>
       </div>
       <div class="ic-preview-list">
         ${state.preview.map(contact => `
@@ -893,18 +893,18 @@ export function openImportContacts(options: ImportCallbacks = {}): void {
     <div class="ic-backdrop"></div>
     <div class="ic-modal" role="dialog" aria-modal="true" aria-labelledby="ic-title">
       <div class="ic-header">
-        <div class="ic-eyebrow">Your People</div>
-        <h2 class="ic-title" id="ic-title">Import Contacts</h2>
-        <p class="ic-subtitle">Bring your network into Ferni</p>
+        <div class="ic-eyebrow">${t('yourPeople.title')}</div>
+        <h2 class="ic-title" id="ic-title">${t('importContacts.title')}</h2>
+        <p class="ic-subtitle">${t('importContacts.subtitle')}</p>
         <button class="ic-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
       <div class="ic-content">
         ${renderSourceSelection()}
       </div>
       <div class="ic-footer">
-        <button aria-label="${t('accessibility.cancel')}" class="ic-btn ic-btn-secondary">Cancel</button>
+        <button aria-label="${t('accessibility.cancel')}" class="ic-btn ic-btn-secondary">${t('common.cancel')}</button>
         <button aria-label="${t('accessibility.importSelected')}" class="ic-btn ic-btn-primary" ${state.preview.length === 0 ? 'disabled' : ''}>
-          Import Selected
+          ${t('importContacts.importSelected')}
         </button>
       </div>
     </div>

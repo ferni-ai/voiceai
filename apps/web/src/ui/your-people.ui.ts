@@ -779,8 +779,8 @@ function renderHeader(): string {
     <div class="yp-header">
       <div class="yp-header-top">
         <div class="yp-header-text">
-          <div class="yp-eyebrow" id="yp-desc">Relationships</div>
-          <h2 class="yp-title" id="yp-title">Your People</h2>
+          <div class="yp-eyebrow" id="yp-desc">${t('yourPeople.section')}</div>
+          <h2 class="yp-title" id="yp-title">${t('yourPeople.title')}</h2>
         </div>
         <div class="yp-header-actions" role="button" tabindex="0">
           <button class="yp-action-btn" id="yp-insights-btn" aria-label="${t('accessibility.viewRelationshipInsights')}" title="Insights">${ICONS.chart}</button>
@@ -790,25 +790,25 @@ function renderHeader(): string {
       
       <div class="yp-search">
         <span class="yp-search-icon">${ICONS.search}</span>
-        <input 
-          type="search" 
-          class="yp-search-input" 
-          placeholder="Search your people..."
+        <input
+          type="search"
+          class="yp-search-input"
+          placeholder="${t('yourPeople.searchPlaceholder')}"
           value="${escapeHtml(state.searchQuery)}"
           aria-label="${t('accessibility.searchContacts')}"
           autocomplete="off"
         />
       </div>
-      
+
       <div class="yp-filters">
         <button aria-label="${t('accessibility.all')}" class="yp-filter ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">
-          All
+          ${t('yourPeople.filterAll')}
         </button>
         <button aria-label="${t('accessibility.needsAttention')}" class="yp-filter ${state.activeFilter === 'attention' ? 'active' : ''}" data-filter="attention">
-          Needs attention
+          ${t('yourPeople.filterAttention')}
         </button>
         <button aria-label="${t('accessibility.recent')}" class="yp-filter ${state.activeFilter === 'recent' ? 'active' : ''}" data-filter="recent">
-          Recent
+          ${t('yourPeople.filterRecent')}
         </button>
       </div>
     </div>
@@ -832,7 +832,7 @@ function renderNudges(): string {
   return `
     <div class="yp-nudges">
       <div class="yp-nudges-header">
-        ${ICONS.sparkles} Ferni suggests
+        ${ICONS.sparkles} ${t('yourPeople.ferniSuggests')}
       </div>
       ${visibleNudges.map(nudge => `
         <div class="yp-nudge" data-contact-id="${nudge.contactId}" role="button" tabindex="0" aria-label="Contact ${escapeHtml(nudge.contactName)}. ${escapeHtml(nudge.reason)}">
@@ -841,8 +841,8 @@ function renderNudges(): string {
             <div class="yp-nudge-name">${escapeHtml(nudge.contactName)}</div>
             <div class="yp-nudge-reason">${escapeHtml(nudge.reason)}</div>
           </div>
-          ${nudge.priority === 'high' ? `<span class="yp-nudge-badge high">Soon</span>` : ''}
-          ${nudge.priority === 'medium' ? `<span class="yp-nudge-badge medium">Check in</span>` : ''}
+          ${nudge.priority === 'high' ? `<span class="yp-nudge-badge high">${t('yourPeople.badgeSoon')}</span>` : ''}
+          ${nudge.priority === 'medium' ? `<span class="yp-nudge-badge medium">${t('yourPeople.badgeCheckIn')}</span>` : ''}
           <span class="yp-nudge-arrow" aria-hidden="true">${ICONS.chevronRight}</span>
         </div>
       `).join('')}
@@ -894,14 +894,14 @@ function renderPeopleList(): string {
         <div class="yp-section">
           <div class="yp-empty">
             <div class="yp-empty-icon">${ICONS.users}</div>
-            <div class="yp-empty-title">No one here yet</div>
-            <p class="yp-empty-text">Add people you care about and we'll help you nurture those relationships.</p>
+            <div class="yp-empty-title">${t('yourPeople.emptyTitle')}</div>
+            <p class="yp-empty-text">${t('yourPeople.emptyDescription')}</p>
           </div>
           <button aria-label="${t('accessibility.add')}" class="yp-add-btn" data-action="add-person">
-            ${ICONS.plus} Add Someone
+            ${ICONS.plus} ${t('yourPeople.addSomeone')}
           </button>
           <button aria-label="${t('accessibility.upload')}" class="yp-add-btn yp-import-btn" data-action="import-contacts" style="margin-top: var(--space-2);">
-            ${ICONS.upload} Import from Google or CSV
+            ${ICONS.upload} ${t('yourPeople.importFromGoogleCsv')}
           </button>
         </div>
       `;
@@ -910,7 +910,7 @@ function renderPeopleList(): string {
     return `
       <div class="yp-section">
         <div class="yp-empty">
-          <p class="yp-empty-text">No people match this filter</p>
+          <p class="yp-empty-text">${t('yourPeople.noMatchFilter')}</p>
         </div>
       </div>
     `;
@@ -932,10 +932,10 @@ function renderPeopleList(): string {
   html += `
     <div class="yp-section yp-action-buttons" role="button" tabindex="0">
       <button aria-label="${t('accessibility.add')}" class="yp-add-btn" data-action="add-person">
-        ${ICONS.plus} Add Someone
+        ${ICONS.plus} ${t('yourPeople.addSomeone')}
       </button>
       <button aria-label="${t('accessibility.upload')}" class="yp-add-btn yp-secondary-btn" data-action="import-contacts">
-        ${ICONS.upload} Import Contacts
+        ${ICONS.upload} ${t('yourPeople.importContacts')}
       </button>
     </div>
   `;
@@ -948,16 +948,16 @@ function renderPersonItem(person: Person): string {
   const strengthColor = getStrengthColor(person.strengthScore || 50);
   
   const lastContactText = person.daysSinceContact !== undefined
-    ? person.daysSinceContact === 0 ? 'Today'
-    : person.daysSinceContact === 1 ? 'Yesterday'
-    : `${person.daysSinceContact}d ago`
+    ? person.daysSinceContact === 0 ? t('common.today')
+    : person.daysSinceContact === 1 ? t('common.yesterday')
+    : t('yourPeople.daysAgo', { count: person.daysSinceContact })
     : '';
 
   const trendIcon = person.strengthTrend === 'growing' ? ICONS.trendUp :
                     person.strengthTrend === 'fading' ? ICONS.trendDown : '';
 
   const metaText = [
-    person.relationship || 'Contact',
+    person.relationship || t('yourPeople.contact'),
     lastContactText,
     person.upcomingDate ? `${person.upcomingDate.label || person.upcomingDate.type} in ${person.upcomingDate.daysUntil} days` : ''
   ].filter(Boolean).join('. ');
@@ -971,7 +971,7 @@ function renderPersonItem(person: Person): string {
           ${trendIcon ? `<span class="yp-person-trend ${person.strengthTrend}" aria-hidden="true">${trendIcon}</span>` : ''}
         </div>
         <div class="yp-person-meta">
-          <span>${person.relationship || 'Contact'}</span>
+          <span>${person.relationship || t('yourPeople.contact')}</span>
           ${lastContactText ? `<span>${lastContactText}</span>` : ''}
           ${person.upcomingDate ? `
             <span class="yp-person-upcoming">
@@ -988,15 +988,15 @@ function renderPersonItem(person: Person): string {
 }
 
 function renderLoading(): string {
-  return `<div class="yp-loading">Loading your people...</div>`;
+  return `<div class="yp-loading">${t('yourPeople.loading')}</div>`;
 }
 
 function renderError(): string {
   return `
     <div class="yp-error">
       <div class="yp-error-icon">${ICONS.alertCircle}</div>
-      <div class="yp-error-message">${escapeHtml(state.error ?? 'Something went wrong')}</div>
-      <button class="yp-error-retry" aria-label="Retry loading contacts">Try again</button>
+      <div class="yp-error-message">${escapeHtml(state.error ?? t('common.error'))}</div>
+      <button class="yp-error-retry" aria-label="${t('accessibility.retry')}">${t('common.retry')}</button>
     </div>
   `;
 }
