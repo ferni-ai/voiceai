@@ -58,7 +58,7 @@ POST /webhooks
     "url": "https://api.yourcompany.com/ferni-webhooks",
     "events": ["session.started", "session.ended", "tool.called", "workflow.completed"],
     "enabled": true,
-    "secret": "whsec_7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c",
+    "secret": "whsec_your_signing_secret",
     "status": "active",
     "createdAt": "2026-01-11T10:00:00Z",
     "updatedAt": "2026-01-11T10:00:00Z"

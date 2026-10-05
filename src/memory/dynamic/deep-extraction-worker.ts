@@ -21,7 +21,9 @@ import type {
 } from './fast-capture.js';
 // 🧠 MEMORY FIX: Import vector store for semantic search capability
 import { getFirestoreVectorStore } from '../firestore-vector-store/index.js';
-import type { VectorDocument } from '../vector-store-interface.js';
+import { buildExtractionVectorDocuments } from './extraction-vector-docs.js';
+import { createDeepExtractionBatcher } from './deep-extraction-batch.js';
+import type { DeepExtractionBatchOptions } from './deep-extraction-batch.js';
 
 // ============================================================================
 // TYPES
@@ -184,6 +186,7 @@ export class DeepExtractionWorker {
   private isProcessing = false;
   private running = false;
   private eventListenerCleanup: (() => void) | null = null;
+  private batcher: ReturnType<typeof createDeepExtractionBatcher>;
   private extractionStats = {
     totalJobs: 0,
     completedJobs: 0,
@@ -193,8 +196,8 @@ export class DeepExtractionWorker {
     totalFactsExtracted: 0,
   };
 
-  constructor() {
-    // Don't auto-subscribe - wait for explicit start()
+  constructor(options: DeepExtractionBatchOptions = {}) {
+    this.batcher = createDeepExtractionBatcher((job) => this.enqueue(job), options);
   }
 
   /**
@@ -217,6 +220,7 @@ export class DeepExtractionWorker {
    * Stop the worker
    */
   stop(): void {
+    this.batcher.flushAll(); // don't drop turns still waiting for their batch
     this.running = false;
     if (this.eventListenerCleanup) {
       this.eventListenerCleanup();
@@ -228,15 +232,10 @@ export class DeepExtractionWorker {
   private setupEventListener(): void {
     // Listen for deep extraction events via DI wrapper (avoids layer violation)
     const listener = (job: unknown) => {
-      this.log.info(
-        { jobId: (job as DeepExtractionJob)?.jobId, userId: (job as DeepExtractionJob)?.userId },
-        '🧠 [MEMORY-AUDIT] Received deep extraction job'
-      );
-      if (this.running) {
-        this.enqueue(job as DeepExtractionJob);
-      } else {
-        this.log.warn('🧠 [MEMORY-AUDIT] Received job but worker not running');
-      }
+      const { jobId, userId } = (job ?? {}) as Partial<DeepExtractionJob>;
+      this.log.info({ jobId, userId }, '🧠 [MEMORY-AUDIT] Received deep extraction job');
+      if (this.running) this.batcher.add(job as DeepExtractionJob);
+      else this.log.warn('🧠 [MEMORY-AUDIT] Received job but worker not running');
     };
     const registered = safeOnEvent('memory:deep-extraction', listener);
 
@@ -689,97 +688,13 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
       const vectorStore = getFirestoreVectorStore();
       await vectorStore.initialize();
 
-      const vectorDocs: VectorDocument[] = [];
       const timestamp = new Date(timestampStr); // Convert ISO string to Date
 
-      // Create vector documents for entities
-      for (const entity of result.entities) {
-        // Build searchable text that includes entity name, type, and attributes
-        const attributeText = Object.entries(entity.attributes)
-          .map(([k, v]) => `${k}: ${v}`)
-          .join('. ');
-
-        const searchableText = [
-          `${entity.name} (${entity.type})`,
-          attributeText,
-          `Mentioned in conversation with ${job.personaId || 'Ferni'}`,
-        ]
-          .filter(Boolean)
-          .join('. ');
-
-        vectorDocs.push({
-          id: `entity-${userId}-${entity.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
-          text: searchableText,
-          metadata: {
-            source: 'deep_extraction',
-            userId,
-            category: 'entity',
-            entityName: entity.name,
-            entityType: entity.type,
-            sessionId: job.sessionId,
-            turnNumber: job.turnNumber,
-            timestamp,
-            confidence: entity.confidence,
-          },
-        });
-      }
-
-      // Create vector documents for facts (these are often the most valuable for memory)
-      for (const fact of result.facts) {
-        const searchableText = [
-          `${fact.entityName}: ${fact.key} is ${fact.value}`,
-          fact.temporalContext ? `(${fact.temporalContext})` : '',
-          `Type: ${fact.factType}`,
-        ]
-          .filter(Boolean)
-          .join('. ');
-
-        vectorDocs.push({
-          id: `fact-${userId}-${fact.entityName.toLowerCase().replace(/\s+/g, '-')}-${fact.key}-${Date.now()}`,
-          text: searchableText,
-          metadata: {
-            source: 'deep_extraction',
-            userId,
-            category: 'fact',
-            entityName: fact.entityName,
-            factType: fact.factType,
-            factKey: fact.key,
-            factValue: fact.value,
-            sessionId: job.sessionId,
-            turnNumber: job.turnNumber,
-            timestamp,
-            confidence: fact.confidence,
-          },
-        });
-      }
-
-      // Create vector documents for relationships
-      for (const rel of result.relationships) {
-        const searchableText = [
-          `${rel.source} ${rel.type} ${rel.target}`,
-          rel.bidirectional ? '(bidirectional relationship)' : '',
-          `Relationship strength: ${rel.strength}`,
-        ]
-          .filter(Boolean)
-          .join('. ');
-
-        vectorDocs.push({
-          id: `rel-${userId}-${rel.source.toLowerCase()}-${rel.target.toLowerCase()}-${Date.now()}`,
-          text: searchableText,
-          metadata: {
-            source: 'deep_extraction',
-            userId,
-            category: 'relationship',
-            sourceEntity: rel.source,
-            targetEntity: rel.target,
-            relationType: rel.type,
-            sessionId: job.sessionId,
-            turnNumber: job.turnNumber,
-            timestamp,
-            strength: rel.strength,
-          },
-        });
-      }
+      // Entities/facts/relationships are LLM JSON output — fields can be
+      // missing or malformed. buildExtractionVectorDocuments validates each
+      // item, sanitizes generated Firestore ids (free text can contain "/"),
+      // and drops anything malformed rather than throwing.
+      const vectorDocs = buildExtractionVectorDocuments(userId, result, job, timestamp, this.log);
 
       // Batch add to vector store (auto-generates embeddings)
       if (vectorDocs.length > 0) {

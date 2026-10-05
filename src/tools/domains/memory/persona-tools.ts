@@ -723,7 +723,7 @@ export function createMemoryManagementTools() {
           return `I couldn't find anything matching "${searchTerm}" in my memory. Could you be more specific about what you'd like me to forget?`;
         }
 
-        const success = await forget(memory.id);
+        const success = await forget(memory.id, userId);
         if (success) {
           logger.info(
             { userId, memoryId: memory.id, name: memory.name },

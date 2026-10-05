@@ -8,7 +8,7 @@
  */
 
 import { findProjectRoot } from '../../utils/project-root.js';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -60,7 +60,7 @@ async function callGemini(prompt: string, systemPrompt: string): Promise<string>
   );
 
   if (!response.ok) throw new Error(`Gemini API error: ${await response.text()}`);
-  const data = await response.json();
+  const data = (await response.json()) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
@@ -151,10 +151,44 @@ Output format:
 // REVIEW FUNCTIONS
 // =============================================================================
 
-async function getDiff(staged = true): Promise<string> {
-  const cmd = staged ? 'git diff --cached' : 'git diff';
-  const diff = execSync(cmd, { encoding: 'utf8', cwd: PROJECT_ROOT });
-  
+/** What to review: a branch's changes since it left `ref`, or local changes. */
+type DiffSource = { kind: 'base'; ref: string } | { kind: 'staged' } | { kind: 'unstaged' };
+
+/**
+ * The ref to review against: `--base <ref>`, else the pull request's base
+ * branch in GitHub Actions (GITHUB_BASE_REF, as origin/<branch>). Undefined
+ * means review local changes. A CI checkout has no local changes, so without
+ * this the PR review always said "No changes to review".
+ */
+export function baseRef(args: string[], env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const i = args.indexOf('--base');
+  if (i >= 0 && args[i + 1]) return args[i + 1];
+  return env.GITHUB_BASE_REF ? `origin/${env.GITHUB_BASE_REF}` : undefined;
+}
+
+/** git diff arguments for a source. Three dots: only what the branch added, not what base gained since. */
+export function diffArgs(source: DiffSource): string[] {
+  if (source.kind === 'base') return [`${source.ref}...HEAD`];
+  return source.kind === 'staged' ? ['--cached'] : [];
+}
+
+/** Runs git without a shell, so a branch name is never interpreted. */
+function git(args: string[]): string {
+  return execFileSync('git', args, { encoding: 'utf8', cwd: PROJECT_ROOT, maxBuffer: 64 * 1024 * 1024 });
+}
+
+function refExists(ref: string): boolean {
+  try {
+    git(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getDiff(source: DiffSource): string {
+  const diff = git(['diff', ...diffArgs(source)]);
+
   if (!diff.trim()) {
     return '';
   }
@@ -166,7 +200,7 @@ async function getDiff(staged = true): Promise<string> {
     : diff;
 }
 
-async function reviewCode(type: 'general' | 'security' | 'perf' = 'general'): Promise<void> {
+async function reviewCode(type: 'general' | 'security' | 'perf' = 'general', base?: string): Promise<void> {
   const titles = {
     general: '🤖 AI Code Review',
     security: '🔒 Security Review',
@@ -181,27 +215,29 @@ async function reviewCode(type: 'general' | 'security' | 'perf' = 'general'): Pr
 
   console.log(`\n${colors.bold}${colors.cyan}${titles[type]}${colors.reset}\n`);
 
-  const diff = await getDiff(true);
-  
-  if (!diff) {
-    // Try unstaged
-    const unstagedDiff = await getDiff(false);
-    if (!unstagedDiff) {
-      log.warn('No changes to review. Make some changes first.');
-      return;
-    }
-    log.info('No staged changes. Reviewing unstaged changes...');
+  if (base && !refExists(base)) {
+    log.error(`Can't find ${base} to diff against (in CI, check out with fetch-depth: 0).`);
+    return;
   }
 
-  const finalDiff = diff || await getDiff(false);
-  
-  // Get file list
-  const files = execSync(diff ? 'git diff --cached --name-only' : 'git diff --name-only', {
-    encoding: 'utf8',
-    cwd: PROJECT_ROOT,
-  });
+  let source: DiffSource = base ? { kind: 'base', ref: base } : { kind: 'staged' };
+  let finalDiff = getDiff(source);
 
-  log.info(`Reviewing ${files.trim().split('\n').length} file(s)...`);
+  if (!finalDiff && source.kind === 'staged') {
+    source = { kind: 'unstaged' };
+    finalDiff = getDiff(source);
+    if (finalDiff) log.info('No staged changes. Reviewing unstaged changes...');
+  }
+
+  if (!finalDiff) {
+    log.warn(base ? `No changes against ${base}.` : 'No changes to review. Make some changes first.');
+    return;
+  }
+
+  const files = git(['diff', '--name-only', ...diffArgs(source)]);
+  const against = source.kind === 'base' ? ` against ${source.ref}` : '';
+
+  log.info(`Reviewing ${files.trim().split('\n').length} file(s)${against}...`);
 
   try {
     const review = await callGemini(
@@ -244,7 +280,8 @@ function formatReview(review: string): string {
 // =============================================================================
 
 export async function handleAIReview(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'all';
+  const subcommand = args[0] && !args[0].startsWith('--') ? args[0] : 'all';
+  const base = baseRef(args);
 
   if (!process.env.GOOGLE_API_KEY) {
     log.error('GOOGLE_API_KEY not set');
@@ -254,25 +291,25 @@ export async function handleAIReview(args: string[]): Promise<void> {
   switch (subcommand) {
     case 'all':
     case 'general':
-      await reviewCode('general');
+      await reviewCode('general', base);
       break;
-    
+
     case 'security':
     case 'sec':
-      await reviewCode('security');
+      await reviewCode('security', base);
       break;
-    
+
     case 'perf':
     case 'performance':
-      await reviewCode('perf');
+      await reviewCode('perf', base);
       break;
-    
+
     case 'full':
-      await reviewCode('general');
+      await reviewCode('general', base);
       console.log('\n');
-      await reviewCode('security');
+      await reviewCode('security', base);
       console.log('\n');
-      await reviewCode('perf');
+      await reviewCode('perf', base);
       break;
     
     default:
@@ -281,6 +318,7 @@ export async function handleAIReview(args: string[]): Promise<void> {
       console.log(`  ${colors.cyan}security${colors.reset}  Security-focused review`);
       console.log(`  ${colors.cyan}perf${colors.reset}      Performance-focused review`);
       console.log(`  ${colors.cyan}full${colors.reset}      Run all three reviews`);
+      console.log(`\n  ${colors.cyan}--base <ref>${colors.reset}  Review the branch's changes since <ref> (default in CI: the PR's base)`);
   }
 }
 

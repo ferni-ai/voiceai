@@ -19,6 +19,7 @@ import {
   getExtractionModel,
   getGeminiClient,
   getOpenAIFallbackModel,
+  vertexOptions,
 } from '../../config/gemini-config.js';
 import { CircuitOpenError, getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -101,10 +102,9 @@ async function initializeVertexAIClient(): Promise<VertexAIClient | null> {
       process.env.GCLOUD_PROJECT ||
       process.env.GCP_PROJECT_ID ||
       'johnb-2025';
-    const location = process.env.VERTEX_AI_LOCATION || 'us-central1';
-
-    getLogger().info({ projectId, location }, 'Initializing Vertex AI client...');
-    vertexAIClient = new VertexAI({ project: projectId, location }) as unknown as VertexAIClient;
+    const options = vertexOptions(projectId, process.env.VERTEX_AI_LOCATION || undefined);
+    getLogger().info(options, 'Initializing Vertex AI client...');
+    vertexAIClient = new VertexAI(options) as unknown as VertexAIClient;
     getLogger().info('Vertex AI client initialized successfully (enterprise quotas)');
     return vertexAIClient;
   } catch (error) {
