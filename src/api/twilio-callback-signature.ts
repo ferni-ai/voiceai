@@ -1,14 +1,15 @@
 /**
- * Twilio-signed callbacks under /api/group.
+ * Twilio-signed callbacks: requests Twilio makes carry no user, so they are
+ * admitted on a valid X-Twilio-Signature instead — never on a user token, and
+ * never with the header missing.
  *
- * The voice agent's ConferenceCallManager points Twilio at two paths on this
- * server. Twilio has no user to sign in as, so these paths skip the engagement
- * router's user check (engagement-routes.ts) and are admitted on a valid
- * X-Twilio-Signature instead — never on a user token.
+ * Under /api/group, the voice agent's ConferenceCallManager points Twilio at
+ * two paths that skip the engagement router's user check (engagement-routes.ts).
  *
  * @module api/twilio-callback-signature
  */
 
+import type { IncomingMessage } from 'http';
 import type { NextFunction, Request, Response } from 'express';
 import { validateTwilioSignature } from '../services/outreach/webhooks/twilio-webhooks.js';
 import { getLogger } from '../utils/safe-logger.js';
@@ -33,26 +34,28 @@ function postedParams(req: Request): Record<string, string> {
 }
 
 /**
- * Express middleware: 403 unless X-Twilio-Signature matches the URL Twilio
+ * True only when X-Twilio-Signature is present and matches the URL Twilio
  * called (rebuilt behind the proxy the same way twilio-routes.ts and
- * family-checkin-webhook-routes.ts do) plus, for a POST, its form fields.
- * With no auth token configured the validator refuses everything.
+ * family-checkin-webhook-routes.ts do) plus the posted form fields. With no
+ * auth token configured the validator refuses everything.
  */
-export function requireTwilioSignature(req: Request, res: Response, next: NextFunction): void {
+export function isSignedByTwilio(
+  req: IncomingMessage,
+  pathAndQuery: string,
+  params: Record<string, string>
+): boolean {
   const signature = req.headers['x-twilio-signature'];
-  if (typeof signature !== 'string' || !signature) {
-    log.warn({ path: req.path }, 'Missing Twilio signature header');
-    res.status(403).json({ error: 'Missing signature' });
-    return;
-  }
-
+  if (typeof signature !== 'string' || !signature) return false;
   const forwardedProto = req.headers['x-forwarded-proto'];
   const protocol = typeof forwardedProto === 'string' ? forwardedProto : 'https';
   const host = req.headers.host ?? '';
-  const fullUrl = `${protocol}://${host}${req.originalUrl}`;
+  return validateTwilioSignature(signature, `${protocol}://${host}${pathAndQuery}`, params);
+}
 
-  if (!validateTwilioSignature(signature, fullUrl, postedParams(req))) {
-    log.warn({ path: req.path }, 'Invalid Twilio signature');
+/** Express middleware: 403 unless isSignedByTwilio. */
+export function requireTwilioSignature(req: Request, res: Response, next: NextFunction): void {
+  if (!isSignedByTwilio(req, req.originalUrl, postedParams(req))) {
+    log.warn({ path: req.path }, 'Missing or invalid Twilio signature');
     res.status(403).json({ error: 'Invalid signature' });
     return;
   }
