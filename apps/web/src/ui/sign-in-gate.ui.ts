@@ -22,9 +22,7 @@ import {
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 
-// ============================================================================
 // TYPES
-// ============================================================================
 
 interface WaitlistCheckResult {
   approved: boolean;
@@ -36,17 +34,13 @@ interface WaitlistCheckResult {
 
 const log = createLogger('SignInGate');
 
-// ============================================================================
 // ELEMENT REFERENCES
-// ============================================================================
 
 let overlayEl: HTMLElement | null = null;
 let isShowing = false;
 let resolveSignIn: (() => void) | null = null;
 
-// ============================================================================
 // STYLES
-// ============================================================================
 
 const STYLES = `
 .sign-in-gate-overlay {
@@ -284,9 +278,7 @@ const STYLES = `
 }
 `;
 
-// ============================================================================
 // WAITLIST CHECK
-// ============================================================================
 
 /**
  * Check if the authenticated user has access (approved on waitlist).
