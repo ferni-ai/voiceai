@@ -111,6 +111,18 @@ describe('bundle measurement', () => {
     });
   });
 
+  it('counts translation chunks once, at the largest, since a visitor loads one locale', () => {
+    const withLocales = {
+      ...manifest,
+      'src/settings/index.ts': { ...manifest['src/settings/index.ts'], dynamicImports: ['src/i18n/locales/de.json', 'src/i18n/locales/ja.json'] },
+      'src/i18n/locales/de.json': { file: 'assets/de-e5.js' },
+      'src/i18n/locales/ja.json': { file: 'assets/ja-f6.js' },
+    };
+    const sizes = measureBundle(build({ ...assets, 'de-e5.js': 30, 'ja-f6.js': 50 }, withLocales));
+    expect(sizes.totalKB).toBe(160 + 50);
+    expect(sizes.initialKB).toBe(10 + 2 + 40 + 7 + 1);
+  });
+
   it('falls back to guessing from filenames, with a warning, when there is no manifest', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     expect(measureBundle(build(assets)).initialKB).toBe(10 + 2 + 40 + 100);
