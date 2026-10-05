@@ -1065,6 +1065,11 @@
     // Use relative URLs - ui-server.js now provides these endpoints
     const API_BASE = '/api/cognitive';
     // WebSocket not available in production - will fall back to HTTP polling
+    // /ws/cognitive is ADMIN ONLY: it streams every user's events, so the
+    // agent refuses the upgrade (401/403) unless it carries the Firebase ID
+    // token of a user with the `admin` custom claim. Sign in to the web app on
+    // this origin (the Vite dev server) as an admin first; the dashboard reuses
+    // that session through the app's own authed-websocket service.
     const WS_URL = window.location.hostname === 'localhost' 
       ? 'ws://localhost:8080/ws/cognitive'
       : null;
@@ -1177,7 +1182,20 @@
     // WEBSOCKET CONNECTION
     // ========================================
     
-    function connectWebSocket() {
+    /**
+     * Open /ws/cognitive as the signed-in admin. The Vite dev server serves the
+     * app's modules under /src/, so this reuses initAuth (restores the session
+     * this origin already has) and openAuthedWebSocket (offers the ID token as
+     * a `bearer.<token>` subprotocol, never in the URL).
+     */
+    async function openAdminWebSocket(url) {
+      const auth = await import('/src/services/firebase-auth.service.ts');
+      await auth.initAuth();
+      const { openAuthedWebSocket } = await import('/src/services/authed-websocket.service.ts');
+      return openAuthedWebSocket(url);
+    }
+
+    async function connectWebSocket() {
       if (demoMode) return;
       
       // Skip WebSocket if not available (production) - use HTTP polling
@@ -1188,7 +1206,7 @@
       }
       
       try {
-        ws = new WebSocket(WS_URL);
+        ws = await openAdminWebSocket(WS_URL);
         
         ws.onopen = () => {
           isConnected = true;
@@ -1214,7 +1232,7 @@
           if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS && !demoMode) {
             reconnectAttempts++;
             console.log(`WebSocket disconnected. Reconnecting (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
-            setTimeout(connectWebSocket, RECONNECT_DELAY);
+            setTimeout(() => void connectWebSocket(), RECONNECT_DELAY);
           } else if (!demoMode) {
             console.log('WebSocket max reconnect attempts reached. Falling back to polling.');
             startPolling();
@@ -1226,7 +1244,8 @@
         };
         
       } catch (err) {
-        console.warn('WebSocket connection failed, falling back to polling');
+        // Not signed in, or not served by the Vite dev server.
+        console.warn('Admin WebSocket unavailable, falling back to polling:', err);
         startPolling();
       }
     }
@@ -1445,7 +1464,7 @@
     // INITIALIZE
     // ========================================
     
-    connectWebSocket();
+    void connectWebSocket();
   </script>
 </body>
 </html>

@@ -6,7 +6,11 @@
  * @module utils/__tests__/firestore-utils.test
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { FieldValue } from '@google-cloud/firestore';
+
+// src/tests/setup.ts mocks this module for every test; test the real one.
+vi.unmock('../firestore-utils.js');
 import {
   removeUndefined,
   deepRemoveUndefined,
@@ -95,8 +99,32 @@ describe('Firestore Utils', () => {
       });
     });
 
+    it('strips undefined nested inside arrays for Firestore writes', () => {
+      const payload = cleanForFirestore({
+        tags: ['ok', undefined, 'also-ok'],
+        nested: [{ a: 1, b: undefined }],
+      });
+      expect(JSON.stringify(payload)).not.toContain('undefined');
+      expect(payload).toEqual({
+        tags: ['ok', 'also-ok'],
+        nested: [{ a: 1 }],
+      });
+    });
+
     it('should handle null', () => {
       expect(deepRemoveUndefined(null)).toBeNull();
+    });
+
+    it('keeps Dates and other class instances (e.g. Firestore FieldValues) as they are', () => {
+      class Vector {
+        constructor(readonly values: number[]) {}
+      }
+      const when = new Date('2026-09-29T00:00:00Z');
+      const vector = new Vector([0.1, 0.2]);
+      const result = deepRemoveUndefined({ when, embedding: vector, meta: { a: undefined, b: 1 } });
+      expect(result.when).toBe(when);
+      expect(result.embedding).toBe(vector);
+      expect(result.meta).toEqual({ b: 1 });
     });
 
     it('should handle undefined', () => {
@@ -169,6 +197,49 @@ describe('Firestore Utils', () => {
 
     it('should handle undefined', () => {
       expect(cleanForFirestore(undefined)).toBeUndefined();
+    });
+
+    it('should preserve FieldValue sentinels (increment, serverTimestamp) by identity, even nested', () => {
+      // Regression test for PR #175 critic review: cleanForFirestore special-cased
+      // Date and Timestamp (.toDate()) but not FieldValue transforms. Rebuilding
+      // one via Object.entries() turns it into a plain `{}`, silently losing the
+      // server-side transform (serverTimestamp/increment/arrayUnion/arrayRemove/delete).
+      const increment = FieldValue.increment(5);
+      const serverTimestamp = FieldValue.serverTimestamp();
+      const arrayUnion = FieldValue.arrayUnion('tag');
+      const arrayRemove = FieldValue.arrayRemove('old-tag');
+      const del = FieldValue.delete();
+
+      const result = cleanForFirestore({
+        topLevelIncrement: increment,
+        nested: {
+          deep: {
+            counter: increment,
+            updatedAt: serverTimestamp,
+          },
+          tags: arrayUnion,
+          oldTags: arrayRemove,
+          removedField: del,
+        },
+        events: [{ id: 'e1', occurrences: increment }, { id: 'e2', estimatedValueCents: undefined }],
+      });
+
+      // Identity preserved (`toBe`, not `toEqual`) - a rebuilt plain object
+      // would fail this even if it happened to look structurally similar.
+      expect(result.topLevelIncrement).toBe(increment);
+      expect(result.nested.deep.counter).toBe(increment);
+      expect(result.nested.deep.updatedAt).toBe(serverTimestamp);
+      expect(result.nested.tags).toBe(arrayUnion);
+      expect(result.nested.oldTags).toBe(arrayRemove);
+      expect(result.nested.removedField).toBe(del);
+      expect(result.events[0].occurrences).toBe(increment);
+
+      // Still deep-cleans `undefined` as usual alongside the sentinels.
+      expect(result.events[1]).not.toHaveProperty('estimatedValueCents');
+      expect(result.events[1]).toEqual({ id: 'e2' });
+
+      // instanceof still holds post-clean (not just reference equality).
+      expect(result.topLevelIncrement instanceof FieldValue).toBe(true);
     });
 
     it('should handle complex nested structure', () => {

@@ -12,6 +12,7 @@
 
 import { setTheme, type ThemeName } from '../theme/index.js';
 import { apiGet } from '../utils/api.js';
+import { openAuthedWebSocket } from './authed-websocket.service.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('VoiceEvents');
@@ -228,7 +229,7 @@ function scheduleReconnect(): void {
 
   reconnectTimeout = setTimeout(() => {
     if (isEnabled && currentUserId) {
-      connectToVoiceEvents(currentUserId);
+      void connectToVoiceEvents(currentUserId);
     }
   }, delay);
 }
@@ -243,7 +244,7 @@ function isFirebaseHosting(): boolean {
   );
 }
 
-export function connectToVoiceEvents(userId: string): void {
+export async function connectToVoiceEvents(userId: string): Promise<void> {
   currentUserId = userId;
 
   if (isFirebaseHosting()) {
@@ -264,10 +265,10 @@ export function connectToVoiceEvents(userId: string): void {
 
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = import.meta.env.DEV ? 'localhost:3002' : window.location.host;
-  const wsUrl = `${protocol}//${host}/ws/user-events?userId=${encodeURIComponent(userId)}`;
+  const wsUrl = `${protocol}//${host}/ws/user-events`;
 
   try {
-    wsConnection = new WebSocket(wsUrl);
+    wsConnection = await openAuthedWebSocket(wsUrl);
 
     wsConnection.onopen = () => {
       log.info('Connected to voice events WebSocket');
@@ -458,7 +459,7 @@ export function initVoiceEvents(userId: string): void {
     log.info('Firebase Hosting detected — using SSE/polling for voice events');
     startHttpFallback(userId);
   } else {
-    connectToVoiceEvents(userId);
+    void connectToVoiceEvents(userId);
   }
 
   log.info('Voice events initialized');

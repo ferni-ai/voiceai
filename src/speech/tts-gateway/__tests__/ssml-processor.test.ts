@@ -105,24 +105,43 @@ describe('SSMLProcessor', () => {
 
   describe('emotion tag parsing', () => {
     it('extracts emotion', () => {
-      const result = processor.parse('<emotion value="happiness"/>Hello world');
+      const result = processor.parse('<emotion value="sympathetic"/>Hello world');
 
       expect(result.cleanText).toBe('Hello world');
-      expect(result.prosody.emotion).toBe('happiness');
+      expect(result.prosody.emotion).toBe('sympathetic');
       expect(result.hadSSML).toBe(true);
     });
 
     it('extracts emotion with intensity', () => {
-      const result = processor.parse('<emotion value="sadness" intensity="0.7"/>Hello');
+      const result = processor.parse('<emotion value="sad" intensity="0.7"/>Hello');
 
-      expect(result.prosody.emotion).toBe('sadness');
+      expect(result.prosody.emotion).toBe('sad');
       expect(result.prosody.emotionIntensity).toBe(0.7);
     });
 
     it('normalizes emotion to lowercase', () => {
-      const result = processor.parse('<emotion value="HAPPINESS"/>Hello');
+      const result = processor.parse('<emotion value="CALM"/>Hello');
 
-      expect(result.prosody.emotion).toBe('happiness');
+      expect(result.prosody.emotion).toBe('calm');
+    });
+
+    it('accepts every Sonic 3 emotion, including trust', () => {
+      expect(processor.parse('<emotion value="trust"/>Hi').prosody.emotion).toBe('trust');
+    });
+
+    it('sends Sonic 3 names for Sonic 2 names, never the old name', () => {
+      // Sonic 3 does not know "happiness" or "positivity"; they used to pass through
+      expect(processor.parse('<emotion value="happiness"/>Hi').prosody.emotion).toBe('happy');
+      expect(processor.parse('<emotion value="positivity"/>Hi').prosody.emotion).toBe('content');
+    });
+
+    it('maps names our content uses to the nearest Sonic 3 emotion instead of dropping them', () => {
+      expect(processor.parse('<emotion value="thoughtful"/>Hi').prosody.emotion).toBe(
+        'contemplative'
+      );
+      const gentle = processor.parse('<emotion value="gentle"/>Hi');
+      expect(gentle.prosody.emotion).toBe('calm');
+      expect(gentle.warnings).toHaveLength(0);
     });
 
     it('warns on invalid emotion', () => {
@@ -138,10 +157,11 @@ describe('SSMLProcessor', () => {
   // ==========================================================================
 
   describe('break tag parsing', () => {
-    it('converts long break (500ms) to period', () => {
+    it('keeps a real pause (400ms+) as a native Sonic break', () => {
+      // As punctuation a 1 s break became a 270 ms gap; the tag gives 1.3 s.
       const result = processor.parse('Hello<break time="500ms"/>world');
 
-      expect(result.cleanText).toBe('Hello. world');
+      expect(result.cleanText).toBe('Hello<break time="500ms"/>world');
       expect(result.hadSSML).toBe(true);
     });
 
@@ -160,7 +180,7 @@ describe('SSMLProcessor', () => {
     it('handles break with seconds unit', () => {
       const result = processor.parse('Hello<break time="1s"/>world');
 
-      expect(result.cleanText).toBe('Hello. world'); // 1000ms = period
+      expect(result.cleanText).toBe('Hello<break time="1000ms"/>world');
     });
 
     it('handles break without unit (defaults to ms)', () => {
@@ -180,7 +200,7 @@ describe('SSMLProcessor', () => {
         'Hello<break time="500ms"/>world<break time="200ms"/>how are you'
       );
 
-      expect(result.cleanText).toBe('Hello. world, how are you');
+      expect(result.cleanText).toBe('Hello<break time="500ms"/>world, how are you');
     });
 
     it('does NOT speak break tag literally', () => {
@@ -204,7 +224,7 @@ describe('SSMLProcessor', () => {
 
       expect(result.cleanText).toBe('Hello, world');
       expect(result.prosody.speed).toBe(0.9);
-      expect(result.prosody.emotion).toBe('happiness');
+      expect(result.prosody.emotion).toBe('happy');
       expect(result.hadSSML).toBe(true);
     });
 
@@ -216,7 +236,7 @@ describe('SSMLProcessor', () => {
       expect(result.cleanText).toBe('Hello!');
       expect(result.prosody.speed).toBe(0.95);
       expect(result.prosody.volume).toBe(1.1);
-      expect(result.prosody.emotion).toBe('positivity');
+      expect(result.prosody.emotion).toBe('content');
     });
   });
 
@@ -434,7 +454,7 @@ describe('SSMLProcessor', () => {
       const result = processor.parse(greeting);
 
       expect(result.cleanText).toBe('Good morning!');
-      expect(result.prosody.emotion).toBe('happiness');
+      expect(result.prosody.emotion).toBe('happy');
       expect(result.prosody.emotionIntensity).toBe(0.8);
     });
   });
@@ -449,7 +469,9 @@ describe('SSMLProcessor', () => {
 
     it('drops a period stuck to a question or exclamation mark', () => {
       // Scripted greeting on dev: "hey there. What's happening?."
-      expect(processor.parse("hey there. What's happening?.").cleanText).toBe("hey there. What's happening?");
+      expect(processor.parse("hey there. What's happening?.").cleanText).toBe(
+        "hey there. What's happening?"
+      );
       expect(processor.parse('Wow!. That is great.').cleanText).toBe('Wow! That is great.');
     });
 
@@ -485,6 +507,35 @@ describe('SSMLProcessor', () => {
     it('keeps ordinary parentheses that are part of what is said', () => {
       const result = processor.parse('Call me (or text me) any time.');
       expect(result.cleanText).toContain('(or text me)');
+    });
+  });
+
+  describe('breath/sigh bracket expressions', () => {
+    // Only `[laughter]` is a Cartesia-documented nonverbal bracket tag.
+    // STRIP_BRACKET_REGEX only matched when the direction word came FIRST,
+    // so adjective-led breath content (from persona breath-sounds.json and
+    // prompt guidance, e.g. "[soft breath]", "[gentle exhale]") passed
+    // through unmodified and Cartesia spoke it as literal words.
+    it.each([
+      '[soft breath]',
+      '[gentle exhale]',
+      '[quiet inhale]',
+      '[deep breath]',
+      '[breath]',
+      '[exhale]',
+      '[still breath]',
+      '[soft exhale]',
+      '[soft sigh]',
+      '[quiet sigh]',
+    ])('drops %s instead of speaking it literally', (bracket) => {
+      const result = processor.parse(`${bracket} Here's the thing.`);
+      expect(result.cleanText).not.toMatch(/breath|sigh|exhale|inhale/i);
+      expect(result.cleanText).toContain("Here's the thing.");
+    });
+
+    it('still passes [laughter] through untouched', () => {
+      const result = processor.parse("That's hilarious! [laughter]");
+      expect(result.cleanText).toContain('[laughter]');
     });
   });
 });

@@ -207,6 +207,8 @@ export interface CameoUnlockEventData {
  */
 export interface CleanupContext {
   sessionId: string;
+  /** Why the session wait ended ('empty_room', 'room.disconnected', 'timeout', ...) */
+  endReason?: string;
   userId?: string;
   services: SessionServices;
   sessionPersona: PersonaConfig;
@@ -344,10 +346,11 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     duration: sessionDuration,
   });
 
-  // Call quality: session disconnect (cleanup runs on room disconnect)
+  // Call quality: how the call ended (a hang-up is not a dropped connection)
   try {
     const { endCall } = await import('../../services/analytics/call-quality-monitor.js');
-    endCall(sessionId, 'disconnect');
+    const { classifyCallEnd } = await import('../../services/analytics/call-end-reason.js');
+    endCall(sessionId, classifyCallEnd(ctx.endReason));
   } catch (qualityErr) {
     diag.debug('Call quality end failed (non-fatal)', { error: String(qualityErr) });
   }
@@ -1148,7 +1151,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     (async () => {
       if (musicCleanup) await musicCleanup();
       cleanupDJBooth();
-      await cleanupMusic();
+      await cleanupMusic(sessionId);
     })(),
 
     // Voice humanization cleanup
@@ -1502,16 +1505,6 @@ async function cleanupDJIntegration(_services: SessionServices): Promise<void> {
       wasExplicitlyStopped: state.wasExplicitlyStopped,
     });
 
-    // Music preferences are now handled by music-user-learning.ts
-    // No need to extract from DJ Booth since it's been deleted
-    const djBoothPrefs: {
-      likedArtists?: string[];
-      dislikedArtists?: string[];
-      favoriteGenres?: string[];
-      moodPreferences?: Record<string, string[]>;
-      preferredMusicTimes?: Array<'morning' | 'afternoon' | 'evening' | 'night'>;
-    } | null = null;
-
     // Music preferences are now persisted via music-learning-persistence.ts
     // The music-user-learning.ts module handles Thompson Sampling for preferences
     // and music-memory-integration.ts handles music helped memories
@@ -1686,15 +1679,15 @@ async function cleanupUtilities(utilitiesCleanup: () => Promise<void>): Promise<
   }
 }
 
-async function cleanupMusic(): Promise<void> {
+async function cleanupMusic(sessionId: string): Promise<void> {
   try {
     const { isMusicEnabled } = await import('../../config/environment.js');
-    if (isMusicEnabled()) {
+    const { isMusicPlayerOwnedBy, resetMusicPlayer } = await import('../../audio/index.js');
+    // The next call in this process may already own the shared music state.
+    if (isMusicEnabled() && isMusicPlayerOwnedBy(sessionId)) {
       const { shutdownSpotify } = await import('../../tools/domains/entertainment/spotify.js');
       shutdownSpotify();
-      const { resetMusicPlayer } = await import('../../audio/index.js');
-      // 🐛 FIX: Await the async resetMusicPlayer to prevent race conditions
-      await resetMusicPlayer();
+      await resetMusicPlayer(sessionId); // awaited so the next session can't race the reset
       diag.session('Spotify and music player reset');
     }
   } catch (e) {

@@ -4,7 +4,7 @@
  * Serves the frontend UI, provides API routes, and handles integrations.
  */
 
-import 'dotenv/config';
+import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
 import http from 'http';
 import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -24,6 +24,9 @@ import {
 } from '../../utils/ddos-protection.js';
 import { notifyDDoSAlert } from '../../services/slack-notifications.js';
 import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
+import { bindVerifiedIdentity } from './request-identity.js';
+import { respondOnRejection } from './request-failure.js';
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { parseRawBody } from '../../api/helpers.js';
 
 // Local routes
@@ -35,6 +38,7 @@ import {
   handleGoogleCalendarRoutes,
   handleAppleCalendarRoutes,
   handleMicrosoftCalendarRoutes,
+  handleOAuthStartRoute,
   handleMusicRoutes,
   handleAgentRoutes,
   handlePushRoutes,
@@ -115,7 +119,6 @@ import { handleConciergeRoutes } from '../../api/concierge-routes.js';
 import { handleProactiveRoutes } from '../../api/proactive-routes.js';
 import { handlePredictionsRoutes } from '../../api/routes/predictions.js';
 import { handleLLMContentRoutes } from '../../api/llm-content-routes.js';
-import { relationshipHealthRoutes } from '../../api/routes/relationship-health-routes.js';
 import { handleYearInReviewRoutes } from '../../api/year-in-review-routes.js';
 import { handleRelationshipRoutes } from '../../api/routes/relationship.js';
 import { handleVoiceHumanizationRoutes } from '../../api/voice-humanization-routes.js';
@@ -232,7 +235,7 @@ import { handleMusicalYouRoutes } from '../../api/routes/musical-you-routes.js';
 import { handleGamesRoutes } from '../../api/routes/games.js';
 import { handleSocialRoutes } from '../../api/routes/social-routes.js';
 import { handlePremiumRoutes } from '../../api/routes/premium-routes.js';
-import { groupConversationRoutes } from '../../api/group-conversation-routes.js';
+import { handleGroupConversationRoutes } from '../../api/group-conversation-handler.js';
 
 // Life Automation (workflows, templates, integrations)
 import {
@@ -262,12 +265,11 @@ if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
 /**
  * Create the HTTP server
  */
-const server = http.createServer(async (req, res) => {
-  // Add request ID for tracing
-  addRequestId(req, res);
+const server = http.createServer((req, res) => respondOnRejection(res, handleRequest(req, res)));
+async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  addRequestId(req, res); // request ID for tracing
 
-  // Set security headers (HSTS, CSP, X-Frame-Options, etc.)
-  setSecurityHeaders(res);
+  setSecurityHeaders(res); // HSTS, CSP, X-Frame-Options, etc.
 
   // Handle CORS
   setCorsHeaders(req, res);
@@ -276,6 +278,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  await bindVerifiedIdentity(req); // identity from verified credentials only; see request-identity.ts
   const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   let pathname = parsedUrl.pathname;
 
@@ -338,18 +341,11 @@ const server = http.createServer(async (req, res) => {
     if (await handleWearablesRoutes(req, res, pathname, parsedUrl)) return;
   }
 
-  // Google Calendar OAuth routes
-  if (pathname.startsWith('/auth/google')) {
+  // OAuth connect: authenticated start, then Google / Apple / Microsoft calendar
+  if (pathname.startsWith('/auth/')) {
+    if (await handleOAuthStartRoute(req, res, pathname)) return;
     if (await handleGoogleCalendarRoutes(req, res, pathname, parsedUrl)) return;
-  }
-
-  // Apple Calendar OAuth routes (Sign in with Apple)
-  if (pathname.startsWith('/auth/apple')) {
     if (await handleAppleCalendarRoutes(req, res, pathname, parsedUrl)) return;
-  }
-
-  // Microsoft Calendar OAuth routes
-  if (pathname.startsWith('/auth/microsoft')) {
     if (await handleMicrosoftCalendarRoutes(req, res, pathname, parsedUrl)) return;
   }
 
@@ -571,25 +567,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    // Group conversation routes (Team Roundtable, Conference Calls)
-    // TODO: TECHNICAL DEBT - This uses an Express Router pattern while everything else
-    // uses raw Node.js HTTP handlers. This creates unnecessary overhead (dynamic import,
-    // mock app creation) on every /api/group/ request. Should refactor
-    // group-conversation-routes.ts to use the standard handleXxxRoutes() pattern.
-    // See: src/api/CLAUDE.md for the standard pattern.
-    if (pathname.startsWith('/api/group/')) {
-      const express = await import('express');
-      const mockApp = express.default();
-      mockApp.use('/api/group', groupConversationRoutes);
-
-      // Forward request to express router
-      await new Promise<void>((resolve, reject) => {
-        mockApp(req as any, res as any, (err: any) => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
-      if (res.writableEnded) return;
+    // Group conversation routes (Team Roundtable, Conference Calls): an Express router
+    if (pathname.startsWith('/api/group/') && (await handleGroupConversationRoutes(req, res))) {
+      return;
     }
   } catch (err) {
     log.error({ error: String(err) }, 'Group conversation route error');
@@ -877,17 +857,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
-    // Relationship routes (progress & team-unlocks before health routes)
+    // Relationship routes (progress & team-unlocks)
     if (
       pathname === '/api/relationship/progress' ||
       pathname === '/api/relationship/team-unlocks'
     ) {
       const handled = await handleRelationshipRoutes(req, res, pathname, parsedUrl);
-      if (handled) return;
-    }
-
-    if (pathname.startsWith('/api/relationship/')) {
-      const handled = await relationshipHealthRoutes(req, res);
       if (handled) return;
     }
 
@@ -1518,7 +1493,7 @@ const server = http.createServer(async (req, res) => {
   // STATIC FILES (fallback)
   // ============================================================================
   handleStaticRoutes(req, res, pathname);
-});
+}
 
 // Harden server with DDoS protection
 hardenServer(server);
@@ -1554,7 +1529,8 @@ registerDDoSAlertCallback(async (details) => {
 const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 
 // Start the server
-server.listen(PORT, '0.0.0.0', async () => {
+server.listen(PORT, '0.0.0.0', () => fireAndForget(startBackgroundServices, 'api-startup'));
+async function startBackgroundServices(): Promise<void> {
   log.info(
     {
       port: PORT,
@@ -1575,11 +1551,11 @@ server.listen(PORT, '0.0.0.0', async () => {
     log.info('🍎 Apple Calendar polling service started');
 
     // Google Calendar webhook renewal (watches expire after 7 days)
-    startGoogleWebhookRenewal();
+    fireAndForget(startGoogleWebhookRenewal, 'google-webhook-renewal');
     log.info('📅 Google Calendar webhook renewal service started');
 
     // Outlook subscription renewal (subscriptions expire after hours)
-    startOutlookSubscriptionRenewal();
+    fireAndForget(startOutlookSubscriptionRenewal, 'outlook-subscription-renewal');
     log.info('📧 Outlook Calendar subscription renewal service started');
   } catch (error) {
     log.warn({ error: String(error) }, 'Calendar sync services failed to start (non-blocking)');
@@ -1620,7 +1596,7 @@ server.listen(PORT, '0.0.0.0', async () => {
   } catch (error) {
     log.warn({ error: String(error) }, 'Twilio Stream Bridge failed to start (non-blocking)');
   }
-});
+}
 
 // ============================================================================
 // GRACEFUL SHUTDOWN
@@ -1656,7 +1632,7 @@ async function gracefulShutdown(): Promise<void> {
       shutdownTokenRoutes(),
       shutdownGoogleCalendar(),
       shutdownSpotifyOAuth(),
-      shutdownApplePolling(),
+      Promise.resolve(shutdownApplePolling()),
       Promise.resolve(shutdownWearablesRoutes()),
     ]);
     log.info('Services shutdown complete');

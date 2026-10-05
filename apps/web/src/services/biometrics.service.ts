@@ -1,22 +1,27 @@
 /**
  * Biometrics Service
  *
- * Manages OAuth connections to health/biometrics platforms:
- * - Apple Health (via iOS native only)
- * - Google Fit
- * - Fitbit
- * - Oura Ring
- * - WHOOP
- * - Eight Sleep
- * - Garmin
+ * Connects Ferni to health/biometrics platforms:
+ * - Apple Health: only the native iOS app (apps/ios-native) can read HealthKit
+ * - Oura, WHOOP, Fitbit, Garmin (web OAuth via the UI server's /wearables routes)
+ *
+ * Every path here is one the UI server actually serves:
+ * - /wearables/status, /wearables/<provider>/login, /wearables/<provider>/unlink
+ *   (src/servers/api/routes/wearables.ts)
+ * - /api/v1/integrations/biometrics/{status,disconnect} (src/api/v1/integrations/handler.ts)
+ *
+ * A wearable is only connectable when the server reports it `configured`
+ * (its OAuth client id/secret are set). Unconfigured providers return 503 from
+ * /login, so we never send users there.
  *
  * Philosophy: Give Ferni "superhuman awareness" by connecting to
  * health data that helps her understand your physical state.
  */
 
 import { createLogger } from '../utils/logger.js';
-import { apiGet, apiPost } from '../utils/api.js';
-import { Capacitor } from '../stubs/capacitor-stub.js';
+import { apiDelete, apiGet, apiPost } from '../utils/api.js';
+import type { OperationResult } from '../types/results.js';
+import { startOAuthConnect } from './oauth-connect.service.js';
 
 const log = createLogger('BiometricsService');
 
@@ -24,411 +29,164 @@ const log = createLogger('BiometricsService');
 // TYPES
 // ============================================================================
 
-export type BiometricsPlatform =
-  | 'apple_health'
-  | 'google_fit'
-  | 'fitbit'
-  | 'oura'
-  | 'whoop'
-  | 'eight_sleep'
-  | 'garmin';
+/** Web OAuth wearables the server has /wearables/<provider>/login routes for. */
+export type WearableProvider = 'oura' | 'whoop' | 'fitbit' | 'garmin';
 
+export type BiometricsPlatform = 'apple_health' | WearableProvider;
+
+export const WEARABLE_PROVIDERS: readonly WearableProvider[] = [
+  'oura',
+  'whoop',
+  'fitbit',
+  'garmin',
+];
+
+/** One row of GET /wearables/status → { providers: WearableProviderStatus[] } */
+export interface WearableProviderStatus {
+  provider: BiometricsPlatform;
+  configured: boolean;
+  linked: boolean;
+}
+
+/** GET /api/v1/integrations/biometrics/status */
 export interface BiometricsStatus {
-  platform: BiometricsPlatform | null;
   connected: boolean;
+  platform: string | null;
   lastSync: string | null;
-  scopes: string[];
-  error?: string;
 }
-
-export interface BiometricsData {
-  heartRate?: {
-    current: number;
-    restingAvg: number;
-    variability: number;
-  };
-  sleep?: {
-    lastNight: {
-      duration: number;
-      quality: 'poor' | 'fair' | 'good' | 'excellent';
-      deepSleep: number;
-      remSleep: number;
-    };
-    weekAvg: number;
-  };
-  activity?: {
-    steps: number;
-    calories: number;
-    activeMinutes: number;
-  };
-  readiness?: number; // 0-100 score from Oura/WHOOP
-  stressLevel?: number; // Derived from HRV
-}
-
-// ============================================================================
-// PLATFORM CONFIGURATIONS
-// ============================================================================
 
 interface PlatformConfig {
   name: string;
-  authUrl: string;
-  scopes: string[];
-  supportsNative: boolean;
   supportsWeb: boolean;
 }
 
 const PLATFORM_CONFIGS: Record<BiometricsPlatform, PlatformConfig> = {
-  apple_health: {
-    name: 'Apple Health',
-    authUrl: '', // Native only
-    scopes: ['heart_rate', 'sleep', 'activity', 'hrv'],
-    supportsNative: true,
-    supportsWeb: false,
-  },
-  google_fit: {
-    name: 'Google Fit',
-    authUrl: '/auth/google/fit',
-    scopes: ['heart_rate', 'sleep', 'activity'],
-    supportsNative: true,
-    supportsWeb: true,
-  },
-  fitbit: {
-    name: 'Fitbit',
-    authUrl: '/auth/fitbit',
-    scopes: ['heartrate', 'sleep', 'activity', 'profile'],
-    supportsNative: false,
-    supportsWeb: true,
-  },
-  oura: {
-    name: 'Oura Ring',
-    authUrl: '/auth/oura',
-    scopes: ['daily', 'heartrate', 'sleep', 'readiness', 'workout'],
-    supportsNative: false,
-    supportsWeb: true,
-  },
-  whoop: {
-    name: 'WHOOP',
-    authUrl: '/auth/whoop',
-    scopes: ['read:recovery', 'read:sleep', 'read:workout', 'read:cycles'],
-    supportsNative: false,
-    supportsWeb: true,
-  },
-  eight_sleep: {
-    name: 'Eight Sleep',
-    authUrl: '/auth/eightsleep',
-    scopes: ['sleep', 'health', 'device'],
-    supportsNative: false,
-    supportsWeb: true,
-  },
-  garmin: {
-    name: 'Garmin',
-    authUrl: '/auth/garmin',
-    scopes: ['activity', 'sleep', 'stress', 'heart_rate'],
-    supportsNative: false,
-    supportsWeb: true,
-  },
+  apple_health: { name: 'Apple Health', supportsWeb: false },
+  oura: { name: 'Oura Ring', supportsWeb: true },
+  whoop: { name: 'WHOOP', supportsWeb: true },
+  fitbit: { name: 'Fitbit', supportsWeb: true },
+  garmin: { name: 'Garmin', supportsWeb: true },
 };
 
-// ============================================================================
-// STATE
-// ============================================================================
-
-let currentStatus: BiometricsStatus = {
-  platform: null,
-  connected: false,
-  lastSync: null,
-  scopes: [],
-};
-
-const statusListeners: Set<(status: BiometricsStatus) => void> = new Set();
+function isWearable(platform: string): platform is WearableProvider {
+  return (WEARABLE_PROVIDERS as readonly string[]).includes(platform);
+}
 
 // ============================================================================
-// PUBLIC API
+// SERVER STATUS
 // ============================================================================
 
 /**
- * Initialize biometrics service and check current connection status
+ * Ask the server which wearables are configured and which are linked.
+ * Returns null when the server couldn't be reached, so callers can tell
+ * "nothing is available" apart from "we don't know".
  */
-export async function initBiometrics(): Promise<BiometricsStatus> {
-  try {
-    const response = await apiGet<{ status: BiometricsStatus }>('/api/biometrics/status');
-    if (response.ok && response.data) {
-      currentStatus = response.data.status;
-      notifyListeners();
-    }
-  } catch (error) {
-    log.debug('Failed to fetch biometrics status:', String(error));
+export async function fetchWearableProviders(): Promise<WearableProviderStatus[] | null> {
+  const response = await apiGet<{ providers: WearableProviderStatus[] }>('/wearables/status');
+  if (!response.ok || !response.data) {
+    log.warn('Wearables status unavailable', { status: response.status });
+    return null;
   }
-
-  return currentStatus;
+  return response.data.providers.filter((p) => isWearable(p.provider));
 }
 
-/**
- * Get current biometrics connection status
- */
-export function getBiometricsStatus(): BiometricsStatus {
-  return { ...currentStatus };
+/** Connection status of the biometrics service (Terra/HealthKit/direct OAuth). */
+export async function fetchBiometricsStatus(): Promise<BiometricsStatus | null> {
+  const response = await apiGet<BiometricsStatus>('/api/v1/integrations/biometrics/status');
+  return response.ok && response.data ? response.data : null;
 }
 
+// ============================================================================
+// CONNECT / DISCONNECT
+// ============================================================================
+
 /**
- * Connect to a biometrics platform via OAuth
+ * Connect to a biometrics platform.
+ * Wearables go through POST /auth/oauth/start (bound to the signed-in user) and
+ * then the server's login route, but only after the server confirms the
+ * provider is configured.
  */
-export async function connectBiometrics(
-  platform: BiometricsPlatform,
-  userId: string
-): Promise<{ success: boolean; error?: string }> {
+export async function connectBiometrics(platform: BiometricsPlatform): Promise<OperationResult> {
   const config = PLATFORM_CONFIGS[platform];
-
   if (!config) {
     return { success: false, error: 'Unknown platform' };
   }
 
-  // Apple Health requires native app
   if (platform === 'apple_health') {
-    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') {
-      return {
-        success: false,
-        error: 'Apple Health is only available on iOS devices',
-      };
-    }
-
-    // Request HealthKit permissions via native bridge
-    return requestAppleHealthPermissions();
+    return { success: false, error: 'Apple Health is only available in the iPhone app' };
   }
 
-  // Check if platform supports web OAuth
-  if (!config.supportsWeb) {
-    return {
-      success: false,
-      error: `${config.name} requires a native app connection`,
-    };
+  const providers = await fetchWearableProviders();
+  if (!providers) {
+    return { success: false, error: `Couldn't reach ${config.name}. Try again?` };
+  }
+  const status = providers.find((p) => p.provider === platform);
+  if (!status?.configured) {
+    return { success: false, error: `${config.name} isn't available yet` };
   }
 
-  // Redirect to OAuth flow
-  const authUrl = `${config.authUrl}?userId=${userId}&scopes=${config.scopes.join(',')}`;
-  log.info('Initiating OAuth flow', { platform, authUrl });
-
-  // Open OAuth popup or redirect
-  window.location.href = authUrl;
-
-  return { success: true };
+  log.info('Initiating wearable OAuth', { platform });
+  return startOAuthConnect(platform, '/');
 }
 
 /**
- * Disconnect from biometrics platform
+ * Disconnect whatever is connected: linked wearables are unlinked via
+ * /wearables/<provider>/unlink, and the biometrics service connection is
+ * removed via DELETE /api/v1/integrations/biometrics/disconnect.
+ * Succeeds only when every server call succeeds.
  */
-export async function disconnectBiometrics(): Promise<{ success: boolean; error?: string }> {
-  try {
-    const response = await apiPost<{ success: boolean }>('/api/biometrics/disconnect', {});
-
-    if (response.ok) {
-      currentStatus = {
-        platform: null,
-        connected: false,
-        lastSync: null,
-        scopes: [],
-      };
-      notifyListeners();
-      return { success: true };
-    }
-
-    return { success: false, error: 'Failed to disconnect' };
-  } catch (error) {
-    return { success: false, error: String(error) };
+export async function disconnectBiometrics(
+  linkedWearables: WearableProvider[]
+): Promise<OperationResult> {
+  const calls = [
+    ...linkedWearables.map((provider) =>
+      apiPost<{ success: boolean }>(`/wearables/${provider}/unlink`, {})
+    ),
+    apiDelete<{ success: boolean }>('/api/v1/integrations/biometrics/disconnect'),
+  ];
+  const results = await Promise.all(calls);
+  if (results.every((r) => r.ok)) {
+    return { success: true };
   }
+  return { success: false, error: "Couldn't disconnect. Try again?" };
 }
 
-/**
- * Fetch latest biometrics data
- */
-export async function fetchBiometricsData(): Promise<BiometricsData | null> {
-  if (!currentStatus.connected) {
-    return null;
-  }
-
-  try {
-    const response = await apiGet<{ data: BiometricsData }>('/api/biometrics/data');
-    if (response.ok && response.data) {
-      return response.data.data;
-    }
-  } catch (error) {
-    log.error('Failed to fetch biometrics data:', String(error));
-  }
-
-  return null;
-}
+// ============================================================================
+// PLATFORM INFO
+// ============================================================================
 
 /**
- * Trigger a sync of biometrics data
- */
-export async function syncBiometrics(): Promise<{ success: boolean; error?: string }> {
-  if (!currentStatus.connected) {
-    return { success: false, error: 'Not connected to any platform' };
-  }
-
-  try {
-    const response = await apiPost<{ success: boolean; lastSync: string }>(
-      '/api/biometrics/sync',
-      {}
-    );
-
-    if (response.ok && response.data) {
-      currentStatus.lastSync = response.data.lastSync;
-      notifyListeners();
-      return { success: true };
-    }
-
-    return { success: false, error: 'Sync failed' };
-  } catch (error) {
-    return { success: false, error: String(error) };
-  }
-}
-
-/**
- * Subscribe to biometrics status changes
- */
-export function onBiometricsStatusChange(
-  callback: (status: BiometricsStatus) => void
-): () => void {
-  statusListeners.add(callback);
-  return () => statusListeners.delete(callback);
-}
-
-/**
- * Check if a platform is available on current device
+ * Check if a platform can be connected from the web app
+ * (server configuration is checked separately via fetchWearableProviders).
  */
 export function isPlatformAvailable(platform: BiometricsPlatform): boolean {
-  const config = PLATFORM_CONFIGS[platform];
-  if (!config) return false;
-
-  // Check native support
-  if (Capacitor.isNativePlatform()) {
-    if (platform === 'apple_health' && Capacitor.getPlatform() === 'ios') {
-      return true;
-    }
-    return config.supportsNative;
-  }
-
-  // Web support
-  return config.supportsWeb;
+  return PLATFORM_CONFIGS[platform]?.supportsWeb ?? false;
 }
 
-/**
- * Get configuration for a platform
- */
-export function getPlatformConfig(
-  platform: BiometricsPlatform
-): PlatformConfig | undefined {
+export function getPlatformConfig(platform: BiometricsPlatform): PlatformConfig | undefined {
   return PLATFORM_CONFIGS[platform];
 }
 
 /**
- * Get all available platforms for current device
+ * Platforms to offer in settings. A wearable is `available` only when the
+ * server reported it configured; when status is unknown (null) none are.
  */
-export function getAvailablePlatforms(): BiometricsPlatform[] {
-  return (Object.keys(PLATFORM_CONFIGS) as BiometricsPlatform[]).filter(
-    isPlatformAvailable
-  );
+export function getBiometricsPlatformList(
+  wearables: WearableProviderStatus[] | null
+): Array<{ id: BiometricsPlatform; name: string; available: boolean }> {
+  return [
+    { id: 'apple_health', name: PLATFORM_CONFIGS.apple_health.name, available: true },
+    ...WEARABLE_PROVIDERS.map((id) => ({
+      id,
+      name: PLATFORM_CONFIGS[id].name,
+      available: !!wearables?.some((w) => w.provider === id && w.configured),
+    })),
+  ];
 }
 
-// ============================================================================
-// PLATFORM-SPECIFIC IMPLEMENTATIONS
-// ============================================================================
-
-/**
- * Request Apple Health permissions via HealthKit (iOS only)
- */
-async function requestAppleHealthPermissions(): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    // This would call into the native iOS HealthKit bridge
-    // The actual implementation depends on the Capacitor plugin
-    const HealthKit = await import('../stubs/capacitor-stub.js').then(
-      (m) => m.HealthKit
-    );
-
-    const result = await HealthKit.requestAuthorization({
-      read: [
-        'HKQuantityTypeIdentifierHeartRate',
-        'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
-        'HKQuantityTypeIdentifierStepCount',
-        'HKQuantityTypeIdentifierActiveEnergyBurned',
-        'HKCategoryTypeIdentifierSleepAnalysis',
-      ],
-      write: [],
-    });
-
-    if (result.authorized) {
-      currentStatus = {
-        platform: 'apple_health',
-        connected: true,
-        lastSync: new Date().toISOString(),
-        scopes: ['heart_rate', 'hrv', 'steps', 'calories', 'sleep'],
-      };
-      notifyListeners();
-      return { success: true };
-    }
-
-    return { success: false, error: 'Permission denied' };
-  } catch (error) {
-    return { success: false, error: String(error) };
-  }
+/** Wearables the server says are linked for this user. */
+export function getLinkedWearables(wearables: WearableProviderStatus[] | null): WearableProvider[] {
+  return (wearables ?? [])
+    .filter((w) => w.linked && isWearable(w.provider))
+    .map((w) => w.provider as WearableProvider);
 }
-
-/**
- * Handle OAuth callback from biometrics platforms
- */
-export function handleBiometricsCallback(params: URLSearchParams): void {
-  const platform = params.get('platform') as BiometricsPlatform | null;
-  const success = params.get('success') === 'true';
-  const error = params.get('error');
-
-  if (success && platform) {
-    currentStatus = {
-      platform,
-      connected: true,
-      lastSync: new Date().toISOString(),
-      scopes: PLATFORM_CONFIGS[platform]?.scopes ?? [],
-    };
-  } else {
-    currentStatus.error = error ?? 'Connection failed';
-  }
-
-  notifyListeners();
-}
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-function notifyListeners(): void {
-  for (const listener of statusListeners) {
-    try {
-      listener({ ...currentStatus });
-    } catch (error) {
-      log.error('Status listener error:', String(error));
-    }
-  }
-}
-
-// ============================================================================
-// SINGLETON EXPORT
-// ============================================================================
-
-export const biometricsService = {
-  init: initBiometrics,
-  getStatus: getBiometricsStatus,
-  connect: connectBiometrics,
-  disconnect: disconnectBiometrics,
-  fetchData: fetchBiometricsData,
-  sync: syncBiometrics,
-  onStatusChange: onBiometricsStatusChange,
-  isPlatformAvailable,
-  getPlatformConfig,
-  getAvailablePlatforms,
-  handleCallback: handleBiometricsCallback,
-};
-
-export default biometricsService;

@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2026-10-02T11:45:37.009Z
+ * Build: 2026-10-05T11:09:21.024Z
  */
 
 /* ========================================
@@ -336,6 +336,20 @@
   --color-joel-glow: rgba(154, 7, 24, 0.28);
   --color-joel-tint: rgba(154, 7, 24, 0.06);
   --color-joel-light: #c83040;
+  --color-lynch: #1a5f2a;
+  --color-lynch-secondary: #154c22;
+  --color-lynch-text: #ffffff;
+  --color-lynch-text-on-dark: #dde7df;
+  --color-lynch-glow: rgba(26, 95, 42, 0.28);
+  --color-lynch-tint: rgba(26, 95, 42, 0.06);
+  --color-lynch-light: #5f8f6a;
+  --color-bogle: #8b0000;
+  --color-bogle-secondary: #6f0000;
+  --color-bogle-text: #ffffff;
+  --color-bogle-text-on-dark: #f3e6e6;
+  --color-bogle-glow: rgba(139, 0, 0, 0.28);
+  --color-bogle-tint: rgba(139, 0, 0, 0.06);
+  --color-bogle-light: #ae4c4c;
   --color-eli: #6B5B95;
   --color-eli-secondary: #4A4063;
   --color-eli-text: #ffffff;
@@ -450,6 +464,24 @@
   --persona-text: #ffffff;
   --persona-glow: rgba(154, 7, 24, 0.28);
   --persona-tint: rgba(154, 7, 24, 0.06);
+}
+
+/* Persona: lynch */
+[data-persona="lynch"] {
+  --persona-primary: #1a5f2a;
+  --persona-secondary: #154c22;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(26, 95, 42, 0.28);
+  --persona-tint: rgba(26, 95, 42, 0.06);
+}
+
+/* Persona: bogle */
+[data-persona="bogle"] {
+  --persona-primary: #8b0000;
+  --persona-secondary: #6f0000;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(139, 0, 0, 0.28);
+  --persona-tint: rgba(139, 0, 0, 0.06);
 }
 
 /* Persona: eli */

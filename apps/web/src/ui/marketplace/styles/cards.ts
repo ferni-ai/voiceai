@@ -456,6 +456,7 @@ export function getCardStyles(): string {
        ======================================== */
 
     .marketplace-agent--locked {
+      position: relative;
       opacity: 0.7;
       pointer-events: none;
     }
@@ -465,8 +466,9 @@ export function getCardStyles(): string {
       inset: 0;
       background: var(--backdrop-light);
       display: flex;
-      align-items: center;
-      justify-content: center;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: var(--space-md, 12px);
       border-radius: inherit;
       color: var(--color-text-muted);
     }

@@ -381,9 +381,8 @@ export async function activateVibe(
           log.info({ preset: presetId, music: preset.music }, 'Playing vibe music on Sonos');
         }
       } else {
-        // No Sonos connected, just mark as "set" (frontend can handle)
-        result.applied.music = true;
-        log.info({ preset: presetId, music: preset.music }, 'Music vibe set (no Sonos)');
+        // No Sonos connected: nothing played, so don't report music as applied
+        log.info({ preset: presetId }, 'Music vibe skipped (no Sonos connected)');
       }
     } catch (error) {
       result.errors.push(`Music: ${String(error)}`);

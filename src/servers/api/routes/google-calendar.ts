@@ -5,19 +5,20 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { createOAuthStateManager } from '../../../utils/ddos-protection.js';
+import { consumeOAuthLinkState, peekOAuthLinkState } from '../../token/oauth-link-state.js';
 import * as googleCalendarService from '../../token/oauth/google-calendar.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import {
   createWatchChannel,
   stopAllUserChannels as stopAllUserWatchChannels,
 } from '../../../services/calendar/webhooks/google-webhook.js';
+import { getVerifiedUserId } from '../request-identity.js';
+import { OAUTH_START_PATH } from './oauth-start.js';
 
 const log = createLogger({ module: 'GoogleCalendarRoutes' });
 
-// OAuth state manager (5 minute expiry)
-const googleOAuthStates = createOAuthStateManager(5 * 60 * 1000);
+const PROVIDER = 'google_calendar';
+const CONNECT = { method: 'POST', url: OAUTH_START_PATH, provider: PROVIDER } as const;
 
 // Configuration
 const GOOGLE_CALENDAR_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || '';
@@ -38,14 +39,9 @@ export async function handleGoogleCalendarRoutes(
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
-  // Start Google Calendar OAuth flow
-  // Support both /auth/google/login and /auth/google/calendar for flexibility
+  // Google Calendar OAuth login: only with a state from POST /auth/oauth/start,
+  // never a user id from the URL. /auth/google/calendar is an older alias.
   if (pathname === '/auth/google/login' || pathname === '/auth/google/calendar') {
-    // Support both user_id and userId query params for flexibility
-    const userId = parsedUrl.searchParams.get('user_id') || parsedUrl.searchParams.get('userId');
-    const returnUrl =
-      parsedUrl.searchParams.get('return_url') || parsedUrl.searchParams.get('redirect');
-
     if (!GOOGLE_CALENDAR_CLIENT_ID || !GOOGLE_CALENDAR_CLIENT_SECRET) {
       res.writeHead(503, { 'Content-Type': 'application/json' });
       res.end(
@@ -57,16 +53,11 @@ export async function handleGoogleCalendarRoutes(
       return true;
     }
 
-    // Generate state for CSRF protection
-    const state = googleOAuthStates.create({
-      user_id: userId || 'anonymous',
-      return_url: returnUrl || '/',
-    });
-
-    if (!state) {
-      log.error('Google Calendar OAuth: State limit reached (possible attack)');
-      res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Service temporarily unavailable, try again' }));
+    const state = parsedUrl.searchParams.get('state');
+    const record = await peekOAuthLinkState(state, PROVIDER);
+    if (!state || !record) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required', connect: CONNECT }));
       return true;
     }
 
@@ -79,7 +70,7 @@ export async function handleGoogleCalendarRoutes(
     authUrl.searchParams.set('prompt', 'consent');
     authUrl.searchParams.set('state', state);
 
-    log.info({ userId }, 'Google Calendar OAuth: Redirecting user to Google');
+    log.info({ userId: record.uid }, 'Google Calendar OAuth: Redirecting user to Google');
     res.writeHead(302, { Location: authUrl.toString() });
     res.end();
     return true;
@@ -98,11 +89,8 @@ export async function handleGoogleCalendarRoutes(
       return true;
     }
 
-    // Verify state
-    const stateData = googleOAuthStates.consume(state ?? '') as {
-      user_id?: string;
-      return_url?: string;
-    } | null;
+    // The Ferni user comes only from the stored state record, consumed here.
+    const stateData = await consumeOAuthLinkState(req, state, PROVIDER);
     if (!stateData) {
       log.error('Google Calendar OAuth: Invalid or expired state');
       res.writeHead(302, { Location: '/?calendar_error=invalid_state' });
@@ -140,7 +128,7 @@ export async function handleGoogleCalendarRoutes(
       };
 
       // Save tokens for this user (async - uses Firestore)
-      const userId = stateData.user_id ?? '';
+      const userId = stateData.uid;
       await googleCalendarService.saveTokens(userId, {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token || '',
@@ -149,33 +137,30 @@ export async function handleGoogleCalendarRoutes(
       });
 
       // Set up webhook watch channel for real-time sync
-      if (userId) {
-        try {
-          const watchChannel = await createWatchChannel(userId, 'primary');
-          if (watchChannel) {
-            log.info(
-              { userId, channelId: watchChannel.id },
-              '📅 Google Calendar webhook watch channel created'
-            );
-          } else {
-            log.warn(
-              { userId },
-              '📅 Could not create Google webhook watch (webhooks may not be enabled)'
-            );
-          }
-        } catch (watchError) {
+      try {
+        const watchChannel = await createWatchChannel(userId, 'primary');
+        if (watchChannel) {
+          log.info(
+            { userId, channelId: watchChannel.id },
+            '📅 Google Calendar webhook watch channel created'
+          );
+        } else {
           log.warn(
-            { error: String(watchError), userId },
-            '📅 Google webhook setup failed (non-blocking)'
+            { userId },
+            '📅 Could not create Google webhook watch (webhooks may not be enabled)'
           );
         }
+      } catch (watchError) {
+        log.warn(
+          { error: String(watchError), userId },
+          '📅 Google webhook setup failed (non-blocking)'
+        );
       }
 
-      log.info({ userId: userId || 'unknown' }, 'Google Calendar linked');
+      log.info({ userId }, 'Google Calendar linked');
 
       // Redirect back to app with success indicator
-      // Default to settings page with calendar=google&status=connected
-      let returnUrl = stateData.return_url ?? '/settings?calendar=google&status=connected';
+      let returnUrl = stateData.returnUrl;
       // Ensure success indicator is added if not present
       if (!returnUrl.includes('status=') && !returnUrl.includes('calendar_linked')) {
         const separator = returnUrl.includes('?') ? '&' : '?';
@@ -193,11 +178,11 @@ export async function handleGoogleCalendarRoutes(
 
   // Get Google Calendar access token for a user
   if (pathname === '/auth/google/token') {
-    const userId = parsedUrl.searchParams.get('user_id');
+    const userId = getVerifiedUserId(req);
 
     if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required' }));
       return true;
     }
 
@@ -208,7 +193,7 @@ export async function handleGoogleCalendarRoutes(
         JSON.stringify({
           linked: false,
           error: 'Google Calendar not linked for this user',
-          login_url: `/auth/google/login?user_id=${encodeURIComponent(userId)}`,
+          connect: CONNECT,
         })
       );
       return true;
@@ -226,11 +211,11 @@ export async function handleGoogleCalendarRoutes(
 
   // Check Google Calendar link status
   if (pathname === '/auth/google/status') {
-    const userId = parsedUrl.searchParams.get('user_id');
+    const userId = getVerifiedUserId(req);
 
     if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required' }));
       return true;
     }
 
@@ -243,9 +228,7 @@ export async function handleGoogleCalendarRoutes(
         google_calendar_configured: googleConfigured,
         linked: !!userTokens,
         expires_at: userTokens?.expires_at || null,
-        login_url: googleConfigured
-          ? `/auth/google/login?user_id=${encodeURIComponent(userId)}`
-          : null,
+        connect: googleConfigured ? CONNECT : null,
       })
     );
     return true;
@@ -253,11 +236,11 @@ export async function handleGoogleCalendarRoutes(
 
   // Unlink Google Calendar for a user
   if (pathname === '/auth/google/unlink') {
-    const userId = parsedUrl.searchParams.get('user_id');
+    const userId = getVerifiedUserId(req);
 
     if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required' }));
       return true;
     }
 

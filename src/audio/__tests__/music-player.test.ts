@@ -22,11 +22,15 @@ import type { MusicTrack, MusicPlayerState, SessionMusicEntry } from '../music-p
 // Mock heavy dependencies
 vi.mock('@livekit/agents', () => ({
   voice: {
-    BackgroundAudioPlayer: vi.fn().mockImplementation(() => ({
-      start: vi.fn().mockResolvedValue(undefined),
-      play: vi.fn().mockReturnValue({ waitForPlayout: vi.fn().mockResolvedValue(undefined) }),
-      stop: vi.fn().mockResolvedValue(undefined),
-    })),
+    // A function, not an arrow: the player constructs it with `new`.
+    BackgroundAudioPlayer: vi.fn(function () {
+      return {
+        start: vi.fn().mockResolvedValue(undefined),
+        play: vi.fn().mockReturnValue({ waitForPlayout: vi.fn().mockResolvedValue(undefined) }),
+        stop: vi.fn().mockResolvedValue(undefined),
+        close: vi.fn().mockResolvedValue(undefined),
+      };
+    }),
   },
 }));
 
@@ -257,6 +261,26 @@ describe('Music Player Singleton', () => {
     const player2 = getMusicPlayer();
 
     expect(player1).not.toBe(player2);
+  });
+
+  it("keeps the next call's player when the previous call's cleanup runs late", async () => {
+    // A worker process runs calls back to back; a call's cleanup can finish
+    // after the next call set the player up.
+    const { getMusicPlayer, initializeMusicPlayer, resetMusicPlayer } =
+      await import('../music-player.js');
+    await resetMusicPlayer();
+    const room = {} as never;
+    await initializeMusicPlayer(room, undefined, 'call-A');
+    await initializeMusicPlayer(room, undefined, 'call-B'); // next call takes over
+    const playerB = getMusicPlayer();
+    expect(playerB.isInitialized()).toBe(true);
+
+    await resetMusicPlayer('call-A'); // call A's late cleanup
+    expect(getMusicPlayer()).toBe(playerB);
+    expect(playerB.isInitialized()).toBe(true);
+
+    await resetMusicPlayer('call-B'); // call B's own cleanup still resets
+    expect(getMusicPlayer()).not.toBe(playerB);
   });
 });
 

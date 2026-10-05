@@ -21,11 +21,12 @@
  * @see https://docs.livekit.io/agents/logic-structure/tools/
  */
 
-import type { voice } from '@livekit/agents';
+import { voice } from '@livekit/agents';
 import { capToolsToLimit, getMaxTools, isMetaToolEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import type { UserData } from './types.js';
+import { resolveInitialToolLimit } from '../multi-agent/initial-tools.js';
 
 const log = createLogger({ module: 'ToolUpdater' });
 
@@ -108,11 +109,14 @@ export async function updateAgentTools(
       );
     }
 
-    let merged: Record<string, unknown> = { ...existing, ...newTools };
-    const configLimit = getMaxTools();
-    if (configLimit > 0) {
-      merged = capToolsToLimit(merged, configLimit);
-    }
+    // The tools just asked for come first, so the cap evicts the oldest
+    // non-essential ones, not them. Same cap as the first agent (64 when
+    // TOOL_LIMIT is unset): uncapped, a dev call grew 64 -> 160 -> 213 tools,
+    // ~9.5k prompt tokens on every turn.
+    const merged = capToolsToLimit(
+      { ...newTools, ...existing, ...newTools },
+      resolveInitialToolLimit(getMaxTools())
+    );
 
     await target.updateTools(merged);
 
@@ -218,4 +222,27 @@ export function getAgentToolCount(agent: voice.Agent<UserData>): number {
  */
 export function getAgentToolNames(agent: voice.Agent<UserData>): string[] {
   return Object.keys(asToolCapable(agent).toolCtx.functionTools);
+}
+
+/**
+ * Run `fn` once the agent starts speaking (or goes back to listening without
+ * speaking), whichever comes first, or after 8 s at the latest.
+ */
+export function applyAfterReplyStarts(
+  session: voice.AgentSession<UserData>,
+  fn: () => Promise<void>
+): void {
+  let done = false;
+  const run = (): void => {
+    if (done) return;
+    done = true;
+    session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+    clearTimeout(fallback);
+    void fn();
+  };
+  const onState = (ev: { newState: string }): void => {
+    if (ev.newState === 'speaking' || ev.newState === 'listening') run();
+  };
+  const fallback = setTimeout(run, 8000);
+  session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
 }

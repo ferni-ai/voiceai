@@ -15,6 +15,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { createManagedInterval, type ManagedInterval } from '../../../utils/managed-interval.js';
+import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
 const log = createLogger({ module: 'smart-home-routes' });
 
@@ -61,22 +62,6 @@ interface HomeKitConfig {
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function getUserId(req: IncomingMessage): string | null {
-  // Check Authorization header
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.slice(7);
-  }
-
-  // Check X-User-ID header
-  const userIdHeader = req.headers['x-user-id'];
-  if (userIdHeader && typeof userIdHeader === 'string') {
-    return userIdHeader;
-  }
-
-  return null;
-}
 
 function getQueryParam(url: URL, key: string): string | null {
   return url.searchParams.get(key);
@@ -535,11 +520,10 @@ async function handleSonosStatus(
 
 async function handleSonosAuthUrl(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
-    const body = await parseBody(req);
-    const { userId } = body as { userId: string };
-
+    // The account to link is the verified caller, never a userId in the body.
+    const userId = getUserId(req);
     if (!userId) {
-      sendError(res, 400, 'userId required');
+      sendError(res, 401, 'Sign in required');
       return;
     }
 

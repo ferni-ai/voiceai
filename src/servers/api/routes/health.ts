@@ -8,6 +8,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import * as spotifyService from '../services/spotify.js';
 import * as plaidService from '../services/plaid.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { parseRawBody } from '../../../api/helpers.js';
 import { getAllStats as getPersistenceStats } from '../../../services/persistence/index.js';
 import { persistenceMetrics } from '../../../services/analytics/persistence-metrics.js';
 
@@ -52,9 +53,8 @@ export async function handleHealthRoutes(
         const initialized = toolRegistry.isInitialized();
 
         if (!initialized || stats.totalTools === 0) {
-          checks.tools = { status: 'error', latencyMs: Date.now() - toolStart, details: 'Not initialized' };
-          overallStatus = 'not_ready';
-          alerts.push({ level: 'error', message: 'Tool registry not ready' });
+          // Tools run in the voice agent, not this API server: informational only.
+          checks.tools = { status: 'ok', latencyMs: Date.now() - toolStart, details: 'Not loaded here (voice agent)' };
         } else if (stats.totalTools < 50) {
           checks.tools = { status: 'degraded', latencyMs: Date.now() - toolStart, details: `${stats.totalTools} tools` };
           if (overallStatus === 'ready') overallStatus = 'degraded';
@@ -90,7 +90,7 @@ export async function handleHealthRoutes(
       // 3. LLM Connectivity Check (OpenAI key present)
       const llmStart = Date.now();
       const hasOpenAI = !!process.env.OPENAI_API_KEY;
-      const hasGemini = !!process.env.GOOGLE_API_KEY;
+      const hasGemini = !!process.env.GOOGLE_API_KEY || process.env.USE_VERTEX_AI !== 'false'; // Vertex: service account
       if (hasOpenAI || hasGemini) {
         checks.llm = { status: 'ok', latencyMs: Date.now() - llmStart, details: hasOpenAI ? 'OpenAI' : 'Gemini' };
       } else {
@@ -453,12 +453,10 @@ export async function handleHealthRoutes(
     }
 
     try {
-      const { runTTLCleanup } = await import('../../../services/data-layer/ttl-cleanup.js');
+      const ttl = await import('../../../services/data-layer/ttl-cleanup.js');
 
       // Parse request body for options
-      let body = '';
-      req.on('data', (chunk) => (body += chunk));
-      await new Promise((resolve) => req.on('end', resolve));
+      const body = await parseRawBody(req);
 
       let options: { dryRun?: boolean; collections?: string[] } = {};
       if (body) {
@@ -470,13 +468,13 @@ export async function handleHealthRoutes(
       }
 
       log.info({ dryRun: options.dryRun }, 'Starting TTL cleanup via API');
-      const result = await runTTLCleanup({
+      const result = await ttl.runTTLCleanup({
         dryRun: options.dryRun,
         collections: options.collections,
       });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(result, null, 2));
+      res.end(JSON.stringify(ttl.toPublicCleanupReport(result), null, 2));
     } catch (err) {
       log.error({ error: (err as Error).message }, 'TTL cleanup error');
       res.writeHead(500, { 'Content-Type': 'application/json' });

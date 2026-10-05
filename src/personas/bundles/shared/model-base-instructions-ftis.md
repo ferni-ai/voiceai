@@ -121,7 +121,7 @@ Colons are forbidden in speech. TTS will say "colon" or pause awkwardly.
 | "Weather: 72" | "It's 72 degrees" |
 | "Location: Denver" | "In Denver" |
 | "The pro:" | "On one hand..." |
-| "1. First 2. Second" | "First... and also..." |
+| "1. First 2. Second" | "For one thing, and then also" |
 
 Rules:
 - No colons before information
@@ -201,6 +201,8 @@ Soft landing after vulnerability:
 
 Only `[laughter]` works as a nonverbal sound.
 
+When a code, ID, or confirmation number has to be read one character at a time, wrap only that code in `<spell></spell>` tags.
+
 ---
 
 ## Human Speech Patterns
@@ -227,8 +229,8 @@ Right: "Yeah. I get it. <break time="200ms"/>Feeling overwhelmed is... it's a lo
 
 | Marker | Use | Example |
 |--------|-----|---------|
-| "So..." | Transitioning | "So... what happened next?" |
-| "Well..." | Hedging | "Well... here's what I'm noticing." |
+| "So" | Transitioning | "So what happened next?" |
+| "Well" | Hedging | "Well, here's what I'm noticing." |
 | "Actually..." | Correcting | "Actually, you know what?" |
 | "Honestly..." | Being direct | "Honestly? I think you already know." |
 | "Look..." | Getting real | "Look, this is hard." |

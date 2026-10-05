@@ -14,7 +14,9 @@
 
 import { createLogger } from '../utils/logger.js';
 import { apiFetch } from '../utils/api-helpers.js';
-import { clearAllUserData, exportLocalStorage, STORAGE_KEYS } from '../config/storage-keys.js';
+import { clearAllUserData, exportLocalStorage } from '../config/storage-keys.js';
+import { getAuthToken, initAuth } from './firebase-auth.service.js';
+import { signOutReleasingPush } from './push-preference.js';
 import { ritualsService } from './rituals.service.js';
 
 const log = createLogger('DataExport');
@@ -37,6 +39,36 @@ export interface ExportData {
   localStorageData?: Record<string, string | null>;
 }
 
+/**
+ * A data-rights request that did not happen. `message` is safe to show the user.
+ */
+export class DataRightsError extends Error {
+  constructor(
+    readonly reason: 'not_signed_in' | 'server',
+    message: string
+  ) {
+    super(message);
+    this.name = 'DataRightsError';
+  }
+}
+
+/** The user-facing text for a failed data-rights request. */
+export function dataRightsErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof DataRightsError ? err.message : fallback;
+}
+
+/**
+ * The server binds export and delete to the verified Firebase token, never to an
+ * id the client names, so there is nothing to do without one.
+ */
+async function requireSignedIn(action: string): Promise<void> {
+  await initAuth().catch(() => undefined);
+  const token = await getAuthToken();
+  if (!token) {
+    throw new DataRightsError('not_signed_in', `Sign in to ${action}.`);
+  }
+}
+
 // ============================================================================
 // DATA EXPORT SERVICE
 // ============================================================================
@@ -48,28 +80,18 @@ class DataExportService {
    */
   async exportData(format: 'json' | 'csv', categories: string[]): Promise<void> {
     log.info('Starting data export', { format, categories });
-
-    const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
-    if (!userId) {
-      log.warn('No user ID found, cannot export data');
-      throw new Error('Not signed in');
-    }
+    await requireSignedIn('download your data');
 
     try {
-      // Call backend export API
       const response = await apiFetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          format,
-          categories,
-        }),
+        body: JSON.stringify({ format, categories }),
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Export failed: ${error}`);
+        log.error('Export request failed', { status: response.status });
+        throw new DataRightsError('server', "Couldn't export your data. Try again?");
       }
 
       // Get the exported data as blob
@@ -104,44 +126,81 @@ class DataExportService {
 
   /**
    * Delete all user data (GDPR right to erasure).
-   * Clears both backend data and localStorage.
+   * The server deletion must succeed before anything local is cleared, so a
+   * failure leaves the user exactly where they were and says so.
    */
   async deleteAllData(): Promise<void> {
     log.warn('Starting data deletion');
+    await requireSignedIn('delete your data');
 
-    const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+    const response = await apiFetch('/api/export/all', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmDelete: true }),
+    }).catch((err: unknown) => {
+      log.error('Data deletion request failed', err);
+      return null;
+    });
 
-    try {
-      // 1. Clear all localStorage data
-      clearAllUserData(false); // false = don't preserve dev settings
-
-      // 2. Clear rituals service state
-      ritualsService.clearAll();
-
-      // 3. Delete backend data (if we have a userId)
-      if (userId) {
-        try {
-          const response = await apiFetch('/api/export/all', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, confirmDelete: true }),
-          });
-
-          if (response.ok) {
-            log.info('Backend data deleted');
-          } else {
-            log.warn('Backend deletion returned non-OK status');
-          }
-        } catch (err) {
-          log.warn('Backend deletion failed, local data still cleared', err);
-        }
-      }
-
-      log.info('All user data deleted');
-    } catch (err) {
-      log.error('Data deletion failed', err);
-      throw err;
+    if (!response?.ok) {
+      log.error('Server refused data deletion', { status: response?.status });
+      throw new DataRightsError(
+        'server',
+        "Couldn't delete your data. Nothing was removed. Try again?"
+      );
     }
+
+    this.clearLocalData();
+    log.info('All user data deleted');
+  }
+
+  /**
+   * Close the account: the server erases every store and the Firebase user,
+   * then this device forgets everything and signs out. Resolves with a notice
+   * for the user when the account is gone but some records couldn't be
+   * removed (the server lists them in details.failures), else null.
+   */
+  async deleteAccount(): Promise<string | null> {
+    log.warn('Starting account deletion');
+    await requireSignedIn('delete your account');
+
+    const response = await apiFetch('/api/account', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmation: 'DELETE_MY_ACCOUNT' }),
+    }).catch((err: unknown) => {
+      log.error('Account deletion request failed', err);
+      return null;
+    });
+    const result = response?.ok
+      ? ((await response.json().catch(() => ({}))) as {
+          success?: boolean;
+          details?: { failures?: unknown };
+        })
+      : null;
+
+    if (!result?.success) {
+      log.error('Server did not confirm account deletion', { status: response?.status });
+      throw new DataRightsError('server', "Couldn't delete your account. Try again?");
+    }
+
+    this.clearLocalData();
+    // Also kills this browser's push endpoint, so nothing addressed to the deleted account lands here.
+    await signOutReleasingPush().catch((err: unknown) =>
+      log.warn('Sign-out after account deletion failed', err)
+    );
+    const failures = result.details?.failures;
+    if (Array.isArray(failures) && failures.length > 0) {
+      log.warn('Account deleted, but some records were left', { failures });
+      return "Your account is deleted, but a few records didn't clear. Contact us to finish.";
+    }
+    log.info('Account deleted');
+    return null;
+  }
+
+  private clearLocalData(): void {
+    clearAllUserData(false); // false = don't preserve dev settings
+    ritualsService.clearAll();
   }
 
   /**
@@ -149,13 +208,12 @@ class DataExportService {
    * This shows what data exists and can be exported.
    */
   async getExportableCategories(): Promise<ExportableCategory[]> {
-    const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
-    if (!userId) {
+    if (!(await getAuthToken())) {
       return this.getDefaultCategories();
     }
 
     try {
-      const response = await apiFetch(`/api/export/categories?userId=${encodeURIComponent(userId)}`);
+      const response = await apiFetch('/api/export/categories');
 
       if (!response.ok) {
         log.warn('Failed to get categories from API, using defaults');

@@ -6,6 +6,7 @@ import { Router, type Request, type Response } from 'express';
 import { createLogger } from '../../utils/safe-logger.js';
 import * as prioritiesService from '../../services/ceo/priorities.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { paramString } from '../param-string.js';
 
 const log = createLogger({ module: 'priorities-routes' });
 const router = Router();
@@ -60,7 +61,10 @@ router.post('/', async (req: Request, res: Response) => {
 router.post('/:priorityId/complete', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { priorityId } = req.params;
+    const priorityId = paramString(req.params.priorityId);
+    if (!priorityId) {
+      return res.status(400).json({ error: 'Invalid priority ID' });
+    }
 
     const priority = await prioritiesService.completePriority(userId, priorityId);
     return res.json(priority);

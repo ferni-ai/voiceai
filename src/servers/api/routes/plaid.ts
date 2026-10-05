@@ -8,6 +8,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import * as plaidService from '../services/plaid.js';
 import { rateLimit, requireAuth } from '../../../api/auth-middleware.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { onBodyEnd } from '../request-failure.js';
 
 const log = createLogger({ module: 'PlaidRoutes' });
 
@@ -47,7 +48,7 @@ export async function handlePlaidRoutes(
         resolve(true);
       });
 
-      req.on('end', async () => {
+      onBodyEnd(req, res, resolve, async () => {
         try {
           const { public_token, user_id, institution, accounts } = JSON.parse(body) as {
             public_token: string;

@@ -11,6 +11,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { pinCartesiaModel } from '../config/voice-ids.js';
 
 // Mock the external TTS dependencies before importing the module
 vi.mock('@livekit/agents-plugin-cartesia', () => ({
@@ -197,7 +198,7 @@ describe('VoiceManager', () => {
     });
 
     it('should have consistent model across all voices', () => {
-      const expectedModel = process.env.CARTESIA_MODEL || 'sonic-3.6';
+      const expectedModel = pinCartesiaModel(process.env.CARTESIA_MODEL);
       for (const [_id, config] of Object.entries(VOICES)) {
         expect(config.model).toBe(expectedModel);
       }

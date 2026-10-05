@@ -144,6 +144,8 @@ export interface RoomMetadata {
   countryCode?: string;
   city?: string;
   regionCode?: string;
+  /** The caller's IANA time zone (browser), e.g. 'America/New_York'. */
+  timezone?: string;
 }
 
 /**

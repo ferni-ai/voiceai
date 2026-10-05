@@ -8,6 +8,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  backchannelsEnabled,
   DEFAULT_FLAGS,
   DEVELOPMENT_FLAGS,
   getFlags,
@@ -50,6 +51,17 @@ describe('Voice Humanization Flags', () => {
 
     it('should have verbose logging disabled by default', () => {
       expect(DEFAULT_FLAGS.enableVerboseLogging).toBe(false);
+    });
+
+    // Dev call 2026-10-03: the LLM "backchannel" re-answered the caller's
+    // previous turn over them, 4 s into their speech.
+    it('should not generate LLM backchannels unless asked to', () => {
+      initializeFlags();
+      expect(getSessionFlags('any-session').enableLLMBackchannels).toBe(false);
+      resetFlags();
+      vi.stubEnv('VOICE_HUMANIZATION_ENABLE_L_L_M_BACKCHANNELS', 'true');
+      initializeFlags();
+      expect(getSessionFlags('any-session').enableLLMBackchannels).toBe(true);
     });
   });
 
@@ -377,8 +389,11 @@ describe('Voice Humanization Flags', () => {
     });
 
     describe('Phase 6: Live Backchanneling', () => {
-      it('should have live backchanneling enabled', () => {
-        expect(isFeatureEnabled('enableLiveBackchanneling')).toBe(true);
+      it('keeps live backchanneling off unless BACKCHANNELS=on', () => {
+        // canned "mm-hmm"/"right" clips read as fake to a caller (2026-10-04)
+        expect(isFeatureEnabled('enableLiveBackchanneling')).toBe(false);
+        expect(backchannelsEnabled({ BACKCHANNELS: 'on' })).toBe(true);
+        expect(backchannelsEnabled({})).toBe(false);
       });
     });
   });

@@ -13,8 +13,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { loadDashboardHistory, saveDashboardHistory } from './dashboard-history.js';
+import { readTrustDoc, writeTrustDoc, getTrustDb, TRUST_COLLECTION } from './trust-doc.js';
 
 // Trust system imports
 import { exportBoundaries, importBoundaries, type BoundaryProfile } from './boundary-memory.js';
@@ -52,11 +52,11 @@ import {
 } from './reading-between-lines.js';
 
 // Phase 12-17, 24-29: New trust system imports for persistence
-import { getHealthScore, type RelationshipHealthScore } from './relationship-health.js';
+import type { RelationshipHealthScore } from './relationship-health.js';
 
 import { getMomentumProfile, type MomentumProfile } from './celebration-momentum.js';
 
-import { getTimeline, type SentimentTimeline } from './sentiment-timeline.js';
+import type { SentimentTimeline } from './sentiment-timeline.js';
 
 import { getBaseline, type PersonalBaseline } from './voice-prosody-learning.js';
 
@@ -68,7 +68,7 @@ import { getLearningProfile, type LearningProfile } from './learning-style.js';
 
 import { getMediaPreferences, type MediaPreferences } from './media-suggestions.js';
 
-import { getReportHistory, type InsightsReport } from './relationship-insights.js';
+import type { InsightsReport } from './relationship-insights.js';
 
 const log = createLogger({ module: 'TrustPersistence' });
 
@@ -101,17 +101,10 @@ export interface TrustProfileBundle {
   version: number;
 }
 
-interface FirestoreTrustDoc {
-  data: string; // JSON stringified profile
-  updatedAt: FirebaseFirestore.FieldValue;
-  version: number;
-}
-
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
-const TRUST_COLLECTION = 'trust_profiles';
 const CURRENT_VERSION = 1;
 
 // System names for subcollections
@@ -137,62 +130,14 @@ const SYSTEM_NAMES = {
 } as const;
 
 // ============================================================================
-// FIRESTORE ACCESS
-// ============================================================================
-
-let db: FirebaseFirestore.Firestore | null = null;
-
-function getDb(): FirebaseFirestore.Firestore {
-  if (!db) {
-    try {
-      db = getFirestore();
-    } catch (error) {
-      log.warn({ error }, 'Firestore not initialized, using memory-only mode');
-      throw new Error('Firestore not available');
-    }
-  }
-  return db;
-}
-
-/**
- * Get trust profile document reference
- */
-function getTrustDoc(userId: string, systemName: string) {
-  return getDb().collection('bogle_users').doc(userId).collection(TRUST_COLLECTION).doc(systemName);
-}
-
-// ============================================================================
 // SAVE FUNCTIONS
 // ============================================================================
 
 /**
- * Save a single trust system profile
- */
-async function saveSystemProfile<T>(
-  userId: string,
-  systemName: string,
-  profile: T | null
-): Promise<boolean> {
-  if (!profile) return false;
-
-  try {
-    const doc: FirestoreTrustDoc = {
-      data: JSON.stringify(profile),
-      updatedAt: FieldValue.serverTimestamp(),
-      version: CURRENT_VERSION,
-    };
-
-    await getTrustDoc(userId, systemName).set(removeUndefined(doc), { merge: true });
-    log.debug({ userId, systemName }, 'Trust profile saved');
-    return true;
-  } catch (error) {
-    log.error({ error, userId, systemName }, 'Failed to save trust profile');
-    return false;
-  }
-}
-
-/**
- * Save all trust profiles for a user
+ * Save all trust profiles for a user. The dashboard's history (sentiment
+ * timeline, life events) saves through dashboard-history.ts. Its health and
+ * insights docs are written by the API server (together-store.ts), from that
+ * history, so they have one writer.
  */
 export async function saveTrustProfiles(userId: string): Promise<{
   saved: string[];
@@ -201,131 +146,37 @@ export async function saveTrustProfiles(userId: string): Promise<{
   const saved: string[] = [];
   const failed: string[] = [];
 
-  // ============================================================================
-  // CORE SYSTEMS
-  // ============================================================================
+  const profiles: Array<
+    [
+      Exclude<keyof typeof SYSTEM_NAMES, 'unsaid' | 'relationshipHealth' | 'insightsReports'>,
+      unknown,
+    ]
+  > = [
+    // Core systems
+    ['boundaries', exportBoundaries(userId)],
+    ['growth', exportGrowthProfile(userId)],
+    ['insideJokes', exportInsideJokesProfile(userId)],
+    ['smallWins', exportSmallWinsProfile(userId)],
+    ['thinkingOfYou', exportThinkingOfYouProfile(userId)],
+    // Phase 12-17: advanced trust systems
+    ['celebrationMomentum', getMomentumProfile(userId)],
+    // Phase 24-29: personalization systems
+    ['voiceProsody', getBaseline(userId)],
+    ['journaling', getJournalingPatterns(userId)],
+    ['seasonal', getSeasonalProfile(userId)],
+    ['learningStyle', getLearningProfile(userId)],
+    ['mediaPreferences', getMediaPreferences(userId)],
+  ];
 
-  // Boundaries
-  const boundaries = exportBoundaries(userId);
-  if (await saveSystemProfile(userId, SYSTEM_NAMES.boundaries, boundaries)) {
-    saved.push('boundaries');
-  } else if (boundaries) {
-    failed.push('boundaries');
+  for (const [name, profile] of profiles) {
+    if (!profile) continue;
+    if (await writeTrustDoc(userId, SYSTEM_NAMES[name], profile)) saved.push(name);
+    else failed.push(name);
   }
 
-  // Growth
-  const growth = exportGrowthProfile(userId);
-  if (await saveSystemProfile(userId, SYSTEM_NAMES.growth, growth)) {
-    saved.push('growth');
-  } else if (growth) {
-    failed.push('growth');
-  }
-
-  // Inside Jokes
-  const insideJokes = exportInsideJokesProfile(userId);
-  if (await saveSystemProfile(userId, SYSTEM_NAMES.insideJokes, insideJokes)) {
-    saved.push('insideJokes');
-  } else if (insideJokes) {
-    failed.push('insideJokes');
-  }
-
-  // Small Wins
-  const smallWins = exportSmallWinsProfile(userId);
-  if (await saveSystemProfile(userId, SYSTEM_NAMES.smallWins, smallWins)) {
-    saved.push('smallWins');
-  } else if (smallWins) {
-    failed.push('smallWins');
-  }
-
-  // Thinking of You
-  const thinkingOfYou = exportThinkingOfYouProfile(userId);
-  if (await saveSystemProfile(userId, SYSTEM_NAMES.thinkingOfYou, thinkingOfYou)) {
-    saved.push('thinkingOfYou');
-  } else if (thinkingOfYou) {
-    failed.push('thinkingOfYou');
-  }
-
-  // ============================================================================
-  // PHASE 12-17: ADVANCED TRUST SYSTEMS
-  // ============================================================================
-
-  // Relationship Health (Phase 12)
-  const relationshipHealth = getHealthScore(userId);
-  if (await saveSystemProfile(userId, SYSTEM_NAMES.relationshipHealth, relationshipHealth)) {
-    saved.push('relationshipHealth');
-  } else if (relationshipHealth) {
-    failed.push('relationshipHealth');
-  }
-
-  // Celebration Momentum (Phase 16)
-  const celebrationMomentum = getMomentumProfile(userId);
-  if (await saveSystemProfile(userId, SYSTEM_NAMES.celebrationMomentum, celebrationMomentum)) {
-    saved.push('celebrationMomentum');
-  } else if (celebrationMomentum) {
-    failed.push('celebrationMomentum');
-  }
-
-  // Sentiment Timeline (Phase 17)
-  const sentimentTimeline = getTimeline(userId);
-  if (await saveSystemProfile(userId, SYSTEM_NAMES.sentimentTimeline, sentimentTimeline)) {
-    saved.push('sentimentTimeline');
-  } else if (sentimentTimeline) {
-    failed.push('sentimentTimeline');
-  }
-
-  // ============================================================================
-  // PHASE 24-29: PERSONALIZATION SYSTEMS
-  // ============================================================================
-
-  // Voice Prosody (Phase 24)
-  const voiceProsody = getBaseline(userId);
-  if (await saveSystemProfile(userId, SYSTEM_NAMES.voiceProsody, voiceProsody)) {
-    saved.push('voiceProsody');
-  } else if (voiceProsody) {
-    failed.push('voiceProsody');
-  }
-
-  // Journaling (Phase 25)
-  const journaling = getJournalingPatterns(userId);
-  if (await saveSystemProfile(userId, SYSTEM_NAMES.journaling, journaling)) {
-    saved.push('journaling');
-  } else if (journaling) {
-    failed.push('journaling');
-  }
-
-  // Seasonal (Phase 26)
-  const seasonal = getSeasonalProfile(userId);
-  if (await saveSystemProfile(userId, SYSTEM_NAMES.seasonal, seasonal)) {
-    saved.push('seasonal');
-  } else if (seasonal) {
-    failed.push('seasonal');
-  }
-
-  // Learning Style (Phase 27)
-  const learningStyle = getLearningProfile(userId);
-  if (await saveSystemProfile(userId, SYSTEM_NAMES.learningStyle, learningStyle)) {
-    saved.push('learningStyle');
-  } else if (learningStyle) {
-    failed.push('learningStyle');
-  }
-
-  // Media Preferences (Phase 29)
-  const mediaPreferences = getMediaPreferences(userId);
-  if (await saveSystemProfile(userId, SYSTEM_NAMES.mediaPreferences, mediaPreferences)) {
-    saved.push('mediaPreferences');
-  } else if (mediaPreferences) {
-    failed.push('mediaPreferences');
-  }
-
-  // Insights Reports (Phase 28)
-  const insightsReports = getReportHistory(userId);
-  if (insightsReports.length > 0) {
-    if (await saveSystemProfile(userId, SYSTEM_NAMES.insightsReports, insightsReports)) {
-      saved.push('insightsReports');
-    } else {
-      failed.push('insightsReports');
-    }
-  }
+  const history = await saveDashboardHistory(userId);
+  saved.push(...history.saved);
+  failed.push(...history.failed);
 
   log.info({ userId, saved: saved.length, failed: failed.length }, '💾 Trust profiles saved');
 
@@ -336,23 +187,10 @@ export async function saveTrustProfiles(userId: string): Promise<{
 // LOAD FUNCTIONS
 // ============================================================================
 
-/**
- * Load a single trust system profile
- */
+/** Load a single trust system profile (null when missing or unreadable). */
 async function loadSystemProfile<T>(userId: string, systemName: string): Promise<T | null> {
-  try {
-    const doc = await getTrustDoc(userId, systemName).get();
-
-    if (!doc.exists) {
-      return null;
-    }
-
-    const data = doc.data() as FirestoreTrustDoc;
-    return JSON.parse(data.data) as T;
-  } catch (error) {
-    log.warn({ error, userId, systemName }, 'Failed to load trust profile');
-    return null;
-  }
+  const read = await readTrustDoc<T>(userId, systemName);
+  return read.status === 'found' ? read.data : null;
 }
 
 /**
@@ -411,6 +249,13 @@ export async function loadTrustProfiles(userId: string): Promise<{
     loaded.push('thinkingOfYou');
   } else {
     notFound.push('thinkingOfYou');
+  }
+
+  // Sentiment timeline + life events: the dashboard's history.
+  const history = await loadDashboardHistory(userId);
+  loaded.push(...history);
+  for (const name of ['sentimentTimeline', 'lifeEvents']) {
+    if (!history.includes(name)) notFound.push(name);
   }
 
   log.info(
@@ -533,7 +378,7 @@ const FIRESTORE_BATCH_LIMIT = 500;
  */
 export async function deleteTrustProfiles(userId: string): Promise<void> {
   try {
-    const db = getDb();
+    const db = getTrustDb();
     const trustCollection = db.collection('bogle_users').doc(userId).collection(TRUST_COLLECTION);
 
     const docs = await trustCollection.listDocuments();

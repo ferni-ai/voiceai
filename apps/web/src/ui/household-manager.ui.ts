@@ -14,7 +14,7 @@
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { apiGet, apiPost, apiDelete, getApiHeadersAsync } from '../utils/api.js';
+import { apiGet, apiPost, apiDelete, getApiHeadersAsync, getUserId } from '../utils/api.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { toast } from './whisper.ui.js';
 
@@ -1332,11 +1332,11 @@ async function handleSettingChange(setting: keyof Household['settings'], value: 
   callbacks.onSettingsChanged?.(household.settings);
   log.debug('Setting changed:', setting, value);
 
-  // Persist to backend via PATCH /api/household/:userId/settings
+  // Persist via PATCH /api/household/:id/settings (the server keys by the authed uid, not :id)
   try {
-    const userId = localStorage.getItem('ferni_user_id');
+    const userId = getUserId();
     if (!userId) {
-      log.debug('No userId - settings saved locally only');
+      toast.error('Sign in to save household settings.');
       return;
     }
 
@@ -1358,11 +1358,11 @@ async function handleSettingChange(setting: keyof Household['settings'], value: 
 
     if (!response.ok) {
       log.warn('Failed to persist setting:', { setting, status: response.status });
-      // Settings are already applied locally - continue silently
+      toast.error("Couldn't save that setting. Try again?");
     }
   } catch (err) {
     log.warn('Error persisting setting:', err);
-    // Settings already applied locally - continue silently
+    toast.error("Couldn't save that setting. Try again?");
   }
 }
 

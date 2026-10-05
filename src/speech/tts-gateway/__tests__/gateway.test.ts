@@ -129,15 +129,14 @@ describe('TTSGateway', () => {
       );
     });
 
-    it('converts break tags to punctuation', async () => {
+    it('passes a real pause to Sonic as a native break', async () => {
       await gateway.synthesize({
         text: 'Hello<break time="500ms"/>world',
         voiceId: 'test-voice',
       });
 
-      // Break should be converted to period
       expect(mockProvider.synthesize).toHaveBeenCalledWith(
-        expect.stringContaining('Hello. world'),
+        expect.stringContaining('Hello<break time="500ms"/>world'),
         'test-voice',
         expect.any(Object)
       );

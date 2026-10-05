@@ -49,8 +49,16 @@ import {
 } from 'node:stream/web';
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { applyReplyAudioStage } from './reply-audio-stage.js';
 
 const log = createLogger({ module: 'PostTTSTransform' });
+
+// Moved to their own modules; re-exported so existing importers keep working.
+export { POST_TTS_ENV_SWITCHES, postTtsEnvOverrides } from './post-tts-env-overrides.js';
+export {
+  analyzeContentComplexity,
+  getRecommendedPacingFromComplexity,
+} from './content-complexity.js';
 
 // ============================================================================
 // RUST NATIVE MODULE (Lazy loaded to avoid startup crash if not built)
@@ -331,6 +339,9 @@ export interface PostTTSConfig {
   /** Warmth amount (0-1, 0.3 = subtle, 0.7 = very warm) */
   warmthAmount?: number;
 
+  /** Split-band de-esser (compresses 5 kHz+ at -20 dB, 4:1). Was always on. */
+  enableDeEsser?: boolean;
+
   /** Enable micro-pitch modulation for naturalness */
   enableMicroPitch?: boolean;
   /** Pitch modulation range in cents (±5-15 typical) */
@@ -530,9 +541,12 @@ export const DEFAULT_CONFIG: Required<PostTTSConfig> = {
   breathProbability: 0.15,
   enableWarmth: envEnabled('POST_TTS_WARMTH'),
   warmthAmount: 0.25, // Reduced from 0.35
+  enableDeEsser: true, // always on until 2026-09-29, when it became switchable
   enableCompression: envEnabled('POST_TTS_COMPRESSION'),
   compressionRatio: 1.5, // Reduced from 2.0
   compressionThresholdDb: -20, // Raised from -18 (less aggressive)
+  // Note: the Rust compressor also applies +2 dB makeup gain (comp_makeup_db,
+  // not exposed here); the limiter keeps peaks at about -1 dBFS.
   enablePresence: envEnabled('POST_TTS_PRESENCE'),
   presenceBoostDb: 1.5, // Reduced from 2.0
   sessionId: 'unknown',
@@ -636,114 +650,6 @@ export function resetPostTTSMetrics(): void {
   metrics.breathsInjected = 0;
   metrics.framesWithBreath = 0;
   metrics.bypassedFrames = 0;
-}
-
-// ============================================================================
-// CONTENT COMPLEXITY ANALYSIS (for Adaptive Pacing)
-// ============================================================================
-
-/**
- * Analyze text content to determine complexity for adaptive pacing.
- *
- * This enables the POST_TTS_ADAPTIVE_PACING feature to automatically adjust
- * speech tempo based on how complex the content is:
- * - Complex content (technical, multi-clause) → slower pacing for comprehension
- * - Simple content (casual, short) → natural/faster pacing
- *
- * Factors analyzed:
- * - Sentence length and structure
- * - Word complexity (syllable count, technical terms)
- * - Question density
- * - Clause complexity (conjunctions, parentheticals)
- * - Emotional weight (certain words need time to land)
- *
- * @param text - The text content to analyze
- * @returns Complexity score 0-1 (0 = simple, 1 = very complex)
- */
-export function analyzeContentComplexity(text: string): number {
-  if (!text || text.trim().length === 0) {
-    return 0.5; // Default moderate complexity
-  }
-
-  let complexity = 0.3; // Base level
-
-  const words = text.split(/\s+/).filter((w) => w.length > 0);
-  const wordCount = words.length;
-
-  // 1. Text length factor (longer = more complex)
-  if (wordCount > 50) complexity += 0.15;
-  else if (wordCount > 30) complexity += 0.08;
-  else if (wordCount < 10) complexity -= 0.1; // Short = simpler
-
-  // 2. Average word length (longer words = more complex)
-  const avgWordLength =
-    words.reduce((sum, w) => sum + w.replace(/[^a-zA-Z]/g, '').length, 0) / Math.max(wordCount, 1);
-  if (avgWordLength > 7) complexity += 0.15;
-  else if (avgWordLength > 5.5) complexity += 0.08;
-  else if (avgWordLength < 4) complexity -= 0.08;
-
-  // 3. Sentence complexity (clauses, punctuation)
-  const commaCount = (text.match(/,/g) || []).length;
-  const semicolonCount = (text.match(/;/g) || []).length;
-  if (commaCount > 4 || semicolonCount > 0) complexity += 0.1;
-
-  // 4. Question density (questions need processing time)
-  const questionCount = (text.match(/\?/g) || []).length;
-  complexity += questionCount * 0.08;
-
-  // 5. Technical/complex vocabulary
-  const technicalPatterns = [
-    /\b(understand|consider|important|significant|however|therefore)\b/gi,
-    /\b(specifically|particularly|essentially|fundamentally|consequently)\b/gi,
-    /\b(nevertheless|furthermore|additionally|alternatively|respectively)\b/gi,
-    /\b(psychological|philosophical|analytical|theoretical|substantial)\b/gi,
-  ];
-  let technicalMatches = 0;
-  for (const pattern of technicalPatterns) {
-    technicalMatches += (text.match(pattern) || []).length;
-  }
-  if (technicalMatches > 3) complexity += 0.15;
-  else if (technicalMatches > 1) complexity += 0.08;
-
-  // 6. Emotional weight words (need time to land)
-  const emotionalPatterns =
-    /\b(love|grief|fear|hope|dream|loss|pain|joy|sorry|proud|grateful|worried)\b/gi;
-  const emotionalMatches = (text.match(emotionalPatterns) || []).length;
-  if (emotionalMatches > 0) complexity += 0.05 * Math.min(emotionalMatches, 3);
-
-  // 7. Parenthetical/nested content (requires more cognitive load)
-  const parentheticalCount = (text.match(/[(\[]/g) || []).length;
-  const dashCount = (text.match(/[—–-]{2,}/g) || []).length;
-  complexity += (parentheticalCount + dashCount) * 0.05;
-
-  // 8. Numbers and data (need processing time)
-  const numberCount = (text.match(/\d+/g) || []).length;
-  if (numberCount > 2) complexity += 0.1;
-
-  // 9. Conjunction chains (complex sentence structure)
-  const conjunctionChains = (
-    text.match(/\b(and|but|or|while|because|although|if|when|since)\b/gi) || []
-  ).length;
-  if (conjunctionChains > 3) complexity += 0.1;
-
-  // Clamp to 0-1 range
-  return Math.max(0, Math.min(1, complexity));
-}
-
-/**
- * Get recommended pacing multiplier based on complexity.
- *
- * Higher complexity → lower multiplier (slower speech)
- * Lower complexity → higher multiplier (can speak faster)
- *
- * Range: 0.85 (very complex, slow down 15%) to 1.1 (simple, speed up 10%)
- */
-export function getRecommendedPacingFromComplexity(complexity: number): number {
-  // Map complexity 0-1 to pacing 1.1-0.85
-  // complexity 0 → 1.1 (fast, simple content)
-  // complexity 0.5 → 0.975 (normal)
-  // complexity 1 → 0.85 (slow, complex content)
-  return 1.1 - complexity * 0.25;
 }
 
 // ============================================================================
@@ -966,6 +872,7 @@ export function createPostTTSTransform(
   let rust: RustAudioModule | null = null;
   let statefulProcessor: NativePostTTSProcessorInstance | null = null;
   let frameCount = 0;
+  let passThroughFormat = false;
   // Buffer the ORIGINAL (unprocessed) frame so we can process it with isLastFrame=true in flush
   // This prevents double-processing which causes audio artifacts
   let bufferedOriginalFrame: AudioFrame | null = null;
@@ -999,7 +906,7 @@ export function createPostTTSTransform(
             enableDeesser: false,
             // Split-band de-esser: ENABLED - professional quality, only attenuates high frequencies
             // This is the same technique used in hardware de-essers like Empirical Labs DerrEsser
-            enableSplitbandDeesser: true,
+            enableSplitbandDeesser: fullConfig.enableDeEsser,
             splitbandCrossoverFreq: 5000, // Split at 5kHz
             splitbandThresholdDb: -20, // Moderate threshold
             splitbandRatio: 4, // 4:1 compression on high band only
@@ -1099,7 +1006,9 @@ export function createPostTTSTransform(
               personaId: fullConfig.personaId,
               mode: 'stateful',
               features: {
-                crossfade: true,
+                // No crossfade: removed from the Rust chain in 09790a3b5 (it
+                // crackled at frame boundaries); soft edges shape the ends.
+                softEdges: fullConfig.enableSoftEdges,
                 splitbandDeesser: true,
                 limiter: true,
                 warmth: fullConfig.enableWarmth,
@@ -1158,6 +1067,28 @@ export function createPostTTSTransform(
     async transform(frame, controller) {
       frameCount++;
       const startTime = performance.now();
+
+      // The DSP is set up for one sample rate, mono, and every output frame
+      // is stamped with that format. A stream in any other format (checked
+      // on its first frame; formats do not change mid-stream) passes through
+      // untouched rather than being processed and mislabelled, which would
+      // play it at the wrong speed and pitch.
+      if (frameCount === 1 && (frame.sampleRate !== fullConfig.sampleRate || frame.channels !== 1)) {
+        passThroughFormat = true;
+        log.warn(
+          {
+            sessionId: fullConfig.sessionId,
+            frameSampleRate: frame.sampleRate,
+            frameChannels: frame.channels,
+            configuredSampleRate: fullConfig.sampleRate,
+          },
+          'Post-TTS: audio format differs from the configured one, passing through'
+        );
+      }
+      if (passThroughFormat) {
+        controller.enqueue(frame);
+        return;
+      }
 
       try {
         // NEW: Use stateful processor if available
@@ -1405,28 +1336,36 @@ function applySoftReleaseToFrame(
 // ============================================================================
 
 /**
+ * The mastering chain (warmth, compression, de-esser, limiter) is opt-in:
+ * POST_TTS_ENHANCEMENT_ENABLED=true turns it on. It re-masters audio Cartesia
+ * already masters, and in a loudness-matched blind A/B on Ferni's voice
+ * (2026-10-04) it was never preferred: raw 2 of 6, can't tell 4 of 6.
+ */
+export function postTtsChainEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.POST_TTS_ENHANCEMENT_ENABLED === 'true';
+}
+
+/**
  * Wrap an audio stream with post-TTS enhancement
- *
- * This is the main entry point for integrating with tts-wrapper.ts
+ * (the main entry point for integrating with tts-wrapper.ts)
  *
  * @param audioStream - Input audio stream from TTS
  * @param config - Enhancement configuration
+ * @param replyId - Id the gateway tagged `audioStream` with (reply-audio-id.ts); keys Stage 2's plan. Untagged streams (fillers, `say()`) get no Stage 2.
  * @returns Enhanced audio stream
  */
 export async function applyPostTTSEnhancement(
   audioStream: NodeReadableStream<AudioFrame>,
-  config: PostTTSConfig = {}
+  config: PostTTSConfig = {},
+  replyId?: string
 ): Promise<NodeReadableStream<AudioFrame>> {
-  // Check if post-TTS enhancement is enabled
-  if (process.env.POST_TTS_ENHANCEMENT_ENABLED === 'false') {
-    log.debug({ sessionId: config.sessionId }, 'Post-TTS enhancement disabled by env');
-    return audioStream;
+  if (!postTtsChainEnabled()) {
+    return applyReplyAudioStage(audioStream, config.sessionId, replyId, config.sampleRate);
   }
-
-  const transform = createPostTTSTransform(config);
-  return audioStream.pipeThrough(
-    transform as unknown as NodeTransformStream<AudioFrame, AudioFrame>
-  );
+  const enhanced = audioStream.pipeThrough(
+    createPostTTSTransform(config) as unknown as NodeTransformStream<AudioFrame, AudioFrame>
+  ); // then Stage 2 (opening breath/sigh, tempo), gated off by default:
+  return applyReplyAudioStage(enhanced, config.sessionId, replyId, config.sampleRate);
 }
 
 /**

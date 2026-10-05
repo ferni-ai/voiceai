@@ -7,13 +7,9 @@
  * onUserTurnCompleted; when that class was deleted (12fdfcbcc, 2025-12-21) the
  * replacement PersonaVoiceAgent never got the hook, so no live call ran it.
  *
- * The SDK awaits onUserTurnCompleted before generating the reply, so this adds
- * its duration to every turn. It logs that duration and is gated by
- * TURN_INTELLIGENCE until it has been measured on real calls.
- *
- * Realtime models with server-side turn detection (Gemini native audio) never
- * get onUserTurnCompleted from the SDK; this hook only affects text-LLM
- * pipelines such as the Cartesia cascade.
+ * Run synchronously in onUserTurnCompleted it cost ~300 ms a turn and spoke a
+ * second reply, so it now runs in the background, context-only, and its note
+ * informs the next reply (createTurnContextPusher). Gated by TURN_INTELLIGENCE.
  *
  * @module agents/multi-agent/turn-intelligence
  */
@@ -22,8 +18,10 @@ import type { llm } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { SessionServices } from '../../services/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import type { UserData } from '../shared/types.js';
 import type { TurnHandlerContext } from '../voice-agent/turn-handler.js';
+import { getUserResponseGapMs } from '../voice-agent/user-response-gap.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
 
@@ -47,14 +45,8 @@ export interface TurnIntelligenceDeps {
 }
 
 export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurnHook {
-  const sendDataMessage = async (type: string, payload: Record<string, unknown>): Promise<void> => {
-    try {
-      const data = new TextEncoder().encode(JSON.stringify({ type, ...payload }));
-      await deps.room?.localParticipant?.publishData(data, { reliable: true });
-    } catch {
-      // Frontend signals are best-effort; a dropped one must not affect the turn.
-    }
-  };
+  // Frontend signals are best-effort; a dropped one must not affect the turn.
+  const sendDataMessage = createDataMessageSender(deps.room);
 
   return async (turnCtx, newMessage) => {
     const userText = newMessage.textContent?.trim();
@@ -62,6 +54,11 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
 
     const start = Date.now();
     try {
+      // The turn handler records each turn's voice pattern; the engine must
+      // exist first (voice-pattern-session.ts, VOICE_PATTERN_ENGINE).
+      const { startVoicePatterns } =
+        await import('../../conversation/humanization/voice-pattern-session.js');
+      await startVoicePatterns(deps.services.sessionId, deps.services.userId);
       const handle = deps.handle ?? (await import('../voice-agent/turn-handler.js')).handleUserTurn;
       const { getStateManager } = await import('../session/user-data-proxy.js');
       const { getAverageSpeechRate } = await import('../voice-agent/human-turn-intelligence.js');
@@ -78,14 +75,13 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
             user?: { totalConversations?: number; sharedVulnerabilities?: number };
           }
         | undefined;
-      const pauseBeforeMs =
-        userData.userSpeakingStartTime && userData.lastAgentResponseTime
-          ? Math.max(0, userData.userSpeakingStartTime - userData.lastAgentResponseTime)
-          : 0;
+      const pauseBeforeMs = getUserResponseGapMs(userData) ?? 0;
 
       await handle({
         turnCtx,
         userText,
+        // Runs beside the reply, so it must not speak, run tools or act.
+        contextOnly: true,
         persona: deps.persona,
         services: deps.services,
         userData: {
@@ -123,59 +119,160 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
   };
 }
 
-/**
- * True when the SDK will never call onUserTurnCompleted for this session: a
- * realtime model that detects turns server-side (e.g. Gemini native audio)
- * replies without waiting for the agent.
- */
-export function usesServerTurnDetection(session: unknown): boolean {
-  const model = (session as { llm?: { capabilities?: { turnDetection?: boolean } } })?.llm;
-  return model?.capabilities?.turnDetection === true;
+/** Opens each pushed context note, so readers of the chat can tell it from the caller's words. */
+export const TURN_CONTEXT_HEADER = '[Context for your next reply, not something the user said]';
+
+/** The key, in a pushed note's `extra`, of the caller's words it was built for. */
+export const TURN_CONTEXT_FOR = 'turnContextFor';
+
+interface ChatItemView {
+  id: string;
+  type?: string;
+  role?: string;
+  textContent?: string;
+  extra?: Record<string, unknown>;
 }
 
-/** Keeps a pushed context note from growing the realtime session's context unboundedly. */
+const isTurnContext = (item: ChatItemView): boolean =>
+  item.type === 'message' &&
+  item.role === 'user' &&
+  Boolean(item.textContent?.startsWith(TURN_CONTEXT_HEADER));
+const normalized = (text: unknown): string =>
+  String(text ?? '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * The request for one reply without pushed context built for an earlier turn.
+ *
+ * The note is built in the background from the caller's turn and is ready
+ * about 1.3 s after the reply to that turn has started, so it lands on the
+ * reply to the NEXT turn while still describing the previous one. Dev call
+ * 2026-10-03: the reply to "Why do you keep forgetting?" ("Maybe it's not about
+ * making me human...") followed the previous turn, with the note sitting
+ * just before the question. A note is kept only for a reply to the very words
+ * it was built for. STALE_TURN_CONTEXT=keep sends every note, as before.
+ */
+export function withoutStaleTurnContext<T extends { items: ChatItemView[]; copy(): T }>(
+  chatCtx: T,
+  env: Record<string, string | undefined> = process.env
+): T {
+  if (env.STALE_TURN_CONTEXT === 'keep') return chatCtx;
+  const items = chatCtx.items;
+  if (!items.some(isTurnContext)) return chatCtx;
+  // The caller's words this reply answers: their messages since Ferni last spoke.
+  const said: string[] = [];
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    if (item.type !== 'message') continue;
+    if (item.role === 'assistant') break;
+    if (item.role === 'user' && !isTurnContext(item)) said.unshift(item.textContent ?? '');
+  }
+  const answering = normalized(said.join(' '));
+  const stale = new Set(
+    items
+      .filter((item) => {
+        if (!isTurnContext(item)) return false;
+        const builtFor = normalized(item.extra?.[TURN_CONTEXT_FOR]);
+        return !builtFor || builtFor !== answering;
+      })
+      .map((item) => item.id)
+  );
+  if (stale.size === 0) return chatCtx;
+  log.info({ answering: answering.slice(0, 60), dropped: stale.size }, 'STALE_TURN_CONTEXT_DROPPED');
+  const ctx = chatCtx.copy();
+  ctx.items = ctx.items.filter((item) => !stale.has(item.id));
+  return ctx;
+}
+
+/** Keeps a pushed context note from growing the session's context unboundedly. */
 const MAX_PUSHED_CONTEXT_CHARS = 2000;
 
-interface RealtimeContextAgent {
-  readonly chatCtx: { copy(): { addMessage(msg: { role: 'user'; content: string }): unknown } };
+interface ContextAgent {
+  readonly chatCtx: {
+    copy(): {
+      items: Array<{ id: string }>;
+      addMessage(msg: {
+        role: 'user';
+        content: string;
+        extra: Record<string, unknown>;
+      }): { id: string };
+    };
+  };
   updateChatCtx(chatCtx: unknown): Promise<void>;
 }
 
 /**
- * Per-turn context for realtime models that reply on their own.
+ * Per-turn context, built in the background and pushed between turns.
  *
- * The turn handler runs on each final user transcript against a scratch
- * context; what it would have injected is held and pushed into the session
- * when the agent goes back to listening. Pushing while the model is speaking
- * would arrive as new input mid-reply, so it waits for the gap between turns
- * and informs the next reply instead.
+ * Injecting it in onUserTurnCompleted cost every reply: the SDK starts
+ * generating from the preflight transcript and throws that generation away
+ * when onUserTurnCompleted changes the chat context (agent_activity.js:
+ * "chat context or tools have changed after onUserTurnCompleted"). So the turn
+ * handler runs here, context-only, on the turn's final transcript while Ferni
+ * replies, and the note lands in the chat context for the next reply.
+ *
+ * A push waits until Ferni is listening and the user is not speaking: one
+ * that lands mid-speech would change the context under a preemptive
+ * generation. Each push replaces the previous note, so notes never pile up.
+ * Each note carries the caller's words it was built for (TURN_CONTEXT_FOR),
+ * so withoutStaleTurnContext can keep it out of the reply to a later turn.
  */
-export function createRealtimeTurnContextPusher(hook: UserTurnHook, agent: RealtimeContextAgent) {
+export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent) {
   let pending: string | null = null;
+  let pushedId: string | null = null;
+  let turnText = '';
+  let run = 0;
+  let agentListening = true;
+  let userSpeaking = false;
+
+  let pendingFor = '';
+
+  const tryPush = async (): Promise<void> => {
+    if (!pending || !agentListening || userSpeaking) return;
+    const content = `${TURN_CONTEXT_HEADER}\n${pending}`;
+    const extra = { [TURN_CONTEXT_FOR]: pendingFor };
+    pending = null;
+    try {
+      const chatCtx = agent.chatCtx.copy();
+      if (pushedId) chatCtx.items = chatCtx.items.filter((item) => item.id !== pushedId);
+      pushedId = chatCtx.addMessage({ role: 'user', content, extra }).id;
+      await agent.updateChatCtx(chatCtx);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Could not push turn context');
+    }
+  };
 
   return {
+    /** A final transcript segment; segments of one turn accumulate. */
     async onFinalTranscript(transcript: string): Promise<void> {
       if (!transcript.trim()) return;
+      turnText = `${turnText} ${transcript.trim()}`.trim();
+      const forText = turnText;
+      const mine = ++run;
       const { llm } = await import('@livekit/agents');
       const scratch = llm.ChatContext.empty();
-      await hook(scratch, llm.ChatMessage.create({ role: 'user', content: transcript }));
+      await hook(scratch, llm.ChatMessage.create({ role: 'user', content: turnText }));
+      if (mine !== run) return; // a later segment of this turn superseded it
       const notes = scratch.items
         .map((item) => (item as { textContent?: string }).textContent?.trim())
         .filter((text): text is string => Boolean(text));
-      if (notes.length > 0) pending = notes.join('\n\n').slice(0, MAX_PUSHED_CONTEXT_CHARS);
+      if (notes.length === 0) return;
+      pending = notes.join('\n\n').slice(0, MAX_PUSHED_CONTEXT_CHARS);
+      pendingFor = forText;
+      await tryPush();
     },
 
     async onAgentState(newState: string | undefined): Promise<void> {
-      if (newState !== 'listening' || !pending) return;
-      const content = `[Context for your next reply, not something the user said]\n${pending}`;
-      pending = null;
-      try {
-        const chatCtx = agent.chatCtx.copy();
-        chatCtx.addMessage({ role: 'user', content });
-        await agent.updateChatCtx(chatCtx);
-      } catch (error) {
-        log.warn({ error: String(error) }, 'Could not push turn context to the realtime session');
-      }
+      if (newState === 'thinking' || newState === 'speaking') turnText = ''; // the turn ended
+      agentListening = newState === 'listening';
+      await tryPush();
+    },
+
+    async onUserState(newState: string | undefined): Promise<void> {
+      userSpeaking = newState === 'speaking';
+      await tryPush();
     },
   };
 }

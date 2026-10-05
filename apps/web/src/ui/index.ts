@@ -166,8 +166,7 @@ export {
   stopWarmthPulse,
 } from './loading-states.ui.js';
 
-// 🔧 Admin Dashboard
-export { initAdminDashboard, injectAdminStyles } from './admin.ui.js';
+// 🔧 Admin Dashboard (lazy-loaded)
 
 // Daily Engagement UI
 export { EngagementUI, getEngagementUI, initializeEngagementUI } from './engagement.ui.js';
@@ -391,22 +390,6 @@ export {
   unmountNextCheckinWidget,
 } from './next-checkin.ui.js';
 
-// Trust Analytics Dashboard - Admin monitoring view
-export {
-  hideTrustAnalytics,
-  initTrustAnalyticsUI,
-  setTrustAnalyticsCallbacks,
-  showTrustAnalytics,
-  trustAnalyticsUI,
-} from './trust-analytics.ui.js';
-export type {
-  ABTestResult,
-  SystemHealth,
-  TrustAnalyticsCallbacks,
-  TrustAnalyticsData,
-  TrustMetrics,
-} from './trust-analytics.ui.js';
-
 // Trust Dashboard - Consolidated trust features UI (Phases 12-29)
 export {
   hideTrustDashboard,
@@ -414,14 +397,7 @@ export {
   showTrustDashboard,
 } from './trust-dashboard.ui.js';
 
-// Notification Settings UI
-export {
-  getNotificationSettingsUI,
-  hideNotificationSettings,
-  initNotificationSettingsUI,
-  showNotificationSettings,
-} from './notification-settings.ui.js';
-export type { NotificationSettingsUICallbacks } from './notification-settings.ui.js';
+// Notification Settings UI (lazy-loaded)
 
 // Voice Enrollment UI - Learn user's voice
 export {
@@ -458,7 +434,7 @@ export {
   showSpeakerChangePrompt,
   speakerChangeIndicator,
 } from './speaker-change-indicator.ui.js';
-export type { SpeakerChangeEvent } from './speaker-change-indicator.ui.js';
+export type { SpeakerCheckAnswer } from './speaker-change-indicator.ui.js';
 
 // Household Manager - Multi-user voice household management
 export {
@@ -554,34 +530,9 @@ export {
   progressIndicator,
 } from './progress-indicator.ui.js';
 
-// Calendar View UI - Visual calendar component for Alex
-export {
-  calendarViewUI,
-  hideCalendarView,
-  setCalendarViewCallbacks,
-  showCalendarView,
-  toggleCalendarView,
-} from './calendar-view.ui.js';
-export type {
-  CalendarEvent as CalendarViewEvent,
-  CalendarViewCallbacks,
-  DayOverview as CalendarDayOverview,
-  WeekOverview as CalendarWeekOverview,
-} from './calendar-view.ui.js';
+// Calendar View UI - Visual calendar component for Alex (lazy-loaded)
 
-// Calendar Settings UI - Provider integration management
-export {
-  getCalendarSettingsUI,
-  showCalendarSettings,
-  openCalendarSettings,
-  hideCalendarSettings,
-} from './calendar-settings.ui.js';
-export type {
-  CalendarStatus,
-  ProviderStatus,
-  CalendarProvidersStatus,
-  CalendarSettingsCallbacks,
-} from './calendar-settings.ui.js';
+// Calendar Settings UI - Provider integration management (lazy-loaded)
 
 // Calendar Conflicts UI - Sync conflict resolution
 export {
@@ -601,10 +552,7 @@ export {
   showCalendarSelection,
   hideCalendarSelection,
 } from './calendar-selection.ui.js';
-export type {
-  CalendarItem,
-  CalendarProvider,
-} from './calendar-selection.ui.js';
+export type { CalendarItem, CalendarProvider } from './calendar-selection.ui.js';
 
 // Team Observations Panel - Cross-persona coordination visibility
 export {
@@ -614,10 +562,7 @@ export {
 } from './team-observations-panel.ui.js';
 
 // Agent Page Builder - Self-serve landing page creation
-export {
-  pageBuilder,
-  showPageBuilder,
-} from './agent-page-builder.ui.js';
+export { pageBuilder, showPageBuilder } from './agent-page-builder.ui.js';
 export type { PageBuilderCallbacks } from './agent-page-builder.ui.js';
 
 // Types

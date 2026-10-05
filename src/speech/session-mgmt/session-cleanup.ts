@@ -33,22 +33,23 @@
  * - Conversation momentum tracker
  * - Mid-response tangent state
  * - Self-awareness feedback loop
- * - Sesame-inspired: anticipatory prosody
- * - Sesame-inspired: micro-reactions
- * - Sesame-inspired: conversation prosody
- * - Sesame-inspired: rich disfluencies
+ * - Sesame-inspired: anticipatory/conversation prosody, micro-reactions, rich disfluencies
+ * - Stage 2 reply audio plan (pending opening breath/sigh + tempo)
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
 
 // Core speech services (using preferred reset* naming)
 import { resetSessionAudioProsodyAnalyzer } from '../audio-prosody.js';
+import { removeCallerProsodyTracker } from '../audio-prosody/caller-prosody.js';
 import { resetSessionBackchannelingSystem } from '../backchanneling.js';
 import { clearSessionContextId } from '../cartesia-context-patch.js';
+import { clearReplyAudioPlan } from '../reply-audio-plan.js';
 import { clearCognitiveSpeechState } from '../cognitive-speech-integration.js';
 import { resetPronunciationMemory } from '../pronunciation-memory.js';
 import { resetSessionWPMTracker } from '../speech-context.js';
 import { getTtsContextService } from '../tts-context.js';
+import { directorSessions } from '../tts-gateway/director/session-state.js';
 
 // Human listening & analysis services
 import { resetEnhancedTurnPredictor } from '../enhanced-turn-prediction.js';
@@ -137,9 +138,7 @@ const log = getLogger().child({ module: 'SpeechSessionCleanup' });
 // SESSION REGISTRY
 // ============================================================================
 
-/**
- * Track active sessions for debugging and monitoring
- */
+/** Track active sessions for debugging and monitoring */
 const activeSessions = new Set<string>();
 
 /**
@@ -266,12 +265,15 @@ export function cleanupSpeechSession(
   // ============================================================================
 
   safeCleanup('audioProsody', () => resetSessionAudioProsodyAnalyzer(sessionId));
+  safeCleanup('callerProsody', () => removeCallerProsodyTracker(sessionId));
   safeCleanup('wpmTracker', () => resetSessionWPMTracker(sessionId));
   safeCleanup('backchanneling', () => resetSessionBackchannelingSystem(sessionId));
   safeCleanup('cognitiveSpeech', () => clearCognitiveSpeechState(sessionId));
   safeCleanup('ttsContext', () => getTtsContextService().clearSession(sessionId));
   safeCleanup('pronunciationMemory', () => resetPronunciationMemory(sessionId));
   safeCleanup('cartesiaContext', () => clearSessionContextId(sessionId));
+  safeCleanup('replyAudioPlan', () => clearReplyAudioPlan(sessionId));
+  safeCleanup('speechDirector', () => directorSessions.clear(sessionId));
 
   // ============================================================================
   // HUMAN LISTENING & ANALYSIS SERVICES

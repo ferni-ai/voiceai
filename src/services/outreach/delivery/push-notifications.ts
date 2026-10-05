@@ -306,17 +306,16 @@ async function signJWT(header: object, payload: object, privateKey: string): Pro
 // SENDING
 // ============================================================================
 
-/**
- * Send push notification to a user
- */
+/** Send to `onlyToken` when given (a token the caller owns), else every token registered here. */
 export async function sendPushNotification(
-  notification: PushNotification
+  notification: PushNotification,
+  onlyToken?: string
 ): Promise<PushDeliveryResult[]> {
   if (!isPushNotificationsAvailable()) {
     return [{ success: false, error: 'Push notifications not initialized' }];
   }
 
-  const tokens = userTokens.get(notification.userId);
+  const tokens = onlyToken ? [{ token: onlyToken }] : userTokens.get(notification.userId);
   if (!tokens || tokens.length === 0) {
     return [{ success: false, error: 'No push tokens registered for user' }];
   }

@@ -8,6 +8,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { requireUserId, sendJSON, sendJSONCached } from '../helpers.js';
 import type { AnyRecord } from './types.js';
+import { averageRealAccuracy } from '../../services/engagement/prediction-scoring.js';
 
 const log = createLogger({ module: 'AnalyticsAPI' });
 
@@ -49,17 +50,10 @@ export async function handleGetUserAnalytics(
     const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
     const streaks = (await store.getAllStreaks(userId)) as unknown as AnyRecord[];
     const weatherHistory = (await store.getWeatherHistory(userId, 30)) as unknown as AnyRecord[];
-    const predictions = (await store.getRecentPredictions(userId, 20)) as unknown as AnyRecord[];
+    const predictions = await store.getRecentPredictions(userId, 20);
 
-    // Calculate analytics
-    const completedPredictions = predictions.filter((p) => p.accuracy !== undefined);
-    const averageAccuracy =
-      completedPredictions.length > 0
-        ? Math.round(
-            completedPredictions.reduce((sum, p) => sum + ((p.accuracy as number) || 0), 0) /
-              completedPredictions.length
-          )
-        : null;
+    // Calculate analytics (only predictions scored against matching actuals)
+    const averageAccuracy = averageRealAccuracy(predictions);
 
     // Find best day
     const dayCompletions: Record<string, number> = {};

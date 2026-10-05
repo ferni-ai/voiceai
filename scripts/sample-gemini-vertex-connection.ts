@@ -33,7 +33,7 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
 
 // Models
 const STANDARD_MODEL = 'gemini-2.5-flash'; // For non-streaming
-const REALTIME_MODEL = 'gemini-2.0-flash-live-preview-04-09'; // For Live API streaming
+const REALTIME_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash'; // For Live API streaming
 
 console.log('🔧 Configuration:');
 console.log(`   USE_VERTEX_AI: ${USE_VERTEX_AI}`);

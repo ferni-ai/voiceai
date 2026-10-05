@@ -57,7 +57,8 @@
       "name": "Milestone Celebration",
       "priority": 7,
       "triggers": {
-        "keywords": "\\b(paid off|debt free|reached|hit|milestone|goal|saved|first|finally)\\b",
+        "keywords": "\\b(paid off|debt free|reached|hit|milestone|goal|saved|first|finally|promoted|promotion|graduated|got the job)\\b",
+        "keywordsRequired": true,
         "customCondition": "valence === 'positive'"
       },
       "instructions": {

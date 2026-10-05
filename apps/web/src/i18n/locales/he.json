@@ -1027,6 +1027,7 @@
     "apple": {
       "instructionsTitle": "כדי לבטל או לשנות את התוכנית שלך:",
       "note": "Apple דורשת לנהל מנויים דרך הגדרות iOS",
+      "source": "נרשמת דרך ה-App Store.",
       "step1": "פתח הגדרות במכשיר שלך",
       "step2": "הקש על שמך בחלק העליון",
       "step3": "הקש על \"מנויים\"",
@@ -1043,6 +1044,7 @@
     "expiresLabel": "גישה עד",
     "freeNote": "פתח פגישות ללא הגבלה, הצוות המלא והתאמה אישית",
     "label": "מנוי",
+    "noBilling": "התוכנית שלך לא מחויבת כאן, אז אין מה לשנות.",
     "renewsLabel": "מתחדש",
     "restore": {
       "failed": "השחזור נכשל",
@@ -1115,6 +1117,7 @@
       "yourPlan": "התוכנית שלך",
       "insights": "[NEEDS_TRANSLATION] Understanding You",
       "yourStory": "[NEEDS_TRANSLATION] Your Story",
+      "trustDashboard": "אמון וצמיחה",
       "whatINotice": "[NEEDS_TRANSLATION] What I Notice",
       "teamSessions": "[NEEDS_TRANSLATION] Team Sessions",
       "conferenceCalls": "[NEEDS_TRANSLATION] Conference Calls",
@@ -2009,6 +2012,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "הסיפור שלך מתחיל כאן",
+      "body": "אחרי שנדבר כמה פעמים, הרגעים שחשובים לך יופיעו כאן."
+    },
+    "error": {
+      "title": "לא הצלחנו לטעון את הסיפור שלך",
+      "body": "משהו השתבש אצלנו. לנסות שוב?",
+      "retry": "לנסות שוב"
     }
   },
   "memoryBrowser": {
@@ -2253,7 +2265,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "חבר את Spotify בהגדרות כדי לשמוע שירים מלאים"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2318,7 +2331,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "חבר קודם את התאורה או את התרמוסטט",
+    "musicNeedsCall": "בקרת המוזיקה פועלת במהלך שיחה",
+    "couldNotChangeLights": "לא הצלחנו לשנות את התאורה. לנסות שוב?"
   },
   "ui": {
     "accountbutton": {
@@ -2450,7 +2466,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "7 הימים האחרונים שלך"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2553,6 +2570,10 @@
       "subtitle": "שיחות, הודעות והתחייבויות קיימות",
       "empty": "אין פעולות עדיין",
       "recent": "אחרון"
+    },
+    "predictions": {
+      "title": "לאן מועדות פניך",
+      "now": "עכשיו"
     }
   },
   "sleepSettings": {
@@ -2993,6 +3014,145 @@
       "fictional": "בדיוני",
       "professional": "מקצועי",
       "legacy": "מורשת"
+    }
+  },
+  "predictionResolution": {
+    "title": "איך היה?",
+    "youGuessed": "הניחוש שלך: {value}",
+    "actual": "בפועל: {value}",
+    "scored": "דיוק של {accuracy}%",
+    "record": "לרשום מה קרה",
+    "save": "לבדוק את הניחושים שלי",
+    "saveFailed": "לא הצלחנו לשמור. לנסות שוב?",
+    "metrics": {
+      "deepWork": {
+        "label": "עבודה מרוכזת",
+        "question": "כמה שעות של עבודה מרוכזת היו לך?",
+        "unit": "שעות"
+      },
+      "exercise": {
+        "label": "ספורט",
+        "question": "כמה פעמים עשית ספורט?",
+        "unit": "אימונים"
+      },
+      "social": {
+        "label": "זמן עם אנשים",
+        "question": "כמה שעות בילית עם אנשים?",
+        "unit": "שעות"
+      },
+      "screen": {
+        "label": "זמן מסך",
+        "question": "כמה שעות מסך היו לך?",
+        "unit": "שעות"
+      },
+      "mood": {
+        "label": "מצב רוח",
+        "question": "מה היה מצב הרוח הממוצע שלך, מ-1 עד 10?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "מה היה הערך בפועל של {label}?"
+      }
+    },
+    "result": {
+      "line": "ניחשת {predicted}. יצא {actual}. {verdict}",
+      "overall": "דיוק כולל השבוע: {accuracy}%."
+    },
+    "tone": {
+      "spotOn": "בול!",
+      "close": "ממש קרוב!",
+      "off": "הפעם קצת פספסת.",
+      "wayOff": "הפעם רחוק מאוד. עכשיו אתה יודע."
+    }
+  },
+  "trustDashboard": {
+    "together": {
+      "empty": "אחרי שנדבר כמה פעמים, אספר לך איך אנחנו מסתדרים יחד.",
+      "startingTitle": "אנחנו רק מתחילים",
+      "startingMessage": "דבר איתי עוד כמה פעמים, ויהיה לי משהו אמיתי לספר לך.",
+      "scoreLabel": "ביחד",
+      "stages": {
+        "new": "רק מתחילים",
+        "building": "מכירים זה את זה",
+        "established": "מוצאים את הקצב שלנו",
+        "deep": "באמת מבינים זה את זה",
+        "flourishing": "משהו מיוחד"
+      },
+      "rhythm": {
+        "high": "אנחנו מדברים הרבה",
+        "mid": "אנחנו מתעדכנים באופן קבוע",
+        "low": "אנחנו מדברים מדי פעם",
+        "quiet": "עבר זמן מאז שדיברנו",
+        "detailNone": "לא בחודש האחרון",
+        "detailOne": "יום אחד בחודש האחרון",
+        "detailOther": "{n} ימים בחודש האחרון"
+      },
+      "promises": {
+        "high": "אני עומד במילה שלי",
+        "mid": "בדרך כלל אני עומד במילה שלי",
+        "low": "כמה דברים חמקו לי",
+        "detail": "{kept} מתוך {total} קוימו"
+      },
+      "lift": {
+        "high": "בדרך כלל השיחות שלנו מקלות עליך",
+        "mid": "השיחות שלנו שומרות עליך יציב",
+        "low": "השיחות שלנו היו כבדות לאחרונה",
+        "detail": "קל יותר בסוף ב-{lifted} מתוך {days} ימים"
+      },
+      "mood": {
+        "up": "נראה שקל לך יותר לאחרונה",
+        "steady": "נראה שאתה יציב לאחרונה",
+        "down": "הדברים הרגישו כבדים יותר לאחרונה",
+        "detail": "השבוע, לעומת השבועות שלפני"
+      }
+    },
+    "noticed": {
+      "empty": "אשתף אותך במה שאני שם לב אליו אחרי שנדבר עוד קצת.",
+      "notYet": "עדיין שום דבר לא בולט. אני ממשיך להקשיב.",
+      "daysTalked": "ימים שדיברנו",
+      "tabs": {
+        "week": "השבוע",
+        "month": "החודש"
+      },
+      "title": {
+        "week": "דברים ששמתי לב אליהם השבוע",
+        "month": "דברים ששמתי לב אליהם החודש"
+      },
+      "quiet": {
+        "week": "לא דיברנו השבוע. אני כאן מתי שתרצה.",
+        "month": "לא דיברנו החודש. אני כאן מתי שתרצה."
+      },
+      "moodShift": {
+        "lighter": {
+          "week": "נראה שקל לך יותר מאשר בשבוע שעבר.",
+          "month": "נראה שקל לך יותר מאשר בחודש שעבר."
+        },
+        "heavier": {
+          "week": "השבוע הרגיש כבד יותר מהקודם. אני כאן גם בשביל זה.",
+          "month": "החודש הרגיש כבד יותר מהקודם. אני כאן גם בשביל זה."
+        }
+      },
+      "bounceBack": {
+        "nextDay": "{date} היה יום קשה, ולמחרת כבר הרגשת טוב יותר.",
+        "later": "{date} היה יום קשה, ותוך {days} ימים כבר הרגשת טוב יותר."
+      },
+      "liftTopic": "לדבר על {topic} בדרך כלל משפר לך את מצב הרוח.",
+      "brightest": "ב-{date} נשמעת הכי שמח.",
+      "timeOfDay": {
+        "morning": "אנחנו מדברים בעיקר בבקרים.",
+        "afternoon": "אנחנו מדברים בעיקר אחר הצהריים.",
+        "evening": "אנחנו מדברים בעיקר בערבים.",
+        "night": "אנחנו מדברים בעיקר מאוחר בלילה."
+      },
+      "favoriteDay": "נראה ש{day} הוא היום שלנו.",
+      "cameUp": {
+        "one": "סיפרת לי על משהו שמתקרב: {example}.",
+        "other": "סיפרת לי על {n} דברים שמתקרבים, כמו: {example}."
+      },
+      "promisesKept": {
+        "all": "עמדתי בכל הבטחה שנתתי לך.",
+        "some": "עמדתי ב-{kept} מתוך {total} ההבטחות שנתתי לך."
+      }
     }
   }
 }

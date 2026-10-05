@@ -5,13 +5,16 @@
  * Uses shared rate limiting from src/servers/token/demo-rate-limit.ts
  */
 
+import { isValidTimeZone } from '../../../agents/shared/time-context.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { rateLimit } from '../../../api/auth-middleware.js';
 import { createToken, createRoomWithAgent, getLiveKitUrl } from '../../token/livekit.js';
 import type { RoomMetadata } from '../../shared/types.js';
 import { prewarmContent, type ContentType } from '../../../services/llm-dynamic-content.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { onBodyEnd } from '../request-failure.js';
 import * as demoSessions from '../services/demo-sessions.js';
+import { prefetchUserData } from './user-data-prefetch.js';
 
 // Import shared rate limiting from token server module (single source of truth)
 import {
@@ -79,95 +82,6 @@ async function getPublisherIdForPersona(personaId: string): Promise<string | und
     log.debug({ personaId, error: String(err) }, 'Publisher lookup failed (non-fatal)');
     return undefined;
   }
-}
-
-/**
- * ⚡ OPTIMIZATION: Pre-fetch user data during token generation
- *
- * This saves 200-500ms on session start by loading:
- * - User profile from Firestore
- * - Trust profiles
- * - Cross-persona insights
- * - Memory embeddings
- *
- * Data is cached in memory and ready when agent session starts.
- * Fire-and-forget - failures don't block token generation.
- */
-function prefetchUserData(userId: string, personaId: string): void {
-  if (!userId || userId.length < 10) return; // Skip invalid/test IDs
-
-  const startTime = Date.now();
-
-  // Fire-and-forget all pre-fetches in parallel
-  Promise.all([
-    // 1. Pre-warm user profile (biggest latency saver)
-    (async () => {
-      try {
-        const { getGlobalServices } = await import('../../../services/global-services.js');
-        const global = await getGlobalServices();
-        if (global?.store) {
-          const profile = await global.store.getProfile(userId);
-          if (profile) {
-            log.debug(
-              { userId: userId.slice(0, 8), totalConvs: profile.totalConversations },
-              '⚡ User profile pre-fetched'
-            );
-          }
-        }
-      } catch (e) {
-        log.debug({ error: String(e) }, 'Profile pre-fetch failed (non-fatal)');
-      }
-    })(),
-
-    // 2. Pre-warm trust profiles
-    (async () => {
-      try {
-        const { onSessionStart } = await import('../../../services/trust-systems/index.js');
-        await onSessionStart(userId);
-        log.debug({ userId: userId.slice(0, 8) }, '⚡ Trust profiles pre-fetched');
-      } catch (e) {
-        log.debug({ error: String(e) }, 'Trust pre-fetch failed (non-fatal)');
-      }
-    })(),
-
-    // 3. Pre-warm cross-persona insights
-    (async () => {
-      try {
-        const { loadInsights } = await import('../../../services/cross-persona-insights.js');
-        await loadInsights(userId);
-        log.debug({ userId: userId.slice(0, 8) }, '⚡ Cross-persona insights pre-fetched');
-      } catch (e) {
-        log.debug({ error: String(e) }, 'Insights pre-fetch failed (non-fatal)');
-      }
-    })(),
-
-    // 4. Pre-compute memory embeddings for faster search
-    // NOTE: Skipped - precomputeUserMemoryEmbeddings requires memory content arrays
-    // which requires an additional DB fetch. The optimization isn't worth the
-    // complexity here. Embeddings will be computed on-demand during conversation.
-
-    // 5. Pre-warm persona bundle
-    (async () => {
-      try {
-        // FIX: Use loadBundleById which searches standard paths, not loadBundle which expects full path
-        const { loadBundleById } = await import('../../../personas/bundles/loader.js');
-        await loadBundleById(personaId);
-        log.debug({ personaId }, '⚡ Persona bundle pre-loaded');
-      } catch (e) {
-        log.debug({ error: String(e) }, 'Persona bundle pre-load failed (non-fatal)');
-      }
-    })(),
-  ])
-    .then(() => {
-      const elapsed = Date.now() - startTime;
-      log.info(
-        { userId: userId.slice(0, 8), personaId, elapsedMs: elapsed },
-        '⚡ User data pre-fetch complete'
-      );
-    })
-    .catch((err) => {
-      log.debug({ error: String(err) }, 'User data pre-fetch partially failed (non-fatal)');
-    });
 }
 
 /**
@@ -365,17 +279,13 @@ export async function handleTokenRoutes(
 
       // Create room and dispatch agent (createRoomWithAgent handles both — no double-dispatch)
       log.info({ room: roomName, persona: personaId, city: demoGeoData.city }, '🚀 Dispatching agent');
-      const dispatched = await createRoomWithAgent(
+      // Failures are logged at error inside createRoomWithAgent; the client learns via agent_dispatched.
+      const dispatch = await createRoomWithAgent(
         roomName,
         demoRoomMetadata,
         DEMO_CONFIG.sessionDurationMinutes * 60 + 30, // emptyTimeout in seconds + buffer
         2 // visitor + agent
       );
-      if (dispatched) {
-        log.info({ room: roomName, persona: personaId }, '✅ Agent dispatched');
-      } else {
-        log.error({ room: roomName }, '❌ Agent dispatch failed');
-      }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -385,6 +295,7 @@ export async function handleTokenRoutes(
           room: roomName,
           username,
           demo_id: demoId,
+          agent_dispatched: dispatch.agentDispatched,
           expires_in_minutes: DEMO_CONFIG.sessionDurationMinutes,
           sessions_remaining: isBrandedPersona
             ? 999
@@ -425,7 +336,7 @@ export async function handleTokenRoutes(
         resolve(true);
       });
 
-      req.on('end', async () => {
+      onBodyEnd(req, res, resolve, async () => {
         try {
           const { claim_token, firebase_uid } = JSON.parse(body) as {
             claim_token: string;
@@ -488,7 +399,7 @@ export async function handleTokenRoutes(
         resolve(true);
       });
 
-      req.on('end', async () => {
+      onBodyEnd(req, res, resolve, async () => {
         try {
           const data = JSON.parse(body) as { room_name: string; conversation: unknown };
           const { room_name, conversation } = data;
@@ -537,6 +448,9 @@ export async function handleTokenRoutes(
     const device_id = parsedUrl.searchParams.get('device_id');
     const persona_id = parsedUrl.searchParams.get('persona_id');
     const preferred_accent = parsedUrl.searchParams.get('accent');
+    // The caller's IANA time zone from the browser, so Ferni knows their local time.
+    const timezoneParam = parsedUrl.searchParams.get('timezone');
+    const timezone = isValidTimeZone(timezoneParam) ? timezoneParam : undefined;
     // 🐛 FIX: Read firebase_uid from query params (frontend sends this!)
     const firebase_uid_param = parsedUrl.searchParams.get('firebase_uid');
     const user_email_param = parsedUrl.searchParams.get('user_email');
@@ -775,6 +689,7 @@ export async function handleTokenRoutes(
         // IP-detected location for weather, local content hints (TikTok-style)
         city: geoData.city,
         regionCode: geoData.regionCode,
+        timezone,
       };
 
       // Generate token with shared helper
@@ -786,12 +701,8 @@ export async function handleTokenRoutes(
 
       // Create room and dispatch agent (createRoomWithAgent handles both — no double-dispatch)
       log.info({ room, persona_id: selectedPersona }, '🎯 Dispatching agent with persona');
-      const dispatched = await createRoomWithAgent(room, roomMetadata);
-      if (dispatched) {
-        log.info({ room, persona_id: selectedPersona }, '✅ Agent dispatch successful');
-      } else {
-        log.error({ room, persona_id: selectedPersona }, '❌ Agent dispatch FAILED');
-      }
+      // Failures are logged at error inside createRoomWithAgent; the client learns via agent_dispatched.
+      const dispatch = await createRoomWithAgent(room, roomMetadata);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -803,6 +714,7 @@ export async function handleTokenRoutes(
           device_id,
           firebase_uid: firebaseUid,
           persona_id: selectedPersona,
+          agent_dispatched: dispatch.agentDispatched,
           accent: geoData.detectedAccent,
           countryCode: geoData.countryCode,
           // IP-detected location for weather, local content

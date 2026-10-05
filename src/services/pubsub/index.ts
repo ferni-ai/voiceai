@@ -10,13 +10,7 @@
 export {
   getPubSubClient,
   initializePubSub,
-  publishEmbeddingTask,
-  publishSummaryTask,
-  publishAnalyticsEvent,
-  publishTrustUpdate,
-  publishContextWarmup,
   getPubSubMetrics,
-  isPubSubEnabled,
   type PubSubConfig,
   type TopicName,
   type PubSubMessage,

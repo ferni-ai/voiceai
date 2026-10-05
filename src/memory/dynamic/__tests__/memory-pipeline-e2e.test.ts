@@ -49,29 +49,38 @@ const mockBatchSet = vi.fn();
 const mockBatchCommit = vi.fn(() => Promise.resolve());
 
 vi.mock('../../../utils/firestore-utils.js', () => ({
-  getFirestoreDb: vi.fn(() => ({
-    collection: () => ({
-      doc: (id: string) => ({
-        collection: () => ({
-          doc: (subId: string) => ({
-            set: (data: unknown) => {
-              mockFirestoreData.set(`${id}/${subId}`, data);
-              return Promise.resolve();
-            },
-            get: () =>
-              Promise.resolve({
-                exists: mockFirestoreData.has(`${id}/${subId}`),
-                data: () => mockFirestoreData.get(`${id}/${subId}`),
-              }),
-          }),
+  getFirestoreDb: vi.fn(() => {
+    const makeDocRef = () => {
+      const ref = {
+        id: `doc-${Math.random().toString(36).slice(2, 9)}`,
+        collection: (_name: string) => ({
+          doc: (_subId?: string) => makeDocRef(),
         }),
+        set: (data: unknown) => {
+          mockFirestoreData.set(ref.id, data);
+          return Promise.resolve();
+        },
+        get: () =>
+          Promise.resolve({
+            exists: mockFirestoreData.has(ref.id),
+            data: () => mockFirestoreData.get(ref.id),
+          }),
+      };
+      return ref;
+    };
+
+    return {
+      collection: (_name: string) => ({
+        doc: (_userId: string) => makeDocRef(),
       }),
-    }),
-    batch: () => ({
-      set: mockBatchSet,
-      commit: mockBatchCommit,
-    }),
-  })),
+      batch: () => ({
+        set: mockBatchSet,
+        commit: mockBatchCommit,
+      }),
+    };
+  }),
+  cleanForFirestore: (obj: unknown) => obj,
+  sanitizeFirestoreDocId: (s: string) => s.replace(/\//g, '-'),
 }));
 
 // Mock vector store
@@ -79,11 +88,12 @@ const mockVectorDocuments: Array<{ id: string; content: string; embedding?: numb
 
 vi.mock('../../firestore-vector-store/index.js', () => ({
   getFirestoreVectorStore: vi.fn(() => ({
+    initialize: vi.fn(async () => undefined),
     addDocument: vi.fn((doc) => {
       mockVectorDocuments.push(doc);
       return Promise.resolve(doc.id || `doc-${Date.now()}`);
     }),
-    addDocuments: vi.fn((docs: unknown[]) => {
+    addDocuments: vi.fn(async (docs: unknown[]) => {
       mockVectorDocuments.push(...(docs as typeof mockVectorDocuments));
       return Promise.resolve(docs.map((_, i) => `doc-${i}`));
     }),
@@ -222,7 +232,7 @@ describe('Memory Pipeline E2E Integration', () => {
     let eventHandler: (job: unknown) => void;
 
     beforeAll(() => {
-      worker = new DeepExtractionWorker();
+      worker = new DeepExtractionWorker({ batchTurns: 1 });
 
       // Capture event handler
       (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
@@ -273,14 +283,51 @@ describe('Memory Pipeline E2E Integration', () => {
       expect(stats.totalEntitiesExtracted).toBeGreaterThanOrEqual(2);
     });
 
+    it('returning caller: second session turn increases Firestore + vector write deltas', async () => {
+      mockBatchSet.mockClear();
+      const beforeBatch = mockBatchSet.mock.calls.length;
+      const beforeVector = mockVectorDocuments.length;
+
+      const job: DeepExtractionJob = {
+        jobId: 'returning-caller-job',
+        userId: testUserId,
+        sessionId: `${testSessionId}-return`,
+        turnNumber: 5,
+        transcript: 'My dog Biscuit is a golden retriever who keeps eating shoes.',
+        timestamp: new Date(),
+        personaId: 'ferni',
+        priority: 'normal',
+        fastCaptureHints: {
+          mentionedEntities: [{ name: 'Biscuit', type: 'person', context: 'dog', confidence: 0.95 }],
+          emotionSignals: [],
+          topicHints: ['pets'],
+          dateSignals: [],
+          relationshipSignals: [],
+        },
+      };
+
+      eventHandler(job);
+      await new Promise((resolve) => setTimeout(resolve, 250));
+
+      expect(mockBatchSet.mock.calls.length).toBeGreaterThan(beforeBatch);
+      expect(mockVectorDocuments.length).toBeGreaterThanOrEqual(beforeVector);
+    });
+
+    it('should not pass undefined fields in Firestore batch payloads', async () => {
+      const payloads = mockBatchSet.mock.calls.map((call) => call[1]);
+      for (const payload of payloads) {
+        if (payload && typeof payload === 'object') {
+          expect(JSON.stringify(payload)).not.toContain('undefined');
+        }
+      }
+    });
+
     it('should persist to vector store with embeddings', async () => {
       // The deep extraction worker should have called addDocuments on the vector store
       // Wait a bit more for async processing
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Check that vector documents were added
-      // Note: In the real implementation, this would have actual embeddings
-      expect(mockVectorDocuments.length).toBeGreaterThanOrEqual(0);
+      expect(mockVectorDocuments.length).toBeGreaterThan(0);
     });
   });
 

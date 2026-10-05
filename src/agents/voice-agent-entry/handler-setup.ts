@@ -19,6 +19,8 @@ import { finops } from '../../services/observability/finops.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
 import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
+import { createDataMessageSender } from '../shared/data-message-envelope.js';
+import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 
 /** Inputs for handler setup */
 export interface HandlerSetupInput {
@@ -163,15 +165,12 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   process.stderr.write(
     `[voice-agent-entry] 👤 Waiting for participant (${participantTimeout}ms timeout, MULTI_AGENT_MODE=${MULTI_AGENT_MODE})...\n`
   );
-  const participant = await Promise.race([
-    ctx.waitForParticipant(),
-    new Promise<null>((resolve) => {
-      setTimeout(() => {
-        process.stderr.write(`[voice-agent-entry] 👤 Participant wait timed out after ${participantTimeout}ms\n`);
-        resolve(null);
-      }, participantTimeout);
-    }),
-  ]);
+  const waitResult = await waitForParticipantWithTimeout(ctx, participantTimeout);
+  if (roomClosedBeforeParticipant(waitResult, ctx.room?.isConnected === true)) {
+    process.stderr.write(`[voice-agent-entry] 🚪 Room closed before a participant joined — ending job\n`);
+    return null as unknown as HandlerSetupResult; // caller runs the shared cleanup path
+  }
+  const participant = waitResult.participant;
   if (participant) {
     process.stderr.write(`[voice-agent-entry] 👤 Participant joined: ${participant.identity}\n`);
   }
@@ -292,13 +291,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   });
 
   // Tool tracking
-  const sendDataMessage = async (type: string, payload: Record<string, unknown>) => {
-    try {
-      const message = JSON.stringify({ type, ...payload });
-      const data = new TextEncoder().encode(message);
-      await ctx.room.localParticipant?.publishData(data, { reliable: true });
-    } catch { /* Non-critical */ }
-  };
+  const sendDataMessage = createDataMessageSender(ctx.room);
 
   // =========================================================================
   // 🎤 AUDIO PROCESSOR: Prosody analysis, voice biomarkers, emotion detection
@@ -393,7 +386,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
 
   // Session state handlers
   const { silenceContext } = setupSessionStateHandlers({
-    session, sessionPersona, conversationManager, userData, sessionId,
+    session, sessionPersona, conversationManager, userData, sessionId, services,
     room: ctx.room,
     onIdleTimeout: () => {
       void (async () => {
@@ -408,12 +401,12 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     },
   });
 
-  // Transcript handler
+  // Transcript handler. The tool loader is per session: a shared one mixed callers' tools.
   const { autoOptimizer } = await import('../../tools/optimization/auto-optimizer.js');
   const { patternAnalyzer } = await import('../../tools/optimization/pattern-analyzer.js');
   const { feedbackCollector } = await import('../../tools/optimization/feedback-collector.js');
-  const { dynamicToolLoader } = await import('../../tools/dynamic-loader.js');
-
+  const { createSessionToolLoader } = await import('../../tools/dynamic-loader/index.js');
+  const dynamicToolLoader = createSessionToolLoader({ enableAutoUnload: false });
   await dynamicToolLoader.initialize({
     userId: userId || 'anonymous',
     agentId: sessionPersona.id,

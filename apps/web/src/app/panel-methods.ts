@@ -7,23 +7,26 @@
  */
 
 import type { ScreenName } from '../services/app-context-tracking.service.js';
-import { getDemoTeamHuddle, isDemoDataEnabled } from '../services/engagement-demo-data.js';
-import { fetchYourStory } from '../services/your-story.service.js';
-import { getAnalyticsDashboardUI } from '../ui/analytics-dashboard.ui.js';
-import { getCognitiveInsightsUI } from '../ui/cognitive-insights.ui.js';
-import { getConversationHistoryUI } from '../ui/conversation-history.ui.js';
+import { isDemoDataEnabled } from '../services/engagement-demo-data.js';
+import {
+  type AnalyticsDashboardData,
+  getAnalyticsDashboardUI,
+} from '../ui/analytics-dashboard.ui.js';
+import { type CognitiveInsightsData, getCognitiveInsightsUI } from '../ui/cognitive-insights.ui.js';
+import {
+  type ConversationHistoryData,
+  getConversationHistoryUI,
+} from '../ui/conversation-history.ui.js';
 import { getDataExportUI } from '../ui/data-export.ui.js';
 import { getPredictionTrackerUI } from '../ui/prediction-tracker.ui.js';
-import { showTeamHuddle as showTeamHuddleUI } from '../ui/team-huddle.ui.js';
 import {
-  createDemoStoryData,
-  fetchVisualizationData,
-  hasAnyVisualizationData,
-  type YourStoryData,
-} from '../ui/visualizations/index.js';
-import { getYourStoryUI } from '../ui/your-story-dashboard.ui.js';
-// TODO: Re-enable when /api/huddles/start backend is implemented
-// import { getApiHeadersAsync } from '../utils/api.js';
+  toPredictionTrackerData,
+  type PredictionsResponse,
+} from '../services/prediction-tracker-data.js';
+import { showTeamHuddle as showTeamHuddleUI, type TeamHuddleData } from '../ui/team-huddle.ui.js';
+import { loadYourStory } from '../ui/lazy-screens.js';
+import { toast } from '../ui/whisper.ui.js';
+import { apiDelete, apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
 // 🧠 Better Than Human: Track screen view for Voice ↔ App Sync
@@ -50,18 +53,15 @@ export async function showConversationHistory(): Promise<void> {
   void trackScreen('journal');
   getConversationHistoryUI().showLoading();
 
-  // TODO: Backend GET /api/conversations not implemented yet.
-  // When the handler exists, uncomment the fetch below.
-  // try {
-  //   const response = await fetch('/api/conversations');
-  //   if (response.ok) {
-  //     const data = await response.json();
-  //     getConversationHistoryUI().show(data);
-  //     return;
-  //   }
-  // } catch (err) {
-  //   log.debug('API fetch failed, checking for demo mode');
-  // }
+  const response = await apiGet<ConversationHistoryData>('/api/conversations');
+  if (response.ok && response.data) {
+    getConversationHistoryUI().show(response.data);
+    return;
+  }
+  log.debug(
+    { status: response.status, error: response.error },
+    'Conversation history fetch failed'
+  );
 
   // Fall back to demo data if enabled
   if (isDemoDataEnabled()) {
@@ -133,22 +133,13 @@ export async function showAnalyticsDashboard(): Promise<void> {
   // Show loading state immediately
   getAnalyticsDashboardUI().showLoading();
 
-  // TODO: Backend GET /api/analytics/user not implemented yet.
-  // When the handler exists, uncomment the fetch below.
-  // try {
-  //   const userId = localStorage.getItem('ferni_user_id');
-  //   const url = userId
-  //     ? `/api/analytics/user?userId=${encodeURIComponent(userId)}`
-  //     : '/api/analytics/user';
-  //   const response = await fetch(url);
-  //   if (response.ok) {
-  //     const data = await response.json();
-  //     getAnalyticsDashboardUI().show(data);
-  //     return;
-  //   }
-  // } catch (err) {
-  //   log.debug('API fetch failed, checking for demo mode');
-  // }
+  // No userId param: the server takes identity from the auth token only.
+  const response = await apiGet<AnalyticsDashboardData>('/api/analytics/user');
+  if (response.ok && response.data) {
+    getAnalyticsDashboardUI().show(response.data);
+    return;
+  }
+  log.debug({ status: response.status, error: response.error }, 'Analytics fetch failed');
 
   // Fall back to demo data if enabled
   if (isDemoDataEnabled()) {
@@ -219,9 +210,18 @@ export async function showAnalyticsDashboard(): Promise<void> {
  * Delete a memory from "What I've Learned" and refresh the UI.
  */
 export async function deleteMemory(memoryId: string): Promise<void> {
-  // TODO: Backend DELETE /api/cognitive/memories/:id not implemented yet.
-  // Re-enable when handler exists.
-  log.debug({ memoryId }, 'deleteMemory: backend not implemented yet');
+  const response = await apiDelete(`/api/cognitive/memories/${encodeURIComponent(memoryId)}`);
+  if (response.ok) {
+    toast.success('Memory removed');
+  } else {
+    log.error(
+      { memoryId, status: response.status, error: response.error },
+      'Failed to delete memory'
+    );
+    toast.error("Couldn't remove that memory. Try again?");
+  }
+  // Re-fetch either way so the list matches what the server actually has.
+  await showCognitiveInsights();
 }
 
 /**
@@ -237,23 +237,18 @@ export async function showCognitiveInsights(): Promise<void> {
   });
   getCognitiveInsightsUI().showLoading();
 
-  // TODO: Backend GET /api/cognitive/memories not implemented yet.
-  // When the handler exists, uncomment the fetch below.
-  // try {
-  //   const response = await fetch('/api/cognitive/memories');
-  //   if (response.ok) {
-  //     const data = await response.json();
-  //     getCognitiveInsightsUI().show({
-  //       memories: data.memories || [],
-  //       patterns: data.patterns || [],
-  //       totalInteractions: data.totalInteractions || 0,
-  //       knowledgeScore: data.knowledgeScore || 0,
-  //     });
-  //     return;
-  //   }
-  // } catch (err) {
-  //   log.debug('API fetch failed, checking for demo mode');
-  // }
+  const response = await apiGet<Partial<CognitiveInsightsData>>('/api/cognitive/memories');
+  if (response.ok && response.data) {
+    const data = response.data;
+    getCognitiveInsightsUI().show({
+      memories: data.memories ?? [],
+      patterns: data.patterns ?? [],
+      totalInteractions: data.totalInteractions ?? 0,
+      knowledgeScore: data.knowledgeScore ?? 0,
+    });
+    return;
+  }
+  log.debug({ status: response.status, error: response.error }, 'Cognitive memories fetch failed');
 
   // Fall back to demo data if enabled
   if (isDemoDataEnabled()) {
@@ -466,65 +461,24 @@ function getDemoCognitiveData() {
 // ============================================================================
 
 /**
- * Show prediction tracker panel.
- * Fetches real data from API, falls back to demo data in development.
+ * Show prediction tracker panel from GET /api/predictions.
+ * No predictions yet, or a failed load, gets a toast instead of a zero dashboard.
  */
 export async function showPredictionTracker(): Promise<void> {
   void trackScreen('predictions');
-  // TODO: Backend GET /api/predictions not implemented yet.
-  // When the handler exists, uncomment the fetch below.
-  // try {
-  //   const response = await fetch('/api/predictions');
-  //   if (response.ok) {
-  //     const data = await response.json();
-  //     const predictions = data.predictions || [];
-  //     const completed = predictions.filter((p) => p.accuracy !== undefined);
-  //     const totalCorrect = completed.reduce((sum, p) => sum + (p.accuracy >= 70 ? 1 : 0), 0);
-  //     getPredictionTrackerUI().show({
-  //       overallAccuracy: data.stats?.averageAccuracy || 0,
-  //       totalPredictions: data.stats?.totalPredictions || predictions.length,
-  //       correctPredictions: totalCorrect,
-  //       byCategory: [],
-  //       recentTrend: completed.slice(0, 7).map((p) => p.accuracy),
-  //       bestStreak: 0,
-  //       currentStreak: 0,
-  //     });
-  //     return;
-  //   }
-  // } catch (err) {
-  //   log.debug('API fetch failed, checking for demo mode');
-  // }
-
-  // Fall back to demo data if enabled
-  if (isDemoDataEnabled()) {
-    const demoData = {
-      overallAccuracy: 72,
-      totalPredictions: 18,
-      correctPredictions: 13,
-      byCategory: [
-        { category: 'personal', correct: 5, total: 7, accuracy: 71 },
-        { category: 'work', correct: 4, total: 5, accuracy: 80 },
-        { category: 'health', correct: 3, total: 4, accuracy: 75 },
-        { category: 'habits', correct: 1, total: 2, accuracy: 50 },
-      ],
-      recentTrend: [60, 70, 65, 80, 75, 72, 78],
-      bestStreak: 5,
-      currentStreak: 3,
-    };
-    getPredictionTrackerUI().show(demoData);
+  const { toast } = await import('../ui/whisper.ui.js');
+  const response = await apiGet<PredictionsResponse>('/api/predictions');
+  if (!response.ok || !response.data) {
+    log.warn({ status: response.status }, 'Prediction tracker load failed');
+    toast.error("Couldn't load your predictions. Try again?");
     return;
   }
-
-  // Show empty state
-  getPredictionTrackerUI().show({
-    overallAccuracy: 0,
-    totalPredictions: 0,
-    correctPredictions: 0,
-    byCategory: [],
-    recentTrend: [],
-    bestStreak: 0,
-    currentStreak: 0,
-  });
+  const data = toPredictionTrackerData(response.data);
+  if (!data) {
+    toast.info("No predictions yet. Make one with Ferni and it'll show up here.");
+    return;
+  }
+  getPredictionTrackerUI().show(data);
 }
 
 // ============================================================================
@@ -537,10 +491,11 @@ export async function showPredictionTracker(): Promise<void> {
  */
 export async function showDataExport(): Promise<void> {
   void trackScreen('settings');
-  const { dataExportService } = await import('../services/data-export.service.js');
+  const { dataExportService, dataRightsErrorMessage } =
+    await import('../services/data-export.service.js');
   const { toast } = await import('../ui/whisper.ui.js');
 
-  // Set up callbacks for export and delete
+  // Each request only reports success after the server confirms it.
   getDataExportUI().setCallbacks({
     onExport: async (format, categories) => {
       try {
@@ -549,7 +504,7 @@ export async function showDataExport(): Promise<void> {
         toast.success('Download started!');
       } catch (err) {
         log.error('Export failed:', err);
-        toast.error("Couldn't export. Try again?");
+        toast.error(dataRightsErrorMessage(err, "Couldn't export. Try again?"));
       }
     },
     onDeleteData: async () => {
@@ -557,13 +512,25 @@ export async function showDataExport(): Promise<void> {
         toast.info('Deleting your data...');
         await dataExportService.deleteAllData();
         toast.success('All data deleted');
-        // Redirect to home after deletion
         setTimeout(() => {
           window.location.href = '/';
         }, 1500);
       } catch (err) {
         log.error('Delete failed:', err);
-        toast.error("Couldn't delete. Try again?");
+        toast.error(dataRightsErrorMessage(err, "Couldn't delete. Try again?"));
+      }
+    },
+    onDeleteAccount: async () => {
+      try {
+        toast.info('Deleting your account...');
+        const leftover = await dataExportService.deleteAccount();
+        toast[leftover ? 'warning' : 'success'](leftover ?? 'Your account is deleted. Take care.');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1500);
+      } catch (err) {
+        log.error('Account deletion failed:', err);
+        toast.error(dataRightsErrorMessage(err, "Couldn't delete your account. Try again?"));
       }
     },
     onClose: () => {
@@ -571,131 +538,38 @@ export async function showDataExport(): Promise<void> {
     },
   });
 
-  // Fetch categories from backend
-  const categories = await dataExportService.getExportableCategories();
-  getDataExportUI().show(categories);
-
-  // Fall back to demo data if needed
-  if (categories.length === 0 && isDemoDataEnabled()) {
-    const demoData = [
-      {
-        category: 'Conversations',
-        description: 'All conversation transcripts',
-        itemCount: 45,
-        exportable: true,
-      },
-      {
-        category: 'Insights',
-        description: 'What Ferni has learned about you',
-        itemCount: 23,
-        exportable: true,
-      },
-      {
-        category: 'Rituals',
-        description: 'Daily practice history and streaks',
-        itemCount: 156,
-        exportable: true,
-      },
-      {
-        category: 'Predictions',
-        description: 'Your predictions and outcomes',
-        itemCount: 18,
-        exportable: true,
-      },
-      {
-        category: 'Mood History',
-        description: 'Emotional weather records',
-        itemCount: 42,
-        exportable: true,
-      },
-      {
-        category: 'Profile',
-        description: 'Your profile and preferences',
-        itemCount: 1,
-        exportable: true,
-      },
-      {
-        category: 'Contacts',
-        description: 'Your people and relationships',
-        itemCount: 12,
-        exportable: true,
-      },
-      {
-        category: 'Trust Journey',
-        description: 'Your growth, boundaries, and shared moments',
-        itemCount: 28,
-        exportable: true,
-      },
-      {
-        category: 'Wellbeing',
-        description: 'Wellness snapshots and trends',
-        itemCount: 35,
-        exportable: true,
-      },
-      {
-        category: 'Habits',
-        description: "Maya's habit coaching data",
-        itemCount: 8,
-        exportable: true,
-      },
-      {
-        category: 'Productivity',
-        description: 'Tasks, notes, and journal entries',
-        itemCount: 67,
-        exportable: true,
-      },
-    ];
-    getDataExportUI().show(demoData);
-  }
+  getDataExportUI().show(await dataExportService.getExportableCategories());
 }
 
 // ============================================================================
 // TEAM HUDDLE
 // ============================================================================
 
+/** Body of POST /api/huddles/start (src/api/routes/team.ts handleStartHuddle). */
+interface StartHuddleResponse {
+  success?: boolean;
+  huddle?: Omit<TeamHuddleData, 'type'> & { type?: string };
+}
+
 /**
- * Show team huddle panel.
- * Starts a new huddle via API, or shows demo data in development.
+ * Start a team huddle via POST /api/huddles/start and show it.
+ * A failed start says so; nothing is shown that the server didn't send.
  */
-export async function showTeamHuddle(_topic?: string): Promise<void> {
+export async function showTeamHuddle(topic?: string): Promise<void> {
   void trackScreen('team');
-
-  // TODO: Backend POST /api/huddles/start not implemented yet.
-  // When the handler exists, uncomment the fetch below.
-  // try {
-  //   const authHeaders = await getApiHeadersAsync(true);
-  //   const response = await fetch('/api/huddles/start', {
-  //     method: 'POST',
-  //     headers: authHeaders,
-  //     body: JSON.stringify({
-  //       topic: topic || 'Weekly check-in on your progress',
-  //       type: 'weekly',
-  //     }),
-  //   });
-  //   if (response.ok) {
-  //     const data = await response.json();
-  //     if (data.success && data.huddle) {
-  //       showTeamHuddleUI(data.huddle);
-  //       log.debug('Team huddle started via API');
-  //       return;
-  //     }
-  //   }
-  // } catch (err) {
-  //   log.debug('API fetch failed, checking for demo mode');
-  // }
-
-  // Fall back to demo data if enabled
-  if (isDemoDataEnabled()) {
-    const demoHuddle = getDemoTeamHuddle('weekly');
-    showTeamHuddleUI(demoHuddle);
-    log.debug('Team huddle shown (demo)');
+  const response = await apiPost<StartHuddleResponse>('/api/huddles/start', {
+    topic: topic || 'Weekly check-in on your progress',
+    type: 'weekly',
+  });
+  const huddle = response.ok ? response.data?.huddle : undefined;
+  if (!huddle) {
+    log.warn({ status: response.status }, 'Team huddle start failed');
+    const { toast } = await import('../ui/whisper.ui.js');
+    toast.error("Couldn't start a team huddle. Try again?");
     return;
   }
-
-  // Honest empty state — never fabricate a huddle in production
-  const { toast } = await import('../ui/whisper.ui.js');
-  toast.info("Team huddle isn't ready yet. Ask Ferni when you're in a conversation.");
-  log.debug('Team huddle unavailable (no API, demo disabled)');
+  const type = huddle.type === 'milestone' || huddle.type === 'special' ? huddle.type : 'weekly';
+  showTeamHuddleUI({ ...huddle, type });
 }
 
 // ============================================================================
@@ -710,145 +584,35 @@ export async function showTeamHuddle(_topic?: string): Promise<void> {
  * - Analytics stats (days together, conversations, streak)
  * - Relationship stage and milestones
  *
- * Data sources (in priority order):
- * 1. Backend API (/api/your-story/full) - aggregates all services
- * 2. Direct Firestore fetch - fallback for offline/errors
- * 3. Demo data - for new users or when all else fails
+ * Data source: the backend API (/api/your-story/full), which builds every
+ * section from persisted data. There is no in-browser fallback: the old one
+ * read Firestore collections the security rules deny to clients, under field
+ * names no writer uses, and filled the gaps with defaults.
  *
- * For new users, shows aspirational demo data with a warm banner.
+ * With no story yet it shows an empty state; when loading fails, an error
+ * with a retry. Demo data appears only behind the explicit demo flag, and
+ * always with the demo banner, so example numbers never pass as the user's.
  */
 export async function showYourStoryDashboard(): Promise<void> {
   void trackScreen('your-story');
+  const modules = await loadYourStory();
+  if (!modules) return;
+  const [{ getYourStoryUI }, { fetchYourStory }, viz] = modules;
   const dashboard = getYourStoryUI();
   dashboard.showLoading();
 
-  const userId = localStorage.getItem('ferni_user_id');
-
-  // Priority 1: Try the unified API endpoint (aggregates all services)
-  try {
-    if (userId) {
-      log.debug({ userId }, 'Fetching from /api/your-story/full');
-      const storyData = await fetchYourStory();
-
-      // Check if we got real data (not demo fallback)
-      if (storyData.analytics.conversations > 0 || storyData.analytics.daysTogether > 0) {
-        dashboard.show(storyData);
-        log.info({ userId }, 'Your Story shown from API');
-        return;
-      }
-    }
-  } catch (err) {
-    log.debug({ err }, 'API fetch failed, trying Firestore fallback');
+  if (isDemoDataEnabled()) {
+    dashboard.show(viz.createDemoStoryData('demo-user'), { showDemoBanner: true });
+    return;
   }
 
-  // Priority 2: Fallback to direct Firestore fetch
-  try {
-    if (userId) {
-      const visualizationData = await fetchVisualizationData(userId);
-
-      if (hasAnyVisualizationData(visualizationData)) {
-        // Aggregate with analytics and milestone data
-        const storyData = await aggregateStoryData(userId, visualizationData);
-        dashboard.show(storyData);
-        log.info({ userId }, 'Your Story shown from Firestore fallback');
-        return;
-      }
-    }
-  } catch (err) {
-    log.debug({ err }, 'Firestore fetch failed, using demo data');
+  const result = await fetchYourStory();
+  if (result.status === 'ok') {
+    dashboard.show(result.data);
+    return;
   }
 
-  // Priority 3: Demo data for new users or when all else fails
-  const demoData = createDemoStoryData(userId || 'demo-user');
-  dashboard.show(demoData, { showDemoBanner: true });
-  log.info('Your Story shown with demo data (new user or demo mode)');
-}
-
-/**
- * Aggregate story data from multiple sources.
- *
- * Combines:
- * - Visualization data (from Firestore)
- * - Analytics (from API)
- * - Relationship stage (from API)
- * - Recent milestones (from API)
- */
-async function aggregateStoryData(
-  userId: string,
-  visualizationData: Awaited<ReturnType<typeof fetchVisualizationData>>
-): Promise<YourStoryData> {
-  // Fetch additional data in parallel
-  const [analyticsData, stageData, milestonesData] = await Promise.all([
-    fetchAnalyticsStats(userId),
-    fetchRelationshipStage(userId),
-    fetchRecentMilestones(userId),
-  ]);
-
-  return {
-    ...visualizationData,
-    userId,
-    timestamp: new Date().toISOString(),
-    analytics: analyticsData,
-    stage: stageData,
-    milestones: milestonesData,
-  };
-}
-
-/**
- * Fetch analytics stats for the story header.
- */
-async function fetchAnalyticsStats(_userId: string): Promise<YourStoryData['analytics']> {
-  // TODO: Backend GET /api/analytics/user not implemented yet.
-  // Re-enable fetch when handler exists.
-  return { daysTogether: 0, conversations: 0, streak: 0 };
-}
-
-/**
- * Fetch relationship stage for the story header.
- */
-async function fetchRelationshipStage(_userId: string): Promise<YourStoryData['stage']> {
-  // TODO: Backend GET /api/journey/stage not implemented yet.
-  // Re-enable fetch when handler exists.
-  return {
-    name: 'Getting Started',
-    progress: 0,
-    tagline: 'Just beginning our journey',
-  };
-}
-
-/**
- * Fetch recent milestones for the story.
- */
-async function fetchRecentMilestones(userId: string): Promise<YourStoryData['milestones']> {
-  try {
-    const response = await fetch(
-      `/api/journey/milestones?userId=${encodeURIComponent(userId)}&limit=5`
-    );
-    if (response.ok) {
-      const data = await response.json();
-      return (data.milestones || []).map(
-        (m: { id: string; name: string; celebratedAt: string | number; category?: string }) => ({
-          id: m.id,
-          name: m.name,
-          celebratedAt:
-            typeof m.celebratedAt === 'string'
-              ? new Date(m.celebratedAt).getTime()
-              : m.celebratedAt,
-          category: (m.category || 'discovery') as
-            | 'relationship'
-            | 'team'
-            | 'conversation'
-            | 'discovery'
-            | 'sweet',
-        })
-      );
-    }
-  } catch (err) {
-    log.debug({ err }, 'Failed to fetch milestones');
-  }
-
-  // Return empty array if API fails
-  return [];
+  dashboard.showStatus(result.status, () => void showYourStoryDashboard());
 }
 
 // ============================================================================
@@ -866,9 +630,6 @@ export async function showWhatIDoForYou(): Promise<void> {
   showFerniCareDashboard();
 }
 
-// Backwards compatibility alias
-export const showLifeAutomation = showWhatIDoForYou;
-
 /**
  * Show routine ideas gallery.
  */
@@ -878,9 +639,6 @@ export async function showRoutineIdeas(): Promise<void> {
   const { showIdeasGallery } = await import('../ui/ferni-care/index.js');
   showIdeasGallery();
 }
-
-// Backwards compatibility alias
-export const showWorkflowTemplates = showRoutineIdeas;
 
 /**
  * Show routine builder.
@@ -892,5 +650,9 @@ export async function showRoutineCreator(): Promise<void> {
   showRoutineBuilder();
 }
 
-// Backwards compatibility alias
-export const showWorkflowCreator = showRoutineCreator;
+/** Show the Trust & Growth dashboard (health, timeline, events, journal, media, insights). */
+export async function showTrustDashboard(): Promise<void> {
+  void trackScreen('trust-dashboard');
+  const { showTrustDashboard: show } = await import('../ui/trust-dashboard.ui.js');
+  await show();
+}

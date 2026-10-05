@@ -96,7 +96,7 @@ const DEFAULT_FLAGS: VoiceHumanizationFlags = {
   // Phase 3: Enable by default (new)
   enableRhythmMirroring: true,
   enableEmotionalContagion: true,
-  enableEnhancedVoiceFingerprinting: true, // Uses ferni-speaker native module
+  enableEnhancedVoiceFingerprinting: true, // Neural speaker embeddings when the model is available
   enableVoiceAuthentication: true, // Enable voice enrollment & verification
 
   // Phase 4: Advanced Audio Intelligence - MONITORING ONLY
@@ -111,10 +111,15 @@ const DEFAULT_FLAGS: VoiceHumanizationFlags = {
   cacheConfidenceThreshold: 0.55, // 55% confidence (lowered for more cache hits, faster response)
 
   // Phase 6: Live Backchanneling - ENABLED for "Better than Human" active listening
-  enableLiveBackchanneling: true, // Soft "mm-hmm" during user speech at breath pauses
+  enableLiveBackchanneling: backchannelsEnabled(), // opt-in: BACKCHANNELS=on (see below)
 
-  // Phase 7: LLM-Based Backchannels - ENABLED for natural variation
-  enableLLMBackchannels: true, // Let LLM generate contextual backchannels (no repetition!)
+  // Phase 7: LLM-based backchannels - OFF since 2026-10-03. Each one was a
+  // full generateReply 4 s into the caller's speech, and the model answered
+  // the caller's previous turn again, over them (dev call: "It's hard to say."
+  // and "Why do you keep forgetting?" were each answered twice, the second
+  // time 8 s and 22 s later). The "mm-hmm" clips still play during speech.
+  // VOICE_HUMANIZATION_ENABLE_L_L_M_BACKCHANNELS=true turns them back on.
+  enableLLMBackchannels: false,
 
   // Rollout: 100% by default
   rolloutPercentage: 100,
@@ -360,3 +365,16 @@ export const voiceHumanizationFlags = new Proxy({} as VoiceHumanizationFlags, {
     return getFlags()[prop];
   },
 });
+
+/**
+ * Backchannels during the caller's speech ("mm-hmm", "right", "yeah"): the
+ * clips and the spoken fallback alike. Off unless BACKCHANNELS=on. They were
+ * single words rendered out of context, fired at loudness-only pauses on a
+ * coin flip, and a caller heard them as fake (dev call 2026-10-04): none
+ * beats a wrong one until they are cued from prosody and in Ferni's own voice.
+ */
+export function backchannelsEnabled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return env.BACKCHANNELS === 'on';
+}

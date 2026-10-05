@@ -6,7 +6,7 @@
  * with external APIs and require complex OAuth setup.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies BEFORE importing
 vi.mock('../../../../utils/safe-logger.js', () => ({
@@ -97,6 +97,15 @@ function createMockContext(): ToolContext {
 describe('Marketing Domain', () => {
   let toolDefinitions: ToolDefinition[];
   let mockContext: ToolContext;
+
+  // These tests cover postToLinkedIn, which is only loaded while LinkedIn is
+  // switched on (config/linkedin-flag.ts; switched off: see linkedin-switch.test.ts).
+  beforeAll(() => {
+    vi.stubEnv('LINKEDIN_ENABLED', 'true');
+    vi.stubEnv('LINKEDIN_CLIENT_ID', 'li-id');
+    vi.stubEnv('LINKEDIN_CLIENT_SECRET', 'li-secret');
+  });
+  afterAll(() => vi.unstubAllEnvs());
 
   beforeEach(async () => {
     vi.clearAllMocks();

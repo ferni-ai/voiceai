@@ -1027,6 +1027,7 @@
     "apple": {
       "instructionsTitle": "Para cancelar o cambiar tu plan:",
       "note": "Apple requiere que las suscripciones se gestionen a través de los Ajustes de iOS",
+      "source": "Te suscribiste a través de la App Store.",
       "step1": "Abre Ajustes en tu dispositivo",
       "step2": "Toca tu nombre en la parte superior",
       "step3": "Toca \"Suscripciones\"",
@@ -1043,6 +1044,7 @@
     "expiresLabel": "Acceso hasta",
     "freeNote": "Desbloquea sesiones ilimitadas, todo el equipo y personalización",
     "label": "SUSCRIPCIÓN",
+    "noBilling": "Tu plan no se cobra aquí, así que no hay nada que cambiar.",
     "renewsLabel": "Se renueva",
     "restore": {
       "failed": "Error al restaurar",
@@ -1123,6 +1125,7 @@
       "yourPlan": "Tu Plan",
       "insights": "[NEEDS_TRANSLATION] Understanding You",
       "yourStory": "[NEEDS_TRANSLATION] Your Story",
+      "trustDashboard": "Confianza y crecimiento",
       "whatINotice": "[NEEDS_TRANSLATION] What I Notice",
       "teamSessions": "[NEEDS_TRANSLATION] Team Sessions",
       "conferenceCalls": "[NEEDS_TRANSLATION] Conference Calls",
@@ -2009,6 +2012,15 @@
     "aria": {
       "close": "[NEEDS_TRANSLATION] Close",
       "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
+    },
+    "empty": {
+      "title": "Tu historia empieza aquí",
+      "body": "Cuando hayamos hablado algunas veces, aquí aparecerán los momentos que te importan."
+    },
+    "error": {
+      "title": "No pudimos cargar tu historia",
+      "body": "Algo salió mal de nuestro lado. ¿Intentar de nuevo?",
+      "retry": "Intentar de nuevo"
     }
   },
   "memoryBrowser": {
@@ -2253,7 +2265,8 @@
       "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
       "play": "[NEEDS_TRANSLATION] Play",
       "pause": "[NEEDS_TRANSLATION] Pause",
-      "skip": "[NEEDS_TRANSLATION] Skip"
+      "skip": "[NEEDS_TRANSLATION] Skip",
+      "linkSpotify": "Vincula Spotify en Ajustes para escuchar canciones completas"
     },
     "volume": "[NEEDS_TRANSLATION] Volume",
     "skipped": "[NEEDS_TRANSLATION] Skipped",
@@ -2318,7 +2331,10 @@
       "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
       "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
       "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
-    }
+    },
+    "connectDevicesFirst": "Primero conecta tus luces o tu termostato",
+    "musicNeedsCall": "Los controles de música funcionan durante una conversación",
+    "couldNotChangeLights": "No pudimos cambiar las luces. ¿Intentar de nuevo?"
   },
   "ui": {
     "accountbutton": {
@@ -2450,7 +2466,8 @@
     "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment.",
     "energyRings": {
       "title": "[NEEDS_TRANSLATION] Energy Levels",
-      "subtitle": "[NEEDS_TRANSLATION] Your current capacity"
+      "subtitle": "[NEEDS_TRANSLATION] Your current capacity",
+      "weekSubtitle": "Tus últimos 7 días"
     },
     "energy": {
       "emotional": "[NEEDS_TRANSLATION] Emotional",
@@ -2553,6 +2570,10 @@
       "subtitle": "Llamadas, mensajes y compromisos cumplidos",
       "empty": "Sin acciones aún",
       "recent": "Reciente"
+    },
+    "predictions": {
+      "title": "Hacia dónde vas",
+      "now": "Ahora"
     }
   },
   "sleepSettings": {
@@ -2993,6 +3014,145 @@
       "fictional": "Ficticio",
       "professional": "Profesional",
       "legacy": "Legado"
+    }
+  },
+  "predictionResolution": {
+    "title": "¿Cómo te fue?",
+    "youGuessed": "Tu apuesta: {value}",
+    "actual": "Real: {value}",
+    "scored": "{accuracy}% de acierto",
+    "record": "Anotar lo que pasó",
+    "save": "Comprobar mis apuestas",
+    "saveFailed": "No se pudo guardar. ¿Lo intentas de nuevo?",
+    "metrics": {
+      "deepWork": {
+        "label": "Trabajo profundo",
+        "question": "¿Cuántas horas de trabajo profundo hiciste?",
+        "unit": "horas"
+      },
+      "exercise": {
+        "label": "Ejercicio",
+        "question": "¿Cuántas veces hiciste ejercicio?",
+        "unit": "sesiones"
+      },
+      "social": {
+        "label": "Tiempo con gente",
+        "question": "¿Cuántas horas pasaste con otras personas?",
+        "unit": "horas"
+      },
+      "screen": {
+        "label": "Tiempo de pantalla",
+        "question": "¿Cuántas horas de pantalla tuviste?",
+        "unit": "horas"
+      },
+      "mood": {
+        "label": "Ánimo",
+        "question": "¿Cuál fue tu ánimo medio, del 1 al 10?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "¿Cuál fue tu valor real de {label}?"
+      }
+    },
+    "result": {
+      "line": "Apostaste {predicted}. Fue {actual}. {verdict}",
+      "overall": "{accuracy}% de acierto en total esta semana."
+    },
+    "tone": {
+      "spotOn": "¡Clavado!",
+      "close": "¡Muy cerca!",
+      "off": "Esta vez te desviaste un poco.",
+      "wayOff": "Esta vez, muy lejos. Ahora ya lo sabes."
+    }
+  },
+  "trustDashboard": {
+    "together": {
+      "empty": "Cuando hayamos hablado unas cuantas veces, te diré cómo vamos.",
+      "startingTitle": "Apenas estamos empezando",
+      "startingMessage": "Habla conmigo unas cuantas veces más y tendré algo real que contarte.",
+      "scoreLabel": "Juntos",
+      "stages": {
+        "new": "Recién empezando",
+        "building": "Conociéndonos",
+        "established": "Encontrando nuestro ritmo",
+        "deep": "Nos entendemos de verdad",
+        "flourishing": "Algo especial"
+      },
+      "rhythm": {
+        "high": "Hablamos a menudo",
+        "mid": "Nos ponemos al día con regularidad",
+        "low": "Hablamos de vez en cuando",
+        "quiet": "Hace tiempo que no hablamos",
+        "detailNone": "Ninguno en el último mes",
+        "detailOne": "1 día en el último mes",
+        "detailOther": "{n} días en el último mes"
+      },
+      "promises": {
+        "high": "Cumplo lo que digo",
+        "mid": "Casi siempre cumplo lo que digo",
+        "low": "Se me han escapado algunas cosas",
+        "detail": "Cumplidas {kept} de {total}"
+      },
+      "lift": {
+        "high": "Nuestras charlas suelen aliviarte",
+        "mid": "Nuestras charlas te dan estabilidad",
+        "low": "Nuestras charlas han sido pesadas últimamente",
+        "detail": "Mejor al final en {lifted} de {days} días"
+      },
+      "mood": {
+        "up": "Te noto con más ánimo últimamente",
+        "steady": "Te noto estable últimamente",
+        "down": "Las cosas se han sentido más pesadas últimamente",
+        "detail": "Esta semana, frente a las anteriores"
+      }
+    },
+    "noticed": {
+      "empty": "Te contaré lo que noto cuando hayamos hablado un poco más.",
+      "notYet": "Todavía no destaca nada. Sigo escuchando.",
+      "daysTalked": "Días que hablamos",
+      "tabs": {
+        "week": "Esta semana",
+        "month": "Este mes"
+      },
+      "title": {
+        "week": "Lo que noté esta semana",
+        "month": "Lo que noté este mes"
+      },
+      "quiet": {
+        "week": "No hemos hablado esta semana. Aquí estoy cuando quieras.",
+        "month": "No hemos hablado este mes. Aquí estoy cuando quieras."
+      },
+      "moodShift": {
+        "lighter": {
+          "week": "Te noto con más ánimo que la semana pasada.",
+          "month": "Te noto con más ánimo que el mes pasado."
+        },
+        "heavier": {
+          "week": "Esta semana se sintió más pesada que la anterior. También estoy aquí para eso.",
+          "month": "Este mes se sintió más pesado que el anterior. También estoy aquí para eso."
+        }
+      },
+      "bounceBack": {
+        "nextDay": "El {date} fue un día difícil, y al día siguiente ya estabas mejor.",
+        "later": "El {date} fue un día difícil, y en {days} días ya estabas mejor."
+      },
+      "liftTopic": "Hablar de {topic} suele levantarte el ánimo.",
+      "brightest": "Sonabas más feliz el {date}.",
+      "timeOfDay": {
+        "morning": "Solemos hablar por la mañana.",
+        "afternoon": "Solemos hablar por la tarde.",
+        "evening": "Solemos hablar por la noche.",
+        "night": "Solemos hablar de madrugada."
+      },
+      "favoriteDay": "El {day} parece ser nuestro día.",
+      "cameUp": {
+        "one": "Me contaste algo que se acerca: {example}.",
+        "other": "Me contaste {n} cosas que se acercan, como: {example}."
+      },
+      "promisesKept": {
+        "all": "Cumplí todas las promesas que te hice.",
+        "some": "Cumplí {kept} de las {total} promesas que te hice."
+      }
     }
   }
 }

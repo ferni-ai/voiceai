@@ -324,7 +324,9 @@ export async function createTranscriptHandlerAsync(
 ): Promise<{ handler: (event: any) => void }> {
   const { createTranscriptHandler } = await import('./voice-agent/transcript-handler.js');
   const { autoOptimizer } = await import('../tools/optimization/auto-optimizer.js');
-  const { dynamicToolLoader } = await import('../tools/dynamic-loader.js');
+  // One loader per session: a shared one built tools bound to another caller.
+  const { createSessionToolLoader } = await import('../tools/dynamic-loader/index.js');
+  const dynamicToolLoader = createSessionToolLoader({ enableAutoUnload: false });
 
   await dynamicToolLoader.initialize({
     userId: config.userId || 'anonymous',
@@ -350,28 +352,6 @@ export async function createTranscriptHandlerAsync(
     autoOptimizer,
     agent: config.agent,
   });
-}
-
-// ============================================================================
-// SEND DATA MESSAGE HELPER
-// ============================================================================
-
-/**
- * Creates a helper function for sending data messages to the frontend.
- */
-export function createDataMessageSender(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  room: any
-): (type: string, payload: Record<string, unknown>) => Promise<void> {
-  return async (type: string, payload: Record<string, unknown>): Promise<void> => {
-    try {
-      const message = JSON.stringify({ type, ...payload });
-      const data = new TextEncoder().encode(message);
-      await room.localParticipant?.publishData(data, { reliable: true });
-    } catch {
-      /* ignore */
-    }
-  };
 }
 
 // ============================================================================

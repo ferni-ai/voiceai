@@ -355,10 +355,8 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     diag.error('Greeting failed', { error: String(e) });
   }
 
-  // Add to conversation history (internal tracking)
-  if (services && typeof services.addTurn === 'function') {
-    services.addTurn('assistant', greeting);
-  }
+  // The greeting is recorded as the agent's turn when the session commits it
+  // (agent-reply-recorder, on conversation_item_added).
 
   // =========================================================================
   // CONVERSATION PRIMING: ARCHITECTURAL DECISION

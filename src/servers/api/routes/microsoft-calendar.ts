@@ -6,14 +6,16 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { createOAuthStateManager } from '../../../utils/ddos-protection.js';
+import { consumeOAuthLinkState, peekOAuthLinkState } from '../../token/oauth-link-state.js';
 import { outlookCalendarProvider } from '../../../services/calendar/providers/outlook-provider.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { getVerifiedUserId } from '../request-identity.js';
+import { OAUTH_START_PATH } from './oauth-start.js';
 
 const log = createLogger({ module: 'MicrosoftCalendarRoutes' });
 
-// OAuth state manager (5 minute expiry)
-const microsoftOAuthStates = createOAuthStateManager(5 * 60 * 1000);
+const PROVIDER = 'microsoft_calendar';
+const CONNECT = { method: 'POST', url: OAUTH_START_PATH, provider: PROVIDER } as const;
 
 // Configuration
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || '';
@@ -37,11 +39,9 @@ export async function handleMicrosoftCalendarRoutes(
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
-  // Start Microsoft Calendar OAuth flow
+  // Microsoft OAuth login: only with a state from POST /auth/oauth/start,
+  // never a user id from the URL.
   if (pathname === '/auth/microsoft/login') {
-    const userId = parsedUrl.searchParams.get('user_id');
-    const returnUrl = parsedUrl.searchParams.get('return_url');
-
     if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET) {
       res.writeHead(503, { 'Content-Type': 'application/json' });
       res.end(
@@ -53,16 +53,11 @@ export async function handleMicrosoftCalendarRoutes(
       return true;
     }
 
-    // Generate state for CSRF protection
-    const state = microsoftOAuthStates.create({
-      user_id: userId || 'anonymous',
-      return_url: returnUrl || '/',
-    });
-
-    if (!state) {
-      log.error('Microsoft OAuth: State limit reached (possible attack)');
-      res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Service temporarily unavailable, try again' }));
+    const state = parsedUrl.searchParams.get('state');
+    const record = await peekOAuthLinkState(state, PROVIDER);
+    if (!state || !record) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required', connect: CONNECT }));
       return true;
     }
 
@@ -74,7 +69,7 @@ export async function handleMicrosoftCalendarRoutes(
     authUrl.searchParams.set('prompt', 'consent');
     authUrl.searchParams.set('state', state);
 
-    log.info({ userId }, 'Microsoft OAuth: Redirecting user to Microsoft');
+    log.info({ userId: record.uid }, 'Microsoft OAuth: Redirecting user to Microsoft');
     res.writeHead(302, { Location: authUrl.toString() });
     res.end();
     return true;
@@ -94,11 +89,8 @@ export async function handleMicrosoftCalendarRoutes(
       return true;
     }
 
-    // Verify state
-    const stateData = microsoftOAuthStates.consume(state ?? '') as {
-      user_id?: string;
-      return_url?: string;
-    } | null;
+    // The Ferni user comes only from the stored state record, consumed here.
+    const stateData = await consumeOAuthLinkState(req, state, PROVIDER);
     if (!stateData) {
       log.error('Microsoft OAuth: Invalid or expired state');
       res.writeHead(302, { Location: '/?calendar_error=invalid_state' });
@@ -107,7 +99,7 @@ export async function handleMicrosoftCalendarRoutes(
     }
 
     try {
-      const userId = stateData.user_id ?? 'anonymous';
+      const userId = stateData.uid;
 
       // Use the provider to handle the callback
       const success = await outlookCalendarProvider.handleAuthCallback(
@@ -118,7 +110,8 @@ export async function handleMicrosoftCalendarRoutes(
 
       if (success) {
         log.info({ userId }, 'Microsoft Calendar linked');
-        const returnUrl = stateData.return_url ?? '/?calendar_linked=outlook';
+        const sep = stateData.returnUrl.includes('?') ? '&' : '?';
+        const returnUrl = `${stateData.returnUrl}${sep}calendar=outlook&status=connected`;
         res.writeHead(302, { Location: returnUrl });
         res.end();
       } else {
@@ -136,11 +129,11 @@ export async function handleMicrosoftCalendarRoutes(
 
   // Check Microsoft Calendar link status
   if (pathname === '/auth/microsoft/status') {
-    const userId = parsedUrl.searchParams.get('user_id');
+    const userId = getVerifiedUserId(req);
 
     if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required' }));
       return true;
     }
 
@@ -152,9 +145,7 @@ export async function handleMicrosoftCalendarRoutes(
       JSON.stringify({
         microsoft_calendar_configured: configured,
         linked: connected,
-        login_url: configured
-          ? `/auth/microsoft/login?user_id=${encodeURIComponent(userId)}`
-          : null,
+        connect: configured ? CONNECT : null,
       })
     );
     return true;
@@ -162,11 +153,11 @@ export async function handleMicrosoftCalendarRoutes(
 
   // Unlink Microsoft Calendar for a user
   if (pathname === '/auth/microsoft/unlink') {
-    const userId = parsedUrl.searchParams.get('user_id');
+    const userId = getVerifiedUserId(req);
 
     if (!userId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'user_id is required' }));
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Sign in required' }));
       return true;
     }
 

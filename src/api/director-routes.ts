@@ -9,12 +9,19 @@
  * - Director → Server: DirectorChannelInbound (commands, queries, suggestions)
  * - Server → Director: DirectorChannelOutbound (state updates, events, errors)
  *
- * Auth: Only authorized director user IDs can connect.
+ * Auth: the upgrade must offer a `bearer.<Firebase ID token>` subprotocol; the verified uid
+ * must be in DIRECTOR_AUTHORIZED_IDS. A ?userId= in the URL is ignored.
  *
  * @route /ws/director
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import {
+  rejectUpgrade,
+  selectWsProtocol,
+  upgradePath,
+  verifyUpgradeIdentity,
+} from '../services/identity/ws-identity.js';
 import { WebSocketServer, type WebSocket } from 'ws';
 
 import type { IncomingMessage } from 'http';
@@ -80,19 +87,21 @@ let directorUpgradeHandler:
 export function initDirectorWebSocket(httpServer: Server, config: DirectorRoutesConfig): void {
   const wss = new WebSocketServer({
     noServer: true,
+    handleProtocols: selectWsProtocol,
     perMessageDeflate: false,
   });
 
   directorWss = wss;
 
   const upgradeHandler = (request: IncomingMessage, socket: unknown, head: Buffer): void => {
-    const url = request.url ?? '';
-    const pathname = url.split('?')[0];
-    if (pathname === '/ws/director') {
-      wss.handleUpgrade(request, socket as import('node:net').Socket, head, (ws: WebSocket) => {
-        handleDirectorWebSocket(ws, request, config);
+    if (upgradePath(request) !== '/ws/director') return;
+    const netSocket = socket as import('node:net').Socket;
+    void verifyUpgradeIdentity(request).then((uid) => {
+      if (!uid) return rejectUpgrade(netSocket);
+      wss.handleUpgrade(request, netSocket, head, (ws: WebSocket) => {
+        handleDirectorWebSocket(ws, request, config, uid);
       });
-    }
+    });
   };
 
   directorUpgradeHandler = upgradeHandler;
@@ -123,23 +132,24 @@ export function shutdownDirectorWebSocket(): void {
 /**
  * Handle a new WebSocket connection for Director Mode.
  *
- * Expected URL format: /ws/director?sessionId=xxx&userId=yyy
+ * Expected URL format: /ws/director?sessionId=xxx (token in the subprotocol)
  *
  * @param ws - WebSocket connection
- * @param req - Incoming HTTP request (for URL params)
+ * @param req - Incoming HTTP request (for the sessionId param)
  * @param config - Route configuration
+ * @param verifiedUid - uid verified at the upgrade; the only identity authorized
  */
 export function handleDirectorWebSocket(
   ws: WebSocket,
   req: IncomingMessage,
-  config: DirectorRoutesConfig
+  config: DirectorRoutesConfig,
+  verifiedUid: string | null
 ): void {
-  // Parse query params
-  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const url = new URL(req.url ?? '/', 'http://local');
   const sessionId = url.searchParams.get('sessionId');
-  const userId = url.searchParams.get('userId');
+  const userId = verifiedUid;
 
-  // Validate auth
+  // Authorize the verified uid, never a client-supplied ?userId=
   if (!userId || !config.authorizedDirectorIds.includes(userId)) {
     log.warn({ userId }, 'Unauthorized director WebSocket connection attempt');
     sendMessage(ws, {

@@ -18,7 +18,8 @@ struct PersonaPickerSheet: View {
     // Animation state
     @State private var offset: CGFloat = 1000
     @State private var selectedPersona: Persona?
-    @State private var showLockedToast: String? = nil
+    /// The teammate being introduced in the "Meet <Name>" sheet.
+    @State private var meeting: Persona?
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -43,10 +44,11 @@ struct PersonaPickerSheet: View {
             .frame(maxWidth: .infinity)
             .background(sheetBackground)
             .offset(y: offset)
-            
-            // Locked toast
-            if let toast = showLockedToast {
-                lockedToast(message: toast)
+        }
+        .sheet(item: $meeting) { persona in
+            MeetTeammateSheet(persona: persona) { personaId in
+                meeting = nil
+                selectPersona(personaId)
             }
         }
         .onAppear {
@@ -150,7 +152,7 @@ struct PersonaPickerSheet: View {
                     progress: status.progress,
                     lockReason: status.lockReason,
                     action: {
-                        handleCardTap(persona: persona, isUnlocked: isUnlocked, reason: status.unlockHint)
+                        handleCardTap(persona: persona)
                     }
                 )
             }
@@ -159,54 +161,27 @@ struct PersonaPickerSheet: View {
         .padding(.bottom, 12)
     }
     
-    // MARK: - Locked Toast
-    
-    private func lockedToast(message: String) -> some View {
-        VStack {
-            Spacer()
-            
-            HStack(spacing: 10) {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                
-                Text(message)
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-            }
-            .foregroundColor(.white.opacity(0.9))
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .background(
-                Capsule()
-                    .fill(Color(white: 0.2))
-                    .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
-            )
-            .padding(.bottom, 120)
-        }
-        .transition(.move(edge: .bottom).combined(with: .opacity))
-        .zIndex(10)
-    }
-    
     // MARK: - Actions
     
-    private func handleCardTap(persona: Persona, isUnlocked: Bool, reason: String?) {
+    /// What tapping a teammate's card does: talk to them if they're on the
+    /// team, otherwise meet them.
+    enum CardTap: Equatable {
+        case talk(String)
+        case meet(String)
+    }
+    
+    static func cardTap(personaId: String, team: Set<String>) -> CardTap {
+        team.contains(personaId) ? .talk(personaId) : .meet(personaId)
+    }
+    
+    private func handleCardTap(persona: Persona) {
         appState.playTapHaptic()
         
-        if isUnlocked {
-            selectPersona(persona.id)
-        } else {
-            // Show locked toast
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                showLockedToast = reason ?? "Keep talking to Ferni to unlock \(persona.name)"
-            }
-            
-            // Hide after delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    showLockedToast = nil
-                }
-            }
+        switch Self.cardTap(personaId: persona.id, team: teamUnlockService.unlockedMembers) {
+        case .talk(let personaId):
+            selectPersona(personaId)
+        case .meet:
+            meeting = persona
         }
     }
     
@@ -285,8 +260,8 @@ struct TeamMemberCard: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(persona.name), \(persona.role)")
-        .accessibilityValue(isSelected ? "Currently selected" : (isUnlocked ? "Available" : "Locked"))
-        .accessibilityHint(isUnlocked ? "Double tap to switch to \(persona.name)" : "Not yet unlocked")
+        .accessibilityValue(isSelected ? "Currently selected" : (isUnlocked ? "Available" : "Not on your team yet"))
+        .accessibilityHint(isUnlocked ? "Double tap to switch to \(persona.name)" : "Double tap to meet \(persona.name)")
     }
     
     private var cardBackground: some View {

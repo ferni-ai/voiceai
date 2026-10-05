@@ -35,6 +35,7 @@ const mockCallbacks = {
   onClose: vi.fn(),
   onExport: vi.fn(),
   onDeleteData: vi.fn(),
+  onDeleteAccount: vi.fn(),
 };
 
 // ============================================================================
@@ -478,6 +479,34 @@ describe('Data Export UI', () => {
       const modal = findDataExportModal();
       expect(modal?.classList.contains('data-export--visible')).toBe(false);
 
+      confirmSpy.mockRestore();
+    });
+  });
+
+  describe('Delete Account', () => {
+    it('asks for confirmation, then calls onDeleteAccount', async () => {
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      const ui = getDataExportUI();
+      ui.setCallbacks(mockCallbacks);
+      ui.show(mockExportableData);
+
+      document.querySelector<HTMLElement>('.data-export__delete-account')?.click();
+
+      expect(confirmSpy).toHaveBeenCalled();
+      expect(mockCallbacks.onDeleteAccount).toHaveBeenCalledTimes(1);
+      expect(mockCallbacks.onDeleteData).not.toHaveBeenCalled();
+      confirmSpy.mockRestore();
+    });
+
+    it('does nothing when the user backs out', async () => {
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      const ui = getDataExportUI();
+      ui.setCallbacks(mockCallbacks);
+      ui.show(mockExportableData);
+
+      document.querySelector<HTMLElement>('.data-export__delete-account')?.click();
+
+      expect(mockCallbacks.onDeleteAccount).not.toHaveBeenCalled();
       confirmSpy.mockRestore();
     });
   });

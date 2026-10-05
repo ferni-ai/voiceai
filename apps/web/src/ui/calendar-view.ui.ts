@@ -16,6 +16,8 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost, getUserId } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
+import { startOAuthConnect } from '../services/oauth-connect.service.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('CalendarViewUI');
 
@@ -401,7 +403,7 @@ class CalendarViewUI {
         this.isConnected = false;
         return;
       }
-      const statusRes = await apiGet<{ linked?: boolean }>(`/auth/google/status?user_id=${encodeURIComponent(userId)}`);
+      const statusRes = await apiGet<{ linked?: boolean }>('/auth/google/status'); // verified caller
       this.isConnected = statusRes?.data?.linked === true;
 
       // ALWAYS load calendar data - Ferni Calendar is always available!
@@ -1602,13 +1604,13 @@ class CalendarViewUI {
         switch (action) {
           case 'connect':
           case 'connect-google':
-            this.connectGoogle();
+            void this.startConnect('google_calendar');
             break;
           case 'connect-apple':
             this.connectApple();
             break;
           case 'connect-outlook':
-            this.connectOutlook();
+            void this.startConnect('microsoft_calendar');
             break;
           case 'open-settings':
             this.openFullSettings();
@@ -1643,11 +1645,6 @@ class CalendarViewUI {
     });
   }
 
-  private connectGoogle(): void {
-    const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
-    window.location.href = `/auth/google/login?user_id=${encodeURIComponent(userId)}`;
-  }
-
   private connectApple(): void {
     // Open the full settings to show Apple setup (requires credentials)
     this.hide();
@@ -1656,9 +1653,9 @@ class CalendarViewUI {
     }).catch((err) => log.error('Failed to open calendar settings', err));
   }
 
-  private connectOutlook(): void {
-    const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
-    window.location.href = `/auth/microsoft/login?user_id=${encodeURIComponent(userId)}`;
+  private async startConnect(provider: 'google_calendar' | 'microsoft_calendar'): Promise<void> {
+    const result = await startOAuthConnect(provider);
+    if (!result.success) toast.error(result.error ?? "Couldn't connect. Try again?");
   }
 
   private openFullSettings(): void {
@@ -2606,7 +2603,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__practice-day--today .calendar-view__practice-day-name {
-        color: var(--color-jordan, #c4856a);
+        color: color-mix(in srgb, var(--color-jordan, #c4856a) 70%, black);
       }
 
       .calendar-view__practice-day-num {
@@ -2616,7 +2613,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__practice-day--today .calendar-view__practice-day-num {
-        color: var(--color-jordan, #c4856a);
+        color: color-mix(in srgb, var(--color-jordan, #c4856a) 70%, black);
         font-weight: var(--font-weight-bold, 700);
       }
 

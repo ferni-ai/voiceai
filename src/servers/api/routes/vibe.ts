@@ -9,6 +9,11 @@
  * - POST /api/vibe/activate - Activate a vibe preset
  * - POST /api/vibe/music    - Set music parameters
  * - POST /api/vibe/lights   - Set light parameters
+ * - GET  /api/vibe/lights/status - Lights connection status
+ *
+ * Connecting devices is not done here: Hue/LIFX/Sonos credentials are saved via
+ * /api/smart-home/*, Ecobee via /api/ecobee/link/*. (The old /lights/connect and
+ * /thermostat/connect routes answered success without connecting anything.)
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -20,26 +25,13 @@ import {
   getPreset,
 } from '../../../services/vibe/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
 const log = createLogger({ module: 'vibe-routes' });
 
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function getUserId(req: IncomingMessage): string | null {
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.slice(7);
-  }
-
-  const userIdHeader = req.headers['x-user-id'];
-  if (userIdHeader && typeof userIdHeader === 'string') {
-    return userIdHeader;
-  }
-
-  return null;
-}
 
 function sendJson(res: ServerResponse, statusCode: number, data: unknown): void {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
@@ -245,114 +237,6 @@ export async function handleVibeRoutes(
       colorTemp: state.lights.colorTemp,
       devices: state.lights.devices,
     });
-    return true;
-  }
-
-  // ============================================================================
-  // POST /api/vibe/lights/connect - Connect to a light provider
-  // ============================================================================
-  if (pathname === '/api/vibe/lights/connect' && req.method === 'POST') {
-    const body = await parseBody<{ provider: 'home-assistant' | 'hue' | 'lifx' }>(req);
-
-    if (!body?.provider) {
-      sendError(res, 400, 'provider is required');
-      return true;
-    }
-
-    log.info({ userId, provider: body.provider }, 'Connecting light provider');
-
-    // Handle different providers
-    switch (body.provider) {
-      case 'home-assistant': {
-        // For Home Assistant, return config info - actual connection happens client-side
-        sendJson(res, 200, {
-          success: true,
-          message: 'Home Assistant requires local configuration',
-          provider: 'home-assistant',
-          instructions: 'Add your Home Assistant URL and token in settings',
-        });
-        break;
-      }
-      case 'hue': {
-        // Philips Hue uses local bridge discovery
-        sendJson(res, 200, {
-          success: true,
-          message: 'Press the button on your Hue bridge, then try again',
-          provider: 'hue',
-          discoveryUrl: 'https://discovery.meethue.com/',
-        });
-        break;
-      }
-      case 'lifx': {
-        // LIFX uses cloud API with token
-        sendJson(res, 200, {
-          success: true,
-          message: 'LIFX connection initiated',
-          provider: 'lifx',
-          authUrl: 'https://cloud.lifx.com/oauth/authorize',
-        });
-        break;
-      }
-      default:
-        sendError(res, 400, `Unknown provider: ${body.provider}`);
-    }
-    return true;
-  }
-
-  // ============================================================================
-  // POST /api/vibe/thermostat/connect - Connect to a thermostat provider
-  // ============================================================================
-  if (pathname === '/api/vibe/thermostat/connect' && req.method === 'POST') {
-    const body = await parseBody<{ provider: 'ecobee' | 'nest' | 'home-assistant' }>(req);
-
-    if (!body?.provider) {
-      sendError(res, 400, 'provider is required');
-      return true;
-    }
-
-    log.info({ userId, provider: body.provider }, 'Connecting thermostat provider');
-
-    // Handle different providers
-    switch (body.provider) {
-      case 'nest': {
-        // Google Nest requires OAuth
-        const clientId = process.env.NEST_CLIENT_ID || '';
-        if (!clientId) {
-          sendError(res, 503, 'Nest integration not configured');
-          return true;
-        }
-        const redirectUri = encodeURIComponent(
-          process.env.NODE_ENV === 'production'
-            ? 'https://app.ferni.ai/api/vibe/thermostat/callback'
-            : 'http://localhost:3002/api/vibe/thermostat/callback'
-        );
-        const authUrl = `https://nestservices.google.com/partnerconnections/project-id/auth?redirect_uri=${redirectUri}&access_type=offline&prompt=consent&client_id=${clientId}&response_type=code&scope=https://www.googleapis.com/auth/sdm.service`;
-        sendJson(res, 200, {
-          success: true,
-          provider: 'nest',
-          authUrl,
-        });
-        break;
-      }
-      case 'home-assistant': {
-        // Home Assistant can control any thermostat
-        sendJson(res, 200, {
-          success: true,
-          message: 'Using Home Assistant for climate control',
-          provider: 'home-assistant',
-        });
-        break;
-      }
-      case 'ecobee':
-      default: {
-        // Ecobee handled by dedicated routes
-        sendJson(res, 200, {
-          success: true,
-          message: 'Use /api/ecobee/authorize to connect Ecobee',
-          provider: 'ecobee',
-        });
-      }
-    }
     return true;
   }
 

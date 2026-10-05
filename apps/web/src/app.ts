@@ -5,7 +5,7 @@
  * A premium experience that rivals Apple and Google.
  */
 
-import type { PersonaId } from './types/persona.js';
+import { isLegendId, isValidPersonaId, type PersonaId, type SpeakerId } from './types/persona.js';
 
 // Theme system
 import {
@@ -18,6 +18,46 @@ import {
 // Theme & Language Settings panel
 import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
 import { devPanelMayEnable } from './ui/dev-panel-gate.js';
+import {
+  openCalendarSettings,
+  openCalendarView,
+  openChronicle,
+  openContactSettings,
+  openCreativeYouDashboard,
+  openFerniFund,
+  openFutureInsights,
+  openGamePicker,
+  openGrowthJournal,
+  openKnowledgeQuiz,
+  openManageSubscription,
+  openMarketplace,
+  openMarketplaceAdmin,
+  openMemoryLane,
+  openMusicDashboard,
+  openNotificationSettings,
+  openOutreachSchedule,
+  openPersonalize,
+  openReferral,
+  openRitualBuilder,
+  openSupportFerni,
+  openYourPeople,
+  showAppleHealthSettings,
+  showConversationMemory,
+  showEightSleepSettings,
+  showFamilyIdentities,
+  showFerniFundThankYou,
+  showGroupCoaching,
+  showHouseholdManager,
+  showLifeContextDashboard,
+  showLinkedInSettings,
+  showOuraSettings,
+  showPatternInsights,
+  showSmartHomeSettings,
+  showVibeController,
+  showVideoSettings,
+  showWearableSettings,
+  showWellbeingDashboard,
+} from './ui/lazy-screens.js';
 
 // State
 import {
@@ -71,9 +111,6 @@ import {
 } from './ui/spotify.ui.js';
 import { initTeamUI, teamUI } from './ui/team.ui.js';
 import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
-// Relationship Management (Your People) - unified contact & gift management
-import { openYourPeople } from './ui/your-people.ui.js';
-// openAddPerson available via Your People panel
 // Group Conversations - Team Roundtables and Conference Calls
 import { initGroupConversationUI } from './ui/group-conversation.ui.js';
 // Proactive Messages - In-app messages from intelligent outreach
@@ -135,22 +172,13 @@ function hideDirectorTriggerButton(): void {
   const el = document.getElementById(DIRECTOR_TRIGGER_ID);
   if (el) el.style.display = 'none';
 }
-// Marketplace UI
-import { openChronicle } from './ui/chronicle.ui.js';
-import { openCreativeYouDashboard } from './ui/creative-you-dashboard.ui.js';
 import {
   getIntegrationsSettingsUI,
   showIntegrationsSettings,
 } from './ui/integrations-settings.ui.js';
-import { openAdminQueue as openMarketplaceAdmin } from './ui/marketplace-admin.ui.js';
-import { marketplaceUI, openMarketplace } from './ui/marketplace.ui.js';
 // 📔 Journal Capture - Auto-capture meaningful moments from conversations
-// Admin UI (legacy - kept for backward compatibility)
-import { initAdminDashboard, injectAdminStyles } from './ui/admin.ui.js';
 // CLI Authentication (for ferni auth login)
 import { initCLIAuth } from './ui/cli-auth.ui.js';
-// New Unified Admin Portal
-import { initAdminPortal } from './admin/index.js';
 // Engagement UI
 import { engagementTriggerUI, initEngagementTriggerUI } from './ui/engagement-trigger.ui.js';
 import { getEngagementUI } from './ui/engagement.ui.js';
@@ -214,8 +242,9 @@ import {
   getDemoEngagementData,
   getDemoPredictions,
 } from './services/engagement-demo-data.js';
+import { scoredStreak } from './services/prediction-data.js';
 // Environment detection
-import { apiGet, apiPost } from './utils/api.js';
+import { getApiHeadersAsync } from './utils/api.js';
 import { shouldUseDemoData } from './utils/environment.js';
 
 // New Feature UIs (v2)
@@ -225,23 +254,15 @@ import { initAnalyticsDashboardUI } from './ui/analytics-dashboard.ui.js';
 import { initCognitiveInsightsUI } from './ui/cognitive-insights.ui.js';
 import { getCommandsPanelUI, setCommandsPersonaId } from './ui/commands.ui.js';
 import { initConversationHistoryUI } from './ui/conversation-history.ui.js';
-import { getDataExportUI, initDataExportUI } from './ui/data-export.ui.js';
-import { destroyGameBoard, initGameBoard } from './ui/game-board.ui.js';
+import { initDataExportUI } from './ui/data-export.ui.js';
 import { initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
-import { getRitualBuilderUI, initRitualBuilderUI } from './ui/ritual-builder.ui.js';
 import { getSanctuaryUI } from './ui/sanctuary.ui.js';
 import { getSettingsMenuUI, initSettingsMenuUI } from './ui/settings-menu.ui.js';
-// New feature UIs - Memory Lane, Knowledge Quiz, Growth Journal, Pattern Insights
-import { openGrowthJournal } from './ui/growth-journal.ui.js';
-import { openKnowledgeQuiz } from './ui/knowledge-quiz.ui.js';
-import { memoryLaneUI } from './ui/memory-lane.ui.js';
-import { patternInsightsUI } from './ui/pattern-insights.ui.js';
 // Services for feature persistence
 import {
   conversationTracker,
   initConversationTracker,
 } from './services/conversation-tracker.service.js';
-import { dataExportService } from './services/data-export.service.js';
 import { initRitualsService, ritualsService } from './services/rituals.service.js';
 import { getOnboardingUI, initOnboardingUI, startOnboardingIfNeeded } from './ui/onboarding.ui.js';
 import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
@@ -249,82 +270,28 @@ import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
 import { initCameoRoster } from './ui/cameo-roster.ui.js';
 import { initRelationshipProgressUI } from './ui/stage-celebration.ui.js';
 // Trust Journey is now integrated into journey.ui.ts - no separate init needed
-// Music Dashboard UI - "Musical You" insights
-import { showGamePicker } from './ui/game-picker.ui.js';
-import { musicDashboard } from './ui/music-dashboard.ui.js';
 import { initTeamHuddleUI } from './ui/team-huddle.ui.js';
 // Team Intro - Meet the team modal for mobile
 import { initTeamIntro, showTeamIntro } from './ui/team-intro.ui.js';
 // Push Notifications
 import { initPushNotifications } from './services/push-notifications.service.js';
-import {
-  initNotificationSettingsUI,
-  showNotificationSettings,
-} from './ui/notification-settings.ui.js';
-// Outreach Schedule UI
-import { openOutreachSchedule } from './ui/outreach-schedule.ui.js';
-// Contact Settings UI
-import { openContactSettings } from './ui/contact-settings.ui.js';
-// Calendar Settings UI
-import { openCalendarSettings } from './ui/calendar-settings.ui.js';
-// Calendar View UI - Visual schedule display
-import { setCalendarViewCallbacks, showCalendarView } from './ui/calendar-view.ui.js';
+import { watchPushOwnership } from './services/push-preference.js';
 // Calendar Analytics UI - Insights dashboard
 // Calendar analytics is now integrated into calendar-view.ui.ts
-// Wearable Settings UI - Connected device management
-import { showWearableSettings } from './ui/wearable-settings.ui.js';
-// Video Settings UI - Video session controls
-import { showVideoSettings } from './ui/video-settings.ui.js';
-// LinkedIn Settings UI - Career milestone awareness
-import { initLinkedInSettings, showLinkedInSettings } from './ui/linkedin-settings.ui.js';
-// Vibe Controller UI - Unified Music, Lights, Temperature control
-import { show as showVibeController } from './ui/vibe-controller.ui.js';
-// Smart Home Settings UI - Connect Ecobee, Hue, LIFX
-import { showSmartHomeSettings } from './ui/smart-home-settings.ui.js';
-// Eight Sleep Settings UI - Smart mattress control
-import { showEightSleepSettings } from './ui/eight-sleep-settings.ui.js';
-// Oura Ring Settings UI - Sleep and readiness tracking
-import { showOuraSettings } from './ui/oura-settings.ui.js';
-// Apple Health Settings UI - iOS HealthKit sync
-import { showAppleHealthSettings } from './ui/apple-health-settings.ui.js';
-// LinkedIn connection for career awareness (used as fallback)
-import {
-  connectLinkedIn,
-  disconnectLinkedIn,
-  handleLinkedInCallback,
-} from './services/linkedin.service.js';
-// Group Coaching UI - Multi-participant sessions
-import { showGroupCoaching } from './ui/group-coaching.ui.js';
+import { LINKEDIN_ENABLED } from './config/linkedin.js';
+import { handleOAuthReturns } from './app/oauth-return.js';
+import { createIntegrationsCallbacks } from './app/integrations-callbacks.js';
 // Voice Enrollment UI
 import { initVoiceEnrollmentUI, showVoiceEnrollmentModal } from './ui/voice-enrollment.ui.js';
 // Voice ID Badge
 import { initVoiceIdBadge } from './ui/voice-id-badge.ui.js';
 // Speaker Change Indicator - Gentle verification when voice changes
 import { initSpeakerChangeIndicator } from './ui/speaker-change-indicator.ui.js';
-// Household Manager - Multi-user voice household management
-import { FamilyIdentities } from './ui/family-identities.ui.js';
-import { initHouseholdManager, showHouseholdManager } from './ui/household-manager.ui.js';
-// Conversation Memory Browser - Browse past conversations and memories
-import { initConversationMemory, showConversationMemory } from './ui/conversation-memory.ui.js';
-// Wellbeing Dashboard - "State of Me" visualization
-import { initWellbeingDashboard, showWellbeingDashboard } from './ui/wellbeing-dashboard.ui.js';
-// Life Context Dashboard - Cross-domain life synthesis (Phase 6)
-import {
-  initLifeContextDashboard,
-  showLifeContextDashboard,
-} from './ui/life-context-dashboard.ui.js';
 // Service Health - Show degradation status to users
 import { initServiceHealthUI } from './ui/service-health.ui.js';
-// Monetization UIs - Support Ferni
-import { ferniFundUI } from './ui/ferni-fund.ui.js';
-import { futureInsightsUI } from './ui/future-insights.ui.js';
 import { journeyUI } from './ui/journey.ui.js';
-import { supportFerniUI } from './ui/support-ferni.ui.js';
 // Garden Widget - Seed Fund community contribution display
 // Garden widget removed - using simple menu option instead
-import { manageSubscriptionUI } from './ui/manage-subscription.ui.js';
-import { personalizeUI } from './ui/personalize.ui.js';
-import { referralUI } from './ui/referral.ui.js';
 // tipJarUI removed - now using ferniFundUI (Garden metaphor)
 // Growth Journey - Celebrates relationship milestones
 import { growthJourneyService } from './services/growth-journey.service.js';
@@ -332,6 +299,10 @@ import { growthJourneyService } from './services/growth-journey.service.js';
 import { getVoiceAuthService } from './services/voice-auth.service.js';
 // Toast for notifications (legacy - use moments.whisper() for new code)
 import { toast } from './ui/whisper.ui.js';
+import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
+import { connectWithTimeout } from './app/call-connect.js';
+import { connectFailure } from './services/connect-failure.js';
+import { buildConversationUsageBody } from './services/call-payloads.js';
 // Moments System - Unified feedback system (whisper, notice, celebration, milestone)
 import { initMomentsSystem } from './ui/moments/index.js';
 // Subscription UI - human-centered monetization
@@ -353,8 +324,6 @@ import { initSeedsDisplay } from './ui/seeds-display.ui.js';
 import { initSeedsToast } from './ui/seeds-toast.ui.js';
 // Subscription Badge - subtle status indicator in header
 import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-badge.ui.js';
-// Support Ferni - Founders Fund experience
-import { initSupportFerniUI } from './ui/support-ferni.ui.js';
 // Roadmap Panel - What's Growing feature voting
 import { initRoadmapPanelUI } from './ui/roadmap-panel.ui.js';
 // Structured logger
@@ -375,7 +344,7 @@ import { initGSAP, promoteAllToGPU } from './utils/gsap-animations.js';
 import { getPersona } from './config/personas.js';
 
 // Platform Detection
-import { hideSplashScreen, initPlatform, isNative, platform } from './utils/platform.js';
+import { initPlatform, platform } from './utils/platform.js';
 
 // Magnetic hover effect
 import { initMagneticHover } from './ui/magnetic-hover.ui.js';
@@ -458,8 +427,6 @@ import {
 class VoiceAIApp {
   private isInitialized = false;
   private audioCleanup: (() => void) | null = null;
-  /** One automatic reconnect after mid-session errors; then honest retry copy */
-  private autoReconnectAttempted = false;
 
   // 🎵 Track connection/handoff time to filter out system sounds (stingers)
 
@@ -540,7 +507,7 @@ class VoiceAIApp {
       // Skip intro - take users straight to the app
       // The awakening can still be triggered manually if needed
 
-      // Initialize platform detection (Electron/iOS/Web)
+      // Initialize platform detection (Electron/Web)
       void initPlatform();
       log.info('Running on:', platform());
 
@@ -583,11 +550,6 @@ class VoiceAIApp {
       this.promptForUserName();
 
       this.isInitialized = true;
-
-      // Hide native splash screen on iOS/Android
-      if (isNative()) {
-        void hideSplashScreen(300);
-      }
 
       // Mark entrance complete immediately (no animations to wait for)
       const avatarContainerEl = document.querySelector('.avatar-container');
@@ -703,42 +665,23 @@ class VoiceAIApp {
     // Step 1: Joining room
     thinkingUI.showProgress(1);
 
-    // Connect to LiveKit with timeout
-    const CONNECTION_TIMEOUT = 30000; // 30 seconds
-    let success = false;
+    // Step 2: Connecting audio. Resolves once the agent is in the room;
+    // a 30s limit really cancels the attempt.
+    thinkingUI.showProgress(2);
+    messageUI.show('Almost there...', 'info', 30000);
+    clearCallNotice();
+    const outcome = await connectWithTimeout(connectionService);
 
-    try {
-      // Step 2: Connecting audio
-      thinkingUI.showProgress(2);
-      messageUI.show('Almost there...', 'info', 30000);
-
-      const connectionPromise = connectionService.connect();
-      const timeoutPromise = new Promise<boolean>((_, reject) => {
-        setTimeout(() => reject(new Error('Connection timeout')), CONNECTION_TIMEOUT);
-      });
-
-      success = await Promise.race([connectionPromise, timeoutPromise]);
-    } catch (error) {
-      log.error('Connection failed:', error);
+    if (!outcome.ok) {
+      log.error('Connection failed:', outcome.failure.kind);
       thinkingUI.hideProgress();
       thinkingUI.hide();
       waveformUI.setThinking(false);
+      messageUI.clear();
+      if (outcome.failure.kind === 'cancelled') return;
 
-      // Human-friendly error messages (not robotic!)
-      let errorMessage = "Hmm, couldn't connect. Let's try that again.";
-      if (error instanceof Error) {
-        if (error.message === 'Connection timeout') {
-          errorMessage = 'Taking longer than usual... check your internet connection?';
-        } else if (error.message.includes('permission') || error.message.includes('Permission')) {
-          errorMessage = "I'll need microphone access to hear you. Mind enabling it?";
-        } else if (error.message.includes('network') || error.message.includes('Network')) {
-          errorMessage = 'Having trouble reaching the server. Is your internet working?';
-        } else {
-          errorMessage = 'Something went wrong on our end. Try again in a moment?';
-        }
-      }
-
-      messageUI.show(errorMessage, 'error');
+      // One explanation with the action that fixes it (retry, sign in, allow mic)
+      showCallNotice(outcome.failure, { onRetry: () => void this.connect() });
       soundUI.play('disconnect');
 
       // Error recovery animation - shake the connect button
@@ -748,13 +691,6 @@ class VoiceAIApp {
         void connectBtn.offsetWidth; // Force reflow
         connectBtn.classList.add('error-shake');
         setTimeout(() => connectBtn.classList.remove('error-shake'), 400);
-      }
-
-      // Pulse the message for attention
-      const messageContainer = document.getElementById('messageContainer');
-      if (messageContainer) {
-        messageContainer.classList.add('error-pulse');
-        setTimeout(() => messageContainer.classList.remove('error-pulse'), 3000);
       }
       return;
     }
@@ -767,86 +703,80 @@ class VoiceAIApp {
     }, 300);
     waveformUI.setThinking(false);
 
-    if (success) {
-      // Start waveform and set persona
-      waveformUI.start();
-      waveformUI.setPersona(persona.id);
-      avatarFeedback.setPersona(persona.id);
+    // Start waveform and set persona
+    waveformUI.start();
+    waveformUI.setPersona(persona.id);
+    avatarFeedback.setPersona(persona.id);
 
-      // Particles disabled for cleaner professional look
-      // void agentParticlesUI.start(persona.id);
+    // Particles disabled for cleaner professional look
+    // void agentParticlesUI.start(persona.id);
 
-      // Update all UI systems
-      presenceUI.setConnected(true);
-      // keyboardUI.setConnected(true);
+    // Update all UI systems
+    presenceUI.setConnected(true);
+    // keyboardUI.setConnected(true);
 
-      // Connection quality indicator disabled for clean UI
-      // connectionQualityUI.show();
-      // connectionQualityUI.setQuality('good');
+    // Connection quality indicator disabled for clean UI
+    // connectionQualityUI.show();
+    // connectionQualityUI.setQuality('good');
 
-      // Start session stats
-      statsUI.startSession();
-      statsUI.setPersona(persona.name);
+    // Start session stats
+    statsUI.startSession();
+    statsUI.setPersona(persona.name);
 
-      // Update gesture system
-      gesturesUI.setCurrentPersona(persona.id);
+    // Update gesture system
+    gesturesUI.setCurrentPersona(persona.id);
 
-      // Show engagement triggers ONLY for returning users
-      // First conversation should be pure - just Ferni, nothing else
-      if (modalCoordinator.hasMinimumConversations(1)) {
-        setTimeout(() => engagementTriggerUI.show(), 500);
+    // Show engagement triggers ONLY for returning users
+    // First conversation should be pure - just Ferni, nothing else
+    if (modalCoordinator.hasMinimumConversations(1)) {
+      setTimeout(() => engagementTriggerUI.show(), 500);
+    }
+
+    // The "<persona> joined" message comes from onAgentConnected, now that the agent is really here.
+
+    // 📝 Start tracking this conversation for history
+    conversationTracker.startSession(persona.id, persona.name);
+
+    // Celebrate the connection! 🎉
+    delightService.celebrateConnection();
+    delightService.haptic('medium');
+
+    // First connection gets extra celebration
+    // Minimal, zen aesthetic - no celebration effects on connection
+    try {
+      if (!localStorage.getItem('voiceai_first_connection')) {
+        localStorage.setItem('voiceai_first_connection', 'true');
+        // First connection noted silently
       }
+    } catch {
+      // Private browsing - continue without celebration
+    }
 
-      // Show success message
-      messageUI.show(`Connected to ${persona.name}!`, 'success', 2000);
+    // Check microphone permission and show helpful message if denied
+    void this.checkMicrophoneStatus();
 
-      // 📝 Start tracking this conversation for history
-      conversationTracker.startSession(persona.id, persona.name);
+    // Director Console: init with current session; open via menu (Director Console) or Cmd+Shift+E / Cmd+Shift+D
+    const roomState = connectionService.getRoomState();
+    if (roomState.roomName && roomState.localParticipantId) {
+      getDirectorConsole({
+        sessionId: roomState.roomName,
+        userId: roomState.localParticipantId,
+      });
+      // Director button removed from control bar; use menu (Settings → Director Console) or keyboard shortcut
+    }
 
-      // Celebrate the connection! 🎉
-      delightService.celebrateConnection();
-      delightService.haptic('medium');
+    // 🎉 Dispatch conversation start event for all systems to track
+    // This is the SINGLE SOURCE OF TRUTH for conversation tracking
+    // All services listen to this event - no direct recordConversation() calls needed
+    window.dispatchEvent(new CustomEvent('ferni:conversation-start'));
 
-      // First connection gets extra celebration
-      // Minimal, zen aesthetic - no celebration effects on connection
-      try {
-        if (!localStorage.getItem('voiceai_first_connection')) {
-          localStorage.setItem('voiceai_first_connection', 'true');
-          // First connection noted silently
-        }
-      } catch {
-        // Private browsing - continue without celebration
-      }
-
-      // Check microphone permission and show helpful message if denied
-      void this.checkMicrophoneStatus();
-
-      // Director Console: init with current session; open via menu (Director Console) or Cmd+Shift+E / Cmd+Shift+D
-      const roomState = connectionService.getRoomState();
-      if (roomState.roomName && roomState.localParticipantId) {
-        getDirectorConsole({
-          sessionId: roomState.roomName,
-          userId: roomState.localParticipantId,
-        });
-        // Director button removed from control bar; use menu (Settings → Director Console) or keyboard shortcut
-      }
-
-      // 🎉 Dispatch conversation start event for all systems to track
-      // This is the SINGLE SOURCE OF TRUTH for conversation tracking
-      // All services listen to this event - no direct recordConversation() calls needed
-      window.dispatchEvent(new CustomEvent('ferni:conversation-start'));
-
-      // Check conversation milestones - zen aesthetic, no visual effects
-      const convCount = greetingUI.getConversationCount();
-      if ([5, 10, 25, 50, 100].includes(convCount)) {
-        setTimeout(() => {
-          const message = greetingUI.getMilestoneMessage('conversations', convCount);
-          messageUI.show(message, 'success', 4000);
-        }, 5000);
-      }
-    } else {
-      messageUI.show("Couldn't connect this time. Want to try again?", 'error');
-      soundUI.play('disconnect');
+    // Check conversation milestones - zen aesthetic, no visual effects
+    const convCount = greetingUI.getConversationCount();
+    if ([5, 10, 25, 50, 100].includes(convCount)) {
+      setTimeout(() => {
+        const message = greetingUI.getMilestoneMessage('conversations', convCount);
+        messageUI.show(message, 'success', 4000);
+      }, 5000);
     }
   }
 
@@ -931,6 +861,10 @@ class VoiceAIApp {
    * @param skipSound - If true, doesn't play disconnect sound (ceremony already played goodbye)
    */
   private async performStandardDisconnect(skipSound = false): Promise<void> {
+    // Close the room first so hang-up is instant; nothing below may block it.
+    clearCallNotice();
+    await connectionService.disconnect();
+
     // Stop waveform visualization
     waveformUI.stop();
 
@@ -950,13 +884,14 @@ class VoiceAIApp {
     engagementTriggerUI.hide();
 
     // Clean up game board UI
-    destroyGameBoard();
+    void import('./ui/game-board.ui.js')
+      .then((m) => m.destroyGameBoard())
+      .catch((e) => log.debug('Game board cleanup skipped', e));
 
     // End session stats - get duration before ending
     const sessionStats = statsUI.getStats();
-    const durationMinutes = sessionStats.startTime
-      ? Math.round((Date.now() - sessionStats.startTime) / 60000)
-      : 0;
+    const sessionStart = sessionStats.startTime;
+    const durationMinutes = sessionStart ? Math.round((Date.now() - sessionStart) / 60000) : 0;
 
     statsUI.endSession();
 
@@ -971,17 +906,12 @@ class VoiceAIApp {
     // This gates popups/celebrations until user has had 2+ conversations
     modalCoordinator.incrementConversationCount();
 
-    // 📝 End conversation tracking and persist
-    await conversationTracker.endSession();
-
-    // 💰 Record conversation usage for subscription tracking
-    await this.recordConversationUsage();
-
-    // Pause Spotify if playing
-    await spotifyService.pause();
-
-    // Disconnect from LiveKit
-    await connectionService.disconnect();
+    // 📝 Persist history, 💰 record usage, pause Spotify: network work, never awaited by hang-up
+    void conversationTracker
+      .endSession()
+      .catch((e) => log.warn('Conversation history not saved', e));
+    void this.recordConversationUsage(sessionStart);
+    void spotifyService.pause().catch((e) => log.warn('Spotify pause failed', e));
 
     hideDirectorTriggerButton();
 
@@ -1053,10 +983,12 @@ class VoiceAIApp {
           ← Back to App
         </a>
       `;
+      const { injectAdminStyles, initAdminDashboard } = await import('./ui/admin.ui.js');
       injectAdminStyles();
       await initAdminDashboard();
     } else {
       // New unified Admin Portal
+      const { initAdminPortal } = await import('./admin/index.js');
       await initAdminPortal();
     }
 
@@ -1143,18 +1075,9 @@ class VoiceAIApp {
   /**
    * Update the persona theme colors.
    */
-  private updatePersonaTheme(personaId: PersonaId): void {
-    // Use canonical persona IDs (CSS selectors now use these)
-    const validIds = [
-      'ferni',
-      'peter-john',
-      'alex-chen',
-      'maya-santos',
-      'jordan-taylor',
-      'nayan-patel',
-    ];
-    const themePersona = validIds.includes(personaId) ? personaId : 'ferni';
-    setThemePersona(themePersona as Parameters<typeof setThemePersona>[0]);
+  private updatePersonaTheme(personaId: SpeakerId): void {
+    // Canonical ids, and a Legend while one speaks (their colours: setActivePersona)
+    setThemePersona(isValidPersonaId(personaId) || isLegendId(personaId) ? personaId : 'ferni');
   }
 
   /**
@@ -1375,6 +1298,11 @@ class VoiceAIApp {
     this.deferredInit('SoundUI', 100, async () => {
       initSoundUI();
     });
+    // ⌨️ Global shortcuts (M mute, R reconnect, Enter start/end call, ? help)
+    this.deferredInit('KeyboardShortcuts', 100, async () => {
+      const { initKeyboardShortcuts } = await import('./ui/keyboard-shortcuts.ui.js');
+      initKeyboardShortcuts();
+    });
     this.deferredInit('TranscriptUI', 100, async () => {
       initTranscriptUI();
     });
@@ -1543,6 +1471,7 @@ class VoiceAIApp {
           onPersonaSwipe: (direction) => {
             const persona =
               direction === 'left' ? gesturesUI.getNextPersona() : gesturesUI.getPreviousPersona();
+            if (!persona) return; // No other unlocked persona to swipe to
             this.selectPersona(persona);
             soundUI.play('switch');
           },
@@ -1751,44 +1680,14 @@ class VoiceAIApp {
       initializeEngagementUI();
       initializeInsightsView();
       initializePredictionsUI();
-      // Wire up prediction resolution callback
-      getPredictionsUI().setOnResolutionSubmit(async (predictionId, actualValue) => {
-        try {
-          // TODO: Backend POST /api/predictions/:id/actuals and GET /api/predictions not implemented yet.
-          const postResponse = await apiPost(`/api/predictions/${predictionId}/actuals`, {
-            actuals: { result: actualValue },
-          });
-          if (!postResponse.ok) throw new Error('Failed to save');
-
-          // Refresh predictions data using apiGet
-          const refreshResponse = await apiGet<{
-            predictions: Record<string, unknown>[];
-            stats?: { averageAccuracy?: number };
-          }>('/api/predictions');
-          if (refreshResponse.ok && refreshResponse.data) {
-            const predictions = refreshResponse.data.predictions || [];
-            getPredictionsUI().update({
-              predictions: predictions.map((p: Record<string, unknown>) => ({
-                id: p.id as string,
-                category: 'overall',
-                question: `Week of ${p.weekOf}`,
-                userPrediction: 50,
-                actualOutcome: p.accuracy as number | undefined,
-                status: p.completedAt ? ('resolved' as const) : ('pending' as const),
-                createdAt: p.createdAt as string,
-              })),
-              accuracy: refreshResponse.data.stats?.averageAccuracy || null,
-              totalResolved: predictions.filter((p: Record<string, unknown>) => p.completedAt)
-                .length,
-              currentStreak: 0,
-            });
-          }
-
-          messageUI.show('Result recorded! Nice work tracking your predictions.', 'success', 3000);
-        } catch (err) {
-          log.error('Failed to save prediction result', err);
-          throw err;
-        }
+      // Resolution: the modal shows the server's comparison; the refresh
+      // redraws the panel through engagementService's onPredictionsUpdate.
+      getPredictionsUI().setOnResolutionSubmit(async (predictionId, actuals) => {
+        const { submitPredictionActuals } =
+          await import('./services/prediction-actuals.service.js');
+        const score = await submitPredictionActuals(predictionId, actuals);
+        void engagementService.refreshPredictions();
+        return score;
       });
     });
     this.safeInit('EngagementTriggerUI', () =>
@@ -1814,17 +1713,6 @@ class VoiceAIApp {
 
     // 📝 Conversation Tracker - for history persistence
     this.safeInit('ConversationTracker', () => initConversationTracker());
-    this.safeInit('RitualBuilderUI', () => {
-      initRitualBuilderUI();
-      getRitualBuilderUI().setCallbacks({
-        onSave: async (ritual) => {
-          const saved = await ritualsService.createRitual(ritual);
-          messageUI.show(`"${saved.name}" created! You've got this.`, 'success', 4000);
-          log.info('Ritual created via builder', { id: saved.id, name: saved.name });
-        },
-        onClose: () => log.debug('Ritual builder closed'),
-      });
-    });
 
     // 🎯 Commands Panel - for starting predefined practices
     this.safeInit('CommandsPanelUI', () => {
@@ -1868,34 +1756,8 @@ class VoiceAIApp {
 
     this.safeInit('PredictionTrackerUI', () => initPredictionTrackerUI());
 
-    // 📦 Data Export - with actual export/delete functionality
-    this.safeInit('DataExportUI', () => {
-      initDataExportUI();
-      getDataExportUI().setCallbacks({
-        onExport: async (format, categories) => {
-          try {
-            messageUI.show('Preparing your data...', 'info', 2000);
-            await dataExportService.exportData(format, categories);
-            messageUI.show('Your data has been downloaded!', 'success', 4000);
-          } catch (err) {
-            log.error('Export failed', err);
-            messageUI.show("Hmm, couldn't export your data. Mind trying again?", 'error', 4000);
-          }
-        },
-        onDeleteData: async () => {
-          try {
-            await dataExportService.deleteAllData();
-            messageUI.show('Your data has been removed. Fresh start!', 'info', 4000);
-            // Optionally reload to reset state
-            setTimeout(() => window.location.reload(), 2000);
-          } catch (err) {
-            log.error('Deletion failed', err);
-            messageUI.show("Couldn't delete your data right now. Try again?", 'error', 4000);
-          }
-        },
-        onClose: () => log.debug('Data export closed'),
-      });
-    });
+    // 📦 Data Export - callbacks are set by showDataExport (app/panel-methods.ts) on open
+    this.safeInit('DataExportUI', () => initDataExportUI());
     this.safeInit('OnboardingUI', () => initOnboardingUI());
     this.safeInit('PersonaTransitionUI', () => initPersonaTransitionUI());
     // 🎬 Cameo Roster - Team member pop-in/out in the roster
@@ -1907,7 +1769,10 @@ class VoiceAIApp {
     // 🎙️ Group Conversations - Team Roundtables and Conference Calls with external people
     this.safeInit('GroupConversationUI', () => initGroupConversationUI());
     // 🎮 Game Board - Visual game state display for voice games
-    this.safeInit('GameBoardUI', () => initGameBoard());
+    this.safeInit('GameBoardUI', async () => {
+      const { initGameBoard } = await import('./ui/game-board.ui.js');
+      await initGameBoard();
+    });
     // Proactive Messages - In-app messages from intelligent outreach
     this.deferredInit('ProactiveMessagesUI', 500, async () => {
       initProactiveMessages();
@@ -1942,8 +1807,8 @@ class VoiceAIApp {
     // Philosophy: "Limits feel like natural breaks, not walls."
     this.safeInit('SubscriptionUI', () => initSubscriptionUI());
 
-    // 💚 Support Ferni / Founders Fund - Community-driven support
-    this.safeInit('SupportFerniUI', () => initSupportFerniUI());
+    // 💚 Support Ferni / Founders Fund - the founders-journey CTA opens it
+    this.addTrackedListener(document, 'ferni:open-support', () => void openSupportFerni());
 
     // 🌱 Roadmap Panel - "What's Growing" feature voting
     this.safeInit('RoadmapPanelUI', () => initRoadmapPanelUI());
@@ -2022,18 +1887,6 @@ class VoiceAIApp {
     // 👥 Speaker Change Indicator - Gentle verification when voice changes
     this.safeInit('SpeakerChangeIndicator', () => initSpeakerChangeIndicator());
 
-    // 🏠 Household Manager - Multi-user voice household management
-    this.safeInit('HouseholdManager', () => initHouseholdManager());
-
-    // 💭 Conversation Memory - Browse past conversations and memories
-    this.safeInit('ConversationMemory', () => initConversationMemory());
-
-    // 🌈 Wellbeing Dashboard - "State of Me" visualization
-    this.safeInit('WellbeingDashboard', () => initWellbeingDashboard());
-
-    // 📊 Life Context Dashboard - Cross-domain synthesis (Phase 6)
-    this.safeInit('LifeContextDashboard', () => initLifeContextDashboard());
-
     // 🏥 Service Health - Show degradation status to users
     this.safeInit('ServiceHealthUI', () => initServiceHealthUI());
 
@@ -2043,13 +1896,13 @@ class VoiceAIApp {
         onHistoryClick: () => void showConversationHistory(),
         onAnalyticsClick: () => void showAnalyticsDashboard(),
         onCognitiveClick: () => void showCognitiveInsights(),
-        onRitualBuilderClick: () => getRitualBuilderUI().show(),
+        onRitualBuilderClick: () => void openRitualBuilder(),
         onCommandsClick: () => void getSanctuaryUI().open(),
         onPredictionTrackerClick: () => void showPredictionTracker(),
         onExportDataClick: () => void showDataExport(),
         onOnboardingClick: () => getOnboardingUI().start(),
         onThemeToggle: () => showThemeLanguageSettings(),
-        onNotificationSettingsClick: () => showNotificationSettings(),
+        onNotificationSettingsClick: () => void openNotificationSettings(),
         onSleepSettingsClick: () => void import('./ui/sleep-settings.ui.js').then((m) => m.show()),
         onSpotifyClick: () => void triggerSpotifyLinkToggle(),
         onTeamHuddleClick: () => showTeamHuddle(),
@@ -2057,32 +1910,26 @@ class VoiceAIApp {
           void import('./ui/team-observations-panel.ui.js').then((m) => m.show()),
         // Trust Journey is now integrated into the unified Journey modal
         onTrustJourneyClick: () => journeyUI.open(),
-        onMusicDashboardClick: () => void musicDashboard.show(),
-        onPlayGamesClick: () => showGamePicker(),
+        onMusicDashboardClick: () => void openMusicDashboard(),
+        onPlayGamesClick: () => void openGamePicker(),
         onOutreachScheduleClick: () => void openOutreachSchedule(),
         onContactSettingsClick: () => void openContactSettings(),
-        onCalendarSettingsClick: () => {
-          // Show calendar view (has connect button for disconnected users)
-          setCalendarViewCallbacks({
-            onConnectCalendar: () => {
-              // Redirect to Google OAuth flow
-              const userId = appState.get('deviceId') || 'anonymous';
-              window.location.href = `/auth/google/calendar?userId=${userId}`;
-            },
-          });
-          void showCalendarView();
-        },
+        // The calendar view has the connect button for disconnected users
+        onCalendarSettingsClick: () => void openCalendarView(),
         onVoiceEnrollmentClick: () => void showVoiceEnrollmentModal(),
-        onSubscriptionClick: () => void supportFerniUI.open(),
+        onSubscriptionClick: () => void openSupportFerni(),
         onBillingPortalClick: () => void this.openBillingPortal(),
         onHouseholdClick: () => void showHouseholdManager(),
-        onFamilyCallersClick: () => void FamilyIdentities.show(),
+        onFamilyCallersClick: () => void showFamilyIdentities(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
-        onLifeContextClick: () => void showLifeContextDashboard(),
+        onLifeContextClick: () =>
+          void import('./services/life-context-updates.service.js').then((m) =>
+            m.openLifeContextDashboard()
+          ),
         onTeamInsightsClick: () => teamInsightsUI.toggle(),
-        onSupportFerniClick: () => void supportFerniUI.open(),
-        onPersonalizeClick: () => personalizeUI.open(),
+        onSupportFerniClick: () => void openSupportFerni(),
+        onPersonalizeClick: () => void openPersonalize(),
         onYourStoryClick: () => void showYourStoryDashboard(),
         onActivityClick: () => showActivity(),
         onYourYearClick: () => {
@@ -2101,7 +1948,7 @@ class VoiceAIApp {
               log.error({ error: String(err) }, 'YourYear error');
             });
         },
-        onFutureInsightsClick: () => futureInsightsUI.open(),
+        onFutureInsightsClick: () => void openFutureInsights(),
         onDeepInsightsClick: () => {
           // Open the Semantic Intelligence Panel (8-tab dashboard showing all superhuman insights)
           import('./ui/semantic-intelligence-panel.ui.js').then(
@@ -2110,13 +1957,10 @@ class VoiceAIApp {
             }
           );
         },
-        onShareFerniClick: () => referralUI.open(),
+        onShareFerniClick: () => void openReferral(),
         onAccentSettingsClick: () => accentSettingsUI.open(),
         onWearableSettingsClick: () => void showWearableSettings(),
-        onLinkedInClick: () => {
-          initLinkedInSettings();
-          showLinkedInSettings();
-        },
+        onLinkedInClick: LINKEDIN_ENABLED ? () => void showLinkedInSettings() : undefined,
         onVibeControllerClick: () => void showVibeController(),
         onSmartHomeClick: () => void showSmartHomeSettings(),
         onEightSleepClick: () => void showEightSleepSettings(),
@@ -2163,10 +2007,7 @@ class VoiceAIApp {
               onConnectEightSleep: () => void showEightSleepSettings(),
               onConnectWearables: () => void showWearableSettings(),
               onConnectCalendar: () => void openCalendarSettings(),
-              onConnectLinkedIn: () => {
-                void initLinkedInSettings();
-                void showLinkedInSettings();
-              },
+              onConnectLinkedIn: LINKEDIN_ENABLED ? () => void showLinkedInSettings() : undefined,
               onConnectSpotify: () => void triggerSpotifyLinkToggle(),
               onConnectEcobee: () => void showVibeController(), // Ecobee is in Vibe Controller
               onOpenVibeController: () => void showVibeController(),
@@ -2174,12 +2015,12 @@ class VoiceAIApp {
           });
         },
         // New feature callbacks
-        onMemoryLaneClick: () => void memoryLaneUI.open(),
+        onMemoryLaneClick: () => void openMemoryLane(),
         onPatternInsightsClick: () => {
           // Show pattern insights in a modal container
           const container = document.querySelector('.app-shell') as HTMLElement | null;
           if (container) {
-            void patternInsightsUI.show(container);
+            void showPatternInsights(container);
           }
         },
         onConversationInsightsClick: async () => {
@@ -2205,72 +2046,16 @@ class VoiceAIApp {
     });
 
     // 🔔 Push Notifications
-    this.safeInit('NotificationSettingsUI', () => initNotificationSettingsUI());
-    this.safeInit('PushNotifications', () => void initPushNotifications());
+    this.safeInit('NotificationSettingsUI', async () => {
+      const { initNotificationSettingsUI } = await import('./ui/notification-settings.ui.js');
+      await initNotificationSettingsUI();
+    });
+    this.safeInit('PushNotifications', () => void initPushNotifications().then(watchPushOwnership));
 
     // 🔗 Integrations Settings - "Better than Human" connections (LinkedIn, Calendar, Health)
     this.safeInit('IntegrationsSettingsUI', () => {
       getIntegrationsSettingsUI().initialize();
-      getIntegrationsSettingsUI().setCallbacks({
-        onConnectLinkedIn: () => {
-          void connectLinkedIn();
-        },
-        onDisconnectLinkedIn: () => {
-          void disconnectLinkedIn();
-        },
-        onConnectCalendar: () => {
-          const userId = appState.get('deviceId') || 'anonymous';
-          window.location.href = `/auth/google/calendar?userId=${userId}`;
-        },
-        onConnectBiometrics: async (platform) => {
-          const userId = appState.get('deviceId') || 'anonymous';
-          log.info('Connect biometrics requested', { platform, userId });
-
-          // Import biometrics service dynamically to avoid circular deps
-          const { connectBiometrics, isPlatformAvailable, getPlatformConfig } =
-            await import('./services/biometrics.service.js');
-
-          // Type assertion - the callback provides a string but we know it's a valid platform
-          type BiometricsPlatform = Parameters<typeof connectBiometrics>[0];
-          const typedPlatform = platform as BiometricsPlatform;
-
-          // Check if platform is available
-          if (!isPlatformAvailable(typedPlatform)) {
-            const config = getPlatformConfig(typedPlatform);
-            messageUI.show(
-              config?.name
-                ? `${config.name} isn't available on this device`
-                : 'Platform not available',
-              'warning',
-              3000
-            );
-            return;
-          }
-
-          // Initiate OAuth connection
-          const result = await connectBiometrics(typedPlatform, userId);
-
-          if (!result.success && result.error) {
-            messageUI.show(result.error, 'error', 4000);
-          }
-        },
-        onConnectBanking: async () => {
-          const userId = appState.get('deviceId') || 'anonymous';
-          log.info('Connect banking requested', { userId });
-
-          // Import banking service dynamically to avoid circular deps
-          const { connectBanking } = await import('./services/banking.service.js');
-
-          // Initiate Plaid Link flow
-          const result = await connectBanking(userId);
-
-          if (result.success) {
-            messageUI.show('Bank connected!', 'success', 2500);
-          } else if (result.error && result.error !== 'User cancelled') {
-            messageUI.show(result.error, 'error', 4000);
-          }
-        },
-      });
+      getIntegrationsSettingsUI().setCallbacks(createIntegrationsCallbacks());
     });
 
     // 📬 Listen for push notification navigation events
@@ -2291,7 +2076,7 @@ class VoiceAIApp {
       void showYourStoryDashboard();
     });
     this.addTrackedListener(window, 'ferni:open-memory-lane', () => {
-      void memoryLaneUI.open();
+      void openMemoryLane();
     });
     this.addTrackedListener(window, 'ferni:open-history', () => {
       void showConversationHistory();
@@ -2299,24 +2084,14 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-patterns', () => {
       const container = document.querySelector('.app-shell') as HTMLElement | null;
       if (container) {
-        void patternInsightsUI.show(container);
+        void showPatternInsights(container);
       }
     });
     this.addTrackedListener(window, 'ferni:open-quiz', () => {
       void openKnowledgeQuiz();
     });
-    this.addTrackedListener(window, 'ferni:open-music', () => {
-      void musicDashboard.show();
-    });
-    this.addTrackedListener(window, 'ferni:open-calendar', () => {
-      setCalendarViewCallbacks({
-        onConnectCalendar: () => {
-          const userId = appState.get('deviceId') || 'anonymous';
-          window.location.href = `/auth/google/calendar?userId=${userId}`;
-        },
-      });
-      void showCalendarView();
-    });
+    this.addTrackedListener(window, 'ferni:open-music', () => void openMusicDashboard());
+    this.addTrackedListener(window, 'ferni:open-calendar', () => void openCalendarView());
     this.addTrackedListener(window, 'ferni:open-contacts', () => {
       void openYourPeople();
     });
@@ -2346,7 +2121,7 @@ class VoiceAIApp {
       void showVoiceEnrollmentModal();
     });
     this.addTrackedListener(window, 'ferni:open-notifications', () => {
-      showNotificationSettings();
+      void openNotificationSettings();
     });
     this.addTrackedListener(window, 'ferni:close-panel', () => {
       // Close any open modal by dispatching escape key event
@@ -2363,26 +2138,6 @@ class VoiceAIApp {
         this.selectPersona(personaId as PersonaId);
       }
     }) as EventListener);
-    // 🎙️ Group Conversations - imported UI opens team roundtable or adds participant
-    this.addTrackedListener(window, 'ferni:start-roundtable', ((e: CustomEvent) => {
-      // Import dynamically to avoid circular deps
-      void import('./ui/group-conversation.ui.js').then((m) => {
-        void m.showTeamSelector(e.detail?.preselected);
-      });
-    }) as EventListener);
-    this.addTrackedListener(window, 'ferni:add-call-participant', () => {
-      void import('./ui/group-conversation.ui.js').then((m) => {
-        void m.showAddParticipant({
-          onAdd: (phoneNumber, name, relationship) => {
-            log.info({ phoneNumber, name, relationship }, 'Adding participant to call');
-            // TODO: Implement actual participant addition via connection service
-          },
-          onCancel: () => {
-            log.debug('Add participant cancelled');
-          },
-        });
-      });
-    });
 
     // 🌱 Handle garden payment result routes (Stripe redirects here)
     const gardenPathname = window.location.pathname;
@@ -2390,7 +2145,7 @@ class VoiceAIApp {
       // Show thank you message for successful payment
       // Wait a moment for UI to initialize
       setTimeout(() => {
-        ferniFundUI.showThankYou({
+        void showFerniFundThankYou({
           conversationsSponsored: 1,
           message: 'Thank you for planting a seed!',
         });
@@ -2409,7 +2164,7 @@ class VoiceAIApp {
       setTimeout(() => {
         const userId = appState.get('deviceId');
         if (userId) {
-          void ferniFundUI.open(userId);
+          void openFerniFund(userId);
         }
         // Clean up the URL without reload
         window.history.replaceState({}, '', window.location.pathname);
@@ -2442,8 +2197,8 @@ class VoiceAIApp {
       }, 500);
     }
 
-    // 💼 Handle LinkedIn OAuth callback
-    handleLinkedInCallback();
+    // 💼 LinkedIn and wearable OAuth returns
+    handleOAuthReturns();
 
     // 📊 Dev Panel modal event listeners
     this.addTrackedListener(window, 'ferni:open-analytics', () => {
@@ -2506,7 +2261,7 @@ class VoiceAIApp {
       }
     });
     this.addTrackedListener(window, 'ferni:open-marketplace', () => {
-      void marketplaceUI.open();
+      void openMarketplace();
     });
 
     // 📱 Mobile Bottom Sheet - Quick action event handlers
@@ -2516,14 +2271,10 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-team', () => {
       void showTeamIntro();
     });
-    this.addTrackedListener(window, 'ferni:open-music', () => {
-      void musicDashboard.show();
-    });
-    this.addTrackedListener(window, 'ferni:open-calendar', () => {
-      void showCalendarView();
-    });
+    this.addTrackedListener(window, 'ferni:open-music', () => void openMusicDashboard());
+    this.addTrackedListener(window, 'ferni:open-calendar', () => void openCalendarView());
     this.addTrackedListener(window, 'ferni:open-people', () => {
-      openYourPeople();
+      void openYourPeople();
     });
 
     // 🌱 Garden Widget - Plant seed flow integration
@@ -2533,17 +2284,17 @@ class VoiceAIApp {
       if (userId) {
         // Open Ferni Fund modal - user can choose contribution type
         log.debug('Plant seed requested', { type: detail?.type });
-        void ferniFundUI.open(userId);
+        void openFerniFund(userId);
       }
     }) as EventListener);
 
-    // 💬 Dev Panel transcript injection
+    // 💬 Live transcript (live-transcription.service) and dev panel injection
     this.addTrackedListener(window, 'ferni:transcript', ((e: CustomEvent) => {
-      const { type, text, isFinal } = e.detail;
+      const { type, text, isFinal } = e.detail as { type: string; text: string; isFinal?: boolean };
       // transcriptUI.show() handles both user and agent messages
-      // User messages are typically interim, agent messages are final
+      // User messages are interim until the final one; agent text defaults to final
       if (type === 'user') {
-        transcriptUI.updateInterim(text);
+        transcriptUI.show(text, isFinal ?? false);
       } else if (type === 'agent') {
         transcriptUI.show(text, isFinal ?? true);
       }
@@ -2600,11 +2351,16 @@ class VoiceAIApp {
       }
     });
 
+    this.addTrackedListener(window, 'ferni:reconnect', () => {
+      const connectionState = appState.get('connection');
+      if (connectionState === 'disconnected' || connectionState === 'error') void this.connect();
+    });
+
     this.addTrackedListener(window, 'ferni:toggle-call', () => {
       const connectionState = appState.get('connection');
       if (connectionState === 'connected') {
         void this.disconnect();
-      } else if (connectionState === 'disconnected') {
+      } else if (connectionState === 'disconnected' || connectionState === 'error') {
         void this.connect();
       }
     });
@@ -2651,11 +2407,13 @@ class VoiceAIApp {
     initGesturesUI({
       onSwipeLeft: () => {
         const next = gesturesUI.getNextPersona();
+        if (!next) return; // No other unlocked persona to swipe to
         this.selectPersona(next);
         soundUI.play('switch');
       },
       onSwipeRight: () => {
         const prev = gesturesUI.getPreviousPersona();
+        if (!prev) return;
         this.selectPersona(prev);
         soundUI.play('switch');
       },
@@ -2695,7 +2453,7 @@ class VoiceAIApp {
     if (marketplaceBtn) {
       this.addTrackedListener(marketplaceBtn, 'click', ((e: MouseEvent) => {
         e.stopPropagation(); // Prevent team roster from handling this
-        void marketplaceUI.open();
+        void openMarketplace();
       }) as EventListener);
     }
   }
@@ -2910,7 +2668,7 @@ class VoiceAIApp {
     }
 
     // Open the unified subscription management modal
-    await manageSubscriptionUI.open(deviceId, {
+    await openManageSubscription(deviceId, {
       onUpgrade: () => showUpgradeModal(),
       onClose: () => log.debug('Subscription management closed'),
     });
@@ -2920,15 +2678,10 @@ class VoiceAIApp {
    * Record conversation usage for subscription tracking.
    * Called after each conversation ends.
    */
-  private async recordConversationUsage(): Promise<void> {
-    const deviceId = appState.get('deviceId');
-    if (!deviceId) return;
-
-    // Calculate session duration from stats
-    const stats = statsUI.getStats();
-    const startTime = stats?.startTime;
-    const durationMs = startTime ? Date.now() - startTime : 0;
-    const minutesTalked = Math.max(1, Math.round(durationMs / 60000));
+  private async recordConversationUsage(sessionStart: number | null): Promise<void> {
+    // Server contract: { durationMinutes } for the Bearer-token user (subscription-routes)
+    const body = buildConversationUsageBody(sessionStart);
+    if (!body) return;
 
     // 🤝 Process any pending referral on first/early conversation
     // This ensures referrer gets credit after new user completes a meaningful conversation
@@ -2947,20 +2700,19 @@ class VoiceAIApp {
     try {
       const response = await fetch('/usage/conversation', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: deviceId,
-          minutesTalked,
-        }),
+        headers: await getApiHeadersAsync(), // not under /api/, so the fetch hook adds no token
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
-        log.debug('Conversation usage recorded');
+        log.debug('Conversation usage recorded', { minutes: body.durationMinutes });
         // Refresh subscription badge to show updated count
         void subscriptionBadgeUI.refresh();
+      } else {
+        log.warn('Conversation usage not recorded', { status: response.status });
       }
     } catch (error) {
-      // Silent fail - don't interrupt user experience for tracking
+      // Don't interrupt the user for tracking, but don't hide it either
       log.warn('Failed to record conversation usage:', error);
     }
   }
@@ -3075,7 +2827,6 @@ class VoiceAIApp {
           // 🚀 Ferni EQ: Dispatch thinking state
           dispatchThinking(true);
         } else if (state === 'connected') {
-          this.autoReconnectAttempted = false;
           thinkingUI.hide();
           waveformUI.setThinking(false);
           // 🚀 Ferni EQ: Dispatch thinking state
@@ -3283,26 +3034,17 @@ class VoiceAIApp {
       //   connectionQualityUI.updateFromLatency(latencyMs);
       // },
 
+      // connect() reports a failed attempt itself (one classified notice), so this only logs.
       onError: (error) => {
         log.error('Connection error:', error);
-        thinkingUI.hide();
-        waveformUI.setThinking(false);
+      },
 
-        // Prefer one automatic reconnect with backoff, then honest copy + tap-to-retry
-        if (!this.autoReconnectAttempted) {
-          this.autoReconnectAttempted = true;
-          messageUI.show('Something went wrong. Reconnecting...', 'info');
-          const backoffMs = 1000;
-          setTimeout(() => {
-            void this.connect().catch((reconnectErr) => {
-              // connect() already shows an honest error; log here for diagnostics
-              log.error('Auto-reconnect failed:', reconnectErr);
-            });
-          }, backoffMs);
-          return;
-        }
-
-        messageUI.show("Couldn't connect. Tap to try again?", 'error');
+      // The call dropped on its own: same cleanup as hang-up, then offer to reconnect.
+      onUnexpectedDisconnect: (reason) => {
+        log.warn('Call dropped unexpectedly', { reason });
+        void this.performStandardDisconnect().then(() =>
+          showCallNotice(connectFailure('dropped'), { onRetry: () => void this.connect() })
+        );
       },
     });
 
@@ -3320,26 +3062,13 @@ class VoiceAIApp {
 
       // 🎬 Expression: Curious "thinking" expression during handoff
       ferniExpressions.contemplation(1500);
-
-      // Show handoff progress indicator
-      const handoffProgress = document.getElementById('handoffProgress');
-      const handoffTargetName = document.getElementById('handoffTargetName');
-      if (handoffProgress && handoffTargetName) {
-        const persona = getPersona(toPersona);
-        handoffTargetName.textContent = persona.name;
-        handoffProgress.classList.remove('hidden');
-        log.debug('Showing handoff progress for', persona.name);
-      } else {
-        log.warn('handoffProgress element not found!');
-      }
+      // The progress indicator itself is ui/handoff-presence.ui.ts (heartbeat-driven).
 
       // FIX BUG: Safety timeout - force hide UI after 20 seconds max
       if (handoffUITimeout) clearTimeout(handoffUITimeout);
       handoffUITimeout = setTimeout(() => {
         log.warn('Safety timeout - forcing handoff UI cleanup');
         waveformUI.setTransitioning(false);
-        const progress = document.getElementById('handoffProgress');
-        if (progress) progress.classList.add('hidden');
         thinkingUI.hide();
       }, 20000);
     });
@@ -3360,12 +3089,6 @@ class VoiceAIApp {
       // 🎬 Expression: New persona arrives with excited greeting
       ferniExpressions.heldPose('happy', 500);
 
-      // Hide handoff progress indicator
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-        log.debug('Hiding handoff progress');
-      }
       // Also make sure thinking is hidden
       thinkingUI.hide();
     });
@@ -3390,10 +3113,6 @@ class VoiceAIApp {
         this.updatePersonaTheme(rollbackTo);
       }
 
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-      }
       thinkingUI.hide();
       messageUI.show("Couldn't reach them right now. I'm still here though!", 'error', 3000);
     });
@@ -3408,36 +3127,7 @@ class VoiceAIApp {
       }
 
       waveformUI.setTransitioning(false);
-
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-      }
       thinkingUI.hide();
-    });
-
-    // FIX AUDIT GAP #3: Subscribe to handoff progress for waveform visual feedback
-    // This provides visual progress indication on the waveform/avatar even when team roster is hidden
-    handoffService.onHandoffProgress((targetPersona, elapsedMs, timeoutMs) => {
-      log.debug('onHandoffProgress:', { targetPersona, elapsedMs, timeoutMs });
-
-      // Calculate progress percentage (0-100)
-      const progress = Math.min(100, Math.round((elapsedMs / timeoutMs) * 100));
-
-      // Update waveform with progress indication
-      // The waveform shimmer intensity can vary based on progress
-      if (progress > 50) {
-        // After halfway, intensify the shimmer to show progress
-        // (waveformUI already handles transitioning state, but this adds visual variety)
-        log.debug('Handoff progress:', `${progress}%`);
-      }
-
-      // Update the handoff progress element if present
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        // Add a data attribute for CSS-based progress visualization
-        handoffProgress.setAttribute('data-progress', String(progress));
-      }
     });
 
     // Main handoff callback (plays sounds, updates UI)
@@ -3451,10 +3141,6 @@ class VoiceAIApp {
       // FIX BUG: Clean up any stuck transition UI state
       // This handles legacy single-message handoffs that don't have separate start/complete
       waveformUI.setTransitioning(false);
-      const handoffProgress = document.getElementById('handoffProgress');
-      if (handoffProgress) {
-        handoffProgress.classList.add('hidden');
-      }
       // Also hide thinking indicator in case it's stuck
       thinkingUI.hide();
 
@@ -3530,29 +3216,12 @@ class VoiceAIApp {
         const readyCount = predictions.filter((p) => p.status === 'resolved').length;
         engagementTriggerUI.updateBadges({ predictionsReady: readyCount > 0 ? readyCount : 0 });
 
-        // Update predictions panel
-        // Calculate prediction streak: consecutive accurate predictions (within 15% of actual)
-        const resolved = predictions
-          .filter((p) => p.status === 'resolved' && p.actualOutcome !== undefined)
-          .sort(
-            (a, b) => new Date(b.resolvedAt || 0).getTime() - new Date(a.resolvedAt || 0).getTime()
-          );
-
-        let predictionStreak = 0;
-        for (const p of resolved) {
-          const error = Math.abs(p.userPrediction - (p.actualOutcome ?? 0));
-          if (error <= 15) {
-            predictionStreak++;
-          } else {
-            break; // Streak broken
-          }
-        }
-
+        // Accuracy and streak come from the server's scores, not the raw numbers.
         getPredictionsUI().update({
           predictions,
           accuracy: engagementService.calculateAccuracy(),
           totalResolved: predictions.filter((p) => p.status === 'resolved').length,
-          currentStreak: predictionStreak,
+          currentStreak: scoredStreak(predictions),
         });
       },
 

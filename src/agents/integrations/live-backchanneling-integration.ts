@@ -29,6 +29,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { trackBackchannelEvent } from './speech-metrics-integration.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
+import { decideBackchannel, pickBackchannel } from './backchannel-policy.js';
+import { backchannelsEnabled } from '../../config/voice-humanization-flags.js';
 
 const log = getLogger().child({ module: 'LiveBackchannelingIntegration' });
 
@@ -43,7 +45,16 @@ export interface LiveBackchannelConfig {
   minTurns: number;
   /** Minimum interval between live backchannels (ms) */
   minIntervalMs: number;
+  /**
+   * Play a cached clip for this text (e.g. "Mm-hmm"); returns false if it
+   * could not. When set, backchannels are clips on a side track and follow
+   * backchannel-policy.ts instead of being spoken as agent turns.
+   */
+  playClip?: (text: string) => boolean;
 }
+
+/** A pause must last this long before it counts: gaps inside words are shorter. */
+const CLIP_PAUSE_MIN_MS = 220;
 
 export interface LiveBackchannelState {
   /** Session ID */
@@ -60,6 +71,8 @@ export interface LiveBackchannelState {
   currentEmotion?: { primary: string; intensity: number; distressLevel?: number };
   /** User speech start time for this utterance */
   userSpeechStartTime: number | null;
+  /** The user's words so far this turn (interim transcript) */
+  partialTranscript?: string;
 }
 
 export interface LiveBackchannelIntegration {
@@ -105,7 +118,7 @@ export function initializeLiveBackchanneling<T>(
   isAgentSpeakingFn: () => boolean,
   config: Partial<LiveBackchannelConfig> = {}
 ): LiveBackchannelIntegration {
-  const cfg = { ...DEFAULT_CONFIG, ...config };
+  const cfg = { ...DEFAULT_CONFIG, enabled: backchannelsEnabled(), ...config };
 
   // Get session-scoped services
   const breathDetector = getBreathPauseDetector(sessionId);
@@ -121,7 +134,57 @@ export function initializeLiveBackchanneling<T>(
     userSpeechStartTime: null,
   };
 
-  log.info({ sessionId, personaId, enabled: cfg.enabled }, '🎤 Live backchanneling initialized');
+  log.info(
+    { sessionId, personaId, enabled: cfg.enabled, clips: Boolean(cfg.playClip) },
+    '🎤 Live backchanneling initialized'
+  );
+
+  // Clip mode: one decision per pause, once it has lasted CLIP_PAUSE_MIN_MS.
+  let decidedThisPause = false;
+  let agentWasSpeaking = false;
+  let agentStoppedAt = 0;
+  let lastClip: string | null = null;
+
+  const considerClip = (playClip: (text: string) => boolean): void => {
+    const agentSpeaking = isAgentSpeakingFn();
+    if (agentWasSpeaking && !agentSpeaking) agentStoppedAt = Date.now();
+    agentWasSpeaking = agentSpeaking;
+    if (!breathDetector.isBreathPause()) {
+      decidedThisPause = false;
+      return;
+    }
+    if (decidedThisPause || breathDetector.getCurrentPauseDuration() < CLIP_PAUSE_MIN_MS) return;
+    decidedThisPause = true;
+    const emotional =
+      (state.currentEmotion?.distressLevel ?? 0) > 0.4 ||
+      (state.currentEmotion?.intensity ?? 0) > 0.7;
+    const now = Date.now();
+    const decision = decideBackchannel({
+      turnCount: state.turnCount,
+      userSpeakingMs: state.userSpeechStartTime ? now - state.userSpeechStartTime : 0,
+      sinceLastBackchannelMs: now - state.lastBackchannelAt,
+      sinceAgentSpokeMs: agentStoppedAt ? now - agentStoppedAt : Number.POSITIVE_INFINITY,
+      agentSpeaking,
+      partialTranscript: state.partialTranscript ?? '',
+      emotional,
+    });
+    if (!decision.play) {
+      log.debug({ reason: decision.reason }, 'backchannel skipped');
+      return;
+    }
+    const text = pickBackchannel(emotional, lastClip);
+    if (!playClip(text)) return;
+    lastClip = text;
+    state.lastBackchannelAt = now;
+    trackBackchannelEvent(sessionId, {
+      pauseDurationMs: breathDetector.getCurrentPauseDuration(),
+      wasTimely: true,
+      category: emotional ? 'empathy' : 'acknowledgment',
+      userEmotion: state.currentEmotion?.primary,
+      mode: 'live',
+    });
+    log.info({ text, emotional }, 'backchannel clip played');
+  };
 
   // =========================================================================
   // AUDIO FRAME PROCESSOR
@@ -141,6 +204,11 @@ export function initializeLiveBackchanneling<T>(
     // Track user speech duration
     if (breathDetector.isUserSpeaking() && !state.userSpeechStartTime) {
       state.userSpeechStartTime = Date.now();
+    }
+
+    if (cfg.playClip) {
+      considerClip(cfg.playClip);
+      return;
     }
 
     // Check for breath pause and potentially emit backchannel
@@ -218,6 +286,7 @@ export function initializeLiveBackchanneling<T>(
   const onNewTurn = (): void => {
     state.turnCount++;
     state.userSpeechStartTime = null;
+    state.partialTranscript = '';
     // Don't reset lastBackchannelAt - maintain cooldown across turns
   };
 

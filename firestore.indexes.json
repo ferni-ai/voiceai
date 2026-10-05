@@ -502,6 +502,14 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
+    {
+      "collectionGroup": "unified_memories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "topics", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "importance", "order": "DESCENDING" }
+      ]
+    },
 
     {
       "collectionGroup": "family_messages",
@@ -611,6 +619,14 @@
       ]
     },
     {
+      "collectionGroup": "ferni_commitments",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "outcome", "order": "ASCENDING" },
+        { "fieldPath": "dueBy", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "scheduled_actions",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -624,6 +640,63 @@
       "fields": [
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "scheduledFor", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "open_loops",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "created", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "userPatterns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "occurrences", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "conversationFeedback",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sessionId", "order": "ASCENDING" },
+        { "fieldPath": "promptedAtMs", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contact_relationships",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "lastInteraction", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "unified_memories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "topics", "order": "ASCENDING" },
+        { "fieldPath": "importance", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "proactive_insights",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dismissed", "order": "ASCENDING" },
+        { "fieldPath": "created", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "entities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "lastMentioned", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
       ]
     }
   ],

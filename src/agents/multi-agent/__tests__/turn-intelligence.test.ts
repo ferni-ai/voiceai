@@ -66,7 +66,7 @@ describe('createTurnIntelligenceHook', () => {
   });
 });
 
-describe('realtime turn context', () => {
+describe('turn context pusher', () => {
   const makeAgent = () => {
     let ctx = llm.ChatContext.empty();
     return {
@@ -78,50 +78,112 @@ describe('realtime turn context', () => {
       }),
     };
   };
+  const texts = (agent: ReturnType<typeof makeAgent>) =>
+    agent.chatCtx.items.map((i) => (i as { textContent?: string }).textContent ?? '');
+  const noting = (note: (text: string) => string) =>
+    vi.fn(async (turnCtx: llm.ChatContext, message: llm.ChatMessage) => {
+      turnCtx.addMessage({ role: 'user', content: note(message.textContent ?? '') });
+    });
 
-  it('detects sessions whose model replies without onUserTurnCompleted', async () => {
-    const { usesServerTurnDetection } = await import('../turn-intelligence.js');
-    expect(usesServerTurnDetection({ llm: { capabilities: { turnDetection: true } } })).toBe(true);
-    expect(usesServerTurnDetection({ llm: { capabilities: { turnDetection: false } } })).toBe(
-      false
-    );
-    expect(usesServerTurnDetection({})).toBe(false);
+  it('runs the turn handler context-only, so it never speaks or acts', async () => {
+    const handle = vi.fn().mockResolvedValue(undefined);
+    const hook = createTurnIntelligenceHook({ persona, services, userData, handle });
+    await hook(llm.ChatContext.empty(), userMessage('turn off the lights'));
+    expect(handle.mock.calls[0][0].contextOnly).toBe(true);
   });
 
-  it('holds the turn context and pushes it only when the agent is listening again', async () => {
-    const { createRealtimeTurnContextPusher } = await import('../turn-intelligence.js');
+  it('holds the context while Ferni speaks and pushes it when she is listening again', async () => {
+    const { createTurnContextPusher } = await import('../turn-intelligence.js');
     const agent = makeAgent();
-    const hook = vi.fn(async (turnCtx: llm.ChatContext) => {
-      turnCtx.addMessage({
-        role: 'user',
-        content: '[CONTEXT: they mentioned their dog Biscuit last week]',
-      });
-    });
-    const pusher = createRealtimeTurnContextPusher(hook, agent);
+    const pusher = createTurnContextPusher(
+      noting(() => '[CONTEXT: they mentioned their dog Biscuit last week]'),
+      agent
+    );
 
-    await pusher.onFinalTranscript('my puppy chewed my shoes again');
     await pusher.onAgentState('speaking');
+    await pusher.onFinalTranscript('my puppy chewed my shoes again');
     expect(agent.updateChatCtx).not.toHaveBeenCalled();
 
     await pusher.onAgentState('listening');
     expect(agent.updateChatCtx).toHaveBeenCalledTimes(1);
-    const pushed = agent.chatCtx.items
-      .map((i) => (i as { textContent?: string }).textContent)
-      .join('\n');
-    expect(pushed).toContain('Biscuit');
-    expect(pushed).toContain('not something the user said');
+    expect(texts(agent).join('\n')).toContain('Biscuit');
+    expect(texts(agent).join('\n')).toContain('not something the user said');
 
     await pusher.onAgentState('listening');
     expect(agent.updateChatCtx).toHaveBeenCalledTimes(1); // nothing new to push
   });
 
-  it('pushes nothing when the turn handler adds no context', async () => {
-    const { createRealtimeTurnContextPusher } = await import('../turn-intelligence.js');
+  it('never pushes while the user is speaking', async () => {
+    const { createTurnContextPusher } = await import('../turn-intelligence.js');
     const agent = makeAgent();
-    const pusher = createRealtimeTurnContextPusher(
-      vi.fn(async () => {}),
-      agent
-    );
+    const pusher = createTurnContextPusher(noting(() => '[CONTEXT: note]'), agent);
+
+    await pusher.onUserState('speaking');
+    await pusher.onFinalTranscript('so anyway');
+    expect(agent.updateChatCtx).not.toHaveBeenCalled();
+
+    await pusher.onUserState('listening');
+    expect(agent.updateChatCtx).toHaveBeenCalledTimes(1);
+  });
+
+  it('replaces the previous note instead of piling notes up', async () => {
+    const { createTurnContextPusher } = await import('../turn-intelligence.js');
+    const agent = makeAgent();
+    const pusher = createTurnContextPusher(noting((text) => `[CONTEXT about: ${text}]`), agent);
+
+    await pusher.onFinalTranscript('first topic');
+    await pusher.onAgentState('speaking');
+    await pusher.onFinalTranscript('second topic');
+    await pusher.onAgentState('listening');
+
+    const notes = texts(agent).filter((t) => t.includes('[CONTEXT about:'));
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toContain('second topic');
+  });
+
+  it('builds on the whole turn: segments accumulate, only the latest run counts', async () => {
+    const { createTurnContextPusher } = await import('../turn-intelligence.js');
+    const agent = makeAgent();
+    const hook = noting((text) => `[CONTEXT about: ${text}]`);
+    const pusher = createTurnContextPusher(hook, agent);
+
+    await pusher.onUserState('speaking');
+    await Promise.all([pusher.onFinalTranscript('I finally'), pusher.onFinalTranscript('quit my job')]);
+    await pusher.onUserState('listening');
+
+    expect(hook.mock.calls.at(-1)?.[1].textContent).toBe('I finally quit my job');
+    expect(agent.updateChatCtx).toHaveBeenCalledTimes(1);
+    expect(texts(agent).join('\n')).toContain('I finally quit my job');
+  });
+
+  it('drops a slower run on part of the turn when a later run already finished', async () => {
+    const { createTurnContextPusher } = await import('../turn-intelligence.js');
+    const agent = makeAgent();
+    let releaseFirst: () => void = () => {};
+    const firstDone = new Promise<void>((resolve) => (releaseFirst = resolve));
+    let call = 0;
+    const hook = vi.fn(async (turnCtx: llm.ChatContext, message: llm.ChatMessage) => {
+      if (++call === 1) await firstDone; // the first run (partial turn) is slow
+      turnCtx.addMessage({ role: 'user', content: `[CONTEXT about: ${message.textContent}]` });
+    });
+    const pusher = createTurnContextPusher(hook, agent);
+
+    await pusher.onUserState('speaking');
+    const first = pusher.onFinalTranscript('I finally');
+    await vi.waitFor(() => expect(hook).toHaveBeenCalledTimes(1));
+    await pusher.onFinalTranscript('quit my job');
+    releaseFirst();
+    await first;
+    await pusher.onUserState('listening');
+
+    expect(texts(agent).join('\n')).toContain('[CONTEXT about: I finally quit my job]');
+    expect(texts(agent).join('\n')).not.toContain('[CONTEXT about: I finally]');
+  });
+
+  it('pushes nothing when the turn handler adds no context', async () => {
+    const { createTurnContextPusher } = await import('../turn-intelligence.js');
+    const agent = makeAgent();
+    const pusher = createTurnContextPusher(vi.fn(async () => {}), agent);
     await pusher.onFinalTranscript('hi');
     await pusher.onAgentState('listening');
     expect(agent.updateChatCtx).not.toHaveBeenCalled();

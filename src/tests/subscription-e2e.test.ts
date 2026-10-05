@@ -128,6 +128,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/subscription/status',
         query: { userId: 'new-user-123' },
         headers: {},
+        authUserId: 'new-user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -169,6 +170,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/subscription/status',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -215,6 +217,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/subscription/can-start',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -251,6 +254,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/subscription/can-start',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -286,6 +290,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/subscription/can-start',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -392,6 +397,9 @@ describe('Subscription E2E Integration', () => {
     });
 
     it('should reject invalid tier values', async () => {
+      // 'dev-mode' is only accepted on a developer machine (NODE_ENV=development)
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
       const response = await handleSubscriptionRequest({
         method: 'POST',
         pathname: '/subscription/upgrade',
@@ -407,6 +415,7 @@ describe('Subscription E2E Integration', () => {
       // Note: Current implementation doesn't validate tier enum
       // This documents current behavior - may want to add validation
       expect(response.status).toBe(200);
+      process.env.NODE_ENV = originalNodeEnv;
     });
   });
 
@@ -444,6 +453,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/usage/conversation',
         query: {},
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
         body: {
           userId: 'user-123',
           durationMinutes: 5,
@@ -490,6 +500,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/usage/conversation',
         query: {},
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
         body: {
           userId: 'user-123',
           durationMinutes: 3,
@@ -610,6 +621,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/subscription/status',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);

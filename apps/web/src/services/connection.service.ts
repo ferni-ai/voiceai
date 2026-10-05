@@ -55,13 +55,21 @@ const getLiveKit = () => {
   throw new Error('LiveKit not loaded. Make sure the UMD script is included.');
 };
 
-import { API } from '../config/index.js';
 import { appState, setConnectionState } from '../state/app.state.js';
 import type { ConnectionState, DataMessage } from '../types/events.js';
-import type { RoomState, TokenRequest, TokenResponse } from '../types/livekit.js';
-import { isValidTokenResponse } from '../types/livekit.js';
+import type { RoomState, TokenRequest } from '../types/livekit.js';
 import { createLogger } from '../utils/logger.js';
+import {
+  AGENT_JOIN_TIMEOUT_AFTER_FAILED_DISPATCH_MS,
+  AGENT_JOIN_TIMEOUT_MS,
+  waitForAgent,
+} from './agent-presence.js';
+import { classifyConnectError, ConnectStepError, type ConnectFailure } from './connect-failure.js';
+import { reportDisconnect } from './disconnect-report.js';
+import { registerMicRestoreHandlers, type MicRoom } from './mic-restore.js';
 import { spotifyService } from './spotify.service.js';
+import { fetchConnectionToken } from './token-fetch.service.js';
+import { attachLiveTranscription } from './live-transcription.service.js';
 
 const log = createLogger('Connection');
 
@@ -92,6 +100,8 @@ export interface ConnectionCallbacks {
   onLocalMicActive?: (isActive: boolean) => void;
   onConnectionQuality?: (latencyMs: number) => void;
   onError?: (error: Error) => void;
+  /** The room dropped without the user hanging up. The service has already cleaned up. */
+  onUnexpectedDisconnect?: (reason: string) => void;
 }
 
 // ============================================================================
@@ -128,6 +138,15 @@ class ConnectionService {
 
   /** From token response: when true, backend is Qwen3-Omni; show Director Console in menu */
   private useQwen3Omni = false;
+
+  /** Room joined but the agent hasn't arrived yet: the call is still "connecting". */
+  private awaitingAgent = false;
+  /** Why the most recent connect() returned false (null after a success). */
+  private lastFailure: ConnectFailure | null = null;
+  /** Increments per connect() so a stale attempt never tears down a newer room. */
+  private attemptSeq = 0;
+  /** Aborts the in-flight connect(): by its caller's signal, or by a hang-up (disconnect()). */
+  private attemptAbort: AbortController | null = null;
 
   /**
    * Register callbacks for connection events.
@@ -314,16 +333,42 @@ class ConnectionService {
     return this.expectingMusicTrack;
   }
 
+  /** Why the last connect() failed, or null if it succeeded. */
+  getLastFailure(): ConnectFailure | null {
+    return this.lastFailure;
+  }
+
   /**
-   * Connect to a LiveKit room.
+   * Connect to a LiveKit room and wait for the voice agent to join.
+   * Resolves false on failure; getLastFailure() says why. Aborting `signal`
+   * cancels the attempt and closes any room it opened.
    */
-  async connect(): Promise<boolean> {
+  async connect(options: { signal?: AbortSignal } = {}): Promise<boolean> {
     if (this.room?.state === 'connected') {
       log.warn('Already connected');
       return true;
     }
 
+    const { signal } = options;
+    const attempt = ++this.attemptSeq;
+    let room: LiveKitRoom | null = null;
+    const attemptAbort = new AbortController();
+    this.attemptAbort = attemptAbort;
+    const throwIfAborted = (): void => {
+      if (attemptAbort.signal.aborted || attempt !== this.attemptSeq) {
+        throw new ConnectStepError('cancelled');
+      }
+    };
+    // Closing the room makes a pending room.connect() reject instead of hanging.
+    const onAbort = (): void => {
+      attemptAbort.abort();
+      void this.closeAttemptRoom(room);
+    };
+    if (signal?.aborted) attemptAbort.abort();
+    signal?.addEventListener('abort', onAbort, { once: true });
+
     try {
+      this.lastFailure = null;
       this.updateState('connecting');
 
       // CRITICAL FIX: Wait for Firebase Auth to initialize before connecting
@@ -389,49 +434,74 @@ class ConnectionService {
       // Fetch token
       let tokenResponse;
       try {
-        tokenResponse = await this.fetchToken(tokenRequest);
+        tokenResponse = await fetchConnectionToken(tokenRequest);
       } catch (tokenError) {
         log.error('Token fetch failed:', tokenError);
-        throw new Error(
-          `Token fetch failed: ${tokenError instanceof Error ? tokenError.message : String(tokenError)}`
-        );
+        throw tokenError;
+      }
+      throwIfAborted();
+      if (tokenResponse.agent_dispatched === false) {
+        log.error('Server could not dispatch the voice agent', { room: tokenResponse.room });
       }
 
       this.useQwen3Omni = tokenResponse.useQwen3Omni === true;
 
       // Create and configure room using global LiveKit (iOS compatible)
       const LiveKit = getLiveKit();
-      this.room = new LiveKit.Room({
+      room = new LiveKit.Room({
         adaptiveStream: true,
         dynacast: true,
         stopLocalTrackOnUnpublish: true,
       });
+      this.room = room;
+      this.awaitingAgent = true;
 
       // Set up event handlers
       this.setupRoomHandlers();
 
       // Connect to room
       try {
-        await this.room.connect(tokenResponse.url, tokenResponse.token, {
-          autoSubscribe: true,
-        });
+        await room.connect(tokenResponse.url, tokenResponse.token, { autoSubscribe: true });
       } catch (roomError) {
+        throwIfAborted();
         log.error('Room connection failed:', roomError);
-        throw new Error(
-          `Room connection failed: ${roomError instanceof Error ? roomError.message : String(roomError)}`
-        );
+        throw roomError;
       }
+      throwIfAborted();
 
       // Enable microphone so the agent can hear us
       try {
-        await this.room.localParticipant.setMicrophoneEnabled(true);
+        await room.localParticipant.setMicrophoneEnabled(true);
       } catch (micError) {
-        const errMsg = micError instanceof Error ? micError.message : String(micError);
-        log.warn('Microphone not available:', errMsg);
-        // On iOS, this might fail - continue anyway so user can at least hear
+        const name = (micError as { name?: string } | null)?.name;
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+          throw new ConnectStepError('mic_denied');
+        }
+        // No device / iOS quirks: continue so the user can at least hear
+        log.warn(
+          'Microphone not available:',
+          micError instanceof Error ? micError.message : micError
+        );
       }
 
+      // Not "connected" until the agent is actually here (it may already be).
+      const dispatched = tokenResponse.agent_dispatched !== false;
+      let agentIdentity: string;
+      try {
+        agentIdentity = await waitForAgent(
+          room,
+          dispatched ? AGENT_JOIN_TIMEOUT_MS : AGENT_JOIN_TIMEOUT_AFTER_FAILED_DISPATCH_MS,
+          attemptAbort.signal
+        );
+      } catch (agentError) {
+        const timedOut =
+          agentError instanceof ConnectStepError && agentError.kind === 'agent_timeout';
+        throw timedOut && !dispatched ? new ConnectStepError('agent_unavailable') : agentError;
+      }
+      throwIfAborted();
+      this.awaitingAgent = false;
       this.updateState('connected');
+      this.callbacks.onAgentConnected?.(agentIdentity);
       this.startQualityMonitoring();
 
       // 📊 Initialize disconnect diagnostics session
@@ -473,18 +543,41 @@ class ConnectionService {
 
       return true;
     } catch (error) {
-      log.error('Connection failed:', error);
+      const failure = classifyConnectError(error);
+      await this.closeAttemptRoom(room);
+      // A superseded attempt must not overwrite the newer attempt's state.
+      if (attempt !== this.attemptSeq) return false;
+      this.lastFailure = failure;
+      if (failure.kind === 'cancelled') {
+        this.updateState('disconnected');
+        return false;
+      }
+      log.error('Connection failed:', { kind: failure.kind, error });
       this.updateState('error');
       this.callbacks.onError?.(error instanceof Error ? error : new Error(String(error)));
       return false;
+    } finally {
+      signal?.removeEventListener('abort', onAbort);
+      if (this.attemptAbort === attemptAbort) this.attemptAbort = null;
     }
+  }
+
+  /** Close a room opened by a failed or cancelled connect attempt. */
+  private async closeAttemptRoom(room: LiveKitRoom | null): Promise<void> {
+    if (!room || this.room !== room) return;
+    this.awaitingAgent = false;
+    await this.disconnect();
   }
 
   /**
    * Disconnect from the current room.
    */
   async disconnect(): Promise<void> {
-    if (!this.room) return;
+    // A hang-up also cancels a call still connecting, so it can't fail ~15 s later.
+    this.attemptAbort?.abort();
+    this.awaitingAgent = false;
+    const room = this.room;
+    if (!room) return;
 
     // Mark as intentional disconnect (for crash analytics)
     this.isDisconnecting = true;
@@ -503,10 +596,10 @@ class ConnectionService {
       });
       this.audioElements.clear();
 
-      // Disconnect
-      await this.room.disconnect();
+      // Disconnect (release our reference first so nothing else closes this room twice)
       this.room = null;
       this.useQwen3Omni = false;
+      await room.disconnect();
 
       this.updateState('disconnected');
     } catch (error) {
@@ -560,90 +653,6 @@ class ConnectionService {
   // ============================================================================
 
   /**
-   * Fetch token from server.
-   */
-  private async fetchToken(request: TokenRequest): Promise<TokenResponse> {
-    const params = new URLSearchParams({
-      room: request.room,
-      username: request.username,
-      device_id: request.deviceId,
-      persona_id: request.personaId,
-    });
-
-    // Add Firebase UID if available (Priority 2 for user identification)
-    if (request.firebaseUid) {
-      params.set('firebase_uid', request.firebaseUid);
-    }
-
-    // Add user's preferred accent for voice localization (🌍 international accent support)
-    if (request.preferredAccent) {
-      params.set('accent', request.preferredAccent);
-    }
-
-    // Add claimed demo conversation if available (Better than human)
-    if (request.claimedDemoConversation) {
-      params.set('claimed_demo', JSON.stringify(request.claimedDemoConversation));
-    }
-
-    const url = `${API.TOKEN}?${params.toString()}`;
-
-    // 🔐 CRITICAL FIX: Include Firebase Auth Bearer token for user identification
-    // Without this, the server can't verify who you are and conversations
-    // get saved under anonymous device IDs instead of your profile!
-    const headers: Record<string, string> = {
-      Accept: 'application/json',
-    };
-
-    try {
-      const { getAuthToken } = await import('./firebase-auth.service.js');
-      const authToken = await getAuthToken();
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-        log.debug('Including Firebase auth token in token request');
-      }
-    } catch (authError) {
-      // Auth service not available or not signed in - continue without
-      log.debug('No Firebase auth token available:', authError);
-    }
-
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        method: 'GET',
-        headers,
-        // iOS sometimes needs explicit cache control
-        cache: 'no-cache',
-      });
-    } catch (fetchError) {
-      log.error('Fetch error:', fetchError);
-      throw new Error(
-        `Network error: ${fetchError instanceof Error ? fetchError.message : 'Failed to connect'}`
-      );
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      log.error('Token error response:', errorText);
-      throw new Error(`Token request failed: ${response.status} - ${errorText.slice(0, 100)}`);
-    }
-
-    let data: unknown;
-    try {
-      data = await response.json();
-    } catch (jsonError) {
-      log.error('JSON parse error:', jsonError);
-      throw new Error('Invalid response format from server');
-    }
-
-    if (!isValidTokenResponse(data)) {
-      log.error('Invalid token response:', data);
-      throw new Error('Invalid token response from server');
-    }
-
-    return data;
-  }
-
-  /**
    * Set up room event handlers.
    */
   private setupRoomHandlers(): void {
@@ -652,6 +661,8 @@ class ConnectionService {
     // Connection state changes
     const onConnectionStateChange = async (state: string) => {
       const mapped = this.mapConnectionState(state);
+      // Joining the room isn't the call being ready: connect() reports it once the agent is here.
+      if (this.awaitingAgent && mapped === 'connected') return;
       this.updateState(mapped);
 
       // Update crash reporter context
@@ -670,32 +681,13 @@ class ConnectionService {
       this.room?.off('connectionStateChanged', onConnectionStateChange);
     });
 
-    // 🔄 Handle reconnection - re-enable microphone after LiveKit reconnects
-    // This fixes the issue where mic disconnects and needs to be manually re-enabled
-    const onReconnected = async () => {
-      log.info('🔄 Room reconnected - re-enabling microphone');
-      try {
-        // Check if mic should be enabled (user hasn't muted)
-        const isMuted =
-          (window as unknown as { appState?: { get?: (key: string) => unknown } }).appState?.get?.(
-            'isMuted'
-          ) ?? false;
-        if (!isMuted && this.room?.localParticipant) {
-          await this.room.localParticipant.setMicrophoneEnabled(true);
-          log.info('🎤 Microphone re-enabled after reconnection');
-        }
-      } catch (err) {
-        log.warn('Failed to re-enable mic after reconnection:', err);
-      }
-    };
-    this.room.on('reconnected', onReconnected);
-    this.cleanupFunctions.push(() => {
-      this.room?.off('reconnected', onReconnected);
-    });
+    // 🔄 Re-enable the mic after reconnects, foregrounding and native resume (unless muted)
+    this.cleanupFunctions.push(registerMicRestoreHandlers(this.room as unknown as MicRoom));
 
     // Participant connected (agent joins)
+    // During connect(), waitForAgent reports the arrival instead (including an agent already here).
     const onParticipantConnected = (participant: { identity: string; isLocal?: boolean }) => {
-      if (!participant.isLocal) {
+      if (!participant.isLocal && !this.awaitingAgent) {
         this.callbacks.onAgentConnected?.(participant.identity);
       }
     };
@@ -936,9 +928,7 @@ class ConnectionService {
       }
     };
     this.room.on('trackMuted', onTrackMuted);
-    this.cleanupFunctions.push(() => {
-      this.room?.off('trackMuted', onTrackMuted);
-    });
+    this.cleanupFunctions.push(() => this.room?.off('trackMuted', onTrackMuted));
 
     const onTrackUnmuted = (publication: { kind: string }, participant: { isLocal?: boolean }) => {
       if (participant.isLocal && publication.kind === 'audio') {
@@ -946,9 +936,7 @@ class ConnectionService {
       }
     };
     this.room.on('trackUnmuted', onTrackUnmuted);
-    this.cleanupFunctions.push(() => {
-      this.room?.off('trackUnmuted', onTrackUnmuted);
-    });
+    this.cleanupFunctions.push(() => this.room?.off('trackUnmuted', onTrackUnmuted));
 
     // Data messages (handoff notifications, etc.)
     const onDataReceived = (payload: Uint8Array, _participant: unknown, _kind: unknown) => {
@@ -961,127 +949,50 @@ class ConnectionService {
       }
     };
     this.room.on('dataReceived', onDataReceived);
-    this.cleanupFunctions.push(() => {
-      this.room?.off('dataReceived', onDataReceived);
-    });
+    this.cleanupFunctions.push(() => this.room?.off('dataReceived', onDataReceived));
+    // Live transcripts arrive as lk.transcription text streams, not data messages.
+    const onTranscript = (message: DataMessage): void => this.callbacks.onDataMessage?.(message);
+    this.cleanupFunctions.push(attachLiveTranscription(this.room, onTranscript));
 
-    // Disconnected - COMPREHENSIVE DIAGNOSTICS
-    const onDisconnected = async (reason?: unknown) => {
-      const disconnectTime = Date.now();
+    // Disconnected: an unexpected drop is cleaned up like a hang-up, then reported
+    const onDisconnected = (reason?: unknown) => {
       const wasGraceful = this.isDisconnecting; // Check if we initiated the disconnect
-      const disconnectReason = String(reason || 'unknown');
-
-      // 🚨 CRITICAL: Capture FULL disconnect diagnostics
-      log.warn(
-        {
-          wasGraceful,
-          disconnectReason,
-          roomName: this.room?.name,
-          roomState: this.room?.state,
-          isDisconnecting: this.isDisconnecting,
-          disconnectTime: new Date(disconnectTime).toISOString(),
-        },
-        wasGraceful
-          ? '🔌 Graceful disconnect from LiveKit room'
-          : `🚨 UNEXPECTED DISCONNECT from LiveKit room - reason: ${disconnectReason}`
-      );
-
+      const details = {
+        reason: String(reason || 'unknown'),
+        wasGraceful,
+        roomName: this.room?.name,
+        roomState: this.room?.state,
+        at: Date.now(),
+      };
       this.updateState('disconnected');
-
-      // 📊 Capture comprehensive disconnect diagnostics
-      try {
-        const { captureDisconnectDiagnostic, endSession } =
-          await import('./disconnect-diagnostics.service.js');
-        await captureDisconnectDiagnostic(disconnectReason, wasGraceful, this.room?.state);
-        endSession();
-      } catch (err) {
-        log.error({ error: String(err) }, 'Failed to capture disconnect diagnostics');
-      }
-
-      // Report unexpected disconnections to crash analytics with full context
-      try {
-        const { reportConnectionDrop } = await import('./crash-reporter.service.js');
-        reportConnectionDrop(`LiveKit disconnect: ${disconnectReason}`, wasGraceful, {
-          roomName: this.room?.name,
-          disconnectTime: new Date(disconnectTime).toISOString(),
-          disconnectReason,
-          source: 'livekit_disconnected_event',
-        });
-      } catch (err) {
-        log.error({ error: String(err) }, 'Failed to report connection drop');
-      }
+      // Clean up synchronously, before any await, so a new call can't be torn down by this one.
+      if (!wasGraceful) this.handleUnexpectedDisconnect(details.reason);
+      void reportDisconnect(details);
     };
     this.room.on('disconnected', onDisconnected);
     this.cleanupFunctions.push(() => {
       this.room?.off('disconnected', onDisconnected);
     });
+  }
 
-    // 📱 Handle mobile visibility changes (screen lock, tab switch)
-    // When returning to app, audio track may need to be restored
-    const onVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && this.room?.state === 'connected') {
-        log.debug('📱 App became visible - checking microphone state');
-        try {
-          const isMuted =
-            (
-              window as unknown as { appState?: { get?: (key: string) => unknown } }
-            ).appState?.get?.('isMuted') ?? false;
-          if (!isMuted && this.room?.localParticipant) {
-            // Small delay to let audio context resume
-            await new Promise((resolve) => setTimeout(resolve, 100));
-
-            // Check if mic is already publishing
-            const audioTracks = this.room.localParticipant
-              .getTrackPublications()
-              .filter(
-                (pub: { kind?: string; track?: unknown }) => pub.kind === 'audio' && pub.track
-              );
-
-            if (audioTracks.length === 0) {
-              log.info('📱 No audio track found - re-enabling microphone');
-              await this.room.localParticipant.setMicrophoneEnabled(true);
-              log.info('🎤 Microphone restored after visibility change');
-            }
-          }
-        } catch (err) {
-          log.warn('Failed to restore mic on visibility change:', err);
-        }
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    this.cleanupFunctions.push(() => {
-      document.removeEventListener('visibilitychange', onVisibilityChange);
+  /**
+   * The room dropped on its own: release it exactly like a hang-up does (handlers,
+   * audio elements, voice/music track identity) so the next call starts clean.
+   * While connect() is still waiting for the agent, its own failure path reports it.
+   */
+  private handleUnexpectedDisconnect(reason: string): void {
+    const wasAwaitingAgent = this.awaitingAgent;
+    this.awaitingAgent = false;
+    this.stopQualityMonitoring();
+    this.cleanup();
+    this.audioElements.forEach((audioEl) => {
+      audioEl.pause();
+      audioEl.remove();
     });
-
-    // 📱 Handle native app state changes (iOS/Android via Capacitor)
-    // This fires when app comes back from background, after phone calls, etc.
-    const onAppState = async (event: Event) => {
-      const { isActive } = (event as CustomEvent<{ isActive: boolean }>).detail;
-
-      if (isActive && this.room?.state === 'connected') {
-        log.info('📱 Native app became active - restoring microphone');
-        try {
-          const isMuted =
-            (
-              window as unknown as { appState?: { get?: (key: string) => unknown } }
-            ).appState?.get?.('isMuted') ?? false;
-          if (!isMuted && this.room?.localParticipant) {
-            // Longer delay for native - iOS audio session needs time to restore
-            await new Promise((resolve) => setTimeout(resolve, 300));
-
-            // Re-enable microphone
-            await this.room.localParticipant.setMicrophoneEnabled(true);
-            log.info('🎤 Microphone restored after native app state change');
-          }
-        } catch (err) {
-          log.warn('Failed to restore mic on app state change:', err);
-        }
-      }
-    };
-    document.addEventListener('ferni:app-state', onAppState);
-    this.cleanupFunctions.push(() => {
-      document.removeEventListener('ferni:app-state', onAppState);
-    });
+    this.audioElements.clear();
+    this.room = null;
+    this.useQwen3Omni = false;
+    if (!wasAwaitingAgent) this.callbacks.onUnexpectedDisconnect?.(reason);
   }
 
   /**

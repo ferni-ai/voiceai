@@ -25,7 +25,7 @@ import {
   type User,
   type UserCredential,
 } from 'firebase/auth';
-import { getFirebaseAuth, isFirebaseConfigured } from '../config/firebase.js';
+import { getFirebaseAuth, isFirebaseConfigured, loadFirebaseConfig } from '../config/firebase.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('FirebaseAuth');
@@ -132,7 +132,6 @@ function notifyAuthStateChange(user: User | null): void {
  * Call this early in app startup.
  */
 export async function initAuth(): Promise<AuthState> {
-  // Return existing init if in progress
   if (initPromise) {
     await initPromise;
     return buildAuthState(currentUser);
@@ -144,6 +143,7 @@ export async function initAuth(): Promise<AuthState> {
   }
 
   initPromise = (async () => {
+    await loadFirebaseConfig(); // production builds carry no VITE_FIREBASE_* values
     const auth = getFirebaseAuth();
 
     if (!auth) {
