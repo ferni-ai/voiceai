@@ -12,12 +12,20 @@
  * the reply it was built for (turn-intelligence.ts), so it can't prevent this.
  *
  * So every request carries the lock state, from the same unlock view that
- * filtered the handoff tools (turn-request.ts):
+ * filters the handoff tools (turn-request.ts):
  * - teamStatusNote(): one line on the caller's turn naming who isn't on their
  *   team yet, so Ferni neither offers them nor promises a transfer;
  * - askForTeammate: one tool, not a handoff per locked teammate (tool count is
- *   request cost, docs/perf/llm-request-cost.md), for when the model reaches
- *   for a transfer anyway. Its result is the warm decline; it connects no one.
+ *   request cost, docs/perf/llm-request-cost.md), for when the caller asks for
+ *   one anyway. Its result is the warm decline; it connects no one.
+ *
+ * The SDK runs a tool call against the agent's own tools, not the request's
+ * (agent_activity.js hands the agent's toolCtx to both the LLM node and the
+ * executor). A declaration added only to the request was called on dev and
+ * answered "Unknown function: askForTeammate" (2026-10-05, 17faf85a4). So the
+ * tool is registered on the agent (withTeammateTool, in PersonaVoiceAgent's
+ * constructor) and each request forwards or drops that same object; it reads
+ * the unlock view from the call's session when it runs, as the handoffs do.
  *
  * @module tools/handoff/locked-teammates
  */
@@ -32,11 +40,32 @@ import {
   TEAM_MEMBERS,
   type TeamMemberUnlock,
 } from '../../services/team-unlocks.js';
+import type { UserProfile } from '../../types/user-profile.js';
 import { isHandoffTargetOpen } from './handoff-availability.js';
 import { createHandoffTools } from './handoff-factory.js';
 import type { UnlockView } from './locked-handoffs.js';
 
 export const ASK_FOR_TEAMMATE = 'askForTeammate';
+
+/** Who this user has unlocked, from the session's userData (read as the handoff tools read it). */
+export function unlockViewFor(sessionUserData: unknown): UnlockView {
+  const userData = sessionUserData as
+    { userProfile?: UserProfile | null; personaId?: unknown; services?: unknown } | undefined;
+  const services = userData?.services as
+    | {
+        userProfile?: UserProfile | null;
+        devMode?: { enabled?: boolean; bypassUnlocks?: boolean };
+      }
+    | undefined;
+  const userProfile = services?.userProfile ?? userData?.userProfile ?? null;
+  const tier = (userProfile?.subscription?.tier as UnlockView['tier'] | undefined) ?? 'free';
+  return {
+    userProfile,
+    tier,
+    bypass: Boolean(services?.devMode?.enabled && services.devMode.bypassUnlocks),
+    currentAgentId: (userData?.personaId as string | undefined) ?? 'ferni',
+  };
+}
 
 const speaking = (view: UnlockView): string => view.currentAgentId ?? 'ferni';
 
@@ -124,38 +153,58 @@ export async function answerTeammateRequest(
     instruction:
       `${displayName} isn't on this caller's team yet, so nobody is being connected. ` +
       `Tell them that warmly in a sentence, without saying you're getting or connecting ${displayName}, ` +
-      "and offer to help with it yourself right now. Say how they'd meet " +
+      'and offer to help with it yourself right now. Say how they would meet ' +
       `${displayName} only if it fits naturally; no pushing.`,
     ...(member ? { how_to_meet: howToMeet(member, view) } : {}),
   };
 }
 
-/** The askForTeammate tool for this request's unlock view. */
-export function askForTeammateTool(
-  view: UnlockView,
-  locked: TeamMemberUnlock[]
-): llm.FunctionTool<{ name: string }, unknown, Record<string, unknown>> {
-  const names = nameList(locked.map((m) => m.displayName));
+export const ASK_FOR_TEAMMATE_DESCRIPTION =
+  "Call when the caller asks to talk to, or be transferred to, a teammate who has no handoff tool here because they aren't on the caller's team yet. " +
+  'It never connects anyone; it says how to answer.';
+
+/**
+ * The executable askForTeammate. Anonymous, so it can sit in a tools record
+ * (the SDK names record entries by their key). The unlock view is the call's.
+ */
+export function askForTeammateTool(): llm.AnonFunctionTool<
+  { name: string },
+  unknown,
+  Record<string, unknown>
+> {
   return llm.tool({
-    name: ASK_FOR_TEAMMATE,
-    description:
-      `Call when the caller asks to talk to, or be transferred to, a teammate who isn't on their team yet (right now: ${names}). ` +
-      'It never connects anyone; it says how to answer. Teammates on their team have their own handoff tool.',
+    description: ASK_FOR_TEAMMATE_DESCRIPTION,
     parameters: z.object({
       name: z.string().describe('The teammate the caller asked for, e.g. "Maya"'),
     }),
-    execute: async ({ name }) => answerTeammateRequest(name, view),
+    execute: async ({ name }, run) =>
+      answerTeammateRequest(
+        name,
+        unlockViewFor((run as { ctx?: { userData?: unknown } } | undefined)?.ctx?.userData)
+      ),
   });
 }
 
-/** `toolCtx` plus askForTeammate while some teammates are locked (the same object otherwise). */
+/**
+ * The tools record an agent is built with, plus askForTeammate, so a call to
+ * it can run. Anything but a plain record (a ToolContext, nothing) is returned as is.
+ */
+export function withTeammateTool<T>(tools: T): T {
+  if (tools === null || typeof tools !== 'object' || tools instanceof llm.ToolContext) return tools;
+  if (ASK_FOR_TEAMMATE in tools) return tools;
+  return { ...tools, [ASK_FOR_TEAMMATE]: askForTeammateTool() };
+}
+
+/**
+ * This request's tools: the agent's own askForTeammate forwarded while some
+ * teammates are locked and dropped when none are. Never added here: a tool the
+ * agent doesn't hold can't be executed.
+ */
 export function withTeammateAsk(toolCtx: llm.ToolContext, view: UnlockView): llm.ToolContext {
-  const locked = lockedTeammates(view);
-  if (locked.length === 0 || ASK_FOR_TEAMMATE in toolCtx.functionTools) return toolCtx;
-  return new llm.ToolContext([
-    ...Object.values(toolCtx.functionTools),
-    askForTeammateTool(view, locked),
-    ...toolCtx.providerTools,
-    ...toolCtx.toolsets,
-  ]);
+  const registered = ASK_FOR_TEAMMATE in toolCtx.functionTools;
+  if (!registered || lockedTeammates(view).length > 0) return toolCtx;
+  const keep = Object.entries(toolCtx.functionTools)
+    .filter(([name]) => name !== ASK_FOR_TEAMMATE)
+    .map(([, tool]) => tool);
+  return new llm.ToolContext([...keep, ...toolCtx.providerTools, ...toolCtx.toolsets]);
 }

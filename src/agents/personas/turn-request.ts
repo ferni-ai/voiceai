@@ -9,7 +9,6 @@
 import type { llm } from '@livekit/agents';
 import { TransformStream, type ReadableStream } from 'node:stream/web';
 
-import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getBargeInFastPath } from '../multi-agent/barge-in-fastpath.js';
 import { withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
@@ -18,8 +17,12 @@ import {
   latestUserText,
   toolRetrievalMode,
 } from '../../tools/retrieval/turn-tool-retrieval.js';
-import { withoutLockedHandoffs, type UnlockView } from '../../tools/handoff/locked-handoffs.js';
-import { teamStatusNote, withTeammateAsk } from '../../tools/handoff/locked-teammates.js';
+import { withoutLockedHandoffs } from '../../tools/handoff/locked-handoffs.js';
+import {
+  teamStatusNote,
+  unlockViewFor,
+  withTeammateAsk,
+} from '../../tools/handoff/locked-teammates.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import {
@@ -64,30 +67,13 @@ export function withTurnReminder(request: llm.ChatContext, session: object): llm
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
 }
 
-/** Who this user has unlocked, read the way the handoff tool's runtime check reads it. */
-export function unlockViewFor(sessionUserData: unknown): UnlockView {
-  const userData = sessionUserData as
-    | { userProfile?: UserProfile | null; personaId?: unknown; services?: unknown }
-    | undefined;
-  const services = userData?.services as
-    | {
-        userProfile?: UserProfile | null;
-        devMode?: { enabled?: boolean; bypassUnlocks?: boolean };
-      }
-    | undefined;
-  const userProfile = services?.userProfile ?? userData?.userProfile ?? null;
-  const tier = (userProfile?.subscription?.tier as UnlockView['tier'] | undefined) ?? 'free';
-  return {
-    userProfile,
-    tier,
-    bypass: Boolean(services?.devMode?.enabled && services.devMode.bypassUnlocks),
-    currentAgentId: (userData?.personaId as string | undefined) ?? 'ferni',
-  };
-}
+// Re-exported for callers that read the unlock view from a session.
+export { unlockViewFor, withTeammateTool } from '../../tools/handoff/locked-teammates.js';
 
 /**
- * The tools this turn's request carries: no locked handoffs, askForTeammate in
- * their place (locked-teammates.ts), then the retrieval pick.
+ * The tools this turn's request carries: no locked handoffs, the agent's
+ * askForTeammate while some teammates are locked (locked-teammates.ts), then
+ * the retrieval pick.
  */
 export async function toolsForTurn(
   session: TurnSession,

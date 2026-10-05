@@ -291,7 +291,8 @@ export function isEssentialTool(toolName: string): boolean {
   return (
     config.essentialTools.includes(toolName) ||
     toolName.startsWith('handoffTo') ||
-    toolName === 'endCall'
+    toolName === 'endCall' ||
+    toolName === 'askForTeammate' // stands in for locked handoffs (locked-teammates.ts)
   );
 }
 

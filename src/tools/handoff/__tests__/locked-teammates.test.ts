@@ -1,54 +1,113 @@
 /**
  * Asked for a teammate who isn't on the caller's team, Ferni says so instead
- * of promising a transfer. Dev call 2026-10-05 (BYPASS_TEAM_UNLOCKS=peter-john):
- * "Transfer me to Maya" got "I'm getting Maya on the line for you right now"
- * and a call to connectToHumanExpert, because nothing in the request said Maya
- * was locked (locked-teammates.ts).
+ * of promising a transfer (locked-teammates.ts).
  *
- * Built the way a dev call builds it: Ferni's real handoff tools for the
- * caller, then the request's tools and turn reminder (turn-request.ts), with
- * only Ferni and Peter unlocked.
+ * Built the way a dev call builds it, with only Ferni and Peter unlocked: the
+ * first agent's tools from buildEssentialToolSet, capped like agent-setup.ts,
+ * given to a real PersonaVoiceAgent; each request's tools and turn reminder
+ * from turn-request.ts; and tool calls run through the SDK's own dispatcher
+ * (performToolExecutions), against the agent's tools, as a live call runs
+ * them. On 17faf85a4 askForTeammate was only declared, and dev heard the SDK
+ * answer "Unknown function: askForTeammate".
  */
 import { llm } from '@livekit/agents';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import { ReadableStream } from 'node:stream/web';
+import { pathToFileURL } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { buildEssentialToolSet } from '../../../agents/multi-agent/essential-tool-set.js';
+import { resolveInitialToolLimit } from '../../../agents/multi-agent/initial-tools.js';
+import { PersonaVoiceAgent } from '../../../agents/personas/ferni-agent.js';
 import { toolsForTurn, withTurnReminder } from '../../../agents/personas/turn-request.js';
+import { capToolsToLimit, getMaxTools } from '../../../config/tool-config.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { executeHandoff } from '../executor.js';
-import { buildHandoffTools } from '../handoff-factory.js';
 
 const profile = { subscription: { tier: 'free' } } as unknown as UserProfile;
-const session = (personaId = 'ferni') => ({
-  userData: { personaId, services: { userProfile: profile } },
-});
+const userDataFor = (personaId = 'ferni') => ({ personaId, services: { userProfile: profile } });
 
-/** The tools Ferni's request carries on this call. */
-async function requestTools(personaId = 'ferni'): Promise<llm.ToolContext> {
-  const { tools } = await buildHandoffTools({
-    currentAgentId: personaId,
-    userProfile: profile,
-    subscriptionTier: 'free',
+/** The agent a call starts with: essential tools for this caller, capped, in a real agent. */
+async function agentFor(personaId = 'ferni'): Promise<PersonaVoiceAgent> {
+  const { tools } = await buildEssentialToolSet({
+    personaId,
+    userId: 'test-user',
+    services: { userProfile: profile },
   });
-  // A record of anonymous tools, keyed by name, the way agent-setup.ts passes them.
-  const toolCtx: llm.ToolContext = new llm.ToolContext(tools as never);
-  const chat = llm.ChatContext.empty();
-  chat.addMessage({ role: 'user', content: 'Transfer me to Maya.' });
-  return toolsForTurn(session(personaId), chat, toolCtx, { loggedLockedHandoffs: false });
+  const capped = capToolsToLimit(tools, resolveInitialToolLimit(getMaxTools()));
+  return new PersonaVoiceAgent('You are Ferni.', {
+    tools: capped as unknown as llm.ToolContext,
+    skipGreeting: true,
+  });
 }
 
-type Answer = Record<string, unknown> & { instruction: string };
+/** The tools one request carries, from the agent's tools. */
+async function requestTools(agent: PersonaVoiceAgent, personaId = 'ferni') {
+  const chat = llm.ChatContext.empty();
+  chat.addMessage({ role: 'user', content: 'Transfer me to Maya.' });
+  return toolsForTurn(
+    { userData: userDataFor(personaId) },
+    chat,
+    agent.toolCtx as unknown as llm.ToolContext,
+    {
+      loggedLockedHandoffs: false,
+    }
+  );
+}
 
-async function ask(tools: llm.ToolContext, name: string): Promise<Answer> {
-  const tool = tools.functionTools['askForTeammate'] as unknown as {
-    execute: (args: { name: string }, opts: unknown) => Promise<Answer>;
+interface Dispatched {
+  output: string;
+  isError: boolean;
+}
+
+/**
+ * One tool call through the SDK's dispatcher (voice/generation.js, not exported
+ * by the package), with the agent's tool context, as agent_activity.js runs it.
+ */
+async function dispatch(
+  agent: PersonaVoiceAgent,
+  name: string,
+  args: Record<string, unknown>,
+  personaId = 'ferni'
+): Promise<Dispatched> {
+  const dist = dirname(createRequire(import.meta.url).resolve('@livekit/agents'));
+  const { performToolExecutions } = (await import(
+    pathToFileURL(join(dist, 'voice', 'generation.js')).href
+  )) as {
+    performToolExecutions: (
+      opts: unknown
+    ) => [
+      { result: Promise<unknown> },
+      { output: Array<{ toolCallOutput?: { output: string; isError: boolean } }> },
+    ];
   };
-  return tool.execute({ name }, { ctx: {}, toolCallId: 't', abortSignal: undefined });
+  const call = llm.FunctionCall.create({ callId: 'call-1', name, args: JSON.stringify(args) });
+  const [task, out] = performToolExecutions({
+    session: { userData: userDataFor(personaId), currentAgent: agent },
+    speechHandle: { id: 'speech-1', numSteps: 1 },
+    toolCtx: agent.toolCtx,
+    toolChoice: 'auto',
+    toolCallStream: new ReadableStream({
+      start(controller) {
+        controller.enqueue(call);
+        controller.close();
+      },
+    }),
+    controller: new globalThis.AbortController(),
+  });
+  await task.result;
+  const result = out.output[0]?.toolCallOutput;
+  if (!result) throw new Error('the dispatcher produced no output');
+  return result;
 }
 
 /** What the model is told on the caller's turn. */
 function reminderFor(personaId = 'ferni'): string {
   const chat = llm.ChatContext.empty();
   chat.addMessage({ role: 'user', content: 'Transfer me to Maya.' });
-  const sent = withTurnReminder(chat, session(personaId)).items.at(-1) as llm.ChatMessage;
+  const sent = withTurnReminder(chat, { userData: userDataFor(personaId) }).items.at(
+    -1
+  ) as llm.ChatMessage;
   return sent.textContent ?? '';
 }
 
@@ -65,49 +124,59 @@ describe('teammates the caller has not unlocked (only Ferni and Peter)', () => {
     expect(text).not.toMatch(/Not on this caller's team yet:[^.]*Peter/);
   });
 
-  it('replaces the locked handoffs with one askForTeammate tool that names Maya', async () => {
-    const tools = await requestTools();
+  it("sends the agent's own askForTeammate, and Peter as the only handoff", async () => {
+    const agent = await agentFor();
+    const tools = await requestTools(agent);
     const names = Object.keys(tools.functionTools);
-    expect(names).toContain('handoffToPeter');
-    expect(names).toContain('askForTeammate');
     expect(names.filter((n) => n.startsWith('handoffTo'))).toEqual(['handoffToPeter']);
-    const { description } = tools.functionTools['askForTeammate'] as { description: string };
-    expect(description).toContain('Maya');
-    expect(description).not.toContain('Peter');
+    // The declaration sent is the very tool the agent will execute.
+    expect(tools.functionTools['askForTeammate']).toBe(
+      agent.toolCtx.getFunctionTool('askForTeammate')
+    );
   }, 60_000);
 
-  it('answers a request for Maya with the warm decline, never a connection', async () => {
-    const answer = await ask(await requestTools(), 'Maya');
-    expect(answer).toMatchObject({ unavailable: true, teammate: 'Maya' });
-    expect(answer.instruction).toContain("Maya isn't on this caller's team yet");
-    expect(answer.instruction).toContain('nobody is being connected');
-    expect(answer.instruction).toContain('offer to help with it yourself');
-    expect(answer).not.toHaveProperty('handoff_complete');
+  it('runs askForTeammate("Maya") through the SDK dispatcher: the warm decline', async () => {
+    const result = await dispatch(await agentFor(), 'askForTeammate', { name: 'Maya' });
+    expect(result.output).not.toContain('Unknown function');
+    expect(result.isError).toBe(false);
+    expect(result.output).toContain("Maya isn't on this caller's team yet");
+    expect(result.output).toContain('nobody is being connected');
+    expect(result.output).toContain('offer to help with it yourself');
     // The runtime check refuses the transfer itself too.
     expect(await executeHandoff('maya-santos', 'caller asked')).toMatchObject({ locked: true });
   }, 60_000);
 
   it('still hands off to Peter', async () => {
-    const tools = await requestTools();
+    const agent = await agentFor();
+    const tools = await requestTools(agent);
     expect(tools.functionTools['handoffToPeter']).toBeDefined();
-    const answer = await ask(tools, 'Peter');
-    expect(answer).toMatchObject({ available: true });
-    expect(answer.instruction).toContain('call handoffToPeter');
-    const result = await executeHandoff('peter-john', 'caller asked');
-    expect(result.locked).toBeFalsy();
+    const result = await dispatch(agent, 'askForTeammate', { name: 'Peter' });
+    expect(result.output).toContain('call handoffToPeter');
+    expect((await executeHandoff('peter-john', 'caller asked')).locked).toBeFalsy();
   }, 60_000);
 
   it("never hands Ferni to Ferni, and says it's already Ferni", async () => {
-    const tools = await requestTools();
-    expect(tools.functionTools['handoffToFerni']).toBeUndefined();
-    expect(await ask(tools, 'Ferni')).toMatchObject({ you: true });
+    const agent = await agentFor();
+    expect((await requestTools(agent)).functionTools['handoffToFerni']).toBeUndefined();
+    expect((await dispatch(agent, 'askForTeammate', { name: 'Ferni' })).output).toContain(
+      'You are Ferni'
+    );
   }, 60_000);
 
   it("from Peter: the hand-back to Ferni stays, Peter isn't offered to himself", async () => {
-    const tools = await requestTools('peter-john');
+    const agent = await agentFor('peter-john');
+    const tools = await requestTools(agent, 'peter-john');
     expect(tools.functionTools['handoffToFerni']).toBeDefined();
     expect(tools.functionTools['handoffToPeter']).toBeUndefined();
     expect(reminderFor('peter-john')).not.toMatch(/team yet:[^.]*Peter/);
-    expect(await ask(tools, 'Maya')).toMatchObject({ unavailable: true });
+    const result = await dispatch(agent, 'askForTeammate', { name: 'Maya' }, 'peter-john');
+    expect(result.output).toContain("Maya isn't on this caller's team yet");
+  }, 60_000);
+
+  it("keeps askForTeammate executable through the tool cap's must-keep set", async () => {
+    const agent = await agentFor();
+    expect(agent.toolCtx.getFunctionTool('askForTeammate')).toBeDefined();
+    const tiny = capToolsToLimit({ a: 1, b: 2, askForTeammate: 3 } as Record<string, number>, 1);
+    expect(Object.keys(tiny)).toEqual(['askForTeammate']);
   }, 60_000);
 });

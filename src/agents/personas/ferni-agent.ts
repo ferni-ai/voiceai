@@ -34,7 +34,7 @@ import { getModelProvider } from '../model-provider/index.js';
 import { filterCaptionStream } from './caption-filter.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
-import { tapSpokenText, toolsForTurn } from './turn-request.js';
+import { tapSpokenText, toolsForTurn, withTeammateTool } from './turn-request.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -547,7 +547,7 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
     super({
       instructions: finalSystemPrompt,
       chatCtx: options.chatCtx,
-      tools: allTools,
+      tools: withTeammateTool(allTools), // executable, not just declared: locked-teammates.ts
     });
 
     this.skipGreeting = options.skipGreeting ?? false;
