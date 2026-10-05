@@ -29,20 +29,20 @@ let taskData = {
 
 interface TaskTemplate {
   id: string;
-  name: string;
+  nameKey: string;
   icon: string;
-  description: string;
-  estimatedTime: string;
+  descriptionKey: string;
+  estimatedTimeKey: string;
   inputs: TaskInput[];
   systemPrompt: string;
 }
 
 interface TaskInput {
   id: string;
-  label: string;
+  labelKey: string;
   type: 'text' | 'textarea' | 'select';
-  placeholder?: string;
-  options?: string[];
+  placeholderKey?: string;
+  optionKeys?: string[];
   required?: boolean;
 }
 
@@ -421,66 +421,66 @@ const STYLES = `
 const TASK_TEMPLATES: TaskTemplate[] = [
   {
     id: 'email',
-    name: 'Draft an Email',
+    nameKey: 'taskMode.templates.email.name',
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`,
-    description: 'Write a professional email with the right tone',
-    estimatedTime: '5-10 min',
+    descriptionKey: 'taskMode.templates.email.description',
+    estimatedTimeKey: 'taskMode.templates.email.time',
     inputs: [
-      { id: 'recipient', label: 'Who is this email to?', type: 'text', placeholder: 'e.g., My manager, A client', required: true },
-      { id: 'purpose', label: 'What is the purpose?', type: 'textarea', placeholder: 'Describe what you want to communicate...', required: true },
-      { id: 'tone', label: 'Desired tone', type: 'select', options: ['Professional', 'Friendly', 'Formal', 'Apologetic', 'Persuasive'], required: true }
+      { id: 'recipient', labelKey: 'taskMode.templates.email.recipientLabel', type: 'text', placeholderKey: 'taskMode.templates.email.recipientPlaceholder', required: true },
+      { id: 'purpose', labelKey: 'taskMode.templates.email.purposeLabel', type: 'textarea', placeholderKey: 'taskMode.templates.email.purposePlaceholder', required: true },
+      { id: 'tone', labelKey: 'taskMode.templates.email.toneLabel', type: 'select', optionKeys: ['taskMode.common.professional', 'taskMode.common.friendly', 'taskMode.common.formal', 'taskMode.common.apologetic', 'taskMode.common.persuasive'], required: true }
     ],
     systemPrompt: 'Help me draft a professional email to {recipient}. The email should be {tone} in tone. Purpose: {purpose}'
   },
   {
     id: 'meeting-prep',
-    name: 'Prepare for a Meeting',
+    nameKey: 'taskMode.templates.meetingPrep.name',
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
-    description: 'Create an agenda and prepare talking points',
-    estimatedTime: '10-15 min',
+    descriptionKey: 'taskMode.templates.meetingPrep.description',
+    estimatedTimeKey: 'taskMode.templates.meetingPrep.time',
     inputs: [
-      { id: 'meeting_type', label: 'What type of meeting?', type: 'select', options: ['Team sync', 'One-on-one', 'Client presentation', 'Project kickoff', 'Performance review'], required: true },
-      { id: 'attendees', label: 'Who will be there?', type: 'text', placeholder: 'e.g., Direct reports, CEO, Client team' },
-      { id: 'objectives', label: 'What do you want to accomplish?', type: 'textarea', placeholder: 'List your goals for this meeting...', required: true }
+      { id: 'meeting_type', labelKey: 'taskMode.templates.meetingPrep.typeLabel', type: 'select', optionKeys: ['taskMode.common.teamSync', 'taskMode.common.oneOnOne', 'taskMode.common.clientPresentation', 'taskMode.common.projectKickoff', 'taskMode.common.performanceReview'], required: true },
+      { id: 'attendees', labelKey: 'taskMode.templates.meetingPrep.attendeesLabel', type: 'text', placeholderKey: 'taskMode.templates.meetingPrep.attendeesPlaceholder' },
+      { id: 'objectives', labelKey: 'taskMode.templates.meetingPrep.objectivesLabel', type: 'textarea', placeholderKey: 'taskMode.templates.meetingPrep.objectivesPlaceholder', required: true }
     ],
     systemPrompt: 'Help me prepare for a {meeting_type} meeting. Attendees: {attendees}. Objectives: {objectives}. Create an agenda and key talking points.'
   },
   {
     id: 'document-review',
-    name: 'Review a Document',
+    nameKey: 'taskMode.templates.documentReview.name',
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
-    description: 'Get feedback on writing, proposals, or reports',
-    estimatedTime: '10-20 min',
+    descriptionKey: 'taskMode.templates.documentReview.description',
+    estimatedTimeKey: 'taskMode.templates.documentReview.time',
     inputs: [
-      { id: 'doc_type', label: 'What type of document?', type: 'select', options: ['Report', 'Proposal', 'Presentation', 'Article', 'Policy', 'Other'], required: true },
-      { id: 'content', label: 'Paste the content to review', type: 'textarea', placeholder: 'Paste your document content here...', required: true },
-      { id: 'focus', label: 'What should I focus on?', type: 'text', placeholder: 'e.g., Clarity, persuasiveness, grammar' }
+      { id: 'doc_type', labelKey: 'taskMode.templates.documentReview.typeLabel', type: 'select', optionKeys: ['taskMode.common.report', 'taskMode.common.proposal', 'taskMode.common.presentation', 'taskMode.common.article', 'taskMode.common.policy', 'taskMode.common.other'], required: true },
+      { id: 'content', labelKey: 'taskMode.templates.documentReview.contentLabel', type: 'textarea', placeholderKey: 'taskMode.templates.documentReview.contentPlaceholder', required: true },
+      { id: 'focus', labelKey: 'taskMode.templates.documentReview.focusLabel', type: 'text', placeholderKey: 'taskMode.templates.documentReview.focusPlaceholder' }
     ],
     systemPrompt: 'Review this {doc_type} and provide feedback. Focus on: {focus}. Content: {content}'
   },
   {
     id: 'brainstorm',
-    name: 'Brainstorm Ideas',
+    nameKey: 'taskMode.templates.brainstorm.name',
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>`,
-    description: 'Generate creative ideas and solutions',
-    estimatedTime: '15-30 min',
+    descriptionKey: 'taskMode.templates.brainstorm.description',
+    estimatedTimeKey: 'taskMode.templates.brainstorm.time',
     inputs: [
-      { id: 'challenge', label: 'What challenge are you trying to solve?', type: 'textarea', placeholder: 'Describe the problem or opportunity...', required: true },
-      { id: 'constraints', label: 'Any constraints or requirements?', type: 'text', placeholder: 'e.g., Budget limit, timeline, team size' },
-      { id: 'style', label: 'Brainstorming style', type: 'select', options: ['Wide range of ideas', 'Practical solutions', 'Creative/outside the box', 'Quick wins'], required: true }
+      { id: 'challenge', labelKey: 'taskMode.templates.brainstorm.challengeLabel', type: 'textarea', placeholderKey: 'taskMode.templates.brainstorm.challengePlaceholder', required: true },
+      { id: 'constraints', labelKey: 'taskMode.templates.brainstorm.constraintsLabel', type: 'text', placeholderKey: 'taskMode.templates.brainstorm.constraintsPlaceholder' },
+      { id: 'style', labelKey: 'taskMode.templates.brainstorm.styleLabel', type: 'select', optionKeys: ['taskMode.common.wideRange', 'taskMode.common.practicalSolutions', 'taskMode.common.creative', 'taskMode.common.quickWins'], required: true }
     ],
     systemPrompt: 'Help me brainstorm solutions for: {challenge}. Constraints: {constraints}. Generate ideas in a {style} manner.'
   },
   {
     id: 'project-plan',
-    name: 'Create a Project Plan',
+    nameKey: 'taskMode.templates.projectPlan.name',
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
-    description: 'Break down a project into actionable steps',
-    estimatedTime: '15-25 min',
+    descriptionKey: 'taskMode.templates.projectPlan.description',
+    estimatedTimeKey: 'taskMode.templates.projectPlan.time',
     inputs: [
-      { id: 'project', label: 'What is the project?', type: 'text', placeholder: 'Project name or description', required: true },
-      { id: 'goal', label: 'What is the end goal?', type: 'textarea', placeholder: 'What does success look like?', required: true },
-      { id: 'timeline', label: 'Timeline', type: 'select', options: ['1 week', '2 weeks', '1 month', '3 months', 'Flexible'], required: true }
+      { id: 'project', labelKey: 'taskMode.templates.projectPlan.projectLabel', type: 'text', placeholderKey: 'taskMode.templates.projectPlan.projectPlaceholder', required: true },
+      { id: 'goal', labelKey: 'taskMode.templates.projectPlan.goalLabel', type: 'textarea', placeholderKey: 'taskMode.templates.projectPlan.goalPlaceholder', required: true },
+      { id: 'timeline', labelKey: 'taskMode.templates.projectPlan.timelineLabel', type: 'select', optionKeys: ['taskMode.common.oneWeek', 'taskMode.common.twoWeeks', 'taskMode.common.oneMonth', 'taskMode.common.threeMonths', 'taskMode.common.flexible'], required: true }
     ],
     systemPrompt: 'Help me create a project plan for: {project}. End goal: {goal}. Timeline: {timeline}. Break it down into milestones and tasks.'
   }
@@ -499,7 +499,7 @@ function render(): string {
       <div class="task-mode-modal" role="dialog" aria-labelledby="task-title">
         <header class="task-mode-header">
           <div class="task-mode-title">
-            <span class="task-mode-eyebrow">Work Mode with</span>
+            <span class="task-mode-eyebrow">${t('taskMode.workModeWith')}</span>
             <h2 class="task-mode-name" id="task-title">${currentAgent.displayName || currentAgent.name}</h2>
           </div>
           <button class="task-close-btn" aria-label="${t('accessibility.close')}">
@@ -538,33 +538,33 @@ function renderSelectStep(): string {
       <div class="task-progress-step"></div>
       <div class="task-progress-step"></div>
     </div>
-    
-    <h3 class="task-step-title">What would you like to work on?</h3>
-    <p class="task-step-subtitle">Choose a task to get started</p>
-    
+
+    <h3 class="task-step-title">${t('taskMode.selectStep.title')}</h3>
+    <p class="task-step-subtitle">${t('taskMode.selectStep.subtitle')}</p>
+
     <div class="task-templates-list">
       ${TASK_TEMPLATES.map(template => `
         <button aria-label="${t('accessibility.moreInformation')}" class="task-template-card ${taskData.template?.id === template.id ? 'selected' : ''}" data-template="${template.id}">
           <div class="task-template-icon">${template.icon}</div>
           <div class="task-template-info">
-            <p class="task-template-name">${template.name}</p>
-            <p class="task-template-desc">${template.description}</p>
+            <p class="task-template-name">${t(template.nameKey)}</p>
+            <p class="task-template-desc">${t(template.descriptionKey)}</p>
             <div class="task-template-time">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12 6 12 12 16 14"/>
               </svg>
-              ${template.estimatedTime}
+              ${t(template.estimatedTimeKey)}
             </div>
           </div>
         </button>
       `).join('')}
     </div>
-    
+
     <div class="task-actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.cancel')}" class="task-btn task-btn--secondary" data-action="cancel">Cancel</button>
+      <button aria-label="${t('accessibility.cancel')}" class="task-btn task-btn--secondary" data-action="cancel">${t('common.cancel')}</button>
       <button aria-label="${t('accessibility.continue')}" class="task-btn task-btn--primary" data-action="next" ${!taskData.template ? 'disabled' : ''}>
-        Continue
+        ${t('common.continue')}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
         </svg>
@@ -575,59 +575,59 @@ function renderSelectStep(): string {
 
 function renderConfigureStep(): string {
   if (!taskData.template) return '';
-  
+
   return `
     <div class="task-progress">
       <div class="task-progress-step completed"></div>
       <div class="task-progress-step active"></div>
       <div class="task-progress-step"></div>
     </div>
-    
-    <h3 class="task-step-title">${taskData.template.name}</h3>
-    <p class="task-step-subtitle">Provide some details to get started</p>
-    
+
+    <h3 class="task-step-title">${t(taskData.template.nameKey)}</h3>
+    <p class="task-step-subtitle">${t('taskMode.configureStep.subtitle')}</p>
+
     ${taskData.template.inputs.map(input => `
       <div class="task-input-group">
         <label class="task-label" for="input-${input.id}">
-          ${input.label}
+          ${t(input.labelKey)}
           ${input.required ? '<span class="required">*</span>' : ''}
         </label>
         ${input.type === 'textarea' ? `
-          <textarea 
-            id="input-${input.id}" 
-            class="task-textarea" 
-            placeholder="${input.placeholder || ''}"
+          <textarea
+            id="input-${input.id}"
+            class="task-textarea"
+            placeholder="${input.placeholderKey ? t(input.placeholderKey) : ''}"
             data-input-id="${input.id}"
           >${taskData.inputs[input.id] || ''}</textarea>
         ` : input.type === 'select' ? `
           <select id="input-${input.id}" class="task-select" data-input-id="${input.id}">
-            <option value="">Select...</option>
-            ${input.options?.map(opt => `
-              <option value="${opt}" ${taskData.inputs[input.id] === opt ? 'selected' : ''}>${opt}</option>
+            <option value="">${t('taskMode.selectOption')}</option>
+            ${input.optionKeys?.map((optKey, idx) => `
+              <option value="${t(optKey)}" ${taskData.inputs[input.id] === t(optKey) ? 'selected' : ''}>${t(optKey)}</option>
             `).join('')}
           </select>
         ` : `
-          <input 
-            type="text" 
-            id="input-${input.id}" 
-            class="task-input" 
-            placeholder="${input.placeholder || ''}"
+          <input
+            type="text"
+            id="input-${input.id}"
+            class="task-input"
+            placeholder="${input.placeholderKey ? t(input.placeholderKey) : ''}"
             data-input-id="${input.id}"
             value="${taskData.inputs[input.id] || ''}"
           />
         `}
       </div>
     `).join('')}
-    
+
     <div class="task-actions" role="button" tabindex="0">
       <button aria-label="${t('accessibility.back')}" class="task-btn task-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
-        Back
+        ${t('common.back')}
       </button>
       <button aria-label="${t('accessibility.continue')}" class="task-btn task-btn--primary" data-action="next">
-        Continue
+        ${t('common.continue')}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
         </svg>
@@ -638,51 +638,51 @@ function renderConfigureStep(): string {
 
 function renderExecuteStep(): string {
   if (!taskData.template) return '';
-  
+
   return `
     <div class="task-progress">
       <div class="task-progress-step completed"></div>
       <div class="task-progress-step completed"></div>
       <div class="task-progress-step active"></div>
     </div>
-    
+
     <div class="task-summary">
       <div class="task-summary-header">
         <div class="task-summary-icon">${taskData.template.icon}</div>
         <div>
-          <h3 class="task-summary-title">${taskData.template.name}</h3>
+          <h3 class="task-summary-title">${t(taskData.template.nameKey)}</h3>
           <div class="task-summary-time">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
             </svg>
-            ${taskData.template.estimatedTime}
+            ${t(taskData.template.estimatedTimeKey)}
           </div>
         </div>
       </div>
-      
+
       <div class="task-summary-inputs">
         ${taskData.template.inputs.filter(i => taskData.inputs[i.id]).map(input => `
           <div class="task-summary-input">
-            <div class="task-summary-input-label">${input.label}</div>
+            <div class="task-summary-input-label">${t(input.labelKey)}</div>
             <div class="task-summary-input-value">${taskData.inputs[input.id]}</div>
           </div>
         `).join('')}
       </div>
     </div>
-    
+
     <div class="task-actions" role="button" tabindex="0">
       <button aria-label="${t('accessibility.edit')}" class="task-btn task-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
-        Edit
+        ${t('common.edit')}
       </button>
       <button aria-label="${t('accessibility.startWorking')}" class="task-btn task-btn--primary" data-action="start-task">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>
-        Start Working
+        ${t('taskMode.startWorking')}
       </button>
     </div>
   `;
@@ -809,7 +809,7 @@ function handleNext(): void {
       const missingRequired = template.inputs.find(i => i.required && !taskData.inputs[i.id]);
       if (missingRequired) {
         import('./whisper.ui.js').then(({ toast }) => {
-          toast.warning(t('toasts.fillInRequiredField', { field: missingRequired.label }));
+          toast.warning(t('toasts.fillInRequiredField', { field: t(missingRequired.labelKey) }));
         });
         return;
       }
@@ -834,7 +834,7 @@ async function handleStartTask(): Promise<void> {
 
   // Open talk interface with task context
   const { openTalkToTwin } = await import('./talk-to-twin.ui.js');
-  await openTalkToTwin(currentAgent.id, `[WORK MODE - ${taskData.template.name}]\n\n${prompt}`);
+  await openTalkToTwin(currentAgent.id, `[WORK MODE - ${t(taskData.template.nameKey)}]\n\n${prompt}`);
 }
 
 // ============================================================================
