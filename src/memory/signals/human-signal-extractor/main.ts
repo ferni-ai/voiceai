@@ -141,6 +141,21 @@ function dedupeArray<T>(existing: T[], newItems: T[], isDuplicate: (a: T, b: T) 
   return result;
 }
 
+/**
+ * Spread-friendly `{ [key]: value }`, included only when `value` isn't
+ * undefined. Firestore's `.set()` rejects any field whose value is
+ * `undefined`, so a key that has nothing to carry forward (e.g. no prior
+ * `temporal` patterns on a user's first extraction) must be omitted
+ * entirely rather than written as `key: undefined`.
+ */
+function definedOnly<K extends string, V>(key: K, value: V | undefined): Partial<Record<K, V>> {
+  const result: Partial<Record<K, V>> = {};
+  if (value !== undefined) {
+    result[key] = value;
+  }
+  return result;
+}
+
 // ============================================================================
 // MERGE WITH DEDUPLICATION
 // ============================================================================
@@ -223,7 +238,7 @@ export function mergeSignalsIntoMemory(
       energyPatterns: existing?.unspoken?.energyPatterns || [],
       updatedAt: now,
     },
-    temporal: existing?.temporal,
+    ...definedOnly('temporal', existing?.temporal),
     updatedAt: now,
   };
 }

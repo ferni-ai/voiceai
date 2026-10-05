@@ -50,8 +50,23 @@ export interface SpeakerWorkerRequest {
   samples: Float32Array;
 }
 export type SpeakerWorkerReply =
-  | { type: 'ready'; method: SpeakerEmbeddingMethod; reason?: string; threadId: number }
-  | { type: 'result'; id: number; vector: Float32Array; method: 'neural'; threadId: number }
+  | {
+      type: 'ready';
+      method: SpeakerEmbeddingMethod;
+      reason?: string;
+      /** neural: the model file's sha256, as hashed and matched to the pin */
+      sha256?: string;
+      threadId: number;
+    }
+  | {
+      type: 'result';
+      id: number;
+      vector: Float32Array;
+      method: 'neural';
+      /** Model time inside the worker */
+      inferMs: number;
+      threadId: number;
+    }
   | { type: 'error'; id: number; message: string };
 
 export interface OffThreadEmbedding {
@@ -59,20 +74,32 @@ export interface OffThreadEmbedding {
   method: 'neural';
   /** worker_threads threadId that computed it (the main thread is 0). */
   threadId: number;
+  /** Round trip from this thread: queueing + transfer + model time. */
+  embedMs: number;
+  /** Model time inside the worker. */
+  inferMs: number;
 }
 
 /** A request that takes longer than this is abandoned (the caller falls back). */
 const REQUEST_TIMEOUT_MS = 10_000;
+/**
+ * Every embedding logs its latency at debug; the first one, then one in this
+ * many, also at info, so an integration log (info level) can report it.
+ */
+export const EMBED_LATENCY_INFO_EVERY = 20;
 
 interface Pending {
   resolve: (e: OffThreadEmbedding) => void;
   reject: (e: Error) => void;
   timer: NodeJS.Timeout;
+  startedAt: number;
+  samples: number;
 }
 
 let worker: Worker | null = null;
 let method: Promise<SpeakerEmbeddingMethod> | null = null;
 let nextId = 0;
+let embedded = 0;
 const pending = new Map<number, Pending>();
 
 /**
@@ -146,7 +173,11 @@ async function start(): Promise<SpeakerEmbeddingMethod> {
       if (msg.type === 'ready') {
         settled = true;
         if (msg.method === 'neural') {
-          log.info({ modelPath }, 'Speaker embeddings: neural model in a worker thread');
+          // The worker hashed the file and matched it to the pin before loading it
+          log.info(
+            { modelPath, sha256Prefix: msg.sha256?.slice(0, 12), sha256Verified: true },
+            'Speaker embeddings: neural model in a worker thread, sha256 verified'
+          );
           resolve('neural');
         } else {
           stop('model refused');
@@ -159,7 +190,16 @@ async function start(): Promise<SpeakerEmbeddingMethod> {
       pending.delete(msg.id);
       clearTimeout(p.timer);
       if (msg.type === 'result') {
-        p.resolve({ vector: msg.vector, method: msg.method, threadId: msg.threadId });
+        const embedMs = Math.round(performance.now() - p.startedAt);
+        const inferMs = Math.round(msg.inferMs);
+        logLatency({ embedMs, inferMs, audioMs: Math.round(p.samples / 16), n: ++embedded });
+        p.resolve({
+          vector: msg.vector,
+          method: msg.method,
+          threadId: msg.threadId,
+          embedMs,
+          inferMs,
+        });
       } else {
         p.reject(new Error(msg.message));
       }
@@ -178,6 +218,18 @@ async function start(): Promise<SpeakerEmbeddingMethod> {
     w.on('error', died);
     w.on('exit', (code) => died(new Error(`speaker embedding worker exited (code ${code})`)));
   });
+}
+
+function logLatency(fields: {
+  embedMs: number;
+  inferMs: number;
+  audioMs: number;
+  n: number;
+}): void {
+  log.debug(fields, 'Speaker embedding');
+  if (fields.n === 1 || fields.n % EMBED_LATENCY_INFO_EVERY === 0) {
+    log.info({ ...fields, sampledEvery: EMBED_LATENCY_INFO_EVERY }, 'Speaker embedding latency');
+  }
 }
 
 /** 'neural' when the worker has the model loaded, else 'dsp'. Never rejects. */
@@ -201,7 +253,7 @@ export async function embedOffMainThread(samples: Float32Array): Promise<OffThre
       pending.delete(id);
       reject(new Error(`speaker embedding timed out after ${REQUEST_TIMEOUT_MS} ms`));
     }, REQUEST_TIMEOUT_MS);
-    pending.set(id, { resolve, reject, timer });
+    pending.set(id, { resolve, reject, timer, startedAt: performance.now(), samples: copy.length });
     const req: SpeakerWorkerRequest = { id, samples: copy };
     w.postMessage(req, [copy.buffer as ArrayBuffer]);
   });
@@ -212,6 +264,7 @@ export async function resetSpeakerEmbeddingWorker(): Promise<void> {
   const w = worker;
   worker = null;
   method = null;
+  embedded = 0;
   failAll(new Error('speaker embedding worker reset'));
   if (w) await w.terminate();
 }

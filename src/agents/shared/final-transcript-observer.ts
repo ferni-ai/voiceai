@@ -82,7 +82,10 @@ function recordCrisisShadow(input: FinalTranscriptInput): CrisisShadowRecord | n
     const voiceEmotion = toGuardVoiceEmotion(
       userData.voiceEmotion as ProsodyEmotionLike | undefined
     );
-    const crisis = observeCrisisTurn(transcript, voiceEmotion, crisisMode);
+    const recent = userData.recentTranscripts;
+    const crisis = observeCrisisTurn(transcript, voiceEmotion, crisisMode, {
+      recentMessages: Array.isArray(recent) ? recent.filter((m) => typeof m === 'string') : [],
+    });
     if (crisis && crisis.severity > 0) {
       crisisLog.info({ sessionId, turn: userData.turnCount, ...crisis }, 'CRISIS_SHADOW');
     }

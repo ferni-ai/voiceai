@@ -187,7 +187,6 @@
 		981DBC4242D7E38D88F4C69B /* HandoffProtocolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandoffProtocolTests.swift; sourceTree = "<group>"; };
 		A1C0FFEE0000000000000004 /* SubscriptionAccountTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionAccountTokenTests.swift; sourceTree = "<group>"; };
 		98E497A52D1874327EA2C4E8 /* FerniWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchApp.swift; sourceTree = "<group>"; };
-		9DE0DC542CA35F9D7A6EB679 /* client-sdk-swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "client-sdk-swift"; path = "../../vendor/client-sdk-swift"; sourceTree = SOURCE_ROOT; };
 		A621A2880FBC7F0E4BAE7443 /* E2EIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = E2EIntegrationTests.swift; sourceTree = "<group>"; };
 		A7209647670485E81A61C468 /* PersonaPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaPickerSheet.swift; sourceTree = "<group>"; };
 		A7BDF0EFCF984D439C77754B /* ExpressionEventMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpressionEventMapper.swift; sourceTree = "<group>"; };
@@ -321,7 +320,6 @@
 		25A7B5C3E64DE76E84F2F428 /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				9DE0DC542CA35F9D7A6EB679 /* client-sdk-swift */,
 				34902D96383D6F73CADDE82E /* shared */,
 			);
 			name = Packages;
@@ -697,7 +695,7 @@
 			packageReferences = (
 				BDF0DFDA77C6EF37DCD56DCB /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				2C5D1A9AD60B483D4ED72FDA /* XCLocalSwiftPackageReference "../shared" */,
-				7E49785416E2971D4A07B769 /* XCLocalSwiftPackageReference "../../vendor/client-sdk-swift" */,
+				7E49785416E2971D4A07B769 /* XCRemoteSwiftPackageReference "client-sdk-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
@@ -1297,10 +1295,6 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../shared;
 		};
-		7E49785416E2971D4A07B769 /* XCLocalSwiftPackageReference "../../vendor/client-sdk-swift" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../vendor/client-sdk-swift";
-		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -1312,6 +1306,14 @@
 				minimumVersion = 11.0.0;
 			};
 		};
+		7E49785416E2971D4A07B769 /* XCRemoteSwiftPackageReference "client-sdk-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/livekit/client-sdk-swift";
+			requirement = {
+				kind = exactVersion;
+				version = 2.11.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1321,6 +1323,7 @@
 		};
 		7F58E1F2D8611AEA3CBDE1CF /* LiveKit */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 7E49785416E2971D4A07B769 /* XCRemoteSwiftPackageReference "client-sdk-swift" */;
 			productName = LiveKit;
 		};
 		8C505BC4CC69B1F692F97697 /* FerniShared */ = {

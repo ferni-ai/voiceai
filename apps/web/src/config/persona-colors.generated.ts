@@ -4,7 +4,7 @@
  * Persona colors generated from design-system/tokens/colors.json
  * Regenerate with: npm run build:persona-colors
  *
- * Generated: 2026-02-23T11:35:47.477Z
+ * Generated: 2026-10-04T19:43:36.363Z
  */
 
 import type { PersonaColorConfig } from '../types/colors.js';
@@ -94,6 +94,26 @@ export const GENERATED_PERSONA_COLORS: Record<string, PersonaColorConfig> = {
     description: 'Vanguard burgundy red - distinguished, trustworthy, Stanford PhD mentor',
   },
 
+  'lynch': {
+    primary: '#1a5f2a',
+    secondary: '#154c22',
+    text: '#ffffff',
+    glow: 'rgba(26, 95, 42, 0.28)',
+    tint: 'rgba(26, 95, 42, 0.06)',
+    gradient: 'linear-gradient(135deg, #154c22 0%, #1a5f2a 100%)',
+    description: 'Peter Lynch (Financial Legend) - Fidelity forest green, from his bundle avatar colour',
+  },
+
+  'bogle': {
+    primary: '#8b0000',
+    secondary: '#6f0000',
+    text: '#ffffff',
+    glow: 'rgba(139, 0, 0, 0.28)',
+    tint: 'rgba(139, 0, 0, 0.06)',
+    gradient: 'linear-gradient(135deg, #6f0000 0%, #8b0000 100%)',
+    description: 'John Bogle (Financial Legend) - deep Vanguard red, from his bundle avatar colour',
+  },
+
   'eli': {
     primary: '#6B5B95',
     secondary: '#4A4063',
@@ -177,6 +197,8 @@ export const GENERATED_PERSONA_IDS = [
   "jordan",
   "nayan",
   "joel",
+  "lynch",
+  "bogle",
   "eli",
   "marcus",
   "kenji",

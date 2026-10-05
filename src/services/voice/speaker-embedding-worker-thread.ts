@@ -46,6 +46,11 @@ interface OrtModule {
 }
 
 type Embedder = (audio: Float32Array) => Promise<Float32Array>;
+interface LoadedModel {
+  embed: Embedder;
+  /** The digest the file was checked against (and matched). */
+  sha256: string;
+}
 
 async function sha256File(path: string): Promise<string> {
   const hash = createHash('sha256');
@@ -53,7 +58,7 @@ async function sha256File(path: string): Promise<string> {
   return hash.digest('hex');
 }
 
-async function loadNeural({ modelPath, expectedSha256 }: SpeakerWorkerInit): Promise<Embedder> {
+async function loadNeural({ modelPath, expectedSha256 }: SpeakerWorkerInit): Promise<LoadedModel> {
   if (!existsSync(modelPath)) throw new Error(`no model file at ${modelPath}`);
   const actual = await sha256File(modelPath);
   if (actual !== expectedSha256) {
@@ -87,7 +92,7 @@ async function loadNeural({ modelPath, expectedSha256 }: SpeakerWorkerInit): Pro
   if (probe.length !== EMBEDDING_DIM || !probe.every(Number.isFinite)) {
     throw new Error(`model returned ${probe.length} values, expected ${EMBEDDING_DIM} finite`);
   }
-  return embed;
+  return { embed, sha256: actual };
 }
 
 async function main(): Promise<void> {
@@ -97,7 +102,7 @@ async function main(): Promise<void> {
   const reply = (msg: SpeakerWorkerReply, transfer: ArrayBuffer[] = []): void =>
     port.postMessage(msg, transfer);
 
-  let neural: Embedder;
+  let neural: LoadedModel;
   try {
     neural = await loadNeural(init);
   } catch (error) {
@@ -106,13 +111,15 @@ async function main(): Promise<void> {
     reply({ type: 'ready', method: 'dsp', reason, threadId });
     return;
   }
-  reply({ type: 'ready', method: 'neural', threadId });
+  reply({ type: 'ready', method: 'neural', sha256: neural.sha256, threadId });
 
   port.on('message', (req: SpeakerWorkerRequest) => {
     void (async () => {
       try {
-        const vector = await neural(req.samples);
-        reply({ type: 'result', id: req.id, vector, method: 'neural', threadId }, [
+        const started = performance.now();
+        const vector = await neural.embed(req.samples);
+        const inferMs = performance.now() - started;
+        reply({ type: 'result', id: req.id, vector, method: 'neural', inferMs, threadId }, [
           vector.buffer as ArrayBuffer,
         ]);
       } catch (error) {

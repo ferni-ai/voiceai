@@ -85,6 +85,20 @@ export function isBackchannel(ws: string[]): boolean {
   return ws.length > 0 && ws.every((w) => BACKCHANNEL_WORDS.has(w));
 }
 
+/**
+ * Make the patched LiveKit (BACKCHANNEL_KEEPS_PAUSE / BACKCHANNEL_NOT_A_TURN in
+ * patches/@livekit__agents@1.5.1.patch) use this list: the patch had its own,
+ * without "aha", "alright", "got it" or "I see", so those cut Ferni off.
+ */
+export function installBackchannelHook(): void {
+  (globalThis as { __FERNI_IS_BACKCHANNEL?: (text: string) => boolean }).__FERNI_IS_BACKCHANNEL = (
+    text
+  ) => {
+    const ws = words(text);
+    return ws.length <= 4 && isBackchannel(ws);
+  };
+}
+
 /** Mostly Ferni's own current words: the caller's mic hearing Ferni. */
 export function looksLikeEcho(ws: string[], spokenText: string): boolean {
   if (ws.length === 0 || !spokenText) return false;

@@ -135,6 +135,18 @@ const removeUndefinedImpl = <T extends object>(obj: T): T => {
   return result as T;
 };
 
+// Mirrors utils/firestore-utils.ts's sanitizeFirestoreDocId.
+const sanitizeFirestoreDocIdImpl = (input: string): string => {
+  const MAX_BYTES = 1400;
+  let safe = (input ?? '').replace(/\//g, '-').trim();
+  if (safe === '.' || safe === '..') safe = safe.replace(/\./g, '_dot_');
+  if (safe.length === 0) safe = '_';
+  if (Buffer.byteLength(safe, 'utf8') > MAX_BYTES) {
+    safe = Buffer.from(safe, 'utf8').subarray(0, MAX_BYTES).toString('utf8');
+  }
+  return safe;
+};
+
 // Helper: Safely convert any timestamp-like value to Date
 const toSafeDateImpl = (value: unknown, fallback: Date = new Date()): Date => {
   if (!value) return fallback;
@@ -170,6 +182,7 @@ vi.mock('../utils/firestore-utils.js', () => ({
   // Not cleanForFirestore: that turns Dates into strings, which the real
   // deepRemoveUndefined doesn't do.
   deepRemoveUndefined: vi.fn((obj: unknown) => deepRemoveUndefinedImpl(obj)),
+  sanitizeFirestoreDocId: vi.fn((input: string) => sanitizeFirestoreDocIdImpl(input)),
   toSafeDate: vi.fn((value: unknown, fallback?: Date) => toSafeDateImpl(value, fallback)),
   toSafeDateOptional: vi.fn((value: unknown) => toSafeDateOptionalImpl(value)),
   recordDegradation: vi.fn(),
@@ -252,6 +265,30 @@ vi.mock('firebase-admin/firestore', () => {
       delete: vi.fn(() => ({})),
     },
   };
+});
+
+// About 100 modules (the persistence layer among them) import @google-cloud/firestore
+// directly, which the firebase-admin mock above doesn't cover, so tests built a real
+// client. In CI, with no credentials, every call retried to its deadline (13-21 s per
+// test), pushing Integration Tests past its 30-minute limit; locally, a developer's
+// gcloud credentials sent test reads and writes to the real project. Tests run against
+// the emulator keep the real client, and a test's own vi.mock still takes precedence.
+vi.mock('@google-cloud/firestore', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@google-cloud/firestore')>();
+  if (process.env.FIRESTORE_EMULATOR_HOST) return actual;
+
+  class Firestore {
+    constructor() {
+      const db = createMockFirestore();
+      return Object.assign(db, {
+        settings: vi.fn(),
+        terminate: vi.fn().mockResolvedValue(undefined),
+        listCollections: vi.fn().mockResolvedValue([]),
+        collectionGroup: vi.fn(() => db.collection('')),
+      });
+    }
+  }
+  return { ...actual, Firestore, default: { ...actual, Firestore } };
 });
 
 vi.mock('firebase-admin/app', () => ({

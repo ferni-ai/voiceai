@@ -7,6 +7,7 @@ import { Router, type Request, type Response } from 'express';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createGoal, getGoals, getGoal, updateGoal, deleteGoal, updateProgress, addMilestone, completeMilestone } from '../../services/ceo/goals.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { paramString } from '../param-string.js';
 
 const log = createLogger({ module: 'goals-routes' });
 const router = Router();
@@ -108,7 +109,10 @@ router.get('/by-category', async (req: Request, res: Response) => {
 router.get('/:goalId', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { goalId } = req.params;
+    const goalId = paramString(req.params.goalId);
+    if (!goalId) {
+      return res.status(400).json({ error: 'Invalid goal ID' });
+    }
 
     const goal = await getGoal(userId, goalId);
 
@@ -171,7 +175,10 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:goalId', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { goalId } = req.params;
+    const goalId = paramString(req.params.goalId);
+    if (!goalId) {
+      return res.status(400).json({ error: 'Invalid goal ID' });
+    }
     const updates = req.body;
 
     // Remove fields that shouldn't be updated directly
@@ -197,7 +204,10 @@ router.put('/:goalId', async (req: Request, res: Response) => {
 router.post('/:goalId/complete', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { goalId } = req.params;
+    const goalId = paramString(req.params.goalId);
+    if (!goalId) {
+      return res.status(400).json({ error: 'Invalid goal ID' });
+    }
 
     const goal = await updateGoal(userId, goalId, { status: 'completed' });
 
@@ -216,7 +226,10 @@ router.post('/:goalId/complete', async (req: Request, res: Response) => {
 router.post('/:goalId/archive', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { goalId } = req.params;
+    const goalId = paramString(req.params.goalId);
+    if (!goalId) {
+      return res.status(400).json({ error: 'Invalid goal ID' });
+    }
 
     const goal = await updateGoal(userId, goalId, { status: 'paused' });
 
@@ -235,7 +248,10 @@ router.post('/:goalId/archive', async (req: Request, res: Response) => {
 router.delete('/:goalId', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { goalId } = req.params;
+    const goalId = paramString(req.params.goalId);
+    if (!goalId) {
+      return res.status(400).json({ error: 'Invalid goal ID' });
+    }
 
     await deleteGoal(userId, goalId);
 
@@ -254,7 +270,10 @@ router.delete('/:goalId', async (req: Request, res: Response) => {
 router.put('/:goalId/progress', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { goalId } = req.params;
+    const goalId = paramString(req.params.goalId);
+    if (!goalId) {
+      return res.status(400).json({ error: 'Invalid goal ID' });
+    }
     const { progress } = req.body;
 
     if (progress === undefined || progress === null) {
@@ -282,7 +301,10 @@ router.put('/:goalId/progress', async (req: Request, res: Response) => {
 router.post('/:goalId/milestones', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { goalId } = req.params;
+    const goalId = paramString(req.params.goalId);
+    if (!goalId) {
+      return res.status(400).json({ error: 'Invalid goal ID' });
+    }
     const { title } = req.body;
 
     if (!title) {
@@ -306,7 +328,14 @@ router.post('/:goalId/milestones', async (req: Request, res: Response) => {
 router.post('/:goalId/milestones/:milestoneId/complete', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { goalId, milestoneId } = req.params;
+    const goalId = paramString(req.params.goalId);
+    if (!goalId) {
+      return res.status(400).json({ error: 'Invalid goal ID' });
+    }
+    const milestoneId = paramString(req.params.milestoneId);
+    if (!milestoneId) {
+      return res.status(400).json({ error: 'Invalid milestone ID' });
+    }
 
     const goal = await completeMilestone(userId, goalId, milestoneId);
 

@@ -193,3 +193,9 @@ test_higgs_output.wav
 # (committed 0b3e276cf); untracked 2026-09-25. See the audit note in ci.yml.
 .env.linkedin
 **/.env.linkedin
+
+# Swift build caches: these captured env vars (incl. API keys) and leaked them in history
+**/.build/
+# Xcode build data: also captured shell env (PERPLEXITY_API_KEY, GEMINI key)
+apps/ios-native/build/
+**/XCBuildData/

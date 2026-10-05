@@ -58,6 +58,11 @@ on:
 env:
   NODE_VERSION: '20'
   GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+  # These jobs have an API key and no GCP credentials, so use the Gemini API.
+  # src/config/gemini-config.ts defaults to Vertex AI, which needs
+  # GOOGLE_CLOUD_PROJECT plus credentials; on the default every CLI run here
+  # logged "Vertex AI enabled but GOOGLE_CLOUD_PROJECT not set".
+  USE_VERTEX_AI: 'false'
 
 jobs:
   # ============================================================================

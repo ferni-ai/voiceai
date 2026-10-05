@@ -4,8 +4,12 @@
  * Comprehensive tests for the unified memory system.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
+
+// These tests run against a real Firestore (credentials or emulator) and skip when
+// the store can't initialize, so opt out of the global in-memory mock in setup.ts.
+vi.mock('@google-cloud/firestore', async (importOriginal) => importOriginal());
 
 // Test subjects
 import { EntityStore, getEntityStore, initializeEntityStore as initStore } from '../store.js';
