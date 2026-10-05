@@ -74,14 +74,12 @@ import { resetWordTimingRhythmService } from '../word-timing-rhythm.js';
 import { resetAmbientAwareness } from '../ambient-awareness.js';
 import { resetRealtimePreemptiveProcessor } from '../realtime-preemptive-patch.js';
 
-// Voice manager
+// Voice manager and catchphrase tracking
 import { resetSessionVoiceManager } from '../voice-manager.js';
+import { resetSessionCatchphraseTracker } from '../response-naturalness.js';
 
 // Enhanced backchanneling (legacy, using preferred reset* naming)
 import { resetEnhancedBackchannelingEngine } from '../enhanced-backchanneling.js';
-
-// Catchphrase tracking
-import { resetSessionCatchphraseTracker } from '../response-naturalness.js';
 
 // Feedback coordination (global budget to prevent over-feedback)
 import { resetFeedbackCoordinator } from '../feedback-coordinator.js';

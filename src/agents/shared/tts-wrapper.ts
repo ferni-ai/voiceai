@@ -409,9 +409,7 @@ export async function wrappedTtsNode(
     onInterruptRecoveryApplied,
     enableStreamingOptimization = isStreamingTTSEnabled(),
     isFirstTurn = false,
-    // Always route through the post-TTS step: it runs Stage 2 (opening breath,
-    // tempo) when gated on, and the mastering chain only when opted in.
-    enablePostTTSEnhancement = true,
+    enablePostTTSEnhancement = true, // Stage 2 runs there; the mastering chain only if opted in
     postTTSConfig,
   } = options;
 
