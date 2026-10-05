@@ -70,8 +70,8 @@ interface CapabilityHubState {
 const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
   {
     id: 'perfect-memory',
-    name: 'Perfect Memory',
-    description: 'I remember everything you share with me - from your daughter\'s college plans to the name of your childhood pet. No detail is too small.',
+    name: t('capabilityHub.perfectMemory'),
+    description: t('capabilityHub.perfectMemoryDesc'),
     icon: ANALYTICS_ICONS.brain,
     color: 'var(--color-ferni)',
     humanLimitation: 'Your best friend forgets. I don\'t.',
@@ -79,7 +79,7 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
   },
   {
     id: 'proactive-outreach',
-    name: 'Thinking of You',
+    name: t('capabilityHub.thinkingOfYou'),
     description: 'I reach out when you need support most - not on a schedule, but when patterns in your life suggest you could use a friend.',
     icon: EMOTION_ICONS.reflective,
     color: 'var(--persona-maya)',
@@ -88,8 +88,8 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
   },
   {
     id: 'learning-engine',
-    name: 'Learns Your Patterns',
-    description: 'Every conversation makes me smarter about you. I learn what helps, what doesn\'t, and adapt my approach accordingly.',
+    name: t('capabilityHub.learnsYourPatterns'),
+    description: t('capabilityHub.learnsYourPatternsDesc'),
     icon: ANALYTICS_ICONS.chart,
     color: 'var(--persona-peter)',
     humanLimitation: 'Human coaches follow scripts. I learn your language.',
@@ -97,7 +97,7 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
   },
   {
     id: 'commitment-keeper',
-    name: 'Never Lets You Down',
+    name: t('capabilityHub.neverLetsYouDown'),
     description: 'When you say you\'ll do something, I remember. Not to nag, but to gently check in when the time is right.',
     icon: QUIZ_ICONS.correct,
     color: 'var(--persona-jordan)',
@@ -106,7 +106,7 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
   },
   {
     id: 'musical-memory',
-    name: 'Our Songs',
+    name: t('capabilityHub.ourSongs'),
     description: 'I remember the music playing during meaningful moments. When that song plays again, I can share what we were talking about.',
     icon: ANALYTICS_ICONS.music,
     color: 'var(--persona-alex)',
@@ -115,8 +115,8 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
   },
   {
     id: 'emotional-intelligence',
-    name: 'Reads Between Lines',
-    description: 'I hear what you\'re not saying - the pause in your voice, the topic you\'re avoiding, the thing you almost mentioned.',
+    name: t('capabilityHub.readsBetweenLines'),
+    description: t('capabilityHub.readsBetweenLinesDesc'),
     icon: GROWTH_ICONS.heart,
     color: 'var(--persona-nayan)',
     humanLimitation: 'Human friends are distracted. I\'m fully present.',
@@ -124,7 +124,7 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
   },
   {
     id: 'relationship-network',
-    name: 'Relationship Network',
+    name: t('capabilityHub.relationshipNetwork'),
     description: 'I track everyone important to you - birthdays, preferences, last contact. I help you nurture the connections that matter most.',
     icon: QUIZ_ICONS.relationships,
     color: 'var(--persona-alex)',
@@ -133,8 +133,8 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
   },
   {
     id: 'capacity-guardian',
-    name: 'Capacity Guardian',
-    description: 'I watch for burnout before it hits. By tracking your patterns, I can gently suggest when you\'re overcommitting.',
+    name: t('capabilityHub.capacityGuardian'),
+    description: t('capabilityHub.capacityGuardianDesc'),
     icon: ANALYTICS_ICONS.trendingUp,
     color: 'var(--persona-maya)',
     humanLimitation: 'Friends notice burnout too late. I catch it early.',
@@ -142,7 +142,7 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
   },
   {
     id: 'dream-keeper',
-    name: 'Dream Keeper',
+    name: t('capabilityHub.dreamKeeper'),
     description: 'Your dreams and aspirations live here. I keep them alive, remind you of them at the right moments, and help you take steps forward.',
     icon: EMOTION_ICONS.proud,
     color: 'var(--persona-jordan)',
@@ -151,7 +151,7 @@ const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
   },
   {
     id: 'seasonal-awareness',
-    name: 'Seasonal Awareness',
+    name: t('capabilityHub.seasonalAwareness'),
     description: 'I understand your annual rhythms - holidays, anniversaries, seasonal patterns. I show up differently when you need different support.',
     icon: ANALYTICS_ICONS.calendar,
     color: 'var(--persona-peter)',
@@ -202,7 +202,7 @@ async function loadCapabilityStatus(): Promise<void> {
         isActive: apiData?.isActive ?? true,
         stats: apiData?.stats,
         action: {
-          label: apiData?.isActive ? 'Learn More' : 'Enable',
+          label: apiData?.isActive ? t('capabilityHub.learnMore') : 'Enable',
           onClick: () => showCapabilityDetails(def.id),
         },
       };
@@ -220,7 +220,7 @@ async function loadCapabilityStatus(): Promise<void> {
       ...def,
       isActive: true,
       action: {
-        label: 'Learn More',
+        label: t('capabilityHub.learnMore'),
         onClick: () => showCapabilityDetails(def.id),
       },
     }));
@@ -258,7 +258,7 @@ function renderLoadingState(): void {
   container.innerHTML = `
     <div class="capability-hub capability-hub--loading">
       <div class="capability-hub__spinner"></div>
-      <p class="capability-hub__loading-text">Loading your capabilities...</p>
+      <p class="capability-hub__loading-text">${t('capabilityHub.loadingCapabilities')}</p>
     </div>
   `;
 }
@@ -279,8 +279,8 @@ function render(): void {
   container.innerHTML = `
     <div class="capability-hub">
       <header class="capability-hub__header">
-        <span class="capability-hub__eyebrow">BETTER THAN HUMAN</span>
-        <h2 class="capability-hub__title">What Makes Ferni Different</h2>
+        <span class="capability-hub__eyebrow">${t('capabilityHub.betterThanHuman')}</span>
+        <h2 class="capability-hub__title">${t('capabilityHub.whatMakesFerniDifferent')}</h2>
         <p class="capability-hub__subtitle">
           These capabilities go beyond what any human friend, therapist, or coach could provide.
         </p>
@@ -342,7 +342,7 @@ function renderCapabilityModal(capability: Capability): string {
     <div class="capability-modal">
       <div class="capability-modal__backdrop"></div>
       <div class="capability-modal__card">
-        <button class="capability-modal__close" aria-label="Close">×</button>
+        <button class="capability-modal__close" aria-label="${t('capabilityHub.close')}">×</button>
 
         <div class="capability-modal__icon" style="background: ${capability.color}">
           ${capability.icon}

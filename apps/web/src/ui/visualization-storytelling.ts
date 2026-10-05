@@ -126,7 +126,7 @@ export function generatePredictionNarrative(
   if (accuracy === null || totalResolved === 0) {
     return {
       narrative: 'Let\'s discover how well you know yourself',
-      label: 'Begin your journey',
+      label: t('visualizations.beginYourJourney'),
       iconSuggestion: 'compass',
       tone: 'curious',
       deeperInsight: 'Predictions reveal your self-awareness. Most people are surprised.',
@@ -183,34 +183,34 @@ export function generateTurningPointNarrative(
 
   const typeNarratives: Record<string, { label: string; deeper: string; tone: NarrativeOutput['tone'] }> = {
     'first-conversation': {
-      label: 'The beginning',
+      label: t('visualizations.theBeginning'),
       deeper: 'Every journey has a first step. This was yours.',
       tone: 'warm',
     },
     'vulnerability-shared': {
-      label: 'A moment of trust',
+      label: t('visualizations.aMomentOfTrust'),
       deeper: 'You shared something real. That takes courage.',
       tone: 'gentle',
     },
     'milestone-reached': {
-      label: 'A turning point',
+      label: t('visualizations.aTurningPoint'),
       deeper: 'Progress isn\'t always visible. But it\'s real.',
       tone: 'celebratory',
     },
     'pattern-recognized': {
-      label: 'Something clicked',
+      label: t('visualizations.somethingClicked'),
       deeper: 'Awareness is the first step to change.',
       tone: 'curious',
     },
     'growth-moment': {
-      label: 'Growth happened here',
+      label: t('visualizations.growthHappenedHere'),
       deeper: 'Small moments compound. This one mattered.',
       tone: 'supportive',
     },
   };
 
   const typeData = typeNarratives[eventType] || {
-    label: 'A moment',
+    label: t('visualizations.amoment'),
     deeper: 'Every interaction leaves an impression.',
     tone: 'warm' as const,
   };
@@ -302,20 +302,20 @@ export function generateTemporalStory(
   if (previous === null) {
     historicalNarrative = {
       narrative: 'This is new territory',
-      label: 'Starting point',
+      label: t('visualizations.startingPoint'),
       tone: 'curious',
     };
   } else if (change > 0) {
     historicalNarrative = {
       narrative: `Started at ${previous}`,
-      label: 'Where you began',
+      label: t('visualizations.whereYouBegan'),
       tone: 'supportive',
       deeperInsight: 'Every starting point is valid. Growth happens from anywhere.',
     };
   } else {
     historicalNarrative = {
       narrative: `You were at ${previous}`,
-      label: 'Your baseline',
+      label: t('visualizations.yourBaseline'),
       tone: 'gentle',
     };
   }
@@ -338,21 +338,21 @@ export function generateTemporalStory(
     const projected = Math.round(current * 1.15);
     predictiveNarrative = {
       narrative: `On track for ${projected}`,
-      label: 'Momentum building',
+      label: t('visualizations.momentumBuilding'),
       tone: 'celebratory',
       deeperInsight: 'If you keep this up, great things are coming.',
     };
   } else if (trend === 'down') {
     predictiveNarrative = {
       narrative: 'A chance to reset',
-      label: 'Opportunity ahead',
+      label: t('visualizations.opportunityAhead'),
       tone: 'supportive',
       deeperInsight: 'Every dip is a chance to understand what matters.',
     };
   } else {
     predictiveNarrative = {
       narrative: 'Steady as she goes',
-      label: 'Consistent path',
+      label: t('visualizations.consistentPath'),
       tone: 'warm',
       deeperInsight: 'Consistency is underrated. You\'re building something real.',
     };
@@ -420,7 +420,7 @@ export function renderTemporalStory(story: TemporalStory): string {
   return `
     <div class="temporal-story">
       <div class="temporal-story__frame temporal-story__frame--past">
-        <span class="temporal-story__label">Then</span>
+        <span class="temporal-story__label">${escapeHtml(t('visualizations.then'))}</span>
         <span class="temporal-story__narrative">${escapeHtml(story.historical.narrative)}</span>
       </div>
       <div class="temporal-story__connector">
@@ -429,7 +429,7 @@ export function renderTemporalStory(story: TemporalStory): string {
         </svg>
       </div>
       <div class="temporal-story__frame temporal-story__frame--present">
-        <span class="temporal-story__label">Now</span>
+        <span class="temporal-story__label">${escapeHtml(t('visualizations.now'))}</span>
         <span class="temporal-story__narrative">${escapeHtml(story.current.narrative)}</span>
       </div>
       <div class="temporal-story__connector">
@@ -438,7 +438,7 @@ export function renderTemporalStory(story: TemporalStory): string {
         </svg>
       </div>
       <div class="temporal-story__frame temporal-story__frame--future">
-        <span class="temporal-story__label">Next</span>
+        <span class="temporal-story__label">${escapeHtml(t('visualizations.next'))}</span>
         <span class="temporal-story__narrative">${escapeHtml(story.predictive.narrative)}</span>
       </div>
     </div>
@@ -454,7 +454,7 @@ export function renderMirrorInsight(
   return `
     <div class="mirror-insight">
       <div class="mirror-insight__surface">
-        <span class="mirror-insight__label">What you said</span>
+        <span class="mirror-insight__label">${escapeHtml(t('visualizations.whatYouSaid'))}</span>
         <p class="mirror-insight__text">"${escapeHtml(mirror.surface)}"</p>
       </div>
       <div class="mirror-insight__divider">
@@ -463,7 +463,7 @@ export function renderMirrorInsight(
         </svg>
       </div>
       <div class="mirror-insight__deeper">
-        <span class="mirror-insight__label">What I notice</span>
+        <span class="mirror-insight__label">${escapeHtml(t('visualizations.whatINotice'))}</span>
         <p class="mirror-insight__text">${escapeHtml(mirror.deeper)}</p>
         ${mirror.invitation ? `
           <p class="mirror-insight__invitation">${escapeHtml(mirror.invitation)}</p>
@@ -822,9 +822,9 @@ export function createTemporalStoryElement(story: TemporalStory): HTMLElement {
   container.className = 'temporal-story';
 
   const frames: Array<{ key: keyof TemporalStory; label: string; modifier: string }> = [
-    { key: 'historical', label: 'Then', modifier: 'past' },
-    { key: 'current', label: 'Now', modifier: 'present' },
-    { key: 'predictive', label: 'Next', modifier: 'future' },
+    { key: 'historical', label: t('visualizations.then'), modifier: 'past' },
+    { key: 'current', label: t('visualizations.now'), modifier: 'present' },
+    { key: 'predictive', label: t('visualizations.next'), modifier: 'future' },
   ];
 
   frames.forEach((frame, index) => {

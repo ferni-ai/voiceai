@@ -64,42 +64,42 @@ const CELEBRATION_ICONS: Record<ValueType, string> = {
   emotional_breakthrough: `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>`,
 };
 
-const VALUE_CELEBRATIONS: Record<ValueType, { title: string; message: string }> = {
+const VALUE_CELEBRATIONS: Record<ValueType, { titleKey: string; messageKey: string }> = {
   financial_gain: {
-    title: 'You Did It!',
-    message: "That's real money in your pocket. You earned every cent.",
+    titleKey: 'valueCapture.youDidIt',
+    messageKey: 'valueCapture.youDidItMsg',
   },
   financial_save: {
-    title: 'Smart Move!',
-    message: "That's money staying where it belongs - with you.",
+    titleKey: 'valueCapture.smartMove',
+    messageKey: 'valueCapture.smartMoveMsg',
   },
   habit_milestone: {
-    title: "That's Discipline!",
-    message: "This isn't luck. This is who you're becoming.",
+    titleKey: 'valueCapture.congratulations',
+    messageKey: 'valueCapture.congratulationsMsg',
   },
   career_win: {
-    title: 'Congratulations!',
-    message: "All that work paid off. You showed them what you're made of.",
+    titleKey: 'valueCapture.congratulations',
+    messageKey: 'valueCapture.congratulationsMsg',
   },
   relationship_improvement: {
-    title: 'Beautiful',
-    message: 'Real connection. Real growth. That matters.',
+    titleKey: 'valueCapture.beautiful',
+    messageKey: 'valueCapture.beautifulMsg',
   },
   health_improvement: {
-    title: 'Look at You!',
-    message: "Your body is thanking you. That's quality of life.",
+    titleKey: 'valueCapture.lookAtYou',
+    messageKey: 'valueCapture.lookAtYouMsg',
   },
   productivity_gain: {
-    title: 'Crushing It!',
-    message: 'Time well spent. Look what you accomplished.',
+    titleKey: 'valueCapture.crushingIt',
+    messageKey: 'valueCapture.crushingItMsg',
   },
   clarity_moment: {
-    title: 'Breakthrough!',
-    message: 'Sometimes the right question changes everything.',
+    titleKey: 'valueCapture.breakthrough',
+    messageKey: 'valueCapture.breakthroughMsg',
   },
   emotional_breakthrough: {
-    title: 'So Proud of You',
-    message: 'That took courage. Real courage.',
+    titleKey: 'valueCapture.soProudOfYou',
+    messageKey: 'valueCapture.soProudMsg',
   },
 };
 
@@ -531,7 +531,7 @@ function createModal(event: ValueEvent): HTMLElement {
 
 function renderCelebration(
   event: ValueEvent,
-  celebration: { title: string; message: string }
+  celebration: { titleKey: string; messageKey: string }
 ): string {
   const hasValue = event.estimatedValueCents && event.estimatedValueCents > 0;
   const suggested = event.suggestedContributionCents || 0;
@@ -549,8 +549,8 @@ function renderCelebration(
   return `
     <div class="value-capture-header">
       <div class="value-capture-icon">${icon}</div>
-      <h2 class="value-capture-title" id="value-capture-title">${celebration.title}</h2>
-      <p class="value-capture-message">${celebration.message}</p>
+      <h2 class="value-capture-title" id="value-capture-title">${t(celebration.titleKey)}</h2>
+      <p class="value-capture-message">${t(celebration.messageKey)}</p>
     </div>
 
     ${
@@ -558,7 +558,7 @@ function renderCelebration(
         ? `
       <div class="value-capture-value-display">
         <div class="value-capture-value-amount">${formatAmount(event.estimatedValueCents!)}</div>
-        <div class="value-capture-value-label">Your achievement</div>
+        <div class="value-capture-value-label">${t('valueCapture.yourAchievement')}</div>
       </div>
     `
         : ''
@@ -566,16 +566,16 @@ function renderCelebration(
 
     <div class="value-capture-contribution">
       <p class="value-capture-contribution-intro">
-        If I played any part in this, you can share what it's worth.
-        <br>No pressure at all.
+        ${t('valueCapture.ifIPlayedAnyPart')}
+        <br>${t('valueCapture.noPressureAtAll')}
       </p>
 
       <div class="value-capture-amounts">
         ${amounts
           .map(
             (amount, i) => `
-          <button 
-            class="value-capture-amount-btn ${i === 1 && suggested ? 'suggested' : ''}" 
+          <button
+            class="value-capture-amount-btn ${i === 1 && suggested ? 'suggested' : ''}"
             data-amount="${amount}"
           >
             ${formatAmount(amount)}
@@ -593,11 +593,11 @@ function renderCelebration(
       />
 
       <button aria-label="${t('accessibility.share')}" class="value-capture-submit-btn" disabled>
-        Share the Win
+        ${t('valueCapture.shareTheWin')}
       </button>
 
       <button aria-label="${t('accessibility.justCelebrateThisMoment')}" class="value-capture-skip-btn">
-        Just celebrate this moment
+        ${t('valueCapture.justCelebrate')}
       </button>
 
       <p class="value-capture-footer">
@@ -612,7 +612,7 @@ function renderLoading(): string {
   return `
     <div class="value-capture-loading">
       <div class="value-capture-spinner"></div>
-      <p>Processing your contribution...</p>
+      <p>${t('valueCapture.processingContribution')}</p>
     </div>
   `;
 }
@@ -625,9 +625,9 @@ function renderThankYou(message?: string): string {
     <div class="value-capture-thank-you">
       <div class="value-capture-confetti">${createConfetti()}</div>
       <div class="value-capture-thank-you-icon">${THANK_YOU_ICON}</div>
-      <h2 class="value-capture-thank-you-title">You're Incredible</h2>
+      <h2 class="value-capture-thank-you-title">${t('valueCapture.youreIncredible')}</h2>
       <p class="value-capture-thank-you-message">
-        ${message || "You're sharing your win with me. That's incredibly generous. Thank you - and congratulations again. Your success creates more success."}
+        ${message || t('valueCapture.imSoProud')}
       </p>
     </div>
   `;
@@ -683,10 +683,10 @@ function showCelebrationOnly(): void {
     content.innerHTML = `
       <div class="value-capture-thank-you">
         <div class="value-capture-thank-you-icon">${CELEBRATION_ICON}</div>
-        <h2 class="value-capture-thank-you-title">Keep Crushing It</h2>
+        <h2 class="value-capture-thank-you-title">${t('valueCapture.keepCrushingIt')}</h2>
         <p class="value-capture-thank-you-message">
           This is your moment. Enjoy it fully.
-          I'm so proud of you.
+          ${t('valueCapture.imSoProud')}
         </p>
       </div>
     `;
@@ -835,11 +835,11 @@ export function celebrateOnly(userId: string, event: ValueEvent): void {
       <div class="value-capture-content">
         <div class="value-capture-header">
           <div class="value-capture-icon">${icon}</div>
-          <h2 class="value-capture-title">${celebration.title}</h2>
-          <p class="value-capture-message">${celebration.message}</p>
+          <h2 class="value-capture-title">${t(celebration.titleKey)}</h2>
+          <p class="value-capture-message">${t(celebration.messageKey)}</p>
         </div>
         <p style="text-align: center; color: var(--color-text-secondary); margin-top: var(--space-4, 16px);">
-          I'm so proud of you.
+          ${t('valueCapture.imSoProud')}
         </p>
       </div>
     </div>
