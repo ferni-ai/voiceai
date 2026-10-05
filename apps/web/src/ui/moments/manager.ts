@@ -14,6 +14,8 @@
  */
 
 import { DURATION, prefersReducedMotion } from '../../config/animation-constants.js';
+import { t } from '../../i18n/index.js';
+import { tp } from '../../i18n/plural.js';
 import { getHapticsService } from '../../services/haptics.service.js';
 import { createLogger } from '../../utils/logger.js';
 import { createTimeoutTracker } from '../../utils/tracked-timeout.js';
@@ -337,14 +339,7 @@ class MomentsManager {
    */
   async celebrate(
     type: CelebrationType,
-    data?: {
-      title?: string;
-      subtitle?: string;
-      badge?: string;
-      count?: number;
-      personaId?: string;
-      personaName?: string;
-    }
+    data?: Omit<CelebrationConfig, 'type'>
   ): Promise<void> {
     this.initialize();
 
@@ -380,17 +375,17 @@ class MomentsManager {
     const title =
       config.title ??
       (config.type === 'streak'
-        ? `${config.count} day streak`
+        ? tp('moments.streakTitle', config.count ?? 0)
         : config.type === 'team_unlock'
-          ? `Meet ${config.personaName}`
-          : 'Nice work');
+          ? t('moments.teamUnlockTitle', { name: config.personaName ?? '' })
+          : t('moments.niceWork'));
 
     const subtitle =
       config.subtitle ??
       (config.type === 'streak'
-        ? "You're showing up. That matters."
+        ? t('moments.streakSubtitle')
         : config.type === 'team_unlock'
-          ? 'A new friend has joined your team'
+          ? t('celebration.teamUnlockSubtitle')
           : undefined);
 
     element.innerHTML = `
@@ -526,7 +521,7 @@ class MomentsManager {
     modal.innerHTML = `
       <div class="moment-milestone__backdrop"></div>
       <div class="moment-milestone__card">
-        <button class="moment-milestone__close" aria-label="Close">
+        <button class="moment-milestone__close" aria-label="${t('common.close')}">
           ${getIcon('close', 18)}
         </button>
         ${config.eyebrow ? `<span class="moment-milestone__eyebrow">${this.escapeHtml(config.eyebrow)}</span>` : ''}
