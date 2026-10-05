@@ -18,7 +18,7 @@
 export type BiometricPlatform = 'healthkit' | 'googlefit' | 'oura' | 'whoop' | 'fitbit' | 'terra';
 
 /** Stress level categorization */
-export type StressLevel = 'low' | 'moderate' | 'high' | 'elevated';
+export type StressLevel = 'low' | 'moderate' | 'high' | 'elevated' | 'unknown';
 
 // ============================================================================
 // DATA TYPES
@@ -27,18 +27,18 @@ export type StressLevel = 'low' | 'moderate' | 'high' | 'elevated';
 export interface SleepData {
   /** Total sleep duration in hours */
   duration: number;
-  /** Deep sleep percentage */
-  deepSleepPercent: number;
-  /** REM sleep percentage */
-  remSleepPercent: number;
-  /** Number of wake-ups during night */
-  disturbances: number;
-  /** Sleep quality score 0-100 */
-  qualityScore: number;
-  /** Sleep start time */
-  bedtime: Date;
-  /** Wake time */
-  wakeTime: Date;
+  /** Deep sleep percentage (may be unavailable from some platforms) */
+  deepSleepPercent?: number;
+  /** REM sleep percentage (may be unavailable from some platforms) */
+  remSleepPercent?: number;
+  /** Number of wake-ups during night (may be unavailable from some platforms) */
+  disturbances?: number;
+  /** Sleep quality score 0-100 (may be unavailable from some platforms) */
+  qualityScore?: number;
+  /** Sleep start time (may be unavailable from some platforms) */
+  bedtime?: Date;
+  /** Wake time (may be unavailable from some platforms) */
+  wakeTime?: Date;
 }
 
 export interface HRVData {

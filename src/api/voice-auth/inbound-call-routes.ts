@@ -20,10 +20,10 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
-import { validateTwilioSignature } from '../../services/outreach/webhooks/twilio-webhooks.js';
 import { lookupByPhone, recordCall } from '../../services/identity/sponsored-identity.js';
 import { identifyByPhone } from '../../services/identity/user-identification.js';
-import { sendJson, parseBody } from './helpers.js';
+import { parseRawBody } from '../helpers.js';
+import { isSignedByTwilio } from '../twilio-callback-signature.js';
 
 const log = getLogger().child({ module: 'InboundCallRoutes' });
 
@@ -102,25 +102,9 @@ interface TwilioIncomingCallPayload {
  * This is called when someone dials the Ferni phone number.
  */
 async function handleInboundCallWebhook(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const body = (await parseBody(req)) as unknown as TwilioIncomingCallPayload;
-
-  // Validate Twilio signature (skip in development)
-  if (process.env.NODE_ENV === 'production') {
-    const signature = req.headers['x-twilio-signature'] as string;
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers.host || '';
-    const fullUrl = `${protocol}://${host}${req.url}`;
-
-    if (
-      signature &&
-      !validateTwilioSignature(signature, fullUrl, body as unknown as Record<string, string>)
-    ) {
-      log.warn({ url: req.url }, 'Invalid Twilio signature for inbound call');
-      res.writeHead(403, { 'Content-Type': 'text/xml' });
-      res.end(generateRejectTwiml('Invalid request signature'));
-      return;
-    }
-  }
+  const form = await readSignedTwilioForm(req, res);
+  if (!form) return;
+  const body = form as unknown as TwilioIncomingCallPayload;
 
   const { CallSid, From, To, CallerName, CallerCity, CallerState } = body;
 
@@ -387,7 +371,8 @@ function generateRejectTwiml(reason: string): string {
  * Handle call status updates from Twilio.
  */
 async function handleInboundCallStatus(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const body = (await parseBody(req)) as Record<string, string>;
+  const body = await readSignedTwilioForm(req, res);
+  if (!body) return;
 
   const { CallSid, CallStatus, CallDuration } = body;
 
@@ -444,6 +429,23 @@ async function handleInboundCallStatus(req: IncomingMessage, res: ServerResponse
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+/**
+ * Twilio's form post (application/x-www-form-urlencoded; the JSON-only
+ * parseBody read it as {}), or null after a 403 when X-Twilio-Signature is
+ * missing or doesn't match. There is no environment in which it is skipped.
+ */
+async function readSignedTwilioForm(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<Record<string, string> | null> {
+  const form = Object.fromEntries(new URLSearchParams(await parseRawBody(req)));
+  if (isSignedByTwilio(req, req.url ?? '', form)) return form;
+  log.warn({ url: req.url }, 'Missing or invalid Twilio signature for inbound call');
+  res.writeHead(403, { 'Content-Type': 'text/xml' });
+  res.end(generateRejectTwiml('Invalid request signature'));
+  return null;
+}
 
 /**
  * Escape XML special characters.

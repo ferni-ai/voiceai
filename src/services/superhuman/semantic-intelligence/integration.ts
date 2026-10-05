@@ -37,7 +37,7 @@ import { extractPersonsHybrid, detectAdviceHybrid } from './llm-detector.js';
 
 // V3.2 Proactive Intelligence
 import { openLoops, processUserTextForLoops } from './open-loops.js';
-import { ferniCommitments, trackCommitmentsInResponse } from './ferni-commitments.js';
+import { trackResponsePromises } from './follow-through.js';
 
 // V3.3 Relational Network
 import { relationshipGraph, upsertPerson } from './relationship-graph.js';
@@ -961,7 +961,7 @@ export async function recordAgentAdvice(advice: AgentAdviceContext): Promise<voi
 }
 
 /**
- * Track Ferni's commitments in her response (V3.2).
+ * Track Ferni's promises in her reply: ones she just followed through on, and new ones.
  * Call this after generating an agent response.
  */
 export async function trackFerniCommitments(
@@ -978,7 +978,7 @@ export async function trackFerniCommitments(
   }
 
   try {
-    await trackCommitmentsInResponse(userId, responseText, context);
+    await trackResponsePromises(userId, responseText, context);
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to track Ferni commitments');
   }

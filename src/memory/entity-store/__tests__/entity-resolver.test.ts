@@ -35,8 +35,11 @@ let resolver: EntityResolver;
 let store: EntityStore;
 let createdEntityIds: string[] = [];
 
-// SKIPPED: Requires Firestore indexes. Create indexes via the links in error messages.
-describe.skip('Entity Resolver Full Implementation', () => {
+const runFirestoreIntegration = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
+
+(runFirestoreIntegration ? describe : describe.skip)(
+  'Entity Resolver Full Implementation (Firestore emulator)',
+  () => {
   beforeAll(async () => {
     try {
       // Initialize store and resolver

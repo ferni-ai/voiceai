@@ -22,6 +22,7 @@ import { holdBreak, isUnspeakable, restoreHeldBreaks, speakableText } from './na
 export { speakableText };
 import { BREATH_BRACKET_REGEX, LAUGHTER_BRACKET_REGEX } from './nonverbal-brackets.js';
 import { prepareSpeechMarkup } from './speech-markup.js';
+import { toSonicEmotion } from '../../sonic-emotions.js';
 
 const log = createLogger({ module: 'SSMLProcessor' });
 
@@ -29,33 +30,6 @@ const log = createLogger({ module: 'SSMLProcessor' });
 // CONSTANTS
 // ============================================================================
 
-/** Valid Cartesia Sonic-3 emotions (43+ supported) */
-const VALID_EMOTIONS = [
-  // Primary (best results)
-  'neutral', 'angry', 'excited', 'content', 'sad', 'scared',
-  // Positive high-energy
-  'happy', 'enthusiastic', 'elated', 'euphoric', 'triumphant', 'amazed', 'surprised',
-  // Positive social
-  'flirtatious', 'joking/comedic', 'curious', 'grateful', 'affectionate', 'sympathetic', 'proud', 'confident',
-  // Calm/content
-  'peaceful', 'serene', 'calm',
-  // Thoughtful
-  'contemplative', 'nostalgic', 'wistful', 'mysterious', 'anticipation',
-  // Negative
-  'mad', 'outraged', 'frustrated', 'agitated', 'disgusted', 'contempt', 'envious', 'sarcastic', 'ironic',
-  // Sad spectrum
-  'dejected', 'melancholic', 'disappointed', 'hurt', 'guilty', 'rejected',
-  // Low energy
-  'bored', 'tired', 'resigned',
-  // Uncertain/vulnerable
-  'hesitant', 'insecure', 'confused', 'apologetic', 'anxious',
-  // Fear spectrum
-  'panicked', 'alarmed', 'threatened',
-  // Neutral/professional
-  'distant', 'skeptical', 'determined',
-  // Legacy aliases (map to Cartesia equivalents)
-  'happiness', 'sadness', 'anger', 'fear', 'surprise', 'disgust', 'curiosity', 'positivity', 'negativity',
-] as const;
 
 /** Maximum buffer size to prevent memory issues */
 const MAX_BUFFER_SIZE = 4096;
@@ -231,13 +205,13 @@ export class SSMLProcessor implements ISSMLProcessor {
           return '';
         }
 
-        const normalizedEmotion = emotion.toLowerCase();
-        if (!VALID_EMOTIONS.includes(normalizedEmotion as (typeof VALID_EMOTIONS)[number])) {
+        const sonicEmotion = toSonicEmotion(emotion);
+        if (!sonicEmotion) {
           warnings.push(`Unknown emotion: ${emotion}`);
           return '';
         }
 
-        prosody.emotion = normalizedEmotion;
+        prosody.emotion = sonicEmotion;
 
         if (intensity) {
           const intensityVal = parseFloat(intensity);

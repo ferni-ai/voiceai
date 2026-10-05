@@ -145,7 +145,7 @@ describe('Subscription Routes', () => {
       expect(response.body).toEqual({ error: 'Authentication required' });
     });
 
-    it('should return subscription info for valid userId from query', async () => {
+    it('should return subscription info for the verified caller', async () => {
       const mockInfo = {
         tier: 'friend',
         isActive: true,
@@ -158,6 +158,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/status',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -190,6 +191,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/status',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(500);
@@ -224,6 +226,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/can-start',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -238,6 +241,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/can-start',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(500);
@@ -722,22 +726,24 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/verify-session',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(400);
       expect(response.body).toEqual({ error: 'session_id is required' });
     });
 
-    it('should return 400 if userId is missing', async () => {
+    it('should return 401 without a verified caller, even when ?userId names one', async () => {
       const response = await handleSubscriptionRequest({
         method: 'GET',
         pathname: '/api/subscription/verify-session',
-        query: { session_id: 'cs_test_123' },
+        query: { session_id: 'cs_test_123', userId: 'user-123' },
         headers: {},
       });
 
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'userId is required' });
+      expect(response.status).toBe(401);
+      expect(response.body).toEqual({ error: 'Authentication required' });
+      expect(mockedGetSubscriptionInfo).not.toHaveBeenCalled();
     });
 
     it('should return verified=true if user is on paid tier', async () => {
@@ -752,6 +758,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/verify-session',
         query: { session_id: 'cs_test_123', userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -772,6 +779,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/verify-session',
         query: { session_id: 'cs_test_123', userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -788,6 +796,7 @@ describe('Subscription Routes', () => {
         pathname: '/api/subscription/verify-session',
         query: { session_id: 'cs_test_123', userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(500);
