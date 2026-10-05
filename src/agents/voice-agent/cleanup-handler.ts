@@ -207,6 +207,8 @@ export interface CameoUnlockEventData {
  */
 export interface CleanupContext {
   sessionId: string;
+  /** Why the session wait ended ('empty_room', 'room.disconnected', 'timeout', ...) */
+  endReason?: string;
   userId?: string;
   services: SessionServices;
   sessionPersona: PersonaConfig;
@@ -344,10 +346,10 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     duration: sessionDuration,
   });
 
-  // Call quality: session disconnect (cleanup runs on room disconnect)
+  // Call quality: how the call ended (a hang-up is not a dropped connection)
   try {
-    const { endCall } = await import('../../services/analytics/call-quality-monitor.js');
-    endCall(sessionId, 'disconnect');
+    const { endCall, classifyCallEnd } = await import('../../services/analytics/call-quality-monitor.js');
+    endCall(sessionId, classifyCallEnd(ctx.endReason));
   } catch (qualityErr) {
     diag.debug('Call quality end failed (non-fatal)', { error: String(qualityErr) });
   }
