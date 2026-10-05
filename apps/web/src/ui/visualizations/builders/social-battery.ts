@@ -114,7 +114,7 @@ function buildWatch(container: HTMLElement, data: SocialBatteryData): Visualizat
   });
   wrapper.appendChild(label);
 
-  const srLabel = createScreenReaderLabel(`Social battery at ${data.currentLevel}%`);
+  const srLabel = createScreenReaderLabel(t('visualizations.socialBattery.ariaLevel', { level: data.currentLevel }));
   wrapper.appendChild(srLabel);
 
   container.appendChild(wrapper);
@@ -123,7 +123,7 @@ function buildWatch(container: HTMLElement, data: SocialBatteryData): Visualizat
     element: wrapper,
     type: 'social-battery',
     device: 'watch',
-    ariaLabel: `Social battery at ${data.currentLevel}%`,
+    ariaLabel: t('visualizations.socialBattery.ariaLevel', { level: data.currentLevel }),
   };
 }
 
@@ -227,7 +227,7 @@ function buildMobile(container: HTMLElement, data: SocialBatteryData): Visualiza
   const drainStat = createElement('div');
   setStyles(drainStat, { textAlign: 'center' });
 
-  const drainValue = createElement('div', '', `-${data.drainRatePerHour}/hr`);
+  const drainValue = createElement('div', '', t('visualizations.socialBattery.ratePerHour', { rate: `-${data.drainRatePerHour}` }));
   setStyles(drainValue, {
     fontWeight: '600',
     color: 'var(--color-text-primary)',
@@ -244,7 +244,7 @@ function buildMobile(container: HTMLElement, data: SocialBatteryData): Visualiza
   const rechargeStat = createElement('div');
   setStyles(rechargeStat, { textAlign: 'center' });
 
-  const rechargeValue = createElement('div', '', `+${data.rechargeRatePerHour}/hr`);
+  const rechargeValue = createElement('div', '', t('visualizations.socialBattery.ratePerHour', { rate: `+${data.rechargeRatePerHour}` }));
   setStyles(rechargeValue, {
     fontWeight: '600',
     color: 'var(--color-text-primary)',
@@ -280,7 +280,7 @@ function buildMobile(container: HTMLElement, data: SocialBatteryData): Visualiza
     element: wrapper,
     type: 'social-battery',
     device: 'mobile',
-    ariaLabel: `Social battery at ${data.currentLevel}%, ${data.drainRatePerHour} drain per hour`,
+    ariaLabel: t('visualizations.socialBattery.ariaMobile', { level: data.currentLevel, rate: data.drainRatePerHour }),
   };
 }
 
@@ -388,10 +388,10 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
   });
 
   const stats = [
-    { label: 'Drain Rate', value: `-${data.drainRatePerHour}/hr` },
-    { label: 'Recharge Rate', value: `+${data.rechargeRatePerHour}/hr` },
-    { label: 'Full Recharge', value: `${Math.ceil(data.fullRechargeHours)}hr` },
-    { label: 'Warning At', value: `${data.warningThreshold}%` },
+    { labelKey: 'visualizations.socialBattery.stat.drainRate', value: t('visualizations.socialBattery.ratePerHour', { rate: `-${data.drainRatePerHour}` }) },
+    { labelKey: 'visualizations.socialBattery.stat.rechargeRate', value: t('visualizations.socialBattery.ratePerHour', { rate: `+${data.rechargeRatePerHour}` }) },
+    { labelKey: 'visualizations.socialBattery.stat.fullRecharge', value: t('visualizations.socialBattery.hoursShort', { hours: Math.ceil(data.fullRechargeHours) }) },
+    { labelKey: 'visualizations.socialBattery.stat.warningAt', value: `${data.warningThreshold}%` },
   ];
 
   stats.forEach((stat) => {
@@ -409,7 +409,7 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
       color: 'var(--color-text-primary)',
     });
 
-    const label = createElement('div', '', stat.label);
+    const label = createElement('div', '', t(stat.labelKey));
     setStyles(label, {
       fontSize: '12px',
       color: 'var(--color-text-secondary)',
@@ -516,7 +516,7 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
     element: wrapper,
     type: 'social-battery',
     device: 'desktop',
-    ariaLabel: `Social battery at ${data.currentLevel}%, ${tendencyLabel} tendency`,
+    ariaLabel: t('visualizations.socialBattery.ariaDesktop', { level: data.currentLevel, tendency: tendencyLabel }),
   };
 }
 

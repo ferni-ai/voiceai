@@ -13,20 +13,20 @@ export type ThemeName = 'midnight' | 'zen';
 export type { PersonaId };
 
 export interface ThemeMeta {
-  name: string;
-  description: string;
+  nameKey: string;
+  descriptionKey: string;
   mode: 'light' | 'dark';
 }
 
 export const THEMES: Record<ThemeName, ThemeMeta> = {
   midnight: {
-    name: 'Midnight Gold',
-    description: 'Rich dark theme with warm gold accents',
+    nameKey: 'theme.midnight.name',
+    descriptionKey: 'theme.midnight.description',
     mode: 'dark',
   },
   zen: {
-    name: 'Zen Garden',
-    description: 'Clean, natural, serene light theme',
+    nameKey: 'theme.zen.name',
+    descriptionKey: 'theme.zen.description',
     mode: 'light',
   },
 };

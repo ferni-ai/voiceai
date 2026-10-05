@@ -6,6 +6,8 @@
  * @module voice-journal/render-stats
  */
 
+import { t } from '../../i18n/index.js';
+import { tp } from '../../i18n/plural.js';
 import { getModal, getEntries } from './state.js';
 import { calculateStats } from './stats.js';
 import { getMoodIcon, getMoodLabel } from './mood-icons.js';
@@ -31,7 +33,7 @@ export function renderStats(): void {
           </svg>
         </div>
         <div class="stat-value">${stats.currentStreak}</div>
-        <div class="stat-label">Day${stats.currentStreak !== 1 ? 's' : ''} streak</div>
+        <div class="stat-label">${tp('voiceJournal.stats.streak', stats.currentStreak)}</div>
       </div>
       <div class="stat-card stat-card--entries">
         <div class="stat-icon">
@@ -41,26 +43,26 @@ export function renderStats(): void {
           </svg>
         </div>
         <div class="stat-value">${stats.totalEntries}</div>
-        <div class="stat-label">Total entries</div>
+        <div class="stat-label">${t('voiceJournal.stats.totalEntries')}</div>
       </div>
       <div class="stat-card stat-card--mood">
         <div class="stat-icon stat-icon--mood">
           ${stats.topMoods.length > 0 && stats.topMoods[0] ? getMoodIcon(stats.topMoods[0].mood) : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'}
         </div>
         <div class="stat-value">${stats.topMoods.length > 0 && stats.topMoods[0] ? getMoodLabel(stats.topMoods[0].mood) : '-'}</div>
-        <div class="stat-label">Top mood</div>
+        <div class="stat-label">${t('voiceJournal.stats.topMood')}</div>
       </div>
     </div>
     ${
       stats.totalEntries > 0
         ? `
     <div class="stats-activity">
-      <span class="activity-label">Last 4 weeks:</span>
+      <span class="activity-label">${t('voiceJournal.stats.lastFourWeeks')}</span>
       <div class="activity-bars">
         ${stats.entriesByWeek
           .map((count) => {
             const height = count > 0 ? Math.min(100, (count / Math.max(...stats.entriesByWeek)) * 100) : 10;
-            return `<div class="activity-bar" style="height: ${height}%;" title="${count} entries"></div>`;
+            return `<div class="activity-bar" style="height: ${height}%;" title="${tp('voiceJournal.stats.entries', count)}"></div>`;
           })
           .reverse()
           .join('')}

@@ -7,6 +7,7 @@
  * @module @ferni/predictive-ui
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('PredictiveUI');
@@ -39,7 +40,7 @@ export interface LoadingStageConfig {
   stage: LoadingStage;
   duration: string;
   show: string;
-  message?: string;
+  messageKey?: string;
 }
 
 export interface UserPreferences {
@@ -77,14 +78,12 @@ const _LOADING_STAGES: Record<LoadingStage, LoadingStageConfig> = {
     stage: 'extended',
     duration: '5s+',
     show: 'skeleton + progress + message',
-    message: 'Still working on that...',
+    messageKey: 'predictiveUi.stillWorking',
   },
 };
 
-const EXTENDED_MESSAGES = [
-  'Still working on that...',
-  'Almost there...',
-  'Thanks for waiting...',
+const EXTENDED_MESSAGE_KEYS = [
+  'predictiveUi.stillWorking', 'predictiveUi.almostThere', 'predictiveUi.thanksForWaiting',
 ];
 
 // ============================================================================
@@ -330,7 +329,7 @@ export function createLoadingOrchestrator(
     customMessages?: string[];
   } = {}
 ): LoadingOrchestrator {
-  const { onStageChange, customMessages = EXTENDED_MESSAGES } = options;
+  const { onStageChange, customMessages = EXTENDED_MESSAGE_KEYS.map((key) => t(key)) } = options;
 
   let startTime: number | null = null;
   let currentStage: LoadingStage = 'instant';
@@ -467,13 +466,13 @@ export function createLoadingOrchestrator(
         skeleton.style.display = 'block';
         progressBar.style.display = 'block';
         message.style.display = 'block';
-        message.textContent = customMessages[0] ?? 'Loading...';
+        message.textContent = customMessages[0] ?? t('common.loading');
 
         // Rotate messages
         if (!messageInterval) {
           messageInterval = setInterval(() => {
             messageIndex = (messageIndex + 1) % customMessages.length;
-            message.textContent = customMessages[messageIndex] ?? 'Loading...';
+            message.textContent = customMessages[messageIndex] ?? t('common.loading');
           }, 3000);
         }
         break;
