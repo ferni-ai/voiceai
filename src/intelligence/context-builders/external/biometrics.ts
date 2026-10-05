@@ -124,7 +124,7 @@ export const biometricsBuilder: ContextBuilder = {
       });
     }
 
-    if (snapshot.sleep && snapshot.sleep.qualityScore < 50) {
+    if (snapshot.sleep && snapshot.sleep.qualityScore !== undefined && snapshot.sleep.qualityScore < 50) {
       injections.push({
         id: 'biometrics-sleep-aware',
         source: 'biometrics',

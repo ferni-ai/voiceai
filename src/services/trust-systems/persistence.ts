@@ -52,7 +52,7 @@ import {
 } from './reading-between-lines.js';
 
 // Phase 12-17, 24-29: New trust system imports for persistence
-import { getHealthScore, type RelationshipHealthScore } from './relationship-health.js';
+import type { RelationshipHealthScore } from './relationship-health.js';
 
 import { getMomentumProfile, type MomentumProfile } from './celebration-momentum.js';
 
@@ -68,7 +68,7 @@ import { getLearningProfile, type LearningProfile } from './learning-style.js';
 
 import { getMediaPreferences, type MediaPreferences } from './media-suggestions.js';
 
-import { getReportHistory, type InsightsReport } from './relationship-insights.js';
+import type { InsightsReport } from './relationship-insights.js';
 
 const log = createLogger({ module: 'TrustPersistence' });
 
@@ -135,7 +135,9 @@ const SYSTEM_NAMES = {
 
 /**
  * Save all trust profiles for a user. The dashboard's history (sentiment
- * timeline, life events) saves through dashboard-history.ts.
+ * timeline, life events) saves through dashboard-history.ts. Its health and
+ * insights docs are written by the API server (together-store.ts), from that
+ * history, so they have one writer.
  */
 export async function saveTrustProfiles(userId: string): Promise<{
   saved: string[];
@@ -143,9 +145,13 @@ export async function saveTrustProfiles(userId: string): Promise<{
 }> {
   const saved: string[] = [];
   const failed: string[] = [];
-  const insightsReports = getReportHistory(userId);
 
-  const profiles: Array<[Exclude<keyof typeof SYSTEM_NAMES, 'unsaid'>, unknown]> = [
+  const profiles: Array<
+    [
+      Exclude<keyof typeof SYSTEM_NAMES, 'unsaid' | 'relationshipHealth' | 'insightsReports'>,
+      unknown,
+    ]
+  > = [
     // Core systems
     ['boundaries', exportBoundaries(userId)],
     ['growth', exportGrowthProfile(userId)],
@@ -153,7 +159,6 @@ export async function saveTrustProfiles(userId: string): Promise<{
     ['smallWins', exportSmallWinsProfile(userId)],
     ['thinkingOfYou', exportThinkingOfYouProfile(userId)],
     // Phase 12-17: advanced trust systems
-    ['relationshipHealth', getHealthScore(userId)],
     ['celebrationMomentum', getMomentumProfile(userId)],
     // Phase 24-29: personalization systems
     ['voiceProsody', getBaseline(userId)],
@@ -161,7 +166,6 @@ export async function saveTrustProfiles(userId: string): Promise<{
     ['seasonal', getSeasonalProfile(userId)],
     ['learningStyle', getLearningProfile(userId)],
     ['mediaPreferences', getMediaPreferences(userId)],
-    ['insightsReports', insightsReports.length > 0 ? insightsReports : null],
   ];
 
   for (const [name, profile] of profiles) {

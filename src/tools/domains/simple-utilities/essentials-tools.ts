@@ -314,23 +314,23 @@ const quickCaptureDef: ToolDefinition = {
           // Route and persist to appropriate service
           if (isReminder || (hasDate && (isTask || urgency === 'now' || urgency === 'soon'))) {
             routing = 'reminder';
-            // Try to create a reminder
             try {
               const { createReminder, parseNaturalTime } =
                 await import('../../../services/scheduling/reminder-scheduler.js');
               const timeMatch = thought.match(/(?:at |by |tomorrow |next )([\w\s:]+)/i);
-              const when = timeMatch ? timeMatch[1] : 'tomorrow at 9am';
-              const scheduledFor = parseNaturalTime(when);
-
+              const scheduledFor = parseNaturalTime(timeMatch ? timeMatch[1] : 'tomorrow at 9am');
               if (scheduledFor && ctx.userId) {
-                await createReminder({
+                const reminder = await createReminder({
                   userId: ctx.userId,
                   message: thought,
                   scheduledFor,
                   deliveryMethod: 'voice_message',
                   deliveryAddress: '',
                 });
-                persisted = true;
+                persisted = true; // and "I'll remind you" is a promise the delivery job keeps or misses
+                const keeper =
+                  await import('../../../services/superhuman/semantic-intelligence/promise-keeper.js');
+                await keeper.recordReminderPromise(ctx.userId, reminder);
               }
             } catch (err) {
               log.debug({ error: String(err) }, 'Could not create reminder, falling back');

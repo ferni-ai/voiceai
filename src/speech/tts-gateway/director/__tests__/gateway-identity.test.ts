@@ -106,6 +106,14 @@ async function runGateway(pieces: readonly string[] = PIECES): Promise<Recording
   return reply;
 }
 
+// The goldens predate the sentence pause, which has its own test at the end.
+beforeEach(() => {
+  process.env.CASCADE_SENTENCE_BREAK_MS = '0';
+});
+afterEach(() => {
+  delete process.env.CASCADE_SENTENCE_BREAK_MS;
+});
+
 describe('SPEECH_DIRECTOR on the live gateway path', () => {
   beforeEach(() => {
     directorSessions.clear('identity-session');
@@ -232,3 +240,30 @@ describe('asterisk stage directions on the live gateway path', () => {
     );
   });
 });
+
+describe('sentence pause on the live gateway path', () => {
+  beforeEach(() => directorSessions.clear('identity-session'));
+  afterEach(() => {
+    delete process.env.SPEECH_DIRECTOR;
+    delete process.env.CASCADE_SENTENCE_BREAK_MS;
+  });
+
+  it('adds no beat by default: each break splits the generation', async () => {
+    delete process.env.CASCADE_SENTENCE_BREAK_MS;
+    delete process.env.SPEECH_DIRECTOR;
+    const pushes = (await runGateway()).pushes;
+    expect(pushes.join('')).not.toContain('<break time="300ms"/>');
+  });
+
+  it('adds a beat between sentences when asked, and none where the reply already breaks', async () => {
+    process.env.CASCADE_SENTENCE_BREAK_MS = '300';
+    delete process.env.SPEECH_DIRECTOR;
+    const pushes = (await runGateway()).pushes;
+    expect(pushes.slice(1, 3).every((p) => p.startsWith('<break time="300ms"/>'))).toBe(true);
+    expect(pushes[0].startsWith('<break')).toBe(false);
+    // The model's own 600 ms break is kept and not doubled.
+    expect(pushes[3]).toBe(GOLDEN[3]);
+    expect(pushes.join('').replace(/<break time="300ms"\/>/g, '')).toBe(GOLDEN.join(''));
+  });
+});
+

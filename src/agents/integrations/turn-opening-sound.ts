@@ -10,6 +10,12 @@
  * other turn at most, half the time) because the same sound on every turn is
  * a tic, the thing the opener gate removes from the text.
  *
+ * Off by default (TURN_OPENING_SOUND=on enables it). On a dev call
+ * (2026-10-04) every "Mm" was followed by the reply 20-250 ms later, so the
+ * clip landed on the start of Ferni's own sentence, which usually opens with
+ * an acknowledgement anyway ("Mm. Good to hear."). Fillers only help when the
+ * wait is long (around 4 s, arXiv 2507.22352); replies now start in about 1 s.
+ *
  * @module agents/integrations/turn-opening-sound
  */
 
@@ -24,6 +30,13 @@ export const TURN_OPENING = {
   /** No opening sound right after a backchannel: "mm ... mm". */
   afterBackchannelMs: 2500,
 } as const;
+
+/** Whether to attach the opening sound at all (opt-in, see module doc). */
+export function turnOpeningSoundEnabled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return env.TURN_OPENING_SOUND === 'on';
+}
 
 export interface TurnOpeningMoment {
   /** The user's final words for the turn. */
@@ -65,18 +78,25 @@ export function attachTurnOpeningSound(
   let timer: NodeJS.Timeout | null = null;
   let playedLastTurn = false;
   let userStartedAt = 0;
+  let userSpeaking = false;
+  const cancel = (): void => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+  };
+  // The agent goes "thinking" on ink's early end-of-turn, which is often only a
+  // pause: if the caller carries on, the "Mm" would land on top of them.
   const onUserState = (ev: unknown): void => {
-    if ((ev as { newState?: string }).newState === 'speaking') userStartedAt = Date.now();
+    userSpeaking = (ev as { newState?: string }).newState === 'speaking';
+    if (!userSpeaking) return;
+    userStartedAt = Date.now();
+    cancel();
   };
   const onState = (ev: unknown): void => {
-    const state = (ev as { newState?: string }).newState;
-    if (timer) {
-      clearTimeout(timer);
-      timer = null;
-    }
-    if (state !== 'thinking') return;
+    cancel();
+    if ((ev as { newState?: string }).newState !== 'thinking') return;
     timer = setTimeout(() => {
       timer = null;
+      if (userSpeaking) return;
       // The reply's audio exists already; its playback is about to start.
       if (replyAudioSince(userStartedAt)) return;
       const text = turnOpeningClip({
@@ -91,7 +111,7 @@ export function attachTurnOpeningSound(
   session.on('agent_state_changed', onState);
   session.on('user_state_changed', onUserState);
   return () => {
-    if (timer) clearTimeout(timer);
+    cancel();
     session.off('agent_state_changed', onState);
     session.off('user_state_changed', onUserState);
   };

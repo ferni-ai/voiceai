@@ -1027,6 +1027,7 @@
     "apple": {
       "instructionsTitle": "要取消或更改您的计划：",
       "note": "Apple要求通过iOS设置管理订阅",
+      "source": "您是通过 App Store 订阅的。",
       "step1": "在设备上打开设置",
       "step2": "点击顶部的您的名字",
       "step3": "点击\"订阅\"",
@@ -1043,6 +1044,7 @@
     "expiresLabel": "访问直到",
     "freeNote": "解锁无限会话、完整团队和个性化",
     "label": "订阅",
+    "noBilling": "您的方案不在这里计费，所以没有需要更改的内容。",
     "renewsLabel": "续订",
     "restore": {
       "failed": "恢复失败",
@@ -3061,6 +3063,96 @@
       "close": "非常接近！",
       "off": "这次有点偏差。",
       "wayOff": "这次差得挺远。现在你知道了。"
+    }
+  },
+  "trustDashboard": {
+    "together": {
+      "empty": "我们多聊几次之后，我会告诉你我们相处得怎么样。",
+      "startingTitle": "我们才刚刚开始",
+      "startingMessage": "再和我聊几次，我就能告诉你一些真实的东西。",
+      "scoreLabel": "一起",
+      "stages": {
+        "new": "刚刚开始",
+        "building": "正在相互了解",
+        "established": "找到了我们的节奏",
+        "deep": "我们真的懂彼此",
+        "flourishing": "特别的关系"
+      },
+      "rhythm": {
+        "high": "我们经常聊天",
+        "mid": "我们会定期聊聊",
+        "low": "我们偶尔聊聊",
+        "quiet": "我们有一阵子没聊了",
+        "detailNone": "过去一个月没有",
+        "detailOne": "过去一个月里有 1 天",
+        "detailOther": "过去一个月里有 {n} 天"
+      },
+      "promises": {
+        "high": "我说到做到",
+        "mid": "我大多说到做到",
+        "low": "有几件事我没做到",
+        "detail": "{total} 个中做到了 {kept} 个"
+      },
+      "lift": {
+        "high": "聊完之后你通常会轻松一些",
+        "mid": "我们的聊天让你保持平稳",
+        "low": "最近我们的聊天有些沉重",
+        "detail": "{days} 天中有 {lifted} 天聊到最后更轻松"
+      },
+      "mood": {
+        "up": "你最近看起来轻松了些",
+        "steady": "你最近看起来挺平稳",
+        "down": "最近感觉更沉重一些",
+        "detail": "这周与之前几周相比"
+      }
+    },
+    "noticed": {
+      "empty": "等我们再多聊一些，我会分享我注意到的事。",
+      "notYet": "暂时还没有特别的发现。我还在听。",
+      "daysTalked": "我们聊天的天数",
+      "tabs": {
+        "week": "本周",
+        "month": "本月"
+      },
+      "title": {
+        "week": "这周我注意到的事",
+        "month": "这个月我注意到的事"
+      },
+      "quiet": {
+        "week": "这周我们还没聊过。你想聊的时候我都在。",
+        "month": "这个月我们还没聊过。你想聊的时候我都在。"
+      },
+      "moodShift": {
+        "lighter": {
+          "week": "你看起来比上周轻松。",
+          "month": "你看起来比上个月轻松。"
+        },
+        "heavier": {
+          "week": "这周比上周更沉重一些。这种时候我也在。",
+          "month": "这个月比上个月更沉重一些。这种时候我也在。"
+        }
+      },
+      "bounceBack": {
+        "nextDay": "{date}那天很难熬，但第二天你就好些了。",
+        "later": "{date}那天很难熬，但 {days} 天之内你就好些了。"
+      },
+      "liftTopic": "聊到{topic}时，你的心情通常会变好。",
+      "brightest": "{date}那天你听起来最开心。",
+      "timeOfDay": {
+        "morning": "我们大多在早上聊天。",
+        "afternoon": "我们大多在下午聊天。",
+        "evening": "我们大多在晚上聊天。",
+        "night": "我们大多在深夜聊天。"
+      },
+      "favoriteDay": "{day}似乎是我们的日子。",
+      "cameUp": {
+        "one": "你跟我说了一件快到的事：{example}。",
+        "other": "你跟我说了 {n} 件快到的事，比如：{example}。"
+      },
+      "promisesKept": {
+        "all": "我对你做的承诺，我都兑现了。",
+        "some": "我对你做的 {total} 个承诺中，我兑现了 {kept} 个。"
+      }
     }
   }
 }

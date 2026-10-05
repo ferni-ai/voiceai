@@ -43,7 +43,7 @@ if not api_key:
     sys.exit(1)
 
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel("gemini-2.0-flash")
+model = genai.GenerativeModel("gemini-3.5-flash")
 
 OUTPUT_FILE = Path(__file__).parent / "data" / "open_intent_boost_v6.jsonl"
 

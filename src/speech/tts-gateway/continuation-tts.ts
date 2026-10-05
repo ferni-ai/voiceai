@@ -17,7 +17,7 @@ import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { ReadableStream } from 'node:stream/web';
 
 import { findChunkEnd, findFirstChunkEnd, findFirstWordEnd } from './chunk-boundary.js';
-import { STABLE_EMOTIONS } from './director/emotion.js';
+import { decideEmotion, STABLE_EMOTIONS } from './director/emotion.js';
 import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type { SSMLProsodyConfig } from './types.js';
 
@@ -28,6 +28,12 @@ const stable = (e?: string): string | undefined => (e && STABLE.has(e) ? e : und
 
 /** The first piece may be a clause (see findFirstChunkEnd): start talking sooner. */
 const MIN_FIRST_CHUNK = 12;
+/**
+ * Once the first-chunk wait has run out, a shorter opening ("Yeah, ") goes
+ * rather than waiting for the next token (it held first audio up to ~640 ms
+ * on dev, 2026-10-04); the continuation carries the intonation on.
+ */
+const MIN_EXPIRED_FIRST_CHUNK = 4;
 /**
  * How long the first piece may wait for a clause break once the model's text
  * starts arriving, before it goes out cut at a word boundary instead.
@@ -62,6 +68,24 @@ export function voiceStateTags(from: VoiceState, to: VoiceState): string {
 
 const MIN_CHUNK = 15;
 
+/**
+ * A beat of silence between sentences, written by code between pieces that end
+ * a sentence. Off by default: Cartesia splits the generation at every <break>
+ * (sonic-3 SSML docs), and with one after each sentence a dev call heard the
+ * reply break up between sentences (2026-10-04). Sonic already pauses at a
+ * full stop. CASCADE_SENTENCE_BREAK_MS turns it on for listening tests.
+ */
+export const DEFAULT_SENTENCE_BREAK_MS = 0;
+export function sentenceBreakMs(env: Record<string, string | undefined> = process.env): number {
+  const raw = env.CASCADE_SENTENCE_BREAK_MS;
+  const ms = raw === undefined || raw === '' ? NaN : Number(raw);
+  return Number.isFinite(ms) && ms >= 0
+    ? Math.min(Math.round(ms), 2000)
+    : DEFAULT_SENTENCE_BREAK_MS;
+}
+// A full stop, ! or ?; not an ellipsis ("my window... reminds me" runs on).
+const ENDS_SENTENCE = /(?:[!?]|(?<!\.)\.)["'”’)\]]*$/;
+
 export interface ContinuationOptions {
   textStream: NodeReadableStream<string>;
   reply: ReplyStream;
@@ -77,7 +101,7 @@ export interface ContinuationOptions {
   sanitize(chunk: string): { text: string; prosody: SSMLProsodyConfig };
   /** Render the opening prosody as inline tags for the first push. */
   openingTags(prosody: SSMLProsodyConfig): string;
-  /** Session emotion hint, used when the reply names none. */
+  /** The caller's detected mood; the first sentence answers it when the reply names no emotion. */
   emotion?: string;
   /**
    * Session base speed (pace matching). Speed tags in the reply are relative
@@ -86,6 +110,8 @@ export interface ContinuationOptions {
   baseSpeed?: number;
   toFrames(pcm: ArrayBuffer): Iterable<AudioFrame>;
   onFirstAudio(): void;
+  /** Pause between sentences in ms; defaults to sentenceBreakMs() (env). */
+  sentenceBreakMs?: number;
   /** Override FIRST_CHUNK_WAIT_MS (tests). */
   firstChunkWaitMs?: number;
   /** Timing marks for the first-audio log: first LLM text in, first text sent. */
@@ -124,13 +150,21 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
     let pushed = false;
     let heardText = false;
     let state: VoiceState = { speed: base, volume: 1 };
+    const breakMs = opts.sentenceBreakMs ?? sentenceBreakMs();
+    let afterSentence = false;
     const push = (raw: string): void => {
       const { text, prosody } = sanitize(raw);
       if (!text) return;
       const next: VoiceState = {
         speed: prosody.speed !== undefined ? scaleSpeed(base, prosody.speed) : state.speed,
         volume: prosody.volume ?? state.volume,
-        emotion: stable(prosody.emotion) ?? (first ? stable(emotion) : undefined) ?? state.emotion,
+        emotion:
+          stable(prosody.emotion) ??
+          // The session emotion is the caller's mood: answer it (sad -> sympathetic),
+          // and only where the opening words agree (Cartesia honours an emotion
+          // only when it fits the transcript).
+          (first && emotion ? decideEmotion({ sessionHint: emotion, openingText: text }).emotion : undefined) ??
+          state.emotion,
       };
       const shiftsEmotion =
         !first &&
@@ -145,10 +179,14 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
       }
       // A new context starts from the defaults, so it gets the full state.
       const tags = first || shiftsEmotion ? openingTags(next) : voiceStateTags(state, next);
+      // No second pause where the reply already opens this piece with its own break.
+      const ownBreak = /^(?:<(?!break)[^>]*>)*<break/.test(`${tags}${text}`);
+      const pause = afterSentence && breakMs > 0 && !ownBreak ? `<break time="${breakMs}ms"/>` : '';
+      afterSentence = ENDS_SENTENCE.test(text);
       first = false;
       state = next;
       // Pieces are joined verbatim, so keep a space between sentences.
-      current.push(`${tags}${text} `);
+      current.push(`${pause}${tags}${text} `);
       if (!pushed) {
         pushed = true;
         opts.onStage?.('push');
@@ -181,7 +219,9 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
         }
         if (next === WAIT_EXPIRED) {
           waitExpired = true;
-          const end = findFirstWordEnd(buffer, MIN_FIRST_CHUNK);
+          const end =
+            findFirstWordEnd(buffer, MIN_FIRST_CHUNK) ??
+            findFirstWordEnd(buffer, MIN_EXPIRED_FIRST_CHUNK);
           if (end !== null) {
             push(buffer.slice(0, end));
             buffer = buffer.slice(end);

@@ -25,7 +25,9 @@ export type Lever =
   | 'emotion'
   | 'pacing'
   | 'nonverbal'
-  | 'laughter';
+  | 'laughter'
+  /** Answer how the caller sounds (prosody-response.ts); shadow unless set. */
+  | 'prosody';
 
 export type LeverModes = Readonly<Record<Lever, DirectorMode>>;
 

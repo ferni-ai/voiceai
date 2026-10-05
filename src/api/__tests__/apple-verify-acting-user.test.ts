@@ -24,14 +24,17 @@ const claimAppleTransaction = vi.hoisted(() =>
     transaction: { productId: 'com.ferni.friend.monthly', environment: 'Sandbox' },
   }))
 );
+// What the server has configured: App Store API keys, and a purchase verifier
+// (null in production until APPLE_APP_APPLE_ID is set).
+const config = vi.hoisted(() => ({ appleConfigured: true, verifier: {} as object | null }));
 vi.mock('../../services/apple-iap.js', () => ({
-  isAppleConfigured: () => true,
+  isAppleConfigured: () => config.appleConfigured,
   appleIAP: { productToTier: { 'com.ferni.friend.monthly': 'friend' } },
 }));
 vi.mock('../../services/billing/apple-signed-data.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/billing/apple-signed-data.js')>()),
   claimAppleTransaction,
-  getAppleVerifier: () => null,
+  getAppleVerifier: () => config.verifier,
 }));
 
 const { handleAppleRoutes } = await import('../apple-iap-routes.js');
@@ -51,7 +54,11 @@ afterAll(
       server.close(() => r());
     })
 );
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  config.appleConfigured = true;
+  config.verifier = {};
+});
 
 const verify = (body: unknown, token?: string) =>
   fetch(`${base}/api/apple/verify`, {
@@ -93,4 +100,26 @@ describe('POST /api/apple/verify', () => {
     const anonymous = await fetch(`${base}/api/apple/account-token`);
     expect(anonymous.status).toBe(401);
   });
+
+  // No token means the iOS app doesn't buy, so nobody pays for a purchase
+  // /api/apple/verify would refuse.
+  it.each([
+    ['no purchase verifier (APPLE_APP_APPLE_ID unset in production)', true, null],
+    ['no App Store API keys', false, {}],
+  ])(
+    'withholds the token while purchases cannot be verified: %s',
+    async (_case, configured, verifier) => {
+      config.appleConfigured = configured;
+      config.verifier = verifier;
+
+      const res = await fetch(`${base}/api/apple/account-token`, {
+        headers: { authorization: 'Bearer tok-A' },
+      });
+
+      expect(res.status).toBe(503);
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body).toEqual({ error: "Purchases aren't available yet" });
+      expect(body).not.toHaveProperty('appAccountToken');
+    }
+  );
 });

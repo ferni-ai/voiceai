@@ -29,7 +29,7 @@ const COUNT = parseInt(args.find((a) => a.startsWith('--count='))?.split('=')[1]
 const VERBOSE = args.includes('--verbose') || args.includes('-v');
 
 // LLM Model - configurable via .env
-const TEST_LLM_MODEL = process.env.TEST_LLM_MODEL || 'gemini-2.5-flash';
+const TEST_LLM_MODEL = process.env.TEST_LLM_MODEL || 'gemini-3.5-flash';
 
 type SystemName =
   | 'semantic-router'

@@ -20,6 +20,7 @@ import { handoffMetrics } from '../services/handoff-metrics.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { requireAuth } from './auth-middleware.js';
 import { parsePositiveInt, sendError, sendJSON } from './helpers.js';
+import { paramString } from './param-string.js';
 
 const log = createLogger({ module: 'HandoffDiagnostics' });
 
@@ -159,7 +160,7 @@ export async function getInProgressHandoffs(req: Request, res: Response): Promis
  */
 export async function getHandoffTrace(req: Request, res: Response): Promise<void> {
   try {
-    const traceId = req.params['traceId'];
+    const traceId = paramString(req.params['traceId']);
     if (!traceId) {
       res.status(400).json({
         success: false,

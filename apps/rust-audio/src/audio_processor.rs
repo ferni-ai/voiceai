@@ -9,7 +9,7 @@
 //! Designed for real-time voice agent audio processing with
 //! minimal GC pressure on the Node.js side.
 
-use ringbuf::traits::{Consumer, Observer, Producer, SplitRef};
+use ringbuf::traits::{Consumer, Observer, RingBuffer, SplitRef};
 use ringbuf::HeapRb;
 
 use crate::buffer_pool::{BufferPool, BufferPoolConfig, ConversionBuffer};
@@ -118,6 +118,12 @@ pub struct AudioProcessor {
     // State tracking
     pitch_history: Vec<f32>,
     energy_history: Vec<f32>,
+    /// Samples in the frame behind each energy_history entry.
+    energy_history_samples: Vec<usize>,
+    /// Length of the frame being analyzed.
+    frame_len: usize,
+    /// Speech time in finished segments (ms).
+    speech_ms_done: u64,
     total_samples: u64,
     last_speech_ms: u64,
     is_in_speech: bool,
@@ -130,7 +136,13 @@ impl AudioProcessor {
     /// Create a new audio processor for a session
     ///
     /// All buffers are pre-allocated here.
-    pub fn new(config: AudioProcessorConfig) -> Self {
+    pub fn new(mut config: AudioProcessorConfig) -> Self {
+        // Autocorrelation down to the lowest pitch needs two periods of it:
+        // a fixed 512-sample window was shorter than that at every rate
+        // (640 at 16 kHz), so pitch always came back 0.
+        let min_window =
+            2 * (config.sample_rate as f32 / FeatureConfig::default().min_pitch).ceil() as usize;
+        config.window_size = config.window_size.max(min_window);
         let ring_size = (config.sample_rate as f32 * config.ring_buffer_seconds) as usize;
 
         let buffer_pool = BufferPool::new(BufferPoolConfig {
@@ -155,6 +167,9 @@ impl AudioProcessor {
             feature_extractor,
             pitch_history: Vec::with_capacity(20),
             energy_history: Vec::with_capacity(20),
+            energy_history_samples: Vec::with_capacity(20),
+            frame_len: 0,
+            speech_ms_done: 0,
             total_samples: 0,
             last_speech_ms: 0,
             is_in_speech: false,
@@ -194,15 +209,13 @@ impl AudioProcessor {
         self.current_time_ms = timestamp_ms;
         self.total_samples += samples.len() as u64;
 
-        // Push samples into ring buffer
-        // Use a scope to ensure producer is dropped before we continue
-        {
-            let (mut prod, _cons) = self.ring_buffer.split_ref();
-            for &sample in samples {
-                // Ring buffer handles overflow by overwriting oldest
-                let _ = prod.try_push(sample);
-            }
-        } // prod is dropped here
+        // Push samples into the ring buffer, dropping the oldest when full.
+        // (try_push dropped the NEW samples once the 3 s ring filled, which
+        // froze the analysis on the first 3 s of the call.)
+        for &sample in samples {
+            self.ring_buffer.push_overwrite(sample);
+        }
+        self.frame_len = samples.len();
 
         // Check if we have enough samples for analysis
         if self.ring_buffer.occupied_len() < self.config.window_size {
@@ -241,11 +254,13 @@ impl AudioProcessor {
 
         let duration_ms = (self.total_samples as f32 / self.config.sample_rate as f32 * 1000.0) as u64;
 
-        let speech_duration = if self.is_in_speech {
-            self.current_time_ms - self.speech_start_ms
-        } else {
-            0
-        };
+        // Every speech segment so far, not just the one in progress.
+        let speech_duration = self.speech_ms_done
+            + if self.is_in_speech {
+                self.current_time_ms.saturating_sub(self.speech_start_ms)
+            } else {
+                0
+            };
         let speaking_ratio = speech_duration as f32 / duration_ms.max(1) as f32;
 
         // Estimate speech rate from energy peaks (rough syllable count)
@@ -271,6 +286,9 @@ impl AudioProcessor {
     pub fn reset(&mut self) {
         self.pitch_history.clear();
         self.energy_history.clear();
+        self.energy_history_samples.clear();
+        self.frame_len = 0;
+        self.speech_ms_done = 0;
         self.total_samples = 0;
         self.last_speech_ms = 0;
         self.is_in_speech = false;
@@ -356,8 +374,10 @@ impl AudioProcessor {
 
         // Update energy history
         self.energy_history.push(features.energy.db);
+        self.energy_history_samples.push(self.frame_len);
         if self.energy_history.len() > self.config.history_size {
             self.energy_history.remove(0);
+            self.energy_history_samples.remove(0);
         }
 
         // Update speech state
@@ -373,6 +393,7 @@ impl AudioProcessor {
             if silence_duration > 300 {
                 // 300ms silence = end of speech segment
                 self.is_in_speech = false;
+                self.speech_ms_done += self.last_speech_ms.saturating_sub(self.speech_start_ms);
             }
         }
     }
@@ -464,7 +485,10 @@ impl AudioProcessor {
             }
         }
 
-        let duration_sec = self.total_samples as f32 / self.config.sample_rate as f32;
+        // The peaks are from the history window, so divide by its length,
+        // not the whole session's (that read 0/s a few seconds in).
+        let history_samples: usize = self.energy_history_samples.iter().sum();
+        let duration_sec = history_samples as f32 / self.config.sample_rate as f32;
         if duration_sec > 0.0 {
             peaks as f32 / duration_sec
         } else {
@@ -495,6 +519,69 @@ mod tests {
                 (32767.0 * (2.0 * PI * freq * t).sin()) as i16
             })
             .collect()
+    }
+
+    /// Feed `secs` of `f(t)` in 20 ms frames, returning the last result.
+    fn feed(p: &mut AudioProcessor, sr: u32, secs: f32, t0: f32, f: impl Fn(f32) -> f32) -> Option<ProsodyResult> {
+        let frame = (sr / 50) as usize;
+        let frames = (secs * 50.0) as usize;
+        let mut last = None;
+        for k in 0..frames {
+            let start = t0 + k as f32 * 0.02;
+            let buf: Vec<f32> = (0..frame).map(|i| f(start + i as f32 / sr as f32)).collect();
+            last = p.process_frame_f32(&buf, ((start + 0.02) * 1000.0) as u64).or(last);
+        }
+        last
+    }
+
+    #[test]
+    fn pitch_is_tracked_at_every_sample_rate() {
+        // The window was a fixed 512 samples but autocorrelation down to
+        // 50 Hz needs 2 * sr / 50 (640 at 16 kHz), so pitch was always 0.
+        for sr in [16_000u32, 24_000, 48_000] {
+            let mut p = AudioProcessor::new(AudioProcessorConfig { sample_rate: sr, ..Default::default() });
+            let r = feed(&mut p, sr, 0.5, 0.0, |t| 0.3 * (2.0 * PI * 150.0 * t).sin()).unwrap();
+            assert!((r.pitch_hz - 150.0).abs() < 8.0, "{sr} Hz: pitch {}", r.pitch_hz);
+        }
+    }
+
+    #[test]
+    fn speech_rate_counts_syllables_per_second() {
+        // 150 Hz voice whose loudness pulses 5 times a second, like syllables.
+        let sr = 16_000;
+        let mut p = AudioProcessor::new(AudioProcessorConfig { sample_rate: sr, ..Default::default() });
+        feed(&mut p, sr, 5.0, 0.0, |t| {
+            let env = 0.55 + 0.45 * (2.0 * PI * 5.0 * t).sin();
+            0.3 * env * (2.0 * PI * 150.0 * t).sin()
+        });
+        let rate = p.get_full_features().speech_rate;
+        assert!((3.0..=7.0).contains(&rate), "speech rate {rate}/s, expected about 5");
+    }
+
+    #[test]
+    fn analysis_follows_the_live_audio_past_the_ring_buffer_length() {
+        // try_push dropped every sample once the 3 s ring was full, so the
+        // analysis froze on the first 3 s of the call.
+        let sr = 16_000;
+        let mut p = AudioProcessor::new(AudioProcessorConfig { sample_rate: sr, ..Default::default() });
+        feed(&mut p, sr, 4.0, 0.0, |t| 0.3 * (2.0 * PI * 150.0 * t).sin());
+        let r = feed(&mut p, sr, 1.0, 4.0, |_| 0.0).unwrap();
+        assert!(r.energy_db < -60.0, "energy {} dB a second into silence", r.energy_db);
+        assert!(!p.is_in_speech, "still in speech a second after the caller stopped");
+    }
+
+    #[test]
+    fn speaking_ratio_counts_every_speech_segment() {
+        // 1 s speech, 1 s silence, 1 s speech, then 1 s silence: half speech.
+        let sr = 16_000;
+        let mut p = AudioProcessor::new(AudioProcessorConfig { sample_rate: sr, ..Default::default() });
+        let voice = |t: f32| 0.3 * (2.0 * PI * 150.0 * t).sin();
+        feed(&mut p, sr, 1.0, 0.0, voice);
+        feed(&mut p, sr, 1.0, 1.0, |_| 0.0);
+        feed(&mut p, sr, 1.0, 2.0, voice);
+        feed(&mut p, sr, 1.0, 3.0, |_| 0.0);
+        let ratio = p.get_full_features().speaking_ratio;
+        assert!((0.35..=0.65).contains(&ratio), "speaking ratio {ratio}, expected about 0.5");
     }
 
     #[test]

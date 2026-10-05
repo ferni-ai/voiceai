@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { VOICE_IDS } from '../../../../config/voice-ids.js';
+import { LESTER_PRO_V3_VOICE_ID } from '../../../../config/voice-ids.js';
 import { prosodyTags } from '../../providers/cartesia.js';
 import { DirectorEngine, type EngineContext } from '../engine.js';
 import { leverModes } from '../gate.js';
@@ -18,7 +18,7 @@ const LIVE = leverModes({ SPEECH_DIRECTOR: 'live', SPEECH_DIRECTOR_NONVERBAL: 'l
 function newEngine(opensWithSpokenSigh: boolean): DirectorEngine {
   const ctx: EngineContext = {
     modes: LIVE,
-    voiceId: VOICE_IDS.FERNI,
+    voiceId: LESTER_PRO_V3_VOICE_ID,
     carry: { speed: 1 },
     // RawCues' own invariant (raw-cues.ts): a spoken-sigh cue always implies
     // the general opensWithSigh cue too (`opensWithSigh = opensWithSpokenSigh

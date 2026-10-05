@@ -1027,6 +1027,7 @@
     "apple": {
       "instructionsTitle": "To cancel or change your plan:",
       "note": "Apple requires subscriptions to be managed through iOS Settings",
+      "source": "You subscribed through the App Store.",
       "step1": "Open Settings on your device",
       "step2": "Tap your name at the top",
       "step3": "Tap \"Subscriptions\"",
@@ -1043,6 +1044,7 @@
     "expiresLabel": "Access until",
     "freeNote": "Unlock unlimited sessions, the full team, and personalisation",
     "label": "SUBSCRIPTION",
+    "noBilling": "Your plan isn't billed here, so there's nothing to change.",
     "renewsLabel": "Renews",
     "restore": {
       "failed": "Restore failed",
@@ -3058,6 +3060,96 @@
       "close": "Pretty close!",
       "off": "A little off this time.",
       "wayOff": "Way off this time. Now you know."
+    }
+  },
+  "trustDashboard": {
+    "together": {
+      "empty": "Once we've talked a few times, I'll tell you how we're doing.",
+      "startingTitle": "We're just getting started",
+      "startingMessage": "Talk with me a few more times and I'll have something real to tell you.",
+      "scoreLabel": "Together",
+      "stages": {
+        "new": "Just getting started",
+        "building": "Getting to know each other",
+        "established": "Finding our rhythm",
+        "deep": "We really get each other",
+        "flourishing": "Something special"
+      },
+      "rhythm": {
+        "high": "We talk often",
+        "mid": "We catch up regularly",
+        "low": "We talk now and then",
+        "quiet": "It's been a while since we talked",
+        "detailNone": "Not in the last month",
+        "detailOne": "1 day in the last month",
+        "detailOther": "{n} days in the last month"
+      },
+      "promises": {
+        "high": "I follow through",
+        "mid": "I mostly follow through",
+        "low": "I've let a few things slip",
+        "detail": "Kept {kept} of {total}"
+      },
+      "lift": {
+        "high": "You usually leave our talks lighter",
+        "mid": "Our talks keep you steady",
+        "low": "Our talks have felt heavy lately",
+        "detail": "Lighter by the end on {lifted} of {days} days"
+      },
+      "mood": {
+        "up": "You've seemed lighter lately",
+        "steady": "You've seemed steady lately",
+        "down": "Things have felt heavier lately",
+        "detail": "This week, next to the weeks before"
+      }
+    },
+    "noticed": {
+      "empty": "I'll share what I notice once we've talked a bit more.",
+      "notYet": "Nothing stands out yet. I'm still listening.",
+      "daysTalked": "Days we talked",
+      "tabs": {
+        "week": "This week",
+        "month": "This month"
+      },
+      "title": {
+        "week": "Things I noticed this week",
+        "month": "Things I noticed this month"
+      },
+      "quiet": {
+        "week": "We haven't talked this week. I'm here whenever you want.",
+        "month": "We haven't talked this month. I'm here whenever you want."
+      },
+      "moodShift": {
+        "lighter": {
+          "week": "You've seemed lighter than last week.",
+          "month": "You've seemed lighter than last month."
+        },
+        "heavier": {
+          "week": "This week felt heavier than last week. I'm here for that too.",
+          "month": "This month felt heavier than last month. I'm here for that too."
+        }
+      },
+      "bounceBack": {
+        "nextDay": "{date} was a hard day, and you felt better by the next one.",
+        "later": "{date} was a hard day, and you felt better within {days} days."
+      },
+      "liftTopic": "Talking about {topic} tends to lift you up.",
+      "brightest": "You sounded happiest on {date}.",
+      "timeOfDay": {
+        "morning": "We mostly talk in the mornings.",
+        "afternoon": "We mostly talk in the afternoons.",
+        "evening": "We mostly talk in the evenings.",
+        "night": "We mostly talk late at night."
+      },
+      "favoriteDay": "{day} seems to be our day.",
+      "cameUp": {
+        "one": "You told me about something coming up: {example}.",
+        "other": "You told me about {n} things coming up, like {example}."
+      },
+      "promisesKept": {
+        "all": "I kept every promise I made you.",
+        "some": "I kept {kept} of the {total} promises I made you."
+      }
     }
   }
 }

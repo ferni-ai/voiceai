@@ -198,7 +198,7 @@ describe('TTS Gateway E2E Validation', () => {
 
       expect(result.prosody.speed).toBe(0.9);
       expect(result.prosody.volume).toBe(1.1);
-      expect(result.prosody.emotion).toBe('happiness');
+      expect(result.prosody.emotion).toBe('happy'); // Sonic 3 name for Sonic 2's 'happiness'
       expect(result.prosody.emotionIntensity).toBe(0.7);
       expect(result.cleanText).toBe('Hello!');
     });
@@ -284,7 +284,7 @@ describe('TTS Gateway E2E Validation', () => {
       });
 
       expect(result.appliedProsody?.speed).toBe(0.8);
-      expect(result.appliedProsody?.emotion).toBe('sadness');
+      expect(result.appliedProsody?.emotion).toBe('sad'); // Sonic 3 name for 'sadness'
     });
 
     it('handles empty result after SSML strip', async () => {

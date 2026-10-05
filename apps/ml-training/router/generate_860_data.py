@@ -421,7 +421,7 @@ def get_gemini_model():
         sys.exit(1)
 
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-2.0-flash")
+    return genai.GenerativeModel("gemini-3.5-flash")
 
 
 def categorize_tool(tool_name: str) -> Tuple[str, Dict]:

@@ -1027,6 +1027,7 @@
     "apple": {
       "instructionsTitle": "Pour annuler ou modifier votre plan :",
       "note": "Apple exige que les abonnements soient gérés via les Paramètres iOS",
+      "source": "Vous vous êtes abonné via l'App Store.",
       "step1": "Ouvrez Paramètres sur votre appareil",
       "step2": "Appuyez sur votre nom en haut",
       "step3": "Appuyez sur \"Abonnements\"",
@@ -1043,6 +1044,7 @@
     "expiresLabel": "Accès jusqu'au",
     "freeNote": "Déverrouillez les sessions illimitées, l'équipe complète et la personnalisation",
     "label": "ABONNEMENT",
+    "noBilling": "Votre plan n'est pas facturé ici, il n'y a donc rien à modifier.",
     "renewsLabel": "Renouvellement",
     "restore": {
       "failed": "La restauration a échoué",
@@ -3061,6 +3063,96 @@
       "close": "Pas loin du tout !",
       "off": "Un peu à côté cette fois.",
       "wayOff": "Loin du compte cette fois. Maintenant, vous savez."
+    }
+  },
+  "trustDashboard": {
+    "together": {
+      "empty": "Quand nous aurons parlé quelques fois, je vous dirai comment ça va entre nous.",
+      "startingTitle": "Nous commençons à peine",
+      "startingMessage": "Parlez-moi encore quelques fois et j'aurai quelque chose de vrai à vous dire.",
+      "scoreLabel": "Ensemble",
+      "stages": {
+        "new": "Tout juste commencé",
+        "building": "Nous apprenons à nous connaître",
+        "established": "Nous trouvons notre rythme",
+        "deep": "Nous nous comprenons vraiment",
+        "flourishing": "Quelque chose de spécial"
+      },
+      "rhythm": {
+        "high": "Nous parlons souvent",
+        "mid": "Nous prenons des nouvelles régulièrement",
+        "low": "Nous parlons de temps en temps",
+        "quiet": "Cela fait un moment que nous n'avons pas parlé",
+        "detailNone": "Pas au cours du dernier mois",
+        "detailOne": "1 jour au cours du dernier mois",
+        "detailOther": "{n} jours au cours du dernier mois"
+      },
+      "promises": {
+        "high": "Je tiens parole",
+        "mid": "Je tiens presque toujours parole",
+        "low": "J'ai laissé filer certaines choses",
+        "detail": "{kept} tenues sur {total}"
+      },
+      "lift": {
+        "high": "Nos échanges vous allègent souvent",
+        "mid": "Nos échanges vous aident à garder l'équilibre",
+        "low": "Nos échanges ont été lourds ces derniers temps",
+        "detail": "Mieux à la fin {lifted} jours sur {days}"
+      },
+      "mood": {
+        "up": "Vous semblez aller mieux ces derniers temps",
+        "steady": "Vous semblez stable ces derniers temps",
+        "down": "Les choses semblent plus lourdes ces derniers temps",
+        "detail": "Cette semaine, comparée aux précédentes"
+      }
+    },
+    "noticed": {
+      "empty": "Je vous dirai ce que je remarque quand nous aurons un peu plus parlé.",
+      "notYet": "Rien ne ressort encore. Je reste à l'écoute.",
+      "daysTalked": "Jours où nous avons parlé",
+      "tabs": {
+        "week": "Cette semaine",
+        "month": "Ce mois-ci"
+      },
+      "title": {
+        "week": "Ce que j'ai remarqué cette semaine",
+        "month": "Ce que j'ai remarqué ce mois-ci"
+      },
+      "quiet": {
+        "week": "Nous n'avons pas parlé cette semaine. Je suis là quand vous voulez.",
+        "month": "Nous n'avons pas parlé ce mois-ci. Je suis là quand vous voulez."
+      },
+      "moodShift": {
+        "lighter": {
+          "week": "Vous semblez aller mieux que la semaine dernière.",
+          "month": "Vous semblez aller mieux que le mois dernier."
+        },
+        "heavier": {
+          "week": "Cette semaine a été plus lourde que la précédente. Je suis là pour ça aussi.",
+          "month": "Ce mois-ci a été plus lourd que le précédent. Je suis là pour ça aussi."
+        }
+      },
+      "bounceBack": {
+        "nextDay": "Le {date} a été une journée difficile, et vous alliez mieux dès le lendemain.",
+        "later": "Le {date} a été une journée difficile, et vous alliez mieux en {days} jours."
+      },
+      "liftTopic": "Parler de {topic} vous remonte souvent le moral.",
+      "brightest": "Le {date}, votre voix était la plus joyeuse.",
+      "timeOfDay": {
+        "morning": "Nous parlons surtout le matin.",
+        "afternoon": "Nous parlons surtout l'après-midi.",
+        "evening": "Nous parlons surtout le soir.",
+        "night": "Nous parlons surtout tard dans la nuit."
+      },
+      "favoriteDay": "Le {day} semble être notre jour.",
+      "cameUp": {
+        "one": "Vous m'avez parlé de quelque chose à venir : {example}.",
+        "other": "Vous m'avez parlé de {n} choses à venir, comme : {example}."
+      },
+      "promisesKept": {
+        "all": "J'ai tenu toutes les promesses que je vous ai faites.",
+        "some": "J'ai tenu {kept} des {total} promesses que je vous ai faites."
+      }
     }
   }
 }

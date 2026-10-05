@@ -4,13 +4,8 @@
 #
 # OPTIMIZATIONS:
 # - Kaniko builder for aggressive layer caching (cache-ttl=168h = 1 week)
-# - Uses pre-built ferni-speaker image (no Rust build on every deploy)
 # - BuildKit 1.4 syntax enables parallel stage builds in Dockerfile
 # - Cache persists between builds for ~5min build time (vs ~15-20min)
-#
-# PREREQUISITES:
-# - Pre-build the speaker image first (one-time or when speaker changes):
-#   gcloud builds submit --config=cloudbuild-speaker.yaml
 
 steps:
   # ============================================================================
@@ -48,7 +43,6 @@ steps:
       - '--cache-ttl=168h'
       - '--build-arg=GITHUB_PAT=$$GITHUB_PAT'
       - '--build-arg=VITE_ADMIN_API_KEY=$$ADMIN_API_KEY'
-      - '--build-arg=PROJECT_ID=$PROJECT_ID'
       - '--build-arg=BUILD_TIMESTAMP=$BUILD_ID'
       - '--snapshot-mode=redo'
       - '--use-new-run'

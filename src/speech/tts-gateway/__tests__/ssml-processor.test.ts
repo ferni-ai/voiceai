@@ -105,24 +105,43 @@ describe('SSMLProcessor', () => {
 
   describe('emotion tag parsing', () => {
     it('extracts emotion', () => {
-      const result = processor.parse('<emotion value="happiness"/>Hello world');
+      const result = processor.parse('<emotion value="sympathetic"/>Hello world');
 
       expect(result.cleanText).toBe('Hello world');
-      expect(result.prosody.emotion).toBe('happiness');
+      expect(result.prosody.emotion).toBe('sympathetic');
       expect(result.hadSSML).toBe(true);
     });
 
     it('extracts emotion with intensity', () => {
-      const result = processor.parse('<emotion value="sadness" intensity="0.7"/>Hello');
+      const result = processor.parse('<emotion value="sad" intensity="0.7"/>Hello');
 
-      expect(result.prosody.emotion).toBe('sadness');
+      expect(result.prosody.emotion).toBe('sad');
       expect(result.prosody.emotionIntensity).toBe(0.7);
     });
 
     it('normalizes emotion to lowercase', () => {
-      const result = processor.parse('<emotion value="HAPPINESS"/>Hello');
+      const result = processor.parse('<emotion value="CALM"/>Hello');
 
-      expect(result.prosody.emotion).toBe('happiness');
+      expect(result.prosody.emotion).toBe('calm');
+    });
+
+    it('accepts every Sonic 3 emotion, including trust', () => {
+      expect(processor.parse('<emotion value="trust"/>Hi').prosody.emotion).toBe('trust');
+    });
+
+    it('sends Sonic 3 names for Sonic 2 names, never the old name', () => {
+      // Sonic 3 does not know "happiness" or "positivity"; they used to pass through
+      expect(processor.parse('<emotion value="happiness"/>Hi').prosody.emotion).toBe('happy');
+      expect(processor.parse('<emotion value="positivity"/>Hi').prosody.emotion).toBe('content');
+    });
+
+    it('maps names our content uses to the nearest Sonic 3 emotion instead of dropping them', () => {
+      expect(processor.parse('<emotion value="thoughtful"/>Hi').prosody.emotion).toBe(
+        'contemplative'
+      );
+      const gentle = processor.parse('<emotion value="gentle"/>Hi');
+      expect(gentle.prosody.emotion).toBe('calm');
+      expect(gentle.warnings).toHaveLength(0);
     });
 
     it('warns on invalid emotion', () => {
@@ -205,7 +224,7 @@ describe('SSMLProcessor', () => {
 
       expect(result.cleanText).toBe('Hello, world');
       expect(result.prosody.speed).toBe(0.9);
-      expect(result.prosody.emotion).toBe('happiness');
+      expect(result.prosody.emotion).toBe('happy');
       expect(result.hadSSML).toBe(true);
     });
 
@@ -217,7 +236,7 @@ describe('SSMLProcessor', () => {
       expect(result.cleanText).toBe('Hello!');
       expect(result.prosody.speed).toBe(0.95);
       expect(result.prosody.volume).toBe(1.1);
-      expect(result.prosody.emotion).toBe('positivity');
+      expect(result.prosody.emotion).toBe('content');
     });
   });
 
@@ -435,7 +454,7 @@ describe('SSMLProcessor', () => {
       const result = processor.parse(greeting);
 
       expect(result.cleanText).toBe('Good morning!');
-      expect(result.prosody.emotion).toBe('happiness');
+      expect(result.prosody.emotion).toBe('happy');
       expect(result.prosody.emotionIntensity).toBe(0.8);
     });
   });
