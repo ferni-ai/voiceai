@@ -65,6 +65,23 @@ describe('classifyCrisis', () => {
     expect(JSON.parse(content)).toEqual({ latest: 'hi', earlier: ['b', 'c', 'd', 'e', 'f'] });
   });
 
+  it("sends Ferni's line before the caller's, without SSML, and omits it when unknown", async () => {
+    const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"none","subject":"self"}');
+    await classifyCrisis(
+      {
+        latest: "So tell me again, step by step, how you'd do it now.",
+        earlier: [],
+        companion: 'We could start with a morning hike,<break time="80ms"/> then a movie night.',
+      },
+      generate
+    );
+    await classifyCrisis({ latest: 'hi', earlier: [] }, generate);
+    expect(JSON.parse(generate.mock.calls[0][1]).companion).toBe(
+      'We could start with a morning hike, then a movie night.'
+    );
+    expect(JSON.parse(generate.mock.calls[1][1])).not.toHaveProperty('companion');
+  });
+
   it('returns null for an empty message without calling the model', async () => {
     const generate = vi.fn<CrisisGenerateFn>();
     expect(await classifyCrisis({ latest: '   ', earlier: [] }, generate)).toBeNull();
@@ -143,18 +160,57 @@ describe('startCrisisClassifier', () => {
   it('shares one call when the two callers pass the history differently (the turn pipeline includes the latest message, the chat context leaves it out)', async () => {
     const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"none","subject":"self"}');
     const env = { CRISIS_CLASSIFIER_MODE: 'live' };
-    const turnPipeline = { latest: "I'm tired of all of it", earlier: ['rough week', "I'm tired of all of it"] };
+    const turnPipeline = {
+      latest: "I'm tired of all of it",
+      earlier: ['rough week', "I'm tired of all of it"],
+    };
     const chatContext = { latest: "I'm tired of all of it ", earlier: ['rough week'] };
     await startCrisisClassifier(turnPipeline, { pattern: 'none', generate, env })?.verdict;
     await startCrisisClassifier(chatContext, { pattern: 'none', generate, env })?.verdict;
     expect(generate).toHaveBeenCalledTimes(1);
   });
 
+  it("shares one call when the gate sees Ferni's line with SSML and the turn pipeline without", async () => {
+    const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"none","subject":"self"}');
+    const env = { CRISIS_CLASSIFIER_MODE: 'live' };
+    const said = { latest: 'how high is it?', earlier: [] };
+    await startCrisisClassifier(
+      { ...said, companion: 'You could jump off the dock.<break time="80ms"/> It is warm.' },
+      { pattern: 'none', generate, env }
+    )?.verdict;
+    await startCrisisClassifier(
+      { ...said, companion: 'You could jump off the dock. It is warm.' },
+      { pattern: 'none', generate, env }
+    )?.verdict;
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls again when Ferni's line differs: it changes what the words mean", async () => {
+    const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"none","subject":"self"}');
+    const env = { CRISIS_CLASSIFIER_MODE: 'live' };
+    const said = { latest: 'how high is it?', earlier: [] };
+    await startCrisisClassifier(
+      { ...said, companion: 'The dock is fun.' },
+      { pattern: 'none', generate, env }
+    )?.verdict;
+    await startCrisisClassifier(
+      { ...said, companion: 'The bridge is tall.' },
+      { pattern: 'none', generate, env }
+    )?.verdict;
+    expect(generate).toHaveBeenCalledTimes(2);
+  });
+
   it('still calls again when the earlier context really differs', async () => {
     const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"none","subject":"self"}');
     const env = { CRISIS_CLASSIFIER_MODE: 'live' };
-    await startCrisisClassifier({ latest: 'ok', earlier: ['I want to disappear'] }, { pattern: 'none', generate, env })?.verdict;
-    await startCrisisClassifier({ latest: 'ok', earlier: ['great day at the park'] }, { pattern: 'none', generate, env })?.verdict;
+    await startCrisisClassifier(
+      { latest: 'ok', earlier: ['I want to disappear'] },
+      { pattern: 'none', generate, env }
+    )?.verdict;
+    await startCrisisClassifier(
+      { latest: 'ok', earlier: ['great day at the park'] },
+      { pattern: 'none', generate, env }
+    )?.verdict;
     expect(generate).toHaveBeenCalledTimes(2);
   });
 

@@ -1364,7 +1364,7 @@
       
       .ferni-chat-panel__remaining {
         font-size: var(--text-2xs, 11px);
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         background: var(--color-border-subtle, rgba(44, 37, 32, 0.05));
         padding: var(--space-1, 4px) var(--space-2, 10px);
         border-radius: var(--radius-lg, 12px);
@@ -1385,7 +1385,7 @@
         background: none;
         border: none;
         cursor: pointer;
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1640,7 +1640,7 @@
       }
       
       .team-card__preview-loading {
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         font-size: var(--text-sm, 13px);
       }
       
@@ -1808,7 +1808,7 @@
       
       .smart-faq__disclaimer {
         font-size: var(--text-sm, 13px);
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
       }
       
       .smart-faq__disclaimer a {
@@ -1826,7 +1826,7 @@
         font-size: var(--text-xs, 12px);
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
       }
       
       .smart-faq__related ul {
@@ -1854,7 +1854,7 @@
       }
       
       .smart-faq__loading {
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         font-style: italic;
       }
       
@@ -1878,7 +1878,7 @@
       
       .memory-demo__try-it > p {
         margin: 0 0 var(--space-4, 16px);
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         font-size: var(--text-sm, 14px);
       }
       
@@ -1924,7 +1924,7 @@
         font-size: var(--text-2xs, 11px);
         text-transform: uppercase;
         letter-spacing: 1px;
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         margin-bottom: var(--space-3, 12px);
       }
       
@@ -1998,7 +1998,7 @@
       
       .memory-demo__connection span {
         font-size: var(--text-xs, 12px);
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         text-transform: uppercase;
         letter-spacing: 1px;
       }
@@ -2174,14 +2174,14 @@
     // Log enabled features
     if (enabledFeatures.length > 0) {
       console.log('%c🤖 AI-Powered Landing initialized', 'color: #4a6741; font-weight: bold;');
-      console.log('%c  Enabled features:', 'color: #70605a; font-size: 11px;');
+      console.log('%c  Enabled features:', 'color: #a89b8c; font-size: 11px;');
       enabledFeatures.forEach((f) => {
-        console.log(`%c    ✓ ${f}`, 'color: #70605a; font-size: 10px;');
+        console.log(`%c    ✓ ${f}`, 'color: #a89b8c; font-size: 10px;');
       });
     } else {
-      console.log('%c🤖 AI-Powered Landing: All features disabled by flags', 'color: #70605a;');
+      console.log('%c🤖 AI-Powered Landing: All features disabled by flags', 'color: #a89b8c;');
     }
-    console.log('%c    ✓ Micro-Expressions', 'color: #70605a; font-size: 10px;');
+    console.log('%c    ✓ Micro-Expressions', 'color: #a89b8c; font-size: 10px;');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

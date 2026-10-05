@@ -15,6 +15,13 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { localeForRequest, tFor, type SupportedLocale } from '../i18n/index.js';
+import {
+  ALL_PRACTICES,
+  GREETING_KEYS,
+  INSIGHT_SOURCE_TITLE_KEYS,
+  INSPIRATIONS,
+} from './sanctuary-content.js';
 import { parseBody, sendJSON } from './helpers.js';
 import { requireAuth } from './auth-middleware.js';
 import { buildSuperhumanContext, type SuperhumanContext } from '../services/superhuman/index.js';
@@ -80,64 +87,44 @@ function getTimeContext(): SanctuaryData['timeContext'] {
   return 'night';
 }
 
-function getGreeting(timeContext: SanctuaryData['timeContext']): string {
-  const day = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
-
-  const greetings = {
-    morning: `${day} MORNING`,
-    afternoon: `${day} AFTERNOON`,
-    evening: `${day} EVENING`,
-    night: `LATE ${day}`,
-  };
-
-  return greetings[timeContext];
+function getGreeting(locale: SupportedLocale, timeContext: SanctuaryData['timeContext']): string {
+  const day = new Date().toLocaleDateString(locale, { weekday: 'long' }).toLocaleUpperCase(locale);
+  return tFor(locale, GREETING_KEYS[timeContext], { day });
 }
 
-function getInspiration(timeContext: SanctuaryData['timeContext']): {
-  quote: string;
-  source: string;
-} {
-  const inspirations = {
-    morning: [
-      {
-        quote: 'The way to get started is to quit talking and begin doing.',
-        source: 'Walt Disney',
-      },
-      { quote: 'Every morning brings new potential.', source: 'Unknown' },
-      {
-        quote: 'This is a wonderful day. I have never seen this one before.',
-        source: 'Maya Angelou',
-      },
-    ],
-    afternoon: [
-      { quote: 'The only way to do great work is to love what you do.', source: 'Steve Jobs' },
-      { quote: 'Small steps every day lead to big changes.', source: 'Unknown' },
-      { quote: 'You are never too old to set another goal.', source: 'C.S. Lewis' },
-    ],
-    evening: [
-      { quote: 'Rest is not idleness.', source: 'John Lubbock' },
-      {
-        quote: 'In the evening of life, we will be judged on love alone.',
-        source: 'St. John of the Cross',
-      },
-      { quote: 'Each day provides its own gifts.', source: 'Marcus Aurelius' },
-    ],
-    night: [
-      { quote: "Tomorrow's a new day with no mistakes in it yet.", source: 'L.M. Montgomery' },
-      { quote: 'Sleep is the best meditation.', source: 'Dalai Lama' },
-      { quote: 'Night is the other half of life, and the better half.', source: 'Goethe' },
-    ],
+function getInspiration(
+  locale: SupportedLocale,
+  timeContext: SanctuaryData['timeContext']
+): { quote: string; source: string } {
+  const options = INSPIRATIONS[timeContext];
+  const pick = options[Math.floor(Math.random() * options.length)];
+  return {
+    quote: tFor(locale, pick.key),
+    source: pick.author ?? tFor(locale, 'sanctuary.quotes.unknownAuthor'),
   };
+}
 
-  const options = inspirations[timeContext];
-  return options[Math.floor(Math.random() * options.length)];
+/**
+ * Pick the plural form for a count. English ships `one` and `other`; other
+ * languages may add zero/two/few/many keys, and anything missing falls back
+ * to `other`.
+ */
+function tPlural(locale: SupportedLocale, baseKey: string, count: number): string {
+  const category = new Intl.PluralRules(locale).select(count);
+  const specific = tFor(locale, `${baseKey}.${category}`, { count });
+  return specific === `${baseKey}.${category}`
+    ? tFor(locale, `${baseKey}.other`, { count })
+    : specific;
 }
 
 // ============================================================================
 // INSIGHT GENERATION
 // ============================================================================
 
-async function generateSanctuaryInsights(userId: string): Promise<SanctuaryInsight[]> {
+async function generateSanctuaryInsights(
+  locale: SupportedLocale,
+  userId: string
+): Promise<SanctuaryInsight[]> {
   const insights: SanctuaryInsight[] = [];
 
   try {
@@ -158,11 +145,13 @@ async function generateSanctuaryInsights(userId: string): Promise<SanctuaryInsig
       insights.push({
         id: insight.id,
         type: 'superhuman',
-        title: insight.source, // Use source as title
-        description: insight.insight, // Use insight content as description
+        title: INSIGHT_SOURCE_TITLE_KEYS[insight.source]
+          ? tFor(locale, INSIGHT_SOURCE_TITLE_KEYS[insight.source])
+          : insight.source,
+        description: insight.insight, // Generated upstream by the insight broker
         icon: getInsightIcon(insight.source),
         priority: mappedPriority as 'high' | 'medium' | 'low',
-        actionLabel: 'Explore',
+        actionLabel: tFor(locale, 'sanctuary.insights.actions.explore'),
         actionType: 'view_details',
       });
     }
@@ -174,11 +163,15 @@ async function generateSanctuaryInsights(userId: string): Promise<SanctuaryInsig
         insights.push({
           id: 'commitment_reminder',
           type: 'commitment',
-          title: 'Commitments in Flight',
-          description: `You have ${commitmentLines.length} active commitment${commitmentLines.length > 1 ? 's' : ''} being tracked.`,
+          title: tFor(locale, 'sanctuary.insights.commitments.title'),
+          description: tPlural(
+            locale,
+            'sanctuary.insights.commitments.description',
+            commitmentLines.length
+          ),
           icon: 'clipboard-check',
           priority: 'medium',
-          actionLabel: 'Review',
+          actionLabel: tFor(locale, 'sanctuary.insights.actions.review'),
           actionType: 'view_details',
         });
       }
@@ -191,8 +184,11 @@ async function generateSanctuaryInsights(userId: string): Promise<SanctuaryInsig
       insights.push({
         id: `pattern_${topPattern.id}`,
         type: 'pattern',
-        title: 'Pattern Detected',
-        description: `When ${topPattern.trigger}, ${topPattern.outcome}`,
+        title: tFor(locale, 'sanctuary.insights.pattern.title'),
+        description: tFor(locale, 'sanctuary.insights.pattern.description', {
+          trigger: topPattern.trigger,
+          outcome: topPattern.outcome,
+        }),
         icon: 'eye',
         priority: 'medium',
       });
@@ -203,11 +199,11 @@ async function generateSanctuaryInsights(userId: string): Promise<SanctuaryInsig
       insights.push({
         id: 'growth_narrative',
         type: 'growth',
-        title: 'Your Story Unfolds',
-        description: 'Your journey has chapters worth celebrating.',
+        title: tFor(locale, 'sanctuary.insights.growth.title'),
+        description: tFor(locale, 'sanctuary.insights.growth.description'),
         icon: 'book-open',
         priority: 'low',
-        actionLabel: 'View Journey',
+        actionLabel: tFor(locale, 'sanctuary.insights.actions.viewJourney'),
         actionType: 'view_details',
       });
     }
@@ -220,8 +216,8 @@ async function generateSanctuaryInsights(userId: string): Promise<SanctuaryInsig
     insights.push({
       id: 'welcome',
       type: 'growth',
-      title: 'A Moment for You',
-      description: 'This is your sanctuary. Take a breath and be present.',
+      title: tFor(locale, 'sanctuary.insights.welcome.title'),
+      description: tFor(locale, 'sanctuary.insights.welcome.description'),
       icon: 'heart',
       priority: 'medium',
     });
@@ -249,101 +245,10 @@ function getInsightIcon(type: string): string {
 // ============================================================================
 
 function getRecommendedPractices(
+  locale: SupportedLocale,
   timeContext: SanctuaryData['timeContext'],
   superhumanCtx?: Partial<SuperhumanContext>
 ): SanctuaryPractice[] {
-  // All available practices
-  const allPractices: SanctuaryPractice[] = [
-    {
-      id: 'brainstorm',
-      name: 'Brainstorm Session',
-      description: 'Think through a challenge together',
-      category: 'grow',
-      icon: 'lightbulb',
-      duration: '10-15 min',
-      prompt: "Let's brainstorm. What challenge or decision is on your mind?",
-      tags: ['creativity', 'problem-solving', 'clarity'],
-      recommended: false,
-    },
-    {
-      id: 'daily-checkin',
-      name: 'Daily Check-in',
-      description: 'Start your day with a gentle reflection',
-      category: 'reflect',
-      icon: 'sun',
-      duration: '5-10 min',
-      prompt: 'Good to see you. How are you feeling right now, really?',
-      tags: ['morning', 'reflection', 'awareness'],
-      recommended: false,
-    },
-    {
-      id: 'gratitude',
-      name: 'Gratitude Practice',
-      description: 'A moment of appreciation',
-      category: 'ground',
-      icon: 'heart',
-      duration: '5 min',
-      prompt: "Let's pause and appreciate. What's one thing you're grateful for right now?",
-      tags: ['gratitude', 'positivity', 'grounding'],
-      recommended: false,
-    },
-    {
-      id: 'wind-down',
-      name: 'Wind Down',
-      description: 'Gentle end-of-day reflection',
-      category: 'ground',
-      icon: 'moon',
-      duration: '5-10 min',
-      prompt: "Let's wind down together. What's one thing you're proud of from today?",
-      tags: ['evening', 'rest', 'closure'],
-      recommended: false,
-    },
-    {
-      id: 'weekly-review',
-      name: 'Weekly Review',
-      description: 'Reflect on your week and celebrate progress',
-      category: 'reflect',
-      icon: 'calendar',
-      duration: '15-20 min',
-      prompt: "Let's look back at your week. What stands out to you?",
-      tags: ['weekly', 'progress', 'planning'],
-      recommended: false,
-    },
-    {
-      id: 'breath-focus',
-      name: 'Breath Focus',
-      description: 'Simple breathing exercise to center yourself',
-      category: 'ground',
-      icon: 'wind',
-      duration: '3-5 min',
-      prompt: "Let's breathe together. Find a comfortable position and let your eyes soften.",
-      tags: ['breathing', 'calm', 'present'],
-      recommended: false,
-    },
-    {
-      id: 'future-letter',
-      name: 'Letter to Future Self',
-      description: 'Write wisdom for your future self',
-      category: 'grow',
-      icon: 'mail',
-      duration: '10-15 min',
-      prompt: 'What would you want to tell yourself 6 months from now?',
-      tags: ['growth', 'reflection', 'intention'],
-      recommended: false,
-    },
-    {
-      id: 'values-check',
-      name: 'Values Check-in',
-      description: 'Reconnect with what matters most',
-      category: 'reflect',
-      icon: 'compass',
-      duration: '10 min',
-      prompt: "Let's explore your values. What feels most important to you right now?",
-      tags: ['values', 'meaning', 'alignment'],
-      recommended: false,
-    },
-  ];
-
   // Determine recommendations based on time and context
   const recommendations: string[] = [];
 
@@ -373,28 +278,19 @@ function getRecommendedPractices(
     recommendations.push('breath-focus');
   }
 
-  // Mark recommended practices
-  return allPractices.map((practice) => ({
-    ...practice,
-    recommended: recommendations.includes(practice.id),
-    reasonRecommended: recommendations.includes(practice.id)
-      ? getRecommendationReason(practice.id, timeContext)
-      : undefined,
-  }));
-}
-
-function getRecommendationReason(practiceId: string, timeContext: string): string {
-  const reasons: Record<string, string> = {
-    'daily-checkin': 'Perfect for starting your day with intention',
-    gratitude: 'A moment of appreciation grounds you',
-    'wind-down': 'Time to release the day',
-    'breath-focus': 'A few breaths can shift everything',
-    'weekly-review': 'End the week with reflection',
-    brainstorm: 'Clear thinking awaits',
-    'future-letter': 'Plant seeds for future you',
-    'values-check': 'Reconnect with your compass',
-  };
-  return reasons[practiceId] || `Great for ${timeContext}`;
+  // Render text for this request's locale and mark recommended practices
+  return ALL_PRACTICES.map(({ key, ...practice }) => {
+    const recommended = recommendations.includes(practice.id);
+    return {
+      ...practice,
+      name: tFor(locale, `${key}.name`),
+      description: tFor(locale, `${key}.description`),
+      duration: tFor(locale, `${key}.duration`),
+      prompt: tFor(locale, `${key}.prompt`),
+      recommended,
+      reasonRecommended: recommended ? tFor(locale, `${key}.reason`) : undefined,
+    };
+  });
 }
 
 // ============================================================================
@@ -548,11 +444,12 @@ export async function handleSanctuaryRoutes(
         return true;
       }
 
+      const locale = await localeForRequest(req.headers['accept-language']);
       const timeContext = getTimeContext();
 
       // Build data in parallel
       const [insights, superhumanCtx] = await Promise.all([
-        generateSanctuaryInsights(userId),
+        generateSanctuaryInsights(locale, userId),
         buildSuperhumanContext(userId).catch((err) => {
           log.warn(
             { userId, error: String(err) },
@@ -562,14 +459,14 @@ export async function handleSanctuaryRoutes(
         }),
       ]);
 
-      const practices = getRecommendedPractices(timeContext, superhumanCtx);
+      const practices = getRecommendedPractices(locale, timeContext, superhumanCtx);
 
       const data: SanctuaryData = {
-        greeting: getGreeting(timeContext),
+        greeting: getGreeting(locale, timeContext),
         timeContext,
         insights,
         practices,
-        inspiration: getInspiration(timeContext),
+        inspiration: getInspiration(locale, timeContext),
       };
 
       sendJson(res, 200, data);
@@ -586,7 +483,8 @@ export async function handleSanctuaryRoutes(
         return true;
       }
 
-      const insights = await generateSanctuaryInsights(userId);
+      const locale = await localeForRequest(req.headers['accept-language']);
+      const insights = await generateSanctuaryInsights(locale, userId);
       sendJson(res, 200, { insights });
       return true;
     }
@@ -596,6 +494,7 @@ export async function handleSanctuaryRoutes(
       const url = new URL(req.url || '', `http://${req.headers.host}`);
       const userId = url.searchParams.get('userId');
 
+      const locale = await localeForRequest(req.headers['accept-language']);
       const timeContext = getTimeContext();
       let superhumanCtx = {};
 
@@ -609,7 +508,7 @@ export async function handleSanctuaryRoutes(
         });
       }
 
-      const practices = getRecommendedPractices(timeContext, superhumanCtx);
+      const practices = getRecommendedPractices(locale, timeContext, superhumanCtx);
       sendJson(res, 200, { practices });
       return true;
     }

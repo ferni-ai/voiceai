@@ -581,7 +581,7 @@
       .voice-sample__role {
         display: block;
         font-size: 12px;
-        color: #70605a;
+        color: #a89b8c;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         font-weight: 500;
@@ -679,7 +679,7 @@
       .voice-sample__q-label {
         font-weight: 600;
         font-style: normal;
-        color: #70605a;
+        color: #a89b8c;
         margin-right: 4px;
       }
       
@@ -687,7 +687,7 @@
       .voice-sample__transcript {
         margin-top: 12px;
         font-size: 13px;
-        color: #70605a;
+        color: #a89b8c;
         line-height: 1.6;
       }
       
@@ -766,7 +766,7 @@
       
       .voice-samples-showcase__subtitle {
         font-size: 18px;
-        color: #70605a;
+        color: #a89b8c;
         margin: 0;
         font-weight: 400;
       }

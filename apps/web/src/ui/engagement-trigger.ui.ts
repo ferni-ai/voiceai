@@ -361,14 +361,14 @@ class EngagementTriggerUI {
 
       /* Dark theme (Cedar Night) */
       [data-theme="midnight"] .engagement-trigger-btn {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-border-medium, rgba(215, 185, 145, 0.20));
         color: var(--color-text-secondary, #f0ebe4);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
 
       [data-theme="midnight"] .engagement-trigger-btn:hover {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
         color: var(--color-text-primary, #faf6f0);
         border-color: var(--color-border-strong, rgba(215, 185, 145, 0.30));
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);

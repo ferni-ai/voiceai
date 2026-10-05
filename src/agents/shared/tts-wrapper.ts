@@ -352,7 +352,7 @@ export interface TtsWrapperOptions {
   enableStreamingOptimization?: boolean;
   /** Is this the first turn? (enables more aggressive optimization) */
   isFirstTurn?: boolean;
-  /** Enable "Better Than Human" post-TTS audio enhancement (default: true) */
+  /** Route through the post-TTS step (default true): Stage 2 if gated on, mastering if opted in */
   enablePostTTSEnhancement?: boolean;
   /** Post-TTS enhancement config (uses betterThanHuman preset by default) */
   postTTSConfig?: Partial<PostTTSConfig>;
@@ -409,8 +409,6 @@ export async function wrappedTtsNode(
     onInterruptRecoveryApplied,
     enableStreamingOptimization = isStreamingTTSEnabled(),
     isFirstTurn = false,
-    // Always route through the post-TTS step: it runs Stage 2 (opening breath,
-    // tempo) when gated on, and the mastering chain only when opted in.
     enablePostTTSEnhancement = true,
     postTTSConfig,
   } = options;

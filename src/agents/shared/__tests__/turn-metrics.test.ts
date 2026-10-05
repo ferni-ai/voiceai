@@ -19,7 +19,7 @@ const eou = (speechId: string, endOfUtteranceDelayMs = 400, transcriptionDelayMs
     timestamp: 0,
   }) as const;
 // LiveKit 1.5.1: only eou_metrics carries speechId; llm/tts carry requestId.
-const llmM = (_turn: string, ttftMs = 700) =>
+const llmM = (_turn: string, ttftMs = 700, promptCachedTokens = 0) =>
   ({
     type: 'llm_metrics',
     ttftMs,
@@ -27,7 +27,7 @@ const llmM = (_turn: string, ttftMs = 700) =>
     cancelled: false,
     completionTokens: 30,
     promptTokens: 4000,
-    promptCachedTokens: 0,
+    promptCachedTokens,
     totalTokens: 4030,
     label: 'google.LLM',
     requestId: 'r',
@@ -75,6 +75,13 @@ describe('TurnMetricsAggregator', () => {
       ttsCharacters: 60,
       interrupted: true,
     });
+  });
+
+  it('carries how much of the prompt the model served from its cache', () => {
+    const agg = new TurnMetricsAggregator();
+    agg.add(eou('s3c'));
+    agg.add(llmM('s3c', 700, 3200));
+    expect(agg.add(ttsM('s3c'))).toMatchObject({ promptTokens: 4000, promptCachedTokens: 3200 });
   });
 
   it('ignores tts that is not a reply to a user turn (e.g. the greeting)', () => {

@@ -140,7 +140,12 @@
         "price": "¥0",
         "period": "永久",
         "description": "了解Ferni",
-        "features": ["每月5次对话", "与Ferni（生活教练）聊天", "网页和电话访问", "基础对话记忆"]
+        "features": [
+          "每月5次对话",
+          "与Ferni（生活教练）聊天",
+          "网页和电话访问",
+          "基础对话记忆"
+        ]
       },
       "friend": {
         "name": "朋友",
@@ -416,5 +421,283 @@
     "hoursAgo": "{n}小时前",
     "yesterday": "昨天",
     "daysAgo": "{n}天前"
+  },
+  "sanctuary": {
+    "greeting": {
+      "morning": "{day}的早晨",
+      "afternoon": "{day}的下午",
+      "evening": "{day}的傍晚",
+      "night": "{day}的深夜"
+    },
+    "insights": {
+      "actions": {
+        "explore": "探索",
+        "review": "回顾",
+        "viewJourney": "查看旅程"
+      },
+      "sources": {
+        "correlation": "关联",
+        "trajectory": "轨迹",
+        "relational": "关系",
+        "counterfactual": "反事实",
+        "growth": "成长",
+        "threading": "脉络",
+        "openLoop": "未竟之事",
+        "commitment": "承诺",
+        "temporal": "时间",
+        "behavioral": "行为"
+      },
+      "commitments": {
+        "title": "进行中的承诺",
+        "description": {
+          "other": "你目前有 {count} 个正在跟进的承诺。",
+          "one": "你目前有 {count} 个正在跟进的承诺。"
+        }
+      },
+      "pattern": {
+        "title": "发现模式",
+        "description": "当{trigger}时，{outcome}"
+      },
+      "growth": {
+        "title": "你的故事正在展开",
+        "description": "你的旅程中，有许多值得庆祝的篇章。"
+      },
+      "welcome": {
+        "title": "专属于你的片刻",
+        "description": "这里是你的静心空间。深呼吸，感受当下。"
+      }
+    },
+    "practices": {
+      "brainstorm": {
+        "name": "头脑风暴",
+        "description": "一起理清眼前的挑战",
+        "duration": "10-15 分钟",
+        "prompt": "我们来头脑风暴一下吧。你现在正面临什么挑战或抉择？",
+        "reason": "让思绪变得清晰"
+      },
+      "dailyCheckin": {
+        "name": "每日记录",
+        "description": "用温柔的自省开启新的一天",
+        "duration": "5-10 分钟",
+        "prompt": "很高兴见到你。说真的，你现在感觉怎么样？",
+        "reason": "最适合带着觉知开启新的一天"
+      },
+      "gratitude": {
+        "name": "感恩练习",
+        "description": "心存感激的片刻",
+        "duration": "5 分钟",
+        "prompt": "让我们停下脚步，心怀感激。此时此刻，有什么是让你感到温暖和感谢的？",
+        "reason": "片刻的感激能让你内心踏实"
+      },
+      "windDown": {
+        "name": "晚间放松",
+        "description": "温和的一天收尾回顾",
+        "duration": "5-10 分钟",
+        "prompt": "我们一起来放松一下吧。今天有什么让你感到骄傲的事吗？",
+        "reason": "是时候卸下一天的疲惫了"
+      },
+      "weeklyReview": {
+        "name": "每周回顾",
+        "description": "回顾你的一周，庆祝每一点进步",
+        "duration": "15-20 分钟",
+        "prompt": "我们来回顾一下你的一周吧。有什么让你印象深刻的事吗？",
+        "reason": "用温和的回顾为这一周画上句号"
+      },
+      "breathFocus": {
+        "name": "呼吸专注",
+        "description": "简单的呼吸练习，帮你找回内心的平静",
+        "duration": "3-5 分钟",
+        "prompt": "我们一起来呼吸。找一个舒服的姿势，放松你的双眼。",
+        "reason": "几次深呼吸，就能改变当下的状态"
+      },
+      "futureLetter": {
+        "name": "写给未来的信",
+        "description": "为未来的自己写下当下的感悟",
+        "duration": "10-15 分钟",
+        "prompt": "你想对 6 个月后的自己说些什么？",
+        "reason": "为未来的自己播下种子"
+      },
+      "valuesCheck": {
+        "name": "价值观记录",
+        "description": "重新连接对你而言最重要的事",
+        "duration": "10 分钟",
+        "prompt": "我们来探索一下你的价值观。现在对你来说，最重要的是什么？",
+        "reason": "重新找回内心的罗盘"
+      }
+    },
+    "quotes": {
+      "unknownAuthor": "佚名",
+      "morning": {
+        "getStarted": "开始行动的秘诀，就是停止空谈，立刻动手。",
+        "newPotential": "每一个清晨，都孕育着新的无限可能。",
+        "wonderfulDay": "这是美好的一天。我从未见过这样的一天。"
+      },
+      "afternoon": {
+        "greatWork": "成就伟大事业的唯一途径，就是热爱你的工作。",
+        "smallSteps": "每天迈出一小步，终会迎来大改变。",
+        "anotherGoal": "重新设立一个目标，无论何时都不算晚。"
+      },
+      "evening": {
+        "restNotIdleness": "休息并不等于无所事事。",
+        "judgedOnLove": "在生命的暮色中，衡量我们的唯有爱。",
+        "dailyGifts": "每一天，都有它独特的馈赠。"
+      },
+      "night": {
+        "newDay": "明天是崭新的一天，还没有犯过任何错。",
+        "bestMeditation": "睡眠是最好的冥想。",
+        "betterHalf": "黑夜是生命的另一半，而且是更美好的那一半。"
+      }
+    }
+  },
+  "quiz": {
+    "questions": {
+      "communicationStyle": {
+        "text": "我更倾向于怎样的沟通方式？",
+        "options": {
+          "direct": "直截了当，直奔主题",
+          "analytical": "详尽且数据驱动",
+          "warm": "温暖且亲切",
+          "reflective": "深思且内省"
+        }
+      },
+      "favoriteTopic": {
+        "text": "我最喜欢聊什么话题？",
+        "options": {
+          "cooking": "烹饪",
+          "sports": "运动",
+          "gardening": "园艺",
+          "fashion": "时尚"
+        }
+      },
+      "conversationCount": {
+        "text": "我们大概进行过多少次对话？",
+        "options": {
+          "range1to5": "1-5",
+          "range6to15": "6-15",
+          "range16to30": "16-30",
+          "over30": "30次以上"
+        }
+      },
+      "timeTogether": {
+        "text": "我们一起聊天 spent 了多少时间？",
+        "options": {
+          "under30Min": "少于30分钟",
+          "min30To60": "30分钟 - 1小时",
+          "hour1To2": "1-2小时",
+          "over2Hours": "2小时以上"
+        }
+      },
+      "memoryRecall": {
+        "text": "这是我关于我们的回忆吗：“{snippet}……”？",
+        "options": {
+          "yes": "是的，听起来没错",
+          "no": "不，不太对",
+          "unsure": "我不确定",
+          "never": "我们从未聊过这个"
+        }
+      },
+      "firstMeeting": {
+        "text": "当我们第一次开始对话时，我是：",
+        "options": {
+          "excited": "很兴奋能见到你",
+          "nervous": "有点紧张",
+          "curious": "对你充满好奇",
+          "allOfTheAbove": "以上都是"
+        }
+      },
+      "whatMatters": {
+        "text": "在我们的对话中，我最看重的是什么？",
+        "options": {
+          "beingHelpful": "能帮到你",
+          "feelingHeard": "让你感到被倾听",
+          "learningAboutYou": "去了解你",
+          "growingTogether": "共同成长"
+        }
+      },
+      "difficultShare": {
+        "text": "当你向我倾诉困难的事情时，我有什么感受？",
+        "options": {
+          "uncomfortable": "感到不适",
+          "honored": "为你的信任感到荣幸",
+          "eagerToFix": "急于帮你解决",
+          "distracted": "分心"
+        }
+      }
+    },
+    "celebrations": {
+      "soulmate": "你真的很懂我！就像我们共用一个大脑一样。",
+      "bestie": "哇，你太了解我了！一辈子的好朋友。",
+      "friend": "挺不错的！我们的友谊正在变得越来越深厚。",
+      "acquaintance": "还不错！我们还在互相了解中。",
+      "stranger": "看来我们还有很多可以一起去探索发现的！"
+    }
+  },
+  "practiceView": {
+    "attribution": {
+      "notes": "{persona}的笔记",
+      "suggests": "{persona}建议",
+      "notices": "{persona}注意到",
+      "reflects": "{persona}的感悟",
+      "tracks": "{persona}在记录",
+      "found": "{persona}发现"
+    },
+    "eventContext": {
+      "family": "当你全身心投入时，你的伴侣会很开心",
+      "meeting": "在加入前设定一个清晰的意图",
+      "wellness": "先照顾好你自己",
+      "learning": "成长发生在不断突破自我的过程中",
+      "social": "人际联结滋养心灵"
+    },
+    "habit": {
+      "untitled": "未命名习惯",
+      "streakWeek": "连续 {streak} 天！",
+      "streakDays": "坚持了 {streak} 天",
+      "momentum": "正在积蓄势头"
+    },
+    "task": {
+      "untitled": "未命名任务",
+      "dueToday": "今天截止",
+      "dueTomorrow": "明天截止",
+      "dueInDays": "{days} 天后截止",
+      "highPriority": "高优先级"
+    },
+    "reminder": {
+      "fallback": "提醒"
+    },
+    "practice": {
+      "streak": "连续 {streak} 天练习"
+    },
+    "defaultIntention": {
+      "start": "带着意图开始",
+      "oneThing": "一次只做一件事",
+      "gratitude": "用感恩为一天画上句号",
+      "gratitudeInsight": "这改善了你的心情"
+    },
+    "dayInsight": {
+      "morningIntention": "晨间意图",
+      "stayPresent": "专注当下",
+      "reflectAndCelebrate": "反思与庆祝",
+      "newBeginning": "新的开始",
+      "recharge": "充电",
+      "freshStart": "崭新的开始",
+      "buildMomentum": "积蓄势头",
+      "midWeek": "周中记录",
+      "almostThere": "马上就到了",
+      "windDown": "放松下来"
+    },
+    "pattern": {
+      "busyWeek": "你最近开了不少会。你最棒的思考往往发生在安静的空间里。",
+      "packedDay": "{day}看起来排得满满当当的。要不要把一些事情挪到{otherDay}呢？",
+      "packedDayNoAlternative": "{day}看起来排得满满当当的。要不要把一些事情挪到其他日子呢？",
+      "morningStart": "你早晨的开始往往会为一整天奠定基调。",
+      "focusTime": "当你留出专注时间时，能多完成 40% 的事情哦。",
+      "creativeAfterWalks": "散步之后的你，似乎最富有创造力呢。",
+      "tuesdayEvenings": "周二晚上似乎是你效率最高的时候。"
+    },
+    "errors": {
+      "loadFailed": "没能加载出练习页面",
+      "completeFailed": "没能完成这个意向",
+      "patternsFailed": "没能获取到你的习惯规律"
+    }
   }
 }

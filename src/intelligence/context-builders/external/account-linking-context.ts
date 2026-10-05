@@ -1,9 +1,9 @@
 /**
  * Account Linking Context Builder
  *
- * Injects context when account linking opportunities are detected.
- * This enables Ferni to naturally offer merging phone and web accounts
- * when the user mentions their email or that they use the app.
+ * Injects context when a caller looks like they also have an app account.
+ * Ferni never links accounts on a call (it can't verify who owns them); the
+ * guidance tells it to point the caller to signing in on the app instead.
  *
  * Example scenarios:
  * - Caller mentions email: "my email is john@example.com"
@@ -186,7 +186,7 @@ export const accountLinkingContextBuilder: ContextBuilder = {
       injections.push(
         createStandardInjection(
           'account_linking_high_confidence',
-          buildHighConfidenceLinkingGuidance(bestMatch, linkingContext.signals),
+          buildLinkingGuidance(linkingContext.signals),
           {
             category: 'account-linking',
             confidence: bestMatch.confidence,
@@ -198,7 +198,7 @@ export const accountLinkingContextBuilder: ContextBuilder = {
       injections.push(
         createStandardInjection(
           'account_linking_moderate_confidence',
-          buildModerateConfidenceLinkingGuidance(bestMatch, linkingContext.signals),
+          buildLinkingGuidance(linkingContext.signals),
           {
             category: 'account-linking',
             confidence: bestMatch.confidence,
@@ -227,101 +227,31 @@ export const accountLinkingContextBuilder: ContextBuilder = {
 // INJECTION BUILDERS
 // ============================================================================
 
-function buildHighConfidenceLinkingGuidance(
-  match: PotentialLinkResult,
-  signals: AccountLinkingContext['signals']
-): string {
-  const signalDescriptions = signals.map((s) => {
-    switch (s.type) {
-      case 'email_mention':
-        return `email: ${s.value}`;
-      case 'app_mention':
-        return 'uses the app';
-      case 'web_mention':
-        return 'uses the website';
-      case 'account_mention':
-        return 'has an account';
-      default:
-        return s.type;
-    }
-  });
+/**
+ * Guidance for a caller who looks like they already have an app account.
+ *
+ * The match came from what the caller said (an email, a name), which anyone
+ * can say. So the agent must not link anything on the call, and must not
+ * confirm the account exists or repeat anything from it: that would tell a
+ * stranger whose account an email belongs to. Connecting accounts needs the
+ * person to sign in to the app, where they prove they own the account.
+ */
+function buildLinkingGuidance(signals: AccountLinkingContext['signals']): string {
+  const mentionedApp = signals.some(
+    (s) => s.type === 'app_mention' || s.type === 'web_mention' || s.type === 'account_mention'
+  );
 
   return `
-ACCOUNT LINKING OPPORTUNITY - HIGH CONFIDENCE
+THIS CALLER MAY ALSO USE THE FERNI APP
 
-I found a match for this caller!
-- Name in existing account: ${match.profile.name || '(not set)'}
-- Match type: ${match.matchType}
-- Confidence: ${Math.round(match.confidence * 100)}%
-- What they mentioned: ${signalDescriptions.join(', ')}
-- Previous conversations: ${match.profile.totalConversations || 0}
+${mentionedApp ? 'They mentioned using the app or website.' : 'Something they said may match an app account.'}
 
-This caller likely already has a web/app account. Linking their phone will:
-- Combine their conversation history
-- Let them seamlessly switch between phone and app
-- Keep all their memories and context in one place
-
-SUGGEST NATURALLY:
-${
-  match.matchType === 'email'
-    ? `- "I think I know you from the app! Is this ${match.profile.name || 'you'}?"`
-    : `- "That name sounds familiar - do you also use the Ferni app?"`
-}
-- "Would you like me to link this phone to your account?"
-
-If they confirm, use the link_phone_to_account tool with:
-- web_account_id: "${match.identityId}"
-- confirmed_by_user: true
+You cannot connect accounts on a call. If they ask to bring their app history into this call, tell them warmly that connecting accounts needs them to sign in to the app first.
 
 DON'T:
-- Be pushy about linking
-- Assume they want to link without asking
-- Share details from their other account until they confirm
-`.trim();
-}
-
-function buildModerateConfidenceLinkingGuidance(
-  match: PotentialLinkResult,
-  signals: AccountLinkingContext['signals']
-): string {
-  const signalDescriptions = signals.map((s) => {
-    switch (s.type) {
-      case 'email_mention':
-        return `email: ${s.value}`;
-      case 'app_mention':
-        return 'uses the app';
-      case 'web_mention':
-        return 'uses the website';
-      case 'account_mention':
-        return 'has an account';
-      default:
-        return s.type;
-    }
-  });
-
-  return `
-POSSIBLE ACCOUNT LINKING OPPORTUNITY
-
-I found a potential match, but not 100% sure:
-- Name in existing account: ${match.profile.name || '(not set)'}
-- Match type: ${match.matchType}
-- Confidence: ${Math.round(match.confidence * 100)}%
-- What they mentioned: ${signalDescriptions.join(', ')}
-
-VERIFY BEFORE OFFERING TO LINK:
-${
-  match.matchType === 'name'
-    ? `- "Do you also use the Ferni app? I think we may have talked there before."`
-    : `- "I think I recognize you - do you use Ferni on your phone or computer too?"`
-}
-
-If they confirm AND want to link:
-- Use the link_phone_to_account tool
-- Make sure confirmed_by_user is true
-
-If they say no or seem confused:
-- Don't push it
-- Just continue the conversation normally
+- Say whether you found an account, or share a name, history or anything else from one
+- Treat them as the account holder because they said a name or an email
+- Bring it up more than once, or push it
 `.trim();
 }
 

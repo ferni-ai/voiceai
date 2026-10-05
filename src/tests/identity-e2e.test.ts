@@ -466,6 +466,22 @@ describe('Identity Integration Tests', () => {
 // ============================================================================
 
 describe('Better Than Human: Greeting Name Prompts', () => {
+  // Greetings are random and clock-dependent: before 9am, from 10pm and on
+  // weekends a quarter of new-user greetings come from time-aware templates that
+  // never ask for a name. Pin a weekday noon so only the style's own templates
+  // are in play, and sample enough that missing every name-asking one is
+  // vanishingly unlikely (warm-friend asks 1 in 3, so 100 misses is ~3e-18).
+  const GREETING_SAMPLES = 100;
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 0, 14, 12, 0, 0)); // Wednesday noon, local time
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('warm-friend style (Ferni default)', () => {
     it('newUser greetings include name-asking variants', async () => {
       const { generateStaticGreeting } = await import('../personas/greetings.js');
@@ -481,7 +497,7 @@ describe('Better Than Human: Greeting Name Prompts', () => {
 
       // Generate multiple greetings and check at least some ask for name
       const greetings: string[] = [];
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < GREETING_SAMPLES; i++) {
         greetings.push(
           generateStaticGreeting(mockPersona as Parameters<typeof generateStaticGreeting>[0], {
             isReturningUser: false,
@@ -517,7 +533,7 @@ describe('Better Than Human: Greeting Name Prompts', () => {
 
       // Generate multiple returningNoName greetings
       const greetings: string[] = [];
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < GREETING_SAMPLES; i++) {
         greetings.push(
           generateStaticGreeting(mockPersona as Parameters<typeof generateStaticGreeting>[0], {
             isReturningUser: true,
@@ -582,7 +598,7 @@ describe('Better Than Human: Greeting Name Prompts', () => {
         };
 
         const greetings: string[] = [];
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < GREETING_SAMPLES; i++) {
           greetings.push(
             generateStaticGreeting(mockPersona as Parameters<typeof generateStaticGreeting>[0], {
               isReturningUser: false,

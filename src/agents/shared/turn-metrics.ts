@@ -34,6 +34,7 @@ interface LlmMetric {
   speechId?: string;
   ttftMs: number;
   promptTokens: number;
+  /** Prompt tokens the model served from its cache (Gemini cachedContentTokenCount). */
   promptCachedTokens?: number;
   completionTokens: number;
   /** Epoch ms the request finished, and how long it ran. */
@@ -62,7 +63,7 @@ export interface TurnMetricsRecord {
   llmTtftMs: number;
   ttsTtfbMs: number | null;
   promptTokens: number;
-  /** Prompt tokens served from the provider's cache. */
+  /** Of promptTokens, how many came from the model's prompt cache. */
   promptCachedTokens: number;
   completionTokens: number;
   ttsCharacters: number;

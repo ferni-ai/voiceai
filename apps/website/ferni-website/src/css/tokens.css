@@ -102,13 +102,13 @@
   --color-success-light: var(--color-ferni-light);
 
   /* =========================================================================
-     COLORS - CEDAR / DARK THEME BASE
-     Cedar Night theme foundation colors
+     COLORS - NIGHT INK / GOLD HIGHLIGHT
+     Gold is a highlight. Sage is the action, and dark mode overrides it.
      ========================================================================= */
   --color-cedar: var(--color-bg-elevated);
   --color-cedar-dark: var(--color-cedar);
-  --color-accent-gold: #d4a84a;
-  --color-accent-gold-hover: var(--color-accent-hover);
+  --color-accent-gold: #e4c27a;
+  --color-accent-gold-hover: #c9a15a;
   --color-text-secondary-light: var(--color-sand);
 
   /* =========================================================================

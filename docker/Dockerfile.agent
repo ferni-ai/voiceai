@@ -242,6 +242,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
 
+# Neural speaker model: SpeechBrain ECAPA-TDNN as ONNX, built by
+# scripts/speaker/export-ecapa-onnx.py (see scripts/speaker/README.md). The
+# object is public, so the build needs no GCP credentials (LiveKit Cloud builds
+# cannot pull private registries). A sha256 mismatch fails the build, and the
+# speaker-embedding worker checks the digest again at load and falls back to
+# DSP features if it differs. Kill switch: unset SPEAKER_MODEL_PATH.
+# This layer comes before any app source, so it stays cached.
+ARG SPEAKER_MODEL_SHA256=93ccd596285b31d5debad84ab3f138d5dc1145f19c3f287b81ece65afa034fc9
+ARG SPEAKER_MODEL_URL=https://storage.googleapis.com/ferni-public-models/speaker/ecapa-tdnn-waveform-93ccd596.onnx
+RUN mkdir -p /models/speaker && \
+    curl -fsSL --retry 3 --retry-all-errors \
+      -o /models/speaker/ecapa-tdnn-waveform.onnx "$SPEAKER_MODEL_URL" && \
+    printf '%s  /models/speaker/ecapa-tdnn-waveform.onnx\n' "$SPEAKER_MODEL_SHA256" \
+      > /models/speaker/ecapa-tdnn-waveform.onnx.sha256 && \
+    sha256sum -c /models/speaker/ecapa-tdnn-waveform.onnx.sha256 && \
+    printf '%s\n' \
+      'ECAPA-TDNN speaker model from speechbrain/spkrec-ecapa-voxceleb (SpeechBrain), Apache-2.0.' \
+      'Modified: exported to ONNX with its feature front end (scripts/speaker/export-ecapa-onnx.py).' \
+      'License: https://www.apache.org/licenses/LICENSE-2.0' > /models/speaker/NOTICE
+ENV SPEAKER_MODEL_PATH=/models/speaker/ecapa-tdnn-waveform.onnx \
+    SPEAKER_MODEL_SHA256=${SPEAKER_MODEL_SHA256}
+
 # Copy pre-built production node_modules from builder (already cleaned + patched)
 # This replaces the full pnpm install + cleanup + LiveKit patching that previously
 # ran in the production stage. The builder's pnpm store was warm, so the prod install
