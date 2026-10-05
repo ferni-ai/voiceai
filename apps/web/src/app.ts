@@ -234,6 +234,7 @@ import {
 // I18n - Internationalization and localization
 import { initI18n, t } from './i18n/index.js';
 import { bindStaticDom } from './i18n/static-dom.js';
+import { installDialogFocus } from './utils/dialog-focus.js';
 import { tp } from './i18n/plural.js';
 // Mood Context - Time-based persona mood for "Better than Human"
 import { disposeMoodContext } from './services/mood-context.service.js';
@@ -518,9 +519,8 @@ class VoiceAIApp {
 
       await initI18n(); // before any UI renders
       bindStaticDom(); // index.html text marked with data-i18n
-      // Check authentication - require sign-in before proceeding
-      // This matches iOS behavior where users must sign in with Apple/Google
-      // IMPORTANT: Must await auth initialization to restore any existing session
+      installDialogFocus(); // focus into, around and back out of every modal
+      // Require sign-in, like iOS; await it so an existing session is restored
       const authState = await initializeAuth();
       if (!authState.isAuthenticated) {
         log.info('User not authenticated, showing sign-in gate');
