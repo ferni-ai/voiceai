@@ -1,8 +1,9 @@
 /**
- * Ferni's voice is a Professional Voice Clone (LESTER_PRO_V3_VOICE_ID). Cartesia
- * ignores <speed>, <emotion> and <volume> on a PVC (measured 2026-10-03), so
- * with the Director live those tags are taken off every push (they do nothing
- * but clutter the text) and the reply's pace goes to Stage 2 as a tempo for
+ * Lester's Pro voice is a Professional Voice Clone (LESTER_PRO_V3_VOICE_ID). Cartesia
+ * ignores <speed> and <emotion> on a PVC (measured 2026-10-03), so with the
+ * Director live those tags are taken off every push. <volume> it honors
+ * (-2.3 dB at 0.8, -4.7 dB at 0.6, 3 takes each, 2026-10-04), so it stays:
+ * it is the soft restart after an interruption and the reply's pace goes to Stage 2 as a tempo for
  * this (session, turn), composed with any incoming speed and kept gentle.
  * Instant-clone voices keep their tags; shadow never changes a push.
  */
@@ -18,7 +19,7 @@ import { DirectorSessions } from '../session-state.js';
 
 const INSTANT_CLONE = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
 const SESSION = 'pvc-session';
-const PROSODY_TAG = /<\/?(?:speed|emotion|volume)\b/i;
+const PROSODY_TAG = /<\/?(?:speed|emotion)\b/i;
 
 class Recorder implements ReplyStream {
   pushes: string[] = [];
@@ -74,10 +75,11 @@ async function run(opts: {
 afterEach(() => clearReplyAudioPlan(SESSION));
 
 describe('Director live on a Professional Voice Clone', () => {
-  it('sends no speed, emotion or volume tag in any push, and keeps every word', async () => {
+  it('sends no speed or emotion tag in any push, keeps the soft-start volume and every word', async () => {
     const { pushes } = await run({ env: { SPEECH_DIRECTOR: 'live' } });
     for (const push of pushes) expect(push).not.toMatch(PROSODY_TAG);
     const all = pushes.join('');
+    expect(all).toContain('<volume ratio="0.8"/>');
     expect(all).toContain("I'm so sorry you're going through this.");
     expect(all).toContain('Take all the time you need.');
   });

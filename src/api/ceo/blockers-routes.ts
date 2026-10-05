@@ -7,6 +7,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import * as blockersService from '../../services/ceo/blockers.js';
 import type { BlockerSeverity } from '../../services/ceo/blockers.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { paramString } from '../param-string.js';
 
 const log = createLogger({ module: 'blockers-routes' });
 const router = Router();
@@ -70,7 +71,10 @@ router.get('/severity/:severity', async (req: Request, res: Response) => {
 router.get('/:blockerId', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { blockerId } = req.params;
+    const blockerId = paramString(req.params.blockerId);
+    if (!blockerId) {
+      return res.status(400).json({ error: 'Invalid blocker ID' });
+    }
     const blocker = await blockersService.getBlocker(userId, blockerId);
 
     if (!blocker) {
@@ -105,7 +109,10 @@ router.post('/', async (req: Request, res: Response) => {
 router.post('/:blockerId/resolve', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { blockerId } = req.params;
+    const blockerId = paramString(req.params.blockerId);
+    if (!blockerId) {
+      return res.status(400).json({ error: 'Invalid blocker ID' });
+    }
     const { resolution } = req.body;
 
     const blocker = await blockersService.resolveBlocker(userId, blockerId, resolution);
@@ -120,7 +127,10 @@ router.post('/:blockerId/resolve', async (req: Request, res: Response) => {
 router.post('/:blockerId/escalate', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { blockerId } = req.params;
+    const blockerId = paramString(req.params.blockerId);
+    if (!blockerId) {
+      return res.status(400).json({ error: 'Invalid blocker ID' });
+    }
 
     const blocker = await blockersService.escalateBlocker(userId, blockerId);
     return res.json(blocker);
