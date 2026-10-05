@@ -23,8 +23,8 @@ const COUNT = parseInt(args.find(a => a.startsWith('--count='))?.split('=')[1] |
 const CATEGORY = args.find(a => a.startsWith('--category='))?.split('=')[1] as 'personal' | 'proactive' | 'concierge' | undefined;
 const VERBOSE = args.includes('--verbose') || args.includes('-v');
 
-// LLM Model - configurable via .env (default: Gemini 3 Flash Preview)
-const TEST_LLM_MODEL = process.env.TEST_LLM_MODEL || 'gemini-3-flash-preview';
+// LLM Model - configurable via .env (default: Gemini 3.5 Flash)
+const TEST_LLM_MODEL = process.env.TEST_LLM_MODEL || 'gemini-3.5-flash';
 
 // ============================================================================
 // TYPES

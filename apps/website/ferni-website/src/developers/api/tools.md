@@ -289,7 +289,7 @@ Generate a response using the LLM with a custom prompt template.
   "type": "prompt",
   "config": {
     "prompt": "Based on the following context, provide a brief summary:\\n\\nCustomer: {{arguments.customerName}}\\nTopic: {{arguments.topic}}\\n\\nResponse:",
-    "model": "gemini-2.0-flash"
+    "model": "gemini-3.5-flash"
   }
 }
 ```

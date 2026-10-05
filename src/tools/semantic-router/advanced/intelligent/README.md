@@ -185,7 +185,7 @@ const provider = createProviderFromEnv();
 // Or explicit configuration
 const gemini = createGeminiProvider({
   apiKey: process.env.GOOGLE_API_KEY,
-  model: 'gemini-2.0-flash-exp',
+  model: 'gemini-3.5-flash',
   temperature: 0.3,
 });
 
