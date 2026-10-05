@@ -30,7 +30,8 @@ export type CommitmentType =
   | 'avoid' // "I won't bring that up"
   | 'follow_up' // "Let me know how it goes"
   | 'research' // "I'll think about that"
-  | 'celebrate'; // "We'll celebrate when..."
+  | 'celebrate' // "We'll celebrate when..."
+  | 'remind'; // "I'll remind you Sunday" - kept when the reminder goes out
 
 export interface FerniCommitment {
   id: string;
@@ -45,16 +46,17 @@ export interface FerniCommitment {
   madeAt: Date;
   dueBy?: Date; // When it should be fulfilled
 
-  // Tracking
+  // Tracking. A promise with a due time starts 'open' and ends kept, missed or
+  // released (the user let Ferni off, e.g. cancelled the reminder); see promise-keeper.ts.
   fulfilled: boolean;
   fulfilledAt?: Date;
   fulfilledHow?: string;
-
-  // Avoidance tracking (for "avoid" type)
-  violated?: boolean;
+  outcome?: 'open' | 'kept' | 'missed' | 'released';
+  violated?: boolean; // broken: an "avoid" topic raised, or missed by its due time
   violatedAt?: Date;
-
-  // Metadata
+  missedReason?: string;
+  ownOfferedAt?: string; // when Ferni was prompted to own the miss (once)
+  reminderId?: string; // the reminder that delivers a 'remind' promise
   relatedTopic?: string;
   relatedPerson?: string;
 }
@@ -75,6 +77,7 @@ const CONFIG = {
     follow_up: 168, // 1 week
     research: 168, // 1 week
     celebrate: 720, // 1 month
+    remind: null, // due when its reminder is
   },
 };
 
@@ -165,9 +168,6 @@ const COMMITMENT_PATTERNS: Array<{
   },
 ];
 
-// Topics to track for avoidance
-const AVOIDANCE_TOPICS: string[] = []; // Populated per-user from their commitments
-
 // ============================================================================
 // CACHE
 // ============================================================================
@@ -190,6 +190,7 @@ export async function createCommitment(
     dueBy?: Date;
     relatedTopic?: string;
     relatedPerson?: string;
+    reminderId?: string;
   }
 ): Promise<FerniCommitment> {
   const now = new Date();
@@ -209,8 +210,10 @@ export async function createCommitment(
     madeAt: now,
     dueBy,
     fulfilled: false,
+    outcome: dueBy ? 'open' : undefined,
     relatedTopic: commitment.relatedTopic,
     relatedPerson: commitment.relatedPerson,
+    reminderId: commitment.reminderId,
   };
 
   // Save
@@ -241,11 +244,10 @@ export async function fulfillCommitment(
 ): Promise<void> {
   const commitments = await loadCommitments(userId);
   const commitment = commitments.find((c) => c.id === commitmentId);
-
-  if (commitment) {
-    commitment.fulfilled = true;
-    commitment.fulfilledAt = new Date();
-    commitment.fulfilledHow = how;
+  // A missed promise stays missed: keeping it late doesn't rewrite that.
+  if (commitment && commitment.outcome !== 'missed' && !commitment.violated) {
+    Object.assign(commitment, { fulfilled: true, fulfilledAt: new Date(), fulfilledHow: how });
+    if (commitment.outcome) commitment.outcome = 'kept';
     await saveCommitment(userId, commitment);
 
     log.debug({ userId, commitmentId, type: commitment.type }, '✅ Commitment fulfilled');
@@ -291,7 +293,7 @@ export async function getPendingCommitments(userId: string): Promise<FerniCommit
 
   return commitments
     .filter((c) => {
-      if (c.fulfilled) return false;
+      if (c.fulfilled || (c.outcome && c.outcome !== 'open')) return false;
       if (c.type === 'remember' || c.type === 'avoid') return false;
       if (c.dueBy && now > c.dueBy) return false; // Expired
 
@@ -603,10 +605,6 @@ export function clearCommitmentCache(userId?: string): void {
     commitmentCache.clear();
   }
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
 
 export const ferniCommitments = {
   create: createCommitment,
