@@ -248,8 +248,15 @@ describe('sentence pause on the live gateway path', () => {
     delete process.env.CASCADE_SENTENCE_BREAK_MS;
   });
 
-  it('adds a beat between sentences by default, and none where the reply already breaks', async () => {
+  it('adds no beat by default: each break splits the generation', async () => {
     delete process.env.CASCADE_SENTENCE_BREAK_MS;
+    delete process.env.SPEECH_DIRECTOR;
+    const pushes = (await runGateway()).pushes;
+    expect(pushes.join('')).not.toContain('<break time="300ms"/>');
+  });
+
+  it('adds a beat between sentences when asked, and none where the reply already breaks', async () => {
+    process.env.CASCADE_SENTENCE_BREAK_MS = '300';
     delete process.env.SPEECH_DIRECTOR;
     const pushes = (await runGateway()).pushes;
     expect(pushes.slice(1, 3).every((p) => p.startsWith('<break time="300ms"/>'))).toBe(true);
