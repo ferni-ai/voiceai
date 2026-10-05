@@ -34,7 +34,7 @@ import {
   enrollmentSessions,
   parseBody,
   sendJson,
-  getUserId,
+  getSignedInUserId,
   getDeviceInfo,
   checkAndEnforceRateLimit,
   runSecurityChecks,
@@ -61,7 +61,7 @@ export async function handleEnrollmentRoutes(
 ): Promise<boolean> {
   // POST /api/voice/enroll/start
   if (route === '/enroll/start' && req.method === 'POST') {
-    const userId = getUserId(req);
+    const userId = getSignedInUserId(req);
     if (!userId) {
       sendJson(res, 401, { error: 'Authentication required' });
       return true;
@@ -106,7 +106,7 @@ export async function handleEnrollmentRoutes(
 
   // POST /api/voice/enroll/sample
   if (route === '/enroll/sample' && req.method === 'POST') {
-    const userId = getUserId(req);
+    const userId = getSignedInUserId(req);
     if (!userId) {
       sendJson(res, 401, { error: 'Authentication required' });
       return true;
@@ -181,7 +181,7 @@ export async function handleEnrollmentRoutes(
 
   // POST /api/voice/enroll/complete
   if (route === '/enroll/complete' && req.method === 'POST') {
-    const userId = getUserId(req);
+    const userId = getSignedInUserId(req);
     if (!userId) {
       sendJson(res, 401, { error: 'Authentication required' });
       return true;
@@ -249,7 +249,7 @@ export async function handleEnrollmentRoutes(
 
   // POST /api/voice/enroll/cancel
   if (route === '/enroll/cancel' && req.method === 'POST') {
-    const userId = getUserId(req);
+    const userId = getSignedInUserId(req);
     if (userId) {
       enrollmentSessions.delete(userId);
     }

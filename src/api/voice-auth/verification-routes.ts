@@ -1,24 +1,23 @@
 /**
  * Voice Verification Routes
  *
- * Handles voice verification and identification:
- * - POST /api/voice/verify           - Verify speaker
- * - POST /api/voice/identify         - Identify speaker (1:N)
+ * Handles voice verification for the signed-in caller:
+ * - POST /api/voice/verify           - Verify the caller against their own print
  * - POST /api/voice/auth/start       - Start continuous auth
  * - POST /api/voice/auth/check       - Check auth status
  * - POST /api/voice/auth/stop        - Stop continuous auth
  * - GET  /api/voice/profile          - Get profile status
  * - DELETE /api/voice/profile        - Delete profile
  * - GET  /api/voice/status           - System status
+ *
+ * Every route that touches a print takes the caller from getSignedInUserId and
+ * compares only with that caller's own print. There is no 1:N identify route:
+ * matching audio against everyone's prints would let any caller learn who a
+ * voice belongs to. Identification runs agent-side only (identifySpeaker).
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import {
-  ContinuousAuthenticator,
-  identifySpeaker,
-  verifyUser,
-  type VoiceProfile,
-} from '../../services/voice/voice-enrollment.js';
+import { ContinuousAuthenticator, verifyUser } from '../../services/voice/voice-enrollment.js';
 import { isNeuralEmbeddingAvailable } from '../../services/voice-memory-enhanced.js';
 import { getSpeakerEmbeddingMethod } from '../../services/voice/speaker-embedding-worker.js';
 import { needsNeuralReenrollment } from '../../services/voice/voice-match-trust.js';
@@ -26,12 +25,10 @@ import {
   deleteVoiceProfile,
   getVoiceProfileStats,
   loadVoiceProfile,
-  loadVoiceProfileIndex,
   removeFromVoiceProfileIndex,
 } from '../../services/voice/voice-profile-store.js';
 import {
   checkSuspiciousActivity,
-  logIdentification,
   logProfileDelete,
   logVerification,
 } from '../../services/voice/voice-audit-log.js';
@@ -42,8 +39,7 @@ import {
   continuousAuthenticators,
   parseBody,
   sendJson,
-  getUserId,
-  getVerifiedUserId,
+  getSignedInUserId,
   getClientIP,
   getDeviceInfo,
   checkAndEnforceRateLimit,
@@ -73,7 +69,7 @@ export async function handleVerificationRoutes(
       features: {
         enrollment: true,
         verification: true,
-        identification: true,
+        identification: false,
         continuousAuth: true,
       },
     });
@@ -82,7 +78,7 @@ export async function handleVerificationRoutes(
 
   // POST /api/voice/verify
   if (route === '/verify' && req.method === 'POST') {
-    const userId = getUserId(req);
+    const userId = getSignedInUserId(req);
     if (!userId) {
       sendJson(res, 401, { error: 'Authentication required' });
       return true;
@@ -173,89 +169,9 @@ export async function handleVerificationRoutes(
     return true;
   }
 
-  // POST /api/voice/identify
-  if (route === '/identify' && req.method === 'POST') {
-    const userId = getUserId(req) || 'anonymous';
-    if (!checkAndEnforceRateLimit(req, res, userId, 'identify')) {
-      return true;
-    }
-
-    const body = await parseBody(req);
-    const audio = parseAudio(body);
-    const deviceInfo = getDeviceInfo(req);
-
-    if (!audio) {
-      sendJson(res, 400, { error: 'Invalid audio data' });
-      return true;
-    }
-
-    const securityResult = await runSecurityChecks(audio, userId, deviceInfo);
-    if (!securityResult.passed) {
-      sendJson(res, 403, {
-        error: 'Security check failed',
-        message: 'Audio did not pass security verification',
-        warnings: securityResult.warnings,
-      });
-      return true;
-    }
-
-    const index = await loadVoiceProfileIndex();
-
-    if (index.length === 0) {
-      sendJson(res, 200, {
-        identified: false,
-        message: 'No enrolled users',
-        candidates: [],
-      });
-      return true;
-    }
-
-    const profiles: VoiceProfile[] = index.map((entry) => ({
-      userId: entry.userId,
-      embeddings: [],
-      centroid: entry.centroid,
-      threshold: entry.threshold,
-      embeddingMethod: entry.embeddingMethod,
-      qualityScore: 1,
-      verificationCount: 0,
-      enrolledAt: new Date(),
-      updatedAt: new Date(),
-      metadata: { deviceTypes: [], enrollmentDurationMs: 0, sampleCount: 0 },
-    }));
-
-    const result = await identifySpeaker(audio, profiles, {
-      minThreshold: body.minThreshold as number | undefined,
-    });
-
-    if (SECURITY_CONFIG.enableAuditLogging) {
-      await logIdentification(
-        result.userId || null,
-        result.identified,
-        result.confidence,
-        result.candidates.length,
-        deviceInfo
-      );
-    }
-
-    log.info({ identified: result.identified, userId: result.userId }, 'Identification attempt');
-
-    sendJson(res, 200, {
-      identified: result.identified,
-      userId: result.userId,
-      confidence: result.confidence,
-      candidates: result.candidates.slice(0, 5),
-      processingTimeMs: result.processingTimeMs,
-      security: {
-        livenessScore: securityResult.livenessScore,
-        spoofScore: securityResult.spoofScore,
-      },
-    });
-    return true;
-  }
-
   // POST /api/voice/auth/start
   if (route === '/auth/start' && req.method === 'POST') {
-    const userId = getUserId(req);
+    const userId = getSignedInUserId(req);
     if (!userId) {
       sendJson(res, 401, { error: 'Authentication required' });
       return true;
@@ -291,7 +207,7 @@ export async function handleVerificationRoutes(
 
   // POST /api/voice/auth/check
   if (route === '/auth/check' && req.method === 'POST') {
-    const requestUserId = getUserId(req);
+    const requestUserId = getSignedInUserId(req);
     if (!requestUserId) {
       sendJson(res, 401, { error: 'Authentication required' });
       return true;
@@ -364,15 +280,25 @@ export async function handleVerificationRoutes(
 
   // POST /api/voice/auth/stop
   if (route === '/auth/stop' && req.method === 'POST') {
+    const userId = getSignedInUserId(req);
+    if (!userId) {
+      sendJson(res, 401, { error: 'Authentication required' });
+      return true;
+    }
     const body = await parseBody(req);
-    continuousAuthenticators.delete(body.sessionId as string);
+    const sessionId = body.sessionId as string;
+    const owner = (
+      continuousAuthenticators.get(sessionId) as
+        (ContinuousAuthenticator & { _sessionMeta?: { userId: string } }) | undefined
+    )?._sessionMeta?.userId;
+    if (owner === userId) continuousAuthenticators.delete(sessionId);
     sendJson(res, 200, { success: true, message: 'Authentication stopped' });
     return true;
   }
 
   // GET /api/voice/profile
   if (route === '/profile' && req.method === 'GET') {
-    const userId = getUserId(req);
+    const userId = getSignedInUserId(req);
     if (!userId) {
       sendJson(res, 401, { error: 'Authentication required' });
       return true;
@@ -403,18 +329,10 @@ export async function handleVerificationRoutes(
 
   // DELETE /api/voice/profile
   if (route === '/profile' && req.method === 'DELETE') {
-    const { userId, verified } = getVerifiedUserId(req);
+    const userId = getSignedInUserId(req);
     if (!userId) {
       sendJson(res, 401, { error: 'Authentication required' });
       return true;
-    }
-
-    if (!verified) {
-      const clientIp = getClientIP(req);
-      log.warn(
-        { userId, clientIp },
-        'SECURITY: Profile deletion with unverified X-User-Id - recommend Firebase auth'
-      );
     }
 
     if (!checkAndEnforceRateLimit(req, res, userId, 'profile')) {
@@ -428,7 +346,7 @@ export async function handleVerificationRoutes(
 
     await logProfileDelete(userId, deviceInfo);
 
-    log.info({ userId, verified }, 'Voice profile deleted');
+    log.info({ userId }, 'Voice profile deleted');
 
     sendJson(res, 200, { success: true, message: 'Profile deleted' });
     return true;

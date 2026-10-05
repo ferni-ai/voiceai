@@ -223,6 +223,18 @@ export function getUserId(req: IncomingMessage): string | null {
 }
 
 /**
+ * The signed-in caller for routes that touch voice prints: only the uid that
+ * bindVerifiedIdentity (servers/api/request-identity.ts) sets from a verified
+ * token. Never x-user-id, which an admin key may point at another user and a
+ * developer machine takes as given: a print is only ever compared with, read
+ * or changed by its own owner.
+ */
+export function getSignedInUserId(req: IncomingMessage): string | null {
+  const uid = req.headers['x-firebase-uid'];
+  return typeof uid === 'string' && uid ? uid : null;
+}
+
+/**
  * SECURITY: Get authenticated user ID with validation.
  */
 export function getVerifiedUserId(req: IncomingMessage): {
