@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isRepeatTurn, REPEAT_WINDOW_MS } from '../turn-dedupe.js';
+import { createRepeatTurnGuard, isRepeatTurn, REPEAT_WINDOW_MS } from '../turn-dedupe.js';
 
 const last = { role: 'user' as const, content: "My sister's birthday is next week.", at: 1000 };
 
@@ -17,5 +17,18 @@ describe('isRepeatTurn', () => {
     expect(isRepeatTurn(last, 'user', 'She loves hiking.', 1004)).toBe(false);
     expect(isRepeatTurn(last, 'assistant', "My sister's birthday is next week.", 1004)).toBe(false);
     expect(isRepeatTurn(undefined, 'user', 'Hi', 0)).toBe(false);
+  });
+});
+
+describe('createRepeatTurnGuard', () => {
+  it('drops the second write of one caller turn and keeps the next turn', () => {
+    let t = 0;
+    const isRepeat = createRepeatTurnGuard(() => t);
+    expect(isRepeat('user', 'Hello there')).toBe(false);
+    t = 4;
+    expect(isRepeat('user', 'Hello there')).toBe(true);
+    t = 900;
+    expect(isRepeat('assistant', 'Hi!')).toBe(false);
+    expect(isRepeat('user', 'How are you?')).toBe(false);
   });
 });

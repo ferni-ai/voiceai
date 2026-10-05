@@ -32,3 +32,14 @@ export function isRepeatTurn(
     norm(last.content) === norm(content)
   );
 }
+
+/** A per-session guard: true when this turn repeats the last one and should be dropped. */
+export function createRepeatTurnGuard(now: () => number = Date.now) {
+  let last: LastTurn | undefined;
+  return (role: LastTurn['role'], content: string): boolean => {
+    const at = now();
+    if (isRepeatTurn(last, role, content, at)) return true;
+    last = { role, content, at };
+    return false;
+  };
+}
