@@ -211,9 +211,9 @@ class ConnectedLifeUI {
       <div class="connected-life-modal">
         <header class="connected-life-header">
           <div class="connected-life-header-content">
-            <span class="connected-life-eyebrow">SUPERPOWERS</span>
+            <span class="connected-life-eyebrow">${t('connectedLife.superpowers')}</span>
             <h2>${t('menu.sections.connectedLife')}</h2>
-            <p class="connected-life-subtitle">Give Ferni awareness of your world</p>
+            <p class="connected-life-subtitle">${t('connectedLife.subtitle')}</p>
           </div>
           <button class="connected-life-close" aria-label="${t('common.close')}">${ICONS.close}</button>
         </header>
@@ -242,9 +242,9 @@ class ConnectedLifeUI {
 
   private renderTabs(): string {
     const tabs: { id: IntegrationCategory; icon: string; label: string }[] = [
-      { id: 'health', icon: ICONS.health, label: 'Health & Body' },
-      { id: 'calendar', icon: ICONS.calendar, label: 'Calendar & Work' },
-      { id: 'vibe', icon: ICONS.vibe, label: 'Your Vibe' },
+      { id: 'health', icon: ICONS.health, label: t('connectedLife.healthBody') },
+      { id: 'calendar', icon: ICONS.calendar, label: t('connectedLife.calendarWork') },
+      { id: 'vibe', icon: ICONS.vibe, label: t('connectedLife.yourVibe') },
     ];
 
     return tabs
@@ -272,28 +272,28 @@ class ConnectedLifeUI {
           name: t('menu.items.appleHealth'),
           icon: ICONS.appleHealth,
           status: this.integrationStatuses.appleHealth,
-          description: 'Sleep, activity, and heart rate data',
+          description: t('connectedLife.appleHealthDesc'),
         },
         {
           id: 'oura',
           name: t('menu.items.oura'),
           icon: ICONS.oura,
           status: this.integrationStatuses.oura,
-          description: 'Sleep quality and readiness scores',
+          description: t('connectedLife.ouraDesc'),
         },
         {
           id: 'eight-sleep',
           name: t('menu.items.eightSleep'),
           icon: ICONS.eightSleep,
           status: this.integrationStatuses.eightSleep,
-          description: 'Sleep tracking and temperature',
+          description: t('connectedLife.eightSleepDesc'),
         },
         {
           id: 'wearables',
           name: t('menu.items.wearables'),
           icon: ICONS.watch,
           status: this.integrationStatuses.wearables,
-          description: 'Fitbit, Garmin, Whoop, and more',
+          description: t('connectedLife.wearablesDesc'),
         },
       ],
       calendar: [
@@ -302,14 +302,14 @@ class ConnectedLifeUI {
           name: t('menu.items.calendar'),
           icon: ICONS.google,
           status: this.integrationStatuses.googleCalendar,
-          description: 'Events, meetings, and availability',
+          description: t('connectedLife.calendarDesc'),
         },
         {
           id: 'linkedin',
           name: t('menu.items.linkedin'),
           icon: ICONS.linkedin,
           status: this.integrationStatuses.linkedin,
-          description: 'Professional context and network',
+          description: t('connectedLife.linkedInDesc'),
         },
       ],
       vibe: [
@@ -318,21 +318,21 @@ class ConnectedLifeUI {
           name: 'Spotify',
           icon: ICONS.spotify,
           status: this.integrationStatuses.spotify,
-          description: 'Music, mood playlists, listening history',
+          description: t('connectedLife.spotifyDesc'),
         },
         {
           id: 'ecobee',
           name: t('menu.items.thermostat'),
           icon: ICONS.ecobee,
           status: this.integrationStatuses.ecobee,
-          description: 'Home temperature and comfort',
+          description: t('connectedLife.ecobeeDesc'),
         },
         {
           id: 'vibe-controller',
           name: t('menu.items.vibeController'),
           icon: ICONS.controller,
           status: 'connected', // Always available
-          description: 'Control music, lights, and more',
+          description: t('connectedLife.vibeControllerDesc'),
         },
       ],
     };
@@ -355,8 +355,8 @@ class ConnectedLifeUI {
             <div class="connected-life-integration-action">
               ${
                 int.status === 'connected'
-                  ? `<span class="connected-life-status connected">${ICONS.check} Connected</span>`
-                  : `<button class="connected-life-connect-btn" data-connect="${int.id}">Connect</button>`
+                  ? `<span class="connected-life-status connected">${ICONS.check} ${t('connectedLife.connected')}</span>`
+                  : `<button class="connected-life-connect-btn" data-connect="${int.id}">${t('common.connect')}</button>`
               }
             </div>
           </div>

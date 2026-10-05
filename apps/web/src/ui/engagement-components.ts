@@ -85,37 +85,37 @@ export function getStaggerDelay(index: number, baseDelay: number = STAGGER_DELAY
  */
 export const WEATHER_COPY = {
   sunny: {
-    label: 'Bright & clear',
+    labelKey: 'engagement.moodBrightClear',
     greeting: 'What a beautiful day ahead',
     encouragement: 'Perfect energy for tackling something meaningful',
   },
   'partly-cloudy': {
-    label: 'Mixed feelings',
+    labelKey: 'engagement.moodMixedFeelings',
     greeting: 'A bit of everything today',
     encouragement: 'Room for both reflection and action',
   },
   cloudy: {
-    label: 'Thoughtful',
+    labelKey: 'engagement.moodThoughtful',
     greeting: 'A quieter kind of day',
     encouragement: 'Good for gentle progress',
   },
   rainy: {
-    label: 'Processing',
+    labelKey: 'engagement.moodProcessing',
     greeting: 'Taking time to work through things',
     encouragement: 'Be gentle with yourself',
   },
   stormy: {
-    label: 'Turbulent',
+    labelKey: 'engagement.moodTurbulent',
     greeting: 'Rough waters right now',
     encouragement: 'This too shall pass. One small step.',
   },
   foggy: {
-    label: 'Uncertain',
+    labelKey: 'engagement.moodUncertain',
     greeting: 'Finding your way through the mist',
     encouragement: 'Clarity comes with patience',
   },
   rainbow: {
-    label: 'Breakthrough',
+    labelKey: 'engagement.moodBreakthrough',
     greeting: 'Something beautiful emerging',
     encouragement: 'Celebrate how far you\'ve come',
   },
@@ -125,9 +125,9 @@ export const WEATHER_COPY = {
  * Energy level labels - supportive, not judgmental
  */
 export const ENERGY_COPY = {
-  high: { label: 'Energized', note: 'Channel it wisely' },
-  medium: { label: 'Balanced', note: 'Steady as she goes' },
-  low: { label: 'Conserving', note: 'Honor what you need' },
+  high: { labelKey: 'engagement.moodEnergized', note: 'Channel it wisely' },
+  medium: { labelKey: 'engagement.moodBalanced', note: 'Steady as she goes' },
+  low: { labelKey: 'engagement.moodConserving', note: 'Honor what you need' },
 } as const;
 
 /**
@@ -150,16 +150,16 @@ export const STREAK_MILESTONES: Record<number, string> = {
  */
 export const EMPTY_STATE_COPY = {
   noStreaks: {
-    title: 'Your journey begins',
-    message: 'Start a conversation to create your first practice',
+    titleKey: 'engagement.journeyTitle',
+    messageKey: 'engagement.journeyDescription',
   },
   noWeather: {
-    title: 'How are you feeling?',
-    message: 'Share your emotional weather to track patterns over time',
+    titleKey: 'engagement.feelingQuestion',
+    messageKey: 'engagement.feelingDescription',
   },
   noStats: {
-    title: 'Building your story',
-    message: 'Your progress will appear here as you engage',
+    titleKey: 'engagement.buildingTitle',
+    messageKey: 'engagement.buildingDescription',
   },
 };
 
