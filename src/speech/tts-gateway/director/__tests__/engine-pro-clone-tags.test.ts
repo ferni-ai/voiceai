@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { VOICE_IDS } from '../../../../config/voice-ids.js';
+import { LESTER_PRO_V3_VOICE_ID } from '../../../../config/voice-ids.js';
 import { prosodyTags } from '../../providers/cartesia.js';
 import { opensContextOnEmotionChange } from '../../emotion-context.js';
 import { DirectorEngine } from '../engine.js';
@@ -15,7 +15,7 @@ import { leverModes } from '../gate.js';
 function proCloneEngine(): DirectorEngine {
   return new DirectorEngine({
     modes: leverModes({ SPEECH_DIRECTOR: 'live' }),
-    voiceId: VOICE_IDS.FERNI,
+    voiceId: LESTER_PRO_V3_VOICE_ID,
     carry: { speed: 1 },
     cues: { takeSighs: () => 0, opensWithSpokenSigh: false, opensWithSigh: false },
     renderTags: prosodyTags,
@@ -50,7 +50,7 @@ describe('stripping prosody for a Pro clone keeps volume', () => {
 describe('a new Cartesia context per emotion change', () => {
   it('only for voices that honor emotion tags, and not when the director owns emotion', () => {
     // a new context resets intonation: worth it only if the voice renders the emotion
-    expect(opensContextOnEmotionChange(VOICE_IDS.FERNI, 'off')).toBe(false);
+    expect(opensContextOnEmotionChange(LESTER_PRO_V3_VOICE_ID, 'off')).toBe(false);
     expect(opensContextOnEmotionChange('11111111-2222-3333-4444-555555555555', 'off')).toBe(true);
     expect(opensContextOnEmotionChange('11111111-2222-3333-4444-555555555555', 'live')).toBe(false);
   });
