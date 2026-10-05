@@ -154,6 +154,11 @@ export class DirectorEngine {
   emotion: EmotionDecision = { emotion: undefined, source: 'none' };
   /** How this reply answers the caller's voice (applied only when the prosody lever is live). */
   prosody: ProsodyResponse = { speedNudge: 0, reason: 'no-reading' };
+
+  /** The caller's voice reading this reply answers, for the plan log. */
+  get callerProsody(): CallerProsody | undefined {
+    return this.ctx.callerProsody;
+  }
   speed = 1;
   /** Stage 2 tempo for this reply, when the voice can't take a <speed> tag. */
   tempo: number | undefined;
