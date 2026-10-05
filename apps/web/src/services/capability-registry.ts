@@ -1,4 +1,5 @@
 
+import { t } from '../i18n/index.js';
 import type { PersonaId } from '../types/index.js';
 
 // TYPES
@@ -19,11 +20,8 @@ export type CapabilityPriority = 'essential' | 'high' | 'medium' | 'low';
 
 export interface Capability {
   id: string;
-  name?: string;
   nameKey: string;
-  description?: string;
   descriptionKey: string;
-  details?: string;
   detailsKey?: string;
   voiceTriggers: string[];
   persona: PersonaId;
@@ -34,15 +32,12 @@ export interface Capability {
   uiPanel?: string;
   tags: string[];
   isBetterThanHuman?: boolean;
-  humanLimitation?: string;
   humanLimitationKey?: string;
 }
 
 export interface CapabilityGroup {
   id: string;
-  name?: string;
   nameKey: string;
-  description?: string;
   descriptionKey: string;
   icon: string;
   capabilities: Capability[];
@@ -51,13 +46,11 @@ export interface CapabilityGroup {
 // CAPABILITY DEFINITIONS
 
 export const CAPABILITIES: Capability[] = [
-] = [
   // LIFE COACHING - Grief, Loss, Transitions
   {
     id: 'grief-support',
     nameKey: 'capabilityRegistry.griefSupport.name',
-    description: "I'm here when you're processing loss",
-    details: 'Whether you\'ve lost a loved one, a pet, a relationship, or a dream, I can hold space for your grief without trying to fix it.',
+    descriptionKey: 'capabilityRegistry.griefSupport.description',
     detailsKey: 'capabilityRegistry.griefSupport.details',
     voiceTriggers: ['Help me process grief', 'I lost someone', 'I\'m grieving'],
     persona: 'nayan-patel',
@@ -74,7 +67,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'breakup-recovery',
     nameKey: 'capabilityRegistry.breakupRecovery.name',
     descriptionKey: 'capabilityRegistry.breakupRecovery.description',
-    details: 'Process the end of a relationship without judgment. I won\'t tell you to "get over it" or rush your healing.',
     detailsKey: 'capabilityRegistry.breakupRecovery.details',
     voiceTriggers: ['Help me get over my ex', 'We just broke up', 'I\'m heartbroken'],
     persona: 'maya-santos',
@@ -149,7 +141,6 @@ export const CAPABILITIES: Capability[] = [
     uiPanel: 'life-coaching-hub',
     tags: ['chronic', 'pain', 'disability', 'illness', 'fatigue'],
     isBetterThanHuman: true,
-    humanLimitation: 'Healthy people don\'t understand the daily reality',
   },
   {
     id: 'caregiver-support',
@@ -171,7 +162,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'sobriety-support',
     nameKey: 'capabilityRegistry.sobrietySupport.name',
     descriptionKey: 'capabilityRegistry.sobrietySupport.description',
-    details: 'Whether you\'re newly sober or years into recovery, I\'m here for check-ins, cravings, and celebrating milestones.',
     detailsKey: 'capabilityRegistry.sobrietySupport.details',
     voiceTriggers: ['Help with sobriety', 'I\'m in recovery', 'Craving support'],
     persona: 'maya-santos',
@@ -182,13 +172,11 @@ export const CAPABILITIES: Capability[] = [
     uiPanel: 'life-coaching-hub',
     tags: ['sobriety', 'recovery', 'addiction', 'sober', 'AA'],
     isBetterThanHuman: true,
-    humanLimitation: 'Sponsors aren\'t always available at 2am',
   },
   {
     id: 'burnout-recovery',
     nameKey: 'capabilityRegistry.burnoutRecovery.name',
     descriptionKey: 'capabilityRegistry.burnoutRecovery.description',
-    details: 'Burnout isn\'t just being tired—it\'s a deep depletion. I can help you recognize it, recover from it, and prevent it.',
     detailsKey: 'capabilityRegistry.burnoutRecovery.details',
     voiceTriggers: ['I\'m burned out', 'Help with burnout', 'I can\'t keep going'],
     persona: 'maya-santos',
@@ -233,7 +221,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'midlife-transition',
     nameKey: 'capabilityRegistry.midlifeTransition.name',
     descriptionKey: 'capabilityRegistry.midlifeTransition.description',
-    details: 'Midlife isn\'t a crisis—it\'s an invitation to reassess what matters. I can help you find renewed purpose.',
     detailsKey: 'capabilityRegistry.midlifeTransition.details',
     voiceTriggers: ['Midlife crisis help', 'What am I doing with my life', 'Is this it?'],
     persona: 'nayan-patel',
@@ -250,7 +237,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'anger-processing',
     nameKey: 'capabilityRegistry.angerProcessing.name',
     descriptionKey: 'capabilityRegistry.angerProcessing.description',
-    details: 'Anger isn\'t bad—it\'s information. I can help you understand what your anger is telling you and express it healthily.',
     detailsKey: 'capabilityRegistry.angerProcessing.details',
     voiceTriggers: ['I\'m so angry', 'Help me with anger', 'I want to scream'],
     persona: 'maya-santos',
@@ -283,7 +269,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'self-compassion',
     nameKey: 'capabilityRegistry.selfCompassion.name',
     descriptionKey: 'capabilityRegistry.selfCompassion.description',
-    details: 'Learn to treat yourself with the kindness you\'d give a good friend. I can guide you through self-compassion practices.',
     detailsKey: 'capabilityRegistry.selfCompassion.details',
     voiceTriggers: ['Help with self-criticism', 'I\'m too hard on myself', 'Inner critic help'],
     persona: 'maya-santos',
@@ -294,7 +279,6 @@ export const CAPABILITIES: Capability[] = [
     uiPanel: 'emotional-toolkit',
     tags: ['self-compassion', 'inner critic', 'self-kindness', 'self-love'],
     isBetterThanHuman: true,
-    humanLimitation: 'Hard to model when you\'re in the pattern',
   },
   {
     id: 'trauma-support',
@@ -374,7 +358,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'decisions-toolkit',
     nameKey: 'capabilityRegistry.decisionsToolkit.name',
     descriptionKey: 'capabilityRegistry.decisionsToolkit.description',
-    details: 'When you\'re stuck on a decision, I can help you explore options, identify values, and find clarity.',
     detailsKey: 'capabilityRegistry.decisionsToolkit.details',
     voiceTriggers: ['Help me decide', 'I can\'t make this decision', 'Pros and cons'],
     persona: 'peter-john',
@@ -401,13 +384,11 @@ export const CAPABILITIES: Capability[] = [
     uiPanel: 'decisions-toolkit',
     tags: ['boundaries', 'saying no', 'limits', 'self-protection'],
     isBetterThanHuman: true,
-    humanLimitation: 'People with bad boundaries can\'t help you set yours',
   },
   {
     id: 'difficult-conversations',
     nameKey: 'capabilityRegistry.difficultConversations.name',
     descriptionKey: 'capabilityRegistry.difficultConversations.description',
-    details: 'Practice that conversation you\'ve been dreading. I can roleplay, help you prepare, and debrief after.',
     detailsKey: 'capabilityRegistry.difficultConversations.details',
     voiceTriggers: ['Help me prepare for a conversation', 'Practice a hard talk', 'What should I say'],
     persona: 'alex-chen',
@@ -418,13 +399,11 @@ export const CAPABILITIES: Capability[] = [
     uiPanel: 'decisions-toolkit',
     tags: ['conversation', 'conflict', 'talking', 'communication'],
     isBetterThanHuman: true,
-    humanLimitation: 'Can\'t practice infinitely with a human',
   },
   {
     id: 'meaning-purpose',
     nameKey: 'capabilityRegistry.meaningPurpose.name',
     descriptionKey: 'capabilityRegistry.meaningPurpose.description',
-    details: 'When life feels meaningless or you\'re questioning your purpose, I can help you explore what truly matters to you.',
     detailsKey: 'capabilityRegistry.meaningPurpose.details',
     voiceTriggers: ['What\'s my purpose', 'Life feels meaningless', 'Why am I here'],
     persona: 'nayan-patel',
@@ -473,7 +452,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'life-transitions',
     nameKey: 'capabilityRegistry.lifeTransitions.name',
     descriptionKey: 'capabilityRegistry.lifeTransitions.description',
-    details: 'Big life changes affect your identity. I can help you honor both what you\'re leaving and where you\'re going.',
     detailsKey: 'capabilityRegistry.lifeTransitions.details',
     voiceTriggers: ['I\'m going through a transition', 'Everything is changing', 'Identity shift'],
     persona: 'nayan-patel',
@@ -490,7 +468,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'second-chances',
     nameKey: 'capabilityRegistry.secondChances.name',
     descriptionKey: 'capabilityRegistry.secondChances.description',
-    details: 'Whether you\'re rebuilding after failure or starting over, I believe in second chances and can help you begin again.',
     detailsKey: 'capabilityRegistry.secondChances.details',
     voiceTriggers: ['Help me start over', 'I need a fresh start', 'Second chance support'],
     persona: 'ferni',
@@ -506,7 +483,6 @@ export const CAPABILITIES: Capability[] = [
   {
     id: 'connection-loneliness',
     nameKey: 'capabilityRegistry.connectionLoneliness.name',
-    description: 'You\'re not alone',
     descriptionKey: 'capabilityRegistry.connectionLoneliness.description',
     detailsKey: 'capabilityRegistry.connectionLoneliness.details',
     voiceTriggers: ['I\'m so lonely', 'Help with loneliness', 'I feel alone'],
@@ -518,7 +494,6 @@ export const CAPABILITIES: Capability[] = [
     uiPanel: 'growth-dashboard',
     tags: ['loneliness', 'connection', 'isolation', 'belonging'],
     isBetterThanHuman: true,
-    humanLimitation: 'Humans aren\'t available at 2am every night',
   },
   {
     id: 'presence-mindfulness',
@@ -552,7 +527,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'procrastination',
     nameKey: 'capabilityRegistry.procrastination.name',
     descriptionKey: 'capabilityRegistry.procrastination.description',
-    details: 'Procrastination isn\'t laziness—it\'s often fear or overwhelm in disguise. I can help you understand and overcome it.',
     detailsKey: 'capabilityRegistry.procrastination.details',
     voiceTriggers: ['Help with procrastination', 'I keep putting things off', 'Why can\'t I start'],
     persona: 'maya-santos',
@@ -577,7 +551,6 @@ export const CAPABILITIES: Capability[] = [
     uiPanel: 'growth-dashboard',
     tags: ['ADHD', 'autism', 'neurodiversity', 'executive function'],
     isBetterThanHuman: true,
-    humanLimitation: 'Many people don\'t understand neurodivergent needs',
   },
 
   // RELATIONSHIPS
@@ -599,7 +572,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'infidelity-recovery',
     nameKey: 'capabilityRegistry.infidelityRecovery.name',
     descriptionKey: 'capabilityRegistry.infidelityRecovery.description',
-    details: 'Whether you\'ve been betrayed or made a mistake, I can help you process and decide your path forward.',
     detailsKey: 'capabilityRegistry.infidelityRecovery.details',
     voiceTriggers: ['They cheated on me', 'I cheated', 'Betrayal recovery'],
     persona: 'nayan-patel',
@@ -628,7 +600,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'faith-transition',
     nameKey: 'capabilityRegistry.faithTransition.name',
     descriptionKey: 'capabilityRegistry.faithTransition.description',
-    details: 'Whether you\'re leaving a religion, finding a new one, or questioning everything, I can hold space for your journey.',
     detailsKey: 'capabilityRegistry.faithTransition.details',
     voiceTriggers: ['Faith crisis', 'Leaving my religion', 'Spiritual journey'],
     persona: 'nayan-patel',
@@ -673,7 +644,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'predictive-coaching',
     nameKey: 'capabilityRegistry.predictiveCoaching.name',
     descriptionKey: 'capabilityRegistry.predictiveCoaching.description',
-    details: 'Based on patterns I\'ve noticed, I can predict when you might struggle and check in proactively.',
     detailsKey: 'capabilityRegistry.predictiveCoaching.details',
     voiceTriggers: ['What patterns do you see', 'Predict my struggles', 'What should I watch for'],
     persona: 'ferni',
@@ -684,7 +654,6 @@ export const CAPABILITIES: Capability[] = [
     uiPanel: 'superhuman-dashboard',
     tags: ['patterns', 'prediction', 'anticipation', 'coaching'],
     isBetterThanHuman: true,
-    humanLimitation: 'Humans can\'t track patterns objectively',
   },
   {
     id: 'capacity-guardian',
@@ -722,7 +691,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'commitment-keeper',
     nameKey: 'capabilityRegistry.commitmentKeeper.name',
     descriptionKey: 'capabilityRegistry.commitmentKeeper.description',
-    details: 'Every commitment you\'ve made to yourself or others—I remember and can help you keep them.',
     detailsKey: 'capabilityRegistry.commitmentKeeper.details',
     voiceTriggers: ['What commitments have I made', 'Did I promise something', 'Check my commitments'],
     persona: 'ferni',
@@ -935,7 +903,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'procrastination',
     nameKey: 'capabilityRegistry.procrastination.name',
     descriptionKey: 'capabilityRegistry.procrastination.description',
-    details: 'Procrastination often protects us from something. Let\'s explore what\'s underneath.',
     detailsKey: 'capabilityRegistry.procrastination.details',
     voiceTriggers: ['Help me stop procrastinating', 'I keep putting things off', 'Why can\'t I start'],
     persona: 'maya-santos',
@@ -950,7 +917,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'burnout-recovery',
     nameKey: 'capabilityRegistry.burnoutRecovery.name',
     descriptionKey: 'capabilityRegistry.burnoutRecovery.description',
-    details: 'Burnout isn\'t weakness - it\'s a sign you cared too much. I can help you recover sustainably.',
     detailsKey: 'capabilityRegistry.burnoutRecovery.details',
     voiceTriggers: ['I\'m burned out', 'Help me recover from burnout', 'I have nothing left'],
     persona: 'maya-santos',
@@ -967,7 +933,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'neurodiversity',
     nameKey: 'capabilityRegistry.neurodiversity.name',
     descriptionKey: 'capabilityRegistry.neurodiversity.description',
-    details: 'ADHD, autism, and other neurotypes aren\'t disorders - they\'re different operating systems. I can help you work with your brain, not against it.',
     detailsKey: 'capabilityRegistry.neurodiversity.details',
     voiceTriggers: ['ADHD help', 'Autism support', 'My brain works differently'],
     persona: 'peter-john',
@@ -978,7 +943,6 @@ export const CAPABILITIES: Capability[] = [
     uiPanel: 'life-coaching-hub',
     tags: ['adhd', 'autism', 'neurodivergent', 'different'],
     isBetterThanHuman: true,
-    humanLimitation: 'Neurotypical friends often don\'t understand',
   },
 
   // RELATIONSHIPS - Additional domains
@@ -1000,7 +964,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'infidelity',
     nameKey: 'capabilityRegistry.infidelity.name',
     descriptionKey: 'capabilityRegistry.infidelity.description',
-    details: 'Whether you were betrayed or did the betraying, trust can be rebuilt. I\'m here for the long journey.',
     detailsKey: 'capabilityRegistry.infidelity.details',
     voiceTriggers: ['Help me trust again', 'I was cheated on', 'Recovering from infidelity'],
     persona: 'nayan-patel',
@@ -1011,13 +974,11 @@ export const CAPABILITIES: Capability[] = [
     uiPanel: 'life-coaching-hub',
     tags: ['infidelity', 'betrayal', 'trust', 'cheating'],
     isBetterThanHuman: true,
-    humanLimitation: 'Friends take sides and can\'t stay neutral',
   },
   {
     id: 'coming-out',
     nameKey: 'capabilityRegistry.comingOut.name',
     descriptionKey: 'capabilityRegistry.comingOut.description',
-    details: 'Coming out - to others or to yourself - is a profound journey. I\'m here without judgment.',
     detailsKey: 'capabilityRegistry.comingOut.details',
     voiceTriggers: ['Coming out support', 'I think I might be', 'Help with my identity'],
     persona: 'ferni',
@@ -1034,7 +995,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'faith-transition',
     nameKey: 'capabilityRegistry.faithTransition.name',
     descriptionKey: 'capabilityRegistry.faithTransition.description',
-    details: 'Whether you\'re finding faith, losing it, or changing it - spiritual transitions shake everything. I can hold space.',
     detailsKey: 'capabilityRegistry.faithTransition.details',
     voiceTriggers: ['Losing my faith', 'Spiritual crisis', 'I don\'t know what I believe'],
     persona: 'nayan-patel',
@@ -1065,7 +1025,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'midlife',
     nameKey: 'capabilityRegistry.midlife.name',
     descriptionKey: 'capabilityRegistry.midlife.description',
-    details: 'Midlife isn\'t a crisis - it\'s an invitation to go deeper. I can help you find meaning in this transition.',
     detailsKey: 'capabilityRegistry.midlife.details',
     voiceTriggers: ['Midlife crisis', 'I\'m turning 40', 'What\'s the point'],
     persona: 'nayan-patel',
@@ -1090,13 +1049,11 @@ export const CAPABILITIES: Capability[] = [
     uiPanel: 'life-coaching-hub',
     tags: ['chronic', 'illness', 'spoons', 'pacing'],
     isBetterThanHuman: true,
-    humanLimitation: 'Healthy people often don\'t understand invisible illness',
   },
   {
     id: 'trauma-support',
     nameKey: 'capabilityRegistry.traumaSupport.name',
     descriptionKey: 'capabilityRegistry.traumaSupport.description',
-    details: 'I won\'t push you to relive anything. I can offer grounding, safety, and steady presence as you heal.',
     detailsKey: 'capabilityRegistry.traumaSupport.details',
     voiceTriggers: ['Trauma support', 'I need grounding', 'Help me feel safe'],
     persona: 'nayan-patel',
@@ -1113,7 +1070,6 @@ export const CAPABILITIES: Capability[] = [
     id: 'community',
     nameKey: 'capabilityRegistry.community.name',
     descriptionKey: 'capabilityRegistry.community.description',
-    details: 'Want to give back but don\'t know where to start? I can help you find your way to meaningful contribution.',
     detailsKey: 'capabilityRegistry.community.details',
     voiceTriggers: ['How can I give back', 'Volunteer ideas', 'Community service'],
     persona: 'jordan-taylor',
@@ -1139,7 +1095,6 @@ export const CAPABILITIES: Capability[] = [
     uiPanel: 'superhuman-dashboard',
     tags: ['patterns', 'analytics', 'insights', 'peter'],
     isBetterThanHuman: true,
-    humanLimitation: 'Humans can\'t track patterns across hundreds of conversations',
   },
   {
     id: 'workflow-mastery',
@@ -1210,7 +1165,6 @@ export const CAPABILITY_GROUPS: CapabilityGroup[] = [
   {
     id: 'life-coaching',
     nameKey: 'capabilityRegistry.group.lifeCoaching.name',
-    description: 'Support through life\'s biggest challenges',
     descriptionKey: 'capabilityRegistry.group.lifeCoaching.description',
     icon: 'heart',
     capabilities: CAPABILITIES.filter(c => c.category === 'life-coaching'),
@@ -1246,7 +1200,6 @@ export const CAPABILITY_GROUPS: CapabilityGroup[] = [
   {
     id: 'superhuman',
     nameKey: 'capabilityRegistry.group.superhuman.name',
-    description: 'What Ferni does that humans can\'t',
     descriptionKey: 'capabilityRegistry.group.superhuman.description',
     icon: 'sparkles',
     capabilities: CAPABILITIES.filter(c => c.category === 'superhuman'),
@@ -1273,12 +1226,16 @@ export function getBetterThanHumanCapabilities(): Capability[] {
 
 export function searchCapabilities(query: string): Capability[] {
   const lowerQuery = query.toLowerCase();
-  return CAPABILITIES.filter(c =>
-    c.name.toLowerCase().includes(lowerQuery) ||
-    c.description.toLowerCase().includes(lowerQuery) ||
-    c.tags.some(t => t.toLowerCase().includes(lowerQuery)) ||
-    c.voiceTriggers.some(v => v.toLowerCase().includes(lowerQuery))
-  );
+  return CAPABILITIES.filter(c => {
+    const nameText = t(c.nameKey).toLowerCase();
+    const descText = t(c.descriptionKey).toLowerCase();
+    return (
+      nameText.includes(lowerQuery) ||
+      descText.includes(lowerQuery) ||
+      c.tags.some(tag => tag.toLowerCase().includes(lowerQuery)) ||
+      c.voiceTriggers.some(trigger => trigger.toLowerCase().includes(lowerQuery))
+    );
+  });
 }
 
 export function getContextualCapabilities(context: {
