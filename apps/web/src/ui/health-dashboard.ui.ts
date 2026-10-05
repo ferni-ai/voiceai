@@ -18,7 +18,7 @@ import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import { soundUI } from './sound.ui.js';
 import { healthDashboardAnalytics } from '../services/feature-analytics.service.js';
-import { t } from '../i18n/index.js';
+import { formatDate, formatNumber, formatRelativeTime, t } from '../i18n/index.js';
 
 const log = createLogger('HealthDashboard');
 
@@ -546,48 +546,48 @@ const ICONS = {
   watch: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><polyline points="12 10 12 12 13 13"/><path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05"/><path d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05"/></svg>',
 };
 
+const SLEEP_QUALITY_KEYS: Record<NonNullable<DailySummary['sleepQuality']>, string> = {
+  poor: 'healthDashboard.sleepPoor',
+  fair: 'healthDashboard.sleepFair',
+  good: 'healthDashboard.sleepGood',
+  excellent: 'healthDashboard.sleepExcellent',
+};
+
+const HRV_TREND_KEYS: Record<NonNullable<DailySummary['hrvTrend']>, string> = {
+  up: 'healthDashboard.hrvImproving',
+  down: 'healthDashboard.hrvBelowBaseline',
+  stable: 'healthDashboard.hrvStable',
+};
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
-function formatNumber(num: number | undefined): string {
+function formatMetric(num: number | undefined): string {
   if (num === undefined) return '--';
-  return num.toLocaleString();
+  return formatNumber(num);
 }
 
 function formatHours(hours: number | undefined): string {
   if (hours === undefined) return '--';
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
+  if (m === 0) return t('healthDashboard.hours', { hours: h });
+  return t('healthDashboard.hoursMinutes', { hours: h, minutes: m });
 }
 
 function getRelativeTime(dateString: string | undefined): string {
-  if (!dateString) return 'Never';
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return 'Yesterday';
-  return `${diffDays} days ago`;
+  if (!dateString) return t('healthDashboard.never');
+  return formatRelativeTime(new Date(dateString));
 }
 
 function getDayLabel(dateString: string): string {
   const date = new Date(dateString);
-  const today = new Date();
-  const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-  
-  if (date.toDateString() === today.toDateString()) {
-    return 'Today';
+
+  if (date.toDateString() === new Date().toDateString()) {
+    return t('common.today');
   }
-  return days[date.getDay()] ?? '';
+  return formatDate(date, { weekday: 'short' });
 }
 
 // ============================================================================
@@ -604,12 +604,12 @@ function renderConnectionStatus(): string {
       <div class="health-connection-indicator ${connected ? 'connected' : ''}"></div>
       <div class="health-connection-text">
         <div class="health-connection-label">
-          ${connected ? 'Connected' : 'Not Connected'}
+          ${connected ? t('connections.status.connected') : t('connections.status.notConnected')}
         </div>
         <div class="health-connection-detail">
           ${connected 
-            ? `${deviceName} • Last sync: ${getRelativeTime(lastSync)}`
-            : 'Connect your iPhone to sync health data'}
+            ? t('healthDashboard.deviceLastSync', { device: deviceName, time: getRelativeTime(lastSync) })
+            : t('healthDashboard.connectPrompt')}
         </div>
       </div>
     </div>
@@ -620,11 +620,8 @@ function renderEmptyState(): string {
   return `
     <div class="health-empty-state">
       <div class="health-empty-icon">${ICONS.watch}</div>
-      <h3 class="health-empty-title">Connect Apple Health</h3>
-      <p class="health-empty-text">
-        Open the Ferni app on your iPhone to sync your health data. 
-        I'll help you understand how sleep, activity, and stress affect your wellbeing.
-      </p>
+      <h3 class="health-empty-title">${t('healthDashboard.connectTitle')}</h3>
+      <p class="health-empty-text">${t('healthDashboard.connectText')}</p>
     </div>
   `;
 }
@@ -638,7 +635,7 @@ function renderMetricsGrid(): string {
       <!-- Sleep (Featured) -->
       <div class="health-metric-card featured">
         <div class="health-metric-header">
-          <span class="health-metric-label">Sleep</span>
+          <span class="health-metric-label">${t('healthDashboard.sleep')}</span>
           <span class="health-metric-icon">${ICONS.moon}</span>
         </div>
         <div class="health-metric-value">
@@ -649,7 +646,7 @@ function renderMetricsGrid(): string {
             <div class="health-sleep-bar">
               <div class="health-sleep-bar-fill ${summary.sleepQuality}"></div>
             </div>
-            <span class="health-sleep-label">${summary.sleepQuality}</span>
+            <span class="health-sleep-label">${t(SLEEP_QUALITY_KEYS[summary.sleepQuality])}</span>
           </div>
         ` : ''}
       </div>
@@ -657,18 +654,18 @@ function renderMetricsGrid(): string {
       <!-- Steps -->
       <div class="health-metric-card">
         <div class="health-metric-header">
-          <span class="health-metric-label">Steps</span>
+          <span class="health-metric-label">${t('healthDashboard.steps')}</span>
           <span class="health-metric-icon">${ICONS.steps}</span>
         </div>
         <div class="health-metric-value">
-          ${formatNumber(summary.steps)}
+          ${formatMetric(summary.steps)}
         </div>
       </div>
 
       <!-- HRV -->
       <div class="health-metric-card">
         <div class="health-metric-header">
-          <span class="health-metric-label">HRV</span>
+          <span class="health-metric-label">${t('healthDashboard.hrv')}</span>
           <span class="health-metric-icon">${ICONS.brain}</span>
         </div>
         <div class="health-metric-value">
@@ -677,7 +674,7 @@ function renderMetricsGrid(): string {
         ${summary.hrvTrend ? `
           <div class="health-metric-trend ${summary.hrvTrend}">
             ${summary.hrvTrend === 'up' ? ICONS.trendUp : summary.hrvTrend === 'down' ? ICONS.trendDown : ''}
-            ${summary.hrvTrend === 'up' ? 'Improving' : summary.hrvTrend === 'down' ? 'Below baseline' : 'Stable'}
+            ${t(HRV_TREND_KEYS[summary.hrvTrend])}
           </div>
         ` : ''}
       </div>
@@ -685,18 +682,18 @@ function renderMetricsGrid(): string {
       <!-- Active Calories -->
       <div class="health-metric-card">
         <div class="health-metric-header">
-          <span class="health-metric-label">Active Cal</span>
+          <span class="health-metric-label">${t('healthDashboard.activeCal')}</span>
           <span class="health-metric-icon">${ICONS.flame}</span>
         </div>
         <div class="health-metric-value">
-          ${formatNumber(summary.activeCalories)}
+          ${formatMetric(summary.activeCalories)}
         </div>
       </div>
 
       <!-- Resting Heart Rate -->
       <div class="health-metric-card">
         <div class="health-metric-header">
-          <span class="health-metric-label">Resting HR</span>
+          <span class="health-metric-label">${t('healthDashboard.restingHr')}</span>
           <span class="health-metric-icon">${ICONS.activity}</span>
         </div>
         <div class="health-metric-value">
@@ -714,7 +711,7 @@ function renderWeeklyChart(): string {
   
   return `
     <div class="health-weekly-section">
-      <h3 class="health-section-title">This Week</h3>
+      <h3 class="health-section-title">${t('healthDashboard.thisWeek')}</h3>
       <div class="health-weekly-chart">
         ${historyData.slice(0, 7).reverse().map((day, i) => {
           const height = day.steps ? Math.max(10, (day.steps / maxSteps) * 100) : 10;
@@ -740,7 +737,7 @@ function renderLastUpdated(): string {
   
   return `
     <div class="health-last-updated">
-      Last synced ${getRelativeTime(currentStatus.lastSync)}
+      ${t('healthDashboard.lastSynced', { time: getRelativeTime(currentStatus.lastSync) })}
     </div>
   `;
 }
@@ -749,7 +746,7 @@ function renderLoadingState(): string {
   return `
     <div class="health-loading">
       <div class="health-loading-spinner"></div>
-      <span class="health-loading-text">Loading health data...</span>
+      <span class="health-loading-text">${t('healthDashboard.loading')}</span>
     </div>
   `;
 }
@@ -798,8 +795,8 @@ function ensureModalExists(): HTMLElement {
         <div class="health-dashboard-header-content">
           <div class="health-dashboard-icon">${ICONS.heart}</div>
           <div>
-            <h2 class="health-dashboard-title" id="health-title">Health</h2>
-            <p class="health-dashboard-subtitle">Apple Health data</p>
+            <h2 class="health-dashboard-title" id="health-title">${t('healthDashboard.title')}</h2>
+            <p class="health-dashboard-subtitle">${t('healthDashboard.subtitle')}</p>
           </div>
         </div>
         <button class="health-dashboard-close" data-action="close" aria-label="${t('accessibility.close')}">
