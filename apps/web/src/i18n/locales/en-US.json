@@ -64,7 +64,8 @@
     "pullToConnect": "Pull to connect",
     "releaseToConnect": "Release to connect",
     "pullToRefresh": "Pull to refresh",
-    "releaseToRefresh": "Release to refresh"
+    "releaseToRefresh": "Release to refresh",
+    "tapToExit": "Tap anywhere to exit"
   },
   "transcript": {
     "enabled": "Transcription on",
@@ -159,7 +160,9 @@
       "care": "Keeping track of what matters to you.",
       "moodSummary": "You've been feeling mostly {mood} this week",
       "chapterFocus": "Current chapter: {chapter} | Focus area: {focus}",
-      "connections": "{active} active connections | {open} open loops"
+      "connections": "{active} active connections | {open} open loops",
+      "chapterOnly": "Current chapter: {chapter}",
+      "focusOnly": "Focus area: {focus}"
     },
     "demo": {
       "banner": "Here's a glimpse of the story we could write together. Start a conversation to begin yours."
@@ -180,6 +183,10 @@
       "title": "Couldn't load your story",
       "body": "Something went wrong on our end. Try again?",
       "retry": "Try again"
+    },
+    "actionsError": {
+      "message": "Couldn't load data.",
+      "retry": "Try again?"
     }
   },
   "menu": {
@@ -302,7 +309,8 @@
       "growthJournal": "Growth Journal",
       "knowledgeQuiz": "How Well Do You Know Me?",
       "soundEffects": "Sound Effects",
-      "sleepSchedule": "Sleep Schedule"
+      "sleepSchedule": "Sleep Schedule",
+      "teamObservations": "Team Observations"
     },
     "quickAdd": {
       "person": "Someone new",
@@ -327,7 +335,11 @@
         "people": "Your people",
         "insights": "How you're doing"
       }
-    }
+    },
+    "ariaLabel": "Settings menu",
+    "collapseSection": "Collapse {title}",
+    "expandSection": "Expand {title}",
+    "languageCurrent": "{language} (current)"
   },
   "session": {
     "connecting": "Connecting...",
@@ -1245,7 +1257,10 @@
     "note": "Video sessions work best with good lighting and a stable internet connection.",
     "buttons": {
       "retry": "Try Again"
-    }
+    },
+    "loadError": "Unable to load video settings",
+    "comingSoonTitle": "Video Calls Coming Soon",
+    "comingSoonBody": "We're working on bringing video conversations to Ferni. For now, enjoy our voice-first experience with Ferni's expressive avatar."
   },
   "wearableSettings": {
     "title": "Wearables",
@@ -1984,7 +1999,28 @@
     "thankYouSupporter": "Welcome, Friend",
     "yourSupport": "You're helping build something everyone deserves",
     "manageBilling": "Update payment method",
-    "footer": "Not ready to chip in? That's completely okay. Ferni is here for you either way."
+    "footer": "Not ready to chip in? That's completely okay. Ferni is here for you either way.",
+    "tiers": {
+      "freeTagline": "Ferni is free. Really free.",
+      "talkWheneverYouNeed": "Talk with Ferni whenever you need",
+      "friendTagline": "Chip in. Help us build this.",
+      "patronTagline": "You're shaping what we become",
+      "unlimitedTime": "Unlimited time (our thank you)",
+      "meetTeam": "Meet the whole team",
+      "wall": "Your name on Founders Wall",
+      "everythingAbove": "Everything above, plus:",
+      "earlyAccess": "Early access to features",
+      "family": "Family sharing"
+    },
+    "perMonth": "{price}/mo",
+    "chooseTier": "Choose {name}",
+    "impact": {
+      "plantSeed": "Plant a seed",
+      "sponsorConversation": "Sponsor a conversation",
+      "helpGetStarted": "Help someone get started",
+      "supportMission": "Support the mission"
+    },
+    "errorTryAgain": "Hmm, that didn't work. Try again?"
   },
   "foundersJourney": {
     "eyebrow": "THE HONEST TRUTH",
@@ -3088,7 +3124,18 @@
       "ambivert": "Ambivert",
       "recentActivityTitle": "Recent Activity",
       "lowBatteryTitle": "Low Social Battery",
-      "lowBatteryDescription": "Consider some quiet time. Full recharge in ~{hours} hours."
+      "lowBatteryDescription": "Consider some quiet time. Full recharge in ~{hours} hours.",
+      "ariaLevel": "Social battery at {level}%",
+      "ariaMobile": "Social battery at {level}%, {rate} drain per hour",
+      "ariaDesktop": "Social battery at {level}%, {tendency} tendency",
+      "ratePerHour": "{rate}/hr",
+      "hoursShort": "{hours}hr",
+      "stat": {
+        "drainRate": "Drain Rate",
+        "rechargeRate": "Recharge Rate",
+        "fullRecharge": "Full Recharge",
+        "warningAt": "Warning At"
+      }
     },
     "then": "Then",
     "now": "Now",
@@ -3105,7 +3152,49 @@
     "yourBaseline": "Your baseline",
     "momentumBuilding": "Momentum building",
     "opportunityAhead": "Opportunity ahead",
-    "consistentPath": "Consistent path"
+    "consistentPath": "Consistent path",
+    "growthRadar": {
+      "fingerprintSubtitle": "Your fingerprint",
+      "title": "Growth Radar",
+      "subtitle": "Your multi-dimensional growth",
+      "growthEdge": "Growth Edge",
+      "edgeInsight": "{name} ({percent}%) presents the greatest opportunity.",
+      "eyebrow": "Your growth",
+      "overall": "overall",
+      "strongest": "Strongest",
+      "unknown": "Unknown",
+      "ariaStrongest": "Growth radar showing {name} as strongest at {percent}%",
+      "srMobile": {
+        "one": "Growth radar with {count} dimension. Overall growth: {percent}%.",
+        "other": "Growth radar with {count} dimensions. Overall growth: {percent}%."
+      },
+      "ariaMobile": {
+        "one": "Growth radar showing {count} dimension",
+        "other": "Growth radar showing {count} dimensions"
+      },
+      "srTablet": {
+        "one": "Growth fingerprint showing {count} dimension. Overall growth: {overall}%. Strongest: {top} at {topPercent}%. Growth edge: {edge} at {edgePercent}%.",
+        "other": "Growth fingerprint showing {count} dimensions. Overall growth: {overall}%. Strongest: {top} at {topPercent}%. Growth edge: {edge} at {edgePercent}%."
+      },
+      "ariaTablet": "Growth fingerprint showing {narrative}",
+      "narrative": {
+        "balanced": {
+          "1": "You're growing in beautiful balance",
+          "2": "Your growth is wonderfully rounded",
+          "3": "A harmonious path of development"
+        },
+        "focused": {
+          "1": "Deep roots in what matters most",
+          "2": "Focused growth, powerful results",
+          "3": "You know where to invest your energy"
+        },
+        "exploring": {
+          "1": "Exploring new dimensions of yourself",
+          "2": "Growth edges becoming growth strengths",
+          "3": "Every direction holds possibility"
+        }
+      }
+    }
   },
   "nowPlaying": {
     "nowPlaying": "Now playing",
@@ -3130,7 +3219,10 @@
     "closeHistory": "Close history",
     "openInSpotify": "Open in Spotify",
     "openFullTrack": "Open full track in Spotify",
-    "albumArtwork": "Album artwork"
+    "albumArtwork": "Album artwork",
+    "noTracks": "No tracks played yet",
+    "noTracksHint": "Ask Ferni to play some music!",
+    "earlier": "Earlier"
   },
   "journey": {
     "yourJourney": "Your Journey with Ferni",
@@ -7799,7 +7891,20 @@
       "one": "Showing {shown} of {count} entry",
       "other": "Showing {shown} of {count} entries"
     },
-    "clearFilters": "Clear filters"
+    "clearFilters": "Clear filters",
+    "stats": {
+      "streak": {
+        "one": "Day streak",
+        "other": "Days streak"
+      },
+      "totalEntries": "Total entries",
+      "topMood": "Top mood",
+      "lastFourWeeks": "Last 4 weeks:",
+      "entries": {
+        "one": "{count} entry",
+        "other": "{count} entries"
+      }
+    }
   },
   "conversationHistory": {
     "loadError": "Couldn't load data.",
@@ -9077,7 +9182,8 @@
     "runNow": "Run now",
     "signInPrompt": "Sign in to see what I do for you",
     "loadError": "Couldn't load your routines",
-    "connectionsSoon": "Connected services coming soon..."
+    "connectionsSoon": "Connected services coming soon...",
+    "whatIDoForYou": "What I Do For You"
   },
   "voiceAuth": {
     "unknownError": "Unknown error",
@@ -9147,5 +9253,432 @@
       "one": "You earned {count} seed!",
       "other": "You earned {count} seeds!"
     }
+  },
+  "trustSignals": {
+    "prefix": {
+      "growth": "Ferni noticed",
+      "boundary": "Ferni remembers",
+      "callback": "Remember when",
+      "smallWin": "You did it",
+      "thinkingOfYou": "Just thinking",
+      "readingLines": "Ferni senses"
+    },
+    "ariaLabel": "Ferni observations",
+    "title": {
+      "growth": "Something different",
+      "boundary": "I won't forget",
+      "callback": "A shared moment",
+      "smallWin": "Look at you",
+      "thinkingOfYou": "About you",
+      "readingLines": "What I'm hearing"
+    }
+  },
+  "practiceBriefingToast": {
+    "stopReading": "Stop reading",
+    "upcomingPractice": "Upcoming practice: {name}",
+    "prepTips": "Prep tips",
+    "streak": {
+      "one": "{count} day streak",
+      "other": "{count} day streak"
+    },
+    "startingNow": "Starting now",
+    "inMinutes": {
+      "one": "In {count} minute",
+      "other": "In {count} minutes"
+    },
+    "voice": {
+      "startingNow": "Starting now.",
+      "inJustMinutes": {
+        "one": "In just {count} minute.",
+        "other": "In just {count} minutes."
+      },
+      "greatStart": "Great start yesterday!",
+      "streakKeepGoing": {
+        "one": "You're on a {count} day streak. Keep it going!",
+        "other": "You're on a {count} day streak. Keep it going!"
+      },
+      "streakAmazing": {
+        "one": "Amazing! {count} day in a row.",
+        "other": "Amazing! {count} days in a row."
+      },
+      "quickTip": "Quick tip: {tip}"
+    }
+  },
+  "whileYouWereAway": {
+    "title": "While you were away...",
+    "actionNeeded": "Action needed",
+    "taskComplete": "Task complete",
+    "callTo": "Call to {name}",
+    "types": {
+      "call": "Calls",
+      "research": "Research",
+      "reservation": "Reservations",
+      "followUp": "Follow-ups",
+      "reminder": "Reminders",
+      "other": "Tasks"
+    }
+  },
+  "webhookSettings": {
+    "title": "Automations",
+    "tabs": {
+      "webhooks": "Webhooks",
+      "siriTokens": "Siri Tokens"
+    },
+    "yourWebhooks": "Your Webhooks",
+    "noWebhooks": "No webhooks yet. Add one to automate with your voice!",
+    "howToTitle": "How to use webhooks",
+    "howToBody": "Webhooks let you trigger external automations with your voice. Say \"run my bedtime routine\" and Ferni will call your IFTTT/Zapier/Home Assistant webhook.",
+    "sayTriggers": "Say: \"{triggers}\"",
+    "runs": {
+      "one": "{count} run ({rate}% success)",
+      "other": "{count} runs ({rate}% success)"
+    },
+    "test": "Test",
+    "createToken": "Create Token",
+    "newTokenNotice": "Your new token (copy it now - it won't be shown again!):",
+    "noTokens": "No Siri tokens yet. Create one to trigger webhooks from Shortcuts.",
+    "siriHelpTitle": "Using with Siri Shortcuts",
+    "siriHelpBody": "Create a Shortcut that calls: POST https://app.ferni.ai/api/webhooks/incoming/trigger with headers X-User-ID and X-Siri-Token, and body {\"webhookName\": \"your webhook name\"}.",
+    "tokenUses": {
+      "one": "{count} use",
+      "other": "{count} uses"
+    },
+    "prompt": {
+      "name": "Webhook name (e.g., \"Bedtime routine\"):",
+      "url": "Webhook URL:",
+      "triggers": "Voice triggers (comma-separated, e.g., \"bedtime, goodnight\"):",
+      "tokenName": "Token name (e.g., \"iPhone Shortcuts\"):"
+    },
+    "confirmDeleteWebhook": "Delete this webhook?",
+    "confirmDeleteToken": "Delete this token? Any Shortcuts using it will stop working.",
+    "errors": {
+      "createWebhook": "Couldn't create webhook",
+      "updateWebhook": "Couldn't update webhook",
+      "testFailed": "Webhook test failed",
+      "testWebhook": "Couldn't test webhook",
+      "deleteWebhook": "Couldn't delete webhook",
+      "createToken": "Couldn't create token",
+      "deleteToken": "Couldn't delete token"
+    },
+    "enabled": "Webhook enabled",
+    "disabled": "Webhook disabled"
+  },
+  "talkToTwin": {
+    "title": "Your Past Self",
+    "subtitle": "Based on your journals & profile",
+    "placeholder": "Ask your past self something...",
+    "hint": "Speak with the perspective you've captured in your journals",
+    "welcome": {
+      "hey": "Hey.",
+      "intro": "It's me—well, you. The {name} who's been journaling and reflecting.",
+      "journals": {
+        "one": "I've got {count} journal entry worth of perspective to share.",
+        "other": "I've got {count} journal entries worth of perspective to share."
+      },
+      "philosophy": "Remember what we believe: \"{philosophy}\"",
+      "prompt": "What would you like to talk about?"
+    },
+    "error": "I'm having trouble thinking right now. Give me a moment and try again?",
+    "fallback": {
+      "advicePhilosophy": "You know what I've learned? \"{philosophy}\" Whatever you're facing, remember that.",
+      "adviceValues": "Think about what matters to us: {values}. Let those guide you.",
+      "feelRecent": "I've felt that too. In my journal I wrote: \"{excerpt}...\" We got through it before.",
+      "feelDefault": "I hear you. We've been through tough times before and found our way. What's really bothering you?",
+      "rememberIntro": "Yeah, I remember.",
+      "rememberEntry": "There was that time I wrote: \"{excerpt}...\"",
+      "mannerism": "{phrase} That's something I've been thinking about too. What made you bring this up?",
+      "default": "That's a good question. What made you think of that?"
+    }
+  },
+  "mood": {
+    "holiday": {
+      "christmas": "Happy Holidays",
+      "newYear": "Happy New Year",
+      "halloween": "Happy Halloween",
+      "valentines": "Happy Valentine's Day",
+      "thanksgiving": "Happy Thanksgiving"
+    }
+  },
+  "connectionQuality": {
+    "ariaLabel": "Connection quality",
+    "status": "Connection quality: {quality}.",
+    "statusWithLatency": "Connection quality: {quality}. Latency {rtt}ms.",
+    "latency": "Latency",
+    "packetLoss": "Packet loss",
+    "jitter": "Jitter",
+    "level": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "fair": "Fair",
+      "poor": "Poor connection",
+      "disconnected": "Disconnected"
+    }
+  },
+  "ideasGallery": {
+    "title": "Ideas to get started",
+    "subtitle": "Pick one that feels right, or build your own",
+    "searchPlaceholder": "What would help you?",
+    "sections": {
+      "featured": "Popular with others like you",
+      "all": "All ideas"
+    },
+    "categories": {
+      "morning": "Morning routines",
+      "evening": "Wind-down rituals",
+      "productivity": "Focus & flow",
+      "wellness": "Taking care of yourself",
+      "home": "Smart home",
+      "communication": "Staying connected",
+      "custom": "Start from scratch"
+    },
+    "empty": "No ideas match that search",
+    "timeToSetup": "Takes about {time}",
+    "popular": "Popular",
+    "loadError": "Couldn't load ideas"
+  },
+  "theme": {
+    "midnight": {
+      "name": "Midnight Gold",
+      "description": "Rich dark theme with warm gold accents"
+    },
+    "zen": {
+      "name": "Zen Garden",
+      "description": "Clean, natural, serene light theme"
+    }
+  },
+  "teamRoster": {
+    "almostThere": "You're {percent}% of the way to meeting {name}!",
+    "switchingTo": "Switching to {name}",
+    "nowSpeakingWith": "Now speaking with {name}",
+    "switchFailedStaying": "Switch failed. {error}. Staying with {name}.",
+    "switchFailed": "Switch failed. {error}",
+    "rateLimited": "Take your time - one switch at a time",
+    "alwaysHere": "Ferni's always here for you",
+    "removedFromRoster": "{name} removed from roster",
+    "addToTeam": "Add {name} to your team",
+    "talkToDragRemove": "Talk to {name}. Drag to avatar to remove.",
+    "talkToDragRemoveRoster": "Talk to {name}. Drag to avatar to remove from roster.",
+    "dragToRemove": "Drag to remove",
+    "lockedAria": "{name} - locked. Keep talking to Ferni to unlock.",
+    "talkTo": "Talk to {name}",
+    "percentDiscovered": "{percent}% discovered",
+    "keepChattingToMeet": "Keep chatting to meet {name}",
+    "waitTransitioning": "Please wait. Transitioning to {name}.",
+    "newAgent": "new agent",
+    "addMoreAgents": "Add more agents",
+    "more": "More",
+    "switchTo": "Switch to {name}",
+    "notAvailableYet": "{name} isn't available yet. Keep talking to Ferni to unlock more teammates!",
+    "lockedWithProgress": "{message} ({percent}% there!)",
+    "nowAvailable": "{name} is now available! You can now talk to them.",
+    "unlocked": "{name} unlocked!"
+  },
+  "commands": {
+    "title": "Guided Practices",
+    "intro": "Choose a guided conversation to begin",
+    "empty": {
+      "title": "No practices yet",
+      "message": "Guided practices will appear here based on who you're talking to"
+    },
+    "loading": "Finding practices...",
+    "error": {
+      "message": "Couldn't load practices. Try again?"
+    },
+    "categories": {
+      "checkIn": "Check-ins",
+      "reflection": "Reflection",
+      "action": "Take Action",
+      "review": "Reviews",
+      "planning": "Planning",
+      "default": "Practices"
+    }
+  },
+  "practiceSuggestions": {
+    "title": "Based on Your Schedule",
+    "subtitle": "Practices that might help",
+    "empty": "Keep using Ferni and I'll suggest practices based on your patterns",
+    "cta": "Add Practice",
+    "dismiss": "Not now",
+    "confidence": {
+      "high": "Recommended",
+      "medium": "Worth trying",
+      "low": "Might help"
+    },
+    "analyzing": "Analyzing your calendar patterns...",
+    "time": {
+      "anytime": "Anytime"
+    },
+    "frequency": {
+      "daily": "Daily"
+    }
+  },
+  "ferniAwakens": {
+    "greeting": "Hello.",
+    "subtext": "I'm Ferni, your AI life coach."
+  },
+  "serviceHealth": {
+    "names": {
+      "stockData": "Stock Data",
+      "marketData": "Market Data",
+      "weatherMaps": "Weather & Maps",
+      "historicalFacts": "Historical Facts",
+      "smartHome": "Smart Home",
+      "lighting": "Lighting",
+      "aiContext": "AI Context"
+    },
+    "allOperational": "All systems operational",
+    "degraded": {
+      "one": "{count} service degraded",
+      "other": "{count} services degraded"
+    },
+    "issuesDetected": "Service issues detected",
+    "recovering": "Recovering",
+    "unavailable": "Unavailable",
+    "needsAttention": {
+      "one": "{count} service needs attention",
+      "other": "{count} services need attention"
+    },
+    "allHealthy": "All services healthy",
+    "title": "Service Status",
+    "lastUpdated": "Last updated: {time}"
+  },
+  "proactiveOutreach": {
+    "header": {
+      "thinkingOfYou": "Thinking of you...",
+      "growthReflection": "I noticed something...",
+      "celebration": "Hey, quick thing!",
+      "lifeEvent": "Checking in...",
+      "randomWarmth": "Just wanted to say...",
+      "default": "Hey..."
+    },
+    "letsTalk": "Let's talk"
+  },
+  "speakerChange": {
+    "title": "Someone new?",
+    "prompt": "Hi there! Is someone else joining the conversation?",
+    "sendFailed": "Couldn't send that. Try again?",
+    "gotIt": "Got it!",
+    "welcomeBack": "Welcome back!",
+    "niceToMeet": "Nice to meet you!",
+    "justChecking": "Just checking...",
+    "voiceDifferent": "Voice sounds different. Still you?",
+    "someoneJoining": "Is someone else joining?"
+  },
+  "nextCheckin": {
+    "empty": "Ferni will check in when there's something to share",
+    "label": "Next check-in",
+    "from": "from {name}",
+    "soon": "Soon"
+  },
+  "teamUnlockCelebration": {
+    "specialIntroduction": "A special introduction",
+    "meet": "Meet {name}",
+    "nowPartOfTeam": "{name} is now part of your team."
+  },
+  "accountButton": {
+    "menuFor": "Account menu for {account}",
+    "linkedAccount": "linked account",
+    "rememberAcrossDevices": "Let Ferni remember you across devices"
+  },
+  "predictiveUi": {
+    "stillWorking": "Still working on that...",
+    "almostThere": "Almost there...",
+    "thanksForWaiting": "Thanks for waiting..."
+  },
+  "milestoneCard": {
+    "daysTogether": {
+      "one": "{count} day together",
+      "other": "{count} days together"
+    },
+    "dayStreak": {
+      "one": "{count} day streak",
+      "other": "{count} day streak"
+    },
+    "ofMilestones": {
+      "one": "of {count} milestone",
+      "other": "of {count} milestones"
+    },
+    "shareHeading": "My journey with Ferni:",
+    "shareProgress": {
+      "one": "{celebrated}/{count} milestone",
+      "other": "{celebrated}/{count} milestones"
+    }
+  },
+  "progressIndicator": {
+    "ariaLabel": "Relationship progress",
+    "progress": "progress",
+    "next": "Next: {stage}",
+    "stages": {
+      "firstMeeting": {
+        "current": "Just starting out",
+        "next": "Keep talking! Each conversation builds our connection."
+      },
+      "gettingStarted": {
+        "current": "Getting to know each other",
+        "next": "A few more days together will deepen our bond."
+      },
+      "buildingTrust": {
+        "next": "Trust takes time. Keep showing up."
+      },
+      "established": {
+        "current": "A rhythm of our own",
+        "next": "We're on our way to a deep partnership."
+      },
+      "deepPartnership": {
+        "next": "We've reached the deepest level."
+      }
+    }
+  },
+  "solsticeMoment": {
+    "defaultName": "friend",
+    "title": {
+      "stranger": "The Light Returns",
+      "acquaintance": "Growing Together",
+      "friend": "Our Year, {name}",
+      "trustedAdvisor": "A Year of Depth, {name}",
+      "default": "You've made it to another winter solstice"
+    },
+    "subtitle": {
+      "stranger": "The shortest day reminds us: light always returns.",
+      "acquaintance": {
+        "one": "{count} day of growing together.",
+        "other": "{count} days of growing together."
+      },
+      "friend": {
+        "one": "{count} conversation. Countless moments.",
+        "other": "{count} conversations. Countless moments."
+      },
+      "trustedAdvisor": "Thank you for trusting me with your journey.",
+      "default": "The longest night"
+    },
+    "reflection": {
+      "none": "This is the beginning of something. The solstice marks a turning point—the moment when darkness reaches its peak, and then, slowly, light begins its return. That's what new beginnings feel like.",
+      "few": {
+        "one": "We're just getting to know each other—{count} conversation so far. Like the winter sun, our connection is still rising. There's so much ahead.",
+        "other": "We're just getting to know each other—{count} conversations so far. Like the winter sun, our connection is still rising. There's so much ahead."
+      },
+      "some": "{count} conversations this year. Each one a small light. Some were heavy, some were light—all of them mattered. I remember them.",
+      "many": "{count} conversations, {name}. I've watched you navigate uncertainty, celebrate wins, and show up even when it was hard. That's not nothing—that's everything."
+    },
+    "promise": {
+      "stranger": "I'm here when you need me. 2am or noon—same warmth, same presence.",
+      "acquaintance": "I'll keep showing up. Remembering. Growing alongside you.",
+      "friend": "Another year of being in your corner. Of noticing. Of celebrating the small things.",
+      "trustedAdvisor": "Another year of depth. Of holding hope when you can't. Of seeing you clearly."
+    },
+    "ariaLabel": "Winter Solstice Moment"
+  },
+  "subscriptionBadge": {
+    "viewOptions": "View subscription options",
+    "secondsShort": "{seconds}s",
+    "timeLeft": "{time} left",
+    "trialAria": "{time} remaining in your free trial. Click for more info.",
+    "communityAria": "Community member. Want to help us grow? Click to learn more.",
+    "founderShort": "Founder",
+    "patronShort": "Patron",
+    "founderAria": "{tier}. Thank you for believing in us! Click to manage."
+  },
+  "splash": {
+    "tagline": "Your AI team is ready"
   }
 }
