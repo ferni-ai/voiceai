@@ -6,15 +6,16 @@
  * Apple's library has verified gets here (see apple-signed-data.ts), and only
  * the purchase's bound owner (apple_transaction_owners) is ever written.
  *
- * Paying twice (App Store and Stripe) — the rule:
+ * Paying twice (App Store and Stripe) follows the rule in paying-twice.ts, the
+ * same one Stripe webhooks follow:
  * - The higher tier wins. On a tie the live Stripe plan stays in charge, so an
  *   App Store event never downgrades or overrides a Stripe tier at least as high;
- *   the App Store purchase is still recorded (appleOriginalTransactionId).
+ *   the App Store purchase is still recorded (appleOriginalTransactionId) and
+ *   remembered (appleTierUnderStripe), so it takes over if Stripe ends first.
  * - When a higher App Store tier covers a live Stripe plan, the Stripe tier is
  *   remembered (stripeTierUnderApple) and handed back when the App Store plan ends.
- * - An App Store "ended" event only changes a profile the App Store is in charge
- *   of, for that same purchase. Live Stripe plan = provider not apple, a Stripe
- *   subscription id, a paid tier, and status active, trialing or past_due.
+ * - An App Store "ended" event only changes the profile for that same purchase:
+ *   the tier when the App Store is in charge, the remembered plan when Stripe is.
  *
  * Every write is idempotent: a retried request or notification that changes
  * nothing doesn't write.
@@ -30,6 +31,7 @@ import {
 } from '../../types/subscription.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getTransactionOwner } from './apple-signed-data.js';
+import { hasLiveStripePlan, later, ms, stripeKeepsCharge } from './paying-twice.js';
 
 const log = createLogger({ module: 'AppleEntitlement' });
 
@@ -58,9 +60,6 @@ export const PRODUCT_TO_TIER: Record<string, SubscriptionTier> = {
   'com.ferni.partner.monthly': 'partner',
   'com.ferni.partner.annual': 'partner',
 };
-
-const TIER_RANK: Record<SubscriptionTier, number> = { free: 0, friend: 1, partner: 2 };
-const LIVE_STRIPE_STATUSES: ReadonlySet<string> = new Set(['active', 'trialing', 'past_due']);
 
 /** What an App Store event does to the entitlement of one purchase. */
 export type AppleEntitlementChange =
@@ -108,23 +107,6 @@ export function changeFromTransaction(
   };
 }
 
-/** Milliseconds for a stored date (Date, ISO string, epoch, or Firestore Timestamp). */
-function ms(value: unknown): number | undefined {
-  if (value instanceof Date) return value.getTime();
-  if (typeof value === 'string' || typeof value === 'number') return new Date(value).getTime();
-  const toDate = (value as { toDate?: () => Date } | null | undefined)?.toDate;
-  return typeof toDate === 'function' ? toDate.call(value).getTime() : undefined;
-}
-
-function hasLiveStripePlan(sub: SubscriptionData): boolean {
-  return (
-    sub.provider !== 'apple' &&
-    Boolean(sub.stripeSubscriptionId) &&
-    sub.tier !== 'free' &&
-    LIVE_STRIPE_STATUSES.has(sub.status)
-  );
-}
-
 /** The App Store is in charge of this profile, through this purchase. */
 function appleHolds(sub: SubscriptionData, originalTransactionId: string): boolean {
   return sub.provider === 'apple' && sub.appleOriginalTransactionId === originalTransactionId;
@@ -148,17 +130,19 @@ function granted(current: SubscriptionData, change: Grant, now: Date): Subscript
   const otx = change.originalTransactionId;
   if (signedBeforeRefund(current, change)) return current;
   const stripeLive = hasLiveStripePlan(current);
-  if (stripeLive && TIER_RANK[current.tier] >= TIER_RANK[change.tier]) {
-    // Stripe already gives at least this much: record the purchase, change nothing else.
-    return { ...current, appleOriginalTransactionId: otx, appleProductId: change.productId };
+  const samePurchase = current.appleOriginalTransactionId === otx;
+  if (stripeLive && stripeKeepsCharge(current.tier, change.tier)) {
+    // Stripe already gives at least this much: record and remember the purchase.
+    const held = samePurchase ? current.appleExpiresUnderStripe : undefined;
+    return {
+      ...current,
+      appleOriginalTransactionId: otx,
+      appleProductId: change.productId,
+      appleTierUnderStripe: change.tier,
+      appleExpiresUnderStripe: notBackwards(held, change.expiresAt),
+    };
   }
-  // Never move an expiry backwards for the same purchase (notifications can arrive late).
-  const held = appleHolds(current, otx) ? ms(current.currentPeriodEnd) : undefined;
-  const offered = change.expiresAt?.getTime();
-  const expiresAt =
-    held !== undefined && offered !== undefined && held > offered
-      ? new Date(held)
-      : change.expiresAt;
+  const held = appleHolds(current, otx) ? current.currentPeriodEnd : undefined;
   return {
     ...current,
     tier: change.tier,
@@ -167,11 +151,18 @@ function granted(current: SubscriptionData, change: Grant, now: Date): Subscript
     appleOriginalTransactionId: otx,
     appleProductId: change.productId,
     subscribedAt: current.subscribedAt ?? change.purchasedAt ?? now,
-    currentPeriodEnd: expiresAt,
+    currentPeriodEnd: notBackwards(held, change.expiresAt),
     gracePeriodEnd: undefined,
     revokedAt: undefined,
     stripeTierUnderApple: stripeLive ? current.tier : current.stripeTierUnderApple,
+    appleTierUnderStripe: undefined,
+    appleExpiresUnderStripe: undefined,
   };
+}
+
+/** Never move an expiry backwards for the same purchase (notifications can arrive late). */
+function notBackwards(held: unknown, offered: Date | undefined): Date | undefined {
+  return offered === undefined ? undefined : later(held, offered);
 }
 
 function ended(current: SubscriptionData, change: End, now: Date): SubscriptionData {
@@ -179,10 +170,13 @@ function ended(current: SubscriptionData, change: End, now: Date): SubscriptionD
     ...current,
     gracePeriodEnd: undefined,
     stripeTierUnderApple: undefined,
+    appleTierUnderStripe: undefined,
+    appleExpiresUnderStripe: undefined,
     revokedAt: change.reason === 'refund' ? now : current.revokedAt,
   };
   const covered = current.stripeTierUnderApple;
-  if (covered !== undefined && current.stripeSubscriptionId !== undefined) {
+  // Null-safe: Firestore keeps a cleared field as null.
+  if (covered != null && covered !== 'free' && current.stripeSubscriptionId) {
     // Hand the profile back to the Stripe plan the App Store tier was covering.
     return { ...base, tier: covered, provider: 'stripe', status: 'active' };
   }
@@ -196,8 +190,25 @@ export function nextSubscription(
   now: Date
 ): SubscriptionData {
   if (change.kind === 'grant') return granted(current, change, now);
-  // Grace and endings only touch a profile the App Store is in charge of, for this purchase.
-  if (!appleHolds(current, change.originalTransactionId)) return current;
+  const otx = change.originalTransactionId;
+  if (!appleHolds(current, otx)) {
+    // Under a Stripe plan: grace extends the remembered purchase, an ending forgets it.
+    if (current.appleOriginalTransactionId !== otx || current.appleTierUnderStripe == null) {
+      return current;
+    }
+    if (change.kind === 'grace') {
+      return {
+        ...current,
+        appleExpiresUnderStripe: later(current.appleExpiresUnderStripe, change.until),
+      };
+    }
+    return {
+      ...current,
+      appleTierUnderStripe: undefined,
+      appleExpiresUnderStripe: undefined,
+      revokedAt: change.reason === 'refund' ? now : current.revokedAt,
+    };
+  }
   if (change.kind === 'grace') {
     return { ...current, status: 'past_due', gracePeriodEnd: change.until };
   }
@@ -215,13 +226,15 @@ const ENTITLEMENT_FIELDS = [
   'gracePeriodEnd',
   'revokedAt',
   'stripeTierUnderApple',
+  'appleTierUnderStripe',
+  'appleExpiresUnderStripe',
 ] as const;
 
 function sameEntitlement(a: SubscriptionData, b: SubscriptionData): boolean {
   return ENTITLEMENT_FIELDS.every((field) => {
     const x: unknown = a[field];
     const y: unknown = b[field];
-    return x === y || (ms(x) !== undefined && ms(x) === ms(y));
+    return x === y || (x == null && y == null) || (ms(x) !== undefined && ms(x) === ms(y));
   });
 }
 
