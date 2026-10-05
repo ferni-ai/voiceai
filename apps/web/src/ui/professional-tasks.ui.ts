@@ -464,7 +464,7 @@ function render(): string {
       <div class="professional-tasks-modal" role="dialog" aria-labelledby="professional-title">
         <header class="professional-tasks-header">
           <div class="professional-tasks-title">
-            <span class="professional-tasks-eyebrow">Professional Assistant</span>
+            <span class="professional-tasks-eyebrow">${t('professionalTasks.assistant')}</span>
             <h2 class="professional-tasks-name" id="professional-title">${currentAgent.displayName || currentAgent.name}</h2>
           </div>
           <button class="professional-close-btn" aria-label="${t('accessibility.closeTasks')}">
@@ -483,7 +483,7 @@ function render(): string {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                 </svg>
-                Quick Actions
+                ${t('professionalTasks.quickActions')}
               </h3>
             </div>
             <div class="professional-quick-actions" role="button" tabindex="0">
@@ -495,7 +495,7 @@ function render(): string {
                     <path d="M12 17h.01"/>
                   </svg>
                 </div>
-                <span class="professional-quick-action-label" role="button" tabindex="0">Brainstorm</span>
+                <span class="professional-quick-action-label" role="button" tabindex="0">${t('professionalTasks.brainstorm')}</span>
               </button>
               <button aria-label="${t('accessibility.reviewWork')}" class="professional-quick-action" data-action="start-task" data-task="review">
                 <div class="professional-quick-action-icon" role="button" tabindex="0">
@@ -506,7 +506,7 @@ function render(): string {
                     <line x1="16" y1="17" x2="8" y2="17"/>
                   </svg>
                 </div>
-                <span class="professional-quick-action-label" role="button" tabindex="0">Review Work</span>
+                <span class="professional-quick-action-label" role="button" tabindex="0">${t('professionalTasks.reviewWork')}</span>
               </button>
               <button aria-label="${t('accessibility.draftContent')}" class="professional-quick-action" data-action="start-task" data-task="draft">
                 <div class="professional-quick-action-icon" role="button" tabindex="0">
@@ -515,7 +515,7 @@ function render(): string {
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                   </svg>
                 </div>
-                <span class="professional-quick-action-label" role="button" tabindex="0">Draft Content</span>
+                <span class="professional-quick-action-label" role="button" tabindex="0">${t('professionalTasks.draftContent')}</span>
               </button>
               <button aria-label="${t('accessibility.analyzeData')}" class="professional-quick-action" data-action="start-task" data-task="analyze">
                 <div class="professional-quick-action-icon" role="button" tabindex="0">
@@ -525,7 +525,7 @@ function render(): string {
                     <line x1="6" y1="20" x2="6" y2="14"/>
                   </svg>
                 </div>
-                <span class="professional-quick-action-label" role="button" tabindex="0">Analyze Data</span>
+                <span class="professional-quick-action-label" role="button" tabindex="0">${t('professionalTasks.analyzeData')}</span>
               </button>
             </div>
           </section>
@@ -538,14 +538,14 @@ function render(): string {
                   <circle cx="12" cy="12" r="10"/>
                   <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
                 </svg>
-                Skills & Expertise
+                ${t('professionalTasks.skillsExpertise')}
               </h3>
               <button aria-label="${t('accessibility.addSkill')}" class="professional-add-btn" data-action="add-skill">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                Add Skill
+                ${t('professionalTasks.addSkill')}
               </button>
             </div>
             ${skills.length === 0 ? `
@@ -556,8 +556,8 @@ function render(): string {
                     <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
                   </svg>
                 </div>
-                <h4 class="professional-empty-title">No skills defined</h4>
-                <p class="professional-empty-text">Add the skills this assistant specializes in.</p>
+                <h4 class="professional-empty-title">${t('professionalTasks.noSkills')}</h4>
+                <p class="professional-empty-text">${t('professionalTasks.noSkillsDesc')}</p>
               </div>
             ` : `
               <div class="professional-skills-grid">
@@ -596,14 +596,14 @@ function render(): string {
                   <line x1="3" y1="9" x2="21" y2="9"/>
                   <line x1="9" y1="21" x2="9" y2="9"/>
                 </svg>
-                Domain Knowledge
+                ${t('professionalTasks.domainKnowledge')}
               </h3>
               <button aria-label="${t('accessibility.addDomain')}" class="professional-add-btn" data-action="add-domain">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                Add Domain
+                ${t('professionalTasks.addDomain')}
               </button>
             </div>
             ${domains.length === 0 ? `
@@ -614,8 +614,8 @@ function render(): string {
                     <line x1="3" y1="9" x2="21" y2="9"/>
                   </svg>
                 </div>
-                <h4 class="professional-empty-title">No domain knowledge</h4>
-                <p class="professional-empty-text">Define the areas this assistant has expertise in.</p>
+                <h4 class="professional-empty-title">${t('professionalTasks.noDomains')}</h4>
+                <p class="professional-empty-text">${t('professionalTasks.noDomainsDesc')}</p>
               </div>
             ` : domains.map((d, idx) => `
               <div class="professional-domain-card">
@@ -651,7 +651,7 @@ function render(): string {
                   <line x1="8" y1="2" x2="8" y2="6"/>
                   <line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
-                Task Templates
+                ${t('professionalTasks.taskTemplates')}
               </h3>
             </div>
             ${taskTemplates.map(t => `
@@ -681,29 +681,29 @@ function getDefaultTaskTemplates(): TaskTemplate[] {
   return [
     {
       id: 'email',
-      name: 'Draft Email',
-      description: 'Compose a professional email',
+      name: t('professionalTasks.templates.email'),
+      description: t('professionalTasks.templates.emailDesc'),
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`,
       prompt: 'Help me draft a professional email about...'
     },
     {
       id: 'meeting',
-      name: 'Meeting Prep',
-      description: 'Prepare agenda and talking points',
+      name: t('professionalTasks.templates.meeting'),
+      description: t('professionalTasks.templates.meetingDesc'),
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
       prompt: 'Help me prepare for a meeting about...'
     },
     {
       id: 'summary',
-      name: 'Summarize Document',
-      description: 'Create a concise summary',
+      name: t('professionalTasks.templates.summary'),
+      description: t('professionalTasks.templates.summaryDesc'),
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
       prompt: 'Summarize the key points from...'
     },
     {
       id: 'plan',
-      name: 'Project Planning',
-      description: 'Break down tasks and timeline',
+      name: t('professionalTasks.templates.plan'),
+      description: t('professionalTasks.templates.planDesc'),
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
       prompt: 'Help me plan a project for...'
     }
