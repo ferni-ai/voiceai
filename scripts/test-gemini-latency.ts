@@ -101,7 +101,7 @@ async function testGeminiLatency(): Promise<void> {
         // Send setup message
         const setupMsg = {
           setup: {
-            model: 'models/gemini-2.0-flash-exp',
+            model: `models/${process.env.GEMINI_MODEL || 'gemini-3.5-flash'}`,
             generationConfig: {
               responseModalities: ['TEXT'],
             },
@@ -205,7 +205,7 @@ async function testGeminiLatency(): Promise<void> {
         // Send setup with large system instruction
         const setupMsg = {
           setup: {
-            model: 'models/gemini-2.0-flash-exp',
+            model: `models/${process.env.GEMINI_MODEL || 'gemini-3.5-flash'}`,
             generationConfig: {
               responseModalities: ['TEXT'],
             },

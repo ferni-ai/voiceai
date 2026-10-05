@@ -6,6 +6,7 @@ import { Router, type Request, type Response } from 'express';
 import { createLogger } from '../../utils/safe-logger.js';
 import * as decisionsService from '../../services/ceo/decisions.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { paramString } from '../param-string.js';
 
 const log = createLogger({ module: 'decisions-routes' });
 const router = Router();
@@ -37,7 +38,10 @@ router.get('/pending', async (req: Request, res: Response) => {
 router.get('/:decisionId', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { decisionId } = req.params;
+    const decisionId = paramString(req.params.decisionId);
+    if (!decisionId) {
+      return res.status(400).json({ error: 'Invalid decision ID' });
+    }
     const decision = await decisionsService.getDecision(userId, decisionId);
 
     if (!decision) {
@@ -72,7 +76,10 @@ router.post('/', async (req: Request, res: Response) => {
 router.post('/:decisionId/make', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { decisionId } = req.params;
+    const decisionId = paramString(req.params.decisionId);
+    if (!decisionId) {
+      return res.status(400).json({ error: 'Invalid decision ID' });
+    }
     const { choice, reasoning } = req.body;
 
     if (!choice) {
@@ -91,7 +98,10 @@ router.post('/:decisionId/make', async (req: Request, res: Response) => {
 router.post('/:decisionId/outcome', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { decisionId } = req.params;
+    const decisionId = paramString(req.params.decisionId);
+    if (!decisionId) {
+      return res.status(400).json({ error: 'Invalid decision ID' });
+    }
     const { outcome } = req.body;
 
     if (!outcome) {

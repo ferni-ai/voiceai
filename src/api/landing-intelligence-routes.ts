@@ -25,6 +25,7 @@ import {
 import { getQuickOptimization } from '../services/landing-intelligence/orchestrator.js';
 import { generateVisitorId } from '../services/landing-intelligence/returning-visitor.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { paramString } from './param-string.js';
 
 /**
  * Wrapper for async route handlers to properly handle promises
@@ -192,7 +193,11 @@ landingIntelligenceRouter.get(
   '/visitor/:visitorId',
   asyncHandler(async (req: Request, res: Response) => {
     try {
-      const { visitorId } = req.params;
+      const visitorId = paramString(req.params.visitorId);
+      if (!visitorId) {
+        res.status(400).json({ error: 'Invalid visitor ID' });
+        return;
+      }
 
       const context = await getReturningVisitorContext(visitorId);
 
