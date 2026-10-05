@@ -116,6 +116,48 @@ describe('TurnMetricsAggregator', () => {
   });
 });
 
+describe('llmReadyMs with wall-clock times (preemptive generation)', () => {
+  const STOP = 1_000_000;
+  /** Caller stopped at STOP; the turn was committed `eouDelay` ms later. */
+  const eouAt = (eouDelay: number) => ({ ...eou('p', eouDelay), lastSpeakingTimeMs: STOP });
+  /** An LLM request that started `startMs` after STOP. */
+  const llmAt = (startMs: number, ttftMs: number, durationMs = 1500) => ({
+    ...llmM('p', ttftMs),
+    durationMs,
+    timestamp: STOP + startMs + durationMs,
+    promptCachedTokens: 3200,
+  });
+
+  it('a preemptive reply whose first tokens beat the commit is ready at the commit', () => {
+    const agg = new TurnMetricsAggregator();
+    agg.add(eouAt(900));
+    agg.add(llmAt(120, 600)); // first token at +720 ms, before the +900 ms commit
+    const rec = agg.add(ttsM('p', 250));
+    expect(rec).toMatchObject({ llmReadyMs: 900, responseLatencyMs: 1150 });
+  });
+
+  it('counts the overlap once: first token at +930 ms is 930, not 900 + 810', () => {
+    const agg = new TurnMetricsAggregator();
+    agg.add(eouAt(900));
+    agg.add(llmAt(120, 810));
+    expect(agg.add(ttsM('p', 250))).toMatchObject({ llmReadyMs: 930, llmTtftMs: 810 });
+  });
+
+  it('a request started after the commit measures from the end of speech', () => {
+    const agg = new TurnMetricsAggregator();
+    agg.add(eouAt(400));
+    agg.add(llmAt(450, 700));
+    expect(agg.add(ttsM('p'))).toMatchObject({ llmReadyMs: 1150 });
+  });
+
+  it('carries cached prompt tokens', () => {
+    const agg = new TurnMetricsAggregator();
+    agg.add(eouAt(400));
+    agg.add(llmAt(450, 700));
+    expect(agg.add(ttsM('p'))).toMatchObject({ promptTokens: 4000, promptCachedTokens: 3200 });
+  });
+});
+
 describe('attachTurnMetrics', () => {
   it('logs one TURN_METRICS record per completed turn from session events', () => {
     const session = new EventEmitter();
