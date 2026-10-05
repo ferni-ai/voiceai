@@ -12,8 +12,27 @@
  *   'room_closed_before_participant'   nobody ever joined
  *   'timeout'                          10-minute safety net fired
  *   undefined                          cleanup ran without a recorded reason
+ *
+ * natural: the caller left (every hang-up ends in 'empty_room'), or LiveKit
+ *   ended the job because the room was deleted after the call.
+ * disconnect: the agent lost its own connection while the caller was there.
+ * error: the call never started, never ended on its own, or ended down a path
+ *   that recorded no reason (setup failure).
+ * An unrecognized reason counts as a disconnect: a new way of losing the room
+ * should raise the alarm, not hide in "natural".
  */
-export function classifyCallEnd(waitEndReason: string | undefined): 'natural' | 'disconnect' | 'error' {
-  // TODO(seth): decide which reasons are a normal hang-up vs a dropped call vs a fault.
-  return 'disconnect';
+export function classifyCallEnd(
+  waitEndReason: string | undefined
+): 'natural' | 'disconnect' | 'error' {
+  switch (waitEndReason) {
+    case 'empty_room':
+    case 'job.shutdownCallback':
+      return 'natural';
+    case 'room_closed_before_participant':
+    case 'timeout':
+    case undefined:
+      return 'error';
+    default:
+      return 'disconnect';
+  }
 }
