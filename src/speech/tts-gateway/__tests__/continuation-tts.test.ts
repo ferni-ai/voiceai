@@ -315,10 +315,10 @@ describe('sentence pause (Ma)', () => {
 
 describe('sentenceBreakMs', () => {
   it('defaults to 300 ms, honours 0, caps at 2 s and ignores garbage', () => {
-    expect(sentenceBreakMs({})).toBe(300);
+    expect(sentenceBreakMs({})).toBe(0); // off: each break splits Cartesia's generation
     expect(sentenceBreakMs({ CASCADE_SENTENCE_BREAK_MS: '0' })).toBe(0);
     expect(sentenceBreakMs({ CASCADE_SENTENCE_BREAK_MS: '450' })).toBe(450);
     expect(sentenceBreakMs({ CASCADE_SENTENCE_BREAK_MS: '9000' })).toBe(2000);
-    expect(sentenceBreakMs({ CASCADE_SENTENCE_BREAK_MS: 'soon' })).toBe(300);
+    expect(sentenceBreakMs({ CASCADE_SENTENCE_BREAK_MS: 'soon' })).toBe(0);
   });
 });
