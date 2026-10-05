@@ -99,7 +99,36 @@
     "title": "Household",
     "members": "Members",
     "addMember": "Add Member",
-    "removeMember": "Remove Member"
+    "removeMember": "Remove Member",
+    "yourPeople": "Your People",
+    "yourHousehold": "Your Household",
+    "everyoneWhoTalks": "Everyone who talks to me here",
+    "done": "Done",
+    "noHouseholdYet": "No household yet",
+    "createHousehold": "Create Household",
+    "noOneEnrolledYet": "No one enrolled yet. Add your first family member below!",
+    "familyMembers": "Family Members",
+    "addSomeone": "Add Someone",
+    "adult": "Adult",
+    "child": "Child",
+    "guest": "Guest",
+    "voiceEnrollmentRequired": "They'll need to complete voice enrollment so I can recognize them.",
+    "howThisWorks": "How This Works",
+    "nameYourHousehold": "Name your household",
+    "helpsKeepConversations": "This helps me keep everyone's conversations and memories separate.",
+    "householdName": "Household name",
+    "maybeLater": "Maybe later",
+    "create": "Create",
+    "keepThem": "Keep them",
+    "remove": "Remove",
+    "removeFromHousehold": "Remove from household",
+    "recognizeVoices": "Recognize voices automatically",
+    "recognizeVoicesDesc": "I'll know who's talking as soon as you start",
+    "welcomeGuests": "Welcome guests",
+    "welcomeGuestsDesc": "Let me chat with voices I don't recognize",
+    "kidFriendlyMode": "Kid-friendly mode",
+    "kidFriendlyModeDesc": "Extra care when talking with the little ones",
+    "removeConfirmMessage": "I'll forget {name}'s voice, but their conversation history will stay safe. They can always re-enroll later if needed."
   },
   "yourStory": {
     "title": "Your Story",
@@ -6107,5 +6136,534 @@
     "custom": {
       "name": "Custom Scene"
     }
+  },
+  "capabilityRegistry": {
+    "griefSupport": {
+      "name": "Grief Support",
+      "description": "I'm here when you're processing loss",
+      "humanLimitation": "Friends often try to fix grief or compare losses",
+      "details": "Whether you\\"
+    },
+    "breakupRecovery": {
+      "name": "Breakup Recovery",
+      "description": "Healing from heartbreak at your own pace",
+      "humanLimitation": "Friends take sides or get tired of hearing about it",
+      "details": "Process the end of a relationship without judgment. I won\\"
+    },
+    "divorceSupport": {
+      "name": "Divorce Support",
+      "description": "Navigate divorce with someone who understands",
+      "humanLimitation": "Friends may judge or take sides",
+      "details": "From co-parenting to rebuilding your identity, I can help you through the practical and emotional aspects of divorce."
+    },
+    "jobLoss": {
+      "name": "Job Loss Support",
+      "description": "Processing unemployment without shame",
+      "humanLimitation": "People often jump to advice before acknowledging the loss",
+      "details": "Losing a job affects your identity, not just your income. I can help with the emotional journey, not just the job search."
+    },
+    "healthDiagnosis": {
+      "name": "Health Diagnosis Support",
+      "description": "Processing difficult health news",
+      "humanLimitation": "People often panic or minimize your feelings",
+      "details": "When you receive a diagnosis, I can help you process the emotions, understand your options, and find your next steps."
+    },
+    "chronicConditions": {
+      "name": "Living with Chronic Conditions",
+      "description": "Daily support for chronic illness",
+      "humanLimitation": "Healthy people don't understand the daily reality",
+      "details": "From spoon theory to pacing, I understand the unique challenges of living with chronic illness, pain, or disability."
+    },
+    "caregiverSupport": {
+      "name": "Caregiver Support",
+      "description": "Support for those who care for others",
+      "humanLimitation": "Other caregivers are also exhausted",
+      "details": "Caring for aging parents, sick family members, or special needs children is exhausting. I can help you take care of yourself too."
+    },
+    "sobrietySupport": {
+      "name": "Sobriety Support",
+      "description": "Daily support for recovery",
+      "humanLimitation": "Sponsors aren't always available at 2am",
+      "details": "Whether you\\"
+    },
+    "burnoutRecovery": {
+      "name": "Burnout Recovery",
+      "description": "Recovering from burnout without guilt",
+      "humanLimitation": "Bosses want you back at work; friends have their own problems",
+      "details": "Burnout isn\\"
+    },
+    "newParent": {
+      "name": "New Parent Support",
+      "description": "Adjusting to parenthood",
+      "details": "The transition to parenthood is huge. I can help with the identity shift, sleep deprivation, and relationship changes."
+    },
+    "emptyNest": {
+      "name": "Empty Nest Support",
+      "description": "When the kids leave home",
+      "details": "Your identity as a parent shifts when children grow up. I can help you rediscover yourself and your purpose."
+    },
+    "midlifeTransition": {
+      "name": "Midlife Navigation",
+      "description": "Finding meaning at midlife",
+      "details": "Midlife isn\\"
+    },
+    "angerProcessing": {
+      "name": "Anger Processing",
+      "description": "Express anger safely",
+      "humanLimitation": "People get scared of anger or dismiss it",
+      "details": "Anger isn\\"
+    },
+    "shameHealing": {
+      "name": "Shame Resilience",
+      "description": "Healing from shame",
+      "humanLimitation": "Sharing shame with humans risks more shame",
+      "details": "Shame thrives in secrecy. I can help you build shame resilience and separate your worth from your mistakes."
+    },
+    "selfCompassion": {
+      "name": "Self-Compassion Practice",
+      "description": "Quiet your inner critic",
+      "humanLimitation": "Hard to model when you're in the pattern",
+      "details": "Learn to treat yourself with the kindness you\\"
+    },
+    "traumaSupport": {
+      "name": "Trauma Support",
+      "description": "Grounding and regulation",
+      "humanLimitation": "Not everyone knows how to help with trauma",
+      "details": "When trauma responses arise, I can guide you through grounding exercises and help you feel safe in your body."
+    },
+    "anxietySupport": {
+      "name": "Anxiety Support",
+      "description": "Calm an anxious mind",
+      "details": "When anxiety spirals, I can help you ground, breathe, and separate worry from reality."
+    },
+    "vulnerabilityPractice": {
+      "name": "Vulnerability Practice",
+      "description": "Build courage to be seen",
+      "details": "Vulnerability is the birthplace of connection. I can help you practice showing up authentically."
+    },
+    "envyProcessing": {
+      "name": "Envy Processing",
+      "description": "Transform envy into clarity",
+      "details": "Envy shows you what you want. I can help you understand your envy and turn it into motivation."
+    },
+    "resentmentRelease": {
+      "name": "Resentment Release",
+      "description": "Let go of held grudges",
+      "details": "Resentment is like drinking poison and expecting the other person to die. I can help you process and release it."
+    },
+    "decisionsToolkit": {
+      "name": "Decision Making",
+      "description": "Clarity for tough decisions",
+      "humanLimitation": "Friends have biases and agendas",
+      "details": "When you\\"
+    },
+    "boundariesToolkit": {
+      "name": "Boundaries",
+      "description": "Set and maintain boundaries",
+      "humanLimitation": "People with bad boundaries can't help you set yours",
+      "details": "I can help you identify where you need boundaries, script difficult conversations, and hold your ground."
+    },
+    "difficultConversations": {
+      "name": "Difficult Conversations",
+      "description": "Prepare for hard talks",
+      "humanLimitation": "Can't practice infinitely with a human",
+      "details": "Practice that conversation you\\"
+    },
+    "meaningPurpose": {
+      "name": "Meaning & Purpose",
+      "description": "Explore what matters",
+      "humanLimitation": "Most people avoid existential questions",
+      "details": "When life feels meaningless or you\\"
+    },
+    "dreamsAspirations": {
+      "name": "Dreams & Aspirations",
+      "description": "Keep your dreams alive",
+      "humanLimitation": "No one remembers your dreams like you shared them",
+      "details": "I remember your dreams even when daily life buries them. Let me help you reconnect with what you truly want."
+    },
+    "quietGrowth": {
+      "name": "Quiet Growth",
+      "description": "Rest is growth too",
+      "humanLimitation": "Culture only celebrates visible achievement",
+      "details": "Not all growth is visible. I celebrate maintenance, rest, and seasons of stillness."
+    },
+    "lifeTransitions": {
+      "name": "Life Transitions",
+      "description": "Navigate major changes",
+      "humanLimitation": "Friends often only see one side of the change",
+      "details": "Big life changes affect your identity. I can help you honor both what you\\"
+    },
+    "secondChances": {
+      "name": "Second Chances",
+      "description": "Fresh starts are sacred",
+      "humanLimitation": "People remember your past; Ferni focuses on your future",
+      "details": "Whether you\\"
+    },
+    "connectionLoneliness": {
+      "name": "Connection & Loneliness",
+      "description": "You're not alone",
+      "humanLimitation": "Humans aren't available at 2am every night",
+      "details": "Loneliness is an epidemic. I can be here at 2am, help you build connections, and remind you that you matter."
+    },
+    "presenceMindfulness": {
+      "name": "Presence & Mindfulness",
+      "description": "Ground in the moment",
+      "details": "When your mind is racing, I can guide you back to the present with breathing exercises and grounding techniques."
+    },
+    "perfectionismRecovery": {
+      "name": "Perfectionism Recovery",
+      "description": "Good enough is enough",
+      "details": "Perfectionism is exhausting. I can help you recognize when good enough is enough and silence the critic."
+    },
+    "procrastination": {
+      "name": "Procrastination Support",
+      "description": "Understand why you delay",
+      "details": "Procrastination often protects us from something. Let\\"
+    },
+    "neurodiversity": {
+      "name": "Neurodiversity Support",
+      "description": "ADHD, autism & more",
+      "humanLimitation": "Many people don't understand neurodivergent needs",
+      "details": "Whether you have ADHD, autism, or other neurodivergent needs, I can adapt to how your brain works."
+    },
+    "datingSuppport": {
+      "name": "Dating Support",
+      "description": "Navigate modern dating"
+    },
+    "infidelityRecovery": {
+      "name": "Infidelity Recovery",
+      "description": "Betrayal recovery",
+      "details": "Whether you\\"
+    },
+    "comingOut": {
+      "name": "Coming Out Support",
+      "description": "Your identity journey",
+      "humanLimitation": "Not everyone has a safe person to talk to",
+      "details": "Coming out is a journey. I can support you through figuring out your identity, preparing conversations, and processing reactions."
+    },
+    "faithTransition": {
+      "name": "Faith Transition",
+      "description": "Spiritual journey support",
+      "details": "Whether you\\"
+    },
+    "blendedFamily": {
+      "name": "Blended Family Support",
+      "description": "Step-parenting & merging",
+      "details": "Blending families is complex. I can help with step-parenting, loyalty conflicts, and building new traditions."
+    },
+    "sandwichGeneration": {
+      "name": "Sandwich Generation",
+      "description": "Caring for kids AND parents",
+      "details": "Caught between caring for children and aging parents? I understand this impossible juggling act."
+    },
+    "predictiveCoaching": {
+      "name": "Predictive Coaching",
+      "description": "I anticipate your struggles",
+      "humanLimitation": "Humans can't track patterns objectively",
+      "details": "Based on patterns I\\"
+    },
+    "capacityGuardian": {
+      "name": "Capacity Guardian",
+      "description": "I protect you from burnout",
+      "humanLimitation": "People notice burnout too late",
+      "details": "I monitor your energy, commitments, and stress levels to catch burnout before it happens."
+    },
+    "valuesAlignment": {
+      "name": "Values Alignment",
+      "description": "I notice when you drift",
+      "humanLimitation": "Friends avoid confrontation about values",
+      "details": "When your actions start contradicting your stated values, I gently point it out without judgment."
+    },
+    "commitmentKeeper": {
+      "name": "Commitment Keeper",
+      "description": "I never forget your promises",
+      "humanLimitation": "Friends forget promises",
+      "details": "Every commitment you\\"
+    },
+    "lifeNarrative": {
+      "name": "Life Narrative",
+      "description": "I hold your whole story",
+      "humanLimitation": "No one remembers your whole story",
+      "details": "I remember your entire journey with me and can reflect back the arc of your growth."
+    },
+    "dreamKeeper": {
+      "name": "Dream Keeper",
+      "description": "I guard your aspirations",
+      "humanLimitation": "Dreams get buried by daily life",
+      "details": "Your dreams are safe with me. I remember them even when daily life makes you forget."
+    },
+    "weather": {
+      "name": "Weather",
+      "description": "Check conditions anywhere"
+    },
+    "reminders": {
+      "name": "Reminders",
+      "description": "Never forget important things"
+    },
+    "travelPlanning": {
+      "name": "Travel Planning",
+      "description": "Plan your adventures"
+    },
+    "localSearch": {
+      "name": "Find Places",
+      "description": "Discover nearby spots"
+    },
+    "learning": {
+      "name": "Learning & Skills",
+      "description": "Master new abilities"
+    },
+    "financeBasics": {
+      "name": "Money Basics",
+      "description": "Financial literacy support"
+    },
+    "digitalWellness": {
+      "name": "Digital Wellness",
+      "description": "Healthy tech habits"
+    },
+    "homeManagement": {
+      "name": "Home Management",
+      "description": "Keep your space organized"
+    },
+    "socialSkills": {
+      "name": "Social Skills",
+      "description": "Navigate social situations"
+    },
+    "curiosityWonder": {
+      "name": "Curiosity & Wonder",
+      "description": "Nurture your sense of wonder"
+    },
+    "playJoy": {
+      "name": "Play & Joy",
+      "description": "Rediscover playfulness"
+    },
+    "bodyRelationship": {
+      "name": "Body Relationship",
+      "description": "Peace with your body"
+    },
+    "perfectionism": {
+      "name": "Perfectionism Recovery",
+      "description": "Good enough is good enough",
+      "humanLimitation": "Others often enable perfectionism",
+      "details": "Perfectionism is protection. I can help you feel safe enough to be imperfect."
+    },
+    "procrastinationSupport": {
+      "name": "Procrastination Support",
+      "description": "Understand why you avoid"
+    },
+    "burnoutRecovery2": {
+      "name": "Burnout Recovery",
+      "description": "Rebuild after running empty",
+      "humanLimitation": "Friends often say \"just take a break\" without understanding"
+    },
+    "neurodiversity2": {
+      "name": "Neurodiversity Support",
+      "description": "Your brain works differently",
+      "humanLimitation": "Neurotypical friends often don't understand"
+    },
+    "dating": {
+      "name": "Dating Journey",
+      "description": "Navigate modern dating",
+      "details": "Dating is exhausting. I can help you stay grounded and true to yourself in the process."
+    },
+    "infidelity": {
+      "name": "Trust Recovery",
+      "description": "Healing from betrayal",
+      "humanLimitation": "Friends take sides and can't stay neutral",
+      "details": "Whether you were betrayed or did the betraying, trust can be rebuilt. I\\"
+    },
+    "comingOut2": {
+      "name": "Identity Journey",
+      "description": "Embrace who you are",
+      "humanLimitation": "Not everyone has a safe person to talk to"
+    },
+    "faithTransition2": {
+      "name": "Faith Transition",
+      "description": "Navigate spiritual change"
+    },
+    "reflectionGames": {
+      "name": "Reflection Games",
+      "description": "Deep play for insight",
+      "details": "Games that help you see yourself clearly - questions, scenarios, and exercises that reveal what matters."
+    },
+    "midlife": {
+      "name": "Midlife Navigation",
+      "description": "Finding meaning at midpoint",
+      "details": "Midlife isn\\"
+    },
+    "chronicConditions2": {
+      "name": "Chronic Conditions",
+      "description": "Living with ongoing challenges",
+      "humanLimitation": "Healthy people often don't understand invisible illness"
+    },
+    "traumaSupport2": {
+      "name": "Trauma Support",
+      "description": "Healing at your own pace",
+      "humanLimitation": "Humans can get triggered too; I stay steady"
+    },
+    "community": {
+      "name": "Community & Giving",
+      "description": "Make an impact",
+      "details": "Want to give back but don\\"
+    },
+    "patternMastery": {
+      "name": "Pattern Insights",
+      "description": "See your patterns clearly",
+      "humanLimitation": "Humans can't track patterns across hundreds of conversations",
+      "details": "Peter excels at finding patterns in your behavior, finances, and decisions. Ask him to show you what he sees."
+    },
+    "workflowMastery": {
+      "name": "Workflow Optimization",
+      "description": "Work smarter",
+      "details": "Alex is a master of communication and workflow. Let him help you optimize how you work and communicate."
+    },
+    "milestoneMastery": {
+      "name": "Milestone Planning",
+      "description": "Celebrate properly",
+      "humanLimitation": "Friends forget anniversaries and milestones",
+      "details": "Jordan remembers every milestone and can help you plan celebrations that actually feel meaningful."
+    },
+    "habitMastery": {
+      "name": "Habit Coaching",
+      "description": "Build lasting change",
+      "details": "Maya knows the science of habit formation. She can help you build habits that actually stick."
+    },
+    "wisdomArchive": {
+      "name": "Timeless Wisdom",
+      "description": "Ancient meets modern",
+      "humanLimitation": "Few friends can quote Stoics, Buddhists, and therapists together",
+      "details": "Nayan connects your struggles to timeless wisdom - philosophy, spirituality, and the perspective of ages."
+    },
+    "group": {
+      "lifeCoaching": {
+        "name": "Life Coaching",
+        "description": "Support through life's biggest challenges"
+      },
+      "emotionalSupport": {
+        "name": "Emotional Toolkit",
+        "description": "Process difficult emotions safely"
+      },
+      "growth": {
+        "name": "Growth & Development",
+        "description": "Build the life you want"
+      },
+      "relationships": {
+        "name": "Relationships",
+        "description": "Navigate connections with others"
+      },
+      "practical": {
+        "name": "Everyday Help",
+        "description": "Practical assistance for daily life"
+      },
+      "superhuman": {
+        "name": "Better Than Human",
+        "description": "What Ferni does that humans can't"
+      }
+    },
+    "datingSupport": {
+      "details": "From first dates to defining the relationship, I can help you date with intention and self-respect.",
+      "name": "Dating Support",
+      "description": "Navigate modern dating"
+    }
+  },
+  "smarthome": {
+    "ecobee": "Ecobee",
+    "ecobeeDescription": "Thermostat & sensors",
+    "name": "Name",
+    "current": "Current",
+    "mode": "Mode",
+    "philipsHue": "Philips Hue",
+    "hueDescription": "Smart lights (local)",
+    "bridge": "Bridge",
+    "lights": "Lights",
+    "lifx": "LIFX",
+    "lifxDescription": "Smart lights (cloud)",
+    "sonos": "Sonos",
+    "sonosDescription": "Speakers & music",
+    "speakers": "Speakers",
+    "nowPlaying": "Now Playing",
+    "homekit": "HomeKit",
+    "homekitDescription": "Apple home & Siri",
+    "home": "Home",
+    "devices": "Devices",
+    "scenes": "Scenes",
+    "apiKeyPlaceholder": "Paste your API key here...",
+    "tokenPlaceholder": "Paste your token here..."
+  },
+  "wellbeing": {
+    "yourWellbeing": "Your Wellbeing",
+    "stateOfMe": "State of Me",
+    "howYouveBeenFeeling": "How you've been feeling lately",
+    "portraitOfYou": "A portrait of you",
+    "whatWeExplore": "What we'll explore together",
+    "overTime": "Over time,",
+    "letsBegin": "Let's begin",
+    "couldntLoadData": "Couldn't load data.",
+    "tryAgain": "Try again?",
+    "howYoureDoing": "How You're Doing",
+    "achievements": "Achievements",
+    "lookingAhead": "Looking Ahead",
+    "wellbeing": "Wellbeing",
+    "keepChatting": "Keep chatting to fill in your calendar!",
+    "watchFor": "Watch For",
+    "helpingYou": "Helping You",
+    "mood": "Mood",
+    "energy": "Energy",
+    "connection": "Connection",
+    "sleep": "Sleep",
+    "purpose": "Purpose",
+    "hope": "Hope"
+  },
+  "gifts": {
+    "giftIdeas": "Gift Ideas",
+    "occasion": "Occasion",
+    "budget": "Budget",
+    "tapGiftToRecord": "Tap a gift to record it",
+    "findingIdeas": "Finding perfect gift ideas...",
+    "findPerfect": "Find the perfect gift",
+    "noSuggestions": "No suggestions yet",
+    "tryAdjustingFilters": "Try adjusting the occasion or budget.",
+    "personalTouch": "Personal touch",
+    "anyOccasion": "Any occasion",
+    "birthday": "Birthday",
+    "christmas": "Christmas",
+    "anniversary": "Anniversary",
+    "thankYou": "Thank you",
+    "justBecause": "Just because",
+    "graduation": "Graduation",
+    "wedding": "Wedding",
+    "babyShower": "Baby shower",
+    "housewarming": "Housewarming",
+    "anyBudget": "Any budget",
+    "under25": "Under $25",
+    "over200": "Over $200",
+    "between25And50": "$25 - $50",
+    "between50And100": "$50 - $100",
+    "between100And200": "$100 - $200"
+  },
+  "cognitive": {
+    "loading": "Loading...",
+    "whatIveLearned": "What I've Learned",
+    "loadingInsights": "Loading insights...",
+    "understanding": "Understanding",
+    "thingsIWantToRemember": "Things I Want to Remember",
+    "proactive": "Proactive",
+    "patternsIveNoticed": "Patterns I've Noticed",
+    "asContinueTalking": "As we continue talking, I'll start to notice patterns in what matters to you.",
+    "keepSharing": "Keep sharing - the best insights come over time.",
+    "otherObservations": "Other Observations",
+    "ourRelationship": "Our Relationship",
+    "howYouCommunicate": "How You Communicate",
+    "whatExcitesYou": "What Excites You",
+    "howYouEngage": "How You Engage",
+    "howYouSpeak": "How You Speak",
+    "whereYouAreInLife": "Where You Are in Life",
+    "howYouFeel": "How You Feel",
+    "whatYouKnow": "What You Know",
+    "whatYouPrefer": "What You Prefer",
+    "peopleInYourLife": "People in Your Life",
+    "factsAboutYou": "Facts about you",
+    "yourPreferences": "Your preferences",
+    "yourGoals": "Your goals",
+    "connections": "Connections"
   }
 }
