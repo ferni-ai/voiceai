@@ -364,7 +364,7 @@ const STYLES = `
 const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   {
     id: 'adventure',
-    name: 'Adventure Quest',
+    name: 'scenarios.adventure.name',
     icon: '🗺️',
     setting: 'A mysterious forest at twilight',
     opening: 'You find me standing at the edge of an ancient forest, studying an old map. The trees seem to whisper secrets as the last light fades.',
@@ -372,7 +372,7 @@ const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   },
   {
     id: 'detective',
-    name: 'Mystery Solver',
+    name: 'scenarios.detective.name',
     icon: '🔍',
     setting: 'A foggy evening in the city',
     opening: 'I glance up from my notes as you enter the dimly lit office. Another case has come in, and something tells me you might be the key to solving it.',
@@ -380,7 +380,7 @@ const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   },
   {
     id: 'tavern',
-    name: 'Chance Meeting',
+    name: 'scenarios.tavern.name',
     icon: '🍺',
     setting: 'A cozy tavern on a rainy night',
     opening: 'The fire crackles warmly as I notice you taking shelter from the storm. I gesture to the empty seat across from me. "Rough night to be traveling..."',
@@ -388,7 +388,7 @@ const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   },
   {
     id: 'mentor',
-    name: 'Sage\'s Study',
+    name: 'scenarios.mentor.name',
     icon: '📚',
     setting: 'An ancient library filled with secrets',
     opening: 'I look up from the tome I\'ve been studying, candlelight dancing in my eyes. "Ah, you\'ve finally arrived. I\'ve been expecting someone with... questions."',
@@ -396,7 +396,7 @@ const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   },
   {
     id: 'battle',
-    name: 'Battlefield',
+    name: 'scenarios.battle.name',
     icon: '⚔️',
     setting: 'The calm before a great challenge',
     opening: 'We stand on the hill overlooking what lies ahead. I turn to you with a serious expression. "Whatever happens next, remember why we\'re doing this."',
@@ -404,7 +404,7 @@ const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   },
   {
     id: 'custom',
-    name: 'Custom Scene',
+    name: 'scenarios.custom.name',
     icon: '✨',
     setting: 'Your imagination',
     opening: 'Describe the scene and I\'ll bring it to life...',
@@ -432,7 +432,7 @@ function render(): string {
       <div class="roleplay-mode-modal" role="dialog" aria-labelledby="roleplay-title">
         <header class="roleplay-mode-header">
           <div class="roleplay-mode-title">
-            <span class="roleplay-mode-eyebrow">Roleplay with</span>
+            <span class="roleplay-mode-eyebrow">${t('roleplayMode.eyebrow')}</span>
             <h2 class="roleplay-mode-name" id="roleplay-title">${currentAgent.displayName || currentAgent.name}</h2>
           </div>
           <button class="roleplay-close-btn" aria-label="${t('accessibility.close')}">
@@ -453,7 +453,7 @@ function render(): string {
                 <line x1="15" y1="9" x2="15.01" y2="9"/>
               </svg>
             </div>
-            <h3 class="roleplay-intro-title">Set the Scene</h3>
+            <h3 class="roleplay-intro-title">${t('roleplayMode.setTheScene')}</h3>
             <p class="roleplay-intro-text">
               Choose a scenario or create your own. ${currentAgent.displayName || currentAgent.name} will stay in character throughout.
             </p>
@@ -473,14 +473,14 @@ function render(): string {
               <polyline points="2 17 12 22 22 17"/>
               <polyline points="2 12 12 17 22 12"/>
             </svg>
-            Choose a Scenario
+            ${t('roleplayMode.chooseScenario')}
           </h4>
           
           <div class="roleplay-scenarios-grid">
             ${SCENARIO_TEMPLATES.map(scenario => `
               <button aria-label="${t('accessibility.play')}" class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
                 <div class="roleplay-scenario-icon">${scenario.icon}</div>
-                <p class="roleplay-scenario-name">${scenario.name}</p>
+                <p class="roleplay-scenario-name">${t(scenario.name)}</p>
                 <p class="roleplay-scenario-setting">${scenario.setting}</p>
               </button>
             `).join('')}
@@ -488,17 +488,17 @@ function render(): string {
 
           ${selectedScenario?.id === 'custom' ? `
             <div class="roleplay-custom-section">
-              <textarea 
-                class="roleplay-custom-textarea" 
+              <textarea
+                class="roleplay-custom-textarea"
                 id="custom-scenario"
-                placeholder="Describe the scene... Where are you? What's happening? What's the mood?"
+                placeholder="${t('roleplayMode.scenarioPlaceholder')}"
               >${customScenario}</textarea>
             </div>
           ` : ''}
 
           ${selectedScenario && selectedScenario.id !== 'custom' ? `
             <div class="roleplay-preview">
-              <div class="roleplay-preview-label">Scene Preview</div>
+              <div class="roleplay-preview-label">${t('roleplayMode.scenePreview')}</div>
               <p class="roleplay-preview-setting">${selectedScenario.setting}</p>
               <p class="roleplay-preview-opening">"${selectedScenario.opening}"</p>
             </div>
@@ -506,17 +506,17 @@ function render(): string {
 
           <div class="roleplay-actions" role="button" tabindex="0">
             <button aria-label="${t('accessibility.cancel')}" class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
-              Cancel
+              ${t('roleplayMode.cancelButton')}
             </button>
-            <button aria-label="${t('accessibility.beginScene')}" 
-              class="roleplay-btn roleplay-btn--primary" 
+            <button aria-label="${t('accessibility.beginScene')}"
+              class="roleplay-btn roleplay-btn--primary"
               data-action="start-roleplay"
               ${!selectedScenario || (selectedScenario.id === 'custom' && !customScenario) ? 'disabled' : ''}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="5 3 19 12 5 21 5 3"/>
               </svg>
-              Begin Scene
+              ${t('roleplayMode.beginButton')}
             </button>
           </div>
         </div>
@@ -644,7 +644,7 @@ function renderContent(): string {
           <line x1="15" y1="9" x2="15.01" y2="9"/>
         </svg>
       </div>
-      <h3 class="roleplay-intro-title">Set the Scene</h3>
+      <h3 class="roleplay-intro-title">${t('roleplayMode.setTheScene')}</h3>
       <p class="roleplay-intro-text">
         Choose a scenario or create your own. ${currentAgent.displayName || currentAgent.name} will stay in character throughout.
       </p>
@@ -664,14 +664,14 @@ function renderContent(): string {
         <polyline points="2 17 12 22 22 17"/>
         <polyline points="2 12 12 17 22 12"/>
       </svg>
-      Choose a Scenario
+      ${t('roleplayMode.chooseScenario')}
     </h4>
-    
+
     <div class="roleplay-scenarios-grid">
       ${SCENARIO_TEMPLATES.map(scenario => `
         <button aria-label="${t('accessibility.play')}" class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
           <div class="roleplay-scenario-icon">${scenario.icon}</div>
-          <p class="roleplay-scenario-name">${scenario.name}</p>
+          <p class="roleplay-scenario-name">${t(scenario.name)}</p>
           <p class="roleplay-scenario-setting">${scenario.setting}</p>
         </button>
       `).join('')}
@@ -679,17 +679,17 @@ function renderContent(): string {
 
     ${selectedScenario?.id === 'custom' ? `
       <div class="roleplay-custom-section">
-        <textarea 
-          class="roleplay-custom-textarea" 
+        <textarea
+          class="roleplay-custom-textarea"
           id="custom-scenario"
-          placeholder="Describe the scene... Where are you? What's happening? What's the mood?"
+          placeholder="${t('roleplayMode.scenarioPlaceholder')}"
         >${customScenario}</textarea>
       </div>
     ` : ''}
 
     ${selectedScenario && selectedScenario.id !== 'custom' ? `
       <div class="roleplay-preview">
-        <div class="roleplay-preview-label">Scene Preview</div>
+        <div class="roleplay-preview-label">${t('roleplayMode.scenePreview')}</div>
         <p class="roleplay-preview-setting">${selectedScenario.setting}</p>
         <p class="roleplay-preview-opening">"${selectedScenario.opening}"</p>
       </div>
@@ -697,17 +697,17 @@ function renderContent(): string {
 
     <div class="roleplay-actions" role="button" tabindex="0">
       <button aria-label="${t('accessibility.cancel')}" class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
-        Cancel
+        ${t('roleplayMode.cancelButton')}
       </button>
-      <button aria-label="${t('accessibility.beginScene')}" 
-        class="roleplay-btn roleplay-btn--primary" 
+      <button aria-label="${t('accessibility.beginScene')}"
+        class="roleplay-btn roleplay-btn--primary"
         data-action="start-roleplay"
         ${!selectedScenario || (selectedScenario.id === 'custom' && !customScenario) ? 'disabled' : ''}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>
-        Begin Scene
+        ${t('roleplayMode.beginButton')}
       </button>
     </div>
   `;
