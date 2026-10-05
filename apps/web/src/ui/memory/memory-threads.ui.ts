@@ -10,6 +10,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { t } from '../../i18n/index.js';
 import {
   QUIZ_ICONS,
   GROWTH_ICONS,
@@ -225,7 +226,7 @@ function createThreadSidebar(threads: MemoryThread[]): HTMLElement {
 
   // Title
   const title = document.createElement('h3');
-  title.textContent = 'Memory Threads';
+  title.textContent = t('memoryThreads.panelTitle');
   title.style.cssText = `
     font-size: var(--font-size-lg);
     font-weight: 600;
@@ -264,7 +265,7 @@ function createThreadListItem(thread: MemoryThread): HTMLElement {
       <span style="font-weight: 500; color: var(--color-text-primary);">${thread.title}</span>
     </div>
     <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-top: var(--space-1);">
-      ${thread.nodes.length} memories
+      ${t('memoryThreads.connectedMemories', { count: thread.nodes.length })}
     </div>
   `;
 
@@ -310,7 +311,7 @@ function createVisualizationArea(): HTMLElement {
   `;
   emptyState.innerHTML = `
     <div style="display: flex; justify-content: center; margin-bottom: var(--space-4); color: var(--color-text-muted);">${LINK_ICON}</div>
-    <p>Select a thread to visualize</p>
+    <p>${t('memoryThreads.emptyState')}</p>
   `;
   // Style the SVG icon
   const iconEl = emptyState.querySelector('svg');
@@ -362,7 +363,7 @@ function renderThreadVisualization(container: HTMLElement, thread: MemoryThread)
       ${thread.title}
     </h2>
     <p style="color: var(--color-text-secondary);">
-      ${thread.nodes.length} connected memories
+      ${t('memoryThreads.connectedMemories', { count: thread.nodes.length })}
     </p>
   `;
   viz.appendChild(header);
@@ -406,7 +407,7 @@ function renderMemoryNode(node: MemoryNode): HTMLElement {
       ${node.content}
     </p>
     <div style="margin-top: var(--space-2); font-size: var(--font-size-sm); color: var(--color-text-muted);">
-      Confidence: ${Math.round(node.confidence * 100)}%
+      ${t('memoryThreads.confidence', { confidence: Math.round(node.confidence * 100) })}
     </div>
   `;
 

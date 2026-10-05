@@ -17,6 +17,7 @@ import {
   createScreenReaderLabel,
   describeArc,
 } from '../utils/dom.js';
+import { t } from '../../../i18n/index.js';
 import type { DeviceContext, VisualizationResult } from '../types.js';
 import { DEFAULT_COLORS } from '../types.js';
 
@@ -106,7 +107,7 @@ function buildWatch(container: HTMLElement, data: SocialBatteryData): Visualizat
   wrapper.appendChild(svg);
 
   // Label
-  const label = createElement('div', '', 'Social Battery');
+  const label = createElement('div', '', t('visualizations.socialBattery.label'));
   setStyles(label, {
     fontSize: '11px',
     color: 'var(--color-text-secondary)',
@@ -233,7 +234,7 @@ function buildMobile(container: HTMLElement, data: SocialBatteryData): Visualiza
     color: 'var(--color-text-primary)',
   });
 
-  const drainLabel = createElement('div', '', 'drain');
+  const drainLabel = createElement('div', '', t('visualizations.socialBattery.drainLabel'));
   setStyles(drainLabel, { color: 'var(--color-text-secondary)' });
 
   drainStat.appendChild(drainValue);
@@ -250,7 +251,7 @@ function buildMobile(container: HTMLElement, data: SocialBatteryData): Visualiza
     color: 'var(--color-text-primary)',
   });
 
-  const rechargeLabel = createElement('div', '', 'recharge');
+  const rechargeLabel = createElement('div', '', t('visualizations.socialBattery.rechargeLabel'));
   setStyles(rechargeLabel, { color: 'var(--color-text-secondary)' });
 
   rechargeStat.appendChild(rechargeValue);
@@ -270,7 +271,7 @@ function buildMobile(container: HTMLElement, data: SocialBatteryData): Visualiza
       background: 'var(--color-status-critical)',
       color: 'white',
     });
-    warning.textContent = `Low battery - ${Math.ceil(data.fullRechargeHours)}hr to full`;
+    warning.textContent = t('visualizations.socialBattery.lowBatteryWarning', { hours: Math.ceil(data.fullRechargeHours) });
     wrapper.appendChild(warning);
   }
 
@@ -358,7 +359,7 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
 
   // Tendency label
   const tendencyLabel =
-    data.socialTendency > 0.6 ? 'Extrovert' : data.socialTendency < 0.4 ? 'Introvert' : 'Ambivert';
+    data.socialTendency > 0.6 ? t('visualizations.socialBattery.extrovert') : data.socialTendency < 0.4 ? t('visualizations.socialBattery.introvert') : t('visualizations.socialBattery.ambivert');
   const tendency = createElement('div', '', tendencyLabel);
   setStyles(tendency, {
     fontSize: '13px',
@@ -427,7 +428,7 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
   if (data.recentEvents && data.recentEvents.length > 0) {
     const activitySection = createElement('div');
 
-    const activityTitle = createElement('div', '', 'Recent Activity');
+    const activityTitle = createElement('div', '', t('visualizations.socialBattery.recentActivityTitle'));
     setStyles(activityTitle, {
       fontSize: '13px',
       fontWeight: '600',
@@ -486,7 +487,7 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
       border: '1px solid rgba(181, 69, 58, 0.3)',
     });
 
-    const warningTitle = createElement('div', '', 'Low Social Battery');
+    const warningTitle = createElement('div', '', t('visualizations.socialBattery.lowBatteryTitle'));
     setStyles(warningTitle, {
       fontSize: '14px',
       fontWeight: '600',
@@ -497,7 +498,7 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
     const warningDesc = createElement(
       'div',
       '',
-      `Consider some quiet time. Full recharge in ~${Math.ceil(data.fullRechargeHours)} hours.`
+      t('visualizations.socialBattery.lowBatteryDescription', { hours: Math.ceil(data.fullRechargeHours) })
     );
     setStyles(warningDesc, {
       fontSize: '13px',

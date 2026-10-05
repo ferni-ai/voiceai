@@ -21,6 +21,7 @@ import { connectionService } from '../services/connection.service.js';
 import { createLogger } from '../utils/logger.js';
 import { DURATION } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('ContextualFeedbackUI');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -89,32 +90,34 @@ const REACTION_ICONS: Record<string, string> = {
 // REACTION CONFIGS
 // ============================================================================
 
-const REACTIONS: ReactionConfig[] = [
-  {
-    id: 'resonated',
-    icon: REACTION_ICONS.resonated ?? '',
-    label: 'This landed',
-    color: 'var(--persona-primary, #4a6741)',
-  },
-  {
-    id: 'helpful',
-    icon: REACTION_ICONS.helpful ?? '',
-    label: 'Helpful',
-    color: 'var(--color-semantic-success, #4a6741)',
-  },
-  {
-    id: 'too_much',
-    icon: REACTION_ICONS.too_much ?? '',
-    label: 'Too much',
-    color: 'var(--color-semantic-warning, #a6854a)',
-  },
-  {
-    id: 'off_track',
-    icon: REACTION_ICONS.off_track ?? '',
-    label: 'Off track',
-    color: 'var(--color-text-muted, #8a7a6a)',
-  },
-];
+function getReactions(): ReactionConfig[] {
+  return [
+    {
+      id: 'resonated',
+      icon: REACTION_ICONS.resonated ?? '',
+      label: t('contextualFeedback.reactions.resonated'),
+      color: 'var(--persona-primary, #4a6741)',
+    },
+    {
+      id: 'helpful',
+      icon: REACTION_ICONS.helpful ?? '',
+      label: t('contextualFeedback.reactions.helpful'),
+      color: 'var(--color-semantic-success, #4a6741)',
+    },
+    {
+      id: 'too_much',
+      icon: REACTION_ICONS.too_much ?? '',
+      label: t('contextualFeedback.reactions.tooMuch'),
+      color: 'var(--color-semantic-warning, #a6854a)',
+    },
+    {
+      id: 'off_track',
+      icon: REACTION_ICONS.off_track ?? '',
+      label: t('contextualFeedback.reactions.offTrack'),
+      color: 'var(--color-text-muted, #8a7a6a)',
+    },
+  ];
+}
 
 // ============================================================================
 // STATE
@@ -326,7 +329,7 @@ function createContainer(): void {
   container = document.createElement('div');
   container.className = 'contextual-feedback';
   container.setAttribute('role', 'dialog');
-  container.setAttribute('aria-label', 'How was that?');
+  container.setAttribute('aria-label', t('contextualFeedback.ariaLabel'));
 
   const bubble = document.createElement('div');
   bubble.className = 'contextual-feedback__bubble';
@@ -334,7 +337,7 @@ function createContainer(): void {
   const reactionsDiv = document.createElement('div');
   reactionsDiv.className = 'contextual-feedback__reactions';
 
-  REACTIONS.forEach((reaction) => {
+  getReactions().forEach((reaction) => {
     const btn = document.createElement('button');
     btn.className = 'contextual-feedback__btn';
     btn.setAttribute('type', 'button');
@@ -356,7 +359,7 @@ function createContainer(): void {
   const skipBtn = document.createElement('button');
   skipBtn.className = 'contextual-feedback__skip';
   skipBtn.setAttribute('type', 'button');
-  skipBtn.textContent = 'Skip';
+  skipBtn.textContent = t('contextualFeedback.skipButton');
   skipBtn.addEventListener('click', () => dismissPrompt());
 
   bubble.appendChild(reactionsDiv);
