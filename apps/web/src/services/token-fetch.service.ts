@@ -9,6 +9,7 @@ import { API } from '../config/index.js';
 import type { TokenRequest, TokenResponse } from '../types/livekit.js';
 import { isValidTokenResponse } from '../types/livekit.js';
 import { createLogger } from '../utils/logger.js';
+import { TokenRequestError } from './connect-failure.js';
 
 // Same logger name as connection.service.ts so existing log filters keep matching.
 const log = createLogger('Connection');
@@ -86,7 +87,7 @@ export async function fetchConnectionToken(request: TokenRequest): Promise<Token
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
     log.error('Token error response:', errorText);
-    throw new Error(`Token request failed: ${response.status} - ${errorText.slice(0, 100)}`);
+    throw new TokenRequestError(response.status, errorText.slice(0, 100));
   }
 
   let data: unknown;

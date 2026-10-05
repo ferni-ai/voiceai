@@ -20,6 +20,7 @@ import {
   parseNaturalTime,
   type ReminderDeliveryMethod,
 } from '../../../services/scheduling/reminder-scheduler.js';
+import { recordReminderPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 
 const log = getLogger();
 
@@ -97,6 +98,8 @@ const setReminderDef: ToolDefinition = {
             createdBy: ctx.agentId || 'ferni',
             personaId: ctx.agentId,
           });
+          // Ferni just said "I'll remind you": the delivery job keeps or misses it.
+          await recordReminderPromise(ctx.userId, reminder);
 
           // Format a human-friendly confirmation
           const timeStr = formatReminderTime(scheduledFor);

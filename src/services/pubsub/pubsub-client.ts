@@ -579,73 +579,10 @@ export async function initializePubSub(config?: PubSubConfig): Promise<PubSubCli
 }
 
 /**
- * Publish to embeddings topic
- */
-export async function publishEmbeddingTask(
-  type: string,
-  data: { text?: string; texts?: string[]; userId?: string; sessionId?: string }
-): Promise<PublishResult | null> {
-  return getPubSubClient().publish('embeddings', { type, data });
-}
-
-/**
- * Publish to summaries topic
- */
-export async function publishSummaryTask(
-  type: string,
-  data: { userId: string; sessionId: string; turns?: unknown[]; memoryIds?: string[] }
-): Promise<PublishResult | null> {
-  return getPubSubClient().publish('summaries', { type, data });
-}
-
-/**
- * Publish to analytics topic
- */
-export async function publishAnalyticsEvent(
-  type: string,
-  data: Record<string, unknown>
-): Promise<PublishResult | null> {
-  return getPubSubClient().publish('analytics', { type, data });
-}
-
-/**
- * Publish to trust updates topic
- */
-export async function publishTrustUpdate(
-  userId: string,
-  updates: Record<string, unknown>
-): Promise<PublishResult | null> {
-  return getPubSubClient().publish('trust-updates', {
-    type: 'trust:update',
-    data: { userId, updates },
-  });
-}
-
-/**
- * Publish context warmup task
- */
-export async function publishContextWarmup(
-  userId: string,
-  personaId: string
-): Promise<PublishResult | null> {
-  return getPubSubClient().publish('context-warmup', {
-    type: 'context:warmup',
-    data: { userId, personaId },
-  });
-}
-
-/**
  * Get Pub/Sub metrics
  */
 export function getPubSubMetrics(): PubSubMetrics {
   return getPubSubClient().getMetrics();
-}
-
-/**
- * Check if Pub/Sub is enabled
- */
-export function isPubSubEnabled(): boolean {
-  return getPubSubClient().isEnabled();
 }
 
 export default PubSubClient;

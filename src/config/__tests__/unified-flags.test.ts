@@ -140,7 +140,7 @@ describe('Unified Flags Facade', () => {
       expect(flags.voiceHumanization.laughterDetection).toBe(true);
       expect(flags.voiceHumanization.rhythmMirroring).toBe(true);
       expect(flags.voiceHumanization.emotionalContagion).toBe(true);
-      expect(flags.voiceHumanization.liveBackchanneling).toBe(true);
+      expect(flags.voiceHumanization.liveBackchanneling).toBe(false); // opt-in: BACKCHANNELS=on
     });
 
     it('should get session flags with rollout check', () => {

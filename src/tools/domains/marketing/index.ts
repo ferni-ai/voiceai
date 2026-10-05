@@ -21,10 +21,10 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { isLinkedInEnabled } from '../../../config/linkedin-flag.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 
-// Import the actual API clients
 import { TwitterClient } from './twitter-client.js';
 import { LinkedInClient } from './linkedin-client.js';
 import { MarketingStorage } from './storage.js';
@@ -491,9 +491,9 @@ const marketingTools: ToolDefinition[] = [
   getMarketingAnalyticsDef,
 ];
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'marketing',
-  marketingTools
-);
+export const { domain, definitions } = createDomainExport('marketing', marketingTools);
+/** What the registry loads: no postToLinkedIn while LinkedIn is off (config/linkedin-flag.ts). */
+export const getToolDefinitions = (): Promise<ToolDefinition[]> =>
+  Promise.resolve(definitions.filter((d) => d !== postToLinkedInDef || isLinkedInEnabled()));
 
 export default getToolDefinitions;

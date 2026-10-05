@@ -21,7 +21,7 @@ import {
   type TransitionStyle,
 } from '../config/handoff-timing.js';
 import { SOUND_EFFECTS } from '../config/index.js';
-import { getPersona, getTransitionConfig, normalizeAgentId } from '../config/personas.js';
+import { getPersona, getTransitionConfig, normalizeSpeakerId } from '../config/personas.js';
 import { appState, setActivePersona } from '../state/app.state.js';
 import type { DataMessage, HandoffEvent, NormalizedHandoff } from '../types/events.js';
 import {
@@ -35,7 +35,7 @@ import {
   isSoftOpenComplete,
   isStateReset,
 } from '../types/events.js';
-import type { PersonaId } from '../types/persona.js';
+import type { PersonaId, SpeakerId } from '../types/persona.js';
 import { getHandoffTimeoutMs } from '../utils/environment.js';
 import { createLogger } from '../utils/logger.js';
 import { audioService, type SoundEffect } from './audio.service.js';
@@ -67,19 +67,19 @@ export interface HandoffBanter {
  * Handoff phase callbacks for UI state management.
  */
 export type HandoffStartCallback = (
-  toPersona: PersonaId,
-  fromPersona: PersonaId,
+  toPersona: SpeakerId,
+  fromPersona: SpeakerId,
   banter?: HandoffBanter
 ) => void;
-export type HandoffCompleteCallback = (toPersona: PersonaId) => void;
+export type HandoffCompleteCallback = (toPersona: SpeakerId) => void;
 export type HandoffFailedCallback = (
   error: string,
-  targetPersona: PersonaId,
-  rollbackTo?: PersonaId
+  targetPersona: SpeakerId,
+  rollbackTo?: SpeakerId
 ) => void;
 /** FIX BUG #17: Callback for when backend acknowledges receiving handoff request */
 export type HandoffAcknowledgedCallback = (
-  target: PersonaId,
+  target: SpeakerId,
   success: boolean,
   error?: string
 ) => void;
@@ -87,19 +87,19 @@ export type HandoffAcknowledgedCallback = (
 export type HandoffRateLimitedCallback = (remainingMs: number) => void;
 /** Callback for handoff progress heartbeat */
 export type HandoffProgressCallback = (
-  targetPersona: PersonaId,
+  targetPersona: SpeakerId,
   elapsedMs: number,
   timeoutMs: number
 ) => void;
 /** FIX BUG #32: Callback for when handoff is cancelled */
-export type HandoffCancelledCallback = (targetPersona: PersonaId, reason?: string) => void;
+export type HandoffCancelledCallback = (targetPersona: SpeakerId, reason?: string) => void;
 
 /**
  * Callback for when soft open is complete (departing persona finished speaking).
  * This signals the UI to begin the visual transition (roster move, avatar swap).
  * The toPersona is the incoming persona, fromPersona is the departing one.
  */
-export type SoftOpenCompleteCallback = (toPersona: PersonaId, fromPersona: PersonaId) => void;
+export type SoftOpenCompleteCallback = (toPersona: SpeakerId, fromPersona: SpeakerId) => void;
 
 /**
  * Extended handoff data with entrance info.
@@ -141,11 +141,11 @@ class HandoffService {
   private readonly DEBOUNCE_MS = HANDOFF_TIMING.DEBOUNCE_MS;
 
   /** Track which personas we've met this session */
-  private metPersonas: Set<PersonaId> = new Set(['ferni']);
+  private metPersonas: Set<SpeakerId> = new Set(['ferni']);
 
   /** Track if we're currently in a handoff transition */
   private _isTransitioning = false;
-  private _targetPersona: PersonaId | null = null;
+  private _targetPersona: SpeakerId | null = null;
 
   /** FIX BUG #31: Track sequence numbers for ordering and out-of-order detection */
   private lastSeq: number = -1;
@@ -201,7 +201,7 @@ class HandoffService {
   /**
    * Get the persona we're transitioning to (if any).
    */
-  get targetPersona(): PersonaId | null {
+  get targetPersona(): SpeakerId | null {
     return this._targetPersona;
   }
 
@@ -293,7 +293,7 @@ class HandoffService {
   async processDataMessage(message: DataMessage): Promise<boolean> {
     // FIX BUG #33: Handle state reset messages from backend
     if (isStateReset(message)) {
-      const personaId = normalizeAgentId(message.activePersona);
+      const personaId = normalizeSpeakerId(message.activePersona);
       log.info('State reset received from backend:', personaId);
       // BUG FIX: Pass the starting persona so metPersonas is correctly initialized
       this.resetSession(personaId);
@@ -338,10 +338,10 @@ class HandoffService {
     // FIX BUG: Backend may send 'target' OR 'newAgent' - accept either
     const eventWithTarget = event as HandoffEvent & { target?: string };
     const agentId = event.newAgent ?? eventWithTarget.target ?? '';
-    const toPersona = normalizeAgentId(agentId);
+    const toPersona = normalizeSpeakerId(agentId);
     const eventWithPrevious = event as HandoffEvent & { previousAgent?: string };
     const fromPersona = eventWithPrevious.previousAgent
-      ? normalizeAgentId(eventWithPrevious.previousAgent)
+      ? normalizeSpeakerId(eventWithPrevious.previousAgent)
       : appState.get('activePersona').id;
 
     log.debug('Processing event:', { type: event.type, agentId, toPersona, fromPersona });
@@ -368,7 +368,7 @@ class HandoffService {
         success?: boolean;
         error?: string;
       };
-      const target = normalizeAgentId(ackEvent.target ?? ackEvent.newAgent);
+      const target = normalizeSpeakerId(ackEvent.target ?? ackEvent.newAgent);
       const success = ackEvent.success ?? true;
       const error = ackEvent.error;
 
@@ -555,7 +555,7 @@ class HandoffService {
       const errorMsg = (event as HandoffEvent & { error?: string }).error ?? 'Unknown error';
       // FIX AUDIT GAP #1: Extract rollbackTo for UI state recovery
       const rollbackTo = (event as HandoffEvent & { rollbackTo?: string }).rollbackTo;
-      const rollbackPersona = rollbackTo ? normalizeAgentId(rollbackTo) : undefined;
+      const rollbackPersona = rollbackTo ? normalizeSpeakerId(rollbackTo) : undefined;
 
       log.error('Handoff failed:', { errorMsg, rollbackTo: rollbackPersona });
 
@@ -669,7 +669,7 @@ class HandoffService {
    * The timeout captures the "from" persona at the moment the handoff starts,
    * ensuring we always have accurate rollback info even if state changes during transition.
    */
-  private startHandoffTimeout(targetPersona: PersonaId): void {
+  private startHandoffTimeout(targetPersona: SpeakerId): void {
     // Clear any existing timeout
     this.clearHandoffTimeout();
 
@@ -730,7 +730,7 @@ class HandoffService {
    * Manually trigger a handoff (for testing or UI-initiated handoffs).
    * FIX BUG #55: Now includes per-user rate limiting check.
    */
-  async triggerHandoff(toPersonaId: PersonaId): Promise<void> {
+  async triggerHandoff(toPersonaId: SpeakerId): Promise<void> {
     // FIX BUG #55: Check rate limit before processing
     const remainingMs = this.checkRateLimit();
     if (remainingMs > 0) {
@@ -781,7 +781,7 @@ class HandoffService {
     // Notify cancelled callbacks
     for (const callback of this.cancelledCallbacks) {
       try {
-        callback(cancelledTarget as PersonaId, 'User cancelled');
+        callback(cancelledTarget as SpeakerId, 'User cancelled');
       } catch (err) {
         log.error('Handoff cancelled callback error:', err);
       }
@@ -988,14 +988,14 @@ class HandoffService {
   /**
    * Get the current active agent.
    */
-  getCurrentAgent(): PersonaId {
+  getCurrentAgent(): SpeakerId {
     return appState.get('activePersona').id;
   }
 
   /**
    * Check if we've met a persona before this session.
    */
-  hasMetPersona(personaId: PersonaId): boolean {
+  hasMetPersona(personaId: SpeakerId): boolean {
     return this.metPersonas.has(personaId);
   }
 
@@ -1004,7 +1004,7 @@ class HandoffService {
    * BUG FIX: Now accepts the starting persona to properly initialize metPersonas.
    * If no persona provided, defaults to 'ferni' for backward compatibility.
    */
-  resetSession(startingPersonaId?: PersonaId): void {
+  resetSession(startingPersonaId?: SpeakerId): void {
     // FIX BUG: Clear timeouts to prevent stuck states
     this.clearHandoffTimeout();
     this.clearPendingSoftOpenTimeout();
@@ -1076,14 +1076,14 @@ class HandoffService {
     // Use previousAgent from event if available, otherwise get from current state
     const eventWithPrevious = event as HandoffEvent & { previousAgent?: string };
     const fromPersona = eventWithPrevious.previousAgent
-      ? normalizeAgentId(eventWithPrevious.previousAgent)
+      ? normalizeSpeakerId(eventWithPrevious.previousAgent)
       : appState.get('activePersona').id;
     
     // FIX BUG: Backend sends 'target' (from coordinator) OR 'newAgent' (legacy)
-    // Accept either field to prevent undefined being passed to normalizeAgentId
+    // Accept either field to prevent undefined being passed to normalizeSpeakerId
     const eventWithTarget = event as HandoffEvent & { target?: string };
     const agentId = event.newAgent ?? eventWithTarget.target;
-    const toPersona = normalizeAgentId(agentId);
+    const toPersona = normalizeSpeakerId(agentId);
 
     log.debug('Normalizing handoff:', {
       rawNewAgent: event.newAgent,
@@ -1105,7 +1105,7 @@ class HandoffService {
    * REFACTORED: Now fully role-based, no hardcoded persona IDs.
    * Direction determines sound effects and animation style.
    */
-  private determineDirection(from: PersonaId, to: PersonaId): NormalizedHandoff['direction'] {
+  private determineDirection(from: SpeakerId, to: SpeakerId): NormalizedHandoff['direction'] {
     const fromPersona = getPersona(from);
     const toPersona = getPersona(to);
 
@@ -1139,7 +1139,7 @@ class HandoffService {
    * Get the transition style for a persona.
    * Now reads from manifest-generated config instead of hardcoded lists.
    */
-  private getTransitionStyle(personaId: PersonaId): TransitionStyle {
+  private getTransitionStyle(personaId: SpeakerId): TransitionStyle {
     // Get transition config from generated manifest data
     const config = getTransitionConfig(personaId);
     return config.style;

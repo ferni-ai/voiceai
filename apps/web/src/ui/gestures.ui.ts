@@ -1,6 +1,6 @@
 /**
  * Gestures UI - Touch gesture support
- * 
+ *
  * Features:
  * - Swipe left/right between personas
  * - Pull down to refresh
@@ -9,7 +9,8 @@
  * - Edge swipe navigation
  */
 
-import type { PersonaId } from '../types/persona.js';
+import { isTeamMemberUnlocked } from '../services/team-unlock.service.js';
+import { isValidPersonaId, type PersonaId, type SpeakerId } from '../types/persona.js';
 
 // ============================================================================
 // TYPES
@@ -47,11 +48,11 @@ let touchState: TouchState = {
 };
 
 // Configuration
-const SWIPE_THRESHOLD = 80;     // Minimum distance for swipe
-const SWIPE_VELOCITY = 0.3;     // Minimum velocity (px/ms)
-const LONG_PRESS_TIME = 500;    // Long press duration (ms)
+const SWIPE_THRESHOLD = 80; // Minimum distance for swipe
+const SWIPE_VELOCITY = 0.3; // Minimum velocity (px/ms)
+const LONG_PRESS_TIME = 500; // Long press duration (ms)
 const PULL_DOWN_THRESHOLD = 100;
-const EDGE_SWIPE_ZONE = 30;     // Pixels from edge for swipe-to-close
+const EDGE_SWIPE_ZONE = 30; // Pixels from edge for swipe-to-close
 const MENU_DISMISS_THRESHOLD = 100; // Distance to dismiss menu
 
 let longPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -78,16 +79,15 @@ let currentPersonaIndex = 0;
 
 export function initGesturesUI(cbs: GestureCallbacks): void {
   callbacks = cbs;
-  
+
   // Create swipe indicator
   createSwipeIndicator();
-  
+
   // Add touch listeners
   document.addEventListener('touchstart', handleTouchStart, { passive: true });
   document.addEventListener('touchmove', handleTouchMove, { passive: false });
   document.addEventListener('touchend', handleTouchEnd, { passive: true });
   document.addEventListener('touchcancel', handleTouchCancel, { passive: true });
-  
 }
 
 // ============================================================================
@@ -100,7 +100,7 @@ export function initGesturesUI(cbs: GestureCallbacks): void {
  */
 function isInsideScrollableContent(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
-  
+
   // Check if we're inside a modal content area that should scroll natively
   const scrollableSelectors = [
     '.ferni-modal__content',
@@ -112,7 +112,7 @@ function isInsideScrollableContent(target: EventTarget | null): boolean {
     '.celebration-card',
     '[data-scrollable="true"]',
   ];
-  
+
   for (const selector of scrollableSelectors) {
     const scrollable = target.closest(selector);
     if (scrollable) {
@@ -123,22 +123,22 @@ function isInsideScrollableContent(target: EventTarget | null): boolean {
       }
     }
   }
-  
+
   return false;
 }
 
 function handleTouchStart(e: TouchEvent): void {
   if (e.touches.length !== 1) return;
-  
+
   const touch = e.touches[0];
   if (!touch) return;
-  
+
   // Don't track gestures inside scrollable modal content
   if (isInsideScrollableContent(e.target)) {
     touchState.isTracking = false;
     return;
   }
-  
+
   touchState = {
     startX: touch.clientX,
     startY: touch.clientY,
@@ -147,20 +147,21 @@ function handleTouchStart(e: TouchEvent): void {
     currentY: touch.clientY,
     isTracking: true,
   };
-  
+
   // Check if touch started in edge zone (for swipe-to-close)
   const screenWidth = window.innerWidth;
   isEdgeSwipe = touch.clientX >= screenWidth - EDGE_SWIPE_ZONE;
-  
+
   // Check if a menu/panel is currently open
-  activeMenu = document.querySelector('.settings-menu--visible .settings-menu__card') as HTMLElement
-    || document.querySelector('.ferni-menu--visible .ferni-menu__panel') as HTMLElement;
-  
+  activeMenu =
+    (document.querySelector('.settings-menu--visible .settings-menu__card') as HTMLElement) ||
+    (document.querySelector('.ferni-menu--visible .ferni-menu__panel') as HTMLElement);
+
   // Show edge swipe feedback if in edge zone and menu is open
   if (isEdgeSwipe && activeMenu) {
     showEdgeSwipeFeedback('right');
   }
-  
+
   // Start long press timer
   const target = e.target as HTMLElement;
   if (target.closest('.team-member, .btn, #coachAvatar')) {
@@ -175,13 +176,13 @@ function handleTouchStart(e: TouchEvent): void {
 
 function handleTouchMove(e: TouchEvent): void {
   if (!touchState.isTracking || e.touches.length !== 1) return;
-  
+
   const touch = e.touches[0];
   if (!touch) return;
-  
+
   touchState.currentX = touch.clientX;
   touchState.currentY = touch.clientY;
-  
+
   // Cancel long press on movement
   if (longPressTimer) {
     const dx = Math.abs(touchState.currentX - touchState.startX);
@@ -191,32 +192,32 @@ function handleTouchMove(e: TouchEvent): void {
       longPressTimer = null;
     }
   }
-  
+
   // Calculate swipe progress
   const deltaX = touchState.currentX - touchState.startX;
   const deltaY = touchState.currentY - touchState.startY;
-  
+
   // Edge swipe for menu dismiss (swipe right from right edge)
   if (isEdgeSwipe && activeMenu && deltaX > 0) {
     e.preventDefault();
     updateEdgeSwipeFeedback(deltaX);
-    
+
     // Move menu with swipe (interactive dismiss)
     const progress = Math.min(1, deltaX / MENU_DISMISS_THRESHOLD);
     activeMenu.style.transform = `translateX(${deltaX * 0.5}px)`;
     activeMenu.style.opacity = String(1 - progress * 0.3);
     return;
   }
-  
+
   // Horizontal swipe detection
   if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 20) {
     // Prevent scroll during horizontal swipe
     e.preventDefault();
-    
+
     // Show swipe indicator
     updateSwipeIndicator(deltaX);
   }
-  
+
   // Pull down detection
   if (deltaY > 0 && Math.abs(deltaY) > Math.abs(deltaX)) {
     updatePullIndicator(deltaY);
@@ -225,18 +226,18 @@ function handleTouchMove(e: TouchEvent): void {
 
 function handleTouchEnd(_e: TouchEvent): void {
   if (!touchState.isTracking) return;
-  
+
   // Cancel long press
   if (longPressTimer) {
     clearTimeout(longPressTimer);
     longPressTimer = null;
   }
-  
+
   const deltaX = touchState.currentX - touchState.startX;
   const deltaY = touchState.currentY - touchState.startY;
   const deltaTime = Date.now() - touchState.startTime;
   const velocityX = Math.abs(deltaX) / deltaTime;
-  
+
   // Check for menu swipe-to-close (swipe right from right edge)
   if (isEdgeSwipe && activeMenu) {
     if (deltaX > MENU_DISMISS_THRESHOLD) {
@@ -262,7 +263,7 @@ function handleTouchEnd(_e: TouchEvent): void {
     hideSwipeIndicator();
     return;
   }
-  
+
   // Check for swipe
   if (Math.abs(deltaX) > SWIPE_THRESHOLD && velocityX > SWIPE_VELOCITY) {
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
@@ -277,13 +278,13 @@ function handleTouchEnd(_e: TouchEvent): void {
       }
     }
   }
-  
+
   // Check for pull down refresh
   if (deltaY > PULL_DOWN_THRESHOLD && callbacks?.onPullDown) {
     callbacks.onPullDown();
     vibrate(50);
   }
-  
+
   // Reset
   hideSwipeIndicator();
   hideEdgeSwipeFeedback();
@@ -297,13 +298,13 @@ function handleTouchCancel(): void {
     clearTimeout(longPressTimer);
     longPressTimer = null;
   }
-  
+
   // Reset menu position if edge swipe was cancelled
   if (activeMenu) {
     activeMenu.style.transform = '';
     activeMenu.style.opacity = '';
   }
-  
+
   hideSwipeIndicator();
   hideEdgeSwipeFeedback();
   isEdgeSwipe = false;
@@ -330,16 +331,16 @@ function createSwipeIndicator(): void {
       </svg>
     </div>
   `;
-  
+
   document.body.appendChild(swipeIndicator);
 }
 
 function updateSwipeIndicator(deltaX: number): void {
   if (!swipeIndicator) return;
-  
+
   const progress = Math.min(1, Math.abs(deltaX) / SWIPE_THRESHOLD);
   const direction = deltaX < 0 ? 'left' : 'right';
-  
+
   swipeIndicator.classList.add('visible');
   swipeIndicator.style.setProperty('--swipe-progress', String(progress));
   swipeIndicator.setAttribute('data-direction', direction);
@@ -366,7 +367,7 @@ function showEdgeSwipeFeedback(side: 'left' | 'right'): void {
     edgeSwipeFeedback.className = 'edge-swipe-feedback';
     document.body.appendChild(edgeSwipeFeedback);
   }
-  
+
   edgeSwipeFeedback.classList.remove('left', 'right');
   edgeSwipeFeedback.classList.add(side, 'active');
 }
@@ -379,7 +380,7 @@ function hideEdgeSwipeFeedback(): void {
 
 function updateEdgeSwipeFeedback(deltaX: number): void {
   if (!edgeSwipeFeedback || !isEdgeSwipe) return;
-  
+
   const progress = Math.min(1, deltaX / MENU_DISMISS_THRESHOLD);
   edgeSwipeFeedback.style.setProperty('--swipe-progress', String(progress));
   edgeSwipeFeedback.style.opacity = String(Math.min(1, progress * 2));
@@ -408,19 +409,32 @@ function vibrate(duration: number): boolean {
 // PERSONA NAVIGATION
 // ============================================================================
 
-export function setCurrentPersona(personaId: PersonaId): void {
-  currentPersonaIndex = PERSONA_ORDER.indexOf(personaId);
+export function setCurrentPersona(personaId: SpeakerId): void {
+  currentPersonaIndex = isValidPersonaId(personaId) ? PERSONA_ORDER.indexOf(personaId) : -1; // a Legend: not in the order
   if (currentPersonaIndex === -1) currentPersonaIndex = 0;
 }
 
-export function getNextPersona(): PersonaId {
-  const nextIndex = (currentPersonaIndex + 1) % PERSONA_ORDER.length;
-  return PERSONA_ORDER[nextIndex] ?? PERSONA_ORDER[0] ?? 'ferni';
+/**
+ * Step through the persona order, skipping members the user hasn't unlocked
+ * (the same check the team picker uses). Returns null when no other persona is
+ * available, so a swipe does nothing instead of opening a locked persona.
+ */
+function stepToUnlockedPersona(direction: 1 | -1): PersonaId | null {
+  const count = PERSONA_ORDER.length;
+  for (let step = 1; step < count; step++) {
+    const index = (currentPersonaIndex + direction * step + count * step) % count;
+    const candidate = PERSONA_ORDER[index];
+    if (candidate && isTeamMemberUnlocked(candidate)) return candidate;
+  }
+  return null;
 }
 
-export function getPreviousPersona(): PersonaId {
-  const prevIndex = (currentPersonaIndex - 1 + PERSONA_ORDER.length) % PERSONA_ORDER.length;
-  return PERSONA_ORDER[prevIndex] ?? PERSONA_ORDER[0] ?? 'ferni';
+export function getNextPersona(): PersonaId | null {
+  return stepToUnlockedPersona(1);
+}
+
+export function getPreviousPersona(): PersonaId | null {
+  return stepToUnlockedPersona(-1);
 }
 
 // ============================================================================
@@ -432,21 +446,21 @@ export function dispose(): void {
   document.removeEventListener('touchmove', handleTouchMove);
   document.removeEventListener('touchend', handleTouchEnd);
   document.removeEventListener('touchcancel', handleTouchCancel);
-  
+
   if (longPressTimer) {
     clearTimeout(longPressTimer);
   }
-  
+
   if (swipeIndicator) {
     swipeIndicator.remove();
     swipeIndicator = null;
   }
-  
+
   if (edgeSwipeFeedback) {
     edgeSwipeFeedback.remove();
     edgeSwipeFeedback = null;
   }
-  
+
   isEdgeSwipe = false;
   activeMenu = null;
   callbacks = null;
@@ -463,4 +477,3 @@ export const gesturesUI = {
   getPreviousPersona,
   dispose,
 };
-

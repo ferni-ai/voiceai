@@ -15,6 +15,8 @@
  * @module speech/tts/cartesia-markup-filter
  */
 
+import { SONIC3_EMOTIONS, toSonicEmotion } from '../sonic-emotions.js';
+
 /** Past this length an unclosed `<` or `[` is treated as ordinary text. */
 const MAX_PENDING = 80;
 /** A pause longer than this in conversation sounds like a dropped call. */
@@ -27,16 +29,8 @@ const DANGLING_CUE = /^\[[A-Za-z][A-Za-z ]{0,30}$/;
 /** Marks where a dropped tag was, so spacing can be repaired afterwards. */
 const DROPPED = '\u0000';
 
-export const CARTESIA_EMOTIONS: ReadonlySet<string> = new Set([
-  'neutral', 'happy', 'excited', 'enthusiastic', 'elated', 'euphoric', 'triumphant', 'amazed',
-  'surprised', 'flirtatious', 'curious', 'content', 'peaceful', 'serene', 'calm', 'grateful',
-  'affectionate', 'trust', 'sympathetic', 'anticipation', 'mysterious', 'angry', 'mad', 'outraged',
-  'frustrated', 'agitated', 'threatened', 'disgusted', 'contempt', 'envious', 'sarcastic', 'ironic',
-  'sad', 'dejected', 'melancholic', 'disappointed', 'hurt', 'guilty', 'bored', 'tired', 'rejected',
-  'nostalgic', 'wistful', 'apologetic', 'hesitant', 'insecure', 'confused', 'resigned', 'anxious',
-  'panicked', 'alarmed', 'scared', 'proud', 'confident', 'distant', 'skeptical', 'contemplative',
-  'determined',
-]);
+/** Sonic 3's documented emotions (kept for existing importers). */
+export const CARTESIA_EMOTIONS: ReadonlySet<string> = SONIC3_EMOTIONS;
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 
@@ -49,8 +43,8 @@ function supportedTag(tag: string): string | null {
   }
   const emo = /^<emotion\s+value\s*=\s*"([A-Za-z]+)"\s*\/?>$/i.exec(tag);
   if (emo) {
-    const value = emo[1].toLowerCase();
-    return CARTESIA_EMOTIONS.has(value) ? `<emotion value="${value}"/>` : null;
+    const value = toSonicEmotion(emo[1]);
+    return value ? `<emotion value="${value}"/>` : null;
   }
   const ratio = /^<(speed|volume)\s+ratio\s*=\s*"(\d+(?:\.\d+)?)"\s*\/?>$/i.exec(tag);
   if (ratio) {

@@ -12,6 +12,12 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { requireUserId, sendJSON, parseBody } from '../helpers.js';
+import { resolveActingUser } from '../acting-user.js';
+import { rateLimit, requireAuth } from '../auth-middleware.js';
+import { LimitReachedError } from '../../services/social/open-challenge-slots.js';
+import { challengeCreateLimit, resultRecordLimit } from './challenge-limits.js';
+import { boardFrom, publicEntries, unknownBoard } from './leaderboard-view.js';
+import { isOptionalTime, isScore, isValidGameRecord, isValidNewChallenge } from './score-input.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
 // Import Musical You services
@@ -39,6 +45,7 @@ import {
   getUserRank,
   calculateTasteMatch,
   describeTasteMatch,
+  otherUserHasEngaged,
   getUserSocialStats,
   // Cards
   generateDNACard,
@@ -82,6 +89,8 @@ const WARM_ERRORS = {
   missingUserId: "Hmm, I'm not sure who you are. Try refreshing?",
   noGameData: "Play a few music games first—then I'll know your musical soul!",
   challengeNotFound: "Can't find that challenge. It might have expired.",
+  alreadyAnswered: 'That challenge was already answered.',
+  tooManyOpen: 'You have lots of challenges waiting. Give friends a chance to answer first!',
   cardNotFound: "That card isn't available anymore.",
   spotifyNotConnected: 'Connect Spotify to unlock this feature!',
   internalError: 'Something went wrong on my end. Mind trying again?',
@@ -159,10 +168,7 @@ export async function handleMusicalYouRoutes(
       const gameMemory = await getUserGameMemory(userId);
       const profile = await getMusicalYouProfile(userId, gameMemory);
 
-      sendJSON(res, {
-        success: true,
-        profile,
-      });
+      sendJSON(res, { success: true, profile });
       return true;
     }
 
@@ -193,17 +199,15 @@ export async function handleMusicalYouRoutes(
       const days = parseInt(searchParams.get('days') || '7', 10);
       const challenges = getUpcomingChallenges(undefined, Math.min(days, 14));
 
-      sendJSON(res, {
-        success: true,
-        challenges,
-      });
+      sendJSON(res, { success: true, challenges });
       return true;
     }
 
     // POST /api/musical/daily/start - Start a daily challenge
     if (pathname === '/api/musical/daily/start' && method === 'POST') {
       const body = await parseBody<{ userId?: string; challengeId?: string }>(req);
-      const userId = body.userId;
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
       const challengeId = body.challengeId;
 
       if (!userId || !challengeId) {
@@ -213,31 +217,26 @@ export async function handleMusicalYouRoutes(
 
       const progress = startDailyChallenge(userId, challengeId);
 
-      sendJSON(res, {
-        success: true,
-        progress,
-      });
+      sendJSON(res, { success: true, progress });
       return true;
     }
 
     // POST /api/musical/daily/complete - Complete a daily challenge
     if (pathname === '/api/musical/daily/complete' && method === 'POST') {
       const body = await parseBody<{ userId?: string; challengeId?: string; score?: number }>(req);
-      const userId = body.userId;
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
       const challengeId = body.challengeId;
       const score = body.score;
 
-      if (!userId || !challengeId || score === undefined) {
+      if (!challengeId || !isScore(score)) {
         sendJSON(res, { success: false, error: 'Missing required fields' }, 400);
         return true;
       }
 
       const progress = completeDailyChallenge(userId, challengeId, score);
 
-      sendJSON(res, {
-        success: true,
-        progress,
-      });
+      sendJSON(res, { success: true, progress });
       return true;
     }
 
@@ -251,10 +250,7 @@ export async function handleMusicalYouRoutes(
 
       const stats = getUserChallengeStats(userId);
 
-      sendJSON(res, {
-        success: true,
-        stats,
-      });
+      sendJSON(res, { success: true, stats });
       return true;
     }
 
@@ -272,110 +268,87 @@ export async function handleMusicalYouRoutes(
         challengerScore?: number;
         challengerTime?: number;
       }>(req);
-      const {
-        challengerId,
-        challengerName,
-        challengeeId,
-        gameType,
-        challengerScore,
-        challengerTime,
-      } = body;
+      // The challenger is the caller; the challengee is legitimately someone else.
+      const challengerId = await resolveActingUser(req, res, body.challengerId);
+      if (!challengerId) return true;
+      const { challengerName, challengeeId, gameType, challengerScore, challengerTime } = body;
 
-      if (!challengerId || !challengeeId || !gameType || challengerScore === undefined) {
+      const fields = { gameType, challengeeId, score: challengerScore, timeMs: challengerTime };
+      if (!isValidNewChallenge(fields, challengerId, 'musical')) {
         sendJSON(res, { success: false, error: 'Missing required fields' }, 400);
         return true;
       }
-
-      const challenge = sendMusicChallenge(
+      if (rateLimit(req, res, challengeCreateLimit('musical', challengerId))) return true;
+      const challenge = await sendMusicChallenge(
         challengerId,
         challengerName || 'Anonymous',
-        challengeeId,
-        gameType,
-        challengerScore,
+        challengeeId as string, // checked by isValidNewChallenge
+        gameType as string,
+        challengerScore as number,
         challengerTime
-      );
-
-      sendJSON(res, {
-        success: true,
-        challenge,
+      ).catch((error: unknown) => {
+        if (error instanceof LimitReachedError) return null;
+        throw error;
       });
+      if (!challenge) sendJSON(res, { success: false, error: WARM_ERRORS.tooManyOpen }, 429);
+      else sendJSON(res, { success: true, challenge });
       return true;
     }
 
     // GET /api/musical/challenges?userId=xxx&type=all|sent|received
     if (pathname === '/api/musical/challenges' && method === 'GET') {
-      const userId = searchParams.get('userId');
-      if (!userId) {
-        sendJSON(res, { success: false, error: WARM_ERRORS.missingUserId }, 400);
-        return true;
-      }
-
+      // The caller's own challenges (an admin may name someone).
+      const userId = await resolveActingUser(req, res, searchParams.get('userId'));
+      if (!userId) return true;
       const type = (searchParams.get('type') || 'all') as 'all' | 'sent' | 'received';
-      const challenges = getUserChallenges(userId, type);
+      const challenges = await getUserChallenges(userId, type);
 
-      sendJSON(res, {
-        success: true,
-        challenges,
-      });
+      sendJSON(res, { success: true, challenges });
       return true;
     }
 
     // GET /api/musical/challenge/:id
     if (pathname.match(/^\/api\/musical\/challenge\/[^/]+$/) && method === 'GET') {
-      const challengeId = pathname.split('/').pop()!;
-      const challenge = getChallenge(challengeId);
-
-      if (!challenge) {
-        sendJSON(res, { success: false, error: WARM_ERRORS.challengeNotFound }, 404);
-        return true;
-      }
-
-      sendJSON(res, {
-        success: true,
-        challenge,
-      });
+      const challenge = await getChallenge(pathname.split('/').pop() ?? '');
+      if (!challenge) sendJSON(res, { success: false, error: WARM_ERRORS.challengeNotFound }, 404);
+      else sendJSON(res, { success: true, challenge });
       return true;
     }
 
-    // POST /api/musical/challenge/:id/complete
-    if (pathname.match(/^\/api\/musical\/challenge\/[^/]+\/complete$/) && method === 'POST') {
-      const challengeId = pathname.split('/')[4];
-      const body = await parseBody<{ score?: number; time?: number; name?: string }>(req);
-      const { score, time, name } = body;
-
-      if (score === undefined) {
-        sendJSON(res, { success: false, error: 'Missing score' }, 400);
-        return true;
-      }
-
-      const challenge = completeChallenge(challengeId, score, time, name);
-
-      if (!challenge) {
+    // POST /api/musical/challenge/:id/complete and /decline: only the challengee (or an admin).
+    const answer = pathname.match(/^\/api\/musical\/challenge\/([^/]+)\/(complete|decline)$/);
+    if (answer && method === 'POST') {
+      const [, challengeId, action] = answer;
+      const auth = await requireAuth(req, res);
+      if (!auth) return true;
+      const existing = await getChallenge(challengeId);
+      if (!existing) {
         sendJSON(res, { success: false, error: WARM_ERRORS.challengeNotFound }, 404);
         return true;
       }
-
-      sendJSON(res, {
-        success: true,
-        challenge,
-      });
-      return true;
-    }
-
-    // POST /api/musical/challenge/:id/decline
-    if (pathname.match(/^\/api\/musical\/challenge\/[^/]+\/decline$/) && method === 'POST') {
-      const challengeId = pathname.split('/')[4];
-      const challenge = declineChallenge(challengeId);
-
-      if (!challenge) {
-        sendJSON(res, { success: false, error: WARM_ERRORS.challengeNotFound }, 404);
+      if (existing.challengeeId !== auth.userId && !auth.isAdmin) {
+        log.warn(
+          { callerId: auth.userId, challengeId },
+          'Refused to answer a challenge for someone else'
+        );
+        sendJSON(res, { success: false, error: "That challenge isn't yours to answer." }, 403);
         return true;
       }
-
-      sendJSON(res, {
-        success: true,
-        challenge,
-      });
+      const body =
+        action === 'complete'
+          ? await parseBody<{ score?: number; time?: number; name?: string }>(req)
+          : {};
+      if (action === 'complete' && (!isScore(body.score) || !isOptionalTime(body.time))) {
+        sendJSON(res, { success: false, error: 'Missing or invalid score' }, 400);
+        return true;
+      }
+      // The service checks the actor again and only answers a pending challenge.
+      const challenge =
+        body.score === undefined
+          ? await declineChallenge(challengeId, auth)
+          : await completeChallenge(challengeId, auth, body.score, body.time, body.name);
+      if (!challenge) sendJSON(res, { success: false, error: WARM_ERRORS.alreadyAnswered }, 409);
+      else sendJSON(res, { success: true, challenge });
       return true;
     }
 
@@ -385,20 +358,12 @@ export async function handleMusicalYouRoutes(
 
     // GET /api/musical/leaderboard?type=weekly|monthly|all-time&gameType=overall
     if (pathname === '/api/musical/leaderboard' && method === 'GET') {
-      const type = (searchParams.get('type') || 'weekly') as 'weekly' | 'monthly' | 'all-time';
-      const gameType = searchParams.get('gameType') || 'overall';
-      const limit = parseInt(searchParams.get('limit') || '10', 10);
+      const board = boardFrom(searchParams);
+      if (!board) return unknownBoard(res);
 
-      const entries = getTopEntries(type, gameType, Math.min(limit, 100));
-      const leaderboard = getLeaderboard(type, gameType);
-
-      sendJSON(res, {
-        success: true,
-        leaderboard: {
-          ...leaderboard,
-          entries,
-        },
-      });
+      const entries = publicEntries(await getTopEntries(board.type, board.game, board.limit), req);
+      const leaderboard = { ...(await getLeaderboard(board.type, board.game)), entries };
+      sendJSON(res, { success: true, leaderboard });
       return true;
     }
 
@@ -410,15 +375,12 @@ export async function handleMusicalYouRoutes(
         return true;
       }
 
-      const type = (searchParams.get('type') || 'weekly') as 'weekly' | 'monthly' | 'all-time';
-      const gameType = searchParams.get('gameType') || 'overall';
+      const board = boardFrom(searchParams);
+      if (!board) return unknownBoard(res);
 
-      const rank = getUserRank(userId, type, gameType);
+      const rank = await getUserRank(userId, board.type, board.game);
 
-      sendJSON(res, {
-        success: true,
-        rank,
-      });
+      sendJSON(res, { success: true, rank });
       return true;
     }
 
@@ -429,36 +391,30 @@ export async function handleMusicalYouRoutes(
     // POST /api/musical/taste-match
     if (pathname === '/api/musical/taste-match' && method === 'POST') {
       const body = await parseBody<{ user1Id?: string; user2Id?: string }>(req);
-      const { user1Id, user2Id } = body;
-
-      if (!user1Id || !user2Id) {
+      // user1 is the caller; user2 is the person they compare tastes with.
+      const user1Id = await resolveActingUser(req, res, body.user1Id);
+      if (!user1Id) return true;
+      const { user2Id } = body;
+      if (!user2Id) {
         sendJSON(res, { success: false, error: 'Missing user IDs' }, 400);
+        return true;
+      }
+      // The match reveals user2's genres and decades, so user2 must have played with
+      // the caller: sent them a challenge or answered one of theirs.
+      if (!(await otherUserHasEngaged(user1Id, user2Id))) {
+        sendJSON(res, { success: false, error: 'Challenge them first to compare tastes.' }, 403);
         return true;
       }
 
       const user1Memory = await getUserGameMemory(user1Id);
       const user2Memory = await getUserGameMemory(user2Id);
-
       if (!user1Memory || !user2Memory) {
-        sendJSON(
-          res,
-          {
-            success: false,
-            error: 'Both users need to play some games first!',
-          },
-          400
-        );
+        sendJSON(res, { success: false, error: 'Both users need to play some games first!' }, 400);
         return true;
       }
 
       const tasteMatch = calculateTasteMatch(user1Id, user1Memory, user2Id, user2Memory);
-      const description = describeTasteMatch(tasteMatch);
-
-      sendJSON(res, {
-        success: true,
-        tasteMatch,
-        description,
-      });
+      sendJSON(res, { success: true, tasteMatch, description: describeTasteMatch(tasteMatch) });
       return true;
     }
 
@@ -470,12 +426,9 @@ export async function handleMusicalYouRoutes(
         return true;
       }
 
-      const stats = getUserSocialStats(userId);
+      const stats = await getUserSocialStats(userId);
 
-      sendJSON(res, {
-        success: true,
-        stats,
-      });
+      sendJSON(res, { success: true, stats });
       return true;
     }
 
@@ -486,12 +439,8 @@ export async function handleMusicalYouRoutes(
     // POST /api/musical/cards/dna - Generate DNA card
     if (pathname === '/api/musical/cards/dna' && method === 'POST') {
       const body = await parseBody<{ userId?: string }>(req);
-      const userId = body.userId;
-
-      if (!userId) {
-        sendJSON(res, { success: false, error: WARM_ERRORS.missingUserId }, 400);
-        return true;
-      }
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
 
       const gameMemory = await getUserGameMemory(userId);
       const dna = await getMusicalDNA(userId, gameMemory);
@@ -515,7 +464,8 @@ export async function handleMusicalYouRoutes(
     // POST /api/musical/cards/island - Generate Desert Island card
     if (pathname === '/api/musical/cards/island' && method === 'POST') {
       const body = await parseBody<{ userId?: string; picks?: DesertIslandPicks }>(req);
-      const userId = body.userId;
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
       const picks = body.picks;
 
       if (!userId || !picks) {
@@ -546,8 +496,9 @@ export async function handleMusicalYouRoutes(
         guessTimeMs?: number;
         isPersonalBest?: boolean;
       }>(req);
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
       const {
-        userId,
         gameType,
         gameDisplayName,
         score,
@@ -592,10 +543,7 @@ export async function handleMusicalYouRoutes(
 
       const cards = getUserCards(userId);
 
-      sendJSON(res, {
-        success: true,
-        cards,
-      });
+      sendJSON(res, { success: true, cards });
       return true;
     }
 
@@ -609,10 +557,7 @@ export async function handleMusicalYouRoutes(
         return true;
       }
 
-      sendJSON(res, {
-        success: true,
-        card,
-      });
+      sendJSON(res, { success: true, card });
       return true;
     }
 
@@ -623,7 +568,8 @@ export async function handleMusicalYouRoutes(
     // POST /api/musical/spotify/sync
     if (pathname === '/api/musical/spotify/sync' && method === 'POST') {
       const body = await parseBody<{ userId?: string; accessToken?: string }>(req);
-      const userId = body.userId;
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
       const accessToken = body.accessToken;
 
       if (!userId || !accessToken) {
@@ -697,10 +643,7 @@ export async function handleMusicalYouRoutes(
 
       const playlist = getOurSongsPlaylist(userId);
 
-      sendJSON(res, {
-        success: true,
-        playlist,
-      });
+      sendJSON(res, { success: true, playlist });
       return true;
     }
 
@@ -717,7 +660,9 @@ export async function handleMusicalYouRoutes(
           spotifyUri?: string;
         };
       }>(req);
-      const { userId, song } = body;
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
+      const { song } = body;
 
       if (!userId || !song) {
         sendJSON(res, { success: false, error: 'Missing userId or song' }, 400);
@@ -726,10 +671,7 @@ export async function handleMusicalYouRoutes(
 
       const playlist = addOurSong(userId, song);
 
-      sendJSON(res, {
-        success: true,
-        playlist,
-      });
+      sendJSON(res, { success: true, playlist });
       return true;
     }
 
@@ -747,18 +689,21 @@ export async function handleMusicalYouRoutes(
         gamesPlayed?: number;
         bestStreak?: number;
       }>(req);
-      const { userId, displayName, gameType, score, gamesPlayed, bestStreak } = body;
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
+      const { displayName, gameType, score, gamesPlayed, bestStreak } = body;
 
-      if (!userId || !gameType || score === undefined) {
+      if (!isValidGameRecord(body)) {
         sendJSON(res, { success: false, error: 'Missing required fields' }, 400);
         return true;
       }
+      if (rateLimit(req, res, resultRecordLimit('musical', userId))) return true;
 
-      recordGameResult(
+      await recordGameResult(
         userId,
         displayName || 'Player',
-        gameType,
-        score,
+        gameType as string,
+        score as number,
         gamesPlayed || 1,
         bestStreak || 0
       );
@@ -796,7 +741,9 @@ export async function handleMusicalYouRoutes(
     // POST /api/musical/apple/connect - Connect Apple Music with user token
     if (pathname === '/api/musical/apple/connect' && method === 'POST') {
       const body = await parseBody<{ userId?: string; userToken?: string }>(req);
-      const { userId, userToken } = body;
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
+      const { userToken } = body;
 
       if (!userId || !userToken) {
         sendJSON(res, { success: false, error: 'Missing userId or userToken' }, 400);
@@ -903,10 +850,7 @@ export async function handleMusicalYouRoutes(
 
       const taste = analyzeAppleMusicTaste(library);
 
-      sendJSON(res, {
-        success: true,
-        taste,
-      });
+      sendJSON(res, { success: true, taste });
       return true;
     }
 
@@ -922,10 +866,7 @@ export async function handleMusicalYouRoutes(
 
       const tracks = getHeavyRotationTracks(userId, count);
 
-      sendJSON(res, {
-        success: true,
-        tracks,
-      });
+      sendJSON(res, { success: true, tracks });
       return true;
     }
 
@@ -941,17 +882,16 @@ export async function handleMusicalYouRoutes(
 
       const tracks = getRecentlyPlayedTracks(userId, count);
 
-      sendJSON(res, {
-        success: true,
-        tracks,
-      });
+      sendJSON(res, { success: true, tracks });
       return true;
     }
 
     // POST /api/musical/apple/sync - Force re-sync Apple Music library
     if (pathname === '/api/musical/apple/sync' && method === 'POST') {
       const body = await parseBody<{ userId?: string; userToken?: string }>(req);
-      const { userId, userToken } = body;
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
+      const { userToken } = body;
 
       if (!userId || !userToken) {
         sendJSON(res, { success: false, error: 'Missing userId or userToken' }, 400);

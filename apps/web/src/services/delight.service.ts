@@ -1,13 +1,22 @@
 /**
  * Delight Service
- * 
+ *
  * Handles whimsical interactions and emotional moments.
  * Creates joy through thoughtful micro-interactions.
  */
 
 import { getElementByIdOrNull, addClass, removeClass } from '../utils/dom.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
-import { haptic as nativeHaptic, isNative, type HapticStyle } from '../utils/platform.js';
+
+/** Haptic feedback intensities */
+export type HapticStyle =
+  | 'light'
+  | 'medium'
+  | 'heavy'
+  | 'selection'
+  | 'success'
+  | 'warning'
+  | 'error';
 
 // ============================================================================
 // CELEBRATION (Zen Warmth)
@@ -16,13 +25,13 @@ import { haptic as nativeHaptic, isNative, type HapticStyle } from '../utils/pla
 /**
  * Trigger a subtle, zen-inspired celebration.
  * Uses warmth glow instead of particles for human-like expressiveness.
- * 
+ *
  * Note: Named triggerDelightEffect to avoid conflict with brand-system celebrate()
  */
 export function triggerDelightEffect(): void {
   // Use warmth glow from celebrations UI
   celebrationsUI.warmthGlow({ intensity: 'gentle' });
-  
+
   // Add celebrating class to app for CSS effects
   const app = getElementByIdOrNull('app');
   if (app) {
@@ -72,7 +81,7 @@ export function celebrateConnection(): void {
   if (app) {
     addClass(app, 'connected');
   }
-  
+
   // Only celebrate first connection
   if (!hasConnectedBefore) {
     hasConnectedBefore = true;
@@ -91,22 +100,14 @@ export function onDisconnect(): void {
 }
 
 // ============================================================================
-// HAPTIC FEEDBACK (Native + Web fallback)
+// HAPTIC FEEDBACK (Vibration API)
 // ============================================================================
 
 /**
- * Trigger haptic feedback.
- * Uses native Capacitor Haptics on iOS/Android for rich feedback.
- * Falls back to Vibration API on web (Android Chrome only).
+ * Trigger haptic feedback through the Vibration API (mainly Android Chrome;
+ * browsers without it, iOS Safari included, simply don't vibrate).
  */
 export function haptic(style: HapticStyle = 'light'): void {
-  // Use native haptics on iOS/Android - this actually works on iOS!
-  if (isNative()) {
-    void nativeHaptic(style);
-    return;
-  }
-
-  // Web fallback (mainly Android Chrome)
   try {
     if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
       const duration = style === 'light' ? 10 : style === 'medium' ? 20 : 40;
@@ -129,15 +130,15 @@ let lastClickTime = 0;
  */
 export function trackAvatarClick(): void {
   const now = Date.now();
-  
+
   // Reset if more than 500ms between clicks
   if (now - lastClickTime > 500) {
     clickCount = 0;
   }
-  
+
   clickCount++;
   lastClickTime = now;
-  
+
   // Easter egg: 5 rapid clicks
   if (clickCount >= 5) {
     triggerDelightEffect();

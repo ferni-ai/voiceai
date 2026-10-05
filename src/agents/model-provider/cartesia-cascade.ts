@@ -70,13 +70,16 @@ export interface CascadeSTTOptions {
  * server default) waits up to 5.6 s to end a turn; Responsive ends turns
  * sooner and is Cartesia's pick for fast conversational back-and-forth. About
  * 2.4 s of a ~3.5 s reply delay was ink deciding the caller had finished.
+ * Responsive keeps Cartesia's start and eager values but ends turns at 0.3
+ * (Balanced's level) instead of 0.4: at 0.4 Ferni answered into callers'
+ * thinking pauses (dev, 2026-10-04).
  */
 export const INK_TURN_PROFILES: Record<'balanced' | 'responsive' | 'patient', InkTurnDetection> = {
   balanced: { startThreshold: 0.8, eagerEndThreshold: 0.6, endThreshold: 0.3, endTimeoutMs: 5600 },
   responsive: {
     startThreshold: 0.7,
     eagerEndThreshold: 0.6,
-    endThreshold: 0.4,
+    endThreshold: 0.3,
     endTimeoutMs: 4500,
   },
   patient: { startThreshold: 0.8, eagerEndThreshold: 0.3, endThreshold: 0.1, endTimeoutMs: 8000 },
@@ -92,11 +95,18 @@ export const INK_TURN_PROFILES: Record<'balanced' | 'responsive' | 'patient', In
  * ink closes the socket on anything else (1008 "Invalid turn thresholds"),
  * which left every dev call deaf when 0.35 was tried. Out-of-range values are
  * ignored.
+ *
+ * CASCADE_TURN_END overrides the end threshold the same way (strictly between
+ * 0 and the eager threshold). In stt turn detection ink alone decides when the
+ * caller has finished, so this is the knob for "Ferni talks over my pauses":
+ * LiveKit's max endpointing delay is never consulted in this mode. Lower waits
+ * longer before taking the turn.
  */
 export function inkTurnProfile(env: Env = process.env): InkTurnDetection {
   const name = (env.CASCADE_TURN_PROFILE || 'responsive').toLowerCase();
-  const profile =
+  const base =
     INK_TURN_PROFILES[name as keyof typeof INK_TURN_PROFILES] ?? INK_TURN_PROFILES.responsive;
+  const profile = withEndOverride(base, env.CASCADE_TURN_END);
   if (env.CASCADE_TURN_EAGER === undefined || env.CASCADE_TURN_EAGER === '') return profile;
   const eager = Number(env.CASCADE_TURN_EAGER);
   if (eager > profile.endThreshold && eager < profile.startThreshold) {
@@ -105,6 +115,17 @@ export function inkTurnProfile(env: Env = process.env): InkTurnDetection {
   log.warn(
     { eager: env.CASCADE_TURN_EAGER, end: profile.endThreshold, start: profile.startThreshold },
     'CASCADE_TURN_EAGER ignored: must be between the end and start thresholds'
+  );
+  return profile;
+}
+
+function withEndOverride(profile: InkTurnDetection, raw: string | undefined): InkTurnDetection {
+  if (raw === undefined || raw === '') return profile;
+  const end = Number(raw);
+  if (end > 0 && end < profile.eagerEndThreshold) return { ...profile, endThreshold: end };
+  log.warn(
+    { end: raw, eager: profile.eagerEndThreshold },
+    'CASCADE_TURN_END ignored: must be between 0 and the eager threshold'
   );
   return profile;
 }

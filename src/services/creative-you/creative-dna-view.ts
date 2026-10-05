@@ -1,0 +1,68 @@
+/**
+ * Creative DNA as shown on the Creative You dashboard.
+ *
+ * The in-memory Creative DNA counters (videos, podcasts, insights) are only
+ * updated by /api/creative/watch/complete and POST /api/creative/insights,
+ * which no client calls, and they reset on every deploy. What does persist is
+ * the topic history the voice agent records from real conversations
+ * (recordConversationTopics → Firestore topic_history). So the dashboard
+ * builds "What You're Into" from that history, and returns null — the
+ * dashboard's empty state — when there is nothing real to show, instead of a
+ * default "Newcomer" profile that looks like something Ferni learned.
+ *
+ * Learning style is only computed from watching/listening/saving activity;
+ * until there is some, it is null (the card leaves it out) rather than the
+ * initial "explorer" default. The personality label is likewise null while
+ * it is still the "The Newcomer" placeholder (fewer than 3 videos/podcasts).
+ *
+ * @module services/creative-you/creative-dna-view
+ */
+
+import { getCreativeDNA, type CreativeDNA, type LearningStyle } from './creative-dna.js';
+import { getCreativeYouPersistence } from './persistence.js';
+
+const MAX_TOPICS = 10;
+/** calculatePersonalityLabel's placeholder before there is enough activity. */
+const PLACEHOLDER_LABEL = 'The Newcomer';
+
+/** Creative DNA for display: style and label are null until activity has set them. */
+export type CreativeDNAView = Omit<
+  CreativeDNA,
+  'learningStyle' | 'personalityLabel' | 'personalityDescription'
+> & {
+  learningStyle: LearningStyle | null;
+  personalityLabel: string | null;
+  personalityDescription: string | null;
+};
+
+/** The user's Creative DNA with interests from persisted topics, or null when there is none. */
+export async function loadCreativeDNAView(userId: string): Promise<CreativeDNAView | null> {
+  const history = await getCreativeYouPersistence().loadTopicHistory(userId);
+  const dna = getCreativeDNA(userId);
+  const activity = dna.totalVideosWatched + dna.totalPodcastsListened + dna.totalInsightsSaved;
+
+  if (activity === 0 && dna.topTopics.length === 0 && history.topics.length === 0) {
+    return null;
+  }
+
+  const scores = new Map<string, { topic: string; score: number }>();
+  for (const { topic, score } of dna.topTopics) {
+    scores.set(topic.toLowerCase(), { topic, score });
+  }
+  for (const { topic, count } of history.topics) {
+    const key = topic.toLowerCase();
+    const existing = scores.get(key);
+    if (existing) existing.score += count;
+    else scores.set(key, { topic, score: count });
+  }
+
+  const topTopics = [...scores.values()].sort((a, b) => b.score - a.score).slice(0, MAX_TOPICS);
+  const learned = dna.personalityLabel !== PLACEHOLDER_LABEL;
+  return {
+    ...dna,
+    topTopics,
+    learningStyle: activity > 0 ? dna.learningStyle : null,
+    personalityLabel: learned ? dna.personalityLabel : null,
+    personalityDescription: learned ? dna.personalityDescription : null,
+  };
+}

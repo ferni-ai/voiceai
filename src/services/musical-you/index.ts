@@ -67,6 +67,7 @@ import {
   getCachedTasteMatch,
   describeTasteMatch,
   getUserSocialStats,
+  otherUserHasEngaged,
 } from './social.js';
 
 import {
@@ -289,6 +290,7 @@ export {
   getCachedTasteMatch,
   describeTasteMatch,
   getUserSocialStats,
+  otherUserHasEngaged,
 };
 
 // ============================================================================
@@ -365,9 +367,9 @@ export async function getMusicalYouProfile(
     timeMachine: dna ? generateTimeMachine(dna) : [],
     dailyChallenge: getDailyChallenge(),
     challengeStats: getUserChallengeStats(userId),
-    socialStats: getUserSocialStats(userId),
+    socialStats: await getUserSocialStats(userId),
     cards: getUserCards(userId),
-    leaderboardRank: getUserRank(userId),
+    leaderboardRank: await getUserRank(userId),
     // Music source status
     musicSources: {
       games: {
@@ -395,27 +397,24 @@ export async function getMusicalYouProfile(
 /**
  * Record a game result and update all relevant stats
  */
-export function recordGameResult(
+export async function recordGameResult(
   userId: string,
   displayName: string,
   gameType: string,
   score: number,
   gamesPlayed: number,
   bestStreak: number
-) {
-  // Update leaderboard
-  updateLeaderboardEntry('weekly', gameType, userId, displayName, score, gamesPlayed, bestStreak);
-  updateLeaderboardEntry('weekly', 'overall', userId, displayName, score, gamesPlayed, bestStreak);
-  updateLeaderboardEntry('all-time', gameType, userId, displayName, score, gamesPlayed, bestStreak);
-  updateLeaderboardEntry(
-    'all-time',
-    'overall',
-    userId,
-    displayName,
-    score,
-    gamesPlayed,
-    bestStreak
-  );
+): Promise<void> {
+  // Update the weekly and all-time boards, for this game and overall
+  const boards = [
+    ['weekly', gameType],
+    ['weekly', 'overall'],
+    ['all-time', gameType],
+    ['all-time', 'overall'],
+  ] as const;
+  for (const [type, game] of boards) {
+    await updateLeaderboardEntry(type, game, userId, displayName, score, gamesPlayed, bestStreak);
+  }
 
   log.info({ userId, gameType, score }, '🎮 Recorded game result');
 }

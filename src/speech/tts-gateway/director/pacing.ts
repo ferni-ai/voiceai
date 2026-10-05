@@ -33,6 +33,8 @@ export interface SpeedInput {
   voiceId: string;
   /** The previous reply's speed in this session (1 when none). */
   previous?: number;
+  /** A nudge answering how the caller sounds (prosody-response.ts), inside the clamp. */
+  nudge?: number;
 }
 
 export function decideSpeed(input: SpeedInput): { speed: number; supported: boolean } {
@@ -41,7 +43,7 @@ export function decideSpeed(input: SpeedInput): { speed: number; supported: bool
   if (input.emotion === 'sympathetic') target = Math.min(target, TARGET.heavy);
   if (input.emotion === 'contemplative') target = Math.min(target, 0.96);
   const previous = input.previous ?? 1;
-  const next = previous + PULL * (target - previous);
+  const next = previous + PULL * (target - previous) + (input.nudge ?? 0);
   const clamped = Math.min(MAX_SPEED, Math.max(MIN_SPEED, next));
   return {
     speed: Math.round(clamped * 100) / 100,

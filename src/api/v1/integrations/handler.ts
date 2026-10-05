@@ -16,11 +16,10 @@ import { z } from 'zod';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody, sendJSON } from '../../helpers.js';
 import { requireAuth, type AuthContext } from '../../auth-middleware.js';
-
-// SECURITY: Schema for validating OAuth state parameter
-const OAuthStateSchema = z.object({
-  userId: z.string().min(1),
-});
+import {
+  consumeOAuthLinkState,
+  createOAuthLinkState,
+} from '../../../servers/token/oauth-link-state.js';
 
 // ============================================================================
 // REQUEST BODY VALIDATION SCHEMAS
@@ -91,7 +90,7 @@ const getCalendarServices = async () => {
   return import('../../../services/context-awareness/location-calendar.js');
 };
 
-// Calendar OAuth - direct import for token exchange
+// Google Calendar tokens: the one store, shared with the /auth/google/* flow
 const getCalendarOAuthServices = async () => {
   return import('../../../services/identity/google-calendar-oauth.js');
 };
@@ -173,9 +172,9 @@ export async function handleIntegrationsRoutes(
     return true;
   }
 
-  // OAuth callback routes don't require auth (user is authenticating)
-  const isOAuthCallback =
-    subPath.includes('/callback') || subPath.includes('/connect') || subPath.includes('/auth');
+  // Only the provider's redirect back (/<x>/callback[/platform]) skips auth. Matching
+  // '/connect' too left auth null on the OAuth start routes, which then threw (500).
+  const isOAuthCallback = /^\/[a-z]+\/callback(\/[a-z]+)?$/.test(subPath);
 
   // SECURITY: Require authentication for all non-OAuth routes
   let auth: AuthContext | null = null;
@@ -197,7 +196,7 @@ export async function handleIntegrationsRoutes(
       const social = await getSocialGraphServices();
 
       const biometricsConnected = await hasBiometricsConnectedAsync(userId);
-      const calendarConnected = calendar.hasCalendarConnected(userId);
+      const calendarConnected = await calendar.hasCalendarConnected(userId);
       const bankConnected = banking.hasLinkedAccounts(userId);
       const socialPeople = social.getImportantPeople(userId);
 
@@ -264,7 +263,16 @@ export async function handleIntegrationsRoutes(
         return true;
       }
 
-      const authUrl = getAuthorizationUrl(platform, userId);
+      const state = await createOAuthLinkState(req, res, {
+        uid: userId,
+        provider: `integrations_biometrics_${platform}`,
+        returnUrl: '/settings/integrations',
+      });
+      if (!state) {
+        sendJson(res, 503, { error: 'Try again shortly' });
+        return true;
+      }
+      const authUrl = getAuthorizationUrl(platform, userId, state);
       log.info({ userId, platform }, 'Generated biometrics auth URL');
       sendJson(res, 200, { authUrl, platform });
       return true;
@@ -287,21 +295,12 @@ export async function handleIntegrationsRoutes(
         return true;
       }
 
-      // SECURITY: Decode and validate state parameter with Zod schema
-      let userId: string;
-      try {
-        const rawDecoded = JSON.parse(Buffer.from(state, 'base64').toString());
-        const parsed = OAuthStateSchema.safeParse(rawDecoded);
-        if (!parsed.success) {
-          log.warn({ issues: parsed.error.issues }, 'Invalid OAuth state structure');
-          sendJson(res, 400, { error: 'Invalid state parameter' });
-          return true;
-        }
-        userId = parsed.data.userId;
-      } catch {
+      const record = await consumeOAuthLinkState(req, state, `integrations_biometrics_${platform}`);
+      if (!record) {
         sendJson(res, 400, { error: 'Invalid state parameter' });
         return true;
       }
+      const userId = record.uid;
 
       const success = await exchangeCodeForTokens(platform, code, userId);
       if (success) {
@@ -719,63 +718,15 @@ export async function handleIntegrationsRoutes(
       return true;
     }
 
-    if (subPath === '/calendar/connect' && method === 'GET') {
-      const userId = getTargetUserId(auth!, parsedUrl);
-
-      const cal = await getCalendarServices();
-      const authUrl = cal.getCalendarAuthUrl(userId);
-
-      log.info({ userId }, 'Generated calendar auth URL');
-      sendJson(res, 200, { authUrl });
-      return true;
-    }
-
-    if (subPath === '/calendar/callback' && method === 'GET') {
-      const code = parsedUrl.searchParams.get('code');
-      const state = parsedUrl.searchParams.get('state');
-      const error = parsedUrl.searchParams.get('error');
-
-      if (error) {
-        log.warn({ error }, 'OAuth error from Google');
-        sendRedirect(res, `/settings/integrations?error=${encodeURIComponent(error)}`);
-        return true;
-      }
-
-      if (!code || !state) {
-        sendJson(res, 400, { error: 'Missing code or state parameter' });
-        return true;
-      }
-
-      // SECURITY: Decode and validate state parameter with Zod schema
-      let userId: string;
-      try {
-        const rawDecoded = JSON.parse(Buffer.from(state, 'base64').toString());
-        const parsed = OAuthStateSchema.safeParse(rawDecoded);
-        if (!parsed.success) {
-          log.warn({ issues: parsed.error.issues }, 'Invalid OAuth state structure');
-          sendJson(res, 400, { error: 'Invalid state parameter' });
-          return true;
-        }
-        userId = parsed.data.userId;
-      } catch {
-        sendJson(res, 400, { error: 'Invalid state parameter' });
-        return true;
-      }
-
-      const cal = await getCalendarServices();
-      const calOAuth = await getCalendarOAuthServices();
-
-      try {
-        const tokens = await calOAuth.exchangeCodeForTokens(code);
-        await calOAuth.storeUserTokens(userId, tokens);
-
-        void cal.fetchUpcomingEvents(userId, 48);
-        log.info({ userId }, 'Calendar connected successfully');
-        sendRedirect(res, '/settings/integrations?success=calendar');
-      } catch (tokenError) {
-        log.error({ error: String(tokenError), userId }, 'Calendar token exchange failed');
-        sendRedirect(res, '/settings/integrations?error=token_exchange_failed');
-      }
+    // Connecting Google Calendar has one path: POST /auth/oauth/start
+    // { provider: 'google_calendar' } → /auth/google/login → /auth/google/callback.
+    // This API's own connect/callback pair was a second flow whose state the
+    // shared Google redirect (/auth/google/callback) rejected, so it is gone.
+    if (subPath === '/calendar/connect') {
+      sendJson(res, 410, {
+        error: 'Connect Google Calendar through /auth/oauth/start',
+        connect: { method: 'POST', url: '/auth/oauth/start', provider: 'google_calendar' },
+      });
       return true;
     }
 
@@ -785,7 +736,7 @@ export async function handleIntegrationsRoutes(
       const hours = parseInt(parsedUrl.searchParams.get('hours') || '24');
 
       const cal = await getCalendarServices();
-      if (!cal.hasCalendarConnected(userId)) {
+      if (!(await cal.hasCalendarConnected(userId))) {
         sendJson(res, 400, { error: 'Calendar not connected' });
         return true;
       }
@@ -849,6 +800,8 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const cal = await getCalendarServices();
+      const calOAuth = await getCalendarOAuthServices();
+      await calOAuth.deleteUserTokens(userId);
       cal.disconnectCalendar(userId);
 
       log.info({ userId }, 'Calendar disconnected');

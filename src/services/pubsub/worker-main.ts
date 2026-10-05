@@ -7,6 +7,7 @@
  * @module services/pubsub/worker-main
  */
 
+import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
 import { createLogger } from '../../utils/safe-logger.js';
 import { startWorkerServer } from './cloud-run-worker.js';
 
