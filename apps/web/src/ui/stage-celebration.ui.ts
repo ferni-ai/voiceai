@@ -21,15 +21,15 @@
  */
 
 import { t } from '../i18n/index.js';
+import { createLogger } from '../utils/logger.js';
 import { 
   relationshipStageService, 
   getTranslatedStageName,
 } from '../services/relationship-stage.service.js';
 import type { StageChangeEvent, RelationshipMemory } from '../services/relationship-stage.service.js';
-import { createLogger } from '../utils/logger.js';
-import { 
-  DURATION, 
-  EASING, 
+import {
+  DURATION,
+  EASING,
 } from '../config/animation-constants.js';
 
 // ============================================================================
@@ -1420,7 +1420,6 @@ function _updateProgressPanel(): void {
   if (stageName) stageName.textContent = getTranslatedStageName(stage);
   if (stageTagline) stageTagline.textContent = stageInfo?.tagline ?? 'Just getting started';
   if (stageDesc) stageDesc.textContent = `"${stageInfo?.description ?? 'Every great friendship starts somewhere.'}"`;
-  
   
   // Update progress
   const progressFill = progressPanel.querySelector('.progress-fill') as HTMLElement;

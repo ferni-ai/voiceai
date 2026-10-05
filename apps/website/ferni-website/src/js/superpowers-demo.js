@@ -132,6 +132,7 @@
       const demo = await response.json();
       return demo;
     } catch (error) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[SuperpowersDemo] Failed to load dynamic demo:', error);
       return null;
     }
@@ -206,7 +207,6 @@
 
     state.initialized = true;
 
-    console.log('%c✨ Superpowers Demo initialized', 'color: #4a6741;');
   }
 
   // ============================================================================

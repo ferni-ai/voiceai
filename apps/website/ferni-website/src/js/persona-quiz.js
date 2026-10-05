@@ -124,7 +124,6 @@
 
     renderQuestion(quizContainer);
 
-    console.log('%c🧭 Persona quiz loaded', 'color: #4a6741; font-weight: bold;');
   }
 
   function renderQuestion(container) {

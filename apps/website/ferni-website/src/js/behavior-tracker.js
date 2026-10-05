@@ -330,7 +330,6 @@
     // Init CTA tracking
     initCTATracking();
 
-    console.log('%c📊 Ferni Behavior Tracker initialized', 'color: #3a6b73;');
   }
 
   // ============================================================================
