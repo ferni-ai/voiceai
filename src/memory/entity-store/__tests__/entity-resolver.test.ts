@@ -1,435 +1,306 @@
 /**
  * Entity Resolver E2E Tests
  *
- * Tests for the full entity resolver implementations including:
- * - resolveMention
- * - addRelationship
- * - resolve
- * - getPeople
- * - getFacts
- * - getEntity
- * - getEntitiesByType
+ * Full implementation suite against Firestore. Skipped unless
+ * FIRESTORE_EMULATOR_HOST is set (regular unit CI stays cheap).
+ *
+ * CI: Data Layer E2E → Entity Resolver Emulator, which starts the
+ * Firestore emulator with committed indexes (`firestore.indexes.json`
+ * via `firebase.json`) and local hash embeddings (no network).
+ *
+ * Local: FIRESTORE_EMULATOR_HOST=localhost:8080 pnpm test:memory:resolver
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 
-// Test subjects
 import {
   getEntityResolver,
-  resolvePerson,
-  mergeEntities,
-  whatDoWeKnowAbout,
   type EntityResolver,
   type MentionInput,
 } from '../entity-resolver.js';
-import { getEntityStore, initializeEntityStore, type EntityStore } from '../store.js';
-import type { Entity, PersonAttributes } from '../types.js';
-
-// ============================================================================
-// TEST SETUP
-// ============================================================================
+import { initializeEntityStore, type EntityStore } from '../store.js';
+import { getRelationshipsForEntity } from '../storage.js';
 
 const TEST_USER_ID = `test_resolver_${uuidv4().substring(0, 8)}`;
+const runFirestoreIntegration = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
+
 let resolver: EntityResolver;
-let store: EntityStore;
 let createdEntityIds: string[] = [];
 
-const runFirestoreIntegration = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
+function track(id: string | undefined): void {
+  if (id) createdEntityIds.push(id);
+}
 
 (runFirestoreIntegration ? describe : describe.skip)(
   'Entity Resolver Full Implementation (Firestore emulator)',
   () => {
-  beforeAll(async () => {
-    try {
-      // Initialize store and resolver
+    beforeAll(async () => {
+      // Fail the job if the emulator is advertised but the store cannot init.
+      // Swallowing here would make CI green while skipping every assertion.
       await initializeEntityStore();
-      store = getEntityStore();
       resolver = getEntityResolver();
-    } catch (error) {
-      console.warn('Setup failed (may be missing credentials):', error);
-    }
-  });
+      expect(resolver.isReady()).toBe(true);
+    });
 
-  afterAll(async () => {
-    // Cleanup created entities
-    if (store) {
+    afterAll(async () => {
+      const { getEntityStore } = await import('../store.js');
+      const store: EntityStore = getEntityStore();
       for (const entityId of createdEntityIds) {
         try {
           await store.deleteEntity(entityId);
         } catch {
-          // Ignore cleanup errors
+          // Cleanup is best-effort; resolver entities live in entity_store/.
         }
       }
-    }
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RESOLVER SINGLETON
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  describe('getEntityResolver()', () => {
-    it('should return a singleton resolver', () => {
-      const resolver1 = getEntityResolver();
-      const resolver2 = getEntityResolver();
-      expect(resolver1).toBe(resolver2);
     });
 
-    it('should have all required methods', () => {
-      expect(resolver.resolvePerson).toBeTypeOf('function');
-      expect(resolver.mergeEntities).toBeTypeOf('function');
-      expect(resolver.whatDoWeKnowAbout).toBeTypeOf('function');
-      expect(resolver.isReady).toBeTypeOf('function');
-      expect(resolver.resolveMention).toBeTypeOf('function');
-      expect(resolver.addRelationship).toBeTypeOf('function');
-      expect(resolver.resolve).toBeTypeOf('function');
-      expect(resolver.getPeople).toBeTypeOf('function');
-      expect(resolver.getFacts).toBeTypeOf('function');
-      expect(resolver.getEntity).toBeTypeOf('function');
-      expect(resolver.getEntitiesByType).toBeTypeOf('function');
-    });
-
-    it('should report isReady as true', () => {
-      expect(resolver.isReady()).toBe(true);
-    });
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RESOLVE MENTION
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  describe('resolveMention()', () => {
-    it('should resolve a mention by name', async () => {
-      if (!store) return;
-
-      // First create an entity
-      const entity = await store.createEntity(TEST_USER_ID, 'person', 'TestPerson1', {
-        _type: 'person',
-        relationship: 'friend',
-        relationshipCategory: 'friend',
-        sentiment: 0.5,
-      } as PersonAttributes);
-      createdEntityIds.push(entity.id);
-
-      // Now resolve it
-      const mention: MentionInput = {
-        name: 'TestPerson1',
-      };
-      const resolved = await resolver.resolveMention(TEST_USER_ID, mention);
-
-      expect(resolved).toBeDefined();
-      expect(resolved?.canonicalName).toBe('TestPerson1');
-    });
-
-    it('should resolve a mention by relationship', async () => {
-      if (!store) return;
-
-      // Create an entity with specific relationship
-      const entity = await store.createEntity(TEST_USER_ID, 'person', 'TestMom', {
-        _type: 'person',
-        relationship: 'mother',
-        relationshipCategory: 'family',
-        sentiment: 0.9,
-      } as PersonAttributes);
-      createdEntityIds.push(entity.id);
-
-      // Resolve by relationship
-      const mention: MentionInput = {
-        relationship: 'mother',
-      };
-      const resolved = await resolver.resolveMention(TEST_USER_ID, mention);
-
-      expect(resolved).toBeDefined();
-      // Should create or find a person entity
-      if (resolved) {
-        expect(resolved.type).toBe('person');
-      }
-    });
-
-    it('should create new entity for unknown mention', async () => {
-      if (!store) return;
-
-      const uniqueName = `NewPerson_${uuidv4().substring(0, 6)}`;
-      const mention: MentionInput = {
-        name: uniqueName,
-        relationship: 'colleague',
-      };
-
-      const resolved = await resolver.resolveMention(TEST_USER_ID, mention);
-
-      expect(resolved).toBeDefined();
-      expect(resolved?.canonicalName).toBe(uniqueName);
-
-      // Track for cleanup
-      if (resolved) {
-        createdEntityIds.push(resolved.id);
-      }
-    });
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ADD RELATIONSHIP
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  describe('addRelationship()', () => {
-    it('should create a relationship between two entities', async () => {
-      if (!store) return;
-
-      // Create two entities
-      const entity1 = await store.createEntity(TEST_USER_ID, 'person', 'Alice', {
-        _type: 'person',
-        relationship: 'friend',
-        relationshipCategory: 'friend',
-        sentiment: 0.7,
-      } as PersonAttributes);
-      createdEntityIds.push(entity1.id);
-
-      const entity2 = await store.createEntity(TEST_USER_ID, 'person', 'Bob', {
-        _type: 'person',
-        relationship: 'friend',
-        relationshipCategory: 'friend',
-        sentiment: 0.6,
-      } as PersonAttributes);
-      createdEntityIds.push(entity2.id);
-
-      // Add relationship
-      await resolver.addRelationship(TEST_USER_ID, entity1.id, entity2.id, 'friend_of');
-
-      // Verify relationship exists
-      const relationships = await store.getEntityRelationships(entity1.id);
-      expect(relationships.length).toBeGreaterThan(0);
-
-      const rel = relationships.find(
-        (r) => r.fromEntity === entity1.id && r.toEntity === entity2.id
-      );
-      expect(rel).toBeDefined();
-      expect(rel?.type).toBe('friend_of');
-    });
-
-    it('should handle different relationship types', async () => {
-      if (!store) return;
-
-      const entity1 = await store.createEntity(TEST_USER_ID, 'person', 'Employee1', {
-        _type: 'person',
-        relationship: 'colleague',
-        relationshipCategory: 'colleague',
-        sentiment: 0.5,
-      } as PersonAttributes);
-      createdEntityIds.push(entity1.id);
-
-      const entity2 = await store.createEntity(TEST_USER_ID, 'person', 'Boss1', {
-        _type: 'person',
-        relationship: 'boss',
-        relationshipCategory: 'professional',
-        sentiment: 0.4,
-      } as PersonAttributes);
-      createdEntityIds.push(entity2.id);
-
-      await resolver.addRelationship(TEST_USER_ID, entity1.id, entity2.id, 'reports_to');
-
-      const relationships = await store.getEntityRelationships(entity1.id);
-      const rel = relationships.find((r) => r.type === 'reports_to');
-      expect(rel).toBeDefined();
-    });
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RESOLVE
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  describe('resolve()', () => {
-    it('should resolve entity by ID', async () => {
-      if (!resolver) return;
-
-      // Create entity through resolver (uses storage.ts paths)
-      const entity = await resolver.resolveMention(TEST_USER_ID, {
-        name: `ResolveTest_${uuidv4().substring(0, 6)}`,
-        relationship: 'friend',
+    describe('getEntityResolver()', () => {
+      it('should return a singleton resolver', () => {
+        const resolver1 = getEntityResolver();
+        const resolver2 = getEntityResolver();
+        expect(resolver1).toBe(resolver2);
       });
 
-      if (!entity) {
-        console.warn('Could not create entity for test');
-        return;
-      }
-      createdEntityIds.push(entity.id);
-
-      const resolved = await resolver.resolve(TEST_USER_ID, entity.id);
-
-      expect(resolved).toBeDefined();
-      expect(resolved?.id).toBe(entity.id);
-    });
-
-    it('should resolve entity by name query', async () => {
-      if (!resolver) return;
-
-      const uniqueName = `QueryTest_${uuidv4().substring(0, 6)}`;
-      // Create entity through resolver (uses storage.ts paths)
-      const entity = await resolver.resolveMention(TEST_USER_ID, {
-        name: uniqueName,
-        relationship: 'friend',
+      it('should have all required methods', () => {
+        expect(resolver.resolvePerson).toBeTypeOf('function');
+        expect(resolver.mergeEntities).toBeTypeOf('function');
+        expect(resolver.whatDoWeKnowAbout).toBeTypeOf('function');
+        expect(resolver.isReady).toBeTypeOf('function');
+        expect(resolver.resolveMention).toBeTypeOf('function');
+        expect(resolver.addRelationship).toBeTypeOf('function');
+        expect(resolver.resolve).toBeTypeOf('function');
+        expect(resolver.getPeople).toBeTypeOf('function');
+        expect(resolver.getFacts).toBeTypeOf('function');
+        expect(resolver.getEntity).toBeTypeOf('function');
+        expect(resolver.getEntitiesByType).toBeTypeOf('function');
       });
 
-      if (!entity) {
-        console.warn('Could not create entity for test');
-        return;
-      }
-      createdEntityIds.push(entity.id);
-
-      const resolved = await resolver.resolve(TEST_USER_ID, { name: uniqueName });
-
-      expect(resolved).toBeDefined();
-      expect(resolved?.canonicalName).toBe(uniqueName);
+      it('should report isReady as true', () => {
+        expect(resolver.isReady()).toBe(true);
+      });
     });
 
-    it('should return null for non-existent entity', async () => {
-      const resolved = await resolver.resolve(TEST_USER_ID, 'non-existent-id');
+    describe('resolveMention()', () => {
+      it('should resolve a mention by name', async () => {
+        const mention: MentionInput = { name: 'TestPerson1' };
+        const created = await resolver.resolveMention(TEST_USER_ID, mention);
+        expect(created).toBeDefined();
+        expect(created?.canonicalName).toBe('TestPerson1');
+        track(created?.id);
+
+        const resolved = await resolver.resolveMention(TEST_USER_ID, mention);
+        expect(resolved).toBeDefined();
+        expect(resolved?.id).toBe(created?.id);
+        expect(resolved?.canonicalName).toBe('TestPerson1');
+      });
+
+      it('should resolve a mention by relationship', async () => {
+        const mention: MentionInput = { relationship: 'mother' };
+        const resolved = await resolver.resolveMention(TEST_USER_ID, mention);
+
+        expect(resolved).toBeDefined();
+        track(resolved?.id);
+        if (resolved) {
+          expect(resolved.type).toBe('person');
+        }
+      });
+
+      it('should create new entity for unknown mention', async () => {
+        const uniqueName = `NewPerson_${uuidv4().substring(0, 6)}`;
+        const mention: MentionInput = {
+          name: uniqueName,
+          relationship: 'colleague',
+        };
+
+        const resolved = await resolver.resolveMention(TEST_USER_ID, mention);
+
+        expect(resolved).toBeDefined();
+        expect(resolved?.canonicalName).toBe(uniqueName);
+        track(resolved?.id);
+      });
+    });
+
+    describe('addRelationship()', () => {
+      it('should create a relationship between two entities', async () => {
+        const entity1 = await resolver.resolveMention(TEST_USER_ID, {
+          name: `Alice_${uuidv4().substring(0, 6)}`,
+          relationship: 'friend',
+        });
+        const entity2 = await resolver.resolveMention(TEST_USER_ID, {
+          name: `Bob_${uuidv4().substring(0, 6)}`,
+          relationship: 'friend',
+        });
+        expect(entity1).toBeDefined();
+        expect(entity2).toBeDefined();
+        track(entity1?.id);
+        track(entity2?.id);
+
+        await resolver.addRelationship(TEST_USER_ID, entity1!.id, entity2!.id, 'friend_of');
+
+        const relationships = await getRelationshipsForEntity(TEST_USER_ID, entity1!.id);
+        expect(relationships.length).toBeGreaterThan(0);
+
+        const rel = relationships.find(
+          (r) => r.fromEntity === entity1!.id && r.toEntity === entity2!.id
+        );
+        expect(rel).toBeDefined();
+        expect(rel?.type).toBe('friend_of');
+      });
+
+      it('should handle different relationship types', async () => {
+        const entity1 = await resolver.resolveMention(TEST_USER_ID, {
+          name: `Employee1_${uuidv4().substring(0, 6)}`,
+          relationship: 'colleague',
+        });
+        const entity2 = await resolver.resolveMention(TEST_USER_ID, {
+          name: `Boss1_${uuidv4().substring(0, 6)}`,
+          relationship: 'boss',
+        });
+        expect(entity1).toBeDefined();
+        expect(entity2).toBeDefined();
+        track(entity1?.id);
+        track(entity2?.id);
+
+        await resolver.addRelationship(TEST_USER_ID, entity1!.id, entity2!.id, 'reports_to');
+
+        const relationships = await getRelationshipsForEntity(TEST_USER_ID, entity1!.id);
+        const rel = relationships.find((r) => r.type === 'reports_to');
+        expect(rel).toBeDefined();
+      });
+    });
+
+    describe('resolve()', () => {
+      it('should resolve entity by ID', async () => {
+        const entity = await resolver.resolveMention(TEST_USER_ID, {
+          name: `ResolveTest_${uuidv4().substring(0, 6)}`,
+          relationship: 'friend',
+        });
+        expect(entity).toBeDefined();
+        track(entity?.id);
+
+        const resolved = await resolver.resolve(TEST_USER_ID, entity!.id);
+        expect(resolved).toBeDefined();
+        expect(resolved?.id).toBe(entity!.id);
+      });
+
+      it('should resolve entity by name query', async () => {
+        const uniqueName = `QueryTest_${uuidv4().substring(0, 6)}`;
+        const entity = await resolver.resolveMention(TEST_USER_ID, {
+          name: uniqueName,
+          relationship: 'friend',
+        });
+        expect(entity).toBeDefined();
+        track(entity?.id);
+
+        const resolved = await resolver.resolve(TEST_USER_ID, { name: uniqueName });
+        expect(resolved).toBeDefined();
+        expect(resolved?.canonicalName).toBe(uniqueName);
+      });
+
+      it('should return null for non-existent entity', async () => {
+        const resolved = await resolver.resolve(TEST_USER_ID, 'non-existent-id');
+        expect(resolved).toBeNull();
+      });
+    });
+
+    describe('getPeople()', () => {
+      it('should return all person entities for a user', async () => {
+        const person1 = await resolver.resolveMention(TEST_USER_ID, {
+          name: `Person1_${uuidv4().substring(0, 6)}`,
+          relationship: 'friend',
+        });
+        const person2 = await resolver.resolveMention(TEST_USER_ID, {
+          name: `Person2_${uuidv4().substring(0, 6)}`,
+          relationship: 'colleague',
+        });
+        track(person1?.id);
+        track(person2?.id);
+
+        const people = await resolver.getPeople(TEST_USER_ID);
+
+        expect(people.length).toBeGreaterThanOrEqual(2);
+        expect(people.every((p) => p.type === 'person')).toBe(true);
+      });
+    });
+
+    describe('getEntity()', () => {
+      it('should get entity by ID', async () => {
+        const resolved = await resolver.resolveMention(TEST_USER_ID, {
+          name: `GetEntityTest_${uuidv4().substring(0, 6)}`,
+          relationship: 'friend',
+        });
+        expect(resolved).toBeDefined();
+        track(resolved?.id);
+
+        const retrieved = await resolver.getEntity(TEST_USER_ID, resolved!.id);
+        expect(retrieved).toBeDefined();
+        expect(retrieved?.id).toBe(resolved!.id);
+      });
+
+      it('should return null for non-existent ID', async () => {
+        const retrieved = await resolver.getEntity(TEST_USER_ID, 'fake-id-12345');
+        expect(retrieved).toBeNull();
+      });
+    });
+
+    describe('getEntitiesByType()', () => {
+      it('should return entities of specific type', async () => {
+        const person = await resolver.resolveMention(TEST_USER_ID, {
+          name: `TypeTest_${uuidv4().substring(0, 6)}`,
+          relationship: 'friend',
+        });
+        track(person?.id);
+
+        const people = await resolver.getEntitiesByType(TEST_USER_ID, 'person');
+
+        expect(people.length).toBeGreaterThan(0);
+        expect(people.every((e) => e.type === 'person')).toBe(true);
+      });
+    });
+
+    describe('getFacts()', () => {
+      it('should return facts about an entity', async () => {
+        const entity = await resolver.resolveMention(TEST_USER_ID, {
+          name: `FactsTestPerson_${uuidv4().substring(0, 6)}`,
+          relationship: 'friend',
+        });
+        expect(entity).toBeDefined();
+        track(entity?.id);
+
+        const facts = await resolver.getFacts(TEST_USER_ID, entity!.id);
+        expect(Array.isArray(facts)).toBe(true);
+      });
+    });
+  }
+);
+
+(runFirestoreIntegration ? describe : describe.skip)(
+  'Knowledge Graph Integration (Firestore emulator)',
+  () => {
+    it('should have entity resolver with full implementations', () => {
+      const graphResolver = getEntityResolver();
+
+      expect(graphResolver.resolveMention).toBeTypeOf('function');
+      expect(graphResolver.addRelationship).toBeTypeOf('function');
+      expect(graphResolver.resolve).toBeTypeOf('function');
+      expect(graphResolver.getPeople).toBeTypeOf('function');
+      expect(graphResolver.getFacts).toBeTypeOf('function');
+      expect(graphResolver.getEntity).toBeTypeOf('function');
+      expect(graphResolver.getEntitiesByType).toBeTypeOf('function');
+    });
+
+    it('should have proper implementations (not just stubs)', async () => {
+      const graphResolver = getEntityResolver();
+
+      const people = await graphResolver.getPeople(TEST_USER_ID);
+      expect(Array.isArray(people)).toBe(true);
+
+      const entities = await graphResolver.getEntitiesByType(TEST_USER_ID, 'person');
+      expect(Array.isArray(entities)).toBe(true);
+
+      const resolved = await graphResolver.resolve(TEST_USER_ID, 'non-existent-id');
       expect(resolved).toBeNull();
     });
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // GET PEOPLE
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  describe('getPeople()', () => {
-    it('should return all person entities for a user', async () => {
-      if (!resolver) return;
-
-      // Create some people through resolver (uses storage.ts paths)
-      const person1 = await resolver.resolveMention(TEST_USER_ID, {
-        name: `Person1_${uuidv4().substring(0, 6)}`,
-        relationship: 'friend',
-      });
-      if (person1) createdEntityIds.push(person1.id);
-
-      const person2 = await resolver.resolveMention(TEST_USER_ID, {
-        name: `Person2_${uuidv4().substring(0, 6)}`,
-        relationship: 'colleague',
-      });
-      if (person2) createdEntityIds.push(person2.id);
-
-      const people = await resolver.getPeople(TEST_USER_ID);
-
-      expect(people.length).toBeGreaterThanOrEqual(2);
-      expect(people.every((p) => p.type === 'person')).toBe(true);
-    });
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // GET ENTITY BY ID
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  describe('getEntity()', () => {
-    it('should get entity by ID', async () => {
-      if (!store) return;
-
-      // Use resolver to create entity (which uses storage internally)
-      const resolved = await resolver.resolveMention(TEST_USER_ID, {
-        name: `GetEntityTest_${uuidv4().substring(0, 6)}`,
-        relationship: 'friend',
-      });
-
-      if (!resolved) {
-        console.warn('Could not create entity for test');
-        return;
-      }
-      createdEntityIds.push(resolved.id);
-
-      const retrieved = await resolver.getEntity(TEST_USER_ID, resolved.id);
-
-      expect(retrieved).toBeDefined();
-      expect(retrieved?.id).toBe(resolved.id);
-    });
-
-    it('should return null for non-existent ID', async () => {
-      const retrieved = await resolver.getEntity(TEST_USER_ID, 'fake-id-12345');
-      expect(retrieved).toBeNull();
-    });
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // GET ENTITIES BY TYPE
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  describe('getEntitiesByType()', () => {
-    it('should return entities of specific type', async () => {
-      if (!resolver) return;
-
-      // Create a person through resolver (uses storage.ts paths)
-      const person = await resolver.resolveMention(TEST_USER_ID, {
-        name: `TypeTest_${uuidv4().substring(0, 6)}`,
-        relationship: 'friend',
-      });
-      if (person) createdEntityIds.push(person.id);
-
-      const people = await resolver.getEntitiesByType(TEST_USER_ID, 'person');
-
-      expect(people.length).toBeGreaterThan(0);
-      expect(people.every((e) => e.type === 'person')).toBe(true);
-    });
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // GET FACTS
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  describe('getFacts()', () => {
-    it('should return facts about an entity', async () => {
-      if (!store) return;
-
-      // Create entity using resolver
-      const entity = await resolver.resolveMention(TEST_USER_ID, {
-        name: `FactsTestPerson_${uuidv4().substring(0, 6)}`,
-        relationship: 'friend',
-      });
-
-      if (!entity) {
-        console.warn('Could not create entity for test');
-        return;
-      }
-      createdEntityIds.push(entity.id);
-
-      const facts = await resolver.getFacts(TEST_USER_ID, entity.id);
-
-      // Facts array should exist (may be empty if no facts were extracted)
-      expect(Array.isArray(facts)).toBe(true);
-    });
-  });
-});
-
-// ============================================================================
-// INTEGRATION WITH KNOWLEDGE GRAPH
-// ============================================================================
-
-// SKIPPED: Requires Firestore indexes
-describe.skip('Knowledge Graph Integration', () => {
-  it('should have entity resolver with full implementations', () => {
-    // Check that the resolver has all the expected methods
-    const resolver = getEntityResolver();
-
-    expect(resolver.resolveMention).toBeTypeOf('function');
-    expect(resolver.addRelationship).toBeTypeOf('function');
-    expect(resolver.resolve).toBeTypeOf('function');
-    expect(resolver.getPeople).toBeTypeOf('function');
-    expect(resolver.getFacts).toBeTypeOf('function');
-    expect(resolver.getEntity).toBeTypeOf('function');
-    expect(resolver.getEntitiesByType).toBeTypeOf('function');
-  });
-
-  it('should have proper implementations (not just stubs)', async () => {
-    // Verify that the implementations actually do something
-    const resolver = getEntityResolver();
-
-    // getPeople should return an array (even if empty)
-    const people = await resolver.getPeople(TEST_USER_ID);
-    expect(Array.isArray(people)).toBe(true);
-
-    // getEntitiesByType should return an array
-    const entities = await resolver.getEntitiesByType(TEST_USER_ID, 'person');
-    expect(Array.isArray(entities)).toBe(true);
-
-    // resolve with non-existent ID should return null (not throw)
-    const resolved = await resolver.resolve(TEST_USER_ID, 'non-existent-id');
-    expect(resolved).toBeNull();
-  });
-});
+  }
+);
