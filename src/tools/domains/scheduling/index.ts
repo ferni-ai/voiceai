@@ -54,8 +54,19 @@ import {
   getTimingRecommendation,
   type TimingRecommendation,
 } from '../../../services/contacts/optimal-timing.js';
+import { recordScheduledPromise as recordPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 
 const log = getLogger();
+
+/** "Monday, Oct 6, 9:00 AM": how a scheduled time is said back to the user. */
+const spokenTime = (d: Date): string =>
+  d.toLocaleString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 
 // ============================================================================
 // HELPER: Parse time from natural language
@@ -145,13 +156,8 @@ If no recipient specified, sends to the user themselves.`,
         const result = await scheduleText(userId, params.message, scheduledFor, personaId);
 
         if (result.success) {
-          const timeStr = scheduledFor.toLocaleString('en-US', {
-            weekday: 'long',
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          });
+          await recordPromise(userId, result.reminderId, scheduledFor, 'sms', params.message);
+          const timeStr = spokenTime(scheduledFor);
           return `Got it! I'll text you on ${timeStr}: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
@@ -207,13 +213,8 @@ The call will play a voice message when answered.`,
         const result = await scheduleCall(userId, params.message, scheduledFor, personaId);
 
         if (result.success) {
-          const timeStr = scheduledFor.toLocaleString('en-US', {
-            weekday: 'long',
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          });
+          await recordPromise(userId, result.reminderId, scheduledFor, 'call', params.message);
+          const timeStr = spokenTime(scheduledFor);
           return `I'll call you on ${timeStr}. When you answer, you'll hear: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
@@ -274,13 +275,8 @@ Use when the user says things like:
         );
 
         if (result.success) {
-          const timeStr = scheduledFor.toLocaleString('en-US', {
-            weekday: 'long',
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          });
+          await recordPromise(userId, result.reminderId, scheduledFor, 'email', params.subject);
+          const timeStr = spokenTime(scheduledFor);
           return `Email scheduled for ${timeStr} with subject: "${params.subject}"`;
         } else {
           if (result.error?.includes('email')) {
@@ -640,7 +636,7 @@ Automatically picks the best time based on learned response patterns.`,
           );
 
           const scheduledFor = recommendation.suggestedSendTime;
-          let result: { success: boolean; error?: string };
+          let result: { success: boolean; reminderId?: string; error?: string };
 
           // Contact tracking options for ML learning
           const contactOptions = {
@@ -686,13 +682,11 @@ Automatically picks the best time based on learned response patterns.`,
           }
 
           if (result.success) {
-            const timeStr = scheduledFor.toLocaleString('en-US', {
-              weekday: 'long',
-              month: 'short',
-              day: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-            });
+            // It goes to the user (isDirectToContact is false), so that's what she promises.
+            const channel = params.channel === 'text' ? 'sms' : params.channel;
+            const said = channel === 'email' ? (params.subject ?? '') : params.message;
+            await recordPromise(userId, result.reminderId, scheduledFor, channel, said);
+            const timeStr = spokenTime(scheduledFor);
 
             const channelEmoji =
               params.channel === 'text' ? '📱' : params.channel === 'email' ? '📧' : '📞';

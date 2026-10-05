@@ -70,19 +70,24 @@ async function settle(
   });
 }
 
+const isPerson = (userId: string): boolean =>
+  !!userId && userId !== 'anonymous' && userId !== 'unknown';
+
 /**
- * Ferni just promised to remind the user: record it, due when the reminder is
- * (plus the delivery job's grace). Never throws: the reminder itself is already set.
+ * Ferni just promised to remind the user (or text, email or call them at a
+ * time): record it, due when the reminder is (plus the delivery job's grace).
+ * `promise` is what she said she'd do. Never throws: the reminder is already set.
  */
 export async function recordReminderPromise(
   userId: string,
-  reminder: { id: string; message: string; scheduledFor: Date }
+  reminder: { id: string; message: string; scheduledFor: Date },
+  promise = `I'll remind you: ${reminder.message}`
 ): Promise<FerniCommitment | null> {
-  if (!userId || userId === 'anonymous' || userId === 'unknown') return null;
+  if (!isPerson(userId)) return null;
   try {
     return await createCommitment(userId, {
       type: 'remind',
-      commitment: `I'll remind you: ${reminder.message}`,
+      commitment: promise,
       context: reminder.message,
       dueBy: new Date(reminder.scheduledFor.getTime() + MISSED_AFTER_MS),
       reminderId: reminder.id,
@@ -92,6 +97,48 @@ export async function recordReminderPromise(
       { error: String(error), reminderId: reminder.id },
       'Could not record a reminder promise'
     );
+    return null;
+  }
+}
+
+const SAY = { sms: 'text', email: 'email', call: 'call' } as const;
+
+/**
+ * Ferni said she'd text, email or call at a set time (a scheduled reminder):
+ * the same promise as "I'll remind you", in her words. No reminder id, no promise.
+ */
+export async function recordScheduledPromise(
+  userId: string,
+  reminderId: string | undefined,
+  scheduledFor: Date,
+  channel: keyof typeof SAY,
+  message: string
+): Promise<FerniCommitment | null> {
+  if (!reminderId) return null;
+  const promise = `I'll ${SAY[channel]} you: ${message}`;
+  return recordReminderPromise(userId, { id: reminderId, message, scheduledFor }, promise);
+}
+
+/**
+ * Ferni said she'd circle back on something by `dueBy`: kept when she asks
+ * about it in a conversation (follow-through.ts), missed if she doesn't in time.
+ * Never throws: the tool's reply shouldn't fail over bookkeeping.
+ */
+export async function recordCheckInPromise(
+  userId: string,
+  checkIn: { topic: string; dueBy: Date }
+): Promise<FerniCommitment | null> {
+  if (!isPerson(userId)) return null;
+  try {
+    return await createCommitment(userId, {
+      type: 'check_in',
+      commitment: `I'll check in about ${checkIn.topic}`,
+      context: checkIn.topic,
+      dueBy: checkIn.dueBy,
+      relatedTopic: checkIn.topic,
+    });
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Could not record a check-in promise');
     return null;
   }
 }
