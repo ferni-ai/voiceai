@@ -897,9 +897,9 @@ function createModal(): void {
     <div class="household-modal-backdrop"></div>
     <div class="household-modal">
       <header class="household-modal__header">
-        <p class="household-modal__eyebrow">Your People</p>
-        <h2 id="household-title" class="household-modal__title">Your Household</h2>
-        <p class="household-modal__subtitle">Everyone who talks to me here</p>
+        <p class="household-modal__eyebrow">${t('household.yourPeople')}</p>
+        <h2 id="household-title" class="household-modal__title">${t('household.yourHousehold')}</h2>
+        <p class="household-modal__subtitle">${t('household.everyoneWhoTalks')}</p>
         <button class="household-modal__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="household-modal__content" id="household-content">
@@ -908,7 +908,7 @@ function createModal(): void {
         </div>
       </div>
       <footer class="household-modal__footer">
-        <button aria-label="${t('accessibility.done')}" class="household-btn household-btn--secondary" data-action="close">Done</button>
+        <button aria-label="${t('accessibility.done')}" class="household-btn household-btn--secondary" data-action="close">${t('household.done')}</button>
       </footer>
     </div>
   `;
@@ -971,13 +971,13 @@ function renderMainView(content: HTMLElement): void {
     content.innerHTML = `
       <div class="household-empty">
         <div class="household-empty__icon">${ICONS.users}</div>
-        <h3 class="household-empty__title">No household yet</h3>
+        <h3 class="household-empty__title">${t('household.noHouseholdYet')}</h3>
         <p class="household-empty__text">
           When you share this device with family, I can recognize each person's voice and remember everyone individually.
         </p>
         <button aria-label="${t('accessibility.createHousehold')}" class="household-btn household-btn--primary" data-action="show-create">
           ${ICONS.home}
-          <span>Create Household</span>
+          <span>${t('household.createHousehold')}</span>
         </button>
       </div>
     `;
@@ -993,56 +993,56 @@ function renderMainView(content: HTMLElement): void {
     household.members.length > 0
       ? household.members.map((member) => renderMember(member)).join('')
       : `<p class="household-add-form__hint" style="text-align: center; padding: var(--space-4);">
-          No one enrolled yet. Add your first family member below!
+          ${t('household.noOneEnrolledYet')}
         </p>`;
 
   content.innerHTML = `
     <section class="household-modal__section">
-      <h3 class="household-modal__section-title">Family Members</h3>
+      <h3 class="household-modal__section-title">${t('household.familyMembers')}</h3>
       <div class="household-members">
         ${membersHTML}
       </div>
     </section>
-    
+
     <section class="household-modal__section">
-      <h3 class="household-modal__section-title">Add Someone</h3>
+      <h3 class="household-modal__section-title">${t('household.addSomeone')}</h3>
       <div class="household-add-form">
         <div class="household-add-form__row">
-          <input 
-            type="text" 
-            class="household-add-form__input" 
-            id="member-name" 
+          <input
+            type="text"
+            class="household-add-form__input"
+            id="member-name"
             placeholder="${t('placeholders.memberName')}"
             autocomplete="off"
           />
           <select class="household-add-form__select" id="member-role">
-            <option value="adult">Adult</option>
-            <option value="child">Child</option>
-            <option value="guest">Guest</option>
+            <option value="adult">${t('household.adult')}</option>
+            <option value="child">${t('household.child')}</option>
+            <option value="guest">${t('household.guest')}</option>
           </select>
         </div>
         <button aria-label="${t('accessibility.addToHousehold')}" class="household-btn household-btn--primary" data-action="add-member" style="width: 100%;">
-          Add to Household
+          ${t('household.addToHousehold')}
         </button>
         <p class="household-add-form__hint">
-          They'll need to complete voice enrollment so I can recognize them.
+          ${t('household.voiceEnrollmentRequired')}
         </p>
       </div>
     </section>
-    
+
     <section class="household-modal__section">
-      <h3 class="household-modal__section-title">How This Works</h3>
+      <h3 class="household-modal__section-title">${t('household.howThisWorks')}</h3>
       <div class="household-settings">
         ${renderSetting(
           'autoIdentify',
-          'Recognize voices automatically',
-          "I'll know who's talking as soon as you start"
+          t('household.recognizeVoices'),
+          t('household.recognizeVoicesDesc')
         )}
-        ${renderSetting('guestMode', 'Welcome guests', 'Let me chat with voices I don\'t recognize')}
+        ${renderSetting('guestMode', t('household.welcomeGuests'), t('household.welcomeGuestsDesc'))}
         ${renderSetting(
           'childSafeMode',
-          'Kid-friendly mode',
-          'Extra care when talking with the little ones'
+          t('household.kidFriendlyMode'),
+          t('household.kidFriendlyModeDesc')
         )}
       </div>
     </section>
@@ -1082,16 +1082,16 @@ function renderMainView(content: HTMLElement): void {
 function renderCreateForm(content: HTMLElement): void {
   content.innerHTML = `
     <div class="household-create-form">
-      <h3 class="household-create-form__title">Name your household</h3>
+      <h3 class="household-create-form__title">${t('household.nameYourHousehold')}</h3>
       <p class="household-create-form__subtitle">
-        This helps me keep everyone's conversations and memories separate.
+        ${t('household.helpsKeepConversations')}
       </p>
       <div class="household-create-form__input-group">
-        <label class="household-create-form__label" for="household-name">Household name</label>
-        <input 
-          type="text" 
-          class="household-create-form__input" 
-          id="household-name" 
+        <label class="household-create-form__label" for="household-name">${t('household.householdName')}</label>
+        <input
+          type="text"
+          class="household-create-form__input"
+          id="household-name"
           placeholder="${t('placeholders.householdName')}"
           autocomplete="off"
           autofocus
@@ -1099,10 +1099,10 @@ function renderCreateForm(content: HTMLElement): void {
       </div>
       <div class="household-create-form__actions" role="button" tabindex="0">
         <button aria-label="${t('accessibility.maybeLater')}" class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-create">
-          Maybe later
+          ${t('household.maybeLater')}
         </button>
         <button aria-label="${t('accessibility.create')}" class="household-btn household-btn--primary household-btn--flex" data-action="confirm-create">
-          Create
+          ${t('household.create')}
         </button>
       </div>
     </div>
@@ -1139,17 +1139,16 @@ function renderConfirmRemove(content: HTMLElement): void {
   content.innerHTML = `
     <div class="household-confirm">
       <div class="household-confirm__icon">${ICONS.alertCircle}</div>
-      <h3 class="household-confirm__title">Remove ${memberToRemove.displayName}?</h3>
+      <h3 class="household-confirm__title">${t('household.removeFromHousehold', { name: escapeHtml(memberToRemove.displayName) })}</h3>
       <p class="household-confirm__message">
-        I'll forget ${memberToRemove.displayName}'s voice, but their conversation history will stay safe. 
-        They can always re-enroll later if needed.
+        ${t('household.removeConfirmMessage', { name: escapeHtml(memberToRemove.displayName) })}
       </p>
       <div class="household-confirm__actions" role="button" tabindex="0">
         <button aria-label="${t('accessibility.keepThem')}" class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-remove">
-          Keep them
+          ${t('household.keepThem')}
         </button>
         <button aria-label="${t('accessibility.remove')}" class="household-btn household-btn--danger household-btn--flex" data-action="confirm-remove">
-          Remove
+          ${t('household.remove')}
         </button>
       </div>
     </div>
@@ -1192,12 +1191,12 @@ function renderMember(member: HouseholdMember): string {
         ${
           !isOwner
             ? `
-          <button 
-            class="household-member__btn household-member__btn--danger" 
+          <button
+            class="household-member__btn household-member__btn--danger"
             data-action="remove-member"
             data-user-id="${member.userId}"
             aria-label="Remove ${escapeHtml(member.displayName)}"
-            title="Remove from household"
+            title="${t('household.removeFromHousehold')}"
           >
             ${ICONS.trash}
           </button>

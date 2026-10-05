@@ -89,26 +89,26 @@ const ICONS = {
 
 // Occasion options
 const OCCASIONS = [
-  { value: '', label: 'Any occasion' },
-  { value: 'birthday', label: 'Birthday' },
-  { value: 'christmas', label: 'Christmas' },
-  { value: 'anniversary', label: 'Anniversary' },
-  { value: 'thank_you', label: 'Thank you' },
-  { value: 'just_because', label: 'Just because' },
-  { value: 'graduation', label: 'Graduation' },
-  { value: 'wedding', label: 'Wedding' },
-  { value: 'baby_shower', label: 'Baby shower' },
-  { value: 'housewarming', label: 'Housewarming' },
+  { value: '', labelKey: 'gifts.anyOccasion' },
+  { value: 'birthday', labelKey: 'gifts.birthday' },
+  { value: 'christmas', labelKey: 'gifts.christmas' },
+  { value: 'anniversary', labelKey: 'gifts.anniversary' },
+  { value: 'thank_you', labelKey: 'gifts.thankYou' },
+  { value: 'just_because', labelKey: 'gifts.justBecause' },
+  { value: 'graduation', labelKey: 'gifts.graduation' },
+  { value: 'wedding', labelKey: 'gifts.wedding' },
+  { value: 'baby_shower', labelKey: 'gifts.babyShower' },
+  { value: 'housewarming', labelKey: 'gifts.housewarming' },
 ];
 
 // Budget options
 const BUDGETS = [
-  { value: '', label: 'Any budget' },
-  { value: 'under_25', label: 'Under $25' },
-  { value: '25_50', label: '$25 - $50' },
-  { value: '50_100', label: '$50 - $100' },
-  { value: '100_200', label: '$100 - $200' },
-  { value: 'over_200', label: 'Over $200' },
+  { value: '', labelKey: 'gifts.anyBudget' },
+  { value: 'under_25', labelKey: 'gifts.under25' },
+  { value: '25_50', labelKey: 'gifts.between25And50' },
+  { value: '50_100', labelKey: 'gifts.between50And100' },
+  { value: '100_200', labelKey: 'gifts.between100And200' },
+  { value: 'over_200', labelKey: 'gifts.over200' },
 ];
 
 // ============================================================================
@@ -616,18 +616,18 @@ function render(): void {
     
     <div class="gs-filters">
       <div class="gs-filter">
-        <label class="gs-filter-label">Occasion</label>
+        <label class="gs-filter-label">${t('gifts.occasion')}</label>
         <select class="gs-select" id="gs-occasion">
           ${OCCASIONS.map(o => `
-            <option value="${o.value}" ${state.occasion === o.value ? 'selected' : ''}>${o.label}</option>
+            <option value="${o.value}" ${state.occasion === o.value ? 'selected' : ''}>${t(o.labelKey)}</option>
           `).join('')}
         </select>
       </div>
       <div class="gs-filter">
-        <label class="gs-filter-label">Budget</label>
+        <label class="gs-filter-label">${t('gifts.budget')}</label>
         <select class="gs-select" id="gs-budget">
           ${BUDGETS.map(b => `
-            <option value="${b.value}" ${state.budget === b.value ? 'selected' : ''}>${b.label}</option>
+            <option value="${b.value}" ${state.budget === b.value ? 'selected' : ''}>${t(b.labelKey)}</option>
           `).join('')}
         </select>
       </div>

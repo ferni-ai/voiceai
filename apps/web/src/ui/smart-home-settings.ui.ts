@@ -788,15 +788,15 @@ function renderMainView(status: IntegrationStatus): void {
   integrations.appendChild(
     createIntegrationCard({
       id: 'ecobee',
-      name: 'Ecobee',
-      description: 'Thermostat & sensors',
+      name: t('smarthome.ecobee'),
+      description: t('smarthome.ecobeeDescription'),
       icon: 'thermometer',
       connected: status.ecobee.connected,
       details: status.ecobee.connected
         ? [
-            { label: 'Name', value: status.ecobee.thermostatName || 'My Thermostat' },
-            { label: 'Current', value: `${status.ecobee.currentTemp || '--'}°F` },
-            { label: 'Mode', value: status.ecobee.mode || 'auto' },
+            { label: t('smarthome.name'), value: status.ecobee.thermostatName || 'My Thermostat' },
+            { label: t('smarthome.current'), value: `${status.ecobee.currentTemp || '--'}°F` },
+            { label: t('smarthome.mode'), value: status.ecobee.mode || 'auto' },
           ]
         : undefined,
     })
@@ -806,14 +806,14 @@ function renderMainView(status: IntegrationStatus): void {
   integrations.appendChild(
     createIntegrationCard({
       id: 'hue',
-      name: 'Philips Hue',
-      description: 'Smart lights (local)',
+      name: t('smarthome.philipsHue'),
+      description: t('smarthome.hueDescription'),
       icon: 'lightbulb',
       connected: status.hue.connected,
       details: status.hue.connected
         ? [
-            { label: 'Bridge', value: status.hue.bridgeIp || 'Connected' },
-            { label: 'Lights', value: `${status.hue.lightCount || 0}` },
+            { label: t('smarthome.bridge'), value: status.hue.bridgeIp || 'Connected' },
+            { label: t('smarthome.lights'), value: `${status.hue.lightCount || 0}` },
           ]
         : undefined,
     })
@@ -823,12 +823,12 @@ function renderMainView(status: IntegrationStatus): void {
   integrations.appendChild(
     createIntegrationCard({
       id: 'lifx',
-      name: 'LIFX',
-      description: 'Smart lights (cloud)',
+      name: t('smarthome.lifx'),
+      description: t('smarthome.lifxDescription'),
       icon: 'sun',
       connected: status.lifx.connected,
       details: status.lifx.connected
-        ? [{ label: 'Lights', value: `${status.lifx.lightCount || 0}` }]
+        ? [{ label: t('smarthome.lights'), value: `${status.lifx.lightCount || 0}` }]
         : undefined,
     })
   );
@@ -837,14 +837,14 @@ function renderMainView(status: IntegrationStatus): void {
   integrations.appendChild(
     createIntegrationCard({
       id: 'sonos',
-      name: 'Sonos',
-      description: 'Speakers & music',
+      name: t('smarthome.sonos'),
+      description: t('smarthome.sonosDescription'),
       icon: 'speaker',
       connected: status.sonos.connected,
       details: status.sonos.connected
         ? [
-            { label: 'Speakers', value: `${status.sonos.speakerCount || 0}` },
-            { label: 'Now Playing', value: status.sonos.primaryGroup || 'Idle' },
+            { label: t('smarthome.speakers'), value: `${status.sonos.speakerCount || 0}` },
+            { label: t('smarthome.nowPlaying'), value: status.sonos.primaryGroup || 'Idle' },
           ]
         : undefined,
     })
@@ -854,15 +854,15 @@ function renderMainView(status: IntegrationStatus): void {
   integrations.appendChild(
     createIntegrationCard({
       id: 'homekit',
-      name: 'HomeKit',
-      description: 'Apple home & Siri',
+      name: t('smarthome.homekit'),
+      description: t('smarthome.homekitDescription'),
       icon: 'apple',
       connected: status.homeKit.connected,
       details: status.homeKit.connected
         ? [
-            { label: 'Home', value: status.homeKit.homeName || 'My Home' },
-            { label: 'Devices', value: `${status.homeKit.deviceCount || 0}` },
-            { label: 'Scenes', value: `${status.homeKit.sceneCount || 0}` },
+            { label: t('smarthome.home'), value: status.homeKit.homeName || 'My Home' },
+            { label: t('smarthome.devices'), value: `${status.homeKit.deviceCount || 0}` },
+            { label: t('smarthome.scenes'), value: `${status.homeKit.sceneCount || 0}` },
           ]
         : undefined,
     })
