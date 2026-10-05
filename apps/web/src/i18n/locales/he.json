@@ -704,7 +704,8 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
-    "maybeLater": "[NEEDS_TRANSLATION] Later"
+    "maybeLater": "[NEEDS_TRANSLATION] Later",
+    "dismiss": "[NEEDS_TRANSLATION] Dismiss"
   },
   "confirmModal": {
     "cancel": "Cancel",
@@ -1272,7 +1273,9 @@
     "connectionLost": "החיבור אבד. מתחבר מחדש...",
     "microphoneBlocked": "נדרשת גישה למיקרופון",
     "reconnected": "התחברת מחדש!",
-    "sessionTimeout": "הפגישה פגה"
+    "sessionTimeout": "הפגישה פגה",
+    "blockedError": "[NEEDS_TRANSLATION] Notifications are blocked. Allow them in your browser settings.",
+    "unavailableError": "[NEEDS_TRANSLATION] Notifications aren't available right now."
   },
   "onboarding": {
     "ariaLabel": "סיור היכרות",
@@ -1385,7 +1388,12 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
-      "title": "How Seeds Work"
+      "title": "How Seeds Work",
+      "conversation": "[NEEDS_TRANSLATION] Have a conversation: +1 seed",
+      "note": "[NEEDS_TRANSLATION] Seeds help us prioritize what to build next!",
+      "streak30": "[NEEDS_TRANSLATION] 30-day streak: +15 seeds",
+      "streak7": "[NEEDS_TRANSLATION] 7-day streak: +5 seeds",
+      "vote": "[NEEDS_TRANSLATION] Vote for features: 1-10 seeds"
     },
     "intro": "לכל מערכת יחסים נהדרת יש עונות. אלה זרעים שאנחנו שותלים יחד.",
     "learnMore": "Learn more",
@@ -1449,7 +1457,28 @@
     "wantThis": "אני רוצה את זה",
     "youMentioned": "You've mentioned",
     "yourSeeds": "Your seeds",
-    "yours": "yours"
+    "yours": "yours",
+    "backToRoadmap": "[NEEDS_TRANSLATION] Back to Roadmap",
+    "categories": {
+      "connect": "[NEEDS_TRANSLATION] Connect - Relationships & Communication",
+      "personalize": "[NEEDS_TRANSLATION] Personalize - Make Ferni Yours",
+      "platform": "[NEEDS_TRANSLATION] Platform - New Capabilities"
+    },
+    "needMoreSeeds": "[NEEDS_TRANSLATION] You need at least 5 seeds to submit a suggestion. Have more conversations to earn seeds!",
+    "newIdea": "[NEEDS_TRANSLATION] New Idea",
+    "noSeedsHint": "[NEEDS_TRANSLATION] Have more conversations to earn seeds!",
+    "refund50": "[NEEDS_TRANSLATION] 50% refund",
+    "submitSuggestion": "[NEEDS_TRANSLATION] Plant This Seed",
+    "submitting": "[NEEDS_TRANSLATION] Planting...",
+    "suggestionCategory": "[NEEDS_TRANSLATION] Category",
+    "suggestionCost": "[NEEDS_TRANSLATION] Submitting costs 5 seeds (shows commitment, prevents spam)",
+    "suggestionDescription": "[NEEDS_TRANSLATION] Tell us more (optional)",
+    "suggestionDescriptionPlaceholder": "[NEEDS_TRANSLATION] Why would this be helpful? How would you use it?",
+    "suggestionIntro": "[NEEDS_TRANSLATION] Have an idea for something Ferni should do? Plant a seed and let the community water it!",
+    "suggestionPlanted": "[NEEDS_TRANSLATION] Your seed has been planted!",
+    "suggestionThanks": "[NEEDS_TRANSLATION] Thank you for sharing your idea. Others can now water it with their seeds!",
+    "suggestionTitle": "[NEEDS_TRANSLATION] What should Ferni be able to do?",
+    "suggestionTitlePlaceholder": "[NEEDS_TRANSLATION] e.g., Remember my pet's name"
   },
   "session": {
     "agentEndingConversation": "הסוכן מסיים את השיחה",
@@ -1786,7 +1815,48 @@
     "webhookDeleted": "[NEEDS_TRANSLATION] Webhook deleted",
     "webhookWorks": "[NEEDS_TRANSLATION] Webhook works!",
     "wisdomCaptured": "[NEEDS_TRANSLATION] Wisdom captured!",
-    "yourPinResponsedatapin": "[NEEDS_TRANSLATION] Your PIN: ${response.data.pin}"
+    "yourPinResponsedatapin": "[NEEDS_TRANSLATION] Your PIN: ${response.data.pin}",
+    "bedSetToLevel": "[NEEDS_TRANSLATION] Bed set to level {level}",
+    "teamInsight": "[NEEDS_TRANSLATION] {source}: {summary}",
+    "householdMemberAdded": "[NEEDS_TRANSLATION] {name} added!",
+    "householdMemberAddedNeedsVoice": "[NEEDS_TRANSLATION] {name} added! Voice enrollment needed.",
+    "agentCreated": "[NEEDS_TRANSLATION] {name} created!",
+    "householdCreated": "[NEEDS_TRANSLATION] {name} created!",
+    "contactsImported": {
+      "one": "[NEEDS_TRANSLATION] Imported {count} contact!",
+      "other": "[NEEDS_TRANSLATION] Imported {count} contacts!"
+    },
+    "integrationNowConnected": "[NEEDS_TRANSLATION] {integration} connected!",
+    "inviteSentTo": "[NEEDS_TRANSLATION] Invite sent to {email}!",
+    "householdMemberRemoved": "[NEEDS_TRANSLATION] {name} removed",
+    "milestoneReached": "[NEEDS_TRANSLATION] 🎉 {title}",
+    "addedToTeam": "[NEEDS_TRANSLATION] {name} added to your team",
+    "removedFromTeam": "[NEEDS_TRANSLATION] {name} removed from team",
+    "submittedForReview": "[NEEDS_TRANSLATION] {name} submitted for review!",
+    "participantJoined": "[NEEDS_TRANSLATION] {name} joined!",
+    "participantLeft": "[NEEDS_TRANSLATION] {name} left",
+    "fillInRequiredField": "[NEEDS_TRANSLATION] Please fill in: {field}",
+    "seedsEarned": {
+      "one": "[NEEDS_TRANSLATION] +{count} seed!",
+      "other": "[NEEDS_TRANSLATION] +{count} seeds!"
+    },
+    "conversationIdeasReady": {
+      "one": "[NEEDS_TRANSLATION] {count} idea ready!",
+      "other": "[NEEDS_TRANSLATION] {count} ideas ready!"
+    },
+    "conversationIdeasReadyDemo": {
+      "one": "[NEEDS_TRANSLATION] {count} idea ready! (demo)",
+      "other": "[NEEDS_TRANSLATION] {count} ideas ready! (demo)"
+    },
+    "giftIdeasFound": {
+      "one": "[NEEDS_TRANSLATION] {count} idea found!",
+      "other": "[NEEDS_TRANSLATION] {count} ideas found!"
+    },
+    "giftIdeasFoundDemo": {
+      "one": "[NEEDS_TRANSLATION] {count} idea found! (demo)",
+      "other": "[NEEDS_TRANSLATION] {count} ideas found! (demo)"
+    },
+    "yourPin": "[NEEDS_TRANSLATION] Your PIN: {pin}"
   },
   "trustJourney": {
     "empty": {
@@ -2303,7 +2373,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "[NEEDS_TRANSLATION] Philips Hue or LIFX",
+      "hueOrLifxDesc": "[NEEDS_TRANSLATION] Set up in Your Home settings"
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2382,7 +2454,10 @@
     },
     "secondsRemaining": "שניות נותרות",
     "startExercise": "התחל תרגיל תנשומת",
-    "changePattern": "שנה דפוס נשימה"
+    "changePattern": "שנה דפוס נשימה",
+    "hold": "[NEEDS_TRANSLATION] Hold",
+    "in": "[NEEDS_TRANSLATION] In",
+    "out": "[NEEDS_TRANSLATION] Out"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2424,7 +2499,23 @@
     "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
     "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
     "rememberSuccess": "הבנתי! אני אזכור אותך עכשיו.",
-    "account": "חשבון"
+    "account": "חשבון",
+    "email": "[NEEDS_TRANSLATION] Email",
+    "password": "[NEEDS_TRANSLATION] Password",
+    "rememberYouAs": "[NEEDS_TRANSLATION] I'll remember you as",
+    "successMessage": "[NEEDS_TRANSLATION] I'll remember you now. Wherever you go, I'll know you.",
+    "welcome": "[NEEDS_TRANSLATION] Welcome to Ferni",
+    "subtitle": "[NEEDS_TRANSLATION] Sign in to start your journey. Your conversations, memories, and progress will be saved across all your devices.",
+    "agreeTerms": "[NEEDS_TRANSLATION] By continuing, you agree to our {terms} and {privacy}.",
+    "termsLink": "[NEEDS_TRANSLATION] Terms",
+    "privacyLink": "[NEEDS_TRANSLATION] Privacy Policy",
+    "waitlistTitle": "[NEEDS_TRANSLATION] You're on the list!",
+    "waitlistMessage": "[NEEDS_TRANSLATION] We're rolling out Ferni gradually to ensure everyone gets the best experience. We'll send you an email as soon as your spot opens up.",
+    "waitlistEmail": "[NEEDS_TRANSLATION] We'll notify you at {email}",
+    "tryDifferentAccount": "[NEEDS_TRANSLATION] Try a different account",
+    "checkingAccess": "[NEEDS_TRANSLATION] Checking your access...",
+    "checkingLabel": "[NEEDS_TRANSLATION] Just a moment...",
+    "signInError": "[NEEDS_TRANSLATION] Sign-in was cancelled or failed. Please try again."
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2572,6 +2663,18 @@
     "predictions": {
       "title": "לאן מועדות פניך",
       "now": "עכשיו"
+    },
+    "socialBattery": {
+      "label": "[NEEDS_TRANSLATION] Social Battery",
+      "drainLabel": "[NEEDS_TRANSLATION] drain",
+      "rechargeLabel": "[NEEDS_TRANSLATION] recharge",
+      "lowBatteryWarning": "[NEEDS_TRANSLATION] Low battery - {hours}hr to full",
+      "extrovert": "[NEEDS_TRANSLATION] Extrovert",
+      "introvert": "[NEEDS_TRANSLATION] Introvert",
+      "ambivert": "[NEEDS_TRANSLATION] Ambivert",
+      "recentActivityTitle": "[NEEDS_TRANSLATION] Recent Activity",
+      "lowBatteryTitle": "[NEEDS_TRANSLATION] Low Social Battery",
+      "lowBatteryDescription": "[NEEDS_TRANSLATION] Consider some quiet time. Full recharge in ~{hours} hours."
     }
   },
   "sleepSettings": {
@@ -2728,7 +2831,11 @@
     "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
     "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
     "sentSuccess": "נשלח {sent} זרעים! הם יקבלו {received}",
-    "sendError": "לא היה ניתן לשלוח את המתנה. לנסות שוב?"
+    "sendError": "לא היה ניתן לשלוח את המתנה. לנסות שוב?",
+    "amount": "[NEEDS_TRANSLATION] Amount",
+    "recipientPlaceholder": "[NEEDS_TRANSLATION] Enter friend's email or username",
+    "sendGift": "[NEEDS_TRANSLATION] Send Gift",
+    "sendTo": "[NEEDS_TRANSLATION] Send to"
   },
   "teamIntro": {
     "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
@@ -2808,7 +2915,8 @@
       "onTheWay": "אתה בדרך הנכונה! יותר חברי צוות יופעלו ככל שנמשיך בנסיעה שלנו.",
       "growing": "הצוות שלך גדל. כל שנותר הוא כמה אבני דרך כדי לפתוח את כולם.",
       "complete": "פתחת את הצוות המלא! כולם כאן כדי לתמוך בך."
-    }
+    },
+    "added": "[NEEDS_TRANSLATION] Added!"
   },
   "referral": {
     "share": {
@@ -2839,7 +2947,19 @@
       "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
     },
     "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
-    "copyError": "לא היה ניתן להעתיק. לנסות שוב?"
+    "copyError": "לא היה ניתן להעתיק. לנסות שוב?",
+    "bonusAmount": "[NEEDS_TRANSLATION] You'll both get {seeds} seeds",
+    "bonusWhen": "[NEEDS_TRANSLATION] when they join!",
+    "garden": {
+      "earned": "[NEEDS_TRANSLATION] You've earned {seeds} seeds from sharing",
+      "empty": "[NEEDS_TRANSLATION] Seeds grow when shared. Start your garden today.",
+      "friendsGrowing": "[NEEDS_TRANSLATION] {count} friends growing",
+      "title": "[NEEDS_TRANSLATION] Your garden:"
+    },
+    "quoteMessage": "[NEEDS_TRANSLATION] \"Give them someone who remembers everything, shows up at 2am, and never judges.\"",
+    "subtitle": "[NEEDS_TRANSLATION] Know someone who could use a friend like this?",
+    "title": "[NEEDS_TRANSLATION] Share the Growth",
+    "yourLink": "[NEEDS_TRANSLATION] Your link:"
   },
   "conversationMemory": {
     "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
@@ -3002,7 +3122,14 @@
       "browse": "עיין בשוק שלנו"
     },
     "creations": {
-      "noDescription": "אין תיאור"
+      "noDescription": "אין תיאור",
+      "createButton": "[NEEDS_TRANSLATION] Create an agent",
+      "emptyDescription": "[NEEDS_TRANSLATION] Build an agent with its own personality and skills, then share it with the community.",
+      "emptyTitle": "[NEEDS_TRANSLATION] You haven't created any agents yet"
+    },
+    "agentCard": {
+      "install": "[NEEDS_TRANSLATION] Install",
+      "uninstall": "[NEEDS_TRANSLATION] Uninstall"
     }
   },
   "agent": {
@@ -3152,5 +3279,354 @@
         "some": "עמדתי ב-{kept} מתוך {total} ההבטחות שנתתי לך."
       }
     }
+  },
+  "outreachSchedule": {
+    "rescheduleTitle": "[NEEDS_TRANSLATION] Reschedule check-in",
+    "inOneHour": "[NEEDS_TRANSLATION] In 1 hour ({time})",
+    "inThreeHours": "[NEEDS_TRANSLATION] In 3 hours ({time})",
+    "tomorrowMorning": "[NEEDS_TRANSLATION] Tomorrow morning ({time})"
+  },
+  "gameBoard": {
+    "gameNames": {
+      "ticTacToe": "[NEEDS_TRANSLATION] Tic-Tac-Toe",
+      "twentyQuestions": "[NEEDS_TRANSLATION] 20 Questions",
+      "wordAssociation": "[NEEDS_TRANSLATION] Word Association",
+      "storyBuilder": "[NEEDS_TRANSLATION] Story Builder",
+      "wouldYouRather": "[NEEDS_TRANSLATION] Would You Rather",
+      "threeWordDay": "[NEEDS_TRANSLATION] Three Word Day",
+      "headlineWriter": "[NEEDS_TRANSLATION] Headline Writer",
+      "emojiStory": "[NEEDS_TRANSLATION] Emoji Story",
+      "valuesCardSort": "[NEEDS_TRANSLATION] Values Card Sort",
+      "oneWordCheckin": "[NEEDS_TRANSLATION] One Word Check-in",
+      "tinyWinTracker": "[NEEDS_TRANSLATION] Tiny Win Tracker",
+      "fortuneCookie": "[NEEDS_TRANSLATION] Fortune Cookie"
+    },
+    "statuses": {
+      "starting": "[NEEDS_TRANSLATION] Starting...",
+      "playing": "[NEEDS_TRANSLATION] Playing",
+      "complete": "[NEEDS_TRANSLATION] Complete",
+      "ended": "[NEEDS_TRANSLATION] Ended"
+    },
+    "closeButton": "[NEEDS_TRANSLATION] Close game board",
+    "completionMessages": {
+      "ticTacToeDraw": "[NEEDS_TRANSLATION] It's a draw! Well played.",
+      "ticTacToeWin": "[NEEDS_TRANSLATION] You won! Great strategy.",
+      "ticTacToeLose": "[NEEDS_TRANSLATION] Ferni won! Good game.",
+      "twentyQuestionsWin": "[NEEDS_TRANSLATION] You guessed it! Well done.",
+      "twentyQuestionsLose": "[NEEDS_TRANSLATION] Time's up! Better luck next time.",
+      "wordAssociationLong": "[NEEDS_TRANSLATION] Amazing chain of {count} words!",
+      "wordAssociationShort": "[NEEDS_TRANSLATION] Nice word chain!",
+      "storyBuilderLong": "[NEEDS_TRANSLATION] Epic tale complete!",
+      "storyBuilderShort": "[NEEDS_TRANSLATION] Story complete!",
+      "wouldYouRatherLong": "[NEEDS_TRANSLATION] Great choices revealed!",
+      "wouldYouRatherShort": "[NEEDS_TRANSLATION] Interesting choices!",
+      "threeWordDay": "[NEEDS_TRANSLATION] Your three words captured. Time for reflection.",
+      "headlineWriter": "[NEEDS_TRANSLATION] Future headlines written! What story awaits?",
+      "emojiStory": "[NEEDS_TRANSLATION] Your emoji story is complete!",
+      "valuesCardSortLong": "[NEEDS_TRANSLATION] Your core values identified!",
+      "valuesCardSortShort": "[NEEDS_TRANSLATION] Values exploration complete.",
+      "oneWordCheckin": "[NEEDS_TRANSLATION] Check-in complete. How do you feel now?",
+      "tinyWinTrackerMultiple": "[NEEDS_TRANSLATION] {wins} wins celebrated! Keep going.",
+      "tinyWinTrackerDefault": "[NEEDS_TRANSLATION] Session complete!",
+      "fortuneCookie": "[NEEDS_TRANSLATION] May your fortune guide you.",
+      "gameDefault": "[NEEDS_TRANSLATION] Game complete!"
+    },
+    "inProgressMessages": {
+      "ticTacToeWaiting": "[NEEDS_TRANSLATION] Waiting for game to start...",
+      "ticTacToeDraw": "[NEEDS_TRANSLATION] It's a draw!",
+      "ticTacToeWin": "[NEEDS_TRANSLATION] You won!",
+      "ticTacToeLose": "[NEEDS_TRANSLATION] Ferni won!",
+      "ticTacToeTurnYou": "[NEEDS_TRANSLATION] Your turn",
+      "ticTacToeTurnFerni": "[NEEDS_TRANSLATION] Ferni's turn",
+      "twentyQuestionsHint": "[NEEDS_TRANSLATION] Ask yes/no questions to guess what Ferni is thinking of!",
+      "twentyQuestionsNoAnswers": "[NEEDS_TRANSLATION] No questions asked yet",
+      "wordAssociationHint": "[NEEDS_TRANSLATION] Say a word related to the previous one!",
+      "wordAssociationWaiting": "[NEEDS_TRANSLATION] Waiting for the first word...",
+      "wordAssociationEmpty": "[NEEDS_TRANSLATION] Chain is empty",
+      "wordAssociationTurnYou": "[NEEDS_TRANSLATION] Your turn!",
+      "wordAssociationTurnFerni": "[NEEDS_TRANSLATION] Ferni's turn...",
+      "wordAssociationTurnCount": "[NEEDS_TRANSLATION] (Turn {count})",
+      "storyBuilderHint": "[NEEDS_TRANSLATION] Build a story together! Take turns adding to the narrative.",
+      "storyBuilderDefaultChapter": "[NEEDS_TRANSLATION] Chapter 1",
+      "storyBuilderEmpty": "[NEEDS_TRANSLATION] Story is just beginning...",
+      "storyBuilderChapter": "[NEEDS_TRANSLATION] Chapter {chapter}",
+      "storyBuilderChapterWithGenre": "[NEEDS_TRANSLATION] Chapter {chapter} | {genre}",
+      "storyBuilderTurnYou": "[NEEDS_TRANSLATION] Your turn to add to the story!",
+      "storyBuilderTurnFerni": "[NEEDS_TRANSLATION] Ferni's turn...",
+      "wouldYouRatherOptionA": "[NEEDS_TRANSLATION] Option A will appear here",
+      "wouldYouRatherOptionB": "[NEEDS_TRANSLATION] Option B will appear here",
+      "wouldYouRatherOr": "[NEEDS_TRANSLATION] or",
+      "wouldYouRatherWaiting": "[NEEDS_TRANSLATION] Waiting for question...",
+      "wouldYouRatherRound": "[NEEDS_TRANSLATION] Round {round}",
+      "threeWordDayHint": "[NEEDS_TRANSLATION] Think of three words to describe your day...",
+      "threeWordDayComplete": "[NEEDS_TRANSLATION] Reflection complete",
+      "threeWordDayExploring": "[NEEDS_TRANSLATION] Exploring word {phase} of {total}",
+      "threeWordDayShare": "[NEEDS_TRANSLATION] Share your three words...",
+      "headlineWriterHint": "[NEEDS_TRANSLATION] Write a headline about your future...",
+      "headlineWriterCurrentTimeframe": "[NEEDS_TRANSLATION] Writing for: {timeframe}",
+      "headlineWriterThinking": "[NEEDS_TRANSLATION] Thinking about the future...",
+      "emojiStoryHint": "[NEEDS_TRANSLATION] Tell your story with emojis...",
+      "emojiStoryComplete": "[NEEDS_TRANSLATION] Story complete!",
+      "emojiStoryInterpreting": "[NEEDS_TRANSLATION] Interpreting your story...",
+      "emojiStoryShare": "[NEEDS_TRANSLATION] Share your emojis...",
+      "valuesCardSortHint": "[NEEDS_TRANSLATION] Discover your core values...",
+      "valuesCardSortComplete": "[NEEDS_TRANSLATION] Top values: {values}",
+      "valuesCardSortRanking": "[NEEDS_TRANSLATION] Ranking your top values...",
+      "valuesCardSortNarrowing": "[NEEDS_TRANSLATION] Narrowing down from {count} important values",
+      "valuesCardSortMarked": "[NEEDS_TRANSLATION] {count} marked as important",
+      "oneWordCheckinHint": "[NEEDS_TRANSLATION] One word to describe how you feel...",
+      "oneWordCheckinComplete": "[NEEDS_TRANSLATION] Check-in complete",
+      "oneWordCheckinExploring": "[NEEDS_TRANSLATION] Exploring what that means...",
+      "oneWordCheckinShare": "[NEEDS_TRANSLATION] Share one word...",
+      "tinyWinTrackerHint": "[NEEDS_TRANSLATION] Celebrate your small victories...",
+      "tinyWinTrackerCelebrating": "[NEEDS_TRANSLATION] Celebrating your wins!",
+      "tinyWinTrackerCaptured": "[NEEDS_TRANSLATION] {count} wins captured",
+      "fortuneCookieHint": "[NEEDS_TRANSLATION] Opening your fortune...",
+      "fortuneCookieFortuneText": "[NEEDS_TRANSLATION] \"{fortune}\"",
+      "fortuneCookieComplete": "[NEEDS_TRANSLATION] Fortune reflected upon",
+      "fortuneCookieReflecting": "[NEEDS_TRANSLATION] Reflecting on your fortune...",
+      "fortuneCookieReceiving": "[NEEDS_TRANSLATION] Receiving your fortune..."
+    },
+    "abandonedState": {
+      "title": "[NEEDS_TRANSLATION] Game ended early",
+      "subtitle": "[NEEDS_TRANSLATION] You can start a new game anytime!"
+    },
+    "connectionMessages": {
+      "error": "[NEEDS_TRANSLATION] Connection lost. Game state may be stale.",
+      "warning": "[NEEDS_TRANSLATION] No updates received. Game state may be outdated."
+    },
+    "ariaLabels": {
+      "gameBoard": "[NEEDS_TRANSLATION] Game board",
+      "ticTacToeBoard": "[NEEDS_TRANSLATION] Tic-tac-toe board",
+      "answerHistory": "[NEEDS_TRANSLATION] Answer history",
+      "wordChain": "[NEEDS_TRANSLATION] Word chain",
+      "storyContent": "[NEEDS_TRANSLATION] Story content",
+      "currentChapter": "[NEEDS_TRANSLATION] Current story chapter",
+      "wouldYouRatherOptions": "[NEEDS_TRANSLATION] Would you rather options",
+      "wordsDayDescription": "[NEEDS_TRANSLATION] Words describing your day",
+      "emojisStory": "[NEEDS_TRANSLATION] Emojis in your story",
+      "wordsCount": "[NEEDS_TRANSLATION] {count, plural, one {# word} other {# words}}"
+    }
+  },
+  "ceoCoaching": {
+    "dashboardTitle": "[NEEDS_TRANSLATION] CEO Dashboard",
+    "dashboardAriaLabel": "[NEEDS_TRANSLATION] CEO Coaching Dashboard",
+    "closeButton": "[NEEDS_TRANSLATION] Close dashboard",
+    "loading": "[NEEDS_TRANSLATION] Loading your progress...",
+    "energyThisWeek": "[NEEDS_TRANSLATION] Energy This Week",
+    "recentWins": "[NEEDS_TRANSLATION] Recent Wins",
+    "noEnergyData": "[NEEDS_TRANSLATION] No energy data yet",
+    "trackEnergyHint": "[NEEDS_TRANSLATION] Say \"My energy is 7 today\" to start tracking",
+    "noWinsYet": "[NEEDS_TRANSLATION] No wins yet",
+    "logWinHint": "[NEEDS_TRANSLATION] Say \"I just shipped v2!\" to log a win",
+    "priorities": "[NEEDS_TRANSLATION] 🎯 Top Priorities",
+    "gratitude": "[NEEDS_TRANSLATION] 🙏 Gratitude",
+    "noActivePriorities": "[NEEDS_TRANSLATION] No active priorities",
+    "noGratitudeLogged": "[NEEDS_TRANSLATION] No gratitude logged this week",
+    "insights": "[NEEDS_TRANSLATION] 💡 Insights",
+    "energyUpMessage": "[NEEDS_TRANSLATION] ⚡ Energy up from {previousWeek} to {thisWeek} - great momentum!",
+    "energyLowMessage": "[NEEDS_TRANSLATION] 💤 Energy averaging {level} - consider scheduling recovery time",
+    "bestEnergyDayMessage": "[NEEDS_TRANSLATION] 📅 Best energy typically on {day}s",
+    "topWinCategoryMessage": "[NEEDS_TRANSLATION] 🏆 Most wins in: {category}",
+    "winStreakMessage": "[NEEDS_TRANSLATION] 🔥 {streak}-day win streak! Keep it going!",
+    "insightsEmpty": "[NEEDS_TRANSLATION] Insights will appear as you log more data"
+  },
+  "patternInsights": {
+    "title": "[NEEDS_TRANSLATION] Your Patterns",
+    "subtitle": "[NEEDS_TRANSLATION] Insights from our conversations",
+    "welcome": "[NEEDS_TRANSLATION] I'm learning your rhythms",
+    "welcomeDescription": "[NEEDS_TRANSLATION] After a few more conversations, I'll show you patterns that might surprise you.",
+    "expand": "[NEEDS_TRANSLATION] Expand",
+    "collapse": "[NEEDS_TRANSLATION] Collapse",
+    "trendLabel": "[NEEDS_TRANSLATION] Trend: {trend}"
+  },
+  "growthJournal": {
+    "title": "[NEEDS_TRANSLATION] Your Growth Journal",
+    "subtitle": "[NEEDS_TRANSLATION] Observations from our conversations",
+    "closeLabel": "[NEEDS_TRANSLATION] Close journal",
+    "welcomeTitle": "[NEEDS_TRANSLATION] Your journey begins",
+    "welcomeContent": "[NEEDS_TRANSLATION] I'm excited to get to know you. As we talk, I'll notice patterns and growth that you might not see yourself. This journal will fill with observations about your journey.",
+    "today": "[NEEDS_TRANSLATION] Today",
+    "yesterday": "[NEEDS_TRANSLATION] Yesterday",
+    "daysAgo": "[NEEDS_TRANSLATION] {count} days ago"
+  },
+  "knowledgeQuiz": {
+    "title": "[NEEDS_TRANSLATION] How Well Do You Know Me?",
+    "subtitle": "[NEEDS_TRANSLATION] A celebration of our growing friendship",
+    "closeLabel": "[NEEDS_TRANSLATION] Close quiz",
+    "ariaLabel": "[NEEDS_TRANSLATION] How Well Do You Know Me Quiz",
+    "progressText": "[NEEDS_TRANSLATION] Question {current} of {total}",
+    "defaultCategory": "[NEEDS_TRANSLATION] About You",
+    "scoreLabel": "[NEEDS_TRANSLATION] memories matched",
+    "doneButton": "[NEEDS_TRANSLATION] Thanks for playing!",
+    "categoryPreferences": "[NEEDS_TRANSLATION] Your Favorites",
+    "categoryMemories": "[NEEDS_TRANSLATION] Shared Memories",
+    "categoryGoals": "[NEEDS_TRANSLATION] Your Dreams",
+    "categoryPersonality": "[NEEDS_TRANSLATION] Who You Are",
+    "categoryFunFacts": "[NEEDS_TRANSLATION] Fun Facts",
+    "defaultQuestion1": "[NEEDS_TRANSLATION] What's one thing you enjoy doing when you need to unwind?",
+    "defaultOption1A": "[NEEDS_TRANSLATION] Reading a book",
+    "defaultOption1B": "[NEEDS_TRANSLATION] Taking a walk",
+    "defaultOption1C": "[NEEDS_TRANSLATION] Listening to music",
+    "defaultOption1D": "[NEEDS_TRANSLATION] Watching something",
+    "defaultHint1": "[NEEDS_TRANSLATION] We're still getting to know each other!",
+    "defaultQuestion2": "[NEEDS_TRANSLATION] How do you typically start your mornings?",
+    "defaultOption2A": "[NEEDS_TRANSLATION] Coffee first",
+    "defaultOption2B": "[NEEDS_TRANSLATION] Exercise",
+    "defaultOption2C": "[NEEDS_TRANSLATION] Easing into it slowly",
+    "defaultOption2D": "[NEEDS_TRANSLATION] Diving right into work",
+    "defaultHint2": "[NEEDS_TRANSLATION] I'm curious to learn!",
+    "resultMessageHigh": "[NEEDS_TRANSLATION] We really know each other!",
+    "resultMessageMedium": "[NEEDS_TRANSLATION] We're building something special",
+    "resultMessageLow": "[NEEDS_TRANSLATION] Every conversation helps me know you better",
+    "warmMessageHigh": "[NEEDS_TRANSLATION] Our friendship has grown so much. I cherish every conversation we've had.",
+    "warmMessageMedium": "[NEEDS_TRANSLATION] I'm learning more about you every time we talk. Thank you for sharing.",
+    "warmMessageLow": "[NEEDS_TRANSLATION] I can't wait to learn more about you. Every chat helps our friendship grow."
+  },
+  "activity": {
+    "title": "[NEEDS_TRANSLATION] Activity",
+    "loading": "[NEEDS_TRANSLATION] Loading activity...",
+    "closeLabel": "[NEEDS_TRANSLATION] Close activity panel",
+    "filterLabel": "[NEEDS_TRANSLATION] Filter by action type",
+    "offline": "[NEEDS_TRANSLATION] You're offline. Showing cached data.",
+    "error": "[NEEDS_TRANSLATION] Couldn't load activity. Try again?",
+    "actionCall": "[NEEDS_TRANSLATION] Call",
+    "actionText": "[NEEDS_TRANSLATION] Text",
+    "actionEmail": "[NEEDS_TRANSLATION] Email",
+    "actionCalendar": "[NEEDS_TRANSLATION] Calendar",
+    "actionReminder": "[NEEDS_TRANSLATION] Reminder",
+    "statusPending": "[NEEDS_TRANSLATION] Pending",
+    "statusInProgress": "[NEEDS_TRANSLATION] In Progress",
+    "statusCompleted": "[NEEDS_TRANSLATION] Completed",
+    "statusFailed": "[NEEDS_TRANSLATION] Failed",
+    "statusCancelled": "[NEEDS_TRANSLATION] Cancelled"
+  },
+  "memoryLane": {
+    "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
+    "title": "[NEEDS_TRANSLATION] Memory Lane",
+    "closeLabel": "[NEEDS_TRANSLATION] Close",
+    "loading": "[NEEDS_TRANSLATION] Loading memories...",
+    "loadingShort": "[NEEDS_TRANSLATION] Loading...",
+    "tabHighlights": "[NEEDS_TRANSLATION] Highlights",
+    "tabOnThisDay": "[NEEDS_TRANSLATION] On This Day",
+    "tabTimeline": "[NEEDS_TRANSLATION] Timeline",
+    "emptyOnThisDay": "[NEEDS_TRANSLATION] No memories on this day",
+    "emptyOnThisDaySubtext": "[NEEDS_TRANSLATION] Check back on another date!",
+    "withPersona": "[NEEDS_TRANSLATION] with {personaName}",
+    "loveLabel": "[NEEDS_TRANSLATION] Love this memory",
+    "loveTitle": "[NEEDS_TRANSLATION] Love",
+    "dismissLabel": "[NEEDS_TRANSLATION] Dismiss this memory",
+    "dismissTitle": "[NEEDS_TRANSLATION] Not for me",
+    "earlierThisYear": "[NEEDS_TRANSLATION] Earlier this year",
+    "toastLoved": "[NEEDS_TRANSLATION] Loved!",
+    "toastDismissed": "[NEEDS_TRANSLATION] Got it",
+    "toastError": "[NEEDS_TRANSLATION] Couldn't save that"
+  },
+  "agentPageBuilder": {
+    "stepAgent": "[NEEDS_TRANSLATION] Agent",
+    "stepBrand": "[NEEDS_TRANSLATION] Brand",
+    "stepVoice": "[NEEDS_TRANSLATION] Voice",
+    "stepPreview": "[NEEDS_TRANSLATION] Deploy",
+    "descAgent": "[NEEDS_TRANSLATION] Tell us about your agent",
+    "descBrand": "[NEEDS_TRANSLATION] Choose your colors",
+    "descVoice": "[NEEDS_TRANSLATION] Add a custom voice (optional)",
+    "descPreview": "[NEEDS_TRANSLATION] Review and launch",
+    "colorVanguardRed": "[NEEDS_TRANSLATION] Vanguard Red",
+    "colorForestGreen": "[NEEDS_TRANSLATION] Forest Green",
+    "colorOceanBlue": "[NEEDS_TRANSLATION] Ocean Blue",
+    "colorRoyalPurple": "[NEEDS_TRANSLATION] Royal Purple",
+    "colorSunsetOrange": "[NEEDS_TRANSLATION] Sunset Orange",
+    "colorSlateGray": "[NEEDS_TRANSLATION] Slate Gray",
+    "errorAudioFormat": "[NEEDS_TRANSLATION] Use MP3, WAV, or M4A format",
+    "errorAudioSize": "[NEEDS_TRANSLATION] File too large (max 50MB)",
+    "successAudioAdded": "[NEEDS_TRANSLATION] Audio file added",
+    "errorMissingFields": "[NEEDS_TRANSLATION] Fill in required fields",
+    "errorMissingUrl": "[NEEDS_TRANSLATION] Enter a URL",
+    "successDeployed": "[NEEDS_TRANSLATION] Page deployed!"
+  },
+  "workerDashboard": {
+    "toastRefreshEnabled": "[NEEDS_TRANSLATION] Auto-refresh enabled",
+    "toastRefreshDisabled": "[NEEDS_TRANSLATION] Auto-refresh disabled",
+    "toggleRefresh": "[NEEDS_TRANSLATION] Toggle auto-refresh",
+    "refreshNow": "[NEEDS_TRANSLATION] Refresh now",
+    "flushEvents": "[NEEDS_TRANSLATION] Flush all pending async events",
+    "toastFlushed": {
+      "one": "[NEEDS_TRANSLATION] Flushed {count} event",
+      "other": "[NEEDS_TRANSLATION] Flushed {count} events"
+    },
+    "errorFlush": "[NEEDS_TRANSLATION] Couldn't flush events"
+  },
+  "bookmark": {
+    "momentSaved": "[NEEDS_TRANSLATION] Moment saved"
+  },
+  "contextualFeedback": {
+    "ariaLabel": "[NEEDS_TRANSLATION] How was that?",
+    "reactions": {
+      "resonated": "[NEEDS_TRANSLATION] This landed",
+      "helpful": "[NEEDS_TRANSLATION] Helpful",
+      "tooMuch": "[NEEDS_TRANSLATION] Too much",
+      "offTrack": "[NEEDS_TRANSLATION] Off track"
+    },
+    "skipButton": "[NEEDS_TRANSLATION] Skip"
+  },
+  "ferniBirthday": {
+    "message1": "[NEEDS_TRANSLATION] It's Ferni's birthday! Thank you for being here.",
+    "message2": "[NEEDS_TRANSLATION] Ferni turns another year wiser today!",
+    "message3": "[NEEDS_TRANSLATION] Happy Birthday, Ferni! Here's to growing together.",
+    "message4": "[NEEDS_TRANSLATION] Today's special - it's Ferni's birthday!",
+    "partyModeActivated": "[NEEDS_TRANSLATION] Party mode activated!"
+  },
+  "ferniKnows": {
+    "panelTitle": "[NEEDS_TRANSLATION] What Ferni Knows",
+    "panelSubtitle": "[NEEDS_TRANSLATION] Everything I've learned about you",
+    "aboutYou": "[NEEDS_TRANSLATION] About You",
+    "people": "[NEEDS_TRANSLATION] People",
+    "preferences": "[NEEDS_TRANSLATION] Preferences",
+    "goals": "[NEEDS_TRANSLATION] Goals",
+    "commitments": "[NEEDS_TRANSLATION] Commitments",
+    "milestones": "[NEEDS_TRANSLATION] Milestones",
+    "emotionalPatterns": "[NEEDS_TRANSLATION] Emotional Patterns",
+    "sourceExplicit": "[NEEDS_TRANSLATION] You told me",
+    "sourceInferred": "[NEEDS_TRANSLATION] I noticed",
+    "correctButton": "[NEEDS_TRANSLATION] Correct",
+    "memoriesCount": "[NEEDS_TRANSLATION] {count} memories",
+    "confidence": "[NEEDS_TRANSLATION] {confidence}% confident"
+  },
+  "memoryCorrection": {
+    "modalTitle": "[NEEDS_TRANSLATION] Correct This Memory",
+    "modalSubtitle": "[NEEDS_TRANSLATION] Help me understand what's not quite right",
+    "currentMemory": "[NEEDS_TRANSLATION] What I thought:",
+    "correctionTypeLabel": "[NEEDS_TRANSLATION] What's the issue?",
+    "wrongLabel": "[NEEDS_TRANSLATION] This is wrong",
+    "wrongDescription": "[NEEDS_TRANSLATION] This information is incorrect",
+    "outdatedLabel": "[NEEDS_TRANSLATION] This is outdated",
+    "outdatedDescription": "[NEEDS_TRANSLATION] This was true before, but not anymore",
+    "partialLabel": "[NEEDS_TRANSLATION] This is partially correct",
+    "partialDescription": "[NEEDS_TRANSLATION] Some parts are right, some need fixing",
+    "misattributedLabel": "[NEEDS_TRANSLATION] Wrong person/topic",
+    "misattributedDescription": "[NEEDS_TRANSLATION] This is about someone or something else",
+    "deleteLabel": "[NEEDS_TRANSLATION] Please forget this",
+    "deleteDescription": "[NEEDS_TRANSLATION] I'd prefer you don't remember this",
+    "correctedContentLabel": "[NEEDS_TRANSLATION] What's correct?",
+    "correctedContentPlaceholder": "[NEEDS_TRANSLATION] Enter the correct information...",
+    "explanationLabel": "[NEEDS_TRANSLATION] Anything else? (optional)",
+    "explanationPlaceholder": "[NEEDS_TRANSLATION] Help me understand what happened...",
+    "cancelButton": "[NEEDS_TRANSLATION] Cancel",
+    "submitButton": "[NEEDS_TRANSLATION] Submit Correction"
+  },
+  "memoryThreads": {
+    "panelTitle": "[NEEDS_TRANSLATION] Memory Threads",
+    "emptyState": "[NEEDS_TRANSLATION] Select a thread to visualize",
+    "connectedMemories": "[NEEDS_TRANSLATION] {count} connected memories",
+    "recentActivityTitle": "[NEEDS_TRANSLATION] Recent Activity",
+    "confidence": "[NEEDS_TRANSLATION] Confidence: {confidence}%"
+  },
+  "memoryFeedback": {
+    "ariaLabel": "[NEEDS_TRANSLATION] Was this memory helpful?",
+    "label": "[NEEDS_TRANSLATION] Was this helpful?",
+    "helpfulAriaLabel": "[NEEDS_TRANSLATION] This memory was helpful",
+    "notHelpfulAriaLabel": "[NEEDS_TRANSLATION] This memory was not helpful",
+    "dismissAriaLabel": "[NEEDS_TRANSLATION] Dismiss",
+    "thankYou": "[NEEDS_TRANSLATION] Thanks!"
   }
 }
