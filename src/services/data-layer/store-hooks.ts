@@ -13,7 +13,8 @@
 import { embed } from '../../memory/embeddings.js';
 import { getFirestoreVectorStore } from '../../memory/firestore-vector-store/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getEntityPolicy, getIndexingPolicy, shouldIndex } from './indexing-policy.js';
+import { getIndexingPolicy, shouldIndex } from './indexing-policy.js';
+import { enforceMaxPerUser, forgetIndexedDoc } from './max-per-user.js';
 import { trackIndexingError, trackIndexingOperation } from './observability.js';
 import type { ChangeType, EntityType, StoreChangeEvent } from './types.js';
 
@@ -68,69 +69,6 @@ export function resetMetrics(): void {
   skippedCount = 0;
   errorCount = 0;
   lastFlushTime = undefined;
-}
-
-/**
- * Enforce maxPerUser limits for an entity type
- * Deletes oldest documents if limit is exceeded
- */
-async function enforceMaxPerUser(
-  vectorStore: ReturnType<typeof getFirestoreVectorStore>,
-  userId: string,
-  entityType: EntityType
-): Promise<void> {
-  const policy = getEntityPolicy(entityType);
-  const maxPerUser = policy?.conditions?.maxPerUser;
-
-  // No limit configured, skip enforcement
-  if (!maxPerUser || maxPerUser <= 0) {
-    return;
-  }
-
-  try {
-    // Query existing documents for this user + entity type
-    // Use list() instead of search('') to avoid empty embedding error
-    const allDocs = await vectorStore.list({ userId });
-
-    // Filter client-side for entityType since list() doesn't support metadata filters
-    const existingDocs = allDocs.filter((doc) => doc.metadata?.entityType === entityType);
-
-    // If under limit, no action needed
-    if (existingDocs.length < maxPerUser) {
-      return;
-    }
-
-    // Sort by indexedAt (oldest first) and delete excess
-    const toDelete = existingDocs
-      .sort((a, b) => {
-        const aTime = (a.metadata?.indexedAt as string) || '';
-        const bTime = (b.metadata?.indexedAt as string) || '';
-        return aTime.localeCompare(bTime);
-      })
-      .slice(0, existingDocs.length - maxPerUser + 1) // Keep room for the new one
-      .map((doc) => doc.id);
-
-    // Delete oldest documents
-    for (const docId of toDelete) {
-      if (docId) {
-        await vectorStore.removeDocument(docId);
-        log.debug(
-          { userId, entityType, docId },
-          '🧹 Removed old document to enforce maxPerUser limit'
-        );
-      }
-    }
-
-    if (toDelete.length > 0) {
-      log.info(
-        { userId, entityType, removed: toDelete.length, limit: maxPerUser },
-        '📊 maxPerUser limit enforced'
-      );
-    }
-  } catch (error) {
-    // Log but don't fail - this is a best-effort cleanup
-    log.debug({ userId, entityType, error: String(error) }, 'maxPerUser enforcement skipped');
-  }
 }
 
 /**
@@ -237,6 +175,7 @@ async function processChange(key: string): Promise<void> {
     if (event.changeType === 'delete') {
       try {
         await vectorStore.removeDocument(docId);
+        forgetIndexedDoc(event.userId, event.entityType, docId);
         const durationMs = Date.now() - startTime;
         trackIndexingOperation(
           event.entityType as EntityType,
@@ -266,7 +205,7 @@ async function processChange(key: string): Promise<void> {
     }
 
     // Enforce maxPerUser limits
-    await enforceMaxPerUser(vectorStore, event.userId, event.entityType as EntityType);
+    await enforceMaxPerUser(vectorStore, event.userId, event.entityType as EntityType, docId);
 
     // Generate embedding
     const embedding = await embed(event.content);
