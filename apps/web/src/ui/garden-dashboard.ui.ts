@@ -12,7 +12,8 @@ import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { toast } from './whisper.ui.js';
 import { openReferral } from './referral.ui.js';
-import { t } from '../i18n/index.js';
+import { formatNumber, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import {
   getReferralUrl,
   getGardenStats,
@@ -81,12 +82,24 @@ const GARDEN_ICONS: Record<GardenStats['gardenTitle'], string> = {
 };
 
 /** Garden title labels */
-const GARDEN_LABELS: Record<GardenStats['gardenTitle'], string> = {
-  'seedling': 'Seedling',
-  'gardener': 'Gardener',
-  'grove-keeper': 'Grove Keeper',
-  'forest-guardian': 'Forest Guardian',
-};
+function gardenLabel(title: GardenStats['gardenTitle']): string {
+  return {
+    'seedling': t('gardenDashboard.titleSeedling'),
+    'gardener': t('gardenDashboard.titleGardener'),
+    'grove-keeper': t('gardenDashboard.titleGroveKeeper'),
+    'forest-guardian': t('gardenDashboard.titleForestGuardian'),
+  }[title];
+}
+
+/** Growth tiers: minimum referrals and their localized requirement text */
+function gardenTiers(): { title: GardenStats['gardenTitle']; min: number; req: string }[] {
+  return [
+    { title: 'seedling', min: 1, req: t('gardenDashboard.tierReqSeedling') },
+    { title: 'gardener', min: 3, req: t('gardenDashboard.tierReqGardener') },
+    { title: 'grove-keeper', min: 6, req: t('gardenDashboard.tierReqGroveKeeper') },
+    { title: 'forest-guardian', min: 11, req: t('gardenDashboard.tierReqForestGuardian') },
+  ];
+}
 
 // ============================================================================
 // STATE
@@ -138,7 +151,7 @@ function createModal(): void {
   modal = document.createElement('div');
   modal.className = 'garden-dashboard-modal';
   modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-label', 'Your garden');
+  modal.setAttribute('aria-label', t('gardenDashboard.ariaLabel'));
 
   renderModalContent();
   injectStyles();
@@ -179,23 +192,23 @@ function renderModalContent(): void {
         <div class="garden-title-icon">
           ${GARDEN_ICONS[stats.gardenTitle]}
         </div>
-        <h2 class="garden-title">Your Garden</h2>
-        <p class="garden-subtitle">${GARDEN_LABELS[stats.gardenTitle]}</p>
+        <h2 class="garden-title">${t('gardenDashboard.title')}</h2>
+        <p class="garden-subtitle">${gardenLabel(stats.gardenTitle)}</p>
       </div>
 
       <!-- Stats Grid -->
       <div class="garden-stats">
         <div class="garden-stat">
           <span class="garden-stat-value">${stats.totalReferrals}</span>
-          <span class="garden-stat-label">Friends Referred</span>
+          <span class="garden-stat-label">${t('gardenDashboard.friendsReferred')}</span>
         </div>
         <div class="garden-stat">
           <span class="garden-stat-value">${stats.activeReferrals}</span>
-          <span class="garden-stat-label">Active This Week</span>
+          <span class="garden-stat-label">${t('gardenDashboard.activeThisWeek')}</span>
         </div>
         <div class="garden-stat garden-stat--highlight">
           <span class="garden-stat-value">+${stats.weeklyPassiveSeeds}</span>
-          <span class="garden-stat-label">Seeds/Week</span>
+          <span class="garden-stat-label">${t('gardenDashboard.seedsPerWeek')}</span>
         </div>
       </div>
 
@@ -203,38 +216,24 @@ function renderModalContent(): void {
       <div class="garden-earned">
         <span class="garden-earned-icon">${ICONS.seed}</span>
         <div class="garden-earned-text">
-          <strong>${totalSeeds.toLocaleString()}</strong>
-          <span>seeds earned from sharing</span>
+          <strong>${formatNumber(totalSeeds)}</strong>
+          <span>${tp('gardenDashboard.seedsEarned', totalSeeds)}</span>
         </div>
       </div>
 
       <!-- Growth Tiers -->
       <div class="garden-tiers">
-        <div class="garden-tier ${stats.gardenTitle === 'seedling' ? 'garden-tier--active' : stats.totalReferrals >= 1 ? 'garden-tier--complete' : ''}">
-          <span class="garden-tier-icon">${stats.totalReferrals >= 1 ? ICONS.check : ''}</span>
-          <span class="garden-tier-name">Seedling</span>
-          <span class="garden-tier-req">1-2 friends</span>
-        </div>
-        <div class="garden-tier ${stats.gardenTitle === 'gardener' ? 'garden-tier--active' : stats.totalReferrals >= 3 ? 'garden-tier--complete' : ''}">
-          <span class="garden-tier-icon">${stats.totalReferrals >= 3 ? ICONS.check : ''}</span>
-          <span class="garden-tier-name">Gardener</span>
-          <span class="garden-tier-req">3-5 friends</span>
-        </div>
-        <div class="garden-tier ${stats.gardenTitle === 'grove-keeper' ? 'garden-tier--active' : stats.totalReferrals >= 6 ? 'garden-tier--complete' : ''}">
-          <span class="garden-tier-icon">${stats.totalReferrals >= 6 ? ICONS.check : ''}</span>
-          <span class="garden-tier-name">Grove Keeper</span>
-          <span class="garden-tier-req">6-10 friends</span>
-        </div>
-        <div class="garden-tier ${stats.gardenTitle === 'forest-guardian' ? 'garden-tier--active' : stats.totalReferrals >= 11 ? 'garden-tier--complete' : ''}">
-          <span class="garden-tier-icon">${stats.totalReferrals >= 11 ? ICONS.check : ''}</span>
-          <span class="garden-tier-name">Forest Guardian</span>
-          <span class="garden-tier-req">11+ friends</span>
-        </div>
+        ${gardenTiers().map((tier) => `
+        <div class="garden-tier ${stats.gardenTitle === tier.title ? 'garden-tier--active' : stats.totalReferrals >= tier.min ? 'garden-tier--complete' : ''}">
+          <span class="garden-tier-icon">${stats.totalReferrals >= tier.min ? ICONS.check : ''}</span>
+          <span class="garden-tier-name">${gardenLabel(tier.title)}</span>
+          <span class="garden-tier-req">${tier.req}</span>
+        </div>`).join('')}
       </div>
 
       <!-- Referral Link -->
       <div class="garden-link">
-        <span class="garden-link-label">Your link:</span>
+        <span class="garden-link-label">${t('referral.yourLink')}</span>
         <span class="garden-link-url">${shortUrl}</span>
         <button aria-label="${t('accessibility.copy')}" class="garden-link-copy" data-action="copy">
           ${ICONS.copy}
@@ -245,15 +244,15 @@ function renderModalContent(): void {
       <div class="garden-actions" role="button" tabindex="0">
         <button aria-label="${t('accessibility.share')}" class="garden-action garden-action--primary" data-action="invite">
           ${ICONS.share}
-          <span>Invite Friends</span>
+          <span>${t('gardenDashboard.inviteFriends')}</span>
         </button>
       </div>
 
       <!-- Empty State -->
       ${stats.totalReferrals === 0 ? `
         <div class="garden-empty">
-          <p>Your garden is waiting to grow!</p>
-          <p class="garden-empty-sub">Share Ferni with friends and you'll both get 25 seeds.</p>
+          <p>${t('gardenDashboard.emptyTitle')}</p>
+          <p class="garden-empty-sub">${t('gardenDashboard.emptyHint')}</p>
         </div>
       ` : ''}
     </div>
@@ -279,7 +278,7 @@ function bindModalEvents(): void {
           copyBtn.innerHTML = ICONS.copy;
         }, 2000);
       } catch {
-        toast.error("Couldn't copy link");
+        toast.error(t('gardenDashboard.copyFailed'));
       }
     });
   }

@@ -19,7 +19,7 @@
  */
 
 import { DURATION } from '../config/animation-constants.js';
-import { t } from '../i18n/index.js';
+import { formatNumber, t } from '../i18n/index.js';
 import { roadmapService, STAGE_INFO } from '../services/roadmap.service.js';
 import {
   fetchFounderStats,
@@ -93,44 +93,44 @@ function prefersReducedMotion(): boolean {
 
 // Timeline milestones - honest about where we are
 // No fake dates, no manufactured history, no promised timelines
-const JOURNEY_MILESTONES: JourneyMilestone[] = [
+const getJourneyMilestones = (): JourneyMilestone[] => [
   {
     id: 'inception',
     date: '2024',
-    title: 'Started Building',
-    description: 'A small team asking: What if support was actually accessible?',
+    title: t('foundersJourney.milestones.inception.title'),
+    description: t('foundersJourney.milestones.inception.description'),
     type: 'past',
     icon: 'seed',
   },
   {
     id: 'ferni-born',
-    date: 'Late 2024',
-    title: 'First Version',
-    description: 'Voice conversations work. Six coaches exist. Still rough around the edges.',
+    date: t('foundersJourney.milestones.ferniBorn.date'),
+    title: t('foundersJourney.milestones.ferniBorn.title'),
+    description: t('foundersJourney.milestones.ferniBorn.description'),
     type: 'past',
     icon: 'sprout',
   },
   {
     id: 'now',
-    date: 'Now',
-    title: "You're Here",
-    description: "Early days. Lots to improve. Grateful you're giving us a shot.",
+    date: t('foundersJourney.milestones.now.date'),
+    title: t('foundersJourney.milestones.now.title'),
+    description: t('foundersJourney.milestones.now.description'),
     type: 'present',
     icon: 'heart',
   },
   {
     id: 'stability',
-    date: 'Next up',
-    title: 'Making It Solid',
-    description: 'Better voice quality, fewer bugs, faster responses. The basics, done well.',
+    date: t('foundersJourney.milestones.stability.date'),
+    title: t('foundersJourney.milestones.stability.title'),
+    description: t('foundersJourney.milestones.stability.description'),
     type: 'future',
     icon: 'check',
   },
   {
     id: 'features',
-    date: 'After that',
-    title: 'New Capabilities',
-    description: "We have ideas. We'll share them when they're ready, not before.",
+    date: t('foundersJourney.milestones.features.date'),
+    title: t('foundersJourney.milestones.features.title'),
+    description: t('foundersJourney.milestones.features.description'),
     type: 'future',
     icon: 'sparkles',
   },
@@ -442,7 +442,7 @@ function renderNowSection(): string {
       </div>
 
       <div class="founders-timeline">
-        ${JOURNEY_MILESTONES.filter((m) => m.type !== 'future')
+        ${getJourneyMilestones().filter((m) => m.type !== 'future')
           .map(
             (milestone) => `
           <div class="founders-timeline-item founders-timeline-item--${milestone.type}">
@@ -486,7 +486,7 @@ function renderFutureSection(): string {
       </div>
 
       <div class="founders-future-timeline">
-        ${JOURNEY_MILESTONES.filter((m) => m.type === 'future')
+        ${getJourneyMilestones().filter((m) => m.type === 'future')
           .map(
             (milestone) => `
           <div class="founders-timeline-item founders-timeline-item--future">
@@ -567,7 +567,7 @@ function renderImpactSection(): string {
         <div class="founders-impact-stat">
           <div class="founders-impact-stat-value" data-stat="founders" data-end="${founderCount}" data-format="number">${founderCount}</div>
           <div class="founders-impact-stat-label">${t('foundersJourney.impact.stats.founders')}</div>
-          ${newThisMonth > 0 ? `<div class="founders-impact-stat-live">+${newThisMonth} this month</div>` : ''}
+          ${newThisMonth > 0 ? `<div class="founders-impact-stat-live">${t('foundersJourney.impact.newThisMonth', { count: newThisMonth })}</div>` : ''}
         </div>
         <div class="founders-impact-stat">
           <div class="founders-impact-stat-value" data-stat="conversations" data-end="${conversationCount}" data-format="compact">${conversationCount}</div>
@@ -593,7 +593,7 @@ function renderImpactSection(): string {
           <div class="founders-milestone-fill" style="width: ${milestoneProgress}%"></div>
         </div>
         <div class="founders-milestone-meta">
-          <span>${nextMilestone.current.toLocaleString()} / ${nextMilestone.target.toLocaleString()}</span>
+          <span>${formatNumber(nextMilestone.current)} / ${formatNumber(nextMilestone.target)}</span>
           <span class="founders-milestone-reward">${nextMilestone.celebration}</span>
         </div>
       </div>
@@ -623,7 +623,7 @@ function renderImpactSection(): string {
           <div class="founders-stories-dots">
             ${stories.map((_, i) => `
               <button class="founders-stories-dot ${i === 0 ? 'founders-stories-dot--active' : ''}" 
-                      data-story-index="${i}" aria-label="Go to story ${i + 1}"></button>
+                      data-story-index="${i}" aria-label="${t('foundersJourney.impact.goToStory', { number: i + 1 })}"></button>
             `).join('')}
           </div>
           <button class="founders-stories-nav" data-action="next-story" aria-label="${t('accessibility.nextStory')}">
@@ -653,7 +653,7 @@ function renderPersonalImpactCard(impact: PersonalImpact): string {
       </div>
       <div class="founders-personal-stats">
         <div class="founders-personal-stat">
-          <span class="founders-personal-value">${impact.conversationsEnabled.toLocaleString()}</span>
+          <span class="founders-personal-value">${formatNumber(impact.conversationsEnabled)}</span>
           <span class="founders-personal-label">${t('foundersJourney.impact.personal.conversations')}</span>
         </div>
         <div class="founders-personal-stat">
@@ -763,13 +763,13 @@ function renderFounderTile(founder: Founder): string {
          style="--tile-bg: ${colors.bg}; --tile-border: ${colors.border}; --tile-text: ${colors.text}">
       <div class="founders-tile-avatar">
         ${founder.avatar 
-          ? `<img src="${founder.avatar}" alt="${founder.displayName || 'Anonymous'}" />`
+          ? `<img src="${founder.avatar}" alt="${founder.displayName || t('foundersJourney.founders.anonymous')}" />`
           : `<span class="founders-tile-initials">${founder.initials}</span>`
         }
-        ${founder.isEarlyBird ? `<span class="founders-tile-early" title="Early bird">⭐</span>` : ''}
+        ${founder.isEarlyBird ? `<span class="founders-tile-early" title="${t('foundersJourney.founders.earlyBird')}">⭐</span>` : ''}
       </div>
       <div class="founders-tile-info">
-        <span class="founders-tile-name">${founder.displayName || 'Anonymous'}</span>
+        <span class="founders-tile-name">${founder.displayName || t('foundersJourney.founders.anonymous')}</span>
         ${badgeInfo ? `
           <span class="founders-tile-badge" title="${badgeInfo.description}">
             ${badgeInfo.icon} ${badgeInfo.label}

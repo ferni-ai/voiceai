@@ -10,7 +10,8 @@ import { getModal, getEntries } from './state.js';
 import { calculateStats } from './stats.js';
 import { getMoodIcon, getMoodLabel, getMoodScore } from './mood-icons.js';
 import type { CustomAgentMemory } from '../../services/custom-agent.service.js';
-import { t } from '../../i18n/index.js';
+import { formatDate, formatNumber, t } from '../../i18n/index.js';
+import { tp } from '../../i18n/plural.js';
 
 // ============================================================================
 // MOOD TREND CALCULATION
@@ -58,8 +59,8 @@ function calculateMoodTrend(entries: CustomAgentMemory[]): MoodTrendData {
       avgMood = Array.from(moodCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
     }
 
-    const dayLabel = date.toLocaleDateString(undefined, { weekday: 'short' });
-    labels.push(i === 0 ? 'Today' : dayLabel);
+    const dayLabel = formatDate(date, { weekday: 'short' });
+    labels.push(i === 0 ? t('common.today') : dayLabel);
     scores.push(avgScore);
     moods.push(avgMood);
   }
@@ -92,14 +93,14 @@ function renderMoodTrendChart(entries: CustomAgentMemory[]): string {
       <div class="mood-bar" 
            data-label="${label}" 
            style="height: ${height}%; background: ${color};"
-           title="${label}: ${getMoodLabel(mood)} (${score.toFixed(1)}/10)">
+           title="${t('voiceJournal.moodBarTitle', { label, mood: getMoodLabel(mood), score: formatNumber(score, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}">
       </div>
     `;
   }).join('');
 
   return `
     <div class="mood-analytics">
-      <h4 class="mood-analytics-title">Mood Trend (Last 14 Days)</h4>
+      <h4 class="mood-analytics-title">${t('voiceJournal.moodTrendTitle')}</h4>
       <div class="mood-chart">
         ${bars}
       </div>
@@ -136,9 +137,9 @@ function getMoodColor(mood: string): string {
  */
 function renderMoodLegend(): string {
   const categories = [
-    { label: 'Positive', color: 'var(--color-semantic-success, #4a6741)' },
-    { label: 'Neutral', color: 'var(--color-text-muted, #888)' },
-    { label: 'Challenging', color: 'var(--color-semantic-error, #dc2626)' },
+    { label: t('voiceJournal.moodPositive'), color: 'var(--color-semantic-success, #4a6741)' },
+    { label: t('accessibility.neutral'), color: 'var(--color-text-muted, #888)' },
+    { label: t('voiceJournal.moodChallenging'), color: 'var(--color-semantic-error, #dc2626)' },
   ];
   
   return categories.map((cat) => `
@@ -171,10 +172,10 @@ export function renderInsights(): void {
             <line x1="12" y1="8" x2="12.01" y2="8"></line>
           </svg>
         </div>
-        <h3 class="insights-empty-title">More entries needed</h3>
-        <p class="insights-empty-text">Record at least 3 journal entries to start seeing insights about your patterns.</p>
+        <h3 class="insights-empty-title">${t('voiceJournal.moreEntriesNeeded')}</h3>
+        <p class="insights-empty-text">${t('voiceJournal.moreEntriesHint')}</p>
         <button aria-label="${t('accessibility.startJournaling')}" class="insights-cta" data-action="go-to-record">
-          Start journaling
+          ${t('accessibility.startJournaling')}
         </button>
       </div>
     `;
@@ -189,13 +190,13 @@ export function renderInsights(): void {
     const streakIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>`;
     insights.push({
       icon: streakIcon,
-      title: `${stats.currentStreak}-day streak!`,
+      title: tp('voiceJournal.streakTitle', stats.currentStreak),
       text:
         stats.currentStreak >= 7
-          ? "Incredible consistency! You've built a powerful habit."
+          ? t('voiceJournal.streakTextLong')
           : stats.currentStreak >= 3
-            ? "You're building momentum. Keep it up!"
-            : "Great start! Try to journal again tomorrow.",
+            ? t('voiceJournal.streakTextMid')
+            : t('voiceJournal.streakTextShort'),
     });
   }
 
@@ -205,12 +206,14 @@ export function renderInsights(): void {
     if (topMood) {
       insights.push({
         icon: getMoodIcon(topMood.mood),
-        title: `Most common: ${getMoodLabel(topMood.mood)}`,
-        text: `You've felt ${getMoodLabel(topMood.mood).toLowerCase()} ${topMood.count} times. ${
+        title: t('voiceJournal.topMoodTitle', { mood: getMoodLabel(topMood.mood) }),
+        text: tp(
           getMoodScore(topMood.mood) >= 7
-            ? "That's wonderful to see!"
-            : 'Notice any patterns in when this comes up?'
-        }`,
+            ? 'voiceJournal.topMoodTextPositive'
+            : 'voiceJournal.topMoodTextReflective',
+          topMood.count,
+          { mood: getMoodLabel(topMood.mood).toLocaleLowerCase() }
+        ),
       });
     }
   }
@@ -223,15 +226,15 @@ export function renderInsights(): void {
       const trendUpIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`;
       insights.push({
         icon: trendUpIcon,
-        title: 'Journaling more lately',
-        text: "Your journaling frequency has increased. You're developing a stronger reflection practice!",
+        title: t('voiceJournal.moreLatelyTitle'),
+        text: t('voiceJournal.moreLatelyText'),
       });
     } else if (recentActivity < olderActivity && olderActivity > 0) {
       const thoughtIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`;
       insights.push({
         icon: thoughtIcon,
-        title: 'Time for a check-in?',
-        text: "You've been journaling less recently. Even a quick voice note can help you stay connected to yourself.",
+        title: t('voiceJournal.lessLatelyTitle'),
+        text: t('voiceJournal.lessLatelyText'),
       });
     }
   }
@@ -243,13 +246,15 @@ export function renderInsights(): void {
       : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>`;
     insights.push({
       icon: sparkleIcon,
-      title: `Mood average: ${stats.avgMoodScore.toFixed(1)}/10`,
+      title: t('voiceJournal.moodAverageTitle', {
+        score: formatNumber(stats.avgMoodScore, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+      }),
       text:
         stats.avgMoodScore >= 7
-          ? "You're trending towards positive moods. Beautiful!"
+          ? t('voiceJournal.moodAverageHigh')
           : stats.avgMoodScore >= 5
-            ? 'A healthy mix of emotions. All feelings are valid.'
-            : "You've been navigating some tough emotions. Be gentle with yourself.",
+            ? t('voiceJournal.moodAverageMid')
+            : t('voiceJournal.moodAverageLow'),
     });
   }
 
@@ -258,8 +263,8 @@ export function renderInsights(): void {
 
   container.innerHTML = `
     <div class="insights-header">
-      <h3 class="insights-title">Your Journey So Far</h3>
-      <p class="insights-subtitle">Patterns from ${stats.totalEntries} journal entries</p>
+      <h3 class="insights-title">${t('voiceJournal.journeyTitle')}</h3>
+      <p class="insights-subtitle">${tp('voiceJournal.journeySubtitle', stats.totalEntries)}</p>
     </div>
     <div class="insights-grid">
       ${insights
