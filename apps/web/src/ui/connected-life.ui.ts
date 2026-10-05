@@ -8,6 +8,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 import { apiGet } from '../utils/api.js';
@@ -152,7 +153,6 @@ class ConnectedLifeUI {
 
       if (response.ok && response.data?.integrations) {
         const { integrations } = response.data;
-        
         // Map API response to our statuses
         if (integrations.biometrics?.connected) {
           // Determine which biometric platform is connected
@@ -304,13 +304,13 @@ class ConnectedLifeUI {
           status: this.integrationStatuses.googleCalendar,
           description: 'Events, meetings, and availability',
         },
-        {
+        ...(LINKEDIN_ENABLED ? [{ // no tile while LinkedIn is off (config/linkedin.ts)
           id: 'linkedin',
           name: t('menu.items.linkedin'),
           icon: ICONS.linkedin,
           status: this.integrationStatuses.linkedin,
           description: 'Professional context and network',
-        },
+        }] : []),
       ],
       vibe: [
         {
