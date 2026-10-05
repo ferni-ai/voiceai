@@ -112,7 +112,12 @@ function workerEntry(): string | URL {
   const dir = dirname(fileURLToPath(import.meta.url));
   const ts = join(dir, 'speaker-embedding-worker-thread.ts');
   if (!existsSync(ts)) return join(dir, 'speaker-embedding-worker-thread.js');
-  const tsxApi = pathToFileURL(createRequire(import.meta.url).resolve('tsx/esm/api')).href;
+  // require.resolve picks tsx's CommonJS entry, which loads an .mjs: fine on
+  // Node >= 22, "Cannot find module" on Node 20 (CI). Use the ESM build beside it,
+  // which is what tsx's own "import" export points at.
+  const cjsEntry = createRequire(import.meta.url).resolve('tsx/esm/api');
+  const esmEntry = cjsEntry.replace(/index\.cjs$/, 'index.mjs');
+  const tsxApi = pathToFileURL(existsSync(esmEntry) ? esmEntry : cjsEntry).href;
   const code =
     `import { register } from ${JSON.stringify(tsxApi)}; register();` +
     `await import(${JSON.stringify(pathToFileURL(ts).href)});`;

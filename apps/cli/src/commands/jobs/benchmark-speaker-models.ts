@@ -259,7 +259,7 @@ async function runBenchmark(verbose: boolean = false): Promise<BenchmarkResult> 
   // Check model availability
   const neuralAvailable = await isNeuralEmbeddingAvailable();
   const method = neuralAvailable ? 'neural' : 'dsp';
-  const modelName = neuralAvailable ? 'ECAPA-TDNN (ferni-speaker)' : 'DSP Fallback';
+  const modelName = neuralAvailable ? 'ECAPA-TDNN' : 'DSP Fallback';
   
   console.log(`\n📊 Model: ${modelName}`);
   console.log(`   Method: ${method}`);

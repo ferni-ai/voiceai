@@ -16,12 +16,18 @@
  * email, or no Twilio/SendGrid credentials on this server) goes to the app's
  * message panel instead of failing.
  *
+ * A reminder Ferni promised ("I'll remind you Sunday") settles that promise:
+ * kept when it goes out, missed when it is found too late or can't be sent.
+ * After sending, the run also settles every other overdue promise
+ * (sweepOverduePromises), so Trust's "I follow through" reads real outcomes.
+ *
  * @module services/scheduling/reminder-delivery-job
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { getChannelStatus, type ChannelStatus } from '../outreach/unified-delivery.js';
+import type { PromiseSweepResult } from '../superhuman/semantic-intelligence/promise-keeper.js';
 import {
   deliverReminder,
   reminderFromDoc,
@@ -77,6 +83,40 @@ export interface ReminderRunResult {
   /** Delivered in-app because the chosen channel couldn't be reached. */
   rerouted: number;
   dryRun: boolean;
+  /** Overdue promises settled this run (absent on a dry run or when the check failed). */
+  promises?: PromiseSweepResult;
+  /** Why the overdue-promise check failed, if it did. */
+  promisesError?: string;
+  /** Reminders whose promise outcome couldn't be written (the sweep retries them). */
+  promiseErrors: number;
+}
+
+/** Record what this reminder means for the promise behind it, if Ferni made one. */
+async function settlePromise(
+  result: ReminderRunResult,
+  settled: { owner: string; reminderId: string; kept: boolean; how: string; now: Date }
+): Promise<void> {
+  const { owner, reminderId, kept, how, now } = settled;
+  try {
+    const { settleReminderPromise } =
+      await import('../superhuman/semantic-intelligence/promise-keeper.js');
+    await settleReminderPromise(owner, reminderId, kept ? 'kept' : 'missed', how, now);
+  } catch (error) {
+    result.promiseErrors++;
+    log.error({ error: String(error), reminderId }, 'Could not record the promise for a reminder');
+  }
+}
+
+/** The broken-promise check, after sending: overdue promises are settled now. */
+async function sweepPromises(result: ReminderRunResult, now: Date): Promise<void> {
+  try {
+    const { sweepOverduePromises } =
+      await import('../superhuman/semantic-intelligence/promise-keeper.js');
+    result.promises = await sweepOverduePromises({ now });
+  } catch (error) {
+    result.promisesError = String(error);
+    log.error({ error: String(error) }, 'Overdue-promise check failed');
+  }
 }
 
 export async function deliverDueReminders(
@@ -94,6 +134,7 @@ export async function deliverDueReminders(
     skipped: 0,
     rerouted: 0,
     dryRun,
+    promiseErrors: 0,
   };
 
   // scheduledFor is stored as an ISO string, so string order is time order.
@@ -141,6 +182,13 @@ export async function deliverDueReminders(
     }
     if (claim === 'missed') {
       result.missed++;
+      await settlePromise(result, {
+        owner,
+        reminderId: reminder.id,
+        kept: false,
+        how: 'reminder found too late',
+        now,
+      });
       continue;
     }
 
@@ -148,7 +196,11 @@ export async function deliverDueReminders(
     const ok = await deliverReminder({ ...reminder, deliveryMethod: channel });
     if (ok) result.delivered++;
     else result.failed++;
+    const how = ok ? `reminder delivered (${channel})` : 'reminder could not be delivered';
+    await settlePromise(result, { owner, reminderId: reminder.id, kept: ok, how, now });
   }
+
+  if (!dryRun) await sweepPromises(result, now);
 
   if (result.due > 0) log.info(result, 'Reminder delivery run');
   return result;

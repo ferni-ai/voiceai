@@ -99,7 +99,7 @@ const STYLES = `
     position: fixed;
     bottom: 20px;
     right: 20px;
-    z-index: var(--z-tooltip);
+    z-index: var(--z-sticky);
     font-family: var(--font-body, 'Inter', sans-serif);
     font-size: 13px;
     pointer-events: auto;
@@ -252,7 +252,7 @@ const STYLES = `
 
   /* Hidden when healthy and not hovered */
   .service-health-container.auto-hide .service-health-indicator {
-    opacity: 0.3;
+    opacity: 0;
     transform: scale(0.9);
   }
 

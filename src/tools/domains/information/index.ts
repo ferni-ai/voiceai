@@ -167,6 +167,36 @@ function getNewsToolDefinitions(): ToolDefinition[] {
 
 import { getCurrentWeather, getWeatherForecast } from './weather.js';
 
+/** Values the model sends when it means "wherever I am". */
+const PLACEHOLDER_LOCATIONS = ['current', 'here', 'my location', 'local', 'nearby'];
+
+type DetectedLocation = ToolContext['userLocation'];
+
+/** LiveKit hands each tool call its session's RunContext; userData holds the caller's location. */
+function callerLocation(opts: unknown): DetectedLocation {
+  const userData = (opts as { ctx?: { userData?: { userLocation?: DetectedLocation } } } | undefined)
+    ?.ctx?.userData;
+  return userData?.userLocation;
+}
+
+/**
+ * The place to look up: an explicit city, else the caller's detected location.
+ * Fast-path tools are built once and shared (userId 'shared'), so their ctx has
+ * no userLocation; the caller's location comes with the call. Never a
+ * process-wide "current session": a worker runs several calls at once.
+ */
+function resolveWeatherLocation(
+  location: string | undefined,
+  ctx: ToolContext,
+  opts: unknown
+): string | undefined {
+  const explicit = location?.trim();
+  if (explicit && !PLACEHOLDER_LOCATIONS.includes(explicit.toLowerCase())) return explicit;
+  const detected = callerLocation(opts)?.city ? callerLocation(opts) : ctx.userLocation;
+  if (!detected?.city) return undefined;
+  return detected.regionCode ? `${detected.city}, ${detected.regionCode}` : detected.city;
+}
+
 function getWeatherToolDefinitions(): ToolDefinition[] {
   const log = getLogger();
 
@@ -189,25 +219,9 @@ function getWeatherToolDefinitions(): ToolDefinition[] {
                 'City name (e.g., "Philadelphia", "Denver"). Optional - if not provided, uses user\'s detected location.'
               ),
           }),
-          execute: async ({ location }) => {
+          execute: async ({ location }, opts) => {
             const startTime = Date.now();
-
-            // Recognize placeholder values that mean "use my location"
-            const PLACEHOLDER_LOCATIONS = ['current', 'here', 'my location', 'local', 'nearby'];
-            const isPlaceholder =
-              location && PLACEHOLDER_LOCATIONS.includes(location.toLowerCase().trim());
-
-            // Use detected location if not provided OR if placeholder (TikTok-style personalization)
-            let effectiveLocation = isPlaceholder ? undefined : location;
-            if (!effectiveLocation && ctx.userLocation?.city) {
-              effectiveLocation = ctx.userLocation.regionCode
-                ? `${ctx.userLocation.city}, ${ctx.userLocation.regionCode}`
-                : ctx.userLocation.city;
-              log.info(
-                { detectedCity: effectiveLocation, originalLocation: location },
-                '📍 Using IP-detected location for weather'
-              );
-            }
+            const effectiveLocation = resolveWeatherLocation(location, ctx, opts);
 
             if (!effectiveLocation) {
               return "I don't know your location. Which city would you like weather for?";
@@ -246,25 +260,9 @@ function getWeatherToolDefinitions(): ToolDefinition[] {
               .describe('City name. Optional - uses detected location if not provided.'),
             days: z.number().optional().describe('Number of days to forecast (1-7), defaults to 5'),
           }),
-          execute: async ({ location, days = 5 }) => {
+          execute: async ({ location, days = 5 }, opts) => {
             const startTime = Date.now();
-
-            // Recognize placeholder values that mean "use my location"
-            const PLACEHOLDER_LOCATIONS = ['current', 'here', 'my location', 'local', 'nearby'];
-            const isPlaceholder =
-              location && PLACEHOLDER_LOCATIONS.includes(location.toLowerCase().trim());
-
-            // Use detected location if not provided OR if placeholder
-            let effectiveLocation = isPlaceholder ? undefined : location;
-            if (!effectiveLocation && ctx.userLocation?.city) {
-              effectiveLocation = ctx.userLocation.regionCode
-                ? `${ctx.userLocation.city}, ${ctx.userLocation.regionCode}`
-                : ctx.userLocation.city;
-              log.info(
-                { detectedCity: effectiveLocation },
-                '📍 Using IP-detected location for forecast'
-              );
-            }
+            const effectiveLocation = resolveWeatherLocation(location, ctx, opts);
 
             if (!effectiveLocation) {
               return "I don't know your location. Which city would you like the forecast for?";

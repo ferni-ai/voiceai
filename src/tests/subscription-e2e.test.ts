@@ -128,6 +128,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/subscription/status',
         query: { userId: 'new-user-123' },
         headers: {},
+        authUserId: 'new-user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -169,6 +170,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/subscription/status',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -215,6 +217,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/subscription/can-start',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -251,6 +254,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/subscription/can-start',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -286,6 +290,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/subscription/can-start',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);
@@ -616,6 +621,7 @@ describe('Subscription E2E Integration', () => {
         pathname: '/subscription/status',
         query: { userId: 'user-123' },
         headers: {},
+        authUserId: 'user-123', // the verified caller, as the UI server mount passes it
       });
 
       expect(response.status).toBe(200);

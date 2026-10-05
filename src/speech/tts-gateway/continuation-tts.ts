@@ -17,7 +17,7 @@ import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { ReadableStream } from 'node:stream/web';
 
 import { findChunkEnd, findFirstChunkEnd, findFirstWordEnd } from './chunk-boundary.js';
-import { STABLE_EMOTIONS } from './director/emotion.js';
+import { decideEmotion, STABLE_EMOTIONS } from './director/emotion.js';
 import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type { SSMLProsodyConfig } from './types.js';
 
@@ -28,6 +28,12 @@ const stable = (e?: string): string | undefined => (e && STABLE.has(e) ? e : und
 
 /** The first piece may be a clause (see findFirstChunkEnd): start talking sooner. */
 const MIN_FIRST_CHUNK = 12;
+/**
+ * Once the first-chunk wait has run out, a shorter opening ("Yeah, ") goes
+ * rather than waiting for the next token (it held first audio up to ~640 ms
+ * on dev, 2026-10-04); the continuation carries the intonation on.
+ */
+const MIN_EXPIRED_FIRST_CHUNK = 4;
 /**
  * How long the first piece may wait for a clause break once the model's text
  * starts arriving, before it goes out cut at a word boundary instead.
@@ -94,7 +100,7 @@ export interface ContinuationOptions {
   sanitize(chunk: string): { text: string; prosody: SSMLProsodyConfig };
   /** Render the opening prosody as inline tags for the first push. */
   openingTags(prosody: SSMLProsodyConfig): string;
-  /** Session emotion hint, used when the reply names none. */
+  /** The caller's detected mood; the first sentence answers it when the reply names no emotion. */
   emotion?: string;
   /**
    * Session base speed (pace matching). Speed tags in the reply are relative
@@ -151,7 +157,13 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
       const next: VoiceState = {
         speed: prosody.speed !== undefined ? scaleSpeed(base, prosody.speed) : state.speed,
         volume: prosody.volume ?? state.volume,
-        emotion: stable(prosody.emotion) ?? (first ? stable(emotion) : undefined) ?? state.emotion,
+        emotion:
+          stable(prosody.emotion) ??
+          // The session emotion is the caller's mood: answer it (sad -> sympathetic),
+          // and only where the opening words agree (Cartesia honours an emotion
+          // only when it fits the transcript).
+          (first && emotion ? decideEmotion({ sessionHint: emotion, openingText: text }).emotion : undefined) ??
+          state.emotion,
       };
       const shiftsEmotion =
         !first &&
@@ -206,7 +218,9 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
         }
         if (next === WAIT_EXPIRED) {
           waitExpired = true;
-          const end = findFirstWordEnd(buffer, MIN_FIRST_CHUNK);
+          const end =
+            findFirstWordEnd(buffer, MIN_FIRST_CHUNK) ??
+            findFirstWordEnd(buffer, MIN_EXPIRED_FIRST_CHUNK);
           if (end !== null) {
             push(buffer.slice(0, end));
             buffer = buffer.slice(end);

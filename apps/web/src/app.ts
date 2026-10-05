@@ -278,7 +278,7 @@ import { initPushNotifications } from './services/push-notifications.service.js'
 import { watchPushOwnership } from './services/push-preference.js';
 // Calendar Analytics UI - Insights dashboard
 // Calendar analytics is now integrated into calendar-view.ui.ts
-// LinkedIn connection for career awareness (used as fallback)
+import { LINKEDIN_ENABLED } from './config/linkedin.js';
 import { handleOAuthReturns } from './app/oauth-return.js';
 import { createIntegrationsCallbacks } from './app/integrations-callbacks.js';
 // Voice Enrollment UI
@@ -1961,7 +1961,7 @@ class VoiceAIApp {
         onShareFerniClick: () => void openReferral(),
         onAccentSettingsClick: () => accentSettingsUI.open(),
         onWearableSettingsClick: () => void showWearableSettings(),
-        onLinkedInClick: () => void showLinkedInSettings(),
+        onLinkedInClick: LINKEDIN_ENABLED ? () => void showLinkedInSettings() : undefined,
         onVibeControllerClick: () => void showVibeController(),
         onSmartHomeClick: () => void showSmartHomeSettings(),
         onEightSleepClick: () => void showEightSleepSettings(),
@@ -2008,7 +2008,7 @@ class VoiceAIApp {
               onConnectEightSleep: () => void showEightSleepSettings(),
               onConnectWearables: () => void showWearableSettings(),
               onConnectCalendar: () => void openCalendarSettings(),
-              onConnectLinkedIn: () => void showLinkedInSettings(),
+              onConnectLinkedIn: LINKEDIN_ENABLED ? () => void showLinkedInSettings() : undefined,
               onConnectSpotify: () => void triggerSpotifyLinkToggle(),
               onConnectEcobee: () => void showVibeController(), // Ecobee is in Vibe Controller
               onOpenVibeController: () => void showVibeController(),

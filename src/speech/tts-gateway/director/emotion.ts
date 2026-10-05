@@ -143,11 +143,13 @@ export interface EmotionInput {
   openingText: string;
   /** The previous reply's emotion in this session. */
   previous?: string;
+  /** A tone answering how the caller sounds (prosody-response.ts), when that lever is live. */
+  prosody?: StableEmotion;
 }
 
 export interface EmotionDecision {
   emotion: StableEmotion | undefined;
-  source: 'authored' | 'mapped' | 'session' | 'words' | 'previous' | 'bridge' | 'none';
+  source: 'authored' | 'mapped' | 'session' | 'prosody' | 'words' | 'previous' | 'bridge' | 'none';
 }
 
 function toStable(value: string | undefined): { emotion?: StableEmotion; mapped: boolean } {
@@ -165,6 +167,7 @@ function choose(input: EmotionInput, valence: Valence): EmotionDecision {
   }
   const hint = toStable(input.sessionHint).emotion;
   if (hint && fits.has(hint)) return { emotion: hint, source: 'session' };
+  if (input.prosody && fits.has(input.prosody)) return { emotion: input.prosody, source: 'prosody' };
   const fromWords = FROM_WORDS[valence];
   if (fromWords) return { emotion: fromWords, source: 'words' };
   const previous = toStable(input.previous).emotion;
