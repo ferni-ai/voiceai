@@ -383,7 +383,7 @@ function render(): string {
       <div class="legacy-stories-modal" role="dialog" aria-labelledby="legacy-title">
         <header class="legacy-stories-header">
           <div class="legacy-stories-title">
-            <span class="legacy-stories-eyebrow">Preserving Their Memory</span>
+            <span class="legacy-stories-eyebrow">${t('legacyStories.preservingMemory')}</span>
             <h2 class="legacy-stories-name" id="legacy-title">${currentAgent.displayName || currentAgent.name}'s Stories</h2>
           </div>
           <button class="legacy-close-btn" aria-label="${t('accessibility.closeStories')}">

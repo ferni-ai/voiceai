@@ -397,8 +397,8 @@ function createPanel(): HTMLElement {
         <div class="team-insights-header-left">
           <span class="team-insights-icon">${ICONS.users}</span>
           <div>
-            <p class="team-insights-eyebrow">YOUR INNER CIRCLE</p>
-            <h2 id="team-insights-title" class="team-insights-title">What we've been thinking...</h2>
+            <p class="team-insights-eyebrow">${t('teamInsights.innerCircle')}</p>
+            <h2 id="team-insights-title" class="team-insights-title">${t('teamInsights.whatWereThing')}</h2>
           </div>
         </div>
         <div class="team-insights-header-actions" role="button" tabindex="0">
@@ -414,11 +414,11 @@ function createPanel(): HTMLElement {
       <div class="team-insights-body">
         <div class="team-insights-loading">
           <div class="team-insights-spinner"></div>
-          <p>Gathering thoughts from the team...</p>
+          <p>${t('teamInsights.gatheringThoughts')}</p>
         </div>
-        
+
         <div class="team-insights-error" style="display: none;">
-          <p>Couldn't gather thoughts right now. We're still here.</p>
+          <p>${t('teamInsights.couldntGather')}</p>
         </div>
         
         <div class="team-insights-list" style="display: none;"></div>
