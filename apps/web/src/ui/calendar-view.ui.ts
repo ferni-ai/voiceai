@@ -1936,7 +1936,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__summary--busy .calendar-view__summary-icon {
-        color: var(--color-maya, #a67a6a);
+        color: var(--color-maya-text, #8a6153);
       }
 
       .calendar-view__summary-icon svg {
@@ -2733,7 +2733,7 @@ class CalendarViewUI {
         min-width: 48px;
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-jordan, #c4856a);
+        color: var(--color-jordan-text, #9c5a3e);
       }
 
       .calendar-view__practice-event-content {
@@ -2856,7 +2856,7 @@ class CalendarViewUI {
       .calendar-view__practice-whisper-persona span {
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-maya, #a67a6a);
+        color: var(--color-maya-text, #8a6153);
         text-transform: uppercase;
         letter-spacing: 0.05em;
       }
@@ -3182,7 +3182,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__metric-trend.negative {
-        color: var(--color-maya, #a67a6a);
+        color: var(--color-maya-text, #8a6153);
       }
 
       /* Weekly Chart */

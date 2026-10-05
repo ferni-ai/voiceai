@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2026-10-05T10:40:21.169Z
+ * Build: 2026-10-05T11:19:46.198Z
  */
 
 /* ========================================
@@ -298,7 +298,7 @@
 [data-persona="jack"] {
   --persona-primary: #9a7b5a;
   --persona-secondary: #7d6348;
-  --persona-text: #9a7b5a;
+  --persona-text: #80664b;
   --persona-on-primary: #ffffff;
   --persona-glow: rgba(154, 123, 90, 0.28);
   --persona-tint: rgba(154, 123, 90, 0.06);
@@ -340,7 +340,7 @@
 [data-persona="maya"] {
   --persona-primary: #a67a6a;
   --persona-secondary: #8a635a;
-  --persona-text: #a67a6a;
+  --persona-text: #8a6153;
   --persona-on-primary: #ffffff;
   --persona-glow: rgba(166, 122, 106, 0.28);
   --persona-tint: rgba(166, 122, 106, 0.06);
@@ -354,7 +354,7 @@
 [data-persona="jordan"] {
   --persona-primary: #c4856a;
   --persona-secondary: #a86d55;
-  --persona-text: #c4856a;
+  --persona-text: #9c5a3e;
   --persona-on-primary: #ffffff;
   --persona-glow: rgba(196, 133, 106, 0.28);
   --persona-tint: rgba(196, 133, 106, 0.06);
@@ -368,7 +368,7 @@
 [data-persona="nayan"] {
   --persona-primary: #b8956a;
   --persona-secondary: #9a7a52;
-  --persona-text: #b8956a;
+  --persona-text: #85653f;
   --persona-on-primary: #ffffff;
   --persona-glow: rgba(184, 149, 106, 0.28);
   --persona-tint: rgba(184, 149, 106, 0.06);
@@ -466,7 +466,7 @@
 [data-persona="carmen"] {
   --persona-primary: #D4A373;
   --persona-secondary: #A67B5B;
-  --persona-text: #D4A373;
+  --persona-text: #935f2d;
   --persona-on-primary: #ffffff;
   --persona-glow: rgba(212, 163, 115, 0.28);
   --persona-tint: rgba(212, 163, 115, 0.06);
@@ -480,7 +480,7 @@
 [data-persona="amara"] {
   --persona-primary: #7B6BA8;
   --persona-secondary: #5A4D80;
-  --persona-text: #7B6BA8;
+  --persona-text: #7261a2;
   --persona-on-primary: #ffffff;
   --persona-glow: rgba(123, 107, 168, 0.28);
   --persona-tint: rgba(123, 107, 168, 0.06);
@@ -494,7 +494,7 @@
 [data-persona="sasha"] {
   --persona-primary: #E07B53;
   --persona-secondary: #B85C3C;
-  --persona-text: #E07B53;
+  --persona-text: #b44a20;
   --persona-on-primary: #ffffff;
   --persona-glow: rgba(224, 123, 83, 0.28);
   --persona-tint: rgba(224, 123, 83, 0.06);

@@ -111,7 +111,7 @@ function generatePersonaCSS(personas) {
 [data-persona="${kebabId}"] {
   --persona-primary: ${personaColors.primary};
   --persona-secondary: ${personaColors.secondary};
-  --persona-text: ${personaColors.primary};
+  --persona-text: ${personaColors.textOnLight || personaColors.primary};
   --persona-on-primary: ${personaColors.text || '#ffffff'};
   --persona-glow: ${personaColors.glow};
   --persona-tint: ${personaColors.tint};

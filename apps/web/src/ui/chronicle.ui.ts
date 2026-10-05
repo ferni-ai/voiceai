@@ -488,13 +488,13 @@ const styles = `
     background: var(--color-background-elevated, #fffdfb);
     display: flex;
     flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: translateX(100%); visibility: hidden; /* closed panels leave the tab order */
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0s linear 0.4s;
     z-index: 1;
   }
   
   .chronicle-capture-panel.active {
-    transform: translateX(0);
+    transform: translateX(0); visibility: visible; transition-delay: 0s;
   }
   
   .chronicle-capture-header {
@@ -653,13 +653,13 @@ const styles = `
     background: var(--color-background-elevated, #fffdfb);
     display: flex;
     flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: translateX(100%); visibility: hidden; /* closed panels leave the tab order */
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0s linear 0.4s;
     z-index: 1;
   }
   
   .chronicle-converse-panel.active {
-    transform: translateX(0);
+    transform: translateX(0); visibility: visible; transition-delay: 0s;
   }
   
   .chronicle-converse-header {

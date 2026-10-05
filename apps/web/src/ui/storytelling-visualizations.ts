@@ -1122,7 +1122,7 @@ export function injectStorytellingVisualizationStyles(): void {
     .the-mirror__invitation {
       font-size: var(--text-xs, 0.75rem);
       font-style: italic;
-      color: var(--color-maya, #a67a6a);
+      color: var(--color-maya-text, #8a6153);
       margin: var(--space-2, 0.5rem) 0 0;
     }
 

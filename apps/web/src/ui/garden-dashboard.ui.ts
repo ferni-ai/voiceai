@@ -531,17 +531,17 @@ function injectStyles(): void {
       padding: var(--space-3, 12px);
       background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
       border-radius: var(--radius-md, 8px);
-      opacity: 0.5;
+      color: var(--color-text-secondary); /* locked: quieter, still readable */
     }
 
     .garden-tier--active {
-      opacity: 1;
+      color: var(--color-text-primary);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       border: 1px solid var(--persona-primary);
     }
 
     .garden-tier--complete {
-      opacity: 0.7;
+      color: var(--color-text-primary);
     }
 
     .garden-tier-icon {
@@ -555,7 +555,7 @@ function injectStyles(): void {
 
     .garden-tier-name {
       font-weight: 500;
-      color: var(--color-text-primary);
+      color: inherit;
       flex: 1;
     }
 

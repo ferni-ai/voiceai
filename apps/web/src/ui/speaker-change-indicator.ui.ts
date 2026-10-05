@@ -102,7 +102,7 @@ const styles = `
   
   .speaker-change-indicator--suspicious .speaker-change-indicator__icon {
     background: rgba(196, 133, 106, 0.15);
-    color: var(--color-jordan, #c4856a);
+    color: var(--color-jordan-text, #9c5a3e);
   }
   
   .speaker-change-indicator--changed .speaker-change-indicator__icon {

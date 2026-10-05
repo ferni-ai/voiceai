@@ -916,15 +916,15 @@ class GamePickerUI {
         display: inline-flex;
         padding: 2px 6px;
         border-radius: var(--radius-sm, 4px);
-        font-size: 9px;
+        font-size: 10px;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
       
       .game-card__badge--new {
-        background: var(--color-warning, #E8A838);
-        color: white;
+        background: var(--color-semantic-warning-glow, rgba(166, 124, 53, 0.18));
+        color: color-mix(in srgb, var(--color-semantic-warning, #a67c35) 70%, black);
       }
       
       .game-card__badge--spotify {
