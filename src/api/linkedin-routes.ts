@@ -24,6 +24,8 @@ import {
 } from '../services/linkedin/index.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError } from './helpers.js';
 import { requireAuth } from './auth-middleware.js';
+import { isLinkedInEnabled } from '../config/linkedin-flag.js';
+import { handleLinkedInUnavailable } from './linkedin-unavailable.js';
 
 const log = createLogger({ module: 'api:linkedin' });
 
@@ -54,6 +56,11 @@ export async function handleLinkedInRoutes(
   const method = req.method || 'GET';
 
   try {
+    // LinkedIn switched off (config/linkedin-flag.ts): never reach LinkedIn.
+    if (!isLinkedInEnabled()) {
+      return await handleLinkedInUnavailable(req, res, pathname, method);
+    }
+
     // ========================================================================
     // GET /api/linkedin/connect - Start OAuth flow
     // ========================================================================
