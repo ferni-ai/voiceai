@@ -227,9 +227,18 @@ async function buildFirestoreGraphFallback(
     }
   }
 
-  for (const mention of entityMentions.slice(0, 2)) {
-    const knowledge = await whatDoWeKnowAbout(userId, mention.name);
-    const summary = summarizeEntityKnowledge(mention.name, knowledge);
+  const mentions = entityMentions.slice(0, 2);
+  // allSettled: one failed lookup must not discard what the others found.
+  const lookups = await Promise.allSettled(
+    mentions.map((mention) => whatDoWeKnowAbout(userId, mention.name))
+  );
+  for (const [i, mention] of mentions.entries()) {
+    const lookup = lookups[i];
+    if (lookup.status === 'rejected') {
+      log.debug({ error: String(lookup.reason), userId }, 'Entity lookup failed in graph fallback');
+      continue;
+    }
+    const summary = summarizeEntityKnowledge(mention.name, lookup.value);
     if (summary) {
       injections.push(
         createStandardInjection('entity_context', summary, {
