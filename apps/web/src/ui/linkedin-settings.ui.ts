@@ -14,7 +14,7 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
 import {
   getLinkedInStatus,
   connectLinkedIn,
@@ -659,7 +659,7 @@ class LinkedInSettingsUI {
       content.innerHTML = `
         <div class="linkedin-settings__loading">
           <div class="linkedin-settings__spinner"></div>
-          <span>Loading...</span>
+          <span>${t('linkedInSettings.loading')}</span>
         </div>
       `;
       return;
@@ -699,17 +699,17 @@ class LinkedInSettingsUI {
         </div>
         <div class="linkedin-settings__status-badge linkedin-settings__status-badge--connected">
           ${ICONS.check}
-          <span>Connected</span>
+          <span>${t('linkedInSettings.connected')}</span>
         </div>
         
         <div class="linkedin-settings__actions">
           <button class="linkedin-settings__btn linkedin-settings__btn--secondary" data-action="sync">
             ${ICONS.refresh}
-            <span>Sync Now</span>
+            <span>${t('linkedInSettings.syncNow')}</span>
           </button>
           <button class="linkedin-settings__btn linkedin-settings__btn--danger" data-action="disconnect">
             ${ICONS.unlink}
-            <span>Disconnect</span>
+            <span>${t('linkedInSettings.disconnect')}</span>
           </button>
         </div>
       </div>
@@ -717,7 +717,7 @@ class LinkedInSettingsUI {
       <div class="linkedin-settings__milestones">
         <div class="linkedin-settings__milestones-header">
           ${ICONS.calendar}
-          <h3>Upcoming Milestones</h3>
+          <h3>${t('linkedInSettings.upcomingMilestones')}</h3>
         </div>
         ${
           milestones.length > 0
@@ -731,7 +731,7 @@ class LinkedInSettingsUI {
                 <div class="linkedin-settings__milestone-content">
                   <p class="linkedin-settings__milestone-title">${m.title}</p>
                   <p class="linkedin-settings__milestone-desc">${m.description}</p>
-                  <p class="linkedin-settings__milestone-date">${new Date(m.date).toLocaleDateString()}</p>
+                  <p class="linkedin-settings__milestone-date">${formatDate(new Date(m.date))}</p>
                 </div>
               </div>
             `
@@ -739,24 +739,24 @@ class LinkedInSettingsUI {
                 .join('')
             : `
               <div class="linkedin-settings__no-milestones">
-                No upcoming milestones in the next 30 days.
+                ${t('linkedInSettings.noMilestones')}
               </div>
             `
         }
       </div>
 
       <div class="linkedin-settings__benefits">
-        <h4>What I track</h4>
+        <h4>${t('linkedInSettings.whatITrack')}</h4>
         <div class="linkedin-settings__benefit">
           <div class="linkedin-settings__benefit-icon">${ICONS.calendar}</div>
           <span class="linkedin-settings__benefit-text">
-            Work anniversaries - I'll remind you of important career milestones
+            ${t('linkedInSettings.workAnniversaries')}
           </span>
         </div>
         <div class="linkedin-settings__benefit">
           <div class="linkedin-settings__benefit-icon">${ICONS.briefcase}</div>
           <span class="linkedin-settings__benefit-text">
-            Role tenure - I know how long you've been in your current position
+            ${t('linkedInSettings.roleTenure')}
           </span>
         </div>
       </div>
@@ -771,36 +771,35 @@ class LinkedInSettingsUI {
     content.innerHTML = `
       <div class="linkedin-settings__status-card">
         <div class="linkedin-settings__connect-cta">
-          <h3>Connect LinkedIn</h3>
+          <h3>${t('linkedInSettings.connectLinkedIn')}</h3>
           <p>
-            Let me remember your career milestones. I'll notice work anniversaries
-            and help you reflect on your professional journey.
+            ${t('linkedInSettings.connectDescription')}
           </p>
           <button class="linkedin-settings__btn linkedin-settings__btn--primary" data-action="connect">
             ${ICONS.linkedin}
-            <span>Connect LinkedIn</span>
+            <span>${t('linkedInSettings.connectLinkedIn')}</span>
           </button>
         </div>
       </div>
 
       <div class="linkedin-settings__benefits">
-        <h4>Better than Human</h4>
+        <h4>${t('linkedInSettings.betterThanHuman')}</h4>
         <div class="linkedin-settings__benefit">
           <div class="linkedin-settings__benefit-icon">${ICONS.sparkles}</div>
           <span class="linkedin-settings__benefit-text">
-            "Your 5-year work anniversary at Acme is next Tuesday!"
+            ${t('linkedInSettings.exampleAnniversary')}
           </span>
         </div>
         <div class="linkedin-settings__benefit">
           <div class="linkedin-settings__benefit-icon">${ICONS.calendar}</div>
           <span class="linkedin-settings__benefit-text">
-            "I see you've been in your role for 3 years - how are you feeling about it?"
+            ${t('linkedInSettings.exampleTenure')}
           </span>
         </div>
         <div class="linkedin-settings__benefit">
           <div class="linkedin-settings__benefit-icon">${ICONS.briefcase}</div>
           <span class="linkedin-settings__benefit-text">
-            I'll weave career context naturally into our conversations
+            ${t('linkedInSettings.weaveContext')}
           </span>
         </div>
       </div>

@@ -129,21 +129,21 @@ const ICONS = {
 };
 
 // Moment type definitions
-const MOMENT_TYPES: { id: MomentType; label: string; icon: string }[] = [
-  { id: 'call', label: 'Call', icon: ICONS.phone },
-  { id: 'text', label: 'Text', icon: ICONS.message },
-  { id: 'email', label: 'Email', icon: ICONS.mail },
-  { id: 'video_call', label: 'Video', icon: ICONS.video },
-  { id: 'voice_message', label: 'Voice', icon: ICONS.mic },
-  { id: 'coffee', label: 'Coffee', icon: ICONS.coffee },
-  { id: 'dinner', label: 'Meal', icon: ICONS.utensils },
-  { id: 'hangout', label: 'Hangout', icon: ICONS.users },
-  { id: 'activity', label: 'Activity', icon: ICONS.users },
-  { id: 'trip', label: 'Trip', icon: ICONS.plane },
-  { id: 'visit', label: 'Visit', icon: ICONS.home },
-  { id: 'meeting', label: 'Meeting', icon: ICONS.calendar },
-  { id: 'social', label: 'Social', icon: ICONS.share },
-  { id: 'other', label: 'Other', icon: ICONS.more },
+const MOMENT_TYPES: { id: MomentType; labelKey: string; icon: string }[] = [
+  { id: 'call', labelKey: 'logMoment.call', icon: ICONS.phone },
+  { id: 'text', labelKey: 'logMoment.text', icon: ICONS.message },
+  { id: 'email', labelKey: 'logMoment.email', icon: ICONS.mail },
+  { id: 'video_call', labelKey: 'logMoment.video', icon: ICONS.video },
+  { id: 'voice_message', labelKey: 'logMoment.voice', icon: ICONS.mic },
+  { id: 'coffee', labelKey: 'logMoment.coffee', icon: ICONS.coffee },
+  { id: 'dinner', labelKey: 'logMoment.meal', icon: ICONS.utensils },
+  { id: 'hangout', labelKey: 'logMoment.hangout', icon: ICONS.users },
+  { id: 'activity', labelKey: 'logMoment.activity', icon: ICONS.users },
+  { id: 'trip', labelKey: 'logMoment.trip', icon: ICONS.plane },
+  { id: 'visit', labelKey: 'logMoment.visit', icon: ICONS.home },
+  { id: 'meeting', labelKey: 'logMoment.meeting', icon: ICONS.calendar },
+  { id: 'social', labelKey: 'logMoment.social', icon: ICONS.share },
+  { id: 'other', labelKey: 'logMoment.other', icon: ICONS.more },
 ];
 
 // ============================================================================
@@ -643,7 +643,7 @@ function render(): void {
       <div class="lm-header-row">
         <div>
           <div class="lm-eyebrow">${t('logMoment.title')}</div>
-          <h2 class="lm-title">with ${escapeHtml(state.contactName)}</h2>
+          <h2 class="lm-title">${t('logMoment.withContact', { name: escapeHtml(state.contactName) })}</h2>
         </div>
         <button class="lm-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
@@ -657,7 +657,7 @@ function render(): void {
           ${MOMENT_TYPES.map(type => `
             <button class="lm-type ${state.selectedType === type.id ? 'selected' : ''}" data-type="${type.id}">
               <span class="lm-type-icon">${type.icon}</span>
-              <span class="lm-type-label">${t('logMoment.' + type.id)}</span>
+              <span class="lm-type-label">${t(type.labelKey)}</span>
             </button>
           `).join('')}
         </div>
@@ -701,7 +701,7 @@ function render(): void {
       <!-- Advanced Options Toggle -->
       <div class="lm-section">
         <button aria-label="${t('accessibility.moveDown')}" class="lm-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-toggle">
-          More options ${ICONS.chevronDown}
+          ${t('logMoment.moreOptions')} ${ICONS.chevronDown}
         </button>
 
         <div class="lm-advanced-content ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-content">
@@ -739,7 +739,7 @@ function render(): void {
     <div class="lm-footer">
       <button aria-label="${t('accessibility.cancel')}" class="lm-btn lm-btn-secondary" id="lm-cancel">${t('logMoment.cancel')}</button>
       <button aria-label="${t('accessibility.submit')}" class="lm-btn lm-btn-primary" id="lm-save" ${state.isSubmitting ? 'disabled' : ''}>
-        ${state.isSubmitting ? 'Saving...' : 'Save Moment'}
+        ${state.isSubmitting ? t('common.saving') : t('logMoment.saveMoment')}
       </button>
     </div>
   `;
@@ -874,8 +874,8 @@ async function handleSave(): Promise<void> {
       
       closeLogMoment();
     } else {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      toast.error(error.error || "Couldn't save that. Try again?");
+      const error = await response.json().catch(() => ({ error: '' }));
+      toast.error(error.error || t('toasts.couldNotSaveMoment'));
       state.isSubmitting = false;
       render();
     }

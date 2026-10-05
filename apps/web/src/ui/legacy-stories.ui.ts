@@ -11,7 +11,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { getCustomAgent, updateCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { soundUI } from './sound.ui.js';
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
 
 const log = createLogger('LegacyStories');
 
@@ -384,7 +384,7 @@ function render(): string {
         <header class="legacy-stories-header">
           <div class="legacy-stories-title">
             <span class="legacy-stories-eyebrow">${t('legacyStories.preservingMemory')}</span>
-            <h2 class="legacy-stories-name" id="legacy-title">${currentAgent.displayName || currentAgent.name}'s Stories</h2>
+            <h2 class="legacy-stories-name" id="legacy-title">${t('legacyStories.storiesTitle', { name: currentAgent.displayName || currentAgent.name })}</h2>
           </div>
           <button class="legacy-close-btn" aria-label="${t('accessibility.closeStories')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -402,14 +402,14 @@ function render(): string {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
                 </svg>
-                Their Wisdom
+                ${t('legacyStories.theirWisdom')}
               </h3>
               <button aria-label="${t('accessibility.addSaying')}" class="legacy-add-btn" data-action="add-wisdom">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                Add Saying
+                ${t('legacyStories.addSaying')}
               </button>
             </div>
             ${wisdom.length === 0 ? `
@@ -419,21 +419,21 @@ function render(): string {
                     <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
                   </svg>
                 </div>
-                <h4 class="legacy-empty-title">No sayings yet</h4>
-                <p class="legacy-empty-text">Capture their favorite phrases, advice, and words of wisdom.</p>
+                <h4 class="legacy-empty-title">${t('legacyStories.noSayings')}</h4>
+                <p class="legacy-empty-text">${t('legacyStories.noSayingsDesc')}</p>
               </div>
             ` : wisdom.map((w, i) => `
               <div class="legacy-wisdom-card" data-index="${i}">
-                <p class="legacy-wisdom-quote">"${w.quote}"</p>
+                <p class="legacy-wisdom-quote">${t('legacyStories.wisdomQuote', { quote: w.quote })}</p>
                 ${w.context ? `<span class="legacy-wisdom-context">${w.context}</span>` : ''}
                 <div class="legacy-card-actions" role="button" tabindex="0">
                   <button class="legacy-action-btn" data-action="edit-wisdom" data-index="${i}" aria-label="${t('accessibility.editWisdom')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Edit
+                    ${t('common.edit')}
                   </button>
                   <button class="legacy-action-btn legacy-action-btn--delete" data-action="delete-wisdom" data-index="${i}" aria-label="${t('accessibility.deleteWisdom')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    Delete
+                    ${t('common.delete')}
                   </button>
                 </div>
               </div>
@@ -448,14 +448,14 @@ function render(): string {
                   <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                   <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
                 </svg>
-                Their Stories
+                ${t('legacyStories.theirStories')}
               </h3>
               <button aria-label="${t('accessibility.addStory')}" class="legacy-add-btn" data-action="add-story">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                Add Story
+                ${t('legacyStories.addStory')}
               </button>
             </div>
             ${stories.length === 0 ? `
@@ -466,21 +466,21 @@ function render(): string {
                     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
                   </svg>
                 </div>
-                <h4 class="legacy-empty-title">No stories yet</h4>
-                <p class="legacy-empty-text">Record the stories they loved to tell - the ones that made everyone laugh or cry.</p>
+                <h4 class="legacy-empty-title">${t('legacyStories.noStories')}</h4>
+                <p class="legacy-empty-text">${t('legacyStories.noStoriesDesc')}</p>
               </div>
             ` : stories.map((s, i) => `
               <div class="legacy-story-card" data-index="${i}">
                 <p class="legacy-story-content">${s.content}</p>
-                ${s.date ? `<span class="legacy-story-meta">${new Date(s.date).toLocaleDateString()}</span>` : ''}
+                ${s.date ? `<span class="legacy-story-meta">${formatDate(new Date(s.date))}</span>` : ''}
                 <div class="legacy-card-actions" role="button" tabindex="0">
                   <button class="legacy-action-btn" data-action="edit-story" data-index="${i}" aria-label="${t('accessibility.editStory')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Edit
+                    ${t('common.edit')}
                   </button>
                   <button class="legacy-action-btn legacy-action-btn--delete" data-action="delete-story" data-index="${i}" aria-label="${t('accessibility.deleteStory')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    Delete
+                    ${t('common.delete')}
                   </button>
                 </div>
               </div>
@@ -507,7 +507,7 @@ export async function openLegacyStories(agentId: string): Promise<void> {
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
     const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't find this agent");
+    toast.error(t('voiceCloneRecorder.agentNotFound'));
     return;
   }
 
@@ -614,10 +614,10 @@ async function handleAddWisdom(): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   
   // For now, use a simple prompt - later can be upgraded to a proper modal
-  const quote = prompt("What did they always say?");
+  const quote = prompt(t('legacyStories.promptWisdom'));
   if (!quote || !currentAgent) return;
 
-  const context = prompt("When would they say this? (optional)") || undefined;
+  const context = prompt(t('legacyStories.promptContext')) || undefined;
 
   try {
     const currentWisdom = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; context?: string }>;
@@ -635,14 +635,14 @@ async function handleAddWisdom(): Promise<void> {
     await openLegacyStories(currentAgent.id);
   } catch (err) {
     log.error('Failed to add wisdom:', err);
-    toast.error("Couldn't save. Try again?");
+    toast.error(t('toasts.couldNotSave'));
   }
 }
 
 async function handleAddStory(): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   
-  const content = prompt("Tell us a story about them...");
+  const content = prompt(t('legacyStories.promptStory'));
   if (!content || !currentAgent) return;
 
   try {
@@ -661,7 +661,7 @@ async function handleAddStory(): Promise<void> {
     await openLegacyStories(currentAgent.id);
   } catch (err) {
     log.error('Failed to add story:', err);
-    toast.error("Couldn't save. Try again?");
+    toast.error(t('toasts.couldNotSave'));
   }
 }
 
@@ -673,10 +673,10 @@ async function handleEditWisdom(index: number): Promise<void> {
   const item = wisdom[index];
   if (!item) return;
 
-  const newQuote = prompt("Edit this saying:", item.quote);
+  const newQuote = prompt(t('legacyStories.promptEditWisdom'), item.quote);
   if (!newQuote) return;
 
-  const newContext = prompt("When would they say this? (optional)", item.context || '') || undefined;
+  const newContext = prompt(t('legacyStories.promptContext'), item.context || '') || undefined;
 
   try {
     const updatedWisdom = [...wisdom];
@@ -689,7 +689,7 @@ async function handleEditWisdom(index: number): Promise<void> {
     await openLegacyStories(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit wisdom:', err);
-    toast.error("Couldn't update. Try again?");
+    toast.error(t('legacyStories.couldNotUpdate'));
   }
 }
 
@@ -697,7 +697,7 @@ async function handleDeleteWisdom(index: number): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
-  if (!confirm('Delete this saying?')) return;
+  if (!confirm(t('legacyStories.confirmDeleteWisdom'))) return;
 
   try {
     const wisdom = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; context?: string }>;
@@ -710,7 +710,7 @@ async function handleDeleteWisdom(index: number): Promise<void> {
     await openLegacyStories(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete wisdom:', err);
-    toast.error("Couldn't delete. Try again?");
+    toast.error(t('legacyStories.couldNotDelete'));
   }
 }
 
@@ -722,7 +722,7 @@ async function handleEditStory(index: number): Promise<void> {
   const item = stories[index];
   if (!item) return;
 
-  const newContent = prompt("Edit this story:", item.content);
+  const newContent = prompt(t('legacyStories.promptEditStory'), item.content);
   if (!newContent) return;
 
   try {
@@ -736,7 +736,7 @@ async function handleEditStory(index: number): Promise<void> {
     await openLegacyStories(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit story:', err);
-    toast.error("Couldn't update. Try again?");
+    toast.error(t('legacyStories.couldNotUpdate'));
   }
 }
 
@@ -744,7 +744,7 @@ async function handleDeleteStory(index: number): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
-  if (!confirm('Delete this story?')) return;
+  if (!confirm(t('legacyStories.confirmDeleteStory'))) return;
 
   try {
     const stories = (currentAgent.memories?.stories || []) as unknown as Array<{ content: string; date?: string }>;
@@ -757,7 +757,7 @@ async function handleDeleteStory(index: number): Promise<void> {
     await openLegacyStories(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete story:', err);
-    toast.error("Couldn't delete. Try again?");
+    toast.error(t('legacyStories.couldNotDelete'));
   }
 }
 
