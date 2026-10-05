@@ -13,6 +13,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { useLocalEmbeddings } from './helpers/embedding-provider.js';
 
 // These tests exercise the generic phone-identification path. identifyByPhone()
 // deliberately checks sponsored identities (family members) FIRST, and with real
@@ -278,6 +279,9 @@ describe('Memory Persistence', () => {
   });
 
   describe('Semantic Search', () => {
+    // Shape-only: must not reach a real provider (Vertex 403s without credentials).
+    useLocalEmbeddings();
+
     it("finds an indexed conversation by its text, only for that conversation's user", async () => {
       const { initializeMemorySystem, shutdownMemorySystem, semanticSearch } =
         await import('../memory/index.js');

@@ -141,8 +141,8 @@ export async function findSimilarCached<T>(
   // Track access time for stale user cleanup
   userLastAccess.set(userId, Date.now());
 
-  // No cache for this user
-  if (!userCache || userCache.length === 0) {
+  // No query to compare (embedding '' fails), or no cache for this user
+  if (!query.trim() || !userCache || userCache.length === 0) {
     stats.misses++;
     return { hit: false };
   }
@@ -234,8 +234,8 @@ export async function storeInSemanticCache<T>(
   result: T,
   embedding?: number[]
 ): Promise<void> {
-  // Track access time for stale user cleanup
-  userLastAccess.set(userId, Date.now());
+  if (!query.trim() && !embedding) return; // an empty query has no embedding to key on
+  userLastAccess.set(userId, Date.now()); // for stale user cleanup
 
   // Get or create user cache
   let userCache = userCaches.get(userId);

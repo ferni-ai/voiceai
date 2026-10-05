@@ -405,46 +405,20 @@ async function testVerification(config: ValidationConfig): Promise<TestResult> {
 }
 
 async function testIdentification(config: ValidationConfig): Promise<TestResult> {
-  const name = 'Speaker Identification';
+  // 1:N identification is not served over HTTP (it would tell any caller whose
+  // voice a recording is); this checks it stays that way.
+  const name = 'Speaker Identification is not exposed';
   const startTime = Date.now();
-
+  const audio = generateSyntheticAudio(config.sampleDurationMs, config.sampleRate);
   try {
-    const audio = generateSyntheticAudio(config.sampleDurationMs, config.sampleRate);
-
-    const result = await apiRequest<{
-      identified: boolean;
-      userId?: string;
-      confidence: number;
-      candidates: Array<{ userId: string; similarity: number }>;
-      processingTimeMs: number;
-    }>(config, '/identify', {
+    await apiRequest(config, '/identify', {
       method: 'POST',
-      body: JSON.stringify({
-        samples: Array.from(audio),
-      }),
+      body: JSON.stringify({ samples: Array.from(audio) }),
     });
-
-    return {
-      name,
-      passed:
-        typeof result.identified === 'boolean' &&
-        Array.isArray(result.candidates) &&
-        typeof result.processingTimeMs === 'number',
-      duration: Date.now() - startTime,
-      details: {
-        identified: result.identified,
-        userId: result.userId,
-        confidence: result.confidence,
-        candidateCount: result.candidates.length,
-      },
-    };
+    return { name, passed: false, duration: Date.now() - startTime, error: '/identify answered' };
   } catch (error) {
-    return {
-      name,
-      passed: false,
-      duration: Date.now() - startTime,
-      error: error instanceof Error ? error.message : String(error),
-    };
+    const message = error instanceof Error ? error.message : String(error);
+    return { name, passed: message.includes('API Error 404'), duration: Date.now() - startTime };
   }
 }
 

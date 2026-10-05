@@ -75,6 +75,7 @@
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
     } catch (e) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[Experiments] Failed to cache:', e);
     }
   }
@@ -91,7 +92,6 @@
     const cache = getCache();
     if (cache[experimentId]) {
       const variantId = cache[experimentId].variantId;
-      console.log('[Experiments] Using cached variant:', experimentId, '->', variantId);
 
       if (!options.skipExposure) {
         queueEvent(experimentId, variantId, userId, 'exposure');
@@ -121,6 +121,7 @@
       if (!response.ok) {
         // 404 is expected when experiment service isn't running - fail silently
         if (response.status !== 404) {
+          // eslint-disable-next-line no-console -- report failures in the browser console
           console.warn('[Experiments] Failed to get variant:', response.status);
         }
         return null;
@@ -129,13 +130,11 @@
       const data = await response.json();
 
       if (!data.variantId) {
-        console.log('[Experiments] User not in experiment:', experimentId);
         return null;
       }
 
       // Cache assignment
       setCache(experimentId, data.variantId);
-      console.log('[Experiments] Assigned to:', experimentId, '->', data.variantId);
 
       // Track exposure
       if (!options.skipExposure) {
@@ -144,6 +143,7 @@
 
       return data.variantId;
     } catch (error) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.error('[Experiments] Error getting variant:', error);
       return null;
     }
@@ -188,13 +188,13 @@
     })
       .then(function (response) {
         if (!response.ok) {
+          // eslint-disable-next-line no-console -- report failures in the browser console
           console.warn('[Experiments] Failed to flush events');
           eventQueue = events.concat(eventQueue);
-        } else {
-          console.log('[Experiments] Flushed', events.length, 'events');
         }
       })
       .catch(function (error) {
+        // eslint-disable-next-line no-console -- report failures in the browser console
         console.warn('[Experiments] Error flushing:', error);
         eventQueue = events.concat(eventQueue);
       });
@@ -205,13 +205,13 @@
     const assignment = cache[experimentId];
 
     if (!assignment) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[Experiments] No assignment for:', experimentId);
       return;
     }
 
     queueEvent(experimentId, assignment.variantId, getUserId(), 'conversion', goalId, value);
 
-    console.log('[Experiments] Tracked conversion:', experimentId, goalId);
   }
 
   function trackConversionForAll(goalId, value) {
@@ -222,7 +222,6 @@
       queueEvent(experimentId, cache[experimentId].variantId, userId, 'conversion', goalId, value);
     });
 
-    console.log('[Experiments] Tracked conversion for all:', goalId);
   }
 
   // ============================================================================
@@ -271,5 +270,4 @@
     flushEvents: flushEvents,
   };
 
-  console.log('%c🧪 Ferni Experiments loaded', 'color: #4a6741; font-weight: bold;');
 })();

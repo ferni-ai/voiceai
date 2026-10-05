@@ -463,6 +463,7 @@
             window.ferniConfetti(document.body, 100);
           }
           
+          // eslint-disable-next-line no-console -- Konami-code easter egg, printed on purpose
           console.log('%c🌿 You found the secret! You\'re part of the Ferni family now.', 
             'color: #4a6741; font-size: 16px; font-weight: bold;');
           
@@ -499,7 +500,6 @@
     initBackToTop();
     initEasterEggs();
     
-    console.log('%c✨ Apple-level interactions loaded', 'color: #4a6741; font-weight: bold;');
   }
 
   // Start when DOM is ready

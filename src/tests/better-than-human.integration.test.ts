@@ -12,13 +12,33 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { perfBudget } from './perf-budget.js';
 
+/**
+ * Replaces the embedding provider with a local fake and returns a spy on it.
+ *
+ * buildLiveSuperhumanInjections reads the network: Firestore (commitments,
+ * recall triggers; faked for every test in setup.ts) and, when the user's
+ * emotion is intense, a memory search for joy amplification that embeds its
+ * query. With a project id set and no fake, that embedding goes to Vertex AI:
+ * an OAuth token fetch and a request, ~400ms per call with a developer's gcloud
+ * credentials and CI's placeholder project, so the budgets below timed the
+ * network. Call after vi.resetModules(): the provider lives in module state.
+ */
+async function useFakeEmbeddings() {
+  const { LocalEmbeddings, setEmbeddingProvider } = await import('../memory/vectors/embeddings.js');
+  const provider = new LocalEmbeddings();
+  const embed = vi.spyOn(provider, 'embed');
+  setEmbeddingProvider(provider);
+  return embed;
+}
+
 // ============================================================================
 // LIVE SUPERHUMAN INJECTIONS
 // ============================================================================
 
 describe('Live Superhuman Injections', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
+    await useFakeEmbeddings();
   });
 
   it('detects commitment language', async () => {
@@ -90,25 +110,32 @@ describe('Live Superhuman Injections', () => {
     const { buildLiveSuperhumanInjections } =
       await import('../agents/processors/live-superhuman-injections.js');
 
-    const result = await buildLiveSuperhumanInjections({
-      userId: 'test-user',
-      sessionId: 'test-session',
-      userText: "I'm going to start going to the gym, it's important to me to get healthy",
-      emotionalState: {
-        primary: 'determined',
-        secondary: undefined,
-        intensity: 0.7,
-        valence: 0.6,
-        distressLevel: 0.1,
-      },
-      analysis: {
-        intent: 'statement',
-        emotion: 'positive',
-        confidence: 0.8,
-        topics: ['health'],
-      },
-      turnCount: 5,
-    });
+    const build = () =>
+      buildLiveSuperhumanInjections({
+        userId: 'test-user',
+        sessionId: 'test-session',
+        userText: "I'm going to start going to the gym, it's important to me to get healthy",
+        emotionalState: {
+          primary: 'determined',
+          secondary: undefined,
+          intensity: 0.7,
+          valence: 0.6,
+          distressLevel: 0.1,
+        },
+        analysis: {
+          intent: 'statement',
+          emotion: 'positive',
+          confidence: 0.8,
+          topics: ['health'],
+        },
+        turnCount: 5,
+      });
+
+    // The first call loads its lazy imports (cold, since beforeEach resets the
+    // module registry): ~550ms of module loading, ~1-4ms of work. A live turn
+    // runs warm, so the real-time budget applies to the second call.
+    await build();
+    const result = await build();
 
     // Should have detected commitment and values
     expect(result.signals.commitmentDetected).toBe(true);
@@ -300,11 +327,11 @@ describe('Trust Moment Write-Through', () => {
 
 describe('BTH Pipeline Performance', () => {
   it('live superhuman injections complete under 80ms', async () => {
+    const embed = await useFakeEmbeddings();
     const { buildLiveSuperhumanInjections } =
       await import('../agents/processors/live-superhuman-injections.js');
 
-    const start = Date.now();
-    await buildLiveSuperhumanInjections({
+    const input = {
       userId: 'perf-test',
       sessionId: 'perf-session',
       userText: "I'm going to start a new project, it's really important to me",
@@ -321,9 +348,16 @@ describe('BTH Pipeline Performance', () => {
         topics: ['project'],
       },
       turnCount: 10,
-    });
+    } as const;
+    // The first call loads its lazy imports (~400ms, more on a busy machine); a
+    // live turn runs warm, so the budget applies to the second call.
+    await buildLiveSuperhumanInjections(input);
+    const start = Date.now();
+    await buildLiveSuperhumanInjections(input);
     const elapsed = Date.now() - start;
 
+    // The joy-amplification memory search ran against the fake, not Vertex AI.
+    expect(embed).toHaveBeenCalled();
     expect(elapsed).toBeLessThan(perfBudget(80));
   });
 
@@ -357,6 +391,7 @@ describe('BTH End-to-End Flow', () => {
   it('full BTH pipeline processes user turn correctly', async () => {
     // This test verifies the conceptual flow works
     // In production, this happens in turn-processor.ts
+    await useFakeEmbeddings();
 
     const { buildLiveSuperhumanInjections } =
       await import('../agents/processors/live-superhuman-injections.js');

@@ -1578,7 +1578,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
       );
       if (!evt.isFinal) return;
       observeFinalTranscript({
-        session: sessionWithEvents,
         transcript: evt.transcript || '',
         userData: userData as unknown as Record<string, unknown>,
         sessionId,

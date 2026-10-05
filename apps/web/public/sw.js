@@ -8,12 +8,16 @@
  * - Periodic sync for ritual reminders
  *
  * Cache Strategy:
- * - Static assets: Cache-first (fonts, icons, CSS)
+ * - Hashed build output (/assets/) and fonts: Cache-first (the URL changes when the file does)
+ * - Other static files (/design-system/*.css, /voice-engine.js, icons): Stale-while-revalidate,
+ *   so an update reaches users on their next load instead of never
  * - API calls: Network-first with cache fallback
  * - HTML: Network-first
  */
 
-const CACHE_VERSION = 'v3';
+// v4: v3 served /design-system/tokens.css cache-first from 2025-12, so returning users kept
+// stale design tokens. Bumping the name makes activate() delete those caches.
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = `ferni-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `ferni-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `ferni-api-${CACHE_VERSION}`;
@@ -125,9 +129,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // Static assets (CSS, JS, images) - Cache-first
+  // Static assets (CSS, JS, images): cache-first only when the URL is content-hashed
   if (isStaticAsset(url.pathname)) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    const strategy = url.pathname.startsWith('/assets/') ? cacheFirst : staleWhileRevalidate;
+    event.respondWith(strategy(request, STATIC_CACHE));
     return;
   }
   
@@ -170,6 +175,24 @@ async function cacheFirst(request, cacheName) {
     return caches.match('/offline.html') || 
            new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
+}
+
+/**
+ * Stale-while-revalidate: answer from cache, refresh the cache in the background
+ * Good for: static files served at a fixed URL (tokens.css, voice-engine.js)
+ */
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  const refresh = fetch(request)
+    .then((response) => {
+      if (response.ok && response.status === 200) {
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => cached);
+  return cached || refresh;
 }
 
 /**

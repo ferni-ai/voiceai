@@ -483,6 +483,7 @@
   
   function log(...args) {
     if (CONFIG.debug) {
+      // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
       console.log('[AI-Storytelling]', ...args);
     }
   }

@@ -16,7 +16,8 @@
 import pino from 'pino';
 import { EventEmitter } from 'events';
 import { extractSpeakerEmbedding, type SpeakerEmbedding } from '../voice-memory-enhanced.js';
-import { identifyHouseholdSpeaker, updateSessionSpeaker } from './voice-household.js';
+import { updateSessionSpeaker } from './voice-household.js';
+import { VoicedAudioAccumulator } from './speaker-voiced-audio.js';
 // Centralized cosine similarity - uses optimized implementation from rust-accelerator
 import { cosineSimilarity } from '../../memory/rust-accelerator.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
@@ -37,8 +38,12 @@ export interface SpeakerChangeEvent {
 }
 
 export interface SpeakerChangeConfig {
-  // Minimum similarity to consider same speaker
+  // Minimum similarity to consider same speaker (DSP voice features)
   sameSpeakerThreshold: number;
+  // Same, for neural (ECAPA-TDNN) embeddings, whose same-speaker cosine is lower
+  neuralSameSpeakerThreshold: number;
+  // A neural match must reach this before it is averaged into the reference
+  neuralReferenceUpdateThreshold: number;
   // Minimum confidence to trigger speaker change
   changeConfidenceThreshold: number;
   // Number of consecutive different samples before triggering change
@@ -49,8 +54,10 @@ export interface SpeakerChangeConfig {
   checkIntervalMs: number;
   // Most recent audio kept for the next comparison (ms of 16 kHz audio, any frame size)
   maxBufferedMs: number;
-  // Windows quieter than this RMS are skipped (silence, not a voice to compare)
+  // 20 ms frames quieter than this RMS are silence: never embedded or compared
   minSpeechRms: number;
+  // Voiced audio collected (across windows) before a comparison: speaker-voiced-audio.ts
+  minVoicedMs: number;
   // Enable household identification
   enableHouseholdIdentification: boolean;
 }
@@ -58,6 +65,8 @@ export interface SpeakerChangeConfig {
 interface SpeakerState {
   currentSpeakerId: string | null;
   currentEmbedding: number[] | null;
+  // Method that produced currentEmbedding; vectors of different methods are not comparable
+  currentMethod: SpeakerEmbedding['method'] | null;
   recentEmbeddings: Array<{
     embedding: number[];
     timestamp: Date;
@@ -72,12 +81,18 @@ interface SpeakerState {
 
 const DEFAULT_CONFIG: SpeakerChangeConfig = {
   sameSpeakerThreshold: 0.75,
+  // ECAPA-TDNN on 2 s windows (6 TTS voices, 2026-10-04): same speaker p5 0.535,
+  // different speakers p95 0.306; equal-error point 0.45 (0.3% / 0.1%).
+  neuralSameSpeakerThreshold: 0.45,
+  // 1.25 s+ of voice (2026-10-04): same speaker min 0.65, six other voices max 0.57
+  neuralReferenceUpdateThreshold: 0.65,
   changeConfidenceThreshold: 0.6,
   changeDebounceCount: 2,
   minAudioDurationMs: 1000,
   checkIntervalMs: 2000,
   maxBufferedMs: 2000,
   minSpeechRms: 0.01, // about -40 dBFS
+  minVoicedMs: 1250, // measured: with less, the same voice scored as low as 0.21
   enableHouseholdIdentification: true,
 };
 
@@ -95,6 +110,7 @@ export class SpeakerChangeDetector extends EventEmitter {
   private bufferedSamples = 0;
   private isMonitoring = false;
   private isComparing = false;
+  private voiced: VoicedAudioAccumulator;
 
   private getIntervalName(): string {
     return `speaker-change-detector-${this.deviceId}`;
@@ -105,9 +121,11 @@ export class SpeakerChangeDetector extends EventEmitter {
 
     this.deviceId = deviceId;
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.voiced = new VoicedAudioAccumulator(this.config);
     this.state = {
       currentSpeakerId: null,
       currentEmbedding: null,
+      currentMethod: null,
       recentEmbeddings: [],
       consecutiveDifferentCount: 0,
       lastCheckTime: new Date(),
@@ -141,14 +159,13 @@ export class SpeakerChangeDetector extends EventEmitter {
     );
   }
 
-  /**
-   * Stop monitoring.
-   */
+  /** Stop monitoring. */
   stop(): void {
     this.isMonitoring = false;
     clearNamedInterval(this.getIntervalName());
     this.audioBuffer = [];
     this.bufferedSamples = 0;
+    this.voiced.clear();
 
     log.info({ deviceId: this.deviceId }, 'Speaker change detection stopped');
   }
@@ -181,35 +198,28 @@ export class SpeakerChangeDetector extends EventEmitter {
   private async processAudioBuffer(): Promise<void> {
     if (this.audioBuffer.length === 0 || this.isComparing) return;
 
-    // Combine audio buffers
     const combined = new Float32Array(this.bufferedSamples);
     let offset = 0;
     for (const buffer of this.audioBuffer) {
       combined.set(buffer, offset);
       offset += buffer.length;
     }
-
-    // Clear buffer
     this.audioBuffer = [];
     this.bufferedSamples = 0;
 
-    // Check minimum duration (16 kHz)
     const durationMs = (combined.length / SAMPLE_RATE) * 1000;
     if (durationMs < this.config.minAudioDurationMs) {
       return;
     }
 
-    // Silence is not a voice: comparing it would read as a "change"
-    let energy = 0;
-    for (const sample of combined) energy += sample * sample;
-    if (Math.sqrt(energy / combined.length) < this.config.minSpeechRms) {
-      return;
-    }
+    // Only voiced frames, and only once there are minVoicedMs of them: silence,
+    // a laugh or a sentence's tail alone is no voice print (it waits for more)
+    const voiced = this.voiced.add(combined);
+    if (!voiced) return;
 
     this.isComparing = true;
     try {
-      // Extract embedding
-      const speakerEmbedding = await extractSpeakerEmbedding(combined);
+      const speakerEmbedding = await extractSpeakerEmbedding(voiced);
 
       // Skip if embedding extraction failed
       if (!speakerEmbedding) {
@@ -221,7 +231,7 @@ export class SpeakerChangeDetector extends EventEmitter {
       const embedding = Array.from(speakerEmbedding.vector);
 
       // Compare with current speaker
-      await this.checkSpeakerChange(embedding);
+      await this.checkSpeakerChange(embedding, speakerEmbedding.method);
     } catch (error) {
       log.error({ error }, 'Error processing audio for speaker change');
     } finally {
@@ -232,8 +242,22 @@ export class SpeakerChangeDetector extends EventEmitter {
   /**
    * Check if speaker has changed based on embedding.
    */
-  private async checkSpeakerChange(newEmbedding: number[]): Promise<void> {
+  private async checkSpeakerChange(
+    newEmbedding: number[],
+    method: SpeakerEmbedding['method']
+  ): Promise<void> {
     const now = new Date();
+
+    // A neural vector and a DSP vector live in different spaces: if the method
+    // changed (model came up, or fell back), start over from this voice, and
+    // stop naming the previous speaker (unknown until someone says otherwise).
+    if (this.state.currentMethod !== method) {
+      if (this.state.currentMethod !== null) this.state.currentSpeakerId = null;
+      this.state.currentMethod = method;
+      this.state.currentEmbedding = null;
+      this.state.recentEmbeddings = [];
+      this.state.consecutiveDifferentCount = 0;
+    }
 
     // Add to recent embeddings
     this.state.recentEmbeddings.push({
@@ -254,16 +278,21 @@ export class SpeakerChangeDetector extends EventEmitter {
 
     // Compare with current speaker - uses centralized SIMD-ready implementation
     const similarity = cosineSimilarity(newEmbedding, this.state.currentEmbedding);
+    const threshold =
+      method === 'neural'
+        ? this.config.neuralSameSpeakerThreshold
+        : this.config.sameSpeakerThreshold;
 
-    if (similarity >= this.config.sameSpeakerThreshold) {
+    if (similarity >= threshold) {
       // Same speaker - reset debounce counter
       this.state.consecutiveDifferentCount = 0;
 
-      // Update embedding with average for better tracking
-      this.state.currentEmbedding = this.averageEmbeddings([
-        this.state.currentEmbedding,
-        newEmbedding,
-      ]);
+      // Track the voice by averaging, but only on a clear match: averaging in
+      // a borderline one walks the reference over to a new speaker's voice
+      if (method === 'dsp' || similarity >= this.config.neuralReferenceUpdateThreshold) {
+        const reference = this.state.currentEmbedding;
+        this.state.currentEmbedding = this.averageEmbeddings([reference, newEmbedding]);
+      }
 
       // Emit confirmation event occasionally
       if (Math.random() < 0.1) {
@@ -277,7 +306,8 @@ export class SpeakerChangeDetector extends EventEmitter {
         {
           similarity,
           consecutiveCount: this.state.consecutiveDifferentCount,
-          threshold: this.config.sameSpeakerThreshold,
+          threshold,
+          method,
         },
         'Different speaker detected'
       );
@@ -297,13 +327,8 @@ export class SpeakerChangeDetector extends EventEmitter {
   private async handleNewSpeaker(embedding: number[]): Promise<void> {
     this.state.currentEmbedding = embedding;
 
-    // Try to identify speaker
+    // Who it is stays unknown here: household matching is not wired into this path
     if (this.config.enableHouseholdIdentification) {
-      // Reconstruct audio from embedding is not possible,
-      // so we'll use the most recent audio buffer
-      // This is a limitation - in practice, you'd keep the audio
-
-      // For now, emit unknown speaker event
       this.emitEvent('unknown_speaker', 0);
 
       log.info({ deviceId: this.deviceId }, 'New speaker detected (unidentified)');
@@ -316,7 +341,6 @@ export class SpeakerChangeDetector extends EventEmitter {
   private async handleSpeakerChange(newEmbedding: number[], confidence: number): Promise<void> {
     const previousSpeakerId = this.state.currentSpeakerId;
 
-    // Try to identify new speaker from household
     const newSpeakerId: string | null = null;
     const isNewSpeaker = true;
 
@@ -351,9 +375,7 @@ export class SpeakerChangeDetector extends EventEmitter {
     );
   }
 
-  /**
-   * Emit a speaker event.
-   */
+  /** Emit a speaker event. */
   private emitEvent(type: SpeakerChangeEvent['type'], confidence: number): void {
     const event: SpeakerChangeEvent = {
       type,
@@ -367,9 +389,7 @@ export class SpeakerChangeDetector extends EventEmitter {
     this.emit(type, event);
   }
 
-  /**
-   * Average multiple embeddings.
-   */
+  /** Average multiple embeddings. */
   private averageEmbeddings(embeddings: number[][]): number[] {
     if (embeddings.length === 0) return [];
     if (embeddings.length === 1) return embeddings[0];

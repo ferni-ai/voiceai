@@ -27,10 +27,10 @@
   height: 44px;
   
   /* Appearance */
-  background: var(--color-bg-elevated, #70605a);
-  border: 1px solid var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+  background: var(--color-bg-elevated, #352e28);
+  border: 1px solid var(--color-border-subtle, rgba(244, 239, 230, 0.10));
   border-radius: var(--radius-full, 9999px);
-  color: var(--color-text-secondary, #e0d5c8);
+  color: var(--color-text-secondary, #cfc3b4);
   box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0,0,0,.1));
   
   /* Interaction */
@@ -51,7 +51,7 @@
 
 .icon-btn:hover {
   background: var(--color-bg-glass, rgba(230, 195, 160, 0.08));
-  border-color: var(--color-border-medium, rgba(215, 185, 145, 0.20));
+  border-color: var(--color-border-medium, rgba(244, 239, 230, 0.16));
   transform: scale(1.05);
   box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0,0,0,.1));
 }
@@ -61,7 +61,7 @@
 }
 
 .icon-btn:focus-visible {
-  outline: 2px solid var(--color-accent-primary, #d4a84a);
+  outline: 2px solid var(--color-accent-primary, #8eae7a);
   outline-offset: 2px;
 }
 
@@ -112,15 +112,15 @@
   padding: 6px 14px;
   
   /* Appearance */
-  background: var(--color-bg-elevated, #70605a);
-  border: 1px solid var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+  background: var(--color-bg-elevated, #352e28);
+  border: 1px solid var(--color-border-subtle, rgba(244, 239, 230, 0.10));
   border-radius: var(--radius-full, 9999px);
   box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0,0,0,.05));
   
   /* Typography */
   font-family: var(--font-body, system-ui);
   font-size: var(--text-xs, 12px);
-  color: var(--color-text-secondary, #e0d5c8);
+  color: var(--color-text-secondary, #cfc3b4);
 }
 
 .badge__value {
@@ -202,7 +202,7 @@
   
   /* Appearance - dashed border style */
   background: var(--color-bg-glass, rgba(230, 195, 160, 0.08));
-  border: 2px dashed var(--color-border-medium, rgba(215, 185, 145, 0.20));
+  border: 2px dashed var(--color-border-medium, rgba(244, 239, 230, 0.16));
   border-radius: var(--radius-full, 9999px);
   color: var(--color-text-muted, #d0c4b4);
   
@@ -222,9 +222,9 @@
 
 .add-btn:hover {
   background: var(--persona-tint, var(--color-accent-subtle, rgba(212, 168, 74, 0.08)));
-  border-color: var(--persona-primary, var(--color-accent-primary, #d4a84a));
+  border-color: var(--persona-primary, var(--color-accent-primary, #8eae7a));
   border-style: solid;
-  color: var(--persona-primary, var(--color-accent-primary, #d4a84a));
+  color: var(--persona-primary, var(--color-accent-primary, #8eae7a));
   transform: scale(1.08);
   box-shadow: 0 0 20px var(--persona-glow, var(--color-accent-glow, rgba(212, 168, 74, 0.22)));
   
@@ -239,7 +239,7 @@
 }
 
 .add-btn:focus-visible {
-  outline: 2px solid var(--persona-primary, var(--color-accent-primary, #d4a84a));
+  outline: 2px solid var(--persona-primary, var(--color-accent-primary, #8eae7a));
   outline-offset: 3px;
 }
 
@@ -321,7 +321,7 @@
   width: 32px;
   height: 32px;
   border-radius: var(--radius-full, 9999px);
-  border: 2px dashed var(--color-border-medium, rgba(215, 185, 145, 0.20));
+  border: 2px dashed var(--color-border-medium, rgba(244, 239, 230, 0.16));
   background: var(--color-bg-glass, rgba(230, 195, 160, 0.08));
   display: flex;
   align-items: center;
@@ -349,7 +349,7 @@
 }
 
 .team-slot:hover .team-slot__avatar {
-  border-color: var(--persona-primary, var(--color-accent-primary, #d4a84a));
+  border-color: var(--persona-primary, var(--color-accent-primary, #8eae7a));
   border-style: solid;
   background: var(--persona-tint, var(--color-accent-subtle, rgba(212, 168, 74, 0.08)));
   transform: scale(1.1);
@@ -357,7 +357,7 @@
   
   & > svg,
   & > .icon {
-    color: var(--persona-primary, var(--color-accent-primary, #d4a84a));
+    color: var(--persona-primary, var(--color-accent-primary, #8eae7a));
     transform: rotate(90deg);
   }
 }
@@ -370,7 +370,7 @@
   outline: none;
   
   & .team-slot__avatar {
-    outline: 2px solid var(--persona-primary, var(--color-accent-primary, #d4a84a));
+    outline: 2px solid var(--persona-primary, var(--color-accent-primary, #8eae7a));
     outline-offset: 2px;
   }
 }

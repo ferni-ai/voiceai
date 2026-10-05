@@ -243,34 +243,46 @@ describe('Phone Identity Context Builders', () => {
       expect(context.toLowerCase()).toMatch(/match|found|account|link/);
     });
 
-    it.skip('suggests link_phone_to_account tool when confident', async () => {
-      const { setAccountLinkingContext, addPotentialMatches, accountLinkingContextBuilder } =
-        await import('../intelligence/context-builders/external/account-linking-context.js');
+    it.each([
+      ['high', 0.95],
+      ['moderate', 0.6],
+    ])(
+      'never tells the agent to link a %s-confidence match over the call',
+      async (_label, confidence) => {
+        const { setAccountLinkingContext, addPotentialMatches, accountLinkingContextBuilder } =
+          await import('../intelligence/context-builders/external/account-linking-context.js');
+        const sessionId = `${TEST_SESSION_ID}_nolink_${confidence}`;
 
-      setAccountLinkingContext(`${TEST_SESSION_ID}_link4`, {
-        sessionId: `${TEST_SESSION_ID}_link4`,
-        signals: [{ type: 'email_mention', value: TEST_EMAIL, confidence: 0.95 }],
-        potentialMatches: [],
-        linkingOffered: false,
-        linkingComplete: false,
-      });
+        setAccountLinkingContext(sessionId, {
+          sessionId,
+          signals: [{ type: 'email_mention', value: TEST_EMAIL, confidence: 0.95 }],
+          potentialMatches: [],
+          linkingOffered: false,
+          linkingComplete: false,
+        });
+        addPotentialMatches(sessionId, [
+          {
+            profile: { id: 'web-account-9', name: TEST_USER_NAME } as any,
+            matchType: 'email',
+            confidence,
+            identityId: 'web-account-9',
+          },
+        ]);
 
-      addPotentialMatches(`${TEST_SESSION_ID}_link4`, [
-        {
-          profile: { id: 'user-123', name: TEST_USER_NAME } as any,
-          matchType: 'email',
-          confidence: 0.95,
-          identityId: 'user-123',
-        },
-      ]);
+        const injections = await accountLinkingContextBuilder.build({
+          services: { sessionId },
+        } as any);
+        const text = JSON.stringify(injections);
 
-      const context = await accountLinkingContextBuilder.build({
-        sessionId: `${TEST_SESSION_ID}_link4`,
-      });
-
-      // Should mention linking when confidence is high
-      expect(context.toLowerCase()).toMatch(/link|merge|connect/);
-    });
+        expect(injections.length).toBeGreaterThan(0);
+        // No tool to call, no account id to call it with, and nothing from
+        // the matched account that would confirm to the caller it exists.
+        expect(text).not.toMatch(/link_phone_to_account|linkPhoneToAccount/);
+        expect(text).not.toContain('web-account-9');
+        expect(text).not.toContain(TEST_USER_NAME);
+        expect(text.toLowerCase()).toContain('sign in');
+      }
+    );
 
     it.skip('does not suggest linking when already complete', async () => {
       const { setAccountLinkingContext, markLinkingComplete, accountLinkingContextBuilder } =

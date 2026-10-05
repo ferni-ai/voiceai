@@ -427,11 +427,11 @@ title: Waitlist Admin
         </div>
         <div class="stat-card">
           <div class="stat-value" id="approvedCount" style="color: #2e7d32;">-</div>
-          <div class="stat-label">✅ Approved</div>
+          <div class="stat-label">Approved</div>
         </div>
         <div class="stat-card">
           <div class="stat-value" id="withPhoneCount" style="color: var(--color-accent);">-</div>
-          <div class="stat-label">📱 With Phone</div>
+          <div class="stat-label">With phone</div>
         </div>
       </div>
 
@@ -640,13 +640,13 @@ title: Waitlist Admin
         if (status === 'pending') {
           var approveBtn = document.createElement('button');
           approveBtn.className = 'btn-approve';
-          approveBtn.innerHTML = '✅ Approve';
+          approveBtn.innerHTML = 'Approve';
           approveBtn.onclick = function() { approveUser(entry.email, approveBtn, tr); };
           tdActions.appendChild(approveBtn);
         } else if (status === 'approved') {
           var doneSpan = document.createElement('span');
           doneSpan.className = 'approve-done';
-          doneSpan.textContent = '✓ Approved';
+          doneSpan.textContent = 'Approved';
           tdActions.appendChild(doneSpan);
         }
         tr.appendChild(tdActions);
@@ -678,7 +678,7 @@ title: Waitlist Admin
             statusCell.className = 'status-badge approved';
             statusCell.textContent = 'approved';
           }
-          btn.parentElement.innerHTML = '<span class="approve-done">✓ Approved' + (data.welcomeCallScheduled ? ' (call scheduled)' : '') + '</span>';
+          btn.parentElement.innerHTML = '<span class="approve-done">Approved' + (data.welcomeCallScheduled ? ' (call scheduled)' : '') + '</span>';
           // Refresh stats
           fetchStats();
         })
@@ -686,8 +686,8 @@ title: Waitlist Admin
           console.error('Approve error:', err);
           btn.disabled = false;
           btn.classList.remove('loading');
-          btn.innerHTML = '❌ Failed';
-          setTimeout(function() { btn.innerHTML = '✅ Approve'; }, 2000);
+          btn.innerHTML = 'Failed';
+          setTimeout(function() { btn.innerHTML = 'Approve'; }, 2000);
         });
       }
 

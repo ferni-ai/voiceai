@@ -29,7 +29,7 @@
  *          MemoryContext
  * ```
  *
- * Performance Budget: < 350ms total (see ./hybrid-search-timeout-stats.js).
+ * Budget: totalTimeoutMs below, set from measured search times (hybrid-search-timeout-stats.js).
  *
  * @module memory/retrieval/turn-memory-retrieval
  */
@@ -160,7 +160,7 @@ const DEFAULT_CONFIG: TurnRetrievalConfig = {
   maxMemories: 5, // Increased from 3 - more context helps
   enableReranking: true,
   rerankTimeoutMs: 50,
-  totalTimeoutMs: 350, // Was 100 - timed out every turn in prod; see ./hybrid-search-timeout-stats.js
+  totalTimeoutMs: 1900, // search races 70% = 1330 ms: dev p50 705 / p90 1316 ms (61 searches, 2026-10-05), all > 245
   enableGraphExpansion: true,
   graphExpansionDepth: 2,
 };

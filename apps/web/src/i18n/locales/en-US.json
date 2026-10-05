@@ -2736,7 +2736,11 @@
   },
   "voiceId": {
     "enrolledTitle": "Voice ID enrolled - Ferni recognizes your voice",
-    "notEnrolledTitle": "Voice ID not enrolled - Enroll to let Ferni recognize your voice"
+    "notEnrolledTitle": "Voice ID not enrolled - Enroll to let Ferni recognize your voice",
+    "reenrollTitle": "I've gotten better at recognizing voices",
+    "reenrollBody": "Mind if I learn yours again? It takes about 20 seconds.",
+    "reenrollAccept": "Sure",
+    "reenrollLater": "Not now"
   },
   "languageSwitcher": {
     "label": "Language",

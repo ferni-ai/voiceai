@@ -14,6 +14,7 @@ import {
   setPersona as setThemePersona,
   startAmbientCycle,
   toggleTheme,
+  watchSystemTheme,
 } from './theme/index.js';
 // Theme & Language Settings panel
 import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
@@ -283,6 +284,7 @@ import { handleOAuthReturns } from './app/oauth-return.js';
 import { createIntegrationsCallbacks } from './app/integrations-callbacks.js';
 // Voice Enrollment UI
 import { initVoiceEnrollmentUI, showVoiceEnrollmentModal } from './ui/voice-enrollment.ui.js';
+import { offerVoiceReenroll, shouldOfferVoiceReenroll } from './ui/voice-reenroll-card.ui.js';
 // Voice ID Badge
 import { initVoiceIdBadge } from './ui/voice-id-badge.ui.js';
 // Speaker Change Indicator - Gentle verification when voice changes
@@ -521,10 +523,16 @@ class VoiceAIApp {
       // This matches iOS behavior where users must sign in with Apple/Google
       // IMPORTANT: Must await auth initialization to restore any existing session
       const authState = await initializeAuth();
-      if (!authState.isAuthenticated) {
+      // The dev server accepts ?e2e=1 so Playwright can reach the settings
+      // theme picker. Production builds set import.meta.env.DEV to false.
+      const allowDevE2E =
+        import.meta.env.DEV && new URLSearchParams(window.location.search).get('e2e') === '1';
+      if (!authState.isAuthenticated && !allowDevE2E) {
         log.info('User not authenticated, showing sign-in gate');
         await showSignInGate();
         log.info('User signed in, continuing app initialization');
+      } else if (allowDevE2E && !authState.isAuthenticated) {
+        log.info('Dev server e2e bypass: continuing without a session');
       } else {
         log.info('User already authenticated', { uid: authState.uid?.slice(0, 8) });
       }
@@ -1002,6 +1010,7 @@ class VoiceAIApp {
   private initializeTheme(): void {
     // Initialize theme from stored preference or system
     initTheme();
+    watchSystemTheme();
 
     // ========================================================================
     // AMBIENT EXPERIENCE SYSTEM (Better than Apple/Google)
@@ -2604,28 +2613,28 @@ class VoiceAIApp {
   }
 
   /**
-   * Check if user needs to re-enroll their voice profile.
-   * Shows a toast if quality is low, pointing to Settings > Voice ID.
+   * A voice print that can't verify anyone gets a one-time card offering a fresh
+   * one; otherwise a low-quality print gets a toast. Both wait 5 s after load.
    */
   private async checkVoiceReEnrollment(): Promise<void> {
     try {
       const voiceAuth = getVoiceAuthService();
+      const profile = await voiceAuth.getProfile();
+      if (shouldOfferVoiceReenroll(profile)) {
+        setTimeout(() => offerVoiceReenroll(profile, () => void showVoiceEnrollmentModal()), 5000);
+        return;
+      }
       const result = await voiceAuth.checkReEnrollmentNeeded();
-
       if (result.needed && result.message) {
-        // Delay the toast to not overwhelm on startup
         setTimeout(() => {
           if (result.severity === 'high') {
-            // High severity - show warning
             toast.warning('Your voice profile needs a refresh. Head to Settings → Voice ID.');
           } else {
-            // Low severity - just informational
             toast.info('Voice profile could be sharper. Try Settings → Voice ID.');
           }
-        }, 5000); // Wait 5 seconds after app loads
+        }, 5000);
       }
     } catch (error) {
-      // Silently fail - not critical
       log.debug('Voice re-enrollment check skipped:', error);
     }
   }

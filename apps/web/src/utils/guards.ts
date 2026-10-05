@@ -17,6 +17,9 @@
  *
  * @module utils/guards
  */
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Guards');
 
 // ============================================================================
 // EXHAUSTIVE CHECKS
@@ -65,7 +68,7 @@ export function assertNever(value: never, message?: string): never {
  */
 export function exhaustiveFallback<T>(value: never, fallback: T): T {
   if (import.meta.env?.DEV) {
-    console.warn(`Unhandled case: ${JSON.stringify(value)}`);
+    log.warn(`Unhandled case: ${JSON.stringify(value)}`);
   }
   return fallback;
 }
@@ -118,7 +121,7 @@ export function softInvariant(condition: unknown, message: string): void {
     if (import.meta.env?.DEV) {
       throw new Error(fullMessage);
     } else {
-      console.warn(fullMessage);
+      log.warn(fullMessage);
     }
   }
 }
@@ -364,7 +367,7 @@ export function deprecated(feature: string, alternative?: string): void {
     const message = alternative
       ? `DEPRECATED: ${feature}. Use ${alternative} instead.`
       : `DEPRECATED: ${feature}`;
-    console.warn(message);
+    log.warn(message);
   }
 }
 

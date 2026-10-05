@@ -63,7 +63,7 @@
         </div>
         <div class="ferni-chat-panel__body">
           <div class="ferni-chat-panel__message">
-            <p>Hey! 👋</p>
+            <p>Hey!</p>
             <p>I'm Ferni, your AI life coach. Want to see how I can help?</p>
           </div>
           <div class="ferni-chat-panel__actions">
@@ -238,6 +238,7 @@
         }, result.delay);
       }
     } catch (error) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[ChatWidget] Failed to fetch greeting:', error);
     }
   }
@@ -257,7 +258,6 @@
     createWidget();
     state.initialized = true;
 
-    console.log('%c💬 Ferni Chat Widget initialized', 'color: #a67a6a;');
   }
 
   // ============================================================================

@@ -339,6 +339,20 @@ jobs:
       - name: Check @ferni/perf loads
         run: node -e "require('./apps/rust-perf')"
 
+      # speech-modules runs the audio-prosody analyzer, which needs this binding
+      # (no JS fallback). The repo only has the darwin-arm64 build, so on Linux
+      # it failed with "Cannot find module '@ferni/audio-linux-x64-gnu'".
+      - name: Build @ferni/audio native binding
+        working-directory: apps/rust-audio
+        run: |
+          pnpm install
+          pnpm exec napi build --platform
+
+      - name: Check @ferni/audio loads
+        run: node -e "require('./apps/rust-audio')"
+
+      # Blocking. It ran with continue-on-error, so 13 tests could fail on every
+      # run of main and the job still showed green.
       - name: Run integration tests
         # No `--`: pnpm would pass it through and vitest ignores every flag after it.
         run: pnpm test:integration --shard=${{ matrix.shard }}/3 --reporter=verbose
@@ -350,8 +364,10 @@ jobs:
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          # A project id with no credentials: code that picks a cloud backend from
+          # the project id alone (Vertex embeddings, firebase-admin) fails here, so
+          # the tests choose their fakes explicitly instead of relying on the env.
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-        continue-on-error: true
 
       - name: Check coverage threshold
         run: |

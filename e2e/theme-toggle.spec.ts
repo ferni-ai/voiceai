@@ -1,163 +1,197 @@
 /**
- * E2E Tests for Theme Toggle Feature
+ * Theme toggle, from the sign-in screen through the settings picker.
  *
- * Tests the light/dark theme toggle functionality:
- * - Toggling theme from menu
- * - Theme persistence
- * - Visual changes
+ * The dev server accepts ?e2e=1 so these tests can open Settings without a
+ * Google or Apple session. Production builds do not.
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
+const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:5173';
+
+interface SurfaceReading {
+  bodyBg: string;
+  theme: string | null;
+  chrome: string | null;
+  stored: string | null;
+  panelBg: string | null;
+  titleColor: string | null;
+  titleContrast: number;
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const channel = (value: number): number => {
+    const s = value / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const lum = (color: string): number => {
+    const parts = color.match(/[\d.]+/g);
+    if (!parts || parts.length < 3) return 0;
+    const [r, g, b] = parts.slice(0, 3).map(Number);
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+  };
+  const hi = Math.max(lum(foreground), lum(background));
+  const lo = Math.min(lum(foreground), lum(background));
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+async function openThemePicker(page: Page, theme: 'midnight' | 'zen'): Promise<void> {
+  await page.addInitScript((stored) => {
+    localStorage.setItem('voiceai-theme', stored);
+  }, theme);
+  await page.goto(`${BASE_URL}/?e2e=1`);
+  const trigger = page.locator('.settings-trigger');
+  await expect(trigger).toBeVisible({ timeout: 30000 });
+  await trigger.click();
+  await expect(page.locator('.settings-menu--visible')).toBeVisible();
+  const themeItem = page.locator('[data-action="theme"]');
+  await themeItem.scrollIntoViewIfNeeded();
+  await themeItem.click();
+  await expect(page.locator('.theme-language-settings--visible')).toBeVisible();
+  await expect(page.getByText('Night Ink')).toBeVisible();
+  await expect(page.getByText('Zen Garden')).toBeVisible();
+}
+
+async function readSurface(page: Page): Promise<SurfaceReading> {
+  return page.evaluate(() => {
+    const panel = document.querySelector('.theme-language-settings__panel');
+    const title = document.querySelector('.theme-language-settings__title');
+    const panelBg = panel ? getComputedStyle(panel).backgroundColor : null;
+    const titleColor = title ? getComputedStyle(title).color : null;
+    const channel = (value: number): number => {
+      const s = value / 255;
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+    const lum = (color: string): number => {
+      const parts = color.match(/[\d.]+/g);
+      if (!parts || parts.length < 3) return 0;
+      const [r, g, b] = parts.slice(0, 3).map(Number);
+      return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+    };
+    const titleContrast =
+      panelBg && titleColor
+        ? (Math.max(lum(titleColor), lum(panelBg)) + 0.05) /
+          (Math.min(lum(titleColor), lum(panelBg)) + 0.05)
+        : 0;
+    return {
+      bodyBg: getComputedStyle(document.body).backgroundColor,
+      theme: document.documentElement.getAttribute('data-theme'),
+      chrome: document.querySelector('meta[name="theme-color"]')?.getAttribute('content') ?? null,
+      stored: localStorage.getItem('voiceai-theme'),
+      panelBg,
+      titleColor,
+      titleContrast,
+    };
+  });
+}
 
 test.describe('Theme Toggle UI', () => {
-  test('toggles theme from menu', async ({ page }) => {
+  test.describe.configure({ timeout: 60_000 });
+  test('dark theme applies Night Ink on the sign-in screen', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('voiceai-theme', 'midnight');
+    });
     await page.goto(BASE_URL);
+    await page.waitForSelector('.sign-in-gate-btn--apple', { timeout: 10000 });
 
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'midnight');
 
-    // Get initial theme
-    const initialTheme = await page.getAttribute('html', 'data-theme');
+    const bodyBg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(bodyBg).toBe('rgb(20, 17, 14)');
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#14110e');
 
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    // Find and click Light/Dark toggle (in Personalize section)
-    const themeButton = page.locator('[data-action="theme"]');
-    if (!(await themeButton.isVisible())) {
-      // Expand Personalize section if collapsed
-      const personalizeHeader = page.locator(
-        '.settings-menu__section-header:has-text("Make It Yours"), .settings-menu__section-header:has-text("Personalize")'
-      );
-      if (await personalizeHeader.first().isVisible()) {
-        await personalizeHeader.first().click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    await themeButton.click();
-    await page.waitForTimeout(500);
-
-    // Theme should have changed
-    const newTheme = await page.getAttribute('html', 'data-theme');
-
-    // If initial was zen (light), should now be midnight (dark), or vice versa
-    if (initialTheme === 'zen') {
-      expect(newTheme).toBe('midnight');
-    } else if (initialTheme === 'midnight') {
-      expect(newTheme).toBe('zen');
-    } else {
-      // Theme changed in some way
-      expect(newTheme).not.toBe(initialTheme);
-    }
+    const apple = page.locator('.sign-in-gate-btn--apple');
+    const appleBg = await apple.evaluate((el) => getComputedStyle(el).backgroundColor);
+    const appleText = await apple.evaluate((el) => getComputedStyle(el).color);
+    expect(appleBg).toBe('rgb(244, 239, 230)');
+    expect(appleText).toBe('rgb(20, 17, 14)');
+    expect(contrastRatio(appleText, appleBg)).toBeGreaterThan(7);
   });
 
-  test('theme persists after page reload', async ({ page }) => {
+  test('light theme applies zen chrome on the sign-in screen', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('voiceai-theme', 'zen');
+    });
     await page.goto(BASE_URL);
+    await page.waitForSelector('.sign-in-gate-btn--apple', { timeout: 10000 });
 
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'zen');
+    const bodyBg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(bodyBg).toBe('rgb(250, 250, 249)');
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#fafaf9');
+  });
 
-    const themeButton = page.locator('[data-action="theme"]');
-    if (!(await themeButton.isVisible())) {
-      const personalizeHeader = page.locator(
-        '.settings-menu__section-header:has-text("Make It Yours"), .settings-menu__section-header:has-text("Personalize")'
-      );
-      if (await personalizeHeader.first().isVisible()) {
-        await personalizeHeader.first().click();
-        await page.waitForTimeout(300);
-      }
-    }
+  test('follows the system dark theme on a first visit', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.addInitScript(() => {
+      localStorage.removeItem('voiceai-theme');
+    });
+    await page.goto(BASE_URL);
+    await page.waitForSelector('.sign-in-gate-btn--apple', { timeout: 10000 });
 
-    // Toggle theme
-    await themeButton.click();
-    await page.waitForTimeout(500);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'midnight');
+    const persisted = await page.evaluate(() => localStorage.getItem('voiceai-theme'));
+    expect(persisted).toBeNull();
+    const bodyBg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(bodyBg).toBe('rgb(20, 17, 14)');
+  });
 
-    const themeAfterToggle = await page.getAttribute('html', 'data-theme');
+  test('settings picker switches Night Ink and Zen and keeps the choice', async ({ page }) => {
+    await openThemePicker(page, 'zen');
 
-    // Reload page
+    const night = page.locator('[data-action="set-theme"][data-theme="midnight"]');
+    const zen = page.locator('[data-action="set-theme"][data-theme="zen"]');
+    await night.click();
+
+    await expect
+      .poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor))
+      .toBe('rgb(20, 17, 14)');
+    await expect
+      .poll(() => page.evaluate(() => getComputedStyle(document.getElementById('app')!).backgroundColor))
+      .toBe('rgb(20, 17, 14)');
+    const dark = await readSurface(page);
+    expect(dark.theme).toBe('midnight');
+    expect(dark.bodyBg).toBe('rgb(20, 17, 14)');
+    expect(dark.chrome).toBe('#14110e');
+    expect(dark.stored).toBe('midnight');
+    expect(dark.panelBg).toBe('rgb(53, 46, 40)');
+    expect(dark.titleColor).toBe('rgb(244, 239, 230)');
+    expect(dark.titleContrast).toBeGreaterThan(7);
+
+    const preview = page.locator('.theme-language-settings__theme-preview--midnight');
+    const previewBg = await preview.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(previewBg).toBe('rgb(20, 17, 14)');
+
+    await zen.click();
+    await expect
+      .poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor))
+      .toBe('rgb(250, 250, 249)');
+    const light = await readSurface(page);
+    expect(light.theme).toBe('zen');
+    expect(light.bodyBg).toBe('rgb(250, 250, 249)');
+    expect(light.chrome).toBe('#fafaf9');
+    expect(light.stored).toBe('zen');
+    expect(light.titleContrast).toBeGreaterThan(7);
+
     await page.reload();
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-
-    // Theme should persist
-    const themeAfterReload = await page.getAttribute('html', 'data-theme');
-    expect(themeAfterReload).toBe(themeAfterToggle);
+    await expect(page.locator('.settings-trigger')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'zen');
+    const afterReload = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(afterReload).toBe('rgb(250, 250, 249)');
+    expect(await page.evaluate(() => localStorage.getItem('voiceai-theme'))).toBe('zen');
   });
 
-  test('dark theme applies correct styles', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-
-    // Set to dark theme
-    await page.evaluate(() => {
-      document.documentElement.setAttribute('data-theme', 'midnight');
-      localStorage.setItem('ferni_theme', 'midnight');
-    });
-
-    await page.waitForTimeout(300);
-
-    // Check that dark theme styles are applied
-    const html = page.locator('html');
-    await expect(html).toHaveAttribute('data-theme', 'midnight');
-
-    // Background should be dark
-    const bodyBg = await page.evaluate(() => {
-      return getComputedStyle(document.body).backgroundColor;
-    });
-
-    // Dark theme has darker background
-    expect(bodyBg).toBeTruthy();
-  });
-
-  test('light theme applies correct styles', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-
-    // Set to light theme
-    await page.evaluate(() => {
-      document.documentElement.setAttribute('data-theme', 'zen');
-      localStorage.setItem('ferni_theme', 'zen');
-    });
-
-    await page.waitForTimeout(300);
-
-    // Check that light theme styles are applied
-    const html = page.locator('html');
-    await expect(html).toHaveAttribute('data-theme', 'zen');
-  });
-
-  test('theme toggle button is accessible', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    const themeButton = page.locator('[data-action="theme"]');
-    if (!(await themeButton.isVisible())) {
-      const personalizeHeader = page.locator(
-        '.settings-menu__section-header:has-text("Make It Yours"), .settings-menu__section-header:has-text("Personalize")'
-      );
-      if (await personalizeHeader.first().isVisible()) {
-        await personalizeHeader.first().click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    // Button should be focusable
-    await themeButton.focus();
-    await expect(themeButton).toBeFocused();
-
-    // Should be clickable via keyboard
+  test('theme choice is keyboard accessible', async ({ page }) => {
+    await openThemePicker(page, 'zen');
+    const night = page.locator('[data-action="set-theme"][data-theme="midnight"]');
+    await night.focus();
+    await expect(night).toBeFocused();
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(500);
 
-    // Theme should have changed
-    const theme = await page.getAttribute('html', 'data-theme');
-    expect(theme).toBeTruthy();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'midnight');
+    await expect
+      .poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor))
+      .toBe('rgb(20, 17, 14)');
+    expect(await page.evaluate(() => localStorage.getItem('voiceai-theme'))).toBe('midnight');
   });
 });

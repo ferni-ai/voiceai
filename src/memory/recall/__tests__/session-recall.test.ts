@@ -140,8 +140,11 @@ describe('memory with manners', () => {
       'Sam',
       now
     )!;
-    expect(note).toContain('- Biscuit: breed = golden retriever (5 days ago)');
-    expect(note).toContain('- Austin: job offer = new job in Austin (today)');
+    expect(note).toContain('- Biscuit: breed = golden retriever [said 5 days ago]');
+    expect(note).toContain('- Austin: job offer = new job in Austin [said today]');
+    // A date inside the value must not read as dated by the label (dev 2026-10-05).
+    expect(note).not.toMatch(/\(today\)|\(yesterday\)/);
+    expect(note).toContain('as of when it was said');
   });
 
   it('tells Ferni to check rather than assert, and to leave sensitive things to the caller', () => {
