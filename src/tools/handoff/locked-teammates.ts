@@ -176,7 +176,8 @@ export async function answerTeammateRequest(
   if (isSpeaker(id, view)) {
     return {
       you: true,
-      instruction: `You are ${displayName}; they're already talking with you. Don't transfer.`,
+      instruction:
+        "They're already talking to you. Say so in the first person, e.g. \"you're talking to me\", and don't transfer.",
     };
   }
   if (isOpen(id, view)) {

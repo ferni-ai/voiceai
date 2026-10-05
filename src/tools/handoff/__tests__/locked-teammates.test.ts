@@ -220,12 +220,13 @@ describe('teammates the caller has not unlocked (only Ferni and Peter)', () => {
     expect((await executeHandoff('peter-john', 'caller asked')).locked).toBeFalsy();
   }, 60_000);
 
-  it("never hands Ferni to Ferni, and says it's already Ferni", async () => {
+  it('never hands Ferni to Ferni, and answers in the first person', async () => {
     const agent = await agentFor();
     expect((await requestTools(agent)).functionTools['handoffToFerni']).toBeUndefined();
-    expect((await dispatch(agent, 'askForTeammate', { name: 'Ferni' })).output).toContain(
-      'You are Ferni'
-    );
+    const { output } = await dispatch(agent, 'askForTeammate', { name: 'Ferni' });
+    expect(output).toContain("They're already talking to you. Say so in the first person");
+    expect(output).toContain("you're talking to me");
+    expect(output).not.toMatch(/\b(she|her|he|him|his)\b/i);
   }, 60_000);
 
   it('from Peter: the hand-back to Ferni stays, and no handoff from Peter to Peter', async () => {
