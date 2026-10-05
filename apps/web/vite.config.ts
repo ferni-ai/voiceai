@@ -1,8 +1,6 @@
 import { basename, dirname, resolve } from 'path';
 import { defineConfig, loadEnv } from 'vite';
 
-// Stub for native Capacitor plugins that don't exist in web builds
-const capacitorStub = resolve(__dirname, 'src/stubs/capacitor-stub.ts');
 // Stub for Firebase when not configured (dev only)
 const firebaseStub = resolve(__dirname, 'src/stubs/firebase-stub.ts');
 
@@ -30,11 +28,6 @@ export default defineConfig(({ mode }) => {
         '@design-system/tokens': resolve(__dirname, '../../design-system/dist/tokens.ts'),
         '@design-system/components': resolve(__dirname, '../../design-system/components/index.ts'),
         '@design-system': resolve(__dirname, '../../design-system/dist'),
-        // Stub native-only Capacitor plugins for web development
-        '@ferni/capacitor-purchases': capacitorStub,
-        '@capacitor/browser': capacitorStub,
-        '@capacitor/push-notifications': capacitorStub,
-        '@capacitor/local-notifications': capacitorStub,
         // Firebase stubs ONLY in development without credentials
         ...(shouldStubFirebase && {
           'firebase/app': firebaseStub,
@@ -167,7 +160,6 @@ export default defineConfig(({ mode }) => {
             if (id.includes('node_modules')) {
               if (id.includes('@tsparticles')) return 'vendor-particles';
               if (id.includes('livekit-client')) return 'vendor-rtc';
-              if (id.includes('@capacitor')) return 'vendor-capacitor';
               // Only lazy screens use Firestore. In the catch-all below, every
               // visitor downloaded it with the entry. It imports @firebase/app
               // (in vendor); nothing in vendor imports it, so no chunk cycle.

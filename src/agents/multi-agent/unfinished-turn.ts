@@ -53,6 +53,8 @@ const DANGLING_WORDS = new Set([
   'is', 'are', 'was', 'were', 'am', 'be', 'been', 'have', 'has', 'had', 'do', 'does',
   'did', 'will', 'would', 'can', 'could', 'should', 'might', 'must', 'gonna', 'wanna',
   'gotta', 'not', 'just', 'really',
+  // a subject with nothing after it ("I", "so I")
+  'i',
 ]);
 
 /** Short replies that are whole turns even when ink leaves them unpunctuated. */
@@ -67,8 +69,10 @@ export function unfinishedness(transcript: string): Unfinishedness {
   if (ws.length === 0) return 'finished';
   if (/[.?!]$/.test(text) && !/\.\.\.$/.test(text)) return 'finished';
   if (/(,|-|—|…|\.\.\.)$/.test(text)) return 'dangling';
-  if (isBackchannel(ws) || ws.every((w) => WHOLE_SHORT_REPLIES.has(w))) return 'finished';
+  // Before the backchannel check: "um", "uh" and "yeah, um" are backchannel
+  // words too, but someone ending on them is gathering a thought.
   if (DANGLING_WORDS.has(ws[ws.length - 1])) return 'dangling';
+  if (isBackchannel(ws) || ws.every((w) => WHOLE_SHORT_REPLIES.has(w))) return 'finished';
   return 'unpunctuated';
 }
 

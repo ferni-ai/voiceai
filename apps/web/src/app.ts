@@ -5,7 +5,7 @@
  * A premium experience that rivals Apple and Google.
  */
 
-import type { PersonaId } from './types/persona.js';
+import { isLegendId, isValidPersonaId, type PersonaId, type SpeakerId } from './types/persona.js';
 
 // Theme system
 import {
@@ -344,7 +344,7 @@ import { initGSAP, promoteAllToGPU } from './utils/gsap-animations.js';
 import { getPersona } from './config/personas.js';
 
 // Platform Detection
-import { hideSplashScreen, initPlatform, isNative, platform } from './utils/platform.js';
+import { initPlatform, platform } from './utils/platform.js';
 
 // Magnetic hover effect
 import { initMagneticHover } from './ui/magnetic-hover.ui.js';
@@ -507,7 +507,7 @@ class VoiceAIApp {
       // Skip intro - take users straight to the app
       // The awakening can still be triggered manually if needed
 
-      // Initialize platform detection (Electron/iOS/Web)
+      // Initialize platform detection (Electron/Web)
       void initPlatform();
       log.info('Running on:', platform());
 
@@ -550,11 +550,6 @@ class VoiceAIApp {
       this.promptForUserName();
 
       this.isInitialized = true;
-
-      // Hide native splash screen on iOS/Android
-      if (isNative()) {
-        void hideSplashScreen(300);
-      }
 
       // Mark entrance complete immediately (no animations to wait for)
       const avatarContainerEl = document.querySelector('.avatar-container');
@@ -1080,18 +1075,9 @@ class VoiceAIApp {
   /**
    * Update the persona theme colors.
    */
-  private updatePersonaTheme(personaId: PersonaId): void {
-    // Use canonical persona IDs (CSS selectors now use these)
-    const validIds = [
-      'ferni',
-      'peter-john',
-      'alex-chen',
-      'maya-santos',
-      'jordan-taylor',
-      'nayan-patel',
-    ];
-    const themePersona = validIds.includes(personaId) ? personaId : 'ferni';
-    setThemePersona(themePersona as Parameters<typeof setThemePersona>[0]);
+  private updatePersonaTheme(personaId: SpeakerId): void {
+    // Canonical ids, and a Legend while one speaks (their colours: setActivePersona)
+    setThemePersona(isValidPersonaId(personaId) || isLegendId(personaId) ? personaId : 'ferni');
   }
 
   /**

@@ -7,6 +7,7 @@ import { Router, type Request, type Response } from 'express';
 import { createLogger } from '../../utils/safe-logger.js';
 import * as ideasService from '../../services/ceo/ideas.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { paramString } from '../param-string.js';
 
 const log = createLogger({ module: 'ideas-routes' });
 const router = Router();
@@ -43,7 +44,10 @@ router.get('/random', async (req: Request, res: Response) => {
 router.get('/tag/:tag', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { tag } = req.params;
+    const tag = paramString(req.params.tag);
+    if (!tag) {
+      return res.status(400).json({ error: 'Invalid tag' });
+    }
     const ideas = await ideasService.getIdeasByTag(userId, tag);
     return res.json(ideas);
   } catch (error) {
@@ -101,7 +105,10 @@ router.post('/', async (req: Request, res: Response) => {
 router.post('/:ideaId/tag', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { ideaId } = req.params;
+    const ideaId = paramString(req.params.ideaId);
+    if (!ideaId) {
+      return res.status(400).json({ error: 'Invalid idea ID' });
+    }
     const { tag } = req.body;
 
     if (!tag) {
@@ -120,7 +127,10 @@ router.post('/:ideaId/tag', async (req: Request, res: Response) => {
 router.post('/:ideaId/archive', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { ideaId } = req.params;
+    const ideaId = paramString(req.params.ideaId);
+    if (!ideaId) {
+      return res.status(400).json({ error: 'Invalid idea ID' });
+    }
 
     const idea = await ideasService.archiveIdea(userId, ideaId);
     return res.json(idea);

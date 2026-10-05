@@ -7,6 +7,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import * as meetingsService from '../../services/ceo/meetings.js';
 import type { MeetingPeriod } from '../../services/ceo/meetings.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { paramString } from '../param-string.js';
 
 const log = createLogger({ module: 'meetings-routes' });
 const router = Router();
@@ -52,7 +53,10 @@ router.get('/search', async (req: Request, res: Response) => {
 router.get('/:meetingId', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { meetingId } = req.params;
+    const meetingId = paramString(req.params.meetingId);
+    if (!meetingId) {
+      return res.status(400).json({ error: 'Invalid meeting ID' });
+    }
     const meeting = await meetingsService.getMeeting(userId, meetingId);
 
     if (!meeting) {
@@ -87,7 +91,10 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:meetingId/notes', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { meetingId } = req.params;
+    const meetingId = paramString(req.params.meetingId);
+    if (!meetingId) {
+      return res.status(400).json({ error: 'Invalid meeting ID' });
+    }
     const { notes } = req.body;
 
     if (!notes) {
@@ -106,7 +113,10 @@ router.put('/:meetingId/notes', async (req: Request, res: Response) => {
 router.post('/:meetingId/action-items', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { meetingId } = req.params;
+    const meetingId = paramString(req.params.meetingId);
+    if (!meetingId) {
+      return res.status(400).json({ error: 'Invalid meeting ID' });
+    }
     const { title, assignee } = req.body;
 
     if (!title) {
@@ -125,7 +135,14 @@ router.post('/:meetingId/action-items', async (req: Request, res: Response) => {
 router.post('/:meetingId/action-items/:actionItemId/complete', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { meetingId, actionItemId } = req.params;
+    const meetingId = paramString(req.params.meetingId);
+    if (!meetingId) {
+      return res.status(400).json({ error: 'Invalid meeting ID' });
+    }
+    const actionItemId = paramString(req.params.actionItemId);
+    if (!actionItemId) {
+      return res.status(400).json({ error: 'Invalid action item ID' });
+    }
 
     const meeting = await meetingsService.completeActionItem(userId, meetingId, actionItemId);
     return res.json(meeting);

@@ -37,8 +37,18 @@ const VOLUME_TAG = /<volume\s+ratio="([\d.]+)"\s*\/>/;
 const EMOTION_TAG = /<emotion\s+value="([a-z_]+)"\s*\/>/;
 /** Any emotion tag, anywhere in a push: stripped after the opening when emotion is live. */
 const ANY_EMOTION_TAG = /<\/?emotion\b[^>]*>/gi;
-/** Every prosody tag: stripped from each push when the voice ignores them (a PVC). */
-const PROSODY_TAG = /<\/?(?:speed|emotion|volume)\b[^>]*>/gi;
+/**
+ * The tags a PVC ignores, stripped from each push for one. <volume> stays: a
+ * PVC honors it (voice-capabilities.ts), and it is how a reply restarts
+ * softly after the caller interrupts.
+ */
+const PROSODY_TAG = /<\/?(?:speed|emotion)\b[^>]*>/gi;
+const VOLUME_TAGS = /<volume\s+ratio="[\d.]+"\s*\/>/g;
+
+/** Only the volume tags of a run of leading tags. */
+function volumeOnly(tags: string): string {
+  return (tags.match(VOLUME_TAGS) ?? []).join('');
+}
 /**
  * Stage 2 tempo range for a voice that ignores <speed>. Listeners hear about
  * +/-10% tempo; more is a different voice. Gentle on purpose.
@@ -214,8 +224,8 @@ export class DirectorEngine {
       // never voiced with them (review LOW: tags one phrase early).
       const strip = this.ctx.stripProsody === true;
       if (strip) spokenBody = spokenBody.replace(PROSODY_TAG, '');
-      if (first) this.pendingTags += strip ? '' : this.openingTags(tags, prosody);
-      else spokenBody = `${strip ? '' : this.laterTags(tags, prosody)}${spokenBody}`;
+      if (first) this.pendingTags += strip ? volumeOnly(tags) : this.openingTags(tags, prosody);
+      else spokenBody = `${strip ? volumeOnly(tags) : this.laterTags(tags, prosody)}${spokenBody}`;
       const spoken = this.spokenPhrases.accept(spokenBody, first);
       if (spoken.length === 0) this.stats.held++;
       return this.emit(spoken);
