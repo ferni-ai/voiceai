@@ -21,6 +21,7 @@ import {
 import { withoutLockedHandoffs, type UnlockView } from '../../tools/handoff/locked-handoffs.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
 import {
   TURN_STYLE_REMINDER,
   turnStyleReminderEnabled,
@@ -47,12 +48,16 @@ export interface TurnToolsState {
  * told on this call and the director's notes for this reply, if any, and
  * without per-turn context built for an earlier turn (turn-intelligence.ts).
  */
-export function withTurnReminder(request: llm.ChatContext, session: object): llm.ChatContext {
+export function withTurnReminder(
+  request: llm.ChatContext,
+  session: object,
+  options: { shape?: boolean } = {}
+): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
   const director = getDirector(session);
   const notes = formatNotes(director?.current() ?? []);
   const reminder = [
-    turnStyleReminderEnabled() ? TURN_STYLE_REMINDER : '',
+    turnStyleReminderEnabled() ? styleFor(chatCtx, options.shape !== false) : '',
     director?.told() ?? '',
     notes,
   ]
@@ -61,11 +66,23 @@ export function withTurnReminder(request: llm.ChatContext, session: object): llm
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
 }
 
+/**
+ * This reply's shape (turn-shape.ts) from the caller's latest words, or the
+ * single style reminder when shaping is off, there are no words, or the
+ * caller asked for none (a crisis reply must not be held to a few words).
+ */
+function styleFor(chatCtx: llm.ChatContext, shape: boolean): string {
+  const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
+  if (!said) return TURN_STYLE_REMINDER;
+  const turn = turnShapeFor(said, rngFor(said));
+  log.info({ move: turn.move, shape: turn.shape }, 'TURN_SHAPE');
+  return turn.reminder;
+}
+
 /** Who this user has unlocked, read the way the handoff tool's runtime check reads it. */
 export function unlockViewFor(sessionUserData: unknown): UnlockView {
   const userData = sessionUserData as
-    | { userProfile?: UserProfile | null; personaId?: unknown; services?: unknown }
-    | undefined;
+    { userProfile?: UserProfile | null; personaId?: unknown; services?: unknown } | undefined;
   const services = userData?.services as
     | {
         userProfile?: UserProfile | null;

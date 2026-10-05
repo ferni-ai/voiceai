@@ -77,7 +77,12 @@ export function computeHumanness(runs) {
   const filled = agent.reduce((n, a) => n + (a.text.match(FILLED_PAUSE) ?? []).length, 0);
   return {
     turns: agent.length,
-    wordsPerTurn: { p50: pct(lens, 50), p90: pct(lens, 90) },
+    wordsPerTurn: {
+      p25: pct(lens, 25),
+      p50: pct(lens, 50),
+      p75: pct(lens, 75),
+      p90: pct(lens, 90),
+    },
     shortTurnShare3: rate(lens, (n) => n <= 3),
     shortTurnShare6: rate(lens, (n) => n <= 6),
     questionEndRate: rate(agent, (a) => /\?\s*$/.test(a.text)),
