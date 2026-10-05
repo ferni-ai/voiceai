@@ -2262,7 +2262,9 @@
       "other": "{count} idées trouvées ! (démo)",
       "many": "{count} idées trouvées ! (démo)"
     },
-    "yourPin": "Ton code PIN : {pin}"
+    "yourPin": "Ton code PIN : {pin}",
+    "linkedinConnected": "LinkedIn est connecté ! Je me souviendrai de tes étapes professionnelles.",
+    "linkedinConnectFailed": "Je n'ai pas réussi à connecter LinkedIn. Tu veux réessayer ?"
   },
   "trustJourney": {
     "empty": {
@@ -10830,5 +10832,10 @@
       "many": "Série de {count} de jours !",
       "other": "Série de {count} jours !"
     }
+  },
+  "oauthConnect": {
+    "signInFirst": "Connecte-toi d'abord, puis connecte ton compte",
+    "unavailable": "{provider} n'est pas disponible pour le moment",
+    "failed": "Je n'ai pas pu me connecter. Tu veux réessayer ?"
   }
 }

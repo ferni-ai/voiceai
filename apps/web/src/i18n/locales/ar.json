@@ -2319,7 +2319,9 @@
       "few": "تم العثور على {count} أفكار! (تجريبي)",
       "many": "تم العثور على {count} فكرة! (تجريبي)"
     },
-    "yourPin": "رمز PIN الخاص بكم: {pin}"
+    "yourPin": "رمز PIN الخاص بكم: {pin}",
+    "linkedinConnected": "تم ربط LinkedIn! سأتذكر محطات عملك.",
+    "linkedinConnectFailed": "لم نتمكن من ربط LinkedIn. لنحاول مجدداً؟"
   },
   "trustJourney": {
     "empty": {
@@ -11186,5 +11188,10 @@
       "many": "سلسلة لـ {count} يوماً!",
       "other": "سلسلة لـ {count} يوم!"
     }
+  },
+  "oauthConnect": {
+    "signInFirst": "يرجى تسجيل الدخول أولاً، ثم الربط.",
+    "unavailable": "{provider} غير متاح حالياً.",
+    "failed": "لم نتمكن من الربط. لنحاول مجدداً؟"
   }
 }

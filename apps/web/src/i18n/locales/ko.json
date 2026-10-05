@@ -2243,7 +2243,9 @@
       "one": "{count}개의 아이디어를 찾았어요! (데모)",
       "other": "{count}개의 아이디어를 찾았어요! (데모)"
     },
-    "yourPin": "내 PIN 번호: {pin}"
+    "yourPin": "내 PIN 번호: {pin}",
+    "linkedinConnected": "LinkedIn이 연결되었어요! 일과 관련된 마일스톤들을 잘 기억해 둘게요.",
+    "linkedinConnectFailed": "LinkedIn을 연결하지 못했어요. 다시 시도해 볼까요?"
   },
   "trustJourney": {
     "empty": {
@@ -10710,5 +10712,10 @@
       "other": "{count}일 연속 기록 달성!",
       "one": "{count}일 연속 기록 달성!"
     }
+  },
+  "oauthConnect": {
+    "signInFirst": "먼저 로그인한 후에 연결해 주세요.",
+    "unavailable": "지금은 {provider}을(를) 사용할 수 없어요.",
+    "failed": "연결하지 못했어요. 다시 시도해 볼까요?"
   }
 }

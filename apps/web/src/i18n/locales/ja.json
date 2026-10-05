@@ -2243,7 +2243,9 @@
       "one": "{count}個のアイデアが見つかりました！（デモ）",
       "other": "{count}個のアイデアが見つかりました！（デモ）"
     },
-    "yourPin": "あなたのPIN: {pin}"
+    "yourPin": "あなたのPIN: {pin}",
+    "linkedinConnected": "LinkedInと連携しました！お仕事のマイルストーンも、ちゃんと覚えておきますね。",
+    "linkedinConnectFailed": "LinkedInとの連携がうまくできませんでした。もう一度試してみますか？"
   },
   "trustJourney": {
     "empty": {
@@ -10710,5 +10712,10 @@
       "other": "{count}日連続のストリーク！",
       "one": "{count}日連続のストリーク！"
     }
+  },
+  "oauthConnect": {
+    "signInFirst": "まずはサインインをしてから、連携してくださいね。",
+    "unavailable": "ただいま{provider}はご利用いただけないようです。",
+    "failed": "連携できませんでした。もう一度試してみますか？"
   }
 }

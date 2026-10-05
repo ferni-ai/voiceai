@@ -2243,7 +2243,9 @@
       "one": "找到了 {count} 个点子！（演示）",
       "other": "找到了 {count} 个点子！（演示）"
     },
-    "yourPin": "你的 PIN 码：{pin}"
+    "yourPin": "你的 PIN 码：{pin}",
+    "linkedinConnected": "LinkedIn已连接！我会记住你的工作里程碑。",
+    "linkedinConnectFailed": "无法连接 LinkedIn。要再试一次吗？"
   },
   "trustJourney": {
     "empty": {
@@ -10710,5 +10712,10 @@
       "other": "连续 {count} 天啦！",
       "one": "连续 {count} 天啦！"
     }
+  },
+  "oauthConnect": {
+    "signInFirst": "请先登录，然后再进行连接",
+    "unavailable": "{provider}目前不可用",
+    "failed": "无法连接。要再试一次吗？"
   }
 }

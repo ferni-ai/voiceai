@@ -2243,7 +2243,9 @@
       "one": "{count} Idee gefunden! (Demo)",
       "other": "{count} Ideen gefunden! (Demo)"
     },
-    "yourPin": "Deine PIN: {pin}"
+    "yourPin": "Deine PIN: {pin}",
+    "linkedinConnected": "LinkedIn ist verbunden! Ich merke mir deine beruflichen Meilensteine.",
+    "linkedinConnectFailed": "Ich konnte keine Verbindung zu LinkedIn herstellen. Versuchst du es nochmal?"
   },
   "trustJourney": {
     "empty": {
@@ -10710,5 +10712,10 @@
       "one": "{count}-Tage-Serie!",
       "other": "{count}-Tage-Serie!"
     }
+  },
+  "oauthConnect": {
+    "signInFirst": "Melde dich zuerst an, dann verbinden wir uns.",
+    "unavailable": "{provider} ist gerade leider nicht verfügbar.",
+    "failed": "Das hat leider nicht geklappt. Versuchst du es nochmal?"
   }
 }

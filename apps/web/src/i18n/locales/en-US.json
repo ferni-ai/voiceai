@@ -2683,7 +2683,9 @@
       "one": "{count} idea found! (demo)",
       "other": "{count} ideas found! (demo)"
     },
-    "yourPin": "Your PIN: {pin}"
+    "yourPin": "Your PIN: {pin}",
+    "linkedinConnected": "LinkedIn connected! I'll remember your work milestones.",
+    "linkedinConnectFailed": "Couldn't connect LinkedIn. Try again?"
   },
   "subscriptionFeatures": {
     "community": {
@@ -10710,5 +10712,10 @@
       "one": "{count}-day streak!",
       "other": "{count}-day streak!"
     }
+  },
+  "oauthConnect": {
+    "signInFirst": "Sign in first, then connect",
+    "unavailable": "{provider} isn't available right now",
+    "failed": "Couldn't connect. Try again?"
   }
 }

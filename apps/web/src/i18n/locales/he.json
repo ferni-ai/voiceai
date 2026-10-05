@@ -2262,7 +2262,9 @@
       "other": "נמצאו {count} רעיונות! (דמו)",
       "two": "נמצאו {count} רעיונות! (דמו)"
     },
-    "yourPin": "הקוד האישי שלך: {pin}"
+    "yourPin": "הקוד האישי שלך: {pin}",
+    "linkedinConnected": "LinkedIn מחובר! אזכור את אבני הדרך המקצועיות שלך.",
+    "linkedinConnectFailed": "לא הצלחנו לחבר את LinkedIn. לנסות שוב?"
   },
   "trustJourney": {
     "empty": {
@@ -10829,5 +10831,10 @@
       "two": "רצף של {count} ימים!",
       "other": "רצף של {count} ימים!"
     }
+  },
+  "oauthConnect": {
+    "signInFirst": "כדאי להתחבר קודם, ואז לקשר.",
+    "unavailable": "{provider} לא זמין כרגע",
+    "failed": "לא הצלחנו להתחבר. לנסות שוב?"
   }
 }

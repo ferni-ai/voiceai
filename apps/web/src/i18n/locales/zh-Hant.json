@@ -2243,7 +2243,9 @@
       "one": "找到了 {count} 個點子！（試用版）",
       "other": "找到了 {count} 個點子！（試用版）"
     },
-    "yourPin": "你的 PIN 碼：{pin}"
+    "yourPin": "你的 PIN 碼：{pin}",
+    "linkedinConnected": "LinkedIn 已連結！我會幫你記住工作上的里程碑。",
+    "linkedinConnectFailed": "無法連結 LinkedIn。要再試一次嗎？"
   },
   "trustJourney": {
     "empty": {
@@ -10710,5 +10712,10 @@
       "other": "連續 {count} 天！",
       "one": "連續 {count} 天！"
     }
+  },
+  "oauthConnect": {
+    "signInFirst": "先登入，再連結吧",
+    "unavailable": "{provider} 目前無法使用",
+    "failed": "無法連結。要再試一次嗎？"
   }
 }
