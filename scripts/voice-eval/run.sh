@@ -13,7 +13,13 @@ if [[ $env == prod ]]; then
 else
   project=ferni-dev; agent=voice-agent-lkcloud; url=wss://dev-8sm1ba0z.livekit.cloud
 fi
-out=$HERE/out; mkdir -p $out/audio/$scenario
+# CALLER_VOICE=say (default, macOS Samantha) or cartesia:<voiceId> for a natural
+# caller (see caller-tts.mjs). Each voice keeps its own rendered audio.
+caller=${CALLER_VOICE:-say}
+out=$HERE/out; adir=$out/audio/$scenario${${caller:#say}:+/${caller//:/-}}; mkdir -p $adir
+if [[ $caller == cartesia:* && -z ${CARTESIA_API_KEY:-} ]]; then
+  export CARTESIA_API_KEY=$(gcloud secrets versions access latest --secret=cartesia-api-key --project=johnb-2025 2>/dev/null)
+fi
 turns=()
 i=0
 grep -v '^#' $HERE/scenarios/$scenario.txt | grep -v '^[[:space:]]*$' | while IFS= read -r line; do
@@ -24,14 +30,18 @@ grep -v '^#' $HERE/scenarios/$scenario.txt | grep -v '^[[:space:]]*$' | while IF
   if [[ $line == @* ]]; then
     mode=${${line%% *}#@}; rest=${line#* }; at=${rest%% *}; line=${rest#* }
   fi
-  pcm=$out/audio/$scenario/t$i.pcm
+  pcm=$adir/t$i.pcm
   if [[ ! -s $pcm || $HERE/scenarios/$scenario.txt -nt $pcm ]]; then
-    say -v Samantha -o $out/audio/$scenario/t$i.aiff -- "$line"
-    ffmpeg -loglevel error -y -i $out/audio/$scenario/t$i.aiff -ac 1 -ar 48000 -f s16le $pcm
+    if [[ $caller == cartesia:* ]]; then
+      node $HERE/caller-tts.mjs ${caller#cartesia:} $pcm "$line"
+    else
+      say -v Samantha -o $adir/t$i.aiff -- "$line"
+      ffmpeg -loglevel error -y -i $adir/t$i.aiff -ac 1 -ar 48000 -f s16le $pcm
+    fi
   fi
   if [[ $mode == turn ]]; then print -r -- $pcm; else print -r -- "$pcm::$mode::$at"; fi
-done > $out/audio/$scenario/turns.list
-turns=(${(f)"$(<$out/audio/$scenario/turns.list)"})
+done > $adir/turns.list
+turns=(${(f)"$(<$adir/turns.list)"})
 room="eval-$scenario-$label-$(date +%H%M%S)"
 tok=$(lk token create --project $project --join --room $room --identity eval-user --name Sam \
   --agent $agent --job-metadata "{\"user_id\":\"$uid\",\"user_name\":\"Sam\",\"timezone\":\"${EVAL_TZ:-America/New_York}\"}" --valid-for 20m 2>/dev/null \
