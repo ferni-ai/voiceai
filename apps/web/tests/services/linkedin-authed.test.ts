@@ -65,14 +65,14 @@ describe('LinkedIn service', () => {
     });
 
     expect(await disconnectLinkedIn()).toBe(true);
-    expect(apiPost).toHaveBeenCalledWith('/api/linkedin/disconnect');
+    expect(apiPost).toHaveBeenCalledWith('/api/linkedin/disconnect', {}, { maxRetries: 0 });
   });
 
   it('says so when a sync fails instead of failing silently', async () => {
     apiPost.mockResolvedValueOnce({ ok: false, status: 400, error: 'LinkedIn not connected' });
 
     expect(await syncLinkedIn()).toBe(false);
-    expect(apiPost).toHaveBeenCalledWith('/api/linkedin/sync');
+    expect(apiPost).toHaveBeenCalledWith('/api/linkedin/sync', {}, { maxRetries: 0 });
     expect(toast.error).toHaveBeenCalledWith("Couldn't sync LinkedIn. Try again?");
   });
 });
