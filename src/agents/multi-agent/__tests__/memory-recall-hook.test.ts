@@ -1,11 +1,56 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { voice } from '@livekit/agents';
+
+// A fake Firestore that records how dynamic_facts is queried.
+const fake = vi.hoisted(() => {
+  const calls: string[] = [];
+  let ordered: Array<Record<string, unknown>> = [];
+  const plain = [{ entityName: 'Biscuit', key: 'breed', value: 'golden retriever' }];
+  const query = (orderedBy?: string) => ({
+    orderBy: (field: string, dir: string) => {
+      calls.push(`orderBy:${field}:${dir}`);
+      return query(field);
+    },
+    limit: (n: number) => {
+      calls.push(`limit:${n}`);
+      return {
+        get: async () => ({
+          docs: (orderedBy ? ordered : plain).map((d) => ({ data: () => d })),
+        }),
+      };
+    },
+  });
+  const db = {
+    collection: () => ({ doc: () => ({ collection: () => query() }) }),
+  };
+  return { calls, db, setOrdered: (d: Array<Record<string, unknown>>) => (ordered = d) };
+});
+vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => fake.db }));
+
 import {
   addRecallNote,
   createMemoryRecall,
+  firestoreRecallStore,
   memoryRecallMode,
   type RecallAgent,
 } from '../memory-recall-hook.js';
+
+describe('firestoreRecallStore.facts', () => {
+  it('loads the newest facts first, not an arbitrary 300', async () => {
+    fake.calls.length = 0;
+    fake.setOrdered([{ entityName: 'Biscuit', key: 'age', value: 'three', extractedAt: '2026-10-04' }]);
+    const facts = await firestoreRecallStore.facts('u1');
+    expect(fake.calls).toContain('orderBy:extractedAt:desc');
+    expect(facts).toEqual([{ entityName: 'Biscuit', key: 'age', value: 'three', extractedAt: '2026-10-04' }]);
+  });
+
+  it('falls back to the plain query when no fact has a date', async () => {
+    fake.calls.length = 0;
+    fake.setOrdered([]);
+    const facts = await firestoreRecallStore.facts('u1');
+    expect(facts).toEqual([{ entityName: 'Biscuit', key: 'breed', value: 'golden retriever' }]);
+  });
+});
 
 const store = {
   facts: async () => [
@@ -29,11 +74,11 @@ describe('createMemoryRecall', () => {
     expect(recall.noteFor('Biscuit is asleep now')).toBeNull();
   });
 
-  it('recalls at most 4 facts per user turn across interim transcripts, then resets', async () => {
+  it('recalls at most 4 facts, 2 per entity, per user turn across interim transcripts, then resets', async () => {
     const many = {
       facts: async () =>
         Array.from({ length: 12 }, (_, i) => ({
-          entityName: 'Biscuit',
+          entityName: i % 2 ? 'Biscuit' : 'Mochi',
           key: `fact_${i}`,
           value: `detail number ${i}`,
           confidence: 1,
@@ -43,15 +88,20 @@ describe('createMemoryRecall', () => {
     const recall = createMemoryRecall({ userId: 'u1', store: many });
     await recall.ready;
 
-    const count = (note: string | null) => (note?.match(/^- Biscuit:/gm) ?? []).length;
-    let recalled = 0;
-    for (const interim of ['Biscuit', 'Biscuit did', 'Biscuit did it', 'Biscuit did it again']) {
-      recalled += count(recall.noteFor(interim));
+    const count = (note: string | null, who = 'Biscuit') =>
+      (note?.match(new RegExp(`^- ${who}:`, 'gm')) ?? []).length;
+    let biscuit = 0;
+    let all = 0;
+    for (const interim of ['Biscuit and Mochi', 'Biscuit and Mochi did', 'Biscuit and Mochi did it']) {
+      const note = recall.noteFor(interim);
+      biscuit += count(note);
+      all += count(note) + count(note, 'Mochi');
     }
-    expect(recalled).toBe(4);
+    expect(biscuit).toBe(2);
+    expect(all).toBe(4);
 
     recall.newTurn();
-    expect(count(recall.noteFor('Biscuit again'))).toBe(4);
+    expect(count(recall.noteFor('Biscuit again'))).toBe(2);
   });
 
   it('returns null instead of waiting while memory is still loading', () => {

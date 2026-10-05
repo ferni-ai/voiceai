@@ -426,17 +426,6 @@ class LifeAutomationService {
     return response.ok && response.data?.success === true;
   }
 
-  /**
-   * Get OAuth authorization URL
-   */
-  getAuthorizationUrl(provider: string, userId: string, redirectPath?: string): string {
-    let url = `/api/oauth/${provider}/authorize?userId=${encodeURIComponent(userId)}`;
-    if (redirectPath) {
-      url += `&redirect=${encodeURIComponent(redirectPath)}`;
-    }
-    return url;
-  }
-
   // ==========================================================================
   // JOBS
   // ==========================================================================

@@ -51,7 +51,7 @@ async function main() {
   console.log('============================================\n');
 
   const ai = new GoogleGenAI({ apiKey: API_KEY });
-  const model = 'gemini-2.0-flash-exp'; // Using available Live API model
+  const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash'; // Using available Live API model
 
   const config = {
     responseModalities: [Modality.TEXT], // Text only for this test

@@ -520,11 +520,10 @@ async function handleSonosStatus(
 
 async function handleSonosAuthUrl(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
-    const body = await parseBody(req);
-    const { userId } = body as { userId: string };
-
+    // The account to link is the verified caller, never a userId in the body.
+    const userId = getUserId(req);
     if (!userId) {
-      sendError(res, 400, 'userId required');
+      sendError(res, 401, 'Sign in required');
       return;
     }
 

@@ -49,7 +49,10 @@ const createMockRoom = () => ({
     getTrackPublications: vi.fn(() => []),
     publishData: vi.fn().mockResolvedValue(undefined),
   },
-  remoteParticipants: new Map(),
+  // The voice agent is already in the room: connect() only succeeds once it is.
+  remoteParticipants: new Map<string, unknown>([
+    ['agent-1', { identity: 'agent-1', isAgent: true, audioTrackPublications: new Map() }],
+  ]),
   connect: vi.fn().mockResolvedValue(undefined),
   disconnect: vi.fn().mockResolvedValue(undefined),
   on: vi.fn(function (this: ReturnType<typeof createMockRoom>) {

@@ -81,8 +81,29 @@ export function words(text: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * A hummed "mm-hmm" in any spelling: STT writes it as "M M M.", "Mhmm",
+ * "Hmmm"... (Ink-2 gave "M M M." for every mm-hmm in 3 dev talk-over calls,
+ * 2026-10-04). Only m's and h's, so "mom" or "uh-uh" (a no) never match.
+ */
+const HUMMED = /^(?:m+h*m*|h+m+)$/;
+
 export function isBackchannel(ws: string[]): boolean {
-  return ws.length > 0 && ws.every((w) => BACKCHANNEL_WORDS.has(w));
+  return ws.length > 0 && ws.every((w) => BACKCHANNEL_WORDS.has(w) || HUMMED.test(w));
+}
+
+/**
+ * Make the patched LiveKit (BACKCHANNEL_KEEPS_PAUSE / BACKCHANNEL_NOT_A_TURN in
+ * patches/@livekit__agents@1.5.1.patch) use this list: the patch had its own,
+ * without "aha", "alright", "got it" or "I see", so those cut Ferni off.
+ */
+export function installBackchannelHook(): void {
+  (globalThis as { __FERNI_IS_BACKCHANNEL?: (text: string) => boolean }).__FERNI_IS_BACKCHANNEL = (
+    text
+  ) => {
+    const ws = words(text);
+    return ws.length <= 4 && isBackchannel(ws);
+  };
 }
 
 /** Mostly Ferni's own current words: the caller's mic hearing Ferni. */

@@ -93,10 +93,7 @@ const DOMAIN_CONFIG: Record<
 };
 
 /** Trigger category display */
-const TRIGGER_CATEGORY_CONFIG: Record<
-  string,
-  { label: string; color: string; bgColor: string }
-> = {
+const TRIGGER_CATEGORY_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
   support: {
     label: 'Support',
     color: 'var(--color-ferni)',
@@ -905,7 +902,10 @@ function renderDomainCard(indicator: DomainStressIndicator): string {
     persona: 'Ferni',
   };
   const level = getStressLevel(indicator.stressLevel);
-  const levelLabel = t(`lifeContext.levels.${level}`, level === 'high' ? 'Needs attention' : level === 'medium' ? 'Worth watching' : 'Looking good');
+  const levelLabel = t(
+    `lifeContext.levels.${level}`,
+    level === 'high' ? 'Needs attention' : level === 'medium' ? 'Worth watching' : 'Looking good'
+  );
 
   return `
     <div class="life-context-domain-card" style="--domain-color: ${config.color}">
@@ -1217,7 +1217,7 @@ export function showLifeContextDashboard(data?: LifeContextSnapshot): void {
         hideLifeContextDashboard();
       }
     });
-    
+
     // Start conversation button (empty state CTA)
     modalElement.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
@@ -1252,7 +1252,7 @@ export function hideLifeContextDashboard(): void {
       modalElement = null;
     }, 300); // Match transition duration
   }
-  log.debug('Life context dashboard hidden');
+  window.dispatchEvent(new CustomEvent('ferni:life-context-hidden')); // ends the live stream
 }
 
 /**

@@ -25,6 +25,7 @@ import {
 } from '../../services/sharing/card-generator.js';
 import { cleanForFirestore, getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { requireAuth } from '../auth-middleware.js';
 import { parseBody, sendError, sendJSON } from '../helpers.js';
 
 const log = createLogger({ module: 'ShareRoutes' });
@@ -169,8 +170,6 @@ function sendPNG(res: ServerResponse, buffer: Buffer): void {
 // HELPERS
 // ============================================================================
 
-// parseBody, sendJSON, sendError imported from '../helpers.js'
-
 function sendSVG(res: ServerResponse, svg: string): void {
   res.writeHead(200, {
     'Content-Type': 'image/svg+xml',
@@ -195,21 +194,24 @@ function getBaseUrl(req: IncomingMessage): string {
  */
 async function handleGenerateCard(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
-    const body = (await parseBody(req)) as {
-      type: CardType;
-      userId: string;
-      data: CardData;
-    };
+    // The card belongs to the verified caller. A body userId used to be taken
+    // as given, so anyone could publish a card in another user's name.
+    const auth = await requireAuth(req, res);
+    if (!auth) return;
+    const body = (await parseBody(req)) as { type: CardType; userId?: string; data: CardData };
+    if (body.userId && body.userId !== auth.userId && !auth.isAdmin) {
+      sendError(res, "You can't make a card for another user", 403);
+      return;
+    }
+    const userId = body.userId || auth.userId;
 
-    if (!body.type || !body.userId || !body.data) {
-      sendError(res, 'Missing required fields: type, userId, data', 400);
+    if (!body.type || !body.data) {
+      sendError(res, 'Missing required fields: type, data', 400);
       return;
     }
 
     const baseUrl = getBaseUrl(req);
-
-    // Create the card record
-    const card = createShareableCard(body.type, body.userId, body.data, baseUrl);
+    const card = createShareableCard(body.type, userId, body.data, baseUrl);
 
     // Generate and cache the SVG
     const svg = generateCardSVG(body.type, body.data);
@@ -221,10 +223,7 @@ async function handleGenerateCard(req: IncomingMessage, res: ServerResponse): Pr
     // Update the image URL
     card.imageUrl = `${baseUrl}/api/share/cards/${card.id}/image`;
 
-    log.info(
-      { cardId: card.id, type: body.type, userId: body.userId },
-      '🃏 Generated shareable card'
-    );
+    log.info({ cardId: card.id, type: body.type, userId }, '🃏 Generated shareable card');
 
     sendJSON(res, {
       success: true,

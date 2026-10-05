@@ -1,4 +1,0 @@
-module FerniShared {
-header "FerniShared-Swift.h"
-export *
-}

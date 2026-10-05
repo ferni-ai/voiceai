@@ -580,8 +580,6 @@ export {
   AsyncEvents,
   emitConversationStart,
   emitConversationEnd,
-  emitTrustUpdate,
-  emitAnalyticsInteraction,
   type EventType,
   type EventPayload,
 } from './async-events/index.js';

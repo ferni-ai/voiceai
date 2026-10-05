@@ -52,13 +52,13 @@ interface PodcastRecommendation {
 }
 
 interface CreativeDNA {
-  personalityLabel: string;
-  personalityDescription: string;
+  personalityLabel: string | null; // null until learned from real activity
+  personalityDescription: string | null;
   topTopics: Array<{ topic: string; score: number }>;
   totalVideosWatched: number;
   totalPodcastsListened: number;
   totalInsightsSaved: number;
-  learningStyle: string;
+  learningStyle: string | null; // null until learned from real activity
 }
 
 interface LearningTrack {
@@ -299,16 +299,15 @@ export class CreativeYouDashboard {
       }
 
       // Load DNA and tracks in parallel
+      // DNA is per signed-in user (auth header), and null until there's something real
       const [dnaRes, tracksRes] = await Promise.all([
-        fetch(`${baseUrl}/api/creative/dna?userId=${this.userId}`),
+        apiGet<{ dna: CreativeDNA | null }>('/api/creative/dna'),
         fetch(`${baseUrl}/api/creative/tracks`),
       ]);
 
-      if (dnaRes.ok) {
-        const data = await dnaRes.json();
-        this.creativeDNA = data.dna;
-        this.renderCreativeDNA();
-      }
+      // Empty card on no profile or a failed load, never a skeleton stuck loading
+      this.creativeDNA = dnaRes.ok ? (dnaRes.data?.dna ?? null) : null;
+      this.renderCreativeDNA();
 
       if (tracksRes.ok) {
         const data = await tracksRes.json();
@@ -573,15 +572,15 @@ export class CreativeYouDashboard {
     const maxScore = Math.max(...topTopics.map((topic) => topic.score), 1);
 
     container.innerHTML = `
-      <div class="dna-header">
-        <div class="dna-personality">
+      <div class="dna-header">${
+        this.creativeDNA.personalityLabel
+          ? `<div class="dna-personality">
           <span class="personality-label">${this.creativeDNA.personalityLabel}</span>
-          <p class="personality-desc">${this.creativeDNA.personalityDescription}</p>
+          <p class="personality-desc">${this.creativeDNA.personalityDescription ?? ''}</p>
         </div>
-        <button class="share-dna-btn" aria-label="${t('common.share')}">
-          ${ICONS.share}
-        </button>
-      </div>
+        <button class="share-dna-btn" aria-label="${t('common.share')}">${ICONS.share}</button>`
+          : `<p class="personality-desc">${t('creativeYou.noProfile')}</p>`
+      }</div>
 
       <div class="dna-stats">
         <div class="stat">
@@ -596,10 +595,7 @@ export class CreativeYouDashboard {
           <span class="stat-value">${this.creativeDNA.totalInsightsSaved}</span>
           <span class="stat-label">${t('creativeYou.insights')}</span>
         </div>
-        <div class="stat">
-          <span class="stat-value">${this.creativeDNA.learningStyle}</span>
-          <span class="stat-label">${t('creativeYou.style')}</span>
-        </div>
+        ${this.creativeDNA.learningStyle ? `<div class="stat"><span class="stat-value">${this.creativeDNA.learningStyle}</span><span class="stat-label">${t('creativeYou.style')}</span></div>` : ''}
       </div>
 
       ${
@@ -962,8 +958,8 @@ export class CreativeYouDashboard {
   }
 
   private async shareCreativeDNA(): Promise<void> {
-    if (!this.creativeDNA) return;
-
+    const label = this.creativeDNA?.personalityLabel;
+    if (!label) return; // the share button only exists when there is a real label
     try {
       const response = await apiGet<unknown>('/api/creative/dna/card?userId=' + this.userId);
       if (response.ok) {
@@ -971,13 +967,13 @@ export class CreativeYouDashboard {
         if (navigator.share) {
           await navigator.share({
             title: t('creativeYou.shareTitle'),
-            text: t('creativeYou.shareText', { label: this.creativeDNA.personalityLabel }),
+            text: t('creativeYou.shareText', { label }),
             url: window.location.origin,
           });
         } else {
           // Copy to clipboard
           await navigator.clipboard.writeText(
-            `${t('creativeYou.shareText', { label: this.creativeDNA.personalityLabel })} ${window.location.origin}`
+            `${t('creativeYou.shareText', { label })} ${window.location.origin}`
           );
           // Would use toast here
         }

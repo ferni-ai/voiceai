@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened]
+  # Build & Test is a required check, so the merge queue needs it. Queue runs
+  # build and test only; they never deploy a preview.
+  merge_group:
   workflow_dispatch:
     inputs:
       branch:
@@ -88,7 +91,7 @@ jobs:
           version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -137,6 +140,14 @@ jobs:
       contents: read
       pull-requests: write
     needs: [context, build]
+    # Pull requests from Dependabot and from forks run without repository secrets, so
+    # GCP_SA_KEY is empty and auth fails ("must specify exactly one of ...credentials_json").
+    # Skip instead of failing; smoke-tests needs this job and skips with it.
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      github.event_name != 'merge_group' &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
     environment:
       name: ${{ needs.context.outputs.env_name }}
       url: ${{ steps.deploy.outputs.url }}
@@ -166,7 +177,7 @@ jobs:
           version: 10
 
       - name: Setup Node.js for design-system
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'

@@ -18,6 +18,8 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { devStubOrUnavailable } from '../../utils/dev-stub.js';
+import { getMockEvaluationResponse } from './mock-evaluation.js';
 import type { ResponseEvaluation, EvaluationContext, SamplingConfig } from './types.js';
 import { DEFAULT_SAMPLING_CONFIG } from './types.js';
 import {
@@ -180,8 +182,10 @@ async function callEvaluatorLLM(prompt: string, config: EvaluatorConfig): Promis
   const apiKey = config.apiKey || process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
-    log.warn('No API key configured for evaluator - using mock response');
-    return getMockEvaluationResponse();
+    return devStubOrUnavailable(
+      'Response evaluation service is not available: API keys are not configured. Contact support to enable quality assessment.',
+      getMockEvaluationResponse
+    );
   }
 
   try {
@@ -373,36 +377,6 @@ function createHeuristicEvaluation(
       ),
     },
   };
-}
-
-/**
- * Mock evaluation response for testing without API
- */
-function getMockEvaluationResponse(): string {
-  return JSON.stringify({
-    overall_score: 75,
-    dimensions: {
-      persona_voice: 80,
-      emotional_intelligence: 75,
-      helpfulness: 70,
-      authenticity: 80,
-      safety: 100,
-      context_use: 65,
-      trust_building: 75,
-    },
-    feedback: {
-      strengths: ['Good emotional acknowledgment', 'Natural conversational tone'],
-      improvements: ['Could use more signature phrases', 'Consider asking more questions'],
-      specific_issues: [],
-    },
-    flagged: false,
-    flag_reasons: [],
-    voice_analysis: {
-      signature_phrases_detected: [],
-      anti_patterns_detected: [],
-      voice_match_assessment: 'Generally matches persona voice with room for improvement',
-    },
-  });
 }
 
 // ============================================================================

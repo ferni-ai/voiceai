@@ -28,6 +28,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { optionalAuthAsync, rateLimit } from './auth-middleware.js';
 import { API_ERRORS } from './error-messages.js';
 import { getUserId, handleCorsPreflightIfNeeded, sendError } from './helpers.js';
+import { GROUP_TWILIO_CALLBACK_PATHS } from './twilio-callback-signature.js';
 
 // Import modular route handlers
 import { handleAnalyticsRoutes } from './routes/analytics.js';
@@ -81,6 +82,9 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
  * Check if a pathname matches an engagement route prefix
  */
 function isEngagementRoute(pathname: string): boolean {
+  // Twilio's conference-call callbacks carry a signature, not a user: the group
+  // router (group-conversation-routes.ts) admits them on that signature alone.
+  if (GROUP_TWILIO_CALLBACK_PATHS.has(pathname)) return false;
   return ENGAGEMENT_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 

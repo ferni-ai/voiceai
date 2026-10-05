@@ -3,7 +3,7 @@
  *
  * Manage "Better than Human" external service connections.
  * Gives Ferni superhuman awareness capabilities through:
- * - Biometrics (Apple Health, Google Fit, Fitbit, etc.)
+ * - Biometrics (Apple Health; Oura, WHOOP, Fitbit, Garmin when the server has OAuth for them)
  * - Calendar (Google Calendar)
  * - Banking (Plaid)
  * - Social Graph (from conversation mentions)
@@ -17,7 +17,14 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import { apiGet } from '../utils/api.js';
+import {
+  fetchWearableProviders,
+  getBiometricsPlatformList,
+  getLinkedWearables,
+  type WearableProviderStatus,
+} from '../services/biometrics.service.js';
 
 // ============================================================================
 // TYPES
@@ -96,22 +103,6 @@ const ICONS = {
 };
 
 // ============================================================================
-// BIOMETRICS PLATFORMS
-// ============================================================================
-
-// Platforms with full backend API support (reserved for future filtering)
-const _IMPLEMENTED_BIOMETRICS = ['apple_health', 'oura', 'eight_sleep'];
-
-const BIOMETRICS_PLATFORMS = [
-  { id: 'apple_health', name: 'Apple Health', icon: ICONS.heart },
-  { id: 'google_fit', name: 'Google Fit', icon: ICONS.activity, comingSoon: true },
-  { id: 'fitbit', name: 'Fitbit', icon: ICONS.activity, comingSoon: true },
-  { id: 'oura', name: 'Oura Ring', icon: ICONS.activity },
-  { id: 'whoop', name: 'WHOOP', icon: ICONS.activity, comingSoon: true },
-  { id: 'garmin', name: 'Garmin', icon: ICONS.activity, comingSoon: true },
-];
-
-// ============================================================================
 // INTEGRATIONS SETTINGS UI CLASS
 // ============================================================================
 
@@ -122,6 +113,7 @@ class IntegrationsSettingsUI {
   private callbacks: IntegrationsUICallbacks = {};
   private status: IntegrationStatus | null = null;
   private capabilities: IntegrationCapabilities | null = null;
+  private wearables: WearableProviderStatus[] | null = null;
 
   initialize(): void {
     if (this.panel) return;
@@ -154,31 +146,26 @@ class IntegrationsSettingsUI {
   }
 
   private async fetchStatus(): Promise<void> {
-    try {
-      const response = await apiGet<{ integrations: IntegrationStatus; capabilities: IntegrationCapabilities }>('/api/v1/integrations/status');
-      if (response.ok && response.data) {
-        this.status = response.data.integrations;
-        this.capabilities = response.data.capabilities;
-      }
-    } catch (error) {
-      if (import.meta.env?.DEV) console.debug('Failed to fetch integration status:', error);
-      // Set defaults
-      this.status = {
-        biometrics: { connected: false, platform: null },
-        calendar: { connected: false },
-        linkedin: { connected: false, profile: null },
-        banking: { connected: false },
-        socialGraph: { enabled: true, peopleTracked: 0 },
-      };
-      this.capabilities = {
-        stressAwareness: false,
-        sleepAwareness: false,
-        eventAnticipation: false,
-        locationAwareness: false,
-        careerAwareness: false,
-        financialPrediction: false,
-        relationshipInsights: false,
-      };
+    const [response, wearables] = await Promise.all([
+      apiGet<{ integrations: IntegrationStatus; capabilities: IntegrationCapabilities }>('/api/v1/integrations/status'),
+      fetchWearableProviders(),
+    ]);
+    this.wearables = wearables;
+    // apiGet never throws: a non-ok response (e.g. 401 while signed out) still renders, as "not connected".
+    // The server omits linkedin (it has its own service), so defaults fill any missing section.
+    this.status = {
+      biometrics: { connected: false, platform: null },
+      calendar: { connected: false },
+      linkedin: { connected: false, profile: null },
+      banking: { connected: false },
+      socialGraph: { enabled: true, peopleTracked: 0 },
+      ...(response.ok && response.data ? response.data.integrations : {}),
+    };
+    this.capabilities = response.ok && response.data ? response.data.capabilities : null;
+    // Wearables linked through /wearables OAuth live in their own token store.
+    const linked = getLinkedWearables(wearables);
+    if (!this.status.biometrics.connected && linked.length > 0) {
+      this.status.biometrics = { connected: true, platform: linked.join(', ') };
     }
   }
 
@@ -265,17 +252,17 @@ class IntegrationsSettingsUI {
               </div>
             ` : `
               <div class="integrations-settings__platforms">
-                ${BIOMETRICS_PLATFORMS.map(p => {
-                  const isComingSoon = 'comingSoon' in p && p.comingSoon;
-                  return isComingSoon ? `
+                ${getBiometricsPlatformList(this.wearables).map(p => {
+                  const icon = p.id === 'apple_health' ? ICONS.heart : ICONS.activity;
+                  return !p.available ? `
                   <div class="integrations-settings__platform-btn integrations-settings__platform-btn--disabled" aria-disabled="true">
-                    <span class="integrations-settings__platform-icon">${p.icon}</span>
+                    <span class="integrations-settings__platform-icon">${icon}</span>
                     <span>${p.name}</span>
-                    <span class="integrations-settings__coming-soon-badge">Coming Soon</span>
+                    <span class="integrations-settings__coming-soon-badge">Not available yet</span>
                   </div>
                   ` : `
                   <button aria-label="${t('accessibility.goForward')}" class="integrations-settings__platform-btn" data-action="connect-biometrics" data-platform="${p.id}">
-                    <span class="integrations-settings__platform-icon">${p.icon}</span>
+                    <span class="integrations-settings__platform-icon">${icon}</span>
                     <span>${p.name}</span>
                     ${ICONS.chevronRight}
                   </button>
@@ -320,7 +307,7 @@ class IntegrationsSettingsUI {
             `}
           </section>
 
-          <!-- LinkedIn Section -->
+          ${LINKEDIN_ENABLED ? `<!-- LinkedIn Section (off: config/linkedin.ts) -->
           <section class="integrations-settings__section">
             <div class="integrations-settings__section-header">
               <span class="integrations-settings__section-icon">${ICONS.linkedin}</span>
@@ -359,8 +346,7 @@ class IntegrationsSettingsUI {
                 We only read your profile and job history to celebrate milestones. We never post or message on your behalf.
               </p>
             `}
-          </section>
-
+          </section>` : ''}
           <!-- Banking Section -->
           <section class="integrations-settings__section">
             <div class="integrations-settings__section-header">

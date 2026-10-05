@@ -99,7 +99,6 @@ Deploy services to cloud
 | `npm run deploy:help` | `npx tsx scripts/deploy.ts --help` |
 | `npm run deploy:joel` | `npx tsx scripts/deploy.ts joel` |
 | `npm run deploy:landing` | `npx tsx scripts/deploy.ts landing` |
-| `npm run deploy:speaker` | `gcloud builds submit --config=cloudbuild-speaker.yaml` |
 | `npm run deploy:ui` | `npx tsx scripts/deploy.ts ui` |
 | `npm run deploy:ui:async` | `npx tsx scripts/deploy.ts ui --async` |
 | `npm run deploy:workers` | `bash infrastructure/scripts/deploy-workers.sh` |

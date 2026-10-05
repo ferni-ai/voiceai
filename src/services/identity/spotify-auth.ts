@@ -37,6 +37,9 @@ interface TokenData {
 }
 
 let cachedTokens: TokenData | null = null;
+// Spotify answered invalid_grant for this refresh token: it is revoked, and
+// retrying cannot fix it. Only a different token (rotated secret) is tried.
+let revokedRefreshToken: string | null = null;
 
 // ============================================================================
 // MUTEX FOR THREAD-SAFE TOKEN REFRESH
@@ -97,9 +100,7 @@ function saveTokens(tokens: TokenData): void {
   }
 }
 
-/**
- * Check if token is expired (with 10 min buffer for proactive refresh)
- */
+/** Check if token is expired (with 10 min buffer for proactive refresh) */
 function isTokenExpired(tokens: TokenData): boolean {
   const bufferMs = 10 * 60 * 1000; // 10 minutes - proactive refresh
   return Date.now() >= tokens.expires_at - bufferMs;
@@ -131,10 +132,12 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenData | nul
 
     if (!response.ok) {
       const errorData = (await response.json()) as { error: string; error_description?: string };
-      getLogger().error(
-        { error: errorData.error, description: errorData.error_description },
-        'Spotify token refresh failed'
-      );
+      if (errorData.error === 'invalid_grant') {
+        revokedRefreshToken = refreshToken;
+        getLogger().warn({ description: errorData.error_description }, '🎵 Spotify refresh token revoked; Spotify off until a new token is configured');
+        return null;
+      }
+      getLogger().error({ error: errorData.error, description: errorData.error_description }, 'Spotify token refresh failed');
       return null;
     }
 
@@ -189,15 +192,11 @@ export async function getSpotifyAccessToken(forceRefresh = false): Promise<strin
   }
 
   if (!cachedTokens) {
-    getLogger().warn(
-      '🎵 No Spotify tokens available.\n' +
-        '   To set up Spotify:\n' +
-        '   1. Run: node scripts/spotify-auth.js\n' +
-        '   2. Follow the prompts to authenticate\n' +
-        '   3. Restart the agent'
-    );
+    getLogger().warn('🎵 No Spotify tokens available. Run node scripts/spotify-auth.js, then restart the agent');
     return null;
   }
+  const needsRefresh = forceRefresh || !cachedTokens.access_token || isTokenExpired(cachedTokens);
+  if (needsRefresh && cachedTokens.refresh_token === revokedRefreshToken) return null;
 
   // Check if we need to refresh (or forced)
   if (forceRefresh || !cachedTokens.access_token || isTokenExpired(cachedTokens)) {

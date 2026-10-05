@@ -18,6 +18,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { openAuthedWebSocket } from '../services/authed-websocket.service.js';
 
 const log = createLogger('DirectorConsole');
 
@@ -103,7 +104,6 @@ export class DirectorConsole {
   private state: DirectorStateSnapshot | null = null;
   private isOpen = false;
   private sessionId: string;
-  private userId: string;
   private transcriptLog: Array<{ role: string; text: string; time: number }> = [];
 
   private reconnectAttempts = 0;
@@ -112,7 +112,6 @@ export class DirectorConsole {
 
   constructor(config: { sessionId: string; userId: string }) {
     this.sessionId = config.sessionId;
-    this.userId = config.userId;
 
     this.cleanupOrphanedElements();
   }
@@ -130,7 +129,7 @@ export class DirectorConsole {
     if (this.isOpen) return;
 
     this.createPanel();
-    this.connectWebSocket();
+    void this.connectWebSocket();
     this.isOpen = true;
 
     log.info('Director Console opened');
@@ -183,12 +182,16 @@ export class DirectorConsole {
   // WEBSOCKET CONNECTION
   // ===========================================================================
 
-  private connectWebSocket(): void {
+  private async connectWebSocket(): Promise<void> {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const url = `${protocol}//${host}/ws/director?sessionId=${this.sessionId}&userId=${this.userId}`;
-
-    this.ws = new WebSocket(url);
+    const url = `${protocol}//${window.location.host}/ws/director?sessionId=${this.sessionId}`;
+    try {
+      // The server authorizes the uid in this token, not a client-sent userId.
+      this.ws = await openAuthedWebSocket(url);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Director WebSocket: not signed in');
+      return;
+    }
 
     this.ws.onmessage = (event) => {
       try {
@@ -236,7 +239,7 @@ export class DirectorConsole {
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
     this.reconnectAttempts++;
     log.debug({ attempt: this.reconnectAttempts, delay }, 'Scheduling director console reconnect');
-    this.reconnectTimeout = setTimeout(() => this.connectWebSocket(), delay);
+    this.reconnectTimeout = setTimeout(() => void this.connectWebSocket(), delay);
   }
 
   private sendCommand(command: Record<string, unknown>): void {
@@ -851,10 +854,7 @@ export function getDirectorConsole(config?: {
 }): DirectorConsole | null {
   if (!config && !_instance) return null;
 
-  if (
-    config &&
-    (!_instance || config.sessionId !== _instance.getSessionId())
-  ) {
+  if (config && (!_instance || config.sessionId !== _instance.getSessionId())) {
     _instance = new DirectorConsole(config);
   }
 

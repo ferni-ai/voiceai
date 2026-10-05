@@ -24,11 +24,13 @@ import {
   calculateUsageStatus,
   createDefaultSubscription,
   createFreshUsage,
-  getLimitMessage, // Reserved for billing period display
+  getLimitMessage,
   needsUsageReset,
 } from '../../types/subscription.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { finops } from '../observability/finops.js';
+import { billingSourceOf, type BillingSource } from './billing-source.js';
+import { nextSubscriptionFromStripe } from './paying-twice.js';
 
 const log = createLogger({ module: 'StripeSubscription' });
 
@@ -337,29 +339,25 @@ export async function createCheckoutSession(params: {
   };
 }
 
-/**
- * Create a billing portal session for managing subscription
- */
+/** The user's Stripe customer id, or null when they've never been a Stripe customer. */
+export async function getStripeCustomerId(userId: string): Promise<string | null> {
+  const profile = await (await getStore()).getProfile(userId);
+  return profile?.subscription?.stripeCustomerId ?? null;
+}
+
+/** Create a billing portal session for managing subscription */
 export async function createPortalSession(
   userId: string,
   returnUrl: string
 ): Promise<{ url: string }> {
-  const store = await getStore();
-  const profile = await store.getProfile(userId);
-
-  if (!profile?.subscription?.stripeCustomerId) {
-    throw new Error('User does not have a Stripe customer ID');
-  }
-
+  const customer = await getStripeCustomerId(userId);
+  if (!customer) throw new Error('User does not have a Stripe customer ID');
   const stripe = await getStripe();
-
   const session = await stripe.billingPortal.sessions.create({
-    customer: profile.subscription.stripeCustomerId,
+    customer,
     return_url: returnUrl,
   });
-
   log.info({ userId }, 'Created billing portal session');
-
   return { url: session.url };
 }
 
@@ -385,7 +383,8 @@ function mapStripeStatus(stripeStatus: string): SubscriptionStatus {
 }
 
 /**
- * Sync subscription data from Stripe to user profile
+ * Sync subscription data from Stripe to user profile. Someone also paying in
+ * the App Store keeps the higher plan (paying-twice.ts), whichever side it's on.
  */
 export async function syncSubscriptionFromStripe(
   userId: string,
@@ -393,43 +392,30 @@ export async function syncSubscriptionFromStripe(
 ): Promise<SubscriptionData> {
   const store = await getStore();
   const profile = await store.getProfile(userId);
-
   if (!profile) {
     log.warn({ userId }, 'Cannot sync subscription - profile not found');
     throw new Error('User profile not found');
   }
-
   const tier = (subscription.metadata.tier as SubscriptionTier) ?? 'friend';
-  const existingSubscription = profile.subscription ?? createDefaultSubscription();
-
-  const updatedSubscription: SubscriptionData = {
-    ...existingSubscription,
-    tier,
-    status: mapStripeStatus(subscription.status),
-    stripeCustomerId: subscription.customer as string,
-    stripeSubscriptionId: subscription.id,
-    subscribedAt: existingSubscription.subscribedAt ?? new Date(subscription.created * 1000),
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-    inTrial: subscription.status === 'trialing',
-    trialEndDate: subscription.trial_end ? new Date(subscription.trial_end * 1000) : undefined,
-    lastSyncedAt: new Date(),
-  };
-
-  await store.saveProfile({
-    ...profile,
-    subscription: updatedSubscription,
-    updatedAt: new Date(),
-  });
-
-  log.info(
+  const now = new Date();
+  const updatedSubscription = nextSubscriptionFromStripe(
+    profile.subscription ?? createDefaultSubscription(),
     {
-      userId,
       tier,
-      status: subscription.status,
+      status: mapStripeStatus(subscription.status),
+      customerId: subscription.customer,
+      subscriptionId: subscription.id,
+      createdAt: new Date(subscription.created * 1000),
+      periodEnd: new Date(subscription.current_period_end * 1000),
+      trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : undefined,
     },
+    now
+  );
+  await store.saveProfile({ ...profile, subscription: updatedSubscription, updatedAt: now });
+  log.info(
+    { userId, tier, status: subscription.status, provider: updatedSubscription.provider },
     'Synced subscription from Stripe'
   );
-
   return updatedSubscription;
 }
 
@@ -464,37 +450,24 @@ export async function handleCancellation(userId: string): Promise<void> {
 }
 
 /**
- * Fully downgrade user to free tier (after period ends)
+ * The Stripe subscription ended: drop to free (keeping usage and the Stripe
+ * customer for a resubscription), unless a live App Store plan takes over.
  */
 export async function downgradeToFree(userId: string): Promise<void> {
   const store = await getStore();
   const profile = await store.getProfile(userId);
-
   if (!profile) {
     log.warn({ userId }, 'Cannot downgrade - profile not found');
     return;
   }
-
-  const existingUsage = profile.subscription?.monthlyUsage ?? createFreshUsage();
-
-  const freeSubscription: SubscriptionData = {
-    tier: 'free',
-    status: 'active',
-    billingFrequency: 'monthly',
-    inTrial: false,
-    monthlyUsage: existingUsage,
-    lastSyncedAt: new Date(),
-    // Keep the Stripe customer ID for future resubscription
-    stripeCustomerId: profile.subscription?.stripeCustomerId,
+  const now = new Date();
+  const current = profile.subscription ?? {
+    ...createDefaultSubscription(),
+    monthlyUsage: createFreshUsage(),
   };
-
-  await store.saveProfile({
-    ...profile,
-    subscription: freeSubscription,
-    updatedAt: new Date(),
-  });
-
-  log.info({ userId }, 'Downgraded to free tier');
+  const next = nextSubscriptionFromStripe(current, 'ended', now);
+  await store.saveProfile({ ...profile, subscription: next, updatedAt: now });
+  log.info({ userId, tier: next.tier, provider: next.provider }, 'Stripe subscription ended');
 }
 
 /**
@@ -732,7 +705,7 @@ export async function handleWebhookEvent(event: StripeEvent): Promise<void> {
       const userId = subscription.metadata?.ferni_user_id;
       if (userId) {
         await downgradeToFree(userId);
-        log.info({ userId }, 'Subscription ended - downgraded to free');
+        log.info({ userId }, 'Stripe subscription deleted');
       }
       break;
     }
@@ -843,13 +816,13 @@ export async function syncMRRToFinOps(): Promise<{ mrr: number; subscriptionCoun
 // API RESPONSE HELPERS
 // ============================================================================
 
-/**
- * Get subscription info for API response (safe to send to frontend)
- */
+/** Get subscription info for API response (safe to send to frontend) */
 export async function getSubscriptionInfo(userId: string): Promise<{
   tier: SubscriptionTier;
   tierName: string;
   status: SubscriptionStatus;
+  /** Where the paid plan is billed, so the web only offers the Stripe portal for Stripe. */
+  billingSource: BillingSource;
   usage: UsageStatus;
   canUpgrade: boolean;
   prices: Array<{
@@ -879,6 +852,7 @@ export async function getSubscriptionInfo(userId: string): Promise<{
     tier: subscription.tier,
     tierName: config.name,
     status: subscription.status,
+    billingSource: billingSourceOf(subscription),
     usage,
     canUpgrade: subscription.tier === 'free',
     prices,

@@ -1,33 +1,19 @@
 #!/usr/bin/env npx ts-node
 /**
  * Generate Frontend Persona Configuration from Bundles
- * 
- * This script reads all persona bundle manifests and generates a JSON file
- * that the frontend can use. This creates a single source of truth:
- * 
- *   persona.manifest.json → (this script) → frontend personas.generated.json
- * 
- * USAGE:
- *   npm run generate:personas
- *   # or directly:
- *   npx ts-node scripts/generate-frontend-personas.ts
- * 
- * OUTPUT:
- *   apps/web/src/config/personas.generated.json
- * 
- * The frontend then imports this generated file instead of maintaining
- * duplicate hardcoded persona definitions.
+ *
+ *   persona.manifest.json → (this script) → apps/web/src/config/personas.generated.json
+ *
+ * Usage: npm run generate:personas. The web imports the generated file instead of
+ * keeping its own copy of each persona. `personas` is Ferni's team (the roster);
+ * `legends` are the Financial Legends, shown only while one is speaking.
  */
 
 import { pathToFileURL } from 'url';
 import { findProjectRoot } from '../../utils/project-root.js';
 import { readdir, readFile, writeFile, stat } from 'fs/promises';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 
-// Get script directory
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 const projectRoot = findProjectRoot();
 
 // Types matching the persona manifest schema
@@ -38,8 +24,10 @@ interface PersonaManifest {
     name: string;
     display_name?: string;
     description: string;
+    tagline?: string;
     aliases?: string[];
     initials?: string;
+    avatar?: { initials?: string };
     self_reference?: string;
   };
   voice?: {
@@ -56,6 +44,7 @@ interface PersonaManifest {
   };
   role?: {
     id: string;
+    primary?: string;
     domains?: string[];
     can_handoff?: boolean;
     handoff_targets?: string[];
@@ -95,7 +84,7 @@ interface FrontendPersona {
   name: string;
   initials: string;
   subtitle: string;
-  role: 'coach' | 'team';
+  role: 'coach' | 'team' | 'standalone';
   description: string;
   helperText: string;
   skills: Array<{ icon: string; name: string }>;
@@ -120,6 +109,8 @@ export interface GeneratedConfig {
     version: string;
   };
   personas: Record<string, FrontendPersona>;
+  /** Financial Legends: shown only while one is speaking, never on the team roster. */
+  legends: Record<string, FrontendPersona>;
   teamOrder: string[];
   coordinatorId: string;
 }
@@ -134,6 +125,7 @@ const roleSubtitles: Record<string, string> = {
   'lifetime-planner': 'Planning & Events',
   'lifetime-advisor': 'Sage & Mentor',
   'sage-mentor': 'Sage & Mentor',
+  'life-mentor': 'Life Mentor',
 };
 
 // Map role to skills (could also be in manifest later)
@@ -381,9 +373,26 @@ export function isWebTeamMember(manifest: { team?: unknown }): boolean {
   return !membership || membership === WEB_TEAM;
 }
 
-async function loadAllBundles(): Promise<Map<string, { manifest: PersonaManifest; path: string }>> {
+/** A Financial Legend: not on the roster, but the web shows them while they speak. */
+export function isFinancialLegend(manifest: { team?: unknown }): boolean {
+  return (manifest.team as { membership?: string } | undefined)?.membership === 'financial-legends';
+}
+
+/** A Legend's speaker card: own name, initials, title; standalone (off the team); no emoji. */
+export async function manifestToLegend(m: PersonaManifest, path: string): Promise<FrontendPersona> {
+  const base = await manifestToFrontendPersona(m, path);
+  const title = m.role?.primary || roleSubtitles[m.role?.id ?? ''] || base.subtitle;
+  const initials = m.identity.avatar?.initials || base.initials;
+  const transition = { ...base.transition, emoji: '' };
+  const shown = { initials, subtitle: title, helperText: title, skills: [], transition };
+  return { ...base, ...shown, role: 'standalone' };
+}
+
+type Bundles = Map<string, { manifest: PersonaManifest; path: string }>;
+
+async function loadAllBundles(legends: Bundles = new Map()): Promise<Bundles> {
   const bundlesDir = join(projectRoot, 'src', 'personas', 'bundles');
-  const bundles = new Map<string, { manifest: PersonaManifest; path: string }>();
+  const bundles: Bundles = new Map();
   
   const entries = await readdir(bundlesDir, { withFileTypes: true });
   
@@ -400,8 +409,9 @@ async function loadAllBundles(): Promise<Map<string, { manifest: PersonaManifest
       // The web app shows Ferni's team only. Other teams (financial-legends:
       // john-bogle, peter-lynch, joel-dickson) are separate products; without
       // this they were added to the web roster.
+      if (isFinancialLegend(manifest)) legends.set(entry.name, { manifest, path: bundlePath });
       if (!isWebTeamMember(manifest)) {
-        console.log(`⏭️  Skipped: ${entry.name} (another team)`);
+        console.log(`⏭️  Not on the roster: ${entry.name} (another team)`);
         continue;
       }
       bundles.set(entry.name, { manifest, path: bundlePath });
@@ -420,8 +430,11 @@ async function loadAllBundles(): Promise<Map<string, { manifest: PersonaManifest
 async function generateFrontendConfig(): Promise<void> {
   console.log('🔄 Generating frontend persona configuration from bundles...\n');
   
-  const bundles = await loadAllBundles();
+  const legendBundles: Bundles = new Map();
+  const bundles = await loadAllBundles(legendBundles);
   const personas: Record<string, FrontendPersona> = {};
+  const legends: Record<string, FrontendPersona> = {};
+  for (const [id, b] of legendBundles) legends[id] = await manifestToLegend(b.manifest, b.path);
   const teamOrder: string[] = [];
   let coordinatorId = 'ferni';
   
@@ -445,6 +458,7 @@ async function generateFrontendConfig(): Promise<void> {
       version: '1.0.0',
     },
     personas,
+    legends,
     teamOrder,
     coordinatorId,
   };

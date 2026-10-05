@@ -1,26 +1,12 @@
 /**
  * Push Notifications Service Tests
  *
- * Tests for push notification management:
+ * Tests for web push notification management:
  * - Permission requests
- * - Token registration
- * - Notification scheduling
- * - Channel management
+ * - Subscription
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// Mock platform utilities to ensure web-mode testing
-vi.mock('../../src/utils/platform.js', () => ({
-  platform: 'web',
-  isNative: () => false,
-  isIOS: () => false,
-  isAndroid: () => false,
-  isWeb: () => true,
-}));
-
-// The capacitor-stub.ts already provides mock implementations
-// No need to vi.mock() it - just import directly
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -132,7 +118,9 @@ describe('PushNotificationsService', () => {
     });
 
     it('should handle denied permission', async () => {
-      mockRequestPermission.mockImplementationOnce(() => Promise.resolve('denied') as Promise<PermissionState>);
+      mockRequestPermission.mockImplementationOnce(
+        () => Promise.resolve('denied') as Promise<PermissionState>
+      );
 
       const result = await requestNotificationPermission();
       expect(result).toBe('denied');
@@ -154,121 +142,6 @@ describe('PushNotificationsService', () => {
       expect(notification.title).toBe('Test Notification');
       expect(notification.body).toBe('Test body');
       expect(notification.data).toEqual({ action: 'test' });
-    });
-  });
-});
-
-describe('Local Notifications', () => {
-  describe('Schedule', () => {
-    it('should schedule local notification', async () => {
-      const { LocalNotifications } = await import('../../src/stubs/capacitor-stub.js');
-
-      // Should not throw - stub handles the call
-      const result = await LocalNotifications.schedule({
-        notifications: [{
-          id: 1,
-          title: 'Test',
-          body: 'Test body',
-          schedule: { at: new Date() },
-        }],
-      });
-
-      expect(result).toEqual({ notifications: [] });
-    });
-  });
-
-  describe('Cancel', () => {
-    it('should cancel pending notification', async () => {
-      const { LocalNotifications } = await import('../../src/stubs/capacitor-stub.js');
-
-      // Should not throw - stub handles the call
-      await LocalNotifications.cancel({ notifications: [{ id: 1 }] });
-
-      // If we get here, the stub worked
-      expect(true).toBe(true);
-    });
-  });
-
-  describe('Get Pending', () => {
-    it('should get pending notifications', async () => {
-      const { LocalNotifications } = await import('../../src/stubs/capacitor-stub.js');
-      
-      const result = await LocalNotifications.getPending();
-
-      expect(result.notifications).toEqual([]);
-    });
-  });
-});
-
-describe('Native Push (Capacitor)', () => {
-  describe('Permission', () => {
-    it('should check permissions', async () => {
-      const { PushNotifications } = await import('../../src/stubs/capacitor-stub.js');
-      
-      const result = await PushNotifications.checkPermissions();
-
-      expect(result.receive).toBe('granted');
-    });
-
-    it('should request permissions', async () => {
-      const { PushNotifications } = await import('../../src/stubs/capacitor-stub.js');
-      
-      const result = await PushNotifications.requestPermissions();
-
-      expect(result.receive).toBe('granted');
-    });
-  });
-
-  describe('Registration', () => {
-    it('should register for push', async () => {
-      const { PushNotifications } = await import('../../src/stubs/capacitor-stub.js');
-
-      // Stub returns a resolved promise - if we get here, it worked
-      const result = await PushNotifications.register();
-
-      // register() returns void, so result should be undefined
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe('Listeners', () => {
-    it('should add registration listener', async () => {
-      const { PushNotifications } = await import('../../src/stubs/capacitor-stub.js');
-      const callback = vi.fn();
-      
-      const { remove } = PushNotifications.addListener('registration', callback);
-
-      expect(typeof remove).toBe('function');
-    });
-
-    it('should remove all listeners', async () => {
-      const { PushNotifications } = await import('../../src/stubs/capacitor-stub.js');
-
-      // Stub returns a resolved promise - if we get here, it worked
-      const result = await PushNotifications.removeAllListeners();
-
-      // removeAllListeners() returns void, so result should be undefined
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe('Channels', () => {
-    it('should create channel', async () => {
-      const { PushNotifications } = await import('../../src/stubs/capacitor-stub.js');
-
-      // Stub createChannel accepts no arguments for simplicity
-      await PushNotifications.createChannel();
-
-      // Verify it doesn't throw
-      expect(true).toBe(true);
-    });
-
-    it('should list channels', async () => {
-      const { PushNotifications } = await import('../../src/stubs/capacitor-stub.js');
-      
-      const result = await PushNotifications.listChannels();
-
-      expect(result.channels).toEqual([]);
     });
   });
 });

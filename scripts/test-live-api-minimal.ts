@@ -25,7 +25,7 @@ const PROJECT = process.env.GOOGLE_CLOUD_PROJECT;
 const LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
 
 // Model to test - use confirmed Live API model
-const MODEL = modelArg || 'gemini-2.0-flash-live-001';
+const MODEL = modelArg || process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 
 // WebSocket endpoints
 const GEMINI_WS_URL = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${API_KEY}`;
