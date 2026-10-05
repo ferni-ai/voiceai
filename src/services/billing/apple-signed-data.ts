@@ -40,6 +40,9 @@ import { APPLE_ROOT_CERTIFICATES } from './apple-root-certs.js';
 
 const log = createLogger({ module: 'AppleSignedData' });
 
+/** The iOS app's bundle id (apps/ios-native/project.yml), unless APPLE_BUNDLE_ID says otherwise. */
+export const DEFAULT_APPLE_BUNDLE_ID = 'com.sethdford.ferni';
+
 /** Firestore collection: originalTransactionId -> { userId, claimedAt }. */
 export const APPLE_TRANSACTION_OWNERS = 'apple_transaction_owners';
 
@@ -78,7 +81,7 @@ export function createAppleVerifier(
   roots: readonly Buffer[] = APPLE_ROOT_CERTIFICATES
 ): SignedDataVerifier | null {
   const environment = appleEnvironment(env);
-  const bundleId = env.APPLE_BUNDLE_ID || 'com.ferni.app';
+  const bundleId = env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID;
   const appAppleId = env.APPLE_APP_APPLE_ID ? Number(env.APPLE_APP_APPLE_ID) : undefined;
   if (environment === Environment.PRODUCTION && !Number.isInteger(appAppleId)) {
     log.error('APPLE_APP_APPLE_ID is not set: App Store data cannot be verified in production');
@@ -116,7 +119,7 @@ async function fetchSignedTransaction(transactionId: string, env: Env): Promise<
     key,
     keyId,
     issuerId,
-    env.APPLE_BUNDLE_ID || 'com.ferni.app',
+    env.APPLE_BUNDLE_ID || DEFAULT_APPLE_BUNDLE_ID,
     appleEnvironment(env)
   );
   const response = await client.getTransactionInfo(transactionId);
@@ -171,18 +174,23 @@ export async function claimTransactionOwner(
 }
 
 /**
- * Who owns a transaction: the user id, null when nobody has claimed it, or
- * 'unavailable' when the record can't be read (callers fail closed).
+ * Who owns a transaction: the user id, null when nobody holds it (unclaimed, or
+ * `tombstoned` because its account was deleted), or 'unavailable' when the
+ * record can't be read (callers fail closed).
  */
 export async function getTransactionOwner(
   originalTransactionId: string
-): Promise<{ owner: string | null } | 'unavailable'> {
+): Promise<{ owner: string | null; tombstoned: boolean } | 'unavailable'> {
   const db = getFirestoreDb();
   if (!db) return 'unavailable';
   try {
     const snap = await db.collection(APPLE_TRANSACTION_OWNERS).doc(originalTransactionId).get();
-    const owner = (snap.data() as { userId?: string } | undefined)?.userId;
-    return { owner: typeof owner === 'string' ? owner : null };
+    const record = snap.data() as OwnerRecord | undefined;
+    const owner = record?.userId;
+    return {
+      owner: typeof owner === 'string' ? owner : null,
+      tombstoned: record?.deletedAt !== undefined,
+    };
   } catch (error) {
     log.error({ error: String(error) }, 'Could not read Apple transaction owner');
     return 'unavailable';

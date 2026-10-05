@@ -830,6 +830,10 @@ jobs:
           pnpm lint
         continue-on-error: true
 
+      - name: Web unit tests
+        working-directory: apps/web
+        run: npx vitest run
+
       - name: Design token validation
         run: |
           cd apps/web

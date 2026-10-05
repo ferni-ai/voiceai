@@ -57,12 +57,8 @@ import type { SemanticIntelligenceContext } from './types.js';
 // V3.2+ imports
 import { insightBroker, getInsightsToSurface, formatInsightsForPrompt } from './insight-broker.js';
 import { openLoops, formatOpenLoopsContext } from './open-loops.js';
-import {
-  ferniCommitments,
-  formatCommitmentsForContext,
-  getPendingCommitments,
-  getAvoidanceTopics,
-} from './ferni-commitments.js';
+import { ferniCommitments } from './ferni-commitments.js';
+import { buildPromiseContext } from './promise-keeper.js';
 import { relationshipGraph, formatGraphForContext } from './relationship-graph.js';
 import { temporalPatterns, formatTemporalContext } from './temporal-patterns.js';
 import { behavioralIntelligence, formatBehavioralContext } from './behavioral-intelligence.js';
@@ -668,10 +664,8 @@ export async function buildSemanticIntelligenceContext(
         hourOfDay: new Date().getHours(),
       }).then((insights) => formatInsightsForPrompt(insights)),
       formatOpenLoopsContext(userId),
-      // Need to load commitments then format
-      Promise.all([getPendingCommitments(userId), getAvoidanceTopics(userId)]).then(
-        ([commitments, avoidance]) => formatCommitmentsForContext(commitments, avoidance)
-      ),
+      // Ferni's promises: pending, topics to avoid, and recent misses to own once
+      buildPromiseContext(userId),
       // V3.3 Relational Network
       formatGraphForContext(userId, currentContext?.personMentioned),
       // V3.4 Temporal Intelligence

@@ -1028,6 +1028,7 @@
     "apple": {
       "instructionsTitle": "要取消或更改您的计划：",
       "note": "Apple要求通过iOS设置管理订阅",
+      "source": "您是通过 App Store 订阅的。",
       "step1": "在设备上打开设置",
       "step2": "点击顶部的您的名字",
       "step3": "点击\"订阅\"",
@@ -1044,6 +1045,7 @@
     "expiresLabel": "访问直到",
     "freeNote": "解锁无限会话、完整团队和个性化",
     "label": "订阅",
+    "noBilling": "您的方案不在这里计费，所以没有需要更改的内容。",
     "renewsLabel": "续订",
     "restore": {
       "failed": "恢复失败",

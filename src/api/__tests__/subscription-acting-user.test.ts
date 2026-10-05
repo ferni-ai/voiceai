@@ -13,6 +13,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const stripe = vi.hoisted(() => ({
   isStripeConfigured: vi.fn(() => true),
   createPortalSession: vi.fn(async () => ({ url: 'https://billing.stripe.com/p/session' })),
+  // The portal now needs a Stripe customer (409 without one); these users have one.
+  getStripeCustomerId: vi.fn(async () => 'cus_test'),
   createCheckoutSession: vi.fn(async () => ({ url: 'https://checkout.stripe.com/c/session' })),
   recordConversation: vi.fn(async () => ({ conversationsUsed: 1 })),
   getSubscriptionInfo: vi.fn(),

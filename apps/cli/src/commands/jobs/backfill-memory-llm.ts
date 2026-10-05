@@ -403,7 +403,7 @@ async function main() {
   console.log('🧠 LLM-Powered Memory Backfill');
   console.log('='.repeat(60));
   console.log(`Mode: ${DRY_RUN ? 'DRY RUN (no changes)' : 'LIVE (will update Firestore)'}`);
-  console.log(`Model: gemini-1.5-flash`);
+  console.log(`Model: ${CLI_GEMINI_MODEL}`);
   if (SPECIFIC_USER) {
     console.log(`Target user: ${SPECIFIC_USER}`);
   } else {

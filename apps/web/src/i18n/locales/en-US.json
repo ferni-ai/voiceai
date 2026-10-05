@@ -720,7 +720,8 @@
       "step2": "Tap your name at the top",
       "step3": "Tap \"Subscriptions\"",
       "step4": "Find Ferni",
-      "note": "Apple handles changes through Settings"
+      "note": "Apple handles changes through Settings",
+      "source": "You subscribed through the App Store."
     },
     "stripe": {
       "note": "You can update or change things anytime"
@@ -736,7 +737,8 @@
       "pastDue": "Looks like something needs updating. Mind taking a look?",
       "default": "You believed in us early. That means more than you know."
     },
-    "freeNote": "Founders get unlimited time with the whole team — and help keep Ferni free for everyone"
+    "freeNote": "Founders get unlimited time with the whole team — and help keep Ferni free for everyone",
+    "noBilling": "Your plan isn't billed here, so there's nothing to change."
   },
   "creativeYou": {
     "eyebrow": "THINGS I FOUND FOR YOU",

@@ -33,7 +33,7 @@ export function generateBiometricInsight(
     };
   }
 
-  if (snapshot.sleep && snapshot.sleep.qualityScore < 60) {
+  if (snapshot.sleep && snapshot.sleep.qualityScore !== undefined && snapshot.sleep.qualityScore < 60) {
     return {
       type: 'sleep',
       insight: `User had poor sleep (${snapshot.sleep.qualityScore}% quality, ${snapshot.sleep.duration.toFixed(1)}h). They may be tired.`,
@@ -79,7 +79,7 @@ export function generateSuperhumanMoment(snapshot: BiometricSnapshot | null): st
   }
 
   // Sleep affecting mood
-  if (snapshot.sleep && snapshot.sleep.qualityScore < 50) {
+  if (snapshot.sleep && snapshot.sleep.qualityScore !== undefined && snapshot.sleep.qualityScore < 50) {
     moments.push(`Your sleep has been off - that might be affecting how you're feeling today.`);
   }
 

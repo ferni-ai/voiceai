@@ -9,7 +9,7 @@ import type { AudioFrame } from '@livekit/rtc-node';
 import { ReadableStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { VOICE_IDS } from '../../../../config/voice-ids.js';
+import { LESTER_PRO_V3_VOICE_ID } from '../../../../config/voice-ids.js';
 import { clearReplyAudioPlan, takeReplyAudioPlan } from '../../../reply-audio-plan.js';
 import type { ReplyStream } from '../../providers/cartesia-reply-stream.js';
 import type { ITTSProvider } from '../../types.js';
@@ -60,7 +60,7 @@ async function speak(
 ): Promise<NodeReadableStream<AudioFrame> | null> {
   const { createGatewayTTSNode } = await import('../../gateway-tts-node.js');
   const node = createGatewayTTSNode({
-    voiceId: VOICE_IDS.FERNI,
+    voiceId: LESTER_PRO_V3_VOICE_ID,
     sessionId: SESSION,
     personaId: 'ferni',
     turnContext: { turnNumber, userRequest: 'my dog died last night' },

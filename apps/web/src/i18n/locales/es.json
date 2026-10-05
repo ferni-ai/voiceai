@@ -1028,6 +1028,7 @@
     "apple": {
       "instructionsTitle": "Para cancelar o cambiar tu plan:",
       "note": "Apple requiere que las suscripciones se gestionen a través de los Ajustes de iOS",
+      "source": "Te suscribiste a través de la App Store.",
       "step1": "Abre Ajustes en tu dispositivo",
       "step2": "Toca tu nombre en la parte superior",
       "step3": "Toca \"Suscripciones\"",
@@ -1044,6 +1045,7 @@
     "expiresLabel": "Acceso hasta",
     "freeNote": "Desbloquea sesiones ilimitadas, todo el equipo y personalización",
     "label": "SUSCRIPCIÓN",
+    "noBilling": "Tu plan no se cobra aquí, así que no hay nada que cambiar.",
     "renewsLabel": "Se renueva",
     "restore": {
       "failed": "Error al restaurar",

@@ -35,7 +35,7 @@ async function test(): Promise<void> {
   console.log('🔧 Creating RealtimeModel...');
   const modelStart = Date.now();
   const llm = new google.beta.realtime.RealtimeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
     apiKey,
     modalities: [genai.Modality.TEXT],
     temperature: 0.8,

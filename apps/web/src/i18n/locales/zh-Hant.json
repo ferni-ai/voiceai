@@ -1028,6 +1028,7 @@
     "apple": {
       "instructionsTitle": "要取消或變更您的方案：",
       "note": "Apple要求透過iOS設定管理訂閱",
+      "source": "您是透過 App Store 訂閱的。",
       "step1": "在裝置上開啟設定",
       "step2": "點擊頂部的您的名字",
       "step3": "點擊「訂閱」",
@@ -1044,6 +1045,7 @@
     "expiresLabel": "存取直到",
     "freeNote": "解鎖無限會話、完整團隊和個人化",
     "label": "訂閱",
+    "noBilling": "您的方案不在這裡計費，所以沒有需要變更的內容。",
     "renewsLabel": "續訂",
     "restore": {
       "failed": "恢復失敗",

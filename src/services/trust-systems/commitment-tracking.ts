@@ -23,6 +23,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { indexCommitment, deindexCommitment } from '../data-layer/integrations/index.js';
+import { settleAwaitingAnswers, type FollowUpAnswer } from './commitment-follow-through.js';
 
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
@@ -122,8 +123,12 @@ export interface Commitment {
   /** Importance they indicated (explicit or inferred) */
   importance: 'high' | 'medium' | 'low';
 
-  /** Should we actively follow up? */
+  /** Should we actively follow up? Off once we've asked (one follow-up, never a nag). */
   shouldFollowUp: boolean;
+
+  /** We asked how it went and haven't heard yet (see commitment-follow-through.ts). */
+  awaitingAnswer?: boolean;
+  followUpAskedAt?: string;
 }
 
 export interface CommitmentProfile {
@@ -452,6 +457,26 @@ export async function saveCommitment(commitment: Commitment): Promise<void> {
 }
 
 /**
+ * A stored commitment. The commitment-keeper service writes to the same
+ * collection with `summary` instead of `content`; read either, skip neither-text docs.
+ */
+function fromDoc(doc: FirebaseFirestore.QueryDocumentSnapshot): Commitment | null {
+  const data = doc.data();
+  const content = data.content ?? data.summary ?? data.statement;
+  if (typeof content !== 'string' || !content) return null;
+  const notes = (data.progressNotes as Array<{ date: string; note: string }>) || [];
+  return {
+    ...data,
+    id: doc.id,
+    content,
+    createdAt: new Date(data.createdAt as string),
+    lastMentioned: new Date(data.lastMentioned as string),
+    followUpDate: data.followUpDate ? new Date(data.followUpDate as string) : null,
+    progressNotes: notes.map((note) => ({ ...note, date: new Date(note.date) })),
+  } as Commitment;
+}
+
+/**
  * Get user's active commitments
  */
 export async function getActiveCommitments(userId: string): Promise<Commitment[]> {
@@ -470,69 +495,30 @@ export async function getActiveCommitments(userId: string): Promise<Commitment[]
       .limit(20)
       .get();
 
-    return snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
-      const data = doc.data();
-      return {
-        ...data,
-        id: doc.id,
-        createdAt: new Date(data.createdAt as string),
-        lastMentioned: new Date(data.lastMentioned as string),
-        followUpDate: data.followUpDate ? new Date(data.followUpDate as string) : null,
-        progressNotes: (
-          (data.progressNotes as Array<{ date: string; note: string; sentiment: string }>) || []
-        ).map((note) => ({
-          ...note,
-          date: new Date(note.date),
-        })),
-      } as Commitment;
-    });
+    return snapshot.docs.flatMap((doc) => fromDoc(doc) ?? []);
   } catch (err) {
     log.error({ error: String(err), userId }, 'Failed to get commitments');
     return [];
   }
 }
 
+/** Due for its one follow-up: asked about at most once, never while awaiting an answer. */
+function isDueForFollowUp(c: Commitment, now: Date): boolean {
+  return (
+    c.shouldFollowUp === true &&
+    !c.awaitingAnswer &&
+    c.followUpDate !== null &&
+    c.followUpDate.getTime() <= now.getTime()
+  );
+}
+
 /**
- * Get commitments due for follow-up
+ * Get commitments due for follow-up. Filtered in memory from the active list:
+ * the old status+shouldFollowUp+followUpDate query had no composite index.
  */
 export async function getCommitmentsDueForFollowUp(userId: string): Promise<Commitment[]> {
-  try {
-    const db = await getFirestoreDb();
-    if (!db) {
-      return [];
-    }
-
-    const now = new Date();
-    const snapshot = await db
-      .collection(COLLECTION)
-      .doc(userId)
-      .collection('commitments')
-      .where('status', 'in', ['active', 'in_progress'])
-      .where('shouldFollowUp', '==', true)
-      .where('followUpDate', '<=', now.toISOString())
-      .limit(5)
-      .get();
-
-    return snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
-      const data = doc.data();
-      return {
-        ...data,
-        id: doc.id,
-        createdAt: new Date(data.createdAt as string),
-        lastMentioned: new Date(data.lastMentioned as string),
-        followUpDate: data.followUpDate ? new Date(data.followUpDate as string) : null,
-        progressNotes: (
-          (data.progressNotes as Array<{ date: string; note: string; sentiment: string }>) || []
-        ).map((note) => ({
-          ...note,
-          date: new Date(note.date),
-        })),
-      } as Commitment;
-    });
-  } catch (err) {
-    log.error({ error: String(err), userId }, 'Failed to get follow-up commitments');
-    return [];
-  }
+  const now = new Date();
+  return (await getActiveCommitments(userId)).filter((c) => isDueForFollowUp(c, now)).slice(0, 5);
 }
 
 /**
@@ -593,60 +579,6 @@ export async function updateCommitmentStatus(
   }
 }
 
-/**
- * Record a follow-up was made
- */
-export async function recordFollowUp(
-  userId: string,
-  commitmentId: string,
-  reception: 'positive' | 'neutral' | 'avoidant'
-): Promise<void> {
-  try {
-    const db = await getFirestoreDb();
-    if (!db) {
-      return;
-    }
-
-    // Calculate next follow-up based on reception
-    const nextFollowUp = new Date();
-    switch (reception) {
-      case 'positive':
-        nextFollowUp.setDate(nextFollowUp.getDate() + 7); // Follow up in a week
-        break;
-      case 'neutral':
-        nextFollowUp.setDate(nextFollowUp.getDate() + 5);
-        break;
-      case 'avoidant':
-        nextFollowUp.setDate(nextFollowUp.getDate() + 14); // Back off
-        break;
-    }
-
-    const docRef = db
-      .collection(COLLECTION)
-      .doc(userId)
-      .collection('commitments')
-      .doc(commitmentId);
-
-    const doc = await docRef.get();
-    if (doc.exists) {
-      const data = doc.data();
-      await docRef.update(
-        cleanForFirestore({
-          followUpCount: (data?.followUpCount || 0) + 1,
-          followUpReception: reception,
-          followUpDate: nextFollowUp.toISOString(),
-          lastMentioned: new Date().toISOString(),
-          // If avoidant 3+ times, stop following up
-          shouldFollowUp:
-            reception === 'avoidant' && (data?.followUpCount || 0) >= 2 ? false : true,
-        })
-      );
-    }
-  } catch (err) {
-    log.error({ error: String(err), userId, commitmentId }, 'Failed to record follow-up');
-  }
-}
-
 // ============================================================================
 // PUBLIC API
 // ============================================================================
@@ -663,9 +595,13 @@ export async function processCommitments(
   newCommitments: Commitment[];
   progressUpdates: Array<{ commitmentId: string; type: string }>;
   followUpsDue: Commitment[];
+  /** Answers to a follow-up Ferni asked last turn, now recorded. */
+  answers: FollowUpAnswer[];
 }> {
   // Get existing commitments
   const existingCommitments = await getActiveCommitments(userId);
+  const answers = await settleAwaitingAnswers(userId, userText, existingCommitments);
+  const answered = new Set(answers.map((a) => a.id));
 
   // Detect new commitments
   const detected = detectCommitments(userText, context);
@@ -705,7 +641,8 @@ export async function processCommitments(
   }
 
   // Detect progress on existing commitments
-  const progressUpdates = detectProgress(userText, existingCommitments);
+  const unanswered = existingCommitments.filter((c) => !answered.has(c.id));
+  const progressUpdates = detectProgress(userText, unanswered);
 
   for (const update of progressUpdates) {
     await updateCommitmentStatus(
@@ -716,14 +653,10 @@ export async function processCommitments(
     );
   }
 
-  // Get follow-ups due
-  const followUpsDue = await getCommitmentsDueForFollowUp(userId);
+  const now = new Date();
+  const followUpsDue = unanswered.filter((c) => isDueForFollowUp(c, now)).slice(0, 5);
 
-  return {
-    newCommitments,
-    progressUpdates,
-    followUpsDue,
-  };
+  return { newCommitments, progressUpdates, followUpsDue, answers };
 }
 
 /**
