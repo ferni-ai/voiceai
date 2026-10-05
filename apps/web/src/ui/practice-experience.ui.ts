@@ -9,6 +9,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 import { connectionService } from '../services/connection.service.js';
 import { soundUI } from './sound.ui.js';
@@ -1358,11 +1359,11 @@ function startBreathingExercise(durationSeconds: number): void {
 
       circle?.classList.remove('inhale', 'hold', 'exhale');
       circle?.classList.add(phase);
-      if (instruction) instruction.textContent = phase;
+      if (instruction) instruction.textContent = t(`practiceExperience.breathing.${phase}`);
 
       // Update timer
       remaining -= duration / 1000;
-      if (timer) timer.textContent = `${Math.max(0, Math.ceil(remaining))} seconds`;
+      if (timer) timer.textContent = tp('practiceExperience.breathing.secondsLeft', Math.max(0, Math.ceil(remaining)));
 
       // Next phase
       phaseIndex = (phaseIndex + 1) % phases.length;
