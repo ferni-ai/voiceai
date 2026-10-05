@@ -12,6 +12,7 @@
  * - Centralized logging
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { buildDataMessage } from '../shared/data-message-envelope.js';
@@ -811,39 +812,77 @@ export class FrontendPublisher {
 }
 
 // ============================================================================
-// SINGLETON INSTANCE
+// ONE PUBLISHER PER CALL
 // ============================================================================
+//
+// A worker process hosts several calls (USE_SINGLE_PROCESS=true). This used to
+// be a process singleton that every new call re-pointed with setRoom, so call
+// A's app messages (emotion, music, games, tool actions) went to call B's room
+// once B started. Each call now gets its own publisher, found through the
+// call's async context. With more than one call live and no call in context,
+// messages are dropped rather than risk the wrong room.
 
-let publisherInstance: FrontendPublisher | null = null;
+const callRoom = new AsyncLocalStorage<RoomRef>();
+const publishers = new Map<RoomRef, FrontendPublisher>();
+/** Sends nowhere: used when the call can't be told apart. */
+const detached = new FrontendPublisher();
+let warnedAmbiguous = false;
 
-/**
- * Get the singleton FrontendPublisher instance
- */
-export function getFrontendPublisher(): FrontendPublisher {
-  if (!publisherInstance) {
-    publisherInstance = new FrontendPublisher();
-  }
-  return publisherInstance;
+/** Run `fn` as part of the call on `room`, so getFrontendPublisher() finds its publisher. */
+export function runInCall<T>(room: RoomRef, fn: () => T): T {
+  return callRoom.run(room, fn);
 }
 
 /**
- * Initialize the FrontendPublisher with a room
+ * The publisher for the current call. With one call live it is that call's;
+ * with several, the one whose async context this runs in, else none (sends
+ * return false).
+ */
+export function getFrontendPublisher(): FrontendPublisher {
+  const room = callRoom.getStore();
+  const own = room ? publishers.get(room) : undefined;
+  if (own) return own;
+  if (publishers.size === 1) return publishers.values().next().value as FrontendPublisher;
+  if (publishers.size > 1 && !warnedAmbiguous) {
+    warnedAmbiguous = true;
+    getLogger().warn(
+      { liveCalls: publishers.size },
+      'Frontend message with no call context while several calls are live: not sent'
+    );
+  }
+  return detached;
+}
+
+/**
+ * Give this call its own publisher, and mark the current async context as
+ * belonging to it (everything this call starts from here finds it).
  */
 export function initializeFrontendPublisher(
   room: RoomRef,
   config?: PublisherConfig
 ): FrontendPublisher {
-  if (!publisherInstance) {
-    publisherInstance = new FrontendPublisher(room, config);
-  } else {
-    publisherInstance.setRoom(room);
+  let publisher = publishers.get(room);
+  if (!publisher) {
+    publisher = new FrontendPublisher(room, config);
+    publishers.set(room, publisher);
+    // A LiveKit Room is an EventEmitter: forget the call when it disconnects.
+    (room as { once?: (event: string, fn: () => void) => void }).once?.('disconnected', () =>
+      releaseFrontendPublisher(room)
+    );
   }
-  return publisherInstance;
+  callRoom.enterWith(room);
+  return publisher;
+}
+
+/** The call on `room` ended: forget its publisher. */
+export function releaseFrontendPublisher(room: RoomRef): void {
+  publishers.delete(room);
 }
 
 /**
  * Reset the singleton (for testing)
  */
 export function resetFrontendPublisher(): void {
-  publisherInstance = null;
+  publishers.clear();
+  warnedAmbiguous = false;
 }
