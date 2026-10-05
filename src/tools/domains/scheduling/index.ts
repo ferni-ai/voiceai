@@ -592,28 +592,31 @@ const scheduleAtBestTimeTool: ToolDefinition = {
   id: 'scheduleAtBestTime',
   name: 'Schedule At Best Time',
   description:
-    'Schedule a message, call, or email at the ML-recommended optimal time for the recipient.',
+    'Remind the user to reach someone at the time that person usually responds. Ferni texts, emails or calls the user; she never messages the contact.',
   domain: 'scheduling',
   tags: ['scheduling', 'optimal', 'best-time', 'intelligent', 'smart', 'ml'],
 
   create: (ctx: ToolContext) =>
     llm.tool({
-      description: `Schedule a message for the optimal time based on ML-learned patterns.
+      description: `Remind the USER to reach out to someone at the time that person usually responds (ML-learned patterns).
+You send the reminder to the user (text, email or call). You do NOT message the contact; say so if they expect it.
 Use when the user says things like:
 - "Text Sarah at the best time"
 - "Schedule this for when John usually responds"
 - "Send this email at the optimal time"
 - "Message them when they're most likely to see it"
 
-Automatically picks the best time based on learned response patterns.`,
+Picks the time from the contact's learned response patterns.`,
       parameters: z.object({
-        message: z.string().describe('The message content to send'),
-        contactName: z.string().describe('Name of the recipient'),
+        message: z.string().describe('What to remind the user (sent to the user, not the contact)'),
+        contactName: z
+          .string()
+          .describe('Who the user wants to reach (picks the time; not messaged)'),
         contactId: z.string().optional().describe('Contact ID if known'),
         channel: z
           .enum(['text', 'email', 'call'])
           .default('text')
-          .describe('How to send: text (SMS), email, or call'),
+          .describe('How to remind the user: text (SMS), email, or call'),
         subject: z.string().optional().describe('Email subject line (required for email channel)'),
       }),
       execute: async (params) => {
@@ -697,9 +700,10 @@ Automatically picks the best time based on learned response patterns.`,
                   ? " - based on what I've learned so far."
                   : ' - using smart defaults while I learn their patterns.';
 
-            return `${channelEmoji} Got it! Scheduled for **${timeStr}**${confidenceNote}
+            const verb = channel === 'sms' ? 'text' : channel;
+            return `${channelEmoji} Got it! I'll ${verb} you on **${timeStr}** to reach out to ${params.contactName}${confidenceNote}
 
-Message: "${params.message.slice(0, 100)}${params.message.length > 100 ? '...' : ''}"`;
+Reminder: "${params.message.slice(0, 100)}${params.message.length > 100 ? '...' : ''}"`;
           } else {
             if (result.error?.includes('phone')) {
               return "I don't have your phone number yet. What's a good number?";

@@ -751,7 +751,7 @@ export const getOptimalSendTimeTool: SemanticToolDefinition = {
 export const scheduleAtBestTimeTool: SemanticToolDefinition = {
   id: 'scheduling_best_time',
   name: 'Schedule At Best Time',
-  description: 'Schedule a message for the ML-recommended optimal time.',
+  description: 'Remind the user (not the contact) to reach someone when they usually respond.',
   shortDescription: 'schedule at best time',
   category: 'communication',
 
@@ -808,7 +808,7 @@ export const scheduleAtBestTimeTool: SemanticToolDefinition = {
     {
       name: 'message',
       type: 'string',
-      description: 'The message content to send',
+      description: 'What to remind the user (sent to the user, not the contact)',
       required: true,
       extractionPatterns: [
         /(?:saying|about|that|:)\s+(.+?)(?:\s*$)/i,
@@ -818,7 +818,7 @@ export const scheduleAtBestTimeTool: SemanticToolDefinition = {
     {
       name: 'contactName',
       type: 'string',
-      description: 'Name of the recipient',
+      description: 'Who the user wants to reach (picks the time; not messaged)',
       required: true,
       extractionPatterns: [
         /(?:text|email|message|send\s+to)\s+(\w+)\s+(?:at|when)/i,
@@ -828,7 +828,7 @@ export const scheduleAtBestTimeTool: SemanticToolDefinition = {
     {
       name: 'channel',
       type: 'string',
-      description: 'How to send: text, email, or call',
+      description: 'How to remind the user: text, email, or call',
       required: false,
       extractionPatterns: [/^(text|email|call|message)/i],
     },

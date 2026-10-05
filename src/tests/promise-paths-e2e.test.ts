@@ -263,3 +263,18 @@ describe('"I\'ll circle back tomorrow" (scheduleFollowUp) is a check-in promise'
     expect(promises()[0]).toMatchObject({ outcome: 'missed', violated: true });
   });
 });
+
+describe('scheduleAtBestTime says what it actually does', () => {
+  it('reminds the user (not the contact), and says so in its description and reply', async () => {
+    const def = (await scheduling.getToolDefinitions()).find((d) => d.id === 'scheduleAtBestTime');
+    expect(def?.description).toMatch(/calls the user; she never messages the contact/);
+
+    const tool = await domainTool('scheduleAtBestTime');
+    const said = await tool.execute({ message: 'dinner?', contactName: 'Sarah', channel: 'text' });
+    expect(String(said)).toMatch(/I'll text you on \*\*.+\*\* to reach out to Sarah/);
+    // What it does today: one text, to the user's own number.
+    expect(fs.docsIn(`bogle_users/${UID}/reminders`)).toEqual([
+      expect.objectContaining({ deliveryMethod: 'sms', deliveryAddress: PHONE }),
+    ]);
+  });
+});
