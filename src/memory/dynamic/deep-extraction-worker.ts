@@ -22,7 +22,7 @@ import type {
 // 🧠 MEMORY FIX: Import vector store for semantic search capability
 import { getFirestoreVectorStore } from '../firestore-vector-store/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { buildExtractionFirestoreWritePayloads } from './extraction-firestore-docs.js';
+import { buildExtractionFirestoreWritePayloads, factDocId } from './extraction-firestore-docs.js';
 import { buildExtractionVectorDocuments } from './extraction-vector-docs.js';
 import {
   recordExtractionDrop,
@@ -611,8 +611,13 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
       }
 
       for (const factDoc of payloads.facts) {
-        const factRef = userRoot.collection('dynamic_facts').doc();
-        batch.set(factRef, factDoc);
+        // Same fact, same document: re-extraction refreshes it (newest date, latest confidence).
+        const id = factDocId(
+          String(factDoc.entityName ?? ''),
+          String(factDoc.key ?? ''),
+          String(factDoc.value ?? '')
+        );
+        batch.set(userRoot.collection('dynamic_facts').doc(id), factDoc, { merge: true });
       }
 
       for (const relDoc of payloads.relationships) {

@@ -77,3 +77,30 @@ describe('buildExtractionFirestoreWritePayloads', () => {
     }
   });
 });
+
+// One scripted call stored "sister | pregnancy = Pregnant" as 63 rows: every
+// extraction wrote each fact as a new auto-ID document (dev, 2026-10-04).
+describe('fact documents are one per fact', async () => {
+  const { factDocId } = await import('../extraction-firestore-docs.js');
+  const fact = (entityName: string, key: string, value: string, confidence: unknown = 0.9) =>
+    ({ entityName, factType: 'attribute', key, value, confidence }) as unknown as ExtractedFact;
+
+  it('gives the same fact the same id, whatever the case or spacing', () => {
+    expect(factDocId('Sister', 'pregnancy', 'Pregnant')).toBe(factDocId(' sister ', 'Pregnancy', 'pregnant'));
+  });
+
+  it('gives different facts different ids', () => {
+    expect(factDocId('sister', 'likes', 'hiking')).not.toBe(factDocId('sister', 'likes', 'old movies'));
+  });
+
+  it('stores word confidences as numbers', () => {
+    const { facts } = buildExtractionFirestoreWritePayloads(
+      'u1',
+      { entities: [], relationships: [], facts: [fact('Biscuit', 'breed', 'golden retriever', 'high')] },
+      job,
+      extractedAt,
+      createLog()
+    );
+    expect(facts[0].confidence).toBe(0.9);
+  });
+});

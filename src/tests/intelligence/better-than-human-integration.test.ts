@@ -280,6 +280,7 @@ vi.mock('../../intelligence/patterns/cross-domain-correlator.js', () => ({
 }));
 
 // Import the module under test
+import admin from 'firebase-admin';
 import {
   getUserKnowledge,
   formatKnowledgeForContext,
@@ -348,6 +349,23 @@ describe('Better Than Human Integration', () => {
       expect(knowledge.boundaries.ferniCommitments[0].description).toBe(
         'Check in about job interview'
       );
+    });
+
+    it('should load Ferni commitments when Firestore is unavailable', async () => {
+      // Commitments have their own storage; a missing profile db must not hide them.
+      vi.mocked(admin.firestore).mockImplementation(() => {
+        throw new Error('Firestore unavailable');
+      });
+      try {
+        const knowledge = await getUserKnowledge(TEST_USER_ID);
+
+        expect(knowledge.boundaries.avoidTopics).toEqual([]);
+        expect(knowledge.boundaries.ferniCommitments.map((c) => c.description)).toEqual([
+          'Check in about job interview',
+        ]);
+      } finally {
+        vi.mocked(admin.firestore).mockRestore();
+      }
     });
 
     it('should load inside jokes into shared history', async () => {
