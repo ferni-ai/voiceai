@@ -477,7 +477,9 @@ function getStyles(): string {
 function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  return hours > 0
+    ? t('eightSleepSettings.durationHoursMinutes', { hours, minutes: mins })
+    : t('eightSleepSettings.durationMinutes', { minutes: mins });
 }
 
 function renderScoreRing(score: number): HTMLElement {
@@ -522,16 +524,16 @@ function renderConnectedState(status: EightSleepStatus): HTMLElement {
 
     scoreCard.appendChild(renderScoreRing(sleep.score));
     scoreCard.appendChild(createElement('div', { className: 'eightsleep-score-label' }, [
-      `${formatDuration(sleep.sleepDuration)} of sleep`,
+      t('eightSleepSettings.sleepDuration', { duration: formatDuration(sleep.sleepDuration) }),
     ]));
 
     // Sleep stages
     const stages = createElement('div', { className: 'eightsleep-stages' });
     const stageData = [
-      { label: 'Deep', value: formatDuration(sleep.stages.deep) },
-      { label: 'REM', value: formatDuration(sleep.stages.rem) },
-      { label: 'Light', value: formatDuration(sleep.stages.light) },
-      { label: 'Awake', value: formatDuration(sleep.stages.awake) },
+      { label: t('eightSleepSettings.stages.deep'), value: formatDuration(sleep.stages.deep) },
+      { label: t('eightSleepSettings.stages.rem'), value: formatDuration(sleep.stages.rem) },
+      { label: t('eightSleepSettings.stages.light'), value: formatDuration(sleep.stages.light) },
+      { label: t('eightSleepSettings.stages.awake'), value: formatDuration(sleep.stages.awake) },
     ];
 
     for (const stage of stageData) {
@@ -553,11 +555,11 @@ function renderConnectedState(status: EightSleepStatus): HTMLElement {
     const tempHeader = createElement('div', { className: 'eightsleep-temp-header' });
     const tempTitle = createElement('div', { className: 'eightsleep-temp-title' });
     tempTitle.appendChild(createSvgIcon(ICONS.thermometer));
-    tempTitle.appendChild(document.createTextNode('Bed Temperature'));
+    tempTitle.appendChild(document.createTextNode(t('eightSleepSettings.bedTemperature')));
     tempHeader.appendChild(tempTitle);
 
     const _tempStatus = createElement('div', { className: 'eightsleep-temp-status' }, [
-      status.temperature.active ? `Level ${status.temperature.currentLevel}` : 'Off',
+      status.temperature.active ? t('eightSleepSettings.level', { level: status.temperature.currentLevel }) : t('eightSleepSettings.off'),
     ]);
     tempHeader.appendChild(_tempStatus);
     tempCard.appendChild(tempHeader);
@@ -579,8 +581,8 @@ function renderConnectedState(status: EightSleepStatus): HTMLElement {
     tempCard.appendChild(slider);
 
     const labels = createElement('div', { className: 'eightsleep-temp-labels' }, [
-      createElement('span', {}, ['Cool']),
-      createElement('span', {}, ['Warm']),
+      createElement('span', {}, [t('vibe.lights.cool')]),
+      createElement('span', {}, [t('vibe.lights.warm')]),
     ]);
     tempCard.appendChild(labels);
 
@@ -593,12 +595,12 @@ function renderConnectedState(status: EightSleepStatus): HTMLElement {
     const biometrics = createElement('div', { className: 'eightsleep-biometrics' });
 
     const bioData = [
-      { icon: ICONS.heart, value: `${bio.averageRestingHeartRate}`, label: 'Resting HR' },
-      { icon: ICONS.heart, value: `${bio.averageHrv}ms`, label: 'HRV' },
+      { icon: ICONS.heart, value: `${bio.averageRestingHeartRate}`, label: t('eightSleepSettings.restingHr') },
+      { icon: ICONS.heart, value: `${bio.averageHrv}ms`, label: t('eightSleepSettings.hrv') },
       {
         icon: bio.hrvTrend === 'improving' ? ICONS.trendUp : bio.hrvTrend === 'declining' ? ICONS.trendDown : ICONS.heart,
-        value: bio.hrvTrend.charAt(0).toUpperCase() + bio.hrvTrend.slice(1),
-        label: 'Trend',
+        value: t(`eightSleepSettings.trends.${bio.hrvTrend}`),
+        label: t('eightSleepSettings.trend'),
       },
     ];
 
@@ -628,12 +630,10 @@ function renderDisconnectedState(): HTMLElement {
   icon.classList.add('eightsleep-connect-icon');
   content.appendChild(icon);
 
-  content.appendChild(createElement('div', { className: 'eightsleep-connect-title' }, ['Connect Eight Sleep']));
-  content.appendChild(createElement('div', { className: 'eightsleep-connect-desc' }, [
-    'Track your sleep, control bed temperature, and see your biometrics.',
-  ]));
+  content.appendChild(createElement('div', { className: 'eightsleep-connect-title' }, [t('eightSleepSettings.connect')]));
+  content.appendChild(createElement('div', { className: 'eightsleep-connect-desc' }, [t('eightSleepSettings.connectDescription')]));
 
-  const btn = createElement('button', { className: 'eightsleep-btn eightsleep-btn-primary' }, ['Connect Eight Sleep']);
+  const btn = createElement('button', { className: 'eightsleep-btn eightsleep-btn-primary' }, [t('eightSleepSettings.connect')]);
   btn.addEventListener('click', () => { void startAuthFlow(); });
   content.appendChild(btn);
 
@@ -664,7 +664,7 @@ async function startAuthFlow(): Promise<void> {
     }
   } catch (error) {
     log.error('Failed to start Eight Sleep auth:', error);
-    toast.error("Couldn't connect to Eight Sleep. Try again?");
+    toast.error(t('eightSleepSettings.connectError'));
   }
 }
 
@@ -674,7 +674,7 @@ async function setTemperature(level: number): Promise<void> {
     toast.success(t('toasts.bedSetToLevel', { level }));
   } catch (error) {
     log.error('Failed to set temperature:', error);
-    toast.error("Couldn't set temperature. Try again?");
+    toast.error(t('eightSleepSettings.temperatureError'));
   }
 }
 
@@ -686,7 +686,7 @@ async function disconnect(): Promise<void> {
     render({ connected: false });
   } catch (error) {
     log.error('Failed to disconnect Eight Sleep:', error);
-    toast.error("Couldn't disconnect. Try again?");
+    toast.error(t('toasts.couldNotDisconnect'));
   }
 }
 
@@ -735,7 +735,7 @@ function updateFooter(isConnected: boolean): void {
   if (isConnected) {
     const disconnectBtn = createElement('button', {
       className: 'eightsleep-btn eightsleep-btn-danger',
-    }, ['Disconnect']);
+    }, [t('connections.buttons.disconnect')]);
     disconnectBtn.addEventListener('click', disconnect);
     footer.appendChild(disconnectBtn);
   }
@@ -767,7 +767,7 @@ export async function showEightSleepSettings(): Promise<void> {
   title.appendChild(document.createTextNode('Eight Sleep'));
   header.appendChild(title);
 
-  const closeBtn = createElement('button', { className: 'eightsleep-close', 'aria-label': 'Close' });
+  const closeBtn = createElement('button', { className: 'eightsleep-close', 'aria-label': t('common.close') });
   closeBtn.appendChild(createSvgIcon(ICONS.close));
   closeBtn.addEventListener('click', hideEightSleepSettings);
   header.appendChild(closeBtn);

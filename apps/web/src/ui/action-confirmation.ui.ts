@@ -12,6 +12,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { formatCurrency, t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiPost } from '../utils/api.js';
@@ -153,9 +154,7 @@ async function sendActionResponse(actionId: string, approved: boolean): Promise<
         timestamp: Date.now(),
       });
 
-      await room.localParticipant.publishData(new TextEncoder().encode(message), {
-        reliable: true,
-      });
+      await room.localParticipant.publishData(new TextEncoder().encode(message), { reliable: true });
 
       log.info({ actionId, approved }, 'Action response sent via data channel');
       return true;
@@ -203,7 +202,7 @@ function createContainer(): HTMLElement {
   const el = document.createElement('div');
   el.className = 'action-confirmation-container';
   el.setAttribute('role', 'region');
-  el.setAttribute('aria-label', 'Pending actions');
+  el.setAttribute('aria-label', t('actionConfirmation.pendingActions'));
 
   // Add styles if not present
   if (!document.getElementById('action-confirmation-styles')) {
@@ -230,10 +229,10 @@ function createActionCard(action: PendingAction): HTMLElement {
     <div class="action-card-header">
       <div class="action-icon">${getCategoryIcon(action.category)}</div>
       <div class="action-header-text">
-        <span class="action-eyebrow">Can I do this?</span>
+        <span class="action-eyebrow">${t('actionConfirmation.eyebrow')}</span>
         <h3 class="action-title" id="action-title-${action.id}">${action.preview.title}</h3>
       </div>
-      <button class="action-dismiss" aria-label="Dismiss">
+      <button class="action-dismiss" aria-label="${t('common.dismiss')}">
         ${ICONS.x}
       </button>
     </div>
@@ -249,14 +248,14 @@ function createActionCard(action: PendingAction): HTMLElement {
 
       ${action.preview.estimatedCost ? `
         <div class="action-cost">
-          <span class="cost-label">Estimated cost:</span>
-          <span class="cost-value">$${action.preview.estimatedCost.toFixed(2)}</span>
+          <span class="cost-label">${t('actionConfirmation.estimatedCost')}</span>
+          <span class="cost-value">${formatCurrency(action.preview.estimatedCost, 'USD')}</span>
         </div>
       ` : ''}
 
       ${action.preview.affectedParties && action.preview.affectedParties.length > 0 ? `
         <div class="action-parties">
-          <span class="parties-label">Will notify:</span>
+          <span class="parties-label">${t('actionConfirmation.willNotify')}</span>
           <span class="parties-value">${action.preview.affectedParties.join(', ')}</span>
         </div>
       ` : ''}
@@ -265,16 +264,16 @@ function createActionCard(action: PendingAction): HTMLElement {
     <div class="action-card-footer">
       <div class="action-countdown">
         <span class="countdown-icon">${ICONS.clock}</span>
-        <span class="countdown-text" data-countdown="${action.id}">${expiresIn}s</span>
+        <span class="countdown-text" data-countdown="${action.id}">${t('actionConfirmation.secondsShort', { count: expiresIn })}</span>
       </div>
       
       <div class="action-buttons">
         <button class="action-btn action-btn-reject" data-action="reject">
-          Not now
+          ${t('actionConfirmation.notNow')}
         </button>
         <button class="action-btn action-btn-approve" data-action="approve">
           ${ICONS.check}
-          <span>Do it</span>
+          <span>${t('actionConfirmation.doIt')}</span>
         </button>
       </div>
     </div>
@@ -282,7 +281,7 @@ function createActionCard(action: PendingAction): HTMLElement {
     ${action.preview.canUndo ? `
       <div class="action-undo-note">
         <span class="undo-icon">${ICONS.undo}</span>
-        <span>Can be undone</span>
+        <span>${t('actionConfirmation.canBeUndone')}</span>
       </div>
     ` : ''}
   `;
@@ -303,7 +302,7 @@ function createActionCard(action: PendingAction): HTMLElement {
       trackedTimeout(() => dismissAction(action.id), DURATION.SLOW);
     } else {
       btn.disabled = false;
-      btn.innerHTML = `${ICONS.check}<span>Do it</span>`;
+      btn.innerHTML = `${ICONS.check}<span>${t('actionConfirmation.doIt')}</span>`;
     }
   });
 
@@ -325,7 +324,7 @@ function showSuccessFeedback(card: HTMLElement): void {
     body.innerHTML = `
       <div class="action-success-message">
         <span class="success-icon">${ICONS.check}</span>
-        <span>Done!</span>
+        <span>${t('actionConfirmation.done')}</span>
       </div>
     `;
   }
@@ -338,7 +337,7 @@ function startCountdown(actionId: string, seconds: number): void {
     remaining--;
     const countdownEl = document.querySelector(`[data-countdown="${actionId}"]`);
     if (countdownEl) {
-      countdownEl.textContent = `${remaining}s`;
+      countdownEl.textContent = t('actionConfirmation.secondsShort', { count: remaining });
     }
 
     if (remaining <= 0) {

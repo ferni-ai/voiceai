@@ -15,6 +15,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('CircadianManager');
@@ -41,74 +42,77 @@ interface CircadianConfig {
   presence: string;
 }
 
+/** Static period definition; display text is stored as i18n keys. */
+type CircadianPeriodDef = Omit<CircadianConfig, 'name' | 'presence'> & { nameKey: string; presenceKey: string };
+
 // ============================================================================
 // PERIOD DEFINITIONS (from design-system/tokens/animation.json)
 // ============================================================================
 
-const CIRCADIAN_PERIODS: Record<CircadianPeriod, { hours: [number, number] } & CircadianConfig> = {
+const CIRCADIAN_PERIODS: Record<CircadianPeriod, { hours: [number, number] } & CircadianPeriodDef> = {
   earlyMorning: {
     hours: [5, 7],
-    name: 'Dawn',
+    nameKey: 'circadian.period.dawn',
     warmth: 0.15,
     brightness: 0.95,
     animationSpeed: 0.9,
-    presence: 'gentle awakening',
+    presenceKey: 'circadian.presence.dawn',
   },
   morning: {
     hours: [7, 11],
-    name: 'Morning',
+    nameKey: 'circadian.period.morning',
     warmth: 0.1,
     brightness: 1.0,
     animationSpeed: 1.1,
-    presence: 'fresh and energetic',
+    presenceKey: 'circadian.presence.morning',
   },
   midday: {
     hours: [11, 14],
-    name: 'Midday',
+    nameKey: 'circadian.period.midday',
     warmth: 0,
     brightness: 1.0,
     animationSpeed: 1.0,
-    presence: 'clear and focused',
+    presenceKey: 'circadian.presence.midday',
   },
   afternoon: {
     hours: [14, 18],
-    name: 'Afternoon',
+    nameKey: 'circadian.period.afternoon',
     warmth: 0.05,
     brightness: 1.0,
     animationSpeed: 1.0,
-    presence: 'productive calm',
+    presenceKey: 'circadian.presence.afternoon',
   },
   evening: {
     hours: [18, 21],
-    name: 'Evening',
+    nameKey: 'circadian.period.evening',
     warmth: 0.2,
     brightness: 0.95,
     animationSpeed: 0.9,
-    presence: 'winding down',
+    presenceKey: 'circadian.presence.evening',
   },
   night: {
     hours: [21, 24],
-    name: 'Night',
+    nameKey: 'circadian.period.night',
     warmth: 0.3,
     brightness: 0.85,
     animationSpeed: 0.8,
-    presence: 'intimate and calm',
+    presenceKey: 'circadian.presence.night',
   },
   lateNight: {
     hours: [0, 3],
-    name: 'Late Night',
+    nameKey: 'circadian.period.lateNight',
     warmth: 0.35,
     brightness: 0.8,
     animationSpeed: 0.7,
-    presence: 'fully present at 2am',
+    presenceKey: 'circadian.presence.lateNight',
   },
   deepNight: {
     hours: [3, 5],
-    name: 'Deep Night',
+    nameKey: 'circadian.period.deepNight',
     warmth: 0.25,
     brightness: 0.75,
     animationSpeed: 0.6,
-    presence: 'quiet companion',
+    presenceKey: 'circadian.presence.deepNight',
   },
 };
 
@@ -215,9 +219,7 @@ export function setSleepPattern(pattern: Partial<SleepPattern>): void {
   log.info({ pattern: userSleepPattern }, 'Sleep pattern updated');
   
   // Re-detect period with new pattern
-  if (isInitialized && !manualOverride) {
-    updateCircadianPeriod();
-  }
+  if (isInitialized && !manualOverride) updateCircadianPeriod();
 }
 
 /**
@@ -316,7 +318,7 @@ export function applyCircadianTheme(
   period: CircadianPeriod,
   element: HTMLElement = document.documentElement
 ): void {
-  const config = CIRCADIAN_PERIODS[period];
+  const config = getCircadianConfig(period);
 
   // Set data attribute for CSS targeting
   element.setAttribute('data-circadian', period);
@@ -425,11 +427,8 @@ export function setCircadianOverride(period: CircadianPeriod | null): void {
 
   // Save preference
   try {
-    if (period) {
-      localStorage.setItem(STORAGE_KEY, period);
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    if (period) localStorage.setItem(STORAGE_KEY, period);
+    else localStorage.removeItem(STORAGE_KEY);
   } catch {
     // localStorage not available
   }
@@ -464,8 +463,8 @@ export function getCurrentCircadianPeriod(): CircadianPeriod | null {
  * Get config for a circadian period
  */
 export function getCircadianConfig(period: CircadianPeriod): CircadianConfig {
-  const { hours: _hours, ...config } = CIRCADIAN_PERIODS[period];
-  return config;
+  const { hours: _hours, nameKey, presenceKey, ...config } = CIRCADIAN_PERIODS[period];
+  return { ...config, name: t(nameKey), presence: t(presenceKey) };
 }
 
 /**
