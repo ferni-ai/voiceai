@@ -11,6 +11,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 
 // ============================================================================
@@ -80,7 +81,7 @@ class DataExportUI {
     this.panel = document.createElement('div');
     this.panel.className = 'data-export';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Export your data');
+    this.panel.setAttribute('aria-label', t('accessibility.exportData'));
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'data-export__wrapper';
@@ -100,7 +101,7 @@ class DataExportUI {
 
     this.wrapper.innerHTML = `
       <header class="data-export__header">
-        <h2>Your Data</h2>
+        <h2>${t('dataExport.title')}</h2>
         <button class="data-export__close" aria-label="${t('common.close')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -109,7 +110,7 @@ class DataExportUI {
       </header>
 
       <div class="data-export__intro">
-        <p>You have ${totalItems} items across ${data.length} categories. Select what to export.</p>
+        <p>${tp('dataExport.intro', totalItems, { categories: tp('dataExport.categoryCount', data.length) })}</p>
       </div>
 
       <div class="data-export__categories">
@@ -117,7 +118,7 @@ class DataExportUI {
       </div>
 
       <div class="data-export__format">
-        <label>Export format</label>
+        <label>${t('dataExport.exportFormat')}</label>
         <div class="data-export__format-options">
           <button aria-label="${t('accessibility.json')}" class="data-export__format-btn data-export__format-btn--active" data-format="json">JSON</button>
           <button aria-label="${t('accessibility.csv')}" class="data-export__format-btn" data-format="csv">CSV</button>
@@ -125,13 +126,13 @@ class DataExportUI {
       </div>
 
       <div class="data-export__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.delete')}" class="data-export__btn data-export__btn--danger">Delete All Data</button>
-        <button aria-label="${t('accessibility.exportSelected')}" class="data-export__btn data-export__btn--primary">Export Selected</button>
+        <button aria-label="${t('accessibility.delete')}" class="data-export__btn data-export__btn--danger">${t('dataExport.deleteAll')}</button>
+        <button aria-label="${t('accessibility.exportSelected')}" class="data-export__btn data-export__btn--primary">${t('accessibility.exportSelected')}</button>
       </div>
 
       <div class="data-export__footer">
-        <p>Your data belongs to you. We respect your privacy.</p>
-        <button type="button" class="data-export__delete-account">Delete my account</button>
+        <p>${t('dataExport.footer')}</p>
+        <button type="button" class="data-export__delete-account">${t('dataExport.deleteAccount')}</button>
       </div>
     `;
 
@@ -163,16 +164,14 @@ class DataExportUI {
     });
 
     this.wrapper.querySelector('.data-export__btn--danger')?.addEventListener('click', () => {
-      if (confirm('Are you sure you want to delete all your data? This cannot be undone.')) {
+      if (confirm(t('dataExport.confirmDeleteAll'))) {
         this.callbacks.onDeleteData?.();
         this.hide();
       }
     });
 
     this.wrapper.querySelector('.data-export__delete-account')?.addEventListener('click', () => {
-      const ok = confirm(
-        'Delete your Ferni account? This erases everything Ferni knows about you and signs you out for good. It cannot be undone.'
-      );
+      const ok = confirm(t('dataExport.confirmDeleteAccount'));
       if (ok) {
         this.callbacks.onDeleteAccount?.();
         this.hide();
