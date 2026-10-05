@@ -207,9 +207,9 @@ function createSettingsPanel(): HTMLElement {
     <div class="outreach-settings-card">
       <header class="outreach-settings-header">
         <div class="outreach-settings-title-group">
-          <span class="outreach-settings-eyebrow">OUTREACH</span>
-          <h2 class="outreach-settings-title">Stay Connected</h2>
-          <p class="outreach-settings-subtitle">Control how I check in with you</p>
+          <span class="outreach-settings-eyebrow">${t('outreachSettings.eyebrow')}</span>
+          <h2 class="outreach-settings-title">${t('outreachSettings.title')}</h2>
+          <p class="outreach-settings-subtitle">${t('outreachSettings.subtitle')}</p>
         </div>
         <button class="outreach-settings-close" aria-label="${t('accessibility.closeSettings')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -224,8 +224,8 @@ function createSettingsPanel(): HTMLElement {
         <section class="outreach-settings-section">
           <div class="outreach-settings-toggle-row outreach-settings-master" role="button" tabindex="0">
             <div class="outreach-settings-toggle-info" role="button" tabindex="0">
-              <span class="outreach-settings-toggle-label" role="button" tabindex="0">Proactive Outreach</span>
-              <span class="outreach-settings-toggle-desc" role="button" tabindex="0">Allow me to reach out to you between conversations</span>
+              <span class="outreach-settings-toggle-label" role="button" tabindex="0">${t('outreachSettings.proactiveOutreach')}</span>
+              <span class="outreach-settings-toggle-desc" role="button" tabindex="0">${t('outreachSettings.proactiveOutreachDesc')}</span>
             </div>
             <label class="outreach-settings-switch">
               <input type="checkbox" id="outreach-enabled" ${currentPreferences.enabled ? 'checked' : ''}>
@@ -237,27 +237,27 @@ function createSettingsPanel(): HTMLElement {
         <div id="outreach-settings-details" class="${currentPreferences.enabled ? '' : 'disabled'}">
           <!-- Channels -->
           <section class="outreach-settings-section">
-            <h3 class="outreach-settings-section-title">How to reach you</h3>
+            <h3 class="outreach-settings-section-title">${t('outreachSettings.howToReachYou')}</h3>
             <div class="outreach-settings-channels">
               <label class="outreach-settings-channel">
                 <input type="checkbox" id="channel-sms" ${currentPreferences.channels.sms ? 'checked' : ''}>
                 <div class="outreach-settings-channel-content">
                   <span class="outreach-settings-channel-icon"></span>
-                  <span class="outreach-settings-channel-name">Text (SMS)</span>
+                  <span class="outreach-settings-channel-name">${t('outreachSettings.text')}</span>
                 </div>
               </label>
               <label class="outreach-settings-channel">
                 <input type="checkbox" id="channel-email" ${currentPreferences.channels.email ? 'checked' : ''}>
                 <div class="outreach-settings-channel-content">
                   <span class="outreach-settings-channel-icon"></span>
-                  <span class="outreach-settings-channel-name">Email</span>
+                  <span class="outreach-settings-channel-name">${t('outreachSettings.email')}</span>
                 </div>
               </label>
               <label class="outreach-settings-channel">
                 <input type="checkbox" id="channel-call" ${currentPreferences.channels.call ? 'checked' : ''}>
                 <div class="outreach-settings-channel-content">
                   <span class="outreach-settings-channel-icon"></span>
-                  <span class="outreach-settings-channel-name">Phone Call</span>
+                  <span class="outreach-settings-channel-name">${t('outreachSettings.phonecall')}</span>
                 </div>
               </label>
             </div>
@@ -265,27 +265,27 @@ function createSettingsPanel(): HTMLElement {
           
           <!-- Frequency -->
           <section class="outreach-settings-section">
-            <h3 class="outreach-settings-section-title">How often</h3>
+            <h3 class="outreach-settings-section-title">${t('outreachSettings.howOften')}</h3>
             <div class="outreach-settings-frequency">
               <label class="outreach-settings-frequency-option ${currentPreferences.frequency === 'minimal' ? 'selected' : ''}">
                 <input type="radio" name="frequency" value="minimal" ${currentPreferences.frequency === 'minimal' ? 'checked' : ''}>
                 <div class="outreach-settings-frequency-content">
-                  <span class="outreach-settings-frequency-name">Minimal</span>
-                  <span class="outreach-settings-frequency-desc">Only important things</span>
+                  <span class="outreach-settings-frequency-name">${t('outreachSettings.minimal')}</span>
+                  <span class="outreach-settings-frequency-desc">${t('outreachSettings.minimalDesc')}</span>
                 </div>
               </label>
               <label class="outreach-settings-frequency-option ${currentPreferences.frequency === 'balanced' ? 'selected' : ''}">
                 <input type="radio" name="frequency" value="balanced" ${currentPreferences.frequency === 'balanced' ? 'checked' : ''}>
                 <div class="outreach-settings-frequency-content">
-                  <span class="outreach-settings-frequency-name">Balanced</span>
-                  <span class="outreach-settings-frequency-desc">A thoughtful friend</span>
+                  <span class="outreach-settings-frequency-name">${t('outreachSettings.balanced')}</span>
+                  <span class="outreach-settings-frequency-desc">${t('outreachSettings.balancedDesc')}</span>
                 </div>
               </label>
               <label class="outreach-settings-frequency-option ${currentPreferences.frequency === 'active' ? 'selected' : ''}">
                 <input type="radio" name="frequency" value="active" ${currentPreferences.frequency === 'active' ? 'checked' : ''}>
                 <div class="outreach-settings-frequency-content">
-                  <span class="outreach-settings-frequency-name">Active</span>
-                  <span class="outreach-settings-frequency-desc">Proactive partner</span>
+                  <span class="outreach-settings-frequency-name">${t('outreachSettings.active')}</span>
+                  <span class="outreach-settings-frequency-desc">${t('outreachSettings.activeDesc')}</span>
                 </div>
               </label>
             </div>
@@ -295,8 +295,8 @@ function createSettingsPanel(): HTMLElement {
           <section class="outreach-settings-section">
             <div class="outreach-settings-toggle-row" role="button" tabindex="0">
               <div class="outreach-settings-toggle-info" role="button" tabindex="0">
-                <span class="outreach-settings-toggle-label" role="button" tabindex="0">Quiet Hours</span>
-                <span class="outreach-settings-toggle-desc" role="button" tabindex="0">No outreach during these times</span>
+                <span class="outreach-settings-toggle-label" role="button" tabindex="0">${t('outreachSettings.quietHours')}</span>
+                <span class="outreach-settings-toggle-desc" role="button" tabindex="0">${t('outreachSettings.quietHoursDesc')}</span>
               </div>
               <label class="outreach-settings-switch">
                 <input type="checkbox" id="quiet-hours-enabled" ${currentPreferences.quietHours.enabled ? 'checked' : ''}>
@@ -305,12 +305,12 @@ function createSettingsPanel(): HTMLElement {
             </div>
             <div class="outreach-settings-time-range ${currentPreferences.quietHours.enabled ? '' : 'disabled'}">
               <div class="outreach-settings-time-input">
-                <label for="quiet-start">From</label>
+                <label for="quiet-start">${t('outreachSettings.from')}</label>
                 <input type="time" id="quiet-start" value="${currentPreferences.quietHours.start}">
               </div>
               <span class="outreach-settings-time-separator">to</span>
               <div class="outreach-settings-time-input">
-                <label for="quiet-end">Until</label>
+                <label for="quiet-end">${t('outreachSettings.until')}</label>
                 <input type="time" id="quiet-end" value="${currentPreferences.quietHours.end}">
               </div>
             </div>
@@ -318,15 +318,15 @@ function createSettingsPanel(): HTMLElement {
           
           <!-- Types -->
           <section class="outreach-settings-section">
-            <h3 class="outreach-settings-section-title">What I'll reach out about</h3>
+            <h3 class="outreach-settings-section-title">${t('outreachSettings.whatWereach')}</h3>
             <div class="outreach-settings-types">
               <label class="outreach-settings-type">
                 <input type="checkbox" id="type-commitments" ${currentPreferences.triggerTypes.commitments ? 'checked' : ''}>
                 <div class="outreach-settings-type-content">
                   <span class="outreach-settings-type-icon">${ICONS.clipboard}</span>
                   <div class="outreach-settings-type-text">
-                    <span class="outreach-settings-type-name">Commitments</span>
-                    <span class="outreach-settings-type-desc">Check in on things you said you'd do</span>
+                    <span class="outreach-settings-type-name">${t('outreachSettings.commitments')}</span>
+                    <span class="outreach-settings-type-desc">${t('outreachSettings.commitmentsDesc')}</span>
                   </div>
                 </div>
               </label>
@@ -335,8 +335,8 @@ function createSettingsPanel(): HTMLElement {
                 <div class="outreach-settings-type-content">
                   <span class="outreach-settings-type-icon">${ICONS.heart}</span>
                   <div class="outreach-settings-type-text">
-                    <span class="outreach-settings-type-name">Support</span>
-                    <span class="outreach-settings-type-desc">Check in when you might need it</span>
+                    <span class="outreach-settings-type-name">${t('outreachSettings.support')}</span>
+                    <span class="outreach-settings-type-desc">${t('outreachSettings.supportDesc')}</span>
                   </div>
                 </div>
               </label>
@@ -345,8 +345,8 @@ function createSettingsPanel(): HTMLElement {
                 <div class="outreach-settings-type-content">
                   <span class="outreach-settings-type-icon">${ICONS.sparkles}</span>
                   <div class="outreach-settings-type-text">
-                    <span class="outreach-settings-type-name">Celebrations</span>
-                    <span class="outreach-settings-type-desc">Celebrate your wins with you</span>
+                    <span class="outreach-settings-type-name">${t('outreachSettings.celebrations')}</span>
+                    <span class="outreach-settings-type-desc">${t('outreachSettings.celebrationsDesc')}</span>
                   </div>
                 </div>
               </label>
@@ -355,8 +355,8 @@ function createSettingsPanel(): HTMLElement {
                 <div class="outreach-settings-type-content">
                   <span class="outreach-settings-type-icon">${ICONS.thoughtBubble}</span>
                   <div class="outreach-settings-type-text">
-                    <span class="outreach-settings-type-name">Thinking of You</span>
-                    <span class="outreach-settings-type-desc">Random moments of connection</span>
+                    <span class="outreach-settings-type-name">${t('outreachSettings.thinkingOfYou')}</span>
+                    <span class="outreach-settings-type-desc">${t('outreachSettings.thinkingOfYouDesc')}</span>
                   </div>
                 </div>
               </label>
@@ -365,8 +365,8 @@ function createSettingsPanel(): HTMLElement {
                 <div class="outreach-settings-type-content">
                   <span class="outreach-settings-type-icon">${ICONS.bell}</span>
                   <div class="outreach-settings-type-text">
-                    <span class="outreach-settings-type-name">Reminders</span>
-                    <span class="outreach-settings-type-desc">Important dates and events</span>
+                    <span class="outreach-settings-type-name">${t('outreachSettings.reminders')}</span>
+                    <span class="outreach-settings-type-desc">${t('outreachSettings.remindersDesc')}</span>
                   </div>
                 </div>
               </label>
@@ -376,7 +376,7 @@ function createSettingsPanel(): HTMLElement {
       </div>
       
       <footer class="outreach-settings-footer">
-        <button aria-label="${t('accessibility.savePreferences')}" class="outreach-settings-save">Save Preferences</button>
+        <button aria-label="${t('accessibility.savePreferences')}" class="outreach-settings-save">${t('outreachSettings.savePreferences')}</button>
       </footer>
     </div>
   `;
@@ -476,7 +476,7 @@ function setupEventListeners(panel: HTMLElement): void {
 
       saveBtn.textContent = t('common.saved');
       trackedTimeout(() => {
-        saveBtn.textContent = t('buttons.savePreferences');
+        saveBtn.textContent = t('outreachSettings.savePreferences');
         saveBtn.disabled = false;
         close();
       }, 1000);

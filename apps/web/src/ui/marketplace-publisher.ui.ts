@@ -302,8 +302,8 @@ function createPortalContainer(): HTMLElement {
         <button class="publisher-close" aria-label="${t('accessibility.closePublisher')}">
           ${ICONS.close}
         </button>
-        <h1 class="publisher-title">Publisher Portal</h1>
-        <p class="publisher-subtitle">Manage your tools and agents</p>
+        <h1 class="publisher-title">${t('publisherPortal.title')}</h1>
+        <p class="publisher-subtitle">${t('publisherPortal.subtitle')}</p>
       </header>
 
       <nav class="publisher-tabs" role="tablist" aria-label="${t('accessibility.portalSections')}">
@@ -313,7 +313,7 @@ function createPortalContainer(): HTMLElement {
           data-tab="items"
           aria-selected="${state.activeTab === 'items'}"
         >
-          ${ICONS.box} My Items
+          ${ICONS.box} ${t('publisherPortal.myItems')}
         </button>
         <button aria-label="${t('accessibility.analytics')}"
           role="tab"
@@ -321,7 +321,7 @@ function createPortalContainer(): HTMLElement {
           data-tab="analytics"
           aria-selected="${state.activeTab === 'analytics'}"
         >
-          ${ICONS.barChart} Analytics
+          ${ICONS.barChart} ${t('publisherPortal.analytics')}
         </button>
         <button aria-label="${t('accessibility.add')}"
           role="tab"
@@ -329,7 +329,7 @@ function createPortalContainer(): HTMLElement {
           data-tab="submit"
           aria-selected="${state.activeTab === 'submit'}"
         >
-          ${ICONS.plus} Submit New
+          ${ICONS.plus} ${t('publisherPortal.submitNew')}
         </button>
       </nav>
 
@@ -367,7 +367,7 @@ function renderPortal(): void {
   if (state.loadError) {
     content.innerHTML = `
       <div class="publisher-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
-        Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
+        ${t('publisherPortal.errorLoadingData')} <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('publisherPortal.tryAgain')}</button>
       </div>
     `;
     content.querySelector('button')?.addEventListener('click', () => {
@@ -404,10 +404,10 @@ function renderItemsList(content: Element): void {
     content.innerHTML = `
       <div class="publisher-empty">
         <div class="publisher-empty-icon" aria-hidden="true">${ICONS.box}</div>
-        <h3 class="publisher-empty-title">No items yet</h3>
-        <p class="publisher-empty-text">Submit your first tool or agent to get started</p>
+        <h3 class="publisher-empty-title">${t('publisherPortal.noItems')}</h3>
+        <p class="publisher-empty-text">${t('publisherPortal.noItemsDesc')}</p>
         <button aria-label="${t('accessibility.add')}" class="publisher-button publisher-button--primary" data-action="submit">
-          ${ICONS.plus} Submit New Item
+          ${ICONS.plus} ${t('publisherPortal.submitNew')} Item
         </button>
       </div>
     `;
@@ -423,19 +423,19 @@ function renderItemsList(content: Element): void {
     <div class="publisher-stats-bar">
       <div class="stat-card">
         <span class="stat-value">${state.profile?.stats.approvedItems || 0}</span>
-        <span class="stat-label">Live</span>
+        <span class="stat-label">${t('publisherPortal.statusLive')}</span>
       </div>
       <div class="stat-card">
         <span class="stat-value">${state.profile?.stats.pendingItems || 0}</span>
-        <span class="stat-label">In Review</span>
+        <span class="stat-label">${t('publisherPortal.statusInReview')}</span>
       </div>
       <div class="stat-card">
         <span class="stat-value">${state.profile?.stats.totalTools || 0}</span>
-        <span class="stat-label">Tools</span>
+        <span class="stat-label">${t('publisherPortal.tools')}</span>
       </div>
       <div class="stat-card">
         <span class="stat-value">${state.profile?.stats.totalAgents || 0}</span>
-        <span class="stat-label">Agents</span>
+        <span class="stat-label">${t('publisherPortal.agents')}</span>
       </div>
     </div>
 
@@ -501,7 +501,7 @@ function renderAnalytics(content: Element): void {
     content.innerHTML = `
       <div class="publisher-empty">
         <div class="publisher-empty-icon" aria-hidden="true">${ICONS.barChart}</div>
-        <h3 class="publisher-empty-title">Select an item</h3>
+        <h3 class="publisher-empty-title">${t('publisherPortal.selectItem')}</h3>
         <p class="publisher-empty-text">Choose an item from "My Items" to view its analytics</p>
       </div>
     `;
@@ -530,21 +530,21 @@ function renderAnalytics(content: Element): void {
         <div class="analytics-card-icon" aria-hidden="true">${ICONS.users}</div>
         <div class="analytics-card-content">
           <span class="analytics-card-value">${formatNumber(item.stats?.installs || 0)}</span>
-          <span class="analytics-card-label">Total Installs</span>
+          <span class="analytics-card-label">${t('publisherPortal.totalInstalls')}</span>
         </div>
       </div>
       <div class="analytics-card">
         <div class="analytics-card-icon" aria-hidden="true">${ICONS.activity}</div>
         <div class="analytics-card-content">
           <span class="analytics-card-value">${formatNumber(item.stats?.executions || 0)}</span>
-          <span class="analytics-card-label">Executions</span>
+          <span class="analytics-card-label">${t('publisherPortal.executions')}</span>
         </div>
       </div>
       <div class="analytics-card">
         <div class="analytics-card-icon" aria-hidden="true">${ICONS.check}</div>
         <div class="analytics-card-content">
           <span class="analytics-card-value">${(item.stats?.successRate || 100).toFixed(1)}%</span>
-          <span class="analytics-card-label">Success Rate</span>
+          <span class="analytics-card-label">${t('publisherPortal.successRate')}</span>
         </div>
       </div>
       <div class="analytics-card">
@@ -557,7 +557,7 @@ function renderAnalytics(content: Element): void {
     </div>
 
     <div class="analytics-chart-placeholder">
-      <p>Usage chart coming soon</p>
+      <p>${t('publisherPortal.chartComingSoon')}</p>
     </div>
   `;
 
@@ -572,10 +572,10 @@ function renderSubmitForm(content: Element): void {
   content.innerHTML = `
     <form class="submit-form" aria-label="${t('accessibility.submitNewItem')}">
       <div class="form-section">
-        <h3 class="form-section-title">Basic Information</h3>
+        <h3 class="form-section-title">${t('publisherPortal.basicInformation')}</h3>
 
         <div class="form-group">
-          <label for="item-type" class="form-label">Type</label>
+          <label for="item-type" class="form-label">${t('publisherPortal.type')}</label>
           <div class="form-radio-group">
             <label class="form-radio">
               <input type="radio" name="type" value="tool" checked />
@@ -599,11 +599,11 @@ function renderSubmitForm(content: Element): void {
             pattern="^[a-z0-9-]+$"
             required
           />
-          <span class="form-hint">Lowercase letters, numbers, and hyphens only</span>
+          <span class="form-hint">${t('publisherPortal.idHint')}</span>
         </div>
 
         <div class="form-group">
-          <label for="item-name" class="form-label">Display Name</label>
+          <label for="item-name" class="form-label">${t('publisherPortal.displayName')}</label>
           <input
             type="text"
             id="item-name"
@@ -615,7 +615,7 @@ function renderSubmitForm(content: Element): void {
         </div>
 
         <div class="form-group">
-          <label for="item-version" class="form-label">Version</label>
+          <label for="item-version" class="form-label">${t('publisherPortal.version')}</label>
           <input
             type="text"
             id="item-version"
@@ -628,7 +628,7 @@ function renderSubmitForm(content: Element): void {
         </div>
 
         <div class="form-group">
-          <label for="item-description" class="form-label">Description</label>
+          <label for="item-description" class="form-label">${t('publisherPortal.description')}</label>
           <textarea
             id="item-description"
             name="description"
@@ -641,22 +641,22 @@ function renderSubmitForm(content: Element): void {
       </div>
 
       <div class="form-section">
-        <h3 class="form-section-title">Pricing</h3>
+        <h3 class="form-section-title">${t('publisherPortal.pricing')}</h3>
 
         <div class="form-group">
-          <label class="form-label">Pricing Model</label>
+          <label class="form-label">${t('publisherPortal.pricingModel')}</label>
           <div class="form-radio-group form-radio-group--vertical">
             <label class="form-radio">
               <input type="radio" name="pricing" value="free" checked />
-              <span class="radio-label">Free</span>
+              <span class="radio-label">${t('publisherPortal.pricingFree')}</span>
             </label>
             <label class="form-radio">
               <input type="radio" name="pricing" value="usage-based" />
-              <span class="radio-label">Pay per use</span>
+              <span class="radio-label">${t('publisherPortal.pricingPayPerUse')}</span>
             </label>
             <label class="form-radio">
               <input type="radio" name="pricing" value="subscription" />
-              <span class="radio-label">Subscription</span>
+              <span class="radio-label">${t('publisherPortal.pricingSubscription')}</span>
             </label>
           </div>
         </div>
