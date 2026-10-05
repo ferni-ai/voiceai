@@ -146,6 +146,35 @@ describe('createContinuationTTS', () => {
     expect(reply.pushes.join('')).toBe('Honestly I think that the keyboard is gone for good. ');
   });
 
+  // A short opening ("Yeah, la") under the 12-character minimum used to sit
+  // until the next token arrived, after the wait had already expired.
+  it('sends a short opening once the wait expires instead of holding it for the next token', async () => {
+    const reply = new FakeReply([4]);
+    let pushedBeforeRest = '';
+    const slow = new ReadableStream<string>({
+      async start(c) {
+        c.enqueue('Yeah, la');
+        await new Promise((r) => setTimeout(r, 120));
+        pushedBeforeRest = reply.pushes.join('');
+        c.enqueue('ter tonight works. ');
+        c.close();
+      },
+    });
+    const stream = createContinuationTTS({
+      textStream: slow,
+      reply,
+      sanitize: (chunk) => ({ text: chunk.trim(), prosody: {} }),
+      openingTags: () => '',
+      toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
+      onFirstAudio: () => undefined,
+      onError: () => undefined,
+      firstChunkWaitMs: 20,
+    });
+    await drain(stream as unknown as ReadableStream<AudioFrame>);
+    expect(pushedBeforeRest).toBe('Yeah, ');
+    expect(reply.pushes.join('')).toBe('Yeah, later tonight works. ');
+  });
+
   it('falls back to the session emotion when the reply names none', async () => {
     const reply = new FakeReply([4]);
     const { stream } = run(['That sounds like a really long week.'], reply, 'sympathetic');

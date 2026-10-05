@@ -29,6 +29,12 @@ const stable = (e?: string): string | undefined => (e && STABLE.has(e) ? e : und
 /** The first piece may be a clause (see findFirstChunkEnd): start talking sooner. */
 const MIN_FIRST_CHUNK = 12;
 /**
+ * Once the first-chunk wait has run out, a shorter opening ("Yeah, ") goes
+ * rather than waiting for the next token (it held first audio up to ~640 ms
+ * on dev, 2026-10-04); the continuation carries the intonation on.
+ */
+const MIN_EXPIRED_FIRST_CHUNK = 4;
+/**
  * How long the first piece may wait for a clause break once the model's text
  * starts arriving, before it goes out cut at a word boundary instead.
  */
@@ -212,7 +218,9 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
         }
         if (next === WAIT_EXPIRED) {
           waitExpired = true;
-          const end = findFirstWordEnd(buffer, MIN_FIRST_CHUNK);
+          const end =
+            findFirstWordEnd(buffer, MIN_FIRST_CHUNK) ??
+            findFirstWordEnd(buffer, MIN_EXPIRED_FIRST_CHUNK);
           if (end !== null) {
             push(buffer.slice(0, end));
             buffer = buffer.slice(end);
