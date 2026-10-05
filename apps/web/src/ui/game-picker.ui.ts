@@ -752,10 +752,11 @@ class GamePickerUI {
         margin-bottom: var(--space-3, 12px);
         border-bottom: 1px solid var(--color-border, #E8E2DA);
         padding-bottom: var(--space-3, 12px);
+        container-type: inline-size; overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
       }
       
       .game-picker__tab {
-        display: flex;
+        display: flex; flex-shrink: 0; white-space: nowrap;
         align-items: center;
         gap: var(--space-2, 8px);
         padding: var(--space-2, 8px) var(--space-4, 16px);
@@ -769,10 +770,8 @@ class GamePickerUI {
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
       
-      .game-picker__tab svg {
-        width: 16px;
-        height: 16px;
-      }
+      .game-picker__tab svg { width: 16px; height: 16px; }
+      @container (max-width: 400px) { .game-picker__tab { flex: 1 0 auto; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: var(--radius-lg, 12px); font-size: 12px; } }
       
       .game-picker__tab:hover {
         background: var(--color-background-subtle, #F5F1E8);

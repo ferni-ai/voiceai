@@ -1850,10 +1850,11 @@ class CalendarViewUI {
         gap: var(--space-2, 8px);
         padding: var(--space-3, 12px) var(--space-5, 20px);
         border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        container-type: inline-size; overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
       }
 
       .calendar-view__tab {
-        flex: 1;
+        flex: 1 0 auto; white-space: nowrap;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1870,10 +1871,9 @@ class CalendarViewUI {
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
-      .calendar-view__tab svg {
-        width: 16px;
-        height: 16px;
-      }
+      .calendar-view__tab svg { width: 16px; height: 16px; flex-shrink: 0; }
+      /* Narrow panels: icon over label so all five views fit; longer labels scroll. */
+      @container (max-width: 480px) { .calendar-view__tab { flex-direction: column; gap: 2px; padding: 6px 4px; font-size: var(--text-xs, 0.75rem); } }
 
       .calendar-view__tab:hover {
         background: var(--color-background-secondary, rgba(44, 37, 32, 0.05));
@@ -2558,12 +2558,12 @@ class CalendarViewUI {
         gap: var(--space-2, 8px);
         overflow-x: auto;
         padding: var(--space-2, 8px) 0;
-        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; scroll-snap-type: x proximity;
       }
 
       .calendar-view__practice-day {
         flex: 1;
-        min-width: 60px;
+        min-width: 76px; scroll-snap-align: start;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -2637,8 +2637,8 @@ class CalendarViewUI {
       .calendar-view__practice-day-insight {
         font-size: var(--text-2xs, 0.6875rem);
         color: var(--color-text-muted, #756a5e);
-        text-align: center;
-        white-space: nowrap;
+        text-align: center; line-height: 1.25;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
         overflow: hidden;
         text-overflow: ellipsis;
         max-width: 100%;

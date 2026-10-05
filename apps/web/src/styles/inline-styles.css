@@ -2785,6 +2785,9 @@ html.theme-transitioning *::after {
   padding: 0;
 }
 
+/* Form controls don't inherit the page font by default (cards built as <button> rendered in Arial). */
+button, input, select, textarea { font-family: inherit; }
+
 html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
