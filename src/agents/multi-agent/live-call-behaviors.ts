@@ -200,11 +200,12 @@ export async function startTurnSounds(input: TurnSoundsInput) {
   );
   if (clips) {
     cleanupFunctions.push(() => void clips.close());
-    const { attachTurnOpeningSound } = await import('../integrations/turn-opening-sound.js');
+    const { attachTurnOpeningSound, turnOpeningSoundEnabled } =
+      await import('../integrations/turn-opening-sound.js');
     const { replyAudioSince, clearReplyActivity } =
       await import('../../speech/output-control/reply-activity.js');
     cleanupFunctions.push(() => clearReplyActivity(sessionId));
-    if (process.env.TURN_OPENING_SOUND !== 'off') {
+    if (turnOpeningSoundEnabled()) {
       cleanupFunctions.push(
         attachTurnOpeningSound(
           session as unknown as Parameters<typeof attachTurnOpeningSound>[0],
