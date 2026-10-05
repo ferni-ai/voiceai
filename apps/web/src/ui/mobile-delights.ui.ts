@@ -637,7 +637,7 @@ function createImmersiveOverlay(): void {
   immersiveOverlay.className = 'immersive-overlay';
   immersiveOverlay.innerHTML = `
     <div class="immersive-backdrop"></div>
-    <div class="immersive-close-hint">Tap anywhere to exit</div>
+    <div class="immersive-close-hint">${t('mobile.tapToExit')}</div>
   `;
 
   immersiveOverlay.addEventListener('click', () => {

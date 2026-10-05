@@ -18,6 +18,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import {
   getCustomAgent,
   listMemories,
@@ -113,8 +114,8 @@ function ensureModalExists(): HTMLElement {
             </svg>
           </div>
           <div class="twin-info">
-            <h2 class="twin-title" id="twin-title">Your Past Self</h2>
-            <p class="twin-subtitle">Based on your journals & profile</p>
+            <h2 class="twin-title" id="twin-title">${t('talkToTwin.title')}</h2>
+            <p class="twin-subtitle">${t('talkToTwin.subtitle')}</p>
           </div>
         </div>
         <button class="twin-close" data-action="close" aria-label="${t('accessibility.close')}">
@@ -134,7 +135,7 @@ function ensureModalExists(): HTMLElement {
           <textarea 
             class="twin-input" 
             id="twin-input"
-            placeholder="Ask your past self something..."
+            placeholder="${t('talkToTwin.placeholder')}"
             rows="1"
           ></textarea>
           <button class="twin-send" id="twin-send" aria-label="${t('accessibility.send')}">
@@ -144,7 +145,7 @@ function ensureModalExists(): HTMLElement {
             </svg>
           </button>
         </div>
-        <p class="twin-hint">Speak with the perspective you've captured in your journals</p>
+        <p class="twin-hint">${t('talkToTwin.hint')}</p>
       </footer>
     </div>
   `;
@@ -336,27 +337,14 @@ function addTwinWelcome(): void {
 
   const { profile, recentJournals, currentMood: _currentMood } = twinContext;
 
-  // Build a personalized welcome using the profile
-  let welcome = '';
-
-  // Use a greeting from mannerisms if available
-  if (profile.mannerisms.length > 0) {
-    welcome = profile.mannerisms[0] + ' ';
-  } else {
-    welcome = 'Hey. ';
-  }
-
-  welcome += `It's me—well, you. The ${profile.name} who's been journaling and reflecting. `;
-
-  if (recentJournals.length > 0) {
-    welcome += `I've got ${recentJournals.length} journal entries worth of perspective to share. `;
-  }
-
-  if (profile.philosophy) {
-    welcome += `Remember what we believe: "${profile.philosophy}" `;
-  }
-
-  welcome += '\n\nWhat would you like to talk about?';
+  // Build a personalized welcome using the profile; greeting comes from mannerisms if available
+  const parts = [
+    profile.mannerisms[0] ?? t('talkToTwin.welcome.hey'),
+    t('talkToTwin.welcome.intro', { name: profile.name }),
+  ];
+  if (recentJournals.length > 0) parts.push(tp('talkToTwin.welcome.journals', recentJournals.length));
+  if (profile.philosophy) parts.push(t('talkToTwin.welcome.philosophy', { philosophy: profile.philosophy }));
+  const welcome = `${parts.join(' ')}\n\n${t('talkToTwin.welcome.prompt')}`;
 
   messages.push({
     id: `msg-${Date.now()}`,
@@ -408,7 +396,7 @@ async function handleSendMessage(): Promise<void> {
     messages.push({
       id: `msg-${Date.now() + 1}`,
       role: 'twin',
-      content: "I'm having trouble thinking right now. Give me a moment and try again?",
+      content: t('talkToTwin.error'),
       timestamp: new Date(),
     });
   }
@@ -501,39 +489,37 @@ function generateFallbackResponse(
   // Check for common patterns
   if (lowerMessage.includes('advice') || lowerMessage.includes('should i')) {
     if (profile.philosophy) {
-      return `You know what I've learned? "${profile.philosophy}" Whatever you're facing, remember that.`;
+      return t('talkToTwin.fallback.advicePhilosophy', { philosophy: profile.philosophy });
     }
     if (profile.values.length > 0) {
-      return `Think about what matters to us: ${profile.values.slice(0, 3).join(', ')}. Let those guide you.`;
+      return t('talkToTwin.fallback.adviceValues', { values: profile.values.slice(0, 3).join(', ') });
     }
   }
 
   if (lowerMessage.includes('feeling') || lowerMessage.includes('feel')) {
     const recent = relevantJournals[0];
     if (recent) {
-      return `I've felt that too. In my journal I wrote: "${recent.content.slice(0, 200)}..." We got through it before.`;
+      return t('talkToTwin.fallback.feelRecent', { excerpt: recent.content.slice(0, 200) });
     }
-    return "I hear you. We've been through tough times before and found our way. What's really bothering you?";
+    return t('talkToTwin.fallback.feelDefault');
   }
 
   if (lowerMessage.includes('remember') || lowerMessage.includes('past')) {
     if (relevantJournals.length > 0) {
-      const entries = relevantJournals.slice(0, 2);
-      let response = 'Yeah, I remember. ';
-      for (const entry of entries) {
-        response += `There was that time I wrote: "${entry.content.slice(0, 100)}..." `;
-      }
-      return response;
+      const entries = relevantJournals
+        .slice(0, 2)
+        .map((entry) => t('talkToTwin.fallback.rememberEntry', { excerpt: entry.content.slice(0, 100) }));
+      return [t('talkToTwin.fallback.rememberIntro'), ...entries].join(' ');
     }
   }
 
   // Default response using mannerisms
   if (profile.mannerisms.length > 0) {
     const phrase = profile.mannerisms[Math.floor(Math.random() * profile.mannerisms.length)];
-    return `${phrase} That's something I've been thinking about too. What made you bring this up?`;
+    return t('talkToTwin.fallback.mannerism', { phrase: phrase ?? '' });
   }
 
-  return "That's a good question. What made you think of that?";
+  return t('talkToTwin.fallback.default');
 }
 
 // ============================================================================

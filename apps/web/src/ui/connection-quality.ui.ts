@@ -10,6 +10,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('ConnectionQuality');
@@ -76,12 +77,12 @@ const QUALITY_COLORS: Record<ConnectionQuality, string> = {
 };
 
 // Quality descriptions
-const QUALITY_LABELS: Record<ConnectionQuality, string> = {
-  excellent: 'Excellent',
-  good: 'Good',
-  fair: 'Fair',
-  poor: 'Poor connection',
-  disconnected: 'Disconnected',
+const QUALITY_LABEL_KEYS: Record<ConnectionQuality, string> = {
+  excellent: 'connectionQuality.level.excellent',
+  good: 'connectionQuality.level.good',
+  fair: 'connectionQuality.level.fair',
+  poor: 'connectionQuality.level.poor',
+  disconnected: 'connectionQuality.level.disconnected',
 };
 
 // ============================================================================
@@ -379,7 +380,7 @@ function createIndicator(): HTMLElement {
   el.className = `connection-quality connection-quality--${options.position} connection-quality--${options.size}`;
   el.setAttribute('role', 'status');
   el.setAttribute('aria-live', 'polite');
-  el.setAttribute('aria-label', 'Connection quality');
+  el.setAttribute('aria-label', t('connectionQuality.ariaLabel'));
 
   el.innerHTML = `
     <div class="connection-quality__bars" aria-hidden="true">
@@ -388,19 +389,19 @@ function createIndicator(): HTMLElement {
       <div class="connection-quality__bar"></div>
       <div class="connection-quality__bar"></div>
     </div>
-    <span class="connection-quality__label">Connecting...</span>
+    <span class="connection-quality__label">${t('session.connecting')}</span>
     ${options.showDetails ? `
       <div class="connection-quality__details">
         <div class="connection-quality__stat">
-          <span class="connection-quality__stat-label">Latency</span>
+          <span class="connection-quality__stat-label">${t('connectionQuality.latency')}</span>
           <span class="connection-quality__stat-value" data-stat="rtt">--</span>
         </div>
         <div class="connection-quality__stat">
-          <span class="connection-quality__stat-label">Packet loss</span>
+          <span class="connection-quality__stat-label">${t('connectionQuality.packetLoss')}</span>
           <span class="connection-quality__stat-value" data-stat="packetLoss">--</span>
         </div>
         <div class="connection-quality__stat">
-          <span class="connection-quality__stat-label">Jitter</span>
+          <span class="connection-quality__stat-label">${t('connectionQuality.jitter')}</span>
           <span class="connection-quality__stat-value" data-stat="jitter">--</span>
         </div>
       </div>
@@ -428,7 +429,7 @@ function updateIndicator(): void {
 
   // Update label
   if (label) {
-    label.textContent = QUALITY_LABELS[currentQuality];
+    label.textContent = t(QUALITY_LABEL_KEYS[currentQuality]);
   }
 
   // Update warning/reconnecting states
@@ -461,11 +462,9 @@ function updateIndicator(): void {
   }
 
   // Update aria-label for screen readers
-  indicator.setAttribute(
-    'aria-label',
-    `Connection quality: ${QUALITY_LABELS[currentQuality]}. ` +
-    (currentStats.rtt ? `Latency ${Math.round(currentStats.rtt)}ms.` : '')
-  );
+  const params = { quality: t(QUALITY_LABEL_KEYS[currentQuality]), rtt: Math.round(currentStats.rtt ?? 0) };
+  const ariaKey = currentStats.rtt ? 'connectionQuality.statusWithLatency' : 'connectionQuality.status';
+  indicator.setAttribute('aria-label', t(ariaKey, params));
 }
 
 // ============================================================================

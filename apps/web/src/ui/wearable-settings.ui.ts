@@ -266,13 +266,13 @@ class WearableSettingsUI {
           <div class="wearable-settings__provider-info">
             <span class="wearable-settings__provider-name">
               ${t(`wearableSettings.providers.${provider.id}.name`)}
-              ${isComingSoon ? '<span class="wearable-settings__coming-soon-badge">Coming Soon</span>' : ''}
+              ${isComingSoon ? `<span class="wearable-settings__coming-soon-badge">${t('menu.comingSoon')}</span>` : ''}
             </span>
             <span class="wearable-settings__provider-desc">${t(`wearableSettings.providers.${provider.id}.description`)}</span>
           </div>
           ${isComingSoon ? `
             <span class="wearable-settings__provider-btn wearable-settings__provider-btn--disabled" aria-disabled="true">
-              Coming Soon
+              ${t('menu.comingSoon')}
             </span>
           ` : `
             <button aria-label="${t('accessibility.settings')}"
