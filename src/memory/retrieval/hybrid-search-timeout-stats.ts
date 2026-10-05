@@ -9,6 +9,9 @@
  * fell back to zero memories. That bump was reasoned from docs, not
  * measured end-to-end in prod - track actual attempts/timeouts here so the
  * budget can be tuned from real data instead of re-guessed later.
+ * 2026-10-05: measured on dev, 61 of 61 searches missed 245 ms (p50 705, p90
+ * 1316 ms); raised to 1900 ms (a 1330 ms race). It runs beside the
+ * background turn's processing (~1.2 s), not on the reply's path.
  *
  * Split out of turn-memory-retrieval.ts to keep that file under the quality
  * ratchet's line-count limit. No external caller imports these names from
