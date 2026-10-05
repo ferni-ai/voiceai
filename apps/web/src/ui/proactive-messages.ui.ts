@@ -17,6 +17,7 @@
 
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('ProactiveMessagesUI');
 
@@ -74,7 +75,7 @@ export function initProactiveMessages(): void {
   indicator = document.createElement('div');
   indicator.className = 'proactive-indicator';
   indicator.innerHTML = `
-    <button class="indicator-btn" aria-label="Messages from Ferni">
+    <button class="indicator-btn" aria-label="${t('proactiveMessages.indicatorLabel')}">
       <span class="indicator-dot"></span>
       <span class="indicator-count">0</span>
     </button>
@@ -420,7 +421,6 @@ function renderMessage(): void {
   if (!message) return;
 
   const personaName = getPersonaDisplayName(message.personaId);
-  const reasonText = getReasonText(message.reason);
 
   container.innerHTML = `
     <div class="message-card">
@@ -431,10 +431,10 @@ function renderMessage(): void {
           </div>
           <div class="sender-info">
             <span class="sender-name">${personaName}</span>
-            <span class="sender-reason">${reasonText}</span>
+            <span class="sender-reason">${getReasonText(message.reason)}</span>
           </div>
         </div>
-        <button class="close-btn" aria-label="Close">
+        <button class="close-btn" aria-label="${t('common.close')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -445,8 +445,8 @@ function renderMessage(): void {
         <p class="message-text">${escapeHtml(message.text)}</p>
       </div>
       <div class="message-actions">
-        <button class="action-btn" data-action="dismiss">Later</button>
-        <button class="action-btn primary" data-action="respond">Respond</button>
+        <button class="action-btn" data-action="dismiss">${t('common.maybeLater')}</button>
+        <button class="action-btn primary" data-action="respond">${t('proactiveMessages.respond')}</button>
       </div>
       ${state.messages.length > 1 ? `
         <div class="message-pagination">
@@ -580,22 +580,22 @@ function getPersonaDisplayName(personaId: string): string {
 }
 
 function getReasonText(reason: string): string {
-  const reasonMap: Record<string, string> = {
-    welcome_followup: 'Checking in',
-    next_day_check: 'Following up',
-    topic_deepdive: 'Thinking about you',
-    first_week_reflection: 'Week reflection',
-    momentum_check: 'Momentum check',
-    two_week_celebration: 'Celebrating you',
-    thinking_of_you: 'Just thinking of you',
-    habit_nudge: 'Gentle reminder',
-    win_celebration: 'Celebrating your win',
-    setback_support: 'Here for you',
-    reengagement_gentle: 'Missing you',
-    reengagement_warmth: 'Still here',
-    life_event_followup: 'Following up',
+  const reasonKeys: Record<string, string> = {
+    welcome_followup: 'proactiveMessages.reasons.welcomeFollowup',
+    next_day_check: 'proactiveMessages.reasons.nextDayCheck',
+    topic_deepdive: 'proactiveMessages.reasons.topicDeepdive',
+    first_week_reflection: 'proactiveMessages.reasons.firstWeekReflection',
+    momentum_check: 'proactiveMessages.reasons.momentumCheck',
+    two_week_celebration: 'proactiveMessages.reasons.twoWeekCelebration',
+    thinking_of_you: 'proactiveMessages.reasons.thinkingOfYou',
+    habit_nudge: 'proactiveMessages.reasons.habitNudge',
+    win_celebration: 'proactiveMessages.reasons.winCelebration',
+    setback_support: 'proactiveMessages.reasons.setbackSupport',
+    reengagement_gentle: 'proactiveMessages.reasons.reengagementGentle',
+    reengagement_warmth: 'proactiveMessages.reasons.reengagementWarmth',
+    life_event_followup: 'proactiveMessages.reasons.lifeEventFollowup',
   };
-  return reasonMap[reason] || 'A message for you';
+  return t(reasonKeys[reason] ?? 'proactiveMessages.reasons.default');
 }
 
 function getPersonaIcon(_personaId: string): string {

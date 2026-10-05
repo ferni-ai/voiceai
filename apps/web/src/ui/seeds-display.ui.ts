@@ -9,7 +9,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { getSeedBalance } from '../services/cosmetics.service.js';
-import { t } from '../i18n/index.js';
+import { formatNumber, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import {
   claimDailyBonus,
@@ -363,19 +363,19 @@ export function renderSeedsSettingsCard(): string {
     const range = nextMilestone - previousMilestone;
     const progress = streak - previousMilestone;
     progressPercent = Math.min(100, (progress / range) * 100);
-    progressText = `${nextMilestone - streak} days until ${nextMilestone}-day streak bonus`;
+    progressText = tp('seedsDisplay.untilBonus', nextMilestone - streak, { goal: nextMilestone });
   }
 
   return `
     <div class="seeds-settings-card" data-seeds-card>
       <div class="seeds-settings-header">
-        <span class="seeds-settings-title">Your Seeds</span>
+        <span class="seeds-settings-title">${t('seedsDisplay.title')}</span>
         ${
           dailyAvailable
             ? `
           <div class="seeds-daily-bonus" data-daily-bonus>
             <span class="seeds-daily-bonus-icon">${ICONS.gift}</span>
-            <span class="seeds-daily-bonus-text">A little something</span>
+            <span class="seeds-daily-bonus-text">${t('seedsDisplay.dailyBonus')}</span>
           </div>
         `
             : ''
@@ -385,9 +385,9 @@ export function renderSeedsSettingsCard(): string {
       <div class="seeds-settings-row">
         <div class="seeds-settings-value">
           <span style="color: var(--persona-primary, #4a6741)">${ICONS.seed}</span>
-          <span class="seeds-settings-value-text" data-seeds-amount>${balance.toLocaleString()}</span>
+          <span class="seeds-settings-value-text" data-seeds-amount>${formatNumber(balance)}</span>
         </div>
-        <span class="seeds-settings-info">seeds to share</span>
+        <span class="seeds-settings-info">${t('seedsDisplay.seedsToShare')}</span>
       </div>
 
       ${
@@ -398,7 +398,7 @@ export function renderSeedsSettingsCard(): string {
             <span style="color: var(--color-semantic-warning)">${ICONS.flame}</span>
             <span class="seeds-settings-value-text">${streak}</span>
           </div>
-          <span class="seeds-settings-info">days in a row</span>
+          <span class="seeds-settings-info">${t('seedsDisplay.daysInARow')}</span>
         </div>
       `
           : ''
@@ -420,15 +420,15 @@ export function renderSeedsSettingsCard(): string {
       <div class="seeds-actions" role="group" tabindex="0">
         <button aria-label="${t('accessibility.myGarden')}" class="seeds-action-btn seeds-action-btn--primary" data-action="garden">
           ${ICONS.seedling}
-          <span>My Garden</span>
+          <span>${t('seedsDisplay.myGarden')}</span>
         </button>
         <button aria-label="${t('accessibility.shareSeedsWithFriends')}" class="seeds-action-btn" data-action="gift">
           ${ICONS.gift}
-          <span>Share</span>
+          <span>${t('common.share')}</span>
         </button>
         <button aria-label="${t('accessibility.bringAFriendToFerni')}" class="seeds-action-btn" data-action="invite">
           ${ICONS.share}
-          <span>Bring a friend</span>
+          <span>${t('seedsDisplay.bringAFriend')}</span>
         </button>
       </div>
     </div>
@@ -449,7 +449,7 @@ export function updateSeedsDisplay(): void {
   amountElements.forEach((el) => {
     const current = parseInt(el.textContent || '0', 10);
     if (current !== balance) {
-      el.textContent = balance.toLocaleString();
+      el.textContent = formatNumber(balance);
       el.classList.add('animating');
       trackedTimeout(() => el.classList.remove('animating'), 400);
     }
@@ -490,7 +490,7 @@ function handleDailyBonusClick(e: Event): void {
       bindDailyBonusHandler();
     }
   } else {
-    moments.whisper(result.reason || 'Already claimed today', { type: 'info' });
+    moments.whisper(t('seedsDisplay.alreadyClaimed'), { type: 'info' });
   }
 }
 

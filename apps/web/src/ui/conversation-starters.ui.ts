@@ -13,7 +13,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getMockConversationStarters } from '../data/mock-contacts.js';
-import { t } from '../i18n/index.js';
+import { getLocale, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 const log = createLogger('ConversationStartersUI');
 
@@ -96,11 +96,11 @@ const TONE_ICONS: Record<ConversationStarter['tone'], string> = {
   curious: ICONS.lightbulb,
 };
 
-const TONE_LABELS: Record<ConversationStarter['tone'], string> = {
-  casual: 'Casual',
-  supportive: 'Supportive',
-  celebratory: 'Celebratory',
-  curious: 'Curious',
+const TONE_LABEL_KEYS: Record<ConversationStarter['tone'], string> = {
+  casual: 'conversationStarters.tones.casual',
+  supportive: 'conversationStarters.tones.supportive',
+  celebratory: 'conversationStarters.tones.celebratory',
+  curious: 'conversationStarters.tones.curious',
 };
 
 // ============================================================================
@@ -552,9 +552,9 @@ function render(): void {
         <div class="cs-header-title">
           <span class="cs-icon">${ICONS.messageCircle}</span>
           <div>
-            <div class="cs-eyebrow">Conversation Starters</div>
+            <div class="cs-eyebrow">${t('conversationStarters.eyebrow')}</div>
             <h2 class="cs-title">${escapeHtml(state.contactName)}</h2>
-            ${lastContactText ? `<p class="cs-subtitle">Last talked ${lastContactText}</p>` : ''}
+            ${lastContactText ? `<p class="cs-subtitle">${t('conversationStarters.lastTalked', { when: lastContactText })}</p>` : ''}
           </div>
         </div>
         <button class="cs-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
@@ -568,10 +568,10 @@ function render(): void {
     ${state.hasGenerated && state.starters.length > 0 ? `
       <div class="cs-footer">
         <button aria-label="${t('accessibility.refresh')}" class="cs-footer-btn cs-footer-btn-secondary" id="cs-regenerate">
-          ${ICONS.refresh} New ideas
+          ${ICONS.refresh} ${t('conversationStarters.newIdeas')}
         </button>
         <button aria-label="${t('accessibility.copy')}" class="cs-footer-btn cs-footer-btn-primary" id="cs-copy" ${!state.selectedStarter ? 'disabled' : ''}>
-          ${ICONS.copy} Copy opener
+          ${ICONS.copy} ${t('conversationStarters.copyOpener')}
         </button>
       </div>
     ` : ''}
@@ -585,7 +585,7 @@ function renderContent(): string {
     return `
       <div class="cs-loading">
         <div class="cs-loading-icon">${ICONS.loader}</div>
-        <p class="cs-loading-text">Thinking of things to talk about...</p>
+        <p class="cs-loading-text">${t('conversationStarters.loading')}</p>
       </div>
     `;
   }
@@ -595,7 +595,7 @@ function renderContent(): string {
       <div class="cs-error">
         <p class="cs-error-text">${escapeHtml(state.error)}</p>
         <button aria-label="${t('accessibility.refresh')}" class="cs-retry-btn" id="cs-retry">
-          ${ICONS.refresh} Try again
+          ${ICONS.refresh} ${t('common.retry')}
         </button>
       </div>
     `;
@@ -605,13 +605,10 @@ function renderContent(): string {
     return `
       <div class="cs-initial">
         <div class="cs-initial-icon">${ICONS.messageCircle}</div>
-        <h3 class="cs-initial-title">Start a great conversation</h3>
-        <p class="cs-initial-text">
-          Based on what you've talked about before, Ferni will suggest
-          thoughtful ways to reconnect.
-        </p>
+        <h3 class="cs-initial-title">${t('conversationStarters.initialTitle')}</h3>
+        <p class="cs-initial-text">${t('conversationStarters.initialText')}</p>
         <button aria-label="${t('accessibility.getIdeas')}" class="cs-generate-btn" id="cs-generate">
-          ${ICONS.sparkles} Get Ideas
+          ${ICONS.sparkles} ${t('conversationStarters.getIdeas')}
         </button>
       </div>
     `;
@@ -621,8 +618,8 @@ function renderContent(): string {
     return `
       <div class="cs-initial">
         <div class="cs-initial-icon">${ICONS.messageCircle}</div>
-        <h3 class="cs-initial-title">No suggestions yet</h3>
-        <p class="cs-initial-text">Try adding more context about your relationship.</p>
+        <h3 class="cs-initial-title">${t('conversationStarters.emptyTitle')}</h3>
+        <p class="cs-initial-text">${t('conversationStarters.emptyText')}</p>
       </div>
     `;
   }
@@ -633,7 +630,7 @@ function renderContent(): string {
         <div class="cs-starter ${state.selectedStarter?.id === starter.id ? 'selected' : ''}" data-id="${starter.id}">
           <div class="cs-starter-header">
             <span class="cs-starter-topic">${escapeHtml(starter.topic)}</span>
-            <span class="cs-tone-badge">${TONE_ICONS[starter.tone]} ${TONE_LABELS[starter.tone]}</span>
+            <span class="cs-tone-badge">${TONE_ICONS[starter.tone]} ${t(TONE_LABEL_KEYS[starter.tone])}</span>
           </div>
           <div class="cs-starter-opener">"${escapeHtml(starter.opener)}"</div>
           <div class="cs-starter-context">${escapeHtml(starter.context)}</div>
@@ -745,7 +742,7 @@ async function generateStarters(): Promise<void> {
       return;
     }
     
-    state.error = 'Could not generate ideas. Try again?';
+    state.error = t('conversationStarters.generateError');
     state.isLoading = false;
     render();
   }
@@ -778,17 +775,14 @@ function escapeHtml(text: string): string {
 }
 
 function formatLastContact(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+  const diffMs = Date.now() - new Date(dateStr).getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const rtf = new Intl.RelativeTimeFormat(getLocale(), { numeric: 'auto' });
 
-  if (diffDays === 0) return 'today';
-  if (diffDays === 1) return 'yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-  return 'over a year ago';
+  if (diffDays < 7) return rtf.format(-diffDays, 'day');
+  if (diffDays < 30) return rtf.format(-Math.floor(diffDays / 7), 'week');
+  if (diffDays < 365) return rtf.format(-Math.floor(diffDays / 30), 'month');
+  return t('conversationStarters.overAYearAgo');
 }
 
 // ============================================================================

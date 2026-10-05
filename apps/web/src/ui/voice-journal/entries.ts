@@ -13,7 +13,8 @@ import { deleteMemory, listMemories } from '../../services/custom-agent.service.
 import { renderStats } from './render-stats.js';
 import { renderCalendar } from './calendar.js';
 import { renderInsights } from './insights.js';
-import { t } from '../../i18n/index.js';
+import { formatDate as formatLocaleDate, t } from '../../i18n/index.js';
+import { tp } from '../../i18n/plural.js';
 
 const log = createLogger('VoiceJournalEntries');
 
@@ -26,14 +27,15 @@ export function formatDate(dateStr: string): string {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
+  const time = formatLocaleDate(date, { hour: 'numeric', minute: '2-digit' });
 
   if (date.toDateString() === today.toDateString()) {
-    return `Today at ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    return t('voiceJournal.todayAt', { time });
   }
   if (date.toDateString() === yesterday.toDateString()) {
-    return `Yesterday at ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    return t('voiceJournal.yesterdayAt', { time });
   }
-  return date.toLocaleDateString([], {
+  return formatLocaleDate(date, {
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
@@ -49,19 +51,19 @@ export function formatDate(dateStr: string): string {
  * Get human-readable label for auto-captured moment type
  */
 function getMomentLabel(momentType: string): string {
-  const labels: Record<string, string> = {
-    breakthrough: 'Breakthrough',
-    decision: 'Decision',
-    gratitude: 'Gratitude',
-    struggle: 'Processing',
-    joy: 'Joy',
-    reflection: 'Reflection',
-    goal: 'Goal',
-    connection: 'Connection',
-    lesson: 'Lesson',
-    vulnerability: 'Vulnerability',
+  const labelKeys: Record<string, string> = {
+    breakthrough: 'voiceJournal.moments.breakthrough',
+    decision: 'voiceJournal.moments.decision',
+    gratitude: 'voiceJournal.moments.gratitude',
+    struggle: 'voiceJournal.moments.struggle',
+    joy: 'voiceJournal.moments.joy',
+    reflection: 'voiceJournal.moments.reflection',
+    goal: 'voiceJournal.moments.goal',
+    connection: 'voiceJournal.moments.connection',
+    lesson: 'voiceJournal.moments.lesson',
+    vulnerability: 'voiceJournal.moments.vulnerability',
   };
-  return labels[momentType] || 'Captured moment';
+  return t(labelKeys[momentType] ?? 'voiceJournal.moments.default');
 }
 
 // ============================================================================
@@ -81,7 +83,7 @@ export async function deleteEntry(entryId: string): Promise<boolean> {
   const { toast } = await import('../whisper.ui.js');
 
   // Confirm deletion
-  const confirmed = confirm('Delete this journal entry? This cannot be undone.');
+  const confirmed = confirm(t('voiceJournal.confirmDelete'));
   if (!confirmed) {
     return false;
   }
@@ -104,7 +106,7 @@ export async function deleteEntry(entryId: string): Promise<boolean> {
     return true;
   } catch (error) {
     log.error('Failed to delete entry:', error);
-    toast.error("Couldn't delete entry");
+    toast.error(t('toasts.couldNotDeleteEntry'));
     return false;
   }
 }
@@ -125,8 +127,8 @@ export function renderEntries(): void {
   if (allEntries.length === 0) {
     list.innerHTML = `
       <div class="entries-empty">
-        <p class="entries-empty-text">No journal entries yet.</p>
-        <p class="entries-empty-hint">Record your first entry to get started!</p>
+        <p class="entries-empty-text">${t('voiceJournal.empty')}</p>
+        <p class="entries-empty-hint">${t('voiceJournal.emptyHint')}</p>
       </div>
     `;
     return;
@@ -135,15 +137,15 @@ export function renderEntries(): void {
   // No results for filters/search
   if (filteredEntries.length === 0) {
     const filterMessage = filterDate 
-      ? 'No entries for this date.' 
-      : searchQuery 
-        ? `No entries matching "${searchQuery}".`
-        : 'No entries found.';
+      ? t('voiceJournal.noEntriesForDate')
+      : searchQuery
+        ? t('voiceJournal.noEntriesMatching', { query: searchQuery })
+        : t('voiceJournal.noEntriesFound');
     
     list.innerHTML = `
       <div class="entries-empty">
         <p class="entries-empty-text">${filterMessage}</p>
-        <button class="entries-clear-filter" data-action="clear-filter">Show all entries</button>
+        <button class="entries-clear-filter" data-action="clear-filter">${t('voiceJournal.showAll')}</button>
       </div>
     `;
     return;
@@ -156,8 +158,8 @@ export function renderEntries(): void {
   // Show filter indicator if active
   const filterIndicator = (filterDate || searchQuery) 
     ? `<div class="entries-filter-indicator">
-         <span>Showing ${filteredEntries.length} of ${allEntries.length} entries</span>
-         <button class="entries-filter-clear-btn" data-action="clear-filter">Clear filters</button>
+         <span>${tp('voiceJournal.showingCount', allEntries.length, { shown: filteredEntries.length })}</span>
+         <button class="entries-filter-clear-btn" data-action="clear-filter">${t('voiceJournal.clearFilters')}</button>
        </div>`
     : '';
 
@@ -184,7 +186,7 @@ export function renderEntries(): void {
         <time class="entry-date">${formatDate(entry.createdAt)}</time>
         ${sourceLabel}
         ${entry.mood ? `<span class="entry-mood">${getMoodIcon(entry.mood)}</span>` : ''}
-        <button class="entry-delete" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="${t('accessibility.deleteEntry')}" title="Delete entry">
+        <button class="entry-delete" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="${t('accessibility.deleteEntry')}" title="${t('accessibility.deleteEntry')}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>

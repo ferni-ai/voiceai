@@ -12,15 +12,11 @@
  * - Humanized, encouraging copy
  */
 
-import { t } from '../i18n/index.js';
+import { getLocale, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { DURATION, prefersReducedMotion } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import {
-  ICONS,
-  injectSharedStyles,
-  escapeHtml,
-  type IconName,
-} from './engagement-components.js';
+import { ICONS, injectSharedStyles, escapeHtml, type IconName } from './engagement-components.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -56,23 +52,22 @@ export interface NotificationUICallbacks {
 
 const NOTIFICATION_COPY = {
   ritual_reminder: {
-    title: 'Your practice awaits',
-    cta: 'Begin',
+    titleKey: 'notifications.ritualReminder.title',
+    ctaKey: 'notifications.ritualReminder.cta',
   },
   streak_milestone: {
-    title: 'Look at you go',
-    getMessage: (count: number, name: string) => `${count} days of ${name}. You're building something real.`,
+    titleKey: 'notifications.streakMilestone.title',
   },
   prediction_ready: {
-    title: 'Time to check in',
-    cta: 'See results',
+    titleKey: 'notifications.predictionReady.title',
+    ctaKey: 'notifications.predictionReady.cta',
   },
   team_huddle: {
-    title: 'Your team wants to connect',
-    cta: 'Join',
+    titleKey: 'notifications.teamHuddle.title',
+    ctaKey: 'notifications.teamHuddle.cta',
   },
   welcome: {
-    title: 'Welcome back',
+    titleKey: 'notifications.welcome.title',
   },
 };
 
@@ -147,7 +142,7 @@ class NotificationsUI {
     this.container = document.createElement('div');
     this.container.className = 'notifications-container';
     this.container.setAttribute('role', 'region');
-    this.container.setAttribute('aria-label', 'Notifications');
+    this.container.setAttribute('aria-label', t('notifications.regionLabel'));
     this.container.setAttribute('aria-live', 'polite');
     document.body.appendChild(this.container);
   }
@@ -538,12 +533,12 @@ export function showRitualReminder(
   getNotificationsUI().show({
     id: `ritual-${Date.now()}`,
     type: 'ritual_reminder',
-    title: NOTIFICATION_COPY.ritual_reminder.title,
-    message: `Time for your ${ritualName}`,
+    title: t(NOTIFICATION_COPY.ritual_reminder.titleKey),
+    message: t('notifications.ritualReminder.message', { ritual: ritualName }),
     personaId,
     icon: 'clock',
     priority: 'medium',
-    action: onStart ? { label: NOTIFICATION_COPY.ritual_reminder.cta, callback: onStart } : undefined,
+    action: onStart ? { label: t(NOTIFICATION_COPY.ritual_reminder.ctaKey), callback: onStart } : undefined,
     dismissAfter: 15000,
     timestamp: Date.now(),
   });
@@ -560,8 +555,8 @@ export function showStreakMilestone(
   getNotificationsUI().show({
     id: `streak-${Date.now()}`,
     type: 'streak_milestone',
-    title: NOTIFICATION_COPY.streak_milestone.title,
-    message: NOTIFICATION_COPY.streak_milestone.getMessage(streakCount, ritualName),
+    title: t(NOTIFICATION_COPY.streak_milestone.titleKey),
+    message: tp('notifications.streakMilestone.message', streakCount, { name: ritualName }),
     personaId,
     icon: 'flame',
     priority: 'high',
@@ -580,11 +575,11 @@ export function showPredictionReady(
   getNotificationsUI().show({
     id: `prediction-${Date.now()}`,
     type: 'prediction_ready',
-    title: NOTIFICATION_COPY.prediction_ready.title,
-    message: `How accurate was your prediction about "${questionPreview.slice(0, 50)}..."?`,
+    title: t(NOTIFICATION_COPY.prediction_ready.titleKey),
+    message: t('notifications.predictionReady.message', { question: questionPreview.slice(0, 50) }),
     icon: 'clock',
     priority: 'medium',
-    action: onResolve ? { label: NOTIFICATION_COPY.prediction_ready.cta, callback: onResolve } : undefined,
+    action: onResolve ? { label: t(NOTIFICATION_COPY.prediction_ready.ctaKey), callback: onResolve } : undefined,
     dismissAfter: 20000,
     timestamp: Date.now(),
   });
@@ -597,15 +592,17 @@ export function showTeamHuddle(
   participants: string[],
   onJoin?: () => void
 ): void {
-  const participantNames = participants.slice(0, 3).join(', ');
+  const featured = participants.slice(0, 3);
+  const list = new Intl.ListFormat(getLocale(), { type: 'conjunction' });
+  const participantNames = list.format(featured);
   getNotificationsUI().show({
     id: `huddle-${Date.now()}`,
     type: 'team_huddle',
-    title: NOTIFICATION_COPY.team_huddle.title,
-    message: `${participantNames} want to discuss your progress`,
+    title: t(NOTIFICATION_COPY.team_huddle.titleKey),
+    message: tp('notifications.teamHuddle.message', featured.length, { names: participantNames }),
     icon: 'heart',
     priority: 'medium',
-    action: onJoin ? { label: NOTIFICATION_COPY.team_huddle.cta, callback: onJoin } : undefined,
+    action: onJoin ? { label: t(NOTIFICATION_COPY.team_huddle.ctaKey), callback: onJoin } : undefined,
     dismissAfter: 30000,
     timestamp: Date.now(),
   });
