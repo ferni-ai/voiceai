@@ -642,7 +642,7 @@ function render(): void {
     <div class="lm-header">
       <div class="lm-header-row">
         <div>
-          <div class="lm-eyebrow">Log a Moment</div>
+          <div class="lm-eyebrow">${t('logMoment.title')}</div>
           <h2 class="lm-title">with ${escapeHtml(state.contactName)}</h2>
         </div>
         <button class="lm-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
@@ -652,36 +652,36 @@ function render(): void {
     <div class="lm-content">
       <!-- Type Selector -->
       <div class="lm-section">
-        <label class="lm-label">What happened?</label>
+        <label class="lm-label">${t('logMoment.whatHappened')}</label>
         <div class="lm-types">
           ${MOMENT_TYPES.map(type => `
             <button class="lm-type ${state.selectedType === type.id ? 'selected' : ''}" data-type="${type.id}">
               <span class="lm-type-icon">${type.icon}</span>
-              <span class="lm-type-label">${type.label}</span>
+              <span class="lm-type-label">${t('logMoment.' + type.id)}</span>
             </button>
           `).join('')}
         </div>
       </div>
-      
+
       <!-- Direction Selector -->
       <div class="lm-section">
-        <label class="lm-label">Who initiated?</label>
+        <label class="lm-label">${t('logMoment.whoInitiated')}</label>
         <div class="lm-directions">
           <button aria-label="${t('accessibility.moveUp')}" class="lm-direction ${state.direction === 'outbound' ? 'selected' : ''}" data-direction="outbound">
-            ${ICONS.arrowUp} You reached out
+            ${ICONS.arrowUp} ${t('logMoment.youReachedOut')}
           </button>
           <button aria-label="${t('accessibility.moveDown')}" class="lm-direction ${state.direction === 'inbound' ? 'selected' : ''}" data-direction="inbound">
-            ${ICONS.arrowDown} They reached out
+            ${ICONS.arrowDown} ${t('logMoment.theyReachedOut')}
           </button>
           <button aria-label="${t('accessibility.together')}" class="lm-direction ${state.direction === 'mutual' ? 'selected' : ''}" data-direction="mutual">
-            ${ICONS.arrowsUpDown} Together
+            ${ICONS.arrowsUpDown} ${t('logMoment.together')}
           </button>
         </div>
       </div>
       
       <!-- Date/Time -->
       <div class="lm-section">
-        <label class="lm-label">When?</label>
+        <label class="lm-label">${t('logMoment.when')}</label>
         <div class="lm-datetime">
           <div class="lm-datetime-field">
             <input type="date" class="lm-input" id="lm-date" value="${state.date}" />
@@ -691,11 +691,11 @@ function render(): void {
           </div>
         </div>
       </div>
-      
+
       <!-- Quick Summary -->
       <div class="lm-section">
-        <label class="lm-label">Quick note (optional)</label>
-        <textarea class="lm-textarea" id="lm-summary" placeholder="${t('forms.conversationSummary', 'What did you talk about? How did it go?')}">${escapeHtml(state.summary)}</textarea>
+        <label class="lm-label">${t('logMoment.quickNote')}</label>
+        <textarea class="lm-textarea" id="lm-summary" placeholder="${t('forms.conversationSummary')}">${escapeHtml(state.summary)}</textarea>
       </div>
       
       <!-- Advanced Options Toggle -->
@@ -703,41 +703,41 @@ function render(): void {
         <button aria-label="${t('accessibility.moveDown')}" class="lm-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-toggle">
           More options ${ICONS.chevronDown}
         </button>
-        
+
         <div class="lm-advanced-content ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-content">
           <!-- Sentiment -->
           <div style="margin-bottom: var(--space-4, 1rem);">
-            <label class="lm-label">How did it feel?</label>
+            <label class="lm-label">${t('logMoment.howDidItFeel')}</label>
             <div class="lm-sentiments">
               <button aria-label="${t('accessibility.great')}" class="lm-sentiment positive ${state.sentiment === 'positive' ? 'selected' : ''}" data-sentiment="positive">
-                Great
+                ${t('logMoment.great')}
               </button>
               <button aria-label="${t('accessibility.okay')}" class="lm-sentiment neutral ${state.sentiment === 'neutral' ? 'selected' : ''}" data-sentiment="neutral">
-                Okay
+                ${t('logMoment.okay')}
               </button>
               <button aria-label="${t('accessibility.tough')}" class="lm-sentiment negative ${state.sentiment === 'negative' ? 'selected' : ''}" data-sentiment="negative">
-                Tough
+                ${t('logMoment.tough')}
               </button>
             </div>
           </div>
-          
+
           <!-- Duration -->
           <div style="margin-bottom: var(--space-4, 1rem);">
-            <label class="lm-label">Duration (minutes)</label>
-            <input type="number" class="lm-input" id="lm-duration" placeholder="${t('forms.durationPlaceholder', 'e.g., 30')}" value="${state.duration}" />
+            <label class="lm-label">${t('logMoment.duration')}</label>
+            <input type="number" class="lm-input" id="lm-duration" placeholder="${t('forms.durationPlaceholder')}" value="${state.duration}" />
           </div>
-          
+
           <!-- Topics -->
           <div>
-            <label class="lm-label">Topics discussed (comma-separated)</label>
-            <input type="text" class="lm-input" id="lm-topics" placeholder="${t('forms.topicsPlaceholder', 'e.g., work, family, travel plans')}" value="${state.topics}" />
+            <label class="lm-label">${t('logMoment.topicsDiscussed')}</label>
+            <input type="text" class="lm-input" id="lm-topics" placeholder="${t('forms.topicsPlaceholder')}" value="${state.topics}" />
           </div>
         </div>
       </div>
     </div>
-    
+
     <div class="lm-footer">
-      <button aria-label="${t('accessibility.cancel')}" class="lm-btn lm-btn-secondary" id="lm-cancel">Cancel</button>
+      <button aria-label="${t('accessibility.cancel')}" class="lm-btn lm-btn-secondary" id="lm-cancel">${t('logMoment.cancel')}</button>
       <button aria-label="${t('accessibility.submit')}" class="lm-btn lm-btn-primary" id="lm-save" ${state.isSubmitting ? 'disabled' : ''}>
         ${state.isSubmitting ? 'Saving...' : 'Save Moment'}
       </button>
