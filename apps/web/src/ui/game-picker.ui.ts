@@ -23,8 +23,8 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 interface GameOption {
   id: string;
-  name: string;
-  description: string;
+  nameKey: string;
+  descriptionKey: string;
   icon: string;
   difficulty: 'easy' | 'medium' | 'hard';
   duration: string;
@@ -67,209 +67,39 @@ const ICONS = {
 
 // Music Games - Main category
 const MUSIC_GAMES: GameOption[] = [
-  {
-    id: 'name-that-tune',
-    name: 'Name That Tune',
-    description: 'Guess the song from a short clip! Classic music trivia.',
-    icon: ICONS.music,
-    difficulty: 'medium',
-    duration: '3-5 min',
-    category: 'music',
-  },
-  {
-    id: 'one-word-song',
-    name: 'One Word Song',
-    description: 'I say a word, you think of a song with that word in the title.',
-    icon: ICONS.messageCircle,
-    difficulty: 'easy',
-    duration: '2-3 min',
-    category: 'music',
-  },
-  {
-    id: 'desert-island-discs',
-    name: 'Desert Island Discs',
-    description: 'Pick 5 songs to take to a desert island. Share your story.',
-    icon: ICONS.palmtree,
-    difficulty: 'easy',
-    duration: '5-10 min',
-    category: 'music',
-  },
-  {
-    id: 'this-or-that',
-    name: 'This or That',
-    description: 'Quick-fire choices between two songs. Which speaks to you?',
-    icon: ICONS.zap,
-    difficulty: 'easy',
-    duration: '2-3 min',
-    category: 'music',
-  },
-  {
-    id: 'mood-dj-challenge',
-    name: 'Mood DJ Challenge',
-    description: 'I give you a mood, you pick the perfect song for it.',
-    icon: ICONS.headphones,
-    difficulty: 'medium',
-    duration: '3-5 min',
-    category: 'music',
-  },
-  {
-    id: 'finish-the-lyric',
-    name: 'Finish the Lyric',
-    description: 'Complete famous song lyrics. Test your music knowledge!',
-    icon: ICONS.mic,
-    difficulty: 'medium',
-    duration: '3-5 min',
-    category: 'music',
-  },
-  {
-    id: 'decade-challenge',
-    name: 'Decade Challenge',
-    description: 'Guess the decade from the sound. 60s, 70s, 80s, 90s, or 2000s?',
-    icon: ICONS.clock,
-    difficulty: 'medium',
-    duration: '3-5 min',
-    category: 'music',
-  },
+  { id: 'name-that-tune', nameKey: 'gamePicker.nameThatTune', descriptionKey: 'gamePicker.nameThatTuneDesc', icon: ICONS.music, difficulty: 'medium', duration: '3-5 min', category: 'music' },
+  { id: 'one-word-song', nameKey: 'gamePicker.oneWordSong', descriptionKey: 'gamePicker.oneWordSongDesc', icon: ICONS.messageCircle, difficulty: 'easy', duration: '2-3 min', category: 'music' },
+  { id: 'desert-island-discs', nameKey: 'gamePicker.desertIslandDiscs', descriptionKey: 'gamePicker.desertIslandDiscsDesc', icon: ICONS.palmtree, difficulty: 'easy', duration: '5-10 min', category: 'music' },
+  { id: 'this-or-that', nameKey: 'gamePicker.thisOrThat', descriptionKey: 'gamePicker.thisOrThatDesc', icon: ICONS.zap, difficulty: 'easy', duration: '2-3 min', category: 'music' },
+  { id: 'mood-dj-challenge', nameKey: 'gamePicker.moodDJChallenge', descriptionKey: 'gamePicker.moodDJChallengeDesc', icon: ICONS.headphones, difficulty: 'medium', duration: '3-5 min', category: 'music' },
+  { id: 'finish-the-lyric', nameKey: 'gamePicker.finishTheLyric', descriptionKey: 'gamePicker.finishTheLyricDesc', icon: ICONS.mic, difficulty: 'medium', duration: '3-5 min', category: 'music' },
+  { id: 'decade-challenge', nameKey: 'gamePicker.decadeChallenge', descriptionKey: 'gamePicker.decadeChallengeDesc', icon: ICONS.clock, difficulty: 'medium', duration: '3-5 min', category: 'music' },
 ];
 
 // Text Games - Fun non-music games
 const TEXT_GAMES: GameOption[] = [
-  {
-    id: 'tic-tac-toe',
-    name: 'Tic-Tac-Toe',
-    description: 'Classic 3x3 game! Say positions like "center" or "top left".',
-    icon: ICONS.grid,
-    difficulty: 'easy',
-    duration: '2-3 min',
-    category: 'text',
-  },
-  {
-    id: '20-questions',
-    name: '20 Questions',
-    description: 'Think of something. I have 20 yes/no questions to guess it!',
-    icon: ICONS.helpCircle,
-    difficulty: 'medium',
-    duration: '5-10 min',
-    category: 'text',
-  },
-  {
-    id: 'word-association',
-    name: 'Word Association',
-    description: 'Quick word chains! Say the first word that comes to mind.',
-    icon: ICONS.link,
-    difficulty: 'easy',
-    duration: '2-3 min',
-    category: 'text',
-  },
-  {
-    id: 'would-you-rather',
-    name: 'Would You Rather',
-    description: 'Fun dilemmas! Pick between two hypothetical scenarios.',
-    icon: ICONS.scale,
-    difficulty: 'easy',
-    duration: '3-5 min',
-    category: 'text',
-  },
-  {
-    id: 'story-builder',
-    name: 'Story Builder',
-    description: "Let's create a story together, one sentence at a time!",
-    icon: ICONS.book,
-    difficulty: 'easy',
-    duration: '5-10 min',
-    category: 'text',
-  },
+  { id: 'tic-tac-toe', nameKey: 'gamePicker.ticTacToe', descriptionKey: 'gamePicker.ticTacToeDesc', icon: ICONS.grid, difficulty: 'easy', duration: '2-3 min', category: 'text' },
+  { id: '20-questions', nameKey: 'gamePicker.twentyQuestions', descriptionKey: 'gamePicker.twentyQuestionsDesc', icon: ICONS.helpCircle, difficulty: 'medium', duration: '5-10 min', category: 'text' },
+  { id: 'word-association', nameKey: 'gamePicker.wordAssociation', descriptionKey: 'gamePicker.wordAssociationDesc', icon: ICONS.link, difficulty: 'easy', duration: '2-3 min', category: 'text' },
+  { id: 'would-you-rather', nameKey: 'gamePicker.wouldYouRather', descriptionKey: 'gamePicker.wouldYouRatherDesc', icon: ICONS.scale, difficulty: 'easy', duration: '3-5 min', category: 'text' },
+  { id: 'story-builder', nameKey: 'gamePicker.storyBuilder', descriptionKey: 'gamePicker.storyBuilderDesc', icon: ICONS.book, difficulty: 'easy', duration: '5-10 min', category: 'text' },
 ];
 
 // Reflection Games - Mindfulness and self-discovery
 const REFLECTION_GAMES: GameOption[] = [
-  {
-    id: 'one-word-checkin',
-    name: 'One Word Check-in',
-    description: "One word. Right now. What is it? A quick, powerful reflection.",
-    icon: ICONS.target,
-    difficulty: 'easy',
-    duration: '1-2 min',
-    category: 'reflection',
-  },
-  {
-    id: 'three-word-day',
-    name: 'Three Word Day',
-    description: "Describe your day in just three words. Let's explore each one.",
-    icon: ICONS.sparkles,
-    difficulty: 'easy',
-    duration: '3-5 min',
-    category: 'reflection',
-  },
-  {
-    id: 'tiny-win-tracker',
-    name: 'Tiny Win Tracker',
-    description: "Celebrate small victories! Every win counts, no matter how small.",
-    icon: ICONS.star,
-    difficulty: 'easy',
-    duration: '2-3 min',
-    category: 'reflection',
-  },
-  {
-    id: 'emoji-story',
-    name: 'Emoji Story',
-    description: "Express your feelings through emojis. I'll help decode them.",
-    icon: ICONS.smile,
-    difficulty: 'easy',
-    duration: '2-3 min',
-    category: 'reflection',
-  },
-  {
-    id: 'fortune-cookie',
-    name: 'Fortune Cookie',
-    description: "Crack open a fortune. Reflect on what it means for you today.",
-    icon: ICONS.cookie,
-    difficulty: 'easy',
-    duration: '2-3 min',
-    category: 'reflection',
-  },
-  {
-    id: 'headline-writer',
-    name: 'Headline Writer',
-    description: "If today had a newspaper headline, what would it say?",
-    icon: ICONS.newspaper,
-    difficulty: 'easy',
-    duration: '3-5 min',
-    category: 'reflection',
-  },
-  {
-    id: 'values-card-sort',
-    name: 'Values Card Sort',
-    description: "Discover your core values by sorting cards. Deep self-discovery.",
-    icon: ICONS.compass,
-    difficulty: 'medium',
-    duration: '10-15 min',
-    category: 'reflection',
-  },
+  { id: 'one-word-checkin', nameKey: 'gamePicker.oneWordCheckIn', descriptionKey: 'gamePicker.oneWordCheckInDesc', icon: ICONS.target, difficulty: 'easy', duration: '1-2 min', category: 'reflection' },
+  { id: 'three-word-day', nameKey: 'gamePicker.threeWordDay', descriptionKey: 'gamePicker.threeWordDayDesc', icon: ICONS.sparkles, difficulty: 'easy', duration: '3-5 min', category: 'reflection' },
+  { id: 'tiny-win-tracker', nameKey: 'gamePicker.tinyWinTracker', descriptionKey: 'gamePicker.tinyWinTrackerDesc', icon: ICONS.star, difficulty: 'easy', duration: '2-3 min', category: 'reflection' },
+  { id: 'emoji-story', nameKey: 'gamePicker.emojiStory', descriptionKey: 'gamePicker.emojiStoryDesc', icon: ICONS.smile, difficulty: 'easy', duration: '2-3 min', category: 'reflection' },
+  { id: 'fortune-cookie', nameKey: 'gamePicker.fortuneCookie', descriptionKey: 'gamePicker.fortuneCookieDesc', icon: ICONS.cookie, difficulty: 'easy', duration: '2-3 min', category: 'reflection' },
+  { id: 'headline-writer', nameKey: 'gamePicker.headlineWriter', descriptionKey: 'gamePicker.headlineWriterDesc', icon: ICONS.newspaper, difficulty: 'easy', duration: '3-5 min', category: 'reflection' },
+  { id: 'values-card-sort', nameKey: 'gamePicker.valuesCardSort', descriptionKey: 'gamePicker.valuesCardSortDesc', icon: ICONS.compass, difficulty: 'medium', duration: '10-15 min', category: 'reflection' },
 ];
 
 // Library Games - Spotify integration required
 const LIBRARY_GAMES: GameOption[] = [
-  {
-    id: 'library-name-that-tune',
-    name: 'Your Library Mix',
-    description: 'Name songs from YOUR Spotify library. Personal challenge!',
-    icon: ICONS.spotify,
-    difficulty: 'medium',
-    duration: '3-5 min',
-    category: 'library',
-    requiresSpotify: true,
-  },
-  {
-    id: 'library-deep-cuts',
-    name: 'Deep Cuts Challenge',
-    description: 'Remember those songs you saved ages ago? Time to prove it!',
-    icon: ICONS.spotify,
-    difficulty: 'hard',
-    duration: '5-7 min',
-    category: 'library',
-    requiresSpotify: true,
-  },
+  { id: 'library-name-that-tune', nameKey: 'gamePicker.yourLibraryMix', descriptionKey: 'gamePicker.yourLibraryMixDesc', icon: ICONS.spotify, difficulty: 'medium', duration: '3-5 min', category: 'library', requiresSpotify: true },
+  { id: 'library-deep-cuts', nameKey: 'gamePicker.deepCutsChallenge', descriptionKey: 'gamePicker.deepCutsChallengeDesc', icon: ICONS.spotify, difficulty: 'hard', duration: '5-7 min', category: 'library', requiresSpotify: true },
 ];
 
 // All games combined for backward compatibility
@@ -350,9 +180,9 @@ class GamePickerUI {
       <div class="game-picker__backdrop"></div>
       <div class="game-picker__content">
         <header class="game-picker__header">
-          <span class="game-picker__eyebrow">LET'S PLAY</span>
-          <h2 class="game-picker__title">Games</h2>
-          <p class="game-picker__subtitle">Pick a game to play together</p>
+          <span class="game-picker__eyebrow">${t('gamePicker.letsPlay')}</span>
+          <h2 class="game-picker__title">${t('gamePicker.games')}</h2>
+          <p class="game-picker__subtitle">${t('gamePicker.pickAGame')}</p>
           <button class="game-picker__close" aria-label="${t('common.close')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -365,19 +195,19 @@ class GamePickerUI {
         <div class="game-picker__tabs">
           <button aria-label="${t('accessibility.music')}" class="game-picker__tab game-picker__tab--active" data-category="music">
             ${ICONS.music}
-            <span>Music</span>
+            <span>${t('accessibility.music')}</span>
           </button>
           <button aria-label="${t('accessibility.fun')}" class="game-picker__tab" data-category="text">
             ${ICONS.gamepad}
-            <span>Fun</span>
+            <span>${t('accessibility.fun')}</span>
           </button>
           <button aria-label="${t('accessibility.reflect')}" class="game-picker__tab" data-category="reflection">
             ${ICONS.heart}
-            <span>Reflect</span>
+            <span>${t('accessibility.reflect')}</span>
           </button>
           <button aria-label="${t('accessibility.yourLibrary')}" class="game-picker__tab" data-category="library">
             ${ICONS.spotify}
-            <span>Your Library</span>
+            <span>${t('accessibility.yourLibrary')}</span>
           </button>
         </div>
         
@@ -395,7 +225,7 @@ class GamePickerUI {
           <!-- Reflection Games Section -->
           <div class="game-picker__section" data-section="reflection">
             <div class="game-picker__reflection-notice">
-              <p>Mindful moments with Ferni. Quick reflections to check in with yourself.</p>
+              <p>${t('gamePicker.reflectionNotice')}</p>
             </div>
             ${REFLECTION_GAMES.map((game, index) => this.renderGameCard(game, index)).join('')}
           </div>
@@ -403,22 +233,22 @@ class GamePickerUI {
           <!-- Library Games Section -->
           <div class="game-picker__section" data-section="library">
             <div class="game-picker__library-notice">
-              <p>Play games using YOUR Spotify library!</p>
-              <p class="game-picker__library-hint">Connect Spotify to unlock these personalized games.</p>
+              <p>${t('gamePicker.libraryNotice')}</p>
+              <p class="game-picker__library-hint">${t('gamePicker.libraryHint')}</p>
             </div>
             ${LIBRARY_GAMES.map((game, index) => this.renderGameCard(game, index)).join('')}
           </div>
         </div>
         
         <footer class="game-picker__footer">
-          <p>Or just say "Let's play a game" to Ferni!</p>
+          <p>${t('gamePicker.footerHint')}</p>
           <button class="game-picker__help-btn" aria-label="${t('accessibility.howToPlay')}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
               <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
-            How to play
+            ${t('accessibility.howToPlay')}
           </button>
         </footer>
       </div>
@@ -437,22 +267,24 @@ class GamePickerUI {
       medium: 'var(--persona-primary)',
       hard: 'var(--color-warning)',
     };
-    
-    const spotifyBadge = game.requiresSpotify 
-      ? `<span class="game-card__badge game-card__badge--spotify">Spotify</span>` 
+
+    const gameName = t(game.nameKey);
+    const gameDesc = t(game.descriptionKey);
+    const spotifyBadge = game.requiresSpotify
+      ? `<span class="game-card__badge game-card__badge--spotify">Spotify</span>`
       : '';
-    
+
     const isNewReflectionGame = game.category === 'reflection';
     const newBadge = (game.id === 'finish-the-lyric' || game.id === 'decade-challenge' || isNewReflectionGame)
-      ? `<span class="game-card__badge game-card__badge--new">New</span>`
+      ? `<span class="game-card__badge game-card__badge--new">${t('common.new')}</span>`
       : '';
-    
+
     return `
       <button aria-label="${t('accessibility.moreInformation')}" class="game-card" data-game="${game.id}" data-category="${game.category}" style="animation-delay: ${index * 50}ms">
         <div class="game-card__icon">${game.icon}</div>
         <div class="game-card__info">
-          <h3 class="game-card__name">${game.name}${newBadge}${spotifyBadge}</h3>
-          <p class="game-card__description">${game.description}</p>
+          <h3 class="game-card__name">${gameName}${newBadge}${spotifyBadge}</h3>
+          <p class="game-card__description">${gameDesc}</p>
           <div class="game-card__meta">
             <span class="game-card__difficulty" style="color: ${difficultyColors[game.difficulty]}">
               ${game.difficulty}
@@ -551,120 +383,87 @@ class GamePickerUI {
           </button>
           <h2 class="game-help-modal__title">
             <span class="game-help-modal__icon">${ICONS.gamepad}</span>
-            How to Play Games
+            ${t('gamePicker.howToPlayGames')}
           </h2>
-          
-          <h3 class="game-help-category">🎵 Music Games</h3>
-          
-          <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.music}</span> Name That Tune</h3>
-            <p>Listen to a short music clip and guess the song or artist. The faster you guess, the more points!</p>
-            <ul>
-              <li>Just say your guess out loud</li>
-              <li>Partial answers count (artist OR song title)</li>
-              <li>Say "skip" or "next" to move on</li>
-            </ul>
-          </section>
-          
-          <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.mic}</span> Finish the Lyric</h3>
-            <p>Complete famous song lyrics. I'll give you the start, you finish it!</p>
-            <ul>
-              <li>Say the word or phrase that completes the lyric</li>
-              <li>Hints available if you're stuck</li>
-            </ul>
-          </section>
-          
-          <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.clock}</span> Decade Challenge</h3>
-            <p>Guess what decade a song is from - 60s, 70s, 80s, 90s, or 2000s?</p>
-            <ul>
-              <li>Listen to the production style and sound</li>
-              <li>Partial credit for being one decade off!</li>
-            </ul>
-          </section>
-          
-          <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.messageCircle}</span> One Word Song</h3>
-            <p>I give you a word, you think of a song with that word in the title.</p>
-          </section>
-          
-          <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.palmtree}</span> Desert Island Discs</h3>
-            <p>Pick 5 songs to take with you to a desert island. Tell me why each one matters.</p>
-          </section>
-          
-          <h3 class="game-help-category">🎮 Fun Games</h3>
-          
-          <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.grid}</span> Tic-Tac-Toe</h3>
-            <p>Classic 3x3 game! Just say positions like "center", "top left", or "bottom right".</p>
-            <ul>
-              <li>You're X, I'm O</li>
-              <li>Choose difficulty: easy, medium, or hard</li>
-            </ul>
-          </section>
-          
-          <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.helpCircle}</span> 20 Questions</h3>
-            <p>Think of something. I have 20 yes/no questions to guess what it is!</p>
-          </section>
-          
-          <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.link}</span> Word Association</h3>
-            <p>Quick word chains! I say a word, you say the first thing that comes to mind.</p>
-          </section>
-          
-          <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.scale}</span> Would You Rather</h3>
-            <p>Fun dilemmas! Pick between two hypothetical scenarios and tell me why.</p>
-          </section>
-          
-          <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.book}</span> Story Builder</h3>
-            <p>Let's create a story together! We take turns adding one sentence at a time.</p>
-          </section>
 
-          <h3 class="game-help-category">Reflection Games</h3>
-
+          <h3 class="game-help-category">🎵 ${t('gamePicker.musicGames')}</h3>
           <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.target}</span> One Word Check-in</h3>
-            <p>Give me just one word that captures where you are right now. I'll explore it with you.</p>
+            <h3><span class="game-help-section__icon">${ICONS.music}</span> ${t('gamePicker.nameThatTune')}</h3>
+            <p>${t('gamePicker.nameThatTuneHelp')}</p>
+            <ul>${['gamePicker.nameThatTuneHint1', 'gamePicker.nameThatTuneHint2', 'gamePicker.nameThatTuneHint3'].map(k => `<li>${t(k)}</li>`).join('')}</ul>
           </section>
-
           <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.sparkles}</span> Three Word Day</h3>
-            <p>Describe your day, mood, or week in exactly three words. We'll unpack each one.</p>
+            <h3><span class="game-help-section__icon">${ICONS.mic}</span> ${t('gamePicker.finishTheLyric')}</h3>
+            <p>${t('gamePicker.finishTheLyricHelp')}</p>
+            <ul>${['gamePicker.finishTheLyricHint1', 'gamePicker.finishTheLyricHint2'].map(k => `<li>${t(k)}</li>`).join('')}</ul>
           </section>
-
           <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.star}</span> Tiny Win Tracker</h3>
-            <p>Celebrate small victories! Tell me wins from your day - even "I got out of bed" counts.</p>
+            <h3><span class="game-help-section__icon">${ICONS.clock}</span> ${t('gamePicker.decadeChallenge')}</h3>
+            <p>${t('gamePicker.decadeChallengeHelp')}</p>
+            <ul>${['gamePicker.decadeChallengeHint1', 'gamePicker.decadeChallengeHint2'].map(k => `<li>${t(k)}</li>`).join('')}</ul>
           </section>
-
           <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.smile}</span> Emoji Story</h3>
-            <p>Express how you're feeling through emojis. I'll help decode what they mean.</p>
+            <h3><span class="game-help-section__icon">${ICONS.messageCircle}</span> ${t('gamePicker.oneWordSong')}</h3>
+            <p>${t('gamePicker.oneWordSongHelp')}</p>
           </section>
-
           <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.cookie}</span> Fortune Cookie</h3>
-            <p>Receive a piece of wisdom and reflect on what it means for your life right now.</p>
+            <h3><span class="game-help-section__icon">${ICONS.palmtree}</span> ${t('gamePicker.desertIslandDiscs')}</h3>
+            <p>${t('gamePicker.desertIslandDiscsHelp')}</p>
           </section>
-
+          <h3 class="game-help-category">🎮 ${t('gamePicker.funGames')}</h3>
           <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.newspaper}</span> Headline Writer</h3>
-            <p>Write newspaper headlines about your life - today, this week, or your dreams.</p>
+            <h3><span class="game-help-section__icon">${ICONS.grid}</span> ${t('gamePicker.ticTacToe')}</h3>
+            <p>${t('gamePicker.ticTacToeHelp')}</p>
+            <ul>${['gamePicker.ticTacToeHint1', 'gamePicker.ticTacToeHint2'].map(k => `<li>${t(k)}</li>`).join('')}</ul>
           </section>
-
           <section class="game-help-section">
-            <h3><span class="game-help-section__icon">${ICONS.compass}</span> Values Card Sort</h3>
-            <p>A deeper exercise to discover your core values by sorting cards. Takes 10-15 minutes.</p>
+            <h3><span class="game-help-section__icon">${ICONS.helpCircle}</span> ${t('gamePicker.twentyQuestions')}</h3>
+            <p>${t('gamePicker.twentyQuestionsHelp')}</p>
           </section>
-
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.link}</span> ${t('gamePicker.wordAssociation')}</h3>
+            <p>${t('gamePicker.wordAssociationHelp')}</p>
+          </section>
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.scale}</span> ${t('gamePicker.wouldYouRather')}</h3>
+            <p>${t('gamePicker.wouldYouRatherHelp')}</p>
+          </section>
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.book}</span> ${t('gamePicker.storyBuilder')}</h3>
+            <p>${t('gamePicker.storyBuilderHelp')}</p>
+          </section>
+          <h3 class="game-help-category">${t('gamePicker.reflectionGames')}</h3>
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.target}</span> ${t('gamePicker.oneWordCheckIn')}</h3>
+            <p>${t('gamePicker.oneWordCheckInHelp')}</p>
+          </section>
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.sparkles}</span> ${t('gamePicker.threeWordDay')}</h3>
+            <p>${t('gamePicker.threeWordDayHelp')}</p>
+          </section>
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.star}</span> ${t('gamePicker.tinyWinTracker')}</h3>
+            <p>${t('gamePicker.tinyWinTrackerHelp')}</p>
+          </section>
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.smile}</span> ${t('gamePicker.emojiStory')}</h3>
+            <p>${t('gamePicker.emojiStoryHelp')}</p>
+          </section>
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.cookie}</span> ${t('gamePicker.fortuneCookie')}</h3>
+            <p>${t('gamePicker.fortuneCookieHelp')}</p>
+          </section>
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.newspaper}</span> ${t('gamePicker.headlineWriter')}</h3>
+            <p>${t('gamePicker.headlineWriterHelp')}</p>
+          </section>
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.compass}</span> ${t('gamePicker.valuesCardSort')}</h3>
+            <p>${t('gamePicker.valuesCardSortHelp')}</p>
+          </section>
           <div class="game-help-tip">
             <span class="game-help-tip__icon">${ICONS.lightbulb}</span>
-            <strong>Tip:</strong> Say "stop" or "end game" anytime to finish early. Your progress is always saved!
+            <strong>${t('gamePicker.tipLabel')}</strong> ${t('gamePicker.tipContent')}
           </div>
         </div>
       </div>
@@ -795,22 +594,23 @@ class GamePickerUI {
       );
       
       log.info({ gameId }, '🎮 Game start request sent successfully');
-      
+
+      const gameName = t(game.nameKey);
       // 🤲 Sidekick: Dispatch game started event for avatar sidekick
       document.dispatchEvent(new CustomEvent('ferni:game-started', {
-        detail: { gameId, gameType: actualGameType, gameName: game.name, category: game.category }
+        detail: { gameId, gameType: actualGameType, gameName, category: game.category }
       }));
-      
+
       // 🤲 Sidekick: For reflection games, also dispatch meditation event
       if (game.category === 'reflection') {
         document.dispatchEvent(new CustomEvent('ferni:meditation-started', {
-          detail: { gameId, gameName: game.name }
+          detail: { gameId, gameName }
         }));
       }
-      
+
       // Close picker and show success
       this.hide();
-      this.showSuccess(`Starting ${game.name}...`);
+      this.showSuccess(`Starting ${gameName}...`);
       
     } catch (error) {
       log.error({ error, gameId }, '🎮 Failed to start game');
