@@ -3498,7 +3498,7 @@
     "sendToLabel": "Send to",
     "sendToPlaceholder": "Choose a friend",
     "amountLabel": "Amount",
-    "multiplier": "{sent}/{received} sent/received",
+    "exchange": "You send {sent}, they get {received}",
     "noteLabel": "Add a note",
     "notePlaceholder": "A little encouragement goes a long way...",
     "sendButton": "Send Gift",
