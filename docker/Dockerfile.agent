@@ -159,6 +159,9 @@ COPY scripts/generate-tool-tiers.js ./scripts/
 # - Tool embeddings: 653 pre-computed vectors (30x faster semantic matching)
 # - CLI bundle: Packaged for in-container ops
 # IMPORTANT: Clean dist folder to avoid stale build artifacts from Kaniko cache
+# The CLI fallback is grouped in braces: `a && b || c` runs c when ANY step
+# before it fails, so a failed build:fast shipped an image with no agent
+# (dev, 2026-10-05: esbuild error, step exit 0, version marked Available).
 RUN rm -rf dist && pnpm run build:fast && \
     echo "=== Copying JSON config files ===" && \
     mkdir -p dist/agents/shared/sanitizer/config && \
@@ -171,11 +174,11 @@ RUN rm -rf dist && pnpm run build:fast && \
     pnpm exec tsx apps/cli/src/commands/build/bundle-agent.ts && \
     ls -lh dist/agents/voice-agent-bundle.js && \
     echo "=== Building Ferni CLI for container ===" && \
-    (pnpm exec tsx apps/cli/src/commands/build/build-cli-binary.ts --container --release && \
+    { (pnpm exec tsx apps/cli/src/commands/build/build-cli-binary.ts --container --release && \
     ls -lh dist/ferni-bundle/) || \
     (echo "⚠️ CLI bundle failed (non-fatal) - creating placeholder" && \
      mkdir -p dist/ferni-bundle && echo '#!/bin/sh\necho "ferni CLI not available in this build"' > dist/ferni-bundle/ferni.js && \
-     cp dist/ferni-bundle/ferni.js dist/ferni-bundle/ferni)
+     cp dist/ferni-bundle/ferni.js dist/ferni-bundle/ferni); }
 
 # ============================================================================
 # Stage 1b: Prepare production node_modules (reuses warm pnpm store)
