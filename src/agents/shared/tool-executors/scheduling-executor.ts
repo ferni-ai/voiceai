@@ -164,12 +164,8 @@ async function execute(
           minute: '2-digit',
         });
 
-        // Try to add to calendar
-        try {
-          await addToCalendar(userId, 'text', recipient || 'you', message, scheduledFor);
-        } catch {
-          // Calendar integration is optional
-        }
+        await recordPromise(userId, result.reminderId, scheduledFor, 'sms', message);
+        await addToCalendar(userId, 'text', recipient || 'you', message, scheduledFor);
 
         return `Got it! I'll text ${recipient || 'you'} on ${timeStr}: "${message}"`;
       } else {
@@ -224,12 +220,8 @@ async function execute(
           minute: '2-digit',
         });
 
-        // Add to calendar
-        try {
-          await addToCalendar(userId, 'call', recipient, reason || '', scheduledFor);
-        } catch {
-          // Calendar integration is optional
-        }
+        await recordPromise(userId, result.reminderId, scheduledFor, 'call', callMessage);
+        await addToCalendar(userId, 'call', recipient, reason || '', scheduledFor);
 
         return `I'll remind you to call ${recipient} on ${timeStr}${reason ? ` about ${reason}` : ''}.`;
       } else {
@@ -281,12 +273,8 @@ async function execute(
           minute: '2-digit',
         });
 
-        // Add to calendar
-        try {
-          await addToCalendar(userId, 'email', recipient || 'you', subject, scheduledFor);
-        } catch {
-          // Calendar integration is optional
-        }
+        await recordPromise(userId, result.reminderId, scheduledFor, 'email', subject);
+        await addToCalendar(userId, 'email', recipient || 'you', subject, scheduledFor);
 
         return `Email scheduled for ${timeStr} with subject: "${subject}"`;
       } else {
@@ -651,12 +639,7 @@ async function execute(
           primaryGoal: purpose,
         },
         persona: personaId as
-          | 'ferni'
-          | 'maya-santos'
-          | 'peter-john'
-          | 'alex-chen'
-          | 'jordan-taylor'
-          | 'nayan',
+          'ferni' | 'maya-santos' | 'peter-john' | 'alex-chen' | 'jordan-taylor' | 'nayan',
       });
 
       log.info({ callId: call.id, status: call.status }, '🗣️ Conversational call initiated');
@@ -673,9 +656,18 @@ async function execute(
   return null;
 }
 
-/**
- * Add a scheduled item to the user's calendar.
- */
+/** Ferni just promised this text, call or email: the reminder delivery job keeps or misses it. */
+async function recordPromise(
+  ...args: Parameters<
+    typeof import('../../../services/superhuman/semantic-intelligence/promise-keeper.js').recordScheduledPromise
+  >
+): Promise<void> {
+  const keeper =
+    await import('../../../services/superhuman/semantic-intelligence/promise-keeper.js');
+  await keeper.recordScheduledPromise(...args);
+}
+
+/** Add a scheduled item to the user's calendar (optional: it never throws). */
 async function addToCalendar(
   userId: string,
   type: 'text' | 'call' | 'email',

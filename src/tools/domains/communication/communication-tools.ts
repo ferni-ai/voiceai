@@ -809,16 +809,14 @@ export function createCommunicationTools() {
           minute: '2-digit',
         });
 
-        // Also set a reminder
         const userData = ctx?.userData as
-          | { userId?: string; userProfile?: { contactInfo?: { phone?: string } } }
-          | undefined;
+          { userId?: string; userProfile?: { contactInfo?: { phone?: string } } } | undefined;
         const userId = userData?.userId || 'unknown';
         const userPhone = userData?.userProfile?.contactInfo?.phone;
 
         if (userPhone) {
           const reminderTime = new Date(scheduledTime.getTime() - 15 * 60000); // 15 min before
-          await createReminder({
+          const reminder = await createReminder({
             userId,
             message: `Call with ${contact} in 15 minutes! Purpose: ${purpose}`,
             scheduledFor: reminderTime,
@@ -826,15 +824,15 @@ export function createCommunicationTools() {
             deliveryAddress: userPhone,
             createdBy: 'alex',
           });
+          // "I'll remind you 15 minutes before!" is a promise: the delivery job keeps or misses it.
+          const promises =
+            await import('../../../services/superhuman/semantic-intelligence/promise-keeper.js');
+          await promises.recordReminderPromise(userId, reminder);
         }
 
         let response = `📞 Call scheduled with ${contact} for ${timeStr} (${duration} min)\nPurpose: ${purpose}`;
-        if (notes) {
-          response += `\nTalking points: ${notes}`;
-        }
-        if (userPhone) {
-          response += `\nI'll remind you 15 minutes before!`;
-        }
+        if (notes) response += `\nTalking points: ${notes}`;
+        if (userPhone) response += `\nI'll remind you 15 minutes before!`;
 
         return response;
       },

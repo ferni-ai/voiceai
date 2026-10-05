@@ -22,6 +22,7 @@ import { computeTogetherHealth, type TogetherHealth } from './together-health.js
 import { computeNoticedNote, type NoticedNote } from './together-noticed.js';
 import { localClock, type PromiseRecord, type TogetherSignals } from './together-signals.js';
 import { getTrustDb, readTrustDoc, writeTrustDoc } from './trust-doc.js';
+import { isInvitation } from '../superhuman/semantic-intelligence/promise-kinds.js';
 
 const log = createLogger({ module: 'TogetherStore' });
 
@@ -60,7 +61,10 @@ function asDate(v: FirestoreDate): Date | undefined {
   return Number.isNaN(d.getTime()) ? undefined : d;
 }
 
-/** Ferni's promises to this user (ferni_commitments), newest first. */
+/**
+ * Ferni's promises to this user (ferni_commitments), newest first. Invitations
+ * ("let me know how it goes") aren't promises, so they never count either way.
+ */
 async function readPromises(userId: string): Promise<PromiseRecord[]> {
   try {
     const snap = await getTrustDb()
@@ -73,7 +77,7 @@ async function readPromises(userId: string): Promise<PromiseRecord[]> {
     return snap.docs.flatMap((doc) => {
       const d = doc.data() as Record<string, FirestoreDate | boolean | string>;
       const madeAt = asDate(d.madeAt as FirestoreDate);
-      if (!madeAt) return [];
+      if (!madeAt || isInvitation(d.type)) return [];
       const fulfilled = d.fulfilled === true;
       const violated = d.violated === true;
       return [

@@ -8,9 +8,12 @@
  * - missed: its due time passed without that, found by sweepOverduePromises,
  *   which the every-minute deliver-reminders job runs. A missed promise stays
  *   missed, and Ferni owns it once in her next conversation;
- * - released: the user let Ferni off (cancelled or deleted the reminder).
+ * - released: the user let Ferni off (cancelled or deleted the reminder);
+ * - unknown: made before outcomes were tracked, so nobody can say (see
+ *   legacy-promises.ts), or an invitation ("let me know how it goes") that
+ *   lapsed (promise-kinds.ts). Not counted by Trust, never owned as a miss.
  *
- * Trust's "I follow through" factor reads exactly these outcomes.
+ * Trust's "I follow through" factor counts only kept and missed.
  *
  * @module services/superhuman/semantic-intelligence/promise-keeper
  */
@@ -18,6 +21,8 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../firestore-utils.js';
 import { MISSED_AFTER_MS } from '../../scheduling/reminder-delivery-job.js';
+import { settleLegacyPromises, type LegacyPassResult } from './legacy-promises.js';
+import { isInvitation } from './promise-kinds.js';
 import {
   clearCommitmentCache,
   createCommitment,
@@ -30,7 +35,7 @@ import {
 
 const log = createLogger({ module: 'promise-keeper' });
 
-type Outcome = 'kept' | 'missed' | 'released';
+type Outcome = 'kept' | 'missed' | 'released' | 'unknown';
 type Db = NonNullable<ReturnType<typeof getFirestoreDb>>;
 type Ref = FirebaseFirestore.DocumentReference;
 
@@ -47,6 +52,7 @@ function settlement(outcome: Outcome, how: string, now: Date): Record<string, un
   const at = now.toISOString();
   if (outcome === 'kept') return { outcome, fulfilled: true, fulfilledAt: at, fulfilledHow: how };
   if (outcome === 'missed') return { outcome, violated: true, violatedAt: at, missedReason: how };
+  if (outcome === 'unknown') return { outcome, unknownAt: at, unknownReason: how };
   return { outcome, releasedAt: at, releasedHow: how };
 }
 
@@ -66,19 +72,24 @@ async function settle(
   });
 }
 
+const isPerson = (userId: string): boolean =>
+  !!userId && userId !== 'anonymous' && userId !== 'unknown';
+
 /**
- * Ferni just promised to remind the user: record it, due when the reminder is
- * (plus the delivery job's grace). Never throws: the reminder itself is already set.
+ * Ferni just promised to remind the user (or text, email or call them at a
+ * time): record it, due when the reminder is (plus the delivery job's grace).
+ * `promise` is what she said she'd do. Never throws: the reminder is already set.
  */
 export async function recordReminderPromise(
   userId: string,
-  reminder: { id: string; message: string; scheduledFor: Date }
+  reminder: { id: string; message: string; scheduledFor: Date },
+  promise = `I'll remind you: ${reminder.message}`
 ): Promise<FerniCommitment | null> {
-  if (!userId || userId === 'anonymous' || userId === 'unknown') return null;
+  if (!isPerson(userId)) return null;
   try {
     return await createCommitment(userId, {
       type: 'remind',
-      commitment: `I'll remind you: ${reminder.message}`,
+      commitment: promise,
       context: reminder.message,
       dueBy: new Date(reminder.scheduledFor.getTime() + MISSED_AFTER_MS),
       reminderId: reminder.id,
@@ -88,6 +99,48 @@ export async function recordReminderPromise(
       { error: String(error), reminderId: reminder.id },
       'Could not record a reminder promise'
     );
+    return null;
+  }
+}
+
+const SAY = { sms: 'text', email: 'email', call: 'call' } as const;
+
+/**
+ * Ferni said she'd text, email or call at a set time (a scheduled reminder):
+ * the same promise as "I'll remind you", in her words. No reminder id, no promise.
+ */
+export async function recordScheduledPromise(
+  userId: string,
+  reminderId: string | undefined,
+  scheduledFor: Date,
+  channel: keyof typeof SAY,
+  message: string
+): Promise<FerniCommitment | null> {
+  if (!reminderId) return null;
+  const promise = `I'll ${SAY[channel]} you: ${message}`;
+  return recordReminderPromise(userId, { id: reminderId, message, scheduledFor }, promise);
+}
+
+/**
+ * Ferni said she'd circle back on something by `dueBy`: kept when she asks
+ * about it in a conversation (follow-through.ts), missed if she doesn't in time.
+ * Never throws: the tool's reply shouldn't fail over bookkeeping.
+ */
+export async function recordCheckInPromise(
+  userId: string,
+  checkIn: { topic: string; dueBy: Date }
+): Promise<FerniCommitment | null> {
+  if (!isPerson(userId)) return null;
+  try {
+    return await createCommitment(userId, {
+      type: 'check_in',
+      commitment: `I'll check in about ${checkIn.topic}`,
+      context: checkIn.topic,
+      dueBy: checkIn.dueBy,
+      relatedTopic: checkIn.topic,
+    });
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Could not record a check-in promise');
     return null;
   }
 }
@@ -119,6 +172,10 @@ async function verdictFor(
   owner: string,
   data: Record<string, unknown>
 ): Promise<[Outcome, string]> {
+  // Adopted from before outcomes were tracked: part of its window went unwatched.
+  if (data.legacy === true) return ['unknown', 'made before promise outcomes were tracked'];
+  // "Let me know how it goes" invited the user to share; nobody broke anything.
+  if (isInvitation(data.type)) return ['unknown', 'an invitation to share that lapsed'];
   if (data.type !== 'remind' || typeof data.reminderId !== 'string') {
     return ['missed', 'due time passed without a follow-up'];
   }
@@ -140,6 +197,10 @@ export interface PromiseSweepResult {
   kept: number;
   missed: number;
   released: number;
+  unknown: number;
+  /** This run's page of the one-time legacy pass (absent once it has finished). */
+  legacy?: LegacyPassResult;
+  legacyError?: string;
 }
 
 /**
@@ -161,7 +222,13 @@ export async function sweepOverduePromises(
     .orderBy('dueBy')
     .limit(opts.limit ?? 100)
     .get();
-  const result: PromiseSweepResult = { overdue: snap.size, kept: 0, missed: 0, released: 0 };
+  const result: PromiseSweepResult = {
+    overdue: snap.size,
+    kept: 0,
+    missed: 0,
+    released: 0,
+    unknown: 0,
+  };
   for (const doc of snap.docs) {
     // Owner from the path, never the doc's userId field (data, not identity).
     const owner = doc.ref.parent.parent?.id;
@@ -170,6 +237,14 @@ export async function sweepOverduePromises(
     if (!(await settle(db, doc.ref, outcome, how, now))) continue;
     result[outcome]++;
     clearCommitmentCache(owner);
+  }
+  // Promises from before outcomes existed: one page a run until the pass is done.
+  try {
+    const legacy = await settleLegacyPromises(db, now);
+    if (legacy) result.legacy = legacy;
+  } catch (error) {
+    result.legacyError = String(error);
+    log.error({ error: String(error) }, 'Legacy promise pass failed; the next run retries');
   }
   if (result.overdue > 0) log.info(result, 'Overdue promises settled');
   return result;
@@ -191,6 +266,7 @@ export async function getMissesToOwn(
     .filter(
       (c) =>
         c.outcome === 'missed' &&
+        !isInvitation(c.type) && // marked missed before invitations were told apart
         !c.ownOfferedAt &&
         c.violatedAt !== undefined &&
         now.getTime() - new Date(c.violatedAt).getTime() < OWN_WINDOW_MS
