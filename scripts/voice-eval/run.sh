@@ -39,12 +39,15 @@ grep -v '^#' $HERE/scenarios/$scenario.txt | grep -v '^[[:space:]]*$' | while IF
 done > $out/audio/$scenario/turns.list
 turns=(${(f)"$(<$out/audio/$scenario/turns.list)"})
 room="eval-$scenario-$label-$(date +%H%M%S)"
-geo=""
-if [[ -n ${EVAL_CITY:-} ]]; then
-  geo=",\"city\":\"$EVAL_CITY\",\"regionCode\":\"${EVAL_REGION:-}\""
-fi
+# Built with JSON.stringify: a quote or backslash in a value must not break it.
+meta=$(node -e '
+  const [uid, tz, city, region] = process.argv.slice(1);
+  const m = { user_id: uid, user_name: "Sam", timezone: tz };
+  if (city) Object.assign(m, { city, regionCode: region });
+  process.stdout.write(JSON.stringify(m));
+' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}")
 tok=$(lk token create --project $project --join --room $room --identity eval-user --name Sam \
-  --agent $agent --job-metadata "{\"user_id\":\"$uid\",\"user_name\":\"Sam\",\"timezone\":\"${EVAL_TZ:-America/New_York}\"$geo}" --valid-for 20m 2>/dev/null \
+  --agent $agent --job-metadata "$meta" --valid-for 20m 2>/dev/null \
   | grep -Eo 'eyJ[A-Za-z0-9._-]+' | head -1)
 json=$out/$scenario-$label.json
 (cd $ROOT && node $HERE/converse.mjs $url "$tok" $json $turns)
