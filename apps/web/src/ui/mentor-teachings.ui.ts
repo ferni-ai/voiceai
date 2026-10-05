@@ -407,11 +407,11 @@ function render(): string {
                 <div class="mentor-card-actions" role="button" tabindex="0">
                   <button class="mentor-action-btn" data-action="edit-principle" data-index="${i}" aria-label="${t('accessibility.editPrinciple')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Edit
+                    ${t('common.edit')}
                   </button>
                   <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-principle" data-index="${i}" aria-label="${t('accessibility.deletePrinciple')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    Delete
+                    ${t('common.delete')}
                   </button>
                 </div>
               </div>
@@ -454,11 +454,11 @@ function render(): string {
                 <div class="mentor-card-actions" role="button" tabindex="0">
                   <button class="mentor-action-btn" data-action="edit-quote" data-index="${i}" aria-label="${t('accessibility.editQuote')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Edit
+                    ${t('common.edit')}
                   </button>
                   <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-quote" data-index="${i}" aria-label="${t('accessibility.deleteQuote')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    Delete
+                    ${t('common.delete')}
                   </button>
                 </div>
               </div>
@@ -493,14 +493,14 @@ function render(): string {
 function describeMentorStyle(style: Record<string, unknown>): string {
   const traits: string[] = [];
   
-  if (style.usesStories) traits.push('Uses stories and examples');
-  if (style.asksQuestions) traits.push('Asks thought-provoking questions');
-  if (style.directFeedback) traits.push('Gives direct, honest feedback');
-  if (style.encouraging) traits.push('Encouraging and supportive');
-  if (style.challenging) traits.push('Challenges assumptions');
+  if (style.usesStories) traits.push(t('mentorTeachings.styleStories'));
+  if (style.asksQuestions) traits.push(t('mentorTeachings.styleQuestions'));
+  if (style.directFeedback) traits.push(t('mentorTeachings.styleDirect'));
+  if (style.encouraging) traits.push(t('mentorTeachings.styleEncouraging'));
+  if (style.challenging) traits.push(t('mentorTeachings.styleChallenging'));
   
   if (traits.length === 0) {
-    return 'Define the teaching style by editing the agent personality.';
+    return t('mentorTeachings.styleDefault');
   }
   
   return traits.join(' • ');
@@ -521,7 +521,7 @@ export async function openMentorTeachings(agentId: string): Promise<void> {
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
     const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't find this mentor");
+    toast.error(t('mentorTeachings.mentorNotFound'));
     return;
   }
 
@@ -627,7 +627,7 @@ function attachListeners(): void {
 async function handleAddPrinciple(): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   
-  const principle = prompt("What is a core principle this mentor teaches?");
+  const principle = prompt(t('mentorTeachings.promptPrinciple'));
   if (!principle || !currentAgent) return;
 
   try {
@@ -646,17 +646,17 @@ async function handleAddPrinciple(): Promise<void> {
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to add principle:', err);
-    toast.error("Couldn't save. Try again?");
+    toast.error(t('toasts.couldNotSave'));
   }
 }
 
 async function handleAddQuote(): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   
-  const quote = prompt("Enter a memorable quote from this mentor:");
+  const quote = prompt(t('mentorTeachings.promptQuote'));
   if (!quote || !currentAgent) return;
 
-  const source = prompt("Source (book, talk, etc.) - optional:") || undefined;
+  const source = prompt(t('mentorTeachings.promptSource')) || undefined;
 
   try {
     const currentQuotes = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; source?: string }>;
@@ -674,7 +674,7 @@ async function handleAddQuote(): Promise<void> {
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to add quote:', err);
-    toast.error("Couldn't save. Try again?");
+    toast.error(t('toasts.couldNotSave'));
   }
 }
 
@@ -686,7 +686,7 @@ async function handleEditPrinciple(index: number): Promise<void> {
   const item = principles[index];
   if (!item) return;
 
-  const newPrinciple = prompt("Edit this principle:", item);
+  const newPrinciple = prompt(t('mentorTeachings.promptEditPrinciple'), item);
   if (!newPrinciple) return;
 
   try {
@@ -700,7 +700,7 @@ async function handleEditPrinciple(index: number): Promise<void> {
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit principle:', err);
-    toast.error("Couldn't update. Try again?");
+    toast.error(t('mentorTeachings.couldNotUpdate'));
   }
 }
 
@@ -708,7 +708,7 @@ async function handleDeletePrinciple(index: number): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
-  if (!confirm('Delete this principle?')) return;
+  if (!confirm(t('mentorTeachings.confirmDeletePrinciple'))) return;
 
   try {
     const principles = (currentAgent.personality?.values || []);
@@ -721,7 +721,7 @@ async function handleDeletePrinciple(index: number): Promise<void> {
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete principle:', err);
-    toast.error("Couldn't delete. Try again?");
+    toast.error(t('mentorTeachings.couldNotDelete'));
   }
 }
 
@@ -733,10 +733,10 @@ async function handleEditQuote(index: number): Promise<void> {
   const item = quotes[index];
   if (!item) return;
 
-  const newQuote = prompt("Edit this quote:", item.quote);
+  const newQuote = prompt(t('mentorTeachings.promptEditQuote'), item.quote);
   if (!newQuote) return;
 
-  const newSource = prompt("Source (book, talk, etc.) - optional:", item.source || '') || undefined;
+  const newSource = prompt(t('mentorTeachings.promptSource'), item.source || '') || undefined;
 
   try {
     const updatedQuotes = [...quotes];
@@ -749,7 +749,7 @@ async function handleEditQuote(index: number): Promise<void> {
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit quote:', err);
-    toast.error("Couldn't update. Try again?");
+    toast.error(t('mentorTeachings.couldNotUpdate'));
   }
 }
 
@@ -757,7 +757,7 @@ async function handleDeleteQuote(index: number): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
-  if (!confirm('Delete this quote?')) return;
+  if (!confirm(t('mentorTeachings.confirmDeleteQuote'))) return;
 
   try {
     const quotes = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; source?: string }>;
@@ -770,7 +770,7 @@ async function handleDeleteQuote(index: number): Promise<void> {
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete quote:', err);
-    toast.error("Couldn't delete. Try again?");
+    toast.error(t('mentorTeachings.couldNotDelete'));
   }
 }
 

@@ -17,7 +17,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
-import { t } from '../i18n/index.js';
+import { getLocale, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import {
   getCustomAgent,
@@ -346,12 +346,11 @@ function addTwinWelcome(): void {
   if (profile.philosophy) parts.push(t('talkToTwin.welcome.philosophy', { philosophy: profile.philosophy }));
   const welcome = `${parts.join(' ')}\n\n${t('talkToTwin.welcome.prompt')}`;
 
-  messages.push({
-    id: `msg-${Date.now()}`,
-    role: 'twin',
-    content: welcome,
-    timestamp: new Date(),
-  });
+  addMessage('twin', welcome);
+}
+
+function addMessage(role: Message['role'], content: string, idOffset = 0): void {
+  messages.push({ id: `msg-${Date.now() + idOffset}`, role, content, timestamp: new Date() });
 }
 
 async function handleSendMessage(): Promise<void> {
@@ -363,12 +362,7 @@ async function handleSendMessage(): Promise<void> {
   if (!userMessage) return;
 
   // Add user message
-  messages.push({
-    id: `msg-${Date.now()}`,
-    role: 'user',
-    content: userMessage,
-    timestamp: new Date(),
-  });
+  addMessage('user', userMessage);
 
   // Clear input
   input.value = '';
@@ -383,22 +377,12 @@ async function handleSendMessage(): Promise<void> {
     const response = await generateTwinResponse(userMessage, twinContext);
 
     // Add twin response
-    messages.push({
-      id: `msg-${Date.now() + 1}`,
-      role: 'twin',
-      content: response,
-      timestamp: new Date(),
-    });
+    addMessage('twin', response, 1);
 
     soundUI.play('click');
   } catch (error) {
     log.error('Failed to generate twin response:', error);
-    messages.push({
-      id: `msg-${Date.now() + 1}`,
-      role: 'twin',
-      content: t('talkToTwin.error'),
-      timestamp: new Date(),
-    });
+    addMessage('twin', t('talkToTwin.error'), 1);
   }
 
   isThinking = false;
@@ -482,12 +466,15 @@ function generateFallbackResponse(
   profile: TwinProfile,
   relevantJournals: JournalEntry[]
 ): string {
-  // Simple pattern-based response as fallback
+  // Simple pattern-based response as fallback. Each locale lists, comma-separated,
+  // the words that signal an intent in `talkToTwin.fallbackKeywords.<intent>`.
+  const lowerMessage = userMessage.toLocaleLowerCase(getLocale());
+  const mentions = (intent: string): boolean =>
+    t(`talkToTwin.fallbackKeywords.${intent}`)
+      .split(',')
+      .some((word) => lowerMessage.includes(word.trim()));
 
-  const lowerMessage = userMessage.toLowerCase();
-
-  // Check for common patterns
-  if (lowerMessage.includes('advice') || lowerMessage.includes('should i')) {
+  if (mentions('advice')) {
     if (profile.philosophy) {
       return t('talkToTwin.fallback.advicePhilosophy', { philosophy: profile.philosophy });
     }
@@ -496,7 +483,7 @@ function generateFallbackResponse(
     }
   }
 
-  if (lowerMessage.includes('feeling') || lowerMessage.includes('feel')) {
+  if (mentions('feeling')) {
     const recent = relevantJournals[0];
     if (recent) {
       return t('talkToTwin.fallback.feelRecent', { excerpt: recent.content.slice(0, 200) });
@@ -504,7 +491,7 @@ function generateFallbackResponse(
     return t('talkToTwin.fallback.feelDefault');
   }
 
-  if (lowerMessage.includes('remember') || lowerMessage.includes('past')) {
+  if (mentions('remember')) {
     if (relevantJournals.length > 0) {
       const entries = relevantJournals
         .slice(0, 2)

@@ -20,7 +20,7 @@ import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { apiGet, apiPost, getUserId } from '../utils/api.js';
 import { connectionService } from '../services/connection.service.js';
-import { t } from '../i18n/index.js';
+import { formatDate, getLocale, t } from '../i18n/index.js';
 
 const log = createLogger('ChronicleUI');
 
@@ -972,7 +972,7 @@ function createContainer(): HTMLElement {
   overlay.className = 'chronicle-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-label', 'Your Chronicle');
+  overlay.setAttribute('aria-label', t('chronicle.dialogLabel'));
 
   overlay.innerHTML = `
     <div class="chronicle-backdrop"></div>
@@ -1016,7 +1016,7 @@ function createContainer(): HTMLElement {
           <div class="chronicle-capture-options">
             <button class="chronicle-voice-btn" id="switch-to-voice">
               ${ICONS.mic}
-              Switch to voice
+              ${t('chronicle.switchToVoice')}
             </button>
           </div>
           <button class="chronicle-save-btn" id="save-entry" disabled>
@@ -1115,15 +1115,13 @@ function getTimeContext(): TimeContext {
   return 'night';
 }
 
+/** A random variant of a numbered pool of texts (<prefix>.option1..count). */
+function pickVariant(prefix: string, count: number): string {
+  return t(`${prefix}.option${1 + Math.floor(Math.random() * count)}`);
+}
+
 function getGreeting(timeContext: TimeContext): string {
-  const greetings: Record<TimeContext, string[]> = {
-    morning: ['Good morning', 'A fresh day awaits', 'Rise gently'],
-    afternoon: ['Good afternoon', 'The day unfolds', 'Present moment'],
-    evening: ['Good evening', 'As the day settles', 'Evening reflection'],
-    night: ['Hello, night owl', 'In the stillness', 'Quiet hours'],
-  };
-  const options = greetings[timeContext];
-  return options[Math.floor(Math.random() * options.length)] ?? 'Hello';
+  return pickVariant(`chronicle.greetings.${timeContext}`, 3);
 }
 
 async function loadData(): Promise<ChronicleData> {
@@ -1221,49 +1219,23 @@ function getDefaultInsights(): JournalInsight[] {
     {
       id: 'start-journey',
       type: 'growth',
-      title: 'Start Your Journey',
-      description: 'Your first entry awaits. Every great story starts somewhere.',
+      title: t('chronicle.defaultInsights.startJourney.title'),
+      description: t('chronicle.defaultInsights.startJourney.description'),
       icon: ICONS.book,
     },
     {
       id: 'voice-text',
       type: 'pattern',
-      title: 'Two Powerful Paths',
-      description: 'Voice captures emotion. Text captures reflection. Both build wisdom.',
+      title: t('chronicle.defaultInsights.twoPaths.title'),
+      description: t('chronicle.defaultInsights.twoPaths.description'),
       icon: ICONS.brain,
     },
   ];
 }
 
 function getJournalPrompts(): string[] {
-  const prompts: Record<TimeContext, string[]> = {
-    morning: [
-      "What's alive in you this morning?",
-      'What would make today meaningful?',
-      "How did you sleep? What's lingering?",
-      'What intention do you want to carry today?',
-    ],
-    afternoon: [
-      "How is the day unfolding? What's surprised you?",
-      'What are you learning right now?',
-      "What's asking for your attention?",
-      'Pause and notice: how do you feel right now?',
-    ],
-    evening: [
-      'What was the most alive moment of today?',
-      "What are you grateful for? What's unfinished?",
-      'What would you tell yourself from this morning?',
-      'What do you want to remember from today?',
-    ],
-    night: [
-      "What's keeping you awake? Let it out.",
-      'What thoughts need a home before sleep?',
-      'What would your past self think of where you are now?',
-      "If you could only remember one thing from today, what would it be?",
-    ],
-  };
-
-  return prompts[state.data?.timeContext || 'evening'];
+  const timeContext = state.data?.timeContext || 'evening';
+  return Array.from({ length: 4 }, (_, i) => t(`chronicle.prompts.${timeContext}.option${i + 1}`));
 }
 
 // ============================================================================
@@ -1351,10 +1323,7 @@ function renderEmptyState(greeting: string): string {
     <div class="chronicle-empty">
       <div class="chronicle-empty-icon">${ICONS.book}</div>
       <h3 class="chronicle-empty-title">${greeting}</h3>
-      <p class="chronicle-empty-description">
-        Your chronicle is empty, but every great story starts somewhere.
-        Capture your first thought, and watch your wisdom grow.
-      </p>
+      <p class="chronicle-empty-description">${t('chronicle.emptyDescription')}</p>
     </div>
 
     <!-- Action Cards -->
@@ -1406,7 +1375,7 @@ function renderInsightCard(insight: JournalInsight): string {
 
 function renderMemoryCard(entry: JournalEntry): string {
   const date = new Date(entry.createdAt);
-  const dateStr = date.toLocaleDateString(undefined, {
+  const dateStr = formatDate(date, {
     month: 'long',
     day: 'numeric',
     year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
@@ -1418,7 +1387,7 @@ function renderMemoryCard(entry: JournalEntry): string {
   return `
     <div class="chronicle-memory-card">
       <div class="chronicle-memory-quote">${ICONS.quote}</div>
-      <p class="chronicle-memory-content">"${content}"</p>
+      <p class="chronicle-memory-content">${t('chronicle.quoted', { text: content })}</p>
       <p class="chronicle-memory-date">${dateStr}</p>
     </div>
   `;
@@ -1506,7 +1475,7 @@ async function saveTextEntry(): Promise<void> {
   const saveBtn = container?.querySelector('#save-entry') as HTMLButtonElement;
   if (saveBtn) {
     saveBtn.disabled = true;
-    saveBtn.textContent = 'Saving...';
+    saveBtn.textContent = t('common.saving');
   }
 
   try {
@@ -1524,18 +1493,18 @@ async function saveTextEntry(): Promise<void> {
 
       // Show toast
       const { toast } = await import('./whisper.ui.js');
-      toast.success('Captured!');
+      toast.success(t('chronicle.captured'));
     } else {
       throw new Error(result.error || 'Failed to save');
     }
   } catch (error) {
     log.error('Failed to save entry:', error);
     const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't save. Try again?");
+    toast.error(t('toasts.couldNotSave'));
 
     if (saveBtn) {
       saveBtn.disabled = false;
-      saveBtn.textContent = 'Save Entry';
+      saveBtn.textContent = t('chronicle.saveEntry');
     }
   }
 }
@@ -1565,33 +1534,10 @@ function switchToVoice(): void {
 
 function getConversationWelcome(): string {
   const timeContext = state.data?.timeContext || 'evening';
-  const totalEntries = state.data?.totalEntries || 0;
 
-  if (totalEntries === 0) {
-    return "Hey. I'm here - well, I'm you. Start journaling and I'll have more to reflect on. For now, what's on your mind?";
-  }
+  if (!state.data?.totalEntries) return t('chronicle.welcome.empty');
 
-  const welcomes: Record<TimeContext, string[]> = {
-    morning: [
-      "Good morning. I've been thinking about some of the things we've written. What's waking up with you today?",
-      "Morning. Ready to talk? I've got some perspective from our journals.",
-    ],
-    afternoon: [
-      "Hey. The day's moving. Something on your mind? I've got all our entries to draw from.",
-      "Checking in mid-day. What would help right now?",
-    ],
-    evening: [
-      "Evening. A good time to reflect. What's the day taught you?",
-      "Hey. As the day winds down, what's worth talking through?",
-    ],
-    night: [
-      "Still awake? Me too. Sometimes the quiet hours are when we think clearest. What's up?",
-      "Night thoughts hit different. What's on your mind?",
-    ],
-  };
-
-  const options = welcomes[timeContext];
-  return options[Math.floor(Math.random() * options.length)] ?? 'Welcome';
+  return pickVariant(`chronicle.welcome.${timeContext}`, 2);
 }
 
 function renderChatMessages(): void {
@@ -1682,28 +1628,18 @@ async function sendConversation(): Promise<void> {
 }
 
 function getFallbackResponse(userMessage: string): string {
-  const lower = userMessage.toLowerCase();
+  const lower = userMessage.toLocaleLowerCase(getLocale());
+  // Each locale lists, comma-separated, the words that signal the intent.
+  const mentions = (intent: string): boolean =>
+    t(`chronicle.fallbackKeywords.${intent}`)
+      .split(',')
+      .some((word) => lower.includes(word.trim()));
 
-  if (lower.includes('advice') || lower.includes('should')) {
-    return "I've learned that the best advice usually comes from sitting with the question longer. What does your gut say?";
-  }
+  if (mentions('advice')) return t('chronicle.fallback.advice');
+  if (mentions('feeling')) return t('chronicle.fallback.feeling');
+  if (mentions('remember')) return t('chronicle.fallback.remember');
 
-  if (lower.includes('feel') || lower.includes('feeling')) {
-    return "That's a lot to carry. I've felt that too. What would help right now - to talk it through or to just sit with it?";
-  }
-
-  if (lower.includes('remember')) {
-    return "I remember more than you might think. The journal entries hold a lot. What specifically are you looking for?";
-  }
-
-  const fallbacks = [
-    "That's interesting. What makes you bring that up now?",
-    "I hear you. What else is there?",
-    "Tell me more. What's underneath that?",
-    "That's something I've been thinking about too. What's the question behind the question?",
-  ];
-
-  return fallbacks[Math.floor(Math.random() * fallbacks.length)] ?? "Tell me more.";
+  return pickVariant('chronicle.fallback', 4);
 }
 
 // ============================================================================

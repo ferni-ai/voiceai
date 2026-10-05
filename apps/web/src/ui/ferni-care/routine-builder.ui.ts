@@ -85,10 +85,6 @@ const COPY = {
     saveEdit: 'routineBuilder.buttons.saveEdit',
     addAction: 'routineBuilder.buttons.addAction',
   },
-
-  validation: {
-    needsName: 'routineBuilder.validation.needsName',
-  },
 };
 
 // ============================================================================
@@ -619,7 +615,7 @@ export class RoutineBuilder {
     const title = this.editingWorkflow
       ? t(COPY.titles.edit)
       : this.template
-        ? t(COPY.titles.fromTemplate(this.template.name))
+        ? COPY.titles.fromTemplate(this.template.name)
         : t(COPY.titles.new);
 
     const saveLabel = this.editingWorkflow ? t(COPY.buttons.saveEdit) : t(COPY.buttons.save);
@@ -747,9 +743,10 @@ export class RoutineBuilder {
 
   private getActionSummary(action: WorkflowAction): string {
     if (action.params.message) return `"${String(action.params.message).slice(0, 40)}..."`;
-    if (action.params.habitId) return `Track: ${action.params.habitId}`;
+    if (action.params.habitId) return t('routineBuilder.trackHabit', { habit: String(action.params.habitId) });
     if (action.params.zone) return `${action.params.zone}`;
-    return action.type;
+    const actionDef = COPY.actions.find((a) => a.type === action.type);
+    return actionDef ? t(actionDef.hintKey) : action.type;
   }
 
   private renderActionPicker(): string {
@@ -783,7 +780,7 @@ export class RoutineBuilder {
 
     return `
       <div class="rb-section">
-        <label class="rb-section__label">${COPY.sections.customize}</label>
+        <label class="rb-section__label">${t(COPY.sections.customize)}</label>
         ${this.template.variables
           .map(
             (v) => `
@@ -898,7 +895,7 @@ export class RoutineBuilder {
   private getDefaultParams(type: string): Record<string, unknown> {
     switch (type) {
       case 'speak_message':
-        return { message: 'Good morning! Ready to start the day?' };
+        return { message: t('routineBuilder.defaultMessage') };
       case 'send_notification':
         return { title: 'Ferni', body: '' };
       case 'add_reminder':

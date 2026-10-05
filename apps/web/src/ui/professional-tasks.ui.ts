@@ -568,13 +568,13 @@ function render(): string {
                     </svg>
                     ${s}
                     <span class="skill-actions" role="button" tabindex="0">
-                      <button aria-label="${t('accessibility.delete')}" class="skill-action-btn edit" data-action="edit-skill" data-index="${idx}" title="Edit skill">
+                      <button aria-label="${t('accessibility.edit')}" class="skill-action-btn edit" data-action="edit-skill" data-index="${idx}" title="${t('professionalTasks.editSkill')}">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                         </svg>
                       </button>
-                      <button aria-label="${t('accessibility.delete')}" class="skill-action-btn delete" data-action="delete-skill" data-index="${idx}" title="Delete skill">
+                      <button aria-label="${t('accessibility.delete')}" class="skill-action-btn delete" data-action="delete-skill" data-index="${idx}" title="${t('professionalTasks.deleteSkill')}">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <line x1="18" y1="6" x2="6" y2="18"/>
                           <line x1="6" y1="6" x2="18" y2="18"/>
@@ -622,13 +622,13 @@ function render(): string {
                 <div class="professional-domain-header">
                   <h4 class="professional-domain-title">${d.name}</h4>
                   <div class="professional-domain-actions" role="button" tabindex="0">
-                    <button aria-label="${t('accessibility.delete')}" class="professional-domain-action-btn edit" data-action="edit-domain" data-index="${idx}" title="Edit domain">
+                    <button aria-label="${t('accessibility.edit')}" class="professional-domain-action-btn edit" data-action="edit-domain" data-index="${idx}" title="${t('professionalTasks.editDomain')}">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                       </svg>
                     </button>
-                    <button aria-label="${t('accessibility.delete')}" class="professional-domain-action-btn delete" data-action="delete-domain" data-index="${idx}" title="Delete domain">
+                    <button aria-label="${t('accessibility.delete')}" class="professional-domain-action-btn delete" data-action="delete-domain" data-index="${idx}" title="${t('professionalTasks.deleteDomain')}">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 6h18"/>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -684,28 +684,28 @@ function getDefaultTaskTemplates(): TaskTemplate[] {
       name: t('professionalTasks.templates.email'),
       description: t('professionalTasks.templates.emailDesc'),
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`,
-      prompt: 'Help me draft a professional email about...'
+      prompt: t('professionalTasks.templates.emailPrompt')
     },
     {
       id: 'meeting',
       name: t('professionalTasks.templates.meeting'),
       description: t('professionalTasks.templates.meetingDesc'),
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
-      prompt: 'Help me prepare for a meeting about...'
+      prompt: t('professionalTasks.templates.meetingPrompt')
     },
     {
       id: 'summary',
       name: t('professionalTasks.templates.summary'),
       description: t('professionalTasks.templates.summaryDesc'),
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
-      prompt: 'Summarize the key points from...'
+      prompt: t('professionalTasks.templates.summaryPrompt')
     },
     {
       id: 'plan',
       name: t('professionalTasks.templates.plan'),
       description: t('professionalTasks.templates.planDesc'),
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
-      prompt: 'Help me plan a project for...'
+      prompt: t('professionalTasks.templates.planPrompt')
     }
   ];
 }
@@ -725,7 +725,7 @@ export async function openProfessionalTasks(agentId: string): Promise<void> {
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
     const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't find this assistant");
+    toast.error(t('professionalTasks.assistantNotFound'));
     return;
   }
 
@@ -820,7 +820,7 @@ function attachListeners(): void {
 async function handleAddSkill(): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   
-  const skill = prompt("Add a skill this assistant excels at:");
+  const skill = prompt(t('professionalTasks.promptSkill'));
   if (!skill || !currentAgent) return;
 
   try {
@@ -837,17 +837,17 @@ async function handleAddSkill(): Promise<void> {
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
     log.error('Failed to add skill:', err);
-    toast.error("Couldn't save. Try again?");
+    toast.error(t('toasts.couldNotSave'));
   }
 }
 
 async function handleAddDomain(): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   
-  const name = prompt("Domain name (e.g., 'Marketing', 'Finance'):");
+  const name = prompt(t('professionalTasks.promptDomainName'));
   if (!name || !currentAgent) return;
 
-  const description = prompt("Brief description of expertise:") || '';
+  const description = prompt(t('professionalTasks.promptDomainDescription')) || '';
 
   try {
     const currentDomains = (currentAgent.memories?.wisdom || []) as unknown as Array<{ name: string; description: string }>;
@@ -863,7 +863,7 @@ async function handleAddDomain(): Promise<void> {
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
     log.error('Failed to add domain:', err);
-    toast.error("Couldn't save. Try again?");
+    toast.error(t('toasts.couldNotSave'));
   }
 }
 
@@ -878,7 +878,7 @@ async function handleEditSkill(e: Event): Promise<void> {
   const skills = (currentAgent.personality?.values || []);
   const currentSkill = skills[index];
 
-  const newSkill = prompt('Edit this skill:', currentSkill);
+  const newSkill = prompt(t('professionalTasks.promptEditSkill'), currentSkill);
   if (!newSkill || newSkill === currentSkill) return;
 
   try {
@@ -897,7 +897,7 @@ async function handleEditSkill(e: Event): Promise<void> {
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit skill:', err);
-    toast.error("Couldn't save. Try again?");
+    toast.error(t('toasts.couldNotSave'));
   }
 }
 
@@ -911,7 +911,7 @@ async function handleDeleteSkill(e: Event): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   const skills = (currentAgent.personality?.values || []);
 
-  if (!confirm(`Remove skill "${skills[index]}"?`)) return;
+  if (!confirm(t('professionalTasks.confirmRemoveSkill', { skill: String(skills[index]) }))) return;
 
   try {
     const updatedSkills = skills.filter((_, i) => i !== index);
@@ -928,7 +928,7 @@ async function handleDeleteSkill(e: Event): Promise<void> {
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete skill:', err);
-    toast.error("Couldn't remove. Try again?");
+    toast.error(t('professionalTasks.couldNotRemove'));
   }
 }
 
@@ -944,10 +944,10 @@ async function handleEditDomain(e: Event): Promise<void> {
   const currentDomain = domains[index];
   if (!currentDomain) return;
 
-  const newName = prompt('Domain name:', currentDomain.name);
+  const newName = prompt(t('professionalTasks.promptDomainNameShort'), currentDomain.name);
   if (!newName) return;
 
-  const newDescription = prompt('Description:', currentDomain.description || '') || '';
+  const newDescription = prompt(t('professionalTasks.promptDescription'), currentDomain.description || '') || '';
 
   try {
     const updatedDomains = [...domains];
@@ -965,7 +965,7 @@ async function handleEditDomain(e: Event): Promise<void> {
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit domain:', err);
-    toast.error("Couldn't save. Try again?");
+    toast.error(t('toasts.couldNotSave'));
   }
 }
 
@@ -979,7 +979,7 @@ async function handleDeleteDomain(e: Event): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   const domains = (currentAgent.memories?.wisdom || []) as unknown as Array<{ name: string; description: string }>;
   const domainToDelete = domains[index];
-  if (!domainToDelete || !confirm(`Remove domain "${domainToDelete.name}"?`)) return;
+  if (!domainToDelete || !confirm(t('professionalTasks.confirmRemoveDomain', { domain: domainToDelete.name }))) return;
 
   try {
     const updatedDomains = domains.filter((_, i) => i !== index);
@@ -996,7 +996,7 @@ async function handleDeleteDomain(e: Event): Promise<void> {
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete domain:', err);
-    toast.error("Couldn't remove. Try again?");
+    toast.error(t('professionalTasks.couldNotRemove'));
   }
 }
 

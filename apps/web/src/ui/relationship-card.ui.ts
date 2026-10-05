@@ -25,7 +25,8 @@ import { openGiftSuggestions } from './gift-suggestions.ui.js';
 import { openConversationStarters } from './conversation-starters.ui.js';
 // NOTE: Mock data imports removed - UI now shows proper empty/error states
 // To enable demo mode, use localStorage.setItem('ferni:use-demo-data', 'true')
-import { t } from '../i18n/index.js';
+import { formatCurrency, formatDate as formatLocaleDate, getLocale, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 
 const log = createLogger('RelationshipCard');
 
@@ -1085,13 +1086,12 @@ function renderHeader(): string {
   const strengthColor = getStrengthColor(strengthPercent);
   const trendIcon = person.strengthTrend === 'growing' ? ICONS.trendUp :
                     person.strengthTrend === 'fading' ? ICONS.trendDown : ICONS.minus;
-  const trendLabel = person.strengthTrend === 'growing' ? 'Growing stronger' :
-                     person.strengthTrend === 'fading' ? 'Needs attention' : 'Stable';
+  const trendLabel = t(`relationshipCard.trend.${person.strengthTrend || 'stable'}`);
 
   const lastContactText = person.daysSinceContact !== undefined
-    ? person.daysSinceContact === 0 ? 'Connected today'
-    : person.daysSinceContact === 1 ? 'Last connected yesterday'
-    : `Last connected ${person.daysSinceContact} days ago`
+    ? person.daysSinceContact === 0 ? t('relationshipCard.connectedToday')
+    : person.daysSinceContact === 1 ? t('relationshipCard.lastConnectedYesterday')
+    : tp('relationshipCard.lastConnected', person.daysSinceContact)
     : '';
 
   return `
@@ -1109,7 +1109,7 @@ function renderHeader(): string {
         <input type="file" id="rc-avatar-input" class="rc-avatar-input" accept="image/*">
         <div class="rc-info">
           <h2 class="rc-name">${escapeHtml(person.name)}</h2>
-          <div class="rc-relationship-type">${person.relationship || 'Contact'}</div>
+          <div class="rc-relationship-type">${person.relationship ? t(`addPerson.relationships.${person.relationship.toLowerCase()}`, person.relationship) : t('relationshipCard.contact')}</div>
           
           <div class="rc-strength">
             <div class="rc-strength-bar">
@@ -1126,11 +1126,11 @@ function renderHeader(): string {
       </div>
       
       <div class="rc-quick-actions" role="button" tabindex="0">
-        ${person.phone ? `<button aria-label="${t('accessibility.call')}" class="rc-quick-action" data-action="call">${ICONS.phone} Call</button>` : ''}
-        ${person.phone ? `<button aria-label="${t('accessibility.text')}" class="rc-quick-action" data-action="text">${ICONS.message} Text</button>` : ''}
-        ${person.email ? `<button aria-label="${t('accessibility.email')}" class="rc-quick-action" data-action="email">${ICONS.mail} Email</button>` : ''}
-        <button aria-label="${t('accessibility.add')}" class="rc-quick-action" data-action="record">${ICONS.plus} Log Moment</button>
-        <button aria-label="${t('accessibility.edit')}" class="rc-quick-action" data-action="edit">${ICONS.edit} Edit</button>
+        ${person.phone ? `<button aria-label="${t('accessibility.call')}" class="rc-quick-action" data-action="call">${ICONS.phone} ${t('relationshipCard.call')}</button>` : ''}
+        ${person.phone ? `<button aria-label="${t('accessibility.text')}" class="rc-quick-action" data-action="text">${ICONS.message} ${t('relationshipCard.text')}</button>` : ''}
+        ${person.email ? `<button aria-label="${t('accessibility.email')}" class="rc-quick-action" data-action="email">${ICONS.mail} ${t('relationshipCard.email')}</button>` : ''}
+        <button aria-label="${t('accessibility.add')}" class="rc-quick-action" data-action="record">${ICONS.plus} ${t('relationshipCard.logMoment')}</button>
+        <button aria-label="${t('accessibility.edit')}" class="rc-quick-action" data-action="edit">${ICONS.edit} ${t('common.edit')}</button>
       </div>
     </div>
   `;
@@ -1142,7 +1142,7 @@ function renderNotices(): string {
   return `
     <div class="rc-notices">
       <div class="rc-notices-header">
-        ${ICONS.sparkles} Ferni Notices
+        ${ICONS.sparkles} ${t('relationshipCard.ferniNotices')}
       </div>
       ${state.notices.map(notice => `
         <div class="rc-notice">
@@ -1208,21 +1208,21 @@ function renderOverviewTab(): string {
   return `
     ${upcomingMeetings.length > 0 ? `
       <div class="rc-section">
-        <div class="rc-section-title">${ICONS.calendar} Scheduled Together</div>
+        <div class="rc-section-title">${ICONS.calendar} ${t('relationshipCard.scheduledTogether')}</div>
         ${upcomingMeetings.slice(0, 3).map(meeting => {
           const meetingDate = new Date(meeting.date);
           const daysUntil = Math.ceil((meetingDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
           return `
             <div class="rc-event-item">
               <div class="rc-event-date">
-                <span class="rc-event-date-month">${meetingDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</span>
+                <span class="rc-event-date-month">${monthAbbrev(meetingDate)}</span>
                 <span class="rc-event-date-day">${meetingDate.getDate()}</span>
               </div>
               <div class="rc-event-info">
                 <div class="rc-event-title">${escapeHtml(meeting.title)}</div>
                 <div class="rc-event-meta">
-                  ${daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`}
-                  · ${meetingDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  ${daysUntil === 0 ? t('common.today') : daysUntil === 1 ? t('relationshipCard.tomorrow') : tp('relationshipCard.inDays', daysUntil)}
+                  · ${formatLocaleDate(meetingDate, { hour: 'numeric', minute: '2-digit' })}
                   ${meeting.location ? ` · ${escapeHtml(meeting.location)}` : ''}
                 </div>
               </div>
@@ -1231,7 +1231,7 @@ function renderOverviewTab(): string {
         }).join('')}
         ${upcomingMeetings.length > 3 ? `
           <button aria-label="${t('accessibility.viewAllScheduledMeetings')}" class="rc-add-btn" data-action="view-all-events" style="margin-top: var(--space-2, 0.5rem);">
-            View all ${upcomingMeetings.length} scheduled meetings
+            ${tp('relationshipCard.viewAllMeetings', upcomingMeetings.length)}
           </button>
         ` : ''}
       </div>
@@ -1239,7 +1239,7 @@ function renderOverviewTab(): string {
     
     ${upcomingDates.length > 0 ? `
       <div class="rc-section">
-        <div class="rc-section-title">${ICONS.heart} Coming Up</div>
+        <div class="rc-section-title">${ICONS.heart} ${t('relationshipCard.comingUp')}</div>
         ${upcomingDates.map(date => `
           <div class="rc-event-item">
             <div class="rc-event-date">
@@ -1248,7 +1248,7 @@ function renderOverviewTab(): string {
             </div>
             <div class="rc-event-info">
               <div class="rc-event-title">${date.label || date.type}</div>
-              <div class="rc-event-meta">${date.daysUntil === 0 ? 'Today!' : date.daysUntil === 1 ? 'Tomorrow' : `In ${date.daysUntil} days`}</div>
+              <div class="rc-event-meta">${daysUntilLabel(date.daysUntil, true)}</div>
             </div>
           </div>
         `).join('')}
@@ -1256,7 +1256,7 @@ function renderOverviewTab(): string {
     ` : ''}
     
     <div class="rc-section">
-      <div class="rc-section-title">${ICONS.clock} Recent Activity</div>
+      <div class="rc-section-title">${ICONS.clock} ${t('relationshipCard.recentActivity')}</div>
       ${recentTimeline.length > 0 ?
         recentTimeline.map(item => renderTimelineItem(item)).join('') :
         `<div class="rc-empty">
@@ -1265,14 +1265,14 @@ function renderOverviewTab(): string {
       }
       ${state.timeline.length > 5 ? `
         <button aria-label="${t('accessibility.viewAllMoments')}" class="rc-add-btn" data-action="view-all-timeline">
-          View all ${state.timeline.length} moments
+          ${tp('relationshipCard.viewAllMoments', state.timeline.length)}
         </button>
       ` : ''}
     </div>
     
     ${person.interests && person.interests.length > 0 ? `
       <div class="rc-section">
-        <div class="rc-section-title">${ICONS.star} Their Interests</div>
+        <div class="rc-section-title">${ICONS.star} ${t('relationshipCard.theirInterests')}</div>
         <div class="rc-interests">
           ${person.interests.map(interest => `
             <span class="rc-interest-tag">${escapeHtml(interest)}</span>
@@ -1296,7 +1296,7 @@ function renderTimelineTab(): string {
         <p class="rc-empty-text">${t('relationshipCard.everyCallBecomesPart')}</p>
       </div>
       <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-interaction">
-        ${ICONS.plus} Log a Moment
+        ${ICONS.plus} ${t('relationshipCard.logAMoment')}
       </button>
     `;
   }
@@ -1311,7 +1311,7 @@ function renderTimelineTab(): string {
     </div>
   `).join('') + `
     <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-interaction">
-      ${ICONS.plus} Log a Moment
+      ${ICONS.plus} ${t('relationshipCard.logAMoment')}
     </button>
   `;
 }
@@ -1329,7 +1329,7 @@ function renderTimelineItem(item: TimelineItem): string {
         <div class="rc-timeline-title">${escapeHtml(item.title)}</div>
         <div class="rc-timeline-meta">
           ${formatDate(date)}
-          ${item.duration ? ` · ${item.duration} min` : ''}
+          ${item.duration ? ` · ${t('relationshipCard.durationMin', { count: item.duration })}` : ''}
           ${item.platform ? ` · ${item.platform}` : ''}
           ${item.sentiment ? `<span class="rc-sentiment-dot ${item.sentiment}"></span>` : ''}
         </div>
@@ -1360,7 +1360,7 @@ function renderGiftsTab(): string {
         <p class="rc-empty-text">${t('relationshipCard.trackWhatYouGive')}</p>
       </div>
       <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-gift">
-        ${ICONS.plus} Record a Gift
+        ${ICONS.plus} ${t('relationshipCard.recordAGift')}
       </button>
     `;
   }
@@ -1381,17 +1381,14 @@ function renderGiftsTab(): string {
     ` : ''}
     
     <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-gift">
-      ${ICONS.plus} Record a Gift
+      ${ICONS.plus} ${t('relationshipCard.recordAGift')}
     </button>
   `;
 }
 
 function renderGiftItem(gift: Gift): string {
   const date = new Date(gift.date);
-  const reactionLabel = gift.reaction === 'loved' ? 'Loved it' :
-                        gift.reaction === 'liked' ? 'Liked it' :
-                        gift.reaction === 'neutral' ? 'Meh' :
-                        gift.reaction === 'disliked' ? 'Not their thing' : null;
+  const reactionLabel = gift.reaction ? t(`relationshipCard.reaction.${gift.reaction}`) : null;
 
   return `
     <div class="rc-gift-item">
@@ -1402,7 +1399,7 @@ function renderGiftItem(gift: Gift): string {
         <div class="rc-gift-name">${escapeHtml(gift.item)}</div>
         <div class="rc-gift-meta">
           ${escapeHtml(gift.occasion)} · ${formatDate(date)}
-          ${gift.price ? ` · $${gift.price}` : ''}
+          ${gift.price ? ` · ${formatCurrency(gift.price, 'USD')}` : ''}
         </div>
         ${reactionLabel && gift.direction === 'given' ? `
           <span class="rc-gift-reaction ${gift.reaction}" role="button" tabindex="0">${reactionLabel}</span>
@@ -1425,18 +1422,18 @@ function renderEventsTab(): string {
   return `
     <!-- Important Dates Section -->
     <div class="rc-section">
-      <div class="rc-section-title">${ICONS.star} Important Dates</div>
+      <div class="rc-section-title">${ICONS.star} ${t('relationshipCard.importantDates')}</div>
       ${importantDates.length > 0 ? `
         ${importantDates.map(d => {
-          const typeLabel = d.type === 'birthday' ? 'Birthday' :
-                           d.type === 'anniversary' ? 'Anniversary' :
-                           d.type === 'memorial' ? 'Memorial' : d.label || 'Custom';
+          const typeLabel = ['birthday', 'anniversary', 'memorial'].includes(d.type)
+            ? t(`relationshipCard.dateTypes.${d.type}`)
+            : d.label || t('relationshipCard.dateTypes.custom');
           return `
             <div class="rc-date-item">
               <div class="rc-date-label">${typeLabel}</div>
               <div class="rc-date-value">${formatDateStr(d.date)}</div>
               ${d.daysUntil !== undefined && d.daysUntil >= 0 && d.daysUntil <= 30 ? `
-                <span class="rc-date-badge">${d.daysUntil === 0 ? 'Today!' : d.daysUntil === 1 ? 'Tomorrow' : `In ${d.daysUntil} days`}</span>
+                <span class="rc-date-badge">${daysUntilLabel(d.daysUntil, true)}</span>
               ` : ''}
             </div>
           `;
@@ -1445,14 +1442,14 @@ function renderEventsTab(): string {
         <p class="rc-empty-inline">${t('relationshipCard.noImportantDates')}</p>
       `}
       <button aria-label="${t('accessibility.edit')}" class="rc-add-btn" data-action="manage-dates">
-        ${ICONS.edit} ${importantDates.length > 0 ? 'Manage Dates' : 'Add Birthday, Anniversary...'}
+        ${ICONS.edit} ${t(importantDates.length > 0 ? 'relationshipCard.manageDates' : 'relationshipCard.addDates')}
       </button>
     </div>
     
     <!-- Calendar Events Section -->
     ${upcomingEvents.length > 0 ? `
       <div class="rc-section">
-        <div class="rc-section-title">${ICONS.calendar} Upcoming Together</div>
+        <div class="rc-section-title">${ICONS.calendar} ${t('relationshipCard.upcomingTogether')}</div>
         ${upcomingEvents.map(event => renderEventItem(event)).join('')}
       </div>
     ` : ''}
@@ -1466,7 +1463,7 @@ function renderEventsTab(): string {
     
     ${upcomingEvents.length === 0 && pastEvents.length === 0 ? `
       <div class="rc-empty-inline" style="margin-top: var(--space-4, 1rem);">
-        <p>No calendar events found with ${escapeHtml(person.name)}.</p>
+        <p>${t('relationshipCard.noCalendarEvents', { name: escapeHtml(person.name) })}</p>
       </div>
     ` : ''}
   `;
@@ -1478,7 +1475,7 @@ function renderEventItem(event: CalendarEvent): string {
   return `
     <div class="rc-event-item">
       <div class="rc-event-date">
-        <span class="rc-event-date-month">${date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</span>
+        <span class="rc-event-date-month">${monthAbbrev(date)}</span>
         <span class="rc-event-date-day">${date.getDate()}</span>
       </div>
       <div class="rc-event-info">
@@ -1495,14 +1492,14 @@ function renderNotesTab(): string {
   return `
     ${person.howWeMet ? `
       <div class="rc-notes-section">
-        <div class="rc-notes-label">${ICONS.users} How you met</div>
+        <div class="rc-notes-label">${ICONS.users} ${t('relationshipCard.howYouMet')}</div>
         <div class="rc-notes-content">${escapeHtml(person.howWeMet)}</div>
       </div>
     ` : ''}
     
     ${person.interests && person.interests.length > 0 ? `
       <div class="rc-notes-section">
-        <div class="rc-notes-label">${ICONS.star} Their interests</div>
+        <div class="rc-notes-label">${ICONS.star} ${t('relationshipCard.theirInterestsLabel')}</div>
         <div class="rc-interests">
           ${person.interests.map(i => `<span class="rc-interest-tag">${escapeHtml(i)}</span>`).join('')}
         </div>
@@ -1511,7 +1508,7 @@ function renderNotesTab(): string {
     
     ${person.recentTopics && person.recentTopics.length > 0 ? `
       <div class="rc-notes-section">
-        <div class="rc-notes-label">${ICONS.message} Recent topics</div>
+        <div class="rc-notes-label">${ICONS.message} ${t('relationshipCard.recentTopics')}</div>
         <div class="rc-interests">
           ${person.recentTopics.map(t => `<span class="rc-interest-tag">${escapeHtml(t)}</span>`).join('')}
         </div>
@@ -1529,13 +1526,13 @@ function renderNotesTab(): string {
     
     ${person.notes ? `
       <div class="rc-notes-section">
-        <div class="rc-notes-label">${ICONS.fileText} Your notes</div>
+        <div class="rc-notes-label">${ICONS.fileText} ${t('relationshipCard.yourNotes')}</div>
         <div class="rc-notes-content">${escapeHtml(person.notes)}</div>
       </div>
     ` : ''}
     
     <button aria-label="${t('accessibility.edit')}" class="rc-add-btn" data-action="edit-notes">
-      ${ICONS.edit} ${person.notes ? 'Edit Notes' : 'Add Notes'}
+      ${ICONS.edit} ${t(person.notes ? 'relationshipCard.editNotes' : 'relationshipCard.addNotes')}
     </button>
   `;
 }
@@ -1846,33 +1843,33 @@ function escapeHtml(text: string): string {
 }
 
 function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return formatLocaleDate(date, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/** Upper-cased short month name, e.g. "MAR". */
+function monthAbbrev(date: Date): string {
+  return formatLocaleDate(date, { month: 'short' }).toLocaleUpperCase(getLocale());
+}
+
+function daysUntilLabel(daysUntil: number | undefined, exclaimToday = false): string {
+  if (daysUntil === 0) return exclaimToday ? t('relationshipCard.todayExclaim') : t('common.today');
+  return daysUntil === 1 ? t('relationshipCard.tomorrow') : tp('relationshipCard.inDays', daysUntil ?? 0);
+}
+
+/** Parse a MM-DD or YYYY-MM-DD string into [month (0-based), day]. */
+function parseMonthDay(dateStr: string): [number, number] {
+  const parts = dateStr.split('-');
+  const [month, day] = parts.length === 3 ? [parts[1], parts[2]] : [parts[0], parts[1]];
+  return [parseInt(month ?? '1', 10) - 1, parseInt(day ?? '1', 10)];
 }
 
 function formatDateStr(dateStr: string): string {
-  // Handle MM-DD or YYYY-MM-DD format
-  const parts = dateStr.split('-');
-  let month: number, day: number;
-  
-  if (parts.length === 3) {
-    month = parseInt(parts[1] ?? '1', 10) - 1;
-    day = parseInt(parts[2] ?? '1', 10);
-  } else {
-    month = parseInt(parts[0] ?? '1', 10) - 1;
-    day = parseInt(parts[1] ?? '1', 10);
-  }
-
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
-                      'July', 'August', 'September', 'October', 'November', 'December'];
-  return `${monthNames[month] ?? 'January'} ${day}`;
+  const [month, day] = parseMonthDay(dateStr);
+  return formatLocaleDate(new Date(2000, month, day), { month: 'long', day: 'numeric' });
 }
 
 function getMonthAbbrev(dateStr: string): string {
-  // Handle MM-DD or YYYY-MM-DD format
-  const parts = dateStr.split('-');
-  const monthNum = parts.length === 3 ? parseInt(parts[1] ?? '1') : parseInt(parts[0] ?? '1');
-  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-  return months[monthNum - 1] ?? 'JAN';
+  return monthAbbrev(new Date(2000, parseMonthDay(dateStr)[0], 1));
 }
 
 function getDayNumber(dateStr: string): string {
@@ -1883,7 +1880,7 @@ function getDayNumber(dateStr: string): string {
 function groupTimelineByMonth(items: TimelineItem[]): Record<string, TimelineItem[]> {
   return items.reduce((acc, item) => {
     const date = new Date(item.date);
-    const key = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const key = formatLocaleDate(date, { month: 'long', year: 'numeric' });
     if (!acc[key]) acc[key] = [];
     acc[key].push(item);
     return acc;
@@ -2024,30 +2021,21 @@ async function loadRelationshipData(contactId: string): Promise<void> {
 }
 
 function formatInteractionTitle(item: TimelineItem): string {
-  const typeLabels: Record<string, string> = {
-    call: 'Phone call',
-    text: 'Text message',
-    email: 'Email',
-    video_call: 'Video call',
-    voice_message: 'Voice message',
-    hangout: 'Hung out',
-    dinner: 'Had dinner',
-    activity: 'Did something together',
-    trip: 'Trip together',
-    visit: 'Visited',
-    gift_given: 'Gave a gift',
-    gift_received: 'Received a gift',
-    card_sent: 'Sent a card',
-    card_received: 'Received a card',
-    social_interaction: 'Social interaction',
-    meeting: 'Meeting',
-    milestone: 'Milestone',
-  };
-  
-  const base = typeLabels[item.type] || 'Connected';
-  const direction = item.direction === 'inbound' ? ' (they reached out)' :
-                    item.direction === 'outbound' ? ' (you reached out)' : '';
-  return base + direction;
+  const type = t(`relationshipCard.interactions.${camelCase(item.type)}`, t('relationshipCard.interactions.default'));
+  if (item.direction === 'inbound') return t('relationshipCard.interactionInbound', { type });
+  if (item.direction === 'outbound') return t('relationshipCard.interactionOutbound', { type });
+  return type;
+}
+
+function camelCase(snake: string): string {
+  return snake.replace(/_(\w)/g, (_, c: string) => c.toUpperCase());
+}
+
+function upcomingDateNotice(date: { label?: string; type: string; daysUntil?: number }): string {
+  const label = date.label || t(`relationshipCard.dateTypes.${date.type}`, date.type);
+  if (date.daysUntil === 0) return t('relationshipCard.noticeDateToday', { label });
+  if (date.daysUntil === 1) return t('relationshipCard.noticeDateTomorrow', { label });
+  return tp('relationshipCard.noticeDateDays', date.daysUntil ?? 0, { label });
 }
 
 function generateNotices(): FerniNotice[] {
@@ -2061,8 +2049,8 @@ function generateNotices(): FerniNotice[] {
       id: 'reconnect',
       type: 'reminder',
       priority: 'medium',
-      message: `It's been ${person.daysSinceContact} days since you connected. Might be time to reach out?`,
-      actionLabel: 'Send a message',
+      message: tp('relationshipCard.noticeReconnect', person.daysSinceContact),
+      actionLabel: t('relationshipCard.noticeSendMessage'),
       actionType: 'send-message',
     });
   }
@@ -2074,21 +2062,18 @@ function generateNotices(): FerniNotice[] {
       id: 'upcoming-date',
       type: 'reminder',
       priority: 'high',
-      message: `${upcomingDate.label || upcomingDate.type} is ${upcomingDate.daysUntil === 0 ? 'today!' : upcomingDate.daysUntil === 1 ? 'tomorrow!' : `in ${upcomingDate.daysUntil} days`}`,
+      message: upcomingDateNotice(upcomingDate),
     });
   }
 
   // Last gift insight
   const lastGift = state.gifts.find(g => g.direction === 'given');
   if (lastGift?.reaction) {
-    const reactionText = lastGift.reaction === 'loved' ? 'loved' :
-                         lastGift.reaction === 'liked' ? 'liked' :
-                         lastGift.reaction === 'neutral' ? 'was meh about' : 'didn\'t love';
     notices.push({
       id: 'last-gift',
       type: 'insight',
       priority: 'low',
-      message: `Last time, you gave ${lastGift.item} and they ${reactionText} it.`,
+      message: t(`relationshipCard.noticeLastGift.${lastGift.reaction}`, { item: lastGift.item }),
     });
   }
 
@@ -2098,7 +2083,7 @@ function generateNotices(): FerniNotice[] {
       id: 'growing',
       type: 'celebration',
       priority: 'low',
-      message: `Your relationship with ${person.name} is getting stronger!`,
+      message: t('relationshipCard.noticeGrowing', { name: person.name }),
     });
   }
 
@@ -2142,7 +2127,7 @@ export async function openRelationshipCard(
   cardContainer.innerHTML = `
     <div class="relationship-card-backdrop"></div>
     <div class="relationship-card" role="dialog" aria-modal="true">
-      <div class="rc-loading">Loading...</div>
+      <div class="rc-loading">${t('relationshipCard.loading')}</div>
     </div>
   `;
   document.body.appendChild(cardContainer);

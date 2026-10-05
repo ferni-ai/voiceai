@@ -270,8 +270,9 @@ li[role="menuitem"] {
 }
 
 /* Close buttons - often too small */
-[aria-label="Close"],
-[aria-label="close"],
+[data-action^="close"],
+[class*="__close"],
+[class*="-close"],
 .close-btn,
 .btn-close {
   min-width: ${MIN_TOUCH_SIZE}px;

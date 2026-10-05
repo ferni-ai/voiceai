@@ -45,11 +45,11 @@ const log = createLogger('CustomAgentWizard');
 // ============================================================================
 
 const WIZARD_STEPS = [
-  { id: 'type', titleKey: 'customAgentWizard.steps.chooseType', subtitleKey: 'customAgentWizard.steps.chooseTypeSubtitle' },
-  { id: 'info', titleKey: 'customAgentWizard.steps.basicInfo', subtitleKey: 'customAgentWizard.steps.basicInfoSubtitle' },
-  { id: 'voice', titleKey: 'customAgentWizard.steps.voice', subtitleKey: 'customAgentWizard.steps.voiceSubtitle' },
-  { id: 'personality', titleKey: 'customAgentWizard.steps.personality', subtitleKey: 'customAgentWizard.steps.personalitySubtitle' },
-  { id: 'memories', titleKey: 'customAgentWizard.steps.memories', subtitleKey: 'customAgentWizard.steps.memoriesSubtitle' },
+  { id: 'type', titleKey: 'customAgentWizard.steps.chooseType' },
+  { id: 'info', titleKey: 'customAgentWizard.steps.basicInfo' },
+  { id: 'voice', titleKey: 'customAgentWizard.steps.voice' },
+  { id: 'personality', titleKey: 'customAgentWizard.steps.personality' },
+  { id: 'memories', titleKey: 'customAgentWizard.steps.memories' },
 ] as const;
 
 // ============================================================================
@@ -332,16 +332,16 @@ function renderTypeStep(): string {
         ${types
           .map(
             (type) => `
-          <button aria-label="${type.name}"
+          <button aria-label="${t(type.nameKey)}"
             class="type-card ${selectedType === type.id ? 'type-card--selected' : ''}" 
             data-type="${type.id}"
             aria-pressed="${selectedType === type.id}"
           >
             <div class="type-icon">${getTypeIconSvg(type.icon)}</div>
-            <h3 class="type-name">${type.name}</h3>
-            <p class="type-description">${type.description}</p>
+            <h3 class="type-name">${t(type.nameKey)}</h3>
+            <p class="type-description">${t(type.descriptionKey)}</p>
             <ul class="type-features">
-              ${type.features.slice(0, 2).map((f) => `<li>${f}</li>`).join('')}
+              ${type.featureKeys.slice(0, 2).map((key) => `<li>${t(key)}</li>`).join('')}
             </ul>
             <div class="type-selected-indicator">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -362,13 +362,13 @@ function renderTypeStep(): string {
  */
 function renderInfoStep(): string {
   const typeInfo = getAgentTypes().find((t) => t.id === draft.type);
-  const typeLabel = typeInfo?.name || 'Custom';
+  const typeLabel = t(typeInfo?.nameKey ?? 'marketplace.creations.custom');
 
   return `
     <div class="wizard-step wizard-step--info">
       <div class="step-header">
         <h2 class="step-title" id="wizard-title">${t('customAgentWizard.infoStep.title')}</h2>
-        <p class="step-subtitle">Creating a ${typeLabel} agent</p>
+        <p class="step-subtitle">${t('customAgentWizard.infoStep.creatingType', { type: typeLabel })}</p>
       </div>
       
       <form class="info-form" id="info-form">
@@ -378,7 +378,7 @@ function renderInfoStep(): string {
             type="text"
             id="agent-name"
             class="form-input"
-            placeholder="${t('agentWizard.namePlaceholder', 'What should we call them?')}"
+            placeholder="${t('agentWizard.namePlaceholder')}"
             value="${draft.name || ''}"
             maxlength="50"
             required
@@ -392,7 +392,7 @@ function renderInfoStep(): string {
             type="text"
             id="agent-display-name"
             class="form-input"
-            placeholder="${t('agentWizard.displayNamePlaceholder', "e.g., 'Grandma Rose' or 'Dr. Marcus'")}"
+            placeholder="${t('agentWizard.displayNamePlaceholder')}"
             value="${draft.displayName || ''}"
             maxlength="100"
           />
@@ -404,7 +404,7 @@ function renderInfoStep(): string {
           <textarea
             id="agent-description"
             class="form-input form-textarea"
-            placeholder="${t('agentWizard.descriptionPlaceholder', 'Who are they? What makes them special?')}"
+            placeholder="${t('agentWizard.descriptionPlaceholder')}"
             maxlength="500"
             rows="4"
             required
@@ -543,7 +543,7 @@ function renderVoiceCloneUI(): string {
         
         <div class="recording-controls">
           <button aria-label="${t('accessibility.stop')}" class="recording-btn ${isRecording ? 'recording-btn--stop' : ''}" id="record-btn">
-            ${isRecording ? t('ui.customagentwizard.stopRecording') : 'Start Recording'}
+            ${isRecording ? t('ui.customagentwizard.stopRecording') : t('customAgentWizard.voiceClone.startRecording')}
           </button>
           <p class="recording-hint">${t('customAgentWizard.voiceClone.recordingHint')}</p>
         </div>
@@ -553,7 +553,7 @@ function renderVoiceCloneUI(): string {
             ? `
           <div class="recorded-preview">
             <audio id="recorded-audio" controls src="${URL.createObjectURL(recordedAudioBlob)}"></audio>
-            <button aria-label="${t('accessibility.clearReRecord')}" class="preview-action" id="clear-recording">Clear & Re-record</button>
+            <button aria-label="${t('accessibility.clearReRecord')}" class="preview-action" id="clear-recording">${t('customAgentWizard.voiceClone.clearAndRerecord')}</button>
           </div>
         `
             : ''
@@ -561,7 +561,7 @@ function renderVoiceCloneUI(): string {
       </div>
 
       <div class="upload-alternative">
-        <span class="divider-text">or</span>
+        <span class="divider-text">${t('customAgentWizard.voiceClone.or')}</span>
         <label for="audio-upload" class="upload-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -598,9 +598,9 @@ function renderVoiceLibraryUI(voices: ReturnType<typeof getVoiceLibrary>): strin
             </div>
             <div class="voice-info">
               <h4 class="voice-name">${voice.name}</h4>
-              <p class="voice-description">${voice.description}</p>
+              <p class="voice-description">${t(voice.descriptionKey)}</p>
               <div class="voice-tags">
-                ${voice.tags.map((tag) => `<span class="voice-tag">${tag}</span>`).join('')}
+                ${voice.tags.map((tag) => `<span class="voice-tag">${t(`voiceLibrary.tags.${tag}`, tag)}</span>`).join('')}
               </div>
             </div>
             <button class="voice-preview-btn" data-preview="${voice.previewUrl}" aria-label="${t('accessibility.moreInformation')}">
@@ -893,7 +893,7 @@ function renderMemoriesStep(): string {
           </div>
           <div class="summary-item">
             <span class="summary-label">${t('customAgentWizard.review.typeSummaryLabel')}</span>
-            <span class="summary-value">${getAgentTypes().find((t) => t.id === draft.type)?.name || t('customAgentWizard.review.defaultName')}</span>
+            <span class="summary-value">${t(getAgentTypes().find((info) => info.id === draft.type)?.nameKey ?? 'customAgentWizard.review.defaultName')}</span>
           </div>
           <div class="summary-item">
             <span class="summary-label">${t('customAgentWizard.review.voiceSummaryLabel')}</span>
@@ -1074,7 +1074,7 @@ function handleVoiceOptionSelect(e: Event): void {
         card.addEventListener('click', handleVoiceSelect);
       });
     } else {
-      voiceContent.innerHTML = '<p class="voice-skip-message">You can add a voice anytime from the agent settings.</p>';
+      voiceContent.innerHTML = `<p class="voice-skip-message">${t('customAgentWizard.voiceOption.laterMessage')}</p>`;
     }
   }
   
@@ -1341,17 +1341,17 @@ function validateCurrentStep(): boolean {
   switch (stepId) {
     case 'type':
       if (!draft.type) {
-        showValidationError('Please select an agent type');
+        showValidationError(t('customAgentWizard.validation.type'));
         return false;
       }
       break;
     case 'info':
       if (!draft.name?.trim()) {
-        showValidationError('Please enter a name');
+        showValidationError(t('customAgentWizard.validation.name'));
         return false;
       }
       if (!draft.description?.trim()) {
-        showValidationError('Please enter a description');
+        showValidationError(t('customAgentWizard.validation.description'));
         return false;
       }
       break;

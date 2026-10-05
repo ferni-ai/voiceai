@@ -14,7 +14,8 @@
  * @module ui/insights-view
  */
 
-import { t } from '../i18n/index.js'; import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
+import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import {
   ICONS,
   WEATHER_COPY,
@@ -236,8 +237,7 @@ export class InsightsView {
   private renderPresence(presence: NonNullable<InsightData['presence']>): string {
     const weatherCopy = WEATHER_COPY[presence.weather];
     const energyCopy = ENERGY_COPY[presence.energy];
-    const iconKey = presence.weather as keyof typeof ICONS;
-    const icon = ICONS[iconKey] || ICONS.cloudy;
+    const icon = ICONS[presence.weather as keyof typeof ICONS] || ICONS.cloudy;
 
     return `
       <section class="insights-section insights-section--presence">

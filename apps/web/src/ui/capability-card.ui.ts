@@ -302,7 +302,7 @@ export function createCapabilityCard(
 
   // Better than Human badge
   if (showBthBadge && capability.isBetterThanHuman) {
-    html += `<div class="capability-card__bth-badge">Better than Human</div>`;
+    html += `<div class="capability-card__bth-badge">${t('capabilityCard.betterThanHuman')}</div>`;
   }
 
   // Voice trigger

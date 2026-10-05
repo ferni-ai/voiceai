@@ -20,6 +20,8 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 
 export interface ExportableData {
   category: string;
+  /** Localized display name; `category` is the server id. */
+  name?: string;
   description: string;
   itemCount: number;
   exportable: boolean;
@@ -185,7 +187,7 @@ class DataExportUI {
       <label class="data-export__category">
         <input type="checkbox" class="data-export__category-checkbox" data-category="${data.category}" ${checked ? 'checked' : ''} ${!data.exportable ? 'disabled' : ''} />
         <div class="data-export__category-info">
-          <span class="data-export__category-name">${data.category}</span>
+          <span class="data-export__category-name">${data.name ?? data.category}</span>
           <span class="data-export__category-desc">${data.description}</span>
         </div>
         <span class="data-export__category-count">${data.itemCount}</span>

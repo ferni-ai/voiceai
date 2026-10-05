@@ -13,7 +13,7 @@
  * @module ui/moments/trophy-room
  */
 
-import { t } from '../../i18n/index.js';
+import { formatDate, t } from '../../i18n/index.js';
 import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../../config/animation-constants.js';
 import { getHapticsService } from '../../services/haptics.service.js';
 import { createLogger } from '../../utils/logger.js';
@@ -29,6 +29,8 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // BADGE DEFINITIONS
 // Using SVG icons (not emoji) per brand guidelines
 // ============================================================================
+
+const DATE_FORMAT: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
 
 const BADGE_CATEGORIES: Record<BadgeCategory, { labelKey: string; iconName: string }> = {
   time: { labelKey: 'trophyRoom.categories.time', iconName: 'clock' },
@@ -148,19 +150,19 @@ class TrophyRoom {
     this.element.className = 'trophy-room';
     this.element.setAttribute('role', 'dialog');
     this.element.setAttribute('aria-modal', 'true');
-    this.element.setAttribute('aria-label', 'Trophy Room');
+    this.element.setAttribute('aria-label', t('trophyRoom.trophyRoom'));
 
     this.element.innerHTML = `
       <div class="trophy-room__backdrop"></div>
       <div class="trophy-room__container">
-        <button class="trophy-room__close" aria-label="Close">
+        <button class="trophy-room__close" aria-label="${t('common.close')}">
           ${getIcon('close', 18)}
         </button>
         
         <header class="trophy-room__header">
           <span class="trophy-room__eyebrow">${t('trophyRoom.yourJourney')}</span>
           <h2 class="trophy-room__title">${t('trophyRoom.trophyRoom')}</h2>
-          <p class="trophy-room__subtitle">${this.earnedBadges.size} of ${Object.keys(BADGE_DEFINITIONS).length} ${t('trophyRoom.achievementsUnlocked')}</p>
+          <p class="trophy-room__subtitle">${t('trophyRoom.unlockedCount', { earned: this.earnedBadges.size, total: Object.keys(BADGE_DEFINITIONS).length })}</p>
         </header>
         
         <nav class="trophy-room__tabs" role="tablist">
@@ -247,7 +249,7 @@ class TrophyRoom {
             </div>
             ${
               earned?.earnedAt
-                ? `<div class="trophy-room__badge-date">${this.formatDate(earned.earnedAt)}</div>`
+                ? `<div class="trophy-room__badge-date">${formatDate(earned.earnedAt, DATE_FORMAT)}</div>`
                 : ''
             }
           </div>
@@ -322,8 +324,8 @@ class TrophyRoom {
           definition.quoteKey
             ? `
           <blockquote class="trophy-room__detail-quote">
-            "${this.escapeHtml(t(definition.quoteKey))}"
-            <cite>— Ferni</cite>
+            ${this.escapeHtml(t('trophyRoom.quote', { quote: t(definition.quoteKey) }))}
+            <cite>${t('trophyRoom.quoteAttribution')}</cite>
           </blockquote>
         `
             : ''
@@ -333,7 +335,7 @@ class TrophyRoom {
           badge.earnedAt
             ? `
           <div class="trophy-room__detail-date">
-            ${t('trophyRoom.earned')} ${this.formatDate(badge.earnedAt)}
+            ${t('trophyRoom.earnedOn', { date: formatDate(badge.earnedAt, DATE_FORMAT) })}
           </div>
         `
             : ''
@@ -380,7 +382,7 @@ class TrophyRoom {
     this.haptics.play('success');
 
     const shareData = {
-      title: `I earned "${badgeName}" on Ferni!`,
+      title: t('trophyRoom.shareTitle', { badge: badgeName }),
       text: `${badgeDesc} - ${definition.quoteKey ? t(definition.quoteKey) : ''}`,
       url: 'https://ferni.ai',
     };
@@ -467,14 +469,6 @@ class TrophyRoom {
   // ==========================================================================
   // HELPERS
   // ==========================================================================
-
-  private formatDate(date: Date): string {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(date);
-  }
 
   private escapeHtml(text: string): string {
     const div = document.createElement('div');

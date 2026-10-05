@@ -9,8 +9,8 @@ export type WizardStepId = 'type' | 'info' | 'voice' | 'personality' | 'memories
 
 export interface WizardStep {
   id: WizardStepId;
-  title: string;
-  subtitle: string;
+  /** i18n key of the step title; render with t(). */
+  titleKey: string;
 }
 
 export type VoiceOption = 'clone' | 'library' | 'later';

@@ -19,7 +19,6 @@ import {
   deleteMemory,
   addMemory,
   dispatchCustomAgentEvent,
-  getAgentTypes,
   getVoiceLibrary,
   selectPreMadeVoice,
 } from '../services/custom-agent.service.js';
@@ -242,7 +241,7 @@ function updateHeader(): void {
   avatar.style.background = `linear-gradient(135deg, ${primaryColor}, ${primaryColor})`;
 
   title.textContent = currentAgent.displayName || currentAgent.name;
-  subtitle.textContent = getAgentTypes().find((t) => t.id === currentAgent!.type)?.name || currentAgent.type;
+  subtitle.textContent = t(`agent.type.${currentAgent.type}`, currentAgent.type);
 
   const statusClass = currentAgent.status === 'active' ? 'status--active' : 
                       currentAgent.status === 'paused' ? 'status--paused' : 'status--draft';
@@ -507,7 +506,7 @@ function renderVoiceTab(): string {
               </div>
               <div class="voice-info">
                 <span class="voice-name">${v.name}</span>
-                <span class="voice-desc">${v.description}</span>
+                <span class="voice-desc">${t(v.descriptionKey)}</span>
               </div>
             </button>
           `).join('')}

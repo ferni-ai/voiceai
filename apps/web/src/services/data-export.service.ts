@@ -28,6 +28,8 @@ const log = createLogger('DataExport');
 
 export interface ExportableCategory {
   category: string;
+  /** Localized display name; `category` is the server id. */
+  name?: string;
   description: string;
   itemCount: number;
   exportable: boolean;
@@ -58,10 +60,24 @@ const CATEGORY_DESCRIPTION_KEYS: Record<string, string> = {
   Productivity: 'dataExportService.categoryProductivity',
 };
 
+const CATEGORY_NAME_KEYS: Record<string, string> = {
+  Conversations: 'dataExportService.categoryName.conversations',
+  Insights: 'dataExportService.categoryName.insights',
+  Rituals: 'dataExportService.categoryName.rituals',
+  Predictions: 'dataExportService.categoryName.predictions',
+  'Mood History': 'dataExportService.categoryName.moodHistory',
+  Profile: 'dataExportService.categoryName.profile',
+  Contacts: 'dataExportService.categoryName.contacts',
+  'Trust Journey': 'dataExportService.categoryName.trustJourney',
+  Wellbeing: 'dataExportService.categoryName.wellbeing',
+  Habits: 'dataExportService.categoryName.habits',
+  Productivity: 'dataExportService.categoryName.productivity',
+};
+
 function localizeCategories(categories: ExportableCategory[]): ExportableCategory[] {
   return categories.map((c) => {
     const key = CATEGORY_DESCRIPTION_KEYS[c.category];
-    return key ? { ...c, description: t(key) } : c;
+    return key ? { ...c, name: t(CATEGORY_NAME_KEYS[c.category]!), description: t(key) } : c;
   });
 }
 

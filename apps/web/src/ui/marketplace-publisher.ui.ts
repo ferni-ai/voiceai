@@ -22,7 +22,8 @@
  *   - Respects prefers-reduced-motion
  */
 
-import { t } from '../i18n/index.js';
+import { formatCurrency, formatNumber, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -137,10 +138,10 @@ const ICONS = {
 // Status badges
 type ItemStatus = 'pending_review' | 'approved' | 'rejected';
 
-const STATUS_CONFIG: Record<ItemStatus, { label: string; color: string; icon: string }> = {
-  pending_review: { label: 'In Review', color: 'var(--color-semantic-warning)', icon: ICONS.clock },
-  approved: { label: 'Live', color: 'var(--color-semantic-success)', icon: ICONS.check },
-  rejected: { label: 'Rejected', color: 'var(--color-semantic-error)', icon: ICONS.alertCircle },
+const STATUS_CONFIG: Record<ItemStatus, { labelKey: string; color: string; icon: string }> = {
+  pending_review: { labelKey: 'publisherPortal.statusInReview', color: 'var(--color-semantic-warning)', icon: ICONS.clock },
+  approved: { labelKey: 'publisherPortal.statusLive', color: 'var(--color-semantic-success)', icon: ICONS.check },
+  rejected: { labelKey: 'publisherPortal.statusRejected', color: 'var(--color-semantic-error)', icon: ICONS.alertCircle },
 };
 
 const DEFAULT_STATUS = STATUS_CONFIG.pending_review;
@@ -280,7 +281,7 @@ async function loadPublisherData(): Promise<void> {
   } catch (error) {
     log.warn('Failed to load publisher data:', error);
     state.loadError = true;
-    toast.error("Couldn't load your data. Try again?");
+    toast.error(t('publisherPortal.couldNotLoadData'));
   }
 }
 
@@ -293,7 +294,7 @@ function createPortalContainer(): HTMLElement {
   el.className = 'publisher-portal';
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-modal', 'true');
-  el.setAttribute('aria-label', 'Publisher Portal');
+  el.setAttribute('aria-label', t('publisherPortal.title'));
 
   el.innerHTML = `
     <div class="publisher-backdrop" aria-hidden="true"></div>
@@ -407,7 +408,7 @@ function renderItemsList(content: Element): void {
         <h3 class="publisher-empty-title">${t('publisherPortal.noItems')}</h3>
         <p class="publisher-empty-text">${t('publisherPortal.noItemsDesc')}</p>
         <button aria-label="${t('accessibility.add')}" class="publisher-button publisher-button--primary" data-action="submit">
-          ${ICONS.plus} ${t('publisherPortal.submitNew')} Item
+          ${ICONS.plus} ${t('publisherPortal.submitNewItem')}
         </button>
       </div>
     `;
@@ -461,6 +462,8 @@ function renderItemsList(content: Element): void {
 function renderItemCard(item: PublisherItem, index: number): string {
   const isValidStatus = (s: string): s is ItemStatus => s in STATUS_CONFIG;
   const statusConfig = isValidStatus(item.status) ? STATUS_CONFIG[item.status] : DEFAULT_STATUS;
+  const typeLabel = t(item.type === 'agent' ? 'publisherPortal.typeAgent' : 'publisherPortal.typeTool');
+  const statusLabel = t(statusConfig.labelKey);
 
   return `
     <article
@@ -469,25 +472,25 @@ function renderItemCard(item: PublisherItem, index: number): string {
       style="animation-delay: ${prefersReducedMotion() ? 0 : index * STAGGER_FAST}ms"
       tabindex="0"
       role="button"
-      aria-label="${item.name}, ${item.type}, ${statusConfig.label}"
+      aria-label="${item.name}, ${typeLabel}, ${statusLabel}"
     >
       <div class="item-icon" aria-hidden="true">
         ${item.type === 'agent' ? ICONS.bot : ICONS.tool}
       </div>
       <div class="item-info">
         <h3 class="item-name">${item.name}</h3>
-        <p class="item-meta">v${item.version} • ${item.type}</p>
+        <p class="item-meta">v${item.version} • ${typeLabel}</p>
       </div>
       <div class="item-status" style="--status-color: ${statusConfig.color}">
         ${statusConfig.icon}
-        <span>${statusConfig.label}</span>
+        <span>${statusLabel}</span>
       </div>
       ${
         item.stats
           ? `
         <div class="item-metrics">
-          <span class="metric">${ICONS.users} ${formatNumber(item.stats.installs)}</span>
-          <span class="metric">${ICONS.activity} ${item.stats.successRate.toFixed(0)}%</span>
+          <span class="metric">${ICONS.users} ${compactNumber(item.stats.installs)}</span>
+          <span class="metric">${ICONS.activity} ${formatNumber(item.stats.successRate / 100, { style: 'percent' })}</span>
         </div>
       `
           : ''
@@ -502,7 +505,7 @@ function renderAnalytics(content: Element): void {
       <div class="publisher-empty">
         <div class="publisher-empty-icon" aria-hidden="true">${ICONS.barChart}</div>
         <h3 class="publisher-empty-title">${t('publisherPortal.selectItem')}</h3>
-        <p class="publisher-empty-text">Choose an item from "My Items" to view its analytics</p>
+        <p class="publisher-empty-text">${t('publisherPortal.selectItemHint')}</p>
       </div>
     `;
     return;
@@ -513,45 +516,45 @@ function renderAnalytics(content: Element): void {
   content.innerHTML = `
     <div class="analytics-header">
       <button class="analytics-back" aria-label="${t('accessibility.backToItems')}">
-        ← Back
+        ← ${t('common.back')}
       </button>
       <h2 class="analytics-title">${item.name}</h2>
       <span class="analytics-subtitle">v${item.version}</span>
     </div>
 
     <div class="analytics-period">
-      <button aria-label="7 days" class="period-button period-button--active" data-period="7d">7 days</button>
-      <button aria-label="30 days" class="period-button" data-period="30d">30 days</button>
-      <button aria-label="90 days" class="period-button" data-period="90d">90 days</button>
+      <button aria-label="${tp('publisherPortal.days', 7)}" class="period-button period-button--active" data-period="7d">${tp('publisherPortal.days', 7)}</button>
+      <button aria-label="${tp('publisherPortal.days', 30)}" class="period-button" data-period="30d">${tp('publisherPortal.days', 30)}</button>
+      <button aria-label="${tp('publisherPortal.days', 90)}" class="period-button" data-period="90d">${tp('publisherPortal.days', 90)}</button>
     </div>
 
     <div class="analytics-grid">
       <div class="analytics-card">
         <div class="analytics-card-icon" aria-hidden="true">${ICONS.users}</div>
         <div class="analytics-card-content">
-          <span class="analytics-card-value">${formatNumber(item.stats?.installs || 0)}</span>
+          <span class="analytics-card-value">${compactNumber(item.stats?.installs || 0)}</span>
           <span class="analytics-card-label">${t('publisherPortal.totalInstalls')}</span>
         </div>
       </div>
       <div class="analytics-card">
         <div class="analytics-card-icon" aria-hidden="true">${ICONS.activity}</div>
         <div class="analytics-card-content">
-          <span class="analytics-card-value">${formatNumber(item.stats?.executions || 0)}</span>
+          <span class="analytics-card-value">${compactNumber(item.stats?.executions || 0)}</span>
           <span class="analytics-card-label">${t('publisherPortal.executions')}</span>
         </div>
       </div>
       <div class="analytics-card">
         <div class="analytics-card-icon" aria-hidden="true">${ICONS.check}</div>
         <div class="analytics-card-content">
-          <span class="analytics-card-value">${(item.stats?.successRate || 100).toFixed(1)}%</span>
+          <span class="analytics-card-value">${formatNumber((item.stats?.successRate || 100) / 100, { style: 'percent', minimumFractionDigits: 1 })}</span>
           <span class="analytics-card-label">${t('publisherPortal.successRate')}</span>
         </div>
       </div>
       <div class="analytics-card">
         <div class="analytics-card-icon" aria-hidden="true">${ICONS.dollarSign}</div>
         <div class="analytics-card-content">
-          <span class="analytics-card-value">$${((item.stats?.revenue || 0) / 100).toFixed(2)}</span>
-          <span class="analytics-card-label">Revenue (80%)</span>
+          <span class="analytics-card-value">${formatCurrency((item.stats?.revenue || 0) / 100, 'USD')}</span>
+          <span class="analytics-card-label">${t('publisherPortal.revenue')}</span>
         </div>
       </div>
     </div>
@@ -579,17 +582,17 @@ function renderSubmitForm(content: Element): void {
           <div class="form-radio-group">
             <label class="form-radio">
               <input type="radio" name="type" value="tool" checked />
-              <span class="radio-label">${ICONS.tool} Tool</span>
+              <span class="radio-label">${ICONS.tool} ${t('publisherPortal.typeTool')}</span>
             </label>
             <label class="form-radio">
               <input type="radio" name="type" value="agent" />
-              <span class="radio-label">${ICONS.bot} Agent</span>
+              <span class="radio-label">${ICONS.bot} ${t('publisherPortal.typeAgent')}</span>
             </label>
           </div>
         </div>
 
         <div class="form-group">
-          <label for="item-id" class="form-label">ID</label>
+          <label for="item-id" class="form-label">${t('publisherPortal.id')}</label>
           <input
             type="text"
             id="item-id"
@@ -664,16 +667,14 @@ function renderSubmitForm(content: Element): void {
 
       <div class="form-actions" role="button" tabindex="0">
         <button aria-label="${t('accessibility.cancel')}" type="button" class="publisher-button publisher-button--secondary" data-action="cancel">
-          Cancel
+          ${t('common.cancel')}
         </button>
         <button aria-label="${t('accessibility.upload')}" type="submit" class="publisher-button publisher-button--primary">
-          ${ICONS.upload} Submit for Review
+          ${ICONS.upload} ${t('publisherPortal.submitForReview')}
         </button>
       </div>
 
-      <p class="form-note">
-        Submissions are reviewed within 2-5 business days. You'll receive an email when your item is approved.
-      </p>
+      <p class="form-note">${t('publisherPortal.reviewNote')}</p>
     </form>
   `;
 
@@ -701,7 +702,7 @@ async function handleSubmission(form: HTMLFormElement): Promise<void> {
   const submitButton = form.querySelector('[type="submit"]') as HTMLButtonElement;
 
   submitButton.disabled = true;
-  submitButton.innerHTML = `${ICONS.loader} Submitting...`;
+  submitButton.innerHTML = `${ICONS.loader} ${t('publisherPortal.submitting')}`;
 
   const type = formData.get('type') as 'tool' | 'agent';
   const id = formData.get('id') as string;
@@ -773,24 +774,24 @@ async function handleSubmission(form: HTMLFormElement): Promise<void> {
 
     if (response.ok && result.success) {
       toast.success(t('toasts.submittedForReview', { name }));
-      announceToScreenReader(`Successfully submitted ${name} for review`);
+      announceToScreenReader(t('publisherPortal.submittedAnnouncement', { name }));
 
       // Reload data and switch to items
       await loadPublisherData();
       state.activeTab = 'items';
       renderPortal();
     } else {
-      toast.error(result.error || "Submission didn't go through. Try again?");
+      toast.error(result.error || t('publisherPortal.submissionFailed'));
       if (result.validationErrors) {
         log.warn('Validation errors:', result.validationErrors);
       }
     }
   } catch (error) {
     log.error('Submission failed:', error);
-    toast.error("Hmm, that didn't work. Try again?");
+    toast.error(t('publisherPortal.genericError'));
   } finally {
     submitButton.disabled = false;
-    submitButton.innerHTML = `${ICONS.upload} Submit for Review`;
+    submitButton.innerHTML = `${ICONS.upload} ${t('publisherPortal.submitForReview')}`;
   }
 }
 
@@ -798,10 +799,8 @@ async function handleSubmission(form: HTMLFormElement): Promise<void> {
 // UTILITIES
 // ============================================================================
 
-function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num.toString();
+function compactNumber(num: number): string {
+  return formatNumber(num, { notation: 'compact', maximumFractionDigits: 1 });
 }
 
 // ============================================================================

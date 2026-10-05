@@ -626,7 +626,7 @@ class LinkedInSettingsUI {
         <header class="linkedin-settings__header">
           <div class="linkedin-settings__header-content">
             <div class="linkedin-settings__header-icon">${ICONS.linkedin}</div>
-            <h2 id="linkedin-settings-title" class="linkedin-settings__title">LinkedIn</h2>
+            <h2 id="linkedin-settings-title" class="linkedin-settings__title">${t('linkedInSettings.title')}</h2>
           </div>
           <button class="linkedin-settings__close" aria-label="${t('common.close')}">
             ${ICONS.close}
@@ -772,9 +772,7 @@ class LinkedInSettingsUI {
       <div class="linkedin-settings__status-card">
         <div class="linkedin-settings__connect-cta">
           <h3>${t('linkedInSettings.connectLinkedIn')}</h3>
-          <p>
-            ${t('linkedInSettings.connectDescription')}
-          </p>
+          <p>${t('linkedInSettings.connectDescription')}</p>
           <button class="linkedin-settings__btn linkedin-settings__btn--primary" data-action="connect">
             ${ICONS.linkedin}
             <span>${t('linkedInSettings.connectLinkedIn')}</span>

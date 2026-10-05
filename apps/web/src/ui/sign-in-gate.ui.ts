@@ -630,11 +630,8 @@ async function handleSignIn(provider: 'google' | 'apple'): Promise<void> {
 
     // Show error
     if (errorEl) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t('auth.signInError');
-      errorEl.textContent = message;
+      // Library error messages are English-only; show the localized generic one.
+      errorEl.textContent = t('auth.signInError');
       errorEl.classList.add('visible');
     }
 
