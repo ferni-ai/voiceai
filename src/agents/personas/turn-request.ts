@@ -19,6 +19,7 @@ import {
   toolRetrievalMode,
 } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { withoutLockedHandoffs, type UnlockView } from '../../tools/handoff/locked-handoffs.js';
+import { teamStatusNote, withTeammateAsk } from '../../tools/handoff/locked-teammates.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import {
@@ -44,8 +45,9 @@ export interface TurnToolsState {
 
 /**
  * A copy of the context with the turn reminder, plus what Ferni has already
- * told on this call and the director's notes for this reply, if any, and
- * without per-turn context built for an earlier turn (turn-intelligence.ts).
+ * told on this call, who isn't on the caller's team yet, and the director's
+ * notes for this reply, if any, and without per-turn context built for an
+ * earlier turn (turn-intelligence.ts).
  */
 export function withTurnReminder(request: llm.ChatContext, session: object): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
@@ -54,6 +56,7 @@ export function withTurnReminder(request: llm.ChatContext, session: object): llm
   const reminder = [
     turnStyleReminderEnabled() ? TURN_STYLE_REMINDER : '',
     director?.told() ?? '',
+    teamStatusNote(unlockViewFor((session as { userData?: unknown }).userData)),
     notes,
   ]
     .filter(Boolean)
@@ -82,19 +85,21 @@ export function unlockViewFor(sessionUserData: unknown): UnlockView {
   };
 }
 
-/** The tools this turn's request carries: no locked handoffs, then the retrieval pick. */
+/**
+ * The tools this turn's request carries: no locked handoffs, askForTeammate in
+ * their place (locked-teammates.ts), then the retrieval pick.
+ */
 export async function toolsForTurn(
   session: TurnSession,
   chatCtx: llm.ChatContext,
   toolCtx: llm.ToolContext,
   state: TurnToolsState
 ): Promise<llm.ToolContext> {
-  const unlocked = await withoutLockedHandoffs(toolCtx, unlockViewFor(session.userData)).catch(
-    (error: unknown) => {
-      log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
-      return toolCtx;
-    }
-  );
+  const view = unlockViewFor(session.userData);
+  const unlocked = await withoutLockedHandoffs(toolCtx, view).catch((error: unknown) => {
+    log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
+    return toolCtx;
+  });
   if (unlocked !== toolCtx && !state.loggedLockedHandoffs) {
     state.loggedLockedHandoffs = true;
     log.info(
@@ -104,7 +109,7 @@ export async function toolsForTurn(
       'Handoffs to locked teammates kept out of the request'
     );
   }
-  return retrievedTools(session, chatCtx, unlocked);
+  return retrievedTools(session, chatCtx, withTeammateAsk(unlocked, view));
 }
 
 /**

@@ -56,6 +56,8 @@ export const CORE_TOOLS = [
   'musicControl',
   // The fallback when retrieval ranked the right tool too low (find-tools-tool.ts).
   'findTools',
+  // Stands in for handoffs to locked teammates (tools/handoff/locked-teammates.ts).
+  'askForTeammate',
 ] as const;
 
 export interface TurnToolRetrievalOptions {
