@@ -4371,8 +4371,7 @@
       "currentChapter": "Current story chapter",
       "wouldYouRatherOptions": "Would you rather options",
       "wordsDayDescription": "Words describing your day",
-      "emojisStory": "Emojis in your story",
-      "wordsCount": "{count, plural, one {# word} other {# words}}"
+      "emojisStory": "Emojis in your story"
     }
   },
   "ceoCoaching": {
@@ -9991,7 +9990,7 @@
     "seedsToShare": "seeds to share",
     "daysInARow": "days in a row",
     "myGarden": "My Garden",
-    "bringAFriend": "Bring a friend",
+    "bringAFriend": "Bring a Friend",
     "alreadyClaimed": "Already claimed today",
     "untilBonus": {
       "one": "{count} day until {goal}-day streak bonus",
