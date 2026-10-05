@@ -5,6 +5,8 @@
  * Suggests playlists based on mood, energy, and persona.
  */
 
+import { t } from '../i18n/index.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -39,71 +41,71 @@ export interface MoodPlaylistMap {
 const MOOD_PLAYLISTS: MoodPlaylistMap = {
   sunny: {
     high: [
-      { id: 'sunny-high-1', name: 'Morning Energy', description: 'Upbeat tracks to start your day', mood: 'sunny', energy: 'high' },
-      { id: 'sunny-high-2', name: 'Feel Good Hits', description: 'Songs that make you smile', mood: 'sunny', energy: 'high' },
-      { id: 'sunny-high-3', name: 'Confidence Boost', description: 'Empowering anthems', mood: 'sunny', energy: 'high' },
+      { id: 'sunny-high-1', name: t('spotifyMood.playlist.sunnyHigh1.name'), description: t('spotifyMood.playlist.sunnyHigh1.description'), mood: 'sunny', energy: 'high' },
+      { id: 'sunny-high-2', name: t('spotifyMood.playlist.sunnyHigh2.name'), description: t('spotifyMood.playlist.sunnyHigh2.description'), mood: 'sunny', energy: 'high' },
+      { id: 'sunny-high-3', name: t('spotifyMood.playlist.sunnyHigh3.name'), description: t('spotifyMood.playlist.sunnyHigh3.description'), mood: 'sunny', energy: 'high' },
     ],
     medium: [
-      { id: 'sunny-med-1', name: 'Positive Vibes', description: 'Warm, optimistic sounds', mood: 'sunny', energy: 'medium' },
-      { id: 'sunny-med-2', name: 'Sunday Morning', description: 'Relaxed happiness', mood: 'sunny', energy: 'medium' },
+      { id: 'sunny-med-1', name: t('spotifyMood.playlist.sunnyMed1.name'), description: t('spotifyMood.playlist.sunnyMed1.description'), mood: 'sunny', energy: 'medium' },
+      { id: 'sunny-med-2', name: t('spotifyMood.playlist.sunnyMed2.name'), description: t('spotifyMood.playlist.sunnyMed2.description'), mood: 'sunny', energy: 'medium' },
     ],
     low: [
-      { id: 'sunny-low-1', name: 'Peaceful Joy', description: 'Gentle contentment', mood: 'sunny', energy: 'low' },
-      { id: 'sunny-low-2', name: 'Gratitude', description: 'Thankful and calm', mood: 'sunny', energy: 'low' },
+      { id: 'sunny-low-1', name: t('spotifyMood.playlist.sunnyLow1.name'), description: t('spotifyMood.playlist.sunnyLow1.description'), mood: 'sunny', energy: 'low' },
+      { id: 'sunny-low-2', name: t('spotifyMood.playlist.sunnyLow2.name'), description: t('spotifyMood.playlist.sunnyLow2.description'), mood: 'sunny', energy: 'low' },
     ],
   },
   'partly-cloudy': {
     high: [
-      { id: 'pc-high-1', name: 'Motivated', description: 'Push through with energy', mood: 'partly-cloudy', energy: 'high' },
-      { id: 'pc-high-2', name: 'Focus Flow', description: 'Concentration fuel', mood: 'partly-cloudy', energy: 'high' },
+      { id: 'pc-high-1', name: t('spotifyMood.playlist.pcHigh1.name'), description: t('spotifyMood.playlist.pcHigh1.description'), mood: 'partly-cloudy', energy: 'high' },
+      { id: 'pc-high-2', name: t('spotifyMood.playlist.pcHigh2.name'), description: t('spotifyMood.playlist.pcHigh2.description'), mood: 'partly-cloudy', energy: 'high' },
     ],
     medium: [
-      { id: 'pc-med-1', name: 'Balanced', description: 'Steady and composed', mood: 'partly-cloudy', energy: 'medium' },
-      { id: 'pc-med-2', name: 'Working Through', description: 'Productive neutrality', mood: 'partly-cloudy', energy: 'medium' },
+      { id: 'pc-med-1', name: t('spotifyMood.playlist.pcMed1.name'), description: t('spotifyMood.playlist.pcMed1.description'), mood: 'partly-cloudy', energy: 'medium' },
+      { id: 'pc-med-2', name: t('spotifyMood.playlist.pcMed2.name'), description: t('spotifyMood.playlist.pcMed2.description'), mood: 'partly-cloudy', energy: 'medium' },
     ],
     low: [
-      { id: 'pc-low-1', name: 'Contemplative', description: 'Thoughtful reflection', mood: 'partly-cloudy', energy: 'low' },
-      { id: 'pc-low-2', name: 'Quiet Strength', description: 'Gentle persistence', mood: 'partly-cloudy', energy: 'low' },
+      { id: 'pc-low-1', name: t('spotifyMood.playlist.pcLow1.name'), description: t('spotifyMood.playlist.pcLow1.description'), mood: 'partly-cloudy', energy: 'low' },
+      { id: 'pc-low-2', name: t('spotifyMood.playlist.pcLow2.name'), description: t('spotifyMood.playlist.pcLow2.description'), mood: 'partly-cloudy', energy: 'low' },
     ],
   },
   cloudy: {
     high: [
-      { id: 'cloudy-high-1', name: 'Push Through', description: 'Energy despite uncertainty', mood: 'cloudy', energy: 'high' },
+      { id: 'cloudy-high-1', name: t('spotifyMood.playlist.cloudyHigh1.name'), description: t('spotifyMood.playlist.cloudyHigh1.description'), mood: 'cloudy', energy: 'high' },
     ],
     medium: [
-      { id: 'cloudy-med-1', name: 'Uncertain Path', description: 'Navigating the grey', mood: 'cloudy', energy: 'medium' },
-      { id: 'cloudy-med-2', name: 'Finding Clarity', description: 'Seeking direction', mood: 'cloudy', energy: 'medium' },
+      { id: 'cloudy-med-1', name: t('spotifyMood.playlist.cloudyMed1.name'), description: t('spotifyMood.playlist.cloudyMed1.description'), mood: 'cloudy', energy: 'medium' },
+      { id: 'cloudy-med-2', name: t('spotifyMood.playlist.cloudyMed2.name'), description: t('spotifyMood.playlist.cloudyMed2.description'), mood: 'cloudy', energy: 'medium' },
     ],
     low: [
-      { id: 'cloudy-low-1', name: 'Introspective', description: 'Deep inner reflection', mood: 'cloudy', energy: 'low' },
-      { id: 'cloudy-low-2', name: 'Quiet Moments', description: 'Peaceful uncertainty', mood: 'cloudy', energy: 'low' },
+      { id: 'cloudy-low-1', name: t('spotifyMood.playlist.cloudyLow1.name'), description: t('spotifyMood.playlist.cloudyLow1.description'), mood: 'cloudy', energy: 'low' },
+      { id: 'cloudy-low-2', name: t('spotifyMood.playlist.cloudyLow2.name'), description: t('spotifyMood.playlist.cloudyLow2.description'), mood: 'cloudy', energy: 'low' },
     ],
   },
   rainy: {
     high: [
-      { id: 'rainy-high-1', name: 'Determined', description: 'Fighting through the storm', mood: 'rainy', energy: 'high' },
+      { id: 'rainy-high-1', name: t('spotifyMood.playlist.rainyHigh1.name'), description: t('spotifyMood.playlist.rainyHigh1.description'), mood: 'rainy', energy: 'high' },
     ],
     medium: [
-      { id: 'rainy-med-1', name: 'Processing', description: 'Working through feelings', mood: 'rainy', energy: 'medium' },
-      { id: 'rainy-med-2', name: 'Rainy Day', description: 'Melancholic but present', mood: 'rainy', energy: 'medium' },
+      { id: 'rainy-med-1', name: t('spotifyMood.playlist.rainyMed1.name'), description: t('spotifyMood.playlist.rainyMed1.description'), mood: 'rainy', energy: 'medium' },
+      { id: 'rainy-med-2', name: t('spotifyMood.playlist.rainyMed2.name'), description: t('spotifyMood.playlist.rainyMed2.description'), mood: 'rainy', energy: 'medium' },
     ],
     low: [
-      { id: 'rainy-low-1', name: 'Sad Songs', description: 'Feel the feelings', mood: 'rainy', energy: 'low' },
-      { id: 'rainy-low-2', name: 'Comfort', description: 'Gentle support', mood: 'rainy', energy: 'low' },
-      { id: 'rainy-low-3', name: 'Release', description: 'Let it out', mood: 'rainy', energy: 'low' },
+      { id: 'rainy-low-1', name: t('spotifyMood.playlist.rainyLow1.name'), description: t('spotifyMood.playlist.rainyLow1.description'), mood: 'rainy', energy: 'low' },
+      { id: 'rainy-low-2', name: t('spotifyMood.playlist.rainyLow2.name'), description: t('spotifyMood.playlist.rainyLow2.description'), mood: 'rainy', energy: 'low' },
+      { id: 'rainy-low-3', name: t('spotifyMood.playlist.rainyLow3.name'), description: t('spotifyMood.playlist.rainyLow3.description'), mood: 'rainy', energy: 'low' },
     ],
   },
   stormy: {
     high: [
-      { id: 'stormy-high-1', name: 'Catharsis', description: 'Release the intensity', mood: 'stormy', energy: 'high' },
-      { id: 'stormy-high-2', name: 'Venting', description: 'Let it all out', mood: 'stormy', energy: 'high' },
+      { id: 'stormy-high-1', name: t('spotifyMood.playlist.stormyHigh1.name'), description: t('spotifyMood.playlist.stormyHigh1.description'), mood: 'stormy', energy: 'high' },
+      { id: 'stormy-high-2', name: t('spotifyMood.playlist.stormyHigh2.name'), description: t('spotifyMood.playlist.stormyHigh2.description'), mood: 'stormy', energy: 'high' },
     ],
     medium: [
-      { id: 'stormy-med-1', name: 'Turbulent', description: 'Riding the waves', mood: 'stormy', energy: 'medium' },
+      { id: 'stormy-med-1', name: t('spotifyMood.playlist.stormyMed1.name'), description: t('spotifyMood.playlist.stormyMed1.description'), mood: 'stormy', energy: 'medium' },
     ],
     low: [
-      { id: 'stormy-low-1', name: 'After the Storm', description: 'Quiet exhaustion', mood: 'stormy', energy: 'low' },
-      { id: 'stormy-low-2', name: 'Recovery', description: 'Beginning to heal', mood: 'stormy', energy: 'low' },
+      { id: 'stormy-low-1', name: t('spotifyMood.playlist.stormyLow1.name'), description: t('spotifyMood.playlist.stormyLow1.description'), mood: 'stormy', energy: 'low' },
+      { id: 'stormy-low-2', name: t('spotifyMood.playlist.stormyLow2.name'), description: t('spotifyMood.playlist.stormyLow2.description'), mood: 'stormy', energy: 'low' },
     ],
   },
 };
@@ -121,27 +123,27 @@ interface PersonaMusicProfile {
 const PERSONA_MUSIC_PROFILES: Record<string, PersonaMusicProfile> = {
   ferni: {
     genreBoost: ['ambient', 'folk', 'acoustic', 'nature sounds'],
-    description: 'Grounded, nature-inspired soundscapes',
+    description: t('spotifyMood.persona.ferni.description'),
   },
   'alex-chen': {
     genreBoost: ['lo-fi', 'focus', 'instrumental', 'study beats'],
-    description: 'Productive, focused work music',
+    description: t('spotifyMood.persona.alexChen.description'),
   },
   'maya-santos': {
     genreBoost: ['motivational', 'pop', 'upbeat', 'gym'],
-    description: 'Energizing habit-building soundtracks',
+    description: t('spotifyMood.persona.mayaSantos.description'),
   },
   'jordan-taylor': {
     genreBoost: ['indie', 'storytelling', 'singer-songwriter', 'narrative'],
-    description: 'Story-rich, meaningful compositions',
+    description: t('spotifyMood.persona.jordanTaylor.description'),
   },
   'nayan-patel': {
     genreBoost: ['meditation', 'classical', 'spa', 'healing'],
-    description: 'Calming, wellness-focused audio',
+    description: t('spotifyMood.persona.nayanPatel.description'),
   },
   'peter-john': {
     genreBoost: ['spirituals', 'gospel', 'inspirational', 'choir'],
-    description: 'Uplifting, soul-nourishing music',
+    description: t('spotifyMood.persona.peterJohn.description'),
   },
 };
 
@@ -211,24 +213,24 @@ class SpotifyMoodService {
   getMoodMusicPrompt(): string | null {
     if (!this.currentMood) return null;
 
-    const moodDescriptions: Record<MoodProfile['primary'], string> = {
-      sunny: 'feeling bright and optimistic',
-      'partly-cloudy': 'in a balanced, neutral space',
-      cloudy: 'experiencing some uncertainty',
-      rainy: 'processing some difficult feelings',
-      stormy: 'going through intense emotions',
+    const moodKeyMap: Record<MoodProfile['primary'], string> = {
+      sunny: 'spotifyMood.moodDescription.sunny',
+      'partly-cloudy': 'spotifyMood.moodDescription.partlyCloudy',
+      cloudy: 'spotifyMood.moodDescription.cloudy',
+      rainy: 'spotifyMood.moodDescription.rainy',
+      stormy: 'spotifyMood.moodDescription.stormy',
     };
 
-    const energyDescriptions: Record<MoodProfile['energy'], string> = {
-      high: 'with plenty of energy',
-      medium: 'at a steady pace',
-      low: 'needing something gentle',
+    const energyKeyMap: Record<MoodProfile['energy'], string> = {
+      high: 'spotifyMood.energyDescription.high',
+      medium: 'spotifyMood.energyDescription.medium',
+      low: 'spotifyMood.energyDescription.low',
     };
 
-    const moodDesc = moodDescriptions[this.currentMood.primary];
-    const energyDesc = energyDescriptions[this.currentMood.energy];
+    const moodDesc = t(moodKeyMap[this.currentMood.primary]);
+    const energyDesc = t(energyKeyMap[this.currentMood.energy]);
 
-    return `Based on your emotional weather, you're ${moodDesc} ${energyDesc}. Would you like some music to match?`;
+    return t('spotifyMood.prompt', { mood: moodDesc, energy: energyDesc });
   }
 
   /**
