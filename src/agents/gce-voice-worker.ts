@@ -347,6 +347,30 @@ async function main(): Promise<void> {
 
 let isShuttingDown = false;
 
+/** Deep extraction and knowledge capture batch turns; run what's pending before exit. */
+async function drainBatchedMemoryWork(timeoutMs: number): Promise<void> {
+  try {
+    const { getDeepExtractionWorker } = await import('../memory/dynamic/index.js');
+    const { drainTurnCaptures } = await import('../memory/knowledge-graph/index.js');
+    const worker = getDeepExtractionWorker();
+    worker.stop(); // flushes batched turns into its queue
+    const deadline = Date.now() + timeoutMs;
+    const extractionIdle = (async (): Promise<void> => {
+      while (Date.now() < deadline) {
+        const { queueDepth, isProcessing } = worker.getHealthStatus();
+        if (queueDepth === 0 && !isProcessing) return;
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 250);
+        });
+      }
+    })();
+    await Promise.all([extractionIdle, drainTurnCaptures(timeoutMs)]);
+    log('Batched memory work drained', { extractionQueue: worker.getHealthStatus().queueDepth });
+  } catch (error) {
+    log('Batched memory drain failed (continuing shutdown)', { error: String(error) });
+  }
+}
+
 const shutdown = async (signal: string): Promise<void> => {
   if (isShuttingDown) {
     log('Shutdown already in progress, ignoring duplicate signal');
@@ -406,6 +430,9 @@ const shutdown = async (signal: string): Promise<void> => {
     });
     log('Waiting for active jobs...', { activeJobs: getJobMetrics().activeJobs });
   }
+
+  // 6. Run memory work still waiting for its batch (deep extraction, knowledge capture), max 10s
+  await drainBatchedMemoryWork(10_000);
 
   const metrics = getJobMetrics();
   log('Shutdown complete', {

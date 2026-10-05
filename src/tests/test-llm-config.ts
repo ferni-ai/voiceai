@@ -2,7 +2,7 @@
  * Test LLM Configuration
  *
  * Centralizes LLM model selection for synthetic tests.
- * Uses TEST_LLM_MODEL env var, defaulting to gemini-2.5-flash.
+ * Uses TEST_LLM_MODEL env var, defaulting to gemini-3.5-flash.
  *
  * @module test-llm-config
  */
@@ -10,15 +10,11 @@
 /**
  * LLM model for synthetic testing
  * - Set TEST_LLM_MODEL env var to override
- * - Default: gemini-2.5-flash (fast, stable, good for tests)
+ * - Default: gemini-3.5-flash
  *
- * Available models:
- * - gemini-2.5-flash: Fast, stable (recommended for tests)
- * - gemini-2.0-flash: Stable 2.0 features
- * - gemini-1.5-flash-latest: Stable, fast
- * - gemini-1.5-pro-latest: Higher quality, slower
+ * Served on the Vertex global location (GEMINI_LOCATION) and the Gemini API.
  */
-export const TEST_LLM_MODEL = process.env.TEST_LLM_MODEL || 'gemini-2.5-flash';
+export const TEST_LLM_MODEL = process.env.TEST_LLM_MODEL || 'gemini-3.5-flash';
 
 /**
  * Default timeout for LLM calls in tests (30 seconds)

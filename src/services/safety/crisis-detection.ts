@@ -16,6 +16,7 @@
  * @module CrisisDetection
  */
 
+import { detectCrisis as detectGuardCrisis } from './crisis-guard.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'CrisisDetection' });
@@ -75,66 +76,19 @@ export interface CrisisDetectionResult {
 // CRISIS PATTERNS
 // ============================================================================
 
+/** Suicide and self-harm come from the crisis guard; see detectSuicideAndSelfHarm. */
+type PatternCrisisType = Exclude<CrisisType, 'suicidal_ideation' | 'self_harm'>;
+
 /**
  * Pattern definitions for crisis detection.
  * Organized by crisis type with severity gradients.
  */
-const CRISIS_PATTERNS: Record<CrisisType, { patterns: RegExp[]; severity: CrisisSeverity }[]> = {
-  suicidal_ideation: [
-    // Critical - immediate action required
-    {
-      patterns: [
-        /\b(kill myself|end my life|want to die|better off dead|suicide plan|going to kill)\b/i,
-        /\b(have a plan to|know how i.*(would|will) do it|set a date)\b/i,
-        /\b(goodbye letter|giving away my stuff|final goodbye)\b/i,
-        /\b(no reason to (live|go on|keep going))\b/i,
-      ],
-      severity: 'critical',
-    },
-    // High - needs resource connection
-    {
-      patterns: [
-        /\b(don't want to be here|want (it|this) to end|can't do this anymore)\b/i,
-        /\b(wish i (was|were) dead|wish i (wasn't|weren't) alive)\b/i,
-        /\b(everyone.*(better|happier) without me)\b/i,
-        /\b(what's the point of (living|life|going on))\b/i,
-        /\b(i give up|there's no hope|hopeless)\b/i,
-      ],
-      severity: 'high',
-    },
-    // Medium - needs gentle exploration
-    {
-      patterns: [
-        /\b(thinking about death a lot|can't stop thinking about dying)\b/i,
-        /\b(life isn't worth|not sure i want to)\b/i,
-        /\b(i'm a burden|everyone hates me)\b/i,
-      ],
-      severity: 'medium',
-    },
-  ],
-
-  self_harm: [
-    {
-      patterns: [
-        /\b(cut(ting)? myself|hurt(ing)? myself|burn(ing)? myself)\b/i,
-        /\b(self.?harm|self.?injury|self.?mutilat)\b/i,
-        /\b(relapsed.*cutting|started cutting again)\b/i,
-      ],
-      severity: 'high',
-    },
-    {
-      patterns: [
-        /\b(want to hurt myself|thinking about hurting myself)\b/i,
-        /\b(urge to cut|urge to hurt)\b/i,
-      ],
-      severity: 'medium',
-    },
-  ],
-
+const CRISIS_PATTERNS: Record<PatternCrisisType, { patterns: RegExp[]; severity: CrisisSeverity }[]> = {
   domestic_abuse: [
     {
       patterns: [
         /\b(partner.*(hit|hits|punch|beat|choke|strangle)|he.*(hit|hits|punch|beat) me)\b/i,
+        /\b(husband|wife|boyfriend|girlfriend|spouse|fianc[eé]e?|ex) (hits|hit|beats|beat|punches|punched|chokes|choked|slaps|slapped|kicks|kicked|strangled) me\b/i,
         /\b(afraid (of|he.?ll|she.?ll) (hurt|kill) me)\b/i,
         /\b(can't leave|trapped|hostage)\b.*\b(relationship|partner|spouse)\b/i,
         /\b(threatened to kill|will kill me if i leave)\b/i,
@@ -317,6 +271,31 @@ const DEESCALATING_CONTEXT = [
 // ============================================================================
 
 /**
+ * Suicide and self-harm signals, from the crisis guard that also decides the
+ * reply override, so the prompt context and the override never disagree. The
+ * guard already handles negation, jokes, history and recovery. A risk to a
+ * third party is left to the guard's own guidance: the responses built here
+ * speak to the caller as the one at risk.
+ */
+function detectSuicideAndSelfHarm(text: string): CrisisSignal | null {
+  const guard = detectGuardCrisis(text);
+  if (guard.subject !== 'self') return null;
+  const isSelfHarm =
+    guard.indicators.includes('self_harm') && !guard.indicators.includes('imminent_danger');
+  const explicit = guard.indicators.includes('explicit_crisis_language');
+  // Self-harm without suicidal intent tops out at high, as in the taxonomy above.
+  const severity: CrisisSeverity =
+    explicit && !isSelfHarm ? 'critical' : guard.severity >= 0.75 ? 'high' : 'medium';
+  return {
+    type: isSelfHarm ? 'self_harm' : 'suicidal_ideation',
+    severity,
+    confidence: guard.severity,
+    matchedPatterns: guard.indicators,
+    contextualFactors: [],
+  };
+}
+
+/**
  * Detect crisis signals in user text.
  *
  * @param text - The user's message
@@ -344,6 +323,45 @@ export function detectCrisis(
   // Track matched patterns for logging
   let totalPatternMatches = 0;
 
+  /** Context moves severity one step at most and annotates why. */
+  const withContext = (signal: CrisisSignal): CrisisSignal => {
+    let { severity, confidence } = signal;
+    const contextualFactors = [...signal.contextualFactors];
+
+    if (hasEscalatingContext && !hasDeescalatingContext) {
+      confidence += 0.1;
+      contextualFactors.push('escalating_context');
+      if (severity === 'medium') severity = 'high';
+      else if (severity === 'high') severity = 'critical';
+    }
+
+    if (hasDeescalatingContext && !hasEscalatingContext) {
+      confidence -= 0.2;
+      contextualFactors.push('deescalating_context');
+      if (severity === 'critical') severity = 'high';
+      else if (severity === 'high') severity = 'medium';
+    }
+
+    // Previous signals in session increase concern
+    if (context?.previousSignals && context.previousSignals.length > 0) {
+      confidence += 0.1;
+      contextualFactors.push('previous_signals_in_session');
+    }
+
+    return {
+      ...signal,
+      severity,
+      confidence: Math.max(0.1, Math.min(1, confidence)),
+      contextualFactors,
+    };
+  };
+
+  const suicideOrSelfHarm = detectSuicideAndSelfHarm(text);
+  if (suicideOrSelfHarm) {
+    signals.push(withContext(suicideOrSelfHarm));
+    totalPatternMatches += suicideOrSelfHarm.matchedPatterns.length;
+  }
+
   // Check each crisis type
   for (const [crisisType, severityLevels] of Object.entries(CRISIS_PATTERNS)) {
     for (const { patterns, severity } of severityLevels) {
@@ -357,43 +375,15 @@ export function detectCrisis(
       }
 
       if (matchedPatterns.length > 0) {
-        // Calculate confidence based on matches and context
-        let confidence = Math.min(0.5 + matchedPatterns.length * 0.2, 0.95);
-
-        // Adjust severity based on context
-        let adjustedSeverity = severity;
-        const contextualFactors: string[] = [];
-
-        if (hasEscalatingContext && !hasDeescalatingContext) {
-          confidence += 0.1;
-          contextualFactors.push('escalating_context');
-          if (adjustedSeverity === 'medium') adjustedSeverity = 'high';
-          if (adjustedSeverity === 'high') adjustedSeverity = 'critical';
-        }
-
-        if (hasDeescalatingContext && !hasEscalatingContext) {
-          confidence -= 0.2;
-          contextualFactors.push('deescalating_context');
-          if (adjustedSeverity === 'critical') adjustedSeverity = 'high';
-          if (adjustedSeverity === 'high') adjustedSeverity = 'medium';
-        }
-
-        // Previous signals in session increase concern
-        if (context?.previousSignals && context.previousSignals.length > 0) {
-          confidence += 0.1;
-          contextualFactors.push('previous_signals_in_session');
-        }
-
-        // Clamp confidence
-        confidence = Math.max(0.1, Math.min(1, confidence));
-
-        signals.push({
-          type: crisisType as CrisisType,
-          severity: adjustedSeverity,
-          confidence,
-          matchedPatterns,
-          contextualFactors,
-        });
+        signals.push(
+          withContext({
+            type: crisisType as CrisisType,
+            severity,
+            confidence: Math.min(0.5 + matchedPatterns.length * 0.2, 0.95),
+            matchedPatterns,
+            contextualFactors: [],
+          })
+        );
 
         // Only take highest severity match for each crisis type
         break;
@@ -408,9 +398,15 @@ export function detectCrisis(
     medium: 2,
     low: 1,
   };
+  // At equal severity a substance emergency leads: an overdose needs 911 and
+  // poison control before anything else, whatever the intent.
+  const medicalFirst = (s: CrisisSignal): number =>
+    s.type === 'substance_crisis' && s.severity === 'critical' ? 1 : 0;
   signals.sort((a, b) => {
     const severityDiff = severityOrder[b.severity] - severityOrder[a.severity];
     if (severityDiff !== 0) return severityDiff;
+    const medicalDiff = medicalFirst(b) - medicalFirst(a);
+    if (medicalDiff !== 0) return medicalDiff;
     return b.confidence - a.confidence;
   });
 

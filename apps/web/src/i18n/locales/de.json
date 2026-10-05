@@ -3015,5 +3015,144 @@
       "professional": "Beruflich",
       "legacy": "Erbe"
     }
+  },
+  "predictionResolution": {
+    "title": "Wie ist es gelaufen?",
+    "youGuessed": "Ihre Schätzung: {value}",
+    "actual": "Tatsächlich: {value}",
+    "scored": "{accuracy} % genau",
+    "record": "Ergebnis eintragen",
+    "save": "Schätzungen prüfen",
+    "saveFailed": "Das ließ sich nicht speichern. Erneut versuchen?",
+    "metrics": {
+      "deepWork": {
+        "label": "Konzentriertes Arbeiten",
+        "question": "Wie viele Stunden konzentriertes Arbeiten hatten Sie?",
+        "unit": "Stunden"
+      },
+      "exercise": {
+        "label": "Sport",
+        "question": "Wie oft haben Sie Sport gemacht?",
+        "unit": "Einheiten"
+      },
+      "social": {
+        "label": "Zeit mit anderen",
+        "question": "Wie viele Stunden haben Sie mit anderen Menschen verbracht?",
+        "unit": "Stunden"
+      },
+      "screen": {
+        "label": "Bildschirmzeit",
+        "question": "Wie viele Stunden Bildschirmzeit hatten Sie?",
+        "unit": "Stunden"
+      },
+      "mood": {
+        "label": "Stimmung",
+        "question": "Wie war Ihre durchschnittliche Stimmung, von 1 bis 10?",
+        "unit": "1–10"
+      },
+      "generic": {
+        "question": "Wie hoch war Ihr tatsächlicher Wert für {label}?"
+      }
+    },
+    "result": {
+      "line": "Sie haben {predicted} geschätzt. Es waren {actual}. {verdict}",
+      "overall": "Insgesamt {accuracy} % genau diese Woche."
+    },
+    "tone": {
+      "spotOn": "Volltreffer!",
+      "close": "Ziemlich nah dran!",
+      "off": "Diesmal etwas daneben.",
+      "wayOff": "Diesmal weit daneben. Jetzt wissen Sie es."
+    }
+  },
+  "trustDashboard": {
+    "together": {
+      "empty": "Wenn wir ein paar Mal gesprochen haben, sage ich Ihnen, wie es uns miteinander geht.",
+      "startingTitle": "Wir fangen gerade erst an",
+      "startingMessage": "Sprechen Sie noch ein paar Mal mit mir, dann kann ich Ihnen etwas Echtes sagen.",
+      "scoreLabel": "Gemeinsam",
+      "stages": {
+        "new": "Gerade erst angefangen",
+        "building": "Wir lernen uns kennen",
+        "established": "Wir finden unseren Rhythmus",
+        "deep": "Wir verstehen uns wirklich",
+        "flourishing": "Etwas Besonderes"
+      },
+      "rhythm": {
+        "high": "Wir sprechen oft",
+        "mid": "Wir melden uns regelmäßig",
+        "low": "Wir sprechen ab und zu",
+        "quiet": "Wir haben eine Weile nicht gesprochen",
+        "detailNone": "Nicht im letzten Monat",
+        "detailOne": "1 Tag im letzten Monat",
+        "detailOther": "{n} Tage im letzten Monat"
+      },
+      "promises": {
+        "high": "Ich halte Wort",
+        "mid": "Ich halte meistens Wort",
+        "low": "Mir ist einiges durchgerutscht",
+        "detail": "{kept} von {total} gehalten"
+      },
+      "lift": {
+        "high": "Nach unseren Gesprächen geht es Ihnen meist leichter",
+        "mid": "Unsere Gespräche geben Ihnen Halt",
+        "low": "Unsere Gespräche waren zuletzt schwer",
+        "detail": "An {lifted} von {days} Tagen am Ende leichter"
+      },
+      "mood": {
+        "up": "Sie wirken in letzter Zeit leichter",
+        "steady": "Sie wirken in letzter Zeit ausgeglichen",
+        "down": "Zuletzt war es schwerer für Sie",
+        "detail": "Diese Woche im Vergleich zu den Wochen davor"
+      }
+    },
+    "noticed": {
+      "empty": "Wenn wir etwas mehr gesprochen haben, erzähle ich Ihnen, was mir auffällt.",
+      "notYet": "Noch fällt nichts Besonderes auf. Ich höre weiter zu.",
+      "daysTalked": "Tage, an denen wir gesprochen haben",
+      "tabs": {
+        "week": "Diese Woche",
+        "month": "Dieser Monat"
+      },
+      "title": {
+        "week": "Was mir diese Woche aufgefallen ist",
+        "month": "Was mir diesen Monat aufgefallen ist"
+      },
+      "quiet": {
+        "week": "Wir haben diese Woche nicht gesprochen. Ich bin da, wann immer Sie möchten.",
+        "month": "Wir haben diesen Monat nicht gesprochen. Ich bin da, wann immer Sie möchten."
+      },
+      "moodShift": {
+        "lighter": {
+          "week": "Sie wirken leichter als letzte Woche.",
+          "month": "Sie wirken leichter als letzten Monat."
+        },
+        "heavier": {
+          "week": "Diese Woche war schwerer als die letzte. Auch dafür bin ich da.",
+          "month": "Dieser Monat war schwerer als der letzte. Auch dafür bin ich da."
+        }
+      },
+      "bounceBack": {
+        "nextDay": "Der {date} war ein schwerer Tag, und am nächsten Tag ging es Ihnen besser.",
+        "later": "Der {date} war ein schwerer Tag, und innerhalb von {days} Tagen ging es Ihnen besser."
+      },
+      "liftTopic": "Wenn wir über {topic} sprechen, hebt das Ihre Stimmung.",
+      "brightest": "Am {date} klangen Sie am glücklichsten.",
+      "timeOfDay": {
+        "morning": "Wir sprechen meistens morgens.",
+        "afternoon": "Wir sprechen meistens nachmittags.",
+        "evening": "Wir sprechen meistens abends.",
+        "night": "Wir sprechen meistens spät in der Nacht."
+      },
+      "favoriteDay": "Der {day} scheint unser Tag zu sein.",
+      "cameUp": {
+        "one": "Sie haben mir von etwas Bevorstehendem erzählt: {example}.",
+        "other": "Sie haben mir von {n} bevorstehenden Dingen erzählt, zum Beispiel: {example}."
+      },
+      "promisesKept": {
+        "all": "Ich habe jedes Versprechen gehalten, das ich Ihnen gegeben habe.",
+        "some": "Ich habe {kept} von {total} Versprechen gehalten, die ich Ihnen gegeben habe."
+      }
+    }
   }
 }

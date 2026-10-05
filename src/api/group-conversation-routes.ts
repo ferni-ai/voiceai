@@ -8,20 +8,38 @@
  * @module api/group-conversation-routes
  */
 
-import { Router, type Request, type Response } from 'express';
+import { Router, json, urlencoded, type Request, type Response } from 'express';
 import { isCoach } from '../personas/persona-ids.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
+import { paramString } from './param-string.js';
 import type {
-  AddParticipantRequest,
   RoundtableConfig,
   GroupConversationSummary,
 } from '../agents/group-conversation/types.js';
 import { generateAnswerTwiml } from '../agents/group-conversation/conference-call-manager.js';
+import { requireTwilioSignature } from './twilio-callback-signature.js';
 
 const log = getLogger();
 const router = Router();
+
+// Bodies are parsed only under the paths this router answers: a /api/group
+// request it doesn't answer goes on to later raw handlers, which read the
+// stream themselves and must find it unread.
+const OWN_BODY_PATHS = ['/roundtable', '/call'];
+router.use(OWN_BODY_PATHS, json({ limit: '100kb' }), urlencoded({ extended: false }));
+
+// A body may name the caller (or nobody); naming anyone else is refused, not swapped.
+router.use(OWN_BODY_PATHS, (req: Request, res: Response, next: () => void) => {
+  const claimed: unknown = (req.body as { userId?: unknown } | undefined)?.userId;
+  const caller = getUserId(req);
+  if (caller && claimed !== undefined && claimed !== caller) {
+    res.status(403).json({ success: false, error: 'Not authorized' });
+    return;
+  }
+  next();
+});
 
 // ============================================================================
 // TYPES
@@ -56,18 +74,15 @@ interface GroupSessionRecord {
 // ============================================================================
 
 /**
- * Extract user ID from request (auth middleware should have set this)
- * SECURITY: Prioritizes Firebase auth (x-firebase-uid) over deprecated x-user-id
+ * The verified caller. bindVerifiedIdentity (servers/api/request-identity.ts)
+ * sets x-firebase-uid from a verified token and rewrites ?userId= to it (an
+ * admin keeps the user they name there). A body userId is only a claim.
  */
 function getUserId(req: Request): string | null {
-  // Check various auth patterns - prioritize Firebase auth
-  const userId =
-    (req as { userId?: string }).userId ||
-    (req.headers['x-firebase-uid'] as string) ||
-    (req.query.userId as string) ||
-    (req.body?.userId as string);
-
-  return userId ?? null;
+  const uid = req.headers['x-firebase-uid'];
+  if (typeof uid === 'string' && uid) return uid;
+  const fromQuery = req.query.userId;
+  return typeof fromQuery === 'string' && fromQuery ? fromQuery : null;
 }
 
 // ============================================================================
@@ -131,16 +146,9 @@ router.post('/roundtable/start', async (req: Request, res: Response) => {
       startedAt: new Date().toISOString(),
     };
 
-    // Save to Firestore
     const db = getFirestoreDb();
-    if (db) {
-      await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('group_sessions')
-        .doc(sessionId)
-        .set(cleanForFirestore(session));
-    }
+    if (!db) return res.status(503).json({ success: false, error: STORAGE_UNAVAILABLE });
+    await sessionsOf(db, userId).doc(sessionId).set(cleanForFirestore(session));
 
     log.info({ userId, sessionId, personas, topic }, '🎭 Team roundtable started');
 
@@ -171,21 +179,13 @@ router.post('/roundtable/end', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Session ID required' });
     }
 
-    // Update session in Firestore
     const db = getFirestoreDb();
-    if (db) {
-      await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('group_sessions')
-        .doc(sessionId)
-        .update(
-          cleanForFirestore({
-            status: 'ended',
-            endedAt: new Date().toISOString(),
-          })
-        );
+    if (!db) return res.status(503).json({ success: false, error: STORAGE_UNAVAILABLE });
+    const doc = sessionsOf(db, userId).doc(String(sessionId));
+    if (!(await doc.get()).exists) {
+      return res.status(404).json({ success: false, error: 'Session not found' });
     }
+    await doc.update(cleanForFirestore({ status: 'ended', endedAt: new Date().toISOString() }));
 
     log.info({ userId, sessionId }, '🎭 Team roundtable ended');
 
@@ -201,91 +201,38 @@ router.post('/roundtable/end', async (req: Request, res: Response) => {
 // ============================================================================
 
 /**
- * Add a participant to a conference call
- * POST /api/group/call/add
+ * Conference-call dial-out is not available from the API server.
+ *
+ * These routes used to answer `success: true, status: 'dialing'` (and
+ * "removed") without placing or ending any call: dialing lives in the voice
+ * agent's ConferenceCallManager (src/agents/group-conversation), which needs
+ * the live LiveKit room and Twilio credentials this process doesn't have. The
+ * router is also mounted without a body parser, so every request with a body
+ * ended in a 500. Until a real bridge exists they say so: 501, never a fake
+ * success.
  */
-router.post('/call/add', async (req: Request, res: Response) => {
-  try {
-    const userId = getUserId(req);
-    if (!userId) {
-      return res.status(401).json({ success: false, error: 'Authentication required' });
-    }
+const CALL_CONTROL_UNAVAILABLE = "Adding people to a call isn't available yet";
 
-    const { sessionId, phoneNumber, name, relationship, introduction } =
-      req.body as AddParticipantRequest & {
-        sessionId?: string;
-      };
-
-    if (!phoneNumber || !name) {
-      return res.status(400).json({ success: false, error: 'Phone number and name required' });
-    }
-
-    // Validate phone number format
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      return res.status(400).json({ success: false, error: 'Invalid phone number' });
-    }
-
-    // Generate call ID
-    const callId = `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const targetSessionId = sessionId ?? `group_${Date.now()}`;
-
-    log.info(
-      { userId, callId, phoneNumber: `***${cleanPhone.slice(-4)}`, name },
-      '📞 Adding participant to call'
-    );
-
-    // In a real implementation, this would:
-    // 1. Initiate Twilio call
-    // 2. Bridge to LiveKit via SIP
-    // For now, return simulated success
-
-    return res.json({
-      success: true,
-      callId,
-      sessionId: targetSessionId,
-      participantId: `ext_${callId}`,
-      status: 'dialing',
-    });
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to add conference participant');
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+function callControlUnavailable(req: Request, res: Response): Response {
+  if (!getUserId(req)) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
   }
-});
+  return res.status(501).json({ success: false, error: CALL_CONTROL_UNAVAILABLE });
+}
+
+/** POST /api/group/call/add */
+router.post('/call/add', callControlUnavailable);
+
+/** POST /api/group/call/remove */
+router.post('/call/remove', callControlUnavailable);
 
 /**
- * Remove a participant from a conference call
- * POST /api/group/call/remove
+ * TwiML webhook for when external participant answers. Twilio requests the
+ * call's `url` with POST unless told otherwise (initiateCall sets no method),
+ * so both are served. Admitted on X-Twilio-Signature, not a user.
+ * GET|POST /api/group/call/answer
  */
-router.post('/call/remove', async (req: Request, res: Response) => {
-  try {
-    const userId = getUserId(req);
-    if (!userId) {
-      return res.status(401).json({ success: false, error: 'Authentication required' });
-    }
-
-    const { sessionId, participantId, reason } = req.body;
-
-    if (!sessionId || !participantId) {
-      return res
-        .status(400)
-        .json({ success: false, error: 'Session ID and participant ID required' });
-    }
-
-    log.info({ userId, sessionId, participantId, reason }, '📞 Removing participant from call');
-
-    return res.json({ success: true, participantId });
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to remove conference participant');
-    return res.status(500).json({ success: false, error: 'Internal server error' });
-  }
-});
-
-/**
- * TwiML webhook for when external participant answers
- * GET /api/group/call/answer
- */
-router.get('/call/answer', (req: Request, res: Response) => {
+function answerCall(req: Request, res: Response): void {
   const { roomName, name, intro } = req.query;
 
   const sipDomain = process.env.SIP_DOMAIN ?? 'sip.livekit.cloud';
@@ -299,13 +246,15 @@ router.get('/call/answer', (req: Request, res: Response) => {
 
   res.type('text/xml');
   res.send(twiml);
-});
+}
+router.get('/call/answer', requireTwilioSignature, answerCall);
+router.post('/call/answer', requireTwilioSignature, answerCall);
 
 /**
- * Twilio status callback webhook
+ * Twilio status callback webhook (admitted on X-Twilio-Signature, not a user)
  * POST /api/group/call/status
  */
-router.post('/call/status', (req: Request, res: Response) => {
+router.post('/call/status', requireTwilioSignature, (req: Request, res: Response) => {
   const { CallSid, CallStatus } = req.body;
 
   log.info({ callSid: CallSid, status: CallStatus }, '📞 Call status update');
@@ -368,7 +317,10 @@ router.get('/sessions/:sessionId', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
-    const { sessionId } = req.params;
+    const sessionId = paramString(req.params.sessionId);
+    if (!sessionId) {
+      return res.status(400).json({ success: false, error: 'Invalid session ID' });
+    }
 
     const db = getFirestoreDb();
     if (!db) {
@@ -404,7 +356,10 @@ router.get('/sessions/:sessionId/transcript', async (req: Request, res: Response
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
-    const { sessionId } = req.params;
+    const sessionId = paramString(req.params.sessionId);
+    if (!sessionId) {
+      return res.status(400).json({ success: false, error: 'Invalid session ID' });
+    }
     const { format = 'json' } = req.query;
 
     const db = getFirestoreDb();
@@ -446,6 +401,16 @@ router.get('/sessions/:sessionId/transcript', async (req: Request, res: Response
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+const STORAGE_UNAVAILABLE = "Couldn't save that right now. Try again?";
+
+/** The caller's own roundtable records. */
+function sessionsOf(
+  db: FirebaseFirestore.Firestore,
+  userId: string
+): FirebaseFirestore.CollectionReference {
+  return db.collection('bogle_users').doc(userId).collection('group_sessions');
+}
 
 function getPersonaName(personaId: string): string {
   const names: Record<string, string> = {

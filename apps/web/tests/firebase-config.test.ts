@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-// The production build has no VITE_FIREBASE_* values (vitest gives none either).
+// The production build has no VITE_FIREBASE_* values. Vitest loads a developer's
+// .env.local (which local sign-in needs), so blank them before the module reads them.
+for (const key of ['API_KEY', 'AUTH_DOMAIN', 'PROJECT_ID', 'STORAGE_BUCKET', 'MESSAGING_SENDER_ID', 'APP_ID']) {
+  vi.stubEnv(`VITE_FIREBASE_${key}`, '');
+}
 const { loadFirebaseConfig, isFirebaseConfigured, firebaseConfig } = await import(
   '../src/config/firebase'
 );

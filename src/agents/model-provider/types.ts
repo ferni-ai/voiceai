@@ -104,7 +104,7 @@ export interface PromptModuleConfig {
  * Configuration for creating an LLM model instance
  */
 export interface LLMModelConfig {
-  /** Model identifier (e.g., 'gpt-realtime', 'gemini-2.5-flash') */
+  /** Model identifier (e.g., 'gpt-realtime', 'gemini-3.5-flash') */
   model?: string;
 
   /** System instructions/prompt */

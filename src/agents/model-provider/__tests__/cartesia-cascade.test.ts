@@ -72,11 +72,11 @@ describe('cascade thinking level', () => {
 });
 
 describe('buildCascadeHedge', () => {
-  it('hedges gemini-3.5-flash with gemini-3-flash-preview after 1.3 s by default', () => {
+  it('hedges gemini-3.5-flash with gemini-3.5-flash-lite after 1.3 s by default', () => {
     const hedge = buildCascadeHedge({ GOOGLE_CLOUD_PROJECT: 'proj' });
     expect(hedge?.hedgeAfterMs).toBe(1300);
     expect(hedge?.backup).toMatchObject({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.5-flash-lite',
       location: 'global',
       vertexai: true,
     });
@@ -208,14 +208,45 @@ describe('ink-2 turn detection', () => {
     );
     expect(buildCascadeSTTOptions({}).turnDetection).toEqual(INK_TURN_PROFILES.responsive);
     // CASCADE_TURN_EAGER overrides only the eager-end threshold, strictly between
-    // end (0.4) and start (0.7): ink rejects anything else with 1008
+    // end (0.3) and start (0.7): ink rejects anything else with 1008
     expect(inkTurnProfile({ CASCADE_TURN_EAGER: '0.68' })).toEqual({
       ...INK_TURN_PROFILES.responsive,
       eagerEndThreshold: 0.68,
     });
-    for (const bad of ['0.35', '0.4', '0.7', '2', 'abc']) {
+    for (const bad of ['0.25', '0.3', '0.7', '2', 'abc']) {
       expect(inkTurnProfile({ CASCADE_TURN_EAGER: bad })).toEqual(INK_TURN_PROFILES.responsive);
     }
+  });
+
+  it('waits through thinking pauses: Responsive ends turns no sooner than Balanced', async () => {
+    const { INK_TURN_PROFILES } = await import('../cartesia-cascade.js');
+    // ink ends the turn when speech probability drops below endThreshold, so a
+    // higher value cuts in sooner; 0.4 answered into callers' pauses
+    expect(INK_TURN_PROFILES.responsive.endThreshold).toBe(0.3);
+    expect(INK_TURN_PROFILES.responsive.endThreshold).toBeLessThanOrEqual(
+      INK_TURN_PROFILES.balanced.endThreshold
+    );
+  });
+
+  it('honours CASCADE_TURN_END strictly between 0 and the eager threshold', async () => {
+    const { inkTurnProfile, INK_TURN_PROFILES } = await import('../cartesia-cascade.js');
+    expect(inkTurnProfile({ CASCADE_TURN_END: '0.2' })).toEqual({
+      ...INK_TURN_PROFILES.responsive,
+      endThreshold: 0.2,
+    });
+    for (const bad of ['0', '0.6', '0.9', '-1', 'soon']) {
+      expect(inkTurnProfile({ CASCADE_TURN_END: bad })).toEqual(INK_TURN_PROFILES.responsive);
+    }
+    // the eager override is checked against the overridden end, not the profile's
+    expect(inkTurnProfile({ CASCADE_TURN_END: '0.5', CASCADE_TURN_EAGER: '0.45' })).toEqual({
+      ...INK_TURN_PROFILES.responsive,
+      endThreshold: 0.5,
+    });
+    expect(inkTurnProfile({ CASCADE_TURN_END: '0.2', CASCADE_TURN_EAGER: '0.25' })).toEqual({
+      ...INK_TURN_PROFILES.responsive,
+      endThreshold: 0.2,
+      eagerEndThreshold: 0.25,
+    });
   });
 
   it('keeps each profile in the order ink requires (start > eager end > end)', async () => {

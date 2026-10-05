@@ -36,7 +36,7 @@ interface SimpleFunctionDeclaration {
 // ============================================================================
 
 let lastCallTime = 0;
-const MIN_DELAY_MS = 6000; // 6 seconds between calls for gemini-2.0-flash-exp (10 req/min)
+const MIN_DELAY_MS = 6000; // 6 seconds between calls (10 req/min)
 
 async function rateLimit(): Promise<void> {
   const now = Date.now();
@@ -803,7 +803,7 @@ Transfer **immediately** when the topic matches a specialist:
 
 class AgentTester {
   private genai: GoogleGenAI;
-  private model = 'gemini-2.0-flash-exp';
+  private model = 'gemini-3.5-flash';
 
   constructor() {
     const apiKey = process.env.GOOGLE_API_KEY;

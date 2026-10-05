@@ -59,7 +59,7 @@ async function diagnose() {
     // Test 1: Live API connection (this is what the voice agent uses)
     console.log();
     console.log('🧪 Testing Live API connection (this is what the voice agent uses)...');
-    console.log('   Model: gemini-2.0-flash-exp');
+    console.log('   Model: ' + (process.env.GEMINI_MODEL || 'gemini-3.5-flash'));
 
     let sessionOpened = false;
     let receivedMessages = 0;
@@ -67,7 +67,7 @@ async function diagnose() {
 
     try {
       const liveSession = await client.live.connect({
-        model: 'gemini-2.0-flash-exp',
+        model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
         callbacks: {
           onopen: () => {
             sessionOpened = true;

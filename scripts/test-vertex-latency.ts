@@ -23,7 +23,7 @@ async function testLatency() {
   // Simple test
   const start1 = Date.now();
   const response1 = await client.models.generateContent({
-    model: 'gemini-2.0-flash-exp',
+    model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
     contents: 'Say hello in 5 words.',
   });
   console.log(`\n✅ Simple test: ${Date.now() - start1}ms`);
@@ -33,7 +33,7 @@ async function testLatency() {
   const start2 = Date.now();
   const largePrompt = `You are Ferni, a warm life coach. ${'Remember this is important. '.repeat(500)} Now say hello briefly.`;
   const response2 = await client.models.generateContent({
-    model: 'gemini-2.0-flash-exp',
+    model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
     contents: largePrompt,
   });
   console.log(`\n✅ Large prompt test (${largePrompt.length} chars): ${Date.now() - start2}ms`);

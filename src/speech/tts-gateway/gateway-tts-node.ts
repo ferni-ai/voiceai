@@ -38,10 +38,11 @@ import { findChunkEnd } from './chunk-boundary.js';
 import { sessionSpeed } from '../output-control/pace-matching.js';
 import { createContinuationTTS } from './continuation-tts.js';
 import { createFirstAudioObserver, type FirstAudioObserver } from './first-audio-observer.js';
-import { directSpeech, speechDirectorMode, type TurnContext } from './director/index.js';
+import { directSpeech, type TurnContext } from './director/index.js';
 import { prosodyTags } from './providers/cartesia.js';
 import { tagReplyAudioId } from './reply-audio-id.js';
 import type { SSMLProsodyConfig } from './types.js';
+import { emotionContextOpener } from './emotion-context.js';
 
 // ============================================================================
 // JSON FUNCTION CALL FILTERING
@@ -381,8 +382,7 @@ async function createStreamingOverlapTTS(
     return createContinuationTTS({
       textStream: directed.textStream,
       reply: directed.reply,
-      // New context per mid-reply emotion change; the director owns it when on (#176).
-      openReply: speechDirectorMode() === 'off' ? () => provider.openReplyStream!(voiceId) : undefined,
+      openReply: emotionContextOpener(voiceId, () => provider.openReplyStream!(voiceId)),
       sanitize: (chunk) => sanitizeChunkForTTS(chunk, ssmlProcessor),
       openingTags: prosodyTags,
       emotion,

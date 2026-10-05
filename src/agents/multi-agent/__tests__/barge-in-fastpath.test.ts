@@ -4,7 +4,11 @@
  * does not.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { createBargeInFastPath, shouldInterrupt } from '../barge-in-fastpath.js';
+import {
+  createBargeInFastPath,
+  installBackchannelHook,
+  shouldInterrupt,
+} from '../barge-in-fastpath.js';
 
 const talking = {
   agentSpeaking: true,
@@ -117,4 +121,26 @@ describe('sustained speech over Ferni', () => {
     elapse();
     expect(interrupt).toHaveBeenCalledTimes(1);
   });
+});
+
+// Ink-2 writes a caller's "mm-hmm" as "M M M." (dev, 2026-10-04: 3 of 3
+// talk-over calls). Read as a turn, it cut Ferni off and he re-answered the
+// question he was already answering. The patched LiveKit asks this hook.
+describe('the backchannel hook LiveKit consults', () => {
+  const isBackchannel = (text: string): boolean => {
+    installBackchannelHook();
+    const hook = (globalThis as { __FERNI_IS_BACKCHANNEL?: (t: string) => boolean })
+      .__FERNI_IS_BACKCHANNEL;
+    return hook!(text);
+  };
+
+  it.each(['M M M.', 'M.', 'Mmm.', 'Mhmm.', 'Mm hm.', 'Hmmm.', 'Mm-hmm.', 'Uh huh.', 'Yeah.'])(
+    'treats %j as a backchannel',
+    (text) => expect(isBackchannel(text)).toBe(true)
+  );
+
+  it.each(['Uh-uh.', 'No.', 'Wait.', 'My mom.', 'Hmm, wait, no.'])(
+    'does not treat %j as a backchannel',
+    (text) => expect(isBackchannel(text)).toBe(false)
+  );
 });
