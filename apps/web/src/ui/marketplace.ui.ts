@@ -155,7 +155,7 @@ function ensureModalExists(): HTMLElement {
       <header class="marketplace-header">
         <div class="marketplace-title-row">
           <h2 id="marketplace-title" class="marketplace-title">
-            Expand your team.
+            ${t('marketplace.title')}
           </h2>
           <button class="marketplace-close" data-action="close" aria-label="${t('common.close')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -164,54 +164,54 @@ function ensureModalExists(): HTMLElement {
             </svg>
           </button>
         </div>
-        <p class="marketplace-subtitle">Find coaches who understand what you need.</p>
-        
+        <p class="marketplace-subtitle">${t('marketplace.subtitle')}</p>
+
         <div class="marketplace-tabs">
           <button aria-label="${t('accessibility.discover')}" class="marketplace-tab active" data-tab="browse">
-            Discover
+            ${t('marketplace.tabs.discover')}
           </button>
           <button aria-label="${t('accessibility.yourTeam')}" class="marketplace-tab" data-tab="installed">
-            Your Team
+            ${t('marketplace.tabs.yourTeam')}
           </button>
           <button aria-label="${t('accessibility.myCreations')}" class="marketplace-tab" data-tab="creations">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            My Creations
+            ${t('marketplace.tabs.myCreations')}
           </button>
         </div>
-        
+
         <div class="marketplace-search" data-tab-content="browse">
           <div class="search-input-wrapper">
             <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input 
-              type="search" 
-              class="marketplace-search-input" 
-              placeholder="${t('placeholders.marketplaceSearch')}" 
+            <input
+              type="search"
+              class="marketplace-search-input"
+              placeholder="${t('placeholders.marketplaceSearch')}"
               aria-label="${t('accessibility.searchCoaches')}"
             >
           </div>
           <select class="marketplace-category-select" aria-label="${t('accessibility.filterBySpecialty')}">
-            <option value="">All specialties</option>
-            <option value="mentorship">Mentorship</option>
-            <option value="finance">Finance</option>
-            <option value="health">Health & Wellness</option>
-            <option value="productivity">Productivity</option>
-            <option value="lifestyle">Lifestyle</option>
-            <option value="education">Learning</option>
-            <option value="entertainment">Entertainment</option>
+            <option value="">${t('marketplace.specialties.all')}</option>
+            <option value="mentorship">${t('marketplace.specialties.mentorship')}</option>
+            <option value="finance">${t('marketplace.specialties.finance')}</option>
+            <option value="health">${t('marketplace.specialties.health')}</option>
+            <option value="productivity">${t('marketplace.specialties.productivity')}</option>
+            <option value="lifestyle">${t('marketplace.specialties.lifestyle')}</option>
+            <option value="education">${t('marketplace.specialties.education')}</option>
+            <option value="entertainment">${t('marketplace.specialties.entertainment')}</option>
           </select>
         </div>
       </header>
-      
+
       <main class="marketplace-content">
         <div class="marketplace-loading">
           <div class="marketplace-spinner"></div>
-          <span>Finding coaches...</span>
+          <span>${t('marketplace.loadingCoaches')}</span>
         </div>
         <div class="marketplace-grid" role="list" aria-label="${t('accessibility.availableCoaches')}"></div>
         <div class="marketplace-empty">
@@ -222,11 +222,11 @@ function ensureModalExists(): HTMLElement {
               <path d="M12 8v8"></path>
             </svg>
           </div>
-          <p class="empty-title">No matches yet</p>
-          <p class="empty-hint">Try a different search or explore all coaches.</p>
+          <p class="empty-title">${t('marketplace.noMatches')}</p>
+          <p class="empty-hint">${t('marketplace.noMatchesHint')}</p>
         </div>
       </main>
-      
+
       <footer class="marketplace-footer">
         <a href="https://ferni.ai/creators" target="_blank" rel="noopener noreferrer" class="marketplace-creator-link">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -234,9 +234,9 @@ function ensureModalExists(): HTMLElement {
             <path d="M5 3v4"/><path d="M3 5h4"/>
             <path d="M19 17v4"/><path d="M17 19h4"/>
           </svg>
-          Become a creator
+          ${t('marketplace.becomeCreator')}
         </a>
-        <span class="marketplace-powered-by">Powered by Ferni</span>
+        <span class="marketplace-powered-by">${t('marketplace.poweredBy')}</span>
       </footer>
     </div>
   `;
@@ -490,30 +490,30 @@ async function renderTeamLockedMessage(): Promise<void> {
           </svg>
         </div>
         <div class="marketplace-locked-text">
-          <h3 class="marketplace-locked-title">Meet your team first</h3>
+          <h3 class="marketplace-locked-title">${t('marketplace.teamLocked.title')}</h3>
           <p class="marketplace-locked-subtitle">
             ${totalAgentCount} coaches waiting for you
           </p>
         </div>
       </div>
-      
+
       <div class="marketplace-locked-categories">
         ${categoryLabels.map((cat) => `<span class="locked-category-pill">${cat}</span>`).join('')}
         ${categories.length > 4 ? `<span class="locked-category-pill locked-category-more">+${categories.length - 4} more</span>` : ''}
       </div>
-      
+
       <div class="marketplace-locked-progress">
-        <p class="progress-label">Unlock progress</p>
+        <p class="progress-label">${t('marketplace.teamLocked.unlockProgress')}</p>
         <div class="team-progress-grid">
           ${memberProgressHtml}
         </div>
       </div>
     </section>
-    
+
     <div class="marketplace-preview-section">
       <div class="preview-header">
-        <span class="preview-label">Coming soon</span>
-        <span class="preview-hint">Complete your team journey to unlock</span>
+        <span class="preview-label">${t('marketplace.teamLocked.comingSoon')}</span>
+        <span class="preview-hint">${t('marketplace.teamLocked.completeJourney')}</span>
       </div>
       <div class="marketplace-preview-grid">
         ${previewCardsHtml}
@@ -568,15 +568,15 @@ async function renderInstalledTab(): Promise<void> {
     if (agents.length > 0) {
       if (teamUnlocked) {
         // Full team unlocked - show installed marketplace agents
-        html += `<div class="team-section-divider"><span>Your Installed Coaches</span></div>`;
+        html += `<div class="team-section-divider"><span>${t('marketplace.installedCoaches')}</span></div>`;
         html += renderAgentCards(agents);
       } else {
         // Team not fully unlocked - show message about installed agents being locked
         html += `
-          <div class="team-section-divider"><span>Installed Coaches</span></div>
+          <div class="team-section-divider"><span>${t('marketplace.installedCoachesLocked')}</span></div>
           <div class="installed-agents-locked">
             <p class="installed-agents-locked-message">
-              You have <strong>${agents.length} coach${agents.length > 1 ? 'es' : ''}</strong> installed. 
+              You have <strong>${agents.length} coach${agents.length > 1 ? 'es' : ''}</strong> installed.
               They'll be ready to chat once you've met your whole core team!
             </p>
           </div>
@@ -612,15 +612,15 @@ async function renderCreationsTab(): Promise<void> {
     <section class="creations-section">
       <div class="creations-header">
         <div class="creations-header-content">
-          <h3 class="creations-title">Your Custom Agents</h3>
-          <p class="creations-subtitle">Create companions with custom voices and personalities</p>
+          <h3 class="creations-title">${t('marketplace.creations.title')}</h3>
+          <p class="creations-subtitle">${t('marketplace.creations.subtitle')}</p>
         </div>
         <button aria-label="${t('accessibility.createAgent')}" class="creations-create-btn" data-action="create-agent">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          Create Agent
+          ${t('marketplace.creations.create')}
         </button>
       </div>
 
@@ -633,19 +633,19 @@ async function renderCreationsTab(): Promise<void> {
               <path d="M12 8v8"></path>
             </svg>
           </div>
-          <h4 class="creations-empty-title">No agents yet</h4>
-          <p class="creations-empty-hint">Create your first custom agent to preserve a loved one's voice, build a mentor, or design your own companion.</p>
+          <h4 class="creations-empty-title">${t('marketplace.creations.empty')}</h4>
+          <p class="creations-empty-hint">${t('marketplace.creations.emptyHint')}</p>
           <button aria-label="${t('accessibility.createYourFirstAgent')}" class="creations-empty-btn" data-action="create-agent">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            Create Your First Agent
+            ${t('marketplace.creations.createFirst')}
           </button>
         </div>
 
         <div class="creations-types-preview">
-          <h4 class="creations-types-title">What you can create</h4>
+          <h4 class="creations-types-title">${t('marketplace.creations.whatYouCan')}</h4>
           <div class="creations-types-grid">
             <button type="button" class="creation-type-card" data-action="create-type" data-type="legacy" aria-label="Create a Legacy agent">
               <span class="creation-type-icon">
@@ -653,9 +653,9 @@ async function renderCreationsTab(): Promise<void> {
                   <path d="M12 2c.5 3.5 2 5.5 3.5 7 1.5 1.5 3.5 2.5 5.5 3-2 .5-4 1.5-5.5 3-1.5 1.5-3 3.5-3.5 7-.5-3.5-2-5.5-3.5-7-1.5-1.5-3.5-2.5-5.5-3 2-.5 4-1.5 5.5-3 1.5-1.5 3-3.5 3.5-7z"/>
                 </svg>
               </span>
-              <h5 class="creation-type-name">Legacy</h5>
-              <p class="creation-type-desc">Preserve the voice and wisdom of someone you cherish</p>
-              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+              <h5 class="creation-type-name">${t('marketplace.creations.legacy')}</h5>
+              <p class="creation-type-desc">${t('marketplace.creations.legacyDesc')}</p>
+              <span class="creation-type-cta">${t('marketplace.creations.startCreating')} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
             </button>
             <button type="button" class="creation-type-card" data-action="create-type" data-type="mentor" aria-label="Create a Mentor agent">
               <span class="creation-type-icon">
@@ -664,9 +664,9 @@ async function renderCreationsTab(): Promise<void> {
                   <circle cx="12" cy="11" r="3"/>
                 </svg>
               </span>
-              <h5 class="creation-type-name">Mentor</h5>
-              <p class="creation-type-desc">Create a coach based on an inspiring figure</p>
-              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+              <h5 class="creation-type-name">${t('marketplace.creations.mentor')}</h5>
+              <p class="creation-type-desc">${t('marketplace.creations.mentorDesc')}</p>
+              <span class="creation-type-cta">${t('marketplace.creations.startCreating')} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
             </button>
             <button type="button" class="creation-type-card" data-action="create-type" data-type="twin" aria-label="Create a Digital Twin">
               <span class="creation-type-icon">
@@ -676,9 +676,9 @@ async function renderCreationsTab(): Promise<void> {
                   <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>
                 </svg>
               </span>
-              <h5 class="creation-type-name">Digital Twin</h5>
-              <p class="creation-type-desc">Your personal voice journal that grows with you</p>
-              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+              <h5 class="creation-type-name">${t('marketplace.creations.twin')}</h5>
+              <p class="creation-type-desc">${t('marketplace.creations.twinDesc')}</p>
+              <span class="creation-type-cta">${t('marketplace.creations.startCreating')} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
             </button>
             <button type="button" class="creation-type-card" data-action="create-type" data-type="fictional" aria-label="Create a Custom agent from scratch">
               <span class="creation-type-icon">
@@ -687,9 +687,9 @@ async function renderCreationsTab(): Promise<void> {
                   <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
                 </svg>
               </span>
-              <h5 class="creation-type-name">Custom</h5>
-              <p class="creation-type-desc">Build any personality from scratch</p>
-              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+              <h5 class="creation-type-name">${t('marketplace.creations.custom')}</h5>
+              <p class="creation-type-desc">${t('marketplace.creations.customDesc')}</p>
+              <span class="creation-type-cta">${t('marketplace.creations.startCreating')} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
             </button>
           </div>
         </div>
@@ -823,7 +823,7 @@ function getAgentTypeButtons(agent: CustomAgent): string {
         </button>
         <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-twin" data-agent-id="${agent.id}">
           ${icons.talk}
-          Talk
+          ${t('marketplace.actions.talk')}
         </button>
       `;
 
@@ -835,15 +835,15 @@ function getAgentTypeButtons(agent: CustomAgent): string {
         </button>
         <button aria-label="${t('accessibility.voice')}" class="custom-agent-action custom-agent-action--voice" data-action="record-voice" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-          Voice
+          ${t('marketplace.actions.voice')}
         </button>
         <button aria-label="${t('accessibility.share')}" class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Share
+          ${t('marketplace.actions.share')}
         </button>
         <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-legacy" data-agent-id="${agent.id}">
           ${icons.talk}
-          Talk
+          ${t('marketplace.actions.talk')}
         </button>
       `;
 
@@ -855,7 +855,7 @@ function getAgentTypeButtons(agent: CustomAgent): string {
         </button>
         <button aria-label="${t('accessibility.coachMe')}" class="custom-agent-action custom-agent-action--coaching" data-action="start-coaching" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-          Coach Me
+          ${t('marketplace.actions.coachMe')}
         </button>
       `;
 
@@ -867,7 +867,7 @@ function getAgentTypeButtons(agent: CustomAgent): string {
         </button>
         <button aria-label="${t('accessibility.play')}" class="custom-agent-action custom-agent-action--roleplay" data-action="start-roleplay" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-          Roleplay
+          ${t('marketplace.actions.roleplay')}
         </button>
       `;
 
@@ -879,7 +879,7 @@ function getAgentTypeButtons(agent: CustomAgent): string {
         </button>
         <button aria-label="${t('accessibility.workMode')}" class="custom-agent-action custom-agent-action--work" data-action="start-task-mode" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          Work Mode
+          ${t('marketplace.actions.workMode')}
         </button>
       `;
 
@@ -887,7 +887,7 @@ function getAgentTypeButtons(agent: CustomAgent): string {
       return `
         <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-agent" data-agent-id="${agent.id}">
           ${icons.talk}
-          Talk
+          ${t('marketplace.actions.talk')}
         </button>
       `;
   }
@@ -947,7 +947,7 @@ function renderCustomAgentCard(agent: CustomAgent): string {
       <footer class="custom-agent-footer">
         ${getAgentTypeButtons(agent)}
         <button aria-label="${t('accessibility.edit')}" class="custom-agent-action custom-agent-action--edit" data-agent-id="${agent.id}">
-          Edit
+          ${t('marketplace.actions.edit')}
         </button>
         <button class="custom-agent-action custom-agent-action--delete" data-action="delete-agent" data-agent-id="${agent.id}" aria-label="Delete ${agent.name}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1387,15 +1387,15 @@ function renderEmployeeCard(
           <svg class="roster-icon roster-icon--minus" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          <span class="roster-label">In Team</span>
-          <span class="roster-label roster-label--hover">Remove</span>
+          <span class="roster-label">${t('marketplace.roster.inTeam')}</span>
+          <span class="roster-label roster-label--hover">${t('marketplace.roster.remove')}</span>
         </button>`
         : `<button class="employee-roster-action employee-roster-action--add" data-roster-action="add" data-persona-id="${personaId}" aria-label="Add ${name} to team">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          <span>Add</span>
+          <span>${t('marketplace.roster.add')}</span>
         </button>`
       : '';
 
@@ -1431,13 +1431,13 @@ function renderTeamNarrative(): string {
   return `
     <section class="team-narrative">
       <div class="team-narrative-header">
-        <h3 class="team-narrative-title">Meet your team.</h3>
-        <p class="team-narrative-subtitle">Friends who truly understand.</p>
+        <h3 class="team-narrative-title">${t('marketplace.team.title')}</h3>
+        <p class="team-narrative-subtitle">${t('marketplace.team.subtitle')}</p>
       </div>
-      
+
       <div class="team-leadership">
         <div class="leadership-section">
-          <span class="leadership-label">Chief Executive</span>
+          <span class="leadership-label">${t('marketplace.team.ceo')}</span>
           <div class="leadership-grid ceo">
             <div class="leader-card ceo-card">
               <div class="leader-avatar" data-persona="ferni" style="${getAvatarStyle('ferni')}">
@@ -1445,15 +1445,15 @@ function renderTeamNarrative(): string {
               </div>
               <div class="leader-info">
                 <h4 class="leader-name">Ferni</h4>
-                <span class="leader-title">CEO & Life Coach</span>
-                <p class="leader-bio">The warm, wise presence at the heart of everything. Ferni coordinates the team with perfect memory, zero judgment, and constant presence.</p>
+                <span class="leader-title">${t('marketplace.team.ferniRole')}</span>
+                <p class="leader-bio">${t('marketplace.team.ferniDesc')}</p>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div class="leadership-section">
-          <span class="leadership-label">Co-Founders</span>
+          <span class="leadership-label">${t('marketplace.team.coFounders')}</span>
           <div class="leadership-grid cofounders">
             <div class="leader-card cofounder">
               <div class="leader-avatar cofounder-avatar" data-persona="claude" style="${getAvatarStyle('claude')}">
@@ -1475,9 +1475,9 @@ function renderTeamNarrative(): string {
             </div>
           </div>
         </div>
-        
+
         <div class="leadership-section">
-          <span class="leadership-label">Core Team</span>
+          <span class="leadership-label">${t('marketplace.team.coreTeam')}</span>
           <div class="leadership-grid employees">
             ${renderEmployeeCard('peter-john', 'PJ', 'Peter', 'Research')}
             ${renderEmployeeCard('alex-chen', 'AC', 'Alex', 'Communication')}
@@ -1487,9 +1487,9 @@ function renderTeamNarrative(): string {
           </div>
         </div>
       </div>
-      
+
       <p class="team-narrative-footer">
-        Together, we're redefining what it means to have a team that truly listens.
+        ${t('marketplace.team.footer')}
       </p>
     </section>
   `;
@@ -1517,11 +1517,11 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
       // Determine state classes and button
       const stateClass = agent.isInstalled ? 'installed' : '';
       const badgeHtml = agent.isInstalled
-        ? '<span class="agent-badge installed">Installed</span>'
+        ? `<span class="agent-badge installed">${t('marketplace.agent.installed')}</span>`
         : '';
       const buttonHtml = agent.isInstalled
-        ? `<button aria-label="${t('accessibility.remove')}" class="agent-action uninstall" data-agent-id="${agent.id}">Remove</button>`
-        : `<button aria-label="${t('accessibility.addToTeam')}" class="agent-action install" data-agent-id="${agent.id}">Add to Team</button>`;
+        ? `<button aria-label="${t('accessibility.remove')}" class="agent-action uninstall" data-agent-id="${agent.id}">${t('marketplace.agent.remove')}</button>`
+        : `<button aria-label="${t('accessibility.addToTeam')}" class="agent-action install" data-agent-id="${agent.id}">${t('marketplace.agent.addToTeam')}</button>`;
 
       // Rating display
       const ratingHtml = agent.rating
@@ -2157,7 +2157,7 @@ function renderDetailPanel(
 
       <div class="detail-content">
         <section class="detail-section">
-          <h3 class="detail-section-title">About</h3>
+          <h3 class="detail-section-title">${t('marketplace.reviews.about')}</h3>
           <p class="detail-description">${agent.description || agent.short_description}</p>
           <p class="detail-author">Created by ${agent.author}</p>
         </section>
@@ -2166,7 +2166,7 @@ function renderDetailPanel(
           agent.tags.length > 0
             ? `
           <section class="detail-section">
-            <h3 class="detail-section-title">Specialties</h3>
+            <h3 class="detail-section-title">${t('marketplace.reviews.specialties')}</h3>
             <div class="detail-tags">
               ${agent.tags.map((tag) => `<span class="detail-tag">${tag}</span>`).join('')}
             </div>
@@ -2176,7 +2176,7 @@ function renderDetailPanel(
         }
 
         <section class="detail-section">
-          <h3 class="detail-section-title">Reviews</h3>
+          <h3 class="detail-section-title">${t('marketplace.reviews.reviews')}</h3>
           ${
             reviews.length > 0
               ? `
@@ -2185,16 +2185,16 @@ function renderDetailPanel(
             </div>
           `
               : `
-            <p class="detail-empty-reviews">No reviews yet. Be the first to share your experience!</p>
+            <p class="detail-empty-reviews">${t('marketplace.reviews.noReviews')}</p>
           `
           }
         </section>
 
         <section class="detail-section review-form-section">
-          <h3 class="detail-section-title">Write a Review</h3>
+          <h3 class="detail-section-title">${t('marketplace.reviews.writeReview')}</h3>
           <form class="review-form" data-agent-id="${agent.id}">
             <div class="review-rating-select">
-              <span class="review-rating-label">Your rating:</span>
+              <span class="review-rating-label">${t('marketplace.reviews.yourRating')}</span>
               <div class="star-selector" role="group" aria-label="${t('accessibility.selectRating')}">
                 ${[1, 2, 3, 4, 5]
                   .map(
@@ -2211,14 +2211,14 @@ function renderDetailPanel(
               <input type="hidden" name="rating" value="0" required />
             </div>
             <div class="form-group">
-              <input type="text" name="title" class="review-title-input" placeholder="Review title (optional)" maxlength="100" />
+              <input type="text" name="title" class="review-title-input" placeholder="${t('marketplace.reviews.titleOptional')}" maxlength="100" />
             </div>
             <div class="form-group">
-              <textarea name="body" class="review-body-input" placeholder="Share your experience..." rows="3" required minlength="10" maxlength="1000"></textarea>
+              <textarea name="body" class="review-body-input" placeholder="${t('marketplace.reviews.shareExperience')}" rows="3" required minlength="10" maxlength="1000"></textarea>
               <span class="char-count">0/1000</span>
             </div>
             <button type="submit" class="review-submit-btn" disabled>
-              Submit Review
+              ${t('marketplace.reviews.submit')}
             </button>
           </form>
         </section>
@@ -2226,7 +2226,7 @@ function renderDetailPanel(
 
       <footer class="detail-footer">
         <button class="detail-action ${isInstalled ? 'uninstall' : 'install'}" data-agent-id="${agent.id}">
-          ${isInstalled ? 'Remove from Team' : 'Add to Team'}
+          ${isInstalled ? t('marketplace.detail.removeFromTeam') : t('marketplace.detail.addToTeam')}
         </button>
       </footer>
     </div>
@@ -2307,7 +2307,7 @@ function renderReviewCard(review: AgentReview): string {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
           </svg>
-          ${review.helpfulCount} found this helpful
+          ${review.helpfulCount} ${t('marketplace.helpful')}
         </div>
       `
           : ''
@@ -2316,7 +2316,7 @@ function renderReviewCard(review: AgentReview): string {
         review.publisherResponse
           ? `
         <div class="review-response">
-          <p class="review-response-label">Response from creator:</p>
+          <p class="review-response-label">${t('marketplace.response.label')}</p>
           <p class="review-response-body">${review.publisherResponse.body}</p>
         </div>
       `
@@ -2440,7 +2440,7 @@ async function submitReview(
   }
 
   submitBtn.disabled = true;
-  submitBtn.textContent = t('ui.marketplace.submitting');
+  submitBtn.textContent = t('marketplace.reviews.submitting');
 
   try {
     const response = await apiPost<{ error?: string }>('/api/marketplace/reviews', {
@@ -2474,7 +2474,7 @@ async function submitReview(
     log.error({ error: err, agentId }, 'Failed to submit review');
     toast.error("Couldn't submit review. Try again?");
     submitBtn.disabled = false;
-    submitBtn.textContent = t('ui.marketplace.submitReview');
+    submitBtn.textContent = t('marketplace.reviews.submit');
   }
 }
 
