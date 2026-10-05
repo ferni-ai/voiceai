@@ -24,11 +24,12 @@ import {
   calculateUsageStatus,
   createDefaultSubscription,
   createFreshUsage,
-  getLimitMessage, // Reserved for billing period display
+  getLimitMessage,
   needsUsageReset,
 } from '../../types/subscription.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { finops } from '../observability/finops.js';
+import { billingSourceOf, type BillingSource } from './billing-source.js';
 
 const log = createLogger({ module: 'StripeSubscription' });
 
@@ -337,29 +338,25 @@ export async function createCheckoutSession(params: {
   };
 }
 
-/**
- * Create a billing portal session for managing subscription
- */
+/** The user's Stripe customer id, or null when they've never been a Stripe customer. */
+export async function getStripeCustomerId(userId: string): Promise<string | null> {
+  const profile = await (await getStore()).getProfile(userId);
+  return profile?.subscription?.stripeCustomerId ?? null;
+}
+
+/** Create a billing portal session for managing subscription */
 export async function createPortalSession(
   userId: string,
   returnUrl: string
 ): Promise<{ url: string }> {
-  const store = await getStore();
-  const profile = await store.getProfile(userId);
-
-  if (!profile?.subscription?.stripeCustomerId) {
-    throw new Error('User does not have a Stripe customer ID');
-  }
-
+  const customer = await getStripeCustomerId(userId);
+  if (!customer) throw new Error('User does not have a Stripe customer ID');
   const stripe = await getStripe();
-
   const session = await stripe.billingPortal.sessions.create({
-    customer: profile.subscription.stripeCustomerId,
+    customer,
     return_url: returnUrl,
   });
-
   log.info({ userId }, 'Created billing portal session');
-
   return { url: session.url };
 }
 
@@ -406,6 +403,7 @@ export async function syncSubscriptionFromStripe(
     ...existingSubscription,
     tier,
     status: mapStripeStatus(subscription.status),
+    provider: 'stripe',
     stripeCustomerId: subscription.customer as string,
     stripeSubscriptionId: subscription.id,
     subscribedAt: existingSubscription.subscribedAt ?? new Date(subscription.created * 1000),
@@ -843,13 +841,13 @@ export async function syncMRRToFinOps(): Promise<{ mrr: number; subscriptionCoun
 // API RESPONSE HELPERS
 // ============================================================================
 
-/**
- * Get subscription info for API response (safe to send to frontend)
- */
+/** Get subscription info for API response (safe to send to frontend) */
 export async function getSubscriptionInfo(userId: string): Promise<{
   tier: SubscriptionTier;
   tierName: string;
   status: SubscriptionStatus;
+  /** Where the paid plan is billed, so the web only offers the Stripe portal for Stripe. */
+  billingSource: BillingSource;
   usage: UsageStatus;
   canUpgrade: boolean;
   prices: Array<{
@@ -879,6 +877,7 @@ export async function getSubscriptionInfo(userId: string): Promise<{
     tier: subscription.tier,
     tierName: config.name,
     status: subscription.status,
+    billingSource: billingSourceOf(subscription),
     usage,
     canUpgrade: subscription.tier === 'free',
     prices,

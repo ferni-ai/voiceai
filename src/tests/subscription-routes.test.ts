@@ -23,6 +23,8 @@ vi.mock('../services/stripe-subscription.js', () => ({
   isStripeConfigured: vi.fn(() => true),
   createCheckoutSession: vi.fn(),
   createPortalSession: vi.fn(),
+  // The portal now needs a Stripe customer (409 without one); these users have one.
+  getStripeCustomerId: vi.fn(async () => 'cus_test'),
   getSubscriptionInfo: vi.fn(),
   canStartConversation: vi.fn(),
   recordConversation: vi.fn(),

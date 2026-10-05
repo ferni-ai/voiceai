@@ -90,12 +90,9 @@ export interface SubscriptionStatus {
   approaching?: boolean;
   upgradePrompt?: string | null;
   canUpgrade?: boolean;
-  prices?: Array<{
-    tier: string;
-    name: string;
-    priceInCents: number;
-    description: string;
-  }>;
+  prices?: Array<{ tier: string; name: string; priceInCents: number; description: string }>;
+  /** Where the plan is billed (server-derived); only 'stripe' can use the Stripe portal. */
+  billingSource?: 'stripe' | 'app_store' | 'none';
 }
 
 export interface SubscriptionConfig {

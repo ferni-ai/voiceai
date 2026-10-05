@@ -25,6 +25,8 @@ vi.mock('../services/identity/firebase-auth.js', () => ({
 const stripe = vi.hoisted(() => ({
   isStripeConfigured: vi.fn(() => true),
   createPortalSession: vi.fn(async () => ({ url: 'https://billing.stripe.com/p/s' })),
+  // The portal now needs a Stripe customer (409 without one); this user has one.
+  getStripeCustomerId: vi.fn(async () => 'cus_42'),
   createCheckoutSession: vi.fn(async () => ({ url: 'https://checkout.stripe.com/c/s' })),
   recordConversation: vi.fn(async () => ({ conversationsUsed: 1 })),
   getSubscriptionInfo: vi.fn(),
