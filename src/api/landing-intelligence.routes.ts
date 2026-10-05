@@ -611,17 +611,13 @@ export async function handleLandingIntelligenceRoutes(
       return true;
     }
 
-    // ============================================================================
     // GET /api/landing/flags - Get feature flags
-    // ============================================================================
     if (pathname === '/api/landing/flags' && method === 'GET') {
       sendJSON(res, getLandingIntelligenceFlags());
       return true;
     }
 
-    // ============================================================================
     // PUT /api/landing/flags - Update feature flags (admin)
-    // ============================================================================
     if (pathname === '/api/landing/flags' && method === 'PUT') {
       // Anyone could switch the landing page's features before this check.
       const auth = await requireAdmin(req, res);
@@ -632,9 +628,7 @@ export async function handleLandingIntelligenceRoutes(
       return true;
     }
 
-    // ============================================================================
     // POST /api/landing/ai/chat - Live demo chat with AI
-    // ============================================================================
     if (pathname === '/api/landing/ai/chat' && method === 'POST') {
       const { visitorId, message, persona } = await parseBody<{
         visitorId: string;
