@@ -42,7 +42,7 @@ const MOMENT_STYLES = `
 
 .moments-container {
   position: fixed;
-  top: calc(260px + env(safe-area-inset-top, 0px));
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: ${MOMENT_Z_INDEX.whisper};
@@ -55,7 +55,7 @@ const MOMENT_STYLES = `
 
 @media (max-width: 480px) {
   .moments-container {
-    top: calc(220px + env(safe-area-inset-top, 0px));
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -97,7 +97,7 @@ const MOMENT_STYLES = `
 }
 
 .moment-whisper--warning {
-  background: var(--color-semantic-warning, #b8956a);
+  background: color-mix(in srgb, var(--color-semantic-warning, #a67c35) 80%, black);
   color: white;
   border: 1px solid var(--color-semantic-warning-border, rgba(184, 149, 106, 0.8));
 }
