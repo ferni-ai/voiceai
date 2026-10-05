@@ -836,7 +836,36 @@
     "microphoneBlocked": "Microphone access required",
     "sessionTimeout": "Session timed out",
     "blockedError": "Notifications are blocked. Allow them in your browser settings.",
-    "unavailableError": "Notifications aren't available right now."
+    "unavailableError": "Notifications aren't available right now.",
+    "regionLabel": "Notifications",
+    "ritualReminder": {
+      "title": "Your practice awaits",
+      "cta": "Begin",
+      "message": "Time for your {ritual}"
+    },
+    "streakMilestone": {
+      "title": "Look at you go",
+      "message": {
+        "one": "{count} day of {name}. You're building something real.",
+        "other": "{count} days of {name}. You're building something real."
+      }
+    },
+    "predictionReady": {
+      "title": "Time to check in",
+      "cta": "See results",
+      "message": "How accurate was your prediction about \"{question}...\"?"
+    },
+    "teamHuddle": {
+      "title": "Your team wants to connect",
+      "cta": "Join",
+      "message": {
+        "one": "{names} wants to discuss your progress",
+        "other": "{names} want to discuss your progress"
+      }
+    },
+    "welcome": {
+      "title": "Welcome back"
+    }
   },
   "sleepSettings": {
     "title": "Sleep Schedule",
@@ -4321,7 +4350,14 @@
     "emptyState": "Select a thread to visualize",
     "connectedMemories": "{count} connected memories",
     "recentActivityTitle": "Recent Activity",
-    "confidence": "Confidence: {confidence}%"
+    "confidence": "Confidence: {confidence}%",
+    "nodeTypes": {
+      "fact": "Fact",
+      "emotion": "Emotion",
+      "event": "Event",
+      "commitment": "Commitment",
+      "milestone": "Milestone"
+    }
   },
   "memoryFeedback": {
     "ariaLabel": "Was this memory helpful?",
@@ -7736,7 +7772,34 @@
       "shareIntro": "My journal entry from {date}:",
       "shareSignature": "— Written with Ferni",
       "shareTitle": "My Journal Entry"
-    }
+    },
+    "todayAt": "Today at {time}",
+    "yesterdayAt": "Yesterday at {time}",
+    "moments": {
+      "breakthrough": "Breakthrough",
+      "decision": "Decision",
+      "gratitude": "Gratitude",
+      "struggle": "Processing",
+      "joy": "Joy",
+      "reflection": "Reflection",
+      "goal": "Goal",
+      "connection": "Connection",
+      "lesson": "Lesson",
+      "vulnerability": "Vulnerability",
+      "default": "Captured moment"
+    },
+    "confirmDelete": "Delete this journal entry? This cannot be undone.",
+    "empty": "No journal entries yet.",
+    "emptyHint": "Record your first entry to get started!",
+    "noEntriesForDate": "No entries for this date.",
+    "noEntriesMatching": "No entries matching \"{query}\".",
+    "noEntriesFound": "No entries found.",
+    "showAll": "Show all entries",
+    "showingCount": {
+      "one": "Showing {shown} of {count} entry",
+      "other": "Showing {shown} of {count} entries"
+    },
+    "clearFilters": "Clear filters"
   },
   "conversationHistory": {
     "loadError": "Couldn't load data.",
@@ -8447,6 +8510,56 @@
         "message": "Unlock more team members by building your relationship with Ferni",
         "action": "Talk to Ferni"
       }
+    },
+    "growthJournal": {
+      "headline": "Your growth story is just beginning",
+      "description": "As we talk, I'll notice patterns and celebrate wins you might not see yourself.",
+      "encouragement": "Your first reflection will appear soon."
+    },
+    "patternInsights": {
+      "headline": "I'm learning your rhythms",
+      "description": "After a few more conversations, I'll show you patterns that might surprise you.",
+      "encouragement": "The best insights come from spending time together."
+    },
+    "memoryLane": {
+      "headline": "We're building memories together",
+      "description": "Every conversation adds to our shared story. Soon you'll have moments worth revisiting.",
+      "encouragement": "Keep chatting, and this will fill with moments that matter."
+    },
+    "knowledgeQuiz": {
+      "headline": "I'm still getting to know you",
+      "description": "Quiz questions are generated from our conversations. The more we talk, the more fun the questions!",
+      "encouragement": "After a few more chats, I'll have some great questions ready."
+    },
+    "yourStory": {
+      "headline": "Your story is unfolding",
+      "description": "Every conversation adds a new chapter. Check back as our relationship deepens.",
+      "encouragement": "The most meaningful insights emerge over time."
+    },
+    "yourYear": {
+      "headline": "A year of growth awaits",
+      "description": "This space will show your journey over time - streaks, milestones, and memories.",
+      "encouragement": "Start your first conversation to begin tracking your year."
+    },
+    "conversationHistory": {
+      "headline": "Ready when you are",
+      "description": "Your conversations will appear here, ready to revisit whenever you like.",
+      "encouragement": "Every conversation is saved and searchable."
+    },
+    "contacts": {
+      "headline": "Your world starts here",
+      "description": "As you mention the people in your life, I'll help you keep track of those relationships.",
+      "encouragement": "Tell me about someone important to you."
+    },
+    "musicDashboard": {
+      "headline": "Let's discover your musical self",
+      "description": "Play some music during our conversations, and I'll learn what moves you.",
+      "encouragement": "Ask me to play something and let's get started."
+    },
+    "activity": {
+      "headline": "Your activity is just getting started",
+      "description": "This will show your engagement patterns, streaks, and accomplishments.",
+      "encouragement": "Every check-in adds to your story."
     }
   },
   "unifiedIndicator": {
@@ -8690,5 +8803,349 @@
     "startRoundtable": "Start Roundtable",
     "moderator": "Moderator",
     "expert": "Expert"
+  },
+  "locationPrompt": {
+    "weather": {
+      "title": "Local weather",
+      "message": "I'd love to mention your local weather when it's relevant. This helps me be more helpful—like suggesting you grab an umbrella or enjoy the sunshine."
+    },
+    "events": {
+      "title": "Nearby events",
+      "message": "With your location, I can tell you about interesting things happening near you—concerts, workshops, community events that might brighten your week."
+    },
+    "timezone": {
+      "title": "Your time zone",
+      "message": "Knowing where you are helps me understand what time it is for you, so I can be more present and thoughtful in our conversations."
+    },
+    "personalization": {
+      "title": "Personalization",
+      "message": "Your location helps me make our conversations feel more personal and relevant—like I'm actually there with you."
+    },
+    "note": "This stays just between us—I only use it to make our conversations more personal.",
+    "notNow": "Not now",
+    "allow": "Allow location"
+  },
+  "personaTypography": {
+    "ferni": {
+      "style": "Rounded",
+      "voice": "Warm and approachable, like a close friend speaking gently"
+    },
+    "maya": {
+      "style": "Crisp",
+      "voice": "Energetic and motivating, like a supportive coach"
+    },
+    "peter": {
+      "style": "Structured",
+      "voice": "Precise and analytical, like a thoughtful researcher"
+    },
+    "jordan": {
+      "style": "Balanced",
+      "voice": "Organized and optimistic, like a reliable planner"
+    },
+    "alex": {
+      "style": "Clean",
+      "voice": "Professional and efficient, like a capable assistant"
+    },
+    "nayan": {
+      "style": "Spacious",
+      "voice": "Deep and contemplative, like a wise mentor"
+    }
+  },
+  "connectFailure": {
+    "unauthorized": "Your sign-in expired. Sign in and try again?",
+    "forbidden": "That account doesn't match. Sign in again?",
+    "rateLimited": "Too many tries just now. Give it a minute?",
+    "unavailable": "Ferni's taking a breather. Try again shortly?",
+    "serverError": "Something went wrong on our end. Try again?",
+    "micDenied": "I need your microphone to hear you. Allow it, then try again.",
+    "agentUnavailable": "Ferni couldn't join this time. Try again?",
+    "agentTimeout": "Ferni didn't join in time. Try again?",
+    "timeout": "That took too long. Check your connection and retry?",
+    "network": "Couldn't reach Ferni. Check your internet and retry?",
+    "dropped": "Lost the connection. Reconnect?",
+    "unknown": "Couldn't connect. Try again?"
+  },
+  "ambientSounds": {
+    "rain": {
+      "name": "Gentle Rain",
+      "description": "Soft rainfall ambience"
+    },
+    "fireplace": {
+      "name": "Crackling Fire",
+      "description": "Cozy fireplace sounds"
+    },
+    "forest": {
+      "name": "Forest Morning",
+      "description": "Birds and gentle wind"
+    }
+  },
+  "teamUnlock": {
+    "members": {
+      "ferni": {
+        "role": "Your Life Coach",
+        "description": "Your main point of contact. Asks the questions that unlock insight.",
+        "introduction": "Hey! I'm Ferni. I'm so glad you're here."
+      },
+      "maya": {
+        "role": "Habits Coach",
+        "description": "Helps you build habits that stick. Start embarrassingly small.",
+        "introduction": "I want you to meet Maya. She's incredible at habits.",
+        "teaser": "I have a friend who's amazing at habits... once we talk more, I'll introduce you."
+      },
+      "peter": {
+        "role": "The Quant",
+        "description": "Spots patterns nobody else sees. Turns data into insights.",
+        "introduction": "You're ready for Peter. He sees patterns most people miss.",
+        "teaser": "Peter can show you incredible patterns, but I need to know you better first."
+      },
+      "alex": {
+        "role": "Chief of Staff",
+        "description": "Communication coach. Helps you say what you mean.",
+        "introduction": "Alex is going to change how you communicate.",
+        "teaser": "There's someone who can transform your communication... keep talking to me."
+      },
+      "jordan": {
+        "role": "Lifetime Planner",
+        "description": "Turns vague dreams into lived experiences.",
+        "introduction": "Jordan helps people turn dreams into actual plans.",
+        "teaser": "I know someone who can help you plan your whole life... soon."
+      },
+      "nayan": {
+        "role": "The Sage",
+        "description": "Lifetime coach. Small, consistent actions create extraordinary results.",
+        "introduction": "Nayan is the wisest person I know. You've earned this.",
+        "teaser": "The sage only speaks to those who've proven their commitment."
+      }
+    },
+    "nayanLockReason": "The sage speaks only to those who've proven their commitment.",
+    "nayanUnlockHint": "Reach deep partnership or become a Founding Patron.",
+    "hint": {
+      "conversations": {
+        "one": "{count} conversation",
+        "other": "{count} conversations"
+      },
+      "days": {
+        "one": "{count} day",
+        "other": "{count} days"
+      },
+      "streak": "{count}-day streak",
+      "keepTalking": "Keep talking to Ferni!",
+      "toUnlock": "{requirement} to unlock"
+    },
+    "progress": {
+      "unlocked": "Unlocked",
+      "keepTalking": "Keep talking to Ferni",
+      "moreConversations": {
+        "one": "{count} more conversation",
+        "other": "{count} more conversations"
+      },
+      "moreDays": {
+        "one": "{count} more day",
+        "other": "{count} more days"
+      },
+      "streakNeeded": "{count}-day streak needed"
+    }
+  },
+  "gardenWidget": {
+    "health": {
+      "thriving": {
+        "one": "Ferni is free because {count} person planted seeds.",
+        "other": "Ferni is free because {count} people planted seeds."
+      },
+      "growing": "{percent}% funded. Every seed helps.",
+      "needsWater": "The garden needs some love."
+    },
+    "loadError": "Could not load garden status",
+    "title": "Ferni's Garden",
+    "gardeners": {
+      "one": "{count} gardener",
+      "other": "{count} gardeners"
+    },
+    "plantSeed": "Plant a Seed",
+    "becomeGardener": "Become a Gardener",
+    "seedsPlanted": {
+      "one": "{count} seed planted",
+      "other": "{count} seeds planted"
+    },
+    "status": {
+      "seedling": "Seedling",
+      "gardener": "Gardener",
+      "groveKeeper": "Grove Keeper"
+    }
+  },
+  "proactiveMessages": {
+    "indicatorLabel": "Messages from Ferni",
+    "respond": "Respond",
+    "reasons": {
+      "welcomeFollowup": "Checking in",
+      "nextDayCheck": "Following up",
+      "topicDeepdive": "Thinking about you",
+      "firstWeekReflection": "Week reflection",
+      "momentumCheck": "Momentum check",
+      "twoWeekCelebration": "Celebrating you",
+      "thinkingOfYou": "Just thinking of you",
+      "habitNudge": "Gentle reminder",
+      "winCelebration": "Celebrating your win",
+      "setbackSupport": "Here for you",
+      "reengagementGentle": "Missing you",
+      "reengagementWarmth": "Still here",
+      "lifeEventFollowup": "Following up",
+      "default": "A message for you"
+    }
+  },
+  "seedsDisplay": {
+    "title": "Your Seeds",
+    "dailyBonus": "A little something",
+    "seedsToShare": "seeds to share",
+    "daysInARow": "days in a row",
+    "myGarden": "My Garden",
+    "bringAFriend": "Bring a friend",
+    "alreadyClaimed": "Already claimed today",
+    "untilBonus": {
+      "one": "{count} day until {goal}-day streak bonus",
+      "other": "{count} days until {goal}-day streak bonus"
+    }
+  },
+  "cognitiveInsights": {
+    "labels": {
+      "styleMatch": "Adapting",
+      "empathyShift": "Feeling with you",
+      "clarityBoost": "Clarifying",
+      "depthIncrease": "Going deeper",
+      "confidenceCheck": "Thinking...",
+      "quirkActive": "Just me being me",
+      "default": "Insight"
+    },
+    "messages": {
+      "styleMatch": "Matching your thinking style",
+      "empathyShift": "I hear you",
+      "clarityBoost": "Let me put that more simply",
+      "depthIncrease": "Let me dive deeper",
+      "confidenceCheck": "I'm not entirely sure, but..."
+    }
+  },
+  "conversationStarters": {
+    "tones": {
+      "casual": "Casual",
+      "supportive": "Supportive",
+      "celebratory": "Celebratory",
+      "curious": "Curious"
+    },
+    "eyebrow": "Conversation Starters",
+    "lastTalked": "Last talked {when}",
+    "overAYearAgo": "over a year ago",
+    "newIdeas": "New ideas",
+    "copyOpener": "Copy opener",
+    "loading": "Thinking of things to talk about...",
+    "initialTitle": "Start a great conversation",
+    "initialText": "Based on what you've talked about before, Ferni will suggest thoughtful ways to reconnect.",
+    "getIdeas": "Get Ideas",
+    "emptyTitle": "No suggestions yet",
+    "emptyText": "Try adding more context about your relationship.",
+    "generateError": "Could not generate ideas. Try again?"
+  },
+  "ferniCare": {
+    "eyebrow": "WHAT I DO FOR YOU",
+    "title": "Little things I remember",
+    "subtitle": "So you don't have to",
+    "emptyTitle": "Nothing set up yet",
+    "emptySubtitle": "Want me to greet you each morning? Remind you to stretch? I can do that.",
+    "emptyButton": "Show me some ideas",
+    "addNew": "Add something new",
+    "triggers": {
+      "dailyAt": "Every day at {time}",
+      "dailyUnset": "Every day at a set time",
+      "phrase": "When you say \"{phrase}\"",
+      "arrive": "When you arrive at {name}",
+      "leave": "When you leave {name}",
+      "somewhere": "somewhere",
+      "calendar": "Before your calendar events",
+      "event": "When something happens"
+    },
+    "status": {
+      "active": "Taking care of it",
+      "paused": "On hold",
+      "error": "Needs attention"
+    },
+    "tabs": {
+      "routines": "My routines for you",
+      "ideas": "Ideas",
+      "connections": "Connected services"
+    },
+    "pause": "Pause",
+    "resume": "Resume",
+    "runNow": "Run now",
+    "signInPrompt": "Sign in to see what I do for you",
+    "loadError": "Couldn't load your routines",
+    "connectionsSoon": "Connected services coming soon..."
+  },
+  "voiceAuth": {
+    "unknownError": "Unknown error",
+    "apiError": "API error: {status}",
+    "reEnroll": {
+      "high": "Your voice profile quality is low. Re-enrolling will help me recognize you better.",
+      "low": "Your voice profile could be improved. Consider re-enrolling for better recognition."
+    }
+  },
+  "biometrics": {
+    "unknownPlatform": "Unknown platform",
+    "appleHealthIphoneOnly": "Apple Health is only available in the iPhone app",
+    "couldNotReach": "Couldn't reach {name}. Try again?",
+    "notAvailableYet": "{name} isn't available yet"
+  },
+  "twinProfile": {
+    "completion": {
+      "notStarted": "Not started",
+      "justStarted": "Just started",
+      "basicInfo": "Basic info",
+      "goodProfile": "Good profile",
+      "complete": "Complete!"
+    }
+  },
+  "app": {
+    "openDirectorConsole": "Open Director Console",
+    "director": "Director",
+    "startupError": "Having trouble starting up. Try refreshing?",
+    "lastConversation": "This is your last conversation this month. Let's make it count.",
+    "conversationsLeft": {
+      "one": "{count} conversation left. I'm here whenever you need me.",
+      "other": "{count} conversations left. I'm here whenever you need me."
+    },
+    "gettingReady": "Getting ready...",
+    "connecting": "Connecting",
+    "almostThere": "Almost there...",
+    "waitingQuietly": "I'll wait quietly",
+    "listening": "I'm listening",
+    "demoWelcomeBack": "Welcome back! I remember our conversation.",
+    "demoWelcome": "Welcome! So glad you're here.",
+    "hereWithYou": "I'm here with you.",
+    "connectFirstForPractice": "Connect to Ferni first to start a practice",
+    "startingPractice": "Starting \"{name}\"...",
+    "practiceStartFailed": "Couldn't start practice. Try asking Ferni directly!",
+    "gardenThankYou": "Thank you for planting a seed!",
+    "outlookCalendar": "Outlook Calendar",
+    "calendarConnectFailed": "Couldn't connect calendar. Try again?",
+    "dailyCheckIn": "Daily Check-in",
+    "syncedWithCloud": "Synced with cloud",
+    "upToDate": "You're up to date",
+    "syncFailed": "Couldn't sync",
+    "voiceProfileNeedsRefresh": "Your voice profile needs a refresh. Head to Settings → Voice ID.",
+    "voiceProfileCouldBeSharper": "Voice profile could be sharper. Try Settings → Voice ID.",
+    "connectFirstToManage": "Connect first, then we can manage that.",
+    "referralBonus": {
+      "one": "+{count} seed from your friend!",
+      "other": "+{count} seeds from your friend!"
+    },
+    "monthlyLimitReached": "We've reached our monthly limit. I'd love to keep talking...",
+    "enableMicPrompt": "I'd love to hear your voice - enable mic access?",
+    "agentJoined": "{name} joined",
+    "seeYouNextTime": "See you next time!",
+    "handoffFailed": "Couldn't reach them right now. I'm still here though!",
+    "personaBack": "{name} is back!",
+    "nowPlaying": "Now playing: {name}",
+    "seedsEarned": {
+      "one": "You earned {count} seed!",
+      "other": "You earned {count} seeds!"
+    }
   }
 }
