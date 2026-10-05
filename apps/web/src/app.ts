@@ -14,6 +14,7 @@ import {
   setPersona as setThemePersona,
   startAmbientCycle,
   toggleTheme,
+  watchSystemTheme,
 } from './theme/index.js';
 // Theme & Language Settings panel
 import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
@@ -522,10 +523,16 @@ class VoiceAIApp {
       // This matches iOS behavior where users must sign in with Apple/Google
       // IMPORTANT: Must await auth initialization to restore any existing session
       const authState = await initializeAuth();
-      if (!authState.isAuthenticated) {
+      // The dev server accepts ?e2e=1 so Playwright can reach the settings
+      // theme picker. Production builds set import.meta.env.DEV to false.
+      const allowDevE2E =
+        import.meta.env.DEV && new URLSearchParams(window.location.search).get('e2e') === '1';
+      if (!authState.isAuthenticated && !allowDevE2E) {
         log.info('User not authenticated, showing sign-in gate');
         await showSignInGate();
         log.info('User signed in, continuing app initialization');
+      } else if (allowDevE2E && !authState.isAuthenticated) {
+        log.info('Dev server e2e bypass: continuing without a session');
       } else {
         log.info('User already authenticated', { uid: authState.uid?.slice(0, 8) });
       }
@@ -1003,6 +1010,7 @@ class VoiceAIApp {
   private initializeTheme(): void {
     // Initialize theme from stored preference or system
     initTheme();
+    watchSystemTheme();
 
     // ========================================================================
     // AMBIENT EXPERIENCE SYSTEM (Better than Apple/Google)

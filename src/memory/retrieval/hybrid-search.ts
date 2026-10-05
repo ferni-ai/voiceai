@@ -166,151 +166,168 @@ export async function hybridSearch(
   const rankedLists = new Map<string, RankedItem<HybridSearchResult>[]>();
 
   // 1. BM25 KEYWORD SEARCH
-  if (!skipBM25 && includeEntities) {
-    const bm25Start = Date.now();
-    try {
-      const bm25Results = await searchEntitiesBM25(userId, query, {
-        topK: topK * 2,
-        types: entityTypes,
-      });
+  const bm25Lists = new Map<string, RankedItem<HybridSearchResult>[]>();
+  const bm25ListsRun = (async () => {
+    if (!skipBM25 && includeEntities) {
+      const bm25Start = Date.now();
+      try {
+        const bm25Results = await searchEntitiesBM25(userId, query, {
+          topK: topK * 2,
+          types: entityTypes,
+        });
 
-      metrics.bm25LatencyMs = Date.now() - bm25Start;
-      metrics.sourceCounts.bm25 = bm25Results.length;
+        metrics.bm25LatencyMs = Date.now() - bm25Start;
+        metrics.sourceCounts.bm25 = bm25Results.length;
 
-      if (bm25Results.length > 0) {
-        rankedLists.set(
-          'bm25',
-          bm25Results.map((r, i) => ({
-            id: `entity_${r.id}`,
-            score: r.score,
-            rank: i + 1,
-            data: {
-              id: r.id,
+        if (bm25Results.length > 0) {
+          bm25Lists.set(
+            'bm25',
+            bm25Results.map((r, i) => ({
+              id: `entity_${r.id}`,
               score: r.score,
-              text: r.text,
-              type: 'entity' as const,
-              sources: ['bm25'],
-              scoreBreakdown: { bm25: r.score },
-              metadata: r.metadata,
-            },
-            source: 'bm25',
-          }))
-        );
+              rank: i + 1,
+              data: {
+                id: r.id,
+                score: r.score,
+                text: r.text,
+                type: 'entity' as const,
+                sources: ['bm25'],
+                scoreBreakdown: { bm25: r.score },
+                metadata: r.metadata,
+              },
+              source: 'bm25',
+            }))
+          );
+        }
+      } catch (error) {
+        log.warn({ userId, error: String(error) }, 'BM25 search failed');
+        metrics.bm25LatencyMs = Date.now() - bm25Start;
       }
-    } catch (error) {
-      log.warn({ userId, error: String(error) }, 'BM25 search failed');
-      metrics.bm25LatencyMs = Date.now() - bm25Start;
     }
-  }
+  })();
 
   // 2. VECTOR SEMANTIC SEARCH
-  if (!skipVector) {
-    const vectorStart = Date.now();
-    try {
-      const { results: vectorResults } = await searchMemories(query, userId, {
-        topK: topK * 2,
-        minScore: 0.3,
-      });
+  const vectorLists = new Map<string, RankedItem<HybridSearchResult>[]>();
+  const vectorListsRun = (async () => {
+    if (!skipVector) {
+      const vectorStart = Date.now();
+      try {
+        const { results: vectorResults } = await searchMemories(query, userId, {
+          topK: topK * 2,
+          minScore: 0.3,
+        });
 
-      metrics.vectorLatencyMs = Date.now() - vectorStart;
-      metrics.sourceCounts.vector = vectorResults.length;
+        metrics.vectorLatencyMs = Date.now() - vectorStart;
+        metrics.sourceCounts.vector = vectorResults.length;
 
-      if (vectorResults.length > 0) {
-        rankedLists.set(
-          'vector',
-          vectorResults.map((r, i) => ({
-            id: `memory_${r.documentId}`,
-            score: r.score,
-            rank: i + 1,
-            data: {
-              id: r.documentId,
+        if (vectorResults.length > 0) {
+          vectorLists.set(
+            'vector',
+            vectorResults.map((r, i) => ({
+              id: `memory_${r.documentId}`,
               score: r.score,
-              text: r.text,
-              type: 'memory' as const,
-              sources: ['vector'],
-              scoreBreakdown: { vector: r.score },
-              metadata: { source: r.source, sourceId: r.sourceId },
-            },
-            source: 'vector',
-          }))
-        );
+              rank: i + 1,
+              data: {
+                id: r.documentId,
+                score: r.score,
+                text: r.text,
+                type: 'memory' as const,
+                sources: ['vector'],
+                scoreBreakdown: { vector: r.score },
+                metadata: { source: r.source, sourceId: r.sourceId },
+              },
+              source: 'vector',
+            }))
+          );
+        }
+      } catch (error) {
+        log.warn({ userId, error: String(error) }, 'Vector search failed');
+        metrics.vectorLatencyMs = Date.now() - vectorStart;
       }
-    } catch (error) {
-      log.warn({ userId, error: String(error) }, 'Vector search failed');
-      metrics.vectorLatencyMs = Date.now() - vectorStart;
     }
-  }
+  })();
 
   // 3. ENTITY STORE DIRECT SEARCH (for relationship queries)
-  if (includeEntities && !skipBM25) {
-    const entityStart = Date.now();
-    try {
-      const { findEntityByAlias, searchEntities } = await import('../entity-store/storage.js');
+  const entityLists = new Map<string, RankedItem<HybridSearchResult>[]>();
+  const entityListsRun = (async () => {
+    if (includeEntities && !skipBM25) {
+      const entityStart = Date.now();
+      try {
+        const { findEntityByAlias, searchEntities } = await import('../entity-store/storage.js');
 
-      // Try exact alias match first
-      const exactMatch = await findEntityByAlias(userId, query, 'person');
-      if (exactMatch) {
-        const entityResult: RankedItem<HybridSearchResult> = {
-          id: `entity_${exactMatch.id}`,
-          score: 1.0, // Perfect match
-          rank: 1,
-          data: {
-            id: exactMatch.id,
-            score: 1.0,
-            text: exactMatch.canonicalName,
-            type: 'entity' as const,
-            sources: ['entity_exact'],
-            scoreBreakdown: { entity: 1.0 },
-            metadata: {
-              type: exactMatch.type,
-              relationship: exactMatch.relationship,
-              aliases: exactMatch.aliases,
+        // Try exact alias match first
+        const exactMatch = await findEntityByAlias(userId, query, 'person');
+        if (exactMatch) {
+          const entityResult: RankedItem<HybridSearchResult> = {
+            id: `entity_${exactMatch.id}`,
+            score: 1.0, // Perfect match
+            rank: 1,
+            data: {
+              id: exactMatch.id,
+              score: 1.0,
+              text: exactMatch.canonicalName,
+              type: 'entity' as const,
+              sources: ['entity_exact'],
+              scoreBreakdown: { entity: 1.0 },
+              metadata: {
+                type: exactMatch.type,
+                relationship: exactMatch.relationship,
+                aliases: exactMatch.aliases,
+              },
             },
-          },
-          source: 'entity_exact',
-        };
+            source: 'entity_exact',
+          };
 
-        // Add as its own source for high priority
-        rankedLists.set('entity_exact', [entityResult]);
-        metrics.sourceCounts.entity++;
-      }
+          // Add as its own source for high priority
+          entityLists.set('entity_exact', [entityResult]);
+          metrics.sourceCounts.entity++;
+        }
 
-      // Also do a search for partial matches
-      const searchResults = await searchEntities(userId, query, {
-        types: entityTypes as Entity['type'][] | undefined,
-        topK: 10,
-      });
+        // Also do a search for partial matches
+        const searchResults = await searchEntities(userId, query, {
+          types: entityTypes as Entity['type'][] | undefined,
+          topK: 10,
+        });
 
-      if (searchResults.length > 0) {
-        const entityResults: RankedItem<HybridSearchResult>[] = searchResults.map((e, i) => ({
-          id: `entity_${e.id}`,
-          score: e.salience || 0.5,
-          rank: i + 1,
-          data: {
-            id: e.id,
+        if (searchResults.length > 0) {
+          const entityResults: RankedItem<HybridSearchResult>[] = searchResults.map((e, i) => ({
+            id: `entity_${e.id}`,
             score: e.salience || 0.5,
-            text: e.canonicalName,
-            type: 'entity' as const,
-            sources: ['entity_search'],
-            scoreBreakdown: { entity: e.salience || 0.5 },
-            metadata: {
-              type: e.type,
-              relationship: e.relationship,
-              aliases: e.aliases,
+            rank: i + 1,
+            data: {
+              id: e.id,
+              score: e.salience || 0.5,
+              text: e.canonicalName,
+              type: 'entity' as const,
+              sources: ['entity_search'],
+              scoreBreakdown: { entity: e.salience || 0.5 },
+              metadata: {
+                type: e.type,
+                relationship: e.relationship,
+                aliases: e.aliases,
+              },
             },
-          },
-          source: 'entity_search',
-        }));
+            source: 'entity_search',
+          }));
 
-        rankedLists.set('entity_search', entityResults);
-        metrics.sourceCounts.entity += searchResults.length;
+          entityLists.set('entity_search', entityResults);
+          metrics.sourceCounts.entity += searchResults.length;
+        }
+
+        metrics.entityLatencyMs = Date.now() - entityStart;
+      } catch (error) {
+        log.debug({ error: String(error) }, 'Entity store search unavailable');
+        metrics.entityLatencyMs = Date.now() - entityStart;
       }
-
-      metrics.entityLatencyMs = Date.now() - entityStart;
-    } catch (error) {
-      log.debug({ error: String(error) }, 'Entity store search unavailable');
-      metrics.entityLatencyMs = Date.now() - entityStart;
     }
+  })();
+
+  // The three searches are independent: run them together. One after
+  // another they took ~280 ms against a 245 ms limit, so retrieval timed out
+  // on 103 of 103 dev turns. Merge in a fixed order for stable fusion.
+  await Promise.all([bm25ListsRun, vectorListsRun, entityListsRun]);
+  for (const lists of [bm25Lists, vectorLists, entityLists]) {
+    for (const [source, list] of lists) rankedLists.set(source, list);
   }
 
   // 4. RECIPROCAL RANK FUSION

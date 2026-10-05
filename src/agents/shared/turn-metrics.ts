@@ -25,6 +25,8 @@ interface LlmMetric {
   speechId?: string;
   ttftMs: number;
   promptTokens: number;
+  /** Prompt tokens the model served from its cache (Gemini cachedContentTokenCount). */
+  promptCachedTokens?: number;
   completionTokens: number;
 }
 
@@ -49,6 +51,8 @@ export interface TurnMetricsRecord {
   llmTtftMs: number;
   ttsTtfbMs: number | null;
   promptTokens: number;
+  /** Of promptTokens, how many came from the model's prompt cache. */
+  promptCachedTokens: number;
   completionTokens: number;
   ttsCharacters: number;
   /** The TTS for this reply was cancelled, i.e. the user interrupted it. */
@@ -106,6 +110,7 @@ function toRecord(eou: EouMetric, llm: LlmMetric, tts?: TtsMetric): TurnMetricsR
     llmTtftMs: llm.ttftMs,
     ttsTtfbMs: tts ? tts.ttfbMs : null,
     promptTokens: llm.promptTokens,
+    promptCachedTokens: llm.promptCachedTokens ?? 0,
     completionTokens: llm.completionTokens,
     ttsCharacters: tts ? tts.charactersCount : 0,
     interrupted: tts ? tts.cancelled : false,

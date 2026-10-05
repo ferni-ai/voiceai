@@ -18,7 +18,7 @@ const COLORS = {
   ferni: '#4a6741', // Sage green
   background: '#FFFDFB', // Paper cream
   text: '#2C2520', // Natural ink
-  textMuted: '#70605a',
+  textMuted: '#352e28',
 
   // Accent colors
   warmGold: '#c4a96a',

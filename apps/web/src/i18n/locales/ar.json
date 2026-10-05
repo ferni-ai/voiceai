@@ -704,6 +704,7 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
+    "dismiss": "تجاهل",
     "maybeLater": "[NEEDS_TRANSLATION] Later"
   },
   "confirmModal": {
@@ -1387,8 +1388,34 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
+      "conversation": "إجراء محادثة: +1 بذرة",
+      "note": "البذور تساعدنا على تحديد ما نبنيه بعد ذلك!",
+      "streak30": "سلسلة 30 يوماً: +15 بذرة",
+      "streak7": "سلسلة 7 أيام: +5 بذور",
+      "vote": "التصويت للميزات: 1-10 بذور",
       "title": "How Seeds Work"
     },
+    "backToRoadmap": "العودة إلى خارطة الطريق",
+    "categories": {
+      "connect": "التواصل - العلاقات والاتصال",
+      "personalize": "التخصيص - اجعل Ferni خاصاً بك",
+      "platform": "المنصة - قدرات جديدة"
+    },
+    "needMoreSeeds": "تحتاج إلى 5 بذور على الأقل لإرسال اقتراح. أجرِ المزيد من المحادثات لتكسب البذور!",
+    "newIdea": "فكرة جديدة",
+    "noSeedsHint": "أجرِ المزيد من المحادثات لتكسب البذور!",
+    "refund50": "استرداد 50%",
+    "submitSuggestion": "ازرع هذه البذرة",
+    "submitting": "جارٍ الزرع...",
+    "suggestionCategory": "الفئة",
+    "suggestionCost": "يكلّف الإرسال 5 بذور (يُظهر الجدية ويمنع الرسائل المزعجة)",
+    "suggestionDescription": "أخبرنا بالمزيد (اختياري)",
+    "suggestionDescriptionPlaceholder": "لماذا سيكون هذا مفيداً؟ كيف ستستخدمه؟",
+    "suggestionIntro": "لديك فكرة لشيء يجب أن يفعله Ferni؟ ازرع بذرة ودع المجتمع يرويها!",
+    "suggestionPlanted": "زُرعت بذرتك!",
+    "suggestionThanks": "شكراً لمشاركة فكرتك. يمكن للآخرين الآن سقيها ببذورهم!",
+    "suggestionTitle": "ما الذي يجب أن يتمكن Ferni من فعله؟",
+    "suggestionTitlePlaceholder": "مثال: تذكّر اسم حيواني الأليف",
     "intro": "كل علاقة عظيمة لها فصول. هذه بذور نزرعها معاً.",
     "learnMore": "Learn more",
     "loading": "Loading roadmap...",
@@ -2305,7 +2332,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "Philips Hue أو LIFX",
+      "hueOrLifxDesc": "يُضبط من إعدادات \"Your Home\""
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2384,7 +2413,10 @@
     },
     "secondsRemaining": "الثواني المتبقية",
     "startExercise": "بدء تمرين التنفس",
-    "changePattern": "تغيير نمط التنفس"
+    "changePattern": "تغيير نمط التنفس",
+    "hold": "حبس",
+    "in": "شهيق",
+    "out": "زفير"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2426,7 +2458,11 @@
     "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
     "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
     "rememberSuccess": "حسناً! سأتذكرك الآن.",
-    "account": "الحساب"
+    "account": "الحساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "rememberYouAs": "سأتذكرك باسم",
+    "successMessage": "سأتذكرك الآن. أينما ذهبت، سأعرفك."
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2734,7 +2770,11 @@
     "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
     "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
     "sentSuccess": "تم إرسال {sent} بذور! سيحصلون على {received}",
-    "sendError": "فشل في إرسال الهدية. حاول مرة أخرى؟"
+    "sendError": "فشل في إرسال الهدية. حاول مرة أخرى؟",
+    "amount": "الكمية",
+    "recipientPlaceholder": "أدخل بريد صديقك الإلكتروني أو اسم المستخدم",
+    "sendGift": "إرسال الهدية",
+    "sendTo": "إرسال إلى"
   },
   "teamIntro": {
     "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
@@ -2814,7 +2854,8 @@
       "onTheWay": "أنت في الطريق الصحيح! سيتم فتح المزيد من أعضاء الفريق مع استمرار رحلتنا.",
       "growing": "فريقك ينمو. لم يتبق سوى بعض المحطات لفتح الجميع.",
       "complete": "لقد فتحت الفريق الكامل! الجميع هنا لدعمك."
-    }
+    },
+    "added": "تمت الإضافة!"
   },
   "referral": {
     "share": {
@@ -2845,7 +2886,19 @@
       "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
     },
     "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
-    "copyError": "فشل النسخ. حاول مرة أخرى؟"
+    "copyError": "فشل النسخ. حاول مرة أخرى؟",
+    "bonusAmount": "ستحصلان كلاكما على {seeds} بذرة",
+    "bonusWhen": "عندما ينضم!",
+    "garden": {
+      "earned": "ربحت {seeds} بذرة من المشاركة",
+      "empty": "البذور تنمو حين نتشاركها. ابدأ حديقتك اليوم.",
+      "friendsGrowing": "{count} أصدقاء ينمون",
+      "title": "حديقتك:"
+    },
+    "quoteMessage": "\"امنحهم شخصاً يتذكر كل شيء، ويحضر في الثانية فجراً، ولا يحكم أبداً.\"",
+    "subtitle": "هل تعرف شخصاً يحتاج إلى صديق كهذا؟",
+    "title": "شارك النمو",
+    "yourLink": "رابطك:"
   },
   "conversationMemory": {
     "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
@@ -3008,7 +3061,14 @@
       "browse": "استعرض سوقنا"
     },
     "creations": {
-      "noDescription": "لا توجد وصفة"
+      "noDescription": "لا توجد وصفة",
+      "createButton": "أنشئ وكيلاً",
+      "emptyDescription": "أنشئ وكيلاً بشخصيته ومهاراته الخاصة، ثم شاركه مع المجتمع.",
+      "emptyTitle": "لم تُنشئ أي وكلاء بعد"
+    },
+    "agentCard": {
+      "install": "تثبيت",
+      "uninstall": "إلغاء التثبيت"
     }
   },
   "agent": {

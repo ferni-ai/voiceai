@@ -343,7 +343,7 @@ function injectStyles(): void {
       border: none;
       padding: var(--space-2, 8px);
       cursor: pointer;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       border-radius: var(--radius-full, 9999px);
       transition: transform 0.2s ease, opacity 0.2s ease;
     }
@@ -380,7 +380,7 @@ function injectStyles(): void {
 
     .earn-seeds-subtitle {
       font-size: var(--text-base, 1rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin: 0;
     }
 
@@ -426,7 +426,7 @@ function injectStyles(): void {
 
     .earn-method-description {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin: 0;
       line-height: 1.4;
     }
@@ -473,7 +473,7 @@ function injectStyles(): void {
     .earn-seeds-note {
       margin: var(--space-3, 12px) 0 0;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     /* Dark theme */

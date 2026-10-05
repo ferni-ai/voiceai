@@ -38,6 +38,7 @@ import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-aut
 import { fetchWithRetry, isOffline, type FetchRetryOptions } from './fetch-retry.js';
 import { createLogger } from './logger.js';
 import { IDENTITY_KEYS } from '../config/storage-keys.js';
+import { getLocale } from '../i18n/index.js';
 
 const log = createLogger('API');
 
@@ -138,7 +139,8 @@ export function getDeviceId(): string | null {
  * This sync version only includes X-User-Id, not the Bearer token.
  */
 export function getApiHeaders(includeJson = true): HeadersInit {
-  const headers: HeadersInit = {};
+  // The app's language, so API copy matches it (not the browser's language)
+  const headers: HeadersInit = { 'Accept-Language': getLocale() };
 
   // SECURITY: Only add dev-mode key when Vite's DEV flag is true
   // This flag is ONLY true during `vite dev` builds, never in production
@@ -147,13 +149,11 @@ export function getApiHeaders(includeJson = true): HeadersInit {
     headers['X-Admin-Key'] = 'dev-mode';
   }
 
-  // Add user ID for authentication
   const userId = getUserId();
   if (userId) {
     headers['X-User-Id'] = userId;
   }
 
-  // Add device ID for tracking
   const deviceId = getDeviceId();
   if (deviceId) {
     headers['X-Device-Id'] = deviceId;

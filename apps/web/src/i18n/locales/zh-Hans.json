@@ -704,6 +704,7 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
+    "dismiss": "关闭",
     "maybeLater": "[NEEDS_TRANSLATION] Later"
   },
   "confirmModal": {
@@ -1387,8 +1388,34 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
+      "conversation": "进行一次对话：+1颗种子",
+      "note": "种子帮助我们决定接下来要做什么！",
+      "streak30": "连续30天：+15颗种子",
+      "streak7": "连续7天：+5颗种子",
+      "vote": "为功能投票：1-10颗种子",
       "title": "How Seeds Work"
     },
+    "backToRoadmap": "返回路线图",
+    "categories": {
+      "connect": "连接 - 人际关系与沟通",
+      "personalize": "个性化 - 打造专属于您的Ferni",
+      "platform": "平台 - 新能力"
+    },
+    "needMoreSeeds": "提交建议至少需要5颗种子。多聊聊天就能赚到种子！",
+    "newIdea": "新想法",
+    "noSeedsHint": "多聊聊天就能赚到种子！",
+    "refund50": "退还50%",
+    "submitSuggestion": "种下这颗种子",
+    "submitting": "正在种下...",
+    "suggestionCategory": "类别",
+    "suggestionCost": "提交需要5颗种子（表达诚意，防止垃圾信息）",
+    "suggestionDescription": "多告诉我们一些（可选）",
+    "suggestionDescriptionPlaceholder": "这对您有什么帮助？您会怎么用？",
+    "suggestionIntro": "希望Ferni能做些什么？种下一颗种子，让社区一起来浇灌吧！",
+    "suggestionPlanted": "您的种子已种下！",
+    "suggestionThanks": "感谢分享您的想法。现在其他人可以用他们的种子来浇灌它了！",
+    "suggestionTitle": "您希望Ferni能做什么？",
+    "suggestionTitlePlaceholder": "例如：记住我宠物的名字",
     "intro": "每段美好的关系都有四季。这些是我们一起播下的种子。",
     "learnMore": "Learn more",
     "loading": "Loading roadmap...",
@@ -2305,7 +2332,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "Philips Hue 或 LIFX",
+      "hueOrLifxDesc": "在“Your Home”设置中配置"
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2384,7 +2413,10 @@
     },
     "secondsRemaining": "剩余秒数",
     "startExercise": "开始呼吸练习",
-    "changePattern": "更改呼吸模式"
+    "changePattern": "更改呼吸模式",
+    "hold": "屏息",
+    "in": "吸气",
+    "out": "呼气"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2426,7 +2458,11 @@
     "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
     "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
     "rememberSuccess": "明白了！我现在会记住你。",
-    "account": "账户"
+    "account": "账户",
+    "email": "邮箱",
+    "password": "密码",
+    "rememberYouAs": "我记得你是",
+    "successMessage": "我现在会记住你。无论你去哪里，我都认得你。"
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2734,7 +2770,11 @@
     "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
     "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
     "sentSuccess": "已发送{sent}颗种子！他们将获得{received}",
-    "sendError": "无法发送礼物。重试？"
+    "sendError": "无法发送礼物。重试？",
+    "amount": "数量",
+    "recipientPlaceholder": "输入好友的邮箱或用户名",
+    "sendGift": "送出礼物",
+    "sendTo": "发送给"
   },
   "teamIntro": {
     "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
@@ -2814,7 +2854,8 @@
       "onTheWay": "你走在正确的道路上！随着我们旅程的继续，更多的团队成员会被解锁。",
       "growing": "你的团队在成长。只需再经过几个里程碑就能解锁所有成员。",
       "complete": "你已解锁完整团队！每个人都在这里支持你。"
-    }
+    },
+    "added": "已添加！"
   },
   "referral": {
     "share": {
@@ -2845,7 +2886,19 @@
       "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
     },
     "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
-    "copyError": "无法复制。重试？"
+    "copyError": "无法复制。重试？",
+    "bonusAmount": "你们俩都会获得{seeds}颗种子",
+    "bonusWhen": "在对方加入后！",
+    "garden": {
+      "earned": "分享已为您赚得{seeds}颗种子",
+      "empty": "种子在分享中成长。今天就开始打造您的花园吧。",
+      "friendsGrowing": "{count}位朋友正在成长",
+      "title": "您的花园："
+    },
+    "quoteMessage": "“送他们一个什么都记得、凌晨两点也会陪着、从不评判的人。”",
+    "subtitle": "认识需要这样一位朋友的人吗？",
+    "title": "分享成长",
+    "yourLink": "您的链接："
   },
   "conversationMemory": {
     "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
@@ -3008,7 +3061,14 @@
       "browse": "浏览我们的市场"
     },
     "creations": {
-      "noDescription": "无描述"
+      "noDescription": "无描述",
+      "createButton": "创建代理",
+      "emptyDescription": "打造一个拥有独特个性和技能的代理，然后与社区分享。",
+      "emptyTitle": "您还没有创建任何代理"
+    },
+    "agentCard": {
+      "install": "安装",
+      "uninstall": "卸载"
     }
   },
   "agent": {

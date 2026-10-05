@@ -7,6 +7,7 @@
  * @module memory/dynamic/extraction-firestore-docs
  */
 
+import { createHash } from 'node:crypto';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type { FallbackLogger } from '../../utils/safe-logger.js';
 import type {
@@ -22,6 +23,16 @@ export interface ExtractionFirestoreWritePayloads {
   facts: Record<string, unknown>[];
   relationships: Record<string, unknown>[];
   dropped: { entities: number; facts: number; relationships: number };
+}
+
+/**
+ * One document per fact: the same (entity, key, value) always maps to the same
+ * id, so re-extracting a fact updates it instead of adding a row (one scripted
+ * call stored "sister | pregnancy = Pregnant" as 63 rows, 2026-10-04).
+ */
+export function factDocId(entityName: string, key: string, value: string): string {
+  const norm = (s: string) => String(s ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  return `f_${createHash('sha1').update(`${norm(entityName)}|${norm(key)}|${norm(value)}`).digest('hex').slice(0, 24)}`;
 }
 
 /**

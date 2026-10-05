@@ -20,6 +20,7 @@
  */
 
 import 'dotenv/config';
+import { GEMINI_LOCATION, GEMINI_MODEL, REALTIME_MODEL } from '../src/config/gemini-config.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -32,8 +33,8 @@ const GOOGLE_CLOUD_LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1'
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
 
 // Models
-const STANDARD_MODEL = 'gemini-2.5-flash'; // For non-streaming
-const REALTIME_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash'; // For Live API streaming
+const STANDARD_MODEL = GEMINI_MODEL; // For non-streaming (Vertex `global` only)
+// REALTIME_MODEL (Live API streaming) comes from gemini-config
 
 console.log('🔧 Configuration:');
 console.log(`   USE_VERTEX_AI: ${USE_VERTEX_AI}`);
@@ -62,9 +63,9 @@ async function demonstrateStandardAPI() {
     client = new GoogleGenAI({
       vertexai: true,
       project: GOOGLE_CLOUD_PROJECT,
-      location: GOOGLE_CLOUD_LOCATION,
+      location: GEMINI_LOCATION,
     });
-    console.log(`✅ Connected to Vertex AI (${GOOGLE_CLOUD_PROJECT} @ ${GOOGLE_CLOUD_LOCATION})`);
+    console.log(`✅ Connected to Vertex AI (${GOOGLE_CLOUD_PROJECT} @ ${GEMINI_LOCATION})`);
   } else if (GOOGLE_API_KEY) {
     // API key mode
     client = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });

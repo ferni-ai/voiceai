@@ -90,7 +90,7 @@ describe('Live Superhuman Injections', () => {
     const { buildLiveSuperhumanInjections } =
       await import('../agents/processors/live-superhuman-injections.js');
 
-    const result = await buildLiveSuperhumanInjections({
+    const turn = {
       userId: 'test-user',
       sessionId: 'test-session',
       userText: "I'm going to start going to the gym, it's important to me to get healthy",
@@ -108,7 +108,20 @@ describe('Live Superhuman Injections', () => {
         topics: ['health'],
       },
       turnCount: 5,
+    };
+
+    // The first call lazily imports its helper modules (commitment keeper, joy
+    // amplification). beforeEach resets the module registry, so that one-time
+    // load (~1s under Vitest's TS transform) would land inside processingTimeMs
+    // and swamp the ~2ms of per-turn work the budget below is meant to check.
+    // Warm up with a different user so no commitment state carries over.
+    await buildLiveSuperhumanInjections({
+      ...turn,
+      userId: 'warmup-user',
+      sessionId: 'warmup-session',
     });
+
+    const result = await buildLiveSuperhumanInjections(turn);
 
     // Should have detected commitment and values
     expect(result.signals.commitmentDetected).toBe(true);

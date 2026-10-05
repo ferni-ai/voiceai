@@ -107,7 +107,7 @@ import { llmHealthMetrics } from './observability/index.js';
 // Record LLM call
 llmHealthMetrics.recordCall({
   provider: 'google',
-  model: 'gemini-2.0-flash',
+  model: 'gemini-3.5-flash',
   latencyMs: 450,
   tokensIn: 100,
   tokensOut: 250,

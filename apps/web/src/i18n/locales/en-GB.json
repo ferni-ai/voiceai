@@ -704,6 +704,7 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
+    "dismiss": "Dismiss",
     "maybeLater": "Later"
   },
   "confirmModal": {
@@ -1430,8 +1431,34 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
+      "conversation": "Have a conversation: +1 seed",
+      "note": "Seeds help us prioritise what to build next!",
+      "streak30": "30-day streak: +15 seeds",
+      "streak7": "7-day streak: +5 seeds",
+      "vote": "Vote for features: 1-10 seeds",
       "title": "How Seeds Work"
     },
+    "backToRoadmap": "Back to Roadmap",
+    "categories": {
+      "connect": "Connect - Relationships & Communication",
+      "personalize": "Personalise - Make Ferni Yours",
+      "platform": "Platform - New Capabilities"
+    },
+    "needMoreSeeds": "You need at least 5 seeds to submit a suggestion. Have more conversations to earn seeds!",
+    "newIdea": "New Idea",
+    "noSeedsHint": "Have more conversations to earn seeds!",
+    "refund50": "50% refund",
+    "submitSuggestion": "Plant This Seed",
+    "submitting": "Planting...",
+    "suggestionCategory": "Category",
+    "suggestionCost": "Submitting costs 5 seeds (shows commitment, prevents spam)",
+    "suggestionDescription": "Tell us more (optional)",
+    "suggestionDescriptionPlaceholder": "Why would this be helpful? How would you use it?",
+    "suggestionIntro": "Have an idea for something Ferni should do? Plant a seed and let the community water it!",
+    "suggestionPlanted": "Your seed has been planted!",
+    "suggestionThanks": "Thank you for sharing your idea. Others can now water it with their seeds!",
+    "suggestionTitle": "What should Ferni be able to do?",
+    "suggestionTitlePlaceholder": "e.g., Remember my pet's name",
     "intro": "Every great relationship has seasons. These are seeds we're planting together.",
     "learnMore": "Learn more",
     "loading": "Loading roadmap...",
@@ -2345,7 +2372,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "Philips Hue or LIFX",
+      "hueOrLifxDesc": "Set up in Your Home settings"
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2424,7 +2453,10 @@
     },
     "secondsRemaining": "Seconds remaining",
     "startExercise": "Start breathing exercise",
-    "changePattern": "Change breathing pattern"
+    "changePattern": "Change breathing pattern",
+    "hold": "Hold",
+    "in": "In",
+    "out": "Out"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2466,7 +2498,11 @@
     "forgetDevice": "Forget this device",
     "forgetDeviceSuccess": "Device forgotten. Your data is safe.",
     "rememberSuccess": "Got it! I'll remember you now.",
-    "account": "Account"
+    "account": "Account",
+    "email": "Email",
+    "password": "Password",
+    "rememberYouAs": "I'll remember you as",
+    "successMessage": "I'll remember you now. Wherever you go, I'll know you."
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2731,7 +2767,11 @@
     "successToast": "Sent {amount} seeds!",
     "errorToast": "Couldn't send seeds. Try again?",
     "sentSuccess": "Sent {sent} seeds! They'll get {received}",
-    "sendError": "Couldn't send gift. Try again?"
+    "sendError": "Couldn't send gift. Try again?",
+    "amount": "Amount",
+    "recipientPlaceholder": "Enter friend's email or username",
+    "sendGift": "Send Gift",
+    "sendTo": "Send to"
   },
   "teamIntro": {
     "eyebrow": "YOUR JOURNEY",
@@ -2811,7 +2851,8 @@
       "onTheWay": "You're on your way! More team members unlock as we continue our journey.",
       "growing": "Your team is growing. Just a few more milestones to unlock everyone.",
       "complete": "You've unlocked the full team! Everyone's here to support you."
-    }
+    },
+    "added": "Added!"
   },
   "referral": {
     "share": {
@@ -2842,7 +2883,19 @@
       "emptyState": "Plant your first seed"
     },
     "errorClipboard": "Couldn't copy. Try again?",
-    "copyError": "Couldn't copy. Try again?"
+    "copyError": "Couldn't copy. Try again?",
+    "bonusAmount": "You'll both get {seeds} seeds",
+    "bonusWhen": "when they join!",
+    "garden": {
+      "earned": "You've earned {seeds} seeds from sharing",
+      "empty": "Seeds grow when shared. Start your garden today.",
+      "friendsGrowing": "{count} friends growing",
+      "title": "Your garden:"
+    },
+    "quoteMessage": "\"Give them someone who remembers everything, shows up at 2am, and never judges.\"",
+    "subtitle": "Know someone who could use a friend like this?",
+    "title": "Share the Growth",
+    "yourLink": "Your link:"
   },
   "conversationMemory": {
     "demoBanner": "Demo mode - showing example data",
@@ -3005,7 +3058,14 @@
       "browse": "Browse our marketplace"
     },
     "creations": {
-      "noDescription": "No description"
+      "noDescription": "No description",
+      "createButton": "Create an agent",
+      "emptyDescription": "Build an agent with its own personality and skills, then share it with the community.",
+      "emptyTitle": "You haven't created any agents yet"
+    },
+    "agentCard": {
+      "install": "Install",
+      "uninstall": "Uninstall"
     }
   },
   "agent": {

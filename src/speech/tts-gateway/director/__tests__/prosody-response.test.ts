@@ -65,3 +65,51 @@ describe('the director answering the caller’s voice', async () => {
     expect(out).not.toMatch(/<emotion value="calm"\/>/);
   });
 });
+
+describe('the plan log carries the raw caller reading', async () => {
+  const { ReadableStream } = await import('node:stream/web');
+  const { directSpeech } = await import('../reply-director.js');
+  const { DirectorSessions } = await import('../session-state.js');
+  const { getCallerProsodyTracker, removeCallerProsodyTracker } = await import(
+    '../../../audio-prosody/caller-prosody.js'
+  );
+
+  it('so thresholds can be set from real calls, not guessed', async () => {
+    const sessionId = 'plan-log-reading';
+    const tracker = getCallerProsodyTracker(sessionId);
+    for (let i = 0; i < 200; i++) {
+      tracker.addFrame({ pitchHz: 180, pitchConfidence: 0.9, energyDb: -30, isSpeech: true }, i * 10);
+    }
+    let summary: import('../reply-director.js').PlanSummary | undefined;
+    const sink = {
+      push() {},
+      end() {},
+      cancel() {},
+      async *[Symbol.asyncIterator]() {},
+    };
+    const directed = directSpeech(sink, {
+      textStream: new ReadableStream<string>({
+        start(c) {
+          c.enqueue('Okay, tell me more about that. ');
+          c.close();
+        },
+      }),
+      voiceId: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+      sessionId,
+      env: { SPEECH_DIRECTOR: 'live' },
+      sessions: new DirectorSessions(),
+      turnContext: { userRequest: 'I had a pretty long day at work today honestly' },
+      onPlan: (s) => (summary = s),
+    });
+    for await (const _ of directed.textStream) {
+      /* drain */
+    }
+    directed.reply.push('Okay, tell me more about that. ');
+    directed.reply.end();
+    removeCallerProsodyTracker(sessionId);
+    expect(summary?.prosody).toBe('steady');
+    expect(summary?.callerVoicedMs).toBe(2000);
+    expect(summary?.callerRateRel).toBe(1);
+    expect(summary?.callerEnergyRelDb).toBe(0);
+  });
+});

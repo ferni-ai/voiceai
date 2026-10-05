@@ -177,7 +177,7 @@ const styles = `
   
   .household-modal__subtitle {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-top: var(--space-1, 4px);
   }
   
@@ -194,7 +194,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     transition: all var(--duration-fast, ${DURATION.FAST}ms) ${EASING.STANDARD};
   }
   
@@ -282,7 +282,7 @@ const styles = `
     align-items: center;
     gap: var(--space-2, 8px);
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .household-member__role {
@@ -294,7 +294,7 @@ const styles = `
     border-radius: var(--radius-full, 9999px);
     font-size: 11px;
     font-weight: 500;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .household-member__role svg {
@@ -336,7 +336,7 @@ const styles = `
   .household-empty {
     text-align: center;
     padding: var(--space-8, 32px) var(--space-4, 16px);
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .household-empty__icon {
@@ -385,7 +385,7 @@ const styles = `
   
   .household-create-form__subtitle {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-bottom: var(--space-5, 20px);
   }
   
@@ -397,7 +397,7 @@ const styles = `
     display: block;
     font-size: 13px;
     font-weight: 500;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-bottom: var(--space-2, 8px);
     text-align: left;
   }
@@ -511,7 +511,7 @@ const styles = `
   
   .household-setting__description {
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-top: 2px;
   }
   
@@ -597,7 +597,7 @@ const styles = `
   
   .household-confirm__message {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-bottom: var(--space-5, 20px);
     line-height: 1.5;
   }

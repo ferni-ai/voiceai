@@ -704,6 +704,7 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
+    "dismiss": "סגור",
     "maybeLater": "[NEEDS_TRANSLATION] Later"
   },
   "confirmModal": {
@@ -1387,8 +1388,34 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
+      "conversation": "שיחה: +1 זרע",
+      "note": "הזרעים עוזרים לנו להחליט מה לבנות בהמשך!",
+      "streak30": "רצף של 30 יום: +15 זרעים",
+      "streak7": "רצף של 7 ימים: +5 זרעים",
+      "vote": "הצבעה על פיצ׳רים: 1-10 זרעים",
       "title": "How Seeds Work"
     },
+    "backToRoadmap": "חזרה למפת הדרכים",
+    "categories": {
+      "connect": "חיבור - מערכות יחסים ותקשורת",
+      "personalize": "התאמה אישית - Ferni משלך",
+      "platform": "פלטפורמה - יכולות חדשות"
+    },
+    "needMoreSeeds": "צריך לפחות 5 זרעים כדי לשלוח הצעה. שוחח עוד כדי להרוויח זרעים!",
+    "newIdea": "רעיון חדש",
+    "noSeedsHint": "שוחח עוד כדי להרוויח זרעים!",
+    "refund50": "החזר של 50%",
+    "submitSuggestion": "לשתול את הזרע הזה",
+    "submitting": "שותלים...",
+    "suggestionCategory": "קטגוריה",
+    "suggestionCost": "שליחה עולה 5 זרעים (מראה מחויבות ומונעת ספאם)",
+    "suggestionDescription": "ספר לנו עוד (לא חובה)",
+    "suggestionDescriptionPlaceholder": "למה זה יעזור? איך היית משתמש בזה?",
+    "suggestionIntro": "יש לך רעיון למשהו ש-Ferni צריך לעשות? שתול זרע ותן לקהילה להשקות אותו!",
+    "suggestionPlanted": "הזרע שלך נשתל!",
+    "suggestionThanks": "תודה ששיתפת את הרעיון שלך. עכשיו אחרים יכולים להשקות אותו בזרעים שלהם!",
+    "suggestionTitle": "מה Ferni צריך לדעת לעשות?",
+    "suggestionTitlePlaceholder": "למשל: לזכור את השם של חיית המחמד שלי",
     "intro": "לכל מערכת יחסים נהדרת יש עונות. אלה זרעים שאנחנו שותלים יחד.",
     "learnMore": "Learn more",
     "loading": "Loading roadmap...",
@@ -2305,7 +2332,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "Philips Hue או LIFX",
+      "hueOrLifxDesc": "ההגדרה מתבצעת בהגדרות \"Your Home\""
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2384,7 +2413,10 @@
     },
     "secondsRemaining": "שניות נותרות",
     "startExercise": "התחל תרגיל תנשומת",
-    "changePattern": "שנה דפוס נשימה"
+    "changePattern": "שנה דפוס נשימה",
+    "hold": "עצירה",
+    "in": "שאיפה",
+    "out": "נשיפה"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2426,7 +2458,11 @@
     "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
     "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
     "rememberSuccess": "הבנתי! אני אזכור אותך עכשיו.",
-    "account": "חשבון"
+    "account": "חשבון",
+    "email": "אימייל",
+    "password": "סיסמה",
+    "rememberYouAs": "אזכור אותך בתור",
+    "successMessage": "עכשיו אזכור אותך. לאן שלא תלך, אכיר אותך."
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2734,7 +2770,11 @@
     "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
     "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
     "sentSuccess": "נשלח {sent} זרעים! הם יקבלו {received}",
-    "sendError": "לא היה ניתן לשלוח את המתנה. לנסות שוב?"
+    "sendError": "לא היה ניתן לשלוח את המתנה. לנסות שוב?",
+    "amount": "כמות",
+    "recipientPlaceholder": "הזן אימייל או שם משתמש של חבר",
+    "sendGift": "שליחת מתנה",
+    "sendTo": "שליחה אל"
   },
   "teamIntro": {
     "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
@@ -2814,7 +2854,8 @@
       "onTheWay": "אתה בדרך הנכונה! יותר חברי צוות יופעלו ככל שנמשיך בנסיעה שלנו.",
       "growing": "הצוות שלך גדל. כל שנותר הוא כמה אבני דרך כדי לפתוח את כולם.",
       "complete": "פתחת את הצוות המלא! כולם כאן כדי לתמוך בך."
-    }
+    },
+    "added": "נוסף!"
   },
   "referral": {
     "share": {
@@ -2845,7 +2886,19 @@
       "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
     },
     "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
-    "copyError": "לא היה ניתן להעתיק. לנסות שוב?"
+    "copyError": "לא היה ניתן להעתיק. לנסות שוב?",
+    "bonusAmount": "שניכם תקבלו {seeds} זרעים",
+    "bonusWhen": "ברגע שיצטרפו!",
+    "garden": {
+      "earned": "הרווחת {seeds} זרעים משיתופים",
+      "empty": "זרעים צומחים כשמשתפים אותם. התחל את הגינה שלך היום.",
+      "friendsGrowing": "{count} חברים צומחים",
+      "title": "הגינה שלך:"
+    },
+    "quoteMessage": "\"תן להם מישהו שזוכר הכל, נמצא שם ב-2 בלילה, ואף פעם לא שופט.\"",
+    "subtitle": "מכיר מישהו שיכול להיעזר בחבר כזה?",
+    "title": "שתף את הצמיחה",
+    "yourLink": "הקישור שלך:"
   },
   "conversationMemory": {
     "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
@@ -3008,7 +3061,14 @@
       "browse": "עיין בשוק שלנו"
     },
     "creations": {
-      "noDescription": "אין תיאור"
+      "noDescription": "אין תיאור",
+      "createButton": "יצירת סוכן",
+      "emptyDescription": "בנה סוכן עם אישיות וכישורים משלו, ואז שתף אותו עם הקהילה.",
+      "emptyTitle": "עדיין לא יצרת סוכנים"
+    },
+    "agentCard": {
+      "install": "התקנה",
+      "uninstall": "הסרה"
     }
   },
   "agent": {

@@ -57,6 +57,16 @@ describe('Conversation Domain Tools', () => {
     it('rememberName - should have proper description', () => {
       expect(tools.rememberName.description).toContain('name');
     });
+
+    // A phone mapping decides whose memory future calls from that number reach,
+    // and a voice call cannot prove the caller owns a number or an account.
+    it('does not let the model add a phone number to the profile', () => {
+      expect(tools).not.toHaveProperty('addPhoneNumber');
+    });
+
+    it('does not let the model merge the caller into another account', () => {
+      expect(tools).not.toHaveProperty('linkPhoneToAccount');
+    });
   });
 
   describe('Tool Execution', () => {
