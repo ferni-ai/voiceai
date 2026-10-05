@@ -27,8 +27,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
-import { getFeatureFlags } from '../../../services/feature-flags.js';
 import {
+  getFeatureFlags,
   isEnabled,
   getFlag as getTrustFlag,
   getAllFlags as getAllTrustFlags,
@@ -263,7 +263,7 @@ export async function handleAdminFlagsRoutes(
         await enableFlag(flagId);
       } else {
         const flagsService = getFeatureFlags();
-        flagsService.updateFlag(flagId, { enabled: true });
+        await flagsService.updateFlag(flagId, { enabled: true });
       }
 
       log.info({ flagId }, 'Flag enabled via API');
@@ -280,7 +280,7 @@ export async function handleAdminFlagsRoutes(
         await disableFlag(flagId);
       } else {
         const flagsService = getFeatureFlags();
-        flagsService.updateFlag(flagId, { enabled: false });
+        await flagsService.updateFlag(flagId, { enabled: false });
       }
 
       log.warn({ flagId }, '⚠️ Flag disabled via API - Kill switch activated');
@@ -308,7 +308,7 @@ export async function handleAdminFlagsRoutes(
         await setRolloutPercentage(flagId, percentage);
       } else {
         const flagsService = getFeatureFlags();
-        flagsService.updateFlag(flagId, { rolloutPercentage: percentage });
+        await flagsService.updateFlag(flagId, { rolloutPercentage: percentage });
       }
 
       log.info({ flagId, percentage }, 'Flag rollout percentage updated via API');
