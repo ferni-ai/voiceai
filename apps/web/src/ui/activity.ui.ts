@@ -19,6 +19,7 @@
 import { DURATION_GENERATED, EASING_GENERATED } from '../config/animation-constants.generated.js';
 import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 // Alias for cleaner usage
 const DURATION = DURATION_GENERATED;
@@ -73,19 +74,19 @@ const ACTION_ICONS: Record<ActionType, string> = {
 };
 
 const ACTION_LABELS: Record<ActionType, string> = {
-  call: 'Call',
-  text: 'Text',
-  email: 'Email',
-  calendar: 'Calendar',
-  reminder: 'Reminder',
+  call: t('activity.actionCall'),
+  text: t('activity.actionText'),
+  email: t('activity.actionEmail'),
+  calendar: t('activity.actionCalendar'),
+  reminder: t('activity.actionReminder'),
 };
 
 const STATUS_LABELS: Record<ActionStatus, string> = {
-  requested: 'Pending',
-  in_progress: 'In Progress',
-  completed: 'Completed',
-  failed: 'Failed',
-  cancelled: 'Cancelled',
+  requested: t('activity.statusPending'),
+  in_progress: t('activity.statusInProgress'),
+  completed: t('activity.statusCompleted'),
+  failed: t('activity.statusFailed'),
+  cancelled: t('activity.statusCancelled'),
 };
 
 // ============================================================================
@@ -592,7 +593,7 @@ class ActivityUI {
     this.panel = document.createElement('aside');
     this.panel.className = 'activity-panel';
     this.panel.setAttribute('role', 'complementary');
-    this.panel.setAttribute('aria-label', 'Activity history');
+    this.panel.setAttribute('aria-label', t('activity.title'));
 
     // Header
     const header = this.createHeader();
@@ -627,7 +628,7 @@ class ActivityUI {
     banner.appendChild(icon);
 
     const text = document.createElement('span');
-    text.textContent = "You're offline. Showing cached data.";
+    text.textContent = t('activity.offline');
     banner.appendChild(text);
 
     return banner;
@@ -639,12 +640,12 @@ class ActivityUI {
 
     const title = document.createElement('h2');
     title.className = 'activity-panel__title';
-    title.textContent = 'Activity';
+    title.textContent = t('activity.title');
     header.appendChild(title);
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'activity-panel__close';
-    closeBtn.setAttribute('aria-label', 'Close activity panel');
+    closeBtn.setAttribute('aria-label', t('activity.closeLabel'));
     closeBtn.innerHTML = this.createSvgIcon('x');
     closeBtn.addEventListener('click', () => this.hide());
     header.appendChild(closeBtn);
@@ -656,7 +657,7 @@ class ActivityUI {
     const filters = document.createElement('div');
     filters.className = 'activity-panel__filters';
     filters.setAttribute('role', 'group');
-    filters.setAttribute('aria-label', 'Filter by action type');
+    filters.setAttribute('aria-label', t('activity.filterLabel'));
 
     // All filter
     const allBtn = this.createFilterButton('all', 'All');
@@ -705,7 +706,7 @@ class ActivityUI {
     this.content.innerHTML = '';
     const loading = document.createElement('div');
     loading.className = 'activity-loading';
-    loading.textContent = 'Loading activity...';
+    loading.textContent = t('activity.loading');
     this.content.appendChild(loading);
 
     try {
@@ -891,7 +892,7 @@ class ActivityUI {
 
     const text = document.createElement('p');
     text.className = 'activity-empty__text';
-    text.textContent = "Couldn't load activity. Try again?";
+    text.textContent = t('activity.error');
     empty.appendChild(text);
 
     this.content.appendChild(empty);

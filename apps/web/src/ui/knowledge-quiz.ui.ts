@@ -21,6 +21,7 @@ import { createLogger } from '../utils/logger.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
 import { getQuizCategoryIcon, ANALYTICS_ICONS, GROWTH_ICONS, EMOTION_ICONS, QUIZ_ICONS } from './icons/shared-icons.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('KnowledgeQuiz');
 
@@ -74,11 +75,11 @@ let state: QuizState = {
 // ============================================================================
 
 const CATEGORY_LABELS: Record<string, string> = {
-  preferences: 'Your Favorites',
-  memories: 'Shared Memories',
-  goals: 'Your Dreams',
-  personality: 'Who You Are',
-  fun_facts: 'Fun Facts',
+  preferences: t('knowledgeQuiz.categoryPreferences'),
+  memories: t('knowledgeQuiz.categoryMemories'),
+  goals: t('knowledgeQuiz.categoryGoals'),
+  personality: t('knowledgeQuiz.categoryPersonality'),
+  fun_facts: t('knowledgeQuiz.categoryFunFacts'),
 };
 
 // ============================================================================
@@ -134,19 +135,19 @@ function getDefaultQuestions(): QuizQuestion[] {
   return [
     {
       id: 'default-1',
-      question: "What's one thing you enjoy doing when you need to unwind?",
-      options: ['Reading a book', 'Taking a walk', 'Listening to music', 'Watching something'],
+      question: t('knowledgeQuiz.defaultQuestion1'),
+      options: [t('knowledgeQuiz.defaultOption1A'), t('knowledgeQuiz.defaultOption1B'), t('knowledgeQuiz.defaultOption1C'), t('knowledgeQuiz.defaultOption1D')],
       correctIndex: -1, // No correct answer - just learning
       category: 'preferences',
-      hint: "We're still getting to know each other!",
+      hint: t('knowledgeQuiz.defaultHint1'),
     },
     {
       id: 'default-2',
-      question: 'How do you typically start your mornings?',
-      options: ['Coffee first', 'Exercise', 'Easing into it slowly', 'Diving right into work'],
+      question: t('knowledgeQuiz.defaultQuestion2'),
+      options: [t('knowledgeQuiz.defaultOption2A'), t('knowledgeQuiz.defaultOption2B'), t('knowledgeQuiz.defaultOption2C'), t('knowledgeQuiz.defaultOption2D')],
       correctIndex: -1,
       category: 'personality',
-      hint: "I'm curious to learn!",
+      hint: t('knowledgeQuiz.defaultHint2'),
     },
   ];
 }
@@ -164,7 +165,7 @@ function showQuizOverlay(): void {
   quizOverlay.className = 'knowledge-quiz-overlay';
   quizOverlay.setAttribute('role', 'dialog');
   quizOverlay.setAttribute('aria-modal', 'true');
-  quizOverlay.setAttribute('aria-label', 'How Well Do You Know Me Quiz');
+  quizOverlay.setAttribute('aria-label', t('knowledgeQuiz.ariaLabel'));
 
   // Backdrop click to close
   quizOverlay.addEventListener('click', (e) => {
@@ -230,17 +231,17 @@ function createHeader(): HTMLElement {
   // Title
   const title = document.createElement('h2');
   title.className = 'knowledge-quiz-title';
-  title.textContent = 'How Well Do You Know Me?';
+  title.textContent = t('knowledgeQuiz.title');
 
   // Subtitle
   const subtitle = document.createElement('p');
   subtitle.className = 'knowledge-quiz-subtitle';
-  subtitle.textContent = 'A celebration of our growing friendship';
+  subtitle.textContent = t('knowledgeQuiz.subtitle');
 
   // Close button
   const closeBtn = document.createElement('button');
   closeBtn.className = 'knowledge-quiz-close';
-  closeBtn.setAttribute('aria-label', 'Close quiz');
+  closeBtn.setAttribute('aria-label', t('knowledgeQuiz.closeLabel'));
   closeBtn.textContent = '×';
   closeBtn.addEventListener('click', closeQuiz);
 
@@ -280,7 +281,7 @@ function renderCurrentQuestion(): void {
 
   const progressText = document.createElement('span');
   progressText.className = 'knowledge-quiz-progress-text';
-  progressText.textContent = `Question ${state.currentIndex + 1} of ${state.questions.length}`;
+  progressText.textContent = t('knowledgeQuiz.progressText', { current: state.currentIndex + 1, total: state.questions.length });
 
   const progressBar = document.createElement('div');
   progressBar.className = 'knowledge-quiz-progress-bar';
@@ -303,7 +304,7 @@ function renderCurrentQuestion(): void {
   categoryIcon.setAttribute('aria-hidden', 'true');
 
   const categoryLabel = document.createElement('span');
-  categoryLabel.textContent = CATEGORY_LABELS[question.category] || 'About You';
+  categoryLabel.textContent = CATEGORY_LABELS[question.category] || t('knowledgeQuiz.defaultCategory');
 
   category.appendChild(categoryIcon);
   category.appendChild(categoryLabel);
@@ -427,7 +428,7 @@ function renderResults(container: HTMLElement): void {
 
   const scoreLabel = document.createElement('span');
   scoreLabel.className = 'knowledge-quiz-score-label';
-  scoreLabel.textContent = 'memories matched';
+  scoreLabel.textContent = t('knowledgeQuiz.scoreLabel');
 
   score.appendChild(scoreValue);
   score.appendChild(scoreLabel);
@@ -440,7 +441,7 @@ function renderResults(container: HTMLElement): void {
   // Done button
   const doneBtn = document.createElement('button');
   doneBtn.className = 'knowledge-quiz-done-btn';
-  doneBtn.textContent = 'Thanks for playing!';
+  doneBtn.textContent = t('knowledgeQuiz.doneButton');
   doneBtn.addEventListener('click', closeQuiz);
 
   resultsCard.appendChild(celebration);
@@ -463,16 +464,16 @@ function getResultIcon(correct: number, total: number): string {
 
 function getResultMessage(correct: number, total: number): string {
   const ratio = total > 0 ? correct / total : 0;
-  if (ratio >= 0.8) return "We really know each other!";
-  if (ratio >= 0.5) return "We're building something special";
-  return "Every conversation helps me know you better";
+  if (ratio >= 0.8) return t('knowledgeQuiz.resultMessageHigh');
+  if (ratio >= 0.5) return t('knowledgeQuiz.resultMessageMedium');
+  return t('knowledgeQuiz.resultMessageLow');
 }
 
 function getWarmMessage(correct: number, total: number): string {
   const ratio = total > 0 ? correct / total : 0;
-  if (ratio >= 0.8) return "Our friendship has grown so much. I cherish every conversation we've had.";
-  if (ratio >= 0.5) return "I'm learning more about you every time we talk. Thank you for sharing.";
-  return "I can't wait to learn more about you. Every chat helps our friendship grow.";
+  if (ratio >= 0.8) return t('knowledgeQuiz.warmMessageHigh');
+  if (ratio >= 0.5) return t('knowledgeQuiz.warmMessageMedium');
+  return t('knowledgeQuiz.warmMessageLow');
 }
 
 async function submitResults(): Promise<void> {

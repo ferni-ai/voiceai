@@ -22,6 +22,7 @@ import { apiGet } from '../utils/api.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
 import { getGrowthJournalIcon, GROWTH_ICONS } from './icons/shared-icons.js';
 import { createEmptyState } from './components/empty-state.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('GrowthJournal');
 
@@ -148,9 +149,8 @@ function getDefaultEntries(): GrowthEntry[] {
     {
       id: 'welcome',
       date: new Date().toISOString(),
-      title: 'Your journey begins',
-      content:
-        "I'm excited to get to know you. As we talk, I'll notice patterns and growth that you might not see yourself. This journal will fill with observations about your journey.",
+      title: t('growthJournal.welcomeTitle'),
+      content: t('growthJournal.welcomeContent'),
       type: 'insight',
       tags: ['welcome'],
     },
@@ -202,18 +202,18 @@ function createDrawer(): void {
 
   const title = document.createElement('h2');
   title.className = 'growth-journal-title';
-  title.textContent = 'Your Growth Journal';
+  title.textContent = t('growthJournal.title');
 
   const subtitle = document.createElement('p');
   subtitle.className = 'growth-journal-subtitle';
-  subtitle.textContent = 'Observations from our conversations';
+  subtitle.textContent = t('growthJournal.subtitle');
 
   titleWrapper.appendChild(title);
   titleWrapper.appendChild(subtitle);
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'growth-journal-close';
-  closeBtn.setAttribute('aria-label', 'Close journal');
+  closeBtn.setAttribute('aria-label', t('growthJournal.closeLabel'));
   closeBtn.textContent = '×';
   closeBtn.addEventListener('click', closeGrowthJournal);
 
@@ -315,9 +315,9 @@ function formatDate(dateStr: string): string {
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays === 0) return t('growthJournal.today');
+    if (diffDays === 1) return t('growthJournal.yesterday');
+    if (diffDays < 7) return t('growthJournal.daysAgo', { count: diffDays });
 
     return date.toLocaleDateString(undefined, {
       month: 'short',
