@@ -12,6 +12,7 @@
  * @module intelligence/context-builders/awareness/linkedin-awareness
  */
 
+import { isLinkedInEnabled } from '../../../config/linkedin-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   hasLinkedInConnected,
@@ -63,6 +64,8 @@ export const linkedInAwarenessBuilder: ContextBuilder = {
     const userId = services?.userId;
 
     if (!userId) return [];
+    // LinkedIn switched off (config/linkedin-flag.ts): say nothing about it.
+    if (!isLinkedInEnabled()) return [];
 
     const injections: ContextInjection[] = [];
 

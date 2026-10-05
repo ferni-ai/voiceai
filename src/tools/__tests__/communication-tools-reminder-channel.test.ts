@@ -35,14 +35,16 @@ vi.mock('../../services/communication-service.js', () => ({
   sendSMS: vi.fn(),
 }));
 
-vi.mock('../../utils/safe-logger.js', () => ({
-  getLogger: vi.fn(() => ({
+vi.mock('../../utils/safe-logger.js', () => {
+  const logger = (): Record<string, unknown> => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
-  })),
-}));
+    child: vi.fn(logger),
+  });
+  return { getLogger: vi.fn(logger), createLogger: vi.fn(logger) };
+});
 
 vi.mock('../validation.js', () => ({
   validatePhone: vi.fn(() => ({ valid: true, sanitized: '+15551234567' })),
@@ -99,5 +101,48 @@ describe('setReminder channel choice', () => {
     );
     expect(reply).toMatch(/email address/);
     expect(mockCreateReminder).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * "scheduleReminder" (Alex's tool set and the communication domain's
+ * Schedule Reminder) used to answer "Got it! I've set a reminder ... I'll
+ * remind you when we talk." without setting anything: a promise nothing kept.
+ */
+describe('scheduleReminder sets a real reminder', () => {
+  beforeEach(() => vi.clearAllMocks());
+  const legacy = () =>
+    (createCommunicationTools() as unknown as { scheduleReminder: SetReminder }).scheduleReminder;
+
+  it('in the communication tool set', async () => {
+    const reply = await legacy().execute(
+      { reminderText: 'call mom', when: 'tomorrow at 9am' },
+      { ctx: { userData: { userId: 'u1' } } }
+    );
+    expect(mockCreateReminder).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'u1', message: 'call mom', deliveryMethod: 'in_app' })
+    );
+    expect(reply).toContain('remind you here in the app');
+  });
+
+  it("in the communication domain's Schedule Reminder, for the caller", async () => {
+    const { getSchedulingToolDefinitions } = await import('../domains/communication/index.js');
+    const def = getSchedulingToolDefinitions().find((d) => d.id === 'scheduleReminder');
+    const tool = def?.create({ userId: 'u1', agentId: 'alex' } as never) as unknown as {
+      execute: (args: Record<string, unknown>) => Promise<string>;
+    };
+    await tool.execute({ type: 'reminder', title: 'call mom', when: 'tomorrow at 9am' });
+    expect(mockCreateReminder).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'u1', message: 'call mom' })
+    );
+  });
+
+  it("won't promise a reminder it can't file under anyone", async () => {
+    const reply = await legacy().execute(
+      { reminderText: 'call mom', when: 'tomorrow at 9am' },
+      { ctx: {} }
+    );
+    expect(mockCreateReminder).not.toHaveBeenCalled();
+    expect(reply).not.toMatch(/Got it|I've set/);
   });
 });

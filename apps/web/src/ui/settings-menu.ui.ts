@@ -12,6 +12,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 // Relationship stage service - used for feature unlocking and progress display
 import {
@@ -30,14 +31,12 @@ import { showRoadmapPanel } from './roadmap-panel.ui.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
-// Milestones - for journey progress indicator
 // Seeds display for personalization economy
 import { renderSeedsSettingsCard } from './seeds-display.ui.js';
 // Transcript UI - for toggling live transcription
 import { transcriptUI } from './transcript.ui.js';
 // Sound effects service for UI feedback sounds
 import { soundUI } from './sound.ui.js';
-// i18n for translations
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -1087,6 +1086,7 @@ class SettingsMenuUI {
       help: { icon: ICONS.help, label: t('menu.items.takeTour') },
       billing: { icon: ICONS.creditCard, label: t('menu.items.billingPortal') },
     };
+    if (!LINKEDIN_ENABLED) delete menuItems['linkedin-settings']; // config/linkedin.ts
 
     const pinnedItemsHtml = [...this.pinnedItems]
       .filter((action) => menuItems[action] && !this.isFeatureLocked(action))

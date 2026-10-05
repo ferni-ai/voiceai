@@ -1027,6 +1027,7 @@
     "apple": {
       "instructionsTitle": "To cancel or change your plan:",
       "note": "Apple requires subscriptions to be managed through iOS Settings",
+      "source": "You subscribed through the App Store.",
       "step1": "Open Settings on your device",
       "step2": "Tap your name at the top",
       "step3": "Tap \"Subscriptions\"",
@@ -1043,6 +1044,7 @@
     "expiresLabel": "Access until",
     "freeNote": "Unlock unlimited sessions, the full team, and personalisation",
     "label": "SUBSCRIPTION",
+    "noBilling": "Your plan isn't billed here, so there's nothing to change.",
     "renewsLabel": "Renews",
     "restore": {
       "failed": "Restore failed",

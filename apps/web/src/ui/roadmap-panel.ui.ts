@@ -1240,7 +1240,7 @@ class RoadmapPanelUI {
         height: 16px;
         font-size: 10px;
         font-weight: 700;
-        color: var(--color-text-tertiary, #8a817a);
+        color: var(--color-text-secondary, #5c544a);
         background: var(--color-background-secondary, #f5f2ed);
         border-radius: 50%;
         cursor: help;
@@ -1278,7 +1278,7 @@ class RoadmapPanelUI {
       }
 
       .roadmap-panel__streak-progress--inactive {
-        opacity: 0.6;
+        filter: saturate(0.4);
       }
 
       .roadmap-panel__streak-icon {
@@ -1651,7 +1651,7 @@ class RoadmapPanelUI {
 
       .stage--bud {
         background: var(--color-semantic-warning-glow, rgba(166, 124, 53, 0.18));
-        color: var(--color-semantic-warning, #a67c35);
+        color: color-mix(in srgb, var(--color-semantic-warning, #a67c35) 75%, black);
       }
 
       .stage--bloom {

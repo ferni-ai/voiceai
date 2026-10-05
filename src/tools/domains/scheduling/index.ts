@@ -54,8 +54,19 @@ import {
   getTimingRecommendation,
   type TimingRecommendation,
 } from '../../../services/contacts/optimal-timing.js';
+import { recordScheduledPromise as recordPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 
 const log = getLogger();
+
+/** "Monday, Oct 6, 9:00 AM": how a scheduled time is said back to the user. */
+const spokenTime = (d: Date): string =>
+  d.toLocaleString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 
 // ============================================================================
 // HELPER: Parse time from natural language
@@ -145,13 +156,8 @@ If no recipient specified, sends to the user themselves.`,
         const result = await scheduleText(userId, params.message, scheduledFor, personaId);
 
         if (result.success) {
-          const timeStr = scheduledFor.toLocaleString('en-US', {
-            weekday: 'long',
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          });
+          await recordPromise(userId, result.reminderId, scheduledFor, 'sms', params.message);
+          const timeStr = spokenTime(scheduledFor);
           return `Got it! I'll text you on ${timeStr}: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
@@ -207,13 +213,8 @@ The call will play a voice message when answered.`,
         const result = await scheduleCall(userId, params.message, scheduledFor, personaId);
 
         if (result.success) {
-          const timeStr = scheduledFor.toLocaleString('en-US', {
-            weekday: 'long',
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          });
+          await recordPromise(userId, result.reminderId, scheduledFor, 'call', params.message);
+          const timeStr = spokenTime(scheduledFor);
           return `I'll call you on ${timeStr}. When you answer, you'll hear: "${params.message}"`;
         } else {
           if (result.error?.includes('phone')) {
@@ -274,13 +275,8 @@ Use when the user says things like:
         );
 
         if (result.success) {
-          const timeStr = scheduledFor.toLocaleString('en-US', {
-            weekday: 'long',
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          });
+          await recordPromise(userId, result.reminderId, scheduledFor, 'email', params.subject);
+          const timeStr = spokenTime(scheduledFor);
           return `Email scheduled for ${timeStr} with subject: "${params.subject}"`;
         } else {
           if (result.error?.includes('email')) {
@@ -596,28 +592,31 @@ const scheduleAtBestTimeTool: ToolDefinition = {
   id: 'scheduleAtBestTime',
   name: 'Schedule At Best Time',
   description:
-    'Schedule a message, call, or email at the ML-recommended optimal time for the recipient.',
+    'Remind the user to reach someone at the time that person usually responds. Ferni texts, emails or calls the user; she never messages the contact.',
   domain: 'scheduling',
   tags: ['scheduling', 'optimal', 'best-time', 'intelligent', 'smart', 'ml'],
 
   create: (ctx: ToolContext) =>
     llm.tool({
-      description: `Schedule a message for the optimal time based on ML-learned patterns.
+      description: `Remind the USER to reach out to someone at the time that person usually responds (ML-learned patterns).
+You send the reminder to the user (text, email or call). You do NOT message the contact; say so if they expect it.
 Use when the user says things like:
 - "Text Sarah at the best time"
 - "Schedule this for when John usually responds"
 - "Send this email at the optimal time"
 - "Message them when they're most likely to see it"
 
-Automatically picks the best time based on learned response patterns.`,
+Picks the time from the contact's learned response patterns.`,
       parameters: z.object({
-        message: z.string().describe('The message content to send'),
-        contactName: z.string().describe('Name of the recipient'),
+        message: z.string().describe('What to remind the user (sent to the user, not the contact)'),
+        contactName: z
+          .string()
+          .describe('Who the user wants to reach (picks the time; not messaged)'),
         contactId: z.string().optional().describe('Contact ID if known'),
         channel: z
           .enum(['text', 'email', 'call'])
           .default('text')
-          .describe('How to send: text (SMS), email, or call'),
+          .describe('How to remind the user: text (SMS), email, or call'),
         subject: z.string().optional().describe('Email subject line (required for email channel)'),
       }),
       execute: async (params) => {
@@ -640,7 +639,7 @@ Automatically picks the best time based on learned response patterns.`,
           );
 
           const scheduledFor = recommendation.suggestedSendTime;
-          let result: { success: boolean; error?: string };
+          let result: { success: boolean; reminderId?: string; error?: string };
 
           // Contact tracking options for ML learning
           const contactOptions = {
@@ -686,13 +685,11 @@ Automatically picks the best time based on learned response patterns.`,
           }
 
           if (result.success) {
-            const timeStr = scheduledFor.toLocaleString('en-US', {
-              weekday: 'long',
-              month: 'short',
-              day: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-            });
+            // It goes to the user (isDirectToContact is false), so that's what she promises.
+            const channel = params.channel === 'text' ? 'sms' : params.channel;
+            const said = channel === 'email' ? (params.subject ?? '') : params.message;
+            await recordPromise(userId, result.reminderId, scheduledFor, channel, said);
+            const timeStr = spokenTime(scheduledFor);
 
             const channelEmoji =
               params.channel === 'text' ? '📱' : params.channel === 'email' ? '📧' : '📞';
@@ -703,9 +700,10 @@ Automatically picks the best time based on learned response patterns.`,
                   ? " - based on what I've learned so far."
                   : ' - using smart defaults while I learn their patterns.';
 
-            return `${channelEmoji} Got it! Scheduled for **${timeStr}**${confidenceNote}
+            const verb = channel === 'sms' ? 'text' : channel;
+            return `${channelEmoji} Got it! I'll ${verb} you on **${timeStr}** to reach out to ${params.contactName}${confidenceNote}
 
-Message: "${params.message.slice(0, 100)}${params.message.length > 100 ? '...' : ''}"`;
+Reminder: "${params.message.slice(0, 100)}${params.message.length > 100 ? '...' : ''}"`;
           } else {
             if (result.error?.includes('phone')) {
               return "I don't have your phone number yet. What's a good number?";

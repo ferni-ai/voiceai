@@ -7,7 +7,7 @@ import type { ReplyStream } from '../../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../../providers/cartesia.js';
 import { getSSMLProcessor } from '../../ssml/processor.js';
 import { decideEmotion, readValence, STABLE_EMOTIONS } from '../emotion.js';
-import { VOICE_IDS } from '../../../../config/voice-ids.js';
+import { LESTER_PRO_V3_VOICE_ID } from '../../../../config/voice-ids.js';
 import { decideSpeed } from '../pacing.js';
 import { DirectorSessions } from '../session-state.js';
 
@@ -202,7 +202,7 @@ describe('decideSpeed', () => {
     // Was { speed: 1, supported: false } via an empty PRO_VOICE_IDS list; the
     // measured PVC list now lives in config/voice-capabilities.ts and the pace
     // is still decided so the engine can route it to the Stage 2 tempo.
-    expect(decideSpeed({ valence: 'heavy', voiceId: VOICE_IDS.FERNI })).toEqual({
+    expect(decideSpeed({ valence: 'heavy', voiceId: LESTER_PRO_V3_VOICE_ID })).toEqual({
       speed: 0.97,
       supported: false,
     });

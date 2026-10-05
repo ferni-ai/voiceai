@@ -25,6 +25,9 @@ struct FerniVoiceApp: App {
         // Firebase must be configured synchronously before any Firebase calls
         // but it's fast enough - the issue was elsewhere
         FirebaseApp.configure()
+        // Listen for App Store transactions from launch: renewals and Ask to Buy
+        // approvals arrive through Transaction.updates, not the purchase call.
+        _ = SubscriptionService.shared
     }
 
     var body: some Scene {

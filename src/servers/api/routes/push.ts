@@ -11,6 +11,7 @@ import { EndpointOwnedError } from '../../../services/push-endpoint-owners.js';
 import { getPushNotificationsService } from '../../../services/push-notifications.js';
 import { isWebPushDeliverable } from '../../../services/web-push-loader.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { onBodyEnd } from '../request-failure.js';
 
 const log = createLogger({ module: 'PushRoutes' });
 
@@ -157,7 +158,7 @@ export async function handlePushRoutes(
         resolve(true);
       });
 
-      req.on('end', async () => {
+      onBodyEnd(req, res, resolve, async () => {
         try {
           const {
             userId,

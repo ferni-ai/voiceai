@@ -67,7 +67,9 @@ function response(): ServerResponse & {
 function withinOneSecond<T>(p: Promise<T>): Promise<T> {
   return Promise.race([
     p,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('request hung')), 1000)),
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error('request hung')), 1000);
+    }),
   ]);
 }
 

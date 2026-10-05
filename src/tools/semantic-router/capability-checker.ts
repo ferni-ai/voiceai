@@ -8,6 +8,7 @@
  * @module tools/semantic-router/capability-checker
  */
 
+import { isLinkedInEnabled } from '../../config/linkedin-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'capability-checker' });
@@ -28,7 +29,8 @@ export type CapabilityCategory =
   | 'email' // Email sending
   | 'maps' // Google Maps/traffic
   | 'weather' // Weather API
-  | 'payments'; // Payment processing
+  | 'payments' // Payment processing
+  | 'linkedin'; // LinkedIn (switched by LINKEDIN_ENABLED + app credentials)
 
 /**
  * Map of tool ID prefixes to their required capabilities
@@ -63,6 +65,10 @@ const TOOL_CAPABILITY_REQUIREMENTS: Record<string, CapabilityCategory[]> = {
   // Traffic tools require Maps API
   traffic_: ['maps'],
   directions_: ['maps'],
+
+  // LinkedIn posting is offered only while LinkedIn is switched on
+  marketing_post_linkedin: ['linkedin'],
+  social_post_linkedin: ['linkedin'],
 };
 
 // ============================================================================
@@ -169,6 +175,7 @@ const CAPABILITY_CHECKERS: Record<CapabilityCategory, () => boolean> = {
   maps: isMapsConfigured,
   weather: isWeatherConfigured,
   payments: isPaymentsConfigured,
+  linkedin: isLinkedInEnabled,
 };
 
 // ============================================================================
@@ -278,6 +285,7 @@ export function getUnavailabilityReason(toolId: string): string | null {
     maps: "Maps/directions aren't available",
     weather: "Weather service isn't configured",
     payments: "Payment processing isn't configured",
+    linkedin: "LinkedIn isn't available right now",
   };
 
   const reasons = missing.map((cap) => explanations[cap]).filter(Boolean);
