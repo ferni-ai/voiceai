@@ -8,6 +8,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import * as winsService from '../../services/ceo/wins.js';
 import type { WinPeriod } from '../../services/ceo/wins.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { paramString } from '../param-string.js';
 
 const log = createLogger({ module: 'wins-routes' });
 const router = Router();
@@ -82,7 +83,10 @@ router.get('/count', async (req: Request, res: Response) => {
 router.get('/category/:category', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.uid;
-    const { category } = req.params;
+    const category = paramString(req.params.category);
+    if (!category) {
+      return res.status(400).json({ error: 'Invalid category' });
+    }
 
     const wins = await winsService.getWinsByCategory(userId, category);
 
