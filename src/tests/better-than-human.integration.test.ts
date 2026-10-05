@@ -12,13 +12,33 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { perfBudget } from './perf-budget.js';
 
+/**
+ * Replaces the embedding provider with a local fake and returns a spy on it.
+ *
+ * buildLiveSuperhumanInjections reads the network: Firestore (commitments,
+ * recall triggers; faked for every test in setup.ts) and, when the user's
+ * emotion is intense, a memory search for joy amplification that embeds its
+ * query. With a project id set and no fake, that embedding goes to Vertex AI:
+ * an OAuth token fetch and a request, ~400ms per call with a developer's gcloud
+ * credentials and CI's placeholder project, so the budgets below timed the
+ * network. Call after vi.resetModules(): the provider lives in module state.
+ */
+async function useFakeEmbeddings() {
+  const { LocalEmbeddings, setEmbeddingProvider } = await import('../memory/vectors/embeddings.js');
+  const provider = new LocalEmbeddings();
+  const embed = vi.spyOn(provider, 'embed');
+  setEmbeddingProvider(provider);
+  return embed;
+}
+
 // ============================================================================
 // LIVE SUPERHUMAN INJECTIONS
 // ============================================================================
 
 describe('Live Superhuman Injections', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
+    await useFakeEmbeddings();
   });
 
   it('detects commitment language', async () => {
@@ -307,6 +327,7 @@ describe('Trust Moment Write-Through', () => {
 
 describe('BTH Pipeline Performance', () => {
   it('live superhuman injections complete under 80ms', async () => {
+    const embed = await useFakeEmbeddings();
     const { buildLiveSuperhumanInjections } =
       await import('../agents/processors/live-superhuman-injections.js');
 
@@ -335,6 +356,8 @@ describe('BTH Pipeline Performance', () => {
     await buildLiveSuperhumanInjections(input);
     const elapsed = Date.now() - start;
 
+    // The joy-amplification memory search ran against the fake, not Vertex AI.
+    expect(embed).toHaveBeenCalled();
     expect(elapsed).toBeLessThan(perfBudget(80));
   });
 
@@ -368,6 +391,7 @@ describe('BTH End-to-End Flow', () => {
   it('full BTH pipeline processes user turn correctly', async () => {
     // This test verifies the conceptual flow works
     // In production, this happens in turn-processor.ts
+    await useFakeEmbeddings();
 
     const { buildLiveSuperhumanInjections } =
       await import('../agents/processors/live-superhuman-injections.js');
