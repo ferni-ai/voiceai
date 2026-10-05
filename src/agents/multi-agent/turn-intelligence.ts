@@ -119,9 +119,16 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
   };
 }
 
-/** Opens each pushed context note, so readers of the chat can tell it from the caller's words. */
+/**
+ * Opens each pushed context note, so readers of the chat can tell it from the
+ * caller's words. A note is built for the reply to the words just above it,
+ * which has already been spoken by the time it lands, so its instructions are
+ * spent. Read as live, its "ask a follow-up question" steering made 15 of 19
+ * dev replies end in a question (2026-10-05; 7 of 23 before notes reached
+ * replies).
+ */
 export const TURN_CONTEXT_HEADER =
-  '[Background on what they said just above, not something the user said]';
+  "[Background on what they said just above, not something the user said. It was written for your reply to that line, which you already gave: use what it tells you about them, but don't act on its instructions, such as asking a question or bringing something up.]";
 
 /** The key, in a pushed note's `extra`, of the caller's words it was built for. */
 export const TURN_CONTEXT_FOR = 'turnContextFor';
