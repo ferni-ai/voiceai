@@ -24,6 +24,7 @@ import { apiGet } from '../utils/api.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
 import { getPatternInsightIcon, ANALYTICS_ICONS, GROWTH_ICONS } from './icons/shared-icons.js';
 import { createEmptyState } from './components/empty-state.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('PatternInsights');
 
@@ -174,8 +175,8 @@ function getDefaultInsights(): PatternInsight[] {
     {
       id: 'welcome',
       type: 'growth',
-      title: "I'm learning your rhythms",
-      description: 'After a few more conversations, I\'ll show you patterns that might surprise you.',
+      title: t('patternInsights.welcome'),
+      description: t('patternInsights.welcomeDescription'),
       icon: '', // Will use SVG icon from getPatternInsightIcon
     },
   ];
@@ -199,11 +200,11 @@ function createInsightsCard(): HTMLElement {
 
   const title = document.createElement('h3');
   title.className = 'pattern-insights-card__title';
-  title.textContent = 'Your Patterns';
+  title.textContent = t('patternInsights.title');
 
   const subtitle = document.createElement('p');
   subtitle.className = 'pattern-insights-card__subtitle';
-  subtitle.textContent = 'Insights from our conversations';
+  subtitle.textContent = t('patternInsights.subtitle');
 
   titleWrapper.appendChild(title);
   titleWrapper.appendChild(subtitle);
@@ -212,7 +213,7 @@ function createInsightsCard(): HTMLElement {
   const toggleBtn = document.createElement('button');
   toggleBtn.className = 'pattern-insights-card__toggle';
   toggleBtn.setAttribute('aria-expanded', String(isExpanded));
-  toggleBtn.setAttribute('aria-label', isExpanded ? 'Collapse' : 'Expand');
+  toggleBtn.setAttribute('aria-label', isExpanded ? t('patternInsights.collapse') : t('patternInsights.expand'));
   toggleBtn.textContent = isExpanded ? '−' : '+';
   toggleBtn.addEventListener('click', () => toggleExpand(toggleBtn));
 
@@ -246,7 +247,7 @@ function toggleExpand(toggleBtn: HTMLElement): void {
   if (!content) return;
 
   toggleBtn.setAttribute('aria-expanded', String(isExpanded));
-  toggleBtn.setAttribute('aria-label', isExpanded ? 'Collapse' : 'Expand');
+  toggleBtn.setAttribute('aria-label', isExpanded ? t('patternInsights.collapse') : t('patternInsights.expand'));
   toggleBtn.textContent = isExpanded ? '−' : '+';
 
   if (isExpanded) {

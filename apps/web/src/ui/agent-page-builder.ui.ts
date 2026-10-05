@@ -13,6 +13,7 @@ import { soundUI } from './sound.ui.js';
 import { toast } from './whisper.ui.js';
 import { apiPost } from '../utils/api.js';
 import { escapeHtml, escapeAttr } from './engagement-components.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('AgentPageBuilder');
 
@@ -56,26 +57,26 @@ export interface PageBuilderCallbacks {
 const STEPS: BuilderStep[] = ['agent', 'brand', 'voice', 'preview'];
 
 const STEP_LABELS: Record<BuilderStep, string> = {
-  agent: 'Agent',
-  brand: 'Brand',
-  voice: 'Voice',
-  preview: 'Deploy',
+  agent: t('agentPageBuilder.stepAgent'),
+  brand: t('agentPageBuilder.stepBrand'),
+  voice: t('agentPageBuilder.stepVoice'),
+  preview: t('agentPageBuilder.stepPreview'),
 };
 
 const STEP_DESCRIPTIONS: Record<BuilderStep, string> = {
-  agent: 'Tell us about your agent',
-  brand: 'Choose your colors',
-  voice: 'Add a custom voice (optional)',
-  preview: 'Review and launch',
+  agent: t('agentPageBuilder.descAgent'),
+  brand: t('agentPageBuilder.descBrand'),
+  voice: t('agentPageBuilder.descVoice'),
+  preview: t('agentPageBuilder.descPreview'),
 };
 
 const PRESET_COLORS = [
-  { name: 'Vanguard Red', value: '#96151D' },
-  { name: 'Forest Green', value: '#2D5A27' },
-  { name: 'Ocean Blue', value: '#1E4D8C' },
-  { name: 'Royal Purple', value: '#5B2C6F' },
-  { name: 'Sunset Orange', value: '#D35400' },
-  { name: 'Slate Gray', value: '#34495E' },
+  { name: t('agentPageBuilder.colorVanguardRed'), value: '#96151D' },
+  { name: t('agentPageBuilder.colorForestGreen'), value: '#2D5A27' },
+  { name: t('agentPageBuilder.colorOceanBlue'), value: '#1E4D8C' },
+  { name: t('agentPageBuilder.colorRoyalPurple'), value: '#5B2C6F' },
+  { name: t('agentPageBuilder.colorSunsetOrange'), value: '#D35400' },
+  { name: t('agentPageBuilder.colorSlateGray'), value: '#34495E' },
 ];
 
 // ============================================================================
@@ -1153,16 +1154,16 @@ export class AgentPageBuilder {
   private handleAudioFile(file: File): void {
     const validTypes = ['audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/mp4'];
     if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|m4a)$/i)) {
-      toast.error('Use MP3, WAV, or M4A format');
+      toast.error(t('agentPageBuilder.errorAudioFormat'));
       return;
     }
     if (file.size > 50 * 1024 * 1024) {
-      toast.error('File too large (max 50MB)');
+      toast.error(t('agentPageBuilder.errorAudioSize'));
       return;
     }
     this.audioFile = file;
     this.updateContent();
-    toast.success('Audio file added');
+    toast.success(t('agentPageBuilder.successAudioAdded'));
   }
 
   private canNavigateTo(step: BuilderStep): boolean {
@@ -1198,7 +1199,7 @@ export class AgentPageBuilder {
 
   private goNext(): void {
     if (!this.isCurrentStepValid()) {
-      toast.warning('Fill in required fields');
+      toast.warning(t('agentPageBuilder.errorMissingFields'));
       return;
     }
     this.completedSteps.add(this.currentStep);
@@ -1233,7 +1234,7 @@ export class AgentPageBuilder {
 
     const subdomain = this.config.subdomain || this.generateSubdomain();
     if (!subdomain) {
-      toast.warning('Enter a URL');
+      toast.warning(t('agentPageBuilder.errorMissingUrl'));
       return;
     }
 
@@ -1272,7 +1273,7 @@ export class AgentPageBuilder {
       const { url, siteId } = response.data;
 
       soundUI.play('success');
-      toast.success('Page deployed!');
+      toast.success(t('agentPageBuilder.successDeployed'));
 
       this.callbacks.onDeployed?.(url, siteId);
       this.hide();

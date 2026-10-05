@@ -17,6 +17,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('WorkerDashboard');
 
@@ -244,10 +245,10 @@ function toggleAutoRefresh(): void {
   state.autoRefresh = !state.autoRefresh;
   if (state.autoRefresh) {
     startAutoRefresh();
-    toast.info('Auto-refresh enabled');
+    toast.info(t('workerDashboard.toastRefreshEnabled'));
   } else {
     stopAutoRefresh();
-    toast.info('Auto-refresh disabled');
+    toast.info(t('workerDashboard.toastRefreshDisabled'));
   }
   render();
 }
@@ -309,6 +310,9 @@ function renderDashboard(): string {
       : stats.status === 'degraded'
         ? ICONS.alertTriangle
         : ICONS.xCircle;
+  const toggleRefreshTitle = t('workerDashboard.toggleRefresh');
+  const refreshNowTitle = t('workerDashboard.refreshNow');
+  const flushEventsTitle = t('workerDashboard.flushEvents');
 
   return `
     <div class="worker-dashboard">
@@ -318,11 +322,11 @@ function renderDashboard(): string {
           <h1>Worker Health</h1>
         </div>
         <div class="worker-header-actions">
-          <button class="worker-btn ${state.autoRefresh ? 'worker-btn--active' : ''}" 
-                  data-action="toggle-refresh" title="Toggle auto-refresh">
+          <button class="worker-btn ${state.autoRefresh ? 'worker-btn--active' : ''}"
+                  data-action="toggle-refresh" title="${toggleRefreshTitle}">
             ${ICONS.zap} Auto
           </button>
-          <button class="worker-btn" data-action="refresh" title="Refresh now">
+          <button class="worker-btn" data-action="refresh" title="${refreshNowTitle}">
             ${ICONS.refresh} Refresh
           </button>
         </div>
@@ -363,8 +367,8 @@ function renderDashboard(): string {
       <section class="worker-section worker-section--admin">
         <h2>Admin Actions</h2>
         <div class="worker-admin-actions">
-          <button class="worker-btn worker-btn--danger" data-action="flush" 
-                  title="Flush all pending async events">
+          <button class="worker-btn worker-btn--danger" data-action="flush"
+                  title="${flushEventsTitle}">
             ${ICONS.trash} Flush Queue
           </button>
           <p class="worker-admin-hint">
@@ -990,10 +994,10 @@ function attachEventListeners(): void {
 
       try {
         const result = await flushAsyncEvents();
-        toast.success(`Flushed ${result.flushed} events`);
+        toast.success(t('workerDashboard.toastFlushed', { count: result.flushed }));
         void refreshStats();
       } catch (err) {
-        toast.error("Couldn't flush events");
+        toast.error(t('workerDashboard.errorFlush'));
         log.error({ error: String(err) }, 'Failed to flush events');
       }
     });
