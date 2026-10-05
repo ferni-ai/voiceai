@@ -636,7 +636,7 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
     `--region ${CONFIG.region}`,
     '--platform managed',
     '--allow-unauthenticated',
-    '--memory 1Gi', // the neural speaker model (Dockerfile.ui) needs ~270 MB
+    '--memory 512Mi',
     '--cpu 1',
     '--timeout 300',
     '--min-instances 0',

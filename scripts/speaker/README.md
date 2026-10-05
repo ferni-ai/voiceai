@@ -12,21 +12,17 @@ closed, `src/services/voice/voice-match-trust.ts`).
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Object        | `gs://ferni-public-models/speaker/ecapa-tdnn-waveform-93ccd596.onnx` (public read)                                                                                                             |
 | Size / sha256 | 84,131,064 bytes / `93ccd596285b31d5debad84ab3f138d5dc1145f19c3f287b81ece65afa034fc9`                                                                                                          |
-| Pinned in     | `docker/Dockerfile.agent` and `docker/Dockerfile.ui` (build fails on mismatch) and `PINNED_SPEAKER_MODEL_SHA256` in `src/services/voice/speaker-embedding-worker.ts` (the worker refuses a mismatch at load and uses DSP) |
+| Pinned in     | `docker/Dockerfile.agent` (build fails on mismatch) and `PINNED_SPEAKER_MODEL_SHA256` in `src/services/voice/speaker-embedding-worker.ts` (the worker refuses a mismatch at load and uses DSP) |
 | License       | Apache-2.0 (SpeechBrain). Ship `NOTICE` (this directory) and the Apache-2.0 text next to the object.                                                                                           |
 
-The agent and UI server images download the object at build time, before any
-app source, so the layer stays cached and needs no credentials. Both need it:
-web enrollment (`/api/voice/*`) runs in the UI server, and a print it makes is
-only verifiable by the agent when both embed with the same model. The UI
-server loads the model on its first voice request (~200-270 MB RSS), hence its
-1Gi Cloud Run memory. The kill switch works the same way in both images.
+The agent image downloads the object at build time, before any app source, so
+the layer stays cached and needs no credentials. The UI server image has no
+model.
 
 **Publishing a new export:** run the script with the pinned versions in its
 header, upload it under a new name (`ecapa-tdnn-waveform-<first 8 hex of
 sha256>.onnx`, never overwrite an object), then change the URL and sha256 in
-`docker/Dockerfile.agent`, `docker/Dockerfile.ui` and
-`PINNED_SPEAKER_MODEL_SHA256` together. A test
-(`speaker-embedding-worker.test.ts`) fails if they disagree.
+`docker/Dockerfile.agent` and `PINNED_SPEAKER_MODEL_SHA256` together. A test
+(`speaker-embedding-worker.test.ts`) fails if those two disagree.
 
 `make-test-models.py` writes the tiny ONNX fixtures the worker tests use.
