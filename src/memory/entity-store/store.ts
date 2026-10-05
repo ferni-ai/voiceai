@@ -23,6 +23,7 @@ import type {
   EntityType,
 } from './types.js';
 import { createEntity, entityToText, tokenize } from './types.js';
+import { queryTokens } from './query-tokens.js';
 
 const log = createLogger({ module: 'EntityStore' });
 
@@ -474,10 +475,9 @@ export class EntityStore {
     const tokens = tokenize(query);
 
     if (tokens.length === 0) return [];
-
     let dbQuery = this.db!.collection(ENTITIES_COLLECTION)
       .where('userId', '==', options.userId)
-      .where('searchTokens', 'array-contains-any', tokens);
+      .where('searchTokens', 'array-contains-any', queryTokens(tokens, options.types?.length));
 
     if (options.types && options.types.length > 0) {
       dbQuery = dbQuery.where('type', 'in', options.types);
