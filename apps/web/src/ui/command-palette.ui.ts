@@ -871,4 +871,3 @@ export const commandPalette = {
   isOpen: isCommandPaletteOpen,
   dispose: disposeCommandPalette,
 };
-

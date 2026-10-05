@@ -49,21 +49,14 @@ let danceAnimationId: number | null = null;
 // 🎬 Achievement tracking
 interface Achievement {
   id: string;
-  name?: string;
-  nameKey?: string;
-  description?: string;
-  descriptionKey?: string;
+  nameKey: string;
+  descriptionKey: string;
   unlocked: boolean;
   unlockedAt?: number;
 }
 
 const achievements: Achievement[] = [
-  {
-    id: 'konami',
-    nameKey: 'easterEggs.achievements.konami.name',
-    descriptionKey: 'easterEggs.achievements.konami.description',
-    unlocked: false,
-  },
+  { id: 'konami', nameKey: 'easterEggs.achievements.konami.name', descriptionKey: 'easterEggs.achievements.konami.description', unlocked: false },
   { id: 'disco', nameKey: 'easterEggs.achievements.disco.name', descriptionKey: 'easterEggs.achievements.disco.description', unlocked: false },
   { id: 'matrix', nameKey: 'easterEggs.achievements.matrix.name', descriptionKey: 'easterEggs.achievements.matrix.description', unlocked: false },
   { id: 'rainbow', nameKey: 'easterEggs.achievements.rainbow.name', descriptionKey: 'easterEggs.achievements.rainbow.description', unlocked: false },
@@ -1143,8 +1136,8 @@ function loadAchievements(): void {
 function showAchievementNotification(achievement: Achievement): void {
   const notification = document.createElement('div');
   notification.className = 'achievement-notification';
-  const achievementName = achievement.nameKey ? t(achievement.nameKey) : achievement.name || '';
-  const achievementDesc = achievement.descriptionKey ? t(achievement.descriptionKey) : achievement.description || '';
+  const achievementName = t(achievement.nameKey);
+  const achievementDesc = t(achievement.descriptionKey);
   notification.innerHTML = `
     <div class="achievement-icon" style="font-size: 24px; font-weight: 600; color: var(--persona-text, #ffffff);">★</div>
     <div class="achievement-content">
