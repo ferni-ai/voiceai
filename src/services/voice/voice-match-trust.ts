@@ -34,3 +34,15 @@ export function voiceMatchRefusal(
   }
   return null;
 }
+
+/**
+ * A profile that cannot verify anyone today but would after a fresh enrollment:
+ * this process runs the neural model and the profile is not neural. With no
+ * neural model here, re-enrolling would only make another DSP profile, so false.
+ */
+export function needsNeuralReenrollment(
+  profileMethod: EmbeddingMethod | undefined,
+  activeMethod: EmbeddingMethod
+): boolean {
+  return activeMethod === 'neural' && profileMethod !== 'neural';
+}

@@ -88,6 +88,10 @@ export class ContinuousAuthenticator {
             message: 'Voice inconsistency detected',
           };
         }
+      } else if (similarity < this.profile.threshold) {
+        // Close, but under the bar verifyUser uses: not a verified match, and short
+        // chunks are noisy, so not an anomaly either.
+        return unknown('Voice match below the verification threshold');
       } else {
         // Reset anomaly count on good match
         this.anomalyCount = Math.max(0, this.anomalyCount - 1);

@@ -2744,7 +2744,11 @@
   },
   "voiceId": {
     "enrolledTitle": "[NEEDS_TRANSLATION] Voice ID enrolled - Ferni recognizes your voice",
-    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice"
+    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice",
+    "reenrollTitle": "我现在更会认声音了",
+    "reenrollBody": "可以让我重新熟悉一下你的声音吗？大约 20 秒。",
+    "reenrollAccept": "好啊",
+    "reenrollLater": "以后再说"
   },
   "languageSwitcher": {
     "label": "[NEEDS_TRANSLATION] Language",
