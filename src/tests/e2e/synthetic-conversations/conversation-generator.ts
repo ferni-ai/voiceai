@@ -301,7 +301,7 @@ export class ConversationGenerator {
     }
     this.genAI = new GoogleGenerativeAI(key);
     this.model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-3.5-flash',
       generationConfig: {
         temperature: 0.9, // Higher for more creative conversations
         topP: 0.95,

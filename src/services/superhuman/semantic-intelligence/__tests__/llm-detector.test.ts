@@ -162,7 +162,7 @@ vi.mock('../../../../config/gemini-config.js', () => {
 
   return {
     getGeminiClient: vi.fn().mockResolvedValue(mockClient),
-    getDefaultModel: vi.fn().mockReturnValue('gemini-2.0-flash-exp'),
+    getDefaultModel: vi.fn().mockReturnValue('gemini-3.5-flash'),
     getShortLLMTimeout: vi.fn().mockReturnValue(2000),
     getLLMTimeout: vi.fn().mockReturnValue(5000),
     isGeminiConfigured: vi.fn().mockReturnValue(true),
@@ -173,7 +173,7 @@ vi.mock('../../../../config/gemini-config.js', () => {
 
 // Mock model-config for timeout values
 vi.mock('../../../model-config.js', () => ({
-  getDefaultModel: vi.fn().mockReturnValue('gemini-2.0-flash-exp'),
+  getDefaultModel: vi.fn().mockReturnValue('gemini-3.5-flash'),
   getShortLLMTimeout: vi.fn().mockReturnValue(2000),
 }));
 
