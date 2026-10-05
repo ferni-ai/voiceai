@@ -178,6 +178,15 @@ import type { TTSRequest, TTSResult, IAudioSink, SSMLProsodyConfig } from './typ
 const log = createLogger({ module: 'TTSGateway' });
 
 /**
+ * Open the TTS provider's connection now, at session start, so the greeting
+ * doesn't pay the socket handshake. Never throws.
+ */
+export function prewarmTTSGateway(): void {
+  if (!isTTSGatewayEnabled()) return;
+  getTTSProvider().prewarm?.();
+}
+
+/**
  * Initialize the gateway with default configuration.
  *
  * Call this once at application startup.

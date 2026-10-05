@@ -364,6 +364,15 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     userData = initResult.userData;
     // The caller's time zone (web client → token → dispatch metadata).
     if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
+    // The caller's IP-detected city (token → dispatch metadata), on both the
+    // multi-agent and single-agent paths: tools read it per call from userData.
+    if (userData && typeof metadata.city === 'string' && metadata.city) {
+      userData.userLocation = {
+        city: metadata.city,
+        regionCode: typeof metadata.regionCode === 'string' ? metadata.regionCode : undefined,
+        countryCode: typeof metadata.countryCode === 'string' ? metadata.countryCode : undefined,
+      };
+    }
     stopPeriodicSync = initResult.stopPeriodicSync ?? undefined;
 
     if (stopPeriodicSync) {
@@ -582,6 +591,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // =========================================================================
     let multiAgentActivatedEarly = false;
     let skipMultiAgentAttempt = false;
+    // Why the call ended (the session wait's reason), for call-quality metrics.
+    let sessionEndReason: string | undefined;
     let roomClosedEarly = false;
 
     if (shouldUseMultiAgentEarlyPath) {
@@ -618,6 +629,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         });
         if (multiAgentModeResult.activated) {
           multiAgentActivatedEarly = true;
+          sessionEndReason = multiAgentModeResult.endReason;
         } else if (multiAgentModeResult.error) {
           process.stderr.write(
             `[voice-agent-entry] 🎭 Multi-agent early path failed, falling back to single-agent: ${multiAgentModeResult.error}\n`
@@ -625,6 +637,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         }
       } else if (roomClosedBeforeParticipant(participantWaitResult, ctx.room?.isConnected === true)) {
         roomClosedEarly = true;
+        sessionEndReason = 'room_closed_before_participant';
         process.stderr.write(`[voice-agent-entry] 🚪 Room closed before a participant joined — ending job\n`);
       } else {
         process.stderr.write(
@@ -761,6 +774,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         const { handleSessionCleanup } = await import('../voice-agent/cleanup-handler.js');
         await handleSessionCleanup({
           sessionId,
+          endReason: sessionEndReason,
           userId: userId ?? undefined,
           services,
           sessionPersona,
@@ -856,6 +870,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       const finish = (reason: string): void => {
         if (settled) return;
         settled = true;
+        sessionEndReason = reason;
         for (const t of timers) clearInterval(t as ReturnType<typeof setInterval>);
         for (const t of timers) clearTimeout(t as ReturnType<typeof setTimeout>);
         process.stderr.write(`[voice-agent-entry] 🔌 Ending session wait (${reason})\n`);
@@ -977,6 +992,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const { handleSessionCleanup } = await import('../voice-agent/cleanup-handler.js');
     await handleSessionCleanup({
       sessionId,
+      endReason: sessionEndReason,
       userId: userId ?? undefined,
       services,
       sessionPersona,

@@ -97,7 +97,7 @@ function getSchedulingToolDefinitions(): ToolDefinition[] {
         'Set a reminder or schedule a calendar event. Supports reminders, events with attendees, and follow-ups.',
       domain: 'communication',
       tags: ['communication', 'reminder', 'calendar', 'event', 'schedule', 'follow-up'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: getToolDescription('scheduleReminder'),
           parameters: z.object({
@@ -131,7 +131,8 @@ function getSchedulingToolDefinitions(): ToolDefinition[] {
                     contactMethod: params.contactMethod,
                     contact: params.contact,
                   },
-                  STUB_CONTEXT
+                  // The reminder is filed under the caller (STUB_CONTEXT carries no user).
+                  { ...STUB_CONTEXT, ctx: { userData: { userId: ctx.userId } } }
                 );
               }
             } catch (error) {

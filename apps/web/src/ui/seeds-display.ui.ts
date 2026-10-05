@@ -277,16 +277,16 @@ function injectStyles(): void {
     }
 
     .seeds-action-btn {
-      flex: 1;
+      flex: 1 1 0;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: var(--space-2, 8px);
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      gap: var(--space-1, 4px);
+      padding: var(--space-2, 8px) var(--space-1, 4px);
       background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
       border: none;
       border-radius: var(--radius-lg, 12px);
-      font-size: 0.8125rem;
+      font-size: 0.75rem;
       font-weight: 500;
       color: var(--color-text-secondary, rgba(44, 37, 32, 0.7));
       cursor: pointer;

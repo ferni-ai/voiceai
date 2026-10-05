@@ -1027,6 +1027,7 @@
     "apple": {
       "instructionsTitle": "플랜을 취소하거나 변경하려면:",
       "note": "Apple은 iOS 설정을 통해 구독을 관리해야 합니다",
+      "source": "App Store를 통해 구독하셨습니다.",
       "step1": "기기에서 설정 열기",
       "step2": "상단의 이름 탭",
       "step3": "\"구독\" 탭",
@@ -1043,6 +1044,7 @@
     "expiresLabel": "액세스 종료일",
     "freeNote": "무제한 세션, 전체 팀 및 개인화 잠금 해제",
     "label": "구독",
+    "noBilling": "이 플랜은 여기에서 결제되지 않아 변경할 내용이 없습니다.",
     "renewsLabel": "갱신",
     "restore": {
       "failed": "복원 실패",

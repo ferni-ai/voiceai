@@ -19,6 +19,7 @@ import type {
   GroupConversationSummary,
 } from '../agents/group-conversation/types.js';
 import { generateAnswerTwiml } from '../agents/group-conversation/conference-call-manager.js';
+import { requireTwilioSignature } from './twilio-callback-signature.js';
 
 const log = getLogger();
 const router = Router();
@@ -226,10 +227,12 @@ router.post('/call/add', callControlUnavailable);
 router.post('/call/remove', callControlUnavailable);
 
 /**
- * TwiML webhook for when external participant answers
- * GET /api/group/call/answer
+ * TwiML webhook for when external participant answers. Twilio requests the
+ * call's `url` with POST unless told otherwise (initiateCall sets no method),
+ * so both are served. Admitted on X-Twilio-Signature, not a user.
+ * GET|POST /api/group/call/answer
  */
-router.get('/call/answer', (req: Request, res: Response) => {
+function answerCall(req: Request, res: Response): void {
   const { roomName, name, intro } = req.query;
 
   const sipDomain = process.env.SIP_DOMAIN ?? 'sip.livekit.cloud';
@@ -243,13 +246,15 @@ router.get('/call/answer', (req: Request, res: Response) => {
 
   res.type('text/xml');
   res.send(twiml);
-});
+}
+router.get('/call/answer', requireTwilioSignature, answerCall);
+router.post('/call/answer', requireTwilioSignature, answerCall);
 
 /**
- * Twilio status callback webhook
+ * Twilio status callback webhook (admitted on X-Twilio-Signature, not a user)
  * POST /api/group/call/status
  */
-router.post('/call/status', (req: Request, res: Response) => {
+router.post('/call/status', requireTwilioSignature, (req: Request, res: Response) => {
   const { CallSid, CallStatus } = req.body;
 
   log.info({ callSid: CallSid, status: CallStatus }, '📞 Call status update');

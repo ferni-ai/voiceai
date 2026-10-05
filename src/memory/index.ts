@@ -49,6 +49,7 @@ export {
 
 // Internal import for embedding provider validation
 import { getEmbeddingProvider as getInternalEmbeddingProvider } from './embeddings.js';
+import { validateMemoryEmbeddingDimensions } from './embedding-dimension-guard.js';
 
 // Vector store interface (unified)
 export {
@@ -949,39 +950,11 @@ let initializingPromise: Promise<MemorySystemResult> | null = null;
  * - Local hash fallback: 384
  */
 function validateEmbeddingDimensions(usePersistentVectors: boolean): void {
-  try {
-    const provider = getInternalEmbeddingProvider();
-    const providerDimensions = provider.dimensions;
-    const providerModel = provider.model;
-
-    // FirestoreVectorStore defaults to 768 (Google's text-embedding-004)
-    const vectorStoreDimensions = usePersistentVectors ? 768 : 768;
-
-    if (providerDimensions !== vectorStoreDimensions) {
-      getLogger().warn(
-        {
-          providerModel,
-          providerDimensions,
-          vectorStoreDimensions,
-          usePersistentVectors,
-          risk: 'SEARCH_QUALITY_DEGRADED',
-          recommendation:
-            providerDimensions === 1536
-              ? 'Consider using GOOGLE_API_KEY for matching dimensions, or update Firestore vector index'
-              : 'Ensure embedding provider and vector store dimensions match',
-        },
-        '⚠️ Embedding dimension mismatch detected - semantic search quality may be affected'
-      );
-    } else {
-      getLogger().debug(
-        { providerModel, dimensions: providerDimensions },
-        'Embedding dimensions validated successfully'
-      );
-    }
-  } catch (error) {
-    // Don't fail initialization if validation fails - just log
-    getLogger().debug({ error: String(error) }, 'Could not validate embedding dimensions');
-  }
+  validateMemoryEmbeddingDimensions(
+    getInternalEmbeddingProvider(),
+    usePersistentVectors,
+    getLogger()
+  );
 }
 
 /**

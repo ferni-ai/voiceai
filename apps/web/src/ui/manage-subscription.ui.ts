@@ -187,10 +187,9 @@ class ManageSubscriptionUI {
   }
 
   /**
-   * Render action buttons based on subscription provider
-   *
-   * Design: Primary action is always warm and inviting.
-   * Secondary/management actions are subtle, not prominent.
+   * Render action buttons based on where the server says the plan is billed.
+   * Only a Stripe plan gets the Stripe portal; an App Store plan gets Apple's
+   * way to change it; a paid plan billed nowhere we know gets neither.
    */
   private renderActions(): string {
     const { tier, provider } = this.status || { tier: 'free', provider: 'none' };
@@ -208,9 +207,10 @@ class ManageSubscriptionUI {
       `;
     }
 
-    // Apple subscription - guide to settings with warmth
+    // App Store subscription - say so, then guide to Apple
     if (provider === 'apple') {
       return `
+        <p class="manage-sub__footer-note manage-sub__source">${t('manageSubscription.apple.source')}</p>
         <div class="manage-sub__actions">
           <button class="manage-sub__btn manage-sub__btn--subtle" data-action="apple-manage">
             ${ICONS.settings}
@@ -229,6 +229,10 @@ class ManageSubscriptionUI {
         </div>
         <p class="manage-sub__footer-note">${t('manageSubscription.apple.note')}</p>
       `;
+    }
+
+    if (provider !== 'stripe') {
+      return `<p class="manage-sub__footer-note">${t('manageSubscription.noBilling')}</p>`;
     }
 
     // Stripe subscription - subtle management link
@@ -300,22 +304,6 @@ class ManageSubscriptionUI {
         return t('manageSubscription.status.pastDue');
       default:
         return t('manageSubscription.status.default');
-    }
-  }
-
-  /**
-   * Format date for display
-   */
-  private formatDate(dateString: string): string {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    } catch {
-      return dateString;
     }
   }
 
@@ -626,6 +614,8 @@ class ManageSubscriptionUI {
         margin: 0;
         line-height: 1.5;
       }
+
+      .manage-sub__footer-note.manage-sub__source { margin-bottom: var(--space-4, 16px); }
 
       /* Dark theme - maintain warmth */
       [data-theme="midnight"] .manage-sub__backdrop {
