@@ -551,13 +551,11 @@ export interface SubscriptionData {
 
   /** Stripe customer ID */
   stripeCustomerId?: string;
-
   /** Stripe subscription ID */
   stripeSubscriptionId?: string;
 
   /** Apple original transaction ID (used for subscription lookup) */
   appleOriginalTransactionId?: string;
-
   /** Apple product ID */
   appleProductId?: string;
 
@@ -587,6 +585,8 @@ export interface SubscriptionData {
 
   /** When subscription was revoked (for refunds) */
   revokedAt?: Date;
+  /** A live Stripe tier that a higher App Store plan covers; restored when that plan ends. */
+  stripeTierUnderApple?: SubscriptionTier;
 }
 
 /**
