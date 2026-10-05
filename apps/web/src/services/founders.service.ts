@@ -13,7 +13,7 @@
 import { apiFetch } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from '../ui/whisper.ui.js';
-import { t } from '../i18n/index.js';
+import { formatNumber, t } from '../i18n/index.js';
 
 const log = createLogger('FoundersService');
 
@@ -99,46 +99,46 @@ export interface SeasonalTheme {
   description: string;
 }
 
-// Seasonal themes use CSS variable references for design system compliance
-// The CSS variable fallbacks are included for robustness
-export const SEASONAL_THEMES: Record<Season, SeasonalTheme> = {
+// Seasonal themes use CSS variable references for design system compliance.
+// Built on demand so the display text follows the active locale.
+export const getSeasonalThemes = (): Record<Season, SeasonalTheme> => ({
   spring: {
     season: 'spring',
-    name: 'Spring Growth',
+    name: t('founders.seasons.springName'),
     icon: 'sprout',
     primaryColor: 'var(--color-ferni)',
     accentColor: 'var(--color-ferni-light)',
-    metaphor: 'Seeds awakening',
-    description: 'A time of new beginnings and fresh starts',
+    metaphor: t('founders.seasons.springMetaphor'),
+    description: t('founders.seasons.springDescription'),
   },
   summer: {
     season: 'summer',
-    name: 'Summer Bloom',
+    name: t('founders.seasons.summerName'),
     icon: 'sun',
     primaryColor: 'var(--color-jordan)',
     accentColor: 'var(--color-jordan-light)',
-    metaphor: 'Full flourishing',
-    description: 'The garden is alive with possibility',
+    metaphor: t('founders.seasons.summerMetaphor'),
+    description: t('founders.seasons.summerDescription'),
   },
   fall: {
     season: 'fall',
-    name: 'Autumn Harvest',
+    name: t('founders.seasons.fallName'),
     icon: 'leaf',
     primaryColor: 'var(--color-maya)',
     accentColor: 'var(--color-maya-light)',
-    metaphor: 'Gathering wisdom',
-    description: 'Celebrating the fruits of our journey',
+    metaphor: t('founders.seasons.fallMetaphor'),
+    description: t('founders.seasons.fallDescription'),
   },
   winter: {
     season: 'winter',
-    name: 'Winter Reflection',
+    name: t('founders.seasons.winterName'),
     icon: 'snowflake',
     primaryColor: 'var(--color-peter)',
     accentColor: 'var(--color-peter-light)',
-    metaphor: 'Deep roots',
-    description: 'Quiet strength beneath the surface',
+    metaphor: t('founders.seasons.winterMetaphor'),
+    description: t('founders.seasons.winterDescription'),
   },
-};
+});
 
 export function getCurrentSeason(): Season {
   const month = new Date().getMonth();
@@ -149,7 +149,7 @@ export function getCurrentSeason(): Season {
 }
 
 export function getSeasonalTheme(): SeasonalTheme {
-  return SEASONAL_THEMES[getCurrentSeason()];
+  return getSeasonalThemes()[getCurrentSeason()];
 }
 
 // ============================================================================
@@ -209,14 +209,14 @@ const DEFAULT_FOUNDERS: Founder[] = [];
 const DEFAULT_STORIES: FounderStory[] = [];
 
 // Honest milestones - start small, celebrate genuinely
-const DEFAULT_MILESTONES: CommunityMilestone[] = [
+const getDefaultMilestones = (): CommunityMilestone[] => [
   {
     id: 'founders-10',
     target: 10,
     current: 0, // Real count
     type: 'founders',
-    title: 'First 10 Believers',
-    celebration: 'Our founding circle. The ones who believed before anyone else.',
+    title: t('founders.milestones.first10Title'),
+    celebration: t('founders.milestones.first10Celebration'),
     reached: false,
   },
   {
@@ -224,8 +224,8 @@ const DEFAULT_MILESTONES: CommunityMilestone[] = [
     target: 50,
     current: 0,
     type: 'founders',
-    title: '50 Founding Members',
-    celebration: 'Proof that this matters. Thank you for being here.',
+    title: t('founders.milestones.founders50Title'),
+    celebration: t('founders.milestones.founders50Celebration'),
     reached: false,
   },
   {
@@ -233,8 +233,8 @@ const DEFAULT_MILESTONES: CommunityMilestone[] = [
     target: 1000,
     current: 0,
     type: 'conversations',
-    title: '1,000 Real Conversations',
-    celebration: 'A thousand moments when someone had support they needed.',
+    title: t('founders.milestones.conversations1kTitle'),
+    celebration: t('founders.milestones.conversations1kCelebration'),
     reached: false,
   },
   {
@@ -242,8 +242,8 @@ const DEFAULT_MILESTONES: CommunityMilestone[] = [
     target: 100,
     current: 0,
     type: 'founders',
-    title: '100 Founding Members',
-    celebration: 'With your help, we can keep Ferni free for everyone.',
+    title: t('founders.milestones.founders100Title'),
+    celebration: t('founders.milestones.founders100Celebration'),
     reached: false,
   },
 ];
@@ -318,7 +318,7 @@ export async function fetchCommunityMilestones(forceRefresh = false): Promise<Co
     return cachedMilestones!;
   } catch (error) {
     log.warn('Using default milestones', error);
-    return cachedMilestones || DEFAULT_MILESTONES;
+    return cachedMilestones || getDefaultMilestones();
   }
 }
 
@@ -409,13 +409,11 @@ export function animateCounter(
   function formatValue(value: number): string {
     switch (format) {
       case 'compact':
-        if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-        if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
-        return value.toLocaleString();
+        return formatNumber(value, { notation: 'compact', maximumFractionDigits: value >= 1e6 ? 1 : 0 });
       case 'percentage':
-        return `${value.toFixed(0)}%`;
+        return formatNumber(value / 100, { style: 'percent', maximumFractionDigits: 0 });
       default:
-        return value.toLocaleString();
+        return formatNumber(value);
     }
   }
 
@@ -470,22 +468,21 @@ export const TIER_COLORS: Record<Founder['tier'], { bg: string; text: string; bo
 };
 
 // Badge icons use Lucide SVG names - NO EMOJIS per brand guidelines
+// label/description resolve through t() on each read so they follow the active locale
+const badgeInfo = (name: string, icon: string, desc: string) => ({
+  get label() {
+    return t(name);
+  },
+  icon,
+  get description() {
+    return t(desc);
+  },
+});
+
 export const BADGE_INFO: Record<NonNullable<Founder['badge']>, { label: string; icon: string; description: string }> = {
-  og: {
-    label: 'OG',
-    icon: 'star', // Lucide icon name
-    description: 'One of our first 50 believers',
-  },
-  champion: {
-    label: 'Champion',
-    icon: 'trophy', // Lucide icon name
-    description: 'Top tier supporter',
-  },
-  believer: {
-    label: 'Believer',
-    icon: 'heart', // Lucide icon name
-    description: '6+ month streak',
-  },
+  og: badgeInfo('founders.badges.ogLabel', 'star', 'founders.badges.ogDescription'),
+  champion: badgeInfo('founders.badges.championLabel', 'trophy', 'founders.badges.championDescription'),
+  believer: badgeInfo('founders.badges.believerLabel', 'heart', 'founders.badges.believerDescription'),
 };
 
 // ============================================================================
@@ -524,7 +521,7 @@ export const foundersService = {
   clearCache: clearFoundersCache,
   TIER_COLORS,
   BADGE_INFO,
-  SEASONAL_THEMES,
+  getSeasonalThemes,
 };
 
 export default foundersService;
