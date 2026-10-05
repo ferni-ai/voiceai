@@ -262,7 +262,7 @@ const styles = `
   .memory-modal__close {
     position: absolute;
     top: var(--space-4, 16px);
-    right: var(--space-4, 16px);
+    inset-inline-end: var(--space-4, 16px);
     width: 32px;
     height: 32px;
     border-radius: 50%;

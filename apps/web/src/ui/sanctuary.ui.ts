@@ -1067,7 +1067,7 @@ class SanctuaryUI {
       .sanctuary-close {
         position: absolute;
         top: var(--space-md, 16px);
-        right: var(--space-md, 16px);
+        inset-inline-end: var(--space-md, 16px);
         width: 40px;
         height: 40px;
         border: none;

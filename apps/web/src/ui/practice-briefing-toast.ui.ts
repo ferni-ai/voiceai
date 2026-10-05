@@ -238,7 +238,7 @@ function injectStyles(): void {
     .practice-briefing-toast__close {
       position: absolute;
       top: var(--ma-pause);
-      right: var(--ma-pause);
+      inset-inline-end: var(--ma-pause);
       width: 28px;
       height: 28px;
       border: none;

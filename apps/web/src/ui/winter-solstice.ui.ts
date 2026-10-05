@@ -1006,7 +1006,7 @@ class WinterSolsticeMomentUI {
       .solstice-close {
         position: fixed;
         top: var(--space-6);
-        right: var(--space-6);
+        inset-inline-end: var(--space-6);
         width: 48px;
         height: 48px;
         border: none;

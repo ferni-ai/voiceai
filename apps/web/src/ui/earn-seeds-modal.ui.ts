@@ -337,7 +337,7 @@ function injectStyles(): void {
     .earn-seeds-close {
       position: absolute;
       top: var(--space-4, 16px);
-      right: var(--space-4, 16px);
+      inset-inline-end: var(--space-4, 16px);
       background: none;
       border: none;
       padding: var(--space-2, 8px);
