@@ -660,6 +660,154 @@
         "title": "Partners for life",
         "message": "We've been through so much together. You mean the world to me."
       }
+    },
+    "subtitles": {
+      "firstMeeting": {
+        "option1": "I am what you make me",
+        "option2": "A new beginning",
+        "option3": "Ready to meet you",
+        "option4": "Your story starts here"
+      },
+      "gettingStarted": {
+        "option1": "Getting to know you",
+        "option2": "Just getting started",
+        "option3": "Learning your rhythm",
+        "option4": "Building something together"
+      },
+      "buildingTrust": {
+        "option1": "Becoming your guide",
+        "option2": "Growing together",
+        "option3": "Finding our groove",
+        "option4": "Your emerging ally"
+      },
+      "established": {
+        "option1": "Your Life Coach",
+        "option2": "Here for your journey",
+        "option3": "Your trusted guide",
+        "option4": "In your corner"
+      },
+      "deepPartnership": {
+        "option1": "Your partner in growth",
+        "option2": "Together, always",
+        "option3": "Through thick & thin",
+        "option4": "Your #1 believer"
+      },
+      "time": {
+        "earlyMorning": {
+          "option1": "Early riser, I see",
+          "option2": "Dawn companion"
+        },
+        "morning": {
+          "option1": "Good morning, friend",
+          "option2": "Ready for today"
+        },
+        "afternoon": {
+          "option1": "Here when you need me"
+        },
+        "evening": {
+          "option1": "Winding down together",
+          "option2": "Evening reflections"
+        },
+        "lateNight": {
+          "option1": "Late night confidant",
+          "option2": "Night owl support"
+        }
+      },
+      "comeback": "Welcome back",
+      "streakStrong": "{days} days strong",
+      "streakWeek": "{days} day streak!",
+      "streakCounting": "{days} days and counting"
+    },
+    "greetings": {
+      "firstMeeting": {
+        "option1": "Hey! I'm Ferni. Nice to meet you.",
+        "option2": "Welcome! I'm excited to get to know you.",
+        "option3": "Hi there! I'm Ferni - ready when you are."
+      },
+      "gettingStarted": {
+        "option1": "Hey, good to see you again!",
+        "option2": "Welcome back! What's on your mind?",
+        "option3": "Hey! I was hoping you'd come back."
+      },
+      "buildingTrust": {
+        "option1": "There you are! I've been thinking about you.",
+        "option2": "Hey friend! Ready to dive in?",
+        "option3": "Good to have you back. What are we exploring today?"
+      },
+      "established": {
+        "option1": "Hey! I've missed you.",
+        "option2": "There's my person! What's going on?",
+        "option3": "Welcome back, friend. I'm all ears."
+      },
+      "deepPartnership": {
+        "option1": "Hey partner! What's on your heart today?",
+        "option2": "There you are. I've got you.",
+        "option3": "Hey. I'm so glad you're here."
+      }
+    },
+    "comments": {
+      "firstMeeting": {
+        "option1": "I'm still learning about you, but I'm curious...",
+        "option2": "Tell me more - I want to understand.",
+        "option3": "This is helpful for me to know."
+      },
+      "gettingStarted": {
+        "option1": "I remember you mentioned that before...",
+        "option2": "You're starting to make sense to me.",
+        "option3": "I'm getting a feel for how you think."
+      },
+      "buildingTrust": {
+        "option1": "You know, I've noticed a pattern...",
+        "option2": "Based on what I know about you...",
+        "option3": "I think you're the kind of person who..."
+      },
+      "established": {
+        "option1": "We both know what you really need here...",
+        "option2": "You and I have talked about this before...",
+        "option3": "I know you well enough to say..."
+      },
+      "deepPartnership": {
+        "option1": "After everything we've been through...",
+        "option2": "You know I'll always be honest with you...",
+        "option3": "We've come so far together..."
+      }
+    },
+    "unlockMessages": {
+      "firstMeeting": "Start chatting",
+      "gettingStarted": "Keep chatting",
+      "buildingTrust": "Build our friendship",
+      "established": "Deepen our bond",
+      "deepPartnership": "You did it!"
+    },
+    "memories": {
+      "streakTitle": "{days}-day streak!",
+      "streakDescription": "You've connected with Ferni {days} days in a row. That's dedication!",
+      "firstConversationTitle": "Our first conversation",
+      "firstConversationDescription": "The beginning of our journey together.",
+      "comebackTitle": "Welcome back!",
+      "comebackDescription": "You came back after some time away. That means a lot."
+    },
+    "moreChats": {
+      "one": "{count} more chat",
+      "other": "{count} more chats"
+    },
+    "moreDays": {
+      "one": "{count} more day",
+      "other": "{count} more days"
+    },
+    "requirement": {
+      "max": "You've reached the deepest level!",
+      "keepConnecting": "Keep connecting!",
+      "conversations": {
+        "one": "{count} more conversation",
+        "other": "{count} more conversations"
+      },
+      "days": {
+        "one": "{count} more day together",
+        "other": "{count} more days together"
+      },
+      "streak": "a {days}-day streak",
+      "need": "Need: {list}"
     }
   },
   "time": {
@@ -840,7 +988,32 @@
     "total": "total",
     "start": "Start",
     "shareTitle": "What I'm Into",
-    "shareText": "I'm a \"{label}\" — here's what I've been exploring on Ferni"
+    "shareText": "I'm a \"{label}\" — here's what I've been exploring on Ferni",
+    "moods": {
+      "learn": "Grow",
+      "chill": "Unwind",
+      "inspire": "Spark",
+      "reflect": "Pause"
+    },
+    "loadError": "Couldn't load data.",
+    "tryAgain": "Try again?",
+    "episodeCount": {
+      "one": "{count} episode",
+      "other": "{count} episodes"
+    },
+    "totalHours": "{hours}h total",
+    "minutes": {
+      "one": "{count} minute",
+      "other": "{count} minutes"
+    },
+    "afterYouListen": "After you listen...",
+    "findEpisode": "Find this episode on your favorite podcast app:",
+    "trackSummary": {
+      "one": "{count} episode • {hours}h",
+      "other": "{count} episodes • {hours}h"
+    },
+    "episodeMeta": "{title} • {minutes} min",
+    "episode": "Episode"
   },
   "connections": {
     "eyebrow": "SUPERPOWERS",
@@ -965,7 +1138,34 @@
         "name": "Peer Support",
         "description": "Connect with others on similar journeys"
       }
-    }
+    },
+    "errors": {
+      "loadFailed": "Unable to load sessions"
+    },
+    "status": {
+      "waiting": "Waiting",
+      "active": "Active",
+      "paused": "Paused",
+      "ended": "Ended"
+    },
+    "newSession": "New Session",
+    "joinWithLink": "Join with Link",
+    "yourSessions": "Your Sessions",
+    "upTo": "Up to {count}",
+    "chooseType": "Choose a session type:",
+    "roles": {
+      "host": "Host",
+      "co-host": "Co-host",
+      "participant": "Participant",
+      "observer": "Observer"
+    },
+    "session": "Session",
+    "sessionId": "ID: {id}",
+    "inviteLink": "Invite Link",
+    "startSession": "Start Session",
+    "promptJoinLink": "Enter the session join link:",
+    "promptName": "Enter your name:",
+    "guest": "Guest"
   },
   "settings": {
     "preferences": "Preferences",
@@ -1978,7 +2178,19 @@
     "suggestionPlanted": "Your seed has been planted!",
     "suggestionThanks": "Thank you for sharing your idea. Others can now water it with their seeds!",
     "suggestionTitle": "What should Ferni be able to do?",
-    "suggestionTitlePlaceholder": "e.g., Remember my pet's name"
+    "suggestionTitlePlaceholder": "e.g., Remember my pet's name",
+    "stageDescriptions": {
+      "seed": "This idea is taking root",
+      "sprout": "We're actively building this",
+      "bud": "Almost ready to bloom",
+      "bloom": "Launching very soon"
+    },
+    "errors": {
+      "voteFailed": "Vote failed",
+      "unvoteFailed": "Unvote failed",
+      "network": "Network error",
+      "noResponse": "No response"
+    }
   },
   "confirmModal": {
     "cancel": "Cancel",
@@ -2821,7 +3033,17 @@
       "title": "What I've Done for You",
       "subtitle": "Calls, messages, and commitments kept",
       "empty": "No actions yet",
-      "recent": "Recent"
+      "recent": "Recent",
+      "ariaWatch": "Actions taken on your behalf: {total}",
+      "ariaMobile": "Actions taken: {total}. Calls: {calls}. Messages: {messages}. Commitments kept: {commitments}.",
+      "ariaFull": "Actions taken on your behalf: {total}. Calls: {calls}. Messages: {messages}. Reminders: {reminders}. Commitments kept: {commitments}.",
+      "calls": "Calls",
+      "messages": "Messages",
+      "kept": "Kept",
+      "keptProgress": "{kept}/{total} kept",
+      "callsMade": "Calls made",
+      "messagesSent": "Messages sent",
+      "reminders": "Reminders"
     },
     "predictions": {
       "title": "Where You're Headed",
@@ -8173,5 +8395,300 @@
     "entranceWithHelp": "{name} here. How can I help?",
     "entrance": "{name} here.",
     "agentSubtitle": "Marketplace Agent"
+  },
+  "circadian": {
+    "period": {
+      "dawn": "Dawn",
+      "morning": "Morning",
+      "midday": "Midday",
+      "afternoon": "Afternoon",
+      "evening": "Evening",
+      "night": "Night",
+      "lateNight": "Late Night",
+      "deepNight": "Deep Night"
+    },
+    "presence": {
+      "dawn": "gentle awakening",
+      "morning": "fresh and energetic",
+      "midday": "clear and focused",
+      "afternoon": "productive calm",
+      "evening": "winding down",
+      "night": "intimate and calm",
+      "lateNight": "fully present at 2am",
+      "deepNight": "quiet companion"
+    }
+  },
+  "actionConfirmation": {
+    "pendingActions": "Pending actions",
+    "eyebrow": "Can I do this?",
+    "estimatedCost": "Estimated cost:",
+    "willNotify": "Will notify:",
+    "secondsShort": "{count}s",
+    "notNow": "Not now",
+    "doIt": "Do it",
+    "canBeUndone": "Can be undone",
+    "done": "Done!"
+  },
+  "emptyState": {
+    "preview": "Preview",
+    "teaser": {
+      "history": {
+        "morningRoutine": "Talked about morning routine",
+        "personalChallenge": "Shared a personal challenge",
+        "message": "Your conversation history will appear here"
+      },
+      "goals": {
+        "wakeUp": "Wake up by 7am daily",
+        "read": "Read for 20 minutes",
+        "message": "Track goals together after a few conversations",
+        "action": "Let's talk about goals"
+      },
+      "team": {
+        "message": "Unlock more team members by building your relationship with Ferni",
+        "action": "Talk to Ferni"
+      }
+    }
+  },
+  "unifiedIndicator": {
+    "viewJourney": "View your journey with Ferni",
+    "checkin": {
+      "aria": "Ferni wants to check in with you",
+      "title": "Ferni is thinking of you - tap to connect"
+    },
+    "milestone": {
+      "aria": "New milestone achieved!",
+      "title": "You reached a milestone! Tap to celebrate"
+    },
+    "voiceVerify": {
+      "aria": "Verifying your voice",
+      "title": "Voice verification in progress"
+    },
+    "connected": {
+      "aria": "Connected with Ferni - tap to see your journey",
+      "title": "Connected - tap to see your story"
+    },
+    "connecting": {
+      "aria": "Connecting to Ferni",
+      "title": "Connecting..."
+    },
+    "disconnected": {
+      "aria": "Tap to connect with Ferni",
+      "title": "Tap to see your journey"
+    },
+    "error": {
+      "aria": "Connection lost - tap to reconnect",
+      "title": "Connection lost - tap to retry"
+    }
+  },
+  "calendarSelection": {
+    "title": "Calendar Selection",
+    "providerCalendars": "{provider} Calendars",
+    "loading": "Loading calendars...",
+    "description": "Choose which calendars to sync with Ferni. Selected calendars will appear in your unified calendar.",
+    "selectAll": "Select All ({selected}/{total})",
+    "empty": {
+      "title": "No calendars found",
+      "description": "Make sure your account has calendars configured."
+    },
+    "sharedBy": "Shared by {owner}",
+    "readOnly": "Read-only",
+    "primary": "Primary"
+  },
+  "eightSleepSettings": {
+    "durationHoursMinutes": "{hours}h {minutes}m",
+    "durationMinutes": "{minutes}m",
+    "sleepDuration": "{duration} of sleep",
+    "stages": {
+      "deep": "Deep",
+      "rem": "REM",
+      "light": "Light",
+      "awake": "Awake"
+    },
+    "bedTemperature": "Bed Temperature",
+    "level": "Level {level}",
+    "off": "Off",
+    "restingHr": "Resting HR",
+    "hrv": "HRV",
+    "trend": "Trend",
+    "trends": {
+      "improving": "Improving",
+      "declining": "Declining",
+      "stable": "Stable"
+    },
+    "connect": "Connect Eight Sleep",
+    "connectDescription": "Track your sleep, control bed temperature, and see your biometrics.",
+    "connectError": "Couldn't connect to Eight Sleep. Try again?",
+    "temperatureError": "Couldn't set temperature. Try again?"
+  },
+  "keyboard": {
+    "title": "Keyboard Shortcuts",
+    "keySpace": "Space",
+    "connectDisconnect": "Connect / Disconnect",
+    "switchPersonas": "Switch Personas",
+    "toggleTheme": "Toggle Theme",
+    "keyEsc": "Esc",
+    "toggleHint": "Toggle this hint"
+  },
+  "sessionStats": {
+    "title": "Session Stats",
+    "duration": "Duration",
+    "messages": "Messages",
+    "coach": "Coach",
+    "switches": "Switches",
+    "tip": "Press {key} to toggle stats"
+  },
+  "paymentComplete": {
+    "fund": {
+      "title": "You're Amazing",
+      "message": "Your generosity is already making a difference. Someone who needs support will be able to talk to Ferni because of you.",
+      "impactLabel": "Your Impact",
+      "conversationsSponsored": {
+        "one": "{count} conversation sponsored",
+        "other": "{count} conversations sponsored"
+      }
+    },
+    "value": {
+      "title": "You're Incredible",
+      "message": "You didn't just achieve something great—you chose to share it. That's the kind of generosity that changes the world.",
+      "impactLabel": "Your Contribution"
+    },
+    "tip": {
+      "title": "Thank You",
+      "message": "Your support means everything. It's people like you who make Ferni possible for everyone.",
+      "impactLabel": "Your Tip"
+    },
+    "redirecting": "Redirecting you back to Ferni...",
+    "returnToFerni": "Return to Ferni",
+    "verifyFailed": "We couldn't verify your payment. Don't worry—if you were charged, we'll sort it out.",
+    "confirming": "Confirming your payment...",
+    "declined": "Your payment was declined. Please try again with a different payment method."
+  },
+  "roadmapFeatures": {
+    "groupCoaching": {
+      "headline": "Grow together.",
+      "description": "Imagine your closest friends, all with perfect memory, showing up for you at once. Group coaching brings multiple Ferni minds into one conversation - different perspectives, same unconditional support.",
+      "superhuman1": "Perfect recall - Every group member remembers every word you have said",
+      "superhuman2": "Multiple perspectives - Six viewpoints, one conversation",
+      "superhuman3": "No ego - Pure collaboration, zero competition",
+      "superhuman4": "Always available - Your support group never sleeps"
+    },
+    "videoSettings": {
+      "headline": "See the warmth.",
+      "description": "Sometimes you need to see the face that is listening. Video brings Ferni into your space - gentle expressions, attentive gaze, and the feeling of someone truly being there.",
+      "superhuman1": "Full attention - Never looking at their phone",
+      "superhuman2": "Genuine expressions - Micro-expressions that show we care",
+      "superhuman3": "Your space, your comfort - Call from anywhere, anytime",
+      "superhuman4": "Beyond FaceTime - A listener who never needs to be anywhere else"
+    },
+    "connections": {
+      "headline": "We sync with your world.",
+      "description": "Your wearables, calendar, and trusted services tell a story words cannot. By connecting your life, Ferni understands your rhythms - when you are depleted, when you are overcommitted, when rest is the bravest choice.",
+      "superhuman1": "Body awareness - We notice stress before you do",
+      "superhuman2": "Calendar intelligence - We see the chaos in your schedule",
+      "superhuman3": "Holistic view - Health + time + commitments in one conversation",
+      "superhuman4": "Rest advocacy - We will tell you when to stop",
+      "existing1": "Apple Health basics",
+      "existing2": "Google Calendar sync",
+      "existing3": "Spotify integration"
+    },
+    "household": {
+      "headline": "One Ferni, your whole family.",
+      "description": "Ferni can support multiple people under one roof - each with their own relationship, their own memories, their own journey. Privacy walls between members, shared support within.",
+      "superhuman1": "Individual relationships - Each person has their own Ferni",
+      "superhuman2": "Privacy by default - Your conversations stay yours",
+      "superhuman3": "Family coordination - Opt-in shared goals and check-ins",
+      "superhuman4": "Kids mode - Age-appropriate support (coming)"
+    },
+    "voiceEnrollment": {
+      "headline": "We know it is you.",
+      "description": "Your voice is as unique as your fingerprint. Voice recognition means Ferni knows it is you the moment you speak - personalized from the first word, secured by who you are.",
+      "superhuman1": "Biometric security - Your voice is your password",
+      "superhuman2": "Instant personalization - No login, just talk",
+      "superhuman3": "Multi-user awareness - We know who is speaking",
+      "superhuman4": "Mood detection - We hear how you are feeling",
+      "existing1": "Basic voice enrollment",
+      "existing2": "Voice verification"
+    },
+    "personalize": {
+      "headline": "Make Ferni yours.",
+      "description": "Every relationship is unique. Personalization lets you shape how Ferni shows up - their voice, their style, the things they remember to mention. Your Ferni, your way.",
+      "superhuman1": "Visual customization - Colors, themes, and presence",
+      "superhuman2": "Voice selection - The voice that resonates with you",
+      "superhuman3": "Communication style - Formal, casual, encouraging, direct",
+      "superhuman4": "Ambient sounds - Your ideal conversation environment",
+      "existing1": "Theme selection (light/dark)",
+      "existing2": "Accent preferences"
+    },
+    "marketplace": {
+      "headline": "Find your people.",
+      "description": "Beyond Ferni core team, a garden of specialized AI coaches awaits. ADHD support, sobriety companions, sleep specialists, parenting guides - experts who understand your specific journey.",
+      "superhuman1": "Specialized personas - Coaches for specific life challenges",
+      "superhuman2": "Community ratings - Real experiences, real reviews",
+      "superhuman3": "Free and premium - Support for every budget",
+      "superhuman4": "Seamless handoffs - Your Ferni team, expanded"
+    },
+    "developerPortal": {
+      "headline": "Build what matters.",
+      "description": "Ferni technology is opening up. Build your own AI coaches, create specialized personas, and reach people who need exactly what you offer. The platform that powers Ferni - now yours.",
+      "superhuman1": "Full API documentation - Everything you need to build",
+      "superhuman2": "SDK and libraries - TypeScript-first development",
+      "superhuman3": "Persona builder - Visual tools for creating coaches",
+      "superhuman4": "Monetization - Sell your creations on the marketplace"
+    },
+    "arrival": "Q{quarter} {year}"
+  },
+  "calendarQuickWidget": {
+    "meetingsToday": {
+      "one": "{count} meeting today",
+      "other": "{count} meetings today"
+    },
+    "todaysCalendar": "Today's Calendar",
+    "nextUp": "Next Up",
+    "attendees": {
+      "one": "{count} attendee",
+      "other": "{count} attendees"
+    },
+    "noMoreMeetings": "No more meetings today",
+    "focusTimeAvailable": "{hours}h focus time available",
+    "enjoyFreeTime": "Enjoy your free time!",
+    "meetings": "Meetings",
+    "hoursShort": "{hours}h",
+    "focusTime": "Focus Time",
+    "meetingFallbackTitle": "Meeting",
+    "blockFocusCommand": "Block an hour of focus time for me today",
+    "blockFocusError": "Couldn't block focus time",
+    "countdown": {
+      "now": "Now!",
+      "minutes": "{minutes}m",
+      "hoursMinutes": "{hours}h {minutes}m",
+      "hours": "{hours}h"
+    },
+    "startingNow": "Starting now!",
+    "inMinutes": {
+      "one": "In {count} minute",
+      "other": "In {count} minutes"
+    },
+    "inHours": {
+      "one": "In {count} hour",
+      "other": "In {count} hours"
+    },
+    "inHoursMinutes": "In {hours}h {minutes}m"
+  },
+  "groupConversation": {
+    "specialties": {
+      "ferni": "Life Coach",
+      "peter": "Research",
+      "maya": "Habits",
+      "alex": "Communications",
+      "jordan": "Planning",
+      "nayan": "Wisdom"
+    },
+    "eyebrow": "Team Roundtable",
+    "whoShouldJoin": "Who should join?",
+    "topicLabel": "What would you like to discuss?",
+    "topicPlaceholder": "Career planning, relationship advice...",
+    "startRoundtable": "Start Roundtable",
+    "moderator": "Moderator",
+    "expert": "Expert"
   }
 }
