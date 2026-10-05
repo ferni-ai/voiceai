@@ -1,6 +1,15 @@
 {
   "pins" : [
     {
+      "identity" : "client-sdk-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/livekit/client-sdk-swift",
+      "state" : {
+        "revision" : "4d6f3aa7c4520d1c649f437951c9492260a97d66",
+        "version" : "2.11.0"
+      }
+    },
+    {
       "identity" : "livekit-uniffi-xcframework",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/livekit/livekit-uniffi-xcframework.git",

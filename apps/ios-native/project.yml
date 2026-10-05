@@ -9,7 +9,8 @@ options:
 
 packages:
   LiveKit:
-    path: ../../vendor/client-sdk-swift
+    url: https://github.com/livekit/client-sdk-swift
+    exactVersion: 2.11.0
   FerniShared:
     path: ../shared
   Firebase:
