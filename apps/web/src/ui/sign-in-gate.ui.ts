@@ -159,8 +159,13 @@ const STYLES = `
 }
 
 .sign-in-gate-btn--apple {
-  background: #000;
-  color: #fff;
+  background: #2c2520;
+  color: #fafaf9;
+}
+
+[data-theme="midnight"] .sign-in-gate-btn--apple {
+  background: #f4efe6;
+  color: #14110e;
 }
 
 .sign-in-gate-btn--apple:hover {
@@ -170,9 +175,9 @@ const STYLES = `
 .sign-in-gate-error {
   margin-top: var(--space-md, 1rem);
   padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-  background: var(--color-semantic-error-bg, rgba(239, 68, 68, 0.1));
+  background: var(--color-semantic-error-tint, rgba(231, 163, 154, 0.12));
   border-radius: var(--radius-md, 8px);
-  color: var(--color-semantic-error, #ef4444);
+  color: var(--color-semantic-error, #e7a39a);
   font-size: 0.875rem;
   display: none;
 }

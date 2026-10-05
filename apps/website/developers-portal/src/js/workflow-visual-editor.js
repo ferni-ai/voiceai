@@ -28,7 +28,7 @@ function getNodeTypeConfig() {
     condition: { label: 'Condition', color: getCssVar('--error', '#e07575'), icon: 'branch' },
     parallel: { label: 'Parallel', color: getCssVar('--persona-peter', '#3a6b73'), icon: 'split' },
     join: { label: 'Join', color: getCssVar('--persona-peter', '#3a6b73'), icon: 'merge' },
-    wait: { label: 'Wait', color: getCssVar('--accent-primary', '#d4a84a'), icon: 'clock' },
+    wait: { label: 'Wait', color: getCssVar('--accent-primary', '#8eae7a'), icon: 'clock' },
     set_variable: { label: 'Set Variable', color: getCssVar('--persona-sasha', '#E07B53'), icon: 'variable' },
     activity: { label: 'Activity', color: getCssVar('--persona-marcus', '#2D5A4A'), icon: 'activity' },
     sub_workflow: { label: 'Sub-Workflow', color: getCssVar('--persona-eli', '#6B5B95'), icon: 'workflow' },

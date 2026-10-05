@@ -139,7 +139,7 @@ const styles = `
   
   .capability-card__description {
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin: 0;
     line-height: 1.4;
   }

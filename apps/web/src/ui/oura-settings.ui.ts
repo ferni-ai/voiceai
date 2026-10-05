@@ -517,7 +517,7 @@ function injectStyles(): void {
 
     [data-theme="midnight"] .oura-settings__score-card,
     [data-theme="midnight"] .oura-settings__metric {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
 
     /* Reduced motion */
