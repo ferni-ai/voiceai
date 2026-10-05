@@ -3995,11 +3995,11 @@
     "byTool": "도구별",
     "noUsageYet": "아직 사용 내역이 없어요",
     "noUsageDescription": "마켓플레이스 도구를 설치하고 사용하시면 여기에 사용량이 표시돼요",
-    "planFree": "Free",
+    "planFree": "무료",
     "planFreeDesc": "가볍게 시작해 보기에 좋아요",
-    "planFriend": "Friend",
+    "planFriend": "친구",
     "planFriendDesc": "자주 이용하시는 분들을 위해",
-    "planPartner": "Partner",
+    "planPartner": "파트너",
     "planPartnerDesc": "모든 것을 무제한으로",
     "installedLockedMessage": "{coaches}를 설치하셨어요. 핵심 팀을 모두 만나고 나면 대화를 시작할 준비가 완료될 거예요!",
     "customAgent": {
@@ -10460,7 +10460,9 @@
       "historicalFacts": "역사적 사실",
       "smartHome": "스마트 홈",
       "lighting": "조명",
-      "aiContext": "AI 컨텍스트"
+      "aiContext": "AI 컨텍스트",
+      "sleepHealth": "수면 및 건강 데이터",
+      "other": "연결된 서비스"
     },
     "allOperational": "모든 시스템이 정상 작동하고 있어요",
     "issuesDetected": "서비스 문제가 감지되었어요",
@@ -10965,9 +10967,9 @@
     "people": {
       "title": "소중한 사람들",
       "message": "당신에게 소중한 사람들과 그들에 대한 당신의 마음을 모두 기억할게요.",
-      "sarah": "Sarah",
+      "sarah": "사라",
       "mom": "엄마",
-      "david": "David",
+      "david": "데이비드",
       "lastMentioned": "{relation} • 마지막 언급: {when}",
       "joy": "기쁨을 주는 사람",
       "complex": "복잡한 감정",

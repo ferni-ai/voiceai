@@ -2451,7 +2451,7 @@
       },
       "whoop": {
         "description": "מעקב אחר התאוששות ומאמץ",
-        "name": "WHOOP"
+        "name": "Whoop"
       }
     },
     "sections": {
@@ -9005,13 +9005,13 @@
     "opening": "פותחים..."
   },
   "languageNames": {
-    "es": "Spanish",
-    "fr": "French",
-    "de": "German",
-    "ja": "Japanese",
-    "ko": "Korean",
-    "ar": "Arabic",
-    "he": "Hebrew",
+    "es": "ספרדית",
+    "fr": "צרפתית",
+    "de": "גרמנית",
+    "ja": "יפנית",
+    "ko": "קוריאנית",
+    "ar": "ערבית",
+    "he": "עברית",
     "enUS": "אנגלית (ארה״ב)",
     "enGB": "אנגלית (בריטניה)",
     "zhHans": "סינית (מפושטת)",
@@ -10559,13 +10559,15 @@
   },
   "serviceHealth": {
     "names": {
-      "lighting": "Lighting",
+      "lighting": "תאורה",
       "stockData": "נתוני מניות",
       "marketData": "נתוני שוק",
       "weatherMaps": "מזג אוויר ומפות",
       "historicalFacts": "עובדות היסטוריות",
       "smartHome": "בית חכם",
-      "aiContext": "הקשר AI"
+      "aiContext": "הקשר AI",
+      "sleepHealth": "נתוני שינה ובריאות",
+      "other": "שירות מחובר"
     },
     "allOperational": "כל המערכות פעילות",
     "issuesDetected": "זוהו תקלות בשירות",

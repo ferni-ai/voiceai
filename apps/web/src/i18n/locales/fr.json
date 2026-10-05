@@ -4303,7 +4303,7 @@
   "gameBoard": {
     "gameNames": {
       "ticTacToe": "Morpion",
-      "twentyQuestions": "20 questions",
+      "twentyQuestions": "20 Questions",
       "wordAssociation": "Association de mots",
       "storyBuilder": "Créateur d'histoire",
       "wouldYouRather": "Tu préfères",
@@ -4313,7 +4313,7 @@
       "valuesCardSort": "Tri des valeurs",
       "oneWordCheckin": "Check-in en un mot",
       "tinyWinTracker": "Carnet des petites victoires",
-      "fortuneCookie": "Fortune cookie"
+      "fortuneCookie": "Fortune Cookie"
     },
     "statuses": {
       "starting": "Lancement...",
@@ -4722,7 +4722,7 @@
     "ticTacToeHelp": "Le jeu classique du morpion ! Dis simplement des positions comme « centre », « en haut à gauche » ou « en bas à droite ».",
     "ticTacToeHint1": "Tu as les X, j'ai les O",
     "ticTacToeHint2": "Choisis la difficulté : facile, moyen ou difficile",
-    "twentyQuestions": "20 questions",
+    "twentyQuestions": "20 Questions",
     "twentyQuestionsDesc": "Pense à quelque chose. J'ai 20 questions fermées (oui/non) pour deviner ce que c'est !",
     "twentyQuestionsHelp": "Pense à quelque chose. J'ai 20 questions fermées (oui/non) pour deviner de quoi il s'agit !",
     "wordAssociation": "Association de mots",
@@ -5310,7 +5310,7 @@
     "prompt": "D'après ta météo émotionnelle, tu es {mood} {energy}. Tu aimerais un peu de musique pour accompagner ça ?"
   },
   "notificationSettings": {
-    "title": "Notifications & check-ins",
+    "title": "Notifications & Check-ins",
     "cancel": "Annuler",
     "saveSettings": "Enregistrer les paramètres",
     "heroTitle": "Je t'écrirai avant même que tu n'aies à le demander",
@@ -6670,7 +6670,7 @@
     "minimalDesc": "Uniquement pour les choses importantes",
     "balanced": "Équilibrée",
     "balancedDesc": "Comme un ami attentionné",
-    "active": "Active",
+    "active": "Actif",
     "activeDesc": "Un partenaire proactif",
     "quietHours": "Heures calmes",
     "quietHoursDesc": "Pas de contact pendant ces heures",
@@ -6982,7 +6982,7 @@
     "moreDetails": "Plus de détails",
     "priceOptional": "Prix (facultatif)",
     "notesOptional": "Notes (facultatif)",
-    "babyShower": "Baby shower",
+    "babyShower": "Baby Shower",
     "saveGift": "Enregistrer le cadeau"
   },
   "logMoment": {
@@ -7240,7 +7240,7 @@
     "seasonalAwarenessDesc": "Je comprends tes rythmes annuels — vacances, anniversaires, variations saisonnières. Je m'adapte pour t'accompagner au mieux selon les moments.",
     "subtitle": "Ces capacités vont bien au-delà de ce qu'un ami, un thérapeute ou un coach humain pourrait t'offrir.",
     "humanLimitationLabel": "La limite humaine :",
-    "active": "Active",
+    "active": "Actif",
     "notEnabled": "Pas encore activée",
     "enable": "Activer",
     "loadError": "Impossible de charger le statut des capacités",
@@ -10224,7 +10224,7 @@
   },
   "app": {
     "openDirectorConsole": "Ouvrir la Console Director",
-    "director": "Director",
+    "director": "Directeur",
     "startupError": "Un petit souci au démarrage. Tu veux rafraîchir la page ?",
     "lastConversation": "C'est ta dernière conversation ce mois-ci. Faisons en sorte qu'elle compte.",
     "gettingReady": "Préparation en cours...",
@@ -10566,7 +10566,9 @@
       "historicalFacts": "Faits historiques",
       "smartHome": "Maison connectée",
       "lighting": "Éclairage",
-      "aiContext": "Contexte de l'IA"
+      "aiContext": "Contexte de l'IA",
+      "sleepHealth": "Données de sommeil et de santé",
+      "other": "Un service connecté"
     },
     "allOperational": "Tous les systèmes sont opérationnels",
     "issuesDetected": "Problèmes de service détectés",

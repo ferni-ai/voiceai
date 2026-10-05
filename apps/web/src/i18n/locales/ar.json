@@ -10880,7 +10880,9 @@
       "historicalFacts": "حقائق تاريخية",
       "smartHome": "المنزل الذكي",
       "lighting": "الإضاءة",
-      "aiContext": "سياق الذكاء الاصطناعي"
+      "aiContext": "سياق الذكاء الاصطناعي",
+      "sleepHealth": "بيانات النوم والصحة",
+      "other": "خدمة متصلة"
     },
     "allOperational": "جميع الأنظمة تعمل بشكل طبيعي",
     "issuesDetected": "تم رصد مشكلات في الخدمة",

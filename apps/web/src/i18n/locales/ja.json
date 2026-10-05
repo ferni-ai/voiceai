@@ -8130,7 +8130,7 @@
         "description": "ディスコライトを点灯させた"
       },
       "matrix": {
-        "name": "Neo",
+        "name": "ネオ",
         "description": "Matrixを見た"
       },
       "rainbow": {
@@ -10460,7 +10460,9 @@
       "historicalFacts": "歴史的事実",
       "smartHome": "スマートホーム",
       "lighting": "照明",
-      "aiContext": "AIコンテキスト"
+      "aiContext": "AIコンテキスト",
+      "sleepHealth": "睡眠と健康のデータ",
+      "other": "連携しているサービス"
     },
     "allOperational": "すべてのシステムが正常に稼働しています",
     "issuesDetected": "サービスに問題が検出されました",
@@ -10965,9 +10967,9 @@
     "people": {
       "title": "あなたの大切な人たち",
       "message": "あなたにとって大切な人たちのこと、そしてあなたがその人たちに抱いている気持ちを、しっかり覚えておきますね。",
-      "sarah": "Sarah",
+      "sarah": "サラ",
       "mom": "お母さん",
-      "david": "David",
+      "david": "デイビッド",
       "lastMentioned": "{relation} • 最後に話に出た：{when}",
       "joy": "喜びをくれる存在",
       "complex": "複雑な気持ち",

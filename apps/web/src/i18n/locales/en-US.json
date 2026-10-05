@@ -10460,7 +10460,9 @@
       "historicalFacts": "Historical Facts",
       "smartHome": "Smart Home",
       "lighting": "Lighting",
-      "aiContext": "AI Context"
+      "aiContext": "AI Context",
+      "sleepHealth": "Sleep & Health Data",
+      "other": "A connected service"
     },
     "allOperational": "All systems operational",
     "degraded": {

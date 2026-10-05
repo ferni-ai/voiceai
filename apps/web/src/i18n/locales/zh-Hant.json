@@ -6623,7 +6623,7 @@
     "proactiveOutreach": "主動關懷",
     "proactiveOutreachDesc": "允許我在對話之餘主動與你聯絡",
     "howToReachYou": "聯絡你的方式",
-    "email": "Email",
+    "email": "電子郵件",
     "phonecall": "電話",
     "text": "簡訊 (SMS)",
     "howOften": "頻率",
@@ -10129,7 +10129,7 @@
   },
   "app": {
     "openDirectorConsole": "開啟 Director 主控台",
-    "director": "Director",
+    "director": "總監",
     "startupError": "啟動時遇到一些問題。要重新整理試試看嗎？",
     "lastConversation": "這是你這個月的最後一次對話了。讓我們好好聊聊吧。",
     "gettingReady": "準備中...",
@@ -10460,7 +10460,9 @@
       "historicalFacts": "歷史事件",
       "smartHome": "智慧家庭",
       "lighting": "照明",
-      "aiContext": "AI 上下文"
+      "aiContext": "AI 上下文",
+      "sleepHealth": "睡眠與健康數據",
+      "other": "已連結的服務"
     },
     "allOperational": "所有系統正常運作",
     "issuesDetected": "偵測到服務異常",

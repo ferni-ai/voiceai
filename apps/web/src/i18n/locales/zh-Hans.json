@@ -8130,7 +8130,7 @@
         "description": "开启了迪斯科灯光"
       },
       "matrix": {
-        "name": "Neo",
+        "name": "尼奥",
         "description": "看到了 Matrix"
       },
       "rainbow": {
@@ -10129,7 +10129,7 @@
   },
   "app": {
     "openDirectorConsole": "打开 Director Console",
-    "director": "Director",
+    "director": "总监",
     "startupError": "启动时遇到了一点问题。要刷新一下试试吗？",
     "lastConversation": "这是你本月的最后一次对话了。让我们聊点有意义的吧。",
     "gettingReady": "准备中...",
@@ -10460,7 +10460,9 @@
       "historicalFacts": "历史事实",
       "smartHome": "智能家居",
       "lighting": "照明",
-      "aiContext": "AI 上下文"
+      "aiContext": "AI 上下文",
+      "sleepHealth": "睡眠与健康数据",
+      "other": "已连接的服务"
     },
     "allOperational": "所有系统运行正常",
     "issuesDetected": "检测到服务问题",
@@ -10965,9 +10967,9 @@
     "people": {
       "title": "身边的人",
       "message": "我会记住对你重要的每一个人，以及你对他们的感受。",
-      "sarah": "Sarah",
+      "sarah": "莎拉",
       "mom": "妈妈",
-      "david": "David",
+      "david": "大卫",
       "lastMentioned": "{relation} • 最近提及：{when}",
       "joy": "给你带来快乐",
       "complex": "复杂的感受",

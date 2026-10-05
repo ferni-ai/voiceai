@@ -78,7 +78,6 @@ const POLL_INTERVAL_MS = 30000; // 30 seconds
 const CACHE_TTL_MS = 10000; // 10 seconds
 const INDICATOR_SIZE = '12px';
 
-// Service name to user-friendly name mapping
 const SERVICE_DISPLAY_NAME_KEYS: Record<string, string> = {
   'yahoo-finance': 'serviceHealth.names.stockData',
   'alpha-vantage': 'serviceHealth.names.marketData',
@@ -90,6 +89,7 @@ const SERVICE_DISPLAY_NAME_KEYS: Record<string, string> = {
   'smartthings': 'serviceHealth.names.smartHome',
   'context-service': 'serviceHealth.names.aiContext',
   'spotify': 'accessibility.music',
+  'oura-api': 'serviceHealth.names.sleepHealth',
 };
 
 // ============================================================================
@@ -283,7 +283,7 @@ const STYLES = `
 
 function getDisplayName(serviceName: string): string {
   const key = SERVICE_DISPLAY_NAME_KEYS[serviceName];
-  return key ? t(key) : serviceName.replace(/-/g, ' ');
+  return t(key ?? 'serviceHealth.names.other'); // never show a raw service id
 }
 
 function getStatusClass(state: string): string {

@@ -2451,7 +2451,7 @@
       },
       "whoop": {
         "description": "Seguimiento de la recuperación y el esfuerzo",
-        "name": "WHOOP"
+        "name": "Whoop"
       }
     },
     "sections": {
@@ -4977,7 +4977,7 @@
       "subtitle": "Exploraste todos los temas"
     },
     "gratitude": {
-      "name": "Gratitude",
+      "name": "Gratitud",
       "message": "Dices gracias a menudo. Esa calidez siempre regresa.",
       "subtitle": "Corazón agradecido"
     },
@@ -6961,7 +6961,7 @@
     "anniversary": "Aniversario",
     "graduation": "Graduación",
     "wedding": "Boda",
-    "babyShower": "Baby shower",
+    "babyShower": "Baby Shower",
     "housewarming": "Inauguración de casa",
     "thankYou": "Agradecimiento",
     "justBecause": "Porque sí",
@@ -10566,7 +10566,9 @@
       "historicalFacts": "Datos históricos",
       "smartHome": "Hogar inteligente",
       "lighting": "Iluminación",
-      "aiContext": "Contexto de IA"
+      "aiContext": "Contexto de IA",
+      "sleepHealth": "Datos de sueño y salud",
+      "other": "Un servicio conectado"
     },
     "allOperational": "Todos los sistemas operativos",
     "issuesDetected": "Se detectaron problemas en el servicio",

@@ -830,11 +830,11 @@
     "episodeMeta": "{title} • {minutes} Min.",
     "episode": "Episode",
     "episodeCount": {
-      "one": "{count} Episode",
+      "one": "{count} episode",
       "other": "{count} Episoden"
     },
     "minutes": {
-      "one": "{count} Minute",
+      "one": "{count} minute",
       "other": "{count} Minuten"
     },
     "trackSummary": {
@@ -1022,7 +1022,7 @@
     "chooseType": "Wähle eine Sitzungsart:",
     "roles": {
       "host": "Host",
-      "co-host": "Co-Host",
+      "co-host": "Co-host",
       "participant": "Teilnehmende",
       "observer": "Beobachtende"
     },
@@ -3132,7 +3132,7 @@
       "lowBatteryWarning": "Niedriger Akkustand – {hours} Std. bis voll",
       "extrovert": "Extrovertiert",
       "introvert": "Introvertiert",
-      "ambivert": "Ambivert",
+      "ambivert": "Ambivertiert",
       "recentActivityTitle": "Letzte Aktivitäten",
       "lowBatteryTitle": "Soziale Batterie fast leer",
       "lowBatteryDescription": "Gönn dir am besten etwas Ruhe. In ca. {hours} Stunden ist sie wieder voll aufgeladen.",
@@ -4020,8 +4020,8 @@
     },
     "helpfulCount": "{count} fanden dies hilfreich",
     "coachCount": {
-      "one": "{count} Coach",
-      "other": "{count} Coaches"
+      "one": "{count} coach",
+      "other": "{count} coaches"
     }
   },
   "agent": {
@@ -4043,7 +4043,7 @@
     "saveFailed": "Speichern hat nicht geklappt. Nochmal versuchen?",
     "metrics": {
       "deepWork": {
-        "label": "Deep Work",
+        "label": "Deep work",
         "question": "Wie viele Stunden Deep Work hattest du?",
         "unit": "Stunden"
       },
@@ -4830,7 +4830,7 @@
       "description": "Wofür brennst du? Worüber unterhältst du dich am liebsten?",
       "passions": "Leidenschaften",
       "passionsHint": "Was bringt dich zum Strahlen? Worüber könntest du stundenlang reden?",
-      "hobbies": "Hobbies",
+      "hobbies": "Hobbys",
       "hobbiesHint": "Was machst du in deiner Freizeit?",
       "favoriteTopics": "Lieblingsthemen",
       "favoriteTopicsHint": "Über welche Themen unterhältst du dich gerne?",
@@ -6609,7 +6609,7 @@
     "forestMorning": "Waldmorgen",
     "forestMorningDesc": "Vogelgezwitscher und sanfter Wind in den Bäumen",
     "natural": "Natürlich",
-    "extraWarm": "Extra warm",
+    "extraWarm": "Extra Warm",
     "extraWarmDesc": "Ein noch wärmerer, beruhigenderer Ton",
     "zenCalm": "Zen-Ruhe",
     "zenCalmDesc": "Ein langsameres, meditativeres Tempo",
@@ -6699,7 +6699,7 @@
     "statusInReview": "In Prüfung",
     "statusRejected": "Abgelehnt",
     "tools": "Tools",
-    "agents": "Agents",
+    "agents": "Agenten",
     "selectItem": "Wähle ein Element aus",
     "totalInstalls": "Installationen insgesamt",
     "executions": "Ausführungen",
@@ -7813,7 +7813,7 @@
     "speakers": "Lautsprecher",
     "nowPlaying": "Aktuelle Wiedergabe",
     "homekit": "HomeKit",
-    "homekitDescription": "Apple Home & Siri",
+    "homekitDescription": "Apple home & Siri",
     "home": "Zuhause",
     "devices": "Geräte",
     "scenes": "Szenen",
@@ -9365,7 +9365,7 @@
       "other": "{date}: {count} Gespräche"
     },
     "minuteCount": {
-      "one": "{count} Minute",
+      "one": "{count} minute",
       "other": "{count} Minuten"
     },
     "streakDays": {
@@ -9726,7 +9726,7 @@
       "superhuman4": "Fürsprecher für Ruhe – Wir sagen dir, wann es Zeit ist aufzuhören",
       "existing1": "Apple Health Grundlagen",
       "existing2": "Google Calendar Synchronisierung",
-      "existing3": "Spotify Integration"
+      "existing3": "Spotify integration"
     },
     "household": {
       "headline": "Ein Ferni, deine ganze Familie.",
@@ -9803,7 +9803,7 @@
       "other": "In {count} Stunden"
     },
     "inMinutes": {
-      "one": "In {count} Minute",
+      "one": "In {count} minute",
       "other": "In {count} Minuten"
     },
     "meetingsToday": {
@@ -10227,7 +10227,7 @@
       }
     },
     "inMinutes": {
-      "one": "In {count} Minute",
+      "one": "In {count} minute",
       "other": "In {count} Minuten"
     },
     "streak": {
@@ -10363,7 +10363,7 @@
       "evening": "Abendrituale",
       "productivity": "Fokus & Flow",
       "wellness": "Selbstfürsorge",
-      "home": "Smart Home",
+      "home": "Smart home",
       "communication": "In Verbindung bleiben",
       "custom": "Ganz neu anfangen"
     },
@@ -10460,7 +10460,9 @@
       "historicalFacts": "Historische Fakten",
       "lighting": "Beleuchtung",
       "aiContext": "KI-Kontext",
-      "smartHome": "Smart Home"
+      "smartHome": "Smart Home",
+      "sleepHealth": "Schlaf- & Gesundheitsdaten",
+      "other": "Ein verknüpfter Dienst"
     },
     "allOperational": "Alle Systeme laufen einwandfrei",
     "issuesDetected": "Service-Probleme erkannt",
