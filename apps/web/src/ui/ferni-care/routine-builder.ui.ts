@@ -32,9 +32,8 @@ const log = createLogger('RoutineBuilder');
 
 const COPY = {
   titles: {
-    new: 'routineBuilder.titles.new',
-    edit: 'routineBuilder.titles.edit',
-    fromTemplate: (name: string) => `Setting up "${name}"`,
+    new: 'routineBuilder.titles.new', edit: 'routineBuilder.titles.edit',
+    fromTemplate: (name: string) => t('routineBuilder.titles.fromTemplate', { name }),
   },
 
   sections: {
