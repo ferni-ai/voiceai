@@ -2706,7 +2706,11 @@
   },
   "voiceId": {
     "enrolledTitle": "[NEEDS_TRANSLATION] Voice ID enrolled - Ferni recognizes your voice",
-    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice"
+    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice",
+    "reenrollTitle": "声を聞き分けるのが上手になりました",
+    "reenrollBody": "もう一度あなたの声を覚えてもいいですか？20秒ほどで終わります。",
+    "reenrollAccept": "いいですよ",
+    "reenrollLater": "今はやめておく"
   },
   "languageSwitcher": {
     "label": "[NEEDS_TRANSLATION] Language",

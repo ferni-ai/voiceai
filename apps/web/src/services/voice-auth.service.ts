@@ -43,6 +43,8 @@ export interface VoiceProfile {
   verificationCount?: number;
   sampleCount?: number;
   needsReEnrollment?: boolean;
+  /** Set when this voice print can't verify anyone but a fresh enrollment would. */
+  needsReenrollment?: boolean;
 }
 
 export interface EnrollmentProgress {
@@ -251,9 +253,7 @@ class VoiceAuthService {
   // System Status
   // ==========================================================================
 
-  /**
-   * Get voice auth system status.
-   */
+  /** Get voice auth system status. */
   async getStatus(): Promise<VoiceAuthStatus> {
     try {
       const response = await this.fetchApi<{
@@ -294,8 +294,7 @@ class VoiceAuthService {
    */
   async getProfile(): Promise<VoiceProfile> {
     try {
-      const response = await this.fetchApi<VoiceProfile>('/profile');
-      return response;
+      return await this.fetchApi<VoiceProfile>('/profile');
     } catch (error) {
       log.error('Failed to get voice profile:', error);
       return { enrolled: false };

@@ -2706,7 +2706,11 @@
   },
   "voiceId": {
     "enrolledTitle": "[NEEDS_TRANSLATION] Voice ID enrolled - Ferni recognizes your voice",
-    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice"
+    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice",
+    "reenrollTitle": "Ich erkenne Stimmen jetzt besser",
+    "reenrollBody": "Darf ich Ihre noch einmal kennenlernen? Das dauert etwa 20 Sekunden.",
+    "reenrollAccept": "Gern",
+    "reenrollLater": "Nicht jetzt"
   },
   "languageSwitcher": {
     "label": "[NEEDS_TRANSLATION] Language",
