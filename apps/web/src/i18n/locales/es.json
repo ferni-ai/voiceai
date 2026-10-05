@@ -704,7 +704,8 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
-    "maybeLater": "[NEEDS_TRANSLATION] Later"
+    "maybeLater": "[NEEDS_TRANSLATION] Later",
+    "dismiss": "[NEEDS_TRANSLATION] Dismiss"
   },
   "confirmModal": {
     "cancel": "Cancel",
@@ -1385,7 +1386,12 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
-      "title": "How Seeds Work"
+      "title": "How Seeds Work",
+      "conversation": "[NEEDS_TRANSLATION] Have a conversation: +1 seed",
+      "note": "[NEEDS_TRANSLATION] Seeds help us prioritize what to build next!",
+      "streak30": "[NEEDS_TRANSLATION] 30-day streak: +15 seeds",
+      "streak7": "[NEEDS_TRANSLATION] 7-day streak: +5 seeds",
+      "vote": "[NEEDS_TRANSLATION] Vote for features: 1-10 seeds"
     },
     "intro": "Toda gran relación tiene temporadas. Estas son semillas que plantamos juntos.",
     "learnMore": "Learn more",
@@ -1449,7 +1455,28 @@
     "wantThis": "Quiero esto",
     "youMentioned": "You've mentioned",
     "yourSeeds": "Your seeds",
-    "yours": "yours"
+    "yours": "yours",
+    "backToRoadmap": "[NEEDS_TRANSLATION] Back to Roadmap",
+    "categories": {
+      "connect": "[NEEDS_TRANSLATION] Connect - Relationships & Communication",
+      "personalize": "[NEEDS_TRANSLATION] Personalize - Make Ferni Yours",
+      "platform": "[NEEDS_TRANSLATION] Platform - New Capabilities"
+    },
+    "needMoreSeeds": "[NEEDS_TRANSLATION] You need at least 5 seeds to submit a suggestion. Have more conversations to earn seeds!",
+    "newIdea": "[NEEDS_TRANSLATION] New Idea",
+    "noSeedsHint": "[NEEDS_TRANSLATION] Have more conversations to earn seeds!",
+    "refund50": "[NEEDS_TRANSLATION] 50% refund",
+    "submitSuggestion": "[NEEDS_TRANSLATION] Plant This Seed",
+    "submitting": "[NEEDS_TRANSLATION] Planting...",
+    "suggestionCategory": "[NEEDS_TRANSLATION] Category",
+    "suggestionCost": "[NEEDS_TRANSLATION] Submitting costs 5 seeds (shows commitment, prevents spam)",
+    "suggestionDescription": "[NEEDS_TRANSLATION] Tell us more (optional)",
+    "suggestionDescriptionPlaceholder": "[NEEDS_TRANSLATION] Why would this be helpful? How would you use it?",
+    "suggestionIntro": "[NEEDS_TRANSLATION] Have an idea for something Ferni should do? Plant a seed and let the community water it!",
+    "suggestionPlanted": "[NEEDS_TRANSLATION] Your seed has been planted!",
+    "suggestionThanks": "[NEEDS_TRANSLATION] Thank you for sharing your idea. Others can now water it with their seeds!",
+    "suggestionTitle": "[NEEDS_TRANSLATION] What should Ferni be able to do?",
+    "suggestionTitlePlaceholder": "[NEEDS_TRANSLATION] e.g., Remember my pet's name"
   },
   "session": {
     "agentEndingConversation": "El agente está terminando la conversación",
@@ -2303,7 +2330,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "[NEEDS_TRANSLATION] Philips Hue or LIFX",
+      "hueOrLifxDesc": "[NEEDS_TRANSLATION] Set up in Your Home settings"
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2382,7 +2411,10 @@
     },
     "secondsRemaining": "Segundos restantes",
     "startExercise": "Comenzar ejercicio de respiración",
-    "changePattern": "Cambiar patrón de respiración"
+    "changePattern": "Cambiar patrón de respiración",
+    "hold": "[NEEDS_TRANSLATION] Hold",
+    "in": "[NEEDS_TRANSLATION] In",
+    "out": "[NEEDS_TRANSLATION] Out"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2424,7 +2456,11 @@
     "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
     "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
     "rememberSuccess": "¡Listo! Te recordaré ahora.",
-    "account": "Cuenta"
+    "account": "Cuenta",
+    "email": "[NEEDS_TRANSLATION] Email",
+    "password": "[NEEDS_TRANSLATION] Password",
+    "rememberYouAs": "[NEEDS_TRANSLATION] I'll remember you as",
+    "successMessage": "[NEEDS_TRANSLATION] I'll remember you now. Wherever you go, I'll know you."
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2728,7 +2764,11 @@
     "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
     "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
     "sentSuccess": "¡Enviaste {sent} semillas! Ellos recibirán {received}",
-    "sendError": "No se pudo enviar el regalo. ¿Intentar de nuevo?"
+    "sendError": "No se pudo enviar el regalo. ¿Intentar de nuevo?",
+    "amount": "[NEEDS_TRANSLATION] Amount",
+    "recipientPlaceholder": "[NEEDS_TRANSLATION] Enter friend's email or username",
+    "sendGift": "[NEEDS_TRANSLATION] Send Gift",
+    "sendTo": "[NEEDS_TRANSLATION] Send to"
   },
   "teamIntro": {
     "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
@@ -2808,7 +2848,8 @@
       "onTheWay": "Vas muy bien! Más miembros del equipo se desbloquean mientras continuamos nuestro viaje.",
       "growing": "Tu equipo está creciendo. Solo faltan algunos hitos para desbloquear a todos.",
       "complete": "¡Has desbloqueado el equipo completo! Todos están aquí para apoyarte."
-    }
+    },
+    "added": "[NEEDS_TRANSLATION] Added!"
   },
   "referral": {
     "share": {
@@ -2839,7 +2880,19 @@
       "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
     },
     "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
-    "copyError": "No se pudo copiar. ¿Intentar de nuevo?"
+    "copyError": "No se pudo copiar. ¿Intentar de nuevo?",
+    "bonusAmount": "[NEEDS_TRANSLATION] You'll both get {seeds} seeds",
+    "bonusWhen": "[NEEDS_TRANSLATION] when they join!",
+    "garden": {
+      "earned": "[NEEDS_TRANSLATION] You've earned {seeds} seeds from sharing",
+      "empty": "[NEEDS_TRANSLATION] Seeds grow when shared. Start your garden today.",
+      "friendsGrowing": "[NEEDS_TRANSLATION] {count} friends growing",
+      "title": "[NEEDS_TRANSLATION] Your garden:"
+    },
+    "quoteMessage": "[NEEDS_TRANSLATION] \"Give them someone who remembers everything, shows up at 2am, and never judges.\"",
+    "subtitle": "[NEEDS_TRANSLATION] Know someone who could use a friend like this?",
+    "title": "[NEEDS_TRANSLATION] Share the Growth",
+    "yourLink": "[NEEDS_TRANSLATION] Your link:"
   },
   "conversationMemory": {
     "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
@@ -3002,7 +3055,14 @@
       "browse": "Explora nuestro mercado"
     },
     "creations": {
-      "noDescription": "Sin descripción"
+      "noDescription": "Sin descripción",
+      "createButton": "[NEEDS_TRANSLATION] Create an agent",
+      "emptyDescription": "[NEEDS_TRANSLATION] Build an agent with its own personality and skills, then share it with the community.",
+      "emptyTitle": "[NEEDS_TRANSLATION] You haven't created any agents yet"
+    },
+    "agentCard": {
+      "install": "[NEEDS_TRANSLATION] Install",
+      "uninstall": "[NEEDS_TRANSLATION] Uninstall"
     }
   },
   "agent": {
