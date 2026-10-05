@@ -70,10 +70,10 @@ export async function handleAdminModelConfigRoutes(
 
   // All admin routes require auth (read operations allow dev mode)
   if (method === 'GET') {
-    const auth = requireAuth(req, res, { allowDevMode: true });
+    const auth = await requireAuth(req, res, { allowDevMode: true });
     if (!auth) return true;
   } else {
-    const auth = requireAdmin(req, res);
+    const auth = await requireAdmin(req, res);
     if (!auth) return true;
   }
 
