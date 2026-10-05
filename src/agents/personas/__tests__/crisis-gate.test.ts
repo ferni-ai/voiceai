@@ -119,6 +119,25 @@ describe('startCrisisGate: the patterns', () => {
     expect(gate?.decision.action).not.toBe('replace');
   });
 
+  it("gives the classifier Ferni's line just before the caller's words", async () => {
+    const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"none","subject":"self"}');
+    const gate = startCrisisGate(
+      request(
+        ['user', 'Plan the day with her.'],
+        ['assistant', 'Morning hike, then a movie night.'],
+        ['user', "Tell me again how you'd do it."]
+      ),
+      undefined,
+      { env: LIVE, generate }
+    );
+    await gate?.escalation;
+    expect(JSON.parse(generate.mock.calls[0][1])).toMatchObject({
+      latest: "Tell me again how you'd do it.",
+      earlier: ['Plan the day with her.'],
+      companion: 'Morning hike, then a movie night.',
+    });
+  });
+
   it('uses the voice reading from the session', () => {
     const text = "honestly what's the point anymore";
     const calm = startCrisisGate(request(['user', text]), undefined, { env: PATTERNS_ONLY });
