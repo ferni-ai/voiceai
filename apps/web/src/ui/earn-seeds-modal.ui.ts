@@ -25,17 +25,17 @@ const EARN_METHODS = [
       <circle cx="12" cy="12" r="10"/>
       <polyline points="12 6 12 12 16 14"/>
     </svg>`,
-    title: 'Daily Conversations',
-    description: "Chat with Ferni each day to earn 5 seeds. Just show up, we're happy to see you.",
-    reward: '+5 seeds/day',
+    titleKey: 'earnSeeds.dailyTitle',
+    descriptionKey: 'earnSeeds.dailyDescription',
+    rewardKey: 'earnSeeds.dailyReward',
   },
   {
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
     </svg>`,
-    title: 'Keep Your Streak',
-    description: "Talk for 7 days straight? That's 25 bonus seeds. 30 days? 100 seeds. Consistency matters.",
-    reward: 'Up to +500 seeds',
+    titleKey: 'earnSeeds.streakTitle',
+    descriptionKey: 'earnSeeds.streakDescription',
+    rewardKey: 'earnSeeds.streakReward',
   },
   {
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -44,9 +44,9 @@ const EARN_METHODS = [
       <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
       <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>`,
-    title: 'Invite Friends',
-    description: "Share Ferni with someone who could use a friend. You both get 25 seeds when they join.",
-    reward: '+25 seeds each',
+    titleKey: 'earnSeeds.inviteTitle',
+    descriptionKey: 'earnSeeds.inviteDescription',
+    rewardKey: 'earnSeeds.inviteReward',
   },
   {
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -55,9 +55,9 @@ const EARN_METHODS = [
       <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/>
       <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 4.8 0 0 1 12 8a4.8 4.8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/>
     </svg>`,
-    title: 'Share Seeds',
-    description: "Send seeds to a friend and love multiplies. They get up to 40% extra!",
-    reward: '+40% bonus',
+    titleKey: 'earnSeeds.shareTitle',
+    descriptionKey: 'earnSeeds.shareDescription',
+    rewardKey: 'earnSeeds.shareReward',
   },
   {
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -65,9 +65,9 @@ const EARN_METHODS = [
       <path d="M12 12c0-3-2.5-5-6-5 0 3 2 6 6 6Z"/>
       <path d="M12 8c0-3 2.5-5 6-5 0 3-2 6-6 6"/>
     </svg>`,
-    title: 'Grow Your Garden',
-    description: "As your referrals grow, you earn passive seeds each week. Plant once, harvest forever.",
-    reward: 'Up to +7/week/friend',
+    titleKey: 'earnSeeds.gardenTitle',
+    descriptionKey: 'earnSeeds.gardenDescription',
+    rewardKey: 'earnSeeds.gardenReward',
   },
 ];
 
@@ -153,7 +153,7 @@ function createModal(): void {
   modal = document.createElement('div');
   modal.className = 'earn-seeds-modal';
   modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-label', 'How to earn seeds');
+  modal.setAttribute('aria-label', t('earnSeeds.ariaLabel'));
 
   modal.innerHTML = `
     <div class="earn-seeds-backdrop"></div>
@@ -164,8 +164,8 @@ function createModal(): void {
 
       <div class="earn-seeds-header">
         <div class="earn-seeds-icon">${ICONS.seed}</div>
-        <h2 class="earn-seeds-title">Grow Your Seeds</h2>
-        <p class="earn-seeds-subtitle">Seeds grow naturally from your time with Ferni.</p>
+        <h2 class="earn-seeds-title">${t('earnSeeds.title')}</h2>
+        <p class="earn-seeds-subtitle">${t('earnSeeds.subtitle')}</p>
       </div>
 
       <div class="earn-seeds-methods">
@@ -173,19 +173,19 @@ function createModal(): void {
           <div class="earn-method">
             <div class="earn-method-icon">${method.icon}</div>
             <div class="earn-method-content">
-              <h3 class="earn-method-title">${method.title}</h3>
-              <p class="earn-method-description">${method.description}</p>
+              <h3 class="earn-method-title">${t(method.titleKey)}</h3>
+              <p class="earn-method-description">${t(method.descriptionKey)}</p>
             </div>
-            <span class="earn-method-reward">${method.reward}</span>
+            <span class="earn-method-reward">${t(method.rewardKey)}</span>
           </div>
         `).join('')}
       </div>
 
       <div class="earn-seeds-footer">
         <button aria-label="${t('accessibility.startGrowingTogether')}" class="earn-seeds-btn earn-seeds-btn--primary" data-action="invite">
-          Start Growing Together
+          ${t('accessibility.startGrowingTogether')}
         </button>
-        <p class="earn-seeds-note">No grinding required. Just be yourself.</p>
+        <p class="earn-seeds-note">${t('earnSeeds.note')}</p>
       </div>
     </div>
   `;

@@ -26,6 +26,8 @@ import {
   getStreakMilestoneMessage,
   type IconName,
 } from './engagement-components.js';
+import { formatDate, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { engagementService } from '../services/engagement.service.js';
 import { isDemoDataEnabled, getDemoEngagementData } from '../services/engagement-demo-data.js';
 import { createLogger } from '../utils/logger.js';
@@ -109,15 +111,15 @@ export class EngagementUI {
     this.container.className = 'engagement-panel';
     this.container.setAttribute('role', 'dialog');
     this.container.setAttribute('aria-modal', 'true');
-    this.container.setAttribute('aria-label', 'Daily check-in');
+    this.container.setAttribute('aria-label', t('engagementPanel.title'));
     this.container.setAttribute('aria-hidden', 'true');
 
     this.container.innerHTML = `
       <div class="engagement-panel__backdrop"></div>
       <div class="engagement-panel__card">
         <header class="engagement-panel__header">
-          <h2 class="engagement-panel__title">Daily Check-in</h2>
-          ${renderCloseButton('Close panel')}
+          <h2 class="engagement-panel__title">${t('engagementPanel.title')}</h2>
+          ${renderCloseButton(t('accessibility.closePanel'))}
         </header>
         <div class="engagement-panel__content" id="engagement-content">
           ${this.renderEmptyState()}
@@ -217,10 +219,9 @@ export class EngagementUI {
     const dots = reversed.map((day, index) => {
       const value = weatherValues[day.primary] || 3;
       const date = new Date(day.recordedAt);
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayName = formatDate(date, { weekday: 'short' });
       const bottom = ((value - 1) / 4) * 60; // Scale to 60px height
-      const iconKey = day.primary as IconName;
-      const icon = ICONS[iconKey] || ICONS.cloudy;
+      const icon = ICONS[day.primary as IconName] || ICONS.cloudy;
       
       return `
         <div class="weather-trend__point" style="--index: ${index}; --bottom: ${bottom}px" title="${dayName}: ${WEATHER_COPY[day.primary]?.label || day.primary}">
@@ -241,8 +242,8 @@ export class EngagementUI {
     return `
       <section class="engagement-card engagement-card--trend">
         <div class="engagement-section-header">
-          <span class="engagement-section-label">Your Week</span>
-          <span class="engagement-trend-hint">Emotional weather trend</span>
+          <span class="engagement-section-label">${t('engagementPanel.yourWeek')}</span>
+          <span class="engagement-trend-hint">${t('engagementPanel.weatherTrend')}</span>
         </div>
         <div class="weather-trend">
           <svg class="weather-trend__line" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -268,8 +269,7 @@ export class EngagementUI {
    * Render emotional weather section
    */
   private renderWeatherSection(weather: EmotionalWeatherData): string {
-    const iconKey = weather.primary as IconName;
-    const icon = ICONS[iconKey] || ICONS.cloudy;
+    const icon = ICONS[weather.primary as IconName] || ICONS.cloudy;
     const copy = WEATHER_COPY[weather.primary];
     const energyCopy = ENERGY_COPY[weather.energy];
     const energyClass = `energy-${weather.energy}`;
@@ -277,7 +277,7 @@ export class EngagementUI {
     return `
       <section class="engagement-card engagement-card--weather ${energyClass}">
         <div class="engagement-section-header">
-          <span class="engagement-section-label">How you're feeling</span>
+          <span class="engagement-section-label">${t('engagementPanel.howYouFeel')}</span>
         </div>
         <div class="engagement-weather">
           <div class="engagement-weather__icon" aria-hidden="true">
@@ -285,7 +285,7 @@ export class EngagementUI {
           </div>
           <div class="engagement-weather__info">
             <span class="engagement-weather__label">${escapeHtml(copy.label)}</span>
-            <span class="engagement-weather__energy">${escapeHtml(energyCopy.label)} energy</span>
+            <span class="engagement-weather__energy">${t('engagementPanel.energyLabel', { energy: escapeHtml(energyCopy.label) })}</span>
           </div>
         </div>
         <p class="engagement-weather__encouragement">${escapeHtml(copy.encouragement)}</p>
@@ -308,13 +308,13 @@ export class EngagementUI {
       .join('');
 
     const dueLabel = dueStreaks.length > 0
-      ? `<span class="engagement-badge">${dueStreaks.length} ready for you</span>`
+      ? `<span class="engagement-badge">${tp('engagementPanel.readyForYou', dueStreaks.length)}</span>`
       : '';
 
     return `
       <section class="engagement-card engagement-card--streaks">
         <div class="engagement-section-header">
-          <span class="engagement-section-label">Your Rituals</span>
+          <span class="engagement-section-label">${t('engagementPanel.yourRituals')}</span>
           ${dueLabel}
         </div>
         <div class="engagement-streaks">
@@ -330,8 +330,8 @@ export class EngagementUI {
   private renderNoStreaksMessage(): string {
     return `
       <p class="engagement-streaks__empty">
-        Small daily rituals lead to big transformations.<br/>
-        <span class="engagement-streaks__cta">Ask Ferni to help you start one.</span>
+        ${t('engagementPanel.noRitualsMessage')}<br/>
+        <span class="engagement-streaks__cta">${t('engagementPanel.noRitualsCta')}</span>
       </p>
     `;
   }
@@ -348,11 +348,11 @@ export class EngagementUI {
       <div class="engagement-streak ${isDue ? 'engagement-streak--due' : ''}" data-persona="${escapeHtml(streak.personaId)}">
         <div class="engagement-streak__header">
           <span class="engagement-streak__name">${escapeHtml(streak.ritualName)}</span>
-          ${isPersonalBest ? '<span class="engagement-streak__best">Personal best!</span>' : ''}
+          ${isPersonalBest ? `<span class="engagement-streak__best">${t('engagementPanel.personalBest')}</span>` : ''}
         </div>
         <div class="engagement-streak__body">
           <span class="engagement-streak__count">
-            ${streak.currentStreak} ${streak.currentStreak === 1 ? 'day' : 'days'}
+            ${tp('engagementPanel.streakDays', streak.currentStreak)}
           </span>
           ${renderStreakDots(streak.currentStreak, 7, streak.personaId)}
         </div>
@@ -366,9 +366,9 @@ export class EngagementUI {
    */
   private renderStatsSection(stats: EngagementStats): string {
     const statsItems: { value: number | string; label: string }[] = [
-      { value: stats.totalRitualDays, label: 'Total days' },
-      { value: stats.longestOverallStreak, label: 'Best streak' },
-      { value: stats.currentActiveStreaks, label: 'Active rituals' },
+      { value: stats.totalRitualDays, label: t('engagementPanel.totalDays') },
+      { value: stats.longestOverallStreak, label: t('engagementPanel.bestStreak') },
+      { value: stats.currentActiveStreaks, label: t('engagementPanel.activeRituals') },
     ];
 
     const statsHtml = statsItems
@@ -383,7 +383,7 @@ export class EngagementUI {
     return `
       <section class="engagement-card engagement-card--stats">
         <div class="engagement-section-header">
-          <span class="engagement-section-label">Your Journey</span>
+          <span class="engagement-section-label">${t('accessibility.yourJourney')}</span>
         </div>
         <div class="engagement-stats">
           ${statsHtml}
