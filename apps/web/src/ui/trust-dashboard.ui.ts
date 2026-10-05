@@ -13,7 +13,8 @@
  * @module TrustDashboardUI
  */
 
-import { t } from '../i18n/index.js';
+import { formatDate, formatNumber, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
@@ -35,6 +36,9 @@ import {
 import { renderHealthTab, renderInsightsTab, TOGETHER_STYLES } from './trust-dashboard-together.js';
 
 export { renderHealthTab, renderInsightsTab };
+
+/** Server enum value (emotion, prompt category, ...) -> display label; unknown values pass through. */
+const enumLabel = (group: string, value: string): string => t(`trustDashboard.${group}.${value}`, value);
 
 const log = createLogger('TrustDashboardUI');
 
@@ -182,6 +186,9 @@ export function hideTrustDashboard(): void {
 // HTML GENERATION
 // ============================================================================
 
+const loadingHTML = (): string =>
+  `<div class="content-loading"><div class="spinner"></div><p>${t('trustDashboard.loading')}</p></div>`;
+
 function createDashboardHTML(): string {
   return `
     <div class="trust-dashboard-backdrop"></div>
@@ -223,12 +230,7 @@ function createDashboardHTML(): string {
         </button>
       </nav>
       
-      <main class="trust-dashboard-content">
-        <div class="content-loading">
-          <div class="spinner"></div>
-          <p>${t('trustDashboard.loading')}</p>
-        </div>
-      </main>
+      <main class="trust-dashboard-content">${loadingHTML()}</main>
 
       <footer class="trust-dashboard-footer">
         <button aria-label="${t('trustDashboard.refresh')}" class="refresh-btn">
@@ -253,7 +255,7 @@ export function renderTimelineTab(data: TimelineData | null): string {
     <div class="timeline-content">
       <div class="current-mood">
         <h4>${t('trustDashboard.currentMood')}</h4>
-        <p>${esc(data.currentMood || 'Not detected yet')}</p>
+        <p>${esc(data.currentMood ? enumLabel('emotion', data.currentMood) : t('trustDashboard.moodNotDetected'))}</p>
       </div>
       
       ${
@@ -266,8 +268,8 @@ export function renderTimelineTab(data: TimelineData | null): string {
               (p) => `
             <div class="peak-item ${p.type}">
               <span class="peak-type">${p.type === 'peak' ? '↑' : '↓'}</span>
-              <span class="peak-date">${new Date(p.date).toLocaleDateString()}</span>
-              <span class="peak-valence">${(p.valence * 100).toFixed(0)}%</span>
+              <span class="peak-date">${formatDate(new Date(p.date))}</span>
+              <span class="peak-valence">${formatNumber(p.valence, { style: 'percent' })}</span>
             </div>
           `
             )
@@ -287,7 +289,7 @@ export function renderTimelineTab(data: TimelineData | null): string {
               (p) => `
             <div class="pattern-item">
               <p>${esc(p.description)}</p>
-              <span class="confidence">${(p.confidence * 100).toFixed(0)}% confident</span>
+              <span class="confidence">${t('trustDashboard.confidence', { percent: formatNumber(p.confidence, { style: 'percent' }) })}</span>
             </div>
           `
             )
@@ -316,7 +318,7 @@ export function renderEventsTab(data: EventsData | null): string {
             .map(
               (e) => `
             <div class="event-item">
-              <span class="event-days">${e.daysUntil === 0 ? getEventIcon(e.type) : `in ${e.daysUntil}d`}</span>
+              <span class="event-days">${e.daysUntil === 0 ? getEventIcon(e.type) : tp('trustDashboard.inDays', e.daysUntil)}</span>
               <span class="event-desc">${esc(e.description)}</span>
             </div>
           `
@@ -326,9 +328,9 @@ export function renderEventsTab(data: EventsData | null): string {
 
   return `
     <div class="events-content">
-      ${section('Today', data.today)}
-      ${section('This Week', data.thisWeek)}
-      ${section('Coming Up', later)}
+      ${section(t('trustDashboard.eventsSection.today'), data.today)}
+      ${section(t('trustDashboard.eventsSection.thisWeek'), data.thisWeek)}
+      ${section(t('trustDashboard.eventsSection.comingUp'), later)}
     </div>
   `;
 }
@@ -340,15 +342,15 @@ export function renderJournalTab(data: JournalData | null): string {
 
   return `
     <div class="journal-content">
-      <p class="journal-intro">Here are some prompts based on what you've been thinking about:</p>
+      <p class="journal-intro">${t('trustDashboard.journalIntro')}</p>
       
       ${data.prompts
         .map(
           (p) => `
         <div class="prompt-card" data-id="${esc(p.id)}">
-          <span class="prompt-category">${esc(p.category)}</span>
+          <span class="prompt-category">${esc(enumLabel('journalCategory', p.category))}</span>
           <p class="prompt-text">${esc(p.prompt)}</p>
-          <span class="prompt-difficulty">${esc(p.difficulty)}</span>
+          <span class="prompt-difficulty">${esc(enumLabel('journalDifficulty', p.difficulty))}</span>
         </div>
       `
         )
@@ -364,7 +366,7 @@ export function renderMediaTab(data: MediaData | null): string {
 
   return `
     <div class="media-content">
-      <p class="media-intro">Based on how you're feeling, you might enjoy:</p>
+      <p class="media-intro">${t('trustDashboard.mediaIntro')}</p>
       
       ${data.suggestions
         .map(
@@ -376,7 +378,7 @@ export function renderMediaTab(data: MediaData | null): string {
             ${s.artist ? `<span class="media-artist">${esc(s.artist)}</span>` : ''}
             <p class="media-reason">${esc(s.reason)}</p>
           </div>
-          <span class="media-intent">${esc(s.intent)}</span>
+          <span class="media-intent">${esc(enumLabel('mediaIntent', s.intent))}</span>
         </div>
       `
         )
@@ -407,7 +409,7 @@ async function loadTabData(tab: DashboardState['activeTab']): Promise<void> {
   } catch (error) {
     log.error({ error }, 'Failed to load tab data');
     state.loading = false;
-    state.error = "Couldn't load this. Try again?";
+    state.error = t('trustDashboard.loadError');
     renderContent();
   }
 }
@@ -417,12 +419,7 @@ function renderContent(): void {
   if (!content) return;
 
   if (state.loading) {
-    content.innerHTML = `
-      <div class="content-loading">
-        <div class="spinner"></div>
-        <p>Loading...</p>
-      </div>
-    `;
+    content.innerHTML = loadingHTML();
     return;
   }
 

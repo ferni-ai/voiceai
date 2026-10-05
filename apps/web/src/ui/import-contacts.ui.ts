@@ -480,14 +480,14 @@ function renderSourceSelection(): string {
         <div class="ic-source-icon">${ICONS.csv}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">${t('importContacts.csvFile')}</div>
-          <div class="ic-source-desc">Import from a spreadsheet (Outlook, LinkedIn)</div>
+          <div class="ic-source-desc">${t('importContacts.csvDescription')}</div>
         </div>
       </button>
 
       <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'vcard' ? 'selected' : ''}" data-source="vcard">
         <div class="ic-source-icon">${ICONS.vcard}</div>
         <div class="ic-source-info">
-          <div class="ic-source-name">vCard File</div>
+          <div class="ic-source-name">${t('importContacts.vcfFile')}</div>
           <div class="ic-source-desc">${t('importContacts.vcfDescription')}</div>
         </div>
       </button>
@@ -515,8 +515,8 @@ function renderProgress(): string {
       </div>
       <p class="ic-progress-text">
         ${state.isImporting 
-          ? `Importing ${state.imported} of ${state.total} contacts...`
-          : `Imported ${state.imported} contacts!`}
+          ? tp('importContacts.importing', state.total, { imported: state.imported })
+          : tp('toasts.contactsImported', state.imported)}
       </p>
     </div>
   `;
@@ -526,7 +526,7 @@ function renderPreview(): string {
   return `
     <div class="ic-preview-section">
       <div class="ic-preview-header">
-        <span class="ic-preview-title">${state.selectedCount} of ${state.preview.length} selected</span>
+        <span class="ic-preview-title">${tp('importContacts.selectedCount', state.preview.length, { selected: state.selectedCount })}</span>
         <button aria-label="${t('accessibility.selectAll')}" class="ic-select-all" id="ic-select-all">${t('importContacts.selectAll')}</button>
       </div>
       <div class="ic-preview-list">
@@ -667,8 +667,7 @@ async function startGoogleImport(): Promise<void> {
           window.location.href = data.authUrl;
         }
       } else {
-        const error = await response.json().catch(() => ({ error: 'Import failed' }));
-        toast.error(error.error || "Couldn't connect to Google. Try again?");
+        toast.error(t('toasts.couldNotConnectToGoogle'));
         state.isImporting = false;
         render();
       }
@@ -723,7 +722,7 @@ async function parseCSVFile(file: File): Promise<void> {
   const phoneIndex = headers.findIndex(h => h.includes('phone'));
 
   if (nameIndex === -1) {
-    toast.error('CSV must have a "name" column');
+    toast.error(t('importContacts.csvNeedsName'));
     state.isImporting = false;
     render();
     return;
@@ -757,7 +756,7 @@ async function parseVCardFile(file: File): Promise<void> {
   const vcards = text.split('END:VCARD').filter(v => v.includes('BEGIN:VCARD'));
 
   const contacts: PreviewContact[] = vcards.map((vcard, index) => {
-    const name = vcard.match(/FN:(.*)/)?.[1]?.trim() || 'Unknown';
+    const name = vcard.match(/FN:(.*)/)?.[1]?.trim() || t('importContacts.unknownContact');
     const email = vcard.match(/EMAIL[^:]*:(.*)/)?.[1]?.trim();
     const phone = vcard.match(/TEL[^:]*:(.*)/)?.[1]?.trim();
 

@@ -523,7 +523,7 @@ export async function generatePrompt(
 export interface PreMadeVoice {
   id: string;
   name: string;
-  description: string;
+  descriptionKey: string;
   previewUrl: string;
   gender: 'male' | 'female' | 'neutral';
   age: 'young' | 'middle' | 'mature';
@@ -535,7 +535,7 @@ const VOICE_LIBRARY: PreMadeVoice[] = [
   {
     id: 'cartesia-friendly-female',
     name: 'Emma',
-    description: 'voiceLibrary.emma.description',
+    descriptionKey: 'voiceLibrary.emma.description',
     previewUrl: '/assets/voice-previews/emma.mp3',
     gender: 'female',
     age: 'middle',
@@ -544,7 +544,7 @@ const VOICE_LIBRARY: PreMadeVoice[] = [
   {
     id: 'cartesia-professional-male',
     name: 'James',
-    description: 'voiceLibrary.james.description',
+    descriptionKey: 'voiceLibrary.james.description',
     previewUrl: '/assets/voice-previews/james.mp3',
     gender: 'male',
     age: 'mature',
@@ -553,7 +553,7 @@ const VOICE_LIBRARY: PreMadeVoice[] = [
   {
     id: 'cartesia-gentle-female',
     name: 'Sarah',
-    description: 'voiceLibrary.sarah.description',
+    descriptionKey: 'voiceLibrary.sarah.description',
     previewUrl: '/assets/voice-previews/sarah.mp3',
     gender: 'female',
     age: 'mature',
@@ -562,7 +562,7 @@ const VOICE_LIBRARY: PreMadeVoice[] = [
   {
     id: 'cartesia-energetic-male',
     name: 'Alex',
-    description: 'voiceLibrary.alex.description',
+    descriptionKey: 'voiceLibrary.alex.description',
     previewUrl: '/assets/voice-previews/alex.mp3',
     gender: 'male',
     age: 'young',
@@ -571,7 +571,7 @@ const VOICE_LIBRARY: PreMadeVoice[] = [
   {
     id: 'cartesia-calm-neutral',
     name: 'Morgan',
-    description: 'voiceLibrary.morgan.description',
+    descriptionKey: 'voiceLibrary.morgan.description',
     previewUrl: '/assets/voice-previews/morgan.mp3',
     gender: 'neutral',
     age: 'middle',
@@ -599,97 +599,71 @@ export function getVoiceFromLibrary(voiceId: string): PreMadeVoice | undefined {
 
 export interface AgentTypeInfo {
   id: CustomAgentType;
-  name: string;
-  description: string;
+  nameKey: string;
+  descriptionKey: string;
   icon: string;
-  features: string[];
-  examples: string[];
+  featureKeys: string[];
 }
 
 const AGENT_TYPES: AgentTypeInfo[] = [
   {
     id: 'legacy',
-    name: 'agentTypes.legacy.name',
-    description: 'agentTypes.legacy.description',
+    nameKey: 'agentTypes.legacy.name',
+    descriptionKey: 'agentTypes.legacy.description',
     icon: 'heart',
-    features: [
-      'Voice cloning from recordings',
-      'Capture stories and memories',
-      'Store wisdom and favorite sayings',
-      'Share with family members',
-    ],
-    examples: [
-      'Grandma Rose who always had the best advice',
-      'Dad who told the best stories',
-      'A mentor who shaped your life',
+    featureKeys: [
+      'agentTypes.legacy.feature1',
+      'agentTypes.legacy.feature2',
+      'agentTypes.legacy.feature3',
+      'agentTypes.legacy.feature4',
     ],
   },
   {
     id: 'mentor',
-    name: 'agentTypes.mentor.name',
-    description: 'agentTypes.mentor.description',
+    nameKey: 'agentTypes.mentor.name',
+    descriptionKey: 'agentTypes.mentor.description',
     icon: 'graduation-cap',
-    features: [
-      'Based on public figures or experts',
-      'Capture their teaching style',
-      'Store their key principles',
-      'Access their wisdom anytime',
-    ],
-    examples: [
-      'Stoic philosophy mentor',
-      'Business guru coach',
-      'Fitness motivation expert',
+    featureKeys: [
+      'agentTypes.mentor.feature1',
+      'agentTypes.mentor.feature2',
+      'agentTypes.mentor.feature3',
+      'agentTypes.mentor.feature4',
     ],
   },
   {
     id: 'twin',
-    name: 'agentTypes.twin.name',
-    description: 'agentTypes.twin.description',
+    nameKey: 'agentTypes.twin.name',
+    descriptionKey: 'agentTypes.twin.description',
     icon: 'user-circle',
-    features: [
-      'Record daily voice journals',
-      'Talk to your past self',
-      'Track your growth over time',
-      'AI-generated insights',
-    ],
-    examples: [
-      'Daily reflection companion',
-      'Goal tracking journal',
-      'Personal growth diary',
+    featureKeys: [
+      'agentTypes.twin.feature1',
+      'agentTypes.twin.feature2',
+      'agentTypes.twin.feature3',
+      'agentTypes.twin.feature4',
     ],
   },
   {
     id: 'fictional',
-    name: 'agentTypes.fictional.name',
-    description: 'agentTypes.fictional.description',
+    nameKey: 'agentTypes.fictional.name',
+    descriptionKey: 'agentTypes.fictional.description',
     icon: 'sparkles',
-    features: [
-      'Fully customizable personality',
-      'Choose any voice style',
-      'Define unique behaviors',
-      'Creative interactions',
-    ],
-    examples: [
-      'Fictional character coach',
-      'Creative writing partner',
-      'Storytelling companion',
+    featureKeys: [
+      'agentTypes.fictional.feature1',
+      'agentTypes.fictional.feature2',
+      'agentTypes.fictional.feature3',
+      'agentTypes.fictional.feature4',
     ],
   },
   {
     id: 'professional',
-    name: 'agentTypes.professional.name',
-    description: 'agentTypes.professional.description',
+    nameKey: 'agentTypes.professional.name',
+    descriptionKey: 'agentTypes.professional.description',
     icon: 'briefcase',
-    features: [
-      'Task-focused interactions',
-      'Domain expertise',
-      'Productivity support',
-      'Clear communication',
-    ],
-    examples: [
-      'Specialized skill tutor',
-      'Project planning assistant',
-      'Research helper',
+    featureKeys: [
+      'agentTypes.professional.feature1',
+      'agentTypes.professional.feature2',
+      'agentTypes.professional.feature3',
+      'agentTypes.professional.feature4',
     ],
   },
 ];

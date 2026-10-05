@@ -18,7 +18,7 @@
  *   - Warmth-focused animations
  */
 
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { startOAuthConnect } from '../services/oauth-connect.service.js';
@@ -188,7 +188,7 @@ class CalendarSettingsUI {
     this.panel = document.createElement('div');
     this.panel.className = 'calendar-settings';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', t('calendarSettings.title', 'Calendar Settings'));
+    this.panel.setAttribute('aria-label', t('calendarSettings.title'));
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'calendar-settings__wrapper';
@@ -287,7 +287,7 @@ class CalendarSettingsUI {
     this.wrapper.innerHTML = `
       <header class="calendar-settings__header">
         <div class="calendar-settings__icon">${ICONS.calendar}</div>
-        <h2 class="calendar-settings__title">Calendar</h2>
+        <h2 class="calendar-settings__title">${t('calendarSettings.header')}</h2>
         <button class="calendar-settings__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
@@ -314,9 +314,7 @@ class CalendarSettingsUI {
             <span class="calendar-settings__status-detail">${t('calendarSettings.ferniCalendarDesc')}</span>
           </div>
         </div>
-        <p class="calendar-settings__native-description">
-          Your calendar works right away. Ask me to schedule events, check your availability, or remind you about appointments.
-        </p>
+        <p class="calendar-settings__native-description">${t('calendarSettings.nativeDescription')}</p>
       </div>
     `;
 
@@ -339,7 +337,7 @@ class CalendarSettingsUI {
           </div>
           ${
             this.status.lastSynced
-              ? `<div class="calendar-settings__provider-meta">Last synced ${this.formatDate(this.status.lastSynced)}</div>`
+              ? `<div class="calendar-settings__provider-meta">${t('calendarSettings.lastSynced', { date: this.formatDate(this.status.lastSynced) })}</div>`
               : ''
           }
           <div class="calendar-settings__provider-actions" role="button" tabindex="0">
@@ -347,7 +345,7 @@ class CalendarSettingsUI {
               ${ICONS.refresh}
               <span>${t('calendarSettings.sync')}</span>
             </button>
-            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-google" title="${t('forms.chooseCalendars', 'Choose calendars')}">
+            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-google" title="${t('forms.chooseCalendars')}">
               ${ICONS.settings}
             </button>
             <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect">
@@ -395,7 +393,7 @@ class CalendarSettingsUI {
               ${ICONS.refresh}
               <span>${t('calendarSettings.sync')}</span>
             </button>
-            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-apple" title="${t('forms.chooseCalendars', 'Choose calendars')}">
+            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-apple" title="${t('forms.chooseCalendars')}">
               ${ICONS.settings}
             </button>
             <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-apple">
@@ -412,7 +410,7 @@ class CalendarSettingsUI {
             </div>
             <div class="calendar-settings__provider-info">
               <span class="calendar-settings__provider-name">${t('calendarSettings.appleCalendar')}</span>
-              <span class="calendar-settings__provider-status">iCloud sync via app-specific password</span>
+              <span class="calendar-settings__provider-status">${t('calendarSettings.appleStatus')}</span>
             </div>
           </div>
           <button aria-label="${t('accessibility.connect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-apple">
@@ -443,7 +441,7 @@ class CalendarSettingsUI {
               ${ICONS.refresh}
               <span>${t('calendarSettings.sync')}</span>
             </button>
-            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-outlook" title="${t('forms.chooseCalendars', 'Choose calendars')}">
+            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-outlook" title="${t('forms.chooseCalendars')}">
               ${ICONS.settings}
             </button>
             <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-outlook">
@@ -461,7 +459,7 @@ class CalendarSettingsUI {
             </div>
             <div class="calendar-settings__provider-info">
               <span class="calendar-settings__provider-name">${t('calendarSettings.outlook')}</span>
-              <span class="calendar-settings__provider-status">Microsoft 365 sync</span>
+              <span class="calendar-settings__provider-status">${t('calendarSettings.outlookStatus')}</span>
             </div>
           </div>
           <button aria-label="${t('accessibility.connect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-outlook">
@@ -514,7 +512,7 @@ class CalendarSettingsUI {
               <input type="checkbox" data-setting="preMeetingReminder" checked>
               <span class="calendar-settings__toggle-label">
                 <span class="calendar-settings__toggle-title">${t('calendarSettings.meetingReminders')}</span>
-                <span class="calendar-settings__toggle-desc">Get notified 15 minutes before meetings</span>
+                <span class="calendar-settings__toggle-desc">${t('calendarSettings.meetingRemindersDesc')}</span>
               </span>
             </label>
             <label class="calendar-settings__toggle">
@@ -564,7 +562,7 @@ class CalendarSettingsUI {
     this.wrapper.innerHTML = `
       <header class="calendar-settings__header">
         <div class="calendar-settings__icon">${ICONS.calendar}</div>
-        <h2 class="calendar-settings__title">Calendar</h2>
+        <h2 class="calendar-settings__title">${t('calendarSettings.header')}</h2>
         <button class="calendar-settings__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
@@ -723,7 +721,7 @@ class CalendarSettingsUI {
     try {
       // The server binds the flow to the signed-in user; the URL carries no user id
       const result = await startOAuthConnect('google_calendar');
-      if (!result.success) this.renderError(result.error ?? "Couldn't connect. Try again?");
+      if (!result.success) this.renderError(result.error ?? t('calendar.providers.connectError'));
     } finally {
       this.isLoading = false;
     }
@@ -745,7 +743,7 @@ class CalendarSettingsUI {
       this.renderContent();
       this.callbacks.onConnectionChange?.(false);
     } catch {
-      this.renderError("Couldn't disconnect. Try again?");
+      this.renderError(t('calendar.providers.disconnectError'));
     } finally {
       this.isLoading = false;
     }
@@ -768,7 +766,7 @@ class CalendarSettingsUI {
       // Reload status
       await this.loadStatus();
     } catch {
-      this.renderError("Couldn't sync. Try again?");
+      this.renderError(t('calendar.providers.syncError'));
     } finally {
       this.isLoading = false;
     }
@@ -804,12 +802,12 @@ class CalendarSettingsUI {
             <h3>${t('calendarSettings.howToConnect')}</h3>
             <ol>
               <li>
-                ${t('calendarSettings.goTo')} <a href="https://appleid.apple.com/account/manage" target="_blank" rel="noopener noreferrer">appleid.apple.com</a>
+                ${t('calendarSettings.stepGoToSite', { link: '<a href="https://appleid.apple.com/account/manage" target="_blank" rel="noopener noreferrer">appleid.apple.com</a>' })}
               </li>
               <li>${t('calendarSettings.signInAppleId')}</li>
-              <li>${t('calendarSettings.goTo')} <strong>${t('calendarSettings.signInSecurity')}</strong> → <strong>${t('calendarSettings.appSpecificPasswords')}</strong></li>
-              <li>${t('calendarSettings.clickPlus')} <strong>+</strong> button to generate a new password</li>
-              <li>${t('calendarSettings.nameIt')} <strong>"Ferni Calendar"</strong></li>
+              <li>${t('calendarSettings.stepNavigate', { security: `<strong>${t('calendarSettings.signInSecurity')}</strong>`, passwords: `<strong>${t('calendarSettings.appSpecificPasswords')}</strong>` })}</li>
+              <li>${t('calendarSettings.stepClickPlus', { plus: '<strong>+</strong>' })}</li>
+              <li>${t('calendarSettings.stepNameIt', { name: '<strong>"Ferni Calendar"</strong>' })}</li>
               <li>${t('calendarSettings.copyPassword')}</li>
             </ol>
           </div>
@@ -821,7 +819,7 @@ class CalendarSettingsUI {
                 type="email"
                 id="apple-id"
                 name="appleId"
-                placeholder="${t('forms.appleIdPlaceholder', 'yourname@icloud.com')}"
+                placeholder="${t('forms.appleIdPlaceholder')}"
                 required
                 autocomplete="email"
               />
@@ -832,7 +830,7 @@ class CalendarSettingsUI {
                 type="password"
                 id="apple-password"
                 name="appPassword"
-                placeholder="${t('forms.appPasswordPlaceholder', 'xxxx-xxxx-xxxx-xxxx')}"
+                placeholder="${t('forms.appPasswordPlaceholder')}"
                 required
                 autocomplete="off"
               />
@@ -898,10 +896,10 @@ class CalendarSettingsUI {
         this.showingAppleSetup = false;
         await this.loadStatus();
       } else {
-        this.showAppleError(response.error || "Couldn't connect. Check your credentials.");
+        this.showAppleError(response.error || t('calendarSettings.appleConnectFailed'));
       }
     } catch {
-      this.showAppleError("Couldn't connect. Check your credentials and try again.");
+      this.showAppleError(t('calendarSettings.appleConnectFailedRetry'));
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
@@ -937,7 +935,7 @@ class CalendarSettingsUI {
       }
       this.renderContent();
     } catch {
-      this.renderError("Couldn't disconnect. Try again?");
+      this.renderError(t('calendar.providers.disconnectError'));
     } finally {
       this.isLoading = false;
     }
@@ -958,7 +956,7 @@ class CalendarSettingsUI {
       await apiPost(`/calendar/apple/sync`, { user_id: userId });
       await this.loadStatus();
     } catch {
-      this.renderError("Couldn't sync. Try again?");
+      this.renderError(t('calendar.providers.syncError'));
     } finally {
       this.isLoading = false;
     }
@@ -974,7 +972,7 @@ class CalendarSettingsUI {
 
     try {
       const result = await startOAuthConnect('microsoft_calendar');
-      if (!result.success) this.renderError(result.error ?? "Couldn't connect. Try again?");
+      if (!result.success) this.renderError(result.error ?? t('calendar.providers.connectError'));
     } finally {
       this.isLoading = false;
     }
@@ -993,7 +991,7 @@ class CalendarSettingsUI {
       }
       this.renderContent();
     } catch {
-      this.renderError("Couldn't disconnect. Try again?");
+      this.renderError(t('calendar.providers.disconnectError'));
     } finally {
       this.isLoading = false;
     }
@@ -1014,7 +1012,7 @@ class CalendarSettingsUI {
       await apiPost(`/calendar/outlook/sync`, { user_id: userId });
       await this.loadStatus();
     } catch {
-      this.renderError("Couldn't sync. Try again?");
+      this.renderError(t('calendar.providers.syncError'));
     } finally {
       this.isLoading = false;
     }
@@ -1040,7 +1038,7 @@ class CalendarSettingsUI {
       this.renderContent();
       this.callbacks.onConnectionChange?.(false);
     } catch {
-      this.renderError("Couldn't disconnect. Try again?");
+      this.renderError(t('calendar.providers.disconnectError'));
     } finally {
       this.isLoading = false;
     }
@@ -1061,7 +1059,7 @@ class CalendarSettingsUI {
       await apiPost('/api/calendar/sync', {});
       await this.loadStatus();
     } catch {
-      this.renderError("Couldn't sync. Try again?");
+      this.renderError(t('calendar.providers.syncError'));
     } finally {
       this.isLoading = false;
     }
@@ -1083,8 +1081,7 @@ class CalendarSettingsUI {
 
   private formatDate(dateString: string): string {
     try {
-      const date = new Date(dateString);
-      return date.toLocaleString('en-US', {
+      return formatDate(new Date(dateString), {
         month: 'short',
         day: 'numeric',
         hour: 'numeric',

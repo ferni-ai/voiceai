@@ -239,13 +239,13 @@ export function createLanguageSwitcher(): HTMLElement {
       class="lang-switcher__trigger"
       aria-haspopup="listbox"
       aria-expanded="false"
-      aria-label="${t('languageSwitcher.changeLanguage', 'Change language')}"
-      title="${t('languageSwitcher.current', 'Current language: {language}', { language: currentInfo.nativeName })}"
+      aria-label="${t('languageSwitcher.changeLanguage')}"
+      title="${t('languageSwitcher.current', { language: currentInfo.nativeName })}"
     >
       ${currentInfo.flag}
     </button>
 
-    <ul class="lang-switcher__popover" role="listbox" aria-label="${t('languageSwitcher.selectLanguage', 'Select a language')}">
+    <ul class="lang-switcher__popover" role="listbox" aria-label="${t('languageSwitcher.selectLanguage')}">
       ${SUPPORTED_LOCALES.map(
         (locale) => `
         <li
@@ -374,7 +374,7 @@ function updateDisplay(container: HTMLElement, locale: SupportedLocale): void {
   const trigger = container.querySelector('.lang-switcher__trigger') as HTMLButtonElement;
   if (trigger) {
     trigger.textContent = info.flag;
-    trigger.title = t('languageSwitcher.current', 'Current language: {language}', { language: info.nativeName });
+    trigger.title = t('languageSwitcher.current', { language: info.nativeName });
   }
 
   // Update selected state

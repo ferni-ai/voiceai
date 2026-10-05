@@ -755,15 +755,15 @@ class RelationshipStageService {
     }
     const metrics = this.data.metrics;
 
-    // Calculate progress as average of all requirements
-    const convProgress = Math.min(1, metrics.totalConversations / threshold.minConversations);
-    const daysProgress = Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays);
-    const streakProgress = Math.min(
-      1,
-      Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak
-    );
-
-    const progress = (convProgress + daysProgress + streakProgress) / 3;
+    // Calculate progress as average of all requirements. A requirement of 0 is met
+    // already; dividing by it would give NaN (0/0) and poison the average.
+    const fraction = (value: number, min: number): number => (min > 0 ? Math.min(1, value / min) : 1);
+    const bestStreak = Math.max(metrics.currentStreak, metrics.longestStreak);
+    const progress =
+      (fraction(metrics.totalConversations, threshold.minConversations) +
+        fraction(metrics.daysSinceFirstMeeting, threshold.minDays) +
+        fraction(bestStreak, threshold.minStreak)) /
+      3;
 
     const remaining: string[] = [];
     if (metrics.totalConversations < threshold.minConversations) {
@@ -776,7 +776,7 @@ class RelationshipStageService {
         tp('relationshipStages.requirement.days', threshold.minDays - metrics.daysSinceFirstMeeting)
       );
     }
-    if (Math.max(metrics.currentStreak, metrics.longestStreak) < threshold.minStreak) {
+    if (bestStreak < threshold.minStreak) {
       remaining.push(t('relationshipStages.requirement.streak', { days: threshold.minStreak }));
     }
 

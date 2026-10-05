@@ -22,7 +22,8 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { escapeHtml } from './engagement-components.js';
 import { practiceExperienceUI } from './practice-experience.ui.js';
 import { connectionService } from '../services/connection.service.js';
@@ -293,8 +294,7 @@ class SanctuaryUI {
         const insights: BetterThanHumanInsight[] = (data.insights || []).map(i => ({
           id: i.id,
           type: (i.type === 'superhuman' || i.type === 'pattern') ? 'pattern' as const : 
-                i.type === 'commitment' ? 'memory' as const : 
-                i.type === 'growth' ? 'observation' as const : 'observation' as const,
+                i.type === 'commitment' ? 'memory' as const : 'observation' as const,
           icon: i.icon || 'sparkles',
           title: i.title,
           description: i.description,
@@ -366,7 +366,7 @@ class SanctuaryUI {
               id: `notice-${apiInsights.length}`,
               type: n.type === 'pattern' ? 'pattern' : n.type === 'celebration' ? 'memory' : 'observation',
               icon: n.type === 'concern' ? 'heart' : n.type === 'celebration' ? 'sparkle' : 'eye',
-              title: n.type === 'concern' ? 'I notice...' : n.type === 'celebration' ? 'Celebrating' : 'A pattern',
+              title: t(n.type === 'concern' ? 'sanctuary.noticeConcern' : n.type === 'celebration' ? 'sanctuary.noticeCelebration' : 'sanctuary.noticePattern'),
               description: n.insight,
               personaId: n.personaId,
             });
@@ -379,7 +379,7 @@ class SanctuaryUI {
             id: 'growth',
             type: 'pattern',
             icon: 'sun',
-            title: 'Growth',
+            title: t('sanctuary.insightGrowth'),
             description: insightsResult.data.growth.message,
           });
         }
@@ -393,10 +393,10 @@ class SanctuaryUI {
                 id: 'commitment',
                 type: 'memory',
                 icon: 'heart',
-                title: 'Better than human memory',
-                description: `You said you'd ${commitment.text}. That was ${commitment.daysAgo} days ago.`,
+                title: t('sanctuary.sectionTitle.insights'),
+                description: tp('sanctuary.commitmentReminder', commitment.daysAgo, { text: commitment.text }),
                 actionable: true,
-                action: 'Check in on this',
+                action: t('sanctuary.checkInOnThis'),
               });
             }
           }
@@ -433,7 +433,7 @@ class SanctuaryUI {
   private getTimeContext(): TimeContext {
     const now = new Date();
     const hour = now.getHours();
-    const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const dayOfWeek = formatDate(now, { weekday: 'long' });
     const dayNum = now.getDay();
     const isWeekend = dayNum === 0 || dayNum === 6;
 
@@ -522,11 +522,11 @@ class SanctuaryUI {
         name: t('sanctuary.practiceSetYourIntention'),
         description: t('sanctuary.practiceSetYourIntentionDesc'),
         category: 'ground',
-        duration: '3-5 min',
+        duration: t('sanctuary.durationRange', { min: 3, max: 5 }),
         personaId: 'ferni',
         prompt: '/daily-checkin',
         recommended: true,
-        recommendedReason: 'Perfect for your morning',
+        recommendedReason: t('sanctuary.reasonMorning'),
       });
     }
 
@@ -537,7 +537,7 @@ class SanctuaryUI {
         name: t('sanctuary.practiceGratitudeMoment'),
         description: t('sanctuary.practiceGratitudeMomentDesc'),
         category: 'reflect',
-        duration: '2-3 min',
+        duration: t('sanctuary.durationRange', { min: 2, max: 3 }),
         personaId: 'ferni',
         prompt: '/gratitude',
       },
@@ -546,7 +546,7 @@ class SanctuaryUI {
         name: t('sanctuary.practiceThinkItThrough'),
         description: t('sanctuary.practiceThinkItThroughDesc'),
         category: 'explore',
-        duration: '5-10 min',
+        duration: t('sanctuary.durationRange', { min: 5, max: 10 }),
         personaId: 'ferni',
         prompt: '/brainstorm',
       },
@@ -555,7 +555,7 @@ class SanctuaryUI {
         name: t('sanctuary.practiceWeeklyReflection'),
         description: t('sanctuary.practiceWeeklyReflectionDesc'),
         category: 'reflect',
-        duration: '10-15 min',
+        duration: t('sanctuary.durationRange', { min: 10, max: 15 }),
         personaId: 'ferni',
         prompt: '/weekly-review',
       }
@@ -568,11 +568,11 @@ class SanctuaryUI {
         name: t('sanctuary.practiceWindDown'),
         description: t('sanctuary.practiceWindDownDesc'),
         category: 'ground',
-        duration: '5 min',
+        duration: t('sanctuary.durationMinutes', { count: 5 }),
         personaId: 'ferni',
         prompt: '/wind-down',
         recommended: true,
-        recommendedReason: 'A gentle way to end the day',
+        recommendedReason: t('sanctuary.reasonEvening'),
       });
     }
 
@@ -587,14 +587,14 @@ class SanctuaryUI {
       inspirations.push({
         id: 'morning-wisdom',
         type: 'wisdom',
-        content: 'You don\'t have to have it all figured out. Just take the next small step.',
+        content: t('sanctuary.wisdomMorning'),
         personaId: 'ferni',
       });
     } else if (time.period === 'evening') {
       inspirations.push({
         id: 'evening-wisdom',
         type: 'wisdom',
-        content: 'Rest is not a reward for finishing. It\'s how you prepare to begin again.',
+        content: t('sanctuary.wisdomEvening'),
         personaId: 'maya',
       });
     }
@@ -604,13 +604,13 @@ class SanctuaryUI {
       {
         id: 'quote-1',
         type: 'quote',
-        content: 'The present moment is filled with joy and happiness. If you are attentive, you will see it.',
+        content: t('sanctuary.quotePresentMoment'),
         source: 'Thich Nhat Hanh',
       },
       {
         id: 'nudge-1',
         type: 'nudge',
-        content: 'I\'m always here. No appointment needed. No judgment given.',
+        content: t('sanctuary.nudgeAlwaysHere'),
         personaId: 'ferni',
       }
     );
@@ -629,7 +629,7 @@ class SanctuaryUI {
     this.container.className = 'sanctuary-overlay';
     this.container.setAttribute('role', 'dialog');
     this.container.setAttribute('aria-modal', 'true');
-    this.container.setAttribute('aria-label', 'The Sanctuary - Guided Practices');
+    this.container.setAttribute('aria-label', t('sanctuary.dialogLabel'));
 
     const content = document.createElement('div');
     content.className = 'sanctuary-content';
@@ -654,7 +654,7 @@ class SanctuaryUI {
     return `
       <!-- Header -->
       <header class="sanctuary-header">
-        <button class="sanctuary-close" aria-label="Close">
+        <button class="sanctuary-close" aria-label="${t('common.close')}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
           </svg>
@@ -768,7 +768,7 @@ class SanctuaryUI {
           class="sanctuary-practice-card sanctuary-practice-card--recommended"
           data-practice-id="${escapeHtml(practice.id)}"
           data-prompt="${escapeHtml(practice.prompt)}"
-          aria-label="Start ${escapeHtml(practice.name)}"
+          aria-label="${t('sanctuary.startPractice', { name: escapeHtml(practice.name) })}"
         >
           <div class="sanctuary-practice-icon" style="background: ${category.color}">
             ${category.icon}
@@ -819,7 +819,7 @@ class SanctuaryUI {
         class="sanctuary-practice-item"
         data-practice-id="${escapeHtml(practice.id)}"
         data-prompt="${escapeHtml(practice.prompt)}"
-        aria-label="Start ${escapeHtml(practice.name)}"
+        aria-label="${t('sanctuary.startPractice', { name: escapeHtml(practice.name) })}"
       >
         <div class="sanctuary-practice-item-content">
           <span class="sanctuary-practice-item-name">${escapeHtml(practice.name)}</span>

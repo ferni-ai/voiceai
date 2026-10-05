@@ -33,14 +33,10 @@ export interface Practice {
 interface PracticeStep {
   id: string;
   type: 'intro' | 'prompt' | 'reflection' | 'chat' | 'breathing' | 'gratitude' | 'completion';
-  title?: string;
-  titleKey?: string;
-  content?: string;
-  contentKey?: string;
-  placeholder?: string;
+  titleKey: string;
+  contentKey: string;
   placeholderKey?: string;
   duration?: number; // in seconds for timed steps
-  ferniMessage?: string;
   ferniMessageKey?: string;
 }
 
@@ -784,13 +780,13 @@ function createContainer(): HTMLElement {
   overlay.className = 'practice-experience-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-label', 'Guided Practice');
+  overlay.setAttribute('aria-label', t('practiceExperience.default.title'));
 
   overlay.innerHTML = `
     <div class="practice-experience-backdrop"></div>
     <div class="practice-experience-container">
       <header class="practice-experience-header">
-        <h2 id="practice-title">Practice</h2>
+        <h2 id="practice-title">${t('practiceExperience.practice')}</h2>
         <button class="practice-close-btn" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
@@ -875,9 +871,9 @@ function renderStep(step: PracticeStep): string {
 
 function renderIntroStep(step: PracticeStep): string {
   const isVoiceConnected = connectionService.getRoomState().isConnected;
-  const title = step.titleKey ? t(step.titleKey) : step.title;
-  const content = step.contentKey ? t(step.contentKey) : step.content;
-  const ferniMessage = step.ferniMessageKey ? t(step.ferniMessageKey) : step.ferniMessage;
+  const title = t(step.titleKey);
+  const content = t(step.contentKey);
+  const ferniMessage = step.ferniMessageKey && t(step.ferniMessageKey);
 
   return `
     <div class="practice-step" data-step-id="${step.id}">
@@ -901,10 +897,10 @@ function renderIntroStep(step: PracticeStep): string {
 
 function renderTextStep(step: PracticeStep): string {
   const savedValue = state.userResponses.get(step.id) || '';
-  const title = step.titleKey ? t(step.titleKey) : step.title;
-  const content = step.contentKey ? t(step.contentKey) : step.content;
-  const ferniMessage = step.ferniMessageKey ? t(step.ferniMessageKey) : step.ferniMessage;
-  const placeholder = step.placeholderKey ? t(step.placeholderKey) : (step.placeholder || t('practiceExperience.shareYourThoughts'));
+  const title = t(step.titleKey);
+  const content = t(step.contentKey);
+  const ferniMessage = step.ferniMessageKey && t(step.ferniMessageKey);
+  const placeholder = t(step.placeholderKey ?? 'practiceExperience.shareYourThoughts');
 
   return `
     <div class="practice-step" data-step-id="${step.id}">
@@ -922,8 +918,8 @@ function renderTextStep(step: PracticeStep): string {
 }
 
 function renderChatStep(step: PracticeStep): string {
-  const title = step.titleKey ? t(step.titleKey) : step.title;
-  const content = step.contentKey ? t(step.contentKey) : step.content;
+  const title = t(step.titleKey);
+  const content = t(step.contentKey);
 
   return `
     <div class="practice-step" data-step-id="${step.id}">
@@ -956,7 +952,7 @@ function renderChatMessages(step?: PracticeStep): string {
   const currentStep = step || state.steps[state.currentStepIndex];
 
   if (messages.length === 0 && currentStep) {
-    const ferniMessage = currentStep.ferniMessageKey ? t(currentStep.ferniMessageKey) : currentStep.ferniMessage;
+    const ferniMessage = currentStep.ferniMessageKey && t(currentStep.ferniMessageKey);
     if (ferniMessage) {
       messages.push({
         id: 'initial',
@@ -992,8 +988,8 @@ function renderChatMessages(step?: PracticeStep): string {
 }
 
 function renderBreathingStep(step: PracticeStep): string {
-  const title = step.titleKey ? t(step.titleKey) : step.title;
-  const content = step.contentKey ? t(step.contentKey) : step.content;
+  const title = t(step.titleKey);
+  const content = t(step.contentKey);
 
   return `
     <div class="practice-step" data-step-id="${step.id}">
@@ -1005,7 +1001,7 @@ function renderBreathingStep(step: PracticeStep): string {
           <span class="breathing-instruction" id="breathing-instruction">${t('practiceExperience.ready')}</span>
         </div>
         <div class="breathing-timer" id="breathing-timer">
-          ${step.duration ? `${step.duration} ${t('practiceExperience.seconds')}` : ''}
+          ${step.duration ? tp('practiceExperience.breathing.secondsLeft', step.duration) : ''}
         </div>
       </div>
     </div>
@@ -1013,9 +1009,9 @@ function renderBreathingStep(step: PracticeStep): string {
 }
 
 function renderCompletionStep(step: PracticeStep): string {
-  const title = step.titleKey ? t(step.titleKey) : step.title;
-  const content = step.contentKey ? t(step.contentKey) : step.content;
-  const ferniMessage = step.ferniMessageKey ? t(step.ferniMessageKey) : step.ferniMessage;
+  const title = t(step.titleKey);
+  const content = t(step.contentKey);
+  const ferniMessage = step.ferniMessageKey && t(step.ferniMessageKey);
 
   return `
     <div class="practice-step" data-step-id="${step.id}">
@@ -1255,7 +1251,7 @@ async function generateFerniResponse(userMessage: string): Promise<string> {
       practiceId: practice?.id || 'general',
       practiceName: practice?.name || 'Practice',
       stepId: currentStep?.id || 'chat',
-      stepTitle: currentStep?.title || 'Chat',
+      stepTitle: currentStep ? t(currentStep.titleKey) : 'Chat',
       previousResponses,
       chatHistory: state.chatMessages.slice(-10).map((m) => ({
         role: m.role,
@@ -1274,45 +1270,19 @@ async function generateFerniResponse(userMessage: string): Promise<string> {
   return getFallbackResponse(userMessage, practice?.id);
 }
 
+/** Fallback reply pool per practice: [i18n pool name, number of variants]. */
+const FALLBACK_POOLS: Record<string, [string, number]> = {
+  'daily-check-in': ['dailyCheckIn', 4],
+  'gratitude-practice': ['gratitude', 3],
+  'wind-down': ['windDown', 3],
+  'weekly-review': ['weeklyReview', 3],
+  'brainstorm-session': ['brainstorm', 3],
+};
+
 function getFallbackResponse(userMessage: string, practiceId?: string): string {
   // Simple fallback responses when API is unavailable
-  const responses: Record<string, string[]> = {
-    'daily-check-in': [
-      "That's really honest. Thank you for sharing that with me.",
-      "I hear you. Sometimes just naming it helps.",
-      "How does it feel to put that into words?",
-      "That takes courage to acknowledge. What would support you right now?",
-    ],
-    'gratitude-practice': [
-      "Beautiful. Those small moments matter more than we realize.",
-      "I love that you noticed that. What made it special?",
-      "That's a wonderful thing to appreciate. How does remembering it feel?",
-    ],
-    'wind-down': [
-      "Rest is coming. You've done enough for today.",
-      "That's a lot to carry. Tomorrow can hold what tonight can't.",
-      "Your body knows what it needs. Listen to it.",
-    ],
-    'weekly-review': [
-      "That's insightful. What patterns do you notice?",
-      "Growth often happens in the struggle. You're learning.",
-      "What would you tell a friend who had this week?",
-    ],
-    'brainstorm-session': [
-      "Interesting perspective. What other angles could we explore?",
-      "That's one path. What's holding you back from taking it?",
-      "I wonder - if you couldn't fail, which option would you choose?",
-    ],
-  };
-
-  const practiceResponses = responses[practiceId || ''] || [
-    "Tell me more about that.",
-    "That's meaningful. What else comes up?",
-    "I'm listening. Take your time.",
-    "How does that sit with you?",
-  ];
-
-  return practiceResponses[Math.floor(Math.random() * practiceResponses.length)] ?? "I'm here with you.";
+  const [pool, count] = FALLBACK_POOLS[practiceId || ''] ?? ['default', 4];
+  return t(`practiceExperience.fallback.${pool}.option${1 + Math.floor(Math.random() * count)}`);
 }
 
 function scrollChatToBottom(): void {

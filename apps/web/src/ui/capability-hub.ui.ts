@@ -17,6 +17,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
@@ -34,12 +35,12 @@ let escapeHandlerRef: ((e: KeyboardEvent) => void) | null = null;
 
 interface Capability {
   id: string;
-  name: string;
-  description: string;
+  nameKey: string;
+  descriptionKey: string;
   icon: string;
   color: string;
-  /** Human limitation this overcomes */
-  humanLimitation: string;
+  /** i18n key of the human limitation this overcomes */
+  humanLimitationKey: string;
   /** Whether this capability is currently active for the user */
   isActive: boolean;
   /** Feature flag that controls this capability */
@@ -70,92 +71,92 @@ interface CapabilityHubState {
 const CAPABILITY_DEFINITIONS: Omit<Capability, 'isActive' | 'stats'>[] = [
   {
     id: 'perfect-memory',
-    name: t('capabilityHub.perfectMemory'),
-    description: t('capabilityHub.perfectMemoryDesc'),
+    nameKey: 'capabilityHub.perfectMemory',
+    descriptionKey: 'capabilityHub.perfectMemoryDesc',
     icon: ANALYTICS_ICONS.brain,
     color: 'var(--color-ferni)',
-    humanLimitation: 'Your best friend forgets. I don\'t.',
+    humanLimitationKey: 'capabilityHub.limitations.perfectMemory',
     featureFlag: 'bth.perfect-memory',
   },
   {
     id: 'proactive-outreach',
-    name: t('capabilityHub.thinkingOfYou'),
-    description: 'I reach out when you need support most - not on a schedule, but when patterns in your life suggest you could use a friend.',
+    nameKey: 'capabilityHub.thinkingOfYou',
+    descriptionKey: 'capabilityHub.thinkingOfYouDesc',
     icon: EMOTION_ICONS.reflective,
     color: 'var(--persona-maya)',
-    humanLimitation: 'Human friends get busy. I\'m always present.',
+    humanLimitationKey: 'capabilityHub.limitations.thinkingOfYou',
     featureFlag: 'trust.thinking-of-you',
   },
   {
     id: 'learning-engine',
-    name: t('capabilityHub.learnsYourPatterns'),
-    description: t('capabilityHub.learnsYourPatternsDesc'),
+    nameKey: 'capabilityHub.learnsYourPatterns',
+    descriptionKey: 'capabilityHub.learnsYourPatternsDesc',
     icon: ANALYTICS_ICONS.chart,
     color: 'var(--persona-peter)',
-    humanLimitation: 'Human coaches follow scripts. I learn your language.',
+    humanLimitationKey: 'capabilityHub.limitations.learnsYourPatterns',
     featureFlag: 'bth.learning-engine',
   },
   {
     id: 'commitment-keeper',
-    name: t('capabilityHub.neverLetsYouDown'),
-    description: 'When you say you\'ll do something, I remember. Not to nag, but to gently check in when the time is right.',
+    nameKey: 'capabilityHub.neverLetsYouDown',
+    descriptionKey: 'capabilityHub.neverLetsYouDownDesc',
     icon: QUIZ_ICONS.correct,
     color: 'var(--persona-jordan)',
-    humanLimitation: 'Your accountability partner has their own life. I exist for yours.',
+    humanLimitationKey: 'capabilityHub.limitations.neverLetsYouDown',
     featureFlag: 'bth.commitment-keeper',
   },
   {
     id: 'musical-memory',
-    name: t('capabilityHub.ourSongs'),
-    description: 'I remember the music playing during meaningful moments. When that song plays again, I can share what we were talking about.',
+    nameKey: 'capabilityHub.ourSongs',
+    descriptionKey: 'capabilityHub.ourSongsDesc',
     icon: ANALYTICS_ICONS.music,
     color: 'var(--persona-alex)',
-    humanLimitation: 'Friends forget the soundtrack of your life. I remember it.',
+    humanLimitationKey: 'capabilityHub.limitations.ourSongs',
     featureFlag: 'trust.our-songs',
   },
   {
     id: 'emotional-intelligence',
-    name: t('capabilityHub.readsBetweenLines'),
-    description: t('capabilityHub.readsBetweenLinesDesc'),
+    nameKey: 'capabilityHub.readsBetweenLines',
+    descriptionKey: 'capabilityHub.readsBetweenLinesDesc',
     icon: GROWTH_ICONS.heart,
     color: 'var(--persona-nayan)',
-    humanLimitation: 'Human friends are distracted. I\'m fully present.',
+    humanLimitationKey: 'capabilityHub.limitations.readsBetweenLines',
     featureFlag: 'bth.emotional-intelligence',
   },
   {
     id: 'relationship-network',
-    name: t('capabilityHub.relationshipNetwork'),
-    description: 'I track everyone important to you - birthdays, preferences, last contact. I help you nurture the connections that matter most.',
+    nameKey: 'capabilityHub.relationshipNetwork',
+    descriptionKey: 'capabilityHub.relationshipNetworkDesc',
     icon: QUIZ_ICONS.relationships,
     color: 'var(--persona-alex)',
-    humanLimitation: 'You can\'t track everyone. I can track everyone for you.',
+    humanLimitationKey: 'capabilityHub.limitations.relationshipNetwork',
     featureFlag: 'bth.relationship-network',
   },
   {
     id: 'capacity-guardian',
-    name: t('capabilityHub.capacityGuardian'),
-    description: t('capabilityHub.capacityGuardianDesc'),
+    nameKey: 'capabilityHub.capacityGuardian',
+    descriptionKey: 'capabilityHub.capacityGuardianDesc',
     icon: ANALYTICS_ICONS.trendingUp,
     color: 'var(--persona-maya)',
-    humanLimitation: 'Friends notice burnout too late. I catch it early.',
+    humanLimitationKey: 'capabilityHub.limitations.capacityGuardian',
     featureFlag: 'bth.capacity-guardian',
   },
   {
     id: 'dream-keeper',
-    name: t('capabilityHub.dreamKeeper'),
-    description: 'Your dreams and aspirations live here. I keep them alive, remind you of them at the right moments, and help you take steps forward.',
+    nameKey: 'capabilityHub.dreamKeeper',
+    descriptionKey: 'capabilityHub.dreamKeeperDesc',
     icon: EMOTION_ICONS.proud,
     color: 'var(--persona-jordan)',
-    humanLimitation: 'Dreams fade in daily life. I keep yours alive.',
+    humanLimitationKey: 'capabilityHub.limitations.dreamKeeper',
     featureFlag: 'bth.dream-keeper',
   },
   {
     id: 'seasonal-awareness',
-    name: t('capabilityHub.seasonalAwareness'),
-    description: 'I understand your annual rhythms - holidays, anniversaries, seasonal patterns. I show up differently when you need different support.',
+    nameKey: 'capabilityHub.seasonalAwareness',
+    descriptionKey: 'capabilityHub.seasonalAwarenessDesc',
     icon: ANALYTICS_ICONS.calendar,
     color: 'var(--persona-peter)',
-    humanLimitation: 'Friends forget your patterns. I remember your seasons.',
+    humanLimitationKey: 'capabilityHub.limitations.seasonalAwareness',
     featureFlag: 'bth.seasonal-awareness',
   },
 ];
@@ -202,7 +203,7 @@ async function loadCapabilityStatus(): Promise<void> {
         isActive: apiData?.isActive ?? true,
         stats: apiData?.stats,
         action: {
-          label: apiData?.isActive ? t('capabilityHub.learnMore') : 'Enable',
+          label: t(apiData?.isActive ? 'capabilityHub.learnMore' : 'capabilityHub.enable'),
           onClick: () => showCapabilityDetails(def.id),
         },
       };
@@ -212,7 +213,7 @@ async function loadCapabilityStatus(): Promise<void> {
     state.error = null;
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to load capability status');
-    state.error = 'Failed to load capability status';
+    state.error = t('capabilityHub.loadError');
     state.loading = false;
 
     // Fallback to all capabilities active
@@ -281,9 +282,7 @@ function render(): void {
       <header class="capability-hub__header">
         <span class="capability-hub__eyebrow">${t('capabilityHub.betterThanHuman')}</span>
         <h2 class="capability-hub__title">${t('capabilityHub.whatMakesFerniDifferent')}</h2>
-        <p class="capability-hub__subtitle">
-          These capabilities go beyond what any human friend, therapist, or coach could provide.
-        </p>
+        <p class="capability-hub__subtitle">${t('capabilityHub.subtitle')}</p>
       </header>
 
       <div class="capability-hub__grid">
@@ -294,8 +293,8 @@ function render(): void {
                   data-capability-id="${cap.id}">
             <div class="capability-card__icon" style="background: ${cap.color}">${cap.icon}</div>
             <div class="capability-card__content">
-              <h3 class="capability-card__name">${cap.name}</h3>
-              <p class="capability-card__limitation">${cap.humanLimitation}</p>
+              <h3 class="capability-card__name">${t(cap.nameKey)}</h3>
+              <p class="capability-card__limitation">${t(cap.humanLimitationKey)}</p>
               ${
                 cap.stats
                   ? `
@@ -320,7 +319,7 @@ function render(): void {
         <footer class="capability-hub__footer">
           <p class="capability-hub__active-count">
             <span class="capability-hub__active-icon">${QUIZ_ICONS.correct}</span>
-            ${activeCapabilities.length} of ${state.capabilities.length} capabilities active
+            ${tp('capabilityHub.activeCount', state.capabilities.length, { active: activeCapabilities.length })}
           </p>
         </footer>
       `
@@ -348,13 +347,13 @@ function renderCapabilityModal(capability: Capability): string {
           ${capability.icon}
         </div>
 
-        <h2 class="capability-modal__name">${capability.name}</h2>
+        <h2 class="capability-modal__name">${t(capability.nameKey)}</h2>
 
-        <p class="capability-modal__description">${capability.description}</p>
+        <p class="capability-modal__description">${t(capability.descriptionKey)}</p>
 
         <div class="capability-modal__limitation">
-          <span class="capability-modal__limitation-label">The Human Limitation:</span>
-          <p class="capability-modal__limitation-text">${capability.humanLimitation}</p>
+          <span class="capability-modal__limitation-label">${t('capabilityHub.humanLimitationLabel')}</span>
+          <p class="capability-modal__limitation-text">${t(capability.humanLimitationKey)}</p>
         </div>
 
         ${
@@ -369,7 +368,7 @@ function renderCapabilityModal(capability: Capability): string {
         }
 
         <div class="capability-modal__status ${capability.isActive ? 'capability-modal__status--active' : ''}">
-          ${capability.isActive ? `<span class="capability-modal__status-icon">${QUIZ_ICONS.correct}</span> Active` : 'Not yet enabled'}
+          ${capability.isActive ? `<span class="capability-modal__status-icon">${QUIZ_ICONS.correct}</span> ${t('capabilityHub.active')}` : t('capabilityHub.notEnabled')}
         </div>
       </div>
     </div>

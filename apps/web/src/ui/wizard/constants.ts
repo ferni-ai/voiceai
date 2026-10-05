@@ -6,36 +6,28 @@
 import type { WizardStep, IconOption } from './types.js';
 
 /**
- * Wizard steps configuration (titles and subtitles are i18n keys; render with t())
+ * Wizard steps configuration (titles are i18n keys; render with t())
  */
-export const WIZARD_STEPS: readonly (Pick<WizardStep, 'id'> & {
-  titleKey: string;
-  subtitleKey: string;
-})[] = [
+export const WIZARD_STEPS: readonly WizardStep[] = [
   {
     id: 'type',
     titleKey: 'agentWizard.stepTypeTitle',
-    subtitleKey: 'agentWizard.stepTypeSubtitle',
   },
   {
     id: 'info',
     titleKey: 'agentWizard.stepInfoTitle',
-    subtitleKey: 'agentWizard.stepInfoSubtitle',
   },
   {
     id: 'voice',
     titleKey: 'agentWizard.stepVoiceTitle',
-    subtitleKey: 'agentWizard.stepVoiceSubtitle',
   },
   {
     id: 'personality',
     titleKey: 'agentWizard.stepPersonalityTitle',
-    subtitleKey: 'agentWizard.stepPersonalitySubtitle',
   },
   {
     id: 'memories',
     titleKey: 'agentWizard.stepMemoriesTitle',
-    subtitleKey: 'agentWizard.stepMemoriesSubtitle',
   },
 ] as const;
 

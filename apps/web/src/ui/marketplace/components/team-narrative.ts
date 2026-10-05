@@ -72,7 +72,7 @@ export function renderEmployeeCard(
   const rosterActionHtml =
     !isLocked && personaId !== 'ferni'
       ? isInRoster
-        ? `<button class="employee-roster-action employee-roster-action--remove" data-roster-action="remove" data-persona-id="${personaId}" aria-label="Remove ${name} from roster">
+        ? `<button class="employee-roster-action employee-roster-action--remove" data-roster-action="remove" data-persona-id="${personaId}" aria-label="${t('teamNarrative.removeFromRoster', { name })}">
           <svg class="roster-icon roster-icon--check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
@@ -82,7 +82,7 @@ export function renderEmployeeCard(
           <span class="roster-label">${t('teamNarrative.inTeam')}</span>
           <span class="roster-label roster-label--hover">${t('teamNarrative.remove')}</span>
         </button>`
-        : `<button class="employee-roster-action employee-roster-action--add" data-roster-action="add" data-persona-id="${personaId}" aria-label="Add ${name} to team">
+        : `<button class="employee-roster-action employee-roster-action--add" data-roster-action="add" data-persona-id="${personaId}" aria-label="${t('teamNarrative.addToTeam', { name })}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -128,7 +128,7 @@ export function renderTeamNarrative(): string {
               <div class="leader-info">
                 <h4 class="leader-name">${t('teamNarrative.ferni')}</h4>
                 <span class="leader-title">${t('teamNarrative.ferniRole')}</span>
-                <p class="leader-bio">The warm, wise presence at the heart of everything. Ferni coordinates the team with perfect memory, zero judgment, and constant presence.</p>
+                <p class="leader-bio">${t('marketplace.team.ferniDesc')}</p>
               </div>
             </div>
           </div>
@@ -141,19 +141,19 @@ export function renderTeamNarrative(): string {
               <div class="leader-avatar cofounder-avatar" data-persona="claude" style="${getAvatarStyle('claude')}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
               </div>
-              <span class="cofounder-name">Claude</span>
+              <span class="cofounder-name">${t('teamNarrative.claude')}</span>
             </div>
             <div class="leader-card cofounder">
               <div class="leader-avatar cofounder-avatar" data-persona="gemini" style="${getAvatarStyle('gemini')}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
               </div>
-              <span class="cofounder-name">Gemini</span>
+              <span class="cofounder-name">${t('teamNarrative.gemini')}</span>
             </div>
             <div class="leader-card cofounder">
               <div class="leader-avatar cofounder-avatar" data-persona="gpt" style="${getAvatarStyle('gpt')}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073z"/></svg>
               </div>
-              <span class="cofounder-name">GPT</span>
+              <span class="cofounder-name">${t('teamNarrative.gpt')}</span>
             </div>
           </div>
         </div>
@@ -161,11 +161,11 @@ export function renderTeamNarrative(): string {
         <div class="leadership-section">
           <span class="leadership-label">${t('teamNarrative.coreTeam')}</span>
           <div class="leadership-grid employees">
-            ${renderEmployeeCard('peter-john', 'PJ', 'Peter', 'Research')}
-            ${renderEmployeeCard('alex-chen', 'AC', 'Alex', 'Communication')}
-            ${renderEmployeeCard('maya-santos', 'MS', 'Maya', 'Habits')}
-            ${renderEmployeeCard('jordan-taylor', 'JT', 'Jordan', 'Planning')}
-            ${renderEmployeeCard('nayan-patel', 'NP', 'Nayan', 'Wisdom')}
+            ${renderEmployeeCard('peter-john', 'PJ', 'Peter', t('teamNarrative.roles.peter'))}
+            ${renderEmployeeCard('alex-chen', 'AC', 'Alex', t('teamNarrative.roles.alex'))}
+            ${renderEmployeeCard('maya-santos', 'MS', 'Maya', t('teamNarrative.roles.maya'))}
+            ${renderEmployeeCard('jordan-taylor', 'JT', 'Jordan', t('teamNarrative.roles.jordan'))}
+            ${renderEmployeeCard('nayan-patel', 'NP', 'Nayan', t('teamNarrative.roles.nayan'))}
           </div>
         </div>
       </div>

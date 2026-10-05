@@ -20,17 +20,16 @@
  * - All animations use DURATION/EASING from animation-constants.ts
  */
 
-import { t } from '../i18n/index.js';
-import { 
-  relationshipStageService, 
+import { formatDate, formatRelativeTime, getLocale, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
+import {
+  relationshipStageService,
   getTranslatedStageName,
+  type StageChangeEvent,
+  type RelationshipMemory,
 } from '../services/relationship-stage.service.js';
-import type { StageChangeEvent, RelationshipMemory } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
-import { 
-  DURATION, 
-  EASING, 
-} from '../config/animation-constants.js';
+import { DURATION, EASING } from '../config/animation-constants.js';
 
 // ============================================================================
 // LUCIDE ICONS (SVG) - Per Brand Guidelines Section 7
@@ -83,26 +82,26 @@ const ICONS = {
 // Per Brand Guidelines Section 10
 // ============================================================================
 
-const STAGE_DESCRIPTIONS: Record<string, { tagline: string; description: string }> = {
+const STAGE_COPY: Record<string, { taglineKey: string; descriptionKey: string }> = {
   'first-meeting': {
-    tagline: 'Just getting started',
-    description: 'Every great friendship starts somewhere. This is our beginning.',
+    taglineKey: 'stageCelebration.stages.firstMeeting.tagline',
+    descriptionKey: 'stageCelebration.stages.firstMeeting.description',
   },
   'getting-started': {
-    tagline: 'Building something real',
-    description: 'You keep showing up. That takes courage. I notice.',
+    taglineKey: 'stageCelebration.stages.gettingStarted.tagline',
+    descriptionKey: 'stageCelebration.stages.gettingStarted.description',
   },
   'building-trust': {
-    tagline: 'Deeper than small talk',
-    description: 'We are past the surface now. Real conversations. Real growth.',
+    taglineKey: 'stageCelebration.stages.buildingTrust.tagline',
+    descriptionKey: 'stageCelebration.stages.buildingTrust.description',
   },
-  'established': {
-    tagline: 'A rhythm of our own',
-    description: 'You know me. I know you. This is what trust feels like.',
+  established: {
+    taglineKey: 'stageCelebration.stages.established.tagline',
+    descriptionKey: 'stageCelebration.stages.established.description',
   },
   'deep-partnership': {
-    tagline: 'In it together',
-    description: 'Some connections just work. Ours is one of them.',
+    taglineKey: 'stageCelebration.stages.deepPartnership.tagline',
+    descriptionKey: 'stageCelebration.stages.deepPartnership.description',
   },
 };
 
@@ -1117,11 +1116,11 @@ function injectStyles(): void {
 
 // Stage unlock messages - what becomes available at each stage
 const STAGE_UNLOCKS: Record<string, string[]> = {
-  'first-meeting': ['Voice conversations', 'Basic coaching'],
-  'getting-started': ['Mood tracking', 'Daily check-ins', 'Maya (Habits Coach)'],
-  'building-trust': ['Deep insights', 'Goal tracking', 'Alex (Communications)'],
-  'established': ['Life patterns analysis', 'Peter (Research)', 'Jordan (Events)'],
-  'deep-partnership': ['Full team access', 'Nayan (Wisdom)', 'Priority support'],
+  'first-meeting': ['stageCelebration.unlocks.voiceConversations', 'stageCelebration.unlocks.basicCoaching'],
+  'getting-started': ['stageCelebration.unlocks.moodTracking', 'stageCelebration.unlocks.dailyCheckins', 'stageCelebration.unlocks.maya'],
+  'building-trust': ['stageCelebration.unlocks.deepInsights', 'stageCelebration.unlocks.goalTracking', 'stageCelebration.unlocks.alex'],
+  established: ['stageCelebration.unlocks.lifePatterns', 'stageCelebration.unlocks.peter', 'stageCelebration.unlocks.jordan'],
+  'deep-partnership': ['stageCelebration.unlocks.fullTeam', 'stageCelebration.unlocks.nayan', 'stageCelebration.unlocks.prioritySupport'],
 };
 
 function createCelebrationOverlay(): void {
@@ -1154,7 +1153,7 @@ function createCelebrationOverlay(): void {
       
       <!-- What's Unlocked -->
       <div class="celebration-unlocks">
-        <p class="celebration-unlocks-label">Now available:</p>
+        <p class="celebration-unlocks-label">${t('stageCelebration.nowAvailable')}</p>
         <ul class="celebration-unlocks-list"></ul>
       </div>
       
@@ -1224,7 +1223,7 @@ export function showCelebration(event: StageChangeEvent): void {
   const unlocks = STAGE_UNLOCKS[event.newStage] || [];
   if (unlocksList) {
     unlocksList.innerHTML = unlocks.map(unlock => 
-      `<li class="celebration-unlock-item">${ICONS.sparkles}<span>${unlock}</span></li>`
+      `<li class="celebration-unlock-item">${ICONS.sparkles}<span>${t(unlock)}</span></li>`
     ).join('');
   }
   
@@ -1410,7 +1409,7 @@ function _updateProgressPanel(): void {
   const stage = relationshipStageService.getStage();
   const metrics = relationshipStageService.getMetrics();
   const progress = relationshipStageService.getProgressToNextStage();
-  const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting'];
+  const stageInfo = STAGE_COPY[stage] ?? STAGE_COPY['first-meeting']!;
   
   // Update stage info
   const stageName = progressPanel.querySelector('.stage-name');
@@ -1418,8 +1417,8 @@ function _updateProgressPanel(): void {
   const stageDesc = progressPanel.querySelector('.stage-description');
   
   if (stageName) stageName.textContent = getTranslatedStageName(stage);
-  if (stageTagline) stageTagline.textContent = stageInfo?.tagline ?? 'Just getting started';
-  if (stageDesc) stageDesc.textContent = `"${stageInfo?.description ?? 'Every great friendship starts somewhere.'}"`;
+  if (stageTagline) stageTagline.textContent = t(stageInfo.taglineKey);
+  if (stageDesc) stageDesc.textContent = t('stageCelebration.quoted', { text: t(stageInfo.descriptionKey) });
   
   
   // Update progress
@@ -1431,12 +1430,14 @@ function _updateProgressPanel(): void {
     progressFill.style.width = `${Math.round(progress.progress * 100)}%`;
   }
   if (progressNext) {
-    progressNext.textContent = progress.nextStage ? `Next: ${getTranslatedStageName(progress.nextStage)}` : 'Max level!';
+    progressNext.textContent = progress.nextStage
+      ? t('stageCelebration.nextStage', { stage: getTranslatedStageName(progress.nextStage) })
+      : t('stageCelebration.maxLevel');
   }
   if (progressReq) {
     progressReq.textContent = progress.nextStage 
       ? progress.requirement 
-      : 'You have reached the deepest level of partnership.';
+      : t('stageCelebration.deepestLevel');
   }
   
   // Update stats
@@ -1469,16 +1470,14 @@ function getMemoryIcon(type: RelationshipMemory['type']): string {
   return icons[type] || ICONS.heart;
 }
 
-function formatDate(timestamp: string): string {
+function formatMemoryDate(timestamp: string): string {
   const date = new Date(timestamp);
-  const now = new Date();
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-  
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  return date.toLocaleDateString();
+  const diffDays = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return t('common.today');
+  if (diffDays < 7) return formatRelativeTime(date);
+  if (diffDays < 30) return tp('stageCelebration.weeksAgo', Math.floor(diffDays / 7));
+  return formatDate(date);
 }
 
 function escapeHtml(text: string): string {
@@ -1506,8 +1505,8 @@ function updateMemoriesDisplay(filterType: string): void {
   
   if (memories.length === 0) {
     const emptyMessage = filterType === 'all' 
-      ? 'Our memories will appear here as we journey together.'
-      : `No ${getFilterLabel(filterType).toLowerCase()} yet. Keep going!`;
+      ? t('stageCelebration.noMemories')
+      : t('stageCelebration.noMemoriesFiltered', { filter: getFilterLabel(filterType).toLocaleLowerCase(getLocale()) });
     
     memoriesList.innerHTML = `
       <div class="no-memories">
@@ -1522,7 +1521,7 @@ function updateMemoriesDisplay(filterType: string): void {
         <div class="memory-content">
           <p class="memory-title">${escapeHtml(mem.title)}</p>
           <p class="memory-description">${escapeHtml(mem.description)}</p>
-          <p class="memory-date">${formatDate(mem.timestamp)}</p>
+          <p class="memory-date">${formatMemoryDate(mem.timestamp)}</p>
         </div>
       </div>
     `).join('');
@@ -1533,15 +1532,15 @@ function updateMemoriesDisplay(filterType: string): void {
  * Get human-readable filter label
  */
 function getFilterLabel(filterType: string): string {
-  const labels: Record<string, string> = {
-    'all': 'All',
-    'stage-up': 'Milestones',
-    'streak-milestone': 'Streaks',
-    'insight': 'Insights',
-    'comeback': 'Returns',
-    'first-conversation': 'Firsts',
+  const labelKeys: Record<string, string> = {
+    'all': 'stages.all',
+    'stage-up': 'stages.celebrationMilestones',
+    'streak-milestone': 'stages.streaks',
+    'insight': 'stages.celebrationInsights',
+    'comeback': 'stageCelebration.filterReturns',
+    'first-conversation': 'stageCelebration.filterFirsts',
   };
-  return labels[filterType] || filterType;
+  return labelKeys[filterType] ? t(labelKeys[filterType]) : filterType;
 }
 
 // ============================================================================
