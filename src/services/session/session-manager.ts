@@ -15,6 +15,7 @@
  * @see ./session-manager/validation.ts - User ID validation
  */
 
+import { isRepeatTurn, type LastTurn } from './turn-dedupe.js';
 import type { SpeechCharacteristics } from '../../personas/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -377,6 +378,7 @@ export async function createSessionServices(
 
   // Create session-specific components
   const historyTracker = getHistoryTracker(sessionId, userId || 'anonymous');
+  let lastTurn: LastTurn | undefined;
   const contextManager = getContextManager(sessionId, userProfile || undefined);
 
   // Reset intelligence and tasks for new session
@@ -903,6 +905,10 @@ export async function createSessionServices(
     },
 
     addTurn: (role: 'user' | 'assistant', content: string, durationMs?: number) => {
+      // Two writers record each caller turn; keep one (turn-dedupe.ts).
+      const addedAt = Date.now();
+      if (isRepeatTurn(lastTurn, role, content, addedAt)) return;
+      lastTurn = { role, content, at: addedAt };
       const turn: ConversationTurn = {
         role,
         content,
