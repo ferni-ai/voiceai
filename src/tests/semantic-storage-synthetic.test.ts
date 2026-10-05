@@ -15,7 +15,12 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Import systems under test
-import { embed, cosineSimilarity, getEmbeddingProvider } from '../memory/embeddings.js';
+import {
+  embed,
+  cosineSimilarity,
+  LocalEmbeddings,
+  setEmbeddingProvider,
+} from '../memory/embeddings.js';
 import {
   findSimilarCached,
   storeInSemanticCache,
@@ -34,10 +39,13 @@ const SIMILARITY_THRESHOLD = 0.85; // What we consider "semantically similar"
 // Check if we have real embeddings (not local random vectors)
 const USE_REAL_EMBEDDINGS = !!process.env.GOOGLE_API_KEY || !!process.env.OPENAI_API_KEY;
 
-function isUsingLocalEmbeddings(): boolean {
-  const provider = getEmbeddingProvider();
-  return provider.model === 'local-random';
-}
+// Without an API key the tests that need real embeddings skip, and the rest
+// check only the shape of the vector, so they use local embeddings. Left to the
+// default, a GOOGLE_CLOUD_PROJECT alone (CI sets one, with no credentials)
+// selects Vertex AI and every embed() fails.
+beforeAll(() => {
+  if (!USE_REAL_EMBEDDINGS) setEmbeddingProvider(new LocalEmbeddings());
+});
 
 import { TEST_LLM_MODEL } from './test-llm-config.js';
 

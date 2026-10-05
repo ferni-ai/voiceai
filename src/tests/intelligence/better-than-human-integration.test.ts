@@ -13,8 +13,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock Firebase Admin before imports
 vi.mock('firebase-admin', () => {
+  // Reads resolve to "no document", as an empty Firestore would. A bare vi.fn()
+  // resolved to undefined, so the aggregators threw on `.exists` and dropped
+  // what the service mocks below return; the test only passed when it reached
+  // real Firestore with a developer's credentials.
   const mockDoc = {
-    get: vi.fn(),
+    get: vi.fn().mockResolvedValue({ exists: false, data: () => undefined }),
     set: vi.fn().mockResolvedValue(undefined),
     update: vi.fn().mockResolvedValue(undefined),
     collection: vi.fn(),
@@ -22,7 +26,7 @@ vi.mock('firebase-admin', () => {
 
   const mockCollection = {
     doc: vi.fn(() => mockDoc),
-    get: vi.fn(),
+    get: vi.fn().mockResolvedValue({ docs: [], empty: true }),
     add: vi.fn().mockResolvedValue({ id: 'test-id' }),
     where: vi.fn(() => ({
       get: vi.fn().mockResolvedValue({ docs: [] }),

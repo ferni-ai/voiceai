@@ -90,25 +90,32 @@ describe('Live Superhuman Injections', () => {
     const { buildLiveSuperhumanInjections } =
       await import('../agents/processors/live-superhuman-injections.js');
 
-    const result = await buildLiveSuperhumanInjections({
-      userId: 'test-user',
-      sessionId: 'test-session',
-      userText: "I'm going to start going to the gym, it's important to me to get healthy",
-      emotionalState: {
-        primary: 'determined',
-        secondary: undefined,
-        intensity: 0.7,
-        valence: 0.6,
-        distressLevel: 0.1,
-      },
-      analysis: {
-        intent: 'statement',
-        emotion: 'positive',
-        confidence: 0.8,
-        topics: ['health'],
-      },
-      turnCount: 5,
-    });
+    const build = () =>
+      buildLiveSuperhumanInjections({
+        userId: 'test-user',
+        sessionId: 'test-session',
+        userText: "I'm going to start going to the gym, it's important to me to get healthy",
+        emotionalState: {
+          primary: 'determined',
+          secondary: undefined,
+          intensity: 0.7,
+          valence: 0.6,
+          distressLevel: 0.1,
+        },
+        analysis: {
+          intent: 'statement',
+          emotion: 'positive',
+          confidence: 0.8,
+          topics: ['health'],
+        },
+        turnCount: 5,
+      });
+
+    // The first call loads its lazy imports (cold, since beforeEach resets the
+    // module registry): ~550ms of module loading, ~1-4ms of work. A live turn
+    // runs warm, so the real-time budget applies to the second call.
+    await build();
+    const result = await build();
 
     // Should have detected commitment and values
     expect(result.signals.commitmentDetected).toBe(true);

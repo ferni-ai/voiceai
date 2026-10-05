@@ -498,6 +498,8 @@ describe('Embeddings Module', () => {
     it('should get default provider (local when no API keys)', () => {
       vi.stubEnv('GOOGLE_API_KEY', '');
       vi.stubEnv('OPENAI_API_KEY', '');
+      // A project id alone selects Vertex AI (CI sets one for other tests).
+      vi.stubEnv('GOOGLE_CLOUD_PROJECT', '');
 
       const provider = getEmbeddingProvider();
       expect(provider.model).toBe('local-hash');

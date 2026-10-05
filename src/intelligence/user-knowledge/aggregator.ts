@@ -14,6 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getFirestoreDb } from './firestore-access.js';
 import type {
   UserKnowledge,
   IdentityKnowledge,
@@ -58,23 +59,6 @@ const CACHE_TTL_MS = 60 * 1000; // 1 minute cache
  */
 export function clearKnowledgeCache(userId: string): void {
   knowledgeCache.delete(userId);
-}
-
-// ============================================================================
-// FIRESTORE ACCESS
-// ============================================================================
-
-async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
-  try {
-    const admin = (await import('firebase-admin')).default;
-    if (admin.apps.length === 0) {
-      admin.initializeApp();
-    }
-    return admin.firestore();
-  } catch (error) {
-    log.debug({ error: String(error) }, 'Firestore not available');
-    return null;
-  }
 }
 
 // ============================================================================

@@ -282,6 +282,11 @@ describe('Memory Persistence', () => {
       const { initializeMemorySystem, shutdownMemorySystem, semanticSearch } =
         await import('../memory/index.js');
       const { createUserProfile } = await import('../types/user-profile.js');
+      // This test checks the pipeline, not embedding quality, so it uses local
+      // embeddings. Left to the default, a GOOGLE_CLOUD_PROJECT alone (CI sets
+      // one, with no credentials) selects Vertex AI and every embed() fails.
+      const { setEmbeddingProvider, LocalEmbeddings } = await import('../memory/embeddings.js');
+      setEmbeddingProvider(new LocalEmbeddings());
 
       // Initialize memory system
       const { store, vectorStore, usePersistentVectors } = await initializeMemorySystem({
