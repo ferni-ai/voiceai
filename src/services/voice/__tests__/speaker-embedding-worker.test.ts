@@ -150,16 +150,21 @@ describe('speaker embedding worker', () => {
     expect(warnings()[0]).toContain('SPEAKER_MODEL_SHA256 is not a sha256');
   });
 
-  it('the agent image downloads and checks the model the worker pins', () => {
-    const dockerfile = readFileSync(join(__dirname, '../../../../docker/Dockerfile.agent'), 'utf8');
-    const sha = PINNED_SPEAKER_MODEL_SHA256;
-    expect(dockerfile).toContain(`ARG SPEAKER_MODEL_SHA256=${sha}`);
-    expect(dockerfile).toContain(
-      `ARG SPEAKER_MODEL_URL=https://storage.googleapis.com/ferni-public-models/speaker/ecapa-tdnn-waveform-${sha.slice(0, 8)}.onnx`
-    );
-    expect(dockerfile).toContain('sha256sum -c /models/speaker/ecapa-tdnn-waveform.onnx.sha256');
-    expect(dockerfile).toMatch(
-      /ENV SPEAKER_MODEL_PATH=\/models\/speaker\/ecapa-tdnn-waveform\.onnx/
-    );
-  });
+  // The UI server image too: web enrollment runs there, and its prints must be
+  // embedded by the same model the agent verifies with.
+  it.each(['Dockerfile.agent', 'Dockerfile.ui'])(
+    '%s downloads and checks the model the worker pins',
+    (image) => {
+      const dockerfile = readFileSync(join(__dirname, '../../../../docker', image), 'utf8');
+      const sha = PINNED_SPEAKER_MODEL_SHA256;
+      expect(dockerfile).toContain(`ARG SPEAKER_MODEL_SHA256=${sha}`);
+      expect(dockerfile).toContain(
+        `ARG SPEAKER_MODEL_URL=https://storage.googleapis.com/ferni-public-models/speaker/ecapa-tdnn-waveform-${sha.slice(0, 8)}.onnx`
+      );
+      expect(dockerfile).toContain('sha256sum -c /models/speaker/ecapa-tdnn-waveform.onnx.sha256');
+      expect(dockerfile).toMatch(
+        /ENV SPEAKER_MODEL_PATH=\/models\/speaker\/ecapa-tdnn-waveform\.onnx/
+      );
+    }
+  );
 });
