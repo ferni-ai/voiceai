@@ -227,9 +227,12 @@ async function buildFirestoreGraphFallback(
     }
   }
 
-  for (const mention of entityMentions.slice(0, 2)) {
-    const knowledge = await whatDoWeKnowAbout(userId, mention.name);
-    const summary = summarizeEntityKnowledge(mention.name, knowledge);
+  const mentions = entityMentions.slice(0, 2);
+  const knowledgeByMention = await Promise.all(
+    mentions.map((mention) => whatDoWeKnowAbout(userId, mention.name))
+  );
+  for (const [i, mention] of mentions.entries()) {
+    const summary = summarizeEntityKnowledge(mention.name, knowledgeByMention[i]);
     if (summary) {
       injections.push(
         createStandardInjection('entity_context', summary, {
