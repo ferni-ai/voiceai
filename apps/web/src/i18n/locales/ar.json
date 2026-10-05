@@ -11227,7 +11227,8 @@
   },
   "entrance": {
     "helper": "المرشد الشخصي",
-    "connectToTalk": "تواصل"
+    "connectToTalk": "تواصل",
+    "endTalk": "إنهاء"
   },
   "teamHuddle": {
     "typeWeekly": "اطمئنان أسبوعي",

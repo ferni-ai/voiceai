@@ -10751,7 +10751,8 @@
   },
   "entrance": {
     "helper": "あなた専属のガイド",
-    "connectToTalk": "お話する"
+    "connectToTalk": "お話する",
+    "endTalk": "終了"
   },
   "teamHuddle": {
     "typeWeekly": "週に一度のチェックイン",

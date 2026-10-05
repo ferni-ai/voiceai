@@ -10751,7 +10751,8 @@
   },
   "entrance": {
     "helper": "Your personal guide",
-    "connectToTalk": "Connect"
+    "connectToTalk": "Connect",
+    "endTalk": "Disconnect"
   },
   "teamHuddle": {
     "typeWeekly": "Weekly Check-in",

@@ -10751,7 +10751,8 @@
   },
   "entrance": {
     "helper": "你的貼心嚮導",
-    "connectToTalk": "聊聊"
+    "connectToTalk": "聊聊",
+    "endTalk": "掛斷"
   },
   "teamHuddle": {
     "typeWeekly": "每週自我檢視",

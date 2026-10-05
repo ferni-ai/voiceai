@@ -10751,7 +10751,8 @@
   },
   "entrance": {
     "helper": "나만을 위한 다정한 가이드",
-    "connectToTalk": "대화해요"
+    "connectToTalk": "대화해요",
+    "endTalk": "대화 종료"
   },
   "teamHuddle": {
     "typeWeekly": "주간 체크인",

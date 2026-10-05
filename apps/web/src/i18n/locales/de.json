@@ -10751,7 +10751,8 @@
   },
   "entrance": {
     "helper": "Dein persönlicher Wegbegleiter",
-    "connectToTalk": "Verbinden"
+    "connectToTalk": "Verbinden",
+    "endTalk": "Auflegen"
   },
   "teamHuddle": {
     "typeWeekly": "Wöchentlicher Check-in",

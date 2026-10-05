@@ -10870,7 +10870,8 @@
   },
   "entrance": {
     "helper": "ליווי אישי צמוד",
-    "connectToTalk": "להתחבר"
+    "connectToTalk": "להתחבר",
+    "endTalk": "ניתוק"
   },
   "teamHuddle": {
     "typeWeekly": "צ'ק-אין שבועי",

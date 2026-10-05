@@ -10751,7 +10751,8 @@
   },
   "entrance": {
     "helper": "你的专属向导",
-    "connectToTalk": "连线"
+    "connectToTalk": "连线",
+    "endTalk": "挂断"
   },
   "teamHuddle": {
     "typeWeekly": "每周记录",
