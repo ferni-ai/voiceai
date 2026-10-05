@@ -116,8 +116,11 @@ function reminderFor(personaId = 'ferni', words = 'Transfer me to Maya.'): strin
 }
 
 /** The dev call's director note after the decline (398674483). */
-const DWELL_NOTE =
-  'They are dodging your questions about mornings; talk about why they want to escape to Maya instead.';
+// A director note that names a locked teammate without guessing motives. The dev
+// call's note ("…why they want to escape to Maya") is now dropped by the
+// director itself (#368's mind-reading rule); this one is only dropped by the
+// locked-teammate filter, which is what this test is about.
+const DWELL_NOTE = 'Suggest Maya for their mornings, since routines are her thing.';
 
 describe('teammates the caller has not unlocked (only Ferni and Peter)', () => {
   beforeAll(() => {
