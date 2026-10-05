@@ -13,17 +13,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import {
-  canPurchase,
-  COSMETICS_CATALOG,
-  equipCosmetic,
-  getEquippedCosmetics,
-  getOwnedCosmetics,
-  onCosmeticsChange,
-  purchaseCosmetic,
-  type CosmeticItem,
-  type CosmeticType,
-} from '../services/cosmetics.service.js';
+import { canPurchase, COSMETICS_CATALOG, equipCosmetic, getCosmeticName, getEquippedCosmetics, getOwnedCosmetics, onCosmeticsChange, purchaseCosmetic, type CosmeticItem, type CosmeticType } from '../services/cosmetics.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
@@ -608,7 +598,7 @@ function renderItems(): string {
             data-item-id="${item.id}"
           >
             ${renderPreview(item)}
-            <div class="personalize-item-name">${item.name}</div>
+            <div class="personalize-item-name">${getCosmeticName(item)}</div>
             <div class="personalize-item-type">${TYPE_LABELS[item.type]}</div>
             ${renderItemStatus(item, isOwned, isEquipped)}
             ${renderItemAction(item, isOwned, isEquipped, canBuy)}
