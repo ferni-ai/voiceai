@@ -81,8 +81,15 @@ export function words(text: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * A hummed "mm-hmm" in any spelling: STT writes it as "M M M.", "Mhmm",
+ * "Hmmm"... (Ink-2 gave "M M M." for every mm-hmm in 3 dev talk-over calls,
+ * 2026-10-04). Only m's and h's, so "mom" or "uh-uh" (a no) never match.
+ */
+const HUMMED = /^(?:m+h*m*|h+m+)$/;
+
 export function isBackchannel(ws: string[]): boolean {
-  return ws.length > 0 && ws.every((w) => BACKCHANNEL_WORDS.has(w));
+  return ws.length > 0 && ws.every((w) => BACKCHANNEL_WORDS.has(w) || HUMMED.test(w));
 }
 
 /**
