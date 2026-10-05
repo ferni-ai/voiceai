@@ -1136,7 +1136,7 @@ function createCelebrationOverlay(): void {
     <div class="celebration-card">
       <!-- Celebration Header -->
       <div class="celebration-icon">${ICONS.sparkles}</div>
-      <p class="celebration-eyebrow">Milestone reached</p>
+      <p class="celebration-eyebrow">${t('stages.milestoneReached')}</p>
       <h2 class="celebration-title" id="celebration-title"></h2>
       <p class="celebration-message"></p>
       
@@ -1158,8 +1158,8 @@ function createCelebrationOverlay(): void {
         <ul class="celebration-unlocks-list"></ul>
       </div>
       
-      <button aria-label="${t('accessibility.continueOurJourney')}" class="celebration-dismiss">
-        <span>Continue our journey</span>
+      <button aria-label="${t('stages.continueOurJourney')}" class="celebration-dismiss">
+        <span>${t('stages.continueOurJourney')}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="celebration-dismiss-icon"><path d="m9 18 6-6-6-6"/></svg>
       </button>
     </div>
@@ -1270,8 +1270,8 @@ function createProgressPanel(): void {
     <div class="journey-card">
       <header class="journey-header">
         <div class="journey-header-text">
-          <span class="journey-eyebrow">Your journey</span>
-          <h2 class="journey-title" id="journey-title">Growing together</h2>
+          <span class="journey-eyebrow">${t('stages.yourJourney')}</span>
+          <h2 class="journey-title" id="journey-title">${t('stages.growingTogether')}</h2>
         </div>
         <button class="journey-close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
@@ -1280,7 +1280,7 @@ function createProgressPanel(): void {
         <section class="current-stage-section">
           <div class="stage-icon">${ICONS.leaf}</div>
           <div class="stage-info">
-            <p class="stage-label">Current stage</p>
+            <p class="stage-label">${t('journey.currentStage')}</p>
             <p class="stage-name"></p>
             <p class="stage-tagline"></p>
           </div>
@@ -1291,7 +1291,7 @@ function createProgressPanel(): void {
         <!-- Progress -->
         <section class="progress-section">
           <div class="progress-header">
-            <span class="progress-label">Progress to next stage</span>
+            <span class="progress-label">${t('stages.progressToNext')}</span>
             <span class="progress-next"></span>
           </div>
           <div class="progress-bar">
@@ -1305,17 +1305,17 @@ function createProgressPanel(): void {
           <div class="stat-card">
             <div class="stat-icon">${ICONS.messageCircle}</div>
             <p class="stat-value conversations-count">0</p>
-            <p class="stat-label">Conversations</p>
+            <p class="stat-label">${t('stages.conversations')}</p>
           </div>
           <div class="stat-card">
             <div class="stat-icon">${ICONS.calendar}</div>
             <p class="stat-value days-together">0</p>
-            <p class="stat-label">Days together</p>
+            <p class="stat-label">${t('stages.daysTogether')}</p>
           </div>
           <div class="stat-card">
             <div class="stat-icon">${ICONS.trophy}</div>
             <p class="stat-value current-streak">0</p>
-            <p class="stat-label">Day streak</p>
+            <p class="stat-label">${t('stages.dayStreak')}</p>
           </div>
         </div>
         
@@ -1323,13 +1323,13 @@ function createProgressPanel(): void {
         <section class="memories-section">
           <div class="memories-header">
             <span class="memories-icon">${ICONS.sparkles}</span>
-            <h3 class="memories-title">Moments we share</h3>
+            <h3 class="memories-title">${t('stages.momentsShare')}</h3>
           </div>
           <div class="memories-filters">
-            <button aria-label="${t('accessibility.all')}" class="memory-filter memory-filter--active" data-filter="all">All</button>
-            <button aria-label="${t('accessibility.milestones')}" class="memory-filter" data-filter="stage-up">Milestones</button>
-            <button aria-label="${t('accessibility.streaks')}" class="memory-filter" data-filter="streak-milestone">Streaks</button>
-            <button aria-label="${t('accessibility.insights')}" class="memory-filter" data-filter="insight">Insights</button>
+            <button aria-label="${t('stages.all')}" class="memory-filter memory-filter--active" data-filter="all">${t('stages.all')}</button>
+            <button aria-label="${t('stages.celebrationMilestones')}" class="memory-filter" data-filter="stage-up">${t('stages.celebrationMilestones')}</button>
+            <button aria-label="${t('stages.streaks')}" class="memory-filter" data-filter="streak-milestone">${t('stages.streaks')}</button>
+            <button aria-label="${t('stages.celebrationInsights')}" class="memory-filter" data-filter="insight">${t('stages.celebrationInsights')}</button>
           </div>
           <div class="memories-list"></div>
         </section>
