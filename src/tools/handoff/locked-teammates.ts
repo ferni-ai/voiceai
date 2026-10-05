@@ -4,7 +4,7 @@
  * Handoff tools for locked teammates are kept out of the request
  * (locked-handoffs.ts), but Ferni's character sheet names the whole team
  * ("Peter, Maya, Alex, Jordan and Nayan"), so the model knew Maya and not that
- * she was locked. Dev call 2026-10-05 (BYPASS_TEAM_UNLOCKS=peter-john): Ferni
+ * Maya was locked. Dev call 2026-10-05 (BYPASS_TEAM_UNLOCKS=peter-john): Ferni
  * offered "my colleague Maya", the caller said "Transfer me to Maya", and with
  * no handoff to Maya Ferni called connectToHumanExpert, the nearest tool left,
  * and said "I'm getting Maya on the line for you right now". The per-turn team
@@ -13,9 +13,11 @@
  *
  * So every request carries the lock state, from the same unlock view that
  * filters the handoff tools (turn-request.ts):
- * - teamStatusNote(): one line on the caller's turn naming who isn't on their
- *   team yet. Ferni never brings them up unprompted (even "she's not on your
- *   team yet" is an upsell nudge) and never promises a transfer;
+ * - teamStatusNote(): a line on the caller's turn. It names a locked teammate
+ *   only on a turn whose words name one; otherwise it names who IS on the
+ *   caller's team and says not to bring up the others. Locked teammates never
+ *   come up unprompted (even "not on your team yet" is an upsell nudge), and
+ *   no transfer is promised;
  * - askForTeammate: one tool, not a handoff per locked teammate (tool count is
  *   request cost, docs/perf/llm-request-cost.md), for when the caller asks for
  *   one anyway. Its result is the warm decline; it connects no one.
@@ -101,16 +103,54 @@ function nameList(names: string[]): string {
     : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
-/** The line each request carries while some teammates are locked; '' when none are. */
-export function teamStatusNote(view: UnlockView): string {
-  const locked = lockedTeammates(view).map((m) => m.displayName);
+/** The teammates in `members` the caller's words name ("Maya", "maya santos"): whole words only. */
+export function teammatesNamedIn(text: string, members: TeamMemberUnlock[]): TeamMemberUnlock[] {
+  const words = new Set(text.toLowerCase().match(/[a-z]+/g) ?? []);
+  return members.filter((m) => words.has(m.displayName.toLowerCase()));
+}
+
+/**
+ * The team line for one request; '' when no teammate is locked.
+ *
+ * Locked teammates are named only on a turn whose words name one: on every
+ * request, the names kept Maya in mind after the decline, and the next reply
+ * asked why the caller wanted Maya instead of answering (dev, 2026-10-05,
+ * 398674483). Other turns get one line that names no locked teammate.
+ */
+export function teamStatusNote(view: UnlockView, callerWords = ''): string {
+  const locked = lockedTeammates(view);
   if (locked.length === 0) return '';
-  const names = nameList(locked);
-  return (
-    `Not on this caller's team yet: ${names}. You can't bring ${locked.length > 1 ? 'them' : names} in. ` +
-    "Don't bring them up yourself, not even to say they aren't available; talk about them only if the caller asks for one by name. " +
-    "Then say warmly and briefly that they aren't on the caller's team yet and help them yourself. Never offer, promise or start a transfer to them."
-  );
+  const asked = teammatesNamedIn(callerWords, locked).map((m) => m.displayName);
+  if (asked.length > 0) {
+    const names = nameList(asked);
+    return (
+      `${names} ${asked.length > 1 ? "aren't" : "isn't"} on this caller's team yet, so you can't bring ${asked.length > 1 ? 'them' : names} in. ` +
+      'Say so warmly and briefly, help them yourself, and never offer, promise or start a transfer.'
+    );
+  }
+  const open = TEAM_MEMBERS.filter(
+    (m) => !isSpeaker(m.memberId, view) && isOpen(m.memberId, view)
+  ).map((m) => m.displayName);
+  return open.length > 0
+    ? `Of your teammates, only ${nameList(open)} ${open.length > 1 ? 'are' : 'is'} on this caller's team; don't bring up the others.`
+    : "None of your teammates are on this caller's team yet; don't bring them up.";
+}
+
+/**
+ * Director notes for this reply, without any that name a locked teammate the
+ * caller didn't just ask for. The 398674483 dev call: after the decline the
+ * director wrote "talk about why they want to escape to Maya instead", and the
+ * next reply did, instead of answering the caller's question.
+ */
+export function withoutLockedTeammateNotes(
+  notes: string[],
+  view: UnlockView,
+  callerWords = ''
+): string[] {
+  const locked = lockedTeammates(view);
+  const asked = new Set(teammatesNamedIn(callerWords, locked));
+  const unasked = locked.filter((m) => !asked.has(m));
+  return notes.filter((note) => teammatesNamedIn(note, unasked).length === 0);
 }
 
 /** How the caller would meet a locked core teammate, if the unlock rules say. */
@@ -155,7 +195,8 @@ export async function answerTeammateRequest(
       `${displayName} isn't on this caller's team yet, so nobody is being connected. ` +
       `Tell them that warmly in a sentence, without saying you're getting or connecting ${displayName}, ` +
       'and offer to help with it yourself right now. Say how they would meet ' +
-      `${displayName} only if they ask; no pushing.`,
+      `${displayName} only if they ask; no pushing. ` +
+      "Then help with what they asked; don't bring this up again unless they do.",
     ...(member ? { how_to_meet: howToMeet(member, view) } : {}),
   };
 }

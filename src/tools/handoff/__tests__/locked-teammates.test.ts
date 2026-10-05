@@ -24,6 +24,7 @@ import { toolsForTurn, withTurnReminder } from '../../../agents/personas/turn-re
 import { capToolsToLimit, getMaxTools } from '../../../config/tool-config.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { executeHandoff } from '../executor.js';
+import { Director, setDirector } from '../../../agents/personas/director-notes.js';
 import { ASK_FOR_TEAMMATE_DESCRIPTION } from '../locked-teammates.js';
 
 const profile = { subscription: { tier: 'free' } } as unknown as UserProfile;
@@ -103,15 +104,20 @@ async function dispatch(
   return result;
 }
 
-/** What the model is told on the caller's turn. */
-function reminderFor(personaId = 'ferni'): string {
-  const chat = llm.ChatContext.empty();
-  chat.addMessage({ role: 'user', content: 'Transfer me to Maya.' });
-  const sent = withTurnReminder(chat, { userData: userDataFor(personaId) }).items.at(
-    -1
-  ) as llm.ChatMessage;
-  return sent.textContent ?? '';
+/** What the model is told on the caller's turn (crisis-gate.ts sends every reply through this). */
+function sentText(chat: llm.ChatContext, session: object): string {
+  return (withTurnReminder(chat, session).items.at(-1) as llm.ChatMessage).textContent ?? '';
 }
+
+function reminderFor(personaId = 'ferni', words = 'Transfer me to Maya.'): string {
+  const chat = llm.ChatContext.empty();
+  chat.addMessage({ role: 'user', content: words });
+  return sentText(chat, { userData: userDataFor(personaId) });
+}
+
+/** The dev call's director note after the decline (398674483). */
+const DWELL_NOTE =
+  'They are dodging your questions about mornings; talk about why they want to escape to Maya instead.';
 
 describe('teammates the caller has not unlocked (only Ferni and Peter)', () => {
   beforeAll(() => {
@@ -119,16 +125,69 @@ describe('teammates the caller has not unlocked (only Ferni and Peter)', () => {
     process.env['BYPASS_TEAM_UNLOCKS'] = 'peter-john';
   });
 
-  it("names who isn't on the caller's team, and says not to bring them up unprompted", () => {
-    const text = reminderFor();
-    expect(text).toContain("Not on this caller's team yet: Maya, Alex, Jordan and Nayan.");
-    expect(text).toContain("Don't bring them up yourself, not even to say they aren't available");
-    expect(text).toContain('only if the caller asks for one by name');
-    expect(text).toMatch(/Never offer, promise or start a transfer/);
-    expect(text).not.toMatch(/Not on this caller's team yet:[^.]*Peter/);
+  it('names a locked teammate only on the turn the caller names one', () => {
+    const asked = reminderFor('ferni', 'Transfer me to Maya.');
+    expect(asked).toContain("Maya isn't on this caller's team yet, so you can't bring Maya in.");
+    expect(asked).toMatch(/never offer, promise or start a transfer/);
+    expect(asked).not.toMatch(/Alex|Jordan|Nayan/);
+    // Any other turn names no locked teammate, and says not to bring them up.
+    const other = reminderFor('ferni', 'I really want to work on my morning habits.');
+    expect(other).toContain(
+      "Of your teammates, only Peter is on this caller's team; don't bring up the others."
+    );
+    expect(other).not.toMatch(/Maya|Alex|Jordan|Nayan/);
+    // Whole names only: "Mayan ruins" names no one.
+    expect(reminderFor('ferni', 'Tell me about Mayan ruins.')).not.toContain("Maya isn't");
     expect(ASK_FOR_TEAMMATE_DESCRIPTION).toContain('Never bring those teammates up yourself');
     expect(ASK_FOR_TEAMMATE_DESCRIPTION).toContain("don't call this unless the caller named one");
   });
+
+  it("after the decline, the next request is about the caller's question, not Maya", async () => {
+    const agent = await agentFor();
+    const session = { userData: userDataFor() };
+    const chat = llm.ChatContext.empty();
+    chat.addMessage({ role: 'user', content: 'I really want to work on my morning habits.' });
+    chat.addMessage({ role: 'assistant', content: 'Mornings are a puzzle. What gets in the way?' });
+    chat.addMessage({ role: 'user', content: 'Transfer me to Maya.' });
+    const asked = sentText(chat, session);
+    expect(asked).toContain('Maya');
+    expect(asked).toMatch(/team yet/);
+
+    // The call the model made, run by the SDK, and the decline it spoke.
+    const decline = await dispatch(agent, 'askForTeammate', { name: 'Maya' });
+    expect(decline.output).toMatch(
+      /Then help with what they asked; don't bring this up again unless they do\."\}$/
+    );
+    chat.insert([
+      llm.FunctionCall.create({ callId: 'c1', name: 'askForTeammate', args: '{"name":"Maya"}' }),
+      llm.FunctionCallOutput.create({
+        callId: 'c1',
+        name: 'askForTeammate',
+        output: decline.output,
+        isError: false,
+      }),
+    ]);
+    chat.addMessage({
+      role: 'assistant',
+      content: "Maya isn't on your team yet, but I'm right here.",
+    });
+    chat.addMessage({ role: 'user', content: 'Okay, then what would you suggest I start with?' });
+
+    // The director's note after the decline, as on the dev call.
+    const director = new Director({ sessionId: 's', writer: async () => DWELL_NOTE });
+    await director.observe([
+      { speaker: 'user', text: 'Transfer me to Maya.' },
+      { speaker: 'ferni', text: "Maya isn't on your team yet, but I'm right here." },
+    ]);
+    expect(director.current()).toEqual([DWELL_NOTE]); // the note exists...
+    setDirector(session, director);
+    const next = sentText(chat, session);
+    setDirector(session, null);
+    expect(next).toContain('what would you suggest I start with?');
+    expect(next).not.toContain('Maya'); // ...and doesn't reach the follow-up
+    expect(next).not.toContain("isn't on this caller's team");
+    expect(next).not.toContain('[Director:');
+  }, 60_000);
 
   it("sends the agent's own askForTeammate, and Peter as the only handoff", async () => {
     const agent = await agentFor();
@@ -169,12 +228,14 @@ describe('teammates the caller has not unlocked (only Ferni and Peter)', () => {
     );
   }, 60_000);
 
-  it("from Peter: the hand-back to Ferni stays, Peter isn't offered to himself", async () => {
+  it('from Peter: the hand-back to Ferni stays, and no handoff from Peter to Peter', async () => {
     const agent = await agentFor('peter-john');
     const tools = await requestTools(agent, 'peter-john');
     expect(tools.functionTools['handoffToFerni']).toBeDefined();
     expect(tools.functionTools['handoffToPeter']).toBeUndefined();
-    expect(reminderFor('peter-john')).not.toMatch(/team yet:[^.]*Peter/);
+    expect(reminderFor('peter-john', 'Hi there.')).toContain(
+      "Of your teammates, only Ferni is on this caller's team"
+    );
     const result = await dispatch(agent, 'askForTeammate', { name: 'Maya' }, 'peter-john');
     expect(result.output).toContain("Maya isn't on this caller's team yet");
   }, 60_000);

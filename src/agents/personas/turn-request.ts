@@ -11,7 +11,7 @@ import { TransformStream, type ReadableStream } from 'node:stream/web';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getBargeInFastPath } from '../multi-agent/barge-in-fastpath.js';
-import { withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
+import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
 import {
   getTurnToolRetrieval,
   latestUserText,
@@ -21,6 +21,7 @@ import { withoutLockedHandoffs } from '../../tools/handoff/locked-handoffs.js';
 import {
   teamStatusNote,
   unlockViewFor,
+  withoutLockedTeammateNotes,
   withTeammateAsk,
 } from '../../tools/handoff/locked-teammates.js';
 import type { Caption } from './caption-filter.js';
@@ -48,23 +49,41 @@ export interface TurnToolsState {
 
 /**
  * A copy of the context with the turn reminder, plus what Ferni has already
- * told on this call, who isn't on the caller's team yet, and the director's
+ * told on this call, the team line (locked-teammates.ts), and the director's
  * notes for this reply, if any, and without per-turn context built for an
  * earlier turn (turn-intelligence.ts).
  */
 export function withTurnReminder(request: llm.ChatContext, session: object): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
   const director = getDirector(session);
-  const notes = formatNotes(director?.current() ?? []);
+  const view = unlockViewFor((session as { userData?: unknown }).userData);
+  const words = callerWords(chatCtx);
+  // Nothing steers back to a locked teammate the caller didn't just name.
+  const keep = (text: string): boolean =>
+    withoutLockedTeammateNotes([text], view, words).length > 0;
+  const notes = formatNotes((director?.current() ?? []).filter(keep));
   const reminder = [
     turnStyleReminderEnabled() ? TURN_STYLE_REMINDER : '',
-    director?.told() ?? '',
-    teamStatusNote(unlockViewFor((session as { userData?: unknown }).userData)),
+    director?.told(keep) ?? '',
+    teamStatusNote(view, words),
     notes,
   ]
     .filter(Boolean)
     .join(' ');
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+}
+
+/** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */
+function callerWords(chatCtx: llm.ChatContext): string {
+  const said: string[] = [];
+  for (let i = chatCtx.items.length - 1; i >= 0; i--) {
+    const item = chatCtx.items[i];
+    if (item.type !== 'message') continue; // tool calls and outputs of this turn
+    if (item.role === 'assistant') break;
+    const text = item.textContent ?? '';
+    if (item.role === 'user' && !text.startsWith(TURN_CONTEXT_HEADER)) said.unshift(text);
+  }
+  return said.join(' ');
 }
 
 // Re-exported for callers that read the unlock view from a session.
