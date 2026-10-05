@@ -127,7 +127,7 @@ export async function handleSpotifyRoutes(
       return true;
     }
 
-    spotifyOAuth.saveTokens(stateData.device_id, tokens);
+    await spotifyOAuth.saveTokens(stateData.device_id, tokens);
     log.info('Spotify linked successfully');
     res.writeHead(302, { Location: stateData.return_url + '?spotify_linked=true' });
     res.end();

@@ -34,7 +34,9 @@ async function serve(options: { verifiedUid?: string; parseJson: boolean }): Pro
   if (options.parseJson) app.use(express.json());
   app.use('/api/group', groupConversationRoutes);
   server = http.createServer(app);
-  await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => {
+    server?.listen(0, '127.0.0.1', resolve);
+  });
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/group`;
 }
 
