@@ -247,6 +247,9 @@ async function handleWebhook(ctx: RequestContext): Promise<ResponseContext> {
  * GET /api/apple/account-token
  * The appAccountToken for the signed-in user. The iOS app passes it to StoreKit
  * at purchase, which binds the purchase to this account (see apple-signed-data).
+ * 503 while the server can't verify purchases (POST /api/apple/verify would
+ * refuse them): the app buys only with this token, so nobody is charged for a
+ * purchase we can't record.
  */
 // eslint-disable-next-line @typescript-eslint/require-await
 async function getAccountToken(ctx: RequestContext): Promise<ResponseContext> {
@@ -256,6 +259,9 @@ async function getAccountToken(ctx: RequestContext): Promise<ResponseContext> {
       headers: { 'Content-Type': 'application/json' },
       body: { error: 'Authentication required' },
     };
+  }
+  if (!isAppleConfigured() || !getAppleVerifier()) {
+    return jsonError(503, "Purchases aren't available yet");
   }
   return {
     status: 200,

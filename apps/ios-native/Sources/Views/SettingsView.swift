@@ -8,6 +8,7 @@ struct SettingsView: View {
     @EnvironmentObject var session: IOSLiveKitSession
     @EnvironmentObject var relationshipService: RelationshipArcService
     @EnvironmentObject var authService: AuthService
+    @ObservedObject private var subscriptions = SubscriptionService.shared
     @Environment(\.dismiss) var dismiss
 
     @AppStorage("useCloudMode") private var useCloudMode = true
@@ -128,6 +129,20 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
                 } header: {
                     Text("Current Guide")
+                }
+
+                // Your plan: quiet, below everything that matters more
+                Section {
+                    NavigationLink {
+                        YourPlanView()
+                    } label: {
+                        HStack {
+                            Text("Your plan")
+                            Spacer()
+                            Text(subscriptions.currentTier.displayName)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
 
                 // About Section

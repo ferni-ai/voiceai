@@ -13,7 +13,7 @@
 import { ReadableStream } from 'node:stream/web';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { VOICE_IDS } from '../../../../config/voice-ids.js';
+import { LESTER_PRO_V3_VOICE_ID } from '../../../../config/voice-ids.js';
 import {
   clearReplyAudioPlan,
   mergeReplyAudioPlan,
@@ -69,7 +69,7 @@ async function reply(
         c.close();
       },
     }),
-    voiceId: VOICE_IDS.FERNI,
+    voiceId: LESTER_PRO_V3_VOICE_ID,
     sessionId: SESSION,
     personaId: 'ferni',
     turnContext: { turnNumber: 3, userRequest: 'hi' },

@@ -96,7 +96,7 @@ const DEFAULT_FLAGS: VoiceHumanizationFlags = {
   // Phase 3: Enable by default (new)
   enableRhythmMirroring: true,
   enableEmotionalContagion: true,
-  enableEnhancedVoiceFingerprinting: true, // Uses ferni-speaker native module
+  enableEnhancedVoiceFingerprinting: true, // Neural speaker embeddings when the model is available
   enableVoiceAuthentication: true, // Enable voice enrollment & verification
 
   // Phase 4: Advanced Audio Intelligence - MONITORING ONLY
