@@ -67,15 +67,24 @@ interface MessageView {
   textContent?: string;
 }
 
-/** The caller's words this reply answers, and their earlier messages, oldest first. */
-function callerWords(chatCtx: llm.ChatContext): { latest: string; earlier: string[] } {
+/**
+ * The caller's words this reply answers, their earlier messages (oldest
+ * first), and what Ferni said just before: the line those words answer.
+ */
+function callerWords(chatCtx: llm.ChatContext): {
+  latest: string;
+  earlier: string[];
+  companion?: string;
+} {
   const said: string[] = [];
   const latest: string[] = [];
+  let companion: string | undefined;
   let answering = true;
   for (let i = chatCtx.items.length - 1; i >= 0; i--) {
     const item = chatCtx.items[i] as MessageView;
     if (item.type !== 'message') continue;
     if (item.role === 'assistant') {
+      if (answering) companion = item.textContent?.trim() || undefined;
       answering = false;
       continue;
     }
@@ -83,7 +92,7 @@ function callerWords(chatCtx: llm.ChatContext): { latest: string; earlier: strin
     if (item.role !== 'user' || !text || text.startsWith(TURN_CONTEXT_HEADER)) continue;
     (answering ? latest : said).unshift(text);
   }
-  return { latest: latest.join(' '), earlier: said };
+  return { latest: latest.join(' '), earlier: said, companion };
 }
 
 export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
@@ -105,7 +114,7 @@ export function startCrisisGate(
 ): CrisisGateTurn | null {
   const { env = process.env, generate } = options;
   if (resolveCrisisGuardMode(env) !== 'live') return null;
-  const { latest, earlier } = callerWords(chatCtx);
+  const { latest, earlier, companion } = callerWords(chatCtx);
   if (!latest) return null;
 
   const voiceEmotion = (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)
@@ -123,7 +132,7 @@ export function startCrisisGate(
 
   const pattern =
     decision.action === 'replace' ? 'block' : decision.action === 'guide' ? 'crisis' : 'none';
-  const run = startCrisisClassifier({ latest, earlier }, { pattern, env, generate });
+  const run = startCrisisClassifier({ latest, earlier, companion }, { pattern, env, generate });
   if (run?.mode !== 'live' || decision.action === 'replace') return { decision, escalation: null };
 
   const escalation = run.verdict.then((verdict): CrisisGateDecision | null => {
