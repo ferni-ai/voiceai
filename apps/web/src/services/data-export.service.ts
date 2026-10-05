@@ -12,6 +12,7 @@
  * - Clearing localStorage (frontend-only data)
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { clearAllUserData, exportLocalStorage } from '../config/storage-keys.js';
@@ -40,6 +41,31 @@ export interface ExportData {
 }
 
 /**
+ * Category ids are what the server knows them by, so they are sent back unchanged;
+ * only the description shown to the user is localized.
+ */
+const CATEGORY_DESCRIPTION_KEYS: Record<string, string> = {
+  Conversations: 'dataExportService.categoryConversations',
+  Insights: 'dataExportService.categoryInsights',
+  Rituals: 'dataExportService.categoryRituals',
+  Predictions: 'dataExportService.categoryPredictions',
+  'Mood History': 'dataExportService.categoryMoodHistory',
+  Profile: 'dataExportService.categoryProfile',
+  Contacts: 'dataExportService.categoryContacts',
+  'Trust Journey': 'dataExportService.categoryTrustJourney',
+  Wellbeing: 'dataExportService.categoryWellbeing',
+  Habits: 'dataExportService.categoryHabits',
+  Productivity: 'dataExportService.categoryProductivity',
+};
+
+function localizeCategories(categories: ExportableCategory[]): ExportableCategory[] {
+  return categories.map((c) => {
+    const key = CATEGORY_DESCRIPTION_KEYS[c.category];
+    return key ? { ...c, description: t(key) } : c;
+  });
+}
+
+/**
  * A data-rights request that did not happen. `message` is safe to show the user.
  */
 export class DataRightsError extends Error {
@@ -61,11 +87,11 @@ export function dataRightsErrorMessage(err: unknown, fallback: string): string {
  * The server binds export and delete to the verified Firebase token, never to an
  * id the client names, so there is nothing to do without one.
  */
-async function requireSignedIn(action: string): Promise<void> {
+async function requireSignedIn(message: string): Promise<void> {
   await initAuth().catch(() => undefined);
   const token = await getAuthToken();
   if (!token) {
-    throw new DataRightsError('not_signed_in', `Sign in to ${action}.`);
+    throw new DataRightsError('not_signed_in', message);
   }
 }
 
@@ -80,7 +106,7 @@ class DataExportService {
    */
   async exportData(format: 'json' | 'csv', categories: string[]): Promise<void> {
     log.info('Starting data export', { format, categories });
-    await requireSignedIn('download your data');
+    await requireSignedIn(t('dataExportService.signInToDownload'));
 
     try {
       const response = await apiFetch('/api/export', {
@@ -91,7 +117,7 @@ class DataExportService {
 
       if (!response.ok) {
         log.error('Export request failed', { status: response.status });
-        throw new DataRightsError('server', "Couldn't export your data. Try again?");
+        throw new DataRightsError('server', t('dataExportService.exportFailed'));
       }
 
       // Get the exported data as blob
@@ -131,7 +157,7 @@ class DataExportService {
    */
   async deleteAllData(): Promise<void> {
     log.warn('Starting data deletion');
-    await requireSignedIn('delete your data');
+    await requireSignedIn(t('dataExportService.signInToDeleteData'));
 
     const response = await apiFetch('/api/export/all', {
       method: 'DELETE',
@@ -144,10 +170,7 @@ class DataExportService {
 
     if (!response?.ok) {
       log.error('Server refused data deletion', { status: response?.status });
-      throw new DataRightsError(
-        'server',
-        "Couldn't delete your data. Nothing was removed. Try again?"
-      );
+      throw new DataRightsError('server', t('dataExportService.deleteDataFailed'));
     }
 
     this.clearLocalData();
@@ -162,7 +185,7 @@ class DataExportService {
    */
   async deleteAccount(): Promise<string | null> {
     log.warn('Starting account deletion');
-    await requireSignedIn('delete your account');
+    await requireSignedIn(t('dataExportService.signInToDeleteAccount'));
 
     const response = await apiFetch('/api/account', {
       method: 'DELETE',
@@ -181,7 +204,7 @@ class DataExportService {
 
     if (!result?.success) {
       log.error('Server did not confirm account deletion', { status: response?.status });
-      throw new DataRightsError('server', "Couldn't delete your account. Try again?");
+      throw new DataRightsError('server', t('dataExportService.deleteAccountFailed'));
     }
 
     this.clearLocalData();
@@ -192,7 +215,7 @@ class DataExportService {
     const failures = result.details?.failures;
     if (Array.isArray(failures) && failures.length > 0) {
       log.warn('Account deleted, but some records were left', { failures });
-      return "Your account is deleted, but a few records didn't clear. Contact us to finish.";
+      return t('dataExportService.accountDeletedPartial');
     }
     log.info('Account deleted');
     return null;
@@ -221,7 +244,7 @@ class DataExportService {
       }
 
       const data = await response.json();
-      return data.categories || this.getDefaultCategories();
+      return data.categories ? localizeCategories(data.categories) : this.getDefaultCategories();
     } catch (err) {
       log.warn('Error fetching categories', err);
       return this.getDefaultCategories();
@@ -232,74 +255,14 @@ class DataExportService {
    * Default categories when API is unavailable.
    */
   private getDefaultCategories(): ExportableCategory[] {
-    return [
-      {
-        category: 'Conversations',
-        description: 'All conversation transcripts and metadata',
+    return localizeCategories(
+      Object.keys(CATEGORY_DESCRIPTION_KEYS).map((category) => ({
+        category,
+        description: '',
         itemCount: 0,
         exportable: true,
-      },
-      {
-        category: 'Insights',
-        description: 'What Ferni has learned about you',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Rituals',
-        description: 'Daily practice history and streaks',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Predictions',
-        description: 'Your predictions and outcomes',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Mood History',
-        description: 'Emotional weather records',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Profile',
-        description: 'Your profile and preferences',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Contacts',
-        description: 'Your people and relationships',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Trust Journey',
-        description: 'Your growth, boundaries, and shared moments',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Wellbeing',
-        description: 'Wellness snapshots and trends',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Habits',
-        description: "Maya's habit coaching data",
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Productivity',
-        description: 'Tasks, notes, and journal entries',
-        itemCount: 0,
-        exportable: true,
-      },
-    ];
+      }))
+    );
   }
 
   // ============================================================================
