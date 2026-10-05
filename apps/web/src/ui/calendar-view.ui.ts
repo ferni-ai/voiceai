@@ -2603,7 +2603,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__practice-day--today .calendar-view__practice-day-name {
-        color: var(--color-jordan, #c4856a);
+        color: color-mix(in srgb, var(--color-jordan, #c4856a) 70%, black);
       }
 
       .calendar-view__practice-day-num {
@@ -2613,7 +2613,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__practice-day--today .calendar-view__practice-day-num {
-        color: var(--color-jordan, #c4856a);
+        color: color-mix(in srgb, var(--color-jordan, #c4856a) 70%, black);
         font-weight: var(--font-weight-bold, 700);
       }
 
