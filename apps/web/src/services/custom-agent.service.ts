@@ -535,7 +535,7 @@ const VOICE_LIBRARY: PreMadeVoice[] = [
   {
     id: 'cartesia-friendly-female',
     name: 'Emma',
-    description: 'Warm and friendly voice, perfect for supportive conversations',
+    description: 'voiceLibrary.emma.description',
     previewUrl: '/assets/voice-previews/emma.mp3',
     gender: 'female',
     age: 'middle',
@@ -544,7 +544,7 @@ const VOICE_LIBRARY: PreMadeVoice[] = [
   {
     id: 'cartesia-professional-male',
     name: 'James',
-    description: 'Clear and professional voice, ideal for mentors and advisors',
+    description: 'voiceLibrary.james.description',
     previewUrl: '/assets/voice-previews/james.mp3',
     gender: 'male',
     age: 'mature',
@@ -553,7 +553,7 @@ const VOICE_LIBRARY: PreMadeVoice[] = [
   {
     id: 'cartesia-gentle-female',
     name: 'Sarah',
-    description: 'Gentle and soothing voice, great for legacy personas',
+    description: 'voiceLibrary.sarah.description',
     previewUrl: '/assets/voice-previews/sarah.mp3',
     gender: 'female',
     age: 'mature',
@@ -562,7 +562,7 @@ const VOICE_LIBRARY: PreMadeVoice[] = [
   {
     id: 'cartesia-energetic-male',
     name: 'Alex',
-    description: 'Energetic and motivating voice, perfect for coaches',
+    description: 'voiceLibrary.alex.description',
     previewUrl: '/assets/voice-previews/alex.mp3',
     gender: 'male',
     age: 'young',
@@ -571,7 +571,7 @@ const VOICE_LIBRARY: PreMadeVoice[] = [
   {
     id: 'cartesia-calm-neutral',
     name: 'Morgan',
-    description: 'Calm and balanced voice, suitable for any persona type',
+    description: 'voiceLibrary.morgan.description',
     previewUrl: '/assets/voice-previews/morgan.mp3',
     gender: 'neutral',
     age: 'middle',
@@ -609,8 +609,8 @@ export interface AgentTypeInfo {
 const AGENT_TYPES: AgentTypeInfo[] = [
   {
     id: 'legacy',
-    name: 'Legacy',
-    description: 'Preserve the voice and wisdom of someone you cherish',
+    name: 'agentTypes.legacy.name',
+    description: 'agentTypes.legacy.description',
     icon: 'heart',
     features: [
       'Voice cloning from recordings',
@@ -626,8 +626,8 @@ const AGENT_TYPES: AgentTypeInfo[] = [
   },
   {
     id: 'mentor',
-    name: 'Mentor',
-    description: 'Create a coach based on an inspiring figure or expert',
+    name: 'agentTypes.mentor.name',
+    description: 'agentTypes.mentor.description',
     icon: 'graduation-cap',
     features: [
       'Based on public figures or experts',
@@ -643,8 +643,8 @@ const AGENT_TYPES: AgentTypeInfo[] = [
   },
   {
     id: 'twin',
-    name: 'Digital Twin',
-    description: 'Your personal voice journal that grows with you',
+    name: 'agentTypes.twin.name',
+    description: 'agentTypes.twin.description',
     icon: 'user-circle',
     features: [
       'Record daily voice journals',
@@ -660,8 +660,8 @@ const AGENT_TYPES: AgentTypeInfo[] = [
   },
   {
     id: 'fictional',
-    name: 'Fictional',
-    description: 'Bring a character to life with unique personality',
+    name: 'agentTypes.fictional.name',
+    description: 'agentTypes.fictional.description',
     icon: 'sparkles',
     features: [
       'Fully customizable personality',
@@ -677,8 +677,8 @@ const AGENT_TYPES: AgentTypeInfo[] = [
   },
   {
     id: 'professional',
-    name: 'Professional',
-    description: 'Build a specialized assistant for work tasks',
+    name: 'agentTypes.professional.name',
+    description: 'agentTypes.professional.description',
     icon: 'briefcase',
     features: [
       'Task-focused interactions',
