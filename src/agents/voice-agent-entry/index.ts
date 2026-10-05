@@ -364,6 +364,15 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     userData = initResult.userData;
     // The caller's time zone (web client → token → dispatch metadata).
     if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
+    // The caller's IP-detected city (token → dispatch metadata), on both the
+    // multi-agent and single-agent paths: tools read it per call from userData.
+    if (userData && typeof metadata.city === 'string' && metadata.city) {
+      userData.userLocation = {
+        city: metadata.city,
+        regionCode: typeof metadata.regionCode === 'string' ? metadata.regionCode : undefined,
+        countryCode: typeof metadata.countryCode === 'string' ? metadata.countryCode : undefined,
+      };
+    }
     stopPeriodicSync = initResult.stopPeriodicSync ?? undefined;
 
     if (stopPeriodicSync) {
