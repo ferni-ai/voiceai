@@ -16,8 +16,8 @@ export interface ThemeMeta {
 
 export const THEMES: Record<ThemeName, ThemeMeta> = {
   "midnight": {
-    "name": "Cedar Night",
-    "description": "Warm cedar wood tones - Japanese zen garden under moonlight, open and welcoming",
+    "name": "Night Ink",
+    "description": "Warm near-black field, paper type, sage actions. Dark enough that a hairline reads as light.",
     "mode": "dark"
   },
   "zen": {

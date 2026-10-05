@@ -221,7 +221,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
@@ -251,7 +251,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-1, 0.25rem);
       display: block;
     }
@@ -316,7 +316,7 @@ function injectStyles(): void {
 
     .gs-loading-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     /* =========================================================================
@@ -354,7 +354,7 @@ function injectStyles(): void {
 
     .gs-initial-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       line-height: 1.5;
       margin-bottom: var(--space-4, 1rem);
     }
@@ -443,7 +443,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-1, 0.25rem);
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       padding: var(--space-0-5, 0.125rem) var(--space-2, 0.5rem);
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.04));
       border-radius: var(--radius-sm, 0.25rem);
@@ -508,7 +508,7 @@ function injectStyles(): void {
     }
 
     .gs-retry-btn:hover {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted, #352e28);
     }
 
     /* =========================================================================
@@ -525,7 +525,7 @@ function injectStyles(): void {
 
     .gs-footer-hint {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .gs-regenerate-btn {

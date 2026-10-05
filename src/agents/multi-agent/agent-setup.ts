@@ -140,6 +140,7 @@ import {
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
 import { endpointingDelays } from '../shared/turn-patience.js';
+import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
 
 const log = getLogger();
 
@@ -330,12 +331,10 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // Append date/time to model base instructions (session-specific, not cached)
     modelBaseInstructions = baseInstructions + dateTimeContext;
 
-    // =========================================================================
-    // USER AWARENESS - Enhance model instructions with user context
-    // This makes the agent aware of WHO they're talking to from the first moment
-    // =========================================================================
+    // USER AWARENESS: who they're talking to, from the first moment
     const { userProfile } = services;
     if (userProfile) {
+      rememberCallerHistory(sessionId, callerHistory(userProfile)); // for the greeting
       const userAwareness: string[] = [];
       const sessionStartTime = new Date();
       const displayName = userProfile.preferredName || userProfile.name || userData?.userName;

@@ -224,7 +224,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
@@ -257,7 +257,7 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
@@ -299,14 +299,14 @@ function injectStyles(): void {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
       letter-spacing: 0.03em;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-2, 0.5rem);
       display: block;
     }
 
     .ep-hint {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-1, 0.25rem);
     }
 
@@ -332,7 +332,7 @@ function injectStyles(): void {
     }
 
     .ep-input::placeholder {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .ep-textarea {
@@ -405,7 +405,7 @@ function injectStyles(): void {
     }
 
     .ep-relationship:hover {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted, #352e28);
     }
 
     .ep-relationship.selected {
@@ -414,7 +414,7 @@ function injectStyles(): void {
     }
 
     .ep-relationship-icon {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .ep-relationship.selected .ep-relationship-icon {
@@ -429,7 +429,7 @@ function injectStyles(): void {
     .ep-relationship-label {
       font-size: var(--text-xxs, 0.625rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .ep-relationship.selected .ep-relationship-label {

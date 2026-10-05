@@ -461,11 +461,11 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .celebration-unlocks {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
     
     [data-theme="midnight"] .celebration-unlock-item {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
       color: var(--color-text-primary, #faf6f0);
     }
     
@@ -955,7 +955,7 @@ function injectStyles(): void {
     
     [data-theme="midnight"] .celebration-card,
     [data-theme="midnight"] .journey-card {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
     }
     
     [data-theme="midnight"] .celebration-title,
@@ -977,7 +977,7 @@ function injectStyles(): void {
     [data-theme="midnight"] .memory-item,
     [data-theme="midnight"] .stage-description,
     [data-theme="midnight"] .progress-bar {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
     
     [data-theme="midnight"] .stat-card:hover,
@@ -986,16 +986,16 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .memory-icon-wrapper {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
     }
     
     [data-theme="midnight"] .journey-close {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
       color: var(--color-text-secondary, #f0ebe4);  /* WCAG AA: 5.05:1 */
     }
     
     [data-theme="midnight"] .journey-close:hover {
-      background: var(--color-background-tertiary, #685852);
+      background: var(--color-background-tertiary, #2a241f);
       color: var(--color-text-primary, #faf6f0);
     }
     
@@ -1013,7 +1013,7 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .stage-description {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
       border-left-color: var(--color-accent-primary);
       color: var(--color-text-secondary, #f0ebe4);  /* WCAG AA: 5.05:1 */
     }
@@ -1029,7 +1029,7 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .memory-filter:hover {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
       color: var(--color-text-primary, #faf6f0);
     }
     
@@ -1040,7 +1040,7 @@ function injectStyles(): void {
     
     /* Dark Theme - Memory Items */
     [data-theme="midnight"] .memory-item {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
     
     [data-theme="midnight"] .memory-item--stage-up {

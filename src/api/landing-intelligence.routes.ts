@@ -41,6 +41,7 @@ import { getQuickOptimization } from '../services/landing-intelligence/orchestra
 import { generateVisitorId } from '../services/landing-intelligence/returning-visitor.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { parseBody } from './helpers.js';
+import { requireAdmin } from './auth-middleware.js';
 import { generatePersonaVoice } from '../services/voice/voice-call.js';
 import { getVoiceId, getPersonaDisplayName } from '../personas/voice-registry.js';
 // SSML humanization for natural-sounding voices
@@ -622,6 +623,9 @@ export async function handleLandingIntelligenceRoutes(
     // PUT /api/landing/flags - Update feature flags (admin)
     // ============================================================================
     if (pathname === '/api/landing/flags' && method === 'PUT') {
+      // Anyone could switch the landing page's features before this check.
+      const auth = await requireAdmin(req, res);
+      if (!auth) return true;
       const flags = await parseBody<Record<string, boolean>>(req);
       setLandingIntelligenceFlags(flags);
       sendJSON(res, getLandingIntelligenceFlags());

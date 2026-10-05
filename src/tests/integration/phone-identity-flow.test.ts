@@ -338,8 +338,8 @@ describe('Phone Identity Full Flow', () => {
       expect(context?.detectedEmail).toBe(SPONSOR.email);
       expect(context?.potentialMatches).toHaveLength(1);
 
-      // STEP 3: User confirms linking
-      // (In real flow, agent would use linkPhoneToAccount tool)
+      // STEP 3: Linking is recorded (never done on the call itself: the voice
+      // agent has no tool to link accounts, since a caller can't prove ownership)
       accountLinkingContext.markLinkingComplete(sessionId, SPONSOR.id);
 
       const updatedContext = accountLinkingContext.getAccountLinkingContext(sessionId);

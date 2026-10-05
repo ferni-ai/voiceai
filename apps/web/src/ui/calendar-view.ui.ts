@@ -1830,7 +1830,7 @@ class CalendarViewUI {
         border-radius: 50%;
         border: none;
         background: var(--color-background-secondary, rgba(44, 37, 32, 0.05));
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -1888,7 +1888,7 @@ class CalendarViewUI {
 
       .calendar-view__tab:hover {
         background: var(--color-background-secondary, rgba(44, 37, 32, 0.05));
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
       }
 
       .calendar-view__tab--active {
@@ -2271,7 +2271,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__settings-link:hover {
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
       }
 
       .calendar-view__settings-link:focus-visible {
@@ -2404,7 +2404,7 @@ class CalendarViewUI {
         background: transparent;
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         cursor: pointer;
         transition: all var(--duration-fast, 150ms) ease;
       }
@@ -2775,7 +2775,7 @@ class CalendarViewUI {
 
       .calendar-view__practice-event-insight {
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         font-style: italic;
         padding-top: 4px;
       }
@@ -2845,7 +2845,7 @@ class CalendarViewUI {
 
       .calendar-view__practice-intention-insight {
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         font-style: italic;
       }
 
@@ -2875,7 +2875,7 @@ class CalendarViewUI {
       .calendar-view__practice-whisper-text {
         margin: 0;
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         font-style: italic;
         line-height: 1.5;
       }
@@ -3206,7 +3206,7 @@ class CalendarViewUI {
       .calendar-view__weekly-chart-title {
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         margin-bottom: var(--space-3, 12px);
       }
 
@@ -3288,7 +3288,7 @@ class CalendarViewUI {
 
       .calendar-view__pattern-description {
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         line-height: 1.4;
       }
 
@@ -3343,7 +3343,7 @@ class CalendarViewUI {
          DARK THEME
          ======================================================================== */
       [data-theme="midnight"] .calendar-view__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-view__header,
@@ -3378,12 +3378,12 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .calendar-view__close:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-primary, #faf6f0);
       }
 
@@ -3392,7 +3392,7 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__tab:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
@@ -3402,16 +3402,16 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__summary {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-view__event,
       [data-theme="midnight"] .calendar-view__day {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-view__event:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-view__day--today {
@@ -3434,18 +3434,18 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__btn--secondary {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-primary, #faf6f0);
       }
 
       [data-theme="midnight"] .calendar-view__provider-btn {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
         color: var(--color-text-primary, #faf6f0);
       }
 
       [data-theme="midnight"] .calendar-view__provider-btn:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         border-color: var(--color-alex-light, #8a9bb8);
       }
 
@@ -3472,7 +3472,7 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__month-btn:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-alex-light, #8a9bb8);
       }
 
@@ -3481,11 +3481,11 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__grid-cell {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-view__grid-cell:hover:not(.calendar-view__grid-cell--empty) {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-view__grid-cell--empty {
@@ -3516,7 +3516,7 @@ class CalendarViewUI {
 
       /* Sync status dark theme */
       [data-theme="midnight"] .calendar-view__sync-status {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
       }
 
@@ -3537,7 +3537,7 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__sync-toggle input[type="checkbox"] {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-view__sync-toggle input[type="checkbox"]:checked {

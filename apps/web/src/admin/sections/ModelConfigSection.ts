@@ -467,7 +467,7 @@ function renderDefaultsForm(defaults: GeminiModelConfig): string {
 
 function renderPersonaForm(personaId: string, config: PersonaModelConfig | null): string {
   const gemini = config?.gemini ?? configStore?.defaults ?? {
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.5-flash',
     temperature: 0.8,
     language: 'en-US',
   };
@@ -768,10 +768,9 @@ async function fetchModels(): Promise<AvailableModel[]> {
     log.error({ error: err }, 'Failed to fetch models');
   }
   return [
-    { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash (Preview)', description: 'Latest model with improved capabilities' },
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', description: 'Fast, stable, recommended' },
-    { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', description: 'Fast, stable' },
-    { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro', description: 'Higher quality, slower' },
+    { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', description: 'Fast, recommended' },
+    { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash-Lite', description: 'Fastest, lowest cost' },
+    { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro (Preview)', description: 'Higher quality, slower' },
   ];
 }
 

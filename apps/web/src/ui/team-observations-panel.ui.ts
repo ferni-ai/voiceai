@@ -792,20 +792,20 @@ function injectStyles(): void {
        DARK THEME
        ======================================================================== */
     [data-theme="midnight"] .team-obs-panel__content {
-      background: var(--color-bg-elevated, #70605a);
+      background: var(--color-bg-elevated, #352e28);
     }
 
     [data-theme="midnight"] .team-obs-card {
-      background: var(--color-bg-secondary, #60504a);
+      background: var(--color-bg-secondary, #1e1a16);
     }
 
     [data-theme="midnight"] .team-obs-synthesis {
-      background: linear-gradient(135deg, var(--color-bg-secondary, #60504a), var(--color-bg-tertiary, #685852));
+      background: linear-gradient(135deg, var(--color-bg-secondary, #1e1a16), var(--color-bg-tertiary, #2a241f));
     }
 
     [data-theme="midnight"] .team-obs-synthesis__state,
     [data-theme="midnight"] .team-obs-synthesis__recommendation {
-      background: var(--color-bg-tertiary, #685852);
+      background: var(--color-bg-tertiary, #2a241f);
     }
 
     /* ========================================================================

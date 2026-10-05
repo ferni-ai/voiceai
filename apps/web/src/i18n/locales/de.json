@@ -704,6 +704,7 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
+    "dismiss": "Ausblenden",
     "maybeLater": "[NEEDS_TRANSLATION] Later"
   },
   "confirmModal": {
@@ -1387,8 +1388,34 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
+      "conversation": "Ein Gespräch führen: +1 Samen",
+      "note": "Mit Ihren Samen entscheiden wir, was wir als Nächstes bauen!",
+      "streak30": "30-Tage-Serie: +15 Samen",
+      "streak7": "7-Tage-Serie: +5 Samen",
+      "vote": "Für Funktionen abstimmen: 1-10 Samen",
       "title": "How Seeds Work"
     },
+    "backToRoadmap": "Zurück zur Roadmap",
+    "categories": {
+      "connect": "Verbinden - Beziehungen & Kommunikation",
+      "personalize": "Personalisieren - Ferni ganz nach Ihren Wünschen",
+      "platform": "Plattform - Neue Fähigkeiten"
+    },
+    "needMoreSeeds": "Sie brauchen mindestens 5 Samen, um eine Idee einzureichen. Führen Sie weitere Gespräche, um Samen zu sammeln!",
+    "newIdea": "Neue Idee",
+    "noSeedsHint": "Führen Sie weitere Gespräche, um Samen zu sammeln!",
+    "refund50": "50 % Rückerstattung",
+    "submitSuggestion": "Diesen Samen pflanzen",
+    "submitting": "Wird gepflanzt...",
+    "suggestionCategory": "Kategorie",
+    "suggestionCost": "Das Einreichen kostet 5 Samen (zeigt Engagement, verhindert Spam)",
+    "suggestionDescription": "Erzählen Sie uns mehr (optional)",
+    "suggestionDescriptionPlaceholder": "Warum wäre das hilfreich? Wie würden Sie es nutzen?",
+    "suggestionIntro": "Haben Sie eine Idee, was Ferni können sollte? Pflanzen Sie einen Samen und lassen Sie die Community ihn gießen!",
+    "suggestionPlanted": "Ihr Samen ist gepflanzt!",
+    "suggestionThanks": "Danke, dass Sie Ihre Idee geteilt haben. Andere können sie jetzt mit ihren Samen gießen!",
+    "suggestionTitle": "Was sollte Ferni können?",
+    "suggestionTitlePlaceholder": "z. B. den Namen meines Haustiers merken",
     "intro": "Jede große Beziehung hat Jahreszeiten. Das sind Samen, die wir gemeinsam pflanzen.",
     "learnMore": "Learn more",
     "loading": "Loading roadmap...",
@@ -2305,7 +2332,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "Philips Hue oder LIFX",
+      "hueOrLifxDesc": "In den Einstellungen unter „Your Home“ einrichten"
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2384,7 +2413,10 @@
     },
     "secondsRemaining": "Verbleibende Sekunden",
     "startExercise": "Atemübung starten",
-    "changePattern": "Atemmuster ändern"
+    "changePattern": "Atemmuster ändern",
+    "hold": "Halten",
+    "in": "Ein",
+    "out": "Aus"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2426,7 +2458,11 @@
     "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
     "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
     "rememberSuccess": "Verstanden! Ab jetzt erkenne ich dich wieder.",
-    "account": "Konto"
+    "account": "Konto",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "rememberYouAs": "Ich kenne Sie als",
+    "successMessage": "Ab jetzt erinnere ich mich an Sie. Wo auch immer Sie sind, ich erkenne Sie wieder."
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2730,7 +2766,11 @@
     "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
     "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
     "sentSuccess": "{sent} Samen gesendet! Sie erhalten {received}",
-    "sendError": "Geschenk konnte nicht gesendet werden. Erneut versuchen?"
+    "sendError": "Geschenk konnte nicht gesendet werden. Erneut versuchen?",
+    "amount": "Menge",
+    "recipientPlaceholder": "E-Mail-Adresse oder Benutzername eingeben",
+    "sendGift": "Geschenk senden",
+    "sendTo": "Senden an"
   },
   "teamIntro": {
     "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
@@ -2810,7 +2850,8 @@
       "onTheWay": "Du bist auf dem richtigen Weg! Mehr Teamkollegen werden freigeschaltet, während unsere Reise fortschreitet.",
       "growing": "Dein Team wächst. Es fehlen nur noch ein paar Meilensteine, um alle freizuschalten.",
       "complete": "Du hast das vollständige Team freigeschaltet! Jeder ist hier, um dich zu unterstützen."
-    }
+    },
+    "added": "Hinzugefügt!"
   },
   "referral": {
     "share": {
@@ -2841,7 +2882,19 @@
       "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
     },
     "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
-    "copyError": "Kopieren nicht möglich. Erneut versuchen?"
+    "copyError": "Kopieren nicht möglich. Erneut versuchen?",
+    "bonusAmount": "Sie beide erhalten {seeds} Samen",
+    "bonusWhen": "sobald sie dabei sind!",
+    "garden": {
+      "earned": "Sie haben durchs Teilen {seeds} Samen verdient",
+      "empty": "Samen wachsen, wenn man sie teilt. Legen Sie noch heute Ihren Garten an.",
+      "friendsGrowing": "{count} Freunde wachsen mit",
+      "title": "Ihr Garten:"
+    },
+    "quoteMessage": "„Schenken Sie ihnen jemanden, der sich an alles erinnert, auch um 2 Uhr nachts da ist und niemals urteilt.“",
+    "subtitle": "Kennen Sie jemanden, dem so ein Freund guttun würde?",
+    "title": "Gemeinsam wachsen",
+    "yourLink": "Ihr Link:"
   },
   "conversationMemory": {
     "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
@@ -3004,7 +3057,14 @@
       "browse": "Erkunde unseren Marketplace"
     },
     "creations": {
-      "noDescription": "Keine Beschreibung"
+      "noDescription": "Keine Beschreibung",
+      "createButton": "Agenten erstellen",
+      "emptyDescription": "Erstellen Sie einen Agenten mit eigener Persönlichkeit und eigenen Fähigkeiten und teilen Sie ihn mit der Community.",
+      "emptyTitle": "Sie haben noch keine Agenten erstellt"
+    },
+    "agentCard": {
+      "install": "Installieren",
+      "uninstall": "Deinstallieren"
     }
   },
   "agent": {

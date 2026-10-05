@@ -281,7 +281,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
 
@@ -394,7 +394,7 @@ function injectStyles(): void {
 
     .rc-strength-label {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       display: flex;
       align-items: center;
       gap: var(--space-1, 0.25rem);
@@ -407,11 +407,11 @@ function injectStyles(): void {
 
     .rc-strength-trend.growing { color: var(--persona-primary, #4a6741); }
     .rc-strength-trend.fading { color: var(--color-semantic-error, #c44); }
-    .rc-strength-trend.stable { color: var(--color-text-muted, #70605a); }
+    .rc-strength-trend.stable { color: var(--color-text-muted, #a89b8c); }
 
     .rc-last-contact {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-2, 0.5rem);
     }
 
@@ -542,7 +542,7 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
       display: flex;
@@ -593,7 +593,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-3, 0.75rem);
       display: flex;
       align-items: center;
@@ -664,7 +664,7 @@ function injectStyles(): void {
 
     .rc-timeline-meta {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-0-5, 0.125rem);
       display: flex;
       align-items: center;
@@ -701,7 +701,7 @@ function injectStyles(): void {
     }
 
     .rc-sentiment-dot.positive { background: var(--persona-primary, #4a6741); }
-    .rc-sentiment-dot.neutral { background: var(--color-text-muted, #70605a); }
+    .rc-sentiment-dot.neutral { background: var(--color-text-muted, #352e28); }
     .rc-sentiment-dot.negative { background: var(--color-semantic-error, #c44); }
 
     /* =========================================================================
@@ -756,7 +756,7 @@ function injectStyles(): void {
 
     .rc-gift-meta {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-0-5, 0.125rem);
     }
 
@@ -774,7 +774,7 @@ function injectStyles(): void {
 
     .rc-gift-reaction.loved { color: var(--persona-primary, #4a6741); }
     .rc-gift-reaction.liked { color: var(--alex-primary, #5a6b8a); }
-    .rc-gift-reaction.neutral { color: var(--color-text-muted, #70605a); }
+    .rc-gift-reaction.neutral { color: var(--color-text-muted, #a89b8c); }
     .rc-gift-reaction.disliked { color: var(--color-semantic-error, #c44); }
 
     /* =========================================================================
@@ -811,7 +811,7 @@ function injectStyles(): void {
     .rc-date-value {
       flex: 1;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .rc-date-badge {
@@ -825,7 +825,7 @@ function injectStyles(): void {
 
     .rc-empty-inline {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       padding: var(--space-2, 0.5rem) 0;
     }
 
@@ -868,7 +868,7 @@ function injectStyles(): void {
 
     .rc-event-meta {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-0-5, 0.125rem);
     }
 
@@ -883,7 +883,7 @@ function injectStyles(): void {
     .rc-notes-label {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-2, 0.5rem);
       display: flex;
       align-items: center;
@@ -927,7 +927,7 @@ function injectStyles(): void {
     .rc-empty {
       text-align: center;
       padding: var(--space-10, 2.5rem) var(--space-6, 1.5rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .rc-empty-icon {
@@ -966,7 +966,7 @@ function injectStyles(): void {
       border: 2px dashed var(--color-border, rgba(44, 37, 32, 0.15));
       border-radius: var(--radius-lg, 1rem);
       background: transparent;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
       cursor: pointer;
@@ -996,7 +996,7 @@ function injectStyles(): void {
     .rc-loading {
       text-align: center;
       padding: var(--space-10, 2.5rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-size: var(--text-sm, 0.875rem);
     }
 
