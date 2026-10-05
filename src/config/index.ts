@@ -169,6 +169,9 @@ export {
   THREADING,
 } from './intelligence-constants.js';
 
+// LinkedIn on/off switch (off by default; see linkedin-flag.ts)
+export { isLinkedInEnabled, LINKEDIN_ENABLED_ENV } from './linkedin-flag.js';
+
 // ============================================================================
 // DEFAULT EXPORT
 // ============================================================================

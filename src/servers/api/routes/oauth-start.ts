@@ -14,6 +14,7 @@ import { getVerifiedUserId } from '../request-identity.js';
 import { createOAuthLinkState } from '../../token/oauth-link-state.js';
 import { sanitizeReturnUrl } from '../../token/validation.js';
 import { parseBodySafe } from '../../../utils/ddos-protection.js';
+import { isLinkedInEnabled, LINKEDIN_OAUTH_PROVIDER } from '../../../config/linkedin-flag.js';
 import {
   LINKEDIN_CONNECT_PATH,
   LINKEDIN_PROVIDER,
@@ -76,6 +77,11 @@ export async function handleOAuthStartRoute(
   const parsed = await parseBodySafe(req, res, { maxSize: 4096 });
   if (!parsed) return true; // 408/413 already sent
   const { provider, returnUrl } = parseStartBody(parsed.body);
+  // LinkedIn switched off (config/linkedin-flag.ts): refuse before any state or URL.
+  if (provider === LINKEDIN_OAUTH_PROVIDER && !isLinkedInEnabled()) {
+    sendJson(res, 503, { error: "LinkedIn isn't available right now", unavailable: true });
+    return true;
+  }
   const loginPath = typeof provider === 'string' ? LOGIN_PATHS.get(provider) : undefined;
   if (typeof provider !== 'string' || !loginPath) {
     sendJson(res, 400, { error: 'Unknown provider' });

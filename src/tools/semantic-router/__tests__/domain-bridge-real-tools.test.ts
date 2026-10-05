@@ -6,7 +6,7 @@
  * so those routes failed. Safety intents must map to real tools; the rest may
  * only get better.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { autoRegisterAllDomains, loadToolDomainsLazy } from '../../registry/loader.js';
 import { toolRegistry } from '../../registry/index.js';
 import { ALL_TOOL_DOMAINS } from '../../registry/types.js';
@@ -27,7 +27,14 @@ const MAX_MAPPINGS_TO_MISSING_TOOLS = 174;
 const MAX_INTENTS_WITHOUT_MAPPING = 119;
 
 describe('semantic router domain bridge', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   it('maps every safety intent to a real tool, and does not regress elsewhere', async () => {
+    // Load switchable tools too (LinkedIn is off by default): a mapping to a
+    // switched-off tool is not a mapping to a missing one.
+    vi.stubEnv('LINKEDIN_ENABLED', 'true');
+    vi.stubEnv('LINKEDIN_CLIENT_ID', 'li-id');
+    vi.stubEnv('LINKEDIN_CLIENT_SECRET', 'li-secret');
     await autoRegisterAllDomains();
     await loadToolDomainsLazy([...ALL_TOOL_DOMAINS]);
     const real = new Set(toolRegistry.getAll().map((tool) => tool.id));
@@ -38,7 +45,9 @@ describe('semantic router domain bridge', () => {
     }
 
     const broken = Object.entries(mappings).filter(([, m]) => !real.has(m.domainToolId));
-    const unmapped = [...new Set(allToolDefinitions.map((d) => d.id))].filter((id) => !mappings[id]);
+    const unmapped = [...new Set(allToolDefinitions.map((d) => d.id))].filter(
+      (id) => !mappings[id]
+    );
     expect(broken.length).toBeLessThanOrEqual(MAX_MAPPINGS_TO_MISSING_TOOLS);
     expect(unmapped.length).toBeLessThanOrEqual(MAX_INTENTS_WITHOUT_MAPPING);
   }, 120_000);
