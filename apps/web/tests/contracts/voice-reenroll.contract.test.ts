@@ -5,10 +5,9 @@
  * prints can no longer verify anyone (voice-match-trust). The server's real
  * /api/voice routes answer the web's real voice-auth service (voiceApiFetch).
  * The doubles: Firebase (unavailable, so profiles live in the store's memory
- * cache), the signed-in uid, the microphone, and the liveness check. Liveness
- * refuses these samples (and, in practice, real ones: see
- * voice-enrollment-refused.contract.test.ts); here it is held at "live" so the
- * re-enrollment path itself can be tested.
+ * cache), the signed-in uid and the microphone. Liveness and anti-spoofing
+ * are the real checks: enrollment scores liveness without being refused on it
+ * (SECURITY_CONFIG.enrollmentLivenessBlocks).
  * The neural model is #280's waveform-contract fixture in its real worker.
  */
 
@@ -23,9 +22,6 @@ vi.mock('firebase-admin', () => {
 });
 // No Redis either: enrollment sessions use the handlers' in-memory fallback.
 vi.mock('../../../../src/memory/redis-cache.js', () => ({ getRedisCache: () => null }));
-vi.mock('../../../../src/services/voice/voice-liveness.js', () => ({
-  checkLiveness: async () => ({ isLive: true, confidence: 1, warnings: [] }),
-}));
 
 import { verifyUser } from '../../../../src/services/voice/voice-enrollment.js';
 import {

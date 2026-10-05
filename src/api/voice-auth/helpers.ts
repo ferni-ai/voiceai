@@ -5,8 +5,10 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import type { EnrollmentSession } from '../../services/voice/voice-enrollment.js';
-import type { ContinuousAuthenticator } from '../../services/voice/voice-enrollment.js';
+import type {
+  ContinuousAuthenticator,
+  EnrollmentSession,
+} from '../../services/voice/voice-enrollment.js';
 import { detectSpoofing } from '../../services/voice/voice-antispoofing.js';
 import { logLivenessFail, logSpoofDetected } from '../../services/voice/voice-audit-log.js';
 import { checkLiveness } from '../../services/voice/voice-liveness.js';
@@ -308,11 +310,14 @@ export function checkAndEnforceRateLimit(
 
 /**
  * Run security checks on audio (liveness + anti-spoofing).
+ * `livenessBlocks: false` still scores and audit-logs liveness but does not
+ * refuse the audio on it (enrollment: SECURITY_CONFIG.enrollmentLivenessBlocks).
  */
 export async function runSecurityChecks(
   audio: Float32Array,
   userId: string,
-  deviceInfo: DeviceInfo
+  deviceInfo: DeviceInfo,
+  { livenessBlocks = true }: { livenessBlocks?: boolean } = {}
 ): Promise<SecurityCheckResult> {
   const warnings: string[] = [];
   let livenessScore: number | undefined;
@@ -338,7 +343,7 @@ export async function runSecurityChecks(
         );
       }
 
-      if (!livenessResult.isLive) {
+      if (!livenessResult.isLive && livenessBlocks) {
         return { passed: false, warnings, livenessScore };
       }
     }

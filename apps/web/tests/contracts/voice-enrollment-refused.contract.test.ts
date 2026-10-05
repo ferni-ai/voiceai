@@ -1,16 +1,14 @@
 /**
  * When the server keeps refusing enrollment samples, the web stops asking.
  *
- * The real /enroll/sample route runs the real liveness check. A missing
- * challenge scores 0 and no client sends one, so the four audio checks must
- * average 0.875 to clear the 0.7 bar; the background-noise check wants the
- * quietest windows' energy variance above 0.001, which room noise doesn't
- * reach (measured 0.000000 on synthesized speech, with and without added
- * noise). In practice it refuses every sample, as it does here. The modal
- * used to retry a refused sample forever (i-- on every failure), recording
- * again and again. It now gives up after three refusals in a row, says so,
- * and cancels the server session. Doubles: Firebase, Redis, the signed-in uid
- * and the microphone; recordings are shortened from 3 s to 1 ms.
+ * The real /enroll/sample route runs the real security checks. Liveness is
+ * scored there but no longer refuses (it refused every real voice: see
+ * SECURITY_CONFIG.enrollmentLivenessBlocks); anti-spoofing still refuses a
+ * pure tone, which is what the microphone "records" here. The modal used to
+ * retry a refused sample forever (i-- on every failure), recording again and
+ * again. It now gives up after three refusals in a row, says so, and cancels
+ * the server session. Doubles: Firebase, Redis, the signed-in uid and the
+ * microphone; recordings are shortened from 3 s to 1 ms.
  */
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,11 +31,15 @@ import {
 import { setLocale } from '../../src/i18n/index.js';
 import { getVoiceAuthService } from '../../src/services/voice-auth.service.js';
 import { showVoiceEnrollmentModal } from '../../src/ui/voice-enrollment.ui.js';
-import { speech, voiceApiFetch } from './voice-api-bridge.js';
+import { voiceApiFetch } from './voice-api-bridge.js';
 
 vi.setConfig({ testTimeout: 20_000 });
 
 const USER = 'user-enrollment-refused';
+
+/** 3 s of a 220 Hz sine: no voice, so anti-spoofing refuses it. */
+const tone = (): Float32Array =>
+  Float32Array.from({ length: 48000 }, (_, i) => Math.sin((2 * Math.PI * 220 * i) / 16000) * 0.3);
 
 beforeAll(async () => {
   await setLocale('en-US');
@@ -61,7 +63,7 @@ describe('enrollment modal against the real sample route', () => {
     const voiceAuth = getVoiceAuthService();
     const recorder = voiceAuth.getRecorder();
     vi.spyOn(recorder, 'startRecording').mockResolvedValue();
-    vi.spyOn(recorder, 'stopRecording').mockImplementation(() => speech(1));
+    vi.spyOn(recorder, 'stopRecording').mockImplementation(tone);
     const record = voiceAuth.recordEnrollmentSample.bind(voiceAuth);
     const attempts = vi
       .spyOn(voiceAuth, 'recordEnrollmentSample')

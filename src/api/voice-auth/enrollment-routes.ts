@@ -131,7 +131,9 @@ export async function handleEnrollmentRoutes(
       return true;
     }
 
-    const securityResult = await runSecurityChecks(audio, userId, deviceInfo);
+    const securityResult = await runSecurityChecks(audio, userId, deviceInfo, {
+      livenessBlocks: SECURITY_CONFIG.enrollmentLivenessBlocks,
+    });
     if (!securityResult.passed) {
       if (SECURITY_CONFIG.enableAuditLogging) {
         await logEnrollmentFail(userId, 'Security check failed', deviceInfo);
