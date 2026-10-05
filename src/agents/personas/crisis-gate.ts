@@ -165,6 +165,7 @@ export function holdUntilCleared(
   return new ReadableStream<Chunk>({
     async start(controller) {
       const held: Chunk[] = [];
+      let firstHeldAt = 0;
       let released = false;
       let pumpError: unknown;
       const pump = (async () => {
@@ -172,7 +173,7 @@ export function holdUntilCleared(
           const { done, value } = await reader.read();
           if (done || dropped) return;
           if (released) controller.enqueue(value);
-          else held.push(value);
+          else if (held.push(value) === 1) firstHeldAt = Date.now();
         }
       })().catch((error: unknown) => {
         pumpError = error;
@@ -182,6 +183,8 @@ export function holdUntilCleared(
         const decision = await escalation.catch(() => null);
         if (!decision) {
           released = true;
+          // How long a ready reply waited on the classifier: the latency this gate adds.
+          log.info({ delayedMs: firstHeldAt ? Date.now() - firstHeldAt : 0 }, 'CRISIS_HOLD');
           for (const chunk of held) controller.enqueue(chunk);
           held.length = 0;
           await pump;

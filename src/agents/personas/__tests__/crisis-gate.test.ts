@@ -2,6 +2,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { llm } from '@livekit/agents';
 import { ReadableStream, TransformStream } from 'node:stream/web';
 
+const logInfo = vi.hoisted(() => vi.fn());
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../utils/safe-logger.js')>();
+  const spyInfo = <T extends object>(logger: T): T =>
+    new Proxy(logger, {
+      get: (target, prop, receiver) => {
+        const value = Reflect.get(target, prop, receiver);
+        if (prop !== 'info' || typeof value !== 'function') return value;
+        return (...args: unknown[]) => {
+          logInfo(...args);
+          return (value as (...a: unknown[]) => unknown).apply(target, args);
+        };
+      },
+    });
+  return {
+    ...real,
+    createLogger: (...args: Parameters<typeof real.createLogger>) =>
+      spyInfo(real.createLogger(...args)),
+  };
+});
+
 import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
@@ -191,6 +212,23 @@ describe('holdUntilCleared', () => {
     clear(null);
     await reading;
     expect(seen).toEqual(['a', 'b', 'c']);
+  });
+
+  it('logs how long a ready reply waited on the verdict', async () => {
+    logInfo.mockClear();
+    const late = new Promise<null>((resolve) => setTimeout(() => resolve(null), 60));
+    await collect(holdUntilCleared(streamOf(['Hey', ' there']) as never, late, async () => null));
+    const [fields] = logInfo.mock.calls.find((c) => c[1] === 'CRISIS_HOLD') ?? [];
+    expect((fields as { delayedMs: number }).delayedMs).toBeGreaterThanOrEqual(40);
+  });
+
+  it('logs no delay when the verdict came before the reply', async () => {
+    logInfo.mockClear();
+    await collect(
+      holdUntilCleared(streamOf(['Hey'], 30) as never, Promise.resolve(null), async () => null)
+    );
+    const [fields] = logInfo.mock.calls.find((c) => c[1] === 'CRISIS_HOLD') ?? [];
+    expect(fields).toEqual({ delayedMs: 0 });
   });
 
   it('drops the reply and speaks the replacement on escalation', async () => {
