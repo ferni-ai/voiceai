@@ -25,6 +25,7 @@ import {
   type ToolCtxWithUserData,
 } from '../shared/persistence.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { breathingScript, publishBreathingExercise } from './breathing-guide.js';
 // ============================================================================
 // GROUNDING TOOLS
 // ============================================================================
@@ -280,59 +281,8 @@ const breatheWithMeDef: ToolDefinition = {
       }),
       execute: async ({ technique, purpose = 'presence' }) => {
         getLogger().info({ agentId: ctx.agentId, technique, purpose }, 'Breathing together');
-
-        try {
-          const { getFrontendPublisher } = await import(
-            '../../../agents/realtime/frontend-publisher.js'
-          );
-          await getFrontendPublisher().sendData('breathing_exercise', { technique, purpose });
-        } catch (error) {
-          getLogger().debug(
-            { error: String(error), technique, purpose },
-            'breathing_exercise publish skipped'
-          );
-        }
-
-        if (technique === 'simple') {
-          return [
-            "Let's just breathe together. Simple.",
-            'Breathe in... 2... 3... 4...',
-            'Breathe out... 2... 3... 4... 5... 6...',
-            'Again.',
-            'In... 2... 3... 4...',
-            'Out... 2... 3... 4... 5... 6...',
-            'A longer exhale calms the nervous system.',
-            'One more time, at your own pace.',
-          ].join('\n');
-        }
-        if (technique === 'box') {
-          return [
-            'Box breathing. Four sides of a box, four counts each.',
-            'In... 2... 3... 4.',
-            'Hold... 2... 3... 4.',
-            'Out... 2... 3... 4.',
-            'Hold... 2... 3... 4.',
-            'Repeat for 4 cycles. Feel your heart rate slow.',
-          ].join('\n');
-        }
-        if (technique === '4-7-8') {
-          return [
-            '4-7-8 breathing.',
-            'Inhale through the nose: 4 counts.',
-            'Hold: 7 counts.',
-            'Exhale through the mouth: 8 counts.',
-            'The long exhale activates your rest-and-digest system.',
-            'Do this 4 times. Notice how you feel after.',
-          ].join('\n');
-        }
-        return [
-          'Coherent breathing, about 5 breaths a minute.',
-          'In for 6 seconds.',
-          'Out for 6 seconds.',
-          'Smooth, continuous, no pause.',
-          'This rhythm synchronizes heart, brain, and nervous system.',
-          'Try for 2 or 3 minutes and notice the shift.',
-        ].join('\n');
+        await publishBreathingExercise(technique, purpose);
+        return breathingScript(technique);
       },
     });
   },
