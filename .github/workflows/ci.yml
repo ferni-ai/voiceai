@@ -8,6 +8,10 @@ on:
       - 'apps/**'
       - 'packages/**'
       - 'design-system/**'
+      # Tested from src/tests (voice-eval scoring, the agent Dockerfile): a PR touching
+      # only these never got the required checks and could not merge.
+      - 'scripts/**'
+      - 'docker/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'tsconfig*.json'
@@ -20,6 +24,10 @@ on:
       - 'apps/**'
       - 'packages/**'
       - 'design-system/**'
+      # Tested from src/tests (voice-eval scoring, the agent Dockerfile): a PR touching
+      # only these never got the required checks and could not merge.
+      - 'scripts/**'
+      - 'docker/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'tsconfig*.json'
