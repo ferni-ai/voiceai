@@ -8,6 +8,7 @@
  * - ?: Show/hide shortcuts hint
  */
 
+import { t } from '../i18n/index.js';
 import type { PersonaId } from '../types/persona.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -151,30 +152,30 @@ function createHintElement(): void {
   hintElement.id = 'keyboardHint';
   hintElement.className = 'keyboard-hint hidden';
   hintElement.setAttribute('role', 'tooltip');
-  hintElement.setAttribute('aria-label', 'Keyboard shortcuts');
+  hintElement.setAttribute('aria-label', t('keyboard.title'));
   hintElement.innerHTML = `
-    <div class="keyboard-hint__header">Keyboard Shortcuts</div>
+    <div class="keyboard-hint__header">${t('keyboard.title')}</div>
     <div class="key-combo">
-      <span class="key">Space</span>
-      <span class="key-label">Connect / Disconnect</span>
+      <span class="key">${t('keyboard.keySpace')}</span>
+      <span class="key-label">${t('keyboard.connectDisconnect')}</span>
     </div>
     <div class="key-combo">
       <span class="key">1</span>
       <span class="key">-</span>
       <span class="key">6</span>
-      <span class="key-label">Switch Personas</span>
+      <span class="key-label">${t('keyboard.switchPersonas')}</span>
     </div>
     <div class="key-combo">
       <span class="key">T</span>
-      <span class="key-label">Toggle Theme</span>
+      <span class="key-label">${t('keyboard.toggleTheme')}</span>
     </div>
     <div class="key-combo">
-      <span class="key">Esc</span>
-      <span class="key-label">Disconnect</span>
+      <span class="key">${t('keyboard.keyEsc')}</span>
+      <span class="key-label">${t('connections.buttons.disconnect')}</span>
     </div>
     <div class="key-combo">
       <span class="key">?</span>
-      <span class="key-label">Toggle this hint</span>
+      <span class="key-label">${t('keyboard.toggleHint')}</span>
     </div>
   `;
 

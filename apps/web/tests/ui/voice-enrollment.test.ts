@@ -93,9 +93,10 @@ function findCloseButton(): HTMLElement | null {
 // ============================================================================
 
 describe('Voice Enrollment UI', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset module cache to ensure clean state between tests
     vi.resetModules();
+    await (await import('../../src/i18n/index.js')).setLocale('en-US', { reload: false });
     vi.clearAllMocks();
     document.body.innerHTML = '';
 

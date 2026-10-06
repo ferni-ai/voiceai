@@ -383,7 +383,7 @@ export function createCompactLanguageSelector(): HTMLElement {
       aria-haspopup="listbox"
       aria-expanded="false"
       aria-label="${t('accessibility.languageSelector')}"
-      title="${currentLocaleInfo.name}"
+      title="${t('languageSwitcher.current', { language: currentLocaleInfo.nativeName })}"
     >
       <span class="lang-flag">${currentLocaleInfo.flag}</span>
     </button>

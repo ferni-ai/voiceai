@@ -448,15 +448,15 @@ function renderThemeOption(theme: ThemeName, currentTheme: ThemeName): string {
       data-theme="${theme}"
       role="radio"
       aria-checked="${isActive}"
-      aria-label="${meta.name}"
+      aria-label="${t(meta.nameKey)}"
     >
       <div class="theme-language-settings__theme-check">${ICONS.check}</div>
       <div class="theme-language-settings__theme-preview theme-language-settings__theme-preview--${theme}">
         ${icon}
       </div>
       <div class="theme-language-settings__theme-info">
-        <span class="theme-language-settings__theme-name">${meta.name}</span>
-        <span class="theme-language-settings__theme-desc">${meta.description}</span>
+        <span class="theme-language-settings__theme-name">${t(meta.nameKey)}</span>
+        <span class="theme-language-settings__theme-desc">${t(meta.descriptionKey)}</span>
       </div>
     </button>
   `;

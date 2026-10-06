@@ -122,20 +122,20 @@ const ICONS = {
 };
 
 // Occasion definitions
-const OCCASIONS: { id: GiftOccasion; label: string }[] = [
-  { id: 'birthday', label: 'Birthday' },
-  { id: 'christmas', label: 'Christmas' },
-  { id: 'anniversary', label: 'Anniversary' },
-  { id: 'valentines', label: "Valentine's Day" },
-  { id: 'mothers_day', label: "Mother's Day" },
-  { id: 'fathers_day', label: "Father's Day" },
-  { id: 'graduation', label: 'Graduation' },
-  { id: 'wedding', label: 'Wedding' },
-  { id: 'baby_shower', label: 'Baby Shower' },
-  { id: 'housewarming', label: 'Housewarming' },
-  { id: 'thank_you', label: 'Thank You' },
-  { id: 'just_because', label: 'Just Because' },
-  { id: 'other', label: 'Other...' },
+const OCCASIONS: { id: GiftOccasion; labelKey: string }[] = [
+  { id: 'birthday', labelKey: 'recordGift.birthday' },
+  { id: 'christmas', labelKey: 'recordGift.christmas' },
+  { id: 'anniversary', labelKey: 'recordGift.anniversary' },
+  { id: 'valentines', labelKey: 'recordGift.valentines' },
+  { id: 'mothers_day', labelKey: 'recordGift.mothersDay' },
+  { id: 'fathers_day', labelKey: 'recordGift.fathersDay' },
+  { id: 'graduation', labelKey: 'recordGift.graduation' },
+  { id: 'wedding', labelKey: 'recordGift.wedding' },
+  { id: 'baby_shower', labelKey: 'recordGift.babyShower' },
+  { id: 'housewarming', labelKey: 'recordGift.housewarming' },
+  { id: 'thank_you', labelKey: 'recordGift.thankYou' },
+  { id: 'just_because', labelKey: 'recordGift.justBecause' },
+  { id: 'other', labelKey: 'recordGift.other' },
 ];
 
 // ============================================================================
@@ -596,8 +596,8 @@ function render(): void {
     <div class="rg-header">
       <div class="rg-header-row">
         <div>
-          <div class="rg-eyebrow">Record a Gift</div>
-          <h2 class="rg-title">${state.direction === 'given' ? 'for' : 'from'} ${escapeHtml(state.contactName)}</h2>
+          <div class="rg-eyebrow">${t('recordGift.title')}</div>
+          <h2 class="rg-title">${t(state.direction === 'given' ? 'recordGift.forContact' : 'recordGift.fromContact', { name: escapeHtml(state.contactName) })}</h2>
         </div>
         <button class="rg-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
@@ -609,40 +609,40 @@ function render(): void {
         <div class="rg-directions">
           <button aria-label="${t('accessibility.youGave')}" class="rg-direction ${state.direction === 'given' ? 'selected' : ''}" data-direction="given">
             <span class="rg-direction-icon">${ICONS.send}</span>
-            <span class="rg-direction-label">You gave</span>
+            <span class="rg-direction-label">${t('recordGift.youGave')}</span>
           </button>
           <button aria-label="${t('accessibility.youReceived')}" class="rg-direction ${state.direction === 'received' ? 'selected' : ''}" data-direction="received">
             <span class="rg-direction-icon">${ICONS.inbox}</span>
-            <span class="rg-direction-label">You received</span>
+            <span class="rg-direction-label">${t('recordGift.youReceived')}</span>
           </button>
         </div>
       </div>
       
       <!-- Gift Item -->
       <div class="rg-section">
-        <label class="rg-label">What was the gift?</label>
-        <input type="text" class="rg-input" id="rg-item" placeholder="e.g., Cashmere scarf, Book about astronomy" value="${escapeHtml(state.item)}" />
+        <label class="rg-label">${t('recordGift.whatWasTheGift')}</label>
+        <input type="text" class="rg-input" id="rg-item" placeholder="${t('recordGift.itemPlaceholder')}" value="${escapeHtml(state.item)}" />
       </div>
-      
+
       <!-- Occasion & Date -->
       <div class="rg-section">
         <div class="rg-row">
           <div class="rg-field">
-            <label class="rg-label">Occasion</label>
+            <label class="rg-label">${t('recordGift.occasion')}</label>
             <select class="rg-select" id="rg-occasion">
               ${OCCASIONS.map(occ => `
-                <option value="${occ.id}" ${state.occasion === occ.id ? 'selected' : ''}>${occ.label}</option>
+                <option value="${occ.id}" ${state.occasion === occ.id ? 'selected' : ''}>${t(occ.labelKey)}</option>
               `).join('')}
             </select>
           </div>
           <div class="rg-field">
-            <label class="rg-label">When</label>
+            <label class="rg-label">${t('recordGift.when')}</label>
             <input type="date" class="rg-input" id="rg-date" value="${state.date}" />
           </div>
         </div>
         ${state.occasion === 'other' ? `
           <div style="margin-top: var(--space-2, 0.5rem);">
-            <input type="text" class="rg-input" id="rg-custom-occasion" placeholder="What was the occasion?" value="${escapeHtml(state.customOccasion)}" />
+            <input type="text" class="rg-input" id="rg-custom-occasion" placeholder="${t('recordGift.whatWasTheOccasion')}" value="${escapeHtml(state.customOccasion)}" />
           </div>
         ` : ''}
       </div>
@@ -650,23 +650,23 @@ function render(): void {
       <!-- Reaction (only for given gifts) -->
       ${state.direction === 'given' ? `
         <div class="rg-section">
-          <label class="rg-label">How did they react?</label>
+          <label class="rg-label">${t('recordGift.howDidTheyReact')}</label>
           <div class="rg-reactions" role="button" tabindex="0">
             <button aria-label="${t('accessibility.lovedIt')}" class="rg-reaction ${state.reaction === 'loved' ? 'selected' : ''}" data-reaction="loved">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.heart}</span>
-              <span class="rg-reaction-label" role="button" tabindex="0">Loved it</span>
+              <span class="rg-reaction-label" role="button" tabindex="0">${t('recordGift.lovedIt')}</span>
             </button>
             <button aria-label="${t('accessibility.likedIt')}" class="rg-reaction ${state.reaction === 'liked' ? 'selected' : ''}" data-reaction="liked">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.thumbsUp}</span>
-              <span class="rg-reaction-label" role="button" tabindex="0">Liked it</span>
+              <span class="rg-reaction-label" role="button" tabindex="0">${t('recordGift.likedIt')}</span>
             </button>
             <button aria-label="${t('accessibility.meh')}" class="rg-reaction ${state.reaction === 'neutral' ? 'selected' : ''}" data-reaction="neutral">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.meh}</span>
-              <span class="rg-reaction-label" role="button" tabindex="0">Meh</span>
+              <span class="rg-reaction-label" role="button" tabindex="0">${t('recordGift.meh')}</span>
             </button>
             <button aria-label="${t('accessibility.nope')}" class="rg-reaction ${state.reaction === 'disliked' ? 'selected' : ''}" data-reaction="disliked">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.thumbsDown}</span>
-              <span class="rg-reaction-label" role="button" tabindex="0">Nope</span>
+              <span class="rg-reaction-label" role="button" tabindex="0">${t('recordGift.nope')}</span>
             </button>
           </div>
         </div>
@@ -675,27 +675,27 @@ function render(): void {
       <!-- Advanced Options -->
       <div class="rg-section">
         <button aria-label="${t('accessibility.moveDown')}" class="rg-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="rg-advanced-toggle">
-          More details ${ICONS.chevronDown}
+          ${t('recordGift.moreDetails')} ${ICONS.chevronDown}
         </button>
-        
+
         <div class="rg-advanced-content ${state.showAdvanced ? 'open' : ''}" id="rg-advanced-content">
           <div style="margin-bottom: var(--space-4, 1rem);">
-            <label class="rg-label">Price (optional)</label>
+            <label class="rg-label">${t('recordGift.priceOptional')}</label>
             <input type="number" class="rg-input" id="rg-price" placeholder="$" value="${state.price}" />
           </div>
-          
+
           <div>
-            <label class="rg-label">Notes (optional)</label>
-            <textarea class="rg-textarea" id="rg-notes" placeholder="Any additional details to remember...">${escapeHtml(state.notes)}</textarea>
+            <label class="rg-label">${t('recordGift.notesOptional')}</label>
+            <textarea class="rg-textarea" id="rg-notes" placeholder="${t('recordGift.additionalDetails')}">${escapeHtml(state.notes)}</textarea>
           </div>
         </div>
       </div>
     </div>
-    
+
     <div class="rg-footer">
-      <button aria-label="${t('accessibility.cancel')}" class="rg-btn rg-btn-secondary" id="rg-cancel">Cancel</button>
+      <button aria-label="${t('accessibility.cancel')}" class="rg-btn rg-btn-secondary" id="rg-cancel">${t('recordGift.cancel')}</button>
       <button aria-label="${t('accessibility.submit')}" class="rg-btn rg-btn-primary" id="rg-save" ${state.isSubmitting || !state.item.trim() ? 'disabled' : ''}>
-        ${state.isSubmitting ? 'Saving...' : 'Save Gift'}
+        ${state.isSubmitting ? t('common.saving') : t('recordGift.saveGift')}
       </button>
     </div>
   `;
@@ -829,8 +829,8 @@ async function handleSave(): Promise<void> {
       
       closeRecordGift();
     } else {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      toast.error(error.error || "Couldn't save that. Try again?");
+      const error = await response.json().catch(() => ({ error: '' }));
+      toast.error(error.error || t('toasts.couldNotSaveGift'));
       state.isSubmitting = false;
       render();
     }

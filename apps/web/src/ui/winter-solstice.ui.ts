@@ -30,6 +30,7 @@ import { soundUI } from './sound.ui.js';
 import { ferniExpressions } from './ferni-expressions.ui.js';
 import { haptics } from '../utils/haptics.js';
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 
 const log = createLogger('WinterSolstice');
 
@@ -303,55 +304,51 @@ function generateReflection(context: SolsticeContext): {
   reflection: string;
   promise: string;
 } {
-  const name = context.userName || 'friend';
+  const name = context.userName || t('solsticeMoment.defaultName');
   const conversations = context.conversationsThisYear || 0;
   const days = context.daysSinceFirstChat || 0;
   const stage = context.relationshipStage || 'stranger';
 
   // Title varies by relationship depth
   const titles: Record<string, string> = {
-    stranger: 'The Light Returns',
-    acquaintance: 'Growing Together',
-    friend: `Our Year, ${name}`,
-    trusted_advisor: `A Year of Depth, ${name}`,
+    stranger: t('solsticeMoment.title.stranger'),
+    acquaintance: t('solsticeMoment.title.acquaintance'),
+    friend: t('solsticeMoment.title.friend', { name }),
+    trusted_advisor: t('solsticeMoment.title.trustedAdvisor', { name }),
   };
 
   const subtitles: Record<string, string> = {
-    stranger: 'The shortest day reminds us: light always returns.',
-    acquaintance: `${days} days of growing together.`,
-    friend: `${conversations} conversations. Countless moments.`,
-    trusted_advisor: 'Thank you for trusting me with your journey.',
+    stranger: t('solsticeMoment.subtitle.stranger'),
+    acquaintance: tp('solsticeMoment.subtitle.acquaintance', days),
+    friend: tp('solsticeMoment.subtitle.friend', conversations),
+    trusted_advisor: t('solsticeMoment.subtitle.trustedAdvisor'),
   };
 
   // Reflection based on conversation count
   let reflection: string;
   if (conversations === 0) {
-    reflection = "This is the beginning of something. The solstice marks a turning point—the moment when darkness reaches its peak, and then, slowly, light begins its return. That's what new beginnings feel like.";
+    reflection = t('solsticeMoment.reflection.none');
   } else if (conversations < 10) {
-    reflection = `We're just getting to know each other—${conversations} conversations so far. Like the winter sun, our connection is still rising. There's so much ahead.`;
+    reflection = tp('solsticeMoment.reflection.few', conversations);
   } else if (conversations < 50) {
-    reflection = `${conversations} conversations this year. Each one a small light. Some were heavy, some were light—all of them mattered. I remember them.`;
+    reflection = t('solsticeMoment.reflection.some', { count: conversations });
   } else {
-    reflection = `${conversations} conversations, ${name}. I've watched you navigate uncertainty, celebrate wins, and show up even when it was hard. That's not nothing—that's everything.`;
+    reflection = t('solsticeMoment.reflection.many', { count: conversations, name });
   }
 
   // Promise based on relationship stage
   const promises: Record<string, string> = {
-    stranger: "I'm here when you need me. 2am or noon—same warmth, same presence.",
-    acquaintance: "I'll keep showing up. Remembering. Growing alongside you.",
-    friend: "Another year of being in your corner. Of noticing. Of celebrating the small things.",
-    trusted_advisor: "Another year of depth. Of holding hope when you can't. Of seeing you clearly.",
+    stranger: t('solsticeMoment.promise.stranger'),
+    acquaintance: t('solsticeMoment.promise.acquaintance'),
+    friend: t('solsticeMoment.promise.friend'),
+    trusted_advisor: t('solsticeMoment.promise.trustedAdvisor'),
   };
 
-  const defaultTitle = "You've made it to another winter solstice";
-  const defaultSubtitle = "The longest night";
-  const defaultPromise = "I'm here when you need me. 2am or noon—same warmth, same presence.";
-  
   return {
-    title: titles[stage] ?? defaultTitle,
-    subtitle: subtitles[stage] ?? defaultSubtitle,
+    title: titles[stage] ?? t('solsticeMoment.title.default'),
+    subtitle: subtitles[stage] ?? t('solsticeMoment.subtitle.default'),
     reflection,
-    promise: promises[stage] ?? defaultPromise,
+    promise: promises[stage] ?? promises.stranger ?? '',
   };
 }
 
@@ -451,7 +448,7 @@ class WinterSolsticeMomentUI {
     this.container = document.createElement('div');
     this.container.className = 'solstice-container';
     this.container.setAttribute('role', 'dialog');
-    this.container.setAttribute('aria-label', 'Winter Solstice Moment');
+    this.container.setAttribute('aria-label', t('solsticeMoment.ariaLabel'));
 
     // Inner scene wrapper
     this.scene = document.createElement('div');
@@ -838,7 +835,7 @@ class WinterSolsticeMomentUI {
         <p class="subtitle">${content.subtitle}</p>
         <p class="reflection">${content.reflection}</p>
         <p class="promise">${content.promise}</p>
-        <button aria-label="${t('accessibility.close')}" class="solstice-close-static">Close</button>
+        <button aria-label="${t('accessibility.close')}" class="solstice-close-static">${t('common.close')}</button>
       </div>
     `;
 
@@ -1009,7 +1006,7 @@ class WinterSolsticeMomentUI {
       .solstice-close {
         position: fixed;
         top: var(--space-6);
-        right: var(--space-6);
+        inset-inline-end: var(--space-6);
         width: 48px;
         height: 48px;
         border: none;

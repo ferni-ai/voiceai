@@ -376,6 +376,7 @@ function render(): string {
   const agent = currentAgent as unknown as Record<string, unknown>;
   const sharedWith = (agent.sharedWith || []) as Array<{ email: string; name?: string; status: string }>;
   const shareLink = generateShareLink(currentAgent.id);
+  const agentName = currentAgent.displayName || currentAgent.name;
 
   return `
     <div class="legacy-share-overlay">
@@ -383,8 +384,8 @@ function render(): string {
       <div class="legacy-share-modal" role="dialog" aria-labelledby="share-title">
         <header class="legacy-share-header">
           <div class="legacy-share-title">
-            <span class="legacy-share-eyebrow">Share Their Memory</span>
-            <h2 class="legacy-share-name" id="share-title">Invite Family</h2>
+            <span class="legacy-share-eyebrow">${t('legacyShare.eyebrow')}</span>
+            <h2 class="legacy-share-name" id="share-title">${t('legacyShare.title')}</h2>
           </div>
           <button class="legacy-share-close" aria-label="${t('accessibility.close')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -404,49 +405,48 @@ function render(): string {
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
             </div>
-            <h3 class="legacy-share-intro-title">Keep Their Memory Alive Together</h3>
+            <h3 class="legacy-share-intro-title">${t('legacyShare.introTitle')}</h3>
             <p class="legacy-share-intro-text">
-              Invite family members to access ${currentAgent.displayName || currentAgent.name}'s stories, 
-              wisdom, and memories. They'll be able to talk with them and add their own stories.
+              ${t('legacyShare.introText', { name: agentName })}
             </p>
           </div>
 
           <form class="legacy-share-form" id="share-form">
             <div class="legacy-share-input-group">
-              <label class="legacy-share-label" for="invite-email">Email Address</label>
+              <label class="legacy-share-label" for="invite-email">${t('legacyShare.emailLabel')}</label>
               <input 
                 type="email" 
                 id="invite-email" 
                 class="legacy-share-input" 
-                placeholder="family.member@example.com"
+                placeholder="${t('legacyShare.emailPlaceholder')}"
                 required
               />
             </div>
             <div class="legacy-share-input-group">
-              <label class="legacy-share-label" for="invite-name">Their Name (optional)</label>
+              <label class="legacy-share-label" for="invite-name">${t('legacyShare.nameLabel')}</label>
               <input 
                 type="text" 
                 id="invite-name" 
                 class="legacy-share-input" 
-                placeholder="e.g., Aunt Sarah"
+                placeholder="${t('legacyShare.namePlaceholder')}"
               />
             </div>
             <div class="legacy-share-input-group">
-              <label class="legacy-share-label" for="invite-message">Personal Message (optional)</label>
+              <label class="legacy-share-label" for="invite-message">${t('legacyShare.messageLabel')}</label>
               <textarea 
                 id="invite-message" 
                 class="legacy-share-input legacy-share-textarea" 
-                placeholder="I wanted to share ${currentAgent.displayName || currentAgent.name}'s memories with you..."
+                placeholder="${t('legacyShare.messagePlaceholder', { name: agentName })}"
               ></textarea>
             </div>
           </form>
 
           <div class="legacy-share-divider">
-            <span class="legacy-share-divider-text">or share a link</span>
+            <span class="legacy-share-divider-text">${t('legacyShare.orShareLink')}</span>
           </div>
 
           <div class="legacy-share-link-section">
-            <h4 class="legacy-share-link-title">Share Link</h4>
+            <h4 class="legacy-share-link-title">${t('legacyShare.shareLink')}</h4>
             <div class="legacy-share-link-row">
               <input 
                 type="text" 
@@ -460,18 +460,18 @@ function render(): string {
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                 </svg>
-                Copy
+                ${t('common.copy')}
               </button>
             </div>
-            <p class="legacy-share-hint">Anyone with this link can access ${currentAgent.displayName || currentAgent.name}'s memories.</p>
+            <p class="legacy-share-hint">${t('legacyShare.linkHint', { name: agentName })}</p>
           </div>
 
           <div class="legacy-share-actions" role="button" tabindex="0">
             <button aria-label="${t('accessibility.cancel')}" class="legacy-share-btn legacy-share-btn--secondary" data-action="cancel">
-              Cancel
+              ${t('common.cancel')}
             </button>
             <button aria-label="${t('accessibility.sendInvite')}" class="legacy-share-btn legacy-share-btn--primary" data-action="send-invite">
-              Send Invite
+              ${t('accessibility.sendInvite')}
             </button>
           </div>
 
@@ -482,7 +482,7 @@ function render(): string {
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                   <circle cx="9" cy="7" r="4"/>
                 </svg>
-                Shared With (${sharedWith.length})
+                ${t('legacyShare.sharedWith', { count: sharedWith.length })}
               </h4>
               <div class="legacy-share-members-list">
                 ${sharedWith.map(member => `
@@ -492,7 +492,7 @@ function render(): string {
                     </div>
                     <div class="legacy-share-member-info">
                       <p class="legacy-share-member-name">${member.name || member.email}</p>
-                      <span class="legacy-share-member-status">${member.status === 'accepted' ? 'Joined' : 'Pending invite'}</span>
+                      <span class="legacy-share-member-status">${member.status === 'accepted' ? t('legacyShare.joined') : t('legacyShare.pendingInvite')}</span>
                     </div>
                   </div>
                 `).join('')}
@@ -524,7 +524,7 @@ export async function openLegacyShare(agentId: string): Promise<void> {
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
     const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't find this legacy");
+    toast.error(t('legacyShare.notFound'));
     return;
   }
 
@@ -628,7 +628,7 @@ async function handleSendInvite(): Promise<void> {
   // For now, we'll simulate the success
   log.info('Sending invite to:', email, nameInput?.value, messageInput?.value);
 
-  toast.success(t('toasts.inviteSentToEmail'));
+  toast.success(t('toasts.inviteSentTo', { email }));
   closeLegacyShare();
 }
 

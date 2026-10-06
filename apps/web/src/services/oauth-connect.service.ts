@@ -10,6 +10,7 @@
  *
  * @module services/oauth-connect
  */
+import { t } from '../i18n/index.js';
 import { failure, success, type OperationResult } from '../types/results.js';
 import { apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
@@ -46,10 +47,10 @@ function isSameOriginPath(url: unknown): url is string {
 
 /** What to tell the user when the server won't start the flow. */
 function refusalMessage(provider: OAuthConnectProvider, status: number): string {
-  if (status === 401) return 'Sign in first, then connect';
+  if (status === 401) return t('oauthConnect.signInFirst');
   // 503: the provider isn't set up on the server (or can't start a flow now).
-  if (status === 503) return `${PROVIDER_NAMES[provider]} isn't available right now`;
-  return "Couldn't connect. Try again?";
+  if (status === 503) return t('oauthConnect.unavailable', { provider: PROVIDER_NAMES[provider] });
+  return t('oauthConnect.failed');
 }
 
 /**

@@ -62,9 +62,9 @@ export function showPasswordResetModal(prefillEmail?: string): void {
     <div class="password-reset-card" role="dialog" aria-labelledby="reset-title">
       <header class="password-reset-header">
         <div>
-          <span class="eyebrow">ACCOUNT RECOVERY</span>
-          <h2 id="reset-title">Reset Your Password</h2>
-          <p class="tagline">We'll send you a link to create a new password.</p>
+          <span class="eyebrow">${t('passwordReset.eyebrow')}</span>
+          <h2 id="reset-title">${t('passwordReset.title')}</h2>
+          <p class="tagline">${t('passwordReset.tagline')}</p>
         </div>
         <button class="close-btn" aria-label="${t('common.close')}">${LUCIDE_CLOSE_ICON}</button>
       </header>
@@ -72,7 +72,7 @@ export function showPasswordResetModal(prefillEmail?: string): void {
       <div class="password-reset-content">
         <form class="reset-form" id="password-reset-form">
           <div class="form-field">
-            <label for="reset-email">Email Address</label>
+            <label for="reset-email">${t('passwordReset.emailAddress')}</label>
             <input 
               type="email" 
               id="reset-email" 
@@ -83,24 +83,24 @@ export function showPasswordResetModal(prefillEmail?: string): void {
               placeholder="${t('placeholders.emailExample')}"
             />
           </div>
-          <button aria-label="${t('accessibility.sendResetLink')}" type="submit" class="submit-btn">Send Reset Link</button>
+          <button aria-label="${t('accessibility.sendResetLink')}" type="submit" class="submit-btn">${t('accessibility.sendResetLink')}</button>
         </form>
       </div>
       
       <div class="password-reset-loading" style="display: none;">
         <div class="spinner"></div>
-        <p>Sending...</p>
+        <p>${t('passwordReset.sending')}</p>
       </div>
       
       <div class="password-reset-success" style="display: none;">
         ${LUCIDE_MAIL_ICON}
-        <h3>Check Your Email</h3>
-        <p>We've sent a password reset link to your email address.</p>
+        <h3>${t('passwordReset.checkEmailTitle')}</h3>
+        <p>${t('passwordReset.checkEmailMessage')}</p>
       </div>
       
       <div class="password-reset-error" style="display: none;">
         <p class="error-message"></p>
-        <button aria-label="${t('accessibility.tryAgain')}" class="retry-btn">Try Again</button>
+        <button aria-label="${t('accessibility.tryAgain')}" class="retry-btn">${t('common.tryAgain')}</button>
       </div>
     </div>
   `;
@@ -373,7 +373,7 @@ async function handleResetSubmit(event: Event): Promise<void> {
   } catch (err) {
     loading.style.display = 'none';
     error.style.display = 'flex';
-    errorMessage.textContent = err instanceof Error ? err.message : 'Something went wrong';
+    errorMessage.textContent = err instanceof Error ? err.message : t('auth.somethingWentWrong');
 
     log.error('Password reset failed:', err);
   }

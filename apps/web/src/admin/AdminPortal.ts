@@ -1119,7 +1119,7 @@ function injectAdminPortalStyles(): void {
     .admin-modal-close {
       position: absolute;
       top: var(--space-4, 1rem);
-      right: var(--space-4, 1rem);
+      inset-inline-end: var(--space-4, 1rem);
       background: transparent;
       border: none;
       color: #a89a8c;

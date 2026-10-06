@@ -58,8 +58,10 @@ interface RitualStep {
 
 interface RitualSequence {
   id: RitualType;
-  name: string;
-  description: string;
+  name?: string;
+  nameKey?: string;
+  description?: string;
+  descriptionKey?: string;
   steps: RitualStep[];
   cooldown?: number;
 }
@@ -71,8 +73,8 @@ interface RitualSequence {
 const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   app_wake: {
     id: 'app_wake',
-    name: 'Morning Wake',
-    description: 'The app breathing to life',
+    nameKey: 'ritualEngine.morningWake',
+    descriptionKey: 'ritualEngine.morningWakeDesc',
     steps: [
       { type: 'glow', action: 'startBreathing' },
       { type: 'audio', action: 'system.startup', delay: 100 },
@@ -83,8 +85,8 @@ const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   
   connection_start: {
     id: 'connection_start',
-    name: 'Connection Established',
-    description: 'We are connected',
+    nameKey: 'ritualEngine.connectionEstablished',
+    descriptionKey: 'ritualEngine.connectionEstablishedDesc',
     steps: [
       { type: 'audio', action: 'system.connectionSuccess' },
       { type: 'glow', action: 'pulse', params: { intensity: 1.2 } },
@@ -94,8 +96,8 @@ const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   
   connection_end: {
     id: 'connection_end',
-    name: 'Session Farewell',
-    description: 'Gentle goodbye',
+    nameKey: 'ritualEngine.sessionFarewell',
+    descriptionKey: 'ritualEngine.sessionFarewellDesc',
     steps: [
       { type: 'audio', action: 'system.sessionEnd' },
       { type: 'haptic', action: 'goodbye', delay: 300 },
@@ -105,8 +107,8 @@ const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   
   first_words: {
     id: 'first_words',
-    name: 'First Words',
-    description: 'User starts speaking',
+    nameKey: 'ritualEngine.firstWords',
+    descriptionKey: 'ritualEngine.firstWordsDesc',
     steps: [
       { type: 'glow', action: 'setListening', params: { isListening: true } },
       { type: 'haptic', action: 'softTap' },
@@ -115,8 +117,8 @@ const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   
   persona_entrance: {
     id: 'persona_entrance',
-    name: 'Persona Entrance',
-    description: 'A persona arrives',
+    nameKey: 'ritualEngine.personaEntrance',
+    descriptionKey: 'ritualEngine.personaEntranceDesc',
     steps: [
       { type: 'glow', action: 'switchPersona' },
       { type: 'audio', action: 'persona.{personaId}', delay: 100 },
@@ -126,8 +128,8 @@ const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   
   persona_handoff: {
     id: 'persona_handoff',
-    name: 'Persona Handoff',
-    description: 'Transition between personas',
+    nameKey: 'ritualEngine.personaHandoff',
+    descriptionKey: 'ritualEngine.personaHandoffDesc',
     steps: [
       { type: 'glow', action: 'fadeOut', params: { duration: 300 } },
       { type: 'delay', action: 'wait', params: { ms: 300 } },
@@ -139,8 +141,8 @@ const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   
   small_win: {
     id: 'small_win',
-    name: 'Small Win',
-    description: 'Quick acknowledgment',
+    nameKey: 'ritualEngine.smallWin',
+    descriptionKey: 'ritualEngine.smallWinDesc',
     steps: [
       { type: 'audio', action: 'celebration.small' },
       { type: 'haptic', action: 'success' },
@@ -151,8 +153,8 @@ const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   
   big_win: {
     id: 'big_win',
-    name: 'Big Win',
-    description: 'Major achievement celebration',
+    nameKey: 'ritualEngine.bigWin',
+    descriptionKey: 'ritualEngine.bigWinDesc',
     steps: [
       { type: 'audio', action: 'celebration.big' },
       { type: 'haptic', action: 'celebration' },
@@ -163,8 +165,8 @@ const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   
   milestone: {
     id: 'milestone',
-    name: 'Milestone',
-    description: 'Significant progress marker',
+    nameKey: 'ritualEngine.milestone',
+    descriptionKey: 'ritualEngine.milestoneDesc',
     steps: [
       { type: 'audio', action: 'celebration.milestone' },
       { type: 'haptic', action: 'milestone' },
@@ -175,8 +177,8 @@ const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   
   streak: {
     id: 'streak',
-    name: 'Streak Celebration',
-    description: 'Consistency reward',
+    nameKey: 'ritualEngine.streakCelebration',
+    descriptionKey: 'ritualEngine.streakCelebrationDesc',
     steps: [
       { type: 'audio', action: 'celebration.streak' },
       { type: 'haptic', action: 'success' },
@@ -187,8 +189,8 @@ const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   
   team_unlock: {
     id: 'team_unlock',
-    name: 'Team Member Unlock',
-    description: 'New persona available',
+    nameKey: 'ritualEngine.teamMemberUnlock',
+    descriptionKey: 'ritualEngine.teamMemberUnlockDesc',
     steps: [
       { type: 'audio', action: 'celebration.teamUnlock' },
       { type: 'haptic', action: 'celebration' },
@@ -199,8 +201,8 @@ const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   
   deep_moment: {
     id: 'deep_moment',
-    name: 'Deep Moment',
-    description: 'Emotional breakthrough acknowledgment',
+    nameKey: 'ritualEngine.deepMoment',
+    descriptionKey: 'ritualEngine.deepMomentDesc',
     steps: [
       { type: 'haptic', action: 'empathy' },
       { type: 'glow', action: 'pulse', params: { intensity: 0.8, duration: 2000 } },
@@ -210,8 +212,8 @@ const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   
   thinking_of_you: {
     id: 'thinking_of_you',
-    name: 'Thinking of You',
-    description: 'Proactive no-agenda outreach',
+    nameKey: 'ritualEngine.thinkingOfYou',
+    descriptionKey: 'ritualEngine.thinkingOfYouDesc',
     steps: [
       { type: 'audio', action: 'notification.thinkingOfYou' },
       { type: 'haptic', action: 'gentleNudge' },
@@ -221,8 +223,8 @@ const RITUAL_SEQUENCES: Record<RitualType, RitualSequence> = {
   
   session_end: {
     id: 'session_end',
-    name: 'Session End',
-    description: 'Wrapping up the conversation',
+    nameKey: 'ritualEngine.sessionEnd',
+    descriptionKey: 'ritualEngine.sessionEndDesc',
     steps: [
       { type: 'audio', action: 'system.sessionEnd' },
       { type: 'haptic', action: 'goodbye' },
@@ -302,10 +304,8 @@ export class RitualEngine {
       log.debug('Another ritual in progress', { current: this.currentSequence, requested: type });
       // Could queue here for future enhancement
     }
-    
     this.currentSequence = type;
     this.lastTriggered.set(type, Date.now());
-    
     log.info('Triggering ritual', { type, name: sequence.name });
     
     try {

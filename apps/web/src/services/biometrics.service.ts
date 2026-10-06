@@ -19,6 +19,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 import { apiDelete, apiGet, apiPost } from '../utils/api.js';
 import type { OperationResult } from '../types/results.js';
 import { startOAuthConnect } from './oauth-connect.service.js';
@@ -109,20 +110,20 @@ export async function fetchBiometricsStatus(): Promise<BiometricsStatus | null> 
 export async function connectBiometrics(platform: BiometricsPlatform): Promise<OperationResult> {
   const config = PLATFORM_CONFIGS[platform];
   if (!config) {
-    return { success: false, error: 'Unknown platform' };
+    return { success: false, error: t('biometrics.unknownPlatform') };
   }
 
   if (platform === 'apple_health') {
-    return { success: false, error: 'Apple Health is only available in the iPhone app' };
+    return { success: false, error: t('biometrics.appleHealthIphoneOnly') };
   }
 
   const providers = await fetchWearableProviders();
   if (!providers) {
-    return { success: false, error: `Couldn't reach ${config.name}. Try again?` };
+    return { success: false, error: t('biometrics.couldNotReach', { name: config.name }) };
   }
   const status = providers.find((p) => p.provider === platform);
   if (!status?.configured) {
-    return { success: false, error: `${config.name} isn't available yet` };
+    return { success: false, error: t('biometrics.notAvailableYet', { name: config.name }) };
   }
 
   log.info('Initiating wearable OAuth', { platform });
@@ -148,7 +149,7 @@ export async function disconnectBiometrics(
   if (results.every((r) => r.ok)) {
     return { success: true };
   }
-  return { success: false, error: "Couldn't disconnect. Try again?" };
+  return { success: false, error: t('toasts.couldNotDisconnect') };
 }
 
 // ============================================================================

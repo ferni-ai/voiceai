@@ -19,6 +19,8 @@
 import { createLogger } from '../utils/logger.js';
 import { getAuthToken } from '../services/firebase-auth.service.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { getLocale, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 
 const log = createLogger('FeedbackInsightsPanel');
 
@@ -61,18 +63,23 @@ const PERSONA_NAMES: Record<string, string> = {
   nayan: 'Nayan',
 };
 
-const TIME_OF_DAY_NAMES: Record<string, string> = {
-  morning: 'in the morning',
-  afternoon: 'in the afternoon',
-  evening: 'in the evening',
-  night: 'late at night',
+const TIME_OF_DAY_KEYS: Record<NonNullable<FeedbackInsights['bestTimeOfDay']>, string> = {
+  morning: 'feedbackInsights.timeMorning',
+  afternoon: 'feedbackInsights.timeAfternoon',
+  evening: 'feedbackInsights.timeEvening',
+  night: 'feedbackInsights.timeNight',
 };
 
-const DEPTH_DESCRIPTIONS: Record<string, string> = {
-  shallow: 'light and supportive',
-  medium: 'balanced depth',
-  deep: 'thoughtful and deep',
+const DEPTH_KEYS: Record<FeedbackInsights['preferredDepth'], string> = {
+  shallow: 'feedbackInsights.depthShallow',
+  medium: 'feedbackInsights.depthMedium',
+  deep: 'feedbackInsights.depthDeep',
 };
+
+const strong = (value: string | number): string => `<strong>${value}</strong>`;
+
+const listJoin = (items: string[]): string =>
+  new Intl.ListFormat(getLocale(), { type: 'conjunction' }).format(items);
 
 // ============================================================================
 // STATE
@@ -303,17 +310,17 @@ function createPanel(): HTMLElement {
   panel.innerHTML = `
     <header class="feedback-insights-panel__header">
       <div class="feedback-insights-panel__title">
-        <span class="feedback-insights-panel__eyebrow">Conversation Insights</span>
-        <h2 id="feedback-insights-title" class="feedback-insights-panel__heading">How we're connecting</h2>
+        <span class="feedback-insights-panel__eyebrow">${t('feedbackInsights.eyebrow')}</span>
+        <h2 id="feedback-insights-title" class="feedback-insights-panel__heading">${t('feedbackInsights.heading')}</h2>
       </div>
-      <button class="feedback-insights-panel__close" aria-label="Close">
+      <button class="feedback-insights-panel__close" aria-label="${t('common.close')}">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 6L6 18M6 6l12 12"/>
         </svg>
       </button>
     </header>
     <div class="feedback-insights-panel__content">
-      <div class="feedback-insights-panel__loading">Loading insights...</div>
+      <div class="feedback-insights-panel__loading">${t('feedbackInsights.loading')}</div>
     </div>
   `;
 
@@ -343,7 +350,7 @@ function renderContent(): void {
   if (loadError) {
     content.innerHTML = `
       <div class="feedback-insights-panel__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, rgba(44, 37, 32, 0.5));">
-        Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
+        ${t('feedbackInsights.loadError')} <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('feedbackInsights.tryAgain')}</button>
       </div>
     `;
     content.querySelector('button')?.addEventListener('click', () => {
@@ -361,7 +368,7 @@ function renderContent(): void {
           <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
         </svg>
         <p class="feedback-insights-panel__empty-text">
-          Keep chatting! After a few conversations, I'll share insights about what's resonating.
+          ${t('feedbackInsights.emptyNew')}
         </p>
       </div>
     `;
@@ -376,75 +383,53 @@ function renderContent(): void {
       .filter(([, rate]) => rate > 0)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
-      .map(([personaId, rate]) => {
-        const name = PERSONA_NAMES[personaId] || personaId;
-        const percentage = Math.round(rate * 100);
-        return `<strong>${name}'s</strong> guidance resonates <strong>${percentage}%</strong> of the time`;
-      });
+      .map(([personaId, rate]) =>
+        t('feedbackInsights.resonates', {
+          name: strong(PERSONA_NAMES[personaId] || personaId),
+          percentage: strong(`${Math.round(rate * 100)}%`),
+        })
+      );
 
     if (resonanceInsights.length > 0) {
-      sections.push(`
-        <div class="feedback-insights-panel__section">
-          <h3 class="feedback-insights-panel__section-title">What's landing</h3>
-          ${resonanceInsights.map((text) => createInsightCard('heart', text)).join('')}
-        </div>
-      `);
+      sections.push(createSection(t('feedbackInsights.sectionLanding'), 'heart', resonanceInsights));
     }
   }
 
   // Topics section
   if (insights?.topicsWell && insights.topicsWell.length > 0) {
-    const topicsText = insights.topicsWell.slice(0, 3).join(', ');
-    sections.push(`
-      <div class="feedback-insights-panel__section">
-        <h3 class="feedback-insights-panel__section-title">Your sweet spots</h3>
-        ${createInsightCard('lightbulb', `Conversations about <strong>${topicsText}</strong> tend to feel most helpful`)}
-      </div>
-    `);
+    const topics = strong(listJoin(insights.topicsWell.slice(0, 3)));
+    const text = t('feedbackInsights.topicsHelpful', { topics });
+    sections.push(createSection(t('feedbackInsights.sectionSweetSpots'), 'lightbulb', [text]));
   }
 
   // Depth preference
   if (insights?.preferredDepth) {
-    const depthDesc = DEPTH_DESCRIPTIONS[insights.preferredDepth];
-    sections.push(`
-      <div class="feedback-insights-panel__section">
-        <h3 class="feedback-insights-panel__section-title">Your style</h3>
-        ${createInsightCard('compass', `You seem to prefer conversations that are <strong>${depthDesc}</strong>`)}
-      </div>
-    `);
+    const depth = strong(t(DEPTH_KEYS[insights.preferredDepth]));
+    const text = t('feedbackInsights.prefersDepth', { depth });
+    sections.push(createSection(t('feedbackInsights.sectionStyle'), 'compass', [text]));
   }
 
   // Time of day
   if (insights?.bestTimeOfDay) {
-    const timeDesc = TIME_OF_DAY_NAMES[insights.bestTimeOfDay];
-    sections.push(`
-      <div class="feedback-insights-panel__section">
-        <h3 class="feedback-insights-panel__section-title">Best times</h3>
-        ${createInsightCard('clock', `Our conversations tend to land better <strong>${timeDesc}</strong>`)}
-      </div>
-    `);
+    const time = strong(t(TIME_OF_DAY_KEYS[insights.bestTimeOfDay]));
+    const text = t('feedbackInsights.landsBetter', { time });
+    sections.push(createSection(t('feedbackInsights.sectionBestTimes'), 'clock', [text]));
   }
 
   // Skip patterns (framed positively)
   if (insights?.skipPatterns?.highSkipTopics && insights.skipPatterns.highSkipTopics.length > 0) {
-    const skipTopics = insights.skipPatterns.highSkipTopics.slice(0, 2).join(' and ');
-    sections.push(`
-      <div class="feedback-insights-panel__section">
-        <h3 class="feedback-insights-panel__section-title">Areas to explore</h3>
-        ${createInsightCard('compass', `When we touch on <strong>${skipTopics}</strong>, it might help to take it slower`)}
-      </div>
-    `);
+    const topics = strong(listJoin(insights.skipPatterns.highSkipTopics.slice(0, 2)));
+    const text = t('feedbackInsights.takeSlower', { topics });
+    sections.push(createSection(t('feedbackInsights.sectionExplore'), 'compass', [text]));
   }
 
   // Engagement stats
   if (stats && stats.totalPrompts > 0) {
-    const engagementRate = Math.round(stats.responseRate * 100);
-    sections.push(`
-      <div class="feedback-insights-panel__section">
-        <h3 class="feedback-insights-panel__section-title">Our connection</h3>
-        ${createInsightCard('activity', `You've shared feedback <strong>${stats.totalResponses}</strong> times, engaging <strong>${engagementRate}%</strong> of the time`)}
-      </div>
-    `);
+    const text = tp('feedbackInsights.sharedFeedback', stats.totalResponses, {
+      count: strong(stats.totalResponses),
+      percentage: strong(`${Math.round(stats.responseRate * 100)}%`),
+    });
+    sections.push(createSection(t('feedbackInsights.sectionConnection'), 'activity', [text]));
   }
 
   if (sections.length === 0) {
@@ -455,13 +440,22 @@ function renderContent(): void {
           <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
         </svg>
         <p class="feedback-insights-panel__empty-text">
-          Not enough data yet. Keep sharing feedback during our chats!
+          ${t('feedbackInsights.emptyNoData')}
         </p>
       </div>
     `;
   } else {
     content.innerHTML = sections.join('');
   }
+}
+
+function createSection(title: string, icon: string, texts: string[]): string {
+  return `
+    <div class="feedback-insights-panel__section">
+      <h3 class="feedback-insights-panel__section-title">${title}</h3>
+      ${texts.map((text) => createInsightCard(icon, text)).join('')}
+    </div>
+  `;
 }
 
 function createInsightCard(icon: string, text: string): string {

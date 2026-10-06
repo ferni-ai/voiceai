@@ -15,6 +15,8 @@
  * @module typography/persona-voice-type
  */
 
+import { t } from '../../i18n/index.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -40,10 +42,10 @@ export interface PersonaTypography {
   wordSpacing: number;
   /** Font feature settings */
   fontFeatures: string;
-  /** Typography style description */
-  style: string;
-  /** When this persona "speaks", how should text feel? */
-  voiceDescription: string;
+  /** i18n key for the typography style label */
+  styleKey: string;
+  /** i18n key: when this persona "speaks", how should text feel? */
+  voiceDescriptionKey: string;
 }
 
 /**
@@ -86,8 +88,8 @@ export const PERSONA_TYPOGRAPHY: Record<PersonaId, PersonaTypography> = {
     lineHeightMultiplier: 1.1,
     wordSpacing: 0.5,
     fontFeatures: '"calt" on, "liga" on',
-    style: 'Rounded',
-    voiceDescription: 'Warm and approachable, like a close friend speaking gently',
+    styleKey: 'personaTypography.ferni.style',
+    voiceDescriptionKey: 'personaTypography.ferni.voice',
   },
   maya: {
     headingWeight: 550,
@@ -96,8 +98,8 @@ export const PERSONA_TYPOGRAPHY: Record<PersonaId, PersonaTypography> = {
     lineHeightMultiplier: 1.05,
     wordSpacing: 0,
     fontFeatures: '"calt" on, "ss01" on',
-    style: 'Crisp',
-    voiceDescription: 'Energetic and motivating, like a supportive coach',
+    styleKey: 'personaTypography.maya.style',
+    voiceDescriptionKey: 'personaTypography.maya.voice',
   },
   peter: {
     headingWeight: 500,
@@ -106,8 +108,8 @@ export const PERSONA_TYPOGRAPHY: Record<PersonaId, PersonaTypography> = {
     lineHeightMultiplier: 1.0,
     wordSpacing: -0.2,
     fontFeatures: '"tnum" on, "calt" on',
-    style: 'Structured',
-    voiceDescription: 'Precise and analytical, like a thoughtful researcher',
+    styleKey: 'personaTypography.peter.style',
+    voiceDescriptionKey: 'personaTypography.peter.voice',
   },
   jordan: {
     headingWeight: 500,
@@ -116,8 +118,8 @@ export const PERSONA_TYPOGRAPHY: Record<PersonaId, PersonaTypography> = {
     lineHeightMultiplier: 1.05,
     wordSpacing: 0.2,
     fontFeatures: '"calt" on, "liga" on',
-    style: 'Balanced',
-    voiceDescription: 'Organized and optimistic, like a reliable planner',
+    styleKey: 'personaTypography.jordan.style',
+    voiceDescriptionKey: 'personaTypography.jordan.voice',
   },
   alex: {
     headingWeight: 500,
@@ -126,8 +128,8 @@ export const PERSONA_TYPOGRAPHY: Record<PersonaId, PersonaTypography> = {
     lineHeightMultiplier: 1.0,
     wordSpacing: -0.1,
     fontFeatures: '"calt" on',
-    style: 'Clean',
-    voiceDescription: 'Professional and efficient, like a capable assistant',
+    styleKey: 'personaTypography.alex.style',
+    voiceDescriptionKey: 'personaTypography.alex.voice',
   },
   nayan: {
     headingWeight: 400,
@@ -136,8 +138,8 @@ export const PERSONA_TYPOGRAPHY: Record<PersonaId, PersonaTypography> = {
     lineHeightMultiplier: 1.15,
     wordSpacing: 1.0,
     fontFeatures: '"calt" on, "liga" on, "onum" on',
-    style: 'Spacious',
-    voiceDescription: 'Deep and contemplative, like a wise mentor',
+    styleKey: 'personaTypography.nayan.style',
+    voiceDescriptionKey: 'personaTypography.nayan.voice',
   },
 };
 
@@ -194,18 +196,9 @@ export const PERSONA_CONFIGS: Record<PersonaId, PersonaTypeConfig> = {
  * Some transitions feel better slower/faster.
  */
 const PERSONA_TRANSITIONS: Partial<Record<PersonaId, Partial<Record<PersonaId, number>>>> = {
-  ferni: {
-    maya: 400,
-    nayan: 600,
-  },
-  maya: {
-    nayan: 700,
-    peter: 400,
-  },
-  nayan: {
-    maya: 700,
-    alex: 600,
-  },
+  ferni: { maya: 400, nayan: 600 },
+  maya: { nayan: 700, peter: 400 },
+  nayan: { maya: 700, alex: 600 },
 };
 
 // ============================================================================
@@ -411,7 +404,7 @@ export function generatePersonaTypographyCSS(): string {
   const personaStyles = personas.map(([id, config]) => {
     const typo = config.typography;
     return `
-/* ${config.name} - ${typo.style}: ${typo.voiceDescription} */
+/* ${config.name} */
 .${config.className},
 .persona-${id}-active .persona-typography {
   --persona-heading-weight: ${typo.headingWeight};
@@ -526,7 +519,7 @@ export function getPersonaDescription(persona: PersonaId): {
   const config = PERSONA_CONFIGS[persona];
   return {
     name: config.name,
-    style: config.typography.style,
-    voiceDescription: config.typography.voiceDescription,
+    style: t(config.typography.styleKey),
+    voiceDescription: t(config.typography.voiceDescriptionKey),
   };
 }

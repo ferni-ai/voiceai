@@ -105,7 +105,7 @@ class PredictionTrackerUI {
     this.panel = document.createElement('div');
     this.panel.className = 'pred-tracker';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Prediction accuracy');
+    this.panel.setAttribute('aria-label', t('predictionTracker.ariaLabel'));
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'pred-tracker__wrapper';
@@ -125,7 +125,7 @@ class PredictionTrackerUI {
 
     this.wrapper.innerHTML = `
       <header class="pred-tracker__header">
-        <h2>Your Predictions</h2>
+        <h2>${t('predictionTracker.title')}</h2>
         <button class="pred-tracker__close" aria-label="${t('common.close')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -136,40 +136,34 @@ class PredictionTrackerUI {
       <div class="pred-tracker__score">
         <div class="pred-tracker__ring" style="--progress: ${data.overallAccuracy}">
           <span class="pred-tracker__ring-value">${data.overallAccuracy}%</span>
-          <span class="pred-tracker__ring-label">Accuracy</span>
+          <span class="pred-tracker__ring-label">${t('predictionTracker.accuracy')}</span>
         </div>
         <p class="pred-tracker__message">${message}</p>
       </div>
 
       <div class="pred-tracker__stats">
+        ${[
+          [data.totalPredictions, t('predictionTracker.total')],
+          [data.correctPredictions, t('predictionTracker.correct')],
+          [data.currentStreak, t('predictionTracker.currentStreak')],
+          [data.bestStreak, t('predictionTracker.bestStreak')],
+        ].map(([value, label]) => `
         <div class="pred-tracker__stat">
-          <span class="pred-tracker__stat-value">${data.totalPredictions}</span>
-          <span class="pred-tracker__stat-label">Total</span>
-        </div>
-        <div class="pred-tracker__stat">
-          <span class="pred-tracker__stat-value">${data.correctPredictions}</span>
-          <span class="pred-tracker__stat-label">Correct</span>
-        </div>
-        <div class="pred-tracker__stat">
-          <span class="pred-tracker__stat-value">${data.currentStreak}</span>
-          <span class="pred-tracker__stat-label">Current Streak</span>
-        </div>
-        <div class="pred-tracker__stat">
-          <span class="pred-tracker__stat-value">${data.bestStreak}</span>
-          <span class="pred-tracker__stat-label">Best Streak</span>
-        </div>
+          <span class="pred-tracker__stat-value">${value}</span>
+          <span class="pred-tracker__stat-label">${label}</span>
+        </div>`).join('')}
       </div>
 
       ${data.byCategory.length > 0 ? `
         <div class="pred-tracker__categories">
-          <h3>By Category</h3>
+          <h3>${t('predictionTracker.byCategory')}</h3>
           ${data.byCategory.map(c => this.renderCategory(c)).join('')}
         </div>
       ` : ''}
 
       ${data.recentTrend.length > 0 ? `
         <div class="pred-tracker__trend">
-          <h3>Recent Trend</h3>
+          <h3>${t('predictionTracker.recentTrend')}</h3>
           <div class="pred-tracker__trend-chart">
             ${data.recentTrend.map((v, i) => `
               <div class="pred-tracker__trend-bar" style="--height: ${v}%; --delay: ${i * 50}ms"></div>
@@ -179,14 +173,12 @@ class PredictionTrackerUI {
       ` : ''}
 
       <div class="pred-tracker__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.viewAllPredictions')}" class="pred-tracker__btn pred-tracker__btn--primary">View All Predictions</button>
+        <button aria-label="${t('accessibility.viewAllPredictions')}" class="pred-tracker__btn pred-tracker__btn--primary">${t('accessibility.viewAllPredictions')}</button>
       </div>
     `;
 
     this.wrapper.querySelector('.pred-tracker__close')?.addEventListener('click', () => this.hide());
-    this.wrapper.querySelector('.pred-tracker__btn--primary')?.addEventListener('click', () => {
-      this.callbacks.onViewPredictions?.();
-    });
+    this.wrapper.querySelector('.pred-tracker__btn--primary')?.addEventListener('click', () => this.callbacks.onViewPredictions?.());
   }
 
   private renderCategory(cat: CategoryAccuracy): string {
@@ -194,7 +186,7 @@ class PredictionTrackerUI {
     return `
       <div class="pred-tracker__category">
         <span class="pred-tracker__category-icon">${icon}</span>
-        <span class="pred-tracker__category-name">${cat.category}</span>
+        <span class="pred-tracker__category-name">${this.getCategoryLabel(cat.category)}</span>
         <div class="pred-tracker__category-bar">
           <div class="pred-tracker__category-fill" style="--width: ${cat.accuracy}%"></div>
         </div>
@@ -204,18 +196,26 @@ class PredictionTrackerUI {
   }
 
   private getEncouragingMessage(accuracy: number): string {
-    if (accuracy >= 80) return 'Excellent intuition! You really know yourself.';
-    if (accuracy >= 60) return 'Solid predictions! Your self-awareness is growing.';
-    if (accuracy >= 40) return 'Learning in progress. Each prediction teaches something.';
-    return 'Early days! The more you predict, the more you learn.';
+    if (accuracy >= 80) return t('predictionTracker.messageExcellent');
+    if (accuracy >= 60) return t('predictionTracker.messageSolid');
+    if (accuracy >= 40) return t('predictionTracker.messageLearning');
+    return t('predictionTracker.messageEarly');
+  }
+
+  private getCategoryLabel(category: string): string {
+    const labels: Record<string, string> = {
+      personal: t('predictionTracker.categoryPersonal'),
+      work: t('predictionTracker.categoryWork'),
+      health: t('accessibility.health'),
+      habits: t('predictionTracker.categoryHabits'),
+      general: t('predictionTracker.categoryGeneral'),
+    };
+    return labels[category] ?? category;
   }
 
   private animateProgress(): void {
     trackedTimeout(() => {
-      const ring = this.wrapper?.querySelector('.pred-tracker__ring') as HTMLElement;
-      if (ring) {
-        ring.classList.add('pred-tracker__ring--animated');
-      }
+      this.wrapper?.querySelector('.pred-tracker__ring')?.classList.add('pred-tracker__ring--animated');
 
       this.wrapper?.querySelectorAll('.pred-tracker__category-fill').forEach(el => {
         (el as HTMLElement).style.width = 'var(--width)';

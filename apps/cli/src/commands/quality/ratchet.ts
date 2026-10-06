@@ -84,13 +84,29 @@ export function initialFiles(manifest: Record<string, ManifestChunk>): Set<strin
   return files;
 }
 
+/**
+ * Lazy translation chunks (src/i18n/locales/<locale>.json). A visitor loads
+ * one, so they count once, at the size of the largest, toward the total.
+ */
+export function localeFiles(manifest: Record<string, ManifestChunk>): Set<string> {
+  return new Set(
+    Object.entries(manifest)
+      .filter(([key]) => /(^|\/)i18n\/locales\/[^/]+\.json$/.test(key))
+      .map(([, chunk]) => chunk.file)
+  );
+}
+
 export function measureBundle(dir = join(ROOT, 'apps/web/dist/assets')): BundleSize {
   const files = readdirSync(dir).filter((f) => /\.(js|css)$/.test(f));
   const manifestPath = join(dir, '..', '.vite', 'manifest.json');
   let isInitial: (file: string) => boolean;
+  let isLocale: (file: string) => boolean = () => false;
   if (existsSync(manifestPath)) {
-    const initial = initialFiles(JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, ManifestChunk>);
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, ManifestChunk>;
+    const initial = initialFiles(manifest);
+    const locales = localeFiles(manifest);
     isInitial = (f) => initial.has(`assets/${f}`);
+    isLocale = (f) => locales.has(`assets/${f}`);
   } else {
     console.warn(`⚠️  No ${relative(ROOT, manifestPath)}: guessing initial files from their names (index*, vendor*).`);
     isInitial = (f) => /^(index|vendor)/.test(f);
@@ -98,12 +114,15 @@ export function measureBundle(dir = join(ROOT, 'apps/web/dist/assets')): BundleS
   let totalKB = 0;
   let initialKB = 0;
   let maxChunkKB = 0;
+  let maxLocaleKB = 0;
   for (const f of files) {
     const kb = statSync(join(dir, f)).size / 1024;
-    totalKB += kb;
+    if (isLocale(f)) maxLocaleKB = Math.max(maxLocaleKB, kb);
+    else totalKB += kb;
     if (isInitial(f)) initialKB += kb;
     maxChunkKB = Math.max(maxChunkKB, kb);
   }
+  totalKB += maxLocaleKB;
   const round = (n: number): number => Math.round(n * 10) / 10;
   return { totalKB: round(totalKB), initialKB: round(initialKB), maxChunkKB: round(maxChunkKB) };
 }

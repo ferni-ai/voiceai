@@ -545,7 +545,7 @@ class SettingsMenuUI {
     this.panel = document.createElement('aside');
     this.panel.className = 'settings-menu';
     this.panel.setAttribute('role', 'navigation');
-    this.panel.setAttribute('aria-label', 'Settings menu');
+    this.panel.setAttribute('aria-label', t('menu.ariaLabel'));
 
     this.renderContent();
 
@@ -771,7 +771,7 @@ class SettingsMenuUI {
                   `
             ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
             ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
-            ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.whatsAhead') || "What's Ahead")}
+            ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.whatsAhead'))}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
           `
                 )
@@ -783,16 +783,16 @@ class SettingsMenuUI {
             this.isSectionVisible('understandingYou')
               ? this.renderCollapsibleSection(
                   'understandingYou',
-                  t('menu.sections.ourStory') || 'Our Story',
+                  t('menu.sections.ourStory'),
                   expandedSections.has('understandingYou'),
                   `
-            ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory') || 'Your Story')}
-            ${this.renderMenuItem('trust-dashboard', ICONS.ring, t('menu.items.trustDashboard') || 'Trust & Growth')}
+            ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory'))}
+            ${this.renderMenuItem('trust-dashboard', ICONS.ring, t('menu.items.trustDashboard'))}
             ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
-            ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane') || 'Memory Lane', t('common.new'))}
-            ${this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights') || 'Your Patterns')}
+            ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane'), t('common.new'))}
+            ${this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
-            ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear') || 'Your Year with Ferni', t('common.new'))}
+            ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear'), t('common.new'))}
           `
                 )
               : ''
@@ -807,7 +807,7 @@ class SettingsMenuUI {
                   expandedSections.has('waysToConnect'),
                   `
             ${this.renderMenuItem('journal', ICONS.journal, t('menu.items.journaling'))}
-            ${this.renderMenuItemWithBadge('knowledge-quiz', ICONS.lightbulb, t('menu.items.knowledgeQuiz') || 'How Well Do You Know Me?', t('common.new'))}
+            ${this.renderMenuItemWithBadge('knowledge-quiz', ICONS.lightbulb, t('menu.items.knowledgeQuiz'), t('common.new'))}
             ${this.renderMenuItem('music-dashboard', ICONS.music, t('menu.items.musicalYou'))}
             ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
             ${this.renderMenuItem('vibe-controller', ICONS.sparkles, t('menu.items.setTheVibe'))}
@@ -844,10 +844,10 @@ class SettingsMenuUI {
                   `
             ${this.renderMenuItem('personal-settings', ICONS.palette, t('menu.items.personalize'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.themeLanguage'))}
-            ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript') || 'Show Transcript', transcriptUI.isEnabled())}
-            ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects') || 'Sound Effects', !soundUI.getMuted())}
+            ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript'), transcriptUI.isEnabled())}
+            ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects'), !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
-            ${connectionService.getRoomState().useQwen3Omni ? this.renderMenuItem('director-console', ICONS.layers, t('menu.items.directorConsole') || 'Director Console') : ''}
+            ${connectionService.getRoomState().useQwen3Omni ? this.renderMenuItem('director-console', ICONS.layers, t('menu.items.directorConsole')) : ''}
             ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
@@ -1016,7 +1016,7 @@ class SettingsMenuUI {
   ): string {
     return `
       <section class="settings-menu__section ${isExpanded ? 'settings-menu__section--expanded' : ''}">
-        <button aria-label="${isExpanded ? 'Collapse' : 'Expand'} ${title}" class="settings-menu__section-header" data-section="${id}" aria-expanded="${isExpanded}">
+        <button aria-label="${t(isExpanded ? 'menu.collapseSection' : 'menu.expandSection', { title })}" class="settings-menu__section-header" data-section="${id}" aria-expanded="${isExpanded}">
           <h3>${title}</h3>
           <span class="settings-menu__section-chevron">${ICONS.chevronRight}</span>
         </button>
@@ -1039,11 +1039,11 @@ class SettingsMenuUI {
       'together-sessions': { icon: ICONS.users, label: t('menu.items.togetherSessions') },
       'all-connections': { icon: ICONS.link, label: t('menu.items.allConnections') },
       // Core items
-      'what-i-do-for-you': { icon: ICONS.care, label: 'What I Do For You' },
-      'your-story': { icon: ICONS.heart, label: t('menu.items.yourStory') || 'Your Story' },
+      'what-i-do-for-you': { icon: ICONS.care, label: t('ferniCare.whatIDoForYou') },
+      'your-story': { icon: ICONS.heart, label: t('menu.items.yourStory') },
       'your-year': {
         icon: ICONS.sparkles,
-        label: t('menu.items.yourYear') || 'Your Year with Ferni',
+        label: t('menu.items.yourYear'),
       },
       'future-insights': { icon: ICONS.sparkles, label: t('menu.items.whatIllKnow') },
       analytics: { icon: ICONS.analytics, label: t('menu.items.progressAnalytics') },
@@ -1058,7 +1058,7 @@ class SettingsMenuUI {
       'video-call-settings': { icon: ICONS.video, label: t('menu.items.videoSessions') },
       'group-coaching': { icon: ICONS.users, label: t('menu.items.groupCoaching') },
       team: { icon: ICONS.team, label: t('menu.items.teamHuddles') },
-      'team-observations': { icon: ICONS.lightbulb, label: 'Team Observations' },
+      'team-observations': { icon: ICONS.lightbulb, label: t('menu.items.teamObservations') },
       'play-games': { icon: ICONS.sparkles, label: t('menu.items.playGames') },
       'music-dashboard': { icon: ICONS.music, label: t('menu.items.musicalYou') },
       'creative-you': { icon: ICONS.creative, label: t('menu.items.creativeYou') },
@@ -1072,7 +1072,7 @@ class SettingsMenuUI {
       'linkedin-settings': { icon: ICONS.linkedin, label: t('menu.items.linkedin') },
       'calendar-settings': {
         icon: ICONS.calendar,
-        label: t('menu.items.whatsAhead') || "What's Ahead",
+        label: t('menu.items.whatsAhead'),
       },
       notifications: { icon: ICONS.bell, label: t('menu.items.notifications') },
       theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
@@ -1186,7 +1186,7 @@ class SettingsMenuUI {
 
     return `
       <div class="settings-menu__language-selector">
-        <button aria-label="${this.languageExpanded ? 'Collapse' : 'Expand'} ${t('menu.items.language')}" class="settings-menu__item settings-menu__item--expandable ${expandedClass}" data-action="toggle-language">
+        <button aria-label="${t(this.languageExpanded ? 'menu.collapseSection' : 'menu.expandSection', { title: t('menu.items.language') })}" class="settings-menu__item settings-menu__item--expandable ${expandedClass}" data-action="toggle-language">
           <span class="settings-menu__icon">${ICONS.globe}</span>
           <span class="settings-menu__label">${t('menu.items.language')}</span>
           <span class="settings-menu__language-current">
@@ -1201,7 +1201,7 @@ class SettingsMenuUI {
           <div class="settings-menu__language-list-inner">
             ${SUPPORTED_LOCALES.map(
               (lang) => `
-              <button aria-label="${lang.nativeName}${lang.code === currentLocale ? ' (current)' : ''}"
+              <button aria-label="${lang.code === currentLocale ? t('menu.languageCurrent', { language: lang.nativeName }) : lang.nativeName}"
                 class="settings-menu__language-option ${lang.code === currentLocale ? 'settings-menu__language-option--active' : ''}"
                 data-action="set-language"
                 data-locale="${lang.code}"

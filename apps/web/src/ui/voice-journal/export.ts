@@ -9,7 +9,8 @@
 import { createLogger } from '../../utils/logger.js';
 import { getEntries, getCurrentAgent } from './state.js';
 import { calculateStats } from './stats.js';
-import { t } from '../../i18n/index.js';
+import { formatDate, t } from '../../i18n/index.js';
+import { tp } from '../../i18n/plural.js';
 
 const log = createLogger('VoiceJournalExport');
 
@@ -39,22 +40,23 @@ export async function exportJournal(): Promise<void> {
     });
 
     // Build export content
-    let content = `# Voice Journal Export\n`;
+    let content = `# ${t('voiceJournal.export.title')}\n`;
     content += `## ${currentAgent.displayName || currentAgent.name}\n`;
-    content += `Exported: ${new Date().toLocaleDateString()}\n\n`;
+    content += `${t('voiceJournal.export.exported', { date: formatDate(new Date()) })}\n\n`;
     content += `---\n\n`;
-    content += `## Journal Statistics\n`;
-    content += `- Total Entries: ${stats.totalEntries}\n`;
-    content += `- Current Streak: ${stats.currentStreak} days\n`;
-    content += `- Longest Streak: ${stats.longestStreak} days\n`;
+    content += `## ${t('voiceJournal.export.statsHeading')}\n`;
+    content += `- ${t('voiceJournal.export.totalEntries', { count: stats.totalEntries })}\n`;
+    content += `- ${tp('voiceJournal.export.currentStreak', stats.currentStreak)}\n`;
+    content += `- ${tp('voiceJournal.export.longestStreak', stats.longestStreak)}\n`;
     if (stats.topMoods.length > 0) {
-      content += `- Top Moods: ${stats.topMoods.map((m) => `${m.mood} (${m.count})`).join(', ')}\n`;
+      const moods = stats.topMoods.map((m) => `${m.mood} (${m.count})`).join(', ');
+      content += `- ${t('voiceJournal.export.topMoods', { moods })}\n`;
     }
     content += `\n---\n\n`;
-    content += `## Journal Entries\n\n`;
+    content += `## ${t('voiceJournal.export.entriesHeading')}\n\n`;
 
     for (const entry of sortedEntries) {
-      const date = new Date(entry.createdAt).toLocaleDateString('en-US', {
+      const date = formatDate(new Date(entry.createdAt), {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -62,7 +64,7 @@ export async function exportJournal(): Promise<void> {
       });
       content += `### ${date}\n`;
       if (entry.mood) {
-        content += `**Mood:** ${entry.mood}\n`;
+        content += `**${t('voiceJournal.export.mood')}** ${entry.mood}\n`;
       }
       content += `\n${entry.content}\n\n`;
       content += `---\n\n`;
@@ -115,15 +117,16 @@ export async function shareJournal(): Promise<void> {
     return;
   }
 
-  const date = new Date(recentEntry.createdAt).toLocaleDateString();
+  const date = formatDate(new Date(recentEntry.createdAt));
   const preview = recentEntry.content.slice(0, 200);
-  const shareText = `My journal entry from ${date}:\n\n"${preview}${recentEntry.content.length > 200 ? '...' : ''}"\n\n— Written with Ferni`;
+  const excerpt = `"${preview}${recentEntry.content.length > 200 ? '...' : ''}"`;
+  const shareText = `${t('voiceJournal.export.shareIntro', { date })}\n\n${excerpt}\n\n${t('voiceJournal.export.shareSignature')}`;
 
   // Use Web Share API if available
   if (navigator.share) {
     try {
       await navigator.share({
-        title: 'My Journal Entry',
+        title: t('voiceJournal.export.shareTitle'),
         text: shareText,
       });
       toast.success(t('toasts.shared'));

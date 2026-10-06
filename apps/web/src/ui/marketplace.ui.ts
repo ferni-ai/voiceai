@@ -17,7 +17,8 @@
 
 import { DURATION } from '../config/animation-constants.js';
 import { getPersona, isKnownPersonaId } from '../config/personas.js';
-import { t } from '../i18n/index.js';
+import { formatDate, formatNumber, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { marketplaceService, type MarketplaceAgent } from '../services/marketplace.service.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
@@ -73,6 +74,9 @@ import {
 } from './marketplace/utils.js';
 
 const log = createLogger('Marketplace');
+const ONE_DECIMAL = { minimumFractionDigits: 1, maximumFractionDigits: 1 };
+const categoryLabel = (category: string): string =>
+  t(`marketplace.specialties.${category}`, getCategoryLabel(category));
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout } = createTimeoutTracker();
@@ -155,7 +159,7 @@ function ensureModalExists(): HTMLElement {
       <header class="marketplace-header">
         <div class="marketplace-title-row">
           <h2 id="marketplace-title" class="marketplace-title">
-            Expand your team.
+            ${t('marketplace.title')}
           </h2>
           <button class="marketplace-close" data-action="close" aria-label="${t('common.close')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -164,54 +168,54 @@ function ensureModalExists(): HTMLElement {
             </svg>
           </button>
         </div>
-        <p class="marketplace-subtitle">Find coaches who understand what you need.</p>
-        
+        <p class="marketplace-subtitle">${t('marketplace.subtitle')}</p>
+
         <div class="marketplace-tabs">
           <button aria-label="${t('accessibility.discover')}" class="marketplace-tab active" data-tab="browse">
-            Discover
+            ${t('marketplace.tabs.discover')}
           </button>
           <button aria-label="${t('accessibility.yourTeam')}" class="marketplace-tab" data-tab="installed">
-            Your Team
+            ${t('marketplace.tabs.yourTeam')}
           </button>
           <button aria-label="${t('accessibility.myCreations')}" class="marketplace-tab" data-tab="creations">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            My Creations
+            ${t('marketplace.tabs.myCreations')}
           </button>
         </div>
-        
+
         <div class="marketplace-search" data-tab-content="browse">
           <div class="search-input-wrapper">
             <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input 
-              type="search" 
-              class="marketplace-search-input" 
-              placeholder="${t('placeholders.marketplaceSearch')}" 
+            <input
+              type="search"
+              class="marketplace-search-input"
+              placeholder="${t('placeholders.marketplaceSearch')}"
               aria-label="${t('accessibility.searchCoaches')}"
             >
           </div>
           <select class="marketplace-category-select" aria-label="${t('accessibility.filterBySpecialty')}">
-            <option value="">All specialties</option>
-            <option value="mentorship">Mentorship</option>
-            <option value="finance">Finance</option>
-            <option value="health">Health & Wellness</option>
-            <option value="productivity">Productivity</option>
-            <option value="lifestyle">Lifestyle</option>
-            <option value="education">Learning</option>
-            <option value="entertainment">Entertainment</option>
+            <option value="">${t('marketplace.specialties.all')}</option>
+            <option value="mentorship">${t('marketplace.specialties.mentorship')}</option>
+            <option value="finance">${t('marketplace.specialties.finance')}</option>
+            <option value="health">${t('marketplace.specialties.health')}</option>
+            <option value="productivity">${t('marketplace.specialties.productivity')}</option>
+            <option value="lifestyle">${t('marketplace.specialties.lifestyle')}</option>
+            <option value="education">${t('marketplace.specialties.education')}</option>
+            <option value="entertainment">${t('marketplace.specialties.entertainment')}</option>
           </select>
         </div>
       </header>
-      
+
       <main class="marketplace-content">
         <div class="marketplace-loading">
           <div class="marketplace-spinner"></div>
-          <span>Finding coaches...</span>
+          <span>${t('marketplace.loadingCoaches')}</span>
         </div>
         <div class="marketplace-grid" role="list" aria-label="${t('accessibility.availableCoaches')}"></div>
         <div class="marketplace-empty">
@@ -222,11 +226,11 @@ function ensureModalExists(): HTMLElement {
               <path d="M12 8v8"></path>
             </svg>
           </div>
-          <p class="empty-title">No matches yet</p>
-          <p class="empty-hint">Try a different search or explore all coaches.</p>
+          <p class="empty-title">${t('marketplace.noMatches')}</p>
+          <p class="empty-hint">${t('marketplace.noMatchesHint')}</p>
         </div>
       </main>
-      
+
       <footer class="marketplace-footer">
         <a href="https://ferni.ai/creators" target="_blank" rel="noopener noreferrer" class="marketplace-creator-link">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -234,9 +238,9 @@ function ensureModalExists(): HTMLElement {
             <path d="M5 3v4"/><path d="M3 5h4"/>
             <path d="M19 17v4"/><path d="M17 19h4"/>
           </svg>
-          Become a creator
+          ${t('marketplace.becomeCreator')}
         </a>
-        <span class="marketplace-powered-by">Powered by Ferni</span>
+        <span class="marketplace-powered-by">${t('marketplace.poweredBy')}</span>
       </footer>
     </div>
   `;
@@ -350,7 +354,7 @@ async function refreshContent(): Promise<void> {
     }
   } catch (err) {
     log.error('❌ Marketplace: Failed to refresh content:', err);
-    showEmpty('Failed to load agents');
+    showEmpty();
   } finally {
     setLoading(false);
   }
@@ -384,7 +388,7 @@ async function renderBrowseTab(): Promise<void> {
   const installedIds = marketplaceService.getInstalledAgentIds();
 
   if (agents.length === 0) {
-    showEmpty('No new agents available');
+    showEmpty();
     return;
   }
 
@@ -414,13 +418,12 @@ async function renderTeamLockedMessage(): Promise<void> {
 
   // Get unique categories
   const categories = [...new Set(registry.agents.map((a) => a.category))];
-  const categoryLabels = categories.slice(0, 4).map((c) => getCategoryLabel(c));
+  const categoryLabels = categories.slice(0, 4).map((c) => categoryLabel(c));
 
   // Build progress indicators for each team member
   const memberProgressHtml = TEAM_MEMBERS.map((member) => {
     const status = getMemberStatus(member.id);
     const isUnlocked = status.unlocked;
-    const progressPercent = Math.round(status.progress * 100);
 
     return `
       <div class="team-progress-member ${isUnlocked ? 'unlocked' : 'locked'}">
@@ -431,7 +434,7 @@ async function renderTeamLockedMessage(): Promise<void> {
         ${
           isUnlocked
             ? '<svg class="team-progress-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
-            : `<span class="team-progress-percent">${progressPercent}%</span>`
+            : `<span class="team-progress-percent">${formatNumber(status.progress, { style: 'percent' })}</span>`
         }
       </div>
     `;
@@ -462,7 +465,7 @@ async function renderTeamLockedMessage(): Promise<void> {
             </div>
             <div class="agent-meta">
               <h3 class="agent-name">${agent.name}</h3>
-              <span class="agent-category">${getCategoryLabel(agent.category)}</span>
+              <span class="agent-category">${categoryLabel(agent.category)}</span>
             </div>
           </div>
           <p class="agent-description">${agent.short_description}</p>
@@ -490,30 +493,30 @@ async function renderTeamLockedMessage(): Promise<void> {
           </svg>
         </div>
         <div class="marketplace-locked-text">
-          <h3 class="marketplace-locked-title">Meet your team first</h3>
+          <h3 class="marketplace-locked-title">${t('marketplace.teamLocked.title')}</h3>
           <p class="marketplace-locked-subtitle">
-            ${totalAgentCount} coaches waiting for you
+            ${tp('marketplace.teamLocked.coachesWaiting', totalAgentCount)}
           </p>
         </div>
       </div>
-      
+
       <div class="marketplace-locked-categories">
         ${categoryLabels.map((cat) => `<span class="locked-category-pill">${cat}</span>`).join('')}
-        ${categories.length > 4 ? `<span class="locked-category-pill locked-category-more">+${categories.length - 4} more</span>` : ''}
+        ${categories.length > 4 ? `<span class="locked-category-pill locked-category-more">${t('marketplace.teamLocked.moreCategories', { count: categories.length - 4 })}</span>` : ''}
       </div>
-      
+
       <div class="marketplace-locked-progress">
-        <p class="progress-label">Unlock progress</p>
+        <p class="progress-label">${t('marketplace.teamLocked.unlockProgress')}</p>
         <div class="team-progress-grid">
           ${memberProgressHtml}
         </div>
       </div>
     </section>
-    
+
     <div class="marketplace-preview-section">
       <div class="preview-header">
-        <span class="preview-label">Coming soon</span>
-        <span class="preview-hint">Complete your team journey to unlock</span>
+        <span class="preview-label">${t('marketplace.teamLocked.comingSoon')}</span>
+        <span class="preview-hint">${t('marketplace.teamLocked.completeJourney')}</span>
       </div>
       <div class="marketplace-preview-grid">
         ${previewCardsHtml}
@@ -522,7 +525,7 @@ async function renderTeamLockedMessage(): Promise<void> {
         moreAgentsCount > 0
           ? `
         <div class="preview-more-hint">
-          <span>+${moreAgentsCount} more coaches in ${categories.length} categories</span>
+          <span>${tp('marketplace.teamLocked.moreCoaches', moreAgentsCount, { categories: categories.length })}</span>
         </div>
       `
           : ''
@@ -568,16 +571,15 @@ async function renderInstalledTab(): Promise<void> {
     if (agents.length > 0) {
       if (teamUnlocked) {
         // Full team unlocked - show installed marketplace agents
-        html += `<div class="team-section-divider"><span>Your Installed Coaches</span></div>`;
+        html += `<div class="team-section-divider"><span>${t('marketplace.installedCoaches')}</span></div>`;
         html += renderAgentCards(agents);
       } else {
         // Team not fully unlocked - show message about installed agents being locked
         html += `
-          <div class="team-section-divider"><span>Installed Coaches</span></div>
+          <div class="team-section-divider"><span>${t('marketplace.installedCoachesLocked')}</span></div>
           <div class="installed-agents-locked">
             <p class="installed-agents-locked-message">
-              You have <strong>${agents.length} coach${agents.length > 1 ? 'es' : ''}</strong> installed. 
-              They'll be ready to chat once you've met your whole core team!
+              ${t('marketplace.installedLockedMessage', { coaches: `<strong>${tp('marketplace.coachCount', agents.length)}</strong>` })}
             </p>
           </div>
         `;
@@ -612,15 +614,15 @@ async function renderCreationsTab(): Promise<void> {
     <section class="creations-section">
       <div class="creations-header">
         <div class="creations-header-content">
-          <h3 class="creations-title">Your Custom Agents</h3>
-          <p class="creations-subtitle">Create companions with custom voices and personalities</p>
+          <h3 class="creations-title">${t('marketplace.creations.title')}</h3>
+          <p class="creations-subtitle">${t('marketplace.creations.subtitle')}</p>
         </div>
         <button aria-label="${t('accessibility.createAgent')}" class="creations-create-btn" data-action="create-agent">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          Create Agent
+          ${t('marketplace.creations.create')}
         </button>
       </div>
 
@@ -633,42 +635,42 @@ async function renderCreationsTab(): Promise<void> {
               <path d="M12 8v8"></path>
             </svg>
           </div>
-          <h4 class="creations-empty-title">No agents yet</h4>
-          <p class="creations-empty-hint">Create your first custom agent to preserve a loved one's voice, build a mentor, or design your own companion.</p>
+          <h4 class="creations-empty-title">${t('marketplace.creations.empty')}</h4>
+          <p class="creations-empty-hint">${t('marketplace.creations.emptyHint')}</p>
           <button aria-label="${t('accessibility.createYourFirstAgent')}" class="creations-empty-btn" data-action="create-agent">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            Create Your First Agent
+            ${t('marketplace.creations.createFirst')}
           </button>
         </div>
 
         <div class="creations-types-preview">
-          <h4 class="creations-types-title">What you can create</h4>
+          <h4 class="creations-types-title">${t('marketplace.creations.whatYouCan')}</h4>
           <div class="creations-types-grid">
-            <button type="button" class="creation-type-card" data-action="create-type" data-type="legacy" aria-label="Create a Legacy agent">
+            <button type="button" class="creation-type-card" data-action="create-type" data-type="legacy" aria-label="${t('marketplace.creations.createLegacyAria')}">
               <span class="creation-type-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 2c.5 3.5 2 5.5 3.5 7 1.5 1.5 3.5 2.5 5.5 3-2 .5-4 1.5-5.5 3-1.5 1.5-3 3.5-3.5 7-.5-3.5-2-5.5-3.5-7-1.5-1.5-3.5-2.5-5.5-3 2-.5 4-1.5 5.5-3 1.5-1.5 3-3.5 3.5-7z"/>
                 </svg>
               </span>
-              <h5 class="creation-type-name">Legacy</h5>
-              <p class="creation-type-desc">Preserve the voice and wisdom of someone you cherish</p>
-              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+              <h5 class="creation-type-name">${t('marketplace.creations.legacy')}</h5>
+              <p class="creation-type-desc">${t('marketplace.creations.legacyDesc')}</p>
+              <span class="creation-type-cta">${t('marketplace.creations.startCreating')} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
             </button>
-            <button type="button" class="creation-type-card" data-action="create-type" data-type="mentor" aria-label="Create a Mentor agent">
+            <button type="button" class="creation-type-card" data-action="create-type" data-type="mentor" aria-label="${t('marketplace.creations.createMentorAria')}">
               <span class="creation-type-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 22c4-3 8-6 8-11a8 8 0 0 0-16 0c0 5 4 8 8 11z"/>
                   <circle cx="12" cy="11" r="3"/>
                 </svg>
               </span>
-              <h5 class="creation-type-name">Mentor</h5>
-              <p class="creation-type-desc">Create a coach based on an inspiring figure</p>
-              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+              <h5 class="creation-type-name">${t('marketplace.creations.mentor')}</h5>
+              <p class="creation-type-desc">${t('marketplace.creations.mentorDesc')}</p>
+              <span class="creation-type-cta">${t('marketplace.creations.startCreating')} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
             </button>
-            <button type="button" class="creation-type-card" data-action="create-type" data-type="twin" aria-label="Create a Digital Twin">
+            <button type="button" class="creation-type-card" data-action="create-type" data-type="twin" aria-label="${t('marketplace.creations.createTwinAria')}">
               <span class="creation-type-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"/>
@@ -676,20 +678,20 @@ async function renderCreationsTab(): Promise<void> {
                   <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>
                 </svg>
               </span>
-              <h5 class="creation-type-name">Digital Twin</h5>
-              <p class="creation-type-desc">Your personal voice journal that grows with you</p>
-              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+              <h5 class="creation-type-name">${t('marketplace.creations.twin')}</h5>
+              <p class="creation-type-desc">${t('marketplace.creations.twinDesc')}</p>
+              <span class="creation-type-cta">${t('marketplace.creations.startCreating')} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
             </button>
-            <button type="button" class="creation-type-card" data-action="create-type" data-type="fictional" aria-label="Create a Custom agent from scratch">
+            <button type="button" class="creation-type-card" data-action="create-type" data-type="fictional" aria-label="${t('marketplace.creations.createCustomAria')}">
               <span class="creation-type-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"/>
                   <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
                 </svg>
               </span>
-              <h5 class="creation-type-name">Custom</h5>
-              <p class="creation-type-desc">Build any personality from scratch</p>
-              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+              <h5 class="creation-type-name">${t('marketplace.creations.custom')}</h5>
+              <p class="creation-type-desc">${t('marketplace.creations.customDesc')}</p>
+              <span class="creation-type-cta">${t('marketplace.creations.startCreating')} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
             </button>
           </div>
         </div>
@@ -815,15 +817,15 @@ function getAgentTypeButtons(agent: CustomAgent): string {
       return `
         <button aria-label="${t('accessibility.profile')}" class="custom-agent-action custom-agent-action--profile" data-action="open-profile" data-agent-id="${agent.id}">
           ${icons.profile}
-          Profile
+          ${t('marketplace.actions.profile')}
         </button>
         <button aria-label="${t('accessibility.journal')}" class="custom-agent-action custom-agent-action--journal" data-action="open-journal" data-agent-id="${agent.id}">
           ${icons.journal}
-          Journal
+          ${t('marketplace.actions.journal')}
         </button>
         <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-twin" data-agent-id="${agent.id}">
           ${icons.talk}
-          Talk
+          ${t('marketplace.actions.talk')}
         </button>
       `;
 
@@ -831,19 +833,19 @@ function getAgentTypeButtons(agent: CustomAgent): string {
       return `
         <button aria-label="${t('accessibility.stories')}" class="custom-agent-action custom-agent-action--stories" data-action="open-stories" data-agent-id="${agent.id}">
           ${icons.stories}
-          Stories
+          ${t('marketplace.actions.stories')}
         </button>
         <button aria-label="${t('accessibility.voice')}" class="custom-agent-action custom-agent-action--voice" data-action="record-voice" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-          Voice
+          ${t('marketplace.actions.voice')}
         </button>
         <button aria-label="${t('accessibility.share')}" class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Share
+          ${t('marketplace.actions.share')}
         </button>
         <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-legacy" data-agent-id="${agent.id}">
           ${icons.talk}
-          Talk
+          ${t('marketplace.actions.talk')}
         </button>
       `;
 
@@ -851,11 +853,11 @@ function getAgentTypeButtons(agent: CustomAgent): string {
       return `
         <button aria-label="${t('accessibility.teachings')}" class="custom-agent-action custom-agent-action--teachings" data-action="open-teachings" data-agent-id="${agent.id}">
           ${icons.teachings}
-          Teachings
+          ${t('marketplace.actions.teachings')}
         </button>
         <button aria-label="${t('accessibility.coachMe')}" class="custom-agent-action custom-agent-action--coaching" data-action="start-coaching" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-          Coach Me
+          ${t('marketplace.actions.coachMe')}
         </button>
       `;
 
@@ -863,11 +865,11 @@ function getAgentTypeButtons(agent: CustomAgent): string {
       return `
         <button aria-label="${t('accessibility.character')}" class="custom-agent-action custom-agent-action--character" data-action="open-character" data-agent-id="${agent.id}">
           ${icons.character}
-          Character
+          ${t('marketplace.actions.character')}
         </button>
         <button aria-label="${t('accessibility.play')}" class="custom-agent-action custom-agent-action--roleplay" data-action="start-roleplay" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-          Roleplay
+          ${t('marketplace.actions.roleplay')}
         </button>
       `;
 
@@ -875,11 +877,11 @@ function getAgentTypeButtons(agent: CustomAgent): string {
       return `
         <button aria-label="${t('accessibility.tasks')}" class="custom-agent-action custom-agent-action--tasks" data-action="open-tasks" data-agent-id="${agent.id}">
           ${icons.tasks}
-          Tasks
+          ${t('marketplace.actions.tasks')}
         </button>
         <button aria-label="${t('accessibility.workMode')}" class="custom-agent-action custom-agent-action--work" data-action="start-task-mode" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          Work Mode
+          ${t('marketplace.actions.workMode')}
         </button>
       `;
 
@@ -887,7 +889,7 @@ function getAgentTypeButtons(agent: CustomAgent): string {
       return `
         <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-agent" data-agent-id="${agent.id}">
           ${icons.talk}
-          Talk
+          ${t('marketplace.actions.talk')}
         </button>
       `;
   }
@@ -896,14 +898,17 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 /**
  * Render a custom agent card
  */
+const STATUS_KEYS: Record<string, string> = {
+  active: 'customAgentEditor.statusActive',
+  paused: 'customAgentEditor.statusPaused',
+  draft: 'customAgentEditor.statusDraft',
+};
+
 function renderCustomAgentCard(agent: CustomAgent): string {
   const statusClass = agent.status === 'active' ? 'status--active' : 
                       agent.status === 'paused' ? 'status--paused' : 'status--draft';
-  const typeLabel = agent.type === 'legacy' ? 'Legacy' :
-                    agent.type === 'mentor' ? 'Mentor' :
-                    agent.type === 'twin' ? 'Digital Twin' :
-                    agent.type === 'fictional' ? 'Fictional' :
-                    agent.type === 'professional' ? 'Professional' : 'Custom';
+  const typeLabel = t(`agent.type.${agent.type}`, t('marketplace.creations.custom'));
+  const statusLabel = t(STATUS_KEYS[agent.status] ?? STATUS_KEYS.draft!);
   
   const initials = (agent.displayName || agent.name)
     .split(' ')
@@ -925,7 +930,7 @@ function renderCustomAgentCard(agent: CustomAgent): string {
           <h3 class="custom-agent-name">${agent.displayName || agent.name}</h3>
           <span class="custom-agent-type">${typeLabel}</span>
         </div>
-        <span class="custom-agent-status ${statusClass}">${agent.status}</span>
+        <span class="custom-agent-status ${statusClass}">${statusLabel}</span>
       </div>
       <p class="custom-agent-description">${agent.description}</p>
       <div class="custom-agent-stats">
@@ -934,22 +939,22 @@ function renderCustomAgentCard(agent: CustomAgent): string {
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
           </svg>
-          ${agent.voice?.status === 'ready' ? 'Voice ready' : agent.voice?.type === 'cloned' ? 'Voice pending' : 'No voice'}
+          ${t(agent.voice?.status === 'ready' ? 'marketplace.customAgent.voiceReady' : agent.voice?.type === 'cloned' ? 'marketplace.customAgent.voicePending' : 'marketplace.customAgent.noVoice')}
         </span>
         <span class="custom-agent-stat">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
           </svg>
-          ${(agent.memories?.stories?.length || 0) + (agent.memories?.wisdom?.length || 0)} memories
+          ${tp('marketplace.customAgent.memories', (agent.memories?.stories?.length || 0) + (agent.memories?.wisdom?.length || 0))}
         </span>
       </div>
       <footer class="custom-agent-footer">
         ${getAgentTypeButtons(agent)}
         <button aria-label="${t('accessibility.edit')}" class="custom-agent-action custom-agent-action--edit" data-agent-id="${agent.id}">
-          Edit
+          ${t('marketplace.actions.edit')}
         </button>
-        <button class="custom-agent-action custom-agent-action--delete" data-action="delete-agent" data-agent-id="${agent.id}" aria-label="Delete ${agent.name}">
+        <button class="custom-agent-action custom-agent-action--delete" data-action="delete-agent" data-agent-id="${agent.id}" aria-label="${t('marketplace.customAgent.deleteAria', { name: agent.name })}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -1027,25 +1032,23 @@ async function handleDeleteAgentClick(e: Event): Promise<void> {
 
   // Get agent name from card for confirmation message
   const card = btn.closest('.custom-agent-card');
-  const agentName = card?.querySelector('.custom-agent-name')?.textContent || 'this agent';
+  const agentName = card?.querySelector('.custom-agent-name')?.textContent || t('marketplace.customAgent.thisAgent');
 
   // Confirm deletion with branded modal
   const confirmed = await confirmDelete(agentName, {
-    message: `You'll lose all memories and voice data for ${agentName}.`,
+    message: t('marketplace.customAgent.deleteWarning', { name: agentName }),
   });
   if (!confirmed) return;
 
   try {
     await deleteCustomAgent(agentId);
-    const { toast } = await import('./whisper.ui.js');
     toast.success(t('toasts.agentDeleted'));
     soundUI.play('success');
     // Refresh the tab
     void refreshContent();
   } catch (err) {
     log.error('Failed to delete agent:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't delete agent. Try again?");
+    toast.error(t('toasts.couldNotDeleteAgent'));
   }
 }
 
@@ -1066,8 +1069,7 @@ async function handleOpenJournalClick(e: Event): Promise<void> {
     await openVoiceJournal(agentId);
   } catch (err) {
     log.error('Failed to open journal:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't open journal. Try again?");
+    toast.error(t('toasts.couldNotOpenJournal'));
   }
 }
 
@@ -1088,8 +1090,7 @@ async function handleOpenProfileClick(e: Event): Promise<void> {
     await openTwinProfile(agentId);
   } catch (err) {
     log.error('Failed to open profile:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't open profile. Try again?");
+    toast.error(t('toasts.couldNotOpenProfile'));
   }
 }
 
@@ -1110,8 +1111,7 @@ async function handleTalkToTwinClick(e: Event): Promise<void> {
     await openTalkToTwin(agentId);
   } catch (err) {
     log.error('Failed to open Talk to Twin:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't start conversation. Try again?");
+    toast.error(t('toasts.couldNotStartConversation'));
   }
 }
 
@@ -1131,8 +1131,7 @@ async function handleOpenStoriesClick(e: Event): Promise<void> {
     await openLegacyStories(agentId);
   } catch (err) {
     log.error('Failed to open Legacy Stories:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't open stories. Try again?");
+    toast.error(t('toasts.couldNotOpenStories'));
   }
 }
 
@@ -1152,8 +1151,7 @@ async function handleRecordVoiceClick(e: Event): Promise<void> {
     await openVoiceCloneRecorder(agentId);
   } catch (err) {
     log.error('Failed to open Voice Recorder:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't open voice recorder. Try again?");
+    toast.error(t('toasts.couldNotOpenVoiceRecorder'));
   }
 }
 
@@ -1173,8 +1171,7 @@ async function handleOpenTeachingsClick(e: Event): Promise<void> {
     await openMentorTeachings(agentId);
   } catch (err) {
     log.error('Failed to open Mentor Teachings:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't open teachings. Try again?");
+    toast.error(t('toasts.couldNotOpenTeachings'));
   }
 }
 
@@ -1194,8 +1191,7 @@ async function handleOpenCharacterClick(e: Event): Promise<void> {
     await openCharacterSheet(agentId);
   } catch (err) {
     log.error('Failed to open Character Sheet:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't open character. Try again?");
+    toast.error(t('toasts.couldNotOpenCharacter'));
   }
 }
 
@@ -1215,8 +1211,7 @@ async function handleOpenTasksClick(e: Event): Promise<void> {
     await openProfessionalTasks(agentId);
   } catch (err) {
     log.error('Failed to open Professional Tasks:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't open tasks. Try again?");
+    toast.error(t('toasts.couldNotOpenTasks'));
   }
 }
 
@@ -1237,8 +1232,7 @@ async function handleTalkToAgentClick(e: Event): Promise<void> {
     await openTalkToTwin(agentId);
   } catch (err) {
     log.error('Failed to open agent conversation:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't start conversation. Try again?");
+    toast.error(t('toasts.couldNotStartConversation'));
   }
 }
 
@@ -1258,8 +1252,7 @@ async function handleShareLegacyClick(e: Event): Promise<void> {
     await openLegacyShare(agentId);
   } catch (err) {
     log.error('Failed to open Legacy Share:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't open sharing. Try again?");
+    toast.error(t('toasts.couldNotOpenSharing'));
   }
 }
 
@@ -1279,8 +1272,7 @@ async function handleStartCoachingClick(e: Event): Promise<void> {
     await openCoachingMode(agentId);
   } catch (err) {
     log.error('Failed to open Coaching Mode:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't start coaching. Try again?");
+    toast.error(t('toasts.couldNotStartCoaching'));
   }
 }
 
@@ -1300,8 +1292,7 @@ async function handleStartRoleplayClick(e: Event): Promise<void> {
     await openRoleplayMode(agentId);
   } catch (err) {
     log.error('Failed to open Roleplay Mode:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't start roleplay. Try again?");
+    toast.error(t('toasts.couldNotStartRoleplay'));
   }
 }
 
@@ -1321,8 +1312,7 @@ async function handleStartTaskModeClick(e: Event): Promise<void> {
     await openTaskMode(agentId);
   } catch (err) {
     log.error('Failed to open Task Mode:', err);
-    const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't start work mode. Try again?");
+    toast.error(t('toasts.couldNotStartWorkMode'));
   }
 }
 
@@ -1380,22 +1370,22 @@ function renderEmployeeCard(
   const rosterActionHtml =
     !isLocked && personaId !== 'ferni'
       ? isInRoster
-        ? `<button class="employee-roster-action employee-roster-action--remove" data-roster-action="remove" data-persona-id="${personaId}" aria-label="Remove ${name} from roster">
+        ? `<button class="employee-roster-action employee-roster-action--remove" data-roster-action="remove" data-persona-id="${personaId}" aria-label="${t('marketplace.roster.removeFromRoster', { name })}">
           <svg class="roster-icon roster-icon--check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
           <svg class="roster-icon roster-icon--minus" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          <span class="roster-label">In Team</span>
-          <span class="roster-label roster-label--hover">Remove</span>
+          <span class="roster-label">${t('marketplace.roster.inTeam')}</span>
+          <span class="roster-label roster-label--hover">${t('marketplace.roster.remove')}</span>
         </button>`
-        : `<button class="employee-roster-action employee-roster-action--add" data-roster-action="add" data-persona-id="${personaId}" aria-label="Add ${name} to team">
+        : `<button class="employee-roster-action employee-roster-action--add" data-roster-action="add" data-persona-id="${personaId}" aria-label="${t('marketplace.roster.addToTeam', { name })}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          <span>Add</span>
+          <span>${t('marketplace.roster.add')}</span>
         </button>`
       : '';
 
@@ -1431,13 +1421,13 @@ function renderTeamNarrative(): string {
   return `
     <section class="team-narrative">
       <div class="team-narrative-header">
-        <h3 class="team-narrative-title">Meet your team.</h3>
-        <p class="team-narrative-subtitle">Friends who truly understand.</p>
+        <h3 class="team-narrative-title">${t('marketplace.team.title')}</h3>
+        <p class="team-narrative-subtitle">${t('marketplace.team.subtitle')}</p>
       </div>
-      
+
       <div class="team-leadership">
         <div class="leadership-section">
-          <span class="leadership-label">Chief Executive</span>
+          <span class="leadership-label">${t('marketplace.team.ceo')}</span>
           <div class="leadership-grid ceo">
             <div class="leader-card ceo-card">
               <div class="leader-avatar" data-persona="ferni" style="${getAvatarStyle('ferni')}">
@@ -1445,51 +1435,51 @@ function renderTeamNarrative(): string {
               </div>
               <div class="leader-info">
                 <h4 class="leader-name">Ferni</h4>
-                <span class="leader-title">CEO & Life Coach</span>
-                <p class="leader-bio">The warm, wise presence at the heart of everything. Ferni coordinates the team with perfect memory, zero judgment, and constant presence.</p>
+                <span class="leader-title">${t('marketplace.team.ferniRole')}</span>
+                <p class="leader-bio">${t('marketplace.team.ferniDesc')}</p>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div class="leadership-section">
-          <span class="leadership-label">Co-Founders</span>
+          <span class="leadership-label">${t('marketplace.team.coFounders')}</span>
           <div class="leadership-grid cofounders">
             <div class="leader-card cofounder">
               <div class="leader-avatar cofounder-avatar" data-persona="claude" style="${getAvatarStyle('claude')}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
               </div>
-              <span class="cofounder-name">Claude</span>
+              <span class="cofounder-name">${t('teamNarrative.claude')}</span>
             </div>
             <div class="leader-card cofounder">
               <div class="leader-avatar cofounder-avatar" data-persona="gemini" style="${getAvatarStyle('gemini')}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
               </div>
-              <span class="cofounder-name">Gemini</span>
+              <span class="cofounder-name">${t('teamNarrative.gemini')}</span>
             </div>
             <div class="leader-card cofounder">
               <div class="leader-avatar cofounder-avatar" data-persona="gpt" style="${getAvatarStyle('gpt')}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073z"/></svg>
               </div>
-              <span class="cofounder-name">GPT</span>
+              <span class="cofounder-name">${t('teamNarrative.gpt')}</span>
             </div>
           </div>
         </div>
-        
+
         <div class="leadership-section">
-          <span class="leadership-label">Core Team</span>
+          <span class="leadership-label">${t('marketplace.team.coreTeam')}</span>
           <div class="leadership-grid employees">
-            ${renderEmployeeCard('peter-john', 'PJ', 'Peter', 'Research')}
-            ${renderEmployeeCard('alex-chen', 'AC', 'Alex', 'Communication')}
-            ${renderEmployeeCard('maya-santos', 'MS', 'Maya', 'Habits')}
-            ${renderEmployeeCard('jordan-taylor', 'JT', 'Jordan', 'Planning')}
-            ${renderEmployeeCard('nayan-patel', 'NP', 'Nayan', 'Wisdom')}
+            ${renderEmployeeCard('peter-john', 'PJ', 'Peter', t('marketplace.team.roles.peter'))}
+            ${renderEmployeeCard('alex-chen', 'AC', 'Alex', t('marketplace.team.roles.alex'))}
+            ${renderEmployeeCard('maya-santos', 'MS', 'Maya', t('marketplace.team.roles.maya'))}
+            ${renderEmployeeCard('jordan-taylor', 'JT', 'Jordan', t('marketplace.team.roles.jordan'))}
+            ${renderEmployeeCard('nayan-patel', 'NP', 'Nayan', t('marketplace.team.roles.nayan'))}
           </div>
         </div>
       </div>
-      
+
       <p class="team-narrative-footer">
-        Together, we're redefining what it means to have a team that truly listens.
+        ${t('marketplace.team.footer')}
       </p>
     </section>
   `;
@@ -1517,17 +1507,17 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
       // Determine state classes and button
       const stateClass = agent.isInstalled ? 'installed' : '';
       const badgeHtml = agent.isInstalled
-        ? '<span class="agent-badge installed">Installed</span>'
+        ? `<span class="agent-badge installed">${t('marketplace.agent.installed')}</span>`
         : '';
       const buttonHtml = agent.isInstalled
-        ? `<button aria-label="${t('accessibility.remove')}" class="agent-action uninstall" data-agent-id="${agent.id}">Remove</button>`
-        : `<button aria-label="${t('accessibility.addToTeam')}" class="agent-action install" data-agent-id="${agent.id}">Add to Team</button>`;
+        ? `<button aria-label="${t('accessibility.remove')}" class="agent-action uninstall" data-agent-id="${agent.id}">${t('marketplace.agent.remove')}</button>`
+        : `<button aria-label="${t('accessibility.addToTeam')}" class="agent-action install" data-agent-id="${agent.id}">${t('marketplace.agent.addToTeam')}</button>`;
 
       // Rating display
       const ratingHtml = agent.rating
         ? `<div class="agent-rating">
             <span class="rating-stars">${renderStars(agent.rating)}</span>
-            <span class="rating-value">${agent.rating.toFixed(1)}</span>
+            <span class="rating-value">${formatNumber(agent.rating, ONE_DECIMAL)}</span>
             ${agent.reviewCount ? `<span class="rating-count">(${formatReviewCount(agent.reviewCount)})</span>` : ''}
           </div>`
         : '';
@@ -1545,7 +1535,7 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
       </div>
       <div class="discover-info">
         <h3 class="agent-name">${agent.name}</h3>
-        <span class="agent-category" data-category="${agent.category}">${getCategoryLabel(agent.category)}</span>
+        <span class="agent-category" data-category="${agent.category}">${categoryLabel(agent.category)}</span>
         ${ratingHtml}
         ${badgeHtml}
       </div>
@@ -1557,7 +1547,7 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
           .join('')}
       </div>
       <footer class="agent-footer">
-        <span class="agent-author">by ${agent.author}</span>
+        <span class="agent-author">${t('marketplace.agent.byAuthor', { author: agent.author })}</span>
         ${buttonHtml}
       </footer>
     </article>
@@ -1584,28 +1574,12 @@ function renderAgentGrid(agents: (MarketplaceAgent & { isInstalled: boolean })[]
 /**
  * Show the empty state with warm, human messaging
  */
-function showEmpty(message: string): void {
+function showEmpty(): void {
   const grid = marketplaceModal?.querySelector('.marketplace-grid') as HTMLElement;
   const empty = marketplaceModal?.querySelector('.marketplace-empty') as HTMLElement;
 
   if (grid) grid.style.display = 'none';
-  if (empty) {
-    // Update title with friendly message
-    const title = empty.querySelector('.empty-title');
-    const hint = empty.querySelector('.empty-hint');
-
-    if (title) {
-      title.textContent =
-        message === 'No agents installed yet' ? 'Your team awaits.' : 'No matches yet.';
-    }
-    if (hint) {
-      hint.textContent =
-        message === 'No agents installed yet'
-          ? 'Discover coaches who can help with what matters to you.'
-          : 'Try a different search or explore all coaches.';
-    }
-    empty.style.display = 'flex';
-  }
+  if (empty) empty.style.display = 'flex';
 }
 
 // renderStars and formatReviewCount imported from ./marketplace/utils.js
@@ -1626,10 +1600,10 @@ function setLoading(loading: boolean): void {
     if (loadingEl) loadingEl.style.display = 'flex';
     if (gridEl) gridEl.style.display = 'none';
     if (emptyEl) emptyEl.style.display = 'none';
-    announceToScreenReader('Loading marketplace...');
+    announceToScreenReader(t('marketplace.announce.loading'));
   } else {
     if (loadingEl) loadingEl.style.display = 'none';
-    announceToScreenReader('Marketplace loaded');
+    announceToScreenReader(t('marketplace.announce.loaded'));
   }
 }
 
@@ -1828,10 +1802,9 @@ async function handleEmployeeCardClick(personaId: string): Promise<void> {
     const name = memberConfig?.displayName || personaId;
     const message =
       memberConfig?.teaserMessage ||
-      `${name} isn't available yet. Keep talking to Ferni to unlock more teammates!`;
+      t('teamRoster.notAvailableYet', { name });
 
     // Import toast dynamically to avoid circular dependency
-    const { toast } = await import('./whisper.ui.js');
     toast.info(message);
     soundUI.play('click');
     return;
@@ -1845,13 +1818,12 @@ async function handleEmployeeCardClick(personaId: string): Promise<void> {
     log.debug('Connected - sending handoff request to:', personaId);
 
     const { handoffService } = await import('../services/handoff.service.js');
-    const { toast } = await import('./whisper.ui.js');
 
     const success = await handoffService.sendHandoffRequest(personaId as PersonaId, {
       onFailure: (error) => {
         log.error('Handoff request failed:', error);
         // Warm brand voice for error message
-        toast.error("Hmm, that didn't work. Want to try again?");
+        toast.error(t('toasts.hmmmTryAgain'));
         soundUI.play('click');
       },
     });
@@ -1902,19 +1874,18 @@ async function handleEmployeeCardClick(personaId: string): Promise<void> {
 async function handleRosterAction(action: 'add' | 'remove', personaId: string): Promise<void> {
   log.debug('Roster action:', { action, personaId });
 
-  const { toast } = await import('./whisper.ui.js');
   const memberConfig = getTeamMember(personaId as TeamMemberId);
   const name = memberConfig?.displayName || personaId;
 
   if (action === 'add') {
     rosterPreferences.addMember(personaId as RosterTeamMemberId);
     soundUI.play('success');
-    toast.success(t('toasts.nameAddedToYourTeam'));
+    toast.success(t('toasts.addedToTeam', { name }));
     log.info('Added team member to roster from marketplace:', personaId);
   } else {
     rosterPreferences.removeMember(personaId as RosterTeamMemberId);
     soundUI.play('click');
-    toast.info(t('toasts.nameRemovedFromTeam'));
+    toast.info(t('toasts.removedFromTeam', { name }));
     log.info('Removed team member from roster from marketplace:', personaId);
   }
 
@@ -2140,14 +2111,14 @@ function renderDetailPanel(
         <div class="detail-avatar" style="background: ${gradient};">${initials}</div>
         <div class="detail-meta">
           <h2 id="detail-title" class="detail-name">${agent.name}</h2>
-          <p class="detail-category">${getCategoryLabel(agent.category)}</p>
+          <p class="detail-category">${categoryLabel(agent.category)}</p>
           ${
             stats.totalReviews > 0
               ? `
             <div class="detail-rating">
               <span class="detail-stars">${renderStars(stats.averageRating)}</span>
-              <span class="detail-rating-value">${stats.averageRating.toFixed(1)}</span>
-              <span class="detail-rating-count">(${stats.totalReviews} ${stats.totalReviews === 1 ? 'review' : 'reviews'})</span>
+              <span class="detail-rating-value">${formatNumber(stats.averageRating, ONE_DECIMAL)}</span>
+              <span class="detail-rating-count">(${tp('marketplace.reviews.count', stats.totalReviews)})</span>
             </div>
           `
               : ''
@@ -2157,16 +2128,16 @@ function renderDetailPanel(
 
       <div class="detail-content">
         <section class="detail-section">
-          <h3 class="detail-section-title">About</h3>
+          <h3 class="detail-section-title">${t('marketplace.reviews.about')}</h3>
           <p class="detail-description">${agent.description || agent.short_description}</p>
-          <p class="detail-author">Created by ${agent.author}</p>
+          <p class="detail-author">${t('marketplace.detail.createdBy', { author: agent.author })}</p>
         </section>
 
         ${
           agent.tags.length > 0
             ? `
           <section class="detail-section">
-            <h3 class="detail-section-title">Specialties</h3>
+            <h3 class="detail-section-title">${t('marketplace.reviews.specialties')}</h3>
             <div class="detail-tags">
               ${agent.tags.map((tag) => `<span class="detail-tag">${tag}</span>`).join('')}
             </div>
@@ -2176,7 +2147,7 @@ function renderDetailPanel(
         }
 
         <section class="detail-section">
-          <h3 class="detail-section-title">Reviews</h3>
+          <h3 class="detail-section-title">${t('marketplace.reviews.reviews')}</h3>
           ${
             reviews.length > 0
               ? `
@@ -2185,21 +2156,21 @@ function renderDetailPanel(
             </div>
           `
               : `
-            <p class="detail-empty-reviews">No reviews yet. Be the first to share your experience!</p>
+            <p class="detail-empty-reviews">${t('marketplace.reviews.noReviews')}</p>
           `
           }
         </section>
 
         <section class="detail-section review-form-section">
-          <h3 class="detail-section-title">Write a Review</h3>
+          <h3 class="detail-section-title">${t('marketplace.reviews.writeReview')}</h3>
           <form class="review-form" data-agent-id="${agent.id}">
             <div class="review-rating-select">
-              <span class="review-rating-label">Your rating:</span>
+              <span class="review-rating-label">${t('marketplace.reviews.yourRating')}</span>
               <div class="star-selector" role="group" aria-label="${t('accessibility.selectRating')}">
                 ${[1, 2, 3, 4, 5]
                   .map(
                     (n) => `
-                  <button type="button" class="star-btn" data-rating="${n}" aria-label="${n} star${n > 1 ? 's' : ''}">
+                  <button type="button" class="star-btn" data-rating="${n}" aria-label="${tp('marketplace.reviews.starsAria', n)}">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                     </svg>
@@ -2211,14 +2182,14 @@ function renderDetailPanel(
               <input type="hidden" name="rating" value="0" required />
             </div>
             <div class="form-group">
-              <input type="text" name="title" class="review-title-input" placeholder="Review title (optional)" maxlength="100" />
+              <input type="text" name="title" class="review-title-input" placeholder="${t('marketplace.reviews.titleOptional')}" maxlength="100" />
             </div>
             <div class="form-group">
-              <textarea name="body" class="review-body-input" placeholder="Share your experience..." rows="3" required minlength="10" maxlength="1000"></textarea>
+              <textarea name="body" class="review-body-input" placeholder="${t('marketplace.reviews.shareExperience')}" rows="3" required minlength="10" maxlength="1000"></textarea>
               <span class="char-count">0/1000</span>
             </div>
             <button type="submit" class="review-submit-btn" disabled>
-              Submit Review
+              ${t('marketplace.reviews.submit')}
             </button>
           </form>
         </section>
@@ -2226,7 +2197,7 @@ function renderDetailPanel(
 
       <footer class="detail-footer">
         <button class="detail-action ${isInstalled ? 'uninstall' : 'install'}" data-agent-id="${agent.id}">
-          ${isInstalled ? 'Remove from Team' : 'Add to Team'}
+          ${isInstalled ? t('marketplace.detail.removeFromTeam') : t('marketplace.detail.addToTeam')}
         </button>
       </footer>
     </div>
@@ -2286,7 +2257,7 @@ function closeDetailPanel(): void {
  * Render a review card
  */
 function renderReviewCard(review: AgentReview): string {
-  const date = new Date(review.createdAt).toLocaleDateString('en-US', {
+  const date = formatDate(new Date(review.createdAt), {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -2307,7 +2278,7 @@ function renderReviewCard(review: AgentReview): string {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
           </svg>
-          ${review.helpfulCount} found this helpful
+          ${t('marketplace.helpfulCount', { count: review.helpfulCount })}
         </div>
       `
           : ''
@@ -2316,7 +2287,7 @@ function renderReviewCard(review: AgentReview): string {
         review.publisherResponse
           ? `
         <div class="review-response">
-          <p class="review-response-label">Response from creator:</p>
+          <p class="review-response-label">${t('marketplace.response.label')}</p>
           <p class="review-response-body">${review.publisherResponse.body}</p>
         </div>
       `
@@ -2440,7 +2411,7 @@ async function submitReview(
   }
 
   submitBtn.disabled = true;
-  submitBtn.textContent = t('ui.marketplace.submitting');
+  submitBtn.textContent = t('marketplace.reviews.submitting');
 
   try {
     const response = await apiPost<{ error?: string }>('/api/marketplace/reviews', {
@@ -2472,9 +2443,9 @@ async function submitReview(
     log.info({ agentId, rating }, 'Review submitted successfully');
   } catch (err) {
     log.error({ error: err, agentId }, 'Failed to submit review');
-    toast.error("Couldn't submit review. Try again?");
+    toast.error(t('toasts.couldNotSubmitReview'));
     submitBtn.disabled = false;
-    submitBtn.textContent = t('ui.marketplace.submitReview');
+    submitBtn.textContent = t('marketplace.reviews.submit');
   }
 }
 

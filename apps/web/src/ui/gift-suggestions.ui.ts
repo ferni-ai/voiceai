@@ -14,7 +14,7 @@ import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getMockGiftSuggestions } from '../data/mock-contacts.js';
 import { t } from '../i18n/index.js';
-
+import { tp } from '../i18n/plural.js';
 const log = createLogger('GiftSuggestionsUI');
 
 // ============================================================================
@@ -89,26 +89,26 @@ const ICONS = {
 
 // Occasion options
 const OCCASIONS = [
-  { value: '', label: 'Any occasion' },
-  { value: 'birthday', label: 'Birthday' },
-  { value: 'christmas', label: 'Christmas' },
-  { value: 'anniversary', label: 'Anniversary' },
-  { value: 'thank_you', label: 'Thank you' },
-  { value: 'just_because', label: 'Just because' },
-  { value: 'graduation', label: 'Graduation' },
-  { value: 'wedding', label: 'Wedding' },
-  { value: 'baby_shower', label: 'Baby shower' },
-  { value: 'housewarming', label: 'Housewarming' },
+  { value: '', labelKey: 'gifts.anyOccasion' },
+  { value: 'birthday', labelKey: 'gifts.birthday' },
+  { value: 'christmas', labelKey: 'gifts.christmas' },
+  { value: 'anniversary', labelKey: 'gifts.anniversary' },
+  { value: 'thank_you', labelKey: 'gifts.thankYou' },
+  { value: 'just_because', labelKey: 'gifts.justBecause' },
+  { value: 'graduation', labelKey: 'gifts.graduation' },
+  { value: 'wedding', labelKey: 'gifts.wedding' },
+  { value: 'baby_shower', labelKey: 'gifts.babyShower' },
+  { value: 'housewarming', labelKey: 'gifts.housewarming' },
 ];
 
 // Budget options
 const BUDGETS = [
-  { value: '', label: 'Any budget' },
-  { value: 'under_25', label: 'Under $25' },
-  { value: '25_50', label: '$25 - $50' },
-  { value: '50_100', label: '$50 - $100' },
-  { value: '100_200', label: '$100 - $200' },
-  { value: 'over_200', label: 'Over $200' },
+  { value: '', labelKey: 'gifts.anyBudget' },
+  { value: 'under_25', labelKey: 'gifts.under25' },
+  { value: '25_50', labelKey: 'gifts.between25And50' },
+  { value: '50_100', labelKey: 'gifts.between50And100' },
+  { value: '100_200', labelKey: 'gifts.between100And200' },
+  { value: 'over_200', labelKey: 'gifts.over200' },
 ];
 
 // ============================================================================
@@ -606,8 +606,8 @@ function render(): void {
         <div class="gs-header-title">
           <span class="gs-icon">${ICONS.sparkles}</span>
           <div>
-            <div class="gs-eyebrow">Gift Ideas</div>
-            <h2 class="gs-title">For ${escapeHtml(state.contactName)}</h2>
+            <div class="gs-eyebrow">${t('gifts.giftIdeas')}</div>
+            <h2 class="gs-title">${escapeHtml(t('gifts.forContact', { name: state.contactName }))}</h2>
           </div>
         </div>
         <button class="gs-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
@@ -616,18 +616,18 @@ function render(): void {
     
     <div class="gs-filters">
       <div class="gs-filter">
-        <label class="gs-filter-label">Occasion</label>
+        <label class="gs-filter-label">${t('gifts.occasion')}</label>
         <select class="gs-select" id="gs-occasion">
           ${OCCASIONS.map(o => `
-            <option value="${o.value}" ${state.occasion === o.value ? 'selected' : ''}>${o.label}</option>
+            <option value="${o.value}" ${state.occasion === o.value ? 'selected' : ''}>${t(o.labelKey)}</option>
           `).join('')}
         </select>
       </div>
       <div class="gs-filter">
-        <label class="gs-filter-label">Budget</label>
+        <label class="gs-filter-label">${t('gifts.budget')}</label>
         <select class="gs-select" id="gs-budget">
           ${BUDGETS.map(b => `
-            <option value="${b.value}" ${state.budget === b.value ? 'selected' : ''}>${b.label}</option>
+            <option value="${b.value}" ${state.budget === b.value ? 'selected' : ''}>${t(b.labelKey)}</option>
           `).join('')}
         </select>
       </div>
@@ -639,9 +639,9 @@ function render(): void {
     
     ${state.hasGenerated && state.suggestions.length > 0 ? `
       <div class="gs-footer">
-        <span class="gs-footer-hint">Tap a gift to record it</span>
+        <span class="gs-footer-hint">${t('gifts.tapGiftToRecord')}</span>
         <button aria-label="${t('accessibility.refresh')}" class="gs-regenerate-btn" id="gs-regenerate">
-          ${ICONS.refresh} New ideas
+          ${ICONS.refresh} ${t('gifts.newIdeas')}
         </button>
       </div>
     ` : ''}
@@ -655,7 +655,7 @@ function renderContent(): string {
     return `
       <div class="gs-loading">
         <div class="gs-loading-icon">${ICONS.loader}</div>
-        <p class="gs-loading-text">Finding perfect gift ideas...</p>
+        <p class="gs-loading-text">${t('gifts.findingIdeas')}</p>
       </div>
     `;
   }
@@ -665,7 +665,7 @@ function renderContent(): string {
       <div class="gs-error">
         <p class="gs-error-text">${escapeHtml(state.error)}</p>
         <button aria-label="${t('accessibility.refresh')}" class="gs-retry-btn" id="gs-retry">
-          ${ICONS.refresh} Try again
+          ${ICONS.refresh} ${t('common.retry')}
         </button>
       </div>
     `;
@@ -675,13 +675,10 @@ function renderContent(): string {
     return `
       <div class="gs-initial">
         <div class="gs-initial-icon">${ICONS.gift}</div>
-        <h3 class="gs-initial-title">Find the perfect gift</h3>
-        <p class="gs-initial-text">
-          Based on ${escapeHtml(state.contactName)}'s interests and your relationship,
-          Ferni will suggest thoughtful gift ideas.
-        </p>
+        <h3 class="gs-initial-title">${t('gifts.findPerfect')}</h3>
+        <p class="gs-initial-text">${escapeHtml(t('gifts.basedOnInterests', { name: state.contactName }))}</p>
         <button aria-label="${t('accessibility.generateIdeas')}" class="gs-generate-btn" id="gs-generate">
-          ${ICONS.sparkles} Generate Ideas
+          ${ICONS.sparkles} ${t('accessibility.generateIdeas')}
         </button>
       </div>
     `;
@@ -691,8 +688,8 @@ function renderContent(): string {
     return `
       <div class="gs-initial">
         <div class="gs-initial-icon">${ICONS.gift}</div>
-        <h3 class="gs-initial-title">No suggestions yet</h3>
-        <p class="gs-initial-text">Try adjusting the occasion or budget.</p>
+        <h3 class="gs-initial-title">${t('gifts.noSuggestions')}</h3>
+        <p class="gs-initial-text">${t('gifts.tryAdjustingFilters')}</p>
       </div>
     `;
   }
@@ -712,8 +709,8 @@ function renderContent(): string {
           </div>
           ${suggestion.personalTouch ? `
             <div class="gs-personal-touch">
-              <div class="gs-personal-touch-label">Personal touch</div>
-              <div class="gs-personal-touch-text">"${escapeHtml(suggestion.personalTouch)}"</div>
+              <div class="gs-personal-touch-label">${t('gifts.personalTouch')}</div>
+              <div class="gs-personal-touch-text">${t('gifts.personalTouchQuote', { text: escapeHtml(suggestion.personalTouch) })}</div>
             </div>
           ` : ''}
         </div>
@@ -807,7 +804,7 @@ async function generateSuggestions(): Promise<void> {
     render();
 
     if (state.suggestions.length > 0) {
-      toast.success(t('toasts.statesuggestionslengthIdeasFound'));
+      toast.success(tp('toasts.giftIdeasFound', state.suggestions.length));
     }
   } catch (error) {
     log.error('Failed to generate gift suggestions:', error);
@@ -821,17 +818,17 @@ async function generateSuggestions(): Promise<void> {
         description: s.reason,
         priceRange: s.priceRange,
         reasoning: s.reason,
-        category: 'general',
+        category: t('gifts.categoryGeneral'),
       }));
       state.hasGenerated = true;
       state.isLoading = false;
       render();
       log.debug('Using mock gift suggestions');
-      toast.success(t('toasts.statesuggestionslengthIdeasFoundMock'));
+      toast.success(tp('toasts.giftIdeasFoundDemo', state.suggestions.length));
       return;
     }
     
-    state.error = 'Could not generate suggestions. Try again?';
+    state.error = t('gifts.generateError');
     state.isLoading = false;
     render();
   }

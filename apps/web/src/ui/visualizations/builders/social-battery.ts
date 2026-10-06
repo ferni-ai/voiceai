@@ -17,8 +17,8 @@ import {
   createScreenReaderLabel,
   describeArc,
 } from '../utils/dom.js';
-import type { DeviceContext, VisualizationResult } from '../types.js';
-import { DEFAULT_COLORS } from '../types.js';
+import { t } from '../../../i18n/index.js';
+import { DEFAULT_COLORS, type DeviceContext, type VisualizationResult } from '../types.js';
 
 export interface SocialBatteryData {
   currentLevel: number; // 0-100
@@ -106,7 +106,7 @@ function buildWatch(container: HTMLElement, data: SocialBatteryData): Visualizat
   wrapper.appendChild(svg);
 
   // Label
-  const label = createElement('div', '', 'Social Battery');
+  const label = createElement('div', '', t('visualizations.socialBattery.label'));
   setStyles(label, {
     fontSize: '11px',
     color: 'var(--color-text-secondary)',
@@ -114,7 +114,7 @@ function buildWatch(container: HTMLElement, data: SocialBatteryData): Visualizat
   });
   wrapper.appendChild(label);
 
-  const srLabel = createScreenReaderLabel(`Social battery at ${data.currentLevel}%`);
+  const srLabel = createScreenReaderLabel(t('visualizations.socialBattery.ariaLevel', { level: data.currentLevel }));
   wrapper.appendChild(srLabel);
 
   container.appendChild(wrapper);
@@ -123,7 +123,7 @@ function buildWatch(container: HTMLElement, data: SocialBatteryData): Visualizat
     element: wrapper,
     type: 'social-battery',
     device: 'watch',
-    ariaLabel: `Social battery at ${data.currentLevel}%`,
+    ariaLabel: t('visualizations.socialBattery.ariaLevel', { level: data.currentLevel }),
   };
 }
 
@@ -227,13 +227,13 @@ function buildMobile(container: HTMLElement, data: SocialBatteryData): Visualiza
   const drainStat = createElement('div');
   setStyles(drainStat, { textAlign: 'center' });
 
-  const drainValue = createElement('div', '', `-${data.drainRatePerHour}/hr`);
+  const drainValue = createElement('div', '', t('visualizations.socialBattery.ratePerHour', { rate: `-${data.drainRatePerHour}` }));
   setStyles(drainValue, {
     fontWeight: '600',
     color: 'var(--color-text-primary)',
   });
 
-  const drainLabel = createElement('div', '', 'drain');
+  const drainLabel = createElement('div', '', t('visualizations.socialBattery.drainLabel'));
   setStyles(drainLabel, { color: 'var(--color-text-secondary)' });
 
   drainStat.appendChild(drainValue);
@@ -244,13 +244,13 @@ function buildMobile(container: HTMLElement, data: SocialBatteryData): Visualiza
   const rechargeStat = createElement('div');
   setStyles(rechargeStat, { textAlign: 'center' });
 
-  const rechargeValue = createElement('div', '', `+${data.rechargeRatePerHour}/hr`);
+  const rechargeValue = createElement('div', '', t('visualizations.socialBattery.ratePerHour', { rate: `+${data.rechargeRatePerHour}` }));
   setStyles(rechargeValue, {
     fontWeight: '600',
     color: 'var(--color-text-primary)',
   });
 
-  const rechargeLabel = createElement('div', '', 'recharge');
+  const rechargeLabel = createElement('div', '', t('visualizations.socialBattery.rechargeLabel'));
   setStyles(rechargeLabel, { color: 'var(--color-text-secondary)' });
 
   rechargeStat.appendChild(rechargeValue);
@@ -270,7 +270,7 @@ function buildMobile(container: HTMLElement, data: SocialBatteryData): Visualiza
       background: 'var(--color-status-critical)',
       color: 'white',
     });
-    warning.textContent = `Low battery - ${Math.ceil(data.fullRechargeHours)}hr to full`;
+    warning.textContent = t('visualizations.socialBattery.lowBatteryWarning', { hours: Math.ceil(data.fullRechargeHours) });
     wrapper.appendChild(warning);
   }
 
@@ -280,7 +280,7 @@ function buildMobile(container: HTMLElement, data: SocialBatteryData): Visualiza
     element: wrapper,
     type: 'social-battery',
     device: 'mobile',
-    ariaLabel: `Social battery at ${data.currentLevel}%, ${data.drainRatePerHour} drain per hour`,
+    ariaLabel: t('visualizations.socialBattery.ariaMobile', { level: data.currentLevel, rate: data.drainRatePerHour }),
   };
 }
 
@@ -358,7 +358,7 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
 
   // Tendency label
   const tendencyLabel =
-    data.socialTendency > 0.6 ? 'Extrovert' : data.socialTendency < 0.4 ? 'Introvert' : 'Ambivert';
+    data.socialTendency > 0.6 ? t('visualizations.socialBattery.extrovert') : data.socialTendency < 0.4 ? t('visualizations.socialBattery.introvert') : t('visualizations.socialBattery.ambivert');
   const tendency = createElement('div', '', tendencyLabel);
   setStyles(tendency, {
     fontSize: '13px',
@@ -388,10 +388,10 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
   });
 
   const stats = [
-    { label: 'Drain Rate', value: `-${data.drainRatePerHour}/hr` },
-    { label: 'Recharge Rate', value: `+${data.rechargeRatePerHour}/hr` },
-    { label: 'Full Recharge', value: `${Math.ceil(data.fullRechargeHours)}hr` },
-    { label: 'Warning At', value: `${data.warningThreshold}%` },
+    { labelKey: 'visualizations.socialBattery.stat.drainRate', value: t('visualizations.socialBattery.ratePerHour', { rate: `-${data.drainRatePerHour}` }) },
+    { labelKey: 'visualizations.socialBattery.stat.rechargeRate', value: t('visualizations.socialBattery.ratePerHour', { rate: `+${data.rechargeRatePerHour}` }) },
+    { labelKey: 'visualizations.socialBattery.stat.fullRecharge', value: t('visualizations.socialBattery.hoursShort', { hours: Math.ceil(data.fullRechargeHours) }) },
+    { labelKey: 'visualizations.socialBattery.stat.warningAt', value: `${data.warningThreshold}%` },
   ];
 
   stats.forEach((stat) => {
@@ -409,7 +409,7 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
       color: 'var(--color-text-primary)',
     });
 
-    const label = createElement('div', '', stat.label);
+    const label = createElement('div', '', t(stat.labelKey));
     setStyles(label, {
       fontSize: '12px',
       color: 'var(--color-text-secondary)',
@@ -427,7 +427,7 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
   if (data.recentEvents && data.recentEvents.length > 0) {
     const activitySection = createElement('div');
 
-    const activityTitle = createElement('div', '', 'Recent Activity');
+    const activityTitle = createElement('div', '', t('visualizations.socialBattery.recentActivityTitle'));
     setStyles(activityTitle, {
       fontSize: '13px',
       fontWeight: '600',
@@ -486,7 +486,7 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
       border: '1px solid rgba(181, 69, 58, 0.3)',
     });
 
-    const warningTitle = createElement('div', '', 'Low Social Battery');
+    const warningTitle = createElement('div', '', t('visualizations.socialBattery.lowBatteryTitle'));
     setStyles(warningTitle, {
       fontSize: '14px',
       fontWeight: '600',
@@ -497,7 +497,7 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
     const warningDesc = createElement(
       'div',
       '',
-      `Consider some quiet time. Full recharge in ~${Math.ceil(data.fullRechargeHours)} hours.`
+      t('visualizations.socialBattery.lowBatteryDescription', { hours: Math.ceil(data.fullRechargeHours) })
     );
     setStyles(warningDesc, {
       fontSize: '13px',
@@ -516,7 +516,7 @@ function buildDesktop(container: HTMLElement, data: SocialBatteryData): Visualiz
     element: wrapper,
     type: 'social-battery',
     device: 'desktop',
-    ariaLabel: `Social battery at ${data.currentLevel}%, ${tendencyLabel} tendency`,
+    ariaLabel: t('visualizations.socialBattery.ariaDesktop', { level: data.currentLevel, tendency: tendencyLabel }),
   };
 }
 

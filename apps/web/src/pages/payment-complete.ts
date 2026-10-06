@@ -9,6 +9,8 @@
  * These pages show a warm thank-you and auto-redirect back to the app.
  */
 
+import { formatCurrency, initI18n, isInitialized, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('PaymentComplete');
@@ -237,55 +239,52 @@ const ERROR_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="4
 
 interface PageConfig {
   icon: string;
-  title: string;
-  message: string;
-  impactLabel?: string;
+  titleKey: string;
+  messageKey: string;
+  impactLabelKey?: string;
   getImpact?: (params: URLSearchParams) => string | null;
 }
 
 const PAGE_CONFIGS: Record<string, PageConfig> = {
   fund: {
     icon: HEART_ICON,
-    title: "You're Amazing",
-    message:
-      'Your generosity is already making a difference. Someone who needs support will be able to talk to Ferni because of you.',
-    impactLabel: 'Your Impact',
+    titleKey: 'paymentComplete.fund.title',
+    messageKey: 'paymentComplete.fund.message',
+    impactLabelKey: 'paymentComplete.fund.impactLabel',
     getImpact: (params) => {
       const amount = params.get('amount');
       if (amount) {
         const cents = parseInt(amount, 10);
         const conversations = Math.floor(cents / 50); // $0.50 per conversation
-        return `${conversations} conversation${conversations === 1 ? '' : 's'} sponsored`;
+        return tp('paymentComplete.fund.conversationsSponsored', conversations);
       }
       return null;
     },
   },
   value: {
     icon: STAR_ICON,
-    title: "You're Incredible",
-    message:
-      "You didn't just achieve something great—you chose to share it. That's the kind of generosity that changes the world.",
-    impactLabel: 'Your Contribution',
+    titleKey: 'paymentComplete.value.title',
+    messageKey: 'paymentComplete.value.message',
+    impactLabelKey: 'paymentComplete.value.impactLabel',
     getImpact: (params) => {
       const amount = params.get('amount');
       if (amount) {
         const cents = parseInt(amount, 10);
-        return `$${(cents / 100).toFixed(2)}`;
+        return formatCurrency(cents / 100, 'USD');
       }
       return null;
     },
   },
   tip: {
     icon: CHECK_ICON,
-    title: 'Thank You',
-    message:
-      "Your support means everything. It's people like you who make Ferni possible for everyone.",
-    impactLabel: 'Your Tip',
+    titleKey: 'paymentComplete.tip.title',
+    messageKey: 'paymentComplete.tip.message',
+    impactLabelKey: 'paymentComplete.tip.impactLabel',
     getImpact: (params) => {
       const amount = params.get('amount');
       if (amount) {
         const cents = parseInt(amount, 10);
-        return `$${(cents / 100).toFixed(2)}`;
+        return formatCurrency(cents / 100, 'USD');
       }
       return null;
     },
@@ -331,23 +330,23 @@ function renderSuccessPage(type: string, params: URLSearchParams): string {
       <div class="payment-confetti">${createConfetti()}</div>
       <div class="payment-complete-card">
         <div class="payment-complete-icon">${config.icon}</div>
-        <h1 class="payment-complete-title">${config.title}</h1>
-        <p class="payment-complete-message">${config.message}</p>
+        <h1 class="payment-complete-title">${t(config.titleKey)}</h1>
+        <p class="payment-complete-message">${t(config.messageKey)}</p>
         
         ${
           impact
             ? `
           <div class="payment-complete-impact">
-            <div class="payment-complete-impact-label">${config.impactLabel}</div>
+            <div class="payment-complete-impact-label">${config.impactLabelKey ? t(config.impactLabelKey) : ''}</div>
             <div class="payment-complete-impact-value">${impact}</div>
           </div>
         `
             : ''
         }
         
-        <p class="payment-complete-redirect">Redirecting you back to Ferni...</p>
+        <p class="payment-complete-redirect">${t('paymentComplete.redirecting')}</p>
         <a href="/" class="payment-complete-btn">
-          Return to Ferni
+          ${t('paymentComplete.returnToFerni')}
         </a>
       </div>
     </div>
@@ -359,12 +358,12 @@ function renderErrorPage(message?: string): string {
     <div class="payment-complete-page">
       <div class="payment-complete-card payment-complete-error">
         <div class="payment-complete-icon">${ERROR_ICON}</div>
-        <h1 class="payment-complete-title">Something Went Wrong</h1>
+        <h1 class="payment-complete-title">${t('common.error')}</h1>
         <p class="payment-complete-message">
-          ${message || "We couldn't verify your payment. Don't worry—if you were charged, we'll sort it out."}
+          ${message || t('paymentComplete.verifyFailed')}
         </p>
         <a href="/" class="payment-complete-btn">
-          Return to Ferni
+          ${t('paymentComplete.returnToFerni')}
         </a>
       </div>
     </div>
@@ -377,7 +376,7 @@ function renderLoadingPage(): string {
       <div class="payment-complete-card">
         <div class="payment-complete-loading">
           <div class="payment-complete-spinner"></div>
-          <p>Confirming your payment...</p>
+          <p>${t('paymentComplete.confirming')}</p>
         </div>
       </div>
     </div>
@@ -392,6 +391,9 @@ function renderLoadingPage(): string {
  * Initialize payment completion page
  */
 export async function initPaymentCompletePage(): Promise<void> {
+  // This page can load standalone, so make sure translations are ready
+  if (!isInitialized()) await initI18n();
+
   // Add styles
   const styleEl = document.createElement('style');
   styleEl.textContent = styles;
@@ -436,7 +438,7 @@ export async function initPaymentCompletePage(): Promise<void> {
   } else if (redirectStatus === 'failed' || redirectStatus === 'requires_payment_method') {
     // Payment failed
     root.innerHTML = renderErrorPage(
-      'Your payment was declined. Please try again with a different payment method.'
+      t('paymentComplete.declined')
     );
     log.warn({ type, redirectStatus }, 'Payment failed');
   } else if (paymentIntent) {

@@ -21,9 +21,6 @@ vi.mock('../../src/utils/api.js', () => ({
   apiDelete: mocks.apiDelete,
 }));
 vi.mock('../../src/ui/whisper.ui.js', () => ({ toast: mocks.toast }));
-vi.mock('../../src/i18n/index.js', () => ({
-  t: (_k: string, fallback?: string) => fallback ?? _k,
-}));
 
 import { FamilyIdentities } from '../../src/ui/family-identities.ui.js';
 

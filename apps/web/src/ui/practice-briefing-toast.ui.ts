@@ -16,6 +16,7 @@ import { ICONS } from './engagement-components.js';
 import type { PracticeBriefing } from '../services/practice-briefings.service.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 
 const log = createLogger('PracticeBriefingToast');
 
@@ -125,19 +126,19 @@ function generateVoicePromptText(briefing: PracticeBriefing): string {
   
   // Time context
   if (briefing.minutesUntil <= 1) {
-    parts.push("Starting now.");
+    parts.push(t('practiceBriefingToast.voice.startingNow'));
   } else if (briefing.minutesUntil <= 5) {
-    parts.push(`In just ${briefing.minutesUntil} minutes.`);
+    parts.push(tp('practiceBriefingToast.voice.inJustMinutes', briefing.minutesUntil));
   }
   
   // Streak encouragement
   if (briefing.streak > 0) {
     if (briefing.streak === 1) {
-      parts.push("Great start yesterday!");
+      parts.push(t('practiceBriefingToast.voice.greatStart'));
     } else if (briefing.streak < 7) {
-      parts.push(`You're on a ${briefing.streak} day streak. Keep it going!`);
+      parts.push(tp('practiceBriefingToast.voice.streakKeepGoing', briefing.streak));
     } else {
-      parts.push(`Amazing! ${briefing.streak} days in a row.`);
+      parts.push(tp('practiceBriefingToast.voice.streakAmazing', briefing.streak));
     }
   }
   
@@ -145,8 +146,9 @@ function generateVoicePromptText(briefing: PracticeBriefing): string {
   parts.push(briefing.encouragement);
   
   // One prep tip (keep it concise)
-  if (briefing.prepTips?.length) {
-    parts.push(`Quick tip: ${briefing.prepTips[0]}`);
+  const [firstTip] = briefing.prepTips ?? [];
+  if (firstTip) {
+    parts.push(t('practiceBriefingToast.voice.quickTip', { tip: firstTip }));
   }
   
   return parts.join(' ');
@@ -236,7 +238,7 @@ function injectStyles(): void {
     .practice-briefing-toast__close {
       position: absolute;
       top: var(--ma-pause);
-      right: var(--ma-pause);
+      inset-inline-end: var(--ma-pause);
       width: 28px;
       height: 28px;
       border: none;
@@ -526,7 +528,7 @@ class PracticeBriefingToast {
     const voiceBtn = this.container?.querySelector('.practice-briefing-toast__voice-btn');
     if (voiceBtn) {
       voiceBtn.classList.toggle('practice-briefing-toast__voice-btn--speaking', speaking);
-      voiceBtn.setAttribute('aria-label', speaking ? 'Stop reading' : 'Read aloud');
+      voiceBtn.setAttribute('aria-label', speaking ? t('practiceBriefingToast.stopReading') : t('accessibility.readAloud'));
     }
   }
 
@@ -569,12 +571,12 @@ class PracticeBriefingToast {
     this.container = document.createElement('div');
     this.container.className = 'practice-briefing-toast';
     this.container.setAttribute('role', 'alertdialog');
-    this.container.setAttribute('aria-label', `Upcoming practice: ${briefing.practiceName}`);
+    this.container.setAttribute('aria-label', t('practiceBriefingToast.upcomingPractice', { name: briefing.practiceName }));
 
     const timeIcon = getTimeIcon(briefing.startsAt);
     const tipsHtml = briefing.prepTips?.length
       ? `<div class="practice-briefing-toast__tips">
-          <p class="practice-briefing-toast__tips-title">Prep tips</p>
+          <p class="practice-briefing-toast__tips-title">${t('practiceBriefingToast.prepTips')}</p>
           <ul class="practice-briefing-toast__tips-list">
             ${briefing.prepTips.map((tip) => `<li>${escapeHtml(tip)}</li>`).join('')}
           </ul>
@@ -582,14 +584,12 @@ class PracticeBriefingToast {
       : '';
 
     const streakHtml = briefing.streak > 0
-      ? `<span class="practice-briefing-toast__streak">
-          🔥 ${briefing.streak} day streak
-        </span>`
+      ? `<span class="practice-briefing-toast__streak">🔥 ${tp('practiceBriefingToast.streak', briefing.streak)}</span>`
       : '';
 
     // Voice button only shown if TTS is available
     const voiceButtonHtml = isSpeechSynthesisAvailable() 
-      ? `<button class="practice-briefing-toast__voice-btn" aria-label="${t('accessibility.readAloud')}" title="Read aloud">
+      ? `<button class="practice-briefing-toast__voice-btn" aria-label="${t('accessibility.readAloud')}" title="${t('accessibility.readAloud')}">
           ${ICONS.volume ?? getSpeakerIcon()}
         </button>`
       : '';
@@ -606,7 +606,7 @@ class PracticeBriefingToast {
         <div class="practice-briefing-toast__content">
           <h4 class="practice-briefing-toast__greeting">${escapeHtml(briefing.greeting)}</h4>
           <span class="practice-briefing-toast__time">
-            ${briefing.minutesUntil <= 1 ? 'Starting now' : `In ${briefing.minutesUntil} minutes`}
+            ${briefing.minutesUntil <= 1 ? t('practiceBriefingToast.startingNow') : tp('practiceBriefingToast.inMinutes', briefing.minutesUntil)}
           </span>
         </div>
       </div>
@@ -615,10 +615,10 @@ class PracticeBriefingToast {
       ${tipsHtml}
       <div class="practice-briefing-toast__actions" role="button" tabindex="0">
         <button aria-label="${t('accessibility.dismiss')}" class="practice-briefing-toast__btn practice-briefing-toast__btn--secondary" type="button">
-          Dismiss
+          ${t('common.dismiss')}
         </button>
         <button aria-label="${t('accessibility.startPractice')}" class="practice-briefing-toast__btn practice-briefing-toast__btn--primary" type="button">
-          Start Practice
+          ${t('accessibility.startPractice')}
         </button>
       </div>
     `;

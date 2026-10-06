@@ -105,25 +105,25 @@ const ICONS = {
     '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>',
 };
 
-// Tier configurations
+// Tier configurations (names and descriptions are localized in renderDashboard)
 const TIER_CONFIG = {
   free: {
-    name: 'Free',
+    nameKey: 'marketplace.planFree',
     color: 'var(--color-text-muted)',
     limit: 100,
-    description: 'Perfect for trying things out',
+    descriptionKey: 'marketplace.planFreeDesc',
   },
   friend: {
-    name: 'Friend',
+    nameKey: 'marketplace.planFriend',
     color: 'var(--persona-ferni)',
     limit: 1000,
-    description: 'For regular users',
+    descriptionKey: 'marketplace.planFriendDesc',
   },
   partner: {
-    name: 'Partner',
+    nameKey: 'marketplace.planPartner',
     color: 'var(--color-accent-primary)',
     limit: -1, // Unlimited
-    description: 'Unlimited everything',
+    descriptionKey: 'marketplace.planPartnerDesc',
   },
 };
 
@@ -265,8 +265,8 @@ function createDashboardContainer(): HTMLElement {
         <button class="billing-close" aria-label="${t('accessibility.closeBilling')}">
           ${ICONS.close}
         </button>
-        <h1 class="billing-title">Usage & Billing</h1>
-        <p class="billing-subtitle">Track your marketplace tool usage</p>
+        <h1 class="billing-title">${t('marketplace.usageAndBilling')}</h1>
+        <p class="billing-subtitle">${t('marketplace.trackUsage')}</p>
       </header>
 
       <main class="billing-content">
@@ -298,15 +298,15 @@ function renderDashboard(): void {
     <div class="tier-banner" style="--tier-color: ${tierConfig.color}">
       <div class="tier-icon" aria-hidden="true">${ICONS.sparkles}</div>
       <div class="tier-info">
-        <span class="tier-name">${tierConfig.name} Plan</span>
-        <span class="tier-desc">${tierConfig.description}</span>
+        <span class="tier-name">${t(tierConfig.nameKey)} Plan</span>
+        <span class="tier-desc">${t(tierConfig.descriptionKey)}</span>
       </div>
-      ${state.tier === 'free' ? `<button aria-label="${t('accessibility.upgrade')}" class="tier-upgrade">Upgrade</button>` : ''}
+      ${state.tier === 'free' ? `<button aria-label="${t('accessibility.upgrade')}" class="tier-upgrade">${t('buttons.upgrade')}</button>` : ''}
     </div>
 
     <!-- Overall Usage Summary -->
     <div class="usage-summary">
-      <h2 class="section-title">This Month</h2>
+      <h2 class="section-title">${t('marketplace.thisMonth')}</h2>
       ${renderOverallUsage()}
     </div>
 
@@ -337,7 +337,7 @@ function renderOverallUsage(): string {
       <div class="usage-card usage-card--main">
         <div class="usage-card-header">
           <span class="usage-card-icon" aria-hidden="true">${ICONS.zap}</span>
-          <span class="usage-card-label">Executions</span>
+          <span class="usage-card-label">${t('marketplace.executions')}</span>
         </div>
         <div class="usage-card-value">${formatNumber(totalExecutions)}</div>
         ${
@@ -351,14 +351,14 @@ function renderOverallUsage(): string {
             <span>${(100 - usagePercent).toFixed(0)}% remaining</span>
           </div>
         `
-            : `<div class="usage-card-meta"><span class="unlimited">Unlimited</span></div>`
+            : `<div class="usage-card-meta"><span class="unlimited">${t('marketplace.unlimited')}</span></div>`
         }
       </div>
 
       <div class="usage-card">
         <div class="usage-card-header">
           <span class="usage-card-icon" aria-hidden="true">${ICONS.clock}</span>
-          <span class="usage-card-label">Time Used</span>
+          <span class="usage-card-label">${t('marketplace.timeUsed')}</span>
         </div>
         <div class="usage-card-value">${formatDuration(totalTimeMs)}</div>
       </div>
@@ -366,7 +366,7 @@ function renderOverallUsage(): string {
       <div class="usage-card">
         <div class="usage-card-header">
           <span class="usage-card-icon" aria-hidden="true">${ICONS.database}</span>
-          <span class="usage-card-label">Data Transfer</span>
+          <span class="usage-card-label">${t('marketplace.dataTransfer')}</span>
         </div>
         <div class="usage-card-value">${formatBytes(totalBytes)}</div>
       </div>
@@ -377,7 +377,7 @@ function renderOverallUsage(): string {
 function renderItemUsage(): string {
   return `
     <div class="item-usage">
-      <h2 class="section-title">By Tool</h2>
+      <h2 class="section-title">${t('marketplace.byTool')}</h2>
       <div class="item-usage-list" role="list">
         ${state.usage.map((usage) => renderUsageItem(usage)).join('')}
       </div>
@@ -418,8 +418,8 @@ function renderNoUsage(): string {
   return `
     <div class="no-usage">
       <div class="no-usage-icon" aria-hidden="true">${ICONS.activity}</div>
-      <h3 class="no-usage-title">No usage yet</h3>
-      <p class="no-usage-text">Install and use marketplace tools to see your usage here</p>
+      <h3 class="no-usage-title">${t('marketplace.noUsageYet')}</h3>
+      <p class="no-usage-text">${t('marketplace.noUsageDescription')}</p>
     </div>
   `;
 }

@@ -27,8 +27,8 @@
  *   const installed = marketplaceService.getInstalledAgents();
  */
 
-import type { PersonaConfig, PersonaId } from '../types/persona.js';
-import { ALL_PERSONA_IDS } from '../types/persona.js';
+import { ALL_PERSONA_IDS, type PersonaConfig, type PersonaId } from '../types/persona.js';
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { isFullTeamUnlocked } from './team-unlock.service.js';
 
@@ -368,8 +368,7 @@ function normalizeAgent(raw: RawRegistryAgent): MarketplaceAgent {
   };
 
   // Extract trust level from flat or nested format
-  const trustLevel: TrustLevel =
-    raw.trust_level ?? raw.marketplace?.trust_level ?? 'community';
+  const trustLevel: TrustLevel = raw.trust_level ?? raw.marketplace?.trust_level ?? 'community';
 
   // Extract permissions from flat or nested format
   const rawPermissions = raw.permissions ?? raw.marketplace?.permissions;
@@ -667,7 +666,8 @@ export function marketplaceAgentToPersonaConfig(
 ): PersonaConfig {
   const colors = manifest?.marketplace?.colors ?? agent.colors;
   const entrancePhrase =
-    manifest?.team?.handoff_phrases?.receive?.[0] ?? `${agent.name} here. How can I help?`;
+    manifest?.team?.handoff_phrases?.receive?.[0] ??
+    t('marketplaceService.entranceWithHelp', { name: agent.name });
 
   return {
     id: agent.id as PersonaId,
@@ -711,7 +711,7 @@ export async function getInstalledAgentsAsPersonaConfigs(): Promise<PersonaConfi
         id: installedAgent.id as PersonaId,
         name: installedAgent.id,
         initials: installedAgent.id.slice(0, 2).toUpperCase(),
-        subtitle: 'Marketplace Agent',
+        subtitle: t('marketplaceService.agentSubtitle'),
         role: 'standalone' as const,
         quotes: [],
         helperText: '',
@@ -723,7 +723,7 @@ export async function getInstalledAgentsAsPersonaConfigs(): Promise<PersonaConfi
           gradient: 'linear-gradient(135deg, #444444, #666666)',
         },
         skills: [],
-        entrancePhrase: `${installedAgent.id} here.`,
+        entrancePhrase: t('marketplaceService.entrance', { name: installedAgent.id }),
         handoffSound: 'connect',
       };
     }

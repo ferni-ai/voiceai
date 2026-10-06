@@ -489,7 +489,7 @@ function injectStyles(): void {
     .bth-dashboard__close {
       position: absolute;
       top: var(--space-md, 1rem);
-      right: var(--space-md, 1rem);
+      inset-inline-end: var(--space-md, 1rem);
       background: none;
       border: none;
       font-size: 1.5rem;

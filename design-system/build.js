@@ -125,15 +125,24 @@ function generatePersonaCSS(personas) {
   for (const [personaId, personaColors] of Object.entries(personas)) {
     if (personaId.startsWith('_') || typeof personaColors !== 'object') continue;
     const kebabId = camelToKebab(personaId);
+    // --persona-text is persona-coloured text on the page background (the app's
+    // theme-aware text token); --persona-on-primary is text placed on a persona fill.
     lines.push(`
 /* Persona: ${personaId} */
 [data-persona="${kebabId}"] {
   --persona-primary: ${personaColors.primary};
   --persona-secondary: ${personaColors.secondary};
-  --persona-text: ${personaColors.text || '#ffffff'};
+  --persona-text: ${personaColors.textOnLight || personaColors.primary};
+  --persona-on-primary: ${personaColors.text || '#ffffff'};
   --persona-glow: ${personaColors.glow};
   --persona-tint: ${personaColors.tint};
 }`);
+    if (personaColors.textOnDark) {
+      lines.push(`[data-theme="midnight"] [data-persona="${kebabId}"],
+[data-theme="midnight"][data-persona="${kebabId}"] {
+  --persona-text: ${personaColors.textOnDark};
+}`);
+    }
   }
   return lines.join('\n');
 }

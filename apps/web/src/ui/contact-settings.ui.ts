@@ -229,7 +229,7 @@ function injectStyles(): void {
     .contact-settings-close {
       position: absolute;
       top: 1rem;
-      right: 1rem;
+      inset-inline-end: 1rem;
       width: 32px;
       height: 32px;
       padding: 0.5rem;

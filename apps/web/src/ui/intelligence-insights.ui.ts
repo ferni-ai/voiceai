@@ -11,6 +11,7 @@
  * @module ui/intelligence-insights
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger';
 import {
   getCachedProfile,
@@ -192,7 +193,7 @@ export class IntelligenceInsightsUI {
     target.innerHTML = `
       <div class="intelligence-insights">
         <div class="intelligence-insights__loading">
-          Loading insights...
+          ${t('intelligenceInsights.loading')}
         </div>
       </div>
     `;
@@ -230,7 +231,7 @@ export class IntelligenceInsightsUI {
       return `
         <div class="intelligence-insights">
           <div class="intelligence-insights__empty">
-            No insights available yet. Keep chatting!
+            ${t('intelligenceInsights.empty')}
           </div>
         </div>
       `;
@@ -244,13 +245,13 @@ export class IntelligenceInsightsUI {
               `<span class="intelligence-insights__tag intelligence-insights__tag--anticipated">${this.formatToolName(tool)}</span>`
           )
           .join('')
-      : '<span class="intelligence-insights__tag">None yet</span>';
+      : `<span class="intelligence-insights__tag">${t('intelligenceInsights.noneYet')}</span>`;
 
     const preferredDomainsHTML = this.profile.preferredDomains.length > 0
       ? this.profile.preferredDomains
           .map((domain) => `<span class="intelligence-insights__tag">${domain}</span>`)
           .join('')
-      : '<span class="intelligence-insights__tag">Discovering...</span>';
+      : `<span class="intelligence-insights__tag">${t('intelligenceInsights.discovering')}</span>`;
 
     const suggestionsHTML = this.suggestions.length > 0
       ? this.suggestions
@@ -260,18 +261,18 @@ export class IntelligenceInsightsUI {
             <div class="intelligence-insights__suggestion" data-tool-id="${s.toolId}">
               <div class="intelligence-insights__suggestion-tool">${this.formatToolName(s.toolId)}</div>
               <div class="intelligence-insights__suggestion-reason">${s.reason}</div>
-              ${s.triggerPhrase ? `<button class="intelligence-insights__suggestion-cta" data-trigger="${s.triggerPhrase}">Try it</button>` : ''}
+              ${s.triggerPhrase ? `<button class="intelligence-insights__suggestion-cta" data-trigger="${s.triggerPhrase}">${t('intelligenceInsights.tryIt')}</button>` : ''}
             </div>
           `
           )
           .join('')
-      : '<div class="intelligence-insights__empty">No suggestions right now</div>';
+      : `<div class="intelligence-insights__empty">${t('intelligenceInsights.noSuggestions')}</div>`;
 
     const outreachHTML = this.profile.proactiveOutreach?.shouldTrigger
       ? `
         <div class="intelligence-insights__outreach">
           <div class="intelligence-insights__outreach-message">
-            ${this.profile.proactiveOutreach.suggestedMessage || 'We have something to share with you!'}
+            ${this.profile.proactiveOutreach.suggestedMessage || t('intelligenceInsights.outreachFallback')}
           </div>
         </div>
       `
@@ -283,25 +284,25 @@ export class IntelligenceInsightsUI {
           <svg class="intelligence-insights__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
           </svg>
-          <h3 class="intelligence-insights__title">What I've Learned</h3>
+          <h3 class="intelligence-insights__title">${t('intelligenceInsights.title')}</h3>
         </div>
 
         <div class="intelligence-insights__section">
-          <div class="intelligence-insights__section-title">Your Interests</div>
+          <div class="intelligence-insights__section-title">${t('intelligenceInsights.yourInterests')}</div>
           <div class="intelligence-insights__tags">
             ${preferredDomainsHTML}
           </div>
         </div>
 
         <div class="intelligence-insights__section">
-          <div class="intelligence-insights__section-title">Ready for You</div>
+          <div class="intelligence-insights__section-title">${t('intelligenceInsights.readyForYou')}</div>
           <div class="intelligence-insights__tags">
             ${anticipatedToolsHTML}
           </div>
         </div>
 
         <div class="intelligence-insights__section">
-          <div class="intelligence-insights__section-title">Suggestions</div>
+          <div class="intelligence-insights__section-title">${t('intelligenceInsights.suggestions')}</div>
           ${suggestionsHTML}
         </div>
 

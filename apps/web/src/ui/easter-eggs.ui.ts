@@ -16,6 +16,7 @@
  * - Hidden messages
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { celebrationsUI } from './celebrations.ui.js';
@@ -48,40 +49,35 @@ let danceAnimationId: number | null = null;
 // 🎬 Achievement tracking
 interface Achievement {
   id: string;
-  name: string;
-  description: string;
+  nameKey: string;
+  descriptionKey: string;
   unlocked: boolean;
   unlockedAt?: number;
 }
 
 const achievements: Achievement[] = [
-  {
-    id: 'konami',
-    name: 'Konami Master',
-    description: 'Entered the legendary code',
-    unlocked: false,
-  },
-  { id: 'disco', name: 'Disco King', description: 'Turned on the disco lights', unlocked: false },
-  { id: 'matrix', name: 'Neo', description: 'Saw the Matrix', unlocked: false },
-  { id: 'rainbow', name: 'Rainbow Walker', description: 'Found all the colors', unlocked: false },
-  { id: 'eye-poke', name: 'Curious One', description: 'Discovered the eye', unlocked: false },
+  { id: 'konami', nameKey: 'easterEggs.achievements.konami.name', descriptionKey: 'easterEggs.achievements.konami.description', unlocked: false },
+  { id: 'disco', nameKey: 'easterEggs.achievements.disco.name', descriptionKey: 'easterEggs.achievements.disco.description', unlocked: false },
+  { id: 'matrix', nameKey: 'easterEggs.achievements.matrix.name', descriptionKey: 'easterEggs.achievements.matrix.description', unlocked: false },
+  { id: 'rainbow', nameKey: 'easterEggs.achievements.rainbow.name', descriptionKey: 'easterEggs.achievements.rainbow.description', unlocked: false },
+  { id: 'eye-poke', nameKey: 'easterEggs.achievements.eyePoke.name', descriptionKey: 'easterEggs.achievements.eyePoke.description', unlocked: false },
   {
     id: 'shake',
-    name: 'Earthquake',
-    description: 'Shook the device like you meant it',
+    nameKey: 'easterEggs.achievements.shake.name',
+    descriptionKey: 'easterEggs.achievements.shake.description',
     unlocked: false,
   },
   {
     id: 'triple-click',
-    name: 'Clicker',
-    description: 'Triple-clicked the avatar',
+    nameKey: 'easterEggs.achievements.tripleClick.name',
+    descriptionKey: 'easterEggs.achievements.tripleClick.description',
     unlocked: false,
   },
-  { id: 'petting', name: 'Gentle Soul', description: 'Made Ferni feel loved', unlocked: false },
-  { id: 'stretch', name: 'Stretchy', description: 'Pulled Ferni like taffy', unlocked: false },
-  { id: 'tilt', name: 'Tipsy', description: 'Made Ferni slide around', unlocked: false },
-  { id: 'night-owl', name: 'Night Owl', description: 'Chatted past midnight', unlocked: false },
-  { id: 'early-bird', name: 'Early Bird', description: 'First chat of the day', unlocked: false },
+  { id: 'petting', nameKey: 'easterEggs.achievements.petting.name', descriptionKey: 'easterEggs.achievements.petting.description', unlocked: false },
+  { id: 'stretch', nameKey: 'easterEggs.achievements.stretch.name', descriptionKey: 'easterEggs.achievements.stretch.description', unlocked: false },
+  { id: 'tilt', nameKey: 'easterEggs.achievements.tilt.name', descriptionKey: 'easterEggs.achievements.tilt.description', unlocked: false },
+  { id: 'night-owl', nameKey: 'easterEggs.achievements.nightOwl.name', descriptionKey: 'easterEggs.achievements.nightOwl.description', unlocked: false },
+  { id: 'early-bird', nameKey: 'easterEggs.achievements.earlyBird.name', descriptionKey: 'easterEggs.achievements.earlyBird.description', unlocked: false },
 ];
 
 // 🎬 Personality quirks
@@ -1140,11 +1136,13 @@ function loadAchievements(): void {
 function showAchievementNotification(achievement: Achievement): void {
   const notification = document.createElement('div');
   notification.className = 'achievement-notification';
+  const achievementName = t(achievement.nameKey);
+  const achievementDesc = t(achievement.descriptionKey);
   notification.innerHTML = `
     <div class="achievement-icon" style="font-size: 24px; font-weight: 600; color: var(--persona-text, #ffffff);">★</div>
     <div class="achievement-content">
-      <div class="achievement-title">${achievement.name}</div>
-      <div class="achievement-desc">${achievement.description}</div>
+      <div class="achievement-title">${achievementName}</div>
+      <div class="achievement-desc">${achievementDesc}</div>
     </div>
   `;
   notification.style.cssText = `

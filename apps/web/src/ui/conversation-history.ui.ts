@@ -12,7 +12,8 @@
  * - Respects prefers-reduced-motion
  */
 
-import { t } from '../i18n/index.js';
+import { formatDate as formatLocaleDate, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
 import { teaserPreview } from './teaser-preview.ui.js';
 import { createEmptyState } from './components/empty-state.js';
@@ -150,16 +151,8 @@ class ConversationHistoryUI {
     this.panel.innerHTML = `
       <div class="history__backdrop"></div>
       <div class="history__card">
-        <header class="history__header">
-          <h2 class="history__title">Your Journey</h2>
-          <button class="history__close" aria-label="${t('accessibility.closeHistory')}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </header>
-        <div class="history__loading" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Loading...</div>
+        ${this.renderHeader()}
+        <div class="history__loading" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('common.loading')}</div>
       </div>
     `;
     this.panel.querySelector('.history__close')?.addEventListener('click', () => this.hide());
@@ -178,16 +171,8 @@ class ConversationHistoryUI {
     this.panel.innerHTML = `
       <div class="history__backdrop"></div>
       <div class="history__card">
-        <header class="history__header">
-          <h2 class="history__title">Your Journey</h2>
-          <button class="history__close" aria-label="${t('accessibility.closeHistory')}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </header>
-        <div class="history__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>
+        ${this.renderHeader()}
+        <div class="history__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('conversationHistory.loadError')} <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('conversationHistory.tryAgain')}</button></div>
       </div>
     `;
     this.panel.querySelector('.history__close')?.addEventListener('click', () => this.hide());
@@ -236,7 +221,7 @@ class ConversationHistoryUI {
     this.panel = document.createElement('aside');
     this.panel.className = 'history';
     this.panel.setAttribute('role', 'complementary');
-    this.panel.setAttribute('aria-label', 'Conversation history');
+    this.panel.setAttribute('aria-label', t('conversationHistory.ariaLabel'));
     this.panel.setAttribute('aria-hidden', 'true');
 
     document.body.appendChild(this.panel);
@@ -258,28 +243,20 @@ class ConversationHistoryUI {
     this.panel.innerHTML = `
       <div class="history__backdrop"></div>
       <div class="history__card">
-        <header class="history__header">
-          <h2 class="history__title">Your Journey</h2>
-          <button class="history__close" aria-label="${t('accessibility.closeHistory')}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </header>
+        ${this.renderHeader()}
 
         <div class="history__stats">
           <div class="history__stat">
             <span class="history__stat-value">${data.totalSessions}</span>
-            <span class="history__stat-label">Sessions</span>
+            <span class="history__stat-label">${t('conversationHistory.sessions')}</span>
           </div>
           <div class="history__stat">
             <span class="history__stat-value">${this.formatDuration(data.totalMinutes)}</span>
-            <span class="history__stat-label">Total Time</span>
+            <span class="history__stat-label">${t('conversationHistory.totalTime')}</span>
           </div>
           <div class="history__stat">
             <span class="history__stat-value">${data.insightCount}</span>
-            <span class="history__stat-label">Insights</span>
+            <span class="history__stat-label">${t('accessibility.insights')}</span>
           </div>
         </div>
 
@@ -291,7 +268,7 @@ class ConversationHistoryUI {
               </svg>
             </span>
             <span class="history__favorite-text">
-              <span class="history__favorite-label">Most connected with</span>
+              <span class="history__favorite-label">${t('conversationHistory.mostConnectedWith')}</span>
               <span class="history__favorite-name">${this.escapeHtml(data.favoritePersona)}</span>
             </span>
           </div>
@@ -330,7 +307,7 @@ class ConversationHistoryUI {
     const delay = index * STAGGER.NORMAL;
     const date = new Date(session.date);
     const formattedDate = this.formatDate(date);
-    const insightPreview = session.insights[0] || 'No insights recorded';
+    const insightPreview = session.insights[0] || t('conversationHistory.noInsights');
     const isFavorite = favoritePersona && session.personaName.toLowerCase() === favoritePersona.toLowerCase();
 
     return `
@@ -338,7 +315,7 @@ class ConversationHistoryUI {
         <div class="history__session-header">
           <div class="history__session-persona ${isFavorite ? 'history__session-persona--favorite' : ''}" data-persona="${this.escapeHtml(session.personaId)}">
             ${session.personaName.slice(0, 2).toUpperCase()}
-            ${isFavorite ? `<span class="history__favorite-badge" title="Your favorite">★</span>` : ''}
+            ${isFavorite ? `<span class="history__favorite-badge" title="${t('conversationHistory.yourFavorite')}">★</span>` : ''}
           </div>
           <div class="history__session-meta">
             <span class="history__session-name">${this.escapeHtml(session.personaName)}</span>
@@ -349,18 +326,32 @@ class ConversationHistoryUI {
         <div class="history__session-body">
           <p class="history__session-insight">"${this.escapeHtml(insightPreview)}"</p>
           <div class="history__session-stats">
-            <span>${session.duration} min</span>
+            <span>${t('conversationHistory.minutes', { count: session.duration })}</span>
             <span>·</span>
-            <span>${session.messageCount} messages</span>
-            ${session.insights.length > 0 ? `<span>·</span><span>${session.insights.length} insights</span>` : ''}
+            <span>${tp('conversationHistory.messageCount', session.messageCount)}</span>
+            ${session.insights.length > 0 ? `<span>·</span><span>${tp('conversationHistory.insightCount', session.insights.length)}</span>` : ''}
           </div>
         </div>
         ${session.topicsDiscussed.length > 0 ? `
           <div class="history__session-topics">
-            ${session.topicsDiscussed.slice(0, 3).map(t => `<span class="history__topic">${this.escapeHtml(t)}</span>`).join('')}
+            ${session.topicsDiscussed.slice(0, 3).map((topic) => `<span class="history__topic">${this.escapeHtml(topic)}</span>`).join('')}
           </div>
         ` : ''}
       </article>
+    `;
+  }
+
+  private renderHeader(): string {
+    return `
+      <header class="history__header">
+        <h2 class="history__title">${t('accessibility.yourJourney')}</h2>
+        <button class="history__close" aria-label="${t('accessibility.closeHistory')}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </header>
     `;
   }
 
@@ -371,21 +362,23 @@ class ConversationHistoryUI {
   }
 
   private formatDuration(minutes: number): string {
-    if (minutes < 60) return `${minutes}m`;
+    if (minutes < 60) return t('conversationHistory.durationMinutes', { minutes });
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    return mins > 0
+      ? t('conversationHistory.durationHoursMinutes', { hours, minutes: mins })
+      : t('conversationHistory.durationHours', { hours });
   }
 
   private formatDate(date: Date): string {
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (diffDays === 0) return t('common.today');
+    if (diffDays === 1) return t('common.yesterday');
+    if (diffDays < 7) return t('common.daysAgo', { count: diffDays });
+
+    return formatLocaleDate(date, { month: 'short', day: 'numeric' });
   }
 
   private animateSessionsIn(): void {

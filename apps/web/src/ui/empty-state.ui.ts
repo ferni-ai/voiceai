@@ -474,7 +474,7 @@ export class EmptyStateUI {
    * Teasers show realistic example data with a "preview mode" indicator
    */
   createTeaser(type: EmptyStateType, onExplore?: () => void): HTMLElement {
-    const teaserData = TEASER_DATA[type];
+    const teaserData = getTeaserData()[type];
     if (!teaserData) {
       return this.create({ type });
     }
@@ -501,7 +501,7 @@ export class EmptyStateUI {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
       </svg>
-      <span>Preview</span>
+      <span>${t('emptyState.preview')}</span>
     `;
     Object.assign(badge.style, {
       position: 'absolute',
@@ -585,7 +585,7 @@ export class EmptyStateUI {
 
 // ============================================================================
 // TEASER PREVIEW DATA
-// Realistic dummy data that demonstrates value to new users
+// Realistic dummy data that demonstrates value to new users (built on demand so text follows the locale)
 // ============================================================================
 
 interface TeaserPreviewData {
@@ -594,44 +594,44 @@ interface TeaserPreviewData {
   actionLabel?: string;
 }
 
-const TEASER_DATA: Partial<Record<EmptyStateType, TeaserPreviewData>> = {
+const getTeaserData = (): Partial<Record<EmptyStateType, TeaserPreviewData>> => ({
   no_history: {
     content: `
       <div style="display: flex; flex-direction: column; gap: 12px;">
         <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: white; border-radius: 12px; opacity: 0.7;">
           <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--persona-primary, #4a6741);"></div>
           <div style="flex: 1;">
-            <div style="font-size: 13px; font-weight: 500; color: var(--color-text-primary);">Talked about morning routine</div>
-            <div style="font-size: 11px; color: var(--color-text-muted);">Yesterday</div>
+            <div style="font-size: 13px; font-weight: 500; color: var(--color-text-primary);">${t('emptyState.teaser.history.morningRoutine')}</div>
+            <div style="font-size: 11px; color: var(--color-text-muted);">${t('common.yesterday')}</div>
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: white; border-radius: 12px; opacity: 0.5;">
           <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--color-text-muted);"></div>
           <div style="flex: 1;">
-            <div style="font-size: 13px; font-weight: 500; color: var(--color-text-secondary);">Shared a personal challenge</div>
-            <div style="font-size: 11px; color: var(--color-text-muted);">2 days ago</div>
+            <div style="font-size: 13px; font-weight: 500; color: var(--color-text-secondary);">${t('emptyState.teaser.history.personalChallenge')}</div>
+            <div style="font-size: 11px; color: var(--color-text-muted);">${t('common.daysAgo', { count: 2 })}</div>
           </div>
         </div>
       </div>
     `,
-    message: 'Your conversation history will appear here',
-    actionLabel: 'Start a conversation',
+    message: t('emptyState.teaser.history.message'),
+    actionLabel: t('accessibility.startAConversation'),
   },
   no_goals: {
     content: `
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: white; border-radius: 10px; opacity: 0.7;">
           <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--persona-primary, #4a6741);"></div>
-          <span style="font-size: 13px; color: var(--color-text-primary);">Wake up by 7am daily</span>
+          <span style="font-size: 13px; color: var(--color-text-primary);">${t('emptyState.teaser.goals.wakeUp')}</span>
         </div>
         <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: white; border-radius: 10px; opacity: 0.5;">
           <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--color-text-muted);"></div>
-          <span style="font-size: 13px; color: var(--color-text-secondary);">Read for 20 minutes</span>
+          <span style="font-size: 13px; color: var(--color-text-secondary);">${t('emptyState.teaser.goals.read')}</span>
         </div>
       </div>
     `,
-    message: 'Track goals together after a few conversations',
-    actionLabel: 'Let\'s talk about goals',
+    message: t('emptyState.teaser.goals.message'),
+    actionLabel: t('emptyState.teaser.goals.action'),
   },
   no_team: {
     content: `
@@ -642,10 +642,10 @@ const TEASER_DATA: Partial<Record<EmptyStateType, TeaserPreviewData>> = {
         <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--color-text-muted); opacity: 0.2;"></div>
       </div>
     `,
-    message: 'Unlock more team members by building your relationship with Ferni',
-    actionLabel: 'Talk to Ferni',
+    message: t('emptyState.teaser.team.message'),
+    actionLabel: t('emptyState.teaser.team.action'),
   },
-};
+});
 
 // ============================================================================
 // SINGLETON EXPORT

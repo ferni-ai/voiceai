@@ -14,6 +14,8 @@
  * - Referrals
  */
 
+import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 import { addSeeds, getSeedBalance } from './cosmetics.service.js';
 
@@ -26,7 +28,10 @@ const log = createLogger('SeedsEconomy');
 interface SeedReward {
   type: string;
   amount: number;
-  description: string;
+  /** i18n key for the reason shown to the user */
+  descriptionKey: string;
+  /** Count for plural-aware descriptions */
+  count?: number;
 }
 
 interface SeedsState {
@@ -50,105 +55,73 @@ interface SeedsState {
 
 const SEED_REWARDS: Record<string, SeedReward> = {
   // Daily rewards
-  dailyConversation: {
-    type: 'daily',
-    amount: 5,
-    description: 'First conversation of the day',
-  },
+  dailyConversation: { type: 'daily', amount: 5, descriptionKey: 'seedsEconomy.dailyConversation' },
 
   // Streak bonuses
-  streak7: {
-    type: 'streak',
-    amount: 25,
-    description: '7-day conversation streak',
-  },
-  streak14: {
-    type: 'streak',
-    amount: 50,
-    description: '2-week conversation streak',
-  },
-  streak30: {
-    type: 'streak',
-    amount: 100,
-    description: 'Month-long streak',
-  },
-  streak60: {
-    type: 'streak',
-    amount: 200,
-    description: '2-month streak',
-  },
-  streak100: {
-    type: 'streak',
-    amount: 500,
-    description: '100-day milestone',
-  },
+  streak7: { type: 'streak', amount: 25, descriptionKey: 'seedsEconomy.streak7' },
+  streak14: { type: 'streak', amount: 50, descriptionKey: 'seedsEconomy.streak14' },
+  streak30: { type: 'streak', amount: 100, descriptionKey: 'seedsEconomy.streak30' },
+  streak60: { type: 'streak', amount: 200, descriptionKey: 'seedsEconomy.streak60' },
+  streak100: { type: 'streak', amount: 500, descriptionKey: 'seedsEconomy.streak100' },
 
   // Milestone bonuses
   firstConversation: {
     type: 'milestone',
     amount: 10,
-    description: 'Your first conversation',
+    descriptionKey: 'seedsEconomy.firstConversation',
   },
   conversations10: {
     type: 'milestone',
     amount: 25,
-    description: '10 conversations milestone',
+    descriptionKey: 'seedsEconomy.conversations10',
   },
   conversations50: {
     type: 'milestone',
     amount: 50,
-    description: '50 conversations',
+    descriptionKey: 'seedsEconomy.conversations50',
   },
   conversations100: {
     type: 'milestone',
     amount: 100,
-    description: '100 conversations',
+    descriptionKey: 'seedsEconomy.conversations100',
   },
-  goalAchieved: {
-    type: 'achievement',
-    amount: 15,
-    description: 'Achieved a personal goal',
-  },
+  goalAchieved: { type: 'achievement', amount: 15, descriptionKey: 'seedsEconomy.goalAchieved' },
 
   // Referrals
-  referral: {
-    type: 'referral',
-    amount: 100,
-    description: 'Friend signed up with your code',
-  },
+  referral: { type: 'referral', amount: 100, descriptionKey: 'seedsEconomy.referral' },
 
   // Seed Fund Contributions (bonus seeds for supporters!)
   seedContribution5: {
     type: 'contribution',
     amount: 10, // $5 = 10 bonus seeds (2x!)
-    description: 'Planted a seed 🌱',
+    descriptionKey: 'seedsEconomy.contributionSeed',
   },
   seedContribution10: {
     type: 'contribution',
     amount: 25, // $10 = 25 bonus seeds (2.5x!)
-    description: 'Sponsored a conversation 💚',
+    descriptionKey: 'seedsEconomy.contributionConversation',
   },
   seedContribution25: {
     type: 'contribution',
     amount: 75, // $25 = 75 bonus seeds (3x!)
-    description: 'Helped someone get started 🌿',
+    descriptionKey: 'seedsEconomy.contributionGetStarted',
   },
   seedContribution50: {
     type: 'contribution',
     amount: 200, // $50 = 200 bonus seeds (4x!)
-    description: 'Supported the mission 🌳',
+    descriptionKey: 'seedsEconomy.contributionMission',
   },
 
   // Monthly Supporter Bonuses
   foundingMemberBonus: {
     type: 'subscription',
     amount: 50, // Monthly seed bonus for $10/mo subscribers
-    description: 'Monthly Founding Member bonus',
+    descriptionKey: 'seedsEconomy.foundingMemberBonus',
   },
   foundingPatronBonus: {
     type: 'subscription',
     amount: 150, // Monthly seed bonus for $20/mo subscribers
-    description: 'Monthly Founding Patron bonus',
+    descriptionKey: 'seedsEconomy.foundingPatronBonus',
   },
 };
 
@@ -216,6 +189,10 @@ function isSameDay(date1: string | null, date2: string): boolean {
 // SEED AWARDING
 // ============================================================================
 
+function describeReward({ descriptionKey, count }: SeedReward): string {
+  return count === undefined ? t(descriptionKey) : tp(descriptionKey, count);
+}
+
 /**
  * Award seeds for an action and show notification
  */
@@ -232,7 +209,7 @@ function awardSeeds(reward: SeedReward, showToast = true): void {
       new CustomEvent('ferni:seeds-earned', {
         detail: {
           amount: reward.amount,
-          reason: reward.description,
+          reason: describeReward(reward),
           type: reward.type,
         },
       })
@@ -335,7 +312,8 @@ export function checkConversationMilestone(totalConversations: number): void {
         reward = {
           type: 'milestone',
           amount: Math.floor(count / 5),
-          description: `${count} conversations`,
+          descriptionKey: 'seedsEconomy.conversations',
+          count,
         };
       }
 
@@ -470,13 +448,13 @@ export function claimDailyBonus(): { claimed: boolean; amount?: number; reason?:
   const today = getToday();
 
   if (isSameDay(state.lastDailyClaimDate, today)) {
-    return { claimed: false, reason: 'Already claimed today' };
+    return { claimed: false, reason: t('seedsEconomy.alreadyClaimedToday') };
   }
 
   // Award daily seeds
   const dailyReward = SEED_REWARDS.dailyConversation;
   if (!dailyReward) {
-    return { claimed: false, reason: 'Daily reward not configured' };
+    return { claimed: false, reason: t('seedsEconomy.dailyRewardNotConfigured') };
   }
 
   awardSeeds(dailyReward);
@@ -508,12 +486,7 @@ export function claimDailyBonus(): { claimed: boolean; amount?: number; reason?:
  */
 export function getNextStreakMilestone(): number | null {
   const current = getCurrentStreak();
-  for (const days of STREAK_MILESTONES) {
-    if (days > current) {
-      return days;
-    }
-  }
-  return null;
+  return STREAK_MILESTONES.find((days) => days > current) ?? null;
 }
 
 // ============================================================================

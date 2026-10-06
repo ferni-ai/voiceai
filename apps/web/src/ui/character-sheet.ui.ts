@@ -414,10 +414,10 @@ function render(): string {
   const relationships = (memories.relationships || []) as Array<{ personName: string; relationship: string }>;
 
   const traits = [
-    { label: 'Warmth', value: getTraitLabel(personality.warmth as number) },
-    { label: 'Humor', value: getTraitLabel(personality.humorLevel as number) },
-    { label: 'Energy', value: getTraitLabel(personality.energyLevel as number) },
-    { label: 'Mystery', value: getTraitLabel(personality.mysteryLevel as number) },
+    { labelKey: 'characterSheet.warmth', value: getTraitLabel(personality.warmth as number) },
+    { labelKey: 'characterSheet.humor', value: getTraitLabel(personality.humorLevel as number) },
+    { labelKey: 'characterSheet.energy', value: getTraitLabel(personality.energyLevel as number) },
+    { labelKey: 'characterSheet.mystery', value: getTraitLabel(personality.mysteryLevel as number) },
   ].filter(t => t.value);
 
   return `
@@ -426,7 +426,7 @@ function render(): string {
       <div class="character-sheet-modal" role="dialog" aria-labelledby="character-title">
         <header class="character-sheet-header">
           <div class="character-sheet-title">
-            <span class="character-sheet-eyebrow">Character Profile</span>
+            <span class="character-sheet-eyebrow">${t('characterSheet.title')}</span>
             <h2 class="character-sheet-name" id="character-title">${currentAgent.displayName || currentAgent.name}</h2>
           </div>
           <button class="character-close-btn" aria-label="${t('accessibility.closeCharacterSheet')}">
@@ -446,14 +446,14 @@ function render(): string {
                   <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
                   <line x1="16" x2="2" y1="8" y2="22"/>
                 </svg>
-                Backstory
+                ${t('characterSheet.backstory')}
               </h3>
               <button class="character-edit-btn" data-action="edit-backstory" aria-label="${t('accessibility.editBackstory')}">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
-                Edit
+                ${t('characterSheet.edit')}
               </button>
             </div>
             ${backstory ? `
@@ -466,8 +466,8 @@ function render(): string {
                     <line x1="16" x2="2" y1="8" y2="22"/>
                   </svg>
                 </div>
-                <h4 class="character-empty-title">No backstory yet</h4>
-                <p class="character-empty-text">Every great character has a story. What's theirs?</p>
+                <h4 class="character-empty-title">${t('characterSheet.noBackstoryYet')}</h4>
+                <p class="character-empty-text">${t('characterSheet.noBackstoryText')}</p>
               </div>
             `}
           </section>
@@ -483,14 +483,14 @@ function render(): string {
                   <line x1="9" y1="9" x2="9.01" y2="9"/>
                   <line x1="15" y1="9" x2="15.01" y2="9"/>
                 </svg>
-                Personality
+                ${t('characterSheet.personality')}
               </h3>
             </div>
             <div class="character-traits-grid">
-              ${traits.map(t => `
+              ${traits.map(tr => `
                 <div class="character-trait-card">
-                  <div class="character-trait-label">${t.label}</div>
-                  <div class="character-trait-value">${t.value}</div>
+                  <div class="character-trait-label">${t(tr.labelKey)}</div>
+                  <div class="character-trait-value">${tr.value}</div>
                 </div>
               `).join('')}
             </div>
@@ -509,14 +509,14 @@ function render(): string {
                   <path d="M11 17v.01"/>
                   <path d="M7 14v.01"/>
                 </svg>
-                Quirks & Habits
+                ${t('characterSheet.quirksHabits')}
               </h3>
               <button aria-label="${t('accessibility.add')}" class="character-edit-btn" data-action="add-quirk">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                Add
+                ${t('characterSheet.add')}
               </button>
             </div>
             ${quirks.length === 0 ? `
@@ -526,8 +526,8 @@ function render(): string {
                     <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/>
                   </svg>
                 </div>
-                <h4 class="character-empty-title">No quirks defined</h4>
-                <p class="character-empty-text">What makes this character unique? Add their habits and quirks.</p>
+                <h4 class="character-empty-title">${t('characterSheet.noQuirksDefined')}</h4>
+                <p class="character-empty-text">${t('characterSheet.noQuirksText')}</p>
               </div>
             ` : `
               <div class="character-quirks-list">
@@ -548,14 +548,14 @@ function render(): string {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
-                Catchphrases
+                ${t('characterSheet.catchphrases')}
               </h3>
               <button aria-label="${t('accessibility.add')}" class="character-edit-btn" data-action="add-catchphrase">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                Add
+                ${t('characterSheet.add')}
               </button>
             </div>
             ${catchphrases.length === 0 ? `
@@ -565,8 +565,8 @@ function render(): string {
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                   </svg>
                 </div>
-                <h4 class="character-empty-title">No catchphrases yet</h4>
-                <p class="character-empty-text">What does this character always say?</p>
+                <h4 class="character-empty-title">${t('characterSheet.noCatchphrasesYet')}</h4>
+                <p class="character-empty-text">${t('characterSheet.noCatchphrasesText')}</p>
               </div>
             ` : catchphrases.map((c, i) => `
               <div class="character-catchphrase-card" data-index="${i}">
@@ -574,11 +574,11 @@ function render(): string {
                 <div class="character-item-actions" role="button" tabindex="0">
                   <button class="character-item-btn" data-action="edit-catchphrase" data-index="${i}" aria-label="${t('accessibility.editCatchphrase')}">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Edit
+                    ${t('characterSheet.edit')}
                   </button>
                   <button class="character-item-btn character-item-btn--delete" data-action="delete-catchphrase" data-index="${i}" aria-label="${t('accessibility.deleteCatchphrase')}">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    Delete
+                    ${t('characterSheet.delete')}
                   </button>
                 </div>
               </div>
@@ -595,14 +595,14 @@ function render(): string {
                   <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
-                Relationships
+                ${t('characterSheet.relationships')}
               </h3>
               <button aria-label="${t('accessibility.add')}" class="character-edit-btn" data-action="add-relationship">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                Add
+                ${t('characterSheet.add')}
               </button>
             </div>
             ${relationships.length === 0 ? `
@@ -613,8 +613,8 @@ function render(): string {
                     <circle cx="9" cy="7" r="4"/>
                   </svg>
                 </div>
-                <h4 class="character-empty-title">No relationships defined</h4>
-                <p class="character-empty-text">Who are the important people in this character's life?</p>
+                <h4 class="character-empty-title">${t('characterSheet.noRelationshipsDefined')}</h4>
+                <p class="character-empty-text">${t('characterSheet.noRelationshipsText')}</p>
               </div>
             ` : `
               <div class="character-relationships-list">
@@ -632,7 +632,7 @@ function render(): string {
                       <div class="character-item-actions" role="button" tabindex="0">
                         <button class="character-item-btn character-item-btn--delete" data-action="delete-relationship" data-index="${i}" aria-label="${t('accessibility.deleteRelationship')}">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                          Remove
+                          ${t('characterSheet.remove')}
                         </button>
                       </div>
                     </div>
@@ -649,11 +649,11 @@ function render(): string {
 
 function getTraitLabel(value: number | undefined): string {
   if (value === undefined) return '';
-  if (value < 0.2) return 'Very Low';
-  if (value < 0.4) return 'Low';
-  if (value < 0.6) return 'Moderate';
-  if (value < 0.8) return 'High';
-  return 'Very High';
+  if (value < 0.2) return t('characterSheet.traitVeryLow');
+  if (value < 0.4) return t('characterSheet.traitLow');
+  if (value < 0.6) return t('characterSheet.traitModerate');
+  if (value < 0.8) return t('characterSheet.traitHigh');
+  return t('characterSheet.traitVeryHigh');
 }
 
 // ============================================================================

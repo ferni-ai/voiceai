@@ -9,7 +9,8 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { getSeedBalance } from '../services/cosmetics.service.js';
-import { t } from '../i18n/index.js';
+import { formatNumber, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import {
   claimDailyBonus,
   getCurrentStreak,
@@ -22,7 +23,6 @@ import { moments } from './moments/index.js';
 import { openGardenDashboard } from './garden-dashboard.ui.js';
 import { openGiftSeeds } from './gift-seeds.ui.js';
 import { openReferral } from './referral.ui.js';
-
 const log = createLogger('SeedsDisplay');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
@@ -40,8 +40,7 @@ let isInitialized = false;
 
 const ICONS = {
   seed: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 22c4-4 8-7.582 8-12a8 8 0 1 0-16 0c0 4.418 4 8 8 12z"/>
-    <path d="M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+    <path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>
   </svg>`,
   flame: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
@@ -363,19 +362,19 @@ export function renderSeedsSettingsCard(): string {
     const range = nextMilestone - previousMilestone;
     const progress = streak - previousMilestone;
     progressPercent = Math.min(100, (progress / range) * 100);
-    progressText = `${nextMilestone - streak} days until ${nextMilestone}-day streak bonus`;
+    progressText = tp('seedsDisplay.untilBonus', nextMilestone - streak, { goal: nextMilestone });
   }
 
   return `
     <div class="seeds-settings-card" data-seeds-card>
       <div class="seeds-settings-header">
-        <span class="seeds-settings-title">Your Seeds</span>
+        <span class="seeds-settings-title">${t('seedsDisplay.title')}</span>
         ${
           dailyAvailable
             ? `
           <div class="seeds-daily-bonus" data-daily-bonus>
             <span class="seeds-daily-bonus-icon">${ICONS.gift}</span>
-            <span class="seeds-daily-bonus-text">A little something</span>
+            <span class="seeds-daily-bonus-text">${t('seedsDisplay.dailyBonus')}</span>
           </div>
         `
             : ''
@@ -385,9 +384,9 @@ export function renderSeedsSettingsCard(): string {
       <div class="seeds-settings-row">
         <div class="seeds-settings-value">
           <span style="color: var(--persona-primary, #4a6741)">${ICONS.seed}</span>
-          <span class="seeds-settings-value-text" data-seeds-amount>${balance.toLocaleString()}</span>
+          <span class="seeds-settings-value-text" data-seeds-amount>${formatNumber(balance)}</span>
         </div>
-        <span class="seeds-settings-info">seeds to share</span>
+        <span class="seeds-settings-info">${t('seedsDisplay.seedsToShare')}</span>
       </div>
 
       ${
@@ -398,7 +397,7 @@ export function renderSeedsSettingsCard(): string {
             <span style="color: var(--color-semantic-warning)">${ICONS.flame}</span>
             <span class="seeds-settings-value-text">${streak}</span>
           </div>
-          <span class="seeds-settings-info">days in a row</span>
+          <span class="seeds-settings-info">${t('seedsDisplay.daysInARow')}</span>
         </div>
       `
           : ''
@@ -420,15 +419,15 @@ export function renderSeedsSettingsCard(): string {
       <div class="seeds-actions" role="group" tabindex="0">
         <button aria-label="${t('accessibility.myGarden')}" class="seeds-action-btn seeds-action-btn--primary" data-action="garden">
           ${ICONS.seedling}
-          <span>My Garden</span>
+          <span>${t('seedsDisplay.myGarden')}</span>
         </button>
         <button aria-label="${t('accessibility.shareSeedsWithFriends')}" class="seeds-action-btn" data-action="gift">
           ${ICONS.gift}
-          <span>Share</span>
+          <span>${t('common.share')}</span>
         </button>
         <button aria-label="${t('accessibility.bringAFriendToFerni')}" class="seeds-action-btn" data-action="invite">
           ${ICONS.share}
-          <span>Bring a friend</span>
+          <span>${t('seedsDisplay.bringAFriend')}</span>
         </button>
       </div>
     </div>
@@ -449,7 +448,7 @@ export function updateSeedsDisplay(): void {
   amountElements.forEach((el) => {
     const current = parseInt(el.textContent || '0', 10);
     if (current !== balance) {
-      el.textContent = balance.toLocaleString();
+      el.textContent = formatNumber(balance);
       el.classList.add('animating');
       trackedTimeout(() => el.classList.remove('animating'), 400);
     }
@@ -479,7 +478,7 @@ function handleDailyBonusClick(e: Event): void {
 
   const result = claimDailyBonus();
   if (result.claimed) {
-    moments.whisper(t('toasts.resultamountSeeds'), { type: 'success' });
+    moments.whisper(tp('toasts.seedsEarned', result.amount ?? 0), { type: 'success' });
     updateSeedsDisplay();
 
     // Re-render the card to remove the bonus button
@@ -490,7 +489,7 @@ function handleDailyBonusClick(e: Event): void {
       bindDailyBonusHandler();
     }
   } else {
-    moments.whisper(result.reason || 'Already claimed today', { type: 'info' });
+    moments.whisper(t('seedsDisplay.alreadyClaimed'), { type: 'info' });
   }
 }
 

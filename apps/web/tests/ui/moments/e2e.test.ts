@@ -383,16 +383,19 @@ describe('Moments System E2E', () => {
 
     it('should have warm, human messaging', async () => {
       const { BADGE_DEFINITIONS } = await import('@/ui/moments/trophy-room.js');
+      const { t } = await import('@/i18n/index.js');
 
-      // Check that badge quotes use warm human voice
+      // Check that badge quotes (English copy) use a warm human voice
       for (const badge of Object.values(BADGE_DEFINITIONS)) {
+        const quote = t(badge.quoteKey ?? '');
         // No corporate jargon
-        expect(badge.quote.toLowerCase()).not.toContain('user');
-        expect(badge.quote.toLowerCase()).not.toContain('utilize');
-        expect(badge.quote.toLowerCase()).not.toContain('leverage');
+        expect(quote.toLowerCase()).not.toContain('user');
+        expect(quote.toLowerCase()).not.toContain('utilize');
+        expect(quote.toLowerCase()).not.toContain('leverage');
 
-        // Has actual content (not empty)
-        expect(badge.quote.length).toBeGreaterThan(10);
+        // Real copy, not a missing key or an empty string
+        expect(quote).not.toBe(badge.quoteKey);
+        expect(quote.length).toBeGreaterThan(10);
       }
     });
   });

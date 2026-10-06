@@ -7,6 +7,7 @@
  * @module voice-journal/mood-icons
  */
 
+import { t } from '../../i18n/index.js';
 import type { MoodOption } from './types.js';
 
 // ============================================================================
@@ -128,19 +129,20 @@ const MOOD_ICONS = {
 // MOOD OPTIONS WITH ICONS
 // ============================================================================
 
-export const MOODS: MoodOption[] = [
-  { id: 'happy', icon: MOOD_ICONS.happy, label: 'Happy', score: 8 },
-  { id: 'calm', icon: MOOD_ICONS.calm, label: 'Calm', score: 7 },
-  { id: 'anxious', icon: MOOD_ICONS.anxious, label: 'Anxious', score: 3 },
-  { id: 'sad', icon: MOOD_ICONS.sad, label: 'Sad', score: 2 },
-  { id: 'angry', icon: MOOD_ICONS.angry, label: 'Frustrated', score: 3 },
-  { id: 'grateful', icon: MOOD_ICONS.grateful, label: 'Grateful', score: 9 },
-  { id: 'tired', icon: MOOD_ICONS.tired, label: 'Tired', score: 4 },
-  { id: 'excited', icon: MOOD_ICONS.excited, label: 'Excited', score: 9 },
-  { id: 'neutral', icon: MOOD_ICONS.neutral, label: 'Neutral', score: 5 },
-  { id: 'hopeful', icon: MOOD_ICONS.hopeful, label: 'Hopeful', score: 7 },
-  { id: 'overwhelmed', icon: MOOD_ICONS.overwhelmed, label: 'Overwhelmed', score: 2 },
-  { id: 'reflective', icon: MOOD_ICONS.reflective, label: 'Reflective', score: 6 },
+/** Mood options; display text is resolved from `labelKey` when rendered. */
+export const MOODS: Array<Omit<MoodOption, 'label'> & { labelKey: string }> = [
+  { id: 'happy', icon: MOOD_ICONS.happy, labelKey: 'accessibility.happy', score: 8 },
+  { id: 'calm', icon: MOOD_ICONS.calm, labelKey: 'accessibility.calm', score: 7 },
+  { id: 'anxious', icon: MOOD_ICONS.anxious, labelKey: 'voiceJournal.moodAnxious', score: 3 },
+  { id: 'sad', icon: MOOD_ICONS.sad, labelKey: 'accessibility.sad', score: 2 },
+  { id: 'angry', icon: MOOD_ICONS.angry, labelKey: 'accessibility.frustrated', score: 3 },
+  { id: 'grateful', icon: MOOD_ICONS.grateful, labelKey: 'voiceJournal.moodGrateful', score: 9 },
+  { id: 'tired', icon: MOOD_ICONS.tired, labelKey: 'voiceJournal.moodTired', score: 4 },
+  { id: 'excited', icon: MOOD_ICONS.excited, labelKey: 'accessibility.excited', score: 9 },
+  { id: 'neutral', icon: MOOD_ICONS.neutral, labelKey: 'accessibility.neutral', score: 5 },
+  { id: 'hopeful', icon: MOOD_ICONS.hopeful, labelKey: 'voiceJournal.moodHopeful', score: 7 },
+  { id: 'overwhelmed', icon: MOOD_ICONS.overwhelmed, labelKey: 'voiceJournal.moodOverwhelmed', score: 2 },
+  { id: 'reflective', icon: MOOD_ICONS.reflective, labelKey: 'voiceJournal.moodReflective', score: 6 },
 ];
 
 // ============================================================================
@@ -156,19 +158,20 @@ export function getMoodScore(moodId: string): number {
 }
 
 export function getMoodLabel(moodId: string): string {
-  return MOODS.find((m) => m.id === moodId)?.label || 'Neutral';
+  return t(MOODS.find((m) => m.id === moodId)?.labelKey ?? 'accessibility.neutral');
 }
 
 /**
  * Render mood options as HTML (for mood selector)
  */
 export function renderMoodOptions(): string {
-  return MOODS.map(
-    (mood) => `
-    <button class="mood-option" data-mood="${mood.id}" title="${mood.label}" aria-label="Select mood: ${mood.label}">
+  return MOODS.map((mood) => {
+    const label = t(mood.labelKey);
+    return `
+    <button class="mood-option" data-mood="${mood.id}" title="${label}" aria-label="${t('voiceJournal.selectMood', { mood: label })}">
       <span class="mood-icon">${mood.icon}</span>
     </button>
-  `
-  ).join('');
+  `;
+  }).join('');
 }
 

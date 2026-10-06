@@ -173,7 +173,7 @@ class TeamHuddleUI {
     this.panel = document.createElement('div');
     this.panel.className = 'team-huddle';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Team Huddle');
+    this.panel.setAttribute('aria-label', t('accessibility.teamHuddle'));
     this.panel.setAttribute('aria-modal', 'true');
 
     this.wrapper = document.createElement('div');
@@ -316,11 +316,11 @@ class TeamHuddleUI {
 
   private getTypeLabel(type: TeamHuddleData['type']): string {
     const labels = {
-      weekly: 'Weekly Check-in',
-      milestone: 'Milestone Celebration',
-      special: 'Special Moment',
+      weekly: t('teamHuddle.typeWeekly'),
+      milestone: t('teamHuddle.typeMilestone'),
+      special: t('teamHuddle.typeSpecial'),
     };
-    return labels[type] || 'Team Huddle';
+    return labels[type] || t('accessibility.teamHuddle');
   }
 
   private animateParticipantsIn(): void {

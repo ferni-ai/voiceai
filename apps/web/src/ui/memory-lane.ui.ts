@@ -25,12 +25,11 @@ import { toast } from './whisper.ui.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
 import { getMemoryMoodIcon, ANALYTICS_ICONS } from './icons/shared-icons.js';
 import { createEmptyState } from './components/empty-state.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('MemoryLane');
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// Types
 
 type TabId = 'highlights' | 'on-this-day' | 'timeline';
 
@@ -293,18 +292,18 @@ function createModal(): void {
   const headerText = document.createElement('div');
   const eyebrow = document.createElement('span');
   eyebrow.className = 'memory-lane-modal__eyebrow';
-  eyebrow.textContent = 'YOUR JOURNEY';
+  eyebrow.textContent = t('memoryLane.eyebrow');
 
   const title = document.createElement('h2');
   title.className = 'memory-lane-modal__title';
-  title.textContent = 'Memory Lane';
+  title.textContent = t('memoryLane.title');
 
   headerText.appendChild(eyebrow);
   headerText.appendChild(title);
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'memory-lane-modal__close';
-  closeBtn.setAttribute('aria-label', 'Close');
+  closeBtn.setAttribute('aria-label', t('memoryLane.closeLabel'));
   closeBtn.innerHTML = ICONS.close;
   closeBtn.addEventListener('click', closeMemoryLane);
 
@@ -322,7 +321,7 @@ function createModal(): void {
   // Loading state
   const loading = document.createElement('div');
   loading.className = 'memory-lane-loading';
-  loading.textContent = 'Loading memories...';
+  loading.textContent = t('memoryLane.loading');
   content.appendChild(loading);
 
   card.appendChild(header);
@@ -350,9 +349,9 @@ function createTabs(): HTMLElement {
   tabsContainer.setAttribute('role', 'tablist');
 
   const tabs: Array<{ id: TabId; label: string }> = [
-    { id: 'highlights', label: 'Highlights' },
-    { id: 'on-this-day', label: 'On This Day' },
-    { id: 'timeline', label: 'Timeline' },
+    { id: 'highlights', label: t('memoryLane.tabHighlights') },
+    { id: 'on-this-day', label: t('memoryLane.tabOnThisDay') },
+    { id: 'timeline', label: t('memoryLane.tabTimeline') },
   ];
 
   for (const tab of tabs) {
@@ -390,7 +389,7 @@ async function switchTab(tabId: TabId): Promise<void> {
   // Load and render data
   const content = document.getElementById('memory-lane-content');
   if (content) {
-    content.innerHTML = '<div class="memory-lane-loading">Loading...</div>';
+    content.innerHTML = `<div class="memory-lane-loading">${t('memoryLane.loadingShort')}</div>`;
   }
 
   await loadTabData(tabId);
@@ -546,11 +545,11 @@ function renderEmptyState(container: HTMLElement, tab: TabId): void {
 
     const text = document.createElement('p');
     text.className = 'memory-lane-empty__text';
-    text.textContent = 'No memories on this day';
+    text.textContent = t('memoryLane.emptyOnThisDay');
 
     const subtext = document.createElement('p');
     subtext.className = 'memory-lane-empty__subtext';
-    subtext.textContent = 'Check back on another date!';
+    subtext.textContent = t('memoryLane.emptyOnThisDaySubtext');
 
     empty.appendChild(text);
     empty.appendChild(subtext);
@@ -591,7 +590,7 @@ function createMemoryCard(memory: Memory, showYearsAgo = false): HTMLElement {
   if (memory.personaName) {
     const persona = document.createElement('span');
     persona.className = 'memory-lane-card__persona';
-    persona.textContent = `with ${memory.personaName}`;
+    persona.textContent = t('memoryLane.withPersona', { personaName: memory.personaName });
     card.appendChild(persona);
   }
 
@@ -605,15 +604,15 @@ function createMemoryCard(memory: Memory, showYearsAgo = false): HTMLElement {
     loveBtn.classList.add('memory-lane-card__reaction--active');
   }
   loveBtn.innerHTML = memory.userReaction === 'loved' ? ICONS.heartFilled : ICONS.heart;
-  loveBtn.setAttribute('aria-label', 'Love this memory');
-  loveBtn.setAttribute('title', 'Love');
+  loveBtn.setAttribute('aria-label', t('memoryLane.loveLabel'));
+  loveBtn.setAttribute('title', t('memoryLane.loveTitle'));
   loveBtn.addEventListener('click', () => handleReaction(memory.id, 'loved', loveBtn));
 
   const dismissBtn = document.createElement('button');
   dismissBtn.className = 'memory-lane-card__reaction memory-lane-card__reaction--dismiss';
   dismissBtn.innerHTML = ICONS.x;
-  dismissBtn.setAttribute('aria-label', 'Dismiss this memory');
-  dismissBtn.setAttribute('title', 'Not for me');
+  dismissBtn.setAttribute('aria-label', t('memoryLane.dismissLabel'));
+  dismissBtn.setAttribute('title', t('memoryLane.dismissTitle'));
   dismissBtn.addEventListener('click', () => handleReaction(memory.id, 'dismissed', dismissBtn));
 
   reactions.appendChild(loveBtn);
@@ -634,7 +633,7 @@ function formatMemoryDate(isoDate: string, yearAgo: number, showYearsAgo: boolea
   }
 
   if (yearAgo === 0) {
-    return 'Earlier this year';
+    return t('memoryLane.earlierThisYear');
   }
 
   return `${month} ${day}, ${date.getFullYear()}`;
@@ -656,7 +655,7 @@ async function handleReaction(
       if (reaction === 'loved') {
         button.classList.add('memory-lane-card__reaction--active');
         button.innerHTML = ICONS.heartFilled;
-        toast.success('Loved!');
+        toast.success(t('memoryLane.toastLoved'));
       } else {
         // Remove the card with animation
         const card = button.closest('.memory-lane-card');
@@ -664,7 +663,7 @@ async function handleReaction(
           card.classList.add('memory-lane-card--dismissed');
           setTimeout(() => card.remove(), DURATION.SLOW);
         }
-        toast.info('Got it');
+        toast.info(t('memoryLane.toastDismissed'));
       }
 
       // Update cache
@@ -672,7 +671,7 @@ async function handleReaction(
     }
   } catch (err) {
     log.warn('Failed to record reaction', { error: String(err), memoryId, reaction });
-    toast.error("Couldn't save that");
+    toast.error(t('memoryLane.toastError'));
   }
 }
 

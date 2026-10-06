@@ -13,6 +13,8 @@
  * @module visualizations/builders/growth-radar
  */
 
+import { t } from '../../../i18n/index.js';
+import { tp } from '../../../i18n/plural.js';
 import {
   createElement,
   createSvgElement,
@@ -53,22 +55,24 @@ const DIMENSION_ICONS: Record<string, string> = {
   financial: 'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
 };
 
+const pct = (value: number): number => Math.round(value * 100);
+
 // Narrative phrases for different growth patterns
-const GROWTH_NARRATIVES = {
+const GROWTH_NARRATIVE_KEYS = {
   balanced: [
-    "You're growing in beautiful balance",
-    "Your growth is wonderfully rounded",
-    "A harmonious path of development",
+    'visualizations.growthRadar.narrative.balanced.1',
+    'visualizations.growthRadar.narrative.balanced.2',
+    'visualizations.growthRadar.narrative.balanced.3',
   ],
   focused: [
-    "Deep roots in what matters most",
-    "Focused growth, powerful results",
-    "You know where to invest your energy",
+    'visualizations.growthRadar.narrative.focused.1',
+    'visualizations.growthRadar.narrative.focused.2',
+    'visualizations.growthRadar.narrative.focused.3',
   ],
   exploring: [
-    "Exploring new dimensions of yourself",
-    "Growth edges becoming growth strengths",
-    "Every direction holds possibility",
+    'visualizations.growthRadar.narrative.exploring.1',
+    'visualizations.growthRadar.narrative.exploring.2',
+    'visualizations.growthRadar.narrative.exploring.3',
   ],
 };
 
@@ -87,8 +91,8 @@ function buildWatch(
 
   // Header
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Growth'));
-  header.appendChild(createElement('p', '', 'Your fingerprint'));
+  header.appendChild(createElement('h3', '', t('accessibility.growth')));
+  header.appendChild(createElement('p', '', t('visualizations.growthRadar.fingerprintSubtitle')));
   container.appendChild(header);
 
   // Mini hexagon radar
@@ -128,7 +132,7 @@ function buildWatch(
     element: container,
     type: 'growth-radar',
     device: 'watch',
-    ariaLabel: `Growth radar showing ${topDimension.name} as strongest at ${Math.round(topDimension.value * 100)}%`,
+    ariaLabel: t('visualizations.growthRadar.ariaStrongest', { name: topDimension.name, percent: pct(topDimension.value) }),
   };
 }
 
@@ -149,8 +153,8 @@ function buildMobile(
 
   // Header
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Growth Radar'));
-  header.appendChild(createElement('p', '', 'Your multi-dimensional growth'));
+  header.appendChild(createElement('h3', '', t('visualizations.growthRadar.title')));
+  header.appendChild(createElement('p', '', t('visualizations.growthRadar.subtitle')));
   container.appendChild(header);
 
   // Top 4 dimensions as cards
@@ -206,11 +210,11 @@ function buildMobile(
     }
 
     const edgeHeader = createElement('div', 'mobile-card-header');
-    edgeHeader.appendChild(createElement('span', 'mobile-card-title', 'Growth Edge'));
+    edgeHeader.appendChild(createElement('span', 'mobile-card-title', t('visualizations.growthRadar.growthEdge')));
     edgeCard.appendChild(edgeHeader);
 
     const edgeInsight = createElement('p', 'mobile-insight');
-    edgeInsight.textContent = `${lowestDim.name} (${Math.round(lowestDim.value * 100)}%) presents the greatest opportunity.`;
+    edgeInsight.textContent = t('visualizations.growthRadar.edgeInsight', { name: lowestDim.name, percent: pct(lowestDim.value) });
     edgeCard.appendChild(edgeInsight);
     container.appendChild(edgeCard);
   }
@@ -218,7 +222,7 @@ function buildMobile(
   // Screen reader summary
   container.appendChild(
     createScreenReaderLabel(
-      `Growth radar with ${data.dimensions.length} dimensions. Overall growth: ${Math.round(data.overallGrowth * 100)}%.`
+      tp('visualizations.growthRadar.srMobile', data.dimensions.length, { percent: pct(data.overallGrowth) })
     )
   );
 
@@ -226,7 +230,7 @@ function buildMobile(
     element: container,
     type: 'growth-radar',
     device: 'mobile',
-    ariaLabel: `Growth radar showing ${data.dimensions.length} dimensions`,
+    ariaLabel: tp('visualizations.growthRadar.ariaMobile', data.dimensions.length),
   };
 }
 
@@ -257,11 +261,8 @@ function buildTablet(
   // ========== HEADER - Narrative headline ==========
   const header = createElement('div', 'gfp-header');
   
-  const eyebrow = createElement('span', 'gfp-eyebrow', 'YOUR GROWTH');
-  header.appendChild(eyebrow);
-  
-  const headline = createElement('h3', 'gfp-headline', narrative);
-  header.appendChild(headline);
+  header.appendChild(createElement('span', 'gfp-eyebrow', t('visualizations.growthRadar.eyebrow')));
+  header.appendChild(createElement('h3', 'gfp-headline', narrative));
   
   container.appendChild(header);
 
@@ -464,7 +465,7 @@ function buildTablet(
   percentText.setAttribute('font-size', '9');
   percentText.setAttribute('font-weight', '500');
   percentText.setAttribute('fill', 'var(--color-text-muted, #8a8279)');
-  percentText.textContent = 'overall';
+  percentText.textContent = t('visualizations.growthRadar.overall');
   overallGroup.appendChild(percentText);
   
   svg.appendChild(overallGroup);
@@ -482,7 +483,7 @@ function buildTablet(
   strengthCard.appendChild(strengthIcon);
   
   const strengthContent = createElement('div', 'gfp-insight-content');
-  const strengthLabel = createElement('span', 'gfp-insight-label', 'Strongest');
+  const strengthLabel = createElement('span', 'gfp-insight-label', t('visualizations.growthRadar.strongest'));
   const strengthValue = createElement('span', 'gfp-insight-value', topDim.name);
   setStyles(strengthValue, { color: getDimensionColor(topDim.name) });
   strengthContent.appendChild(strengthLabel);
@@ -498,7 +499,7 @@ function buildTablet(
   edgeCard.appendChild(edgeIcon);
   
   const edgeContent = createElement('div', 'gfp-insight-content');
-  const edgeLabel = createElement('span', 'gfp-insight-label', 'Growth Edge');
+  const edgeLabel = createElement('span', 'gfp-insight-label', t('visualizations.growthRadar.growthEdge'));
   const edgeValue = createElement('span', 'gfp-insight-value', growthEdge.name);
   setStyles(edgeValue, { color: getDimensionColor(growthEdge.name) });
   edgeContent.appendChild(edgeLabel);
@@ -511,7 +512,10 @@ function buildTablet(
   // Screen reader summary
   container.appendChild(
     createScreenReaderLabel(
-      `Growth fingerprint showing ${data.dimensions.length} dimensions. Overall growth: ${Math.round(data.overallGrowth * 100)}%. Strongest: ${topDim.name} at ${Math.round(topDim.value * 100)}%. Growth edge: ${growthEdge.name} at ${Math.round(growthEdge.value * 100)}%.`
+      tp('visualizations.growthRadar.srTablet', data.dimensions.length, {
+        overall: pct(data.overallGrowth), top: topDim.name, topPercent: pct(topDim.value),
+        edge: growthEdge.name, edgePercent: pct(growthEdge.value),
+      })
     )
   );
 
@@ -519,7 +523,7 @@ function buildTablet(
     element: container,
     type: 'growth-radar',
     device: 'tablet',
-    ariaLabel: `Growth fingerprint showing ${narrative}`,
+    ariaLabel: t('visualizations.growthRadar.ariaTablet', { narrative }),
   };
 }
 
@@ -528,23 +532,17 @@ function buildTablet(
  */
 function generateNarrative(data: GrowthRadarData): string {
   const values = data.dimensions.map(d => d.value);
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const range = max - min;
+  const range = Math.max(...values) - Math.min(...values);
   const avg = values.reduce((a, b) => a + b, 0) / values.length;
   
-  // Balanced growth (low variance)
-  if (range < 0.25 && avg > 0.5) {
-    return GROWTH_NARRATIVES.balanced[Math.floor(Math.random() * GROWTH_NARRATIVES.balanced.length)] ?? GROWTH_NARRATIVES.balanced[0] ?? '';
-  }
-  
-  // Focused growth (high variance, clear strengths)
-  if (range > 0.4) {
-    return GROWTH_NARRATIVES.focused[Math.floor(Math.random() * GROWTH_NARRATIVES.focused.length)] ?? GROWTH_NARRATIVES.focused[0] ?? '';
-  }
-  
-  // Exploring (moderate variance)
-  return GROWTH_NARRATIVES.exploring[Math.floor(Math.random() * GROWTH_NARRATIVES.exploring.length)] ?? GROWTH_NARRATIVES.exploring[0] ?? '';
+  // Balanced growth (low variance) / focused growth (high variance, clear strengths) / exploring (moderate variance)
+  const keys =
+    range < 0.25 && avg > 0.5
+      ? GROWTH_NARRATIVE_KEYS.balanced
+      : range > 0.4
+        ? GROWTH_NARRATIVE_KEYS.focused
+        : GROWTH_NARRATIVE_KEYS.exploring;
+  return t(keys[Math.floor(Math.random() * keys.length)] ?? keys[0] ?? '');
 }
 
 /**
@@ -552,7 +550,7 @@ function generateNarrative(data: GrowthRadarData): string {
  */
 function getGrowthEdge(dimensions: GrowthDimension[]): GrowthDimension {
   const sorted = [...dimensions].sort((a, b) => a.value - b.value);
-  return sorted[0] ?? { name: 'Unknown', value: 0, trend: 'stable' as const };
+  return sorted[0] ?? { name: t('visualizations.growthRadar.unknown'), value: 0, trend: 'stable' as const };
 }
 
 /**
@@ -582,6 +580,7 @@ function injectFingerPrintStyles(): void {
       font-size: 0.625rem;
       font-weight: 600;
       letter-spacing: 0.1em;
+      text-transform: uppercase;
       color: var(--color-text-muted, #8a8279);
       margin-bottom: 4px;
     }
@@ -738,7 +737,7 @@ function getDimensionColor(name: string): string {
  */
 function getTopDimension(dimensions: GrowthDimension[]): GrowthDimension {
   const sorted = [...dimensions].sort((a, b) => b.value - a.value);
-  return sorted[0] ?? { name: 'Unknown', value: 0, trend: 'stable' as const };
+  return sorted[0] ?? { name: t('visualizations.growthRadar.unknown'), value: 0, trend: 'stable' as const };
 }
 
 /**

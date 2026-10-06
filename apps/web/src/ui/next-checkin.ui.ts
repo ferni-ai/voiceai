@@ -12,7 +12,7 @@
  * @module NextCheckinUI
  */
 
-import { t } from '../i18n/index.js';
+import { formatDate, getLocale, t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
@@ -320,7 +320,7 @@ class NextCheckinWidget {
       this.element.innerHTML = `
         <div class="next-checkin-empty">
           ${ICONS.heart}
-          <span>Ferni will check in when there's something to share</span>
+          <span>${t('nextCheckin.empty')}</span>
         </div>
       `;
       return;
@@ -336,7 +336,7 @@ class NextCheckinWidget {
           ${initial}
         </div>
         <div class="next-checkin-content">
-          <div class="next-checkin-label">Next check-in</div>
+          <div class="next-checkin-label">${t('nextCheckin.label')}</div>
           <div class="next-checkin-time">
             ${ICONS.clock}
             ${timeStr}
@@ -345,7 +345,7 @@ class NextCheckinWidget {
             this.options.showPersona !== false
               ? `
             <div class="next-checkin-persona">
-              from ${this.nextOutreach.personaName}
+              ${t('nextCheckin.from', { name: this.nextOutreach.personaName })}
             </div>
           `
               : ''
@@ -405,18 +405,18 @@ function formatRelativeTime(date: Date): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
+  const rtf = new Intl.RelativeTimeFormat(getLocale(), { numeric: 'auto' });
+
   if (diffMs < 0) {
-    return 'Soon';
+    return t('nextCheckin.soon');
   } else if (diffMins < 60) {
-    return `in ${diffMins} min`;
+    return rtf.format(diffMins, 'minute');
   } else if (diffHours < 24) {
-    return `in ${diffHours}h`;
-  } else if (diffDays === 1) {
-    return 'Tomorrow';
+    return rtf.format(diffHours, 'hour');
   } else if (diffDays < 7) {
-    return `in ${diffDays} days`;
+    return rtf.format(diffDays, 'day');
   } else {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return formatDate(date, { month: 'short', day: 'numeric' });
   }
 }
 

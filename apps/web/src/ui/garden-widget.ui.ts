@@ -7,7 +7,8 @@
  * "Ferni doesn't have a paywall. It has a community."
  */
 
-import { t } from '../i18n/index.js';
+import { formatCurrency, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import type {
   GardenStatus,
   UserGarden,
@@ -46,6 +47,12 @@ const HEALTH_COLORS: Record<GardenHealth, string> = {
   thriving: 'var(--color-semantic-success)',
   growing: 'var(--color-accent-warm)',
   'needs-water': 'var(--color-semantic-warning)',
+};
+
+const STATUS_NAME_KEYS: Record<GardenerStatus, string> = {
+  seedling: 'gardenWidget.status.seedling',
+  gardener: 'gardenWidget.status.gardener',
+  'grove-keeper': 'gardenWidget.status.groveKeeper',
 };
 
 /**
@@ -107,11 +114,11 @@ async function fetchUserGarden(): Promise<UserGarden | null> {
 function getHealthMessage(garden: GardenStatus): string {
   switch (garden.health) {
     case 'thriving':
-      return `Ferni is free because ${garden.gardenersThisMonth} people planted seeds.`;
+      return tp('gardenWidget.health.thriving', garden.gardenersThisMonth);
     case 'growing':
-      return `${Math.round(garden.percentFunded)}% funded. Every seed helps.`;
+      return t('gardenWidget.health.growing', { percent: Math.round(garden.percentFunded) });
     case 'needs-water':
-      return 'The garden needs some love.';
+      return t('gardenWidget.health.needsWater');
   }
 }
 
@@ -129,7 +136,7 @@ function renderCompactWidget(): string {
   if (error || !garden) {
     return `
       <div class="garden-widget garden-widget--compact garden-widget--error">
-        <span class="garden-widget__error-text">Could not load garden status</span>
+        <span class="garden-widget__error-text">${t('gardenWidget.loadError')}</span>
       </div>
     `;
   }
@@ -140,7 +147,7 @@ function renderCompactWidget(): string {
   return `
     <div class="garden-widget garden-widget--compact" data-health="${garden.health}">
       <div class="garden-widget__header">
-        <span class="garden-widget__title">Ferni's Garden</span>
+        <span class="garden-widget__title">${t('gardenWidget.title')}</span>
         <button class="garden-widget__expand-btn" aria-label="${t('accessibility.expandGarden')}">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none"/>
@@ -156,7 +163,7 @@ function renderCompactWidget(): string {
       </div>
 
       <div class="garden-widget__footer">
-        <span class="garden-widget__stats">${garden.gardenersThisMonth} gardeners</span>
+        <span class="garden-widget__stats">${tp('gardenWidget.gardeners', garden.gardenersThisMonth)}</span>
         <span class="garden-widget__percent">${Math.round(garden.percentFunded)}%</span>
       </div>
     </div>
@@ -173,14 +180,12 @@ function renderExpandedWidget(): string {
   const healthColor = HEALTH_COLORS[garden.health];
   const progressPercent = Math.min(garden.percentFunded, 100);
   const userIcon = userGarden ? STATUS_ICONS[userGarden.status] : '';
-  const userStatusName = userGarden
-    ? userGarden.status.replace('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-    : '';
+  const userStatusName = userGarden ? t(STATUS_NAME_KEYS[userGarden.status]) : '';
 
   return `
     <div class="garden-widget garden-widget--expanded" data-health="${garden.health}">
       <div class="garden-widget__header">
-        <span class="garden-widget__title">Ferni's Garden</span>
+        <span class="garden-widget__title">${t('gardenWidget.title')}</span>
         <button class="garden-widget__collapse-btn" aria-label="${t('accessibility.collapseGarden')}">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M4 10l4-4 4 4" stroke="currentColor" stroke-width="1.5" fill="none"/>
@@ -189,8 +194,8 @@ function renderExpandedWidget(): string {
       </div>
 
       <div class="garden-widget__amount">
-        <span class="garden-widget__current">$${garden.currentMonth.toLocaleString()}</span>
-        <span class="garden-widget__goal">/ $${garden.monthlyGoal.toLocaleString()}</span>
+        <span class="garden-widget__current">${formatCurrency(garden.currentMonth, 'USD', { maximumFractionDigits: 0 })}</span>
+        <span class="garden-widget__goal">/ ${formatCurrency(garden.monthlyGoal, 'USD', { maximumFractionDigits: 0 })}</span>
       </div>
 
       <div class="garden-widget__progress-container garden-widget__progress-container--large">
@@ -204,10 +209,10 @@ function renderExpandedWidget(): string {
 
       <div class="garden-widget__actions" role="button" tabindex="0">
         <button aria-label="${t('accessibility.plantASeed')}" class="garden-widget__action-btn garden-widget__action-btn--primary">
-          Plant a Seed
+          ${t('gardenWidget.plantSeed')}
         </button>
         <button aria-label="${t('accessibility.becomeAGardener')}" class="garden-widget__action-btn garden-widget__action-btn--secondary">
-          Become a Gardener
+          ${t('gardenWidget.becomeGardener')}
         </button>
       </div>
 
@@ -217,7 +222,7 @@ function renderExpandedWidget(): string {
         <div class="garden-widget__user-status">
           <span class="garden-widget__user-icon">${userIcon}</span>
           <span class="garden-widget__user-label">${userStatusName}</span>
-          <span class="garden-widget__user-seeds">${userGarden.totalSeeds} seeds planted</span>
+          <span class="garden-widget__user-seeds">${tp('gardenWidget.seedsPlanted', userGarden.totalSeeds)}</span>
         </div>
       `
           : ''
@@ -234,12 +239,8 @@ function render(): void {
   // Attach event listeners
   const expandBtn = containerElement.querySelector('.garden-widget__expand-btn');
   const collapseBtn = containerElement.querySelector('.garden-widget__collapse-btn');
-  const plantSeedBtn = containerElement.querySelector(
-    '.garden-widget__action-btn--primary'
-  );
-  const becomeGardenerBtn = containerElement.querySelector(
-    '.garden-widget__action-btn--secondary'
-  );
+  const plantSeedBtn = containerElement.querySelector('.garden-widget__action-btn--primary');
+  const becomeGardenerBtn = containerElement.querySelector('.garden-widget__action-btn--secondary');
 
   expandBtn?.addEventListener('click', () => {
     state.isExpanded = true;
@@ -286,10 +287,7 @@ export async function initGardenWidget(container: HTMLElement): Promise<void> {
   render();
 
   // Fetch data
-  const [garden, userGarden] = await Promise.all([
-    fetchGardenStatus(),
-    fetchUserGarden(),
-  ]);
+  const [garden, userGarden] = await Promise.all([fetchGardenStatus(), fetchUserGarden()]);
 
   state = {
     ...state,
@@ -309,10 +307,7 @@ export async function refreshGarden(): Promise<void> {
   state.isLoading = true;
   render();
 
-  const [garden, userGarden] = await Promise.all([
-    fetchGardenStatus(),
-    fetchUserGarden(),
-  ]);
+  const [garden, userGarden] = await Promise.all([fetchGardenStatus(), fetchUserGarden()]);
 
   state = {
     ...state,
