@@ -128,9 +128,9 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
 
   // Peter John (Researcher)
   'peter-john': 'peter-john',
-  peter: 'peter-john',
+  peter: 'peter-john', // Ferni's Peter; Peter Lynch is "peter lynch" / "lynch"
+  'peter john': 'peter-john',
   john: 'peter-john', // Last name alias
-  lynch: 'peter-john', // Inspired by Peter Lynch
   researcher: 'peter-john',
   'stock-storyteller': 'peter-john',
 
@@ -194,6 +194,8 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
 
   // Peter Lynch (Stock Picker - Financial Legends)
   'peter-lynch': 'peter-lynch',
+  'peter lynch': 'peter-lynch',
+  lynch: 'peter-lynch',
   'stock-picker': 'peter-lynch',
   magellan: 'peter-lynch',
   'fidelity-legend': 'peter-lynch',

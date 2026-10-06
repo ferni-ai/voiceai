@@ -16,15 +16,16 @@
 
 import { AgentRegistry, type Agent } from './unified-registry.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import type {
-  IPersonaRegistry,
-  PersonaDefinition,
-  RegisteredPersona,
-  RegistrationOptions,
-  RegistrationResult,
-  PersonaQueryOptions,
+import {
+  generateHandoffToolName,
+  generateInitials,
+  type IPersonaRegistry,
+  type PersonaDefinition,
+  type RegisteredPersona,
+  type RegistrationOptions,
+  type RegistrationResult,
+  type PersonaQueryOptions,
 } from './persona-registry-interface.js';
-import { generateHandoffToolName, generateInitials } from './persona-registry-interface.js';
 
 const log = getLogger().child({ module: 'PersonaRegistry' });
 
@@ -198,11 +199,14 @@ class PersonaRegistryImpl implements IPersonaRegistry {
     const registered = definitionToRegisteredPersona(persona, registrationSource);
     runtimePersonas.set(personaId, registered);
 
-    // Update alias map
-    for (const alias of registered.allAliases) {
-      runtimeAliasMap.set(alias, personaId);
+    // A name another persona already answers to stays theirs (see alias-map.ts).
+    const taken: string[] = [];
+    for (const alias of [...registered.allAliases, registered.handoffToolName.toLowerCase()]) {
+      const owner = runtimeAliasMap.get(alias) ?? (await AgentRegistry.resolveAgentId(alias));
+      if (owner && owner !== personaId) taken.push(alias);
+      else runtimeAliasMap.set(alias, personaId);
     }
-    runtimeAliasMap.set(registered.handoffToolName.toLowerCase(), personaId);
+    if (taken.length > 0) log.warn({ personaId, taken }, 'Aliases already claimed; not taken');
 
     lastRegistrationTime = Date.now();
 
