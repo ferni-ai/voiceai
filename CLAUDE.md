@@ -1329,36 +1329,31 @@ For **all other** gaps and priorities (memory, tools, tests, debt), see **`docs/
 
 For **making the platform SOTA and better than human** (technical excellence + BTH completeness in `src/`), see **`docs/FOCUS-SOTA-BETTER-THAN-HUMAN.md`**.
 
-## 🔧 Function Calling System (Gemini Live, LEGACY)
+## 🔧 Function Calling (native)
 
-**NOTE:** This section only applies to the legacy Gemini Live pipeline. The production Cartesia cascade uses native function calling, and none of the JSON-workaround steps below apply to it.
+Voice (Cartesia cascade and Gemini Live) and `/api/chat` use **native function calling**. The JSON `{fn,args}` TTS-sanitizer workaround and LLMCompiler were removed.
 
-### Native Function Calling Configuration (NEW - Jan 2026)
+| Env Variable                | Default | Description                                                           |
+| --------------------------- | ------- | --------------------------------------------------------------------- |
+| `GEMINI_USE_NATIVE_FC`      | `true`  | Native function calling (forced on when `VOICE_PIPELINE=gemini-live`) |
+| `GEMINI_FC_MODE`            | `AUTO`  | Function calling mode: `AUTO`, `ANY` (forced), `NONE`                 |
+| `GEMINI_TURN_OPTIMIZATION`  | `false` | Enable turn-by-turn tool optimization (reduces bloat)                 |
+| `GEMINI_INJECTION_STRATEGY` | `static`| Tool injection: `static`, `turn-by-turn`, `hybrid`                    |
+| `GEMINI_MAX_TOOLS_PER_TURN` | `15`    | Maximum tools per turn (when turn optimization enabled)               |
+| `GEMINI_SEMANTIC_THRESHOLD` | `0.3`   | Minimum semantic score to include a tool (0-1)                        |
+| `GEMINI_STRICT_SCHEMAS`     | `true`  | Add `additionalProperties: false` to all schemas (anti-hallucination) |
+| `GEMINI_NATIVE_PROMPTS`     | `true`  | Prompts do not teach a `{fn,args}` text format                        |
+| `GEMINI_DEBUG_TOOLS`        | `false` | Log tool selection decisions for debugging                            |
 
-Gemini now supports **configurable native function calling** with turn-by-turn optimization. All options are controlled via environment variables.
-
-| Env Variable                | Default  | Description                                                           |
-| --------------------------- | -------- | --------------------------------------------------------------------- |
-| `GEMINI_USE_NATIVE_FC`      | `false`  | Enable native function calling (disables JSON workaround)             |
-| `GEMINI_FC_MODE`            | `AUTO`   | Function calling mode: `AUTO`, `ANY` (forced), `NONE`                 |
-| `GEMINI_JSON_FALLBACK`      | `true`   | Keep JSON workaround as fallback when native FC enabled               |
-| `GEMINI_TURN_OPTIMIZATION`  | `false`  | Enable turn-by-turn tool optimization (reduces bloat)                 |
-| `GEMINI_INJECTION_STRATEGY` | `static` | Tool injection: `static`, `turn-by-turn`, `hybrid`                    |
-| `GEMINI_MAX_TOOLS_PER_TURN` | `15`     | Maximum tools per turn (when turn optimization enabled)               |
-| `GEMINI_SEMANTIC_THRESHOLD` | `0.3`    | Minimum semantic score to include a tool (0-1)                        |
-| `GEMINI_STRICT_SCHEMAS`     | `true`   | Add `additionalProperties: false` to all schemas (anti-hallucination) |
-| `GEMINI_NATIVE_PROMPTS`     | `false`  | Use simplified prompts without JSON format instructions               |
-| `GEMINI_DEBUG_TOOLS`        | `false`  | Log tool selection decisions for debugging                            |
+Text chat executes tools via `src/agents/shared/tool-dispatcher.ts` (`executeTool`). TTS leak filters may still strip leftover JSON-shaped text so it is not spoken.
 
 #### Configuration Presets
 
 | Preset                | Use When                          | Env Setup                                                                                        |
 | --------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **Legacy** (default)  | Testing, debugging                | No env vars needed                                                                               |
-| **Native**            | Native FC is stable               | `GEMINI_USE_NATIVE_FC=true GEMINI_NATIVE_PROMPTS=true GEMINI_JSON_FALLBACK=false`                |
-| **Native + Fallback** | Transitioning from JSON           | `GEMINI_USE_NATIVE_FC=true GEMINI_JSON_FALLBACK=true`                                            |
-| **Optimized**         | Production with tool optimization | `GEMINI_USE_NATIVE_FC=true GEMINI_TURN_OPTIMIZATION=true GEMINI_INJECTION_STRATEGY=turn-by-turn` |
-| **Hybrid Optimized**  | Want optimization but safety      | `GEMINI_USE_NATIVE_FC=true GEMINI_TURN_OPTIMIZATION=true GEMINI_INJECTION_STRATEGY=hybrid`       |
+| **Native** (default)  | Gemini Live / cascade             | No extra flags — native FC is on                                                                 |
+| **Optimized**         | Production with tool optimization | `GEMINI_TURN_OPTIMIZATION=true GEMINI_INJECTION_STRATEGY=turn-by-turn`                           |
+| **Hybrid Optimized**  | Want optimization but safety      | `GEMINI_TURN_OPTIMIZATION=true GEMINI_INJECTION_STRATEGY=hybrid`                                 |
 
 #### Key Files
 
@@ -1393,54 +1388,29 @@ User: "Play some jazz"
 
 ---
 
-### JSON Workaround (Legacy Mode)
+**Tool Loading Pipeline:** `docs/architecture/TOOL-LOADING-SYSTEM.md`
 
-Ferni uses a **custom JSON-based function calling workaround** when native FC is disabled. This is the default, well-tested approach.
+### Key Files
 
-**Full documentation:** `docs/architecture/FUNCTION-CALLING-SYSTEM.md`
-**Tool Loading Pipeline:** `docs/architecture/TOOL-LOADING-SYSTEM.md` (config files, when tools load, debugging)
+| File                                           | Purpose                                      |
+| ---------------------------------------------- | -------------------------------------------- |
+| `src/agents/shared/gemini-fc-config.ts`        | Native FC defaults for Gemini Live           |
+| `src/agents/shared/tool-dispatcher.ts`         | Neutral `executeTool` for `/api/chat`        |
+| `src/agents/shared/function-call-format.ts`    | Registered tool names / types                |
+| `src/personas/bundles/shared/function-calling-base.md` | Native-FC catalog (not a `{fn,args}` format) |
 
-### The JSON Format (Single Source of Truth)
+### When Adding a New Tool
 
-```json
-{ "fn": "toolName", "args": { "key": "value" } }
-```
-
-### Key Files (ALL must stay in sync)
-
-| File                                                                    | Purpose                                    |
-| ----------------------------------------------------------------------- | ------------------------------------------ |
-| `src/personas/bundles/shared/function-calling-base.md`                  | Prompt instructions for JSON format        |
-| `src/personas/bundles/{persona}/identity/function-calling-specialty.md` | Per-persona specialty tools                |
-| `src/agents/shared/tool-call-sanitizer.ts`                              | Intercepts JSON from TTS stream            |
-| `src/agents/shared/json-function-executor.ts`                           | Routes JSON to actual tool implementations |
-| `src/agents/shared/function-call-format.ts`                             | TypeScript types and registered tools      |
-
-### When Adding a New Tool (ALL STEPS REQUIRED)
-
-1. Add to `function-calling-base.md` OR `function-calling-specialty.md`
-2. Add tool name to `tool-call-sanitizer.ts` → `TOOL_NAME_PATTERNS`
-3. Add route to `json-function-executor.ts` → `routeToTool()`
-4. Add to `function-call-format.ts` → `REGISTERED_TOOLS`
-5. Test with voice: say the trigger phrase, verify tool executes
-
-### ⛔ NEVER DO (Will Break Voice Agent)
-
-| Wrong                                         | Why It Breaks                              |
-| --------------------------------------------- | ------------------------------------------ |
-| Change JSON format without updating ALL files | Sanitizer won't detect calls               |
-| Add tool only to prompt (skip sanitizer)      | LLM outputs "toolName query xyz" as speech |
-| Add tool only to executor (skip prompt)       | LLM won't know to output JSON for it       |
-| "Clean up" or "refactor" these files          | System is tuned through trial and error    |
-| Change `fn`/`args` key names                  | Regex patterns won't match                 |
+1. Create the tool in `src/tools/domains/{domain}/index.ts`
+2. Export via `getToolDefinitions()` or `definitions`
+3. Test with voice or `POST /api/chat/tool`
 
 ### Debugging Tool Calls
 
 ```bash
 # Watch for these logs:
-🎯 JSON function call detected    # Good - JSON intercepted
-🔧 Executing JSON function call   # Good - tool running
-🚨 TOOL CALL LEAKAGE DETECTED     # Bad - LLM spoke instead of calling
+🔧 Executing tool                 # Good - dispatcher running
+🚨 TOOL CALL LEAKAGE DETECTED     # Bad - model spoke instead of calling
 ```
 
 ### Full Response Logging (Debug Mode)
@@ -1518,7 +1488,7 @@ User: "Help me process grief"
          ↓
 4. Merge and cap tools (TOOL_LIMIT env var, default unlimited)
          ↓
-5. Tools sent to LLM (native FC or meta-tool or JSON workaround)
+5. Tools sent to LLM (native FC or meta-tool)
          ↓
 6. LLM calls tool → tool executes
 ```
@@ -1550,7 +1520,7 @@ Ferni supports multiple tool routing strategies. Set via environment variables:
 | **Semantic Router** (default) | None                        | Embedding-based pre-filtering → LLM picks from ~40 tools |
 | **Meta-Tool**                 | `USE_META_TOOL=true`        | Single `executeTool` function, LLM picks from catalog   |
 | **FTIS**                      | `FTIS_ENABLED=true` (opt-in; default OFF since 2026-03) | Hierarchical classifier (domain → meta-tool) routes      |
-| **Native FC**                 | `GEMINI_USE_NATIVE_FC=true` | Gemini's native function calling                         |
+| **Native FC** (default)       | `GEMINI_USE_NATIVE_FC=true` | Gemini's native function calling                         |
 
 #### FTIS Hierarchical Classifier
 
@@ -1595,51 +1565,6 @@ If confidence < threshold → falls back to semantic router
 | `src/tools/semantic-router/advanced/intelligent/hierarchical-classifier.ts` | Two-stage ONNX classifier |
 | `models/ferni-router-v7-stage1/` | Domain classifier (44 labels) |
 | `models/ferni-router-v7-stage2/` | Meta-tool classifier (112 labels) |
-
-### LLMCompiler (Parallel Function Calling)
-
-Based on **ICML 2024 research**, LLMCompiler enables parallel tool execution with dependency tracking. Results: **3.7x latency reduction**, **6.7x cost savings**.
-
-#### Enable LLMCompiler
-
-```bash
-USE_LLMCOMPILER=true pnpm dev
-```
-
-#### How It Works
-
-Instead of sequential `{"fn":"tool","args":{}}` calls, Gemini outputs a DAG:
-
-```json
-[
-  { "id": "t1", "fn": "getWeather", "args": { "city": "NYC" }, "dependsOn": [] },
-  { "id": "t2", "fn": "playMusic", "args": { "genre": "jazz" }, "dependsOn": [] },
-  { "id": "t3", "fn": "planDay", "args": { "weather": "$t1" }, "dependsOn": ["t1"] }
-]
-```
-
-- **Batch 1:** `t1` and `t2` execute in parallel (no dependencies)
-- **Batch 2:** `t3` executes after `t1` (uses `$t1` as variable substitution)
-
-#### Key Files
-
-| File                                                   | Purpose                                   |
-| ------------------------------------------------------ | ----------------------------------------- |
-| `src/agents/shared/llm-compiler/planner.ts`            | Plan parsing, DAG validation              |
-| `src/agents/shared/llm-compiler/executor.ts`           | Parallel execution via `ParallelExecutor` |
-| `src/agents/shared/llm-compiler/joiner.ts`             | Result aggregation                        |
-| `src/personas/bundles/shared/function-calling-base.md` | LLM prompt with DAG format                |
-
-#### Debugging LLMCompiler
-
-```bash
-# Watch for these logs:
-🔀 LLMCompiler parallel execution  # Good - DAG detected
-⚡ Executing batch 1/2            # Good - parallel batch running
-📊 Parallelism ratio: 2.5         # Higher = more parallel
-```
-
-See `src/agents/shared/CLAUDE.md` for full documentation.
 
 ## Critical Rules
 

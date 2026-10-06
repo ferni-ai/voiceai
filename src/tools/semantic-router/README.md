@@ -449,6 +449,6 @@ console.log(`Registered ${registered} tools, ${failed.length} failed`);
 ## Related Files
 
 - `docs/architecture/TOOL-LOADING-SYSTEM.md` - How tools are configured
-- `src/agents/shared/json-function-executor.ts` - Current JSON tool executor
+- `src/agents/shared/tool-dispatcher.ts` - Neutral executeTool for text chat
 - `src/agents/shared/tool-call-sanitizer.ts` - Tool call sanitization
 
