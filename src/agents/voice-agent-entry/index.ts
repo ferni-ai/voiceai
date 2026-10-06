@@ -768,7 +768,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         /* ignore */
       }
 
-      clearCurrentActiveSession();
+      clearCurrentActiveSession(sessionId);
 
       try {
         const { handleSessionCleanup } = await import('../voice-agent/cleanup-handler.js');
@@ -986,7 +986,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       `[voice-agent-entry] 🧹 Registry cleanup: ${registryResult.cleaned} cleaned, ${registryResult.errors} errors, ${registryResult.totalDurationMs}ms\n`
     );
 
-    clearCurrentActiveSession();
+    clearCurrentActiveSession(sessionId);
 
     process.stderr.write(`[voice-agent-entry] 🧹 Running cleanup handlers...\n`);
     const { handleSessionCleanup } = await import('../voice-agent/cleanup-handler.js');

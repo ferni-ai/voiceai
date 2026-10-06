@@ -421,7 +421,7 @@
       "subtle": "rgba(26, 95, 42, 0.06)",
       "light": "#5f8f6a",
       "_note": "Peter Lynch (Financial Legend) - Fidelity forest green, from his bundle avatar colour",
-      "_textOnDarkContrast": "4.7:1 on #70605a - WCAG AA compliant"
+      "_textOnDarkContrast": "4.7:1 on #352e28 - WCAG AA compliant"
     },
     "bogle": {
       "primary": "#8b0000",
@@ -433,7 +433,7 @@
       "subtle": "rgba(139, 0, 0, 0.06)",
       "light": "#ae4c4c",
       "_note": "John Bogle (Financial Legend) - deep Vanguard red, from his bundle avatar colour",
-      "_textOnDarkContrast": "4.9:1 on #70605a - WCAG AA compliant"
+      "_textOnDarkContrast": "4.9:1 on #352e28 - WCAG AA compliant"
     },
 
     "_marketplace_description": "Marketplace agent colors - specialized support personas",

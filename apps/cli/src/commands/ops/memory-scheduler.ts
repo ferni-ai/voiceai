@@ -21,6 +21,7 @@ import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import * as yaml from 'yaml';
+import { getDeliveryJobs } from './delivery-jobs.js';
 
 const execAsync = promisify(exec);
 
@@ -181,6 +182,7 @@ function getMemoryJobs(): SchedulerJob[] {
       maxBackoff: '120s',
       timeout: '300s',
     },
+    ...getDeliveryJobs(CONFIG.uiServerUrl),
   ];
 }
 
