@@ -57,7 +57,7 @@ async function reminderFor(history: Turn[]): Promise<string> {
   if (values.variant === 'current') return TURN_STYLE_REMINDER;
   const { reminderForTurn } = await import('../../src/agents/personas/turn-shape.js');
   const userText = history[history.length - 1]?.text ?? '';
-  return reminderForTurn(userText, history.length);
+  return reminderForTurn(userText);
 }
 
 async function generate(system: string, history: Turn[], reminder: string): Promise<string> {
