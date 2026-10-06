@@ -19,9 +19,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { healthCheck, smokeTestFrontend } from './url-checks.js';
 
-// ============================================================================
 // CONFIGURATION
-// ============================================================================
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = findProjectRoot();
@@ -45,9 +43,7 @@ const CONFIG = {
   personaId: process.env.PERSONA_ID || 'ferni',
 };
 
-// ============================================================================
 // COLORS
-// ============================================================================
 
 const colors = {
   reset: '\x1b[0m',
@@ -69,9 +65,7 @@ const log = {
     console.log(`\n${colors.bold}${colors.cyan}━━━ ${msg} ━━━${colors.reset}\n`),
 };
 
-// ============================================================================
 // UTILITIES
-// ============================================================================
 
 function exec(cmd: string, options: { silent?: boolean } = {}): string {
   try {
@@ -108,9 +102,7 @@ function getServiceUrl(serviceName: string): string {
   }
 }
 
-// ============================================================================
 // BLUE-GREEN DEPLOYMENT HELPERS
-// ============================================================================
 
 interface BlueGreenResult {
   success: boolean;
@@ -230,9 +222,7 @@ function cleanupOldRevisions(serviceName: string, keepLatest: number = 2): void 
   }
 }
 
-// ============================================================================
 // DEPLOYMENT FUNCTIONS
-// ============================================================================
 
 interface DeployOptions {
   dryRun: boolean;
@@ -242,9 +232,7 @@ interface DeployOptions {
   skipGitCheck: boolean;
 }
 
-// ============================================================================
 // ASYNC DEPLOYMENT HELPERS
-// ============================================================================
 
 const LOGS_DIR = join(PROJECT_ROOT, '.deploy-logs');
 
