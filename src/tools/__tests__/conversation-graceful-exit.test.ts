@@ -47,16 +47,20 @@ describe('conversation-tools gracefulExit', () => {
     const result = await tools.gracefulExit.execute(
       { reason: 'harassment', briefNote: 'User was using slurs' },
       // @ts-expect-error - Partial context for testing
-      { ctx: { userData: {} } }
+      { ctx: { userData: { services: { sessionId: 'session-1' } } } }
     );
 
     // Verify the frontend signal was sent with correct parameters
-    expect(mockSendFrontendSignal).toHaveBeenCalledWith('conversation_end', {
-      reason: 'agent_exit',
-      exitType: 'harassment',
-      disconnectDelay: 1500,
-      timestamp: expect.any(Number),
-    });
+    expect(mockSendFrontendSignal).toHaveBeenCalledWith(
+      'conversation_end',
+      {
+        reason: 'agent_exit',
+        exitType: 'harassment',
+        disconnectDelay: 1500,
+        timestamp: expect.any(Number),
+      },
+      'session-1'
+    );
 
     // Verify the return value is an internal message
     expect(result).toContain('[INTERNAL:');
@@ -69,7 +73,7 @@ describe('conversation-tools gracefulExit', () => {
     await tools.gracefulExit.execute(
       { reason: 'uncomfortable' },
       // @ts-expect-error - Partial context for testing
-      { ctx: { userData: {} } }
+      { ctx: { userData: { services: { sessionId: 'session-1' } } } }
     );
 
     expect(mockSendFrontendSignal).toHaveBeenCalledWith(
@@ -77,7 +81,8 @@ describe('conversation-tools gracefulExit', () => {
       expect.objectContaining({
         reason: 'agent_exit',
         exitType: 'uncomfortable',
-      })
+      }),
+      'session-1'
     );
   });
 
@@ -87,7 +92,7 @@ describe('conversation-tools gracefulExit', () => {
     await tools.gracefulExit.execute(
       { reason: 'boundary_crossed', briefNote: 'Kept pushing despite redirects' },
       // @ts-expect-error - Partial context for testing
-      { ctx: { userData: {} } }
+      { ctx: { userData: { services: { sessionId: 'session-1' } } } }
     );
 
     expect(mockSendFrontendSignal).toHaveBeenCalledWith(
@@ -95,7 +100,8 @@ describe('conversation-tools gracefulExit', () => {
       expect.objectContaining({
         reason: 'agent_exit',
         exitType: 'boundary_crossed',
-      })
+      }),
+      'session-1'
     );
   });
 
@@ -105,7 +111,7 @@ describe('conversation-tools gracefulExit', () => {
     await tools.gracefulExit.execute(
       { reason: 'inappropriate_content' },
       // @ts-expect-error - Partial context for testing
-      { ctx: { userData: {} } }
+      { ctx: { userData: { services: { sessionId: 'session-1' } } } }
     );
 
     expect(mockSendFrontendSignal).toHaveBeenCalledWith(
@@ -113,7 +119,8 @@ describe('conversation-tools gracefulExit', () => {
       expect.objectContaining({
         reason: 'agent_exit',
         exitType: 'inappropriate_content',
-      })
+      }),
+      'session-1'
     );
   });
 
@@ -123,7 +130,7 @@ describe('conversation-tools gracefulExit', () => {
     await tools.gracefulExit.execute(
       { reason: 'safety_concern', briefNote: 'Something felt off' },
       // @ts-expect-error - Partial context for testing
-      { ctx: { userData: {} } }
+      { ctx: { userData: { services: { sessionId: 'session-1' } } } }
     );
 
     expect(mockSendFrontendSignal).toHaveBeenCalledWith(
@@ -131,7 +138,8 @@ describe('conversation-tools gracefulExit', () => {
       expect.objectContaining({
         reason: 'agent_exit',
         exitType: 'safety_concern',
-      })
+      }),
+      'session-1'
     );
   });
 
@@ -141,7 +149,7 @@ describe('conversation-tools gracefulExit', () => {
     await tools.gracefulExit.execute(
       { reason: 'unproductive' },
       // @ts-expect-error - Partial context for testing
-      { ctx: { userData: {} } }
+      { ctx: { userData: { services: { sessionId: 'session-1' } } } }
     );
 
     expect(mockSendFrontendSignal).toHaveBeenCalledWith(
@@ -149,7 +157,8 @@ describe('conversation-tools gracefulExit', () => {
       expect.objectContaining({
         reason: 'agent_exit',
         exitType: 'unproductive',
-      })
+      }),
+      'session-1'
     );
   });
 
@@ -162,7 +171,7 @@ describe('conversation-tools gracefulExit', () => {
     const result = await tools.gracefulExit.execute(
       { reason: 'uncomfortable' },
       // @ts-expect-error - Partial context for testing
-      { ctx: { userData: {} } }
+      { ctx: { userData: { services: { sessionId: 'session-1' } } } }
     );
 
     // Still returns internal message even if signal failed
@@ -176,7 +185,7 @@ describe('conversation-tools gracefulExit', () => {
     const result = await tools.gracefulExit.execute(
       { reason: 'harassment' },
       // @ts-expect-error - Partial context for testing
-      { ctx: { userData: {} } }
+      { ctx: { userData: { services: { sessionId: 'session-1' } } } }
     );
 
     expect(mockSendFrontendSignal).toHaveBeenCalled();

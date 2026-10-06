@@ -2124,7 +2124,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       // FRONTEND PUBLISHER - Required for music state messages to frontend
       // Without this, the frontend won't know when music is playing (hoisted to module level)
       try {
-        initializeFrontendPublisher(room);
+        initializeFrontendPublisher(sessionId, room);
         diag.entry(`🎭 [${persona.id}] Frontend publisher initialized`);
       } catch (pubErr) {
         log.warn({ error: String(pubErr) }, '⚠️ Failed to initialize frontend publisher');

@@ -150,7 +150,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     // 🎧 CRITICAL: Send music state to frontend via FrontendPublisher
     // Without this, the frontend Never knows about music state changes!
     // ==========================================================================
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
     if (publisher.isConnected()) {
       const track = event.track
         ? { name: event.track.name, artist: event.track.artist }
@@ -185,7 +185,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     // ==========================================================================
     // 🎧 Send track_started state to frontend with full track info
     // ==========================================================================
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
     if (publisher.isConnected()) {
       // Check if this is an "Our Song" (shared musical memory)
       let ourSongInfo: { isOurSong: boolean; context?: string } | undefined;
@@ -313,7 +313,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     log.info({ track: track.name }, '🎧 Track fading - notifying frontend');
 
     // Send fading state to frontend for visual feedback
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
     if (publisher.isConnected()) {
       publisher
         .sendMusicState('fading', { name: track.name, artist: track.artist })
@@ -330,7 +330,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     // ==========================================================================
     // 🎧 Send track_ended (stopped) state to frontend
     // ==========================================================================
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
     if (publisher.isConnected()) {
       publisher.sendMusicState('stopped').catch((err) => {
         log.error({ error: String(err) }, '🎧 Error sending track_ended to frontend');
@@ -400,7 +400,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
 
     log.info({ reason: event.reason }, '🎧 Ducking started - notifying frontend');
 
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
     if (publisher.isConnected()) {
       const state = djController.getState();
       const track = state.currentTrack
@@ -418,7 +418,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
 
     log.info('🎧 Ducking ended - notifying frontend to restore volume');
 
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
     if (publisher.isConnected()) {
       const state = djController.getState();
       const track = state.currentTrack

@@ -1941,7 +1941,7 @@ async function loadRelationshipData(contactId: string): Promise<void> {
     const timelineRes = await apiFetch(`/api/contacts/${contactId}/interactions`);
     if (timelineRes.ok) {
       const timelineData = await timelineRes.json();
-      state.timeline = (timelineData.history || []).map((item: TimelineItem) => ({
+      state.timeline = (timelineData.interactions || []).map((item: TimelineItem) => ({
         ...item,
         title: formatInteractionTitle(item),
       }));
@@ -1951,12 +1951,12 @@ async function loadRelationshipData(contactId: string): Promise<void> {
     }
 
     // Load gifts
-    const giftsRes = await apiFetch(`/api/gifts/contact/${contactId}/history`);
+    const giftsRes = await apiFetch(`/api/gifts/${encodeURIComponent(contactId)}`);
     if (giftsRes.ok) {
       const giftsData = await giftsRes.json();
       state.gifts = [
-        ...(giftsData.history?.given || []).map((g: Gift) => ({ ...g, direction: 'given' as const })),
-        ...(giftsData.history?.received || []).map((g: Gift) => ({ ...g, direction: 'received' as const })),
+        ...(giftsData.given || []).map((g: Gift) => ({ ...g, direction: 'given' as const })),
+        ...(giftsData.received || []).map((g: Gift) => ({ ...g, direction: 'received' as const })),
       ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     } else {
       // Empty gifts is fine - user just hasn't logged any gifts

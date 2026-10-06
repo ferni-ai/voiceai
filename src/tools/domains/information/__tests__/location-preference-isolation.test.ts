@@ -16,20 +16,23 @@ import {
   setCurrentActiveSession,
 } from '../location-preference.js';
 
-afterEach(() => clearCurrentActiveSession());
+afterEach(() => {
+  clearCurrentActiveSession('session-a');
+  clearCurrentActiveSession('session-b');
+});
 
 describe('location preference isolation between calls', () => {
   it('returns the city for the session that set it', () => {
-    setCurrentActiveSession('ada', 'St. George, UT', 'session-a');
-    setCurrentActiveSession('bea', 'Miami, FL', 'session-b');
+    setCurrentActiveSession({ sessionId: 'session-a', userId: 'ada', location: 'St. George, UT' });
+    setCurrentActiveSession({ sessionId: 'session-b', userId: 'bea', location: 'Miami, FL' });
 
     expect(getCurrentSessionLocation('session-a')).toBe('St. George, UT');
     expect(getCurrentSessionLocation('session-b')).toBe('Miami, FL');
   });
 
   it('ending one call does not clear the other', () => {
-    setCurrentActiveSession('ada', 'St. George, UT', 'session-a');
-    setCurrentActiveSession('bea', 'Miami, FL', 'session-b');
+    setCurrentActiveSession({ sessionId: 'session-a', userId: 'ada', location: 'St. George, UT' });
+    setCurrentActiveSession({ sessionId: 'session-b', userId: 'bea', location: 'Miami, FL' });
     clearCurrentActiveSession('session-a');
 
     expect(getCurrentSessionLocation('session-a')).toBeNull();
@@ -37,8 +40,8 @@ describe('location preference isolation between calls', () => {
   });
 
   it('does not guess a city when two calls are live and no session is given', () => {
-    setCurrentActiveSession('ada', 'St. George, UT', 'session-a');
-    setCurrentActiveSession('bea', 'Miami, FL', 'session-b');
+    setCurrentActiveSession({ sessionId: 'session-a', userId: 'ada', location: 'St. George, UT' });
+    setCurrentActiveSession({ sessionId: 'session-b', userId: 'bea', location: 'Miami, FL' });
 
     expect(getCurrentSessionLocation()).toBeNull();
   });

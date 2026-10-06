@@ -1018,7 +1018,7 @@ export function createSanitizerWithMusicFallback(
           const userTopic = options.recentTopics?.[0];
           const result = detectVulnerabilityWithContext(cleanResponseText, userTopic);
           if (result.detected && result.isEmotional) {
-            const publisher = getFrontendPublisher();
+            const publisher = getFrontendPublisher(sessionId);
             const sendData = async (type: string, payload: Record<string, unknown>) => {
               await publisher.sendData(type, payload);
             };

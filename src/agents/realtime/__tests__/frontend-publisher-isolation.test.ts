@@ -1,9 +1,8 @@
 /**
- * One worker process hosts several calls (USE_SINGLE_PROCESS=true); the
- * publisher was a process singleton that every new call re-pointed with
- * setRoom, so call A's app messages went to call B's room once B started.
- * Each call now gets its own publisher; when it can't tell which call a
- * message belongs to and more than one is live, it sends nothing.
+ * One worker process hosts several calls (USE_SINGLE_PROCESS=true).
+ * Each call now gets its own publisher keyed by session ID; when it can't
+ * tell which call a message belongs to and more than one is live, it sends
+ * nothing.
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -11,7 +10,6 @@ import {
   initializeFrontendPublisher,
   releaseFrontendPublisher,
   resetFrontendPublisher,
-  runInCall,
   type RoomRef,
 } from '../frontend-publisher.js';
 
@@ -33,7 +31,7 @@ afterEach(() => resetFrontendPublisher());
 describe('frontend publisher isolation between calls', () => {
   it('with one call live, behaves as before', async () => {
     const a = room('a');
-    initializeFrontendPublisher(a.ref);
+    initializeFrontendPublisher('a', a.ref);
     expect(await getFrontendPublisher().sendData('ping', {})).toBe(true);
     expect(a.sent).toHaveLength(1);
   });
@@ -41,16 +39,11 @@ describe('frontend publisher isolation between calls', () => {
   it("sends each call's messages only to that call's room", async () => {
     const a = room('a');
     const b = room('b');
-    await runInCall(a.ref, async () => {
-      initializeFrontendPublisher(a.ref);
-      await new Promise((r) => setTimeout(r, 1));
-      await getFrontendPublisher().sendData('from-a', {});
-    });
-    await runInCall(b.ref, async () => {
-      initializeFrontendPublisher(b.ref);
-      await getFrontendPublisher().sendData('from-b', {});
-    });
-    await runInCall(a.ref, () => getFrontendPublisher().sendData('later-from-a', {}));
+    initializeFrontendPublisher('a', a.ref);
+    initializeFrontendPublisher('b', b.ref);
+    await getFrontendPublisher('a').sendData('from-a', {});
+    await getFrontendPublisher('b').sendData('from-b', {});
+    await getFrontendPublisher('a').sendData('later-from-a', {});
     expect(a.sent.map((m) => JSON.parse(m).type)).toEqual(['from-a', 'later-from-a']);
     expect(b.sent.map((m) => JSON.parse(m).type)).toEqual(['from-b']);
   });
@@ -58,8 +51,8 @@ describe('frontend publisher isolation between calls', () => {
   it('sends nothing when two calls are live and the message has no call', async () => {
     const a = room('a');
     const b = room('b');
-    runInCall(a.ref, () => initializeFrontendPublisher(a.ref));
-    runInCall(b.ref, () => initializeFrontendPublisher(b.ref));
+    initializeFrontendPublisher('a', a.ref);
+    initializeFrontendPublisher('b', b.ref);
     expect(await getFrontendPublisher().sendData('who-am-i', {})).toBe(false);
     expect(a.sent).toHaveLength(0);
     expect(b.sent).toHaveLength(0);
@@ -68,22 +61,21 @@ describe('frontend publisher isolation between calls', () => {
   it('falls back to the one call left after the other ends', async () => {
     const a = room('a');
     const b = room('b');
-    initializeFrontendPublisher(a.ref);
-    initializeFrontendPublisher(b.ref);
-    releaseFrontendPublisher(a.ref);
+    initializeFrontendPublisher('a', a.ref);
+    initializeFrontendPublisher('b', b.ref);
+    releaseFrontendPublisher('a');
     expect(await getFrontendPublisher().sendData('ping', {})).toBe(true);
     expect(b.sent).toHaveLength(1);
   });
 });
 
 describe('a call that ends', () => {
-  it('is forgotten when its room disconnects', async () => {
-    const { EventEmitter } = await import('node:events');
-    const a = Object.assign(new EventEmitter(), room('a').ref);
+  it('is forgotten when its session is released', async () => {
+    const a = room('a');
     const b = room('b');
-    runInCall(a, () => initializeFrontendPublisher(a));
-    runInCall(b.ref, () => initializeFrontendPublisher(b.ref));
-    a.emit('disconnected');
+    initializeFrontendPublisher('a', a.ref);
+    initializeFrontendPublisher('b', b.ref);
+    releaseFrontendPublisher('a');
     expect(await getFrontendPublisher().sendData('ping', {})).toBe(true);
     expect(b.sent).toHaveLength(1);
   });

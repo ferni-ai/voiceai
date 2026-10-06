@@ -341,14 +341,28 @@ export async function updateVoiceSketch(
 // ============================================================================
 
 /**
- * Persist social graph and clear rate limits at session end.
+ * Save the social graph at session end, then drop it from memory so the worker
+ * doesn't keep every caller's graph. Kept in memory if the save fails.
  */
 export async function persistSocialGraphOnEnd(userId: string): Promise<void> {
   try {
-    const { persistSocialGraph, clearRateLimits } = await import('../realtime-persistence.js');
-    await persistSocialGraph(userId);
+    const { clearRateLimits } = await import('../realtime-persistence.js');
+    const { getUserGraph, persistGraphToFirestore, releaseSocialGraph } =
+      await import('../social-graph/index.js');
+    const graph = getUserGraph(userId);
+    // The final save skips the mid-call rate limit so the last turns aren't lost.
+    const isSaved =
+      !graph ||
+      graph.people.size === 0 ||
+      userId === 'anonymous' ||
+      (await persistGraphToFirestore(userId, graph));
     clearRateLimits(userId);
-    log.debug({ userId }, '📇 Final social graph persistence completed');
+    if (isSaved) {
+      releaseSocialGraph(userId);
+      log.debug({ userId }, '📇 Final social graph persistence completed');
+    } else {
+      log.warn({ userId }, 'Social graph not saved at session end; keeping it in memory');
+    }
   } catch (persistError) {
     log.warn({ error: String(persistError) }, 'Failed to persist social graph on session end');
   }

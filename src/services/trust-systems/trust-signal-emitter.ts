@@ -19,6 +19,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { createSessionBindings } from '../../utils/session-bindings.js';
 import type { TrustContext } from './index.js';
 import type { GrowthReflection } from './growth-reflection.js';
 import type { CelebrationOpportunity, SmallWin } from './small-wins.js';
@@ -67,8 +68,15 @@ export type SignalEmitCallback = (signal: TrustSignalPayload) => void;
 // STATE
 // ============================================================================
 
-let emitCallback: SignalEmitCallback | null = null;
-const recentSignals = new Map<string, number>(); // Deduplication
+interface SessionSignalEmitter {
+  emit: SignalEmitCallback;
+  recentSignals: Map<string, number>; // Deduplication
+}
+
+// The emit* helpers take no session ID, so a signal is delivered only while a
+// single call is live; with several calls it is dropped rather than shown to
+// another caller.
+const sessionEmitters = createSessionBindings<SessionSignalEmitter>();
 const SIGNAL_COOLDOWN_MS = 60000; // Don't repeat same signal type for 60s
 
 // ============================================================================
@@ -76,19 +84,23 @@ const SIGNAL_COOLDOWN_MS = 60000; // Don't repeat same signal type for 60s
 // ============================================================================
 
 /**
- * Set the callback used to emit signals to the frontend.
+ * Set the callback a session uses to emit signals to its frontend.
  * This is typically wired up in the voice agent's data message handler.
  */
-export function setSignalEmitter(callback: SignalEmitCallback): void {
-  emitCallback = callback;
-  log.info('Trust signal emitter initialized');
+export function setSignalEmitter(sessionId: string, callback: SignalEmitCallback): void {
+  sessionEmitters.bind(sessionId, { emit: callback, recentSignals: new Map() });
+  log.info({ sessionId }, 'Trust signal emitter initialized');
 }
 
 /**
- * Clear the signal emitter.
+ * Clear a session's emitter, or every emitter (for tests) when no session ID is given.
  */
-export function clearSignalEmitter(): void {
-  emitCallback = null;
+export function clearSignalEmitter(sessionId?: string): void {
+  if (sessionId) {
+    sessionEmitters.release(sessionId);
+  } else {
+    sessionEmitters.clear();
+  }
 }
 
 // ============================================================================
@@ -100,10 +112,12 @@ export function clearSignalEmitter(): void {
  * Handles deduplication and rate limiting.
  */
 export function emitTrustSignal(signal: TrustSignalPayload): void {
-  if (!emitCallback) {
-    log.debug('No emitter set, signal not sent:', signal.type);
+  const emitter = sessionEmitters.resolve();
+  if (!emitter) {
+    log.debug('No single live session emitter, signal not sent:', signal.type);
     return;
   }
+  const { recentSignals } = emitter;
 
   // Deduplicate - don't send same signal type too frequently
   const dedupeKey = `${signal.type}:${signal.title.slice(0, 20)}`;
@@ -126,7 +140,7 @@ export function emitTrustSignal(signal: TrustSignalPayload): void {
     }
   }
 
-  emitCallback(signal);
+  emitter.emit(signal);
   log.info({ type: signal.type, title: signal.title }, '💚 Trust signal emitted');
 }
 

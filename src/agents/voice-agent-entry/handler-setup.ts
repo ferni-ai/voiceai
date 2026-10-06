@@ -21,6 +21,7 @@ import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
 import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
+import { setupFrontendPublisher } from './handler-frontend-publisher.js';
 
 /** Inputs for handler setup */
 export interface HandlerSetupInput {
@@ -393,10 +394,19 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
         process.stderr.write(`[voice-agent-entry] ⏰ Idle timeout - disconnecting session ${sessionId}\n`);
         try {
           const { sendFrontendSignal } = await import('../../services/frontend-signal.js');
-          await sendFrontendSignal('conversation_end', { reason: 'idle_timeout', disconnectDelay: 0, timestamp: Date.now() });
-        } catch { /* Non-critical */ }
-        try { if (ctx.room.isConnected) await ctx.room.disconnect(); }
-        catch (disconnectErr) { process.stderr.write(`[voice-agent-entry] ⚠️ Error disconnecting: ${disconnectErr}\n`); }
+          await sendFrontendSignal(
+            'conversation_end',
+            { reason: 'idle_timeout', disconnectDelay: 0, timestamp: Date.now() },
+            sessionId
+          );
+        } catch {
+          /* Non-critical */
+        }
+        try {
+          if (ctx.room.isConnected) await ctx.room.disconnect();
+        } catch (disconnectErr) {
+          process.stderr.write(`[voice-agent-entry] ⚠️ Error disconnecting: ${disconnectErr}\n`);
+        }
       })();
     },
   });
@@ -521,7 +531,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   process.stderr.write(`[voice-agent-entry] 📡 Data channel handler set up\n`);
 
   // Frontend publisher + signals
-  await setupFrontendPublisher(ctx, sessionPersona, sessionId);
+  await setupFrontendPublisher(ctx, sessionPersona, sessionId, cleanupHandlers);
 
   // Async events, prosody bridge, bundle runtime, humanization
   await setupNonCriticalServices(ctx, sessionPersona, sessionId, userId, services, userData);
@@ -542,49 +552,6 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
 // =========================================================================
 // INTERNAL HELPERS
 // =========================================================================
-
-async function setupFrontendPublisher(
-  ctx: JobContext,
-  sessionPersona: PersonaConfig,
-  sessionId: string
-): Promise<void> {
-  try {
-    const { initializeFrontendPublisher, getFrontendPublisher } = await import('../realtime/index.js');
-    initializeFrontendPublisher(ctx.room);
-
-    const { initFrontendSignal } = await import('../../services/frontend-signal.js');
-    initFrontendSignal(async (type, data) => {
-      const publisher = getFrontendPublisher();
-      if (publisher.isConnected()) await publisher.sendData(type, data ?? {});
-    });
-    process.stderr.write(`[voice-agent-entry] 📤 Frontend publisher initialized\n`);
-
-    try {
-      const { initHumanizationSignalEmitter } = await import('../../services/humanization/humanization-signal-emitter.js');
-      initHumanizationSignalEmitter(async (type, payload) => {
-        const publisher = getFrontendPublisher();
-        if (publisher.isConnected()) await publisher.sendData(type, payload);
-      });
-      process.stderr.write(`[voice-agent-entry] 🌉 Humanization signal emitter initialized\n`);
-    } catch { /* Non-critical */ }
-
-    try {
-      const { setSignalEmitter } = await import('../../services/trust-systems/trust-signal-emitter.js');
-      setSignalEmitter((signal) => {
-        const publisher = getFrontendPublisher();
-        if (publisher.isConnected()) {
-          void publisher.sendData('trust_signal', {
-            signalType: signal.type, title: signal.title, message: signal.message,
-            personaId: signal.personaId || sessionPersona.id, timing: signal.timing, metadata: signal.metadata,
-          });
-        }
-      });
-      process.stderr.write(`[voice-agent-entry] 💚 Trust signal emitter initialized\n`);
-    } catch { /* Non-critical */ }
-  } catch (pubErr) {
-    process.stderr.write(`[voice-agent-entry] Frontend publisher failed (non-fatal): ${pubErr}\n`);
-  }
-}
 
 async function setupNonCriticalServices(
   ctx: JobContext,

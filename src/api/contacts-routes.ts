@@ -793,8 +793,8 @@ export async function handleContactsRoutes(
   }
 
   // 404 for unmatched contact routes
-  sendError(res, 'Not found', 404);
-  return true;
+  // Unmatched contact routes: the server answers 404
+  return false;
 }
 
 export default handleContactsRoutes;

@@ -377,7 +377,7 @@ describe('Better-Than-Human Wrap-Up E2E', () => {
         const tools = createConversationTools();
         const mockContext = {
           ctx: {
-            userData: { name: 'TestUser' },
+            userData: { name: 'TestUser', services: { sessionId: 'session-1' } },
           },
         };
 
@@ -391,7 +391,8 @@ describe('Better-Than-Human Wrap-Up E2E', () => {
           'wrap_up',
           expect.objectContaining({
             sentiment: 'warm',
-          })
+          }),
+          'session-1'
         );
       });
 
@@ -400,7 +401,7 @@ describe('Better-Than-Human Wrap-Up E2E', () => {
         const result = await tools.wrapUp.execute(
           { sentiment: 'warm' },
           // @ts-expect-error - Partial context for testing
-          { ctx: { userData: {} } }
+          { ctx: { userData: { services: { sessionId: 'session-1' } } } }
         );
 
         expect(typeof result).toBe('string');
@@ -412,7 +413,7 @@ describe('Better-Than-Human Wrap-Up E2E', () => {
         const result = await tools.wrapUp.execute(
           { sentiment: 'encouraging' },
           // @ts-expect-error - Partial context for testing
-          { ctx: { userData: {} } }
+          { ctx: { userData: { services: { sessionId: 'session-1' } } } }
         );
 
         expect(typeof result).toBe('string');
@@ -427,7 +428,7 @@ describe('Better-Than-Human Wrap-Up E2E', () => {
         await tools.endConversation.execute(
           { reason: 'goodbye_complete' },
           // @ts-expect-error - Partial context for testing
-          { ctx: { userData: {} } }
+          { ctx: { userData: { services: { sessionId: 'session-1' } } } }
         );
 
         expect(mockSendFrontendSignal).toHaveBeenCalledWith(
@@ -435,7 +436,8 @@ describe('Better-Than-Human Wrap-Up E2E', () => {
           expect.objectContaining({
             reason: 'goodbye_complete',
             disconnectDelay: expect.any(Number),
-          })
+          }),
+          'session-1'
         );
       });
 
@@ -445,7 +447,7 @@ describe('Better-Than-Human Wrap-Up E2E', () => {
         await tools.endConversation.execute(
           { reason: 'natural_end' },
           // @ts-expect-error - Partial context for testing
-          { ctx: { userData: {} } }
+          { ctx: { userData: { services: { sessionId: 'session-1' } } } }
         );
 
         // natural_end gets converted to goodbye_complete for frontend
@@ -453,7 +455,8 @@ describe('Better-Than-Human Wrap-Up E2E', () => {
           'conversation_end',
           expect.objectContaining({
             reason: 'goodbye_complete',
-          })
+          }),
+          'session-1'
         );
       });
     });
@@ -465,7 +468,7 @@ describe('Better-Than-Human Wrap-Up E2E', () => {
         await tools.gracefulExit.execute(
           { reason: 'harassment' },
           // @ts-expect-error - Partial context for testing
-          { ctx: { userData: {} } }
+          { ctx: { userData: { services: { sessionId: 'session-1' } } } }
         );
 
         expect(mockSendFrontendSignal).toHaveBeenCalledWith(
@@ -473,7 +476,8 @@ describe('Better-Than-Human Wrap-Up E2E', () => {
           expect.objectContaining({
             reason: 'agent_exit',
             exitType: 'harassment',
-          })
+          }),
+          'session-1'
         );
       });
     });
@@ -549,21 +553,29 @@ describe('Better-Than-Human Wrap-Up E2E', () => {
       await tools.wrapUp.execute(
         { sentiment: 'warm' },
         // @ts-expect-error - Partial context for testing
-        { ctx: { userData: {} } }
+        { ctx: { userData: { services: { sessionId: 'session-1' } } } }
       );
 
       // Step 5: Frontend signal sent
-      expect(mockSendFrontendSignal).toHaveBeenCalledWith('wrap_up', expect.any(Object));
+      expect(mockSendFrontendSignal).toHaveBeenCalledWith(
+        'wrap_up',
+        expect.any(Object),
+        'session-1'
+      );
 
       // Step 6: Agent calls endConversation (simulated)
       await tools.endConversation.execute(
         { reason: 'goodbye_complete' },
         // @ts-expect-error - Partial context for testing
-        { ctx: { userData: {} } }
+        { ctx: { userData: { services: { sessionId: 'session-1' } } } }
       );
 
       // Step 7: Conversation end signal sent
-      expect(mockSendFrontendSignal).toHaveBeenCalledWith('conversation_end', expect.any(Object));
+      expect(mockSendFrontendSignal).toHaveBeenCalledWith(
+        'conversation_end',
+        expect.any(Object),
+        'session-1'
+      );
     });
 
     it('should handle heavy conversation goodbye with emotional echo', () => {

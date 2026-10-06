@@ -693,7 +693,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       registerSessionForReconnection(sessionId, session);
 
       // Set active session for native tool location fallback
-      setCurrentActiveSession(userId || 'anonymous', undefined, sessionId);
+      setCurrentActiveSession({ sessionId, userId: userId || 'anonymous' });
 
       // Action dispatcher
       if (userId && session) {

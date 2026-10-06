@@ -661,7 +661,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     ): Promise<void> => {
       try {
         const { getFrontendPublisher } = await import('../realtime/index.js');
-        const pub = getFrontendPublisher();
+        const pub = getFrontendPublisher(sessionId || undefined);
         if (pub?.isConnected()) await pub.sendData(type, payload);
       } catch {
         // Non-critical — frontend publisher may not be initialized yet
