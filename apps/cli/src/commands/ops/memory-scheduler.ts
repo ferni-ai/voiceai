@@ -239,7 +239,9 @@ async function createOrUpdateJob(
     `--time-zone="${job.timezone}"`,
     `--uri="${job.uri}"`,
     `--http-method=${job.httpMethod}`,
-    `--headers="Content-Type=application/json,X-CloudScheduler=true"`,
+    action === 'update'
+      ? `--update-headers="Content-Type=application/json,X-CloudScheduler=true"`
+      : `--headers="Content-Type=application/json,X-CloudScheduler=true"`,
     `--oidc-service-account-email="${CONFIG.serviceAccount}"`,
     `--description="${job.description}"`,
   ];
