@@ -164,20 +164,26 @@ export async function persistExtractedDetails(
 // SOCIAL GRAPH PERSISTENCE
 // ============================================================================
 
+export type SocialGraphPersistResult = 'saved' | 'empty' | 'skipped' | 'failed';
+
 /**
- * Persist social graph (people mentioned) to Firestore
+ * Persist social graph (people mentioned) to Firestore.
+ * `force` skips the mid-session rate limit so a call ending can write the last mentions.
  */
-export async function persistSocialGraph(userId: string): Promise<void> {
+export async function persistSocialGraph(
+  userId: string,
+  options?: { force?: boolean }
+): Promise<SocialGraphPersistResult> {
   if (!userId || userId === 'anonymous') {
-    return;
+    return 'empty';
   }
 
-  // Rate limit saves
+  // Rate limit saves. Session end passes force so the final mentions are not dropped.
   const timestamps = lastSaveTimestamps.get(userId) || { details: 0, socialGraph: 0 };
   const now = Date.now();
-  if (now - timestamps.socialGraph < MIN_SAVE_INTERVAL_MS) {
+  if (!options?.force && now - timestamps.socialGraph < MIN_SAVE_INTERVAL_MS) {
     log.debug({ userId }, 'Skipping social graph save (rate limited)');
-    return;
+    return 'skipped';
   }
 
   const result = await withRetry(async () => {
@@ -197,7 +203,23 @@ export async function persistSocialGraph(userId: string): Promise<void> {
     timestamps.socialGraph = now;
     lastSaveTimestamps.set(userId, timestamps);
     log.info({ userId, peopleCount: result.peopleCount }, '💾 Persisted social graph to Firestore');
+    return 'saved';
   }
+  if (result && 'skipped' in result) return 'empty';
+  return 'failed';
+}
+
+/**
+ * Write the call's social graph, then drop it from this process.
+ * A failed write keeps the in-memory graph so the mentions are not discarded.
+ */
+export async function persistAndEvictSocialGraph(userId: string): Promise<void> {
+  const outcome = await persistSocialGraph(userId, { force: true });
+  if (outcome === 'saved' || outcome === 'empty') {
+    const { clearSocialGraph } = await import('../social-graph/index.js');
+    clearSocialGraph(userId);
+  }
+  clearRateLimits(userId);
 }
 
 // ============================================================================
@@ -217,7 +239,7 @@ export async function saveRealtimeData(
   }
 
   // Run saves in parallel (fire and forget)
-  const promises: Array<Promise<void>> = [];
+  const promises: Array<Promise<unknown>> = [];
 
   if (extractedDetails && extractedDetails.length > 0) {
     promises.push(persistExtractedDetails(userId, extractedDetails));

@@ -345,9 +345,8 @@ export async function updateVoiceSketch(
  */
 export async function persistSocialGraphOnEnd(userId: string): Promise<void> {
   try {
-    const { persistSocialGraph, clearRateLimits } = await import('../realtime-persistence.js');
-    await persistSocialGraph(userId);
-    clearRateLimits(userId);
+    const { persistAndEvictSocialGraph } = await import('../realtime-persistence.js');
+    await persistAndEvictSocialGraph(userId);
     log.debug({ userId }, '📇 Final social graph persistence completed');
   } catch (persistError) {
     log.warn({ error: String(persistError) }, 'Failed to persist social graph on session end');
