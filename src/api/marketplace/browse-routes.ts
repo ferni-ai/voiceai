@@ -71,6 +71,55 @@ interface MarketplaceRegistryData {
  * Load the marketplace registry from apps/marketplace-agents/registry.json
  * with caching to avoid repeated filesystem reads
  */
+const PRIVATE_MANIFEST_KEYS = new Set([
+  'llm_context',
+  'voice',
+  'function_calling',
+  'hooks',
+  'mcp',
+  'secrets',
+  'credentials',
+  'api_keys',
+]);
+
+function readPublicManifest(agentId: string): Record<string, unknown> | null {
+  const candidates = [
+    join(__dirname, `../../../apps/marketplace-agents/agents/${agentId}/persona.manifest.json`),
+    join(__dirname, `../../../src/personas/bundles/${agentId}/persona.manifest.json`),
+  ];
+  for (const path of candidates) {
+    if (!existsSync(path)) continue;
+    try {
+      const raw = JSON.parse(readFileSync(path, 'utf-8')) as Record<string, unknown>;
+      const publicFields: Record<string, unknown> = {};
+      if (raw.identity && typeof raw.identity === 'object') {
+        const identity = raw.identity as Record<string, unknown>;
+        publicFields.identity = {
+          id: identity.id,
+          name: identity.name,
+          display_name: identity.display_name,
+          description: identity.description,
+        };
+      }
+      if (raw.version) publicFields.version = raw.version;
+      if (raw.colors) publicFields.colors = raw.colors;
+      for (const [key, value] of Object.entries(raw)) {
+        if (PRIVATE_MANIFEST_KEYS.has(key)) continue;
+        if (key === 'identity' || key === 'llm_context') continue;
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+          // Skip nested private blobs; identity already copied above
+          continue;
+        }
+        publicFields[key] = value;
+      }
+      return publicFields;
+    } catch (error) {
+      log.warn({ agentId, path, error: String(error) }, 'Failed to read agent manifest');
+    }
+  }
+  return null;
+}
+
 function loadMarketplaceRegistry(): MarketplaceRegistryData | null {
   const now = Date.now();
 
@@ -211,6 +260,42 @@ export async function handleBrowseRoutes(
       sendJson(res, 500, { error: err.message });
       return true;
     }
+  }
+
+  // GET /api/marketplace/agents/:id/manifest — public fields only, registry IDs
+  if (pathname.match(/^\/api\/marketplace\/agents\/[^/]+\/manifest$/) && method === 'GET') {
+    const agentId = pathname.split('/')[4];
+    if (!agentId || !/^[a-z0-9-]+$/.test(agentId)) {
+      sendJson(res, 404, { error: 'Agent not found' });
+      return true;
+    }
+
+    const registry = loadMarketplaceRegistry();
+    const listed = registry?.agents.find((agent) => agent.id === agentId);
+    if (!listed) {
+      sendJson(res, 404, { error: 'Agent not found' });
+      return true;
+    }
+
+    const fromDisk = readPublicManifest(agentId);
+    sendJson(res, 200, {
+      manifest: {
+        id: listed.id,
+        name: listed.name,
+        displayName: listed.display_name,
+        description: listed.short_description || listed.description,
+        shortDescription: listed.short_description,
+        category: listed.category,
+        tags: listed.tags,
+        icon: listed.icon,
+        version: listed.version,
+        author: listed.author,
+        license: listed.license,
+        colors: listed.colors,
+        ...(fromDisk ?? {}),
+      },
+    });
+    return true;
   }
 
   // GET /api/marketplace/browse/agents/:id - Get agent details
